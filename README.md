@@ -202,10 +202,14 @@ We collect data as you use the product, like when you accept suggestions or comm
 Data we collect includes:
 
 - Conversation history
-- Tool usage
-- String replacements
+- Product interactions
 
 Data is retained for up to 2 years, and may be used to improve our products, including for training purposes. You can delete your data at any time here: [Console Support](https://support.anthropic.com/en/articles/9015913-how-to-get-support).
+
+Additionally, we log operational data to help us improve the product, including:
+
+- Errors, logged to [Sentry](https://sentry.io)
+- Telemetry, logged to [Statsig](https://www.statsig.com)
 
 ## Issues & bugs
 
