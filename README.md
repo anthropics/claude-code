@@ -9,12 +9,6 @@ $ npm install --global @anthropic-ai/claude-cli
 $ claude
 ```
 
-## Why did we build this?
-
-Many developers already use Claude for coding. We built Claude CLI as a testing ground for new features and ways AI can take action to help developers, helping us improve Claude as a hands-on coding assistant for everyone.
-
-We collect data as you use the product, like when you accept suggestions or commands, to make the experience better. Your usage data and direct feedback help us fix problems, improve performance, and make Claude more reliable. Since this is a beta version, please review any suggested code or changes before using them.
-
 ## Features
 
 - Chat with Claude in your terminal
@@ -24,7 +18,80 @@ We collect data as you use the product, like when you accept suggestions or comm
 - Use bash commands: type `!` to switch to bash mode
 - Use tools: type `/` to switch to tool mode (or use `claude run <tool>`)
 
-### Custom Context (advanced)
+#### From the CLI
+
+```sh
+# Create a commit
+$ claude run commit
+
+# Create a PR
+$ claude run pr
+
+# Prompt, then exit
+$ claude ask "2+2"
+4
+
+# Pipe in
+$ cat ./foo.csv | claude
+
+# Pipe out
+$ claude ask "2+2" > out.txt
+$ cat out.txt
+4
+
+# Pipe in/out
+$ cat ./employees.csv | claude ask "who is the newest?" | ...
+```
+
+#### From the REPL
+
+Claude CLI will have read access to the directory you run it in. It will prompt you for write access when needed.
+
+From the REPL, you can ask Claude anything. Claude will choose which tools to use to answer your question:
+
+```sh
+$ claude repl
+
+> find files related to wombats
+...
+
+> edit foo.py to add an argument bar to baz
+...
+
+> which commit reverted flux capacitating?
+... (claude will search commit history)
+
+> npm run lint
+... (claude will run the command and fix lint errors)
+
+> how does foo work?
+... (claude will pull in relevant files and summarize them to answer)
+```
+
+You can also run commands directly from the REPL by prefixing them with `/`:
+
+```sh
+> /help
+... (claude will show you a list of available commands)
+
+> /commit
+... (claude will create a git commit)
+
+> /pr
+... (claude will create a git PR)
+
+> /push
+... (claude will push your changes to the remote branch)
+```
+
+Run bash commands directly with `!`. (Claude CLI will see the output, but will not react until you ask):
+
+```sh
+> !pyright
+... (claude will run the command and show you the output)
+```
+
+#### Custom Context (advanced)
 
 Claude automatically understands your codebase and uses it to help with tasks. You can also add custom context variables:
 
@@ -114,6 +181,12 @@ claude log      # View message history
 claude error    # View error logs
 ```
 
+## Why did we build this?
+
+Many developers already use Claude for coding. We built Claude CLI as a testing ground for new features and ways AI can take action to help developers, helping us improve Claude as a hands-on coding assistant for everyone.
+
+We collect data as you use the product, like when you accept suggestions or commands, to make the experience better. Your usage data and direct feedback help us fix problems, improve performance, and make Claude more reliable. Since this is a beta version, please review any suggested code or changes before using them.
+
 ## Data usage
 
 We collect data as you use the product, like when you accept suggestions or commands, to make the experience better. Your usage data and direct feedback help us fix problems, improve performance, and make Claude more reliable.
@@ -126,6 +199,6 @@ Data we collect includes:
 
 Data is retained for up to 2 years, and may be used to improve our products, including for training purposes. You can delete your data at any time here: [Console Support](https://support.anthropic.com/en/articles/9015913-how-to-get-support).
 
-# Issues & bugs
+## Issues & bugs
 
 Please file any issues or bugs on [GitHub](https://github.com/anthropics/claude-cli/issues).
