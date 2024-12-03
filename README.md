@@ -2,7 +2,9 @@
 
 ![](https://img.shields.io/badge/Node.js-18%2B-brightgreen?style=flat-square)
 
-Use Claude, Anthropic's AI assistant, right from your terminal. Claude can understand your codebase, edit files, run terminal commands, and handle entire workflows for you.
+> Use Claude, Anthropic's AI assistant, right from your terminal. Claude can understand your codebase, edit files, run terminal commands, and handle entire workflows for you.
+
+You may notice that Claude CLI is not always perfect. We are working on improving the accuracy of the tools and the quality of the responses. We'd love your feedback on what we can do to improve!
 
 ```sh
 $ npm install --global @anthropic-ai/claude-cli
@@ -186,6 +188,12 @@ claude error    # View error logs
 Many developers already use Claude for coding. We built Claude CLI as a testing ground for new features and ways AI can take action to help developers, helping us improve Claude as a hands-on coding assistant for everyone.
 
 We collect data as you use the product, like when you accept suggestions or commands, to make the experience better. Your usage data and direct feedback help us fix problems, improve performance, and make Claude more reliable. Since this is a beta version, please review any suggested code or changes before using them.
+
+## Design philosophy
+
+We've designed Claude CLI to be a simple, easy-to-use tool for developers. It can run in a variety of contexts, including your terminal, VSCode terminal, and more. It is intentionally simple, with good defaults baked in out of the box.
+
+Claude CLI is token-hungry by design, in order to offer the best possible performance -- it will use as many tokens as needed to answer your question and write code. That said, we take advantage of [prompt caching](https://www.anthropic.com/news/prompt-caching) to reduce costs and improve performance where possible.
 
 ## Data usage
 
