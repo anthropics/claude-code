@@ -4,12 +4,12 @@
 
 > Use Claude, Anthropic's AI assistant, right from your terminal. Claude can understand your codebase, edit files, run terminal commands, and handle entire workflows for you.
 
-You may notice that Claude CLI is not always perfect. We are working on improving the accuracy of the tools and the quality of the responses. We'd love your feedback on what we can do to improve!
-
 ```sh
 $ npm install --global @anthropic-ai/claude-cli
 $ claude
 ```
+
+You may notice that Claude CLI is not always perfect. We are working on improving the accuracy of the tools and the quality of the responses. We'd love your feedback on what we can do to improve!
 
 ## Features
 
