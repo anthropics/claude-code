@@ -113,7 +113,11 @@ Claude also automatically reads STYLE.md files, and uses them as style guides. A
 
 ## Benchmarks
 
-[@sidb todo]
+We measure Claude CLI's performance on [SWE-Bench Verified](https://www.swebench.com/), an industry benchmark comprising 500 hand-selected issues from popular open-source repositories. Each benchmark task represents a genuine development challenge extracted from production environments.
+
+Our testing methodology simulates real-world development scenarios: we create isolated environments for each coding task and grant Claude CLI the necessary permissions to operate without human intervention. Given just the problem statement and basic instructions, the agent works autonomously — writing, testing, and modifying code until it arrives at a solution. The resulting patch files are then evaluated through SWE-Bench's grading system, where Claude CLI achieves a 47% success rate on these real-world programming challenges. [@sidb todo: link to results]
+
+While benchmarks should be interpreted thoughtfully—as they may not perfectly mirror performance in specific development contexts—these results demonstrate Claude CLI's ability to autonomously tackle genuine software engineering tasks. We continuously measure against industry benchmarks to track our progress and ensure we're delivering meaningful improvements in agent capabilities.
 
 ## Safety & Security
 
