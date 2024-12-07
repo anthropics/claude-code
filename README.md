@@ -201,7 +201,7 @@ Claude CLI is token-hungry by design, in order to offer the best possible perfor
 
 ## Data usage
 
-We collect data as you use the product, like when you accept suggestions or commands, to make the experience better. Your usage data and direct feedback help us fix problems, improve performance, and make Claude more reliable.
+We collect data as you use the product, like when you accept suggestions or commands, to make the experience better. This data is feedback per our [Commercial Terms of Service](https://www.anthropic.com/legal/commercial-terms). Your usage data and direct feedback help us fix problems, improve performance, and make Claude more reliable.
 
 Data we collect includes:
 
