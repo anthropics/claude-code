@@ -111,14 +111,6 @@ $ claude context delete "test command"
 
 Claude also automatically reads STYLE.md files, and uses them as style guides. Ask Claude to look at a few files in your codebase and generate a STYLE.md for you to describe conventions around imports, formatting, types, and so on.
 
-## Benchmarks
-
-We measure Claude CLI's performance on [SWE-Bench Verified](https://www.swebench.com/), an industry benchmark comprising 500 hand-selected issues from popular open-source repositories. Each benchmark task represents a genuine development challenge extracted from production environments.
-
-Our testing methodology simulates real-world development scenarios: we create isolated environments for each coding task and grant Claude CLI the necessary permissions to operate without human intervention. Given just the problem statement and basic instructions, the agent works autonomously — writing, testing, and modifying code until it arrives at a solution. The resulting patch files are then evaluated through SWE-Bench's grading system, where Claude CLI achieves a 47% success rate on these real-world programming challenges. [@sidb todo: link to results]
-
-While benchmarks should be interpreted thoughtfully—as they may not perfectly mirror performance in specific development contexts—these results demonstrate Claude CLI's ability to autonomously tackle genuine software engineering tasks. We continuously measure against industry benchmarks to track our progress and ensure we're delivering meaningful improvements in agent capabilities.
-
 ## Safety & Security
 
 We take security seriously, and have implemented a number of safety features to make agentic coding safe and less error-prone:
@@ -191,8 +183,6 @@ claude error    # View error logs
 
 Many developers already use Claude for coding. We built Claude CLI as a testing ground for new features and ways AI can take action to help developers, helping us improve Claude as a hands-on coding assistant for everyone.
 
-We collect data as you use the product, like when you accept suggestions or commands, to make the experience better. Your usage data and direct feedback help us fix problems, improve performance, and make Claude more reliable. Since this is a beta version, please review any suggested code or changes before using them.
-
 ## Design philosophy
 
 We've designed Claude CLI to be a simple, easy-to-use tool for developers. It can run in a variety of contexts, including your terminal, VSCode terminal, and more. It is intentionally simple, with good defaults baked in out of the box.
@@ -201,14 +191,14 @@ Claude CLI is token-hungry by design, in order to offer the best possible perfor
 
 ## Data usage
 
-We collect data as you use the product, like when you accept suggestions or commands, to make the experience better. This data is feedback per our [Commercial Terms of Service](https://www.anthropic.com/legal/commercial-terms). Your usage data and direct feedback help us fix problems, improve performance, and make Claude more reliable.
+Claude CLI is a beta research preview. We collect data as you use it, like when you accept suggestions or commands, to make the experience better, including improving our models. This data is feedback per our [Commercial Terms of Service](https://www.anthropic.com/legal/commercial-terms). If we train on any Feedback data obtained via Claude CLI, however, we will use it only for reinforcement learning training, not generative pretraining. Your usage data and direct feedback help us fix problems, improve performance, and make Claude more reliable.
 
 Data we collect includes:
 
 - Conversation history
 - Product interactions
 
-Data is retained for up to 2 years, and may be used to improve our products, including for training purposes. You can delete your data at any time here: [Console Support](https://support.anthropic.com/en/articles/9015913-how-to-get-support).
+Data is retained for up to 2 years. You can request deletion of your data at any time here: [Console Support](https://support.anthropic.com/en/articles/9015913-how-to-get-support).
 
 Additionally, we log operational data to help us improve the product, including:
 
