@@ -207,4 +207,9 @@ Additionally, we log operational data to help us improve the product, including:
 
 ## Issues & bugs
 
-Please file any issues or bugs on [GitHub](https://github.com/anthropics/claude-cli/issues).
+Please file any issues or bugs on [GitHub](https://github.com/anthropics/claude-cli/issues). You can also submit bugs and feedback from within Claude CLI itself:
+
+```sh
+$ claude
+$ /bug
+```
