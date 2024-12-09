@@ -1,6 +1,6 @@
 # Claude CLI (Research Preview)
 
-![](https://img.shields.io/badge/Node.js-16%2B-brightgreen?style=flat-square)
+![](https://img.shields.io/badge/Node.js-18%2B-brightgreen?style=flat-square)
 
 > Use Claude, Anthropic's AI assistant, right from your terminal. Claude can understand your codebase, edit files, run terminal commands, and handle entire workflows for you.
 
