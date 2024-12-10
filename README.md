@@ -19,6 +19,8 @@ You may notice that Claude CLI is not always perfect. We are working on improvin
 - Pipe in/out: `cat data.csv | claude ask "any interesting trends?" > result.txt`
 - Use bash commands: type `!` to switch to bash mode
 - Use tools: type `/` to switch to tool mode (or use `claude run <tool>`)
+- Use Claude CLI as an MCP server
+- Custom MCP clients coming soon!
 
 #### From the CLI
 
@@ -110,6 +112,16 @@ $ claude context delete "test command"
 ```
 
 Claude also automatically reads STYLE.md files, and uses them as style guides. Ask Claude to look at a few files in your codebase and generate a STYLE.md for you to describe conventions around imports, formatting, types, and so on.
+
+## Model Context Protocol
+
+Claude CLI comes with an MCP server that exposes all of Claude CLI's tools, as well as Claude CLI itself, over MCP. To start the server, run:
+
+```sh
+$ claude mcp
+```
+
+Learn more about MCP at [modelcontextprotocol.io](https://modelcontextprotocol.io).
 
 ## Safety & Security
 
