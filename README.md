@@ -115,8 +115,11 @@ Claude also automatically reads STYLE.md files, and uses them as style guides. A
 
 We take security seriously, and have implemented a number of safety features to make agentic coding safe and less error-prone:
 
-- A number of bash commands are blocked by default, including `cd`, `curl`, and `wget`.
+- A number of Bash commands -- including `cd`, `curl`, and `wget` -- that are vulnerable to prompt injection attacks are blocked by default.
+- By default, we ask for permission for all file writes and Bash commands.
 - While you can configure Claude CLI to not ask for confirmation before editing files in your current directory, file edits outside of your current directory always require explicit confirmation.
+
+Security vulnerabilities can be responsibly disclosed [here](hackerone.com/anthropic-vdp).
 
 ## Configuration
 
