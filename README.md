@@ -9,7 +9,7 @@ $ npm install --global @anthropic-ai/claude-cli
 $ claude
 ```
 
-You may notice that Claude CLI is not always perfect. We are working on improving the accuracy of the tools and the quality of the responses. We'd love your feedback on what we can do to improve!
+Claude CLI is a beta research preview. It’s not always perfect, and we’re working on improving the accuracy and quality of responses. We’d appreciate your feedback on what we can do to improve. 
 
 ## Features
 
@@ -111,7 +111,7 @@ $ claude context list # list all context variables
 $ claude context delete "test command"
 ```
 
-Claude also automatically reads STYLE.md files, and uses them as style guides. Ask Claude to look at a few files in your codebase and generate a STYLE.md for you to describe conventions around imports, formatting, types, and so on.
+Claude also automatically reads STYLE.md files, and uses them as style guides. Ask Claude to look at a few files in your codebase and generate a STYLE.md for you to describe conventions around imports, formatting, types, and more.
 
 ## Model Context Protocol
 
@@ -125,7 +125,7 @@ Learn more about MCP at [modelcontextprotocol.io](https://modelcontextprotocol.i
 
 ## Safety & Security
 
-We take security seriously, and have implemented a number of safety features to make agentic coding safe and less error-prone:
+Security and safety are top priorities. We’ve implemented a number of features to make agentic coding safe and less error-prone:
 
 - A number of Bash commands -- including `cd`, `curl`, and `wget` -- that are vulnerable to prompt injection attacks are blocked by default.
 - By default, we ask for permission for all file writes and Bash commands.
@@ -196,7 +196,7 @@ claude error    # View error logs
 
 ## Why did we build this?
 
-Many developers already use Claude for coding. We built Claude CLI as a testing ground for new features and ways AI can take action to help developers, helping us improve Claude as a hands-on coding assistant for everyone.
+Many developers use Claude for coding. We built Claude CLI as a testing ground for new ways AI can take action to help developers, which helps us improve Claude as a proactive coding assistant for everyone.
 
 ## Design philosophy
 
