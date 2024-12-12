@@ -204,7 +204,7 @@ This server exposes the following tools:
 - FileWriteTool: full file writes
 - LSTool: list the folders and files in a directory
 
-Claude CLI is also an MCP Client. To configure which MCP Servers it should query for tools, prompts, and context, use the `claude mcp` sub-commands:
+Claude CLI is also an MCP Client. To configure which MCP Servers it should query for tools and prompts, use the `claude mcp` sub-commands:
 
 ```sh
 $ claude mcp add my-server ../my-server/index.js
@@ -215,6 +215,8 @@ my-server:
   ../my-server/index.js
 $ claude mcp delete my-server
 ```
+
+*Note: Claude CLI's MCP Client does not yet support context.*
 
 Learn more about MCP at [modelcontextprotocol.io](https://modelcontextprotocol.io).
 
