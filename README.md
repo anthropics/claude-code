@@ -113,16 +113,6 @@ $ claude context delete "test command"
 
 Claude also automatically reads STYLE.md files, and uses them as style guides. Ask Claude to look at a few files in your codebase and generate a STYLE.md for you to describe conventions around imports, formatting, types, and more.
 
-## Model Context Protocol
-
-Claude CLI comes with an MCP server that exposes all of Claude CLI's tools, as well as Claude CLI itself, over MCP. To start the server, run:
-
-```sh
-$ claude mcp
-```
-
-Learn more about MCP at [modelcontextprotocol.io](https://modelcontextprotocol.io).
-
 ## Safety & Security
 
 Security and safety are top priorities. We’ve implemented a number of features to make agentic coding safe and less error-prone:
@@ -193,6 +183,40 @@ View logs and errors with:
 claude log      # View message history
 claude error    # View error logs
 ```
+
+## Build on Claude CLI
+
+Claude CLI comes with an MCP Server that exposes all of Claude CLI's tools, as well as Claude CLI itself, over MCP. To start the server, run:
+
+```sh
+$ claude mcp
+```
+
+This server exposes the following tools:
+
+- AskTool: `claude ask` -- ie. 1-shot prompts for Claude CLI. Prompt execution has access to all of Claude CLI's tools.
+- BashTool: safely execute bash commands
+- FileEditTool: partial file edits using string replace
+- FileReadTool: safely read files
+- FileSearchFast: quickly search the current directory
+- FileSearchBalanced: search the current directory, summarizing the results with haiku (useful for summaries)
+- FileSummarizeTool: summarize what a file does
+- FileWriteTool: full file writes
+- LSTool: list the folders and files in a directory
+
+Claude CLI is also an MCP Client. To configure which MCP Servers it should query for tools, prompts, and context, use the `claude mcp` sub-commands:
+
+```sh
+$ claude mcp add my-server ../my-server/index.js
+$ claude mcp get my-server
+../my-server/index.js
+$ claude mcp list
+my-server:
+  ../my-server/index.js
+$ claude mcp delete my-server
+```
+
+Learn more about MCP at [modelcontextprotocol.io](https://modelcontextprotocol.io).
 
 ## Why did we build this?
 
