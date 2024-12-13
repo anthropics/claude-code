@@ -216,7 +216,7 @@ my-server:
 $ claude mcp delete my-server
 ```
 
-*Note: Claude CLI's MCP Client does not yet support context.*
+*Note: Claude CLI's MCP Client does not yet support [resources](https://modelcontextprotocol.io/docs/concepts/resources).*
 
 Learn more about MCP at [modelcontextprotocol.io](https://modelcontextprotocol.io).
 
