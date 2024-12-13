@@ -121,7 +121,9 @@ Security and safety are top priorities. We’ve implemented a number of features
 - By default, we ask for permission for all file writes and Bash commands.
 - While you can configure Claude CLI to not ask for confirmation before editing files in your current directory, file edits outside of your current directory always require explicit confirmation.
 
-Security vulnerabilities can be responsibly disclosed [here](hackerone.com/anthropic-vdp).
+## Vulnerability Disclosure Program
+Our Vulnerability Program guidelines are defined on our [HackerOne program page](https://hackerone.com/anthropic-vdp). We ask that any validated vulnerability in this tool be reported through the [submission form](https://hackerone.com/anthropic-vdp/reports/new?type=team&report_type=vulnerability)
+
 
 ## Configuration
 
