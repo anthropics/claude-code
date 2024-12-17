@@ -111,7 +111,7 @@ $ claude context list # list all context variables
 $ claude context delete "test command"
 ```
 
-Claude also automatically reads STYLE.md files, and uses them as style guides. Ask Claude to look at a few files in your codebase and generate a STYLE.md for you to describe conventions around imports, formatting, types, and more.
+Claude also automatically reads CLAUDE.md files, and uses them as style guides. Ask Claude to look at a few files in your codebase and generate a CLAUDE.md for you to describe conventions around imports, formatting, types, test commands, and more.
 
 ## Safety & Security
 
