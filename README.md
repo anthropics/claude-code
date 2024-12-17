@@ -209,7 +209,7 @@ This server exposes the following tools:
 Claude CLI is also an MCP Client. To configure which MCP Servers it should query for tools and prompts, use the `claude mcp` sub-commands:
 
 ```sh
-$ claude mcp add my-server ../my-server/index.js
+$ claude mcp add my-server ../my-server/index.js -- arg1 --flag1 --flag2
 $ claude mcp get my-server
 ../my-server/index.js
 $ claude mcp list
