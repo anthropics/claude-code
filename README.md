@@ -9,7 +9,7 @@ $ npm install --global @anthropic-ai/claude-cli
 $ claude
 ```
 
-Claude CLI is a beta research preview. It’s not always perfect, and we’re working on improving the accuracy and quality of responses. We’d appreciate your feedback on what we can do to improve. 
+Claude CLI is a beta research preview. It’s not always perfect, and we’re working on improving the accuracy and quality of responses. We’d appreciate your feedback on what we can do to improve.
 
 ## Features
 
@@ -217,6 +217,8 @@ my-server:
   ../my-server/index.js
 $ claude mcp delete my-server
 ```
+
+All configured MCP servers will inherit the environment variables of the Claude CLI process. If an MCP server needs secrets configured as environment variables, you should set them prior to starting Claude CLI or add them to a .env file in the project directory.
 
 *Note: Claude CLI's MCP Client does not yet support [resources](https://modelcontextprotocol.io/docs/concepts/resources).*
 
