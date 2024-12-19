@@ -19,8 +19,7 @@ Claude CLI is a beta research preview. It’s not always perfect, and we’re wo
 - Pipe in/out: `cat data.csv | claude ask "any interesting trends?" > result.txt`
 - Use bash commands: type `!` to switch to bash mode
 - Use tools: type `/` to switch to tool mode (or use `claude run <tool>`)
-- Use Claude CLI as an MCP server
-- Custom MCP clients coming soon!
+- Use Claude CLI as an MCP server or client
 
 #### From the CLI
 
