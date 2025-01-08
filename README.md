@@ -235,7 +235,7 @@ Claude CLI is token-hungry by design, in order to offer the best possible perfor
 
 ## Data usage
 
-Claude CLI is a beta research preview. We collect data as you use it, like when you accept suggestions or commands, to make the product experience better for users, including improving our models. This data is feedback per our [Commercial Terms of Service](https://www.anthropic.com/legal/commercial-terms). If we train on any Feedback data obtained via Claude CLI, however, we will use it only for reinforcement learning training, not generative model pretraining. Your usage data and direct feedback help us address issues, improve model performance, and make Claude more reliable.
+Claude CLI is a Beta research preview per our [Commercial Terms of Service](https://www.anthropic.com/legal/commercial-terms). When you use Claude CLI, we collect Feedback, which includes usage data such as code acceptance or rejections, as well as associated conversation data. We may use this Feedback to improve our products, although we will not train models using your Feedback from Claude CLI.
 
 Data we collect includes:
 
