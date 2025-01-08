@@ -1,3 +1,3 @@
-Claude CLI is a Beta product per Anthropic’s Commercial Terms of Service. By using Claude CLI, you agree that all code acceptance or rejection decisions you make, and the associated conversations in context, constitute Feedback under Anthropic’s Commercial Terms, and may be used to improve Anthropic’s products, including training models. You are responsible for reviewing any code suggestions before use.
+Claude CLI is a Beta research preview per our [Commercial Terms of Service](https://www.anthropic.com/legal/commercial-terms). When you use Claude CLI, we collect Feedback, which includes usage data such as code acceptance or rejections, as well as associated conversation data. We may use this Feedback to improve our products, although we will not train models using your Feedback from Claude CLI.
 
 © Anthropic PBC. All rights reserved. Use is subject to Anthropic's [Commercial Terms of Service](https://www.anthropic.com/legal/commercial-terms).
