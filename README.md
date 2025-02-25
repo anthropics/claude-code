@@ -15,18 +15,12 @@ Some of its key capabilities include:
 
 ## Get started
 
-<ol>
-  <li>
-    Run the following command in your terminal: <br />
-    <code>npm install -g @anthropic-ai/claude-code</code>
-  </li>
-  <li>
-    Navigate to your project directory and run <code>claude</code>
-  </li>
-  <li>
-    Complete the one-time OAuth process with your Anthropic Console account.
-  </li>
-</ol>
+1. Run the following command in your terminal: <br />
+  ```sh
+  npm install -g @anthropic-ai/claude-code
+  ```
+2. Navigate to your project directory and run <code>claude</code>
+3. Complete the one-time OAuth process with your Anthropic Console account.
 
 ### Research Preview
 
