@@ -1,0 +1,34 @@
+# Node.js dependencies
+node_modules/
+
+# Runtime data
+.claude/
+.claude-*
+.anthropic.json
+
+# Development container volumes
+commandhistory/
+
+# Editor files
+.vscode/*
+!.vscode/extensions.json
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+
+# OS specific
+.DS_Store
+Thumbs.db
+._.DS_Store
+
+# Other common patterns
+*.swp
+*.swo
+*~
+.idea/
