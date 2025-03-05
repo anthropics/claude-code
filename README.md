@@ -29,7 +29,7 @@ Some of its key capabilities include:
    npm install -g @anthropic-ai/claude-code
    ```
 
-3. Navigate to your project directory and run <code>claude</code>.
+3. Navigate to your project directory and run <code>claude</code> or start a new project & navigate to the directory with <code>mkdir my-project && cd my-project && npm init -y</code>
 
 4. Complete the one-time OAuth process with your Anthropic Console account.
 
