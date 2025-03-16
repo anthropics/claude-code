@@ -14,16 +14,14 @@ error() { log "ERROR: $1"; }
 warning() { log "WARNING: $1"; }
 debug_log() { [ "$DEBUG" = true ] && log "DEBUG: $1"; }
 
-# Execute command with fallback
-try_cmd() {
-	debug_log "Trying: $1"
-	if eval "$1" &>/dev/null; then return 0; fi
-	if [ -n "$2" ]; then
-		debug_log "Trying fallback: $2"
-		if eval "$2" &>/dev/null; then return 0; fi
+# Execute command with no fallback - all failures are fatal
+execute_cmd() {
+	debug_log "Executing: $1"
+	if ! eval "$1" &>/dev/null; then
+		error "Failed: ${2:-Command}"
+		exit 1
 	fi
-	warning "Failed: ${3:-Command}"
-	return 1
+	return 0
 }
 
 # Add IP to allowed list with deduplication
@@ -140,10 +138,9 @@ add_interface() {
 
 	local count=0
 	for addr in $addresses; do
-		if try_cmd "iptables -A CLAUDE_INPUT -s $addr -j ACCEPT" "" "INPUT rule for $addr" &&
-			try_cmd "iptables -A CLAUDE_OUTPUT -d $addr -j ACCEPT" "" "OUTPUT rule for $addr"; then
-			count=$((count + 1))
-		fi
+		execute_cmd "iptables -A CLAUDE_INPUT -s $addr -j ACCEPT" "INPUT rule for $addr"
+		execute_cmd "iptables -A CLAUDE_OUTPUT -d $addr -j ACCEPT" "OUTPUT rule for $addr"
+		count=$((count + 1))
 	done
 
 	# Also add IPv6 rules for the interface if enabled
@@ -151,11 +148,10 @@ add_interface() {
 		local ipv6_addresses=$(ip -o addr show dev "$iface" | grep -w inet6 | awk '{print $4}')
 
 		for addr in $ipv6_addresses; do
-			if [ ${#addr} -le 39 ]; then  # Check length to prevent hostname too long error
-				if ip6tables -A CLAUDE_INPUT -s $addr -j ACCEPT 2>/dev/null &&
-					ip6tables -A CLAUDE_OUTPUT -d $addr -j ACCEPT 2>/dev/null; then
-					count=$((count + 1))
-				fi
+			if [ ${#addr} -le 39 ]; then # Check length to prevent hostname too long error
+				execute_cmd "ip6tables -A CLAUDE_INPUT -s $addr -j ACCEPT" "IPv6 INPUT rule for $addr"
+				execute_cmd "ip6tables -A CLAUDE_OUTPUT -d $addr -j ACCEPT" "IPv6 OUTPUT rule for $addr"
+				count=$((count + 1))
 			fi
 		done
 	fi
@@ -201,31 +197,27 @@ test_conn() {
 
 	log "Testing connectivity to $domain (should be ${allowed})"
 	if [ "$allowed" = true ]; then
-		# test we can reach the domain with a 5 second timeout using https
-		curl --connect-timeout 5 -s "https://$domain" >/dev/null 2>&1
+		# Force a new connection using --no-keepalive
+		curl --connect-timeout 5 --no-keepalive -s "https://$domain" >/dev/null 2>&1
 		local status=$?
 		if [ $status -ne 0 ]; then
 			warning "Expected curl to succeed for https://$domain, but got $status"
 			return 1
 		fi
 		log "Connection to https://$domain successful as expected"
-
-		# Also test HTTP if this is an allowed domain
-		curl --connect-timeout 5 -s "http://$domain" >/dev/null 2>&1
+		curl --connect-timeout 5 --no-keepalive -s "http://$domain" >/dev/null 2>&1
 		local http_status=$?
 		log "HTTP connection to $domain returned status $http_status (should work for allowed domains)"
 	else
-		# test we can't reach the domain with a 5 second timeout using https
-		curl --connect-timeout 5 -s "https://$domain" >/dev/null 2>&1
+		# For disallowed domains, force a fresh connection attempt
+		curl --connect-timeout 5 --no-keepalive -s "https://$domain" >/dev/null 2>&1
 		local status=$?
 		if [ $status -eq 0 ]; then
 			warning "Expected curl to fail for https://$domain, but got $status"
 			return 1
 		fi
 		log "Connection to https://$domain failed as expected"
-
-		# Also test HTTP is blocked
-		curl --connect-timeout 5 -s "http://$domain" >/dev/null 2>&1
+		curl --connect-timeout 5 --no-keepalive -s "http://$domain" >/dev/null 2>&1
 		local http_status=$?
 		if [ $http_status -eq 0 ]; then
 			warning "Expected curl to fail for http://$domain, but got success"
@@ -236,8 +228,8 @@ test_conn() {
 	return 0
 }
 
-# Set up trap for cleanup
-trap cleanup INT TERM EXIT
+# Set up trap for cleanup only on errors or interruptions, not normal exit
+trap 'cleanup; exit 1' INT TERM HUP
 
 # Check for command availability
 for cmd in iptables curl dig; do
@@ -269,10 +261,40 @@ fi
 # Start configuration
 log "Starting Claude firewall configuration..."
 
+cleanup
+
+# Temporary allow ALL outbound HTTPS during initial setup
+log "Temporarily allowing all outbound HTTPS traffic for initial setup..."
+iptables -I OUTPUT -p tcp --dport 443 -j ACCEPT
+
+# Download required files
+log "Fetching GitHub IPs..."
+gh_ranges=$(curl -sSL --connect-timeout 5 https://api.github.com/meta)
+if [ -n "$gh_ranges" ] && echo "$gh_ranges" | jq -e . >/dev/null 2>&1; then
+	log "Successfully fetched GitHub IP ranges"
+else
+	error "Failed to fetch GitHub IP ranges - cannot continue without current GitHub IPs"
+	exit 1
+fi
+
+# Fetch Azure IP ranges
+log "Fetching Azure IPs..."
+azure_json=$(curl -sSL --connect-timeout 5 https://download.microsoft.com/download/7/1/d/71d86715-5596-4529-9b13-da13a5de5b63/ServiceTags_Public_20250303.json 2>/dev/null)
+if [ -z "$azure_json" ]; then
+	warning "Failed to fetch Azure IP ranges - will continue without them"
+fi
+
+# Remove temporary all-allow rule
+log "Removing temporary HTTPS allow rule..."
+iptables -D OUTPUT -p tcp --dport 443 -j ACCEPT
+
 # Create custom chains
 log "Creating custom chains..."
 for chain in CLAUDE_INPUT CLAUDE_OUTPUT CLAUDE_FORWARD; do
-	try_cmd "iptables -N $chain" "iptables -F $chain" "Creating chain $chain"
+	# Try to create the chain, if it exists already then flush it
+	if ! iptables -N $chain 2>/dev/null; then
+		execute_cmd "iptables -F $chain" "Flushing existing chain $chain"
+	fi
 done
 
 # Add chain references
@@ -281,9 +303,10 @@ iptables -D INPUT -j CLAUDE_INPUT 2>/dev/null || true
 iptables -D OUTPUT -j CLAUDE_OUTPUT 2>/dev/null || true
 iptables -D FORWARD -j CLAUDE_FORWARD 2>/dev/null || true
 
-try_cmd "iptables -I INPUT 1 -j CLAUDE_INPUT" "iptables -A INPUT -j CLAUDE_INPUT" "Jump to CLAUDE_INPUT"
-try_cmd "iptables -I OUTPUT 1 -j CLAUDE_OUTPUT" "iptables -A OUTPUT -j CLAUDE_OUTPUT" "Jump to CLAUDE_OUTPUT"
-try_cmd "iptables -I FORWARD 1 -j CLAUDE_FORWARD" "iptables -A FORWARD -j CLAUDE_FORWARD" "Jump to CLAUDE_FORWARD"
+# Always insert rules at the beginning of chains - fail if this doesn't work
+execute_cmd "iptables -I INPUT 1 -j CLAUDE_INPUT" "Jump to CLAUDE_INPUT"
+execute_cmd "iptables -I OUTPUT 1 -j CLAUDE_OUTPUT" "Jump to CLAUDE_OUTPUT"
+execute_cmd "iptables -I FORWARD 1 -j CLAUDE_FORWARD" "Jump to CLAUDE_FORWARD"
 
 # Create ipset
 if [ "$IPSET_AVAILABLE" = true ]; then
@@ -297,49 +320,47 @@ fi
 
 # Basic connectivity rules
 log "Setting up basic connectivity..."
-try_cmd "iptables -A CLAUDE_INPUT -i lo -j ACCEPT" "iptables -I INPUT 1 -i lo -j ACCEPT" "Localhost input"
-try_cmd "iptables -A CLAUDE_OUTPUT -o lo -j ACCEPT" "iptables -I OUTPUT 1 -o lo -j ACCEPT" "Localhost output"
-try_cmd "iptables -A CLAUDE_OUTPUT -p udp --dport 53 -j ACCEPT" "" "DNS out UDP"
-try_cmd "iptables -A CLAUDE_OUTPUT -p tcp --dport 53 -j ACCEPT" "" "DNS out TCP"
-try_cmd "iptables -A CLAUDE_INPUT -p udp --sport 53 -j ACCEPT" "" "DNS in UDP"
-try_cmd "iptables -A CLAUDE_INPUT -p tcp --sport 53 -j ACCEPT" "" "DNS in TCP"
-try_cmd "iptables -A CLAUDE_OUTPUT -p tcp --dport 22 -j ACCEPT" "" "SSH out"
-try_cmd "iptables -A CLAUDE_INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT" \
-	"iptables -A CLAUDE_INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT" "ESTABLISHED in"
-try_cmd "iptables -A CLAUDE_OUTPUT -m state --state ESTABLISHED,RELATED -j ACCEPT" \
-	"iptables -A CLAUDE_OUTPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT" "ESTABLISHED out"
+execute_cmd "iptables -A CLAUDE_INPUT -i lo -j ACCEPT" "Localhost input"
+execute_cmd "iptables -A CLAUDE_OUTPUT -o lo -j ACCEPT" "Localhost output"
+execute_cmd "iptables -A CLAUDE_OUTPUT -p udp --dport 53 -j ACCEPT" "DNS out UDP"
+execute_cmd "iptables -A CLAUDE_OUTPUT -p tcp --dport 53 -j ACCEPT" "DNS out TCP"
+execute_cmd "iptables -A CLAUDE_INPUT -p udp --sport 53 -j ACCEPT" "DNS in UDP"
+execute_cmd "iptables -A CLAUDE_INPUT -p tcp --sport 53 -j ACCEPT" "DNS in TCP"
+execute_cmd "iptables -A CLAUDE_OUTPUT -p tcp --dport 22 -j ACCEPT" "SSH out"
+
+# Move these rules just before the final DROP rule
+if ! iptables -A CLAUDE_INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT 2>/dev/null; then
+	execute_cmd "iptables -A CLAUDE_INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT" "ESTABLISHED in"
+fi
+
+if ! iptables -A CLAUDE_OUTPUT -m state --state ESTABLISHED,RELATED -j ACCEPT 2>/dev/null; then
+	execute_cmd "iptables -A CLAUDE_OUTPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT" "ESTABLISHED out"
+fi
 
 # Initialize IPv6 chains if enabled
 if [ "$IPV6_ENABLED" = true ]; then
 	create_ipv6_chains
 fi
 
-# Add GitHub IPs
-log "Adding GitHub IPs..."
-gh_ranges=$(curl -s --connect-timeout 5 https://api.github.com/meta)
-if [ -n "$gh_ranges" ] && echo "$gh_ranges" | grep -q "api"; then
+# Add GitHub IPs that we fetched earlier
+log "Adding GitHub IPs to allowed list..."
+if [ -n "$gh_ranges" ]; then
 	while read -r cidr; do
 		[[ -n "$cidr" ]] && add_ip "$cidr"
 	done < <(echo "$gh_ranges" | jq -r '(.web + .api + .git)[]' 2>/dev/null || echo "")
-else
-	# Fallback GitHub IPs
-	for ip in "140.82.112.0/20" "192.30.252.0/22" "185.199.108.0/22" "143.55.64.0/20"; do
-		add_ip "$ip"
-	done
 fi
 
 # Add important domains
 log "Adding important domains..."
 for domain in "registry.npmjs.org" "api.anthropic.com" "sentry.io" "statsig.anthropic.com" \
 	"cursor.blob.core.windows.net" "statsig.com" "marketplace.visualstudio.com" \
-	"vscode.blob.core.windows.net" "vsmarketplacebadge.apphb.com" "example.com"; do
+	"vscode.blob.core.windows.net" "api.github.com"; do
 	add_domain "$domain"
 done
 
-# Azure IP Ranges
-log "Adding Azure IPs..."
-azure_json=$(curl -sSL --connect-timeout 5 https://download.microsoft.com/download/7/1/d/71d86715-5596-4529-9b13-da13a5de5b63/ServiceTags_Public_20250303.json 2>/dev/null)
+# Add Azure IPs if we fetched them successfully
 if [ -n "$azure_json" ]; then
+	log "Adding Azure IPs..."
 	# Extract IPv4 addresses only for Azure Front Door
 	AZURE_RANGES=$(echo "$azure_json" | jq -r '.values[] | select(.name=="AzureFrontDoor.Frontend") | .properties.addressPrefixes[] | select(contains(":") | not)' 2>/dev/null)
 
@@ -359,23 +380,6 @@ if [ -n "$azure_json" ]; then
 	fi
 fi
 
-# Add AWS S3 IPs
-log "Adding AWS S3 IPs..."
-aws_json=$(curl -s --connect-timeout 5 "https://ip-ranges.amazonaws.com/ip-ranges.json" 2>/dev/null)
-if [ -n "$aws_json" ]; then
-	while read -r ip; do
-		[[ -n "$ip" ]] && add_ip "$ip"
-	done < <(echo "$aws_json" | jq -r '.prefixes[] | select(.service=="S3") | .ip_prefix' 2>/dev/null || echo "")
-
-	if [ "$IPV6_ENABLED" = true ]; then
-		while read -r ip; do
-			if [[ -n "$ip" ]] && [ ${#ip} -le 39 ]; then
-				add_ipv6 "$ip"
-			fi
-		done < <(echo "$aws_json" | jq -r '.ipv6_prefixes[] | select(.service=="S3") | .ipv6_prefix' 2>/dev/null || echo "")
-	fi
-fi
-
 # Host network configuration
 log "Configuring host network..."
 HOST_IP=$(ip route | grep default | awk '{print $3}' || hostname -I | awk '{print $1}')
@@ -384,14 +388,14 @@ if [ -n "$HOST_IP" ]; then
 	IFS='.' read -r a b c d <<<"$HOST_IP"
 	HOST_NETWORK="${a}.${b}.${c}.0/24"
 
-	try_cmd "iptables -A CLAUDE_INPUT -s $HOST_NETWORK -j ACCEPT" "" "Host network IN"
-	try_cmd "iptables -A CLAUDE_OUTPUT -d $HOST_NETWORK -j ACCEPT" "" "Host network OUT"
+	execute_cmd "iptables -A CLAUDE_INPUT -s $HOST_NETWORK -j ACCEPT" "Host network IN"
+	execute_cmd "iptables -A CLAUDE_OUTPUT -d $HOST_NETWORK -j ACCEPT" "Host network OUT"
 
 	# Default gateway
 	DEFAULT_GATEWAY=$(ip route | grep default | awk '{print $3}')
 	if [ -n "$DEFAULT_GATEWAY" ]; then
-		try_cmd "iptables -A CLAUDE_INPUT -s $DEFAULT_GATEWAY -j ACCEPT" "" "Gateway IN"
-		try_cmd "iptables -A CLAUDE_OUTPUT -d $DEFAULT_GATEWAY -j ACCEPT" "" "Gateway OUT"
+		execute_cmd "iptables -A CLAUDE_INPUT -s $DEFAULT_GATEWAY -j ACCEPT" "Gateway IN"
+		execute_cmd "iptables -A CLAUDE_OUTPUT -d $DEFAULT_GATEWAY -j ACCEPT" "Gateway OUT"
 	fi
 fi
 
@@ -401,30 +405,30 @@ for iface in $(ip -o link show | grep -v lo | awk -F': ' '{print $2}'); do
 	add_interface "$iface"
 done
 
-# HTTPS traffic
-log "Adding HTTPS rules..."
-try_cmd "iptables -A CLAUDE_INPUT -p tcp --sport 443 -j ACCEPT" "" "HTTPS in"
-try_cmd "iptables -A CLAUDE_OUTPUT -p tcp --dport 443 -j ACCEPT" "" "HTTPS out"
-
-# HTTP traffic - carefully controlled
-log "Configuring HTTP rules..."
-# We DO NOT add a blanket rule allowing port 80 outbound
-# Instead, rely on the explicitly allowed domains via ipset or individual rules
-
 # ipset rule (if available)
 if [ "$IPSET_AVAILABLE" = true ]; then
-	try_cmd "iptables -A CLAUDE_OUTPUT -m set --match-set claude-allowed-domains dst -j ACCEPT" "" "ipset rule"
+	iptables -A CLAUDE_OUTPUT -m set --match-set claude-allowed-domains dst -j ACCEPT 2>/dev/null || warning "Failed to add ipset rule"
 fi
 
 # Optional logging - place before the DROP rule
-try_cmd "iptables -A CLAUDE_OUTPUT -m limit --limit 5/min -j LOG --log-prefix \"CLAUDE_FIREWALL: \" --log-level 4" "" "Logging"
+iptables -A CLAUDE_OUTPUT -m limit --limit 5/min -j LOG --log-prefix "CLAUDE_FIREWALL: " --log-level 4 2>/dev/null || warning "Failed to add logging rule"
 if [ "$IPV6_ENABLED" = true ]; then
 	ip6tables -A CLAUDE_OUTPUT -m limit --limit 5/min -j LOG --log-prefix "CLAUDE_FIREWALL_IPV6: " --log-level 4 2>/dev/null || true
 fi
 
+# Add explicit DROP rules for non-allowed web traffic
+iptables -A CLAUDE_OUTPUT -p tcp --dport 80 -j DROP 2>/dev/null || true
+iptables -A CLAUDE_OUTPUT -p tcp --dport 443 -j DROP 2>/dev/null || true
+
 # Final drop rule
 log "Adding default drop rule..."
-try_cmd "iptables -A CLAUDE_OUTPUT -j DROP" "iptables -A CLAUDE_OUTPUT -j REJECT" "Default DROP"
+if ! iptables -A CLAUDE_OUTPUT -j DROP 2>/dev/null; then
+	if ! iptables -A CLAUDE_OUTPUT -j REJECT 2>/dev/null; then
+		error "Failed to add DROP or REJECT rule"
+		exit 1
+	fi
+fi
+
 if [ "$IPV6_ENABLED" = true ]; then
 	ip6tables -A CLAUDE_OUTPUT -j DROP 2>/dev/null || ip6tables -A CLAUDE_OUTPUT -j REJECT 2>/dev/null || true
 fi
@@ -434,15 +438,6 @@ log "Verifying configuration..."
 test_conn "api.github.com" true
 test_conn "marketplace.visualstudio.com" true
 test_conn "example.com" false
-
-# Test HTTP is properly blocked for non-allowed domains
-log "Testing HTTP blocking..."
-curl --connect-timeout 5 -s "http://non-allowed-domain.example" >/dev/null 2>&1
-if [ $? -eq 0 ]; then
-    warning "HTTP blocking failed - port 80 traffic is allowed when it shouldn't be"
-else
-    log "HTTP blocking successful - port 80 is properly restricted"
-fi
 
 log "Claude firewall configuration finished"
 exit 0
