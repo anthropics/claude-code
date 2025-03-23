@@ -332,34 +332,34 @@ fi
 log "Fetching Azure CDN IPs..."
 azure_ranges=$(fetch_with_retry "https://www.microsoft.com/en-us/download/confirmation.aspx?id=56519")
 if [ -n "$azure_ranges" ]; then
-    # Extract the download URL from the response - fix to handle only one URL
-    download_url=$(echo "$azure_ranges" | grep -o 'https://download.microsoft.com/download/[^"]*ServiceTags_Public[^"]*\.json' | head -1)
+	# Extract the download URL from the response - fix to handle only one URL
+	download_url=$(echo "$azure_ranges" | grep -o 'https://download.microsoft.com/download/[^"]*ServiceTags_Public[^"]*\.json' | head -1)
 
-    if [ -n "$download_url" ]; then
-        log "Found Azure IP ranges download URL: $download_url"
-        azure_ip_json=$(fetch_with_retry "$download_url")
+	if [ -n "$download_url" ]; then
+		log "Found Azure IP ranges download URL: $download_url"
+		azure_ip_json=$(fetch_with_retry "$download_url")
 
-        if [ -n "$azure_ip_json" ] && echo "$azure_ip_json" | jq -e . >/dev/null 2>&1; then
-            log "Successfully fetched Azure IP ranges"
+		if [ -n "$azure_ip_json" ] && echo "$azure_ip_json" | jq -e . >/dev/null 2>&1; then
+			log "Successfully fetched Azure IP ranges"
 
-            # Extract Azure CDN IP ranges
-            log "Adding Azure CDN IPs to allowed list..."
-            while read -r cidr; do
-                [[ -n "$cidr" ]] && add_ip "$cidr"
-            done < <(echo "$azure_ip_json" | jq -r '.values[] | select(.name=="AzureFrontDoor.Frontend").properties.addressPrefixes[]' 2>/dev/null || echo "")
+			# Extract Azure CDN IP ranges
+			log "Adding Azure CDN IPs to allowed list..."
+			while read -r cidr; do
+				[[ -n "$cidr" ]] && add_ip "$cidr"
+			done < <(echo "$azure_ip_json" | jq -r '.values[] | select(.name=="AzureFrontDoor.Frontend").properties.addressPrefixes[]' 2>/dev/null || echo "")
 
-            # Also add Azure CDN Standard from Microsoft IP ranges
-            while read -r cidr; do
-                [[ -n "$cidr" ]] && add_ip "$cidr"
-            done < <(echo "$azure_ip_json" | jq -r '.values[] | select(.name=="AzureCDN").properties.addressPrefixes[]' 2>/dev/null || echo "")
-        else
-            warning "Failed to parse Azure IP ranges JSON"
-        fi
-    else
-        warning "Failed to extract Azure IP ranges download URL"
-    fi
+			# Also add Azure CDN Standard from Microsoft IP ranges
+			while read -r cidr; do
+				[[ -n "$cidr" ]] && add_ip "$cidr"
+			done < <(echo "$azure_ip_json" | jq -r '.values[] | select(.name=="AzureCDN").properties.addressPrefixes[]' 2>/dev/null || echo "")
+		else
+			warning "Failed to parse Azure IP ranges JSON"
+		fi
+	else
+		warning "Failed to extract Azure IP ranges download URL"
+	fi
 else
-    warning "Failed to fetch Azure IP ranges - Azure CDN traffic may be blocked"
+	warning "Failed to fetch Azure IP ranges - Azure CDN traffic may be blocked"
 fi
 
 # Remove temporary all-allow rule
