@@ -13,7 +13,12 @@ IPSET_AVAILABLE=true
 log() { echo "[$(date +'%Y-%m-%d %H:%M:%S')] $1"; }
 error() { log "ERROR: $1"; }
 warning() { log "WARNING: $1"; }
-debug_log() { [ "$DEBUG" = true ] && log "DEBUG: $1"; }
+debug_log() {
+	if [ "$DEBUG" = true ]; then
+		log "DEBUG: $1"
+	fi
+	return 0
+}
 
 # Execute command with better error handling
 execute_cmd() {
