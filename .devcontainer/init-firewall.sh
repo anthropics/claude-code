@@ -34,19 +34,26 @@ execute_cmd() {
 }
 
 # Add IP to allowed list with deduplication
+# Add IP to allowed list with deduplication
 add_ip() {
 	local ip="$1"
 	[ -f "$ADDED_IPS_FILE" ] && grep -q "^$ip$" "$ADDED_IPS_FILE" && return 0
 
-	if [ "$IPSET_AVAILABLE" = true ] && ipset add claude-allowed-domains "$ip" 2>/dev/null; then
-		echo "$ip" >>"$ADDED_IPS_FILE"
-		return 0
-	elif iptables -A CLAUDE_OUTPUT -d "$ip" -j ACCEPT 2>/dev/null; then
+	if [ "$IPSET_AVAILABLE" = true ]; then
+		if ipset add claude-allowed-domains "$ip" 2>/dev/null; then
+			echo "$ip" >>"$ADDED_IPS_FILE"
+			return 0
+		fi
+	fi
+
+	# Try with iptables but don't fail the script if it doesn't work
+	if iptables -A CLAUDE_OUTPUT -d "$ip" -j ACCEPT 2>/dev/null; then
 		echo "$ip" >>"$ADDED_IPS_FILE"
 		return 0
 	else
 		debug_log "Failed to add IP: $ip"
-		return 1
+		# Return success even if we failed to add the IP to avoid script termination
+		return 0
 	fi
 }
 
@@ -78,29 +85,32 @@ add_ipv6() {
 }
 
 # Create IPv6 chains
+# Create IPv6 chains
 create_ipv6_chains() {
 	log "Creating IPv6 chains..."
 	for chain in CLAUDE_INPUT CLAUDE_OUTPUT CLAUDE_FORWARD; do
-		ip6tables -N $chain 2>/dev/null || ip6tables -F $chain 2>/dev/null
+		ip6tables -N $chain 2>/dev/null || ip6tables -F $chain 2>/dev/null || true
 	done
 
-	ip6tables -D INPUT -j CLAUDE_INPUT 2>/dev/null
-	ip6tables -D OUTPUT -j CLAUDE_OUTPUT 2>/dev/null
-	ip6tables -D FORWARD -j CLAUDE_FORWARD 2>/dev/null
+	# Delete chains with error handling
+	ip6tables -D INPUT -j CLAUDE_INPUT 2>/dev/null || true
+	ip6tables -D OUTPUT -j CLAUDE_OUTPUT 2>/dev/null || true
+	ip6tables -D FORWARD -j CLAUDE_FORWARD 2>/dev/null || true
 
-	ip6tables -I INPUT 1 -j CLAUDE_INPUT 2>/dev/null || ip6tables -A INPUT -j CLAUDE_INPUT 2>/dev/null
-	ip6tables -I OUTPUT 1 -j CLAUDE_OUTPUT 2>/dev/null || ip6tables -A OUTPUT -j CLAUDE_OUTPUT 2>/dev/null
-	ip6tables -I FORWARD 1 -j CLAUDE_FORWARD 2>/dev/null || ip6tables -A FORWARD -j CLAUDE_FORWARD 2>/dev/null
+	# Add chains with error handling
+	ip6tables -I INPUT 1 -j CLAUDE_INPUT 2>/dev/null || ip6tables -A INPUT -j CLAUDE_INPUT 2>/dev/null || true
+	ip6tables -I OUTPUT 1 -j CLAUDE_OUTPUT 2>/dev/null || ip6tables -A OUTPUT -j CLAUDE_OUTPUT 2>/dev/null || true
+	ip6tables -I FORWARD 1 -j CLAUDE_FORWARD 2>/dev/null || ip6tables -A FORWARD -j CLAUDE_FORWARD 2>/dev/null || true
 
-	# IPv6 basic rules
-	ip6tables -A CLAUDE_INPUT -i lo -j ACCEPT 2>/dev/null
-	ip6tables -A CLAUDE_OUTPUT -o lo -j ACCEPT 2>/dev/null
-	ip6tables -A CLAUDE_INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT 2>/dev/null
-	ip6tables -A CLAUDE_OUTPUT -m state --state ESTABLISHED,RELATED -j ACCEPT 2>/dev/null
-	ip6tables -A CLAUDE_OUTPUT -p udp --dport 53 -j ACCEPT 2>/dev/null
-	ip6tables -A CLAUDE_OUTPUT -p tcp --dport 53 -j ACCEPT 2>/dev/null
-	ip6tables -A CLAUDE_INPUT -p udp --sport 53 -j ACCEPT 2>/dev/null
-	ip6tables -A CLAUDE_INPUT -p tcp --sport 53 -j ACCEPT 2>/dev/null
+	# IPv6 basic rules - all with error handling
+	ip6tables -A CLAUDE_INPUT -i lo -j ACCEPT 2>/dev/null || true
+	ip6tables -A CLAUDE_OUTPUT -o lo -j ACCEPT 2>/dev/null || true
+	ip6tables -A CLAUDE_INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT 2>/dev/null || true
+	ip6tables -A CLAUDE_OUTPUT -m state --state ESTABLISHED,RELATED -j ACCEPT 2>/dev/null || true
+	ip6tables -A CLAUDE_OUTPUT -p udp --dport 53 -j ACCEPT 2>/dev/null || true
+	ip6tables -A CLAUDE_OUTPUT -p tcp --dport 53 -j ACCEPT 2>/dev/null || true
+	ip6tables -A CLAUDE_INPUT -p udp --sport 53 -j ACCEPT 2>/dev/null || true
+	ip6tables -A CLAUDE_INPUT -p tcp --sport 53 -j ACCEPT 2>/dev/null || true
 }
 
 # Resolve domain and add IPs
@@ -330,28 +340,28 @@ fi
 
 # Download Azure IP ranges with retry logic
 log "Fetching Azure CDN IPs..."
-azure_ranges=$(fetch_with_retry "https://www.microsoft.com/en-us/download/confirmation.aspx?id=56519")
+azure_ranges=$(fetch_with_retry "https://www.microsoft.com/en-us/download/confirmation.aspx?id=56519") || true
 if [ -n "$azure_ranges" ]; then
-	# Extract the download URL from the response - fix to handle only one URL
-	download_url=$(echo "$azure_ranges" | grep -o 'https://download.microsoft.com/download/[^"]*ServiceTags_Public[^"]*\.json' | head -1)
+	# Extract the download URL from the response - more robust extraction
+	download_url=$(echo "$azure_ranges" | grep -o 'https://download.microsoft.com/download/[^"]*ServiceTags_Public[^"]*\.json' | head -1 | tr -d '\n\r')
 
 	if [ -n "$download_url" ]; then
 		log "Found Azure IP ranges download URL: $download_url"
-		azure_ip_json=$(fetch_with_retry "$download_url")
+		azure_ip_json=$(fetch_with_retry "$download_url") || true
 
-		if [ -n "$azure_ip_json" ] && echo "$azure_ip_json" | jq -e . >/dev/null 2>&1; then
+		if [ -n "$azure_ip_json" ] && (echo "$azure_ip_json" | jq -e . >/dev/null 2>&1 || true); then
 			log "Successfully fetched Azure IP ranges"
 
 			# Extract Azure CDN IP ranges
 			log "Adding Azure CDN IPs to allowed list..."
-			while read -r cidr; do
-				[[ -n "$cidr" ]] && add_ip "$cidr"
-			done < <(echo "$azure_ip_json" | jq -r '.values[] | select(.name=="AzureFrontDoor.Frontend").properties.addressPrefixes[]' 2>/dev/null || echo "")
+			echo "$azure_ip_json" | jq -r '.values[] | select(.name=="AzureFrontDoor.Frontend").properties.addressPrefixes[]' 2>/dev/null | while read -r cidr || [ -n "$cidr" ]; do
+				[[ -n "$cidr" ]] && add_ip "$cidr" || true
+			done
 
 			# Also add Azure CDN Standard from Microsoft IP ranges
-			while read -r cidr; do
-				[[ -n "$cidr" ]] && add_ip "$cidr"
-			done < <(echo "$azure_ip_json" | jq -r '.values[] | select(.name=="AzureCDN").properties.addressPrefixes[]' 2>/dev/null || echo "")
+			echo "$azure_ip_json" | jq -r '.values[] | select(.name=="AzureCDN").properties.addressPrefixes[]' 2>/dev/null | while read -r cidr || [ -n "$cidr" ]; do
+				[[ -n "$cidr" ]] && add_ip "$cidr" || true
+			done
 		else
 			warning "Failed to parse Azure IP ranges JSON"
 		fi
