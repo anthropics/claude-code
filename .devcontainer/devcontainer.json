@@ -4,6 +4,9 @@
     "dockerfile": "Dockerfile",
     "args": {
       "TZ": "${localEnv:TZ:America/Los_Angeles}"
+    },
+    "prebuild": {
+      "command": "bash -c '${localWorkspaceFolder}/.devcontainer/cache-github-api.sh || echo \"Warning: Failed to cache GitHub API data\"'"
     }
   },
   "runArgs": [
@@ -39,7 +42,8 @@
   "remoteUser": "node",
   "mounts": [
     "source=claude-code-bashhistory,target=/commandhistory,type=volume",
-    "source=claude-code-config,target=/home/node/.claude,type=volume"
+    "source=claude-code-config,target=/home/node/.claude,type=volume", 
+    "type=bind,source=${localEnv:HOME}/.github-meta-cache,target=/github-meta-cache,consistency=cached"
   ],
   "remoteEnv": {
     "NODE_OPTIONS": "--max-old-space-size=4096",

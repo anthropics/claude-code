@@ -27,16 +27,20 @@ iptables -A OUTPUT -o lo -j ACCEPT
 # Create ipset with CIDR support
 ipset create allowed-domains hash:net
 
-# Fetch GitHub meta information and aggregate + add their IP ranges
-echo "Fetching GitHub IP ranges..."
-gh_ranges=$(curl -s https://api.github.com/meta)
-if [ -z "$gh_ranges" ]; then
-    echo "ERROR: Failed to fetch GitHub IP ranges"
-    exit 1
-fi
+# Use cached GitHub meta information from mounted volume
+CACHE_FILE="/github-meta-cache/meta.json"
 
-if ! echo "$gh_ranges" | jq -e '.web and .api and .git' >/dev/null; then
-    echo "ERROR: GitHub API response missing required fields"
+echo "Using cached GitHub IP ranges..."
+if [ -f "${CACHE_FILE}" ]; then
+    gh_ranges=$(cat "${CACHE_FILE}")
+    
+    # Verify the cached data is valid
+    if ! echo "$gh_ranges" | jq -e '.web and .api and .git' >/dev/null; then
+        echo "ERROR: Cached GitHub API data is invalid"
+        exit 1
+    fi
+else
+    echo "ERROR: No cached GitHub IP ranges found"
     exit 1
 fi
 
