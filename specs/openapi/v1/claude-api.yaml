@@ -1,0 +1,548 @@
+openapi: 3.0.0
+info:
+  title: Claude Neural API
+  version: 1.0.0
+  description: API specification for the Claude Neural Framework
+  contact:
+    name: Claude Neural Team
+    email: claude@example.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.claude-neural.example.com/v1
+    description: Production server
+  - url: https://api.staging.claude-neural.example.com/v1
+    description: Staging server
+  - url: http://localhost:3000/api/v1
+    description: Local development server
+
+tags:
+  - name: Cognitive
+    description: Endpoints for cognitive analysis
+  - name: Code
+    description: Endpoints for code analysis and generation
+  - name: Documents
+    description: Endpoints for document processing
+  - name: Agents
+    description: Endpoints for agent management and communication
+
+paths:
+  /cognitive/analyze:
+    post:
+      summary: Analyze code patterns
+      description: Analyzes code for patterns, complexity, and potential issues
+      tags:
+        - Cognitive
+        - Code
+      operationId: analyzeCognitive
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnalyzeRequest'
+      responses:
+        '200':
+          description: Successful analysis
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalyzeResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /code/refactor:
+    post:
+      summary: Refactor code
+      description: Suggests refactoring improvements for provided code
+      tags:
+        - Code
+      operationId: refactorCode
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefactorRequest'
+      responses:
+        '200':
+          description: Successful refactoring
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefactorResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /code/generate:
+    post:
+      summary: Generate code
+      description: Generates code based on provided requirements
+      tags:
+        - Code
+      operationId: generateCode
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenerateRequest'
+      responses:
+        '200':
+          description: Successful code generation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenerateResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /documents/{documentId}:
+    get:
+      summary: Retrieve document
+      description: Retrieves a specific document by ID
+      tags:
+        - Documents
+      operationId: getDocument
+      parameters:
+        - name: documentId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the document
+      responses:
+        '200':
+          description: Successful retrieval
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Document'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /agents:
+    get:
+      summary: List agents
+      description: Returns a list of available agents
+      tags:
+        - Agents
+      operationId: listAgents
+      parameters:
+        - name: capability
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter agents by capability
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Agent'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /agents/{agentId}/messages:
+    post:
+      summary: Send message to agent
+      description: Sends a message to a specific agent
+      tags:
+        - Agents
+      operationId: sendAgentMessage
+      parameters:
+        - name: agentId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the agent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentMessage'
+      responses:
+        '200':
+          description: Message sent successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentMessageResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+components:
+  schemas:
+    AnalyzeRequest:
+      type: object
+      required:
+        - code
+        - language
+      properties:
+        code:
+          type: string
+          description: Code to analyze
+        language:
+          type: string
+          description: Programming language
+          example: typescript
+        depth:
+          type: integer
+          description: Analysis depth level
+          default: 3
+          minimum: 1
+          maximum: 5
+
+    AnalyzeResponse:
+      type: object
+      properties:
+        patterns:
+          type: array
+          items:
+            $ref: '#/components/schemas/Pattern'
+        metrics:
+          type: object
+          properties:
+            complexity:
+              type: number
+              description: Cyclomatic complexity
+            maintainability:
+              type: number
+              description: Maintainability index
+            cohesion:
+              type: number
+              description: Class/module cohesion
+        suggestions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Suggestion'
+
+    Pattern:
+      type: object
+      properties:
+        type:
+          type: string
+          description: Pattern type
+          example: singleton
+        location:
+          type: object
+          properties:
+            file:
+              type: string
+              description: File path
+            line:
+              type: integer
+              description: Line number
+            column:
+              type: integer
+              description: Column number
+        description:
+          type: string
+          description: Description of the pattern
+
+    Suggestion:
+      type: object
+      properties:
+        type:
+          type: string
+          description: Suggestion type
+          enum: [refactoring, performance, security, style]
+        priority:
+          type: string
+          description: Suggestion priority
+          enum: [high, medium, low]
+        description:
+          type: string
+          description: Description of the suggestion
+        codeExample:
+          type: string
+          description: Example code implementing the suggestion
+
+    RefactorRequest:
+      type: object
+      required:
+        - code
+        - language
+      properties:
+        code:
+          type: string
+          description: Code to refactor
+        language:
+          type: string
+          description: Programming language
+        goals:
+          type: array
+          items:
+            type: string
+          description: Refactoring goals
+          example: ["improve readability", "reduce complexity"]
+
+    RefactorResponse:
+      type: object
+      properties:
+        refactoredCode:
+          type: string
+          description: Refactored code
+        changes:
+          type: array
+          items:
+            type: object
+            properties:
+              description:
+                type: string
+                description: Description of the change
+              originalLines:
+                type: object
+                properties:
+                  start:
+                    type: integer
+                  end:
+                    type: integer
+              newLines:
+                type: object
+                properties:
+                  start:
+                    type: integer
+                  end:
+                    type: integer
+
+    GenerateRequest:
+      type: object
+      required:
+        - requirements
+        - language
+      properties:
+        requirements:
+          type: string
+          description: Functional requirements for the code
+        language:
+          type: string
+          description: Target programming language
+        frameworks:
+          type: array
+          items:
+            type: string
+          description: Frameworks to use
+
+    GenerateResponse:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Generated code
+        explanation:
+          type: string
+          description: Explanation of the generated code
+        dependencies:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+                description: Dependency name
+              version:
+                type: string
+                description: Recommended version
+              reason:
+                type: string
+                description: Reason for including this dependency
+
+    Document:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier
+        title:
+          type: string
+          description: Document title
+        content:
+          type: string
+          description: Document content
+        metadata:
+          type: object
+          additionalProperties: true
+          description: Document metadata
+        created:
+          type: string
+          format: date-time
+          description: Creation timestamp
+        updated:
+          type: string
+          format: date-time
+          description: Last update timestamp
+
+    Agent:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier
+        name:
+          type: string
+          description: Agent name
+        description:
+          type: string
+          description: Agent description
+        capabilities:
+          type: array
+          items:
+            $ref: '#/components/schemas/AgentCapability'
+        status:
+          type: string
+          enum: [active, inactive, busy]
+          description: Agent status
+
+    AgentCapability:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Capability identifier
+        name:
+          type: string
+          description: Capability name
+        description:
+          type: string
+          description: Capability description
+        parameters:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+                description: Parameter name
+              type:
+                type: string
+                description: Parameter type
+              description:
+                type: string
+                description: Parameter description
+              required:
+                type: boolean
+                description: Whether the parameter is required
+
+    AgentMessage:
+      type: object
+      required:
+        - content
+      properties:
+        messageId:
+          type: string
+          description: Unique message identifier
+        conversationId:
+          type: string
+          description: Conversation identifier for related messages
+        type:
+          type: string
+          enum: [REQUEST, RESPONSE, UPDATE, ERROR]
+          description: Message type
+        content:
+          type: object
+          additionalProperties: true
+          description: Message content
+        timestamp:
+          type: string
+          format: date-time
+          description: Message timestamp
+
+    AgentMessageResponse:
+      type: object
+      properties:
+        messageId:
+          type: string
+          description: Unique identifier of the response message
+        status:
+          type: string
+          enum: [received, processing, completed, failed]
+          description: Message processing status
+        response:
+          $ref: '#/components/schemas/AgentMessage'
+
+    Error:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Error code
+        message:
+          type: string
+          description: Error message
+        details:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+          description: Additional error details
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+security:
+  - ApiKeyAuth: []
+  - BearerAuth: []

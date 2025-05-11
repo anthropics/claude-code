@@ -1,0 +1,22 @@
+{
+  "execution": {
+    "confirmation_required": true,
+    "allowed_commands": ["git", "npm", "node", "python", "docker", "test", "ls", "find", "grep"],
+    "blocked_commands": ["rm -rf /", "sudo", "chmod 777", "curl | bash", "wget | bash"]
+  },
+  "filesystem": {
+    "read": {
+      "allowed": true,
+      "paths": ["./", "../", "~/.claude/"]
+    },
+    "write": {
+      "allowed": true,
+      "confirmation_required": true,
+      "paths": ["./", "./src/", "./docs/", "./ai_docs/", "./specs/", "./.claude/"]
+    }
+  },
+  "network": {
+    "allowed": true,
+    "restricted_domains": ["localhost"]
+  }
+}

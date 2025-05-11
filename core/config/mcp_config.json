@@ -1,0 +1,20 @@
+{
+  "version": "1.0.0",
+  "servers": {
+    "sequentialthinking": {
+      "enabled": true,
+      "autostart": true,
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"],
+      "description": "Recursive thought generation for complex problems"
+    },
+    "brave-search": {
+      "enabled": true,
+      "autostart": false,
+      "command": "npx",
+      "args": ["-y", "@smithery/cli@latest", "run", "@smithery-ai/brave-search"],
+      "api_key_env": "MCP_API_KEY",
+      "description": "External knowledge acquisition"
+    }
+  }
+}
