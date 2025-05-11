@@ -1,0 +1,35 @@
+{
+  "name": "claude-neural-framework",
+  "version": "1.0.0",
+  "description": "A comprehensive platform for integrating Claude AI capabilities with development workflows",
+  "main": "index.js",
+  "scripts": {
+    "start": "node core/mcp/start_server.js",
+    "setup": "node scripts/setup/setup_user_colorschema.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "anthropic": "^0.9.0",
+    "chalk": "^4.1.2",
+    "commander": "^11.0.0",
+    "dotenv": "^16.3.1",
+    "inquirer": "^8.2.5"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.4"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/username/claude-code.git"
+  },
+  "keywords": [
+    "claude",
+    "ai",
+    "neural",
+    "framework",
+    "mcp",
+    "rag"
+  ],
+  "author": "Claude Neural Framework Team",
+  "license": "MIT"
+}

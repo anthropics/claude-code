@@ -863,8 +863,16 @@ Git: $(git --version)
 =====================================
 EOF
   
+  # Benutzer-Farbschema einrichten
+  echo "=== Benutzer-Farbschema wird eingerichtet ==="
+  # Farbschema-Verzeichnis erstellen
+  mkdir -p ~/.claude
+
+  # Symbolischen Link zum Farbschema-Manager erstellen
+  ln -sf $(pwd)/core/mcp/color_schema_manager.js ~/.claude/
+
   success "Installation des Claude Neural Framework abgeschlossen!"
-  
+
   cat << EOF
 
 ${GREEN}${BOLD}====================================================${RESET}
@@ -879,7 +887,9 @@ ${CYAN}NÄCHSTE SCHRITTE:${RESET}
 3. Starten Sie die Framework-Komponenten:
    ${BOLD}cd $(pwd)
    node core/mcp/setup_mcp.js autostart${RESET}
-4. Starten Sie die Claude Code CLI:
+4. Richten Sie Ihr Farbschema ein:
+   ${BOLD}node scripts/setup/setup_user_colorschema.js${RESET}
+5. Starten Sie die Claude Code CLI:
    ${BOLD}npx claude${RESET}
 
 ${BLUE}DOKUMENTATION:${RESET}

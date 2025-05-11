@@ -12,7 +12,7 @@
     "write": {
       "allowed": true,
       "confirmation_required": true,
-      "paths": ["./", "./src/", "./docs/", "./ai_docs/", "./specs/", "./.claude/"]
+      "paths": ["./", "./src/", "./docs/", "./ai_docs/", "./specs/", "./.claude/", "~/.claude/"]
     }
   },
   "network": {

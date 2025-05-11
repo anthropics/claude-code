@@ -1,6 +1,6 @@
-# Setup Projekt für rekursives Debugging
+# Projekteinrichtung im interaktiven Dialog
 
-Richtet ein Projekt für automatisches rekursives Debugging ein, konfiguriert Benutzerprofile und initialisiert die Vektordatenbank.
+Richtet ein neues oder bestehendes Projekt ein und konfiguriert die interaktiven Einstellungen inklusive Farbschema und Benutzerprofile. Integriert rekursives Debugging und Vektordatenbank-Funktionalität.
 
 ## Verwendung
 /setup-project $ARGUMENTE
@@ -9,12 +9,14 @@ Richtet ein Projekt für automatisches rekursives Debugging ein, konfiguriert Be
 - path: Pfad zum Projekt (Standard: aktuelles Verzeichnis)
 - languages: Zu unterstützende Programmiersprachen (Standard: js,py,ts,java,cpp)
 - profile: Pfad zur Benutzerprofilvorlage (optional)
+- color_schema: Farbschema für UI-Komponenten (Optional: "light", "dark", "blue", "green", "purple")
+- template: Projektvorlage (Optional: "web", "api", "cli", "library")
 - auto-triggers: Automatische Trigger aktivieren (Standard: true)
 - ci-integration: CI/CD-Integration aktivieren (Standard: false)
-- vector-db: Vektordatenbank-Typ (Standard: sqlite)
+- vector-db: Vektordatenbank-Typ (Standard: lancedb)
 
 ## Beispiel
-/setup-project --path=~/mein-projekt --languages=js,py,java --auto-triggers=true --ci-integration=true
+/setup-project --path=~/mein-projekt --languages=js,py,java --color_schema="blue" --template="web" --auto-triggers=true
 
 Der Befehl wird:
 1. Die notwendigen Verzeichnisstrukturen im Projekt erstellen
