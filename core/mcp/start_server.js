@@ -4,14 +4,14 @@
  * MCP Server Starter
  * =================
  * 
- * Startet die konfigurierten MCP-Server für das Claude Neural Framework.
+ * Starts the configured MCP servers for the Claude Neural Framework.
  * 
- * Verwendung:
+ * Usage:
  *   node start_server.js [server_name]
  *   
- * Optionen:
- *   server_name - Optional. Wenn angegeben, wird nur der angegebene Server gestartet.
- *                 Sonst werden alle aktivierten Server gestartet.
+ * Options:
+ *   server_name - Optional. If specified, only the specified server will be started.
+ *                 Otherwise, all enabled servers will be started.
  */
 
 const fs = require('fs');
@@ -19,174 +19,189 @@ const path = require('path');
 const { spawn } = require('child_process');
 const os = require('os');
 
-// Konfigurationsdatei laden
-const CONFIG_PATH = path.resolve(__dirname, '../config/mcp_config.json');
-let config;
+// Import standardized config manager
+const configManager = require('../config/config_manager');
+const { CONFIG_TYPES } = configManager;
 
-try {
-  const configData = fs.readFileSync(CONFIG_PATH, 'utf8');
-  config = JSON.parse(configData);
-} catch (err) {
-  console.error(`Fehler beim Laden der Konfiguration: ${err.message}`);
-  process.exit(1);
+// Import standardized logger
+const logger = require('../logging/logger').createLogger('mcp-server-starter');
+
+// Claude Desktop configuration path
+const CLAUDE_DESKTOP_CONFIG_PATH = path.join(os.homedir(), '.claude', 'claude_desktop_config.json');
+
+/**
+ * Get MCP server configuration
+ * @returns {Object} Configuration
+ */
+function getConfig() {
+  try {
+    return configManager.getConfig(CONFIG_TYPES.MCP);
+  } catch (err) {
+    logger.error('Failed to load MCP configuration', { error: err });
+    process.exit(1);
+  }
 }
 
-// Argumente verarbeiten
-const args = process.argv.slice(2);
-const specificServer = args[0];
-
-// Liste der zu startenden Server erstellen
-const serversToStart = [];
-
-if (specificServer) {
-  // Nur einen spezifischen Server starten
-  if (config.servers[specificServer]) {
-    if (config.servers[specificServer].enabled) {
-      serversToStart.push({
-        name: specificServer,
-        ...config.servers[specificServer]
-      });
-    } else {
-      console.warn(`Server "${specificServer}" ist deaktiviert. Starten Sie ihn mit --force, um ihn trotzdem zu starten.`);
-      if (args.includes('--force')) {
-        serversToStart.push({
-          name: specificServer,
-          ...config.servers[specificServer]
+/**
+ * Start an MCP server
+ * @param {string} serverId - Server ID
+ * @param {Object} serverConfig - Server configuration
+ * @returns {Promise<boolean>} Success
+ */
+async function startServer(serverId, serverConfig) {
+  logger.info('Starting MCP server', { serverId });
+  
+  if (!serverConfig.enabled) {
+    logger.warn('Server is disabled', { serverId });
+    return false;
+  }
+  
+  if (!serverConfig.command || !serverConfig.args) {
+    logger.error('Invalid server configuration - missing command or args', { serverId, serverConfig });
+    return false;
+  }
+  
+  try {
+    // Check for API key if needed
+    if (serverConfig.api_key_env) {
+      const apiKey = process.env[serverConfig.api_key_env];
+      if (!apiKey) {
+        logger.warn('API key not found in environment variables', { 
+          serverId, 
+          envVar: serverConfig.api_key_env 
         });
       }
     }
-  } else {
-    console.error(`Server "${specificServer}" nicht gefunden in der Konfiguration.`);
-    process.exit(1);
-  }
-} else {
-  // Alle aktivierten Server starten
-  Object.entries(config.servers).forEach(([name, serverConfig]) => {
-    if (serverConfig.enabled && serverConfig.autostart) {
-      serversToStart.push({
-        name,
-        ...serverConfig
-      });
-    }
-  });
-}
-
-if (serversToStart.length === 0) {
-  console.warn('Keine Server zum Starten gefunden.');
-  process.exit(0);
-}
-
-// Server-Prozesse
-const serverProcesses = new Map();
-
-// Funktion zum Starten eines Servers
-function startServer(server) {
-  console.log(`Starte MCP-Server: ${server.name}`);
-  
-  // Umgebungsvariablen einrichten
-  const env = { ...process.env };
-  
-  // API-Key aus Umgebungsvariable holen, wenn konfiguriert
-  if (server.api_key_env && env[server.api_key_env]) {
-    console.log(`API-Key für ${server.name} gefunden in ${server.api_key_env}`);
-  } else if (server.api_key_env) {
-    console.warn(`Kein API-Key für ${server.name} in ${server.api_key_env} gefunden`);
-  }
-  
-  // Server starten
-  const serverProcess = spawn(server.command, server.args, {
-    env,
-    stdio: 'pipe'
-  });
-  
-  // Server zur Map hinzufügen
-  serverProcesses.set(server.name, serverProcess);
-  
-  // Server-Ausgabe und -Fehler loggen
-  serverProcess.stdout.on('data', (data) => {
-    console.log(`[${server.name}] ${data.toString().trim()}`);
-  });
-  
-  serverProcess.stderr.on('data', (data) => {
-    console.error(`[${server.name}] FEHLER: ${data.toString().trim()}`);
-  });
-  
-  // Server-Beendigung behandeln
-  serverProcess.on('close', (code) => {
-    console.log(`Server ${server.name} beendet mit Code ${code}`);
-    serverProcesses.delete(server.name);
     
-    // Automatischer Neustart, wenn nicht mit 0 beendet
-    if (code !== 0 && server.autorestart) {
-      console.log(`Automatischer Neustart von ${server.name} in 5 Sekunden...`);
-      setTimeout(() => startServer(server), 5000);
-    }
-  });
-  
-  // Fehlerbehandlung
-  serverProcess.on('error', (err) => {
-    console.error(`Fehler beim Starten von ${server.name}: ${err.message}`);
-  });
-  
-  return serverProcess;
-}
-
-// Alle Server starten
-serversToStart.forEach(startServer);
-
-console.log(`${serversToStart.length} MCP-Server gestartet.`);
-
-// Host-Konfiguration aktualisieren
-try {
-  if (config.host && config.host.type === 'desktop') {
-    const hostConfigPath = config.host.config_path.replace('~', os.homedir());
-    
-    // Stellen Sie sicher, dass das Verzeichnis existiert
-    const hostConfigDir = path.dirname(hostConfigPath);
-    if (!fs.existsSync(hostConfigDir)) {
-      fs.mkdirSync(hostConfigDir, { recursive: true });
-    }
-    
-    // Vorhandene Konfiguration laden oder neue erstellen
-    let hostConfig = {};
-    if (fs.existsSync(hostConfigPath)) {
-      try {
-        const hostConfigData = fs.readFileSync(hostConfigPath, 'utf8');
-        hostConfig = JSON.parse(hostConfigData);
-      } catch (err) {
-        console.warn(`Konnte Host-Konfiguration nicht laden: ${err.message}`);
-      }
-    }
-    
-    // MCP-Server-Konfiguration aktualisieren
-    hostConfig.mcpServers = hostConfig.mcpServers || {};
-    
-    serversToStart.forEach(server => {
-      hostConfig.mcpServers[server.name] = {
-        command: server.command,
-        args: server.args
-      };
+    // Start server process
+    const serverProcess = spawn(serverConfig.command, serverConfig.args, {
+      stdio: 'inherit',
+      shell: true
     });
     
-    // Konfiguration speichern
-    fs.writeFileSync(hostConfigPath, JSON.stringify(hostConfig, null, 2));
-    console.log(`Host-Konfiguration aktualisiert: ${hostConfigPath}`);
+    // Log server start
+    logger.info('Server process started', { 
+      serverId,
+      pid: serverProcess.pid,
+      command: `${serverConfig.command} ${serverConfig.args.join(' ')}`
+    });
+    
+    // Handle process exit
+    serverProcess.on('exit', (code, signal) => {
+      if (code === 0) {
+        logger.info('Server process exited normally', { serverId, code });
+      } else {
+        logger.warn('Server process exited with non-zero code', { 
+          serverId, 
+          code,
+          signal
+        });
+      }
+    });
+    
+    // Handle process error
+    serverProcess.on('error', (err) => {
+      logger.error('Server process error', { serverId, error: err });
+    });
+    
+    return true;
+  } catch (err) {
+    logger.error('Failed to start server', { serverId, error: err });
+    return false;
   }
-} catch (err) {
-  console.error(`Fehler beim Aktualisieren der Host-Konfiguration: ${err.message}`);
 }
 
-// Prozessbeendigung behandeln
-process.on('SIGINT', () => {
-  console.log('Beende alle MCP-Server...');
-  
-  serverProcesses.forEach((process, name) => {
-    console.log(`Beende ${name}...`);
-    process.kill();
-  });
-  
-  console.log('Alle MCP-Server beendet.');
-  process.exit(0);
-});
+/**
+ * Update Claude Desktop configuration
+ * @param {Object} config - MCP configuration
+ */
+function updateClaudeDesktopConfig(config) {
+  try {
+    logger.debug('Updating Claude Desktop configuration');
+    
+    // Create MCP server configuration for Claude Desktop
+    const mcpServers = {};
+    
+    Object.entries(config.servers || {})
+      .filter(([, serverConfig]) => serverConfig.enabled)
+      .forEach(([serverId, serverConfig]) => {
+        mcpServers[serverId] = {
+          command: serverConfig.command,
+          args: serverConfig.args
+        };
+      });
+    
+    // Create Claude Desktop configuration
+    const desktopConfig = {
+      mcpServers
+    };
+    
+    // Check if Claude Desktop configuration directory exists
+    const configDir = path.dirname(CLAUDE_DESKTOP_CONFIG_PATH);
+    if (!fs.existsSync(configDir)) {
+      fs.mkdirSync(configDir, { recursive: true });
+    }
+    
+    // Write Claude Desktop configuration
+    fs.writeFileSync(CLAUDE_DESKTOP_CONFIG_PATH, JSON.stringify(desktopConfig, null, 2));
+    
+    logger.info('Claude Desktop configuration updated', { 
+      path: CLAUDE_DESKTOP_CONFIG_PATH, 
+      serverCount: Object.keys(mcpServers).length 
+    });
+  } catch (err) {
+    logger.error('Failed to update Claude Desktop configuration', { error: err });
+  }
+}
 
-console.log('MCP-Server-Starter läuft. Drücken Sie Ctrl+C zum Beenden.');
+/**
+ * Main function
+ */
+async function main() {
+  // Get configuration
+  const config = getConfig();
+  
+  // Get server name from command line arguments
+  const serverName = process.argv[2];
+  
+  // Update Claude Desktop configuration
+  updateClaudeDesktopConfig(config);
+  
+  if (serverName) {
+    // Start specific server
+    logger.info('Starting specific MCP server', { serverName });
+    
+    const serverConfig = config.servers[serverName];
+    if (!serverConfig) {
+      logger.error('Server not found', { serverName });
+      process.exit(1);
+    }
+    
+    const success = await startServer(serverName, serverConfig);
+    if (!success) {
+      logger.error('Failed to start server', { serverName });
+      process.exit(1);
+    }
+  } else {
+    // Start all enabled auto-start servers
+    logger.info('Starting all enabled auto-start MCP servers');
+    
+    const servers = Object.entries(config.servers || {})
+      .filter(([, serverConfig]) => serverConfig.enabled && serverConfig.autostart);
+    
+    logger.debug('Found servers to start', { count: servers.length });
+    
+    // Start each server
+    for (const [serverId, serverConfig] of servers) {
+      await startServer(serverId, serverConfig);
+    }
+    
+    logger.info('All servers started');
+  }
+}
+
+// Run main function and handle errors
+main().catch(err => {
+  logger.fatal('Fatal error', { error: err });
+  process.exit(1);
+});

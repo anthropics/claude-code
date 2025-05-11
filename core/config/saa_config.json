@@ -1,0 +1,33 @@
+{
+  "servers": [
+    {
+      "id": "pentagonal-api",
+      "type": "pentagonal",
+      "description": "Pentagonal Architecture API Server",
+      "port": 3000,
+      "autoStart": true,
+      "env": {
+        "NODE_ENV": "development"
+      }
+    },
+    {
+      "id": "sequentialthinking",
+      "type": "mcp",
+      "description": "Sequential Thinking MCP Server",
+      "port": 3001,
+      "autoStart": true
+    },
+    {
+      "id": "rag-server",
+      "type": "rag",
+      "description": "RAG Vector Database Server",
+      "port": 3002,
+      "autoStart": true
+    }
+  ],
+  "autoStart": true,
+  "defaultPort": 3000,
+  "defaultTimeout": 30000,
+  "logLevel": "info",
+  "allowedOrigins": ["http://localhost:3000", "http://localhost:8080"]
+}

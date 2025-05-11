@@ -2,20 +2,45 @@
   "name": "claude-neural-framework",
   "version": "1.0.0",
   "description": "A comprehensive platform for integrating Claude AI capabilities with development workflows",
-  "main": "index.js",
+  "main": "src/index.js",
   "scripts": {
-    "start": "node core/mcp/start_server.js",
+    "start": "node src/index.js",
+    "start:mcp": "node core/mcp/start_server.js",
+    "dev": "nodemon src/index.js",
     "setup": "node scripts/setup/setup_user_colorschema.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:mocha": "mocha 'tests/**/*.mocha.js'",
+    "test:e2e": "jest --config=jest.e2e.config.js",
+    "test:integration": "jest --config=jest.integration.config.js",
+    "test:all": "npm run test && npm run test:integration && npm run test:e2e",
+    "lint": "eslint src/ core/ --ext .js",
+    "security-check": "node core/security/security_check.js",
+    "ci": "node scripts/run_ci_locally.js",
+    "build": "mkdir -p dist && cp -R src dist/ && cp -R core dist/ && cp -R docs dist/ && cp package.json dist/ && cp README.md dist/ && cp LICENSE.md dist/",
+    "prepare-release": "node scripts/prepare_release.js",
+    "version": "npm run prepare-release && git add CHANGELOG.md"
   },
   "dependencies": {
     "chalk": "^4.1.2",
     "commander": "^11.0.0",
     "dotenv": "^16.3.1",
+    "express": "^4.18.2",
     "inquirer": "^8.2.5",
-    "uuid": "^9.0.1"
+    "mongodb": "^6.3.0",
+    "uuid": "^9.0.1",
+    "winston": "^3.11.0"
   },
   "devDependencies": {
+    "chai": "^5.2.0",
+    "eslint": "^8.56.0",
+    "jest": "^29.7.0",
+    "mocha": "^11.2.2",
+    "nodemon": "^3.0.3",
+    "nyc": "^17.1.0",
+    "sinon": "^20.0.0",
+    "supertest": "^7.1.0",
     "typescript": "^5.0.4"
   },
   "repository": {
@@ -28,8 +53,13 @@
     "neural",
     "framework",
     "mcp",
-    "rag"
+    "rag",
+    "pentagonal",
+    "architecture"
   ],
   "author": "Claude Neural Framework Team",
-  "license": "MIT"
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  }
 }

@@ -4,8 +4,8 @@
  * Color Schema Manager
  * ===================
  * 
- * Verwaltet das Farbschema für UI-Komponenten des Claude Neural Framework.
- * Ermöglicht das Erstellen, Bearbeiten und Anwenden von benutzerdefinierten Farbschemata.
+ * Manages color schemas for UI components of the Claude Neural Framework.
+ * Enables creating, editing, and applying custom color schemas.
  */
 
 const fs = require('fs');
@@ -16,78 +16,119 @@ const inquirer = require('inquirer');
 const { execSync } = require('child_process');
 const os = require('os');
 
-// Konfigurationspfade
-const CONFIG_DIR = path.resolve(__dirname, '../config');
-const CONFIG_FILE = path.join(CONFIG_DIR, 'color_schema_config.json');
-const USER_CONFIG_DIR = path.join(os.homedir(), '.claude');
-const USER_CONFIG_FILE = path.join(USER_CONFIG_DIR, 'user.colorschema.json');
+// Import standardized config manager
+const configManager = require('../config/config_manager');
+const { CONFIG_TYPES } = configManager;
 
-// Sicherstellen, dass Benutzerverzeichnis existiert
-if (!fs.existsSync(USER_CONFIG_DIR)) {
-  fs.mkdirSync(USER_CONFIG_DIR, { recursive: true });
+// Ensure user directory exists
+if (!fs.existsSync(configManager.globalConfigPath)) {
+  try {
+    fs.mkdirSync(configManager.globalConfigPath, { recursive: true });
+  } catch (err) {
+    console.error(`Error creating user config directory: ${err.message}`);
+  }
 }
 
-// Konfiguration laden
+/**
+ * Load color schema configuration using the standardized config manager
+ * @returns {Object} The color schema configuration
+ */
 function loadConfig() {
   try {
-    if (fs.existsSync(CONFIG_FILE)) {
-      const configData = fs.readFileSync(CONFIG_FILE, 'utf8');
-      return JSON.parse(configData);
-    }
-    console.error('Keine Farbschema-Konfigurationsdatei gefunden.');
-    process.exit(1);
+    return configManager.getConfig(CONFIG_TYPES.COLOR_SCHEMA);
   } catch (err) {
-    console.error(`Fehler beim Laden der Konfiguration: ${err.message}`);
-    process.exit(1);
+    console.error(`Error loading color schema configuration: ${err.message}`);
+    return configManager.DEFAULT_CONFIGS[CONFIG_TYPES.COLOR_SCHEMA];
   }
 }
 
-// Benutzerkonfiguration laden
+/**
+ * Load user color schema configuration
+ * @returns {Object|null} The user color schema or null if not found
+ */
 function loadUserConfig() {
   try {
-    if (fs.existsSync(USER_CONFIG_FILE)) {
-      const configData = fs.readFileSync(USER_CONFIG_FILE, 'utf8');
+    const userConfigPath = path.join(configManager.globalConfigPath, 'user.colorschema.json');
+    if (fs.existsSync(userConfigPath)) {
+      const configData = fs.readFileSync(userConfigPath, 'utf8');
       return JSON.parse(configData);
     }
     return null;
   } catch (err) {
-    console.warn(`Keine Benutzer-Farbschema gefunden: ${err.message}`);
+    console.warn(`No user color schema found: ${err.message}`);
     return null;
   }
 }
 
-// Benutzerkonfiguration speichern
+/**
+ * Save user color schema configuration
+ * @param {Object} userConfig - The user configuration to save
+ * @returns {boolean} Success status
+ */
 function saveUserConfig(userConfig) {
   try {
-    fs.writeFileSync(USER_CONFIG_FILE, JSON.stringify(userConfig, null, 2));
-    console.log(`Benutzerkonfiguration gespeichert: ${USER_CONFIG_FILE}`);
+    const userConfigPath = path.join(configManager.globalConfigPath, 'user.colorschema.json');
+    fs.writeFileSync(userConfigPath, JSON.stringify(userConfig, null, 2));
+    console.log(`User configuration saved: ${userConfigPath}`);
+    
+    // Update the main color schema configuration
+    const config = loadConfig();
+    config.userPreferences = {
+      activeTheme: userConfig.activeTheme,
+      custom: userConfig.custom
+    };
+    
+    try {
+      configManager.saveConfig(CONFIG_TYPES.COLOR_SCHEMA, config);
+    } catch (err) {
+      console.warn(`Could not update main color schema config: ${err.message}`);
+    }
+    
     return true;
   } catch (err) {
-    console.error(`Fehler beim Speichern der Benutzerkonfiguration: ${err.message}`);
+    console.error(`Error saving user configuration: ${err.message}`);
     return false;
   }
 }
 
-// Farbschema auf bestehende UI-Komponenten anwenden
+/**
+ * Apply color schema to existing UI components
+ * @param {Object} schema - The color schema to apply
+ * @returns {boolean} Success status
+ */
 function applyColorSchema(schema) {
-  const cssOutput = generateCSS(schema);
-  const cssPath = path.join(process.cwd(), 'ui/dashboard/color-schema.css');
-  
   try {
-    fs.writeFileSync(cssPath, cssOutput);
-    console.log(`CSS-Datei erstellt: ${cssPath}`);
+    if (!schema) {
+      console.error("Invalid schema provided to applyColorSchema");
+      return false;
+    }
     
-    // Verknüpfung mit bestehenden HTML-Dateien
+    const cssOutput = generateCSS(schema);
+    const cssPath = path.join(process.cwd(), 'ui/dashboard/color-schema.css');
+    
+    // Make sure the directory exists
+    const cssDir = path.dirname(cssPath);
+    if (!fs.existsSync(cssDir)) {
+      fs.mkdirSync(cssDir, { recursive: true });
+    }
+    
+    fs.writeFileSync(cssPath, cssOutput);
+    console.log(`CSS file created: ${cssPath}`);
+    
+    // Link with existing HTML files
     updateHTMLFiles(schema);
     
     return true;
   } catch (err) {
-    console.error(`Fehler beim Anwenden des Farbschemas: ${err.message}`);
+    console.error(`Error applying color schema: ${err.message}`);
     return false;
   }
 }
 
-// HTML-Dateien aktualisieren
+/**
+ * Update HTML files to include the color schema CSS
+ * @param {Object} schema - The color schema
+ */
 function updateHTMLFiles(schema) {
   const dashboardPath = path.join(process.cwd(), 'ui/dashboard/index.html');
   
@@ -95,40 +136,49 @@ function updateHTMLFiles(schema) {
     try {
       let html = fs.readFileSync(dashboardPath, 'utf8');
       
-      // Prüfen ob color-schema.css bereits eingebunden ist
+      // Check if color-schema.css is already included
       if (!html.includes('color-schema.css')) {
-        // CSS-Link nach dem Haupt-Stylesheet einfügen
+        // Insert CSS link after the main stylesheet
         html = html.replace(
           /<link rel="stylesheet" href="styles.css">/,
           '<link rel="stylesheet" href="styles.css">\n    <link rel="stylesheet" href="color-schema.css">'
         );
         
         fs.writeFileSync(dashboardPath, html);
-        console.log(`Dashboard HTML aktualisiert: ${dashboardPath}`);
+        console.log(`Dashboard HTML updated: ${dashboardPath}`);
       }
     } catch (err) {
-      console.error(`Fehler beim Aktualisieren der HTML-Dateien: ${err.message}`);
+      console.error(`Error updating HTML files: ${err.message}`);
     }
   }
 }
 
-// CSS aus Farbschema generieren
+/**
+ * Generate CSS from color schema
+ * @param {Object} schema - The color schema
+ * @returns {string} Generated CSS
+ */
 function generateCSS(schema) {
-  const colors = schema.colors;
-  
-  return `:root {
-  /* Primärfarben */
+  try {
+    if (!schema || !schema.colors) {
+      throw new Error("Invalid schema format");
+    }
+    
+    const colors = schema.colors;
+    
+    return `:root {
+  /* Primary colors */
   --primary-color: ${colors.primary};
   --secondary-color: ${colors.secondary};
   --accent-color: ${colors.accent};
   
-  /* Statusfarben */
+  /* Status colors */
   --success-color: ${colors.success};
   --warning-color: ${colors.warning};
   --danger-color: ${colors.danger};
   --info-color: ${colors.info};
   
-  /* Neutralfarben */
+  /* Neutral colors */
   --background-color: ${colors.background};
   --surface-color: ${colors.surface};
   --text-color: ${colors.text};
@@ -136,13 +186,13 @@ function generateCSS(schema) {
   --border-color: ${colors.border};
   --shadow-color: ${colors.shadow};
   
-  /* Legacy-Kompatibilität */
+  /* Legacy compatibility */
   --light-gray: ${colors.border};
   --medium-gray: ${colors.textSecondary};
   --dark-gray: ${colors.text};
 }
 
-/* Anpassungen an Basis-Elementen */
+/* Base element adjustments */
 body {
   background-color: var(--background-color);
   color: var(--text-color);
@@ -163,7 +213,7 @@ body {
   border-bottom: 1px solid ${colors.primary}20;
 }
 
-/* Anpassungen für zusätzliche Komponenten */
+/* Additional component adjustments */
 .table th {
   background-color: ${colors.primary}10;
   color: var(--text-color);
@@ -214,7 +264,7 @@ body {
   background-color: var(--danger-color);
 }
 
-/* Weitere angepasste Komponenten */
+/* Additional custom components */
 .issue-card {
   border-left-color: var(--danger-color);
   background-color: ${colors.danger}08;
@@ -230,255 +280,297 @@ body {
   background-color: ${colors.success}08;
 }
 
-/* Dunkleres Thema für Codeblöcke bei dunklem Hintergrund */
+/* Darker theme for code blocks with dark background */
 pre {
   background-color: ${schema.name.toLowerCase().includes('dark') ? '#1a1a1a' : '#282c34'};
   color: ${schema.name.toLowerCase().includes('dark') ? '#e0e0e0' : '#abb2bf'};
 }
 `;
+  } catch (err) {
+    console.error(`Error generating CSS: ${err.message}`);
+    return "/* Error generating CSS */";
+  }
 }
 
-// Interaktive Farbschema-Erstellung
+/**
+ * Interactive color schema creation
+ * @returns {Promise<void>}
+ */
 async function createColorSchemaInteractive() {
-  const config = loadConfig();
-  const userConfig = loadUserConfig() || { 
-    activeTheme: config.userPreferences.activeTheme,
-    custom: null
-  };
-  
-  console.log(chalk.bold('\n=== Claude Neural Framework - Farbschema-Konfiguration ===\n'));
-  
-  // Grundlegendes Thema wählen
-  const { baseTheme } = await inquirer.prompt([
-    {
-      type: 'list',
-      name: 'baseTheme',
-      message: 'Wählen Sie ein Basis-Thema als Ausgangspunkt:',
-      choices: Object.keys(config.themes).map(theme => ({
-        name: `${config.themes[theme].name}`,
-        value: theme
-      })),
-      default: userConfig.activeTheme
-    }
-  ]);
-  
-  let selectedTheme = JSON.parse(JSON.stringify(config.themes[baseTheme]));
-  
-  // Farben anpassen?
-  const { customizeColors } = await inquirer.prompt([
-    {
-      type: 'confirm',
-      name: 'customizeColors',
-      message: 'Möchten Sie individuelle Farben anpassen?',
-      default: false
-    }
-  ]);
-  
-  if (customizeColors) {
-    const { customizeType } = await inquirer.prompt([
+  try {
+    const config = loadConfig();
+    const userConfig = loadUserConfig() || { 
+      activeTheme: config.userPreferences.activeTheme,
+      custom: null
+    };
+    
+    console.log(chalk.bold('\n=== Claude Neural Framework - Color Schema Configuration ===\n'));
+    
+    // Choose base theme
+    const { baseTheme } = await inquirer.prompt([
       {
         type: 'list',
-        name: 'customizeType',
-        message: 'Welche Farben möchten Sie anpassen?',
-        choices: [
-          { name: 'Primärfarben (Hauptfarben der Anwendung)', value: 'primary' },
-          { name: 'Statusfarben (Erfolg, Warnung, Fehler)', value: 'status' },
-          { name: 'Hintergrund und Text', value: 'background' },
-          { name: 'Alle Farben individuell', value: 'all' }
-        ]
+        name: 'baseTheme',
+        message: 'Choose a base theme to start with:',
+        choices: Object.keys(config.themes).map(theme => ({
+          name: `${config.themes[theme].name}`,
+          value: theme
+        })),
+        default: userConfig.activeTheme
       }
     ]);
     
-    if (customizeType === 'primary' || customizeType === 'all') {
-      const primaryColors = await inquirer.prompt([
-        {
-          type: 'input',
-          name: 'primary',
-          message: 'Primärfarbe (Hexcode, z.B. #3f51b5):',
-          default: selectedTheme.colors.primary,
-          validate: value => /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(value) ? true : 'Bitte geben Sie einen gültigen Hexadezimalwert ein'
-        },
-        {
-          type: 'input',
-          name: 'secondary',
-          message: 'Sekundärfarbe (Hexcode):',
-          default: selectedTheme.colors.secondary,
-          validate: value => /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(value) ? true : 'Bitte geben Sie einen gültigen Hexadezimalwert ein'
-        },
-        {
-          type: 'input',
-          name: 'accent',
-          message: 'Akzentfarbe (Hexcode):',
-          default: selectedTheme.colors.accent,
-          validate: value => /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(value) ? true : 'Bitte geben Sie einen gültigen Hexadezimalwert ein'
-        }
-      ]);
-      
-      selectedTheme.colors.primary = primaryColors.primary;
-      selectedTheme.colors.secondary = primaryColors.secondary;
-      selectedTheme.colors.accent = primaryColors.accent;
-    }
+    let selectedTheme = JSON.parse(JSON.stringify(config.themes[baseTheme]));
     
-    if (customizeType === 'status' || customizeType === 'all') {
-      const statusColors = await inquirer.prompt([
-        {
-          type: 'input',
-          name: 'success',
-          message: 'Erfolgsfarbe (Hexcode):',
-          default: selectedTheme.colors.success,
-          validate: value => /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(value) ? true : 'Bitte geben Sie einen gültigen Hexadezimalwert ein'
-        },
-        {
-          type: 'input',
-          name: 'warning',
-          message: 'Warnfarbe (Hexcode):',
-          default: selectedTheme.colors.warning,
-          validate: value => /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(value) ? true : 'Bitte geben Sie einen gültigen Hexadezimalwert ein'
-        },
-        {
-          type: 'input',
-          name: 'danger',
-          message: 'Fehlerfarbe (Hexcode):',
-          default: selectedTheme.colors.danger,
-          validate: value => /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(value) ? true : 'Bitte geben Sie einen gültigen Hexadezimalwert ein'
-        },
-        {
-          type: 'input',
-          name: 'info',
-          message: 'Informationsfarbe (Hexcode):',
-          default: selectedTheme.colors.info,
-          validate: value => /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(value) ? true : 'Bitte geben Sie einen gültigen Hexadezimalwert ein'
-        }
-      ]);
-      
-      selectedTheme.colors.success = statusColors.success;
-      selectedTheme.colors.warning = statusColors.warning;
-      selectedTheme.colors.danger = statusColors.danger;
-      selectedTheme.colors.info = statusColors.info;
-    }
-    
-    if (customizeType === 'background' || customizeType === 'all') {
-      const backgroundColors = await inquirer.prompt([
-        {
-          type: 'input',
-          name: 'background',
-          message: 'Hintergrundfarbe (Hexcode):',
-          default: selectedTheme.colors.background,
-          validate: value => /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(value) ? true : 'Bitte geben Sie einen gültigen Hexadezimalwert ein'
-        },
-        {
-          type: 'input',
-          name: 'surface',
-          message: 'Kartenfarbe (Hexcode):',
-          default: selectedTheme.colors.surface,
-          validate: value => /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(value) ? true : 'Bitte geben Sie einen gültigen Hexadezimalwert ein'
-        },
-        {
-          type: 'input',
-          name: 'text',
-          message: 'Textfarbe (Hexcode):',
-          default: selectedTheme.colors.text,
-          validate: value => /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(value) ? true : 'Bitte geben Sie einen gültigen Hexadezimalwert ein'
-        },
-        {
-          type: 'input',
-          name: 'border',
-          message: 'Rahmenfarbe (Hexcode):',
-          default: selectedTheme.colors.border,
-          validate: value => /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(value) ? true : 'Bitte geben Sie einen gültigen Hexadezimalwert ein'
-        }
-      ]);
-      
-      selectedTheme.colors.background = backgroundColors.background;
-      selectedTheme.colors.surface = backgroundColors.surface;
-      selectedTheme.colors.text = backgroundColors.text;
-      selectedTheme.colors.border = backgroundColors.border;
-    }
-    
-    // Benutzerdefiniertes Thema als benutzerdefinierten Eintrag speichern
-    userConfig.custom = selectedTheme;
-    userConfig.activeTheme = 'custom';
-  } else {
-    // Standardthema verwenden
-    userConfig.activeTheme = baseTheme;
-    userConfig.custom = null;
-  }
-  
-  // Vorschau anzeigen
-  console.log(chalk.bold('\nVorschau des ausgewählten Farbschemas:\n'));
-  
-  console.log(chalk.hex(selectedTheme.colors.primary)('■') + ' Primärfarbe');
-  console.log(chalk.hex(selectedTheme.colors.secondary)('■') + ' Sekundärfarbe');
-  console.log(chalk.hex(selectedTheme.colors.accent)('■') + ' Akzentfarbe');
-  console.log('');
-  console.log(chalk.hex(selectedTheme.colors.success)('■') + ' Erfolg');
-  console.log(chalk.hex(selectedTheme.colors.warning)('■') + ' Warnung');
-  console.log(chalk.hex(selectedTheme.colors.danger)('■') + ' Fehler');
-  console.log(chalk.hex(selectedTheme.colors.info)('■') + ' Information');
-  console.log('');
-  console.log(`Hintergrund: ${selectedTheme.colors.background}`);
-  console.log(`Text: ${selectedTheme.colors.text}`);
-  console.log(`Oberfläche: ${selectedTheme.colors.surface}`);
-  console.log(`Rand: ${selectedTheme.colors.border}`);
-  
-  // Speichern und anwenden
-  const { saveTheme } = await inquirer.prompt([
-    {
-      type: 'confirm',
-      name: 'saveTheme',
-      message: 'Möchten Sie dieses Farbschema speichern?',
-      default: true
-    }
-  ]);
-  
-  if (saveTheme) {
-    saveUserConfig(userConfig);
-    
-    const { applyTheme } = await inquirer.prompt([
+    // Customize colors?
+    const { customizeColors } = await inquirer.prompt([
       {
         type: 'confirm',
-        name: 'applyTheme',
-        message: 'Möchten Sie dieses Farbschema jetzt auf bestehende UI-Komponenten anwenden?',
+        name: 'customizeColors',
+        message: 'Do you want to customize individual colors?',
+        default: false
+      }
+    ]);
+    
+    if (customizeColors) {
+      const { customizeType } = await inquirer.prompt([
+        {
+          type: 'list',
+          name: 'customizeType',
+          message: 'Which colors do you want to customize?',
+          choices: [
+            { name: 'Primary colors (main application colors)', value: 'primary' },
+            { name: 'Status colors (success, warning, error)', value: 'status' },
+            { name: 'Background and text', value: 'background' },
+            { name: 'All colors individually', value: 'all' }
+          ]
+        }
+      ]);
+      
+      if (customizeType === 'primary' || customizeType === 'all') {
+        const primaryColors = await inquirer.prompt([
+          {
+            type: 'input',
+            name: 'primary',
+            message: 'Primary color (hex code, e.g. #3f51b5):',
+            default: selectedTheme.colors.primary,
+            validate: value => /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(value) ? true : 'Please enter a valid hexadecimal value'
+          },
+          {
+            type: 'input',
+            name: 'secondary',
+            message: 'Secondary color (hex code):',
+            default: selectedTheme.colors.secondary,
+            validate: value => /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(value) ? true : 'Please enter a valid hexadecimal value'
+          },
+          {
+            type: 'input',
+            name: 'accent',
+            message: 'Accent color (hex code):',
+            default: selectedTheme.colors.accent,
+            validate: value => /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(value) ? true : 'Please enter a valid hexadecimal value'
+          }
+        ]);
+        
+        selectedTheme.colors.primary = primaryColors.primary;
+        selectedTheme.colors.secondary = primaryColors.secondary;
+        selectedTheme.colors.accent = primaryColors.accent;
+      }
+      
+      if (customizeType === 'status' || customizeType === 'all') {
+        const statusColors = await inquirer.prompt([
+          {
+            type: 'input',
+            name: 'success',
+            message: 'Success color (hex code):',
+            default: selectedTheme.colors.success,
+            validate: value => /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(value) ? true : 'Please enter a valid hexadecimal value'
+          },
+          {
+            type: 'input',
+            name: 'warning',
+            message: 'Warning color (hex code):',
+            default: selectedTheme.colors.warning,
+            validate: value => /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(value) ? true : 'Please enter a valid hexadecimal value'
+          },
+          {
+            type: 'input',
+            name: 'danger',
+            message: 'Error color (hex code):',
+            default: selectedTheme.colors.danger,
+            validate: value => /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(value) ? true : 'Please enter a valid hexadecimal value'
+          },
+          {
+            type: 'input',
+            name: 'info',
+            message: 'Information color (hex code):',
+            default: selectedTheme.colors.info,
+            validate: value => /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(value) ? true : 'Please enter a valid hexadecimal value'
+          }
+        ]);
+        
+        selectedTheme.colors.success = statusColors.success;
+        selectedTheme.colors.warning = statusColors.warning;
+        selectedTheme.colors.danger = statusColors.danger;
+        selectedTheme.colors.info = statusColors.info;
+      }
+      
+      if (customizeType === 'background' || customizeType === 'all') {
+        const backgroundColors = await inquirer.prompt([
+          {
+            type: 'input',
+            name: 'background',
+            message: 'Background color (hex code):',
+            default: selectedTheme.colors.background,
+            validate: value => /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(value) ? true : 'Please enter a valid hexadecimal value'
+          },
+          {
+            type: 'input',
+            name: 'surface',
+            message: 'Card color (hex code):',
+            default: selectedTheme.colors.surface,
+            validate: value => /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(value) ? true : 'Please enter a valid hexadecimal value'
+          },
+          {
+            type: 'input',
+            name: 'text',
+            message: 'Text color (hex code):',
+            default: selectedTheme.colors.text,
+            validate: value => /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(value) ? true : 'Please enter a valid hexadecimal value'
+          },
+          {
+            type: 'input',
+            name: 'border',
+            message: 'Border color (hex code):',
+            default: selectedTheme.colors.border,
+            validate: value => /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(value) ? true : 'Please enter a valid hexadecimal value'
+          }
+        ]);
+        
+        selectedTheme.colors.background = backgroundColors.background;
+        selectedTheme.colors.surface = backgroundColors.surface;
+        selectedTheme.colors.text = backgroundColors.text;
+        selectedTheme.colors.border = backgroundColors.border;
+      }
+      
+      // Save custom theme as a custom entry
+      userConfig.custom = selectedTheme;
+      userConfig.activeTheme = 'custom';
+    } else {
+      // Use standard theme
+      userConfig.activeTheme = baseTheme;
+      userConfig.custom = null;
+    }
+    
+    // Show preview
+    console.log(chalk.bold('\nPreview of selected color schema:\n'));
+    
+    console.log(chalk.hex(selectedTheme.colors.primary)('■') + ' Primary');
+    console.log(chalk.hex(selectedTheme.colors.secondary)('■') + ' Secondary');
+    console.log(chalk.hex(selectedTheme.colors.accent)('■') + ' Accent');
+    console.log('');
+    console.log(chalk.hex(selectedTheme.colors.success)('■') + ' Success');
+    console.log(chalk.hex(selectedTheme.colors.warning)('■') + ' Warning');
+    console.log(chalk.hex(selectedTheme.colors.danger)('■') + ' Error');
+    console.log(chalk.hex(selectedTheme.colors.info)('■') + ' Information');
+    console.log('');
+    console.log(`Background: ${selectedTheme.colors.background}`);
+    console.log(`Text: ${selectedTheme.colors.text}`);
+    console.log(`Surface: ${selectedTheme.colors.surface}`);
+    console.log(`Border: ${selectedTheme.colors.border}`);
+    
+    // Save and apply
+    const { saveTheme } = await inquirer.prompt([
+      {
+        type: 'confirm',
+        name: 'saveTheme',
+        message: 'Do you want to save this color schema?',
         default: true
       }
     ]);
     
-    if (applyTheme) {
-      const themeToApply = userConfig.activeTheme === 'custom' ? userConfig.custom : config.themes[userConfig.activeTheme];
-      applyColorSchema(themeToApply);
+    if (saveTheme) {
+      saveUserConfig(userConfig);
+      
+      const { applyTheme } = await inquirer.prompt([
+        {
+          type: 'confirm',
+          name: 'applyTheme',
+          message: 'Do you want to apply this color schema to existing UI components now?',
+          default: true
+        }
+      ]);
+      
+      if (applyTheme) {
+        const themeToApply = userConfig.activeTheme === 'custom' ? userConfig.custom : config.themes[userConfig.activeTheme];
+        applyColorSchema(themeToApply);
+      }
+      
+      console.log(chalk.green('\nColor schema configuration completed!\n'));
+    } else {
+      console.log(chalk.yellow('\nColor schema was not saved.\n'));
     }
-    
-    console.log(chalk.green('\nFarbschema-Konfiguration abgeschlossen!\n'));
-  } else {
-    console.log(chalk.yellow('\nFarbschema wurde nicht gespeichert.\n'));
+  } catch (err) {
+    console.error(`Error in interactive color schema creation: ${err.message}`);
   }
 }
 
-// Farbschema aus Vorlage oder Benutzereinstellungen bekommen
+/**
+ * Get color schema from template or user settings
+ * @returns {Object} The active color schema
+ */
 function getColorSchema() {
-  const config = loadConfig();
-  const userConfig = loadUserConfig();
-  
-  if (userConfig && userConfig.activeTheme === 'custom' && userConfig.custom) {
-    return userConfig.custom;
-  } else {
-    const themeKey = userConfig ? userConfig.activeTheme : config.userPreferences.activeTheme;
-    return config.themes[themeKey];
+  try {
+    // Use the standardized config manager
+    const colorSchemaConfig = configManager.getConfig(CONFIG_TYPES.COLOR_SCHEMA);
+    
+    if (colorSchemaConfig.userPreferences.activeTheme === 'custom' && colorSchemaConfig.userPreferences.custom) {
+      return colorSchemaConfig.userPreferences.custom;
+    } else {
+      const themeKey = colorSchemaConfig.userPreferences.activeTheme;
+      return colorSchemaConfig.themes[themeKey] || colorSchemaConfig.themes.light; // Fallback to light if theme not found
+    }
+  } catch (err) {
+    console.error(`Error getting color schema: ${err.message}`);
+    // Return default light theme if anything fails
+    return {
+      name: "Default Light",
+      colors: {
+        primary: "#3f51b5",
+        secondary: "#7986cb",
+        accent: "#ff4081",
+        success: "#4caf50",
+        warning: "#ff9800",
+        danger: "#f44336",
+        info: "#2196f3",
+        background: "#ffffff",
+        surface: "#ffffff",
+        text: "#212121",
+        textSecondary: "#757575",
+        border: "#e0e0e0",
+        shadow: "rgba(0, 0, 0, 0.1)"
+      }
+    };
   }
 }
 
-// Farbschema-Objekt als JSON exportieren
+/**
+ * Export color schema as JSON
+ * @param {string} format - Output format ('json', 'css', 'scss', 'js')
+ * @returns {string} Formatted schema
+ */
 function exportSchema(format = 'json') {
-  const schema = getColorSchema();
-  
-  if (format === 'json') {
-    return JSON.stringify(schema, null, 2);
-  } else if (format === 'css') {
-    return generateCSS(schema);
-  } else if (format === 'scss') {
-    // SCSS-Variablen generieren
-    const colors = schema.colors;
-    return `// ${schema.name} Farbschema
+  try {
+    const schema = getColorSchema();
+    
+    if (format === 'json') {
+      return JSON.stringify(schema, null, 2);
+    } else if (format === 'css') {
+      return generateCSS(schema);
+    } else if (format === 'scss') {
+      // Generate SCSS variables
+      const colors = schema.colors;
+      return `// ${schema.name} Color Schema
 $primary: ${colors.primary};
 $secondary: ${colors.secondary};
 $accent: ${colors.accent};
@@ -493,10 +585,10 @@ $text-secondary: ${colors.textSecondary};
 $border: ${colors.border};
 $shadow: ${colors.shadow};
 `;
-  } else if (format === 'js') {
-    // JavaScript-Konstanten generieren
-    const colors = schema.colors;
-    return `// ${schema.name} Farbschema
+    } else if (format === 'js') {
+      // Generate JavaScript constants
+      const colors = schema.colors;
+      return `// ${schema.name} Color Schema
 export const COLORS = {
   primary: '${colors.primary}',
   secondary: '${colors.secondary}',
@@ -513,53 +605,63 @@ export const COLORS = {
   shadow: '${colors.shadow}'
 };
 `;
+    }
+    
+    return null;
+  } catch (err) {
+    console.error(`Error exporting schema: ${err.message}`);
+    return null;
   }
-  
-  return null;
 }
 
-// Hauptfunktion
+/**
+ * Main function
+ * @returns {Promise<void>}
+ */
 async function main() {
-  const args = process.argv.slice(2);
-  
-  // Befehlszeilenargumente verarbeiten
-  const interactive = !args.includes('--non-interactive');
-  const templateArg = args.find(arg => arg.startsWith('--template='));
-  const template = templateArg ? templateArg.split('=')[1] : null;
-  const applyArg = args.find(arg => arg.startsWith('--apply='));
-  const apply = applyArg ? applyArg.split('=')[1] === 'true' : false;
-  const formatArg = args.find(arg => arg.startsWith('--format='));
-  const format = formatArg ? formatArg.split('=')[1] : 'json';
-  
-  if (interactive) {
-    await createColorSchemaInteractive();
-  } else if (template) {
-    const config = loadConfig();
+  try {
+    const args = process.argv.slice(2);
     
-    if (config.themes[template]) {
-      const userConfig = {
-        activeTheme: template,
-        custom: null
-      };
+    // Process command line arguments
+    const interactive = !args.includes('--non-interactive');
+    const templateArg = args.find(arg => arg.startsWith('--template='));
+    const template = templateArg ? templateArg.split('=')[1] : null;
+    const applyArg = args.find(arg => arg.startsWith('--apply='));
+    const apply = applyArg ? applyArg.split('=')[1] === 'true' : false;
+    const formatArg = args.find(arg => arg.startsWith('--format='));
+    const format = formatArg ? formatArg.split('=')[1] : 'json';
+    
+    if (interactive) {
+      await createColorSchemaInteractive();
+    } else if (template) {
+      const config = loadConfig();
       
-      saveUserConfig(userConfig);
-      console.log(`Farbschema "${config.themes[template].name}" wurde ausgewählt.`);
-      
-      if (apply) {
-        applyColorSchema(config.themes[template]);
+      if (config.themes[template]) {
+        const userConfig = {
+          activeTheme: template,
+          custom: null
+        };
+        
+        saveUserConfig(userConfig);
+        console.log(`Color schema "${config.themes[template].name}" has been selected.`);
+        
+        if (apply) {
+          applyColorSchema(config.themes[template]);
+        }
+      } else {
+        console.error(`Template "${template}" not found.`);
       }
     } else {
-      console.error(`Vorlage "${template}" nicht gefunden.`);
-      process.exit(1);
+      // Export color schema
+      const output = exportSchema(format);
+      console.log(output);
     }
-  } else {
-    // Farbschema exportieren
-    const output = exportSchema(format);
-    console.log(output);
+  } catch (err) {
+    console.error(`Error in main function: ${err.message}`);
   }
 }
 
-// Modul-Exporte für API-Nutzung
+// Module exports for API usage
 module.exports = {
   getColorSchema,
   applyColorSchema,
@@ -567,7 +669,10 @@ module.exports = {
   exportSchema
 };
 
-// Nur ausführen, wenn direkt aufgerufen
+// Only execute when directly invoked
 if (require.main === module) {
-  main().catch(console.error);
+  main().catch(err => {
+    console.error(`Unhandled error: ${err.message}`);
+    process.exit(1);
+  });
 }

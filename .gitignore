@@ -1,1 +1,68 @@
+# Local Claude settings
 **/.claude/settings.local.json
+
+# Node.js dependencies
+node_modules/
+npm-debug.log
+yarn-error.log
+yarn-debug.log
+package-lock.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+.venv/
+venv/
+ENV/
+
+# Development environments
+.env
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# Build outputs
+dist/
+build/
+*.egg-info/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Database files
+*.sqlite
+*.sqlite3
+*.db
+
+# Vector database files
+vector_store/
+chroma_db/
+lancedb/
+
+# Generated files
+.DS_Store
+.about/temp/
+.about/cache/
+
+# Framework specific
+core/rag/embeddings/
+core/mcp/temp/
+core/config/user_config.json
+core/config/user_color_schema.json
+
+# Temporary files
+/tmp/
+.tmp/
+temp/
+*.tmp

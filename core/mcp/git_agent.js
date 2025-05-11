@@ -76,22 +76,31 @@ class GitAgent {
    * @returns {Object} - The response message
    */
   processMessage(message) {
-    const { task, params } = message;
-    
-    if (task !== 'git-operation') {
-      return this.createErrorResponse(message, 'Unsupported task', 400);
-    }
-    
-    const { operation, color_schema } = params;
+    try {
+      const { task, params } = message;
+
+      if (task !== 'git-operation') {
+        return this.createErrorResponse(message, 'Unsupported task', 400);
+      }
+
+      if (!params || typeof params !== 'object') {
+        return this.createErrorResponse(message, 'Invalid parameters', 400);
+      }
+
+      const { operation, color_schema } = params;
+
+      if (!operation) {
+        return this.createErrorResponse(message, 'Missing operation parameter', 400);
+      }
     
     // Use provided color schema or default to the user's
     if (color_schema) {
-      this.colorSchema = { 
-        name: "Custom", 
-        colors: color_schema 
+      this.colorSchema = {
+        name: "Custom",
+        colors: color_schema
       };
     }
-    
+
     // Route to appropriate git operation
     switch (operation) {
       case 'status':
@@ -112,6 +121,9 @@ class GitAgent {
         return this.gitDiff(message);
       default:
         return this.createErrorResponse(message, `Unsupported git operation: ${operation}`, 400);
+    }
+    } catch (error) {
+      return this.createErrorResponse(message, `Error processing message: ${error.message}`, 500);
     }
   }
   
@@ -202,16 +214,20 @@ class GitAgent {
    * @returns {Object} - Response message
    */
   gitStatus(message) {
+    if (!message || !message.from) {
+      return this.createErrorResponse({from: 'unknown'}, 'Invalid message', 400);
+    }
+
     if (!this.isGitRepository()) {
       return this.createErrorResponse(message, 'Not a git repository', 400);
     }
-    
+
     try {
       const output = execSync('git status').toString();
       const formattedOutput = this.formatOutput(output);
       return this.createSuccessResponse(message, formattedOutput, 'git status');
     } catch (error) {
-      return this.createErrorResponse(message, error.message);
+      return this.createErrorResponse(message, `Error executing git status: ${error.message}`, 500);
     }
   }
   

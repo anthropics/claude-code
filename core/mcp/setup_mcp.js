@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 
 /**
- * MCP-Server-Konfigurationstool
+ * MCP Server Configuration Tool
  * 
- * Dieses Skript hilft beim Einrichten und Starten der MCP-Server für das Claude Neural Framework.
- * Es lädt die Konfiguration aus server_config.json, überprüft die Umgebungsvariablen und startet
- * die konfigurierten Server.
+ * This script helps set up and start MCP servers for the Claude Neural Framework.
+ * It loads the configuration from server_config.json, verifies environment variables,
+ * and starts the configured servers.
  * 
  * Version: 1.0.0
- * Letztes Update: 2025-05-11
+ * Last Update: 2025-05-11
  */
 
 const fs = require('fs');
@@ -16,10 +16,25 @@ const path = require('path');
 const { execSync, spawn } = require('child_process');
 const readline = require('readline');
 
-// Pfad zur Konfigurationsdatei
-const CONFIG_PATH = path.join(__dirname, 'server_config.json');
+// Import standardized config manager
+const configManager = require('../config/config_manager');
+const { CONFIG_TYPES } = configManager;
 
-// Terminal-Farben für bessere Lesbarkeit
+// Import standardized logger
+const logger = require('../logging/logger').createLogger('mcp-setup');
+
+// Import standardized error handling
+const { 
+  errorHandler, 
+  ConfigurationError, 
+  ValidationError, 
+  NotFoundError 
+} = require('../error/error_handler');
+
+// Server configuration path
+const SERVER_CONFIG_PATH = path.join(__dirname, 'server_config.json');
+
+// Terminal colors for better readability
 const COLORS = {
   reset: '\x1b[0m',
   red: '\x1b[31m',
@@ -28,253 +43,280 @@ const COLORS = {
   blue: '\x1b[34m',
   magenta: '\x1b[35m',
   cyan: '\x1b[36m',
-  white: '\x1b[37m'
+  white: '\x1b[37m',
+  bold: '\x1b[1m'
 };
 
-// Aktive MCP-Serverprozesse
-const activeServers = new Map();
-
 /**
- * Lädt die MCP-Server-Konfiguration
- * @returns {Object} Die geladene Konfiguration
+ * Main setup function
  */
-function loadConfig() {
+async function setupMcp() {
+  logger.info('Starting MCP server setup');
+  
+  // Load server configuration
+  let serverConfig;
   try {
-    const configData = fs.readFileSync(CONFIG_PATH, 'utf8');
-    return JSON.parse(configData);
-  } catch (error) {
-    console.error(`${COLORS.red}Fehler beim Laden der Konfiguration:${COLORS.reset}`, error.message);
+    serverConfig = loadServerConfig();
+    
+    if (!serverConfig.servers || Object.keys(serverConfig.servers).length === 0) {
+      throw new ConfigurationError('No servers configured in server_config.json', {
+        code: 'ERR_NO_SERVERS_CONFIGURED'
+      });
+    }
+    
+    logger.info('Server configuration loaded', { serverCount: Object.keys(serverConfig.servers).length });
+  } catch (err) {
+    logger.error('Failed to load server configuration', { error: err });
+    console.error(`${COLORS.red}${COLORS.bold}Error:${COLORS.reset} Failed to load server configuration: ${err.message}`);
     process.exit(1);
   }
+  
+  // Check for installed packages
+  try {
+    await checkInstalledPackages(serverConfig);
+  } catch (err) {
+    logger.error('Failed to check installed packages', { error: err });
+    console.error(`${COLORS.red}${COLORS.bold}Error:${COLORS.reset} ${err.message}`);
+    process.exit(1);
+  }
+  
+  // Update MCP configuration
+  try {
+    await updateMcpConfig(serverConfig);
+    logger.info('MCP configuration updated');
+  } catch (err) {
+    logger.error('Failed to update MCP configuration', { error: err });
+    console.error(`${COLORS.red}${COLORS.bold}Error:${COLORS.reset} Failed to update MCP configuration: ${err.message}`);
+    process.exit(1);
+  }
+  
+  // Check for required environment variables
+  try {
+    checkEnvironmentVariables(serverConfig);
+  } catch (err) {
+    logger.warn('Environment variable check', { error: err });
+    console.warn(`${COLORS.yellow}${COLORS.bold}Warning:${COLORS.reset} ${err.message}`);
+  }
+  
+  logger.info('MCP server setup completed successfully');
+  console.log(`${COLORS.green}${COLORS.bold}Success:${COLORS.reset} MCP server setup completed.`);
+  console.log(`Run ${COLORS.cyan}node core/mcp/start_server.js${COLORS.reset} to start the MCP servers.`);
 }
 
 /**
- * Ersetzt Umgebungsvariablen-Platzhalter in den Argumenten
- * @param {Array} args Array von Argumenten mit Platzhaltern wie ${VAR_NAME}
- * @returns {Array} Array mit ersetzten Platzhaltern
+ * Load server configuration
+ * @returns {Object} Server configuration
  */
-function replaceEnvVars(args) {
-  return args.map(arg => {
-    if (typeof arg !== 'string') return arg;
+function loadServerConfig() {
+  try {
+    // Check if server configuration file exists
+    if (!fs.existsSync(SERVER_CONFIG_PATH)) {
+      throw new NotFoundError('Server configuration file not found', {
+        code: 'ERR_CONFIG_FILE_NOT_FOUND',
+        metadata: { path: SERVER_CONFIG_PATH }
+      });
+    }
     
-    return arg.replace(/\${([A-Z_]+)}/g, (match, varName) => {
-      const value = process.env[varName];
-      if (!value) {
-        console.warn(`${COLORS.yellow}Warnung: Umgebungsvariable ${varName} ist nicht gesetzt${COLORS.reset}`);
-        return match; // Behalte den Platzhalter bei
-      }
-      return value;
+    // Load server configuration
+    const configData = fs.readFileSync(SERVER_CONFIG_PATH, 'utf8');
+    const config = JSON.parse(configData);
+    
+    // Validate server configuration
+    if (!config.servers) {
+      throw new ValidationError('Invalid server configuration: missing servers object', {
+        code: 'ERR_INVALID_SERVER_CONFIG'
+      });
+    }
+    
+    return config;
+  } catch (err) {
+    // Handle JSON parse errors
+    if (err instanceof SyntaxError) {
+      throw new ConfigurationError('Invalid JSON in server configuration file', {
+        code: 'ERR_INVALID_JSON',
+        cause: err
+      });
+    }
+    
+    // Rethrow framework errors
+    if (err instanceof NotFoundError || err instanceof ValidationError) {
+      throw err;
+    }
+    
+    // Wrap other errors
+    throw new ConfigurationError('Failed to load server configuration', {
+      code: 'ERR_CONFIG_LOAD_FAILED',
+      cause: err
     });
-  });
-}
-
-/**
- * Prüft, ob NPX installiert ist
- * @returns {boolean} True, wenn NPX verfügbar ist
- */
-function checkNpx() {
-  try {
-    execSync('npx --version', { stdio: 'ignore' });
-    return true;
-  } catch (error) {
-    return false;
   }
 }
 
 /**
- * Startet einen MCP-Server
- * @param {string} name Name des Servers
- * @param {Object} config Serverkonfiguration
+ * Check for installed packages
+ * @param {Object} config - Server configuration
  */
-function startServer(name, config) {
-  console.log(`${COLORS.cyan}Starte MCP-Server:${COLORS.reset} ${name} (${config.description || 'Kein Beschreibung'})`);
+async function checkInstalledPackages(config) {
+  logger.info('Checking installed packages');
+  console.log(`${COLORS.blue}${COLORS.bold}Checking installed packages...${COLORS.reset}`);
   
-  const args = replaceEnvVars(config.args);
-  const serverProcess = spawn(config.command, args, {
-    stdio: 'pipe',
-    shell: true
+  const requiredPackages = new Set();
+  
+  // Collect required packages from server configuration
+  Object.entries(config.servers).forEach(([serverId, serverConfig]) => {
+    if (serverConfig.package) {
+      requiredPackages.add(serverConfig.package);
+    }
   });
   
-  activeServers.set(name, serverProcess);
+  // Check if packages are installed
+  const missingPackages = [];
   
-  serverProcess.stdout.on('data', (data) => {
-    console.log(`${COLORS.green}[${name}]${COLORS.reset} ${data.toString().trim()}`);
-  });
-  
-  serverProcess.stderr.on('data', (data) => {
-    console.error(`${COLORS.red}[${name}]${COLORS.reset} ${data.toString().trim()}`);
-  });
-  
-  serverProcess.on('close', (code) => {
-    console.log(`${COLORS.yellow}MCP-Server ${name} beendet mit Code ${code}${COLORS.reset}`);
-    activeServers.delete(name);
-  });
-  
-  console.log(`${COLORS.green}MCP-Server ${name} gestartet mit PID ${serverProcess.pid}${COLORS.reset}`);
-}
-
-/**
- * Stoppt alle aktiven MCP-Server
- */
-function stopAllServers() {
-  console.log(`${COLORS.yellow}Stoppe alle MCP-Server...${COLORS.reset}`);
-  
-  activeServers.forEach((process, name) => {
-    process.kill();
-    console.log(`${COLORS.yellow}MCP-Server ${name} gestoppt${COLORS.reset}`);
-  });
-  
-  activeServers.clear();
-}
-
-/**
- * Zeigt eine Auflistung aller verfügbaren MCP-Server
- * @param {Object} config Die geladene Konfiguration
- */
-function listServers(config) {
-  console.log(`${COLORS.blue}=== Verfügbare MCP-Server ===${COLORS.reset}`);
-  
-  for (const category in config.mcpServers) {
-    console.log(`\n${COLORS.magenta}${category.toUpperCase()}:${COLORS.reset}`);
-    
-    for (const [name, serverConfig] of Object.entries(config.mcpServers[category])) {
-      const autostart = serverConfig.autostart ? '(Autostart)' : '';
-      console.log(`  ${COLORS.cyan}${name}${COLORS.reset} - ${serverConfig.description || 'Keine Beschreibung'} ${COLORS.green}${autostart}${COLORS.reset}`);
+  for (const packageName of requiredPackages) {
+    try {
+      logger.debug('Checking package', { packageName });
+      execSync(`npm list ${packageName} -g || npm list ${packageName}`, { stdio: 'ignore' });
+      console.log(`${COLORS.green}✓${COLORS.reset} Package ${COLORS.cyan}${packageName}${COLORS.reset} is installed.`);
+    } catch (err) {
+      logger.warn('Missing package', { packageName });
+      console.log(`${COLORS.yellow}!${COLORS.reset} Package ${COLORS.cyan}${packageName}${COLORS.reset} is not installed.`);
+      missingPackages.push(packageName);
     }
   }
   
-  console.log(`\n${COLORS.blue}===========================${COLORS.reset}`);
-}
-
-/**
- * Zeigt die Umgebungsvariablen-Anforderungen
- * @param {Object} config Die geladene Konfiguration
- */
-function showEnvironmentRequirements(config) {
-  console.log(`${COLORS.blue}=== Benötigte Umgebungsvariablen ===${COLORS.reset}`);
-  
-  for (const [varName, description] of Object.entries(config.environmentVariables || {})) {
-    const status = process.env[varName] ? `${COLORS.green}✓ Gesetzt${COLORS.reset}` : `${COLORS.red}✗ Nicht gesetzt${COLORS.reset}`;
-    console.log(`  ${COLORS.cyan}${varName}${COLORS.reset} - ${description} ${status}`);
-  }
-  
-  console.log(`${COLORS.blue}=====================================${COLORS.reset}`);
-}
-
-/**
- * Hauptfunktion des Skripts
- */
-async function main() {
-  // ASCII-Art-Banner für das Tool
-  console.log(`${COLORS.cyan}
-  ╔═══════════════════════════════════════════════╗
-  ║         CLAUDE NEURAL FRAMEWORK              ║
-  ║         MCP-SERVER-MANAGER v1.0.0            ║
-  ╚═══════════════════════════════════════════════╝${COLORS.reset}`);
-  
-  // Prüfe, ob NPX installiert ist
-  if (!checkNpx()) {
-    console.error(`${COLORS.red}Fehler: NPX ist nicht installiert. Bitte installiere Node.js mit NPM.${COLORS.reset}`);
-    process.exit(1);
-  }
-  
-  // Lade die Konfiguration
-  const config = loadConfig();
-  console.log(`${COLORS.green}Konfiguration geladen: ${CONFIG_PATH}${COLORS.reset}`);
-  
-  // Zeige Optionen
-  console.log(`${COLORS.blue}Verfügbare Befehle:${COLORS.reset}`);
-  console.log(`  ${COLORS.cyan}list${COLORS.reset} - Zeigt alle verfügbaren MCP-Server`);
-  console.log(`  ${COLORS.cyan}start [name]${COLORS.reset} - Startet einen spezifischen MCP-Server`);
-  console.log(`  ${COLORS.cyan}autostart${COLORS.reset} - Startet alle Server mit Autostart-Konfiguration`);
-  console.log(`  ${COLORS.cyan}stop${COLORS.reset} - Stoppt alle laufenden MCP-Server`);
-  console.log(`  ${COLORS.cyan}env${COLORS.reset} - Zeigt Umgebungsvariablen-Anforderungen`);
-  console.log(`  ${COLORS.cyan}exit${COLORS.reset} - Beendet das Programm`);
-  
-  // Erstelle Interface für Benutzereingabe
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-    prompt: `${COLORS.green}mcp>${COLORS.reset} `
-  });
-  
-  // Handler für Programmbeendigung
-  process.on('SIGINT', () => {
-    stopAllServers();
+  // Install missing packages
+  if (missingPackages.length > 0) {
+    console.log(`${COLORS.yellow}${COLORS.bold}Found ${missingPackages.length} missing packages.${COLORS.reset}`);
+    
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout
+    });
+    
+    const answer = await new Promise(resolve => {
+      rl.question(`${COLORS.yellow}Do you want to install them now? (y/n)${COLORS.reset} `, resolve);
+    });
+    
     rl.close();
-    process.exit(0);
-  });
-  
-  // Eingabeschleife
-  rl.prompt();
-  rl.on('line', (line) => {
-    const [command, ...args] = line.trim().split(' ');
     
-    switch (command.toLowerCase()) {
-      case 'list':
-        listServers(config);
-        break;
-        
-      case 'start':
-        if (args.length === 0) {
-          console.log(`${COLORS.yellow}Bitte gib den Namen des zu startenden Servers an${COLORS.reset}`);
-          listServers(config);
-        } else {
-          const serverName = args[0];
-          let serverFound = false;
-          
-          // Suche den Server in allen Kategorien
-          for (const category in config.mcpServers) {
-            if (serverName in config.mcpServers[category]) {
-              startServer(serverName, config.mcpServers[category][serverName]);
-              serverFound = true;
-              break;
-            }
-          }
-          
-          if (!serverFound) {
-            console.error(`${COLORS.red}MCP-Server "${serverName}" nicht gefunden${COLORS.reset}`);
-          }
+    if (answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes') {
+      logger.info('Installing missing packages', { packages: missingPackages });
+      console.log(`${COLORS.blue}${COLORS.bold}Installing missing packages...${COLORS.reset}`);
+      
+      for (const packageName of missingPackages) {
+        try {
+          console.log(`${COLORS.blue}Installing ${packageName}...${COLORS.reset}`);
+          execSync(`npm install -g ${packageName}`, { stdio: 'inherit' });
+          console.log(`${COLORS.green}✓${COLORS.reset} Package ${COLORS.cyan}${packageName}${COLORS.reset} installed.`);
+        } catch (err) {
+          logger.error('Failed to install package', { packageName, error: err });
+          console.error(`${COLORS.red}✗${COLORS.reset} Failed to install package ${COLORS.cyan}${packageName}${COLORS.reset}: ${err.message}`);
+          throw new Error(`Failed to install required packages. Please install them manually.`);
         }
-        break;
-        
-      case 'autostart':
-        console.log(`${COLORS.cyan}Starte alle Autostart-Server...${COLORS.reset}`);
-        
-        // Starte alle Server mit Autostart-Konfiguration
-        for (const category in config.mcpServers) {
-          for (const [name, serverConfig] of Object.entries(config.mcpServers[category])) {
-            if (serverConfig.autostart) {
-              startServer(name, serverConfig);
-            }
-          }
-        }
-        break;
-        
-      case 'stop':
-        stopAllServers();
-        break;
-        
-      case 'env':
-        showEnvironmentRequirements(config);
-        break;
-        
-      case 'exit':
-        stopAllServers();
-        rl.close();
-        process.exit(0);
-        break;
-        
-      default:
-        console.log(`${COLORS.yellow}Unbekannter Befehl: ${command}${COLORS.reset}`);
+      }
+    } else {
+      logger.warn('Missing packages not installed', { packages: missingPackages });
+      console.warn(`${COLORS.yellow}${COLORS.bold}Warning:${COLORS.reset} Missing packages not installed. You may need to install them manually.`);
     }
-    
-    rl.prompt();
-  });
+  } else {
+    logger.info('All required packages are installed');
+    console.log(`${COLORS.green}${COLORS.bold}All required packages are installed.${COLORS.reset}`);
+  }
 }
 
-// Starte das Programm
-main().catch(error => {
-  console.error(`${COLORS.red}Unerwarteter Fehler:${COLORS.reset}`, error);
+/**
+ * Update MCP configuration
+ * @param {Object} serverConfig - Server configuration
+ */
+async function updateMcpConfig(serverConfig) {
+  logger.info('Updating MCP configuration');
+  console.log(`${COLORS.blue}${COLORS.bold}Updating MCP configuration...${COLORS.reset}`);
+  
+  try {
+    // Get current MCP configuration
+    const mcpConfig = configManager.getConfig(CONFIG_TYPES.MCP);
+    
+    // Create server configurations
+    const servers = {};
+    
+    Object.entries(serverConfig.servers).forEach(([serverId, serverConfig]) => {
+      servers[serverId] = {
+        enabled: serverConfig.enabled !== false,
+        autostart: serverConfig.autostart !== false,
+        command: serverConfig.command,
+        args: serverConfig.args,
+        description: serverConfig.description || `MCP server: ${serverId}`,
+        api_key_env: serverConfig.api_key_env
+      };
+    });
+    
+    // Update MCP configuration
+    mcpConfig.servers = servers;
+    
+    // Save configuration
+    configManager.saveConfig(CONFIG_TYPES.MCP, mcpConfig);
+    
+    logger.info('MCP configuration updated', { serverCount: Object.keys(servers).length });
+    console.log(`${COLORS.green}✓${COLORS.reset} MCP configuration updated with ${Object.keys(servers).length} servers.`);
+  } catch (err) {
+    logger.error('Failed to update MCP configuration', { error: err });
+    throw new ConfigurationError('Failed to update MCP configuration', {
+      code: 'ERR_MCP_CONFIG_UPDATE_FAILED',
+      cause: err
+    });
+  }
+}
+
+/**
+ * Check for required environment variables
+ * @param {Object} config - Server configuration
+ */
+function checkEnvironmentVariables(config) {
+  logger.info('Checking environment variables');
+  console.log(`${COLORS.blue}${COLORS.bold}Checking environment variables...${COLORS.reset}`);
+  
+  const requiredEnvVars = new Set();
+  const missingEnvVars = [];
+  
+  // Collect required environment variables from server configuration
+  Object.entries(config.servers).forEach(([serverId, serverConfig]) => {
+    if (serverConfig.api_key_env) {
+      requiredEnvVars.add(serverConfig.api_key_env);
+    }
+  });
+  
+  // Check if environment variables are set
+  for (const envVar of requiredEnvVars) {
+    if (!process.env[envVar]) {
+      logger.warn('Missing environment variable', { envVar });
+      console.warn(`${COLORS.yellow}!${COLORS.reset} Environment variable ${COLORS.cyan}${envVar}${COLORS.reset} is not set.`);
+      missingEnvVars.push(envVar);
+    } else {
+      logger.debug('Environment variable found', { envVar });
+      console.log(`${COLORS.green}✓${COLORS.reset} Environment variable ${COLORS.cyan}${envVar}${COLORS.reset} is set.`);
+    }
+  }
+  
+  // Warn about missing environment variables
+  if (missingEnvVars.length > 0) {
+    const message = `Missing ${missingEnvVars.length} environment variables: ${missingEnvVars.join(', ')}`;
+    logger.warn(message);
+    console.warn(`${COLORS.yellow}${COLORS.bold}Warning:${COLORS.reset} ${message}`);
+    console.warn(`${COLORS.yellow}Some MCP servers may not work properly without these environment variables.${COLORS.reset}`);
+    
+    throw new ValidationError(message, {
+      code: 'ERR_MISSING_ENV_VARS',
+      isOperational: true,
+      metadata: { missingEnvVars }
+    });
+  } else {
+    logger.info('All required environment variables are set');
+    console.log(`${COLORS.green}${COLORS.bold}All required environment variables are set.${COLORS.reset}`);
+  }
+}
+
+// Run setup function with error handling
+errorHandler.wrapAsync(setupMcp)().catch(err => {
+  logger.fatal('Fatal error during MCP setup', { error: err });
+  console.error(`${COLORS.red}${COLORS.bold}Fatal Error:${COLORS.reset} ${err.message}`);
   process.exit(1);
 });

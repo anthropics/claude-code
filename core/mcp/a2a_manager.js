@@ -37,7 +37,6 @@ class A2AManager {
    */
   registerAgent(agentId, handler) {
     AGENT_REGISTRY[agentId] = handler;
-    console.log(`Agent registered: ${agentId}`);
   }
 
   /**
@@ -46,46 +45,81 @@ class A2AManager {
    * @returns {Promise<Object>} - Agent response
    */
   async sendMessage(message) {
-    // Validate message format
-    this.validateMessage(message);
-    
-    // Add conversation ID if not present
-    if (!message.conversationId) {
-      message.conversationId = uuidv4();
-    }
-    
-    // Store in conversation history
-    this.storeMessage(message);
-    
-    // Get target agent
-    const targetAgent = message.to;
-    
-    // Check if agent exists
-    if (!AGENT_REGISTRY[targetAgent]) {
-      throw new Error(`Agent not found: ${targetAgent}`);
-    }
-    
-    // Route message to agent
     try {
-      const response = await AGENT_REGISTRY[targetAgent](message);
-      
-      // Store response in conversation history
-      this.storeMessage(response);
-      
-      return response;
+      // Validate message format
+      this.validateMessage(message);
+
+      // Add conversation ID if not present
+      if (!message.conversationId) {
+        message.conversationId = uuidv4();
+      }
+
+      // Store in conversation history
+      this.storeMessage(message);
+
+      // Get target agent
+      const targetAgent = message.to;
+
+      // Check if agent exists
+      if (!AGENT_REGISTRY[targetAgent]) {
+        const notFoundResponse = {
+          to: message.from,
+          from: 'a2a-manager',
+          conversationId: message.conversationId,
+          task: 'error',
+          params: {
+            status: 'error',
+            error: `Agent not found: ${targetAgent}`,
+            code: 404
+          }
+        };
+        this.storeMessage(notFoundResponse);
+        return notFoundResponse;
+      }
+
+      // Route message to agent
+      try {
+        const response = await AGENT_REGISTRY[targetAgent](message);
+
+        // Validate response
+        if (!response || !response.to || !response.from) {
+          throw new Error('Invalid response from agent');
+        }
+
+        // Store response in conversation history
+        this.storeMessage(response);
+
+        return response;
+      } catch (error) {
+        const errorResponse = {
+          to: message.from,
+          from: targetAgent,
+          conversationId: message.conversationId,
+          task: 'error',
+          params: {
+            status: 'error',
+            error: error.message,
+            code: 500
+          }
+        };
+
+        // Store error in conversation history
+        this.storeMessage(errorResponse);
+
+        return errorResponse;
+      }
     } catch (error) {
-      const errorResponse = {
-        to: message.from,
-        from: targetAgent,
-        conversationId: message.conversationId,
-        error: error.message,
-        status: 'error'
+      return {
+        to: message.from || 'unknown',
+        from: 'a2a-manager',
+        conversationId: message.conversationId || uuidv4(),
+        task: 'error',
+        params: {
+          status: 'error',
+          error: `A2A manager error: ${error.message}`,
+          code: 500
+        }
       };
-      
-      // Store error in conversation history
-      this.storeMessage(errorResponse);
-      
-      return errorResponse;
     }
   }
 

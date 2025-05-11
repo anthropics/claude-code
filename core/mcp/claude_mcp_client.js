@@ -1,9 +1,8 @@
 /**
  * Claude MCP Client API
- * 
- * Eine benutzerfreundliche API für die Interaktion mit MCP-Servern.
- * Diese Datei stellt Funktionen bereit, um mit Claude über das Model Context Protocol
- * zu kommunizieren.
+ *
+ * A user-friendly API for interacting with MCP servers.
+ * This file provides functions for communicating with Claude through the Model Context Protocol.
  */
 
 const fs = require('fs');
@@ -12,307 +11,267 @@ const os = require('os');
 const { spawn } = require('child_process');
 const { Anthropic } = require('@anthropic/sdk');
 
-// Konfigurationsmanager importieren
+// Import standardized config manager
 const configManager = require('../config/config_manager');
+const { CONFIG_TYPES } = configManager;
+
+// Import standardized logger
+const logger = require('../logging/logger').createLogger('claude-mcp-client');
+
+// Import internationalization
+const { I18n } = require('../i18n/i18n');
 
 /**
- * Klasse für die Kommunikation mit Claude über das Model Context Protocol
+ * Class for communicating with Claude via the Model Context Protocol
  */
 class ClaudeMcpClient {
   /**
-   * Erstellt eine neue Instanz des ClaudeMcpClient
+   * Creates a new instance of ClaudeMcpClient
    * 
-   * @param {Object} options - Konfigurationsoptionen
-   * @param {string} options.apiKey - Anthropic API-Schlüssel (optional, wird sonst aus Umgebungsvariable geladen)
-   * @param {string} options.model - Claude-Modell (default: 'claude-3-7-sonnet')
-   * @param {boolean} options.autoStartServers - Server automatisch starten (default: true)
+   * @param {Object} options - Configuration options
    */
   constructor(options = {}) {
-    this.apiKey = options.apiKey || process.env.CLAUDE_API_KEY || process.env.ANTHROPIC_API_KEY;
-    
-    if (!this.apiKey) {
-      throw new Error('Kein API-Schlüssel für Claude gefunden. Bitte setzen Sie CLAUDE_API_KEY oder übergeben Sie ihn als Option.');
-    }
-    
-    // MCP-Konfiguration laden
-    this.config = configManager.getConfig('mcp');
-    
-    // Claude-Client initialisieren
-    this.anthropic = new Anthropic({
-      apiKey: this.apiKey
-    });
-    
-    // Standardmodell
-    this.model = options.model || this.config.client?.default_model || 'claude-3-7-sonnet';
-    
-    // Server-Prozesse
-    this.serverProcesses = new Map();
-    
-    // Automatisch Server starten, wenn gewünscht
-    if (options.autoStartServers !== false && this.config.mcp?.allow_server_autostart !== false) {
-      this.startServers();
+    logger.debug('Initializing Claude MCP Client', { options });
+
+    // Load configuration
+    try {
+      this.config = configManager.getConfig(CONFIG_TYPES.MCP);
+      this.serverProcesses = new Map();
+      this.anthropic = null;
+
+      // Initialize i18n
+      this.i18n = new I18n();
+
+      // Initialize Anthropic client if API key is available
+      this.initAnthropicClient();
+
+      logger.info(this.i18n.translate('mcp.clientInitialized'));
+    } catch (err) {
+      logger.error(this.i18n.translate('errors.clientInitFailed'), { error: err });
+      throw err;
     }
   }
   
   /**
-   * Startet die konfigurierten MCP-Server
-   * 
-   * @param {string[]} serverNames - Liste von Servernamen zum Starten (optional, sonst alle aktivierten Server)
-   * @returns {Map<string, ChildProcess>} - Map mit gestarteten Server-Prozessen
-   */
-  startServers(serverNames = null) {
-    // Zu startende Server ermitteln
-    const servers = serverNames 
-      ? serverNames.map(name => ({ name, ...this.config.servers[name] }))
-      : Object.entries(this.config.servers)
-        .filter(([_, server]) => server.enabled && server.autostart)
-        .map(([name, server]) => ({ name, ...server }));
-    
-    console.log(`Starte ${servers.length} MCP-Server...`);
-    
-    // Server starten
-    servers.forEach(server => {
-      this._startServer(server);
-    });
-    
-    return this.serverProcesses;
-  }
-  
-  /**
-   * Startet einen einzelnen MCP-Server
-   * 
-   * @param {Object} server - Server-Konfiguration
-   * @returns {ChildProcess} - Der gestartete Server-Prozess
+   * Initialize Anthropic client with API key
    * @private
    */
-  _startServer(server) {
-    console.log(`Starte MCP-Server: ${server.name}`);
-    
-    // Umgebungsvariablen einrichten
-    const env = { ...process.env };
-    
-    // API-Key aus Umgebungsvariable holen, wenn konfiguriert
-    if (server.api_key_env && env[server.api_key_env]) {
-      console.log(`API-Key für ${server.name} gefunden in ${server.api_key_env}`);
-    } else if (server.api_key_env) {
-      console.warn(`Kein API-Key für ${server.name} in ${server.api_key_env} gefunden`);
-    }
-    
-    // Server starten
-    const serverProcess = spawn(server.command, server.args, {
-      env,
-      stdio: 'pipe'
-    });
-    
-    // Server zur Map hinzufügen
-    this.serverProcesses.set(server.name, serverProcess);
-    
-    // Server-Ausgabe und -Fehler loggen
-    serverProcess.stdout.on('data', (data) => {
-      console.log(`[${server.name}] ${data.toString().trim()}`);
-    });
-    
-    serverProcess.stderr.on('data', (data) => {
-      console.error(`[${server.name}] FEHLER: ${data.toString().trim()}`);
-    });
-    
-    // Server-Beendigung behandeln
-    serverProcess.on('close', (code) => {
-      console.log(`Server ${server.name} beendet mit Code ${code}`);
-      this.serverProcesses.delete(server.name);
-      
-      // Automatischer Neustart, wenn nicht mit 0 beendet
-      if (code !== 0 && server.autorestart) {
-        console.log(`Automatischer Neustart von ${server.name} in 5 Sekunden...`);
-        setTimeout(() => this._startServer(server), 5000);
-      }
-    });
-    
-    return serverProcess;
-  }
-  
-  /**
-   * Generiert eine Claude-Antwort mit MCP-Integration
-   * 
-   * @param {Object} options - Optionen für die Anfrage
-   * @param {string} options.prompt - Die Anfrage an Claude
-   * @param {string} options.system - Optionale Systemanweisung
-   * @param {string} options.model - Optionales Modell (überschreibt das Standardmodell)
-   * @param {number} options.maxTokens - Maximale Anzahl von Tokens in der Antwort (default: 1024)
-   * @param {number} options.temperature - Temperatur für die Antwortgenerierung (default: 0.7)
-   * @param {string[]} options.requiredTools - Liste von benötigten MCP-Tools
-   * @returns {Promise<string>} - Die generierte Antwort
-   */
-  async generateResponse(options) {
-    const { 
-      prompt, 
-      system = '', 
-      model = this.model, 
-      maxTokens = 1024, 
-      temperature = 0.7,
-      requiredTools = []
-    } = options;
-    
-    // Prüfen, ob alle benötigten Tools verfügbar sind
-    if (requiredTools.length > 0) {
-      const missingTools = requiredTools.filter(tool => {
-        return !this.config.servers[tool] || !this.config.servers[tool].enabled;
-      });
-      
-      if (missingTools.length > 0) {
-        throw new Error(`Fehlende benötigte MCP-Tools: ${missingTools.join(', ')}`);
-      }
-      
-      // Tools starten, falls noch nicht geschehen
-      const toolsToStart = requiredTools.filter(tool => !this.serverProcesses.has(tool));
-      if (toolsToStart.length > 0) {
-        this.startServers(toolsToStart);
-      }
-    }
-    
-    // MCP-Konfiguration für Claude Desktop prüfen
-    await this._ensureDesktopConfig();
-    
-    try {
-      // Claude API-Anfrage erstellen
-      const response = await this.anthropic.messages.create({
-        model,
-        max_tokens: maxTokens,
-        temperature,
-        system,
-        messages: [
-          { role: 'user', content: prompt }
-        ]
-      });
-      
-      return response.content[0].text;
-    } catch (error) {
-      console.error(`Fehler bei der Claude-Anfrage: ${error.message}`);
-      throw error;
+  initAnthropicClient() {
+    const apiKeyEnv = configManager.getConfigValue(CONFIG_TYPES.RAG, 'claude.api_key_env', 'CLAUDE_API_KEY');
+    const apiKey = process.env[apiKeyEnv];
+
+    if (apiKey) {
+      logger.debug(this.i18n.translate('mcp.initClient'));
+      this.anthropic = new Anthropic({ apiKey });
+    } else {
+      logger.warn(this.i18n.translate('errors.noApiKey'));
     }
   }
   
   /**
-   * Stellt sicher, dass die Claude Desktop-Konfiguration korrekt eingerichtet ist
+   * Get list of available MCP servers
    * 
-   * @returns {Promise<boolean>} - true, wenn die Konfiguration erfolgreich eingerichtet wurde
-   * @private
+   * @returns {Array} List of available servers
    */
-  async _ensureDesktopConfig() {
-    // Nur für Desktop-Konfiguration relevant
-    if (this.config.host?.type !== 'desktop') {
+  getAvailableServers() {
+    logger.debug('Getting available MCP servers');
+    
+    const servers = Object.entries(this.config.servers || {})
+      .filter(([, serverConfig]) => serverConfig.enabled)
+      .map(([serverId, serverConfig]) => ({
+        id: serverId,
+        description: serverConfig.description,
+        autostart: serverConfig.autostart,
+        running: this.serverProcesses.has(serverId)
+      }));
+    
+    logger.debug('Available MCP servers', { count: servers.length });
+    return servers;
+  }
+  
+  /**
+   * Start an MCP server
+   * 
+   * @param {string} serverId - Server ID
+   * @returns {boolean} Success
+   */
+  startServer(serverId) {
+    logger.info(this.i18n.translate('mcp.serverStarting'), { serverId });
+
+    // Check if server is already running
+    if (this.serverProcesses.has(serverId)) {
+      logger.warn(this.i18n.translate('mcp.serverAlreadyRunning'), { serverId });
       return true;
     }
-    
+
+    // Get server configuration
+    const serverConfig = this.config.servers[serverId];
+    if (!serverConfig) {
+      logger.error(this.i18n.translate('mcp.serverNotFound'), { serverId });
+      return false;
+    }
+
+    if (!serverConfig.enabled) {
+      logger.warn(this.i18n.translate('mcp.serverDisabled'), { serverId });
+      return false;
+    }
+
     try {
-      const hostConfigPath = this.config.host.config_path.replace('~', os.homedir());
-      
-      // Stellen Sie sicher, dass das Verzeichnis existiert
-      const hostConfigDir = path.dirname(hostConfigPath);
-      if (!fs.existsSync(hostConfigDir)) {
-        fs.mkdirSync(hostConfigDir, { recursive: true });
-      }
-      
-      // Vorhandene Konfiguration laden oder neue erstellen
-      let hostConfig = {};
-      if (fs.existsSync(hostConfigPath)) {
-        const hostConfigData = fs.readFileSync(hostConfigPath, 'utf8');
-        hostConfig = JSON.parse(hostConfigData);
-      }
-      
-      // MCP-Server-Konfiguration aktualisieren
-      hostConfig.mcpServers = hostConfig.mcpServers || {};
-      
-      // Aktive Server zur Konfiguration hinzufügen
-      Object.entries(this.config.servers)
-        .filter(([_, server]) => server.enabled)
-        .forEach(([name, server]) => {
-          hostConfig.mcpServers[name] = {
-            command: server.command,
-            args: server.args
-          };
-        });
-      
-      // Konfiguration speichern
-      fs.writeFileSync(hostConfigPath, JSON.stringify(hostConfig, null, 2));
-      console.log(`Host-Konfiguration aktualisiert: ${hostConfigPath}`);
-      
+      // Start server process
+      const process = spawn(serverConfig.command, serverConfig.args, {
+        stdio: 'inherit'
+      });
+
+      // Store process
+      this.serverProcesses.set(serverId, process);
+
+      // Handle process exit
+      process.on('exit', (code) => {
+        logger.info('Server process exited', { serverId, code });
+        this.serverProcesses.delete(serverId);
+      });
+
+      logger.info(this.i18n.translate('mcp.serverStartSuccess'), { serverId });
       return true;
-    } catch (error) {
-      console.error(`Fehler beim Aktualisieren der Host-Konfiguration: ${error.message}`);
+    } catch (err) {
+      logger.error(this.i18n.translate('errors.serverError', { message: err.message }), { serverId, error: err });
       return false;
     }
   }
   
   /**
-   * Beendet alle laufenden MCP-Server
+   * Stop an MCP server
+   * 
+   * @param {string} serverId - Server ID
+   * @returns {boolean} Success
    */
-  stopAllServers() {
-    console.log('Beende alle MCP-Server...');
-    
-    this.serverProcesses.forEach((process, name) => {
-      console.log(`Beende ${name}...`);
+  stopServer(serverId) {
+    logger.info(this.i18n.translate('mcp.serverStopping'), { serverId });
+
+    // Check if server is running
+    if (!this.serverProcesses.has(serverId)) {
+      logger.warn(this.i18n.translate('mcp.serverNotRunning'), { serverId });
+      return false;
+    }
+
+    try {
+      // Get process
+      const process = this.serverProcesses.get(serverId);
+
+      // Kill process
       process.kill();
-    });
-    
-    this.serverProcesses.clear();
-    console.log('Alle MCP-Server beendet.');
+
+      logger.info(this.i18n.translate('mcp.serverStopSuccess'), { serverId });
+      return true;
+    } catch (err) {
+      logger.error(this.i18n.translate('mcp.serverStopFailed'), { serverId, error: err });
+      return false;
+    }
   }
   
   /**
-   * Gibt die verfügbaren MCP-Server zurück
-   * 
-   * @param {boolean} activeOnly - Nur aktive Server zurückgeben
-   * @returns {Object} - Verfügbare Server mit Name, Status und Beschreibung
+   * Stop all running MCP servers
    */
-  getAvailableServers(activeOnly = false) {
-    const servers = {};
-    
-    Object.entries(this.config.servers).forEach(([name, config]) => {
-      // Überspringen, wenn nur aktive Server gewünscht sind und dieser inaktiv ist
-      if (activeOnly && !config.enabled) {
-        return;
+  stopAllServers() {
+    logger.info(this.i18n.translate('mcp.serverStopping'));
+
+    // Stop each running server
+    this.serverProcesses.forEach((process, serverId) => {
+      try {
+        process.kill();
+        logger.debug(this.i18n.translate('mcp.serverStopSuccess'), { serverId });
+      } catch (err) {
+        logger.error(this.i18n.translate('mcp.serverStopFailed'), { serverId, error: err });
       }
-      
-      servers[name] = {
-        name,
-        enabled: config.enabled,
-        running: this.serverProcesses.has(name),
-        autostart: config.autostart,
-        description: config.description
-      };
     });
-    
-    return servers;
+
+    // Clear process map
+    this.serverProcesses.clear();
+
+    logger.info(this.i18n.translate('mcp.allServersStopped'));
+  }
+  
+  /**
+   * Generate a response from Claude with MCP server integration
+   * 
+   * @param {Object} options - Generation options
+   * @param {string} options.prompt - Prompt text
+   * @param {Array} options.requiredTools - Required MCP tools
+   * @param {string} options.model - Claude model to use
+   * @returns {Promise<Object>} Claude response
+   */
+  async generateResponse(options) {
+    const { prompt, requiredTools = [], model } = options;
+    const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    logger.info(this.i18n.translate('mcp.generatingResponse'), {
+      requestId,
+      promptLength: prompt.length,
+      requiredTools,
+      model
+    });
+
+    // Check if Anthropic client is available
+    if (!this.anthropic) {
+      const error = new Error(this.i18n.translate('errors.anthropicNotInitialized'));
+      logger.error(this.i18n.translate('errors.failedToGenerateResponse'), { requestId, error });
+      throw error;
+    }
+
+    // Start required servers
+    if (requiredTools.length > 0) {
+      logger.debug(this.i18n.translate('mcp.startingRequiredServers'), { requestId, requiredTools });
+
+      for (const tool of requiredTools) {
+        if (!this.serverProcesses.has(tool)) {
+          this.startServer(tool);
+        }
+      }
+    }
+
+    try {
+      // Generate response
+      const startTime = Date.now();
+
+      // Get Claude model from configuration
+      const defaultModel = configManager.getConfigValue(CONFIG_TYPES.RAG, 'claude.model', 'claude-3-sonnet-20240229');
+
+      // Create messages array for Claude
+      const messages = [
+        {
+          role: 'user',
+          content: prompt
+        }
+      ];
+
+      // Call Claude API
+      const response = await this.anthropic.messages.create({
+        model: model || defaultModel,
+        messages,
+        max_tokens: 4000
+      });
+
+      const duration = Date.now() - startTime;
+
+      logger.info(this.i18n.translate('mcp.responseGenerated'), {
+        requestId,
+        duration,
+        tokensUsed: response.usage,
+        model: response.model
+      });
+
+      return {
+        text: response.content[0].text,
+        model: response.model,
+        usage: response.usage,
+        requestId
+      };
+    } catch (err) {
+      logger.error(this.i18n.translate('errors.failedToGenerateResponse'), { requestId, error: err });
+      throw err;
+    }
   }
 }
 
-// Export als Klassentyp
+// Export class
 module.exports = ClaudeMcpClient;
-
-// Wenn direkt ausgeführt, starten wir ein einfaches Beispiel
-if (require.main === module) {
-  const client = new ClaudeMcpClient();
-  
-  // Verfügbare Server ausgeben
-  console.log('Verfügbare MCP-Server:');
-  const servers = client.getAvailableServers();
-  console.table(servers);
-  
-  // Prompt für Claude
-  const prompt = process.argv[2] || 'Erkläre mir die Funktionsweise des Model Context Protocol (MCP) in einfachen Worten.';
-  
-  // Claude-Antwort generieren
-  client.generateResponse({ prompt })
-    .then(response => {
-      console.log('\nClaude-Antwort:');
-      console.log(response);
-      
-      // Server beenden
-      client.stopAllServers();
-    })
-    .catch(error => {
-      console.error(`Fehler: ${error.message}`);
-      client.stopAllServers();
-    });
-}
