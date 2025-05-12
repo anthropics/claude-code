@@ -1,0 +1,21 @@
+{
+  "name": "saar-mcp-tests",
+  "version": "1.0.0",
+  "description": "Tests for the SAAR-MCP integration",
+  "scripts": {
+    "test": "jest",
+    "test:integration": "jest integration.test.js",
+    "test:performance": "jest performance.test.js",
+    "test:security": "jest security.test.js",
+    "test:all": "jest",
+    "report": "node ./scripts/generate-report.js"
+  },
+  "devDependencies": {
+    "jest": "^29.5.0"
+  },
+  "jest": {
+    "testTimeout": 30000,
+    "testEnvironment": "node",
+    "verbose": true
+  }
+}

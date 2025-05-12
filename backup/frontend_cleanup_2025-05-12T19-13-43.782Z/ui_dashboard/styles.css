@@ -1,0 +1,248 @@
+/* Main Styles for the Recursion Monitor Dashboard */
+
+:root {
+    --primary-color: #3f51b5;
+    --secondary-color: #7986cb;
+    --accent-color: #ff4081;
+    --success-color: #4caf50;
+    --warning-color: #ff9800;
+    --danger-color: #f44336;
+    --light-gray: #f5f5f5;
+    --medium-gray: #e0e0e0;
+    --dark-gray: #9e9e9e;
+}
+
+body {
+    background-color: #f8f9fa;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Navbar Customization */
+.navbar-brand {
+    font-weight: bold;
+    letter-spacing: 0.5px;
+}
+
+.navbar .bi {
+    margin-right: 6px;
+}
+
+/* Card Styling */
+.card {
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+    background-color: rgba(63, 81, 181, 0.05);
+    border-bottom: 1px solid rgba(63, 81, 181, 0.1);
+    font-weight: 600;
+}
+
+/* Metric Cards */
+.metric-card {
+    border-radius: 8px;
+    transition: all 0.2s;
+}
+
+.metric-card:hover {
+    background-color: var(--light-gray) !important;
+    transform: scale(1.02);
+}
+
+.metric-card h3 {
+    font-size: 2rem;
+    font-weight: bold;
+    margin-bottom: 0.2rem;
+    color: var(--primary-color);
+}
+
+.metric-card p {
+    font-size: 0.9rem;
+    margin-bottom: 0;
+}
+
+/* Tables */
+.table {
+    margin-bottom: 0;
+}
+
+.table-responsive {
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.table th {
+    background-color: rgba(63, 81, 181, 0.05);
+    color: #333;
+    font-weight: 600;
+    border-bottom-width: 1px;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(63, 81, 181, 0.03);
+}
+
+/* Status Badges */
+.badge-success {
+    background-color: var(--success-color);
+    color: white;
+}
+
+.badge-warning {
+    background-color: var(--warning-color);
+    color: white;
+}
+
+.badge-danger {
+    background-color: var(--danger-color);
+    color: white;
+}
+
+/* Recent Issues */
+.issue-card {
+    border-left: 4px solid var(--danger-color);
+    background-color: rgba(244, 67, 54, 0.03);
+    padding: 12px;
+    margin-bottom: 12px;
+    border-radius: 4px;
+}
+
+.issue-card.warning {
+    border-left-color: var(--warning-color);
+    background-color: rgba(255, 152, 0, 0.03);
+}
+
+.issue-card h6 {
+    margin-bottom: 6px;
+    font-weight: 600;
+}
+
+.issue-card .timestamp {
+    font-size: 0.8rem;
+    color: var(--dark-gray);
+}
+
+/* Optimization Suggestions */
+.suggestion-card {
+    border-left: 4px solid var(--success-color);
+    background-color: rgba(76, 175, 80, 0.03);
+    padding: 12px;
+    margin-bottom: 12px;
+    border-radius: 4px;
+}
+
+.suggestion-card h6 {
+    margin-bottom: 6px;
+    font-weight: 600;
+}
+
+.suggestion-card .optimization-type {
+    font-size: 0.8rem;
+    color: var(--secondary-color);
+    font-weight: 600;
+}
+
+/* Action Buttons */
+.btn i {
+    margin-right: 6px;
+}
+
+/* Function Details */
+pre {
+    background-color: #282c34;
+    border-radius: 6px;
+    padding: 15px;
+    color: #abb2bf;
+    overflow: auto;
+    max-height: 300px;
+}
+
+code {
+    font-family: 'Fira Code', monospace;
+    font-size: 14px;
+}
+
+.list-group-item {
+    border-left-width: 4px;
+}
+
+.list-group-item.issue {
+    border-left-color: var(--danger-color);
+}
+
+.list-group-item.optimization {
+    border-left-color: var(--success-color);
+}
+
+/* Action Buttons in Tables */
+.btn-action {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+    border-radius: 4px;
+}
+
+.btn-action i {
+    margin-right: 0;
+}
+
+/* Pagination */
+.pagination .page-link {
+    color: var(--primary-color);
+}
+
+.pagination .page-item.active .page-link {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .metric-card h3 {
+        font-size: 1.5rem;
+    }
+    
+    .metric-card p {
+        font-size: 0.8rem;
+    }
+    
+    .card-header h5 {
+        font-size: 1.1rem;
+    }
+}
+
+/* Animation for auto-refresh */
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+.animate-pulse {
+    animation: pulse 1s infinite;
+}
+
+/* Loading Spinner */
+.spinner-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(255, 255, 255, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+.spinner-border {
+    width: 3rem;
+    height: 3rem;
+}

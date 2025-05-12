@@ -1,6 +1,15 @@
 {
   "version": "1.0.0",
   "servers": {
+    "memory-persistence": {
+      "enabled": true,
+      "autostart": true,
+      "command": "node",
+      "args": [
+        "core/mcp/memory_server.js"
+      ],
+      "description": "Memory-Persistenz für MCP-Hooks"
+    },
     "desktop-commander": {
       "enabled": true,
       "autostart": true,
