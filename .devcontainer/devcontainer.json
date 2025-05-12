@@ -10,15 +10,31 @@
   "customizations": {
     "vscode": {
       "extensions": [
+        // Essentiell - Programmiersprachen und Frameworks
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-python.debugpy",
+        "ms-vscode.vscode-typescript-next",
         "dbaeumer.vscode-eslint",
         "esbenp.prettier-vscode",
-        "eamodio.gitlens",
-        "aaron-bond.better-comments",
-        "ms-dotnettools.vscode-dotnet-runtime",
+        
+        // Remote-Entwicklung (absolut notwendig)
         "ms-vscode-remote.remote-containers",
-        "ms-vscode-remote.remote-wsl",
         "ms-vscode-remote.remote-ssh",
-        "ms-vscode.remote-explorer"
+        "ms-vscode-remote.remote-wsl",
+        "ms-vscode.remote-explorer",
+        
+        // KI-Tools (je nach Bedarf)
+        "github.copilot",
+        "github.copilot-chat",
+        "block.vscode-mcp-extension",
+        
+        // Hilfreiche Zusatzfeatures
+        "aaron-bond.better-comments",
+        "eamodio.gitlens",
+        "streetsidesoftware.code-spell-checker",
+        "ms-ceintl.vscode-language-pack-de",
+        "mechatroner.rainbow-csv"
       ],
       "settings": {
         "editor.formatOnSave": true,

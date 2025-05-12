@@ -1,0 +1,3 @@
+/usr/local/share/npm-global/lib
+└── @anthropic-ai/claude-code@0.2.107
+

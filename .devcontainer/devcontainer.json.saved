@@ -1,0 +1,97 @@
+{
+  "name": "Claude Code Sandbox",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "args": {
+      "TZ": "${localEnv:TZ:America/Los_Angeles}"
+    }
+  },
+  "runArgs": ["--cap-add=NET_ADMIN", "--cap-add=NET_RAW"],
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "aaron-bond.better-comments",
+        "aiqubit.claude",
+        "augment.vscode-augment",
+        "automatalabs.copilot-mcp",
+        "belfz.search-crates-io",
+        "block.vscode-mcp-extension",
+        "bradlc.vscode-tailwindcss",
+        "buildwithlayer.mcp-integration-expert-eligr",
+        "codeontherocks.claude-config",
+        "dbaeumer.vscode-eslint",
+        "dsznajder.es7-react-js-snippets",
+        "eamodio.gitlens",
+        "esbenp.prettier-vscode",
+        "fill-labs.dependi",
+        "github.copilot",
+        "github.copilot-chat",
+        "github.remotehub",
+        "github.vscode-github-actions",
+        "mechatroner.rainbow-csv",
+        "mikestead.dotenv",
+        "mindaro-dev.file-downloader",
+        "ms-azuretools.vscode-containers",
+        "ms-ceintl.vscode-language-pack-de",
+        "ms-dotnettools.vscode-dotnet-runtime",
+        "ms-python.debugpy",
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-vscode-remote.remote-containers",
+        "ms-vscode-remote.remote-ssh",
+        "ms-vscode-remote.remote-wsl",
+        "ms-vscode.azure-repos",
+        "ms-vscode.cmake-tools",
+        "ms-vscode.cpptools",
+        "ms-vscode.cpptools-extension-pack",
+        "ms-vscode.cpptools-themes",
+        "ms-vscode.remote-explorer",
+        "ms-vscode.remote-repositories",
+        "ms-vscode.vscode-typescript-next",
+        "ms-windows-ai-studio.windows-ai-studio",
+        "pulkitgangwar.nextjs-snippets",
+        "redhat.vscode-yaml",
+        "rubenverg.bootstrap-product-icons",
+        "rust-lang.rust-analyzer",
+        "saoudrizwan.claude-dev",
+        "semanticworkbenchteam.mcp-server-vscode",
+        "solana-developers.solana-vs-code-extension-pack",
+        "steoates.autoimport",
+        "streetsidesoftware.code-spell-checker",
+        "tamasfe.even-better-toml",
+        "unifiedjs.vscode-mdx",
+        "usernamehw.errorlens"
+      ],
+      "settings": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.codeActionsOnSave": {
+          "source.fixAll.eslint": "explicit"
+        },
+        "terminal.integrated.defaultProfile.linux": "zsh",
+        "terminal.integrated.profiles.linux": {
+          "bash": {
+            "path": "bash",
+            "icon": "terminal-bash"
+          },
+          "zsh": {
+            "path": "zsh"
+          }
+        }
+      }
+    }
+  },
+  "remoteUser": "node",
+  "mounts": [
+    "source=claude-code-bashhistory,target=/commandhistory,type=volume",
+    "source=claude-code-config,target=/home/node/.claude,type=volume"
+  ],
+  "remoteEnv": {
+    "NODE_OPTIONS": "--max-old-space-size=4096",
+    "CLAUDE_CONFIG_DIR": "/home/node/.claude",
+    "POWERLEVEL9K_DISABLE_GITSTATUS": "true"
+  },
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=delegated",
+  "workspaceFolder": "/workspace",
+  "postCreateCommand": "sudo /usr/local/bin/init-firewall.sh"
+}
