@@ -1,38 +1,7 @@
 #!/bin/bash
-echo "Starte Integration von: $(pwd)"
-ls -l src/schema_ui/
-# Integration von schema-ui-integration und src
-# Dieses Skript automatisiert die Migration der Komponenten
-
-# Farben für die Ausgabe
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-RED='\033[0;31m'
-NC='\033[0m' # No Color
-
-# Banner anzeigen
-echo -e "${GREEN}"
-echo "=================================================="
-echo "UI-Komponenten Integration - Migrationsskript"
-echo "=================================================="
-echo -e "${NC}"
-
-# Prüfen, ob das Skript im richtigen Verzeichnis ausgeführt wird
-if [ ! -d "./src" ] || [ ! -d "./schema-ui-integration" ]; then
-  echo -e "${RED}Fehler: Dieses Skript muss im Hauptverzeichnis des Projekts ausgeführt werden.${NC}"
-  exit 1
-fi
-
-# Sicherung erstellen
-echo -e "${YELLOW}Erstelle Sicherung der aktuellen Verzeichnisse...${NC}"
-timestamp=$(date +%Y%m%d_%H%M%S)
-mkdir -p ./backups
-cp -r ./src ./backups/src_${timestamp}
-cp -r ./schema-ui-integration ./backups/schema-ui-integration_${timestamp}
-cp -r ./ui ./backups/ui_${timestamp}
-echo -e "${GREEN}Sicherung erstellt unter ./backups/${NC}"
-
-# Verzeichnisstruktur erstellen
+echo "Starting Integration..."
+echo "Current directory: $(pwd)"
+ls -l ./src/schema_ui/
 echo -e "${YELLOW}Erstelle neue Verzeichnisstruktur...${NC}"
 mkdir -p ./src/ui_components/dashboard
 mkdir -p ./src/ui_components/design-system
