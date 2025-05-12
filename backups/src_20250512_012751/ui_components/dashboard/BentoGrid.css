@@ -1,0 +1,516 @@
+/**
+ * Styles für die BentoGrid-Komponente
+ * 
+ * Ein modernes, responsives Grid-Layout für Datenkarten.
+ * Ersetzt traditionelle Tabellen mit einer visuell
+ * ansprechenderen Darstellung.
+ */
+
+/* Container für das gesamte Grid */
+.bento-grid-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Header-Bereich mit Filtern und Sortierungs-Optionen */
+.bento-grid-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Filter-Gruppe */
+.bento-grid-filter-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+}
+
+/* Einzelner Filter */
+.bento-grid-filter {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* Suchfeld */
+.bento-grid-search {
+  padding: 0.5rem 2.5rem 0.5rem 0.75rem;
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 0.375rem;
+  background-color: var(--surface-color, #ffffff);
+  color: var(--text-color, #212121);
+  min-width: 200px;
+  font-size: 0.875rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.bento-grid-search:focus {
+  outline: none;
+  border-color: var(--primary-color, #3f51b5);
+  box-shadow: 0 0 0 3px rgba(var(--primary-color-rgb, 63, 81, 181), 0.2);
+}
+
+/* Such-Button */
+.bento-grid-search-button {
+  position: absolute;
+  right: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--text-secondary-color, #757575);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0.25rem;
+  transition: color 0.2s;
+}
+
+.bento-grid-search-button:hover {
+  color: var(--primary-color, #3f51b5);
+}
+
+/* Filter-Dropdown */
+.bento-grid-filter-select {
+  padding: 0.5rem 1.75rem 0.5rem 0.75rem;
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 0.375rem;
+  background-color: var(--surface-color, #ffffff);
+  color: var(--text-color, #212121);
+  appearance: none;
+  font-size: 0.875rem;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+  background-size: 1rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.bento-grid-filter-select:focus {
+  outline: none;
+  border-color: var(--primary-color, #3f51b5);
+  box-shadow: 0 0 0 3px rgba(var(--primary-color-rgb, 63, 81, 181), 0.2);
+}
+
+/* Sortier-Gruppe */
+.bento-grid-sort-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.bento-grid-sort-group label {
+  font-size: 0.875rem;
+  color: var(--text-secondary-color, #757575);
+  margin-bottom: 0;
+}
+
+/* Sortier-Dropdown */
+.bento-grid-sort-select {
+  padding: 0.5rem 1.75rem 0.5rem 0.75rem;
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 0.375rem;
+  background-color: var(--surface-color, #ffffff);
+  color: var(--text-color, #212121);
+  appearance: none;
+  font-size: 0.875rem;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+  background-size: 1rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.bento-grid-sort-select:focus {
+  outline: none;
+  border-color: var(--primary-color, #3f51b5);
+  box-shadow: 0 0 0 3px rgba(var(--primary-color-rgb, 63, 81, 181), 0.2);
+}
+
+/* Sortierrichtungs-Button */
+.bento-grid-sort-direction {
+  padding: 0.5rem;
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 0.375rem;
+  background-color: var(--surface-color, #ffffff);
+  color: var(--text-color, #212121);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.bento-grid-sort-direction:hover {
+  border-color: var(--primary-color, #3f51b5);
+  color: var(--primary-color, #3f51b5);
+}
+
+/* Das eigentliche Grid */
+.bento-grid {
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(var(--grid-min-width, 280px), 1fr)
+  );
+  gap: var(--grid-gap, 16px);
+  width: 100%;
+}
+
+/* Grid-Items */
+.bento-grid-item {
+  border-radius: 0.75rem;
+  overflow: hidden;
+  background-color: var(--surface-color, #ffffff);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s, box-shadow 0.2s;
+  cursor: pointer;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  will-change: transform, box-shadow;
+}
+
+.bento-grid-item:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 15px rgba(0, 0, 0, 0.07), 0 5px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* Besondere Grid-Spans */
+.bento-grid-item-span-2 {
+  grid-column: span 2;
+}
+
+.bento-grid-item-span-3 {
+  grid-column: span 3;
+}
+
+.bento-grid-item-span-4 {
+  grid-column: span 4;
+}
+
+/* Item-Inhaltsbereich */
+.bento-grid-item-content {
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  height: 100%;
+}
+
+/* Status-Badge */
+.bento-grid-status-badge {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.status-success {
+  background-color: var(--success-color-light, rgba(76, 175, 80, 0.1));
+  color: var(--success-color, #4caf50);
+}
+
+.status-warning {
+  background-color: var(--warning-color-light, rgba(255, 152, 0, 0.1));
+  color: var(--warning-color, #ff9800);
+}
+
+.status-danger {
+  background-color: var(--danger-color-light, rgba(244, 67, 54, 0.1));
+  color: var(--danger-color, #f44336);
+}
+
+.status-info {
+  background-color: var(--info-color-light, rgba(33, 150, 243, 0.1));
+  color: var(--info-color, #2196f3);
+}
+
+.status-pending {
+  background-color: var(--secondary-color-light, rgba(121, 134, 203, 0.1));
+  color: var(--secondary-color, #7986cb);
+}
+
+.status-default {
+  background-color: var(--light-gray, #f5f5f5);
+  color: var(--text-secondary-color, #757575);
+}
+
+/* Header-Sektion mit Titel und Icon */
+.bento-grid-header-section {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+/* Icon im Header */
+.bento-grid-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.5rem;
+  background-color: rgba(var(--primary-color-rgb, 63, 81, 181), 0.1);
+  color: var(--primary-color, #3f51b5);
+  flex-shrink: 0;
+  font-size: 1rem;
+}
+
+/* Titel-Gruppe */
+.bento-grid-title-group {
+  flex: 1;
+  min-width: 0; /* Verhindert Overflow bei langen Titeln */
+}
+
+/* Titel */
+.bento-grid-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-color, #212121);
+  margin: 0;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Meta-Informationen */
+.bento-grid-meta {
+  font-size: 0.75rem;
+  color: var(--text-secondary-color, #757575);
+  margin-top: 0.25rem;
+}
+
+/* Aktionen */
+.bento-grid-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.bento-grid-action-btn {
+  padding: 0.25rem;
+  background: none;
+  border: none;
+  color: var(--text-secondary-color, #757575);
+  border-radius: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: color 0.2s, background-color 0.2s;
+}
+
+.bento-grid-action-btn:hover {
+  color: var(--primary-color, #3f51b5);
+  background-color: rgba(var(--primary-color-rgb, 63, 81, 181), 0.05);
+}
+
+/* Body-Bereich */
+.bento-grid-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+/* Beschreibung */
+.bento-grid-description {
+  font-size: 0.875rem;
+  color: var(--text-secondary-color, #757575);
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.5;
+}
+
+/* Datenzeilen */
+.bento-grid-data-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.875rem;
+}
+
+.bento-grid-data-label {
+  color: var(--text-secondary-color, #757575);
+  font-weight: 500;
+}
+
+.bento-grid-data-value {
+  color: var(--text-color, #212121);
+  font-weight: 500;
+}
+
+/* Tags */
+.bento-grid-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: auto;
+  padding-top: 0.5rem;
+}
+
+.bento-grid-tag {
+  font-size: 0.7rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.25rem;
+  background-color: rgba(var(--primary-color-rgb, 63, 81, 181), 0.08);
+  color: var(--primary-color, #3f51b5);
+  font-weight: 500;
+}
+
+/* Leer-Status */
+.bento-grid-empty {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+  background-color: var(--surface-color, #ffffff);
+  border-radius: 0.5rem;
+  color: var(--text-secondary-color, #757575);
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+/* Responsive Anpassungen */
+
+/* Für Tablets */
+@media (max-width: 992px) {
+  .bento-grid-item-span-3,
+  .bento-grid-item-span-4 {
+    grid-column: span 2;
+  }
+}
+
+/* Für kleinere Tablets / große Handys */
+@media (max-width: 768px) {
+  .bento-grid-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .bento-grid-filter-group,
+  .bento-grid-sort-group {
+    width: 100%;
+  }
+
+  .bento-grid-search {
+    width: 100%;
+  }
+
+  .bento-grid-item-span-2,
+  .bento-grid-item-span-3,
+  .bento-grid-item-span-4 {
+    grid-column: span 1;
+  }
+}
+
+/* Für kleine Bildschirme */
+@media (max-width: 576px) {
+  .bento-grid-item-content {
+    padding: 1rem;
+  }
+
+  .bento-grid-title {
+    font-size: 0.9rem;
+  }
+
+  .bento-grid-icon {
+    width: 1.75rem;
+    height: 1.75rem;
+    font-size: 0.85rem;
+  }
+}
+
+/* Animation für das Erscheinen der Karten */
+@keyframes card-appear {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.bento-grid-item {
+  animation: card-appear 0.3s ease-out;
+  animation-fill-mode: both;
+}
+
+/* Gestaffelte Animation für Karten */
+.bento-grid-item:nth-child(1) {
+  animation-delay: 0.05s;
+}
+.bento-grid-item:nth-child(2) {
+  animation-delay: 0.1s;
+}
+.bento-grid-item:nth-child(3) {
+  animation-delay: 0.15s;
+}
+.bento-grid-item:nth-child(4) {
+  animation-delay: 0.2s;
+}
+.bento-grid-item:nth-child(5) {
+  animation-delay: 0.25s;
+}
+.bento-grid-item:nth-child(6) {
+  animation-delay: 0.3s;
+}
+.bento-grid-item:nth-child(7) {
+  animation-delay: 0.35s;
+}
+.bento-grid-item:nth-child(8) {
+  animation-delay: 0.4s;
+}
+
+/* Unterstützung für dunkles Design */
+html[data-theme="dark"] .bento-grid-item,
+body.dark-theme .bento-grid-item {
+  background-color: var(--surface-color, #333);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2), 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+html[data-theme="dark"] .bento-grid-item:hover,
+body.dark-theme .bento-grid-item:hover {
+  box-shadow: 0 10px 15px rgba(0, 0, 0, 0.3), 0 5px 8px rgba(0, 0, 0, 0.2);
+}
+
+html[data-theme="dark"] .bento-grid-empty,
+body.dark-theme .bento-grid-empty {
+  background-color: var(--surface-color, #333);
+}
+
+html[data-theme="dark"] .bento-grid-search,
+html[data-theme="dark"] .bento-grid-filter-select,
+html[data-theme="dark"] .bento-grid-sort-select,
+html[data-theme="dark"] .bento-grid-sort-direction,
+body.dark-theme .bento-grid-search,
+body.dark-theme .bento-grid-filter-select,
+body.dark-theme .bento-grid-sort-select,
+body.dark-theme .bento-grid-sort-direction {
+  background-color: var(--surface-color, #333);
+  border-color: var(--border-color, #555);
+  color: var(--text-color, #eee);
+}

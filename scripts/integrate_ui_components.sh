@@ -1,4 +1,6 @@
 #!/bin/bash
+echo "Starte Integration von: $(pwd)"
+ls -l src/schema_ui/
 # Integration von schema-ui-integration und src
 # Dieses Skript automatisiert die Migration der Komponenten
 
@@ -40,14 +42,8 @@ mkdir -p ./src/schema_ui/utils
 mkdir -p ./src/schema_ui/schemas
 echo -e "${GREEN}Verzeichnisstruktur erstellt.${NC}"
 
-# Schema-UI-Integration Komponenten migrieren
-echo -e "${YELLOW}Migriere schema-ui-integration Komponenten...${NC}"
-cp -r ./schema-ui-integration/src/adapters/* ./src/schema_ui/adapters/
-cp -r ./schema-ui-integration/src/components/* ./src/schema_ui/components/
-cp -r ./schema-ui-integration/src/schemas/* ./src/schema_ui/schemas/
-cp -r ./schema-ui-integration/src/utils/* ./src/schema_ui/utils/
-cp ./schema-ui-integration/src/index.js ./src/schema_ui/
-echo -e "${GREEN}Schema-UI-Integration Komponenten migriert.${NC}"
+# Schema-UI-Integration Komponenten bereits migriert
+echo -e "${YELLOW}Schema-UI-Integration Komponenten bereits migriert - Überspringe Kopiervorgang${NC}"
 
 # Dashboard-Komponenten migrieren
 echo -e "${YELLOW}Migriere Dashboard-Komponenten...${NC}"
@@ -167,12 +163,12 @@ export * from './adapters';
 EOF
 echo -e "${GREEN}Index-Datei erstellt.${NC}"
 
-# Dokumentation kopieren
-echo -e "${YELLOW}Kopiere Dokumentation...${NC}"
+# Dokumentation optional kopieren
+echo -e "${YELLOW}Prüfe Dokumentation...${NC}"
 mkdir -p ./docs
-cp ./MIGRATION_GUIDE.md ./docs/
-cp ./INTEGRATED_UI_COMPONENTS.md ./docs/
-echo -e "${GREEN}Dokumentation kopiert.${NC}"
+[ -f "./MIGRATION_GUIDE.md" ] && cp ./MIGRATION_GUIDE.md ./docs/ || echo "MIGRATION_GUIDE.md nicht gefunden"
+[ -f "./INTEGRATED_UI_COMPONENTS.md" ] && cp ./INTEGRATED_UI_COMPONENTS.md ./docs/ || echo "INTEGRATED_UI_COMPONENTS.md nicht gefunden"
+echo -e "${GREEN}Dokumentation geprüft.${NC}"
 
 # Komponenten-Refactoring - Beispiel
 echo -e "${YELLOW}Beginne Refactoring der Komponenten für modularen Import...${NC}"

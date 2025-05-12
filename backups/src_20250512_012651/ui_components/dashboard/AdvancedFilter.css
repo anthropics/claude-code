@@ -1,0 +1,469 @@
+/**
+ * AdvancedFilter
+ * =========
+ *
+ * Styles für die erweiterte Filterkomponente, die folgende Funktionen bietet:
+ * - Kategoriebasierte Filter mit Multi-Select-Unterstützung
+ * - Live-Suche mit Hervorhebung der Ergebnisse
+ * - Filter-History und gespeicherte Filter
+ * - Schnellfilter für häufig genutzte Filter
+ */
+
+/* Hauptcontainer */
+.advanced-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+  background-color: var(--surface-color, #ffffff);
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Hauptfilterbereich */
+.filter-main {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* Suchbereich */
+.filter-search-container {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.filter-search-wrapper {
+  position: relative;
+  flex: 1;
+}
+
+.filter-search-input {
+  width: 100%;
+  padding: 0.75rem 2.75rem 0.75rem 1rem;
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 0.5rem;
+  background-color: var(--surface-color, #ffffff);
+  color: var(--text-color, #212121);
+  font-size: 0.9375rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.filter-search-input:focus {
+  outline: none;
+  border-color: var(--primary-color, #3f51b5);
+  box-shadow: 0 0 0 3px rgba(var(--primary-color-rgb, 63, 81, 181), 0.15);
+}
+
+.filter-search-input::placeholder {
+  color: var(--text-tertiary-color, #9e9e9e);
+}
+
+/* Such-Button */
+.filter-search-button {
+  position: absolute;
+  right: 2.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--text-secondary-color, #757575);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0.375rem;
+  border-radius: 0.375rem;
+  transition: color 0.2s, background-color 0.2s;
+}
+
+.filter-search-button:hover {
+  color: var(--primary-color, #3f51b5);
+  background-color: rgba(var(--primary-color-rgb, 63, 81, 181), 0.05);
+}
+
+/* History-Toggle-Button */
+.filter-history-toggle {
+  position: absolute;
+  right: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--text-secondary-color, #757575);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0.375rem;
+  border-radius: 0.375rem;
+  transition: color 0.2s, background-color 0.2s;
+}
+
+.filter-history-toggle:hover {
+  color: var(--primary-color, #3f51b5);
+  background-color: rgba(var(--primary-color-rgb, 63, 81, 181), 0.05);
+}
+
+/* History-Dropdown */
+.filter-history-dropdown {
+  position: absolute;
+  top: calc(100% + 0.25rem);
+  left: 0;
+  width: 100%;
+  background-color: var(--surface-color, #ffffff);
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height 0.2s, opacity 0.2s;
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+}
+
+.filter-history-dropdown.show {
+  max-height: 20rem;
+  opacity: 1;
+  padding: 0.5rem 0;
+}
+
+.filter-history-item {
+  padding: 0.625rem 1rem;
+  cursor: pointer;
+  transition: background-color 0.1s;
+  color: var(--text-color, #212121);
+  font-size: 0.875rem;
+}
+
+.filter-history-item:hover {
+  background-color: rgba(var(--primary-color-rgb, 63, 81, 181), 0.05);
+  color: var(--primary-color, #3f51b5);
+}
+
+/* Filter speichern Button */
+.filter-save-button {
+  background-color: var(--primary-color-light, rgba(63, 81, 181, 0.1));
+  color: var(--primary-color, #3f51b5);
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.filter-save-button:hover {
+  background-color: rgba(var(--primary-color-rgb, 63, 81, 181), 0.2);
+}
+
+.filter-save-button i {
+  font-size: 1rem;
+}
+
+/* Filter löschen Button */
+.filter-clear-button {
+  background-color: var(--light-gray, rgba(224, 224, 224, 0.5));
+  color: var(--text-secondary-color, #757575);
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.filter-clear-button:hover {
+  background-color: var(--danger-color-light, rgba(244, 67, 54, 0.1));
+  color: var(--danger-color, #f44336);
+}
+
+/* Kategorien-Container */
+.filter-categories-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+
+/* Einzelne Kategorie */
+.filter-category {
+  flex: 1 1 16rem;
+  min-width: 16rem;
+}
+
+.filter-category-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin: 0 0 0.75rem 0;
+  color: var(--text-color, #212121);
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.filter-category-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+  gap: 0.5rem;
+}
+
+/* Checkbox-Items */
+.filter-checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.filter-checkbox-item input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 1.125rem;
+  height: 1.125rem;
+  border: 1.5px solid var(--border-color, #e0e0e0);
+  border-radius: 0.25rem;
+  background-color: var(--surface-color, #ffffff);
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s;
+}
+
+.filter-checkbox-item input[type="checkbox"]:checked {
+  background-color: var(--primary-color, #3f51b5);
+  border-color: var(--primary-color, #3f51b5);
+}
+
+.filter-checkbox-item input[type="checkbox"]:checked::after {
+  content: "";
+  position: absolute;
+  width: 0.375rem;
+  height: 0.625rem;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  top: 0.125rem;
+  left: 0.375rem;
+  transform: rotate(45deg);
+}
+
+.filter-checkbox-item label {
+  font-size: 0.875rem;
+  color: var(--text-color, #212121);
+  cursor: pointer;
+}
+
+/* Gespeicherte Filter */
+.saved-filters {
+  border-top: 1px solid var(--border-color, #e0e0e0);
+  padding-top: 1.25rem;
+}
+
+.saved-filters-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin: 0 0 0.75rem 0;
+  color: var(--text-color, #212121);
+}
+
+.saved-filters-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.625rem;
+}
+
+.saved-filter-item {
+  background-color: var(--light-gray, rgba(224, 224, 224, 0.5));
+  border: none;
+  border-radius: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+  color: var(--text-color, #212121);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: background-color 0.2s;
+}
+
+.saved-filter-item:hover {
+  background-color: var(--light-gray, rgba(224, 224, 224, 0.8));
+}
+
+.saved-filter-remove {
+  font-size: 1.125rem;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 0.25rem;
+  color: var(--text-secondary-color, #757575);
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.saved-filter-remove:hover {
+  background-color: var(--danger-color-light, rgba(244, 67, 54, 0.1));
+  color: var(--danger-color, #f44336);
+}
+
+/* Aktive Filter-Tags */
+.filter-active-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.625rem;
+  margin-top: 0.5rem;
+}
+
+.filter-active-tags-label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-secondary-color, #757575);
+}
+
+.filter-active-tags-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.filter-tag {
+  background-color: var(--primary-color-light, rgba(63, 81, 181, 0.1));
+  color: var(--primary-color, #3f51b5);
+  border-radius: 9999px;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.8125rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.filter-tag-label {
+  font-weight: 500;
+}
+
+.filter-tag-remove {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 50%;
+  margin-left: 0.125rem;
+  color: var(--primary-color, #3f51b5);
+  font-size: 1.125rem;
+  transition: background-color 0.2s;
+}
+
+.filter-tag-remove:hover {
+  background-color: rgba(var(--primary-color-rgb, 63, 81, 181), 0.15);
+}
+
+.filter-no-active {
+  font-size: 0.8125rem;
+  color: var(--text-tertiary-color, #9e9e9e);
+  font-style: italic;
+}
+
+/* Filter-Highlighter für Suchergebnisse */
+.filter-highlight {
+  background-color: rgba(var(--warning-color-rgb, 255, 152, 0), 0.25);
+  border-radius: 0.125rem;
+  font-weight: 500;
+}
+
+/* Responsive Anpassungen */
+@media (max-width: 768px) {
+  .filter-search-container {
+    flex-wrap: wrap;
+  }
+
+  .filter-search-wrapper {
+    width: 100%;
+    flex: auto;
+  }
+
+  .filter-save-button,
+  .filter-clear-button {
+    flex: 1 1 auto;
+  }
+
+  .filter-categories-container {
+    flex-direction: column;
+  }
+
+  .filter-category {
+    width: 100%;
+    flex: auto;
+  }
+}
+
+/* Animation für neue Filter-Tags */
+@keyframes tag-appear {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.filter-tag {
+  animation: tag-appear 0.2s ease-out;
+}
+
+/* Unterstützung für dunkles Design */
+html[data-theme="dark"] .advanced-filter,
+body.dark-theme .advanced-filter {
+  background-color: var(--surface-color, #333);
+}
+
+html[data-theme="dark"] .filter-search-input,
+html[data-theme="dark"] .filter-checkbox-item input[type="checkbox"],
+html[data-theme="dark"] .filter-history-dropdown,
+body.dark-theme .filter-search-input,
+body.dark-theme .filter-checkbox-item input[type="checkbox"],
+body.dark-theme .filter-history-dropdown {
+  background-color: var(--surface-color, #333);
+  border-color: var(--border-color, #555);
+  color: var(--text-color, #eee);
+}
+
+html[data-theme="dark"] .filter-checkbox-item input[type="checkbox"]:checked,
+body.dark-theme .filter-checkbox-item input[type="checkbox"]:checked {
+  background-color: var(--primary-color, #3f51b5);
+  border-color: var(--primary-color, #3f51b5);
+}
+
+html[data-theme="dark"] .saved-filter-item,
+body.dark-theme .saved-filter-item {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: var(--text-color, #eee);
+}
+
+html[data-theme="dark"] .saved-filter-item:hover,
+body.dark-theme .saved-filter-item:hover {
+  background-color: rgba(255, 255, 255, 0.12);
+}
+
+html[data-theme="dark"] .filter-clear-button,
+body.dark-theme .filter-clear-button {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary-color, #aaa);
+}
