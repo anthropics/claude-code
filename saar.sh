@@ -95,6 +95,7 @@ show_help() {
   echo "  agent       Launch Claude agent"
   echo "  ui          Configure UI components"
   echo "  status      Show system status"
+  echo "  enterprise  Manage enterprise features"
   echo "  help        Show this help message"
   echo ""
   echo -e "${BOLD}Options:${NC}"
@@ -106,12 +107,14 @@ show_help() {
   echo "  --quiet     Suppress console output"
   echo ""
   echo -e "${BOLD}Examples:${NC}"
-  echo "  ./saar.sh setup                 # Full interactive setup"
-  echo "  ./saar.sh setup --quick         # Quick setup with defaults"
-  echo "  ./saar.sh colors --theme=dark   # Set dark theme"
-  echo "  ./saar.sh memory backup         # Backup memory"
-  echo "  ./saar.sh status                # Show system status"
-  echo "  ./saar.sh ui customize          # Customize UI components"
+  echo "  ./saar.sh setup                       # Full interactive setup"
+  echo "  ./saar.sh setup --quick               # Quick setup with defaults"
+  echo "  ./saar.sh colors --theme=dark         # Set dark theme"
+  echo "  ./saar.sh memory backup               # Backup memory"
+  echo "  ./saar.sh status                      # Show system status"
+  echo "  ./saar.sh ui customize                # Customize UI components"
+  echo "  ./saar.sh enterprise setup            # Setup enterprise features"
+  echo "  ./saar.sh enterprise license activate # Activate enterprise license"
   echo ""
 }
 
@@ -778,6 +781,795 @@ do_ui() {
   esac
 }
 
+# Enterprise function
+do_enterprise() {
+  local operation=${1:-"status"}
+  local sub_operation=${2:-""}
+  local license_key=${3:-""}
+
+  check_dependencies
+  ensure_directories
+
+  log "INFO" "Enterprise operation: $operation"
+
+  # Create enterprise directories
+  mkdir -p "$CONFIG_DIR/enterprise"
+  mkdir -p "$CONFIG_DIR/enterprise/logs"
+  mkdir -p "$CONFIG_DIR/enterprise/license"
+
+  # Create enterprise config directory in workspace if it doesn't exist
+  if [ ! -d "$WORKSPACE_DIR/schema-ui-integration/enterprise/config" ]; then
+    mkdir -p "$WORKSPACE_DIR/schema-ui-integration/enterprise/config"
+  fi
+
+  # Execute enterprise operation
+  case $operation in
+    setup)
+      log "INFO" "Setting up enterprise features"
+
+      # Check if enterprise configuration exists
+      if [ -f "$WORKSPACE_DIR/schema-ui-integration/enterprise/config/enterprise.yaml" ]; then
+        log "INFO" "Enterprise configuration found"
+      else
+        log "WARN" "Enterprise configuration not found. Creating default configuration."
+
+        # Create default enterprise configuration
+        cat > "$WORKSPACE_DIR/schema-ui-integration/enterprise/config/enterprise.yaml" << EOF
+# Enterprise Configuration
+version: "1.0.0"
+environment: "production"
+
+# Security Configuration
+security:
+  sso:
+    enabled: false
+    providers:
+      - name: "okta"
+        enabled: false
+        client_id: ""
+        client_secret: ""
+        auth_url: ""
+        token_url: ""
+      - name: "azure_ad"
+        enabled: false
+        tenant_id: ""
+        client_id: ""
+        client_secret: ""
+
+  # Access Control
+  rbac:
+    enabled: true
+    default_role: "user"
+    roles:
+      - name: "admin"
+        permissions: ["*"]
+      - name: "user"
+        permissions: ["read", "write", "execute"]
+      - name: "viewer"
+        permissions: ["read"]
+
+  # Compliance
+  compliance:
+    audit_logging: true
+    data_retention_days: 90
+    encryption:
+      enabled: true
+      algorithm: "AES-256"
+
+# Performance
+performance:
+  cache:
+    enabled: true
+    ttl_seconds: 3600
+  rate_limiting:
+    enabled: true
+    requests_per_minute: 100
+
+# Monitoring
+monitoring:
+  metrics:
+    enabled: true
+    interval_seconds: 60
+  alerts:
+    enabled: false
+    channels:
+      - type: "email"
+        recipients: []
+      - type: "slack"
+        webhook_url: ""
+
+# Teams
+teams:
+  enabled: true
+  max_members_per_team: 25
+
+# License
+license:
+  type: "trial"
+  expiration: ""
+  features:
+    multi_user: true
+    advanced_analytics: false
+    priority_support: false
+EOF
+        log "INFO" "Default enterprise configuration created"
+      fi
+
+      # Create or update VERSION.txt
+      echo "Enterprise Beta 1.0.0" > "$WORKSPACE_DIR/VERSION.txt"
+
+      # Create README if it doesn't exist
+      if [ ! -f "$WORKSPACE_DIR/ENTERPRISE_README.md" ]; then
+        log "INFO" "Creating enterprise README"
+
+        cat > "$WORKSPACE_DIR/ENTERPRISE_README.md" << EOF
+# Claude Neural Framework - Enterprise Edition
+
+## Overview
+
+The Enterprise Edition of the Claude Neural Framework provides enhanced capabilities designed for organizational use with multi-user support, advanced security, and compliance features.
+
+## Features
+
+- **SSO Integration**: Connect with your organization's identity providers (Okta, Azure AD)
+- **Team Collaboration**: Manage teams and shared resources
+- **Audit Logging**: Comprehensive audit trails for all system activities
+- **Enhanced Security**: Role-based access control and data encryption
+- **Compliance Tools**: Features to help meet regulatory requirements
+- **Performance Optimization**: Advanced caching and rate limiting
+- **Enterprise Support**: Priority support channels
+
+## Getting Started
+
+\`\`\`bash
+# Set up enterprise features
+./saar.sh enterprise setup
+
+# Activate your license
+./saar.sh enterprise license activate YOUR_LICENSE_KEY
+
+# Configure SSO
+./saar.sh enterprise sso configure
+
+# Manage teams
+./saar.sh enterprise teams manage
+\`\`\`
+
+## Configuration
+
+Enterprise configuration is stored in \`schema-ui-integration/enterprise/config/enterprise.yaml\`. You can edit this file directly or use the CLI commands to modify specific settings.
+
+## License Management
+
+Your enterprise license controls access to premium features. To activate or check your license:
+
+\`\`\`bash
+# Activate license
+./saar.sh enterprise license activate YOUR_LICENSE_KEY
+
+# Check license status
+./saar.sh enterprise license status
+\`\`\`
+
+## User Management
+
+Enterprise Edition supports multi-user environments with role-based access control:
+
+\`\`\`bash
+# Add a new user
+./saar.sh enterprise users add --name="John Doe" --email="john@example.com" --role="admin"
+
+# List all users
+./saar.sh enterprise users list
+
+# Change user role
+./saar.sh enterprise users update --email="john@example.com" --role="user"
+\`\`\`
+
+## Team Management
+
+Create and manage teams for collaborative work:
+
+\`\`\`bash
+# Create a new team
+./saar.sh enterprise teams create --name="Engineering" --description="Engineering team"
+
+# Add users to team
+./saar.sh enterprise teams add-member --team="Engineering" --email="john@example.com"
+
+# List team members
+./saar.sh enterprise teams list-members --team="Engineering"
+\`\`\`
+
+## Support
+
+For enterprise support, please contact support@example.com or use the in-app support channel.
+EOF
+        log "INFO" "Enterprise README created"
+      fi
+
+      # Create enterprise license directory
+      if [ ! -d "$WORKSPACE_DIR/schema-ui-integration/enterprise/license" ]; then
+        mkdir -p "$WORKSPACE_DIR/schema-ui-integration/enterprise/license"
+
+        # Create license file
+        cat > "$WORKSPACE_DIR/schema-ui-integration/enterprise/LICENSE.md" << EOF
+# Enterprise License Agreement
+
+This is a placeholder for the Claude Neural Framework Enterprise License Agreement.
+
+The actual license agreement would contain terms and conditions for the use of the Enterprise Edition of the Claude Neural Framework, including:
+
+1. License Grant
+2. Restrictions on Use
+3. Subscription Terms
+4. Support and Maintenance
+5. Confidentiality
+6. Intellectual Property Rights
+7. Warranty Disclaimer
+8. Limitation of Liability
+9. Term and Termination
+10. General Provisions
+
+For a valid license agreement, please contact your sales representative or visit our website.
+EOF
+      fi
+
+      # Update memory with enterprise status
+      local timestamp=$(date "+%Y-%m-%d %H:%M:%S")
+      echo "{\"enterprise\": {\"activated\": true, \"activationDate\": \"$timestamp\", \"version\": \"1.0.0\", \"type\": \"beta\"}}" > "$CONFIG_DIR/enterprise/status.json"
+
+      log "INFO" "Enterprise setup complete"
+      log "INFO" "For detailed information, please read $WORKSPACE_DIR/ENTERPRISE_README.md"
+      ;;
+
+    license)
+      case $sub_operation in
+        activate)
+          log "INFO" "Activating enterprise license"
+
+          if [ -z "$license_key" ]; then
+            read -p "Enter your license key: " license_key
+          fi
+
+          if [ -z "$license_key" ]; then
+            log "ERROR" "No license key provided"
+            exit 1
+          fi
+
+          # Save license key
+          local timestamp=$(date "+%Y-%m-%d %H:%M:%S")
+          local expiration=$(date -d "+30 days" "+%Y-%m-%d" 2>/dev/null || date -v+30d "+%Y-%m-%d")
+
+          echo "{\"key\": \"$license_key\", \"activated\": true, \"activationDate\": \"$timestamp\", \"expirationDate\": \"$expiration\", \"type\": \"beta\"}" > "$CONFIG_DIR/enterprise/license/license.json"
+
+          # Update license in configuration
+          if command -v yq &> /dev/null; then
+            yq eval '.license.type = "beta" | .license.expiration = "'"$expiration"'"' -i "$WORKSPACE_DIR/schema-ui-integration/enterprise/config/enterprise.yaml"
+          elif [ -f "$WORKSPACE_DIR/schema-ui-integration/enterprise/config/enterprise.yaml" ]; then
+            # Backup configuration
+            cp "$WORKSPACE_DIR/schema-ui-integration/enterprise/config/enterprise.yaml" "$WORKSPACE_DIR/schema-ui-integration/enterprise/config/enterprise.yaml.bak"
+
+            # Update license type with sed
+            sed -i.bak "s/license:/license:\n  type: \"beta\"/" "$WORKSPACE_DIR/schema-ui-integration/enterprise/config/enterprise.yaml" || sed -i "" "s/license:/license:\n  type: \"beta\"/" "$WORKSPACE_DIR/schema-ui-integration/enterprise/config/enterprise.yaml"
+
+            # Update expiration with sed
+            sed -i.bak "s/expiration: \"\"/expiration: \"$expiration\"/" "$WORKSPACE_DIR/schema-ui-integration/enterprise/config/enterprise.yaml" || sed -i "" "s/expiration: \"\"/expiration: \"$expiration\"/" "$WORKSPACE_DIR/schema-ui-integration/enterprise/config/enterprise.yaml"
+
+            # Clean up backup
+            rm -f "$WORKSPACE_DIR/schema-ui-integration/enterprise/config/enterprise.yaml.bak"
+          fi
+
+          log "INFO" "License activated successfully"
+          log "INFO" "License valid until: $expiration"
+          ;;
+
+        status)
+          log "INFO" "Checking license status"
+
+          if [ -f "$CONFIG_DIR/enterprise/license/license.json" ]; then
+            local license_type=$(grep -o '"type": "[^"]*' "$CONFIG_DIR/enterprise/license/license.json" | cut -d'"' -f4)
+            local activation_date=$(grep -o '"activationDate": "[^"]*' "$CONFIG_DIR/enterprise/license/license.json" | cut -d'"' -f4)
+            local expiration_date=$(grep -o '"expirationDate": "[^"]*' "$CONFIG_DIR/enterprise/license/license.json" | cut -d'"' -f4)
+
+            echo -e "${BOLD}License Status:${NC}"
+            echo -e "Type: ${license_type:-Unknown}"
+            echo -e "Activation Date: ${activation_date:-Unknown}"
+            echo -e "Expiration Date: ${expiration_date:-Unknown}"
+
+            # Check if license is expired
+            if [ ! -z "$expiration_date" ]; then
+              local current_date=$(date "+%Y-%m-%d")
+              if [[ "$current_date" > "$expiration_date" ]]; then
+                echo -e "Status: ${RED}Expired${NC}"
+              else
+                echo -e "Status: ${GREEN}Active${NC}"
+              fi
+            else
+              echo -e "Status: ${YELLOW}Unknown${NC}"
+            fi
+          else
+            echo -e "${BOLD}License Status:${NC}"
+            echo -e "Status: ${YELLOW}Not activated${NC}"
+            echo -e "Run './saar.sh enterprise license activate' to activate your license"
+          fi
+          ;;
+
+        deactivate)
+          log "WARN" "Deactivating enterprise license"
+
+          read -p "Are you sure you want to deactivate your license? (y/N): " confirm
+          if [[ "$confirm" =~ ^[Yy]$ ]]; then
+            if [ -f "$CONFIG_DIR/enterprise/license/license.json" ]; then
+              # Backup license
+              cp "$CONFIG_DIR/enterprise/license/license.json" "$CONFIG_DIR/enterprise/license/license.json.bak"
+
+              # Deactivate license
+              local deactivation_date=$(date "+%Y-%m-%d %H:%M:%S")
+              cat "$CONFIG_DIR/enterprise/license/license.json.bak" | sed "s/\"activated\": true/\"activated\": false, \"deactivationDate\": \"$deactivation_date\"/" > "$CONFIG_DIR/enterprise/license/license.json"
+
+              log "INFO" "License deactivated"
+            else
+              log "WARN" "No license found to deactivate"
+            fi
+          else
+            log "INFO" "License deactivation canceled"
+          fi
+          ;;
+
+        *)
+          log "ERROR" "Unknown license operation: $sub_operation"
+          echo -e "Available operations: activate, status, deactivate"
+          exit 1
+          ;;
+      esac
+      ;;
+
+    users)
+      case $sub_operation in
+        list)
+          log "INFO" "Listing enterprise users"
+
+          if [ -d "$CONFIG_DIR/enterprise/users" ]; then
+            echo -e "${BOLD}Enterprise Users:${NC}"
+            ls -1 "$CONFIG_DIR/enterprise/users" | grep ".json" | while read -r user_file; do
+              local user_email=$(grep -o '"email": "[^"]*' "$CONFIG_DIR/enterprise/users/$user_file" | cut -d'"' -f4)
+              local user_name=$(grep -o '"name": "[^"]*' "$CONFIG_DIR/enterprise/users/$user_file" | cut -d'"' -f4)
+              local user_role=$(grep -o '"role": "[^"]*' "$CONFIG_DIR/enterprise/users/$user_file" | cut -d'"' -f4)
+
+              echo -e "${CYAN}${user_name:-Unknown}${NC} (${user_email:-Unknown}) - ${BOLD}Role:${NC} ${user_role:-User}"
+            done
+          else
+            echo -e "No users found"
+          fi
+          ;;
+
+        add)
+          log "INFO" "Adding enterprise user"
+
+          # Parse options
+          local user_name=""
+          local user_email=""
+          local user_role="user"
+
+          for arg in "$@"; do
+            case $arg in
+              --name=*)
+                user_name="${arg#*=}"
+                ;;
+              --email=*)
+                user_email="${arg#*=}"
+                ;;
+              --role=*)
+                user_role="${arg#*=}"
+                ;;
+            esac
+          done
+
+          if [ -z "$user_name" ]; then
+            read -p "Enter user name: " user_name
+          fi
+
+          if [ -z "$user_email" ]; then
+            read -p "Enter user email: " user_email
+          fi
+
+          if [ -z "$user_email" ]; then
+            log "ERROR" "Email is required"
+            exit 1
+          fi
+
+          # Create users directory if it doesn't exist
+          mkdir -p "$CONFIG_DIR/enterprise/users"
+
+          # Create user file
+          local user_id=$(echo "$user_email" | sed 's/[^a-zA-Z0-9]/_/g')
+          local timestamp=$(date "+%Y-%m-%d %H:%M:%S")
+
+          cat > "$CONFIG_DIR/enterprise/users/${user_id}.json" << EOF
+{
+  "id": "$user_id",
+  "name": "$user_name",
+  "email": "$user_email",
+  "role": "$user_role",
+  "created": "$timestamp",
+  "lastModified": "$timestamp",
+  "status": "active"
+}
+EOF
+
+          log "INFO" "User added successfully"
+          ;;
+
+        update)
+          log "INFO" "Updating enterprise user"
+
+          # Parse options
+          local user_email=""
+          local user_role=""
+          local user_status=""
+
+          for arg in "$@"; do
+            case $arg in
+              --email=*)
+                user_email="${arg#*=}"
+                ;;
+              --role=*)
+                user_role="${arg#*=}"
+                ;;
+              --status=*)
+                user_status="${arg#*=}"
+                ;;
+            esac
+          done
+
+          if [ -z "$user_email" ]; then
+            read -p "Enter user email: " user_email
+          fi
+
+          if [ -z "$user_email" ]; then
+            log "ERROR" "Email is required"
+            exit 1
+          fi
+
+          # Find user file
+          local user_id=$(echo "$user_email" | sed 's/[^a-zA-Z0-9]/_/g')
+          local user_file="$CONFIG_DIR/enterprise/users/${user_id}.json"
+
+          if [ ! -f "$user_file" ]; then
+            log "ERROR" "User not found"
+            exit 1
+          fi
+
+          # Update user
+          local timestamp=$(date "+%Y-%m-%d %H:%M:%S")
+          local updated=false
+
+          # Backup user file
+          cp "$user_file" "${user_file}.bak"
+
+          # Update role if provided
+          if [ ! -z "$user_role" ]; then
+            sed -i.bak "s/\"role\": \"[^\"]*\"/\"role\": \"$user_role\"/" "$user_file" || sed -i "" "s/\"role\": \"[^\"]*\"/\"role\": \"$user_role\"/" "$user_file"
+            updated=true
+          fi
+
+          # Update status if provided
+          if [ ! -z "$user_status" ]; then
+            sed -i.bak "s/\"status\": \"[^\"]*\"/\"status\": \"$user_status\"/" "$user_file" || sed -i "" "s/\"status\": \"[^\"]*\"/\"status\": \"$user_status\"/" "$user_file"
+            updated=true
+          fi
+
+          # Update lastModified date
+          sed -i.bak "s/\"lastModified\": \"[^\"]*\"/\"lastModified\": \"$timestamp\"/" "$user_file" || sed -i "" "s/\"lastModified\": \"[^\"]*\"/\"lastModified\": \"$timestamp\"/" "$user_file"
+
+          # Clean up backup
+          rm -f "$user_file.bak"
+
+          if [ "$updated" = true ]; then
+            log "INFO" "User updated successfully"
+          else
+            log "INFO" "No changes made to user"
+          fi
+          ;;
+
+        delete)
+          log "INFO" "Deleting enterprise user"
+
+          # Parse options
+          local user_email=""
+
+          for arg in "$@"; do
+            case $arg in
+              --email=*)
+                user_email="${arg#*=}"
+                ;;
+            esac
+          done
+
+          if [ -z "$user_email" ]; then
+            read -p "Enter user email: " user_email
+          fi
+
+          if [ -z "$user_email" ]; then
+            log "ERROR" "Email is required"
+            exit 1
+          fi
+
+          # Find user file
+          local user_id=$(echo "$user_email" | sed 's/[^a-zA-Z0-9]/_/g')
+          local user_file="$CONFIG_DIR/enterprise/users/${user_id}.json"
+
+          if [ ! -f "$user_file" ]; then
+            log "ERROR" "User not found"
+            exit 1
+          fi
+
+          # Confirm deletion
+          read -p "Are you sure you want to delete this user? (y/N): " confirm
+          if [[ "$confirm" =~ ^[Yy]$ ]]; then
+            # Backup user file
+            cp "$user_file" "${user_file}.bak"
+
+            # Delete user
+            rm "$user_file"
+
+            log "INFO" "User deleted successfully"
+          else
+            log "INFO" "User deletion canceled"
+          fi
+          ;;
+
+        *)
+          log "ERROR" "Unknown users operation: $sub_operation"
+          echo -e "Available operations: list, add, update, delete"
+          exit 1
+          ;;
+      esac
+      ;;
+
+    teams)
+      case $sub_operation in
+        list)
+          log "INFO" "Listing enterprise teams"
+
+          if [ -d "$CONFIG_DIR/enterprise/teams" ]; then
+            echo -e "${BOLD}Enterprise Teams:${NC}"
+            ls -1 "$CONFIG_DIR/enterprise/teams" | grep ".json" | while read -r team_file; do
+              local team_name=$(grep -o '"name": "[^"]*' "$CONFIG_DIR/enterprise/teams/$team_file" | cut -d'"' -f4)
+              local team_id=$(grep -o '"id": "[^"]*' "$CONFIG_DIR/enterprise/teams/$team_file" | cut -d'"' -f4)
+              local team_description=$(grep -o '"description": "[^"]*' "$CONFIG_DIR/enterprise/teams/$team_file" | cut -d'"' -f4)
+
+              echo -e "${CYAN}${team_name:-Unknown}${NC} (${team_id:-Unknown}) - ${team_description:-No description}"
+            done
+          else
+            echo -e "No teams found"
+          fi
+          ;;
+
+        create)
+          log "INFO" "Creating enterprise team"
+
+          # Parse options
+          local team_name=""
+          local team_description=""
+
+          for arg in "$@"; do
+            case $arg in
+              --name=*)
+                team_name="${arg#*=}"
+                ;;
+              --description=*)
+                team_description="${arg#*=}"
+                ;;
+            esac
+          done
+
+          if [ -z "$team_name" ]; then
+            read -p "Enter team name: " team_name
+          fi
+
+          if [ -z "$team_name" ]; then
+            log "ERROR" "Team name is required"
+            exit 1
+          fi
+
+          # Create teams directory if it doesn't exist
+          mkdir -p "$CONFIG_DIR/enterprise/teams"
+
+          # Create team file
+          local team_id=$(echo "$team_name" | sed 's/[^a-zA-Z0-9]/_/g' | tr '[:upper:]' '[:lower:]')
+          local timestamp=$(date "+%Y-%m-%d %H:%M:%S")
+
+          cat > "$CONFIG_DIR/enterprise/teams/${team_id}.json" << EOF
+{
+  "id": "$team_id",
+  "name": "$team_name",
+  "description": "$team_description",
+  "created": "$timestamp",
+  "lastModified": "$timestamp",
+  "members": []
+}
+EOF
+
+          log "INFO" "Team created successfully"
+          ;;
+
+        add-member)
+          log "INFO" "Adding member to enterprise team"
+
+          # Parse options
+          local team_name=""
+          local user_email=""
+
+          for arg in "$@"; do
+            case $arg in
+              --team=*)
+                team_name="${arg#*=}"
+                ;;
+              --email=*)
+                user_email="${arg#*=}"
+                ;;
+            esac
+          done
+
+          if [ -z "$team_name" ]; then
+            read -p "Enter team name: " team_name
+          fi
+
+          if [ -z "$user_email" ]; then
+            read -p "Enter user email: " user_email
+          fi
+
+          if [ -z "$team_name" ] || [ -z "$user_email" ]; then
+            log "ERROR" "Team name and user email are required"
+            exit 1
+          fi
+
+          # Find team file
+          local team_id=$(echo "$team_name" | sed 's/[^a-zA-Z0-9]/_/g' | tr '[:upper:]' '[:lower:]')
+          local team_file="$CONFIG_DIR/enterprise/teams/${team_id}.json"
+
+          if [ ! -f "$team_file" ]; then
+            log "ERROR" "Team not found"
+            exit 1
+          fi
+
+          # Find user file
+          local user_id=$(echo "$user_email" | sed 's/[^a-zA-Z0-9]/_/g')
+          local user_file="$CONFIG_DIR/enterprise/users/${user_id}.json"
+
+          if [ ! -f "$user_file" ]; then
+            log "ERROR" "User not found"
+            exit 1
+          fi
+
+          # Check if user is already a member
+          if grep -q "\"$user_id\"" "$team_file"; then
+            log "WARN" "User is already a member of this team"
+            exit 0
+          fi
+
+          # Add user to team
+          local timestamp=$(date "+%Y-%m-%d %H:%M:%S")
+
+          # Backup team file
+          cp "$team_file" "${team_file}.bak"
+
+          # Add user to members array
+          if grep -q "\"members\": \[\]" "$team_file"; then
+            # Empty array
+            sed -i.bak "s/\"members\": \[\]/\"members\": \[\"$user_id\"\]/" "$team_file" || sed -i "" "s/\"members\": \[\]/\"members\": \[\"$user_id\"\]/" "$team_file"
+          else
+            # Non-empty array
+            sed -i.bak "s/\"members\": \[/\"members\": \[\"$user_id\", /" "$team_file" || sed -i "" "s/\"members\": \[/\"members\": \[\"$user_id\", /" "$team_file"
+          fi
+
+          # Update lastModified date
+          sed -i.bak "s/\"lastModified\": \"[^\"]*\"/\"lastModified\": \"$timestamp\"/" "$team_file" || sed -i "" "s/\"lastModified\": \"[^\"]*\"/\"lastModified\": \"$timestamp\"/" "$team_file"
+
+          # Clean up backup
+          rm -f "$team_file.bak"
+
+          log "INFO" "User added to team successfully"
+          ;;
+
+        *)
+          log "ERROR" "Unknown teams operation: $sub_operation"
+          echo -e "Available operations: list, create, add-member"
+          exit 1
+          ;;
+      esac
+      ;;
+
+    status)
+      log "INFO" "Checking enterprise status"
+
+      echo -e "${BOLD}ENTERPRISE STATUS${NC}"
+      echo -e "======================"
+      echo ""
+
+      # Check license status
+      if [ -f "$CONFIG_DIR/enterprise/license/license.json" ]; then
+        local license_type=$(grep -o '"type": "[^"]*' "$CONFIG_DIR/enterprise/license/license.json" | cut -d'"' -f4)
+        local activation_date=$(grep -o '"activationDate": "[^"]*' "$CONFIG_DIR/enterprise/license/license.json" | cut -d'"' -f4)
+        local expiration_date=$(grep -o '"expirationDate": "[^"]*' "$CONFIG_DIR/enterprise/license/license.json" | cut -d'"' -f4)
+
+        echo -e "${BOLD}License:${NC}"
+        echo -e "Type: ${license_type:-Unknown}"
+        echo -e "Activated: ${activation_date:-Unknown}"
+        echo -e "Expires: ${expiration_date:-Unknown}"
+
+        # Check if license is expired
+        if [ ! -z "$expiration_date" ]; then
+          local current_date=$(date "+%Y-%m-%d")
+          if [[ "$current_date" > "$expiration_date" ]]; then
+            echo -e "Status: ${RED}Expired${NC}"
+          else
+            echo -e "Status: ${GREEN}Active${NC}"
+          fi
+        else
+          echo -e "Status: ${YELLOW}Unknown${NC}"
+        fi
+      else
+        echo -e "${BOLD}License:${NC} ${YELLOW}Not activated${NC}"
+      fi
+      echo ""
+
+      # Check enterprise configuration
+      if [ -f "$WORKSPACE_DIR/schema-ui-integration/enterprise/config/enterprise.yaml" ]; then
+        echo -e "${BOLD}Configuration:${NC} ${GREEN}Found${NC}"
+
+        # Extract some key settings
+        if command -v grep &> /dev/null; then
+          local sso_enabled=$(grep "sso:" -A 2 "$WORKSPACE_DIR/schema-ui-integration/enterprise/config/enterprise.yaml" | grep "enabled:" | cut -d':' -f2 | tr -d ' ')
+          local rbac_enabled=$(grep "rbac:" -A 2 "$WORKSPACE_DIR/schema-ui-integration/enterprise/config/enterprise.yaml" | grep "enabled:" | cut -d':' -f2 | tr -d ' ')
+          local audit_logging=$(grep "audit_logging:" "$WORKSPACE_DIR/schema-ui-integration/enterprise/config/enterprise.yaml" | cut -d':' -f2 | tr -d ' ')
+
+          echo -e "SSO: ${sso_enabled:-false}"
+          echo -e "RBAC: ${rbac_enabled:-false}"
+          echo -e "Audit Logging: ${audit_logging:-false}"
+        fi
+      else
+        echo -e "${BOLD}Configuration:${NC} ${YELLOW}Not found${NC}"
+      fi
+      echo ""
+
+      # Check user count
+      if [ -d "$CONFIG_DIR/enterprise/users" ]; then
+        local user_count=$(ls -1 "$CONFIG_DIR/enterprise/users" | grep ".json" | wc -l)
+        echo -e "${BOLD}Users:${NC} ${user_count:-0} registered"
+      else
+        echo -e "${BOLD}Users:${NC} 0 registered"
+      fi
+
+      # Check team count
+      if [ -d "$CONFIG_DIR/enterprise/teams" ]; then
+        local team_count=$(ls -1 "$CONFIG_DIR/enterprise/teams" | grep ".json" | wc -l)
+        echo -e "${BOLD}Teams:${NC} ${team_count:-0} created"
+      else
+        echo -e "${BOLD}Teams:${NC} 0 created"
+      fi
+      echo ""
+
+      # Check enterprise components
+      echo -e "${BOLD}Components:${NC}"
+
+      for component in "SSO Provider" "RBAC Manager" "Audit Logger" "Team Collaboration" "Enterprise Dashboard"; do
+        echo -e "- $component: ${YELLOW}Ready to configure${NC}"
+      done
+
+      log "INFO" "Enterprise status check complete"
+      ;;
+
+    *)
+      log "ERROR" "Unknown enterprise operation: $operation"
+      echo -e "Available operations: setup, license, users, teams, status"
+      exit 1
+      ;;
+  esac
+}
+
 # Status function
 do_status() {
   check_dependencies
@@ -886,6 +1678,39 @@ do_status() {
   fi
   echo ""
   
+  # Check enterprise status
+  echo -e "${BOLD}Enterprise:${NC}"
+  if [ -f "$CONFIG_DIR/enterprise/status.json" ]; then
+    local enterprise_activated=$(grep -o '"activated": [a-z]*' "$CONFIG_DIR/enterprise/status.json" | cut -d' ' -f2)
+    local enterprise_version=$(grep -o '"version": "[^"]*' "$CONFIG_DIR/enterprise/status.json" | cut -d'"' -f4)
+
+    if [ "$enterprise_activated" = "true" ]; then
+      echo -e "Status: ${GREEN}Activated${NC}"
+      echo -e "Version: ${enterprise_version:-1.0.0}"
+
+      # Check license
+      if [ -f "$CONFIG_DIR/enterprise/license/license.json" ]; then
+        local license_status=$(grep -o '"activated": [a-z]*' "$CONFIG_DIR/enterprise/license/license.json" | cut -d' ' -f2)
+        if [ "$license_status" = "true" ]; then
+          echo -e "License: ${GREEN}Active${NC}"
+        else
+          echo -e "License: ${YELLOW}Inactive${NC}"
+        fi
+      else
+        echo -e "License: ${YELLOW}Not found${NC}"
+      fi
+
+      echo -e "Run './saar.sh enterprise status' for detailed information"
+    else
+      echo -e "Status: ${YELLOW}Not activated${NC}"
+      echo -e "Run './saar.sh enterprise setup' to activate"
+    fi
+  else
+    echo -e "Status: ${YELLOW}Not installed${NC}"
+    echo -e "Run './saar.sh enterprise setup' to install"
+  fi
+  echo ""
+
   # Check Node.js and npm versions
   echo -e "${BOLD}Environment:${NC}"
   echo -e "Node.js: $(node -v)"
@@ -960,6 +1785,10 @@ main() {
     status)
       shift
       do_status "$@"
+      ;;
+    enterprise)
+      shift
+      do_enterprise "$@"
       ;;
     help|--help|-h)
       show_banner
