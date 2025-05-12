@@ -9,13 +9,12 @@
  * without going through the interactive configuration.
  */
 
-'use strict';
-
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
-// Set shell language to German (after strict mode)
+// Set shell language to German
+// Use process only after the module is loaded
 process.env.LANG = 'de_DE.UTF-8';
 
 // Get command-line arguments

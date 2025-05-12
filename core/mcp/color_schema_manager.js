@@ -8,6 +8,8 @@
  * Enables creating, editing, and applying custom color schemas.
  */
 
+'use strict';
+
 const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
@@ -15,6 +17,9 @@ const chalk = require('chalk');
 const inquirer = require('inquirer');
 const { execSync } = require('child_process');
 const os = require('os');
+
+// Set shell language to German (after strict mode)
+process.env.LANG = 'de_DE.UTF-8';
 
 // Import standardized config manager
 const configManager = require('../config/config_manager');
@@ -49,14 +54,72 @@ function loadConfig() {
     // Add a backward-compatible COLOR_SCHEMA property if needed
     if (!colorConfig.COLOR_SCHEMA) {
       colorConfig.COLOR_SCHEMA = {
-        activeTheme: colorConfig.userPreferences.activeTheme || 'dark'
+        activeTheme: colorConfig.userPreferences?.activeTheme || 'dark'
       };
     }
 
     return colorConfig;
   } catch (err) {
     console.error(`Error loading color schema configuration: ${err.message}`);
-    return configManager.DEFAULT_CONFIGS[CONFIG_TYPES.COLOR_SCHEMA];
+    // Let's try to access DEFAULT_CONFIGS directly from the module exports
+    try {
+      const defaultConfigs = require('../config/config_manager').DEFAULT_CONFIGS;
+      if (defaultConfigs && defaultConfigs[CONFIG_TYPES.COLOR_SCHEMA]) {
+        return JSON.parse(JSON.stringify(defaultConfigs[CONFIG_TYPES.COLOR_SCHEMA]));
+      }
+      throw new Error('DEFAULT_CONFIGS not found or invalid');
+    } catch (defaultErr) {
+      console.error(`Failed to get default config: ${defaultErr.message}`);
+      // Define a fallback default configuration
+      return {
+        version: "1.0.0",
+        themes: {
+          light: {
+            name: "Light Theme",
+            colors: {
+              primary: "#3f51b5",
+              secondary: "#7986cb",
+              accent: "#ff4081",
+              success: "#4caf50",
+              warning: "#ff9800",
+              danger: "#f44336",
+              info: "#2196f3",
+              background: "#f8f9fa",
+              surface: "#ffffff",
+              text: "#212121",
+              textSecondary: "#757575",
+              border: "#e0e0e0",
+              shadow: "rgba(0, 0, 0, 0.1)"
+            }
+          },
+          dark: {
+            name: "Dark Theme",
+            colors: {
+              primary: "#bb86fc",
+              secondary: "#03dac6",
+              accent: "#cf6679",
+              success: "#4caf50",
+              warning: "#ff9800",
+              danger: "#cf6679",
+              info: "#2196f3",
+              background: "#121212",
+              surface: "#1e1e1e",
+              text: "#ffffff",
+              textSecondary: "#b0b0b0",
+              border: "#333333",
+              shadow: "rgba(0, 0, 0, 0.5)"
+            }
+          }
+        },
+        userPreferences: {
+          activeTheme: "dark",
+          custom: null
+        },
+        COLOR_SCHEMA: {
+          activeTheme: "dark"
+        }
+      };
+    }
   }
 }
 
