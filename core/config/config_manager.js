@@ -15,7 +15,7 @@ const os = require("os");
  * Supported configuration types
  * @type {Object}
  */
-export const CONFIG_TYPES = Object.freeze({
+const CONFIG_TYPES = Object.freeze({
   RAG: "rag",
   MCP: "mcp",
   SECURITY: "security",
@@ -96,7 +96,7 @@ const DEFAULT_CONFIGS = {
     },
     claude: {
       api_key_env: "CLAUDE_API_KEY",
-      model: "claude-3-sonnet-20240229",
+      model: "claude-3-7-sonnet",
     },
   },
   [CONFIG_TYPES.MCP]: {
@@ -162,7 +162,7 @@ const DEFAULT_CONFIGS = {
     fallbackLocale: "en",
     loadPath: "core/i18n/locales/{{lng}}.json",
     debug: false,
-    supportedLocales: ["en", "fr"],
+    supportedLocales: ["en", "fr", "de"],
     dateFormat: {
       short: {
         year: "numeric",
@@ -401,7 +401,7 @@ class ConfigManager {
   registerObserver(configType, callback) {
     const observerId = `observer_${Date.now()}_${Math.random()
       .toString(36)
-      .substr(2, 9)}`;
+      .substring(2, 9)}`;
 
     if (!this.observers.has(configType)) {
       this.observers.set(configType, new Map());
@@ -893,12 +893,14 @@ class ConfigManager {
   }
 }
 
-// Export as constants
-module.exports.CONFIG_TYPES = CONFIG_TYPES;
-module.exports.ConfigError = ConfigError;
-module.exports.ConfigValidationError = ConfigValidationError;
-module.exports.ConfigAccessError = ConfigAccessError;
-
-// Export as singleton
+// Create singleton instance
 const configManager = new ConfigManager();
+
+// Export types and errors
+configManager.CONFIG_TYPES = CONFIG_TYPES;
+configManager.ConfigError = ConfigError;
+configManager.ConfigValidationError = ConfigValidationError;
+configManager.ConfigAccessError = ConfigAccessError;
+
+// Export singleton instance
 module.exports = configManager;

@@ -1,4 +1,5 @@
 {
+  "version": "1.2.0",
   "database": {
     "type": "lancedb",
     "connection": {
@@ -10,11 +11,28 @@
     "provider": "voyage",
     "model": "voyage-2",
     "dimensions": 1024,
-    "api_key_env": "VOYAGE_API_KEY"
+    "api_key_env": "VOYAGE_API_KEY",
+    "batch_size": 32
   },
   "retrieval": {
     "top_k": 5,
     "similarity_threshold": 0.7,
     "reranking": false
+  },
+  "chunking": {
+    "size": 1000,
+    "overlap": 200,
+    "strategy": "semantic"
+  },
+  "cache": {
+    "enabled": true,
+    "ttl": 3600,
+    "strategy": "lru",
+    "max_size": 1000
+  },
+  "claude": {
+    "model": "claude-3-7-sonnet",
+    "api_key_env": "CLAUDE_API_KEY",
+    "max_tokens_default": 1000
   }
 }

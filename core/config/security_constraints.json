@@ -1,57 +1,171 @@
 {
+  "version": "1.2.0",
   "execution": {
     "confirmation_required": true,
-    "allowed_commands": ["git", "npm", "node", "python", "docker", "test", "ls", "find", "grep"],
-    "blocked_commands": ["rm -rf /", "sudo", "chmod 777", "curl | bash", "wget | bash"]
+    "allowed_commands": [
+      "git",
+      "npm",
+      "node",
+      "python",
+      "docker",
+      "test",
+      "ls",
+      "find",
+      "grep",
+      "cat"
+    ],
+    "blocked_commands": [
+      "rm -rf /",
+      "sudo",
+      "chmod 777",
+      "curl | bash",
+      "wget | bash",
+      "eval",
+      "> /dev/null",
+      "2>&1"
+    ],
+    "validation": {
+      "regex_patterns": [
+        "^rm\\s+-rf\\s+/",
+        "^sudo\\s+",
+        "\\|\\s*sh$",
+        "\\|\\s*bash$"
+      ],
+      "syntax_check": true
+    }
   },
   "filesystem": {
     "read": {
       "allowed": true,
-      "paths": ["./", "../", "~/.claude/"]
+      "paths": [
+        "./",
+        "../",
+        "~/.claude/"
+      ],
+      "restricted_patterns": [
+        "\\.env$",
+        "\\.key$",
+        "\\.pem$",
+        "id_rsa",
+        "authorized_keys"
+      ]
     },
     "write": {
       "allowed": true,
       "confirmation_required": true,
-      "paths": ["./", "./src/", "./docs/", "./ai_docs/", "./specs/", "./.claude/", "~/.claude/"]
-    }
+      "paths": [
+        "./",
+        "./src/",
+        "./docs/",
+        "./ai_docs/",
+        "./specs/",
+        "./.claude/",
+        "~/.claude/"
+      ],
+      "restricted_patterns": [
+        "node_modules/",
+        "\\.git/",
+        "\\.env$"
+      ]
+    },
+    "path_traversal_protection": true,
+    "symlink_protection": true,
+    "limit_file_size": 10485760
   },
   "network": {
     "allowed": true,
-    "restricted_domains": ["localhost"]
+    "allowed_ports": [
+      80,
+      443,
+      3000,
+      8080
+    ],
+    "allowed_protocols": [
+      "http",
+      "https"
+    ],
+    "restricted_domains": [
+      "localhost",
+      "127.0.0.1",
+      "0.0.0.0"
+    ],
+    "rate_limiting": {
+      "enabled": true,
+      "requests_per_minute": 60
+    }
+  },
+  "input_validation": {
+    "sanitize_user_input": true,
+    "sanitize_file_paths": true,
+    "prevent_injection": true,
+    "validate_json_schema": true
   },
   "enterprise": {
-    "enabled": true,
+    "enabled": "${ENTERPRISE_FEATURES_ENABLED}",
     "auditing": {
       "enabled": true,
       "level": "detailed",
-      "storage": "database"
+      "storage": "database",
+      "include_user_actions": true,
+      "include_system_events": true,
+      "retention_days": 90
     },
     "compliance": {
       "enabled": true,
-      "frameworks": ["gdpr", "hipaa", "sox"],
+      "frameworks": [
+        "gdpr",
+        "hipaa",
+        "sox",
+        "ccpa",
+        "pci-dss"
+      ],
       "dataClassification": true,
-      "piiDetection": true
+      "piiDetection": true,
+      "dlpScanning": true
     },
     "accessControl": {
       "enabled": true,
       "rbac": true,
       "apiKeyRestrictions": true,
-      "ipWhitelisting": true
+      "ipWhitelisting": true,
+      "sessionTimeout": 1800
     },
     "authentication": {
       "sso": true,
       "mfa": true,
-      "providers": ["oidc", "saml"]
+      "providers": [
+        "oidc",
+        "saml"
+      ],
+      "passwordPolicy": {
+        "minLength": 12,
+        "requireSpecialChars": true,
+        "requireNumbers": true,
+        "requireUpperLower": true
+      }
     },
     "dataProtection": {
       "encryption": {
         "atRest": true,
         "inTransit": true,
-        "level": "highest"
+        "level": "highest",
+        "algorithm": "AES-256-GCM"
       },
       "masking": {
         "enabled": true,
-        "patterns": ["creditCard", "ssn", "email", "phone"]
+        "patterns": [
+          "creditCard",
+          "ssn",
+          "email",
+          "phone",
+          "address",
+          "passportNumber",
+          "drivingLicense"
+        ]
+      },
+      "keyRotation": {
+        "enabled": true,
+        "interval": "90d"
       }
     },
     "resourceLimits": {
@@ -60,9 +174,17 @@
       "maxCpu": 2,
       "timeouts": {
         "request": 60,
-        "job": 3600
-      }
+        "job": 3600,
+        "session": 86400
+      },
+      "maxConcurrentRequests": 50
     },
-    "allowedModels": ["claude-3-7-sonnet", "claude-3-5-sonnet", "claude-3-haiku"]
+    "allowedModels": [
+      "claude-3-7-sonnet",
+      "claude-3-5-sonnet",
+      "claude-3-haiku",
+      "claude-3-5-haiku",
+      "claude-3-opus"
+    ]
   }
 }

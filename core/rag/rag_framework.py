@@ -1,46 +1,21 @@
 #!/usr/bin/env python3
 """
-Claude Code Leichtgewichtiges RAG-System
-=======================================
+Claude Neural Framework RAG System
+==================================
 
-Dieses Modul implementiert ein leichtgewichtiges RAG-System für Claude Code,
-das mit verschiedenen Vektordatenbanken und Embedding-Modellen arbeiten kann.
+A lightweight RAG (Retrieval Augmented Generation) system for Claude Neural Framework
+that works with various vector databases and embedding models.
 """
 
 import os
 import json
 import logging
 import hashlib
-from typing import Dict, List, Optional, Union, Any, Tuple
+from typing import Dict, List, Optional, Union, Any, Tuple, Set
 from pathlib import Path
 from dataclasses import dataclass, field, asdict
-
-# Dependency Imports
-import anthropic
-try:
-    import lancedb
-    LANCEDB_AVAILABLE = True
-except ImportError:
-    LANCEDB_AVAILABLE = False
-
-try:
-    import chromadb
-    CHROMADB_AVAILABLE = True
-except ImportError:
-    CHROMADB_AVAILABLE = False
-
-try:
-    from voyage import Client as VoyageClient
-    VOYAGE_AVAILABLE = True
-except ImportError:
-    VOYAGE_AVAILABLE = False
-
-# Langchain for text splitting
-try:
-    from langchain.text_splitter import RecursiveCharacterTextSplitter
-    LANGCHAIN_AVAILABLE = True
-except ImportError:
-    LANGCHAIN_AVAILABLE = False
+from functools import lru_cache
+import time
 
 # Configure logging
 logging.basicConfig(
@@ -49,6 +24,43 @@ logging.basicConfig(
 )
 logger = logging.getLogger('claude_rag')
 
+# Optional dependency imports with graceful fallbacks
+try:
+    import anthropic
+    ANTHROPIC_AVAILABLE = True
+except ImportError:
+    ANTHROPIC_AVAILABLE = False
+    logger.warning("Anthropic package not installed. Install with: pip install anthropic")
+
+try:
+    import lancedb
+    LANCEDB_AVAILABLE = True
+except ImportError:
+    LANCEDB_AVAILABLE = False
+    logger.info("LanceDB package not installed. Install with: pip install lancedb")
+
+try:
+    import chromadb
+    CHROMADB_AVAILABLE = True
+except ImportError:
+    CHROMADB_AVAILABLE = False
+    logger.info("ChromaDB package not installed. Install with: pip install chromadb")
+
+try:
+    from voyage import Client as VoyageClient
+    VOYAGE_AVAILABLE = True
+except ImportError:
+    VOYAGE_AVAILABLE = False
+    logger.info("Voyage AI package not installed. Install with: pip install voyage")
+
+try:
+    from langchain.text_splitter import RecursiveCharacterTextSplitter
+    LANGCHAIN_AVAILABLE = True
+except ImportError:
+    LANGCHAIN_AVAILABLE = False
+    logger.info("Langchain package not installed. Install with: pip install langchain")
+
+
 @dataclass
 class RagConfig:
     """Configuration for the RAG system"""
@@ -56,6 +68,11 @@ class RagConfig:
     embedding: Dict[str, Any]
     retrieval: Dict[str, Any]
     cache: Dict[str, Any] = field(default_factory=dict)
+    chunking: Dict[str, Any] = field(default_factory=lambda: {
+        "size": 1000, 
+        "overlap": 200,
+        "strategy": "semantic"
+    })
 
     @classmethod
     def from_file(cls, path: Union[str, Path]) -> 'RagConfig':
@@ -91,9 +108,45 @@ class RagConfig:
             cache={
                 "enabled": True,
                 "ttl": 3600,
-                "strategy": "lru"
+                "strategy": "lru",
+                "max_size": 1000
             }
         )
+    
+    def validate(self) -> Tuple[bool, List[str]]:
+        """Validate the configuration"""
+        errors = []
+        
+        # Validate database config
+        if "type" not in self.database:
+            errors.append("Database type is required")
+        elif self.database["type"] not in ["lancedb", "chromadb"]:
+            errors.append(f"Unsupported database type: {self.database['type']}")
+        
+        if "connection" not in self.database:
+            errors.append("Database connection configuration is required")
+        
+        # Validate embedding config
+        if "provider" not in self.embedding:
+            errors.append("Embedding provider is required")
+        elif self.embedding["provider"] not in ["voyage", "huggingface"]:
+            errors.append(f"Unsupported embedding provider: {self.embedding['provider']}")
+        
+        if "model" not in self.embedding:
+            errors.append("Embedding model is required")
+        
+        if "dimensions" not in self.embedding:
+            errors.append("Embedding dimensions are required")
+        
+        # Validate retrieval config
+        if "top_k" not in self.retrieval:
+            errors.append("Retrieval top_k is required")
+        
+        if "similarity_threshold" not in self.retrieval:
+            errors.append("Retrieval similarity_threshold is required")
+        
+        return len(errors) == 0, errors
+
 
 @dataclass
 class Document:
@@ -124,10 +177,23 @@ class Document:
             "filename": path.name,
             "extension": path.suffix.lstrip('.'),
             "created_at": os.path.getctime(path),
-            "modified_at": os.path.getmtime(path)
+            "modified_at": os.path.getmtime(path),
+            "size_bytes": os.path.getsize(path)
         })
         
         return cls(id=doc_id, content=content, metadata=meta)
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary representation"""
+        result = {
+            "id": self.id,
+            "content": self.content,
+            "metadata": self.metadata
+        }
+        if self.embedding is not None:
+            result["embedding"] = self.embedding
+        return result
+
 
 @dataclass
 class QueryResult:
@@ -137,6 +203,14 @@ class QueryResult:
     
     def __repr__(self) -> str:
         return f"QueryResult(score={self.score:.4f}, id={self.document.id})"
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary representation"""
+        return {
+            "document": self.document.to_dict(),
+            "score": self.score
+        }
+
 
 class EmbeddingProvider:
     """Base class for embedding providers"""
@@ -151,6 +225,7 @@ class EmbeddingProvider:
     def embed_batch(self, texts: List[str]) -> List[List[float]]:
         """Embed multiple texts"""
         raise NotImplementedError
+
 
 class VoyageEmbeddingProvider(EmbeddingProvider):
     """Embedding provider using Voyage AI"""
@@ -170,18 +245,29 @@ class VoyageEmbeddingProvider(EmbeddingProvider):
     
     def embed_text(self, text: str) -> List[float]:
         """Embed a single text using Voyage AI"""
+        if not text.strip():
+            # Return zero vector for empty text
+            return [0.0] * self.dimensions
+            
         response = self.client.embed(model=self.model, input=[text])
         return response.embeddings[0]
     
     def embed_batch(self, texts: List[str]) -> List[List[float]]:
-        """Embed multiple texts using Voyage AI"""
+        """Embed multiple texts using Voyage AI, processing in batches"""
+        if not texts:
+            return []
+            
         # Process in batches to avoid API limits
         all_embeddings = []
         for i in range(0, len(texts), self.batch_size):
             batch = texts[i:i+self.batch_size]
+            # Handle empty strings
+            batch = [text if text.strip() else " " for text in batch]
             response = self.client.embed(model=self.model, input=batch)
             all_embeddings.extend(response.embeddings)
+        
         return all_embeddings
+
 
 class HuggingFaceEmbeddingProvider(EmbeddingProvider):
     """Embedding provider using Hugging Face models"""
@@ -199,13 +285,27 @@ class HuggingFaceEmbeddingProvider(EmbeddingProvider):
     
     def embed_text(self, text: str) -> List[float]:
         """Embed a single text using Hugging Face"""
+        if not text.strip():
+            return [0.0] * self.dimensions
+            
         embedding = self.model.encode(text, normalize_embeddings=True)
         return embedding.tolist()
     
     def embed_batch(self, texts: List[str]) -> List[List[float]]:
         """Embed multiple texts using Hugging Face"""
-        embeddings = self.model.encode(texts, batch_size=self.batch_size, normalize_embeddings=True)
+        if not texts:
+            return []
+            
+        # Replace empty strings with a space to avoid errors
+        texts = [text if text.strip() else " " for text in texts]
+        embeddings = self.model.encode(
+            texts, 
+            batch_size=self.batch_size, 
+            normalize_embeddings=True,
+            show_progress_bar=len(texts) > 100
+        )
         return embeddings.tolist()
+
 
 class VectorStore:
     """Base class for vector stores"""
@@ -220,18 +320,31 @@ class VectorStore:
         """Add a document to the vector store"""
         raise NotImplementedError
     
+    def add_documents(self, documents: List[Document], namespace: str = 'default') -> List[str]:
+        """Add multiple documents to the vector store"""
+        doc_ids = []
+        for doc in documents:
+            doc_id = self.add_document(doc, namespace)
+            doc_ids.append(doc_id)
+        return doc_ids
+    
     def search(self, query_vector: List[float], top_k: int = 5, namespace: str = 'default', 
                threshold: float = 0.7) -> List[QueryResult]:
         """Search for similar documents"""
         raise NotImplementedError
     
-    def delete_document(self, doc_id: str) -> None:
+    def delete_document(self, doc_id: str, namespace: str = 'default') -> None:
         """Delete a document from the vector store"""
         raise NotImplementedError
     
     def delete_namespace(self, namespace: str) -> None:
         """Delete all documents in a namespace"""
         raise NotImplementedError
+    
+    def get_namespaces(self) -> List[str]:
+        """Get list of all namespaces"""
+        raise NotImplementedError
+
 
 class LanceDBStore(VectorStore):
     """Vector store using LanceDB"""
@@ -304,6 +417,34 @@ class LanceDBStore(VectorStore):
         
         return document.id
     
+    def add_documents(self, documents: List[Document], namespace: str = 'default') -> List[str]:
+        """Add multiple documents to LanceDB in a single batch"""
+        if not documents:
+            return []
+            
+        # Check that all documents have embeddings
+        for doc in documents:
+            if doc.embedding is None:
+                raise ValueError(f"Document {doc.id} missing embedding")
+        
+        table = self._get_table(namespace)
+        
+        # Prepare batch data
+        data = [
+            {
+                "id": doc.id,
+                "vector": doc.embedding,
+                "content": doc.content,
+                "metadata": json.dumps(doc.metadata)
+            }
+            for doc in documents
+        ]
+        
+        # Add to table in a single operation
+        table.add(data)
+        
+        return [doc.id for doc in documents]
+    
     def search(self, query_vector: List[float], top_k: int = 5, namespace: str = 'default', 
                threshold: float = 0.7) -> List[QueryResult]:
         """Search for similar documents in LanceDB"""
@@ -315,14 +456,19 @@ class LanceDBStore(VectorStore):
         # Convert to QueryResult objects
         query_results = []
         for _, row in results.iterrows():
-            score = float(row['_distance'])
             # Convert distance to similarity score (assuming cosine distance)
-            similarity = 1.0 - score
+            # LanceDB returns L2 distance by default
+            distance = float(row['_distance'])
+            similarity = 1.0 / (1.0 + distance)  # Convert to similarity score
             
             if similarity < threshold:
                 continue
             
-            metadata = json.loads(row['metadata'])
+            try:
+                metadata = json.loads(row['metadata'])
+            except (json.JSONDecodeError, TypeError):
+                metadata = {}
+                
             doc = Document(
                 id=row['id'],
                 content=row['content'],
@@ -335,7 +481,9 @@ class LanceDBStore(VectorStore):
     def delete_document(self, doc_id: str, namespace: str = 'default') -> None:
         """Delete a document from LanceDB"""
         table = self._get_table(namespace)
-        table.delete(f"id = '{doc_id}'")
+        # Escape single quotes in doc_id
+        escaped_id = doc_id.replace("'", "''")
+        table.delete(f"id = '{escaped_id}'")
     
     def delete_namespace(self, namespace: str) -> None:
         """Delete a namespace (table) from LanceDB"""
@@ -348,6 +496,14 @@ class LanceDBStore(VectorStore):
         # Drop table if it exists
         if namespace in self.db.table_names():
             self.db.drop_table(namespace)
+    
+    def get_namespaces(self) -> List[str]:
+        """Get all namespaces (tables) in LanceDB"""
+        if self.db is None:
+            self.initialize()
+        
+        return self.db.table_names()
+
 
 class ChromaDBStore(VectorStore):
     """Vector store using ChromaDB"""
@@ -399,6 +555,28 @@ class ChromaDBStore(VectorStore):
         
         return document.id
     
+    def add_documents(self, documents: List[Document], namespace: str = 'default') -> List[str]:
+        """Add multiple documents to ChromaDB in a single batch"""
+        if not documents:
+            return []
+            
+        # Check that all documents have embeddings
+        for doc in documents:
+            if doc.embedding is None:
+                raise ValueError(f"Document {doc.id} missing embedding")
+        
+        collection = self._get_collection(namespace)
+        
+        # Add to collection in a single operation
+        collection.upsert(
+            ids=[doc.id for doc in documents],
+            embeddings=[doc.embedding for doc in documents],
+            documents=[doc.content for doc in documents],
+            metadatas=[doc.metadata for doc in documents]
+        )
+        
+        return [doc.id for doc in documents]
+    
     def search(self, query_vector: List[float], top_k: int = 5, namespace: str = 'default', 
                threshold: float = 0.7) -> List[QueryResult]:
         """Search for similar documents in ChromaDB"""
@@ -416,7 +594,7 @@ class ChromaDBStore(VectorStore):
         for i, doc_id in enumerate(results['ids'][0]):
             # ChromaDB returns distance, convert to similarity
             distance = results['distances'][0][i]
-            similarity = 1.0 - distance
+            similarity = 1.0 - distance  # ChromaDB uses cosine distance
             
             if similarity < threshold:
                 continue
@@ -445,10 +623,104 @@ class ChromaDBStore(VectorStore):
         
         # Delete collection
         self.client.delete_collection(namespace)
+    
+    def get_namespaces(self) -> List[str]:
+        """Get all namespaces (collections) in ChromaDB"""
+        if self.client is None:
+            self.initialize()
+        
+        return [collection.name for collection in self.client.list_collections()]
+
+
+class QueryCache:
+    """Cache for query results to improve response time for repeated queries"""
+    def __init__(self, config: Dict[str, Any]):
+        self.enabled = config.get('enabled', True)
+        self.ttl = config.get('ttl', 3600)  # Time-to-live in seconds
+        self.max_size = config.get('max_size', 1000)
+        self.strategy = config.get('strategy', 'lru')
+        
+        self._cache = {}
+        self._timestamps = {}
+        self._access_count = {}
+    
+    def get(self, query: str, namespace: str) -> Optional[List[QueryResult]]:
+        """Get results from cache if available and not expired"""
+        if not self.enabled:
+            return None
+            
+        key = self._make_key(query, namespace)
+        
+        if key not in self._cache:
+            return None
+            
+        # Check if expired
+        timestamp = self._timestamps.get(key, 0)
+        if time.time() - timestamp > self.ttl:
+            # Expired, remove from cache
+            self._remove_key(key)
+            return None
+            
+        # Update access count for LRU/LFU
+        self._access_count[key] = self._access_count.get(key, 0) + 1
+        return self._cache[key]
+    
+    def set(self, query: str, namespace: str, results: List[QueryResult]) -> None:
+        """Store results in cache"""
+        if not self.enabled:
+            return
+            
+        key = self._make_key(query, namespace)
+        
+        # Check if cache is full
+        if len(self._cache) >= self.max_size:
+            self._evict_entry()
+            
+        self._cache[key] = results
+        self._timestamps[key] = time.time()
+        self._access_count[key] = 1
+    
+    def _make_key(self, query: str, namespace: str) -> str:
+        """Create a cache key from query and namespace"""
+        return f"{namespace}:{hashlib.md5(query.encode()).hexdigest()}"
+    
+    def _remove_key(self, key: str) -> None:
+        """Remove an entry from all cache dictionaries"""
+        self._cache.pop(key, None)
+        self._timestamps.pop(key, None)
+        self._access_count.pop(key, None)
+    
+    def _evict_entry(self) -> None:
+        """Evict an entry based on the cache strategy"""
+        if not self._cache:
+            return
+            
+        if self.strategy == 'lru':  # Least Recently Used
+            # Find oldest key
+            oldest_key = min(self._timestamps.items(), key=lambda x: x[1])[0]
+            self._remove_key(oldest_key)
+        elif self.strategy == 'lfu':  # Least Frequently Used
+            # Find least accessed key
+            least_used_key = min(self._access_count.items(), key=lambda x: x[1])[0]
+            self._remove_key(least_used_key)
+        else:  # Random eviction
+            import random
+            key = random.choice(list(self._cache.keys()))
+            self._remove_key(key)
+    
+    def clear(self) -> None:
+        """Clear the entire cache"""
+        self._cache.clear()
+        self._timestamps.clear()
+        self._access_count.clear()
+
 
 class ClaudeIntegration:
     """Integration with Claude API"""
     def __init__(self, api_key: Optional[str] = None, model: str = "claude-3-7-sonnet"):
+        if not ANTHROPIC_AVAILABLE:
+            raise ImportError("Anthropic package not installed. Install with: pip install anthropic")
+            
         self.api_key = api_key or os.environ.get("CLAUDE_API_KEY")
         if not self.api_key:
             raise ValueError("Claude API key not provided and not found in environment variable CLAUDE_API_KEY")
@@ -456,21 +728,23 @@ class ClaudeIntegration:
         self.client = anthropic.Anthropic(api_key=self.api_key)
         self.model = model
     
-    def complete(self, prompt: str, max_tokens: int = 1000, temperature: float = 0.7) -> str:
+    def complete(self, prompt: str, max_tokens: int = 1000, temperature: float = 0.7, 
+                 system_prompt: Optional[str] = None) -> str:
         """Generate a completion using Claude"""
+        messages = [{"role": "user", "content": prompt}]
+        
         response = self.client.messages.create(
             model=self.model,
             max_tokens=max_tokens,
             temperature=temperature,
-            messages=[
-                {"role": "user", "content": prompt}
-            ]
+            system=system_prompt,
+            messages=messages
         )
         
         return response.content[0].text
     
     def complete_with_rag(self, query: str, contexts: List[Document], 
-                          max_tokens: int = 1000, temperature: float = 0.7) -> str:
+                        max_tokens: int = 1000, temperature: float = 0.7) -> str:
         """Generate a completion using Claude with RAG contexts"""
         # Format context for Claude
         context_text = "\n\n".join([
@@ -478,19 +752,28 @@ class ClaudeIntegration:
             for doc in contexts
         ])
         
+        # System prompt for RAG
+        system_prompt = """
+        You are an assistant that answers questions based on the provided context.
+        If the context contains relevant information, use it to inform your answer.
+        If the context doesn't contain the information needed to answer the question fully,
+        say so clearly, and provide the best answer you can with the available information.
+        Always maintain a helpful, informative tone, and strive for accuracy.
+        """
+        
         # Create prompt with context
         prompt = f"""
-You are an assistant that answers questions based on the provided context.
-
-Context:
-{context_text}
-
-Question: {query}
-
-Please answer the question based on the provided context. If the context doesn't contain relevant information, say so.
-"""
+        Here is the context information:
         
-        return self.complete(prompt, max_tokens, temperature)
+        {context_text}
+        
+        Question: {query}
+        
+        Please answer based on the provided context.
+        """
+        
+        return self.complete(prompt, max_tokens, temperature, system_prompt=system_prompt)
+
 
 class TextSplitter:
     """Split text into chunks for embedding"""
@@ -501,22 +784,28 @@ class TextSplitter:
         
         if not LANGCHAIN_AVAILABLE:
             raise ImportError("Langchain package not installed. Install with: pip install langchain")
-    
-    def split_text(self, text: str) -> List[str]:
-        """Split text into chunks"""
-        splitter = RecursiveCharacterTextSplitter(
+        
+        self.splitter = RecursiveCharacterTextSplitter(
             chunk_size=self.chunk_size,
             chunk_overlap=self.chunk_overlap,
             separators=["\n\n", "\n", ".", "?", "!", " ", ""],
             keep_separator=True
         )
-        
-        return splitter.split_text(text)
+    
+    def split_text(self, text: str) -> List[str]:
+        """Split text into chunks"""
+        if not text:
+            return []
+            
+        return self.splitter.split_text(text)
     
     def split_document(self, document: Document) -> List[Document]:
         """Split a document into chunks"""
         chunks = self.split_text(document.content)
         
+        if not chunks:
+            return []
+            
         chunked_docs = []
         for i, chunk in enumerate(chunks):
             # Create ID for chunk
@@ -527,7 +816,9 @@ class TextSplitter:
             metadata.update({
                 "parent_id": document.id,
                 "chunk_index": i,
-                "chunk_count": len(chunks)
+                "chunk_count": len(chunks),
+                "is_chunk": True,
+                "chunk_text_length": len(chunk)
             })
             
             # Create document for chunk
@@ -535,6 +826,7 @@ class TextSplitter:
             chunked_docs.append(doc)
         
         return chunked_docs
+
 
 class ClaudeRagClient:
     """Main client for Claude RAG system"""
@@ -574,8 +866,13 @@ class ClaudeRagClient:
         
         # Initialize vector store
         db_type = self.config.database.get("type", "lancedb")
+        self.database_type = db_type
+        
         if db_type == "lancedb":
-            self.vector_store = LanceDBStore(self.config.database)
+            self.vector_store = LanceDBStore({
+                **self.config.database,
+                "dimensions": self.config.embedding.get("dimensions", 1024)
+            })
         elif db_type == "chromadb":
             self.vector_store = ChromaDBStore(self.config.database)
         else:
@@ -585,9 +882,9 @@ class ClaudeRagClient:
         self.vector_store.initialize()
         
         # Initialize text splitter
-        chunk_size = self.config.get("chunking", {}).get("size", 1000)
-        chunk_overlap = self.config.get("chunking", {}).get("overlap", 200)
-        chunking_strategy = self.config.get("chunking", {}).get("strategy", "semantic")
+        chunk_size = self.config.chunking.get("size", 1000)
+        chunk_overlap = self.config.chunking.get("overlap", 200)
+        chunking_strategy = self.config.chunking.get("strategy", "semantic")
         self.text_splitter = TextSplitter(
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
@@ -598,9 +895,12 @@ class ClaudeRagClient:
         self.claude = ClaudeIntegration(
             model=self.config.get("claude", {}).get("model", "claude-3-7-sonnet")
         )
+        
+        # Initialize query cache
+        self.cache = QueryCache(self.config.cache)
     
     def embed_document(self, document: Union[Document, str, Path], 
-                      namespace: str = "default", chunk: bool = True) -> List[str]:
+                    namespace: str = "default", chunk: bool = True) -> List[str]:
         """Embed a document and add it to the vector store"""
         # Convert to Document if needed
         if isinstance(document, (str, Path)) and os.path.exists(document):
@@ -612,25 +912,36 @@ class ClaudeRagClient:
         
         # Split document if needed
         docs_to_embed = []
-        if chunk:
+        if chunk and len(document.content) > self.text_splitter.chunk_size / 2:
             docs_to_embed = self.text_splitter.split_document(document)
         else:
             docs_to_embed = [document]
         
-        # Embed documents
-        doc_ids = []
-        for doc in docs_to_embed:
-            # Generate embedding
-            doc.embedding = self.embedder.embed_text(doc.content)
+        # Return early if no documents to embed
+        if not docs_to_embed:
+            return []
             
-            # Add to vector store
-            doc_id = self.vector_store.add_document(doc, namespace=namespace)
-            doc_ids.append(doc_id)
+        # Embed documents in batch
+        contents = [doc.content for doc in docs_to_embed]
+        embeddings = self.embedder.embed_batch(contents)
         
-        return doc_ids
+        # Assign embeddings to documents
+        for i, doc in enumerate(docs_to_embed):
+            doc.embedding = embeddings[i]
+        
+        # Add to vector store in batch
+        return self.vector_store.add_documents(docs_to_embed, namespace=namespace)
     
-    def query(self, query: str, namespace: str = "default", top_k: Optional[int] = None) -> List[QueryResult]:
+    def query(self, query: str, namespace: str = "default", 
+              top_k: Optional[int] = None, use_cache: bool = True) -> List[QueryResult]:
         """Query the RAG system"""
+        # Use cache if enabled
+        if use_cache:
+            cached_results = self.cache.get(query, namespace)
+            if cached_results:
+                logger.debug(f"Using cached results for query: {query[:30]}...")
+                return cached_results
+        
         # Use config values if not specified
         if top_k is None:
             top_k = self.config.retrieval.get("top_k", 5)
@@ -647,6 +958,10 @@ class ClaudeRagClient:
             namespace=namespace,
             threshold=threshold
         )
+        
+        # Cache results if enabled
+        if use_cache:
+            self.cache.set(query, namespace, results)
         
         return results
     
@@ -672,12 +987,21 @@ class ClaudeRagClient:
         )
         
         return response, results
+    
+    def get_namespaces(self) -> List[str]:
+        """Get all namespaces in the vector store"""
+        return self.vector_store.get_namespaces()
+    
+    def clear_cache(self) -> None:
+        """Clear the query cache"""
+        self.cache.clear()
+
 
 # Command line interface
 if __name__ == "__main__":
     import argparse
     
-    parser = argparse.ArgumentParser(description="Claude Code RAG System")
+    parser = argparse.ArgumentParser(description="Claude Neural Framework RAG System")
     subparsers = parser.add_subparsers(dest="command", help="Command")
     
     # Embed command
@@ -693,6 +1017,7 @@ if __name__ == "__main__":
     query_parser.add_argument("--namespace", "-n", default="default", help="Namespace for query")
     query_parser.add_argument("--top-k", "-k", type=int, help="Number of results to return")
     query_parser.add_argument("--config", "-c", help="Path to config file")
+    query_parser.add_argument("--no-cache", action="store_true", help="Disable query cache")
     
     # Ask command
     ask_parser = subparsers.add_parser("ask", help="Ask a question using the RAG system")
@@ -702,6 +1027,10 @@ if __name__ == "__main__":
     ask_parser.add_argument("--max-tokens", "-m", type=int, default=1000, help="Maximum tokens for response")
     ask_parser.add_argument("--temperature", "-t", type=float, default=0.7, help="Temperature for response")
     ask_parser.add_argument("--config", "-c", help="Path to config file")
+    
+    # List namespaces command
+    list_parser = subparsers.add_parser("list", help="List all namespaces")
+    list_parser.add_argument("--config", "-c", help="Path to config file")
     
     args = parser.parse_args()
     
@@ -743,7 +1072,8 @@ if __name__ == "__main__":
         results = client.query(
             args.query,
             namespace=args.namespace,
-            top_k=args.top_k
+            top_k=args.top_k,
+            use_cache=not args.no_cache
         )
         
         if not results:
@@ -753,22 +1083,35 @@ if __name__ == "__main__":
             for i, result in enumerate(results):
                 print(f"{i+1}. {result.document.id} (score: {result.score:.4f})")
                 print(f"   Source: {result.document.metadata.get('source', 'Unknown')}")
-                print(f"   {result.document.content[:200]}...")
+                content_preview = result.document.content[:200]
+                if len(result.document.content) > 200:
+                    content_preview += "..."
+                print(f"   {content_preview}")
                 print()
     
     elif args.command == "ask":
-        response, results = client.ask(
-            args.query,
-            namespace=args.namespace,
-            top_k=args.top_k,
-            max_tokens=args.max_tokens,
-            temperature=args.temperature
-        )
-        
-        print("Answer:")
-        print(response)
-        print()
-        print(f"Based on {len(results)} documents:")
-        for i, result in enumerate(results):
-            print(f"{i+1}. {result.document.id} (score: {result.score:.4f})")
-            print(f"   Source: {result.document.metadata.get('source', 'Unknown')}")
+        try:
+            response, results = client.ask(
+                args.query,
+                namespace=args.namespace,
+                top_k=args.top_k,
+                max_tokens=args.max_tokens,
+                temperature=args.temperature
+            )
+            
+            print("Answer:")
+            print(response)
+            print()
+            print(f"Based on {len(results)} documents:")
+            for i, result in enumerate(results):
+                print(f"{i+1}. {result.document.id} (score: {result.score:.4f})")
+                print(f"   Source: {result.document.metadata.get('source', 'Unknown')}")
+                
+        except Exception as e:
+            print(f"Error generating answer: {e}")
+    
+    elif args.command == "list":
+        namespaces = client.get_namespaces()
+        print("Available namespaces:")
+        for ns in namespaces:
+            print(f"- {ns}")
