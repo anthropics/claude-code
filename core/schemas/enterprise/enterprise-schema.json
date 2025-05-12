@@ -1,0 +1,299 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Enterprise Configuration Schema",
+  "description": "Schema for enterprise configuration settings",
+  "type": "object",
+  "required": ["version", "environment", "security"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "The version of the enterprise configuration",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "environment": {
+      "type": "string",
+      "description": "The environment this configuration is for",
+      "enum": ["development", "testing", "staging", "production"]
+    },
+    "security": {
+      "type": "object",
+      "description": "Security configuration settings",
+      "required": ["sso", "rbac", "compliance"],
+      "properties": {
+        "sso": {
+          "type": "object",
+          "description": "Single Sign-On configuration",
+          "required": ["enabled"],
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Whether SSO is enabled"
+            },
+            "providers": {
+              "type": "array",
+              "description": "List of SSO providers",
+              "items": {
+                "type": "object",
+                "required": ["name", "enabled"],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Provider name"
+                  },
+                  "enabled": {
+                    "type": "boolean",
+                    "description": "Whether this provider is enabled"
+                  },
+                  "client_id": {
+                    "type": "string",
+                    "description": "Client ID for the provider"
+                  },
+                  "client_secret": {
+                    "type": "string",
+                    "description": "Client secret for the provider"
+                  },
+                  "auth_url": {
+                    "type": "string",
+                    "format": "uri",
+                    "description": "Authorization URL"
+                  },
+                  "token_url": {
+                    "type": "string",
+                    "format": "uri",
+                    "description": "Token URL"
+                  },
+                  "tenant_id": {
+                    "type": "string",
+                    "description": "Tenant ID (for Azure AD)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "rbac": {
+          "type": "object",
+          "description": "Role-Based Access Control configuration",
+          "required": ["enabled", "default_role"],
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Whether RBAC is enabled"
+            },
+            "default_role": {
+              "type": "string",
+              "description": "Default role for new users"
+            },
+            "roles": {
+              "type": "array",
+              "description": "List of roles and their permissions",
+              "items": {
+                "type": "object",
+                "required": ["name", "permissions"],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Role name"
+                  },
+                  "permissions": {
+                    "type": "array",
+                    "description": "List of permissions",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "compliance": {
+          "type": "object",
+          "description": "Compliance configuration",
+          "properties": {
+            "audit_logging": {
+              "type": "boolean",
+              "description": "Whether audit logging is enabled"
+            },
+            "data_retention_days": {
+              "type": "integer",
+              "description": "Number of days to retain data",
+              "minimum": 1
+            },
+            "encryption": {
+              "type": "object",
+              "description": "Encryption settings",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "description": "Whether encryption is enabled"
+                },
+                "algorithm": {
+                  "type": "string",
+                  "description": "Encryption algorithm"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "performance": {
+      "type": "object",
+      "description": "Performance configuration",
+      "properties": {
+        "cache": {
+          "type": "object",
+          "description": "Cache settings",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Whether caching is enabled"
+            },
+            "ttl_seconds": {
+              "type": "integer",
+              "description": "Time-to-live in seconds",
+              "minimum": 0
+            }
+          }
+        },
+        "rate_limiting": {
+          "type": "object",
+          "description": "Rate limiting settings",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Whether rate limiting is enabled"
+            },
+            "requests_per_minute": {
+              "type": "integer",
+              "description": "Maximum requests per minute",
+              "minimum": 1
+            }
+          }
+        }
+      }
+    },
+    "monitoring": {
+      "type": "object",
+      "description": "Monitoring configuration",
+      "properties": {
+        "metrics": {
+          "type": "object",
+          "description": "Metrics collection settings",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Whether metrics collection is enabled"
+            },
+            "interval_seconds": {
+              "type": "integer",
+              "description": "Collection interval in seconds",
+              "minimum": 1
+            }
+          }
+        },
+        "alerts": {
+          "type": "object",
+          "description": "Alert settings",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Whether alerts are enabled"
+            },
+            "channels": {
+              "type": "array",
+              "description": "Alert channels",
+              "items": {
+                "type": "object",
+                "required": ["type"],
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "description": "Channel type",
+                    "enum": ["email", "slack", "webhook"]
+                  },
+                  "recipients": {
+                    "type": "array",
+                    "description": "List of recipients (for email)",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "webhook_url": {
+                    "type": "string",
+                    "description": "Webhook URL (for Slack, webhooks)"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "teams": {
+      "type": "object",
+      "description": "Teams configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Whether teams feature is enabled"
+        },
+        "max_members_per_team": {
+          "type": "integer",
+          "description": "Maximum number of members per team",
+          "minimum": 1
+        }
+      }
+    },
+    "license": {
+      "type": "object",
+      "description": "License information",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "License type",
+          "enum": ["trial", "standard", "premium", "custom"]
+        },
+        "expiration": {
+          "type": "string",
+          "description": "License expiration date",
+          "format": "date"
+        },
+        "features": {
+          "type": "object",
+          "description": "Enabled features",
+          "additionalProperties": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "integrations": {
+      "type": "object",
+      "description": "Third-party integrations",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether this integration is enabled"
+          },
+          "api_key": {
+            "type": "string",
+            "description": "API key for the integration"
+          },
+          "url": {
+            "type": "string",
+            "description": "URL for the integration"
+          },
+          "settings": {
+            "type": "object",
+            "description": "Additional settings",
+            "additionalProperties": true
+          }
+        }
+      }
+    }
+  }
+}

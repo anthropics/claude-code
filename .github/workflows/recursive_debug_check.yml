@@ -1,0 +1,155 @@
+name: Recursive Debug Check
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+  workflow_dispatch:
+    inputs:
+      workflowType:
+        description: 'Type of workflow to run'
+        required: true
+        default: 'standard'
+        type: choice
+        options:
+          - standard
+          - deep
+          - performance
+
+jobs:
+  recursive-check:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [16.x]
+        
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: |
+        npm ci || npm install
+        
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+        
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install requests numpy pandas matplotlib
+
+    - name: Prepare debug environment
+      run: |
+        mkdir -p ~/.claude/config
+        cp core/config/debug_workflow_config.json ~/.claude/config/ || echo '{
+          "workflows": {
+            "standard": [
+              { "command": "debug-recursive", "options": { "template": "recursive_bug_analysis" } }
+            ]
+          },
+          "debugging_thresholds": {
+            "recursion_depth_warning": 1000,
+            "function_call_warning": 10000
+          }
+        }' > ~/.claude/config/debug_workflow_config.json
+        
+    - name: Detect recursive files
+      id: detect-recursive
+      run: |
+        echo "::set-output name=js_files::$(find . -name "*.js" -type f -not -path "./node_modules/*" -not -path "./dist/*" | xargs grep -l "function.*(.*).*{.*\1\s*(" | tr '\n' ' ')"
+        echo "::set-output name=py_files::$(find . -name "*.py" -type f -not -path "./venv/*" -not -path "./.tox/*" | xargs grep -l "def.*(.*).*:.*\1\s*(" | tr '\n' ' ')"
+        
+    - name: Run recursive checks on JavaScript files
+      if: steps.detect-recursive.outputs.js_files != ''
+      run: |
+        for file in ${{ steps.detect-recursive.outputs.js_files }}; do
+          echo "Checking $file"
+          node scripts/debug_workflow_engine.js run ${{ github.event.inputs.workflowType || 'standard' }} --file "$file" --output json > "$file.debug.json" || true
+        done
+        
+    - name: Run recursive checks on Python files
+      if: steps.detect-recursive.outputs.py_files != ''
+      run: |
+        for file in ${{ steps.detect-recursive.outputs.py_files }}; do
+          echo "Checking $file"
+          node scripts/debug_workflow_engine.js run ${{ github.event.inputs.workflowType || 'standard' }} --file "$file" --output json > "$file.debug.json" || true
+        done
+        
+    - name: Analyze results
+      id: analyze
+      run: |
+        CRITICAL=0
+        HIGH=0
+        MEDIUM=0
+        LOW=0
+        
+        for result in $(find . -name "*.debug.json"); do
+          if grep -q '"severity":"critical"' "$result"; then
+            CRITICAL=$((CRITICAL+1))
+          elif grep -q '"severity":"high"' "$result"; then
+            HIGH=$((HIGH+1))
+          elif grep -q '"severity":"medium"' "$result"; then
+            MEDIUM=$((MEDIUM+1))
+          elif grep -q '"severity":"low"' "$result"; then
+            LOW=$((LOW+1))
+          fi
+        done
+        
+        echo "::set-output name=critical::$CRITICAL"
+        echo "::set-output name=high::$HIGH"
+        echo "::set-output name=medium::$MEDIUM"
+        echo "::set-output name=low::$LOW"
+        
+        if [ $CRITICAL -gt 0 ]; then
+          echo "::set-output name=success::false"
+        elif [ $HIGH -gt 0 ]; then
+          echo "::set-output name=success::false"
+        else
+          echo "::set-output name=success::true"
+        fi
+        
+    - name: Create summary
+      run: |
+        echo "# Recursive Debugging Results" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| Severity | Count |" >> $GITHUB_STEP_SUMMARY
+        echo "| -------- | ----- |" >> $GITHUB_STEP_SUMMARY
+        echo "| Critical | ${{ steps.analyze.outputs.critical }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| High     | ${{ steps.analyze.outputs.high }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Medium   | ${{ steps.analyze.outputs.medium }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Low      | ${{ steps.analyze.outputs.low }} |" >> $GITHUB_STEP_SUMMARY
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "## Detailed Results" >> $GITHUB_STEP_SUMMARY
+        
+        for result in $(find . -name "*.debug.json"); do
+          FILE=${result%.debug.json}
+          echo "### $(basename $FILE)" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          cat $result | jq -r '.bugs[] | "- " + .type + " (" + .severity + "): " + .description' 2>/dev/null || echo "No issues found"
+          cat $result | jq -r '.bugs[] | "- " + .type + " (" + .severity + "): " + .description' 2>/dev/null >> $GITHUB_STEP_SUMMARY || echo "No issues found" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+        done
+        
+    - name: Upload results as artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: recursive-debug-results
+        path: '**/*.debug.json'
+        
+    - name: Check for critical issues
+      if: steps.analyze.outputs.success == 'false'
+      run: |
+        echo "Critical or high severity recursive issues found!"
+        exit 1

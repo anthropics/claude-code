@@ -1,0 +1,156 @@
+/* Enterprise Banner Styles */
+.enterprise-banner {
+  width: 100%;
+  background: linear-gradient(90deg, #3a0647 0%, #6e0e63 100%);
+  color: white;
+  border-radius: 4px;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.enterprise-banner.collapsed {
+  max-height: 60px;
+}
+
+.enterprise-banner.expanded {
+  max-height: 300px;
+}
+
+.enterprise-banner-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  height: 60px;
+}
+
+.enterprise-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.enterprise-badge {
+  font-weight: bold;
+  font-size: 16px;
+  letter-spacing: 1px;
+}
+
+.enterprise-version {
+  font-size: 14px;
+  opacity: 0.8;
+  background-color: rgba(255, 255, 255, 0.2);
+  padding: 2px 6px;
+  border-radius: 10px;
+}
+
+.enterprise-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.license-active {
+  color: #4caf50;
+  background-color: rgba(76, 175, 80, 0.1);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.license-days {
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+.license-inactive {
+  color: #ff9800;
+  background-color: rgba(255, 152, 0, 0.1);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.toggle-details {
+  background: transparent;
+  border: none;
+  color: white;
+  cursor: pointer;
+  font-size: 16px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+
+.toggle-details:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.enterprise-details {
+  padding: 0 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.enterprise-info {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.info-label {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.info-value {
+  font-size: 14px;
+}
+
+.enterprise-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.action-button {
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.action-button:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Dark Mode Adjustments */
+.dark-theme .enterprise-banner {
+  background: linear-gradient(90deg, #2a0647 0%, #4e0e63 100%);
+}
+
+/* Light Mode Adjustments */
+.light-theme .enterprise-banner {
+  background: linear-gradient(90deg, #8e0091 0%, #bd4ac9 100%);
+}
+EOF < /dev/null

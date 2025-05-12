@@ -1,0 +1,90 @@
+{
+  "servers": [
+    {
+      "id": "pentagonal-api",
+      "type": "pentagonal",
+      "description": "Pentagonal Architecture API Server",
+      "port": 3000,
+      "autoStart": true,
+      "env": {
+        "NODE_ENV": "development"
+      }
+    },
+    {
+      "id": "sequentialthinking",
+      "type": "mcp",
+      "description": "Sequential Thinking MCP Server",
+      "port": 3001,
+      "autoStart": true
+    },
+    {
+      "id": "rag-server",
+      "type": "rag",
+      "description": "RAG Vector Database Server",
+      "port": 3002,
+      "autoStart": true
+    },
+    {
+      "id": "enterprise-security",
+      "type": "mcp",
+      "description": "Enterprise Security MCP Server",
+      "port": 3003,
+      "autoStart": false,
+      "enterpriseOnly": true
+    },
+    {
+      "id": "enterprise-compliance",
+      "type": "mcp",
+      "description": "Enterprise Compliance MCP Server",
+      "port": 3004,
+      "autoStart": false,
+      "enterpriseOnly": true
+    },
+    {
+      "id": "audit-logging",
+      "type": "service",
+      "description": "Enterprise Audit Logging Service",
+      "port": 3005,
+      "autoStart": false,
+      "enterpriseOnly": true
+    }
+  ],
+  "autoStart": true,
+  "defaultPort": 3000,
+  "defaultTimeout": 30000,
+  "logLevel": "info",
+  "allowedOrigins": ["http://localhost:3000", "http://localhost:8080"],
+  "enterprise": {
+    "enabled": true,
+    "requireAuth": true,
+    "licenseValidation": true,
+    "servers": {
+      "enterprise-auth": {
+        "port": 4000,
+        "description": "Enterprise Authentication Server",
+        "autoStart": true
+      },
+      "enterprise-admin": {
+        "port": 4001,
+        "description": "Enterprise Administration Dashboard",
+        "autoStart": true
+      },
+      "enterprise-monitoring": {
+        "port": 4002,
+        "description": "Enterprise Monitoring and Metrics",
+        "autoStart": true
+      }
+    },
+    "monitoring": {
+      "enabled": true,
+      "metrics": {
+        "collection": true,
+        "historyDays": 90
+      },
+      "alerting": {
+        "enabled": true,
+        "channels": ["email", "webhook", "slack"]
+      }
+    }
+  }
+}
