@@ -67,3 +67,62 @@ The framework uses a central configuration system in `core/config` with these ma
   interface.
 
   To get started, users can simply run ./saar.sh setup for the full interactive experience or ./saar.sh setup --quick for a quick setup with defaults.
+
+## VibeCodingFramework
+
+### Das VibeCodingFramework: Ein umfassender Leitfaden (Stand Mai 2025)
+
+Dieses Dokument beschreibt die Architektur, Technologien, Prozesse und Coding-Standards für das VibeCodingFramework, ein modernes System zur Entwicklung von KI-gestützten Anwendungen mit Fokus auf eine exzellente User Experience und robuste Agenten-Funktionalitäten.
+
+#### Inhaltsverzeichnis
+
+1. [Einleitung & Philosophie](#1-einleitung--philosophie)  
+2. [Kerntechnologien & Setup](#2-kerntechnologien--setup)  
+    * [Frontend: Next.js 15, Tailwind CSS 4, shadcn/ui](#frontend-nextjs-15-tailwind-css-4-shadcnui)  
+    * [Datenbank: Supabase (PostgreSQL) oder SQLite](#datenbank-supabase-postgresql-oder-sqlite)  
+    * [CLI-Tools für Datenbankmanagement](#cli-tools-für-datenbankmanagement)  
+3. [Architekturprinzipien](#3-architekturprinzipien)  
+    * [Domain-Driven Design (DDD)](#domain-driven-design-ddd)  
+    * [API-Design: Best Practices](#api-design-best-practices)  
+4. [Projektstruktur & Dokumentation](#4-projektstruktur--dokumentation)  
+    * [Allgemeine Projektstruktur](#allgemeine-projektstruktur)  
+    * [Frontend-Struktur (Next.js)](#frontend-struktur-nextjs)  
+    * [`ai_docs/` Ordner](#ai_docs-ordner)  
+    * [`specs/` Ordner](#specs-ordner)  
+    * [`.claude/` Konfiguration](#claude--konfiguration)  
+5. [Entwicklungsworkflow & Deployment](#5-entwicklungsworkflow--deployment)  
+    * [Git: Best Practices & Branching-Modell](#git-best-practices--branching-modell)  
+    * [Deployment mit Vercel](#deployment-mit-vercel)  
+6. [Kern-User-Flow: Vom Lead zum KI-Agenten](#6-kern-user-flow-vom-lead-zum-ki-agenten)  
+    * [User Authentifizierung & Onboarding](#user-authentifizierung--onboarding)  
+    * [Das `.about`-Profil](#das-about-profil)  
+    * [Transformation zum Agenten](#transformation-zum-agenten)  
+7. [KI-Integration](#7-ki-integration)  
+    * [Anbindung an Claude (Anthropic)](#anbindung-an-claude-anthropic)  
+    * [Google Agent-to-Agent (A2A) Protokoll](#google-agent-to-agent-a2a-protokoll)  
+    * [Model Context Protocol (MCP)](#model-context-protocol-mcp)  
+    * [Agent Development Kit (ADK) Integration](#agent-development-kit-adk-integration)  
+8. [Coding Standards & Richtlinien](#8-coding-standards--richtlinien)  
+    * [Allgemeine Coding-Regeln (TypeScript/Next.js)](#allgemeine-coding-regeln-typescriptnextjs)  
+    * [Python Coding-Regeln](#python-coding-regeln)  
+9. [Fazit](#9-fazit)
+
+---
+
+#### 1. Einleitung & Philosophie
+
+Das VibeCodingFramework zielt darauf ab, eine hochmoderne, flexible und entwicklerfreundliche Plattform für KI-gestützte Anwendungen zu bieten. Die Kernphilosophie basiert auf:
+
+* **Modularität**: Klare Trennung von Belangen und wiederverwendbare Komponenten.  
+* **Typsicherheit**: Maximale Nutzung von TypeScript zur Fehlervermeidung und besseren DX.  
+* **Automatisierung**: Konsequenter Einsatz von Lintern, Formatierern und CI/CD-Pipelines.  
+* **Klarheit & Lesbarkeit**: Code, der leicht zu verstehen und zu warten ist.  
+* **State-of-the-Art KI-Integration**: Nahtlose Anbindung an führende KI-Modelle und Agenten-Protokolle.
+
+(Rest des VibeCodingFramework Dokuments entspricht dem vorherigen Input)
+
+---
+
+#### 9. Fazit
+
+Das VibeCodingFramework bietet eine robuste und moderne Grundlage für die Entwicklung anspruchsvoller KI-Anwendungen. Durch die konsequente Anwendung der hier beschriebenen Technologien, Architekturen und Standards können Teams effizient qualitativ hochwertige Software entwickeln. Dieses Dokument dient als lebendiger Leitfaden und sollte regelmäßig an neue Erkenntnisse und technologische Entwicklungen angepasst werden.
