@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Erweiterte Filter Demo</title>
+
+    <!-- Bootstrap CSS -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- Bootstrap Icons -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css"
+      rel="stylesheet"
+    />
+
+    <!-- Design System: Farben und Responsive -->
+    <link href="design-system/colors.css" rel="stylesheet" />
+    <link href="design-system/responsive.css" rel="stylesheet" />
+
+    <!-- Komponenten-CSS -->
+    <link href="components/BentoGrid.css" rel="stylesheet" />
+    <link href="components/AdvancedFilter.css" rel="stylesheet" />
+
+    <!-- Demo-spezifisches CSS -->
+    <style>
+      body {
+        background-color: var(--background-color);
+        color: var(--text-color);
+        transition: background-color 0.3s, color 0.3s;
+        font-size: var(--font-size-responsive-base);
+        line-height: 1.5;
+      }
+
+      .page-header {
+        padding: var(--spacing-responsive-md) 0;
+        margin-bottom: var(--spacing-responsive-md);
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      .page-header h1 {
+        color: var(--primary-color);
+        font-weight: 700;
+        font-size: var(--font-size-responsive-xxlarge);
+        margin-bottom: var(--spacing-responsive-sm);
+      }
+
+      .page-header .lead {
+        font-size: var(--font-size-responsive-large);
+        color: var(--secondary-text-color);
+      }
+
+      .dashboard-section {
+        margin-bottom: var(--spacing-responsive-lg);
+      }
+
+      .dashboard-section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: var(--spacing-responsive-md);
+        flex-wrap: wrap;
+        gap: var(--spacing-responsive-sm);
+      }
+
+      .dashboard-section-title {
+        font-size: var(--font-size-responsive-large);
+        font-weight: 600;
+        color: var(--primary-text-color);
+        margin: 0;
+      }
+
+      .card {
+        border-radius: var(--border-radius-lg);
+        background-color: var(--surface-color);
+        border: 1px solid var(--border-color);
+        box-shadow: 0 2px 8px var(--shadow-color);
+        height: 100%;
+        margin-bottom: var(--spacing-responsive-md);
+      }
+
+      .card-header {
+        background-color: var(--surface-color-elevated);
+        border-bottom: 1px solid var(--border-color);
+        padding: var(--spacing-responsive-md);
+        font-weight: 600;
+      }
+
+      .card-body {
+        padding: var(--spacing-responsive-md);
+      }
+
+      .theme-toggle {
+        position: fixed;
+        bottom: var(--spacing-responsive-md);
+        right: var(--spacing-responsive-md);
+        z-index: 100;
+        padding: 0.75rem;
+        border-radius: 50%;
+        background-color: var(--primary-color);
+        color: white;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+      }
+
+      .theme-toggle:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+      }
+
+      .feature-highlight {
+        background-color: var(--info-color-soft);
+        border-left: 4px solid var(--info-color);
+        padding: var(--spacing-responsive-md);
+        margin-bottom: var(--spacing-responsive-md);
+        border-radius: var(--border-radius-md);
+      }
+
+      .feature-highlight h4 {
+        color: var(--info-color);
+        margin-bottom: var(--spacing-responsive-sm);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="responsive-container">
+      <header class="page-header">
+        <h1>Erweiterte Filter Demonstration</h1>
+        <p class="lead">
+          Demonstration der verbesserten Such- und Filteroptionen (UI-006)
+        </p>
+      </header>
+
+      <main>
+        <!-- Filter-Features Erklärung -->
+        <section class="dashboard-section">
+          <div class="card">
+            <div class="card-header">Implementierte Filter-Features</div>
+            <div class="card-body">
+              <div class="feature-highlight">
+                <h4><i class="bi bi-funnel"></i> Live-Filterung</h4>
+                <p>
+                  Erlaubt das sofortige Filtern von Daten während der Eingabe,
+                  ohne auf einen Submit-Button klicken zu müssen.
+                </p>
+              </div>
+
+              <div class="feature-highlight">
+                <h4><i class="bi bi-tags"></i> Kategorienbasierte Filter</h4>
+                <p>
+                  Ermöglicht das Filtern nach Kategorien, mit
+                  Multi-Select-Optionen und visueller Anzeige der ausgewählten
+                  Filter.
+                </p>
+              </div>
+
+              <div class="feature-highlight">
+                <h4>
+                  <i class="bi bi-search"></i> Schnellsuche mit Hervorhebung
+                </h4>
+                <p>
+                  Suchwörter werden in den Ergebnissen automatisch
+                  hervorgehoben, um schnelle visuelle Identifikation zu
+                  ermöglichen.
+                </p>
+              </div>
+
+              <div class="feature-highlight">
+                <h4><i class="bi bi-clock-history"></i> Filter-History</h4>
+                <p>
+                  Speichert zuvor verwendete Filter für schnellen Zugriff und
+                  Wiederverwendung häufiger Filtereinstellungen.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- BentoGrid mit erweiterten Filtern -->
+        <section class="dashboard-section">
+          <div class="dashboard-section-header">
+            <h2 class="dashboard-section-title">
+              Rekursive Funktionen (mit erweiterten Filtern)
+            </h2>
+          </div>
+
+          <!-- Der erweiterte Filter wird automatisch hier eingefügt -->
+          <div id="recursion-functions-filters"></div>
+
+          <!-- Das BentoGrid wird hier angezeigt -->
+          <div id="recursion-functions-grid"></div>
+        </section>
+
+        <!-- Anweisungen -->
+        <section class="dashboard-section">
+          <div class="card">
+            <div class="card-header">Anleitung zum Ausprobieren</div>
+            <div class="card-body">
+              <ol>
+                <li>
+                  Verwenden Sie die <strong>Suchleiste</strong>, um
+                  Live-Filterung zu erleben und beobachten Sie, wie Suchbegriffe
+                  hervorgehoben werden.
+                </li>
+                <li>
+                  Filtern Sie nach <strong>Kategorien</strong> wie Modul, Status
+                  oder Rekursionstyp.
+                </li>
+                <li>
+                  Speichern Sie einen Filter als <strong>Favoriten</strong>,
+                  indem Sie auf das Stern-Symbol klicken.
+                </li>
+                <li>
+                  Sehen Sie sich die <strong>Filter-History</strong> an und
+                  wählen Sie einen zuvor verwendeten Filter.
+                </li>
+                <li>
+                  Wechseln Sie das <strong>Theme</strong> mit der Schaltfläche
+                  unten rechts, um zu sehen, wie die Filter in verschiedenen
+                  Themes aussehen.
+                </li>
+              </ol>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <button
+        id="global-theme-toggle"
+        class="theme-toggle"
+        title="Theme wechseln"
+      >
+        <i class="bi bi-sun"></i>
+      </button>
+    </div>
+
+    <!-- Bootstrap Bundle mit Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Komponenten-JS -->
+    <script src="components/AdvancedFilter.js"></script>
+    <script src="components/BentoGrid.js"></script>
+
+    <!-- Demo-JS -->
+    <script src="filter-demo.js"></script>
+  </body>
+</html>

@@ -1,0 +1,191 @@
+{
+  "version": "1.1.0",
+  "organization": {
+    "name": "Enterprise Organization",
+    "id": "org-cnf-enterprise",
+    "domain": "enterprise.example.com"
+  },
+  "authentication": {
+    "provider": "oidc",
+    "sso": true,
+    "mfa": true,
+    "sessionTimeout": 60,
+    "oidcConfig": {
+      "clientId": "${OIDC_CLIENT_ID}",
+      "clientSecret": "${OIDC_CLIENT_SECRET}",
+      "discoveryUrl": "https://auth.enterprise.example.com/.well-known/openid-configuration",
+      "scopes": ["openid", "profile", "email"]
+    }
+  },
+  "permissions": {
+    "roles": [
+      {
+        "name": "admin",
+        "description": "Administrator role",
+        "permissions": ["read", "write", "delete", "configure", "manage_users", "view_audit"]
+      },
+      {
+        "name": "manager",
+        "description": "Team manager role",
+        "permissions": ["read", "write", "configure", "view_team_audit"]
+      },
+      {
+        "name": "developer",
+        "description": "Developer role",
+        "permissions": ["read", "write"]
+      },
+      {
+        "name": "viewer",
+        "description": "Read-only role",
+        "permissions": ["read"]
+      }
+    ],
+    "defaultRole": "developer",
+    "teamBasedAccess": true,
+    "resourceRestrictions": true
+  },
+  "integrations": {
+    "activeMCP": [
+      "sequentialthinking",
+      "brave-search",
+      "desktop-commander",
+      "code-mcp",
+      "think-mcp-server",
+      "context7-mcp",
+      "memory-bank-mcp",
+      "mcp-file-context-server"
+    ],
+    "externalSystems": [
+      {
+        "name": "jira",
+        "type": "project",
+        "endpoint": "https://jira.enterprise.example.com/rest/api/2",
+        "authMethod": "oauth"
+      },
+      {
+        "name": "github-enterprise",
+        "type": "vcs",
+        "endpoint": "https://github.enterprise.example.com/api/v3",
+        "authMethod": "oauth"
+      },
+      {
+        "name": "jenkins",
+        "type": "ci",
+        "endpoint": "https://jenkins.enterprise.example.com/api",
+        "authMethod": "api_key"
+      }
+    ],
+    "webhooks": {
+      "enabled": true,
+      "retryPolicy": {
+        "maxRetries": 3,
+        "backoffMultiplier": 1.5
+      },
+      "endpoints": [
+        {
+          "name": "deployment-events",
+          "url": "https://deployments.enterprise.example.com/webhook",
+          "events": ["deployment.started", "deployment.completed", "deployment.failed"],
+          "secret": "${WEBHOOK_SECRET_DEPLOYMENT}"
+        },
+        {
+          "name": "security-events",
+          "url": "https://security.enterprise.example.com/webhook",
+          "events": ["security.scan.started", "security.scan.completed", "security.vulnerability.found"],
+          "secret": "${WEBHOOK_SECRET_SECURITY}"
+        }
+      ]
+    }
+  },
+  "compliance": {
+    "dataRetention": {
+      "logs": 365,
+      "conversations": 90,
+      "documents": 180
+    },
+    "auditLogging": true,
+    "frameworks": ["gdpr", "hipaa", "sox"],
+    "dataClassification": {
+      "enabled": true,
+      "levels": ["public", "internal", "confidential", "restricted"],
+      "defaultLevel": "internal"
+    },
+    "dataMasking": {
+      "enabled": true,
+      "patterns": [
+        {
+          "type": "creditCard",
+          "regex": "\\d{4}[- ]?\\d{4}[- ]?\\d{4}[- ]?\\d{4}",
+          "maskWith": "XXXX-XXXX-XXXX-####"
+        },
+        {
+          "type": "ssn",
+          "regex": "\\d{3}[- ]?\\d{2}[- ]?\\d{4}",
+          "maskWith": "###-##-####"
+        },
+        {
+          "type": "email",
+          "regex": "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}",
+          "maskWith": "[EMAIL]"
+        }
+      ]
+    }
+  },
+  "security": {
+    "ipRestrictions": ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"],
+    "encryptionLevel": "highest",
+    "allowedModels": ["claude-3-7-sonnet", "claude-3-5-sonnet", "claude-3-haiku"],
+    "apiRateLimits": {
+      "enabled": true,
+      "defaultLimit": 100,
+      "perMinute": true,
+      "byEndpoint": {
+        "/api/claude/chat": 50,
+        "/api/claude/embed": 200
+      }
+    },
+    "contentFiltering": {
+      "enabled": true,
+      "blockList": ["toxic", "harmful", "illegal"],
+      "customBlockList": []
+    }
+  },
+  "performance": {
+    "caching": {
+      "enabled": true,
+      "ttl": 3600,
+      "maxSize": "2GB"
+    },
+    "scaling": {
+      "autoscaling": true,
+      "minInstances": 2,
+      "maxInstances": 10,
+      "targetCpuUtilization": 70
+    }
+  },
+  "monitoring": {
+    "metrics": {
+      "enabled": true,
+      "endpoint": "https://metrics.enterprise.example.com",
+      "interval": 60
+    },
+    "alerting": {
+      "enabled": true,
+      "endpoints": [
+        {
+          "type": "email",
+          "recipients": ["admin@enterprise.example.com", "security@enterprise.example.com"]
+        },
+        {
+          "type": "webhook",
+          "url": "https://ops.enterprise.example.com/alerts"
+        }
+      ],
+      "thresholds": {
+        "errorRate": 2.0,
+        "responseTime": 500,
+        "cpuUsage": 85
+      }
+    }
+  }
+}

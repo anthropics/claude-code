@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Responsives Dashboard Demo</title>
+
+    <!-- Bootstrap CSS -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- Bootstrap Icons -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css"
+      rel="stylesheet"
+    />
+
+    <!-- Design System: Farben und Responsive -->
+    <link href="design-system/colors.css" rel="stylesheet" />
+    <link href="design-system/responsive.css" rel="stylesheet" />
+
+    <!-- Komponenten-CSS -->
+    <link href="components/DynamicMetricTile.css" rel="stylesheet" />
+    <link href="components/BentoGrid.css" rel="stylesheet" />
+    <link href="components/GradientCard.css" rel="stylesheet" />
+
+    <!-- Demo-spezifisches CSS -->
+    <style>
+      body {
+        background-color: var(--background-color);
+        color: var(--text-color);
+        transition: background-color 0.3s, color 0.3s;
+        font-size: var(--font-size-responsive-base);
+        line-height: 1.5;
+      }
+
+      .page-header {
+        padding: var(--spacing-responsive-md) 0;
+        margin-bottom: var(--spacing-responsive-md);
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      .page-header h1 {
+        color: var(--primary-color);
+        font-weight: 700;
+        font-size: var(--font-size-responsive-xxlarge);
+        margin-bottom: var(--spacing-responsive-sm);
+      }
+
+      .page-header .lead {
+        font-size: var(--font-size-responsive-large);
+        color: var(--secondary-text-color);
+      }
+
+      .dashboard-section {
+        margin-bottom: var(--spacing-responsive-lg);
+      }
+
+      .dashboard-section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: var(--spacing-responsive-md);
+        flex-wrap: wrap;
+        gap: var(--spacing-responsive-sm);
+      }
+
+      .dashboard-section-title {
+        font-size: var(--font-size-responsive-large);
+        font-weight: 600;
+        color: var(--primary-text-color);
+        margin: 0;
+      }
+
+      .dashboard-section-controls {
+        display: flex;
+        gap: var(--spacing-responsive-sm);
+        flex-wrap: wrap;
+      }
+
+      .card {
+        border-radius: var(--border-radius-lg);
+        background-color: var(--surface-color);
+        border: 1px solid var(--border-color);
+        box-shadow: 0 2px 8px var(--shadow-color);
+        height: 100%;
+      }
+
+      .card-header {
+        background-color: var(--surface-color-elevated);
+        border-bottom: 1px solid var(--border-color);
+        padding: var(--spacing-responsive-md);
+        font-weight: 600;
+      }
+
+      .card-body {
+        padding: var(--spacing-responsive-md);
+      }
+
+      .theme-toggle {
+        position: fixed;
+        bottom: var(--spacing-responsive-md);
+        right: var(--spacing-responsive-md);
+        z-index: 100;
+        padding: 0.75rem;
+        border-radius: 50%;
+        background-color: var(--primary-color);
+        color: white;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+      }
+
+      .theme-toggle:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+      }
+
+      .device-info {
+        position: fixed;
+        top: var(--spacing-responsive-md);
+        right: var(--spacing-responsive-md);
+        background-color: var(--info-color-soft);
+        color: var(--info-color);
+        padding: var(--spacing-responsive-sm);
+        border-radius: var(--border-radius-md);
+        font-size: 0.875rem;
+        font-weight: 500;
+        z-index: 900;
+      }
+
+      .demo-widget {
+        padding: var(--spacing-responsive-md);
+        background-color: var(--surface-color-elevated);
+        border-radius: var(--border-radius-md);
+        box-shadow: 0 2px 4px var(--shadow-color);
+      }
+
+      .demo-widget h3 {
+        font-size: var(--font-size-responsive-large);
+        margin-bottom: var(--spacing-responsive-sm);
+      }
+
+      .demo-widget p {
+        margin-bottom: var(--spacing-responsive-sm);
+        color: var(--secondary-text-color);
+      }
+
+      .responsive-table-container {
+        width: 100%;
+        overflow-x: auto;
+      }
+
+      .responsive-table {
+        width: 100%;
+        min-width: 600px;
+        border-collapse: collapse;
+      }
+
+      .responsive-table th,
+      .responsive-table td {
+        padding: var(--spacing-responsive-sm);
+        border-bottom: 1px solid var(--border-color);
+        text-align: left;
+      }
+
+      .responsive-table th {
+        background-color: var(--surface-color-elevated);
+        font-weight: 600;
+      }
+
+      /* Responsive Panel Demo */
+      .panel-demo .panel-container {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: var(--spacing-responsive-md);
+      }
+
+      @media (min-width: 992px) {
+        .panel-demo .panel-container {
+          grid-template-columns: 300px 1fr;
+        }
+      }
+
+      .panel-demo .sidebar {
+        background-color: var(--surface-color-elevated);
+        border-radius: var(--border-radius-md);
+        padding: var(--spacing-responsive-md);
+      }
+
+      .panel-demo .main-content {
+        background-color: var(--surface-color);
+        border-radius: var(--border-radius-md);
+        padding: var(--spacing-responsive-md);
+      }
+
+      .panel-demo .sidebar-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        padding: var(--spacing-responsive-sm);
+        background-color: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: var(--border-radius-sm);
+        margin-bottom: var(--spacing-responsive-md);
+      }
+
+      @media (min-width: 992px) {
+        .panel-demo .sidebar-toggle {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="device-info"></div>
+
+    <div class="responsive-container">
+      <header class="page-header">
+        <h1>Responsives Dashboard Demo</h1>
+        <p class="lead">
+          Demonstration der verbesserten responsiven Layouts und Komponenten
+        </p>
+      </header>
+
+      <main>
+        <!-- Metrik-Karten -->
+        <section class="dashboard-section">
+          <div class="dashboard-section-header">
+            <h2 class="dashboard-section-title">Dashboard Metriken</h2>
+            <div class="dashboard-section-controls">
+              <button class="btn btn-sm btn-outline-primary">
+                Aktualisieren
+              </button>
+              <div class="dropdown">
+                <button
+                  class="btn btn-sm btn-outline-primary dropdown-toggle"
+                  type="button"
+                  data-bs-toggle="dropdown"
+                >
+                  Zeitraum
+                </button>
+                <ul class="dropdown-menu">
+                  <li><a class="dropdown-item" href="#">Heute</a></li>
+                  <li><a class="dropdown-item" href="#">Diese Woche</a></li>
+                  <li><a class="dropdown-item" href="#">Dieser Monat</a></li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          <div class="dashboard-metrics" id="metrics-container"></div>
+        </section>
+
+        <!-- BentoGrid Demo -->
+        <section class="dashboard-section">
+          <div class="dashboard-section-header">
+            <h2 class="dashboard-section-title">Aktive Rekursionen</h2>
+            <div class="dashboard-section-controls">
+              <div class="input-group input-group-sm">
+                <input
+                  type="text"
+                  class="form-control"
+                  placeholder="Suchen..."
+                />
+                <button class="btn btn-outline-primary" type="button">
+                  <i class="bi bi-search"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div id="bentogrid-container"></div>
+        </section>
+
+        <!-- Issues und Suggestions -->
+        <section class="dashboard-section">
+          <div class="dashboard-cards">
+            <div id="issues-container"></div>
+            <div id="suggestions-container"></div>
+          </div>
+        </section>
+
+        <!-- Responsive Widgets Demonstration -->
+        <section class="dashboard-section">
+          <div class="dashboard-section-header">
+            <h2 class="dashboard-section-title">Responsive Widgets</h2>
+          </div>
+          <div class="responsive-grid columns-md-2 columns-lg-3">
+            <div class="demo-widget">
+              <h3>Standard Widget</h3>
+              <p>
+                Das ist ein Standard-Widget, das auf allen Bildschirmgrößen
+                responsiv ist.
+              </p>
+              <button class="btn btn-sm btn-primary">Aktion</button>
+            </div>
+            <div class="demo-widget">
+              <h3>Daten Widget</h3>
+              <p>Dieses Widget zeigt die Möglichkeiten für Tabellen.</p>
+              <div class="responsive-table-container">
+                <table class="responsive-table">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Name</th>
+                      <th>Status</th>
+                      <th>Letzter Aufruf</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>F001</td>
+                      <td>processData</td>
+                      <td>Aktiv</td>
+                      <td>10.05.2025</td>
+                    </tr>
+                    <tr>
+                      <td>F002</td>
+                      <td>calculateTotal</td>
+                      <td>Inaktiv</td>
+                      <td>09.05.2025</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div class="demo-widget span-md-2 span-lg-1">
+              <h3>Breites Widget</h3>
+              <p>
+                Dieses Widget nimmt auf mittleren Bildschirmen die volle Breite
+                ein, auf großen Bildschirmen nur eine Spalte.
+              </p>
+              <div class="d-flex gap-2">
+                <button class="btn btn-sm btn-primary">Primär</button>
+                <button class="btn btn-sm btn-outline-secondary">
+                  Sekundär
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Responsive Panel Demo -->
+        <section class="dashboard-section panel-demo">
+          <div class="dashboard-section-header">
+            <h2 class="dashboard-section-title">Responsive Panel Layout</h2>
+          </div>
+          <div class="panel-container" id="panel-demo">
+            <div class="sidebar" id="sidebar">
+              <button class="sidebar-toggle" id="sidebar-toggle">
+                <i class="bi bi-layout-sidebar"></i> Seitenleiste
+                ein-/ausblenden
+              </button>
+              <h3>Navigation</h3>
+              <div class="list-group mb-3">
+                <a
+                  href="#"
+                  class="list-group-item list-group-item-action active"
+                  >Dashboard</a
+                >
+                <a href="#" class="list-group-item list-group-item-action"
+                  >Rekursionen</a
+                >
+                <a href="#" class="list-group-item list-group-item-action"
+                  >Funktionen</a
+                >
+                <a href="#" class="list-group-item list-group-item-action"
+                  >Einstellungen</a
+                >
+              </div>
+              <h3>Filter</h3>
+              <div class="mb-3">
+                <label class="form-label">Status</label>
+                <select class="form-select form-select-sm">
+                  <option>Alle</option>
+                  <option>Aktiv</option>
+                  <option>Inaktiv</option>
+                  <option>Fehler</option>
+                </select>
+              </div>
+            </div>
+            <div class="main-content">
+              <h2>Hauptinhalt</h2>
+              <p>
+                Dieser Bereich zeigt auf größeren Bildschirmen ein
+                Side-by-Side-Layout. Auf kleineren Bildschirmen wird das Layout
+                gestapelt und die Seitenleiste kann ein- und ausgeblendet
+                werden.
+              </p>
+              <p>
+                Dieses Muster ist nützlich für komplexe Dashboards, bei denen
+                die Navigation und die Filter vom Hauptinhalt getrennt werden
+                sollen.
+              </p>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <button
+        id="global-theme-toggle"
+        class="theme-toggle"
+        title="Theme wechseln"
+      >
+        <i class="bi bi-sun"></i>
+      </button>
+    </div>
+
+    <!-- Bootstrap Bundle mit Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Komponenten-JS -->
+    <script src="components/DynamicMetricTile.js"></script>
+    <script src="components/BentoGrid.js"></script>
+    <script src="components/GradientCard.js"></script>
+
+    <!-- Demo-JS -->
+    <script src="responsive-demo.js"></script>
+  </body>
+</html>
