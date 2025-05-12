@@ -78,6 +78,16 @@ const DEFAULT_CONFIGS = {
       enabled: true,
       showErrors: true,
       showWarnings: true
+    },
+    logging: {
+      level: 30,
+      format: 'json',
+      colorize: true,
+      timestamp: true,
+      showSource: true,
+      showHostname: false,
+      consoleOutput: true,
+      fileOutput: false
     }
   },
   [CONFIG_TYPES.RAG]: {
@@ -97,7 +107,47 @@ const DEFAULT_CONFIGS = {
   },
   [CONFIG_TYPES.MCP]: {
     version: '1.0.0',
-    servers: {}
+    servers: {
+      sequentialthinking: {
+        enabled: true,
+        autostart: true,
+        command: 'npx',
+        args: ['-y', '@modelcontextprotocol/server-sequential-thinking'],
+        description: 'Recursive thought generation for complex problems'
+      },
+      'brave-search': {
+        enabled: true,
+        autostart: false,
+        command: 'npx',
+        args: ['-y', '@smithery/cli@latest', 'run', '@smithery-ai/brave-search'],
+        api_key_env: 'MCP_API_KEY',
+        description: 'External knowledge acquisition'
+      },
+      'desktop-commander': {
+        enabled: true,
+        autostart: false,
+        command: 'npx',
+        args: ['-y', '@smithery/cli@latest', 'run', '@wonderwhy-er/desktop-commander', '--key', '${MCP_API_KEY}'],
+        api_key_env: 'MCP_API_KEY',
+        description: 'Filesystem integration and shell execution'
+      },
+      'context7-mcp': {
+        enabled: true,
+        autostart: false,
+        command: 'npx',
+        args: ['-y', '@smithery/cli@latest', 'run', '@upstash/context7-mcp', '--key', '${MCP_API_KEY}'],
+        api_key_env: 'MCP_API_KEY',
+        description: 'Context awareness and documentation access'
+      },
+      'think-mcp-server': {
+        enabled: true,
+        autostart: false,
+        command: 'npx',
+        args: ['-y', '@smithery/cli@latest', 'run', '@PhillipRt/think-mcp-server', '--key', '${MCP_API_KEY}'],
+        api_key_env: 'MCP_API_KEY',
+        description: 'Meta-cognitive reflection'
+      }
+    }
   },
   [CONFIG_TYPES.SECURITY]: {
     version: '1.0.0',
@@ -138,10 +188,28 @@ const DEFAULT_CONFIGS = {
           border: '#e0e0e0',
           shadow: 'rgba(0, 0, 0, 0.1)'
         }
+      },
+      dark: {
+        name: 'Dark Theme',
+        colors: {
+          primary: '#bb86fc',
+          secondary: '#03dac6',
+          accent: '#cf6679',
+          success: '#4caf50',
+          warning: '#ff9800',
+          danger: '#cf6679',
+          info: '#2196f3',
+          background: '#121212',
+          surface: '#1e1e1e',
+          text: '#ffffff',
+          textSecondary: '#b0b0b0',
+          border: '#333333',
+          shadow: 'rgba(0, 0, 0, 0.5)'
+        }
       }
     },
     userPreferences: {
-      activeTheme: 'light',
+      activeTheme: 'dark',
       custom: null
     }
   },
@@ -150,8 +218,8 @@ const DEFAULT_CONFIGS = {
     user_id: `user-${Date.now()}`,
     name: 'Default User',
     preferences: {
-      theme: 'light',
-      language: 'en'
+      theme: 'dark',
+      language: 'de'
     }
   },
   [CONFIG_TYPES.I18N]: {
@@ -160,7 +228,7 @@ const DEFAULT_CONFIGS = {
     fallbackLocale: 'en',
     loadPath: 'core/i18n/locales/{{lng}}.json',
     debug: false,
-    supportedLocales: ['en', 'fr'],
+    supportedLocales: ['en', 'fr', 'de'],
     dateFormat: {
       short: {
         year: 'numeric',
@@ -192,7 +260,7 @@ const DEFAULT_CONFIGS = {
       },
       currency: {
         style: 'currency',
-        currency: 'USD',
+        currency: 'EUR',
         minimumFractionDigits: 2,
         maximumFractionDigits: 2
       }
@@ -641,7 +709,7 @@ class ConfigManager {
   
   /**
    * Gets a configuration value
-   * 
+   *
    * @param {string} configType - Configuration type
    * @param {string} keyPath - Key path (e.g. 'database.type' or 'servers.brave-search.enabled')
    * @param {any} defaultValue - Default value if the key doesn't exist
@@ -649,26 +717,67 @@ class ConfigManager {
    * @throws {ConfigError} If the configuration type is unknown
    */
   getConfigValue(configType, keyPath, defaultValue = undefined) {
-    const config = this.getConfig(configType);
-    
-    // Split path into parts
-    const keyParts = keyPath.split('.');
-    
-    // Navigate through the object
-    let target = config;
-    for (const part of keyParts) {
-      if (target === undefined || target === null || typeof target !== 'object') {
-        return defaultValue;
+    try {
+      const config = this.getConfig(configType);
+
+      // Handle special cases for COLOR_SCHEMA and MCP access
+      if (configType === CONFIG_TYPES.GLOBAL) {
+        // Handle requests for COLOR_SCHEMA through GLOBAL by redirecting to the appropriate config
+        if (keyPath === 'COLOR_SCHEMA' || keyPath.startsWith('COLOR_SCHEMA.')) {
+          try {
+            const colorSchemaConfig = this.getConfig(CONFIG_TYPES.COLOR_SCHEMA);
+            if (keyPath === 'COLOR_SCHEMA') {
+              return {
+                activeTheme: colorSchemaConfig.userPreferences?.activeTheme || 'dark'
+              };
+            }
+
+            const subPath = keyPath.substring('COLOR_SCHEMA.'.length);
+            return this.getConfigValue(CONFIG_TYPES.COLOR_SCHEMA, subPath, defaultValue);
+          } catch (err) {
+            console.warn(`Failed to get COLOR_SCHEMA config: ${err.message}`);
+            return defaultValue;
+          }
+        }
+
+        if (keyPath === 'MCP' || keyPath.startsWith('MCP.')) {
+          try {
+            const mcpConfig = this.getConfig(CONFIG_TYPES.MCP);
+            if (keyPath === 'MCP') {
+              return mcpConfig;
+            }
+
+            const subPath = keyPath.substring('MCP.'.length);
+            return this.getConfigValue(CONFIG_TYPES.MCP, subPath, defaultValue);
+          } catch (err) {
+            console.warn(`Failed to get MCP config: ${err.message}`);
+            return defaultValue;
+          }
+        }
       }
-      
-      target = target[part];
-      
-      if (target === undefined) {
-        return defaultValue;
+
+      // Split path into parts
+      const keyParts = keyPath.split('.');
+
+      // Navigate through the object
+      let target = config;
+      for (const part of keyParts) {
+        if (target === undefined || target === null || typeof target !== 'object') {
+          return defaultValue;
+        }
+
+        target = target[part];
+
+        if (target === undefined) {
+          return defaultValue;
+        }
       }
+
+      return target;
+    } catch (err) {
+      console.warn(`Error in getConfigValue for ${configType}.${keyPath}: ${err.message}`);
+      return defaultValue;
     }
-    
-    return target;
   }
   
   /**

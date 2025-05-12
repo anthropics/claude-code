@@ -121,11 +121,16 @@ function loadServerConfig() {
     const configData = fs.readFileSync(SERVER_CONFIG_PATH, 'utf8');
     const config = JSON.parse(configData);
     
-    // Validate server configuration
-    if (!config.servers) {
+    // Validate server configuration - check for mcpServers or servers
+    if (!config.servers && !config.mcpServers) {
       throw new ValidationError('Invalid server configuration: missing servers object', {
         code: 'ERR_INVALID_SERVER_CONFIG'
       });
+    }
+
+    // If the config uses mcpServers instead of servers, convert the format
+    if (config.mcpServers && !config.servers) {
+      config.servers = config.mcpServers;
     }
     
     return config;
@@ -230,14 +235,11 @@ async function checkInstalledPackages(config) {
 async function updateMcpConfig(serverConfig) {
   logger.info('Updating MCP configuration');
   console.log(`${COLORS.blue}${COLORS.bold}Updating MCP configuration...${COLORS.reset}`);
-  
+
   try {
-    // Get current MCP configuration
-    const mcpConfig = configManager.getConfig(CONFIG_TYPES.MCP);
-    
     // Create server configurations
     const servers = {};
-    
+
     Object.entries(serverConfig.servers).forEach(([serverId, serverConfig]) => {
       servers[serverId] = {
         enabled: serverConfig.enabled !== false,
@@ -248,13 +250,25 @@ async function updateMcpConfig(serverConfig) {
         api_key_env: serverConfig.api_key_env
       };
     });
-    
-    // Update MCP configuration
-    mcpConfig.servers = servers;
-    
-    // Save configuration
-    configManager.saveConfig(CONFIG_TYPES.MCP, mcpConfig);
-    
+
+    // Create MCP configuration
+    const mcpConfig = {
+      version: "1.0.0",
+      servers: servers
+    };
+
+    // Get the path to the MCP config file
+    const MCP_CONFIG_PATH = path.resolve(__dirname, '../config/mcp_config.json');
+
+    // Make sure the directory exists
+    const mcpConfigDir = path.dirname(MCP_CONFIG_PATH);
+    if (!fs.existsSync(mcpConfigDir)) {
+      fs.mkdirSync(mcpConfigDir, { recursive: true });
+    }
+
+    // Save the configuration directly to the file
+    fs.writeFileSync(MCP_CONFIG_PATH, JSON.stringify(mcpConfig, null, 2), 'utf8');
+
     logger.info('MCP configuration updated', { serverCount: Object.keys(servers).length });
     console.log(`${COLORS.green}✓${COLORS.reset} MCP configuration updated with ${Object.keys(servers).length} servers.`);
   } catch (err) {

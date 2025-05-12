@@ -35,7 +35,20 @@ const CLAUDE_DESKTOP_CONFIG_PATH = path.join(os.homedir(), '.claude', 'claude_de
  */
 function getConfig() {
   try {
-    return configManager.getConfig(CONFIG_TYPES.MCP);
+    // Try using the config manager first
+    try {
+      return configManager.getConfig(CONFIG_TYPES.MCP);
+    } catch (configErr) {
+      // Fall back to direct file loading
+      const MCP_CONFIG_PATH = path.resolve(__dirname, '../config/mcp_config.json');
+
+      if (!fs.existsSync(MCP_CONFIG_PATH)) {
+        throw new Error(`MCP configuration file not found at ${MCP_CONFIG_PATH}`);
+      }
+
+      const configData = fs.readFileSync(MCP_CONFIG_PATH, 'utf8');
+      return JSON.parse(configData);
+    }
   } catch (err) {
     logger.error('Failed to load MCP configuration', { error: err });
     process.exit(1);

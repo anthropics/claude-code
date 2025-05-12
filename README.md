@@ -1,10 +1,18 @@
 # Claude Neural Framework
 
-> Eine fortschrittliche Integrationsplattform für Claude's KI-Fähigkeiten mit MCP und RAG
+> Eine umfassende Entwicklungsumgebung für KI-gestützte Anwendungen und Agent-Systeme
 
 ## Übersicht
 
-Das Claude Neural Framework bietet eine umfassende Lösung für die Integration von Claude's kognitiven Fähigkeiten in Entwicklungs-Workflows. Es kombiniert agentenbasierte Architektur, MCP-Integration (Model Context Protocol) und fortschrittliches Prompt-Engineering in einer konsistenten Arbeitsumgebung.
+Das Claude Neural Framework ist eine leistungsstarke Plattform für die Integration von Claude's neurokognitiven Fähigkeiten in Entwicklungs-Workflows. Es bietet eine standardisierte Struktur für KI-Dokumentation, Prompt-Engineering, Agent-Kommunikation und Entwicklungsumgebungen.
+
+## Funktionen
+
+- **Kognitives Framework**: Fortschrittliche KI-Integration mit Entwickler-Workflow
+- **MCP-Server-Integration**: Unterstützung für Model Context Protocol Server
+- **Agentenarchitektur**: Strukturierte Agent-zu-Agent-Kommunikation
+- **Cognitive Prompting**: Umfangreiche Prompt-Bibliothek für verschiedene Anwendungsfälle
+- **Entwicklungsumgebung**: Optimierte Tools für KI-gestützte Entwicklung
 
 ## Installation
 
@@ -14,49 +22,35 @@ git clone https://github.com/username/claude-code.git
 cd claude-code
 
 # Installation ausführen
-./simple_install.sh
-
-# API-Schlüssel konfigurieren
-export CLAUDE_API_KEY="YOUR_CLAUDE_API_KEY"
+./installation/install.sh
 ```
 
-## Hauptfunktionen
+## Dokumentation
 
-- **MCP-Integration**: Nahtlose Verbindung mit Model Context Protocol-Servern
-- **RAG-Framework**: Retrieval Augmented Generation für kontextbasierte KI-Antworten
-- **Agentenarchitektur**: Strukturiertes Agent-zu-Agent-Kommunikationsprotokoll
-- **Codeanalyse**: Tiefgreifendes Verständnis von Codestrukturen und -mustern
-- **Enterprise-Funktionen**: Erweiterte Sicherheit, Compliance, SSO und Unternehmensintegrationen für Organisationen (siehe [Enterprise-Dokumentation](/docs/enterprise/README.md))
+Die vollständige Dokumentation finden Sie im `docs`-Verzeichnis:
 
-## Verzeichnisstruktur
+- [Einführung](docs/guides/introduction.md)
+- [Architektur](docs/guides/architecture.md)
+- [MCP-Integration](docs/guides/mcp-integration.md)
+- [Cognitive Prompting](docs/guides/cognitive-prompting.md)
+- [Agent-Kommunikation](docs/guides/agent-communication.md)
 
-```
-claude-code/
-├── core/                # Kernfunktionalität
-│   ├── config/          # Konfigurationsdateien
-│   ├── mcp/             # MCP-Integration
-│   └── rag/             # RAG-Framework
-├── agents/              # Agentenbasierte Architektur
-│   └── commands/        # Agentenbefehle
-├── cognitive/           # Kognitive Komponenten
-│   ├── prompts/         # Prompt-Bibliothek
-│   └── templates/       # Wiederverwendbare Templates
-├── docs/                # Dokumentation
-│   ├── architecture/    # Architekturdetails
-│   ├── enterprise/      # Enterprise-Funktionen
-│   ├── guides/          # Anleitungen
-│   └── examples/        # Beispiele
-└── saar.sh              # Setup, Activate, Apply, Run Script
+## Erste Schritte
+
+Nach der Installation können Sie sofort mit der Nutzung des Frameworks beginnen:
+
+```bash
+# MCP-Server starten
+npx claude mcp start
+
+# Claude Code CLI starten
+npx claude
 ```
 
-## Enterprise-Funktionen
+## Mitwirkung
 
-Das Claude Neural Framework bietet umfassende Funktionen für Unternehmensumgebungen:
+Beiträge zum Projekt sind willkommen! Weitere Informationen finden Sie in [CONTRIBUTING.md](CONTRIBUTING.md).
 
-- **Verbesserte Sicherheit**: SAML/OAuth-Unterstützung, Rollenbasierte Zugriffskontrolle, IP-Beschränkungen
-- **Compliance**: Unterstützung für GDPR, HIPAA, SOC2 und andere Frameworks
-- **Unternehmensintegrationen**: Active Directory, JIRA, CRM-Systeme, CI/CD-Pipelines
-- **Benutzerverwaltung**: Zentrale Benutzerverwaltung und Provisioning
-- **Enterprise-Workflows**: Angepasste Git-Workflows mit Genehmigungsprozessen
+## Lizenz
 
-Weitere Informationen finden Sie in der [Enterprise-Dokumentation](/docs/enterprise/README.md) und im [Enterprise Quick Start Guide](/docs/enterprise/quick_start.md).
+Dieses Projekt steht unter der MIT-Lizenz - siehe [LICENSE.md](LICENSE.md) für Details.

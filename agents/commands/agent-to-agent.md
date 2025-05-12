@@ -15,33 +15,6 @@ Facilitate communication between agents by generating, sending, and interpreting
 ## Example
 /agent-to-agent --to=code-analyzer --task=analyze-complexity --params='{"code": "function factorial(n) { return n <= 1 ? 1 : n * factorial(n-1); }", "language": "javascript"}'
 
-## Git Integration Examples
-
-### Get Repository Status
-```
-/agent-to-agent --to=git-agent --task=git-operation --params='{"operation": "status"}'
-```
-
-### Commit Changes
-```
-/agent-to-agent --to=git-agent --task=git-operation --params='{"operation": "commit", "message": "Add new feature", "all": true}'
-```
-
-### Pull from Remote
-```
-/agent-to-agent --to=git-agent --task=git-operation --params='{"operation": "pull", "branch": "main"}'
-```
-
-### View Git Log
-```
-/agent-to-agent --to=git-agent --task=git-operation --params='{"operation": "log", "limit": 5}'
-```
-
-### Checkout Branch
-```
-/agent-to-agent --to=git-agent --task=git-operation --params='{"operation": "checkout", "branch": "feature/new-feature"}'
-```
-
 The command will:
 1. Create a properly formatted agent message
 2. Route the message to the specified agent
