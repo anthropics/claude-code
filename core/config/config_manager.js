@@ -1,29 +1,30 @@
 /**
  * Configuration Manager for the Claude Neural Framework
- * 
+ *
  * This file provides a centralized configuration interface for
  * all components of the Claude Neural Framework.
- * 
+ *
  * @module core/config/config_manager
  */
 
-const fs = require('fs');
-const path = require('path');
-const os = require('os');
+const fs = require("fs");
+const path = require("path");
+const os = require("os");
 
 /**
  * Supported configuration types
  * @type {Object}
  */
-const CONFIG_TYPES = {
-  RAG: 'rag',
-  MCP: 'mcp',
-  SECURITY: 'security',
-  COLOR_SCHEMA: 'color_schema',
-  GLOBAL: 'global',
-  USER: 'user',
-  I18N: 'i18n'
-};
+export const CONFIG_TYPES = Object.freeze({
+  RAG: "rag",
+  MCP: "mcp",
+  SECURITY: "security",
+  COLOR_SCHEMA: "color_schema",
+  GLOBAL: "global",
+  USER: "user",
+  I18N: "i18n",
+  LOGGING: "logging",
+});
 
 /**
  * Error types for configuration operations
@@ -31,14 +32,14 @@ const CONFIG_TYPES = {
 class ConfigError extends Error {
   constructor(message) {
     super(message);
-    this.name = 'ConfigError';
+    this.name = "ConfigError";
   }
 }
 
 class ConfigValidationError extends ConfigError {
   constructor(message, validationErrors = []) {
     super(message);
-    this.name = 'ConfigValidationError';
+    this.name = "ConfigValidationError";
     this.validationErrors = validationErrors;
   }
 }
@@ -46,24 +47,27 @@ class ConfigValidationError extends ConfigError {
 class ConfigAccessError extends ConfigError {
   constructor(message) {
     super(message);
-    this.name = 'ConfigAccessError';
+    this.name = "ConfigAccessError";
   }
 }
 
 /**
  * Default path for global Claude configurations
  */
-const DEFAULT_GLOBAL_CONFIG_PATH = path.join(os.homedir(), '.claude');
+const DEFAULT_GLOBAL_CONFIG_PATH = path.join(os.homedir(), ".claude");
 
 /**
  * Local configuration paths
  */
 const LOCAL_CONFIG_PATHS = {
-  [CONFIG_TYPES.RAG]: path.resolve(__dirname, 'rag_config.json'),
-  [CONFIG_TYPES.MCP]: path.resolve(__dirname, 'mcp_config.json'),
-  [CONFIG_TYPES.SECURITY]: path.resolve(__dirname, 'security_constraints.json'),
-  [CONFIG_TYPES.COLOR_SCHEMA]: path.resolve(__dirname, 'color_schema_config.json'),
-  [CONFIG_TYPES.I18N]: path.resolve(__dirname, 'i18n_config.json')
+  [CONFIG_TYPES.RAG]: path.resolve(__dirname, "rag_config.json"),
+  [CONFIG_TYPES.MCP]: path.resolve(__dirname, "mcp_config.json"),
+  [CONFIG_TYPES.SECURITY]: path.resolve(__dirname, "security_constraints.json"),
+  [CONFIG_TYPES.COLOR_SCHEMA]: path.resolve(
+    __dirname,
+    "color_schema_config.json"
+  ),
+  [CONFIG_TYPES.I18N]: path.resolve(__dirname, "i18n_config.json"),
 };
 
 /**
@@ -71,138 +75,136 @@ const LOCAL_CONFIG_PATHS = {
  */
 const DEFAULT_CONFIGS = {
   [CONFIG_TYPES.GLOBAL]: {
-    version: '1.0.0',
-    timezone: 'UTC',
-    language: 'en',
+    version: "1.0.0",
+    timezone: "UTC",
+    language: "en",
     notifications: {
       enabled: true,
       showErrors: true,
-      showWarnings: true
-    }
+      showWarnings: true,
+    },
   },
   [CONFIG_TYPES.RAG]: {
-    version: '1.0.0',
+    version: "1.0.0",
     database: {
-      type: 'chroma',
-      path: path.join(DEFAULT_GLOBAL_CONFIG_PATH, 'vector_store')
+      type: "chroma",
+      path: path.join(DEFAULT_GLOBAL_CONFIG_PATH, "vector_store"),
     },
     embedding: {
-      model: 'voyage',
-      api_key_env: 'VOYAGE_API_KEY'
+      model: "voyage",
+      api_key_env: "VOYAGE_API_KEY",
     },
     claude: {
-      api_key_env: 'CLAUDE_API_KEY',
-      model: 'claude-3-sonnet-20240229'
-    }
+      api_key_env: "CLAUDE_API_KEY",
+      model: "claude-3-sonnet-20240229",
+    },
   },
   [CONFIG_TYPES.MCP]: {
-    version: '1.0.0',
-    servers: {}
+    version: "1.0.0",
+    servers: {},
   },
   [CONFIG_TYPES.SECURITY]: {
-    version: '1.0.0',
+    version: "1.0.0",
     mcp: {
       allowed_servers: [
-        'sequentialthinking',
-        'context7',
-        'desktop-commander',
-        'brave-search',
-        'think-mcp'
+        "sequentialthinking",
+        "context7",
+        "desktop-commander",
+        "brave-search",
+        "think-mcp",
       ],
       allow_server_autostart: true,
-      allow_remote_servers: false
+      allow_remote_servers: false,
     },
     filesystem: {
-      allowed_directories: [
-        path.join(os.homedir(), 'claude_projects')
-      ]
-    }
+      allowed_directories: [path.join(os.homedir(), "claude_projects")],
+    },
   },
   [CONFIG_TYPES.COLOR_SCHEMA]: {
-    version: '1.0.0',
+    version: "1.0.0",
     themes: {
       light: {
-        name: 'Light Theme',
+        name: "Light Theme",
         colors: {
-          primary: '#3f51b5',
-          secondary: '#7986cb',
-          accent: '#ff4081',
-          success: '#4caf50',
-          warning: '#ff9800',
-          danger: '#f44336',
-          info: '#2196f3',
-          background: '#f8f9fa',
-          surface: '#ffffff',
-          text: '#212121',
-          textSecondary: '#757575',
-          border: '#e0e0e0',
-          shadow: 'rgba(0, 0, 0, 0.1)'
-        }
-      }
+          primary: "#3f51b5",
+          secondary: "#7986cb",
+          accent: "#ff4081",
+          success: "#4caf50",
+          warning: "#ff9800",
+          danger: "#f44336",
+          info: "#2196f3",
+          background: "#f8f9fa",
+          surface: "#ffffff",
+          text: "#212121",
+          textSecondary: "#757575",
+          border: "#e0e0e0",
+          shadow: "rgba(0, 0, 0, 0.1)",
+        },
+      },
     },
     userPreferences: {
-      activeTheme: 'light',
-      custom: null
-    }
+      activeTheme: "light",
+      custom: null,
+    },
   },
   [CONFIG_TYPES.USER]: {
-    version: '1.0.0',
+    version: "1.0.0",
     user_id: `user-${Date.now()}`,
-    name: 'Default User',
+    name: "Default User",
     preferences: {
-      theme: 'light',
-      language: 'en'
-    }
+      theme: "light",
+      language: "en",
+    },
   },
   [CONFIG_TYPES.I18N]: {
-    version: '1.0.0',
-    locale: 'en',
-    fallbackLocale: 'en',
-    loadPath: 'core/i18n/locales/{{lng}}.json',
+    version: "1.0.0",
+    locale: "en",
+    fallbackLocale: "en",
+    loadPath: "core/i18n/locales/{{lng}}.json",
     debug: false,
-    supportedLocales: ['en', 'fr'],
+    supportedLocales: ["en", "fr"],
     dateFormat: {
       short: {
-        year: 'numeric',
-        month: 'numeric',
-        day: 'numeric'
+        year: "numeric",
+        month: "numeric",
+        day: "numeric",
       },
       medium: {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
+        year: "numeric",
+        month: "short",
+        day: "numeric",
       },
       long: {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        weekday: 'long'
-      }
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        weekday: "long",
+      },
     },
     numberFormat: {
       decimal: {
-        style: 'decimal',
+        style: "decimal",
         minimumFractionDigits: 2,
-        maximumFractionDigits: 2
+        maximumFractionDigits: 2,
       },
       percent: {
-        style: 'percent',
+        style: "percent",
         minimumFractionDigits: 0,
-        maximumFractionDigits: 0
+        maximumFractionDigits: 0,
       },
       currency: {
-        style: 'currency',
-        currency: 'USD',
+        style: "currency",
+        currency: "USD",
         minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-      }
-    }
-  }
+        maximumFractionDigits: 2,
+      },
+    },
+  },
 };
 
 /**
  * Helper function to load a JSON configuration file
- * 
+ *
  * @param {string} configPath - Path to the configuration file
  * @param {Object} defaultConfig - Default configuration if the file doesn't exist
  * @returns {Object} The loaded configuration
@@ -211,20 +213,24 @@ const DEFAULT_CONFIGS = {
 function loadJsonConfig(configPath, defaultConfig = {}) {
   try {
     if (fs.existsSync(configPath)) {
-      const configData = fs.readFileSync(configPath, 'utf8');
+      const configData = fs.readFileSync(configPath, "utf8");
       return JSON.parse(configData);
     }
   } catch (err) {
-    console.warn(`Warning: Error loading configuration from ${configPath}: ${err.message}`);
-    throw new ConfigAccessError(`Failed to load configuration from ${configPath}: ${err.message}`);
+    console.warn(
+      `Warning: Error loading configuration from ${configPath}: ${err.message}`
+    );
+    throw new ConfigAccessError(
+      `Failed to load configuration from ${configPath}: ${err.message}`
+    );
   }
-  
+
   return defaultConfig;
 }
 
 /**
  * Helper function to save a JSON configuration file
- * 
+ *
  * @param {string} configPath - Path to the configuration file
  * @param {Object} config - Configuration to save
  * @returns {boolean} true on success, false on error
@@ -236,56 +242,81 @@ function saveJsonConfig(configPath, config) {
     if (!fs.existsSync(configDir)) {
       fs.mkdirSync(configDir, { recursive: true });
     }
-    
-    fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf8');
+
+    fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
     return true;
   } catch (err) {
-    console.error(`Error saving configuration to ${configPath}: ${err.message}`);
-    throw new ConfigAccessError(`Failed to save configuration to ${configPath}: ${err.message}`);
+    console.error(
+      `Error saving configuration to ${configPath}: ${err.message}`
+    );
+    throw new ConfigAccessError(
+      `Failed to save configuration to ${configPath}: ${err.message}`
+    );
   }
 }
 
 /**
  * Simple schema validation for configuration objects
- * 
+ *
  * @param {Object} config - Configuration object to validate
  * @param {Object} schema - Schema to validate against
  * @returns {Object} Validation result {valid: boolean, errors: Array}
  */
 function validateConfig(config, schema) {
   const errors = [];
-  
-  function validateObject(obj, schemaObj, path = '') {
+
+  function validateObject(obj, schemaObj, path = "") {
     // Check required fields
     if (schemaObj.required) {
       for (const field of schemaObj.required) {
         if (obj[field] === undefined) {
-          errors.push(`Missing required field: ${path ? path + '.' : ''}${field}`);
+          errors.push(
+            `Missing required field: ${path ? path + "." : ""}${field}`
+          );
         }
       }
     }
-    
+
     // Check properties
     if (schemaObj.properties) {
       for (const [key, propSchema] of Object.entries(schemaObj.properties)) {
         if (obj[key] !== undefined) {
           const fieldPath = path ? `${path}.${key}` : key;
-          
+
           // Type checking
           if (propSchema.type && typeof obj[key] !== propSchema.type) {
-            errors.push(`Invalid type for ${fieldPath}: expected ${propSchema.type}, got ${typeof obj[key]}`);
+            errors.push(
+              `Invalid type for ${fieldPath}: expected ${
+                propSchema.type
+              }, got ${typeof obj[key]}`
+            );
           }
-          
+
           // Nested objects
-          if (propSchema.type === 'object' && obj[key] && propSchema.properties) {
+          if (
+            propSchema.type === "object" &&
+            obj[key] &&
+            propSchema.properties
+          ) {
             validateObject(obj[key], propSchema, fieldPath);
           }
-          
+
           // Array validation
-          if (propSchema.type === 'array' && Array.isArray(obj[key]) && propSchema.items) {
+          if (
+            propSchema.type === "array" &&
+            Array.isArray(obj[key]) &&
+            propSchema.items
+          ) {
             obj[key].forEach((item, index) => {
-              if (propSchema.items.type === 'object' && propSchema.items.properties) {
-                validateObject(item, propSchema.items, `${fieldPath}[${index}]`);
+              if (
+                propSchema.items.type === "object" &&
+                propSchema.items.properties
+              ) {
+                validateObject(
+                  item,
+                  propSchema.items,
+                  `${fieldPath}[${index}]`
+                );
               }
             });
           }
@@ -293,12 +324,12 @@ function validateConfig(config, schema) {
       }
     }
   }
-  
+
   validateObject(config, schema);
-  
+
   return {
     valid: errors.length === 0,
-    errors
+    errors,
   };
 }
 
@@ -308,17 +339,22 @@ function validateConfig(config, schema) {
 class ConfigManager {
   /**
    * Creates a new instance of ConfigManager
-   * 
+   *
    * @param {Object} options - Configuration options
    * @param {string} options.globalConfigPath - Path to global configuration
    * @param {boolean} options.schemaValidation - Whether to enable schema validation
    * @param {boolean} options.environmentOverrides - Whether to enable environment variable overrides
    */
   constructor(options = {}) {
-    this.globalConfigPath = options.globalConfigPath || DEFAULT_GLOBAL_CONFIG_PATH;
-    this.schemaValidation = options.schemaValidation !== undefined ? options.schemaValidation : true;
-    this.environmentOverrides = options.environmentOverrides !== undefined ? options.environmentOverrides : true;
-    
+    this.globalConfigPath =
+      options.globalConfigPath || DEFAULT_GLOBAL_CONFIG_PATH;
+    this.schemaValidation =
+      options.schemaValidation !== undefined ? options.schemaValidation : true;
+    this.environmentOverrides =
+      options.environmentOverrides !== undefined
+        ? options.environmentOverrides
+        : true;
+
     this.configs = {
       [CONFIG_TYPES.RAG]: null,
       [CONFIG_TYPES.MCP]: null,
@@ -326,54 +362,58 @@ class ConfigManager {
       [CONFIG_TYPES.COLOR_SCHEMA]: null,
       [CONFIG_TYPES.GLOBAL]: null,
       [CONFIG_TYPES.USER]: null,
-      [CONFIG_TYPES.I18N]: null
+      [CONFIG_TYPES.I18N]: null,
     };
-    
+
     this.schemas = {}; // Optional schema validation
     this.observers = new Map(); // For config change notifications
     this.configVersions = new Map(); // Track config versions for cache invalidation
-    
+
     // Ensure global configuration path exists
     if (!fs.existsSync(this.globalConfigPath)) {
       try {
         fs.mkdirSync(this.globalConfigPath, { recursive: true });
       } catch (err) {
-        console.error(`Failed to create global configuration directory: ${err.message}`);
+        console.error(
+          `Failed to create global configuration directory: ${err.message}`
+        );
       }
     }
   }
-  
+
   /**
    * Set schema for configuration validation
-   * 
+   *
    * @param {string} configType - Configuration type
    * @param {Object} schema - JSON Schema object
    */
   setSchema(configType, schema) {
     this.schemas[configType] = schema;
   }
-  
+
   /**
    * Register observer for configuration changes
-   * 
+   *
    * @param {string} configType - Configuration type
    * @param {Function} callback - Callback function(config)
    * @returns {string} Observer ID for unregistering
    */
   registerObserver(configType, callback) {
-    const observerId = `observer_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
+    const observerId = `observer_${Date.now()}_${Math.random()
+      .toString(36)
+      .substr(2, 9)}`;
+
     if (!this.observers.has(configType)) {
       this.observers.set(configType, new Map());
     }
-    
+
     this.observers.get(configType).set(observerId, callback);
     return observerId;
   }
-  
+
   /**
    * Unregister observer
-   * 
+   *
    * @param {string} configType - Configuration type
    * @param {string} observerId - Observer ID
    * @returns {boolean} Success
@@ -384,69 +424,85 @@ class ConfigManager {
     }
     return false;
   }
-  
+
   /**
    * Notify observers of configuration changes
-   * 
+   *
    * @param {string} configType - Configuration type
    * @param {Object} config - New configuration
    * @private
    */
   notifyObservers(configType, config) {
     if (this.observers.has(configType)) {
-      this.observers.get(configType).forEach(callback => {
+      this.observers.get(configType).forEach((callback) => {
         try {
           callback(config);
         } catch (err) {
-          console.error(`Error in observer callback for ${configType}: ${err.message}`);
+          console.error(
+            `Error in observer callback for ${configType}: ${err.message}`
+          );
         }
       });
     }
   }
-  
+
   /**
    * Loads all configurations
-   * 
+   *
    * @returns {Object} All loaded configurations
    */
   loadAllConfigs() {
     // Load local configurations
     Object.entries(LOCAL_CONFIG_PATHS).forEach(([configType, configPath]) => {
       try {
-        this.configs[configType] = loadJsonConfig(configPath, DEFAULT_CONFIGS[configType]);
+        this.configs[configType] = loadJsonConfig(
+          configPath,
+          DEFAULT_CONFIGS[configType]
+        );
         this.configVersions.set(configType, Date.now());
       } catch (err) {
-        console.error(`Failed to load ${configType} configuration: ${err.message}`);
+        console.error(
+          `Failed to load ${configType} configuration: ${err.message}`
+        );
         this.configs[configType] = DEFAULT_CONFIGS[configType];
       }
     });
-    
+
     // Load global configuration
     try {
-      const globalConfigPath = path.join(this.globalConfigPath, 'config.json');
-      this.configs[CONFIG_TYPES.GLOBAL] = loadJsonConfig(globalConfigPath, DEFAULT_CONFIGS[CONFIG_TYPES.GLOBAL]);
+      const globalConfigPath = path.join(this.globalConfigPath, "config.json");
+      this.configs[CONFIG_TYPES.GLOBAL] = loadJsonConfig(
+        globalConfigPath,
+        DEFAULT_CONFIGS[CONFIG_TYPES.GLOBAL]
+      );
       this.configVersions.set(CONFIG_TYPES.GLOBAL, Date.now());
     } catch (err) {
       console.error(`Failed to load global configuration: ${err.message}`);
       this.configs[CONFIG_TYPES.GLOBAL] = DEFAULT_CONFIGS[CONFIG_TYPES.GLOBAL];
     }
-    
+
     // Load user configuration
     try {
-      const userConfigPath = path.join(this.globalConfigPath, 'user.about.json');
-      this.configs[CONFIG_TYPES.USER] = loadJsonConfig(userConfigPath, DEFAULT_CONFIGS[CONFIG_TYPES.USER]);
+      const userConfigPath = path.join(
+        this.globalConfigPath,
+        "user.about.json"
+      );
+      this.configs[CONFIG_TYPES.USER] = loadJsonConfig(
+        userConfigPath,
+        DEFAULT_CONFIGS[CONFIG_TYPES.USER]
+      );
       this.configVersions.set(CONFIG_TYPES.USER, Date.now());
     } catch (err) {
       console.error(`Failed to load user configuration: ${err.message}`);
       this.configs[CONFIG_TYPES.USER] = DEFAULT_CONFIGS[CONFIG_TYPES.USER];
     }
-    
+
     return this.configs;
   }
-  
+
   /**
    * Loads a specific configuration
-   * 
+   *
    * @param {string} configType - Configuration type
    * @returns {Object} The loaded configuration
    * @throws {ConfigError} If the configuration type is unknown
@@ -455,8 +511,14 @@ class ConfigManager {
     if (!this.configs[configType]) {
       if (configType === CONFIG_TYPES.GLOBAL) {
         try {
-          const globalConfigPath = path.join(this.globalConfigPath, 'config.json');
-          this.configs[configType] = loadJsonConfig(globalConfigPath, DEFAULT_CONFIGS[CONFIG_TYPES.GLOBAL]);
+          const globalConfigPath = path.join(
+            this.globalConfigPath,
+            "config.json"
+          );
+          this.configs[configType] = loadJsonConfig(
+            globalConfigPath,
+            DEFAULT_CONFIGS[CONFIG_TYPES.GLOBAL]
+          );
           this.configVersions.set(configType, Date.now());
         } catch (err) {
           console.error(`Failed to load global configuration: ${err.message}`);
@@ -464,8 +526,14 @@ class ConfigManager {
         }
       } else if (configType === CONFIG_TYPES.USER) {
         try {
-          const userConfigPath = path.join(this.globalConfigPath, 'user.about.json');
-          this.configs[configType] = loadJsonConfig(userConfigPath, DEFAULT_CONFIGS[CONFIG_TYPES.USER]);
+          const userConfigPath = path.join(
+            this.globalConfigPath,
+            "user.about.json"
+          );
+          this.configs[configType] = loadJsonConfig(
+            userConfigPath,
+            DEFAULT_CONFIGS[CONFIG_TYPES.USER]
+          );
           this.configVersions.set(configType, Date.now());
         } catch (err) {
           console.error(`Failed to load user configuration: ${err.message}`);
@@ -473,43 +541,51 @@ class ConfigManager {
         }
       } else if (LOCAL_CONFIG_PATHS[configType]) {
         try {
-          this.configs[configType] = loadJsonConfig(LOCAL_CONFIG_PATHS[configType], DEFAULT_CONFIGS[configType]);
+          this.configs[configType] = loadJsonConfig(
+            LOCAL_CONFIG_PATHS[configType],
+            DEFAULT_CONFIGS[configType]
+          );
           this.configVersions.set(configType, Date.now());
         } catch (err) {
-          console.error(`Failed to load ${configType} configuration: ${err.message}`);
+          console.error(
+            `Failed to load ${configType} configuration: ${err.message}`
+          );
           this.configs[configType] = DEFAULT_CONFIGS[configType];
         }
       } else {
         throw new ConfigError(`Unknown configuration type: ${configType}`);
       }
     }
-    
+
     // Apply environment overrides
     if (this.environmentOverrides) {
       this.applyEnvironmentOverrides(configType, this.configs[configType]);
     }
-    
+
     return this.configs[configType];
   }
-  
+
   /**
    * Apply environment variable overrides to configuration
    * Environment variables follow the pattern: CNF_[CONFIG_TYPE]_[KEY_PATH]
    * Example: CNF_RAG_DATABASE_TYPE="lancedb"
-   * 
+   *
    * @param {string} configType - Configuration type
    * @param {Object} config - Configuration object
    * @private
    */
   applyEnvironmentOverrides(configType, config) {
     const prefix = `CNF_${configType.toUpperCase()}_`;
-    
+
     Object.keys(process.env)
-      .filter(key => key.startsWith(prefix))
-      .forEach(key => {
-        const keyPath = key.substring(prefix.length).toLowerCase().replace(/_/g, '.');
+      .filter((key) => key.startsWith(prefix))
+      .forEach((key) => {
+        const keyPath = key
+          .substring(prefix.length)
+          .toLowerCase()
+          .replace(/_/g, ".");
         const value = process.env[key];
-        
+
         // Try to parse as JSON, fall back to string
         let parsedValue = value;
         try {
@@ -517,39 +593,39 @@ class ConfigManager {
         } catch (e) {
           // If not valid JSON, keep as string
         }
-        
+
         this.setConfigValueByPath(config, keyPath, parsedValue);
       });
   }
-  
+
   /**
    * Set configuration value by path
-   * 
+   *
    * @param {Object} config - Configuration object
    * @param {string} keyPath - Key path (e.g. 'database.type')
    * @param {any} value - Value to set
    * @private
    */
   setConfigValueByPath(config, keyPath, value) {
-    const keyParts = keyPath.split('.');
+    const keyParts = keyPath.split(".");
     let target = config;
-    
+
     for (let i = 0; i < keyParts.length - 1; i++) {
       const part = keyParts[i];
-      
+
       if (!(part in target)) {
         target[part] = {};
       }
-      
+
       target = target[part];
     }
-    
+
     target[keyParts[keyParts.length - 1]] = value;
   }
-  
+
   /**
    * Saves a configuration
-   * 
+   *
    * @param {string} configType - Configuration type
    * @param {Object} config - Configuration to save
    * @returns {boolean} Success
@@ -567,13 +643,16 @@ class ConfigManager {
         );
       }
     }
-    
+
     this.configs[configType] = config;
     this.configVersions.set(configType, Date.now());
-    
+
     if (configType === CONFIG_TYPES.GLOBAL) {
       try {
-        const globalConfigPath = path.join(this.globalConfigPath, 'config.json');
+        const globalConfigPath = path.join(
+          this.globalConfigPath,
+          "config.json"
+        );
         saveJsonConfig(globalConfigPath, config);
         this.notifyObservers(configType, config);
         return true;
@@ -583,7 +662,10 @@ class ConfigManager {
       }
     } else if (configType === CONFIG_TYPES.USER) {
       try {
-        const userConfigPath = path.join(this.globalConfigPath, 'user.about.json');
+        const userConfigPath = path.join(
+          this.globalConfigPath,
+          "user.about.json"
+        );
         saveJsonConfig(userConfigPath, config);
         this.notifyObservers(configType, config);
         return true;
@@ -597,17 +679,19 @@ class ConfigManager {
         this.notifyObservers(configType, config);
         return true;
       } catch (err) {
-        console.error(`Failed to save ${configType} configuration: ${err.message}`);
+        console.error(
+          `Failed to save ${configType} configuration: ${err.message}`
+        );
         throw err;
       }
     } else {
       throw new ConfigError(`Unknown configuration type: ${configType}`);
     }
   }
-  
+
   /**
    * Updates a configuration value
-   * 
+   *
    * @param {string} configType - Configuration type
    * @param {string} keyPath - Key path (e.g. 'database.type' or 'servers.brave-search.enabled')
    * @param {any} value - New value
@@ -616,32 +700,32 @@ class ConfigManager {
    */
   updateConfigValue(configType, keyPath, value) {
     const config = this.getConfig(configType);
-    
+
     // Split path into parts
-    const keyParts = keyPath.split('.');
-    
+    const keyParts = keyPath.split(".");
+
     // Find reference to target object
     let target = config;
     for (let i = 0; i < keyParts.length - 1; i++) {
       const part = keyParts[i];
-      
+
       if (!(part in target)) {
         target[part] = {};
       }
-      
+
       target = target[part];
     }
-    
+
     // Set value
     target[keyParts[keyParts.length - 1]] = value;
-    
+
     // Save configuration
     return this.saveConfig(configType, config);
   }
-  
+
   /**
    * Gets a configuration value
-   * 
+   *
    * @param {string} configType - Configuration type
    * @param {string} keyPath - Key path (e.g. 'database.type' or 'servers.brave-search.enabled')
    * @param {any} defaultValue - Default value if the key doesn't exist
@@ -650,30 +734,34 @@ class ConfigManager {
    */
   getConfigValue(configType, keyPath, defaultValue = undefined) {
     const config = this.getConfig(configType);
-    
+
     // Split path into parts
-    const keyParts = keyPath.split('.');
-    
+    const keyParts = keyPath.split(".");
+
     // Navigate through the object
     let target = config;
     for (const part of keyParts) {
-      if (target === undefined || target === null || typeof target !== 'object') {
+      if (
+        target === undefined ||
+        target === null ||
+        typeof target !== "object"
+      ) {
         return defaultValue;
       }
-      
+
       target = target[part];
-      
+
       if (target === undefined) {
         return defaultValue;
       }
     }
-    
+
     return target;
   }
-  
+
   /**
    * Reset a configuration to default values
-   * 
+   *
    * @param {string} configType - Configuration type
    * @returns {boolean} Success
    * @throws {ConfigError} If the configuration type is unknown
@@ -682,53 +770,80 @@ class ConfigManager {
     if (!DEFAULT_CONFIGS[configType]) {
       throw new ConfigError(`Unknown configuration type: ${configType}`);
     }
-    
-    return this.saveConfig(configType, JSON.parse(JSON.stringify(DEFAULT_CONFIGS[configType])));
+
+    return this.saveConfig(
+      configType,
+      JSON.parse(JSON.stringify(DEFAULT_CONFIGS[configType]))
+    );
   }
-  
+
   /**
    * Check if an API key is available for a specific service
-   * 
+   *
    * @param {string} service - Service name ('claude', 'voyage', 'brave')
    * @returns {boolean} true if the API key is available, false otherwise
    */
   hasApiKey(service) {
     let apiKeyEnv;
-    
+
     switch (service) {
-      case 'claude':
-        apiKeyEnv = this.getConfigValue(CONFIG_TYPES.RAG, 'claude.api_key_env', 'CLAUDE_API_KEY');
+      case "claude":
+        apiKeyEnv = this.getConfigValue(
+          CONFIG_TYPES.RAG,
+          "claude.api_key_env",
+          "CLAUDE_API_KEY"
+        );
         break;
-      case 'voyage':
-        apiKeyEnv = this.getConfigValue(CONFIG_TYPES.RAG, 'embedding.api_key_env', 'VOYAGE_API_KEY');
+      case "voyage":
+        apiKeyEnv = this.getConfigValue(
+          CONFIG_TYPES.RAG,
+          "embedding.api_key_env",
+          "VOYAGE_API_KEY"
+        );
         break;
-      case 'brave':
-        apiKeyEnv = this.getConfigValue(CONFIG_TYPES.MCP, 'servers.brave-search.api_key_env', 'BRAVE_API_KEY');
+      case "brave":
+        apiKeyEnv = this.getConfigValue(
+          CONFIG_TYPES.MCP,
+          "servers.brave-search.api_key_env",
+          "BRAVE_API_KEY"
+        );
         break;
       default:
         return false;
     }
-    
+
     return Boolean(process.env[apiKeyEnv]);
   }
-  
+
   /**
    * Get environment variables used by the framework
-   * 
+   *
    * @returns {Object} Environment variables mapping
    */
   getEnvironmentVariables() {
     return {
-      CLAUDE_API_KEY: this.getConfigValue(CONFIG_TYPES.RAG, 'claude.api_key_env', 'CLAUDE_API_KEY'),
-      VOYAGE_API_KEY: this.getConfigValue(CONFIG_TYPES.RAG, 'embedding.api_key_env', 'VOYAGE_API_KEY'),
-      BRAVE_API_KEY: this.getConfigValue(CONFIG_TYPES.MCP, 'servers.brave-search.api_key_env', 'BRAVE_API_KEY'),
-      MCP_API_KEY: 'MCP_API_KEY'
+      CLAUDE_API_KEY: this.getConfigValue(
+        CONFIG_TYPES.RAG,
+        "claude.api_key_env",
+        "CLAUDE_API_KEY"
+      ),
+      VOYAGE_API_KEY: this.getConfigValue(
+        CONFIG_TYPES.RAG,
+        "embedding.api_key_env",
+        "VOYAGE_API_KEY"
+      ),
+      BRAVE_API_KEY: this.getConfigValue(
+        CONFIG_TYPES.MCP,
+        "servers.brave-search.api_key_env",
+        "BRAVE_API_KEY"
+      ),
+      MCP_API_KEY: "MCP_API_KEY",
     };
   }
-  
+
   /**
    * Export configuration to file
-   * 
+   *
    * @param {string} configType - Configuration type
    * @param {string} exportPath - Export file path
    * @returns {boolean} Success
@@ -736,19 +851,23 @@ class ConfigManager {
    */
   exportConfig(configType, exportPath) {
     const config = this.getConfig(configType);
-    
+
     try {
       saveJsonConfig(exportPath, config);
       return true;
     } catch (err) {
-      console.error(`Failed to export ${configType} configuration: ${err.message}`);
-      throw new ConfigAccessError(`Failed to export configuration to ${exportPath}: ${err.message}`);
+      console.error(
+        `Failed to export ${configType} configuration: ${err.message}`
+      );
+      throw new ConfigAccessError(
+        `Failed to export configuration to ${exportPath}: ${err.message}`
+      );
     }
   }
-  
+
   /**
    * Import configuration from file
-   * 
+   *
    * @param {string} configType - Configuration type
    * @param {string} importPath - Import file path
    * @returns {boolean} Success
@@ -759,12 +878,16 @@ class ConfigManager {
     try {
       const config = loadJsonConfig(importPath, null);
       if (!config) {
-        throw new ConfigError(`Failed to load configuration from ${importPath}`);
+        throw new ConfigError(
+          `Failed to load configuration from ${importPath}`
+        );
       }
-      
+
       return this.saveConfig(configType, config);
     } catch (err) {
-      console.error(`Failed to import ${configType} configuration: ${err.message}`);
+      console.error(
+        `Failed to import ${configType} configuration: ${err.message}`
+      );
       throw err;
     }
   }

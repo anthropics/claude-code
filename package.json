@@ -2,8 +2,10 @@
   "name": "claude-neural-framework",
   "version": "1.0.0",
   "description": "A comprehensive platform for integrating Claude AI capabilities with development workflows",
+  "type": "module",
   "main": "src/index.js",
   "scripts": {
+    "test:integration": "jest --config=jest.integration.config.js",
     "start": "node src/index.js",
     "start:mcp": "node core/mcp/start_server.js",
     "dev": "nodemon src/index.js",
@@ -13,7 +15,6 @@
     "test:coverage": "jest --coverage",
     "test:mocha": "mocha 'tests/**/*.mocha.js'",
     "test:e2e": "jest --config=jest.e2e.config.js",
-    "test:integration": "jest --config=jest.integration.config.js",
     "test:all": "npm run test && npm run test:integration && npm run test:e2e",
     "lint": "eslint src/ core/ --ext .js",
     "security-check": "node core/security/security_check.js",
@@ -27,12 +28,17 @@
     "commander": "^11.0.0",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
+    "fs-extra": "^11.3.0",
     "inquirer": "^8.2.5",
     "mongodb": "^6.3.0",
     "uuid": "^9.0.1",
     "winston": "^3.11.0"
   },
   "devDependencies": {
+    "@babel/core": "^7.27.1",
+    "@babel/plugin-transform-modules-commonjs": "^7.27.1",
+    "@babel/preset-env": "^7.27.2",
+    "babel-jest": "^29.7.0",
     "chai": "^5.2.0",
     "eslint": "^8.56.0",
     "jest": "^29.7.0",
@@ -41,6 +47,7 @@
     "nyc": "^17.1.0",
     "sinon": "^20.0.0",
     "supertest": "^7.1.0",
+    "ts-jest": "^29.3.2",
     "typescript": "^5.0.4"
   },
   "repository": {

@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>UI-Komponenten Demo</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css"
+    />
+    <link
+      rel="stylesheet"
+      href="./src/ui_components/design-system/colors.css"
+    />
+    <link
+      rel="stylesheet"
+      href="./src/ui_components/design-system/responsive.css"
+    />
+    <link rel="stylesheet" href="./src/ui_components/dashboard/BentoGrid.css" />
+    <link
+      rel="stylesheet"
+      href="./src/ui_components/dashboard/AdvancedFilter.css"
+    />
+    <link
+      rel="stylesheet"
+      href="./src/ui_components/dashboard/DynamicMetricTile.css"
+    />
+    <link
+      rel="stylesheet"
+      href="./src/ui_components/dashboard/GradientCard.css"
+    />
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        margin: 0;
+        padding: 20px;
+        background-color: #f8f9fa;
+        color: #333;
+      }
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+      .dashboard {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+      }
+      .section {
+        margin-bottom: 30px;
+        background-color: white;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+      }
+      h1,
+      h2,
+      h3 {
+        color: #333;
+      }
+      hr {
+        border: 0;
+        height: 1px;
+        background-color: #e0e0e0;
+        margin: 30px 0;
+      }
+      .documentation {
+        padding: 20px;
+        background-color: #f8fafc;
+        border-left: 4px solid #4a6cf7;
+        margin-bottom: 20px;
+      }
+      .code-example {
+        background-color: #1e293b;
+        color: #e2e8f0;
+        padding: 15px;
+        border-radius: 6px;
+        font-family: monospace;
+        overflow-x: auto;
+        margin-bottom: 20px;
+      }
+      .nav-tabs {
+        display: flex;
+        border-bottom: 1px solid #ddd;
+        margin-bottom: 20px;
+      }
+      .nav-tabs button {
+        padding: 10px 15px;
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 16px;
+        color: #555;
+      }
+      .nav-tabs button.active {
+        border-bottom: 3px solid #4a6cf7;
+        color: #333;
+        font-weight: bold;
+      }
+      .tab-content {
+        display: none;
+      }
+      .tab-content.active {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>UI-Komponenten Demo</h1>
+      <p>
+        Diese Seite demonstriert die integrierten UI-Komponenten des Claude
+        Neural Frameworks.
+      </p>
+
+      <div class="documentation">
+        <h3>Integrierte Komponenten</h3>
+        <p>
+          Diese Demo zeigt die Funktionalität der neu integrierten
+          UI-Komponenten aus dem schema-ui-integration und dem
+          Dashboard-UI-Paket.
+        </p>
+        <p>
+          Weitere Informationen finden Sie in der
+          <a href="./docs/INTEGRATED_UI_COMPONENTS.md">Dokumentation</a> und im
+          <a href="./docs/MIGRATION_GUIDE.md">Migrations-Leitfaden</a>.
+        </p>
+      </div>
+
+      <div class="nav-tabs">
+        <button class="tab-button active" data-tab="dashboard">
+          Dashboard-Komponenten
+        </button>
+        <button class="tab-button" data-tab="schema-ui">
+          Schema UI-Komponenten
+        </button>
+        <button class="tab-button" data-tab="integration">
+          Integrationsbeispiel
+        </button>
+        <button class="tab-button" data-tab="code">Code-Beispiele</button>
+      </div>
+
+      <div id="dashboard" class="tab-content active">
+        <h2>Dashboard-Komponenten</h2>
+
+        <div class="dashboard">
+          <div class="section" id="metric-1"></div>
+          <div class="section" id="metric-2"></div>
+          <div class="section" id="recent-issues"></div>
+        </div>
+
+        <div class="section">
+          <div id="data-grid-filter"></div>
+          <div id="data-grid-container"></div>
+        </div>
+      </div>
+
+      <div id="schema-ui" class="tab-content">
+        <h2>Schema UI-Komponenten</h2>
+
+        <div class="section" id="profile-form-container"></div>
+
+        <div class="section">
+          <h3>Schema-basiertes Formular</h3>
+          <div id="schema-form"></div>
+        </div>
+      </div>
+
+      <div id="integration" class="tab-content">
+        <h2>Integrationsbeispiel</h2>
+
+        <div class="section">
+          <h3>Kombinierte Verwendung</h3>
+          <p>
+            Dieses Beispiel zeigt, wie Dashboard-Komponenten und
+            Schema-UI-Komponenten gemeinsam verwendet werden können.
+          </p>
+          <div id="integration-demo"></div>
+        </div>
+      </div>
+
+      <div id="code" class="tab-content">
+        <h2>Code-Beispiele</h2>
+
+        <div class="section">
+          <h3>BentoGrid mit AdvancedFilter</h3>
+          <div class="code-example">
+            <pre>
+import { BentoGrid, AdvancedFilter, lightweightAdapter } from "./src/ui_components";
+
+const grid = new BentoGrid({
+  elementId: "grid-container",
+  items: myData,
+  columns: {
+    name: { label: "Name", sortable: true },
+    status: { label: "Status", sortable: true },
+  },
+  useAdvancedFilter: true,
+  advancedFilterId: "filter-container",
+  adapter: lightweightAdapter
+});</pre
+            >
+          </div>
+
+          <h3>DynamicMetricTile</h3>
+          <div class="code-example">
+            <pre>
+import { DynamicMetricTile, lightweightAdapter } from "./src/ui_components";
+
+new DynamicMetricTile({
+  elementId: "metric-container",
+  title: "Aktive Benutzer",
+  value: 1234,
+  previousValue: 1100,
+  format: "number",
+  icon: "bi-person",
+  adapter: lightweightAdapter
+});</pre
+            >
+          </div>
+
+          <h3>Schema UI mit unifiedAdapter</h3>
+          <div class="code-example">
+            <pre>
+import { EnhancedProfileForm, unifiedAdapter } from "./src/ui_components";
+
+const profileForm = new EnhancedProfileForm({
+  elementId: "profile-form",
+  adapter: unifiedAdapter,
+  onSave: (data) => {
+    console.log("Profil gespeichert:", data);
+  }
+});</pre
+            >
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Tab-Navigation
+      document.querySelectorAll(".tab-button").forEach((button) => {
+        button.addEventListener("click", () => {
+          // Aktive Tab-Button-Klasse entfernen
+          document.querySelectorAll(".tab-button").forEach((btn) => {
+            btn.classList.remove("active");
+          });
+
+          // Aktive Tab-Content-Klasse entfernen
+          document.querySelectorAll(".tab-content").forEach((content) => {
+            content.classList.remove("active");
+          });
+
+          // Aktiven Tab setzen
+          button.classList.add("active");
+          document
+            .getElementById(button.getAttribute("data-tab"))
+            .classList.add("active");
+        });
+      });
+    </script>
+
+    <!-- Demo-Komponenten laden -->
+    <script type="module">
+      // Achtung: Dies ist ein ES-Modul, funktioniert in älteren Browsern nicht ohne Bundler
+      import {
+        BentoGrid,
+        AdvancedFilter,
+        DynamicMetricTile,
+        GradientCard,
+        unifiedAdapter,
+        lightweightAdapter,
+      } from "./src/ui_components/index.js";
+
+      // Beispiel-Daten
+      const gridData = [
+        { id: 1, name: "Beispieldaten 1", status: "Aktiv", category: "A" },
+        { id: 2, name: "Beispieldaten 2", status: "Inaktiv", category: "B" },
+        { id: 3, name: "Beispieldaten 3", status: "Aktiv", category: "A" },
+        { id: 4, name: "Beispieldaten 4", status: "Wartend", category: "C" },
+        { id: 5, name: "Beispieldaten 5", status: "Inaktiv", category: "B" },
+      ];
+
+      // Komponenten initialisieren
+      document.addEventListener("DOMContentLoaded", () => {
+        // BentoGrid mit AdvancedFilter
+        try {
+          const bentoGrid = new BentoGrid({
+            elementId: "data-grid-container",
+            items: gridData,
+            columns: {
+              name: { label: "Name", sortable: true },
+              status: { label: "Status", sortable: true },
+              category: { label: "Kategorie", sortable: true },
+            },
+            useAdvancedFilter: true,
+            advancedFilterId: "data-grid-filter",
+            adapter: lightweightAdapter,
+          });
+          console.log("BentoGrid erfolgreich initialisiert");
+        } catch (error) {
+          console.error("Fehler bei BentoGrid:", error);
+          document.getElementById("data-grid-container").innerHTML =
+            '<div class="error">Fehler beim Laden von BentoGrid: ' +
+            error.message +
+            "</div>";
+        }
+
+        // DynamicMetricTile für Statistiken
+        try {
+          new DynamicMetricTile({
+            elementId: "metric-1",
+            title: "Aktive Nutzer",
+            value: 1234,
+            previousValue: 1100,
+            format: "number",
+            icon: "bi-person",
+            adapter: lightweightAdapter,
+          });
+          console.log("DynamicMetricTile 1 erfolgreich initialisiert");
+        } catch (error) {
+          console.error("Fehler bei DynamicMetricTile 1:", error);
+          document.getElementById("metric-1").innerHTML =
+            '<div class="error">Fehler beim Laden von DynamicMetricTile: ' +
+            error.message +
+            "</div>";
+        }
+
+        try {
+          new DynamicMetricTile({
+            elementId: "metric-2",
+            title: "Conversion Rate",
+            value: 12.5,
+            previousValue: 10.8,
+            format: "percent",
+            icon: "bi-graph-up",
+            adapter: lightweightAdapter,
+          });
+          console.log("DynamicMetricTile 2 erfolgreich initialisiert");
+        } catch (error) {
+          console.error("Fehler bei DynamicMetricTile 2:", error);
+          document.getElementById("metric-2").innerHTML =
+            '<div class="error">Fehler beim Laden von DynamicMetricTile: ' +
+            error.message +
+            "</div>";
+        }
+
+        // GradientCard für Recent Issues
+        try {
+          new GradientCard({
+            elementId: "recent-issues",
+            items: [
+              {
+                title: "Fehler im Login-System",
+                severity: "high",
+                timestamp: new Date(),
+              },
+              {
+                title: "Performance-Problem in der Suche",
+                severity: "medium",
+                timestamp: new Date(),
+              },
+            ],
+            gradient: {
+              type: "issue",
+              animated: true,
+            },
+            adapter: lightweightAdapter,
+          });
+          console.log("GradientCard erfolgreich initialisiert");
+        } catch (error) {
+          console.error("Fehler bei GradientCard:", error);
+          document.getElementById("recent-issues").innerHTML =
+            '<div class="error">Fehler beim Laden von GradientCard: ' +
+            error.message +
+            "</div>";
+        }
+
+        // Schema-UI-Komponenten werden noch nicht initialisiert, da sie zusätzlicher Konfiguration bedürfen
+        document.getElementById("profile-form-container").innerHTML =
+          '<div class="notice">Schema-UI-Komponenten werden in einem zukünftigen Update verfügbar sein. Siehe Dokumentation für manuelle Integration.</div>';
+        document.getElementById("schema-form").innerHTML =
+          '<div class="notice">Schema-basierte Formulare werden in einem zukünftigen Update verfügbar sein. Siehe Dokumentation für manuelle Integration.</div>';
+
+        // Integration Demo
+        document.getElementById("integration-demo").innerHTML =
+          '<div class="notice">Vollständige Integrationsbeispiele werden in einem zukünftigen Update verfügbar sein. Siehe das Beispiel in src/integrated_example.js für einen Referenzimplementierung.</div>';
+      });
+    </script>
+  </body>
+</html>

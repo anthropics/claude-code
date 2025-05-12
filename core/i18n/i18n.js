@@ -55,13 +55,27 @@ class I18n {
   constructor(options = {}) {
     this.messages = {};
     this.pluralRules = new Intl.PluralRules();
+
+    // Load essential config first
+    this.loadEssentialConfig();
+
+    // Apply options overrides
     this.loadConfig(options);
 
     // Set plural rules for current locale
     this.setPluralRules(this.locale);
 
-    // Load messages
-    this.loadAllMessages();
+    // Load messages with retry logic
+    try {
+      this.loadAllMessages();
+    } catch (err) {
+      logger.error("Failed to load messages, retrying with fallback", {
+        error: err,
+      });
+      this.locale = DEFAULT_LOCALE;
+      this.fallbackLocale = DEFAULT_LOCALE;
+      this.loadAllMessages();
+    }
 
     // Add custom messages
     if (options.messages) {
@@ -73,6 +87,21 @@ class I18n {
       fallbackLocale: this.fallbackLocale,
       availableLocales: Object.keys(this.messages),
     });
+  }
+
+  /**
+   * Load essential configuration with fallback
+   */
+  loadEssentialConfig() {
+    try {
+      const config = configManager.getConfig(CONFIG_TYPES.I18N);
+      this.locale = config?.defaultLocale || DEFAULT_LOCALE;
+      this.fallbackLocale = config?.fallbackLocale || DEFAULT_LOCALE;
+    } catch (error) {
+      logger.warn("Using fallback i18n config", { error });
+      this.locale = DEFAULT_LOCALE;
+      this.fallbackLocale = DEFAULT_LOCALE;
+    }
   }
 
   /**
