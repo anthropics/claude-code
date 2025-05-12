@@ -20,7 +20,15 @@
     "ci": "node scripts/run_ci_locally.js",
     "build": "mkdir -p dist && cp -R src dist/ && cp -R core dist/ && cp -R docs dist/ && cp package.json dist/ && cp README.md dist/ && cp LICENSE.md dist/",
     "prepare-release": "node scripts/prepare_release.js",
-    "version": "npm run prepare-release && git add CHANGELOG.md"
+    "version": "npm run prepare-release && git add CHANGELOG.md",
+    "git:status": "node scripts/git/git-helper.js status",
+    "git:commit": "node scripts/git/git-helper.js commit",
+    "git:pull": "node scripts/git/git-helper.js pull",
+    "git:push": "node scripts/git/git-helper.js push",
+    "git:log": "node scripts/git/git-helper.js log",
+    "git:branch": "node scripts/git/git-helper.js branch",
+    "git:checkout": "node scripts/git/git-helper.js checkout",
+    "git:diff": "node scripts/git/git-helper.js diff"
   },
   "dependencies": {
     "chalk": "^4.1.2",
