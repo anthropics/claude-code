@@ -190,11 +190,13 @@ show_help() {
   echo "  memory      Manage memory system"
   echo "  start       Start MCP servers and services"
   echo "  agent       Launch Claude agent"
+  echo "  dashboard   Launch User Main Dashboard"
+  echo "  a2a         Agent-to-Agent communication"
   echo "  ui          Configure UI components"
   echo "  status      Show system status"
   echo "  enterprise  Manage enterprise features"
-  echo "  help        Show this help message"
   echo "  git         Git operations through A2A"
+  echo "  help        Show this help message"
   echo ""
   echo -e "${BOLD}Options:${NC}"
   echo "  --quick     Quick setup with defaults"
@@ -209,6 +211,10 @@ show_help() {
   echo "  ./saar.sh setup --quick               # Quick setup with defaults"
   echo "  ./saar.sh colors --theme=dark         # Set dark theme"
   echo "  ./saar.sh memory backup               # Backup memory"
+  echo "  ./saar.sh dashboard                   # Launch User Main Dashboard"
+  echo "  ./saar.sh dashboard --user=custom     # Launch Dashboard for specific user"
+  echo "  ./saar.sh a2a start                   # Start Agent-to-Agent manager"
+  echo "  ./saar.sh a2a list                    # List available agents"
   echo "  ./saar.sh status                      # Show system status"
   echo "  ./saar.sh ui customize                # Customize UI components"
   echo "  ./saar.sh enterprise setup            # Setup enterprise features"
@@ -602,6 +608,7 @@ show_setup_complete_message() {
   echo -e "To start all services:    ${BOLD}./saar.sh start${NC}"
   echo -e "To configure a project:   ${BOLD}./saar.sh project${NC}"
   echo -e "To launch Claude agent:   ${BOLD}./saar.sh agent${NC}"
+  echo -e "To launch the dashboard:  ${BOLD}./saar.sh dashboard${NC}"
   echo -e "To check system status:   ${BOLD}./saar.sh status${NC}"
   echo ""
 }
@@ -615,6 +622,32 @@ setup_git_agent() {
     log "INFO" "Git Agent setup complete"
   else
     log "WARN" "Git Agent setup script not found. Skipping Git Agent setup."
+  fi
+}
+
+# Setup Neural Framework Integration
+setup_neural_framework() {
+  log "INFO" "Setting up Neural Framework Integration"
+
+  if [ -f "scripts/setup/setup_neural_framework.sh" ]; then
+    chmod +x "scripts/setup/setup_neural_framework.sh"
+    "./scripts/setup/setup_neural_framework.sh"
+    log "INFO" "Neural Framework Integration setup complete"
+  else
+    log "WARN" "Neural Framework setup script not found. Skipping Neural Framework setup."
+  fi
+}
+
+# Setup Recursive Debugging
+setup_recursive_debugging() {
+  log "INFO" "Setting up Recursive Debugging tools"
+
+  if [ -f "scripts/setup/install_recursive_debugging.sh" ]; then
+    chmod +x "scripts/setup/install_recursive_debugging.sh"
+    "./scripts/setup/install_recursive_debugging.sh" "$WORKSPACE_DIR"
+    log "INFO" "Recursive Debugging tools setup complete"
+  else
+    log "WARN" "Recursive Debugging setup script not found. Skipping Recursive Debugging setup."
   fi
 }
 
@@ -637,6 +670,8 @@ do_setup() {
   setup_about_profile "$quick_mode" "$user_id"
   setup_mcp_servers
   setup_git_agent
+  setup_neural_framework
+  setup_recursive_debugging
   do_memory init
   setup_workspace "$user_id" "$theme"
 
@@ -1868,12 +1903,12 @@ EOF
 # Start services function
 do_start() {
   local components=${1:-"all"}
-  
+
   check_dependencies
   ensure_directories
-  
+
   log "INFO" "Starting Agentic OS services: $components"
-  
+
   # Start MCP servers if available
   if [ "$components" = "all" ] || [ "$components" = "mcp" ]; then
     if [ -f "core/mcp/start_server.js" ]; then
@@ -1881,7 +1916,7 @@ do_start() {
       node core/mcp/start_server.js
     fi
   fi
-  
+
   # Start web dashboard if available
   if [ "$components" = "all" ] || [ "$components" = "dashboard" ]; then
     if [ -f "scripts/dashboard/server.js" ]; then
@@ -1889,7 +1924,16 @@ do_start() {
       node scripts/dashboard/server.js &
     fi
   fi
-  
+
+  # Start A2A Manager if available
+  if [ "$components" = "all" ] || [ "$components" = "a2a" ]; then
+    if [ -f "core/mcp/a2a_manager.js" ]; then
+      log "INFO" "Starting Agent-to-Agent Manager"
+      node core/mcp/a2a_manager.js &
+      log "INFO" "A2A Manager started"
+    fi
+  fi
+
   # Start Schema UI if available
   if [ "$components" = "all" ] || [ "$components" = "ui" ]; then
     if [ -d "schema-ui-integration" ]; then
@@ -1898,7 +1942,7 @@ do_start() {
       ./schema-ui-integration/saar.sh run
     fi
   fi
-  
+
   log "INFO" "Services started"
 }
 
@@ -2317,6 +2361,14 @@ main() {
       shift
       do_agent "$@"
       ;;
+    dashboard)
+      shift
+      do_dashboard "$@"
+      ;;
+    a2a)
+      shift
+      do_a2a "$@"
+      ;;
     ui)
       shift
       do_ui "$@"
@@ -2337,6 +2389,65 @@ main() {
       log "ERROR" "Unknown command: $1"
       show_help
       exit 1
+      ;;
+  esac
+}
+
+# A2A function
+do_a2a() {
+  local operation=${1:-"start"}
+  local target=${2:-""}
+  local message=${3:-""}
+
+  check_dependencies
+  ensure_directories
+
+  log "INFO" "Agent-to-Agent operation: $operation"
+
+  case $operation in
+    start)
+      # Start A2A Manager
+      if [ -f "core/mcp/a2a_manager.js" ]; then
+        log "INFO" "Starting Agent-to-Agent Manager"
+        node core/mcp/a2a_manager.js
+      else
+        log "ERROR" "A2A Manager not found. Expected path: core/mcp/a2a_manager.js"
+        return 1
+      fi
+      ;;
+
+    send)
+      # Send a message to an agent
+      if [ -z "$target" ]; then
+        log "ERROR" "Target agent not specified"
+        echo "Usage: ./saar.sh a2a send <target-agent> <message>"
+        return 1
+      fi
+
+      if [ -f "core/mcp/a2a_manager.js" ]; then
+        log "INFO" "Sending message to agent: $target"
+        node core/mcp/a2a_manager.js --to="$target" --message="$message"
+      else
+        log "ERROR" "A2A Manager not found. Expected path: core/mcp/a2a_manager.js"
+        return 1
+      fi
+      ;;
+
+    list)
+      # List available agents
+      log "INFO" "Listing available agents"
+      if [ -f "core/mcp/a2a_manager.js" ]; then
+        node core/mcp/a2a_manager.js --list
+      else
+        log "ERROR" "A2A Manager not found. Expected path: core/mcp/a2a_manager.js"
+        return 1
+      fi
+      ;;
+
+    *)
+      log "ERROR" "Unknown A2A operation: $operation"
+      echo "Available operations: start, send, list"
+      return 1
       ;;
   esac
 }
