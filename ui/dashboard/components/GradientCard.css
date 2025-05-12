@@ -1,0 +1,374 @@
+/**
+ * GradientCard Styles
+ * ==================
+ *
+ * Styling für die GradientCard-Komponente, die für Recent Issues
+ * und Optimization Suggestions verwendet wird.
+ */
+
+/* Grundlegendes Card-Layout */
+.gradient-card {
+  position: relative;
+  border-radius: var(--border-radius-lg, 12px);
+  overflow: hidden;
+  background-color: var(--surface-color);
+  box-shadow: 0 4px 16px var(--shadow-color);
+  transition: all 0.3s ease;
+  min-height: 200px;
+  padding: 0;
+  margin: 0;
+}
+
+/* Hintergrund mit Farbverlauf */
+.gradient-card-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  opacity: var(--gradient-intensity, 0.7);
+  z-index: 0;
+  filter: blur(var(--gradient-blur, 20px));
+  transition: all 0.5s ease;
+}
+
+/* Gradient-Typen */
+.gradient-card[data-gradient-type="default"] .gradient-card-bg {
+  background: linear-gradient(
+    135deg,
+    var(--primary-color-light) 0%,
+    var(--secondary-color-light) 100%
+  );
+}
+
+.gradient-card[data-gradient-type="issue"] .gradient-card-bg {
+  background: linear-gradient(
+    135deg,
+    var(--warning-color-light) 0%,
+    var(--danger-color-light) 100%
+  );
+}
+
+.gradient-card[data-gradient-type="suggestion"] .gradient-card-bg {
+  background: linear-gradient(
+    135deg,
+    var(--info-color-light) 0%,
+    var(--primary-color-light) 100%
+  );
+}
+
+.gradient-card[data-gradient-type="success"] .gradient-card-bg {
+  background: linear-gradient(
+    135deg,
+    var(--success-color-light) 0%,
+    var(--success-color) 100%
+  );
+}
+
+.gradient-card[data-gradient-type="warning"] .gradient-card-bg {
+  background: linear-gradient(
+    135deg,
+    var(--warning-color-light) 0%,
+    var(--warning-color) 100%
+  );
+}
+
+.gradient-card[data-gradient-type="danger"] .gradient-card-bg {
+  background: linear-gradient(
+    135deg,
+    var(--danger-color-light) 0%,
+    var(--danger-color) 100%
+  );
+}
+
+.gradient-card[data-gradient-type="info"] .gradient-card-bg {
+  background: linear-gradient(
+    135deg,
+    var(--info-color-light) 0%,
+    var(--info-color) 100%
+  );
+}
+
+/* Animierter Gradient */
+@keyframes gradientAnimation {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.gradient-card.gradient-animated .gradient-card-bg {
+  background-size: 200% 200%;
+  animation: gradientAnimation 15s ease infinite;
+}
+
+/* Inhalt über dem Gradient */
+.gradient-card-content {
+  position: relative;
+  z-index: 1;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  backdrop-filter: blur(5px);
+  color: var(--text-color);
+}
+
+/* Karten-Header */
+.gradient-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.gradient-card-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--primary-text-color);
+}
+
+/* Items-Liste */
+.gradient-card-items {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--item-gap, 16px);
+  flex-grow: 1;
+}
+
+/* Einzelnes Item */
+.gradient-card-item {
+  padding: 1rem;
+  border-radius: var(--border-radius-md, 8px);
+  background-color: var(--surface-color-elevated);
+  transition: all 0.2s ease;
+  border-left: 4px solid transparent;
+}
+
+.gradient-card-item:hover,
+.gradient-card-item.hover {
+  background-color: var(--surface-color-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px var(--shadow-color);
+}
+
+/* Status-Farben */
+.gradient-card-item.status-error,
+.gradient-card-item.status-critical {
+  border-left-color: var(--danger-color);
+}
+
+.gradient-card-item.status-warning {
+  border-left-color: var(--warning-color);
+}
+
+.gradient-card-item.status-info {
+  border-left-color: var(--info-color);
+}
+
+.gradient-card-item.status-success {
+  border-left-color: var(--success-color);
+}
+
+/* Item-Inhalt */
+.gradient-card-item-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+/* Item-Icon */
+.gradient-card-item-icon {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: var(--border-radius-sm, 4px);
+  background-color: var(--surface-color);
+}
+
+.gradient-card-item-icon i {
+  font-size: 1.125rem;
+  color: var(--secondary-text-color);
+}
+
+/* Status-spezifische Icon-Farben */
+.gradient-card-item.status-error .gradient-card-item-icon i,
+.gradient-card-item.status-critical .gradient-card-item-icon i {
+  color: var(--danger-color);
+}
+
+.gradient-card-item.status-warning .gradient-card-item-icon i {
+  color: var(--warning-color);
+}
+
+.gradient-card-item.status-info .gradient-card-item-icon i {
+  color: var(--info-color);
+}
+
+.gradient-card-item.status-success .gradient-card-item-icon i {
+  color: var(--success-color);
+}
+
+/* Item-Text */
+.gradient-card-item-text {
+  flex-grow: 1;
+  min-width: 0; /* Verhindert Überlauf bei Flex-Items */
+}
+
+.gradient-card-item-title {
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+  color: var(--text-color);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gradient-card-item-description {
+  font-size: 0.875rem;
+  color: var(--secondary-text-color);
+  margin-bottom: 0.5rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  line-height: 1.4;
+}
+
+/* Meta-Informationen */
+.gradient-card-item-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: var(--tertiary-text-color);
+}
+
+.gradient-card-item-timestamp {
+  opacity: 0.7;
+}
+
+.gradient-card-item-status {
+  font-weight: 500;
+  padding: 0.125rem 0.375rem;
+  border-radius: var(--border-radius-xs, 2px);
+  text-transform: uppercase;
+  font-size: 0.6875rem;
+  letter-spacing: 0.5px;
+}
+
+.gradient-card-item-status.status-error,
+.gradient-card-item-status.status-critical {
+  background-color: var(--danger-color-soft);
+  color: var(--danger-color);
+}
+
+.gradient-card-item-status.status-warning {
+  background-color: var(--warning-color-soft);
+  color: var(--warning-color);
+}
+
+.gradient-card-item-status.status-info {
+  background-color: var(--info-color-soft);
+  color: var(--info-color);
+}
+
+.gradient-card-item-status.status-success {
+  background-color: var(--success-color-soft);
+  color: var(--success-color);
+}
+
+/* Item-Aktionen */
+.gradient-card-item-actions {
+  display: flex;
+  gap: 0.25rem;
+  margin-left: 0.5rem;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.gradient-card-item:hover .gradient-card-item-actions,
+.gradient-card-item.hover .gradient-card-item-actions {
+  opacity: 1;
+}
+
+.gradient-card-item-action {
+  background: none;
+  border: none;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--border-radius-sm, 4px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: var(--secondary-text-color);
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.2s ease;
+}
+
+.gradient-card-item-action:hover {
+  background-color: var(--primary-color-soft);
+  color: var(--primary-color);
+}
+
+/* "Mehr anzeigen"-Link */
+.gradient-card-more {
+  display: block;
+  text-align: center;
+  padding: 0.75rem;
+  margin-top: 1rem;
+  text-decoration: none;
+  color: var(--primary-color);
+  font-weight: 500;
+  border-radius: var(--border-radius-md, 8px);
+  transition: all 0.2s ease;
+}
+
+.gradient-card-more:hover {
+  background-color: var(--primary-color-soft);
+  text-decoration: none;
+}
+
+/* Responsives Design */
+@media (max-width: 576px) {
+  .gradient-card {
+    min-height: auto;
+  }
+
+  .gradient-card-item-content {
+    flex-direction: column;
+  }
+
+  .gradient-card-item-icon {
+    margin-bottom: 0.5rem;
+  }
+
+  .gradient-card-item-meta {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+}
+
+/* Animationen für Item-Hover */
+.gradient-card-item {
+  transition: transform 0.2s ease, box-shadow 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.gradient-card-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px var(--shadow-color);
+}

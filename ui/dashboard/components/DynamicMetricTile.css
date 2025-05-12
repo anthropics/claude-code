@@ -1,0 +1,181 @@
+/**
+ * Styles für die DynamicMetricTile-Komponente
+ */
+
+.dynamic-metric-tile {
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  border: none;
+  box-shadow: 0 4px 12px var(--shadow-color, rgba(0, 0, 0, 0.05));
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.dynamic-metric-tile:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px var(--shadow-color, rgba(0, 0, 0, 0.1));
+}
+
+/* Farbkodierung für Karten-Rahmen */
+.dynamic-metric-tile.success-border {
+  border-left: 4px solid var(--success-color, #4caf50);
+}
+
+.dynamic-metric-tile.warning-border {
+  border-left: 4px solid var(--warning-color, #ff9800);
+}
+
+.dynamic-metric-tile.danger-border {
+  border-left: 4px solid var(--danger-color, #f44336);
+}
+
+.dynamic-metric-tile.neutral-border {
+  border-left: 4px solid var(--info-color, #2196f3);
+}
+
+/* Karten-Inhalt */
+.dynamic-metric-tile .card-body {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* Icon-Styling */
+.dynamic-metric-tile .metric-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background-color: rgba(var(--primary-color-rgb, 63, 81, 181), 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary-color, #3f51b5);
+  font-size: 1.4rem;
+}
+
+/* Metrik-Inhalt */
+.dynamic-metric-tile .metric-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Titel */
+.dynamic-metric-tile .metric-title {
+  font-size: 0.9rem;
+  color: var(--text-secondary-color, #757575);
+  margin-bottom: 0.25rem;
+  font-weight: 500;
+}
+
+/* Wert */
+.dynamic-metric-tile .metric-value {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+  line-height: 1.2;
+}
+
+/* Trend-Anzeige */
+.dynamic-metric-tile .metric-trend {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+/* Trend-Richtungen */
+.dynamic-metric-tile .trend-up {
+  color: var(--success-color, #4caf50);
+}
+
+.dynamic-metric-tile .trend-down {
+  color: var(--danger-color, #f44336);
+}
+
+.dynamic-metric-tile .trend-neutral {
+  color: var(--text-secondary-color, #757575);
+}
+
+/* Status-Textfarben */
+.dynamic-metric-tile .text-success {
+  color: var(--success-color, #4caf50) !important;
+}
+
+.dynamic-metric-tile .text-warning {
+  color: var(--warning-color, #ff9800) !important;
+}
+
+.dynamic-metric-tile .text-danger {
+  color: var(--danger-color, #f44336) !important;
+}
+
+.dynamic-metric-tile .text-neutral {
+  color: var(--info-color, #2196f3) !important;
+}
+
+/* Animation für das Erscheinen der Karte */
+@keyframes metric-tile-appear {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dynamic-metric-tile {
+  animation: metric-tile-appear 0.3s ease-out;
+}
+
+/* Responsive Anpassungen */
+@media (max-width: 768px) {
+  .dynamic-metric-tile .card-body {
+    padding: 1rem;
+  }
+
+  .dynamic-metric-tile .metric-value {
+    font-size: 1.5rem;
+  }
+
+  .dynamic-metric-tile .metric-icon {
+    width: 32px;
+    height: 32px;
+    font-size: 1.1rem;
+  }
+}
+
+/* Für sehr kleine Bildschirme */
+@media (max-width: 576px) {
+  .dynamic-metric-tile .metric-title,
+  .dynamic-metric-tile .metric-trend {
+    font-size: 0.75rem;
+  }
+
+  .dynamic-metric-tile .metric-value {
+    font-size: 1.3rem;
+  }
+}
+
+/* Unterstützung für dunkles Design */
+html[data-theme="dark"] .dynamic-metric-tile,
+body.dark-theme .dynamic-metric-tile {
+  background-color: var(--surface-color, #333);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+html[data-theme="dark"] .dynamic-metric-tile .metric-icon,
+body.dark-theme .dynamic-metric-tile .metric-icon {
+  background-color: rgba(var(--primary-color-rgb, 63, 81, 181), 0.2);
+}
+
+html[data-theme="dark"] .dynamic-metric-tile:hover,
+body.dark-theme .dynamic-metric-tile:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
