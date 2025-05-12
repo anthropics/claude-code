@@ -174,7 +174,7 @@ const DEFAULT_CONFIGS = {
       light: {
         name: 'Light Theme',
         colors: {
-          primary: '#3f51b5',
+          primary: '#1565c0',
           secondary: '#7986cb',
           accent: '#ff4081',
           success: '#4caf50',
@@ -192,7 +192,7 @@ const DEFAULT_CONFIGS = {
       dark: {
         name: 'Dark Theme',
         colors: {
-          primary: '#bb86fc',
+          primary: '#1565c0',
           secondary: '#03dac6',
           accent: '#cf6679',
           success: '#4caf50',
@@ -727,7 +727,7 @@ class ConfigManager {
           try {
             const colorSchemaConfig = this.getConfig(CONFIG_TYPES.COLOR_SCHEMA);
             if (keyPath === 'COLOR_SCHEMA') {
-              return {
+              return colorSchemaConfig.COLOR_SCHEMA || {
                 activeTheme: colorSchemaConfig.userPreferences?.activeTheme || 'dark'
               };
             }
@@ -879,12 +879,13 @@ class ConfigManager {
   }
 }
 
-// Export as constants
+// Create the singleton instance
+const configManager = new ConfigManager();
+
+// Export as constants and singleton
+module.exports = configManager;
 module.exports.CONFIG_TYPES = CONFIG_TYPES;
 module.exports.ConfigError = ConfigError;
 module.exports.ConfigValidationError = ConfigValidationError;
 module.exports.ConfigAccessError = ConfigAccessError;
-
-// Export as singleton
-const configManager = new ConfigManager();
-module.exports = configManager;
+module.exports.DEFAULT_CONFIGS = DEFAULT_CONFIGS;

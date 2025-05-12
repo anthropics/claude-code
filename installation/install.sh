@@ -6,6 +6,9 @@
 # Date: 2025-05-11
 # ================================================
 
+# Set shell language to German
+export LANG=de_DE.UTF-8
+
 # Strikte Error-Handling-Modi aktivieren
 set -e  # Exit bei Fehlern
 set -u  # Fehler bei Verwendung undefinierter Variablen

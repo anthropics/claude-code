@@ -8,12 +8,11 @@
  * für das Claude Neural Framework.
  */
 
-'use strict';
-
 const path = require('path');
 const { spawnSync } = require('child_process');
 
-// Set shell language to German (after strict mode)
+// Set shell language to German
+// Use process only after the module is loaded
 process.env.LANG = 'de_DE.UTF-8';
 
 // Pfad zum color_schema_manager.js
@@ -27,12 +26,12 @@ console.log('Starte interaktive Farbschema-Konfiguration...');
 
 // Use our wrapper script instead to avoid COLOR_SCHEMA errors
 const wrapperPath = path.resolve(__dirname, './color_schema_wrapper.js');
-const result = spawnSync('node', [wrapperPath, '--template=dark'], {
+const process = spawnSync('node', [wrapperPath, '--template=dark'], {
   stdio: 'inherit',
   shell: true
 });
 
-if (result.status !== 0) {
+if (process.status !== 0) {
   console.error('Fehler beim Ausführen des Farbschema-Managers.');
   process.exit(1);
 }
