@@ -47,16 +47,16 @@ show_banner() {
 log() {
   local level=$1
   local message=$2
-  
+
   # Create log directory if it doesn't exist
   mkdir -p "$(dirname "$LOG_FILE")"
-  
+
   # Get timestamp
   local timestamp=$(date "+%Y-%m-%d %H:%M:%S")
-  
+
   # Log to file
   echo "[$timestamp] [$level] $message" >> "$LOG_FILE"
-  
+
   # Also print to console if not in quiet mode
   if [ "$QUIET_MODE" != "true" ]; then
     case $level in
@@ -79,6 +79,53 @@ log() {
         ;;
     esac
   fi
+}
+
+# Cross-platform safe sed function
+safe_sed() {
+  local pattern="$1"
+  local file="$2"
+  local temp_file
+
+  # Check if file exists
+  if [ ! -f "$file" ]; then
+    log "ERROR" "File not found: $file"
+    return 1
+  fi
+
+  # Create a temporary file
+  temp_file=$(mktemp)
+  if [ $? -ne 0 ]; then
+    log "ERROR" "Failed to create temporary file"
+    return 1
+  fi
+
+  # Copy file content to temp file
+  cat "$file" > "$temp_file"
+
+  # Detect OS and apply sed
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    # macOS
+    sed -i '' "$pattern" "$temp_file" 2>/dev/null
+  else
+    # Linux and others
+    sed -i "$pattern" "$temp_file" 2>/dev/null
+  fi
+
+  # Check if sed was successful
+  if [ $? -eq 0 ]; then
+    # Copy back only if successful
+    cat "$temp_file" > "$file"
+    log "DEBUG" "Successfully updated file: $file"
+  else
+    log "ERROR" "Failed to perform sed operation on $file"
+    rm -f "$temp_file"
+    return 1
+  fi
+
+  # Clean up
+  rm -f "$temp_file"
+  return 0
 }
 
 # Help function
@@ -121,10 +168,10 @@ show_help() {
 # Check dependencies
 check_dependencies() {
   log "INFO" "Checking system dependencies"
-  
+
   local missing=0
   local deps=("node" "npm" "python3" "git")
-  
+
   for cmd in "${deps[@]}"; do
     if ! command -v "$cmd" &> /dev/null; then
       log "ERROR" "$cmd not found"
@@ -133,39 +180,45 @@ check_dependencies() {
       local version=""
       case $cmd in
         node)
-          version=$(node -v)
+          version=$(node -v 2>/dev/null || echo "unknown")
           ;;
         npm)
-          version=$(npm -v)
+          version=$(npm -v 2>/dev/null || echo "unknown")
           ;;
         python3)
-          version=$(python3 --version)
+          version=$(python3 --version 2>/dev/null || echo "unknown")
           ;;
         git)
-          version=$(git --version)
+          version=$(git --version 2>/dev/null || echo "unknown")
           ;;
       esac
       log "DEBUG" "Found $cmd: $version"
     fi
   done
-  
+
   if [ $missing -gt 0 ]; then
     log "ERROR" "Missing $missing dependencies. Please install required dependencies."
     exit 1
   fi
-  
-  # Check Node.js version
-  local node_version=$(node -v | cut -d 'v' -f 2 | cut -d '.' -f 1)
-  if [ "$node_version" -lt 16 ]; then
-    log "WARN" "Node.js version $node_version detected. Version 16+ is recommended."
+
+  # Check Node.js version - safely
+  if node -v > /dev/null 2>&1; then
+    local node_version
+    node_version=$(node -v | cut -d 'v' -f 2 | cut -d '.' -f 1)
+    if [[ "$node_version" =~ ^[0-9]+$ ]] && [ "$node_version" -lt 16 ]; then
+      log "WARN" "Node.js version $node_version detected. Version 16+ is recommended."
+    fi
   fi
-  
-  # Check npm version
-  local npm_version=$(npm -v | cut -d '.' -f 1)
-  if [ "$npm_version" -lt 7 ]; then
-    log "WARN" "npm version $npm_version detected. Version 7+ is recommended."
-  }
-  
+
+  # Check npm version - safely
+  if npm -v > /dev/null 2>&1; then
+    local npm_version
+    npm_version=$(npm -v | cut -d '.' -f 1)
+    if [[ "$npm_version" =~ ^[0-9]+$ ]] && [ "$npm_version" -lt 7 ]; then
+      log "WARN" "npm version $npm_version detected. Version 7+ is recommended."
+    fi
+  fi
+
   log "INFO" "All dependencies satisfied"
 }
 
@@ -250,7 +303,7 @@ do_setup() {
     ./schema-ui-integration/saar.sh setup --quick --theme="$theme" --user="$user_id"
   else
     log "WARN" "Schema UI integration not found. Skipping setup."
-  }
+  fi
   
   # Setup color schema
   if [ "$quick_mode" = true ]; then
@@ -399,12 +452,12 @@ do_colors() {
   
   # Update color schema using color_schema_manager
   if [ -f "core/mcp/color_schema_manager.js" ]; then
-    if [ "$theme" != "custom" ]; then
-      log "INFO" "Setting theme to $theme"
-      node core/mcp/color_schema_manager.js --template="$theme" --apply=$apply
-    else
+    if [ "$theme" = "custom" ]; then
       log "INFO" "Starting interactive color schema configuration"
       node scripts/setup/setup_user_colorschema.js
+    else
+      log "INFO" "Setting theme to $theme"
+      node scripts/setup/color_schema_wrapper.js --template="$theme" --apply=$apply
     fi
   fi
   
@@ -551,7 +604,7 @@ do_memory() {
           cp -r "$CONFIG_DIR/profiles/"* "$profile_backup/"
           log "INFO" "Profiles backed up to: $profile_backup"
         fi
-      }
+      fi
       
       # Create backup manifest
       echo "{\"date\": \"$(date '+%Y-%m-%d %H:%M:%S')\", \"files\": [\"$backup_file\"]}" > "$CONFIG_DIR/backups/backup-manifest-$(date +%Y%m%d-%H%M%S).json"
@@ -1050,11 +1103,10 @@ EOF
             # Backup configuration
             cp "$WORKSPACE_DIR/schema-ui-integration/enterprise/config/enterprise.yaml" "$WORKSPACE_DIR/schema-ui-integration/enterprise/config/enterprise.yaml.bak"
 
-            # Update license type with sed
-            sed -i.bak "s/license:/license:\n  type: \"beta\"/" "$WORKSPACE_DIR/schema-ui-integration/enterprise/config/enterprise.yaml" || sed -i "" "s/license:/license:\n  type: \"beta\"/" "$WORKSPACE_DIR/schema-ui-integration/enterprise/config/enterprise.yaml"
-
-            # Update expiration with sed
-            sed -i.bak "s/expiration: \"\"/expiration: \"$expiration\"/" "$WORKSPACE_DIR/schema-ui-integration/enterprise/config/enterprise.yaml" || sed -i "" "s/expiration: \"\"/expiration: \"$expiration\"/" "$WORKSPACE_DIR/schema-ui-integration/enterprise/config/enterprise.yaml"
+            # Update license type and expiration with our safe sed function
+            log "DEBUG" "Updating license configuration"
+            safe_sed "s/license:/license:\\n  type: \"beta\"/" "$WORKSPACE_DIR/schema-ui-integration/enterprise/config/enterprise.yaml"
+            safe_sed "s/expiration: \"\"/expiration: \"$expiration\"/" "$WORKSPACE_DIR/schema-ui-integration/enterprise/config/enterprise.yaml"
 
             # Clean up backup
             rm -f "$WORKSPACE_DIR/schema-ui-integration/enterprise/config/enterprise.yaml.bak"
@@ -1250,18 +1302,18 @@ EOF
 
           # Update role if provided
           if [ ! -z "$user_role" ]; then
-            sed -i.bak "s/\"role\": \"[^\"]*\"/\"role\": \"$user_role\"/" "$user_file" || sed -i "" "s/\"role\": \"[^\"]*\"/\"role\": \"$user_role\"/" "$user_file"
+            safe_sed "s/\"role\": \"[^\"]*\"/\"role\": \"$user_role\"/" "$user_file"
             updated=true
           fi
 
           # Update status if provided
           if [ ! -z "$user_status" ]; then
-            sed -i.bak "s/\"status\": \"[^\"]*\"/\"status\": \"$user_status\"/" "$user_file" || sed -i "" "s/\"status\": \"[^\"]*\"/\"status\": \"$user_status\"/" "$user_file"
+            safe_sed "s/\"status\": \"[^\"]*\"/\"status\": \"$user_status\"/" "$user_file"
             updated=true
           fi
 
           # Update lastModified date
-          sed -i.bak "s/\"lastModified\": \"[^\"]*\"/\"lastModified\": \"$timestamp\"/" "$user_file" || sed -i "" "s/\"lastModified\": \"[^\"]*\"/\"lastModified\": \"$timestamp\"/" "$user_file"
+          safe_sed "s/\"lastModified\": \"[^\"]*\"/\"lastModified\": \"$timestamp\"/" "$user_file"
 
           # Clean up backup
           rm -f "$user_file.bak"
@@ -1459,14 +1511,14 @@ EOF
           # Add user to members array
           if grep -q "\"members\": \[\]" "$team_file"; then
             # Empty array
-            sed -i.bak "s/\"members\": \[\]/\"members\": \[\"$user_id\"\]/" "$team_file" || sed -i "" "s/\"members\": \[\]/\"members\": \[\"$user_id\"\]/" "$team_file"
+            safe_sed "s/\"members\": \[\]/\"members\": \[\"$user_id\"\]/" "$team_file"
           else
             # Non-empty array
-            sed -i.bak "s/\"members\": \[/\"members\": \[\"$user_id\", /" "$team_file" || sed -i "" "s/\"members\": \[/\"members\": \[\"$user_id\", /" "$team_file"
+            safe_sed "s/\"members\": \[/\"members\": \[\"$user_id\", /" "$team_file"
           fi
 
           # Update lastModified date
-          sed -i.bak "s/\"lastModified\": \"[^\"]*\"/\"lastModified\": \"$timestamp\"/" "$team_file" || sed -i "" "s/\"lastModified\": \"[^\"]*\"/\"lastModified\": \"$timestamp\"/" "$team_file"
+          safe_sed "s/\"lastModified\": \"[^\"]*\"/\"lastModified\": \"$timestamp\"/" "$team_file"
 
           # Clean up backup
           rm -f "$team_file.bak"

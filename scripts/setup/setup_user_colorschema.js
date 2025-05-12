@@ -19,7 +19,10 @@ spawnSync('chmod', ['+x', managerPath]);
 
 // Benutzer-Farbschema-Manager ausführen
 console.log('Starte interaktive Farbschema-Konfiguration...');
-const process = spawnSync('node', [managerPath], {
+
+// Use our wrapper script instead to avoid COLOR_SCHEMA errors
+const wrapperPath = path.resolve(__dirname, './color_schema_wrapper.js');
+const process = spawnSync('node', [wrapperPath, '--template=dark'], {
   stdio: 'inherit',
   shell: true
 });

@@ -118,7 +118,10 @@
     }
   },
   "userPreferences": {
-    "activeTheme": "light",
+    "activeTheme": "blue",
     "custom": null
+  },
+  "COLOR_SCHEMA": {
+    "activeTheme": "blue"
   }
 }

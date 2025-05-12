@@ -35,7 +35,25 @@ if (!fs.existsSync(configManager.globalConfigPath)) {
  */
 function loadConfig() {
   try {
-    return configManager.getConfig(CONFIG_TYPES.COLOR_SCHEMA);
+    // Get the color schema configuration from the config manager
+    const colorConfig = configManager.getConfig(CONFIG_TYPES.COLOR_SCHEMA);
+
+    // Make sure the userPreferences property exists
+    if (!colorConfig.userPreferences) {
+      colorConfig.userPreferences = {
+        activeTheme: 'dark',
+        custom: null
+      };
+    }
+
+    // Add a backward-compatible COLOR_SCHEMA property if needed
+    if (!colorConfig.COLOR_SCHEMA) {
+      colorConfig.COLOR_SCHEMA = {
+        activeTheme: colorConfig.userPreferences.activeTheme || 'dark'
+      };
+    }
+
+    return colorConfig;
   } catch (err) {
     console.error(`Error loading color schema configuration: ${err.message}`);
     return configManager.DEFAULT_CONFIGS[CONFIG_TYPES.COLOR_SCHEMA];
@@ -299,8 +317,8 @@ pre {
 async function createColorSchemaInteractive() {
   try {
     const config = loadConfig();
-    const userConfig = loadUserConfig() || { 
-      activeTheme: config.userPreferences.activeTheme,
+    const userConfig = loadUserConfig() || {
+      activeTheme: config.userPreferences ? config.userPreferences.activeTheme : 'dark',
       custom: null
     };
     
@@ -523,32 +541,36 @@ function getColorSchema() {
   try {
     // Use the standardized config manager
     const colorSchemaConfig = configManager.getConfig(CONFIG_TYPES.COLOR_SCHEMA);
-    
-    if (colorSchemaConfig.userPreferences.activeTheme === 'custom' && colorSchemaConfig.userPreferences.custom) {
+
+    // Use the userPreferences to determine the active theme
+    if (colorSchemaConfig.userPreferences && colorSchemaConfig.userPreferences.activeTheme === 'custom' && colorSchemaConfig.userPreferences.custom) {
       return colorSchemaConfig.userPreferences.custom;
-    } else {
+    } else if (colorSchemaConfig.userPreferences && colorSchemaConfig.userPreferences.activeTheme) {
       const themeKey = colorSchemaConfig.userPreferences.activeTheme;
-      return colorSchemaConfig.themes[themeKey] || colorSchemaConfig.themes.light; // Fallback to light if theme not found
+      return colorSchemaConfig.themes[themeKey] || colorSchemaConfig.themes.dark; // Fallback to dark if theme not found
     }
+
+    // Fallback to dark theme if no theme preference specified
+    return colorSchemaConfig.themes.dark;
   } catch (err) {
     console.error(`Error getting color schema: ${err.message}`);
-    // Return default light theme if anything fails
+    // Return default dark theme if anything fails
     return {
-      name: "Default Light",
+      name: "Default Dark",
       colors: {
-        primary: "#3f51b5",
-        secondary: "#7986cb",
-        accent: "#ff4081",
+        primary: "#bb86fc",
+        secondary: "#03dac6",
+        accent: "#cf6679",
         success: "#4caf50",
         warning: "#ff9800",
-        danger: "#f44336",
+        danger: "#cf6679",
         info: "#2196f3",
-        background: "#ffffff",
-        surface: "#ffffff",
-        text: "#212121",
-        textSecondary: "#757575",
-        border: "#e0e0e0",
-        shadow: "rgba(0, 0, 0, 0.1)"
+        background: "#121212",
+        surface: "#1e1e1e",
+        text: "#ffffff",
+        textSecondary: "#b0b0b0",
+        border: "#333333",
+        shadow: "rgba(0, 0, 0, 0.5)"
       }
     };
   }
