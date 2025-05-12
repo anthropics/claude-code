@@ -1,9 +1,10 @@
 ---
 name: Security Issue
 about: Report a security issue or vulnerability
-title: '[SECURITY] '
-labels: security, needs triage
+title: "[SECURITY] "
+labels: ''
 assignees: ''
+
 ---
 
 **⚠️ IMPORTANT: For critical security vulnerabilities, please report via email to security@claudeframework.example instead of using this template.**
