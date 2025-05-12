@@ -1,60 +1,125 @@
-# Claude Code (Research Preview)
+# Claude Neural Framework
 
-![](https://img.shields.io/badge/Node.js-18%2B-brightgreen?style=flat-square) [![npm]](https://www.npmjs.com/package/@anthropic-ai/claude-code)
+> Eine fortschrittliche Integrationsplattform für Claude's KI-Fähigkeiten mit MCP, RAG und integrierten UI-Komponenten
 
-[npm]: https://img.shields.io/npm/v/@anthropic-ai/claude-code.svg?style=flat-square
+## Übersicht
 
-Claude Code is an agentic coding tool that lives in your terminal, understands your codebase, and helps you code faster by executing routine tasks, explaining complex code, and handling git workflows - all through natural language commands.
+Das Claude Neural Framework bietet eine umfassende Lösung für die Integration von Claude's kognitiven Fähigkeiten in Entwicklungs-Workflows. Es kombiniert agentenbasierte Architektur, MCP-Integration (Model Context Protocol), fortschrittliches Prompt-Engineering und moderne UI-Komponenten in einer konsistenten Arbeitsumgebung.
 
-Some of its key capabilities include:
+## Neues Feature: Integrierte UI-Komponenten
 
-- Edit files and fix bugs across your codebase
-- Answer questions about your code's architecture and logic
-- Execute and fix tests, lint, and other commands
-- Search through git history, resolve merge conflicts, and create commits and PRs
+Ab Version 2.0 bietet das Framework eine vollständig integrierte UI-Komponenten-Bibliothek, die das Beste aus der schema-ui-integration und den Dashboard-Komponenten vereint. Diese neue integrierte Bibliothek bietet:
 
-**Learn more in the [official documentation](https://docs.anthropic.com/en/docs/agents/claude-code/introduction)**.
+- **Schema-basierte Formulare**: Automatisch generierte Formulare aus JSON-Schemas
+- **Profilmanagement**: Komponenten zur Benutzerprofilverwaltung mit lokalem Speicher
+- **Moderne Dashboard-Komponenten**: BentoGrid, AdvancedFilter, DynamicMetricTile und GradientCard
+- **Einheitliches Design-System**: Konsistentes Theming und responsives Layout
+- **Adaptives Framework**: Flexible Integration mit verschiedenen Backends
 
-## Get started
+Weitere Informationen finden Sie in der [Dokumentation zu den integrierten UI-Komponenten](/docs/INTEGRATED_UI_COMPONENTS.md).
 
-1. If you are new to Node.js and Node Package Manager (`npm`), then it is recommended that you configure an NPM prefix for your user.
-   Instructions on how to do this can be found [here](https://docs.anthropic.com/en/docs/agents-and-tools/claude-code/overview#recommended-create-a-new-user-writable-npm-prefix).
+## Installation
 
-   *Important* We recommend installing this package as a non-privileged user, not as an administrative user like `root`.
-   Installing as a non-privileged user helps maintain your system's security and stability.
+```bash
+# Repository klonen
+git clone https://github.com/username/claude-code.git
+cd claude-code
 
-2. Install Claude Code:
-   
-   ```sh
-   npm install -g @anthropic-ai/claude-code
-   ```
+# Installation ausführen
+./simple_install.sh
 
-3. Navigate to your project directory and run <code>claude</code>.
+# API-Schlüssel konfigurieren
+export CLAUDE_API_KEY="YOUR_CLAUDE_API_KEY"
+```
 
-4. Complete the one-time OAuth process with your Anthropic Console account.
+## Verwendung der UI-Komponenten
 
-### Research Preview
+```javascript
+// Importieren der Komponenten
+import {
+  BentoGrid,
+  AdvancedFilter,
+  EnhancedProfileForm,
+  unifiedAdapter,
+} from "./src/ui_components";
 
-We're launching Claude Code as a beta product in research preview to learn directly from developers about their experiences collaborating with AI agents. Our aim is to learn more about how developers prefer to collaborate with AI tools, which development workflows benefit most from working with the agent, and how we can make the agent experience more intuitive.
+// Verwendung der Komponenten
+const grid = new BentoGrid({
+  elementId: "data-grid",
+  items: myData,
+  adapter: unifiedAdapter,
+});
 
-This is an early version of the product experience, and it's likely to evolve as we learn more about developer preferences. Claude Code is an early look into what's possible with agentic coding, and we know there are areas to improve. We plan to enhance tool execution reliability, support for long-running commands, terminal rendering, and Claude's self-knowledge of its capabilities -- as well as many other product experiences -- over the coming weeks.
+const profileForm = new EnhancedProfileForm({
+  elementId: "profile-form",
+  adapter: unifiedAdapter,
+  onSave: (data) => {
+    console.log("Profil gespeichert:", data);
+  },
+});
+```
 
-### Reporting Bugs
+## Hauptfunktionen
 
-We welcome feedback during this beta period. Use the `/bug` command to report issues directly within Claude Code, or file a [GitHub issue](https://github.com/anthropics/claude-code/issues).
+- **MCP-Integration**: Nahtlose Verbindung mit Model Context Protocol-Servern
+- **RAG-Framework**: Retrieval Augmented Generation für kontextbasierte KI-Antworten
+- **Agentenarchitektur**: Strukturiertes Agent-zu-Agent-Kommunikationsprotokoll
+- **UI-Komponenten**: Integrierte Bibliothek mit Dashboard- und Schema-basierten Komponenten
+- **Codeanalyse**: Tiefgreifendes Verständnis von Codestrukturen und -mustern
+- **Enterprise-Funktionen**: Erweiterte Sicherheit, Compliance, SSO und Unternehmensintegrationen für Organisationen (siehe [Enterprise-Dokumentation](/docs/enterprise/README.md))
 
-### Data collection, usage, and retention
+## Verzeichnisstruktur
 
-When you use Claude Code, we collect feedback, which includes usage data (such as code acceptance or rejections), associated conversation data, and user feedback submitted via the `/bug` command.
+```
+claude-code/
+├── core/                # Kernfunktionalität
+│   ├── config/          # Konfigurationsdateien
+│   ├── mcp/             # MCP-Integration
+│   └── rag/             # RAG-Framework
+├── src/                 # Hauptquellcode
+│   ├── ui_components/   # Integrierte UI-Komponenten
+│   │   ├── dashboard/   # Dashboard-Komponenten
+│   │   └── design-system/ # Design-System
+│   └── schema_ui/       # Schema-basierte UI-Komponenten
+├── agents/              # Agentenbasierte Architektur
+│   └── commands/        # Agentenbefehle
+├── cognitive/           # Kognitive Komponenten
+│   ├── prompts/         # Prompt-Bibliothek
+│   └── templates/       # Wiederverwendbare Templates
+├── docs/                # Dokumentation
+│   ├── architecture/    # Architekturdetails
+│   ├── enterprise/      # Enterprise-Funktionen
+│   ├── guides/          # Anleitungen
+│   └── examples/        # Beispiele
+└── saar.sh              # Setup, Activate, Apply, Run Script
+```
 
-#### How we use your data
+## Migration
 
-We may use feedback to improve our products and services, but we will not train generative models using your feedback from Claude Code. Given their potentially sensitive nature, we store user feedback transcripts for only 30 days.
+Wenn Sie von einer älteren Version des Frameworks migrieren, lesen Sie den [Migrations-Leitfaden](/docs/MIGRATION_GUIDE.md), der detaillierte Anweisungen zur Umstellung auf die integrierte Komponenten-Bibliothek enthält.
 
-If you choose to send us feedback about Claude Code, such as transcripts of your usage, Anthropic may use that feedback to debug related issues and improve Claude Code's functionality (e.g., to reduce the risk of similar bugs occurring in the future).
+## Enterprise-Funktionen
 
-### Privacy safeguards
+Das Claude Neural Framework bietet umfassende Funktionen für Unternehmensumgebungen:
 
-We have implemented several safeguards to protect your data, including limited retention periods for sensitive information, restricted access to user session data, and clear policies against using feedback for model training.
+- **Verbesserte Sicherheit**: SAML/OAuth-Unterstützung, Rollenbasierte Zugriffskontrolle, IP-Beschränkungen
+- **Compliance**: Unterstützung für GDPR, HIPAA, SOC2 und andere Frameworks
+- **Unternehmensintegrationen**: Active Directory, JIRA, CRM-Systeme, CI/CD-Pipelines
+- **Benutzerverwaltung**: Zentrale Benutzerverwaltung und Provisioning
+- **Enterprise-Workflows**: Angepasste Git-Workflows mit Genehmigungsprozessen
+- **UI-Integration**: Nahtlose Integration der UI-Komponenten in bestehende Unternehmensanwendungen
 
-For full details, please review our [Commercial Terms of Service](https://www.anthropic.com/legal/commercial-terms) and [Privacy Policy](https://www.anthropic.com/legal/privacy).
+Weitere Informationen finden Sie in der [Enterprise-Dokumentation](/docs/enterprise/README.md) und im [Enterprise Quick Start Guide](/docs/enterprise/quick_start.md).
+
+## Dokumentation
+
+Die vollständige Dokumentation finden Sie im [Docs-Verzeichnis](/docs):
+
+- [Integrierte UI-Komponenten](/docs/INTEGRATED_UI_COMPONENTS.md)
+- [Migrations-Leitfaden](/docs/MIGRATION_GUIDE.md)
+- [A2A-Protokoll-Guide](/docs/a2a_protocol_guide.md)
+- [Git-Agent-Dokumentation](/docs/git_agent_documentation.md)
+
+## Lizenz
+
+Dieses Projekt steht unter der [MIT-Lizenz](/LICENSE.md).

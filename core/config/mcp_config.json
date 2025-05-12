@@ -1,0 +1,105 @@
+{
+  "version": "1.2.0",
+  "defaults": {
+    "api_key_env": "MCP_API_KEY",
+    "package_manager": "npx",
+    "package_manager_args": ["-y"],
+    "timeout": 30000,
+    "retries": 3,
+    "autostart": false
+  },
+  "servers": {
+    "sequentialthinking": {
+      "enabled": true,
+      "autostart": true,
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"],
+      "description": "Recursive thought generation for complex problems",
+      "priority": "high"
+    },
+    "brave-search": {
+      "enabled": true,
+      "command": "npx",
+      "args": ["-y", "@smithery/cli@latest", "run", "@smithery-ai/brave-search"],
+      "api_key_env": "MCP_API_KEY",
+      "description": "External knowledge acquisition",
+      "priority": "medium",
+      "timeout": 60000
+    },
+    "desktop-commander": {
+      "enabled": true,
+      "command": "npx",
+      "args": ["-y", "@smithery/cli@latest", "run", "@wonderwhy-er/desktop-commander", "--key", "${MCP_API_KEY}"],
+      "api_key_env": "MCP_API_KEY",
+      "description": "Filesystem integration and shell execution",
+      "priority": "medium",
+      "requires_permission": true
+    },
+    "context7-mcp": {
+      "enabled": true,
+      "command": "npx",
+      "args": ["-y", "@smithery/cli@latest", "run", "@upstash/context7-mcp", "--key", "${MCP_API_KEY}"],
+      "api_key_env": "MCP_API_KEY",
+      "description": "Context awareness and documentation access",
+      "priority": "high"
+    },
+    "enterprise-security-mcp": {
+      "enabled": true,
+      "command": "npx",
+      "args": ["-y", "@smithery/cli@latest", "run", "@enterprise/security-mcp", "--key", "${MCP_API_KEY}"],
+      "api_key_env": "MCP_API_KEY",
+      "description": "Enterprise security integration",
+      "enterpriseOnly": true,
+      "priority": "critical",
+      "health_check_path": "/api/health"
+    },
+    "enterprise-compliance-mcp": {
+      "enabled": true,
+      "command": "npx",
+      "args": ["-y", "@smithery/cli@latest", "run", "@enterprise/compliance-mcp", "--key", "${MCP_API_KEY}"],
+      "api_key_env": "MCP_API_KEY",
+      "description": "Enterprise compliance integration",
+      "enterpriseOnly": true,
+      "priority": "high",
+      "health_check_path": "/api/health"
+    },
+    "imagen-3-0-generate": {
+      "enabled": true,
+      "command": "npx",
+      "args": ["-y", "@smithery/cli@latest", "run", "@google/imagen-3-0-generate", "--key", "${MCP_API_KEY}"],
+      "api_key_env": "MCP_API_KEY",
+      "description": "Image generation with Google's Imagen",
+      "priority": "medium"
+    },
+    "21st-dev-magic": {
+      "enabled": true,
+      "command": "npx",
+      "args": ["-y", "@smithery/cli@latest", "run", "@21st/dev-magic", "--key", "${MAGIC_API_KEY}"],
+      "api_key_env": "MAGIC_API_KEY",
+      "description": "UI component generation and inspiration",
+      "priority": "medium"
+    }
+  },
+  "enterpriseFeatures": {
+    "enabled": "${ENTERPRISE_FEATURES_ENABLED}",
+    "configPath": "core/config/enterprise_config.json",
+    "licenseCheck": true,
+    "licenseKeyEnv": "ENTERPRISE_LICENSE_KEY"
+  },
+  "monitoring": {
+    "enabled": true,
+    "log_level": "info",
+    "health_check_interval": 60000,
+    "metrics_collection": true
+  },
+  "security": {
+    "validate_api_keys": true,
+    "sanitize_inputs": true,
+    "allowed_origins": ["http://localhost:3000"],
+    "rate_limiting": {
+      "enabled": true,
+      "max_requests": 100,
+      "window_ms": 60000
+    }
+  }
+}

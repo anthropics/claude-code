@@ -1,0 +1,125 @@
+{
+  "version": "1.0.0",
+  "branchPolicies": {
+    "main": {
+      "requireApproval": true,
+      "minApprovers": 2,
+      "requiredTeams": ["Engineering"]
+    },
+    "staging": {
+      "requireApproval": true,
+      "minApprovers": 1,
+      "requiredTeams": []
+    },
+    "development": {
+      "requireApproval": false,
+      "minApprovers": 0,
+      "requiredTeams": []
+    },
+    "feature/.*": {
+      "requireApproval": false,
+      "minApprovers": 0,
+      "requiredTeams": []
+    },
+    "bugfix/.*": {
+      "requireApproval": false,
+      "minApprovers": 0,
+      "requiredTeams": []
+    },
+    "hotfix/.*": {
+      "requireApproval": true,
+      "minApprovers": 1,
+      "requiredTeams": ["Security"]
+    },
+    "release/.*": {
+      "requireApproval": true,
+      "minApprovers": 2,
+      "requiredTeams": ["Engineering", "QA"]
+    }
+  },
+  "securityPolicies": {
+    "secureFilesPatterns": [
+      "**/config/*.json",
+      "**/secrets.*.js",
+      "**/*.key",
+      "**/credentials/*.js",
+      "**/credentials/*.json"
+    ],
+    "codeAnalysis": true,
+    "blockedPatterns": [
+      "password\\s*=\\s*['\"][^'\"]+['\"]",
+      "apiKey\\s*=\\s*['\"][^'\"]+['\"]",
+      "token\\s*=\\s*['\"][^'\"]+['\"]",
+      "secret\\s*=\\s*['\"][^'\"]+['\"]",
+      "private[kK]ey\\s*=\\s*['\"][^'\"]+['\"]"
+    ]
+  },
+  "teams": [
+    {
+      "name": "Engineering",
+      "approvalRoles": ["lead", "senior"],
+      "members": []
+    },
+    {
+      "name": "Security",
+      "approvalRoles": ["member"],
+      "members": []
+    },
+    {
+      "name": "QA",
+      "approvalRoles": ["lead"],
+      "members": []
+    },
+    {
+      "name": "Product",
+      "approvalRoles": ["manager"],
+      "members": []
+    }
+  ],
+  "integrations": {
+    "jira": {
+      "enabled": false,
+      "url": "",
+      "projectKey": "",
+      "issueTypes": {
+        "feature": "Story",
+        "bugfix": "Bug",
+        "hotfix": "Bug",
+        "release": "Task"
+      }
+    },
+    "github": {
+      "enabled": false,
+      "enterpriseUrl": ""
+    },
+    "jenkins": {
+      "enabled": false,
+      "url": "",
+      "jobName": "",
+      "token": ""
+    }
+  },
+  "changeManagement": {
+    "enabled": true,
+    "requireIssueReference": true,
+    "requireChangelog": true,
+    "changelogPath": "CHANGELOG.md",
+    "validateCommitMessage": true,
+    "commitMessagePattern": "^(feat|fix|docs|style|refactor|perf|test|chore)(\\(.+\\))?: .+$"
+  },
+  "cicd": {
+    "enforceWorkflow": true,
+    "blockOnFailure": true,
+    "notifications": {
+      "slack": {
+        "enabled": false,
+        "webhook": ""
+      },
+      "email": {
+        "enabled": false,
+        "recipients": []
+      }
+    }
+  },
+  "customWorkflows": []
+}

@@ -1,0 +1,480 @@
+/**
+ * Design-System: Farben
+ * ======================
+ * 
+ * Konsistentes Farbsystem mit CSS-Variablen für verschiedene Themes
+ * und bessere visuelle Hierarchie.
+ */
+
+:root {
+  /* 
+   * Basis-Farbpalette 
+   * Diese Farben sind Theme-unabhängig und dienen als Referenz
+   */
+  --blue-50: #e3f2fd;
+  --blue-100: #bbdefb;
+  --blue-200: #90caf9;
+  --blue-300: #64b5f6;
+  --blue-400: #42a5f5;
+  --blue-500: #2196f3;
+  --blue-600: #1e88e5;
+  --blue-700: #1976d2;
+  --blue-800: #1565c0;
+  --blue-900: #0d47a1;
+
+  --indigo-50: #e8eaf6;
+  --indigo-100: #c5cae9;
+  --indigo-200: #9fa8da;
+  --indigo-300: #7986cb;
+  --indigo-400: #5c6bc0;
+  --indigo-500: #3f51b5;
+  --indigo-600: #3949ab;
+  --indigo-700: #303f9f;
+  --indigo-800: #283593;
+  --indigo-900: #1a237e;
+
+  --green-50: #e8f5e9;
+  --green-100: #c8e6c9;
+  --green-200: #a5d6a7;
+  --green-300: #81c784;
+  --green-400: #66bb6a;
+  --green-500: #4caf50;
+  --green-600: #43a047;
+  --green-700: #388e3c;
+  --green-800: #2e7d32;
+  --green-900: #1b5e20;
+
+  --amber-50: #fff8e1;
+  --amber-100: #ffecb3;
+  --amber-200: #ffe082;
+  --amber-300: #ffd54f;
+  --amber-400: #ffca28;
+  --amber-500: #ffc107;
+  --amber-600: #ffb300;
+  --amber-700: #ffa000;
+  --amber-800: #ff8f00;
+  --amber-900: #ff6f00;
+
+  --orange-50: #fff3e0;
+  --orange-100: #ffe0b2;
+  --orange-200: #ffcc80;
+  --orange-300: #ffb74d;
+  --orange-400: #ffa726;
+  --orange-500: #ff9800;
+  --orange-600: #fb8c00;
+  --orange-700: #f57c00;
+  --orange-800: #ef6c00;
+  --orange-900: #e65100;
+
+  --red-50: #ffebee;
+  --red-100: #ffcdd2;
+  --red-200: #ef9a9a;
+  --red-300: #e57373;
+  --red-400: #ef5350;
+  --red-500: #f44336;
+  --red-600: #e53935;
+  --red-700: #d32f2f;
+  --red-800: #c62828;
+  --red-900: #b71c1c;
+
+  --pink-50: #fce4ec;
+  --pink-100: #f8bbd0;
+  --pink-200: #f48fb1;
+  --pink-300: #f06292;
+  --pink-400: #ec407a;
+  --pink-500: #e91e63;
+  --pink-600: #d81b60;
+  --pink-700: #c2185b;
+  --pink-800: #ad1457;
+  --pink-900: #880e4f;
+
+  --purple-50: #f3e5f5;
+  --purple-100: #e1bee7;
+  --purple-200: #ce93d8;
+  --purple-300: #ba68c8;
+  --purple-400: #ab47bc;
+  --purple-500: #9c27b0;
+  --purple-600: #8e24aa;
+  --purple-700: #7b1fa2;
+  --purple-800: #6a1b9a;
+  --purple-900: #4a148c;
+
+  --gray-50: #fafafa;
+  --gray-100: #f5f5f5;
+  --gray-200: #eeeeee;
+  --gray-300: #e0e0e0;
+  --gray-400: #bdbdbd;
+  --gray-500: #9e9e9e;
+  --gray-600: #757575;
+  --gray-700: #616161;
+  --gray-800: #424242;
+  --gray-900: #212121;
+
+  /* 
+   * Funktionelle Farben - Helles Theme (Standard)
+   */
+
+  /* Primäre UI-Farben */
+  --primary-color: var(--indigo-500);
+  --primary-color-light: var(--indigo-300);
+  --primary-color-dark: var(--indigo-700);
+  --primary-color-rgb: 63, 81, 181; /* RGB-Werte für rgba() */
+
+  --secondary-color: var(--indigo-300);
+  --secondary-color-light: var(--indigo-100);
+  --secondary-color-dark: var(--indigo-500);
+  --secondary-color-rgb: 121, 134, 203; /* RGB-Werte für rgba() */
+
+  --accent-color: var(--pink-500);
+  --accent-color-light: var(--pink-300);
+  --accent-color-dark: var(--pink-700);
+  --accent-color-rgb: 233, 30, 99; /* RGB-Werte für rgba() */
+
+  /* Status- und Feedback-Farben */
+  --success-color: var(--green-500);
+  --success-color-light: var(--green-100);
+  --success-color-dark: var(--green-700);
+  --success-color-rgb: 76, 175, 80; /* RGB-Werte für rgba() */
+
+  --warning-color: var(--orange-500);
+  --warning-color-light: var(--orange-100);
+  --warning-color-dark: var(--orange-700);
+  --warning-color-rgb: 255, 152, 0; /* RGB-Werte für rgba() */
+
+  --danger-color: var(--red-500);
+  --danger-color-light: var(--red-100);
+  --danger-color-dark: var(--red-700);
+  --danger-color-rgb: 244, 67, 54; /* RGB-Werte für rgba() */
+
+  --info-color: var(--blue-500);
+  --info-color-light: var(--blue-100);
+  --info-color-dark: var(--blue-700);
+  --info-color-rgb: 33, 150, 243; /* RGB-Werte für rgba() */
+
+  /* Neutral- und UI-Hintergrundfarben */
+  --background-color: var(--gray-50);
+  --background-color-rgb: 250, 250, 250; /* RGB-Werte für rgba() */
+
+  --surface-color: #ffffff;
+  --surface-color-hover: var(--gray-100);
+  --surface-color-active: var(--gray-200);
+  --surface-color-rgb: 255, 255, 255; /* RGB-Werte für rgba() */
+
+  --text-color: var(--gray-900);
+  --text-secondary-color: var(--gray-600);
+  --text-disabled-color: var(--gray-500);
+
+  --border-color: var(--gray-300);
+  --border-color-light: var(--gray-200);
+  --border-color-focus: var(--primary-color-light);
+
+  --shadow-color: rgba(0, 0, 0, 0.1);
+  --shadow-color-dark: rgba(0, 0, 0, 0.2);
+
+  /* Legacy-Kompatibilität */
+  --light-gray: var(--gray-200);
+  --medium-gray: var(--gray-400);
+  --dark-gray: var(--gray-600);
+}
+
+/**
+ * Dunkles Farbschema
+ * Wird aktiviert, wenn entweder <html data-theme="dark"> oder
+ * <body class="dark-theme"> im DOM vorhanden ist
+ */
+html[data-theme="dark"],
+body.dark-theme {
+  /* Primäre UI-Farben - leicht angepasst für besseren Kontrast im Dark Mode */
+  --primary-color: var(--indigo-300);
+  --primary-color-light: var(--indigo-200);
+  --primary-color-dark: var(--indigo-400);
+  --primary-color-rgb: 121, 134, 203; /* RGB-Werte für rgba() */
+
+  --secondary-color: var(--indigo-200);
+  --secondary-color-light: var(--indigo-100);
+  --secondary-color-dark: var(--indigo-300);
+  --secondary-color-rgb: 159, 168, 218; /* RGB-Werte für rgba() */
+
+  --accent-color: var(--pink-300);
+  --accent-color-light: var(--pink-200);
+  --accent-color-dark: var(--pink-400);
+  --accent-color-rgb: 240, 98, 146; /* RGB-Werte für rgba() */
+
+  /* Status- und Feedback-Farben - für bessere Sichtbarkeit im Dark Mode */
+  --success-color: var(--green-300);
+  --success-color-light: rgba(
+    129,
+    199,
+    132,
+    0.2
+  ); /* semi-transparent für Hintergründe */
+  --success-color-dark: var(--green-200);
+  --success-color-rgb: 129, 199, 132; /* RGB-Werte für rgba() */
+
+  --warning-color: var(--orange-300);
+  --warning-color-light: rgba(
+    255,
+    183,
+    77,
+    0.2
+  ); /* semi-transparent für Hintergründe */
+  --warning-color-dark: var(--orange-200);
+  --warning-color-rgb: 255, 183, 77; /* RGB-Werte für rgba() */
+
+  --danger-color: var(--red-300);
+  --danger-color-light: rgba(
+    229,
+    115,
+    115,
+    0.2
+  ); /* semi-transparent für Hintergründe */
+  --danger-color-dark: var(--red-200);
+  --danger-color-rgb: 229, 115, 115; /* RGB-Werte für rgba() */
+
+  --info-color: var(--blue-300);
+  --info-color-light: rgba(
+    100,
+    181,
+    246,
+    0.2
+  ); /* semi-transparent für Hintergründe */
+  --info-color-dark: var(--blue-200);
+  --info-color-rgb: 100, 181, 246; /* RGB-Werte für rgba() */
+
+  /* Neutral- und UI-Hintergrundfarben */
+  --background-color: var(--gray-900);
+  --background-color-rgb: 33, 33, 33; /* RGB-Werte für rgba() */
+
+  --surface-color: var(--gray-800);
+  --surface-color-hover: var(--gray-700);
+  --surface-color-active: var(--gray-600);
+  --surface-color-rgb: 66, 66, 66; /* RGB-Werte für rgba() */
+
+  --text-color: var(--gray-50);
+  --text-secondary-color: var(--gray-400);
+  --text-disabled-color: var(--gray-500);
+
+  --border-color: var(--gray-700);
+  --border-color-light: var(--gray-600);
+  --border-color-focus: var(--primary-color);
+
+  --shadow-color: rgba(0, 0, 0, 0.5);
+  --shadow-color-dark: rgba(0, 0, 0, 0.7);
+
+  /* Legacy-Kompatibilität */
+  --light-gray: var(--gray-700);
+  --medium-gray: var(--gray-500);
+  --dark-gray: var(--gray-400);
+}
+
+/**
+ * Blaues Farbschema
+ */
+html[data-theme="blue"],
+body.blue-theme {
+  --primary-color: var(--blue-600);
+  --primary-color-light: var(--blue-400);
+  --primary-color-dark: var(--blue-800);
+  --primary-color-rgb: 30, 136, 229; /* RGB-Werte für rgba() */
+
+  --secondary-color: var(--blue-300);
+  --secondary-color-light: var(--blue-100);
+  --secondary-color-dark: var(--blue-500);
+  --secondary-color-rgb: 100, 181, 246; /* RGB-Werte für rgba() */
+
+  --accent-color: var(--amber-500);
+  --accent-color-light: var(--amber-300);
+  --accent-color-dark: var(--amber-700);
+  --accent-color-rgb: 255, 193, 7; /* RGB-Werte für rgba() */
+}
+
+/**
+ * Grünes Farbschema
+ */
+html[data-theme="green"],
+body.green-theme {
+  --primary-color: var(--green-600);
+  --primary-color-light: var(--green-400);
+  --primary-color-dark: var(--green-800);
+  --primary-color-rgb: 67, 160, 71; /* RGB-Werte für rgba() */
+
+  --secondary-color: var(--green-300);
+  --secondary-color-light: var(--green-100);
+  --secondary-color-dark: var(--green-500);
+  --secondary-color-rgb: 129, 199, 132; /* RGB-Werte für rgba() */
+
+  --accent-color: var(--purple-500);
+  --accent-color-light: var(--purple-300);
+  --accent-color-dark: var(--purple-700);
+  --accent-color-rgb: 156, 39, 176; /* RGB-Werte für rgba() */
+}
+
+/**
+ * Violettes Farbschema
+ */
+html[data-theme="purple"],
+body.purple-theme {
+  --primary-color: var(--purple-600);
+  --primary-color-light: var(--purple-400);
+  --primary-color-dark: var(--purple-800);
+  --primary-color-rgb: 142, 36, 170; /* RGB-Werte für rgba() */
+
+  --secondary-color: var(--purple-300);
+  --secondary-color-light: var(--purple-100);
+  --secondary-color-dark: var(--purple-500);
+  --secondary-color-rgb: 186, 104, 200; /* RGB-Werte für rgba() */
+
+  --accent-color: var(--amber-500);
+  --accent-color-light: var(--amber-300);
+  --accent-color-dark: var(--amber-700);
+  --accent-color-rgb: 255, 193, 7; /* RGB-Werte für rgba() */
+}
+
+/* 
+ * Nützliche Hilfsklassen für direkte Farb-Anwendung 
+ */
+
+/* Textfarben */
+.text-primary {
+  color: var(--primary-color) !important;
+}
+.text-secondary {
+  color: var(--secondary-color) !important;
+}
+.text-accent {
+  color: var(--accent-color) !important;
+}
+.text-success {
+  color: var(--success-color) !important;
+}
+.text-warning {
+  color: var(--warning-color) !important;
+}
+.text-danger {
+  color: var(--danger-color) !important;
+}
+.text-info {
+  color: var(--info-color) !important;
+}
+.text-muted {
+  color: var(--text-secondary-color) !important;
+}
+
+/* Hintergrundfarben */
+.bg-primary {
+  background-color: var(--primary-color) !important;
+}
+.bg-primary-light {
+  background-color: var(--primary-color-light) !important;
+}
+.bg-secondary {
+  background-color: var(--secondary-color) !important;
+}
+.bg-accent {
+  background-color: var(--accent-color) !important;
+}
+.bg-success {
+  background-color: var(--success-color) !important;
+}
+.bg-success-light {
+  background-color: var(--success-color-light) !important;
+}
+.bg-warning {
+  background-color: var(--warning-color) !important;
+}
+.bg-warning-light {
+  background-color: var(--warning-color-light) !important;
+}
+.bg-danger {
+  background-color: var(--danger-color) !important;
+}
+.bg-danger-light {
+  background-color: var(--danger-color-light) !important;
+}
+.bg-info {
+  background-color: var(--info-color) !important;
+}
+.bg-info-light {
+  background-color: var(--info-color-light) !important;
+}
+.bg-surface {
+  background-color: var(--surface-color) !important;
+}
+
+/* Rahmenfarben */
+.border-primary {
+  border-color: var(--primary-color) !important;
+}
+.border-secondary {
+  border-color: var(--secondary-color) !important;
+}
+.border-accent {
+  border-color: var(--accent-color) !important;
+}
+.border-success {
+  border-color: var(--success-color) !important;
+}
+.border-warning {
+  border-color: var(--warning-color) !important;
+}
+.border-danger {
+  border-color: var(--danger-color) !important;
+}
+.border-info {
+  border-color: var(--info-color) !important;
+}
+.border-light {
+  border-color: var(--border-color-light) !important;
+}
+
+/* Badge-Klassen */
+.badge-primary {
+  background-color: var(--primary-color);
+  color: white;
+}
+.badge-secondary {
+  background-color: var(--secondary-color);
+  color: white;
+}
+.badge-accent {
+  background-color: var(--accent-color);
+  color: white;
+}
+.badge-success {
+  background-color: var(--success-color);
+  color: white;
+}
+.badge-warning {
+  background-color: var(--warning-color);
+  color: white;
+}
+.badge-danger {
+  background-color: var(--danger-color);
+  color: white;
+}
+.badge-info {
+  background-color: var(--info-color);
+  color: white;
+}
+
+/* Subtile Badge-Versionen mit Hintergrund und Textfarbe */
+.badge-primary-soft {
+  background-color: rgba(var(--primary-color-rgb), 0.1);
+  color: var(--primary-color);
+}
+.badge-success-soft {
+  background-color: rgba(var(--success-color-rgb), 0.1);
+  color: var(--success-color);
+}
+.badge-warning-soft {
+  background-color: rgba(var(--warning-color-rgb), 0.1);
+  color: var(--warning-color);
+}
+.badge-danger-soft {
+  background-color: rgba(var(--danger-color-rgb), 0.1);
+  color: var(--danger-color);
+}
+.badge-info-soft {
+  background-color: rgba(var(--info-color-rgb), 0.1);
+  color: var(--info-color);
+}
