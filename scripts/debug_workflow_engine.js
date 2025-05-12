@@ -3,16 +3,31 @@
 /**
  * Rekursives Debugging-Workflow-Engine
  * ====================================
- * 
+ *
  * Dieses Skript verkettet verschiedene rekursive Debugging-Tools und
- * kann automatisch ausgelöst werden durch Events wie Git-Hooks, 
+ * kann automatisch ausgelöst werden durch Events wie Git-Hooks,
  * Dateiänderungen oder Runtime-Exceptions.
+ *
+ * Enterprise Workflow Integration:
+ * Fügt Unterstützung für Enterprise-Features wie Audit-Logging und
+ * Policy-Überprüfungen hinzu.
  */
 
 const fs = require('fs');
 const path = require('path');
 const { execSync, spawn } = require('child_process');
 const { program } = require('commander');
+
+// Load enterprise workflow if available
+let EnterpriseWorkflow;
+try {
+  EnterpriseWorkflow = require('../enterprise/enterprise-workflow');
+} catch (error) {
+  // Enterprise workflow module not available, will run without enterprise features
+}
+
+// Enterprise workflow instance
+let enterpriseWorkflow;
 
 // Konfiguration laden
 const CONFIG_PATH = path.resolve(__dirname, '../core/config/debug_workflow_config.json');
@@ -67,6 +82,16 @@ try {
 } catch (err) {
   console.error(`Fehler beim Laden der Konfiguration: ${err.message}`);
   process.exit(1);
+}
+
+// Initialize enterprise workflow if available
+if (EnterpriseWorkflow) {
+  try {
+    enterpriseWorkflow = new EnterpriseWorkflow();
+    console.log('Enterprise integration aktiviert');
+  } catch (error) {
+    console.warn('Enterprise-Integration konnte nicht initialisiert werden:', error.message);
+  }
 }
 
 // CLI Optionen
@@ -134,25 +159,85 @@ program
     watchFiles(directory, options.pattern, options.workflow);
   });
 
+// Add enterprise-specific commands if enterprise workflow is available
+if (enterpriseWorkflow) {
+  program
+    .command('enterprise-policy-check')
+    .description('Führt eine Enterprise-Policy-Überprüfung für rekursive Funktionen durch')
+    .option('-f, --file <file>', 'Zu analysierende Datei')
+    .option('-d, --directory <directory>', 'Zu analysierendes Verzeichnis')
+    .action((options) => {
+      console.log('Führe Enterprise-Policy-Überprüfung durch...');
+
+      if (!options.file && !options.directory) {
+        console.error('Keine Datei oder Verzeichnis angegeben');
+        process.exit(1);
+      }
+
+      const branch = getCurrentBranch();
+      if (!branch) {
+        console.error('Konnte aktuellen Branch nicht ermitteln');
+        process.exit(1);
+      }
+
+      // Check policy compliance
+      const policyResult = enterpriseWorkflow.checkPolicyCompliance(branch);
+
+      console.log('\nErgebnis der Policy-Überprüfung:');
+      if (policyResult.compliant) {
+        console.log('✅ Alle Policies erfüllt');
+      } else {
+        console.log('❌ Policy-Verletzungen gefunden:');
+        policyResult.violations.forEach(violation => {
+          console.log(`\n- Policy: ${violation.policy}`);
+          console.log(`  Beschreibung: ${violation.description}`);
+          console.log(`  Betroffene Dateien: ${violation.files.join(', ')}`);
+          console.log(`  Fehlende Genehmiger: ${violation.missingApprovers.join(', ')}`);
+        });
+      }
+    });
+}
+
 program.parse();
+
+/**
+ * Hilfsfunktion: Aktuellen Branch ermitteln
+ */
+function getCurrentBranch() {
+  try {
+    return execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf8' }).trim();
+  } catch (error) {
+    return null;
+  }
+}
 
 /**
  * Führt einen definierten Workflow aus
  */
 function executeWorkflow(workflowName, options) {
   const workflow = config.workflows[workflowName];
-  
+
   if (!workflow) {
     console.error(`Workflow "${workflowName}" nicht gefunden`);
     process.exit(1);
   }
-  
+
   if (!options.file && !options.directory) {
     console.error('Keine Datei oder Verzeichnis angegeben');
     process.exit(1);
   }
-  
+
   console.log(`Starte Workflow "${workflowName}" mit ${workflow.length} Schritten`);
+
+  // Log workflow execution to enterprise audit log if available
+  if (enterpriseWorkflow) {
+    enterpriseWorkflow.logAudit('execute-debug-workflow', {
+      workflowName,
+      file: options.file,
+      directory: options.directory,
+      steps: workflow.length
+    });
+  }
   
   // Temporäre Datei für Zwischenergebnisse
   const tempDir = path.resolve(os.tmpdir(), 'claude-code-debug');

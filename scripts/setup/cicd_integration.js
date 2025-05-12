@@ -73,6 +73,10 @@ program
   .option('-a, --auto-fix', 'Automatische Fixes in CI aktivieren', false)
   .option('-n, --notify <channel>', 'Benachrichtigungskanal (slack, email, teams)', '')
   .option('-w, --workflow <name>', 'Name des Workflows', 'recursive-debug')
+  .option('-e, --enterprise', 'Enterprise Features aktivieren', false)
+  .option('--compliance-framework <framework>', 'Compliance-Framework (SOC2, GDPR, ISO27001, etc.)', '')
+  .option('--approval-workflow', 'Genehmigungsprozess für Änderungen aktivieren', false)
+  .option('--audit', 'Ausführliches Audit-Logging aktivieren', false)
   .action(setupCI);
 
 program
@@ -249,8 +253,68 @@ function setupGitHubActions(options, languages) {
         fi
   ` : '';
   
+  // Enterprise-specific steps
+  let enterpriseSteps = '';
+  if (options.enterprise) {
+    let complianceStep = '';
+    if (options.complianceFramework) {
+      complianceStep = `
+    - name: Compliance Check
+      run: |
+        node core/security/compliance_check.js --framework ${options.complianceFramework} --output compliance-report.json
+
+    - name: Upload Compliance Report
+      uses: actions/upload-artifact@v3
+      with:
+        name: compliance-report
+        path: compliance-report.json
+      `;
+    }
+
+    let approvalStep = '';
+    if (options.approvalWorkflow) {
+      approvalStep = `
+    - name: Request approval for sensitive changes
+      if: github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'needs-approval')
+      uses: trstringer/manual-approval@v1
+      with:
+        secret: \${{ secrets.GITHUB_TOKEN }}
+        approvers: required-approvers
+        minimum-approvals: 1
+        issue-title: "Approval required for PR #${{ github.event.pull_request.number }}"
+        issue-body: "This PR requires approval before it can be merged."
+        exclude-workflow-initiator-as-approver: false
+      `;
+    }
+
+    let auditStep = '';
+    if (options.audit) {
+      auditStep = `
+    - name: Generate audit log
+      run: |
+        node core/logging/audit_logger.js --trigger=ci --detail=high
+
+    - name: Upload Audit Log
+      uses: actions/upload-artifact@v3
+      with:
+        name: audit-log
+        path: .claude/logs/audit-*.log
+      `;
+    }
+
+    enterpriseSteps = `
+    # Enterprise-specific steps
+    - name: Enterprise Validation
+      run: |
+        echo "Running enterprise validation checks"
+${complianceStep}
+${approvalStep}
+${auditStep}
+    `;
+  }
+
   // Workflow-Datei erstellen
-  const workflowContent = `name: Rekursives Debugging
+  const workflowContent = `name: ${options.enterprise ? 'Enterprise' : 'Rekursives'} Debugging
 
 on:
   push:
@@ -265,33 +329,33 @@ on:
 jobs:
   recursive-debug:
     runs-on: ubuntu-latest
-    
+
     steps:
     - uses: actions/checkout@v3
       with:
         fetch-depth: 0
-    
+
     - name: Setup Node.js
       uses: actions/setup-node@v3
       with:
         node-version: '20'
-        
+
     - name: Setup Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.10'
-        
+
     - name: Install dependencies
       run: |
         npm install
         pip install -r requirements.txt
-        
+
     - name: Filter changed files by type
       id: filter
       run: |
         CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -E "\\.(${languages.join('|')})" || echo "")
         echo "Changes detected in: $CHANGED_FILES"
-        
+
         # Detect language-specific changes
         ${languages.map(lang => `
         ${lang.toUpperCase()}_CHANGES=$(echo "$CHANGED_FILES" | grep -E "\\.(${LANGUAGES[lang].extensions.map(e => e.substring(1)).join('|')})" || echo "")
@@ -299,6 +363,7 @@ jobs:
           echo "changes=${lang}" >> $GITHUB_OUTPUT
         fi`).join('\n        ')}
 ${langSteps}
+${enterpriseSteps}
 ${autoFixStep}
 ${notifyStep}
 `;
@@ -854,9 +919,9 @@ function saveCIConfig(options, languages) {
   // Konfiguration im Claude-Verzeichnis speichern
   const claudeDir = path.join(options.path, '.claude');
   const ciDir = path.join(claudeDir, 'ci');
-  
+
   const configFile = path.join(ciDir, 'config.json');
-  
+
   const config = {
     system: options.ci,
     languages: languages.map(lang => ({
@@ -873,7 +938,44 @@ function saveCIConfig(options, languages) {
     created: new Date().toISOString(),
     version: '1.0.0'
   };
-  
+
+  // Add enterprise options if enabled
+  if (options.enterprise) {
+    config.enterprise = {
+      enabled: true,
+      complianceFramework: options.complianceFramework || '',
+      approvalWorkflow: options.approvalWorkflow || false,
+      audit: options.audit || false
+    };
+
+    // For specific compliance frameworks, add additional configuration
+    if (options.complianceFramework) {
+      const frameworks = options.complianceFramework.split(',').map(f => f.trim());
+      config.enterprise.frameworks = frameworks;
+
+      // Default retention periods based on compliance frameworks
+      const retentionPeriods = {
+        default: { logs: 30, conversations: 7, documents: 30 },
+        'SOC2': { logs: 365, conversations: 90, documents: 365 },
+        'GDPR': { logs: 90, conversations: 30, documents: 90 },
+        'ISO27001': { logs: 180, conversations: 60, documents: 180 }
+      };
+
+      // Find the highest retention period across all specified frameworks
+      const dataRetention = { ...retentionPeriods.default };
+
+      frameworks.forEach(framework => {
+        if (retentionPeriods[framework]) {
+          Object.keys(dataRetention).forEach(key => {
+            dataRetention[key] = Math.max(dataRetention[key], retentionPeriods[framework][key]);
+          });
+        }
+      });
+
+      config.enterprise.dataRetention = dataRetention;
+    }
+  }
+
   fs.writeFileSync(configFile, JSON.stringify(config, null, 2));
   console.log(`CI-Konfiguration in ${configFile} gespeichert`);
 }

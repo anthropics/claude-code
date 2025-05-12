@@ -2,9 +2,11 @@
 
 /**
  * Run CI Pipeline Locally
- * 
+ *
  * This script runs the CI pipeline locally to simulate what happens in the GitHub Actions workflow.
  * It helps developers catch issues before pushing code.
+ *
+ * Enterprise Beta support added - includes additional stages for compliance, governance and security.
  */
 
 const { spawn } = require('child_process');
@@ -53,6 +55,34 @@ const ciStages = [
   }
 ];
 
+// Define Enterprise-specific stages (only used when --enterprise flag is present)
+const enterpriseStages = [
+  {
+    name: 'Compliance Validation',
+    command: 'node',
+    args: ['core/security/compliance_check.js', '--output', 'compliance-report.json'],
+    optional: false
+  },
+  {
+    name: 'Governance Check',
+    command: 'node',
+    args: ['core/security/governance_check.js', '--output', 'governance-report.json'],
+    optional: false
+  },
+  {
+    name: 'Vulnerability Assessment',
+    command: 'node',
+    args: ['core/security/vuln_assessment.js', '--depth', 'high', '--output', 'vulnerability-report.json'],
+    optional: false
+  },
+  {
+    name: 'Audit Log Verification',
+    command: 'node',
+    args: ['core/logging/audit_verification.js'],
+    optional: true
+  }
+];
+
 // Run a command and return a promise
 function runCommand(command, args, options = {}) {
   return new Promise((resolve, reject) => {
@@ -89,25 +119,46 @@ async function main() {
   // Parse command line arguments
   const args = process.argv.slice(2);
   const skipOptional = args.includes('--skip-optional');
+  const isEnterprise = args.includes('--enterprise');
+  const complianceFramework = args.find(arg => arg.startsWith('--compliance='))?.split('=')[1];
   const stage = args.find(arg => !arg.startsWith('--'));
-  
-  console.log(chalk.bold.green('\n=== Running CI Pipeline Locally ===\n'));
-  
+
+  console.log(chalk.bold.green(`\n=== Running CI Pipeline Locally ${isEnterprise ? '(Enterprise Mode)' : ''} ===\n`));
+
   // Determine which stages to run
-  let stagesToRun = ciStages;
+  let stagesToRun = [...ciStages];
+
+  // Add enterprise stages if enterprise flag is present
+  if (isEnterprise) {
+    console.log(chalk.blue('Enterprise mode enabled. Adding enterprise-specific stages.'));
+    stagesToRun = [...stagesToRun, ...enterpriseStages];
+
+    // Update args for enterprise stages if compliance framework is specified
+    if (complianceFramework) {
+      console.log(chalk.blue(`Compliance framework specified: ${complianceFramework}`));
+      stagesToRun.forEach(stage => {
+        if (stage.name === 'Compliance Validation') {
+          stage.args.push('--framework', complianceFramework);
+        }
+      });
+    }
+  }
+
+  // Filter by specific stage if provided
   if (stage) {
-    const stageIndex = ciStages.findIndex(s => s.name.toLowerCase() === stage.toLowerCase());
+    const allStages = [...ciStages, ...(isEnterprise ? enterpriseStages : [])];
+    const stageIndex = allStages.findIndex(s => s.name.toLowerCase() === stage.toLowerCase());
     if (stageIndex === -1) {
       console.error(chalk.red(`Error: Stage "${stage}" not found`));
       console.log(chalk.yellow('Available stages:'));
-      ciStages.forEach(s => console.log(`  - ${s.name}`));
+      allStages.forEach(s => console.log(`  - ${s.name}`));
       process.exit(1);
     }
-    stagesToRun = [ciStages[stageIndex]];
+    stagesToRun = [allStages[stageIndex]];
   } else if (skipOptional) {
-    stagesToRun = ciStages.filter(s => !s.optional);
+    stagesToRun = stagesToRun.filter(s => !s.optional);
   }
-  
+
   console.log(chalk.blue('Stages to run:'));
   stagesToRun.forEach(s => console.log(`  - ${s.name}${s.optional ? ' (optional)' : ''}`));
   console.log();

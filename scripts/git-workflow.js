@@ -52,6 +52,7 @@ Commands:
   commit-lint                               - Check and fix commit message format
   project-stats                             - Show repository statistics
   pr <subcommand>                           - Manage pull requests
+  enterprise <subcommand>                   - Enterprise workflow features
   help                                      - Show this help message
 
 Examples:
@@ -78,6 +79,7 @@ const scriptMap = {
   'commit-lint': 'commit-lint.js',
   'project-stats': 'project-stats.js',
   'pr': 'pr-manager.js',
+  'enterprise': 'enterprise-workflow.js',
 };
 
 // Check if command is provided

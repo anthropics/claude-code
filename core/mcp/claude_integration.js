@@ -5,6 +5,7 @@ import { Configuration, AnthropicAPI } from 'anthropic';
 import { createClient } from '@supabase/supabase-js';
 import { Database } from '@/lib/database.types';
 import { getUserContext } from '@/lib/auth';
+import { enterpriseIntegration } from './enterprise_integration';
 
 // Konfigurationen laden
 const CLAUDE_API_KEY = process.env.CLAUDE_API_KEY;
@@ -12,6 +13,22 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const VOYAGE_API_KEY = process.env.VOYAGE_API_KEY;
 const DB_TYPE = process.env.DB_TYPE || 'supabase'; // 'supabase' oder 'sqlite'
+const ENTERPRISE_ENABLED = process.env.ENTERPRISE_FEATURES_ENABLED === 'true';
+
+// Initialize enterprise features if enabled
+if (ENTERPRISE_ENABLED) {
+  enterpriseIntegration.initialize()
+    .then(initialized => {
+      if (initialized) {
+        console.log('Enterprise features initialized successfully');
+      } else {
+        console.warn('Enterprise features could not be initialized');
+      }
+    })
+    .catch(error => {
+      console.error('Error initializing enterprise features:', error);
+    });
+}
 
 // Konfiguriere API-Clients
 const anthropic = new AnthropicAPI({
@@ -232,28 +249,69 @@ export class ClaudeRagIntegration {
    * @param query Anfrage des Benutzers
    * @param topK Anzahl der Kontextdokumente
    * @param userAbout Optional: .about-Profil des Benutzers für Personalisierung
+   * @param userContext Optional: Benutzerkontext für Berechtigungen
    * @returns Claude-Antwort
    */
   async answerWithRag(
     query: string,
     topK: number = 5,
-    userAbout: Record<string, any> = {}
+    userAbout: Record<string, any> = {},
+    userContext: Record<string, any> = {}
   ): Promise<string> {
     try {
+      // Log audit event if enterprise features are enabled
+      if (ENTERPRISE_ENABLED && enterpriseIntegration.isEnterpriseEnabled()) {
+        await enterpriseIntegration.logAuditEvent({
+          action: 'rag_query',
+          user: userContext?.id || 'anonymous',
+          query,
+          timestamp: new Date().toISOString()
+        });
+      }
+
       // Relevante Dokumente suchen
       const searchResults = await this.search(query, topK);
-      
+
       if (searchResults.length === 0) {
         // Keine relevanten Dokumente gefunden
         return this.generateClaudeResponse(
           query,
           'Ich konnte in meinen verfügbaren Informationen keine relevanten Dokumente zu deiner Anfrage finden.',
-          userAbout
+          userAbout,
+          userContext
         );
       }
 
+      // Apply enterprise security filters if enabled
+      let filteredResults = searchResults;
+      if (ENTERPRISE_ENABLED && enterpriseIntegration.isEnterpriseEnabled() && userContext?.id) {
+        filteredResults = [];
+
+        for (const doc of searchResults) {
+          // Check if user has permission to access this document
+          const hasPermission = await enterpriseIntegration.hasPermission(
+            { id: userContext.id },
+            'read',
+            { type: 'document', id: doc.id, metadata: doc.metadata }
+          );
+
+          if (hasPermission) {
+            filteredResults.push(doc);
+          }
+        }
+
+        if (filteredResults.length === 0) {
+          return this.generateClaudeResponse(
+            query,
+            'Du hast keine Berechtigung, auf die relevanten Dokumente zuzugreifen.',
+            userAbout,
+            userContext
+          );
+        }
+      }
+
       // Kontext für Claude formatieren
-      const contextText = searchResults
+      const contextText = filteredResults
         .map(doc => `DOKUMENT: ${doc.id}\nQUELLE: ${doc.metadata?.source || 'Unbekannt'}\nINHALT:\n${doc.content}`)
         .join('\n\n---\n\n');
 
@@ -274,18 +332,60 @@ ANFRAGE: ${query}
 Beantworte die Anfrage basierend auf dem bereitgestellten Kontext. Falls der Kontext nicht genügend Informationen enthält, gib dies an.
 `;
 
-      // Antwort von Claude generieren
-      const response = await anthropic.messages.create({
+      // Get enterprise compliance frameworks if enabled
+      let systemMessage = '';
+      if (ENTERPRISE_ENABLED && enterpriseIntegration.isEnterpriseEnabled()) {
+        const enterpriseConfig = enterpriseIntegration.getEnterpriseConfig();
+        if (enterpriseConfig?.compliance?.frameworks?.length > 0) {
+          systemMessage = `Beachte bei deiner Antwort die folgenden Compliance-Frameworks: ${enterpriseConfig.compliance.frameworks.join(', ')}. Stelle sicher, dass deine Antwort alle relevanten Compliance-Anforderungen erfüllt.`;
+        }
+      }
+
+      // Create Claude request
+      let claudeRequest = {
         model: this.claudeModel,
         max_tokens: 1024,
+        system: systemMessage,
         messages: [
           { role: 'user', content: prompt }
         ]
-      });
+      };
+
+      // Apply enterprise security constraints if enabled
+      if (ENTERPRISE_ENABLED && enterpriseIntegration.isEnterpriseEnabled()) {
+        claudeRequest = enterpriseIntegration.applySecurityConstraints(claudeRequest);
+      }
+
+      // Antwort von Claude generieren
+      const response = await anthropic.messages.create(claudeRequest);
+
+      // Log completion if enterprise features are enabled
+      if (ENTERPRISE_ENABLED && enterpriseIntegration.isEnterpriseEnabled()) {
+        await enterpriseIntegration.logAuditEvent({
+          action: 'rag_completion',
+          user: userContext?.id || 'anonymous',
+          query,
+          results_count: filteredResults.length,
+          model: claudeRequest.model,
+          timestamp: new Date().toISOString()
+        });
+      }
 
       return response.content[0].text;
     } catch (error) {
       console.error('Fehler beim Generieren der RAG-Antwort:', error);
+
+      // Log error if enterprise features are enabled
+      if (ENTERPRISE_ENABLED && enterpriseIntegration.isEnterpriseEnabled()) {
+        await enterpriseIntegration.logAuditEvent({
+          action: 'rag_error',
+          user: userContext?.id || 'anonymous',
+          query,
+          error: error.message,
+          timestamp: new Date().toISOString()
+        });
+      }
+
       throw error;
     }
   }
