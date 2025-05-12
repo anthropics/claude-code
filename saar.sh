@@ -215,6 +215,8 @@ show_help() {
   echo "  ./saar.sh dashboard --user=custom     # Launch Dashboard for specific user"
   echo "  ./saar.sh a2a start                   # Start Agent-to-Agent manager"
   echo "  ./saar.sh a2a list                    # List available agents"
+  echo "  ./saar.sh a2a setup                   # Setup all specialized agents"
+  echo "  ./saar.sh a2a register bug_hunt       # Register specific agent type"
   echo "  ./saar.sh status                      # Show system status"
   echo "  ./saar.sh ui customize                # Customize UI components"
   echo "  ./saar.sh enterprise setup            # Setup enterprise features"
@@ -651,6 +653,115 @@ setup_recursive_debugging() {
   fi
 }
 
+# Setup Specialized Agents
+setup_specialized_agents() {
+  log "INFO" "Setting up Specialized Agents"
+
+  # Create agent configuration directory
+  local agent_config_dir="$CONFIG_DIR/agents/specialized"
+  mkdir -p "$agent_config_dir"
+
+  # Create agent registry file if it doesn't exist
+  local agent_registry="$CONFIG_DIR/agents/agent_registry.json"
+  if [ ! -f "$agent_registry" ]; then
+    echo "{\"agents\": [], \"lastUpdated\": \"$(get_timestamp)\"}" > "$agent_registry"
+    log "DEBUG" "Created agent registry"
+  fi
+
+  # Identify available agent types from agents/commands/ directory
+  log "INFO" "Scanning for available agent types"
+  local agent_types=()
+
+  if [ -d "agents/commands" ]; then
+    for agent_file in agents/commands/*.md; do
+      if [ -f "$agent_file" ]; then
+        local agent_name=$(basename "$agent_file" .md)
+        agent_types+=("$agent_name")
+        log "DEBUG" "Found agent type: $agent_name"
+      fi
+    done
+  else
+    log "WARN" "agents/commands/ directory not found. Cannot determine available agent types."
+    return 1
+  fi
+
+  # Set up each specialized agent
+  for agent_type in "${agent_types[@]}"; do
+    local agent_id="${agent_type//-/_}_agent"
+    local agent_display_name="$(echo "$agent_type" | tr '-' ' ' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) tolower(substr($i,2))}1')"
+
+    log "INFO" "Setting up $agent_display_name"
+
+    # Create agent configuration
+    local agent_config="$agent_config_dir/${agent_id}.json"
+    cat > "$agent_config" << EOF
+{
+  "version": "1.0.0",
+  "agentId": "$agent_id",
+  "agentType": "$agent_type",
+  "displayName": "$agent_display_name",
+  "created": "$(get_timestamp)",
+  "lastActive": "$(get_timestamp)",
+  "capabilities": [
+    "${agent_type}"
+  ],
+  "preferences": {
+    "autoStart": false,
+    "notificationLevel": "important"
+  },
+  "commandFile": "$WORKSPACE_DIR/agents/commands/${agent_type}.md",
+  "status": "available"
+}
+EOF
+
+    log "INFO" "$agent_display_name configured"
+
+    # Add to registry if not already present
+    if grep -q "\"agentId\": \"$agent_id\"" "$agent_registry"; then
+      log "DEBUG" "Agent $agent_id already in registry"
+    else
+      # Read registry as a temporary variable
+      local registry_content=$(cat "$agent_registry")
+      # Extract agents array
+      local agents_array=$(echo "$registry_content" | grep -o '"agents": \[.*\]' | sed 's/"agents": \[\(.*\)\]/\1/')
+      # Add comma if there are existing agents
+      if [ -n "$agents_array" ] && [ "$agents_array" != "[]" ]; then
+        agents_array="${agents_array},"
+      fi
+      # Add new agent entry
+      agents_array="${agents_array}{\"agentId\": \"$agent_id\", \"agentType\": \"$agent_type\", \"configPath\": \"$agent_config\"}"
+      # Update registry
+      local new_registry="{\"agents\": [${agents_array}], \"lastUpdated\": \"$(get_timestamp)\"}"
+      echo "$new_registry" > "$agent_registry"
+      log "DEBUG" "Added $agent_id to registry"
+    fi
+  done
+
+  # Create A2A Manager configuration if it doesn't exist
+  local a2a_config="$CONFIG_DIR/agents/a2a_config.json"
+  if [ ! -f "$a2a_config" ]; then
+    cat > "$a2a_config" << EOF
+{
+  "version": "1.0.0",
+  "managerEnabled": true,
+  "port": 3210,
+  "registryPath": "$agent_registry",
+  "logLevel": "info",
+  "autoStartAgents": ["git_agent", "debug_recursive_agent"],
+  "messageBroker": {
+    "type": "local",
+    "queueSize": 100,
+    "retentionPeriod": 86400
+  },
+  "lastUpdated": "$(get_timestamp)"
+}
+EOF
+    log "INFO" "A2A Manager configuration created"
+  fi
+
+  log "INFO" "Specialized Agents setup complete"
+}
+
 # Setup function - main setup process
 do_setup() {
   # Parse options
@@ -672,6 +783,7 @@ do_setup() {
   setup_git_agent
   setup_neural_framework
   setup_recursive_debugging
+  setup_specialized_agents
   do_memory init
   setup_workspace "$user_id" "$theme"
 
@@ -2444,9 +2556,85 @@ do_a2a() {
       fi
       ;;
 
+    setup)
+      # Setup all specialized agents
+      log "INFO" "Setting up specialized agents"
+      setup_specialized_agents
+      ;;
+
+    register)
+      # Register a specific agent
+      if [ -z "$target" ]; then
+        log "ERROR" "Agent type not specified"
+        echo "Usage: ./saar.sh a2a register <agent-type>"
+        return 1
+      fi
+
+      log "INFO" "Registering agent type: $target"
+      local agent_config_dir="$CONFIG_DIR/agents/specialized"
+      local agent_registry="$CONFIG_DIR/agents/agent_registry.json"
+
+      # Make sure directories exist
+      mkdir -p "$agent_config_dir"
+
+      # Create registry if it doesn't exist
+      if [ ! -f "$agent_registry" ]; then
+        echo "{\"agents\": [], \"lastUpdated\": \"$(get_timestamp)\"}" > "$agent_registry"
+      fi
+
+      # Format agent ID and display name
+      local agent_id="${target//-/_}_agent"
+      local agent_display_name="$(echo "$target" | tr '-' ' ' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) tolower(substr($i,2))}1')"
+
+      # Create agent configuration
+      local agent_config="$agent_config_dir/${agent_id}.json"
+      cat > "$agent_config" << EOF
+{
+  "version": "1.0.0",
+  "agentId": "$agent_id",
+  "agentType": "$target",
+  "displayName": "$agent_display_name",
+  "created": "$(get_timestamp)",
+  "lastActive": "$(get_timestamp)",
+  "capabilities": [
+    "${target}"
+  ],
+  "preferences": {
+    "autoStart": false,
+    "notificationLevel": "important"
+  },
+  "commandFile": "$WORKSPACE_DIR/agents/commands/${target}.md",
+  "status": "available"
+}
+EOF
+
+      # Add to registry if not already present
+      if grep -q "\"agentId\": \"$agent_id\"" "$agent_registry"; then
+        log "INFO" "Agent $agent_id already in registry, updating configuration"
+
+        # TODO: Add code to update registry entry if needed
+      else
+        # Read registry
+        local registry_content=$(cat "$agent_registry")
+        # Extract agents array
+        local agents_array=$(echo "$registry_content" | grep -o '"agents": \[.*\]' | sed 's/"agents": \[\(.*\)\]/\1/')
+        # Add comma if needed
+        if [ -n "$agents_array" ] && [ "$agents_array" != "[]" ]; then
+          agents_array="${agents_array},"
+        fi
+        # Add new agent entry
+        agents_array="${agents_array}{\"agentId\": \"$agent_id\", \"agentType\": \"$target\", \"configPath\": \"$agent_config\"}"
+        # Update registry
+        local new_registry="{\"agents\": [${agents_array}], \"lastUpdated\": \"$(get_timestamp)\"}"
+        echo "$new_registry" > "$agent_registry"
+      fi
+
+      log "INFO" "Agent $agent_display_name registered successfully"
+      ;;
+
     *)
       log "ERROR" "Unknown A2A operation: $operation"
-      echo "Available operations: start, send, list"
+      echo "Available operations: start, send, list, setup, register"
       return 1
       ;;
   esac
