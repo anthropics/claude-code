@@ -1,3 +1,4 @@
 {
-  "files.autoSave": "onFocusChange"
+  "files.autoSave": "onFocusChange",
+  "github.copilot.nextEditSuggestions.enabled": true
 }
