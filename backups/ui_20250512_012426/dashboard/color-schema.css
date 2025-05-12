@@ -1,0 +1,122 @@
+/* Automatisch generiertes Farbschema-CSS */
+/* Dieses File wird dynamisch aktualisiert, wenn der Benutzer sein Farbschema ändert */
+
+:root {
+  /* Primärfarben */
+  --primary-color: #3f51b5;
+  --secondary-color: #7986cb;
+  --accent-color: #ff4081;
+  
+  /* Statusfarben */
+  --success-color: #4caf50;
+  --warning-color: #ff9800;
+  --danger-color: #f44336;
+  --info-color: #2196f3;
+  
+  /* Neutralfarben */
+  --background-color: #f8f9fa;
+  --surface-color: #ffffff;
+  --text-color: #212121;
+  --text-secondary-color: #757575;
+  --border-color: #e0e0e0;
+  --shadow-color: rgba(0, 0, 0, 0.1);
+  
+  /* Legacy-Kompatibilität */
+  --light-gray: #f5f5f5;
+  --medium-gray: #e0e0e0;
+  --dark-gray: #9e9e9e;
+}
+
+/* Anpassungen an Basis-Elementen */
+body {
+  background-color: var(--background-color);
+  color: var(--text-color);
+}
+
+.navbar-dark {
+  background-color: var(--primary-color) !important;
+}
+
+.card {
+  background-color: var(--surface-color);
+  border-color: var(--border-color);
+  box-shadow: 0 2px 10px var(--shadow-color);
+}
+
+.card-header {
+  background-color: rgba(63, 81, 181, 0.05);
+  border-bottom: 1px solid rgba(63, 81, 181, 0.1);
+}
+
+/* Anpassungen für zusätzliche Komponenten */
+.table th {
+  background-color: rgba(63, 81, 181, 0.05);
+  color: var(--text-color);
+}
+
+.table-hover tbody tr:hover {
+  background-color: rgba(63, 81, 181, 0.03);
+}
+
+.btn-primary {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.btn-secondary {
+  background-color: var(--secondary-color);
+  border-color: var(--secondary-color);
+}
+
+.btn-success {
+  background-color: var(--success-color);
+  border-color: var(--success-color);
+}
+
+.btn-warning {
+  background-color: var(--warning-color);
+  border-color: var(--warning-color);
+}
+
+.btn-danger {
+  background-color: var(--danger-color);
+  border-color: var(--danger-color);
+}
+
+.text-primary {
+  color: var(--primary-color) !important;
+}
+
+.badge-success {
+  background-color: var(--success-color);
+}
+
+.badge-warning {
+  background-color: var(--warning-color);
+}
+
+.badge-danger {
+  background-color: var(--danger-color);
+}
+
+/* Weitere angepasste Komponenten */
+.issue-card {
+  border-left-color: var(--danger-color);
+  background-color: rgba(244, 67, 54, 0.03);
+}
+
+.issue-card.warning {
+  border-left-color: var(--warning-color);
+  background-color: rgba(255, 152, 0, 0.03);
+}
+
+.suggestion-card {
+  border-left-color: var(--success-color);
+  background-color: rgba(76, 175, 80, 0.03);
+}
+
+/* Dunkleres Thema für Codeblöcke bei dunklem Hintergrund */
+pre {
+  background-color: #282c34;
+  color: #abb2bf;
+}
