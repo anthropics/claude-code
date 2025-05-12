@@ -1,14 +1,14 @@
 {
   "version": "1.0.0",
   "servers": {
-    "memory-persistence": {
+    "mcp-api": {
       "enabled": true,
       "autostart": true,
       "command": "node",
       "args": [
-        "core/mcp/memory_server.js"
+        "core/mcp/api.js"
       ],
-      "description": "Memory-Persistenz für MCP-Hooks"
+      "description": "API-Server für MCP-Hooks"
     },
     "desktop-commander": {
       "enabled": true,

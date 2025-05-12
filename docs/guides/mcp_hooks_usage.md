@@ -17,6 +17,17 @@ The Claude Neural Framework now provides a set of React hooks that integrate dir
 - `useMcpGameState`: For game state management with persistence
 - `useMcpDailyRewards`: For daily rewards management with persistence
 
+For a comprehensive example that shows how to use multiple MCP hooks together, see the [Comprehensive MCP Hooks Integration Example](../examples/mcp_hooks_comprehensive_example.md).
+
+## Demo Components
+
+You can find example components that demonstrate the use of MCP hooks in the following files:
+
+- `src/components/mcp/McpThinkingDemo.jsx`: Demonstrates sequential thinking
+- `src/components/mcp/McpSearchDemo.jsx`: Demonstrates web search
+- `src/components/mcp/McpImageDemo.jsx`: Demonstrates image generation
+- `src/components/mcp/McpDashboard.jsx`: Integrates all demos into a single dashboard
+
 ## Migrating from Contexts to MCP Hooks
 
 ### From GameStateContext to useMcpGameState

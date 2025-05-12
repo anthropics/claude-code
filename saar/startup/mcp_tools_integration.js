@@ -22,6 +22,7 @@ const WORKSPACE_DIR = process.cwd();
 const MCP_CONFIG_DIR = path.join(CONFIG_DIR, 'mcp');
 const TOOLS_CACHE = path.join(MCP_CONFIG_DIR, 'cache', 'tools_cache.json');
 const FALLBACK_DIR = path.join(MCP_CONFIG_DIR, 'fallbacks');
+const PROJECT_FALLBACK_DIR = path.join(WORKSPACE_DIR, 'core', 'mcp', 'fallbacks');
 const MCP_JSON_PATH = path.join(WORKSPACE_DIR, '.mcp.json');
 const MCP_TOOLS_REGISTRY = path.join(MCP_CONFIG_DIR, 'tools_registry.json');
 
@@ -85,6 +86,13 @@ const STANDARD_MCP_TOOLS = {
     package: '@bsmi021/mcp-file-context-server',
     fallback: 'file-context.js',
     importance: 'medium'
+  },
+  'sequential-planner': {
+    category: 'integration',
+    description: 'Integrated planning and execution with sequential thinking, Context7, and 21st-dev-magic',
+    package: '@claude-neural-framework/sequential-planner',
+    fallback: 'sequential-planner-fallback.js',
+    importance: 'high'
   }
 };
 
@@ -173,9 +181,10 @@ function ensureDirectoriesExist() {
   const dirs = [
     MCP_CONFIG_DIR,
     path.join(MCP_CONFIG_DIR, 'cache'),
-    FALLBACK_DIR
+    FALLBACK_DIR,
+    PROJECT_FALLBACK_DIR
   ];
-  
+
   for (const dir of dirs) {
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
@@ -311,14 +320,31 @@ function guessToolCategory(description) {
 // Create fallback for an MCP tool
 async function createFallback(toolName, toolInfo) {
   console.log(`Creating fallback for ${toolName}...`);
-  
+
   if (!toolInfo.fallback) {
     console.log(`No fallback defined for ${toolName}`);
     return null;
   }
-  
+
   const fallbackPath = path.join(FALLBACK_DIR, toolInfo.fallback);
-  
+  const projectFallbackPath = path.join(PROJECT_FALLBACK_DIR, toolInfo.fallback);
+
+  // Check if project fallback exists
+  if (fs.existsSync(projectFallbackPath)) {
+    console.log(`Project fallback for ${toolName} exists: ${projectFallbackPath}`);
+
+    // Copy from project fallback to user fallback directory
+    try {
+      fs.copyFileSync(projectFallbackPath, fallbackPath);
+      fs.chmodSync(fallbackPath, '755');
+      console.log(`Copied project fallback to user directory: ${fallbackPath}`);
+      return fallbackPath;
+    } catch (err) {
+      console.error(`Error copying project fallback: ${err.message}`);
+      // Continue with normal fallback creation
+    }
+  }
+
   // Skip if fallback already exists
   if (fs.existsSync(fallbackPath)) {
     console.log(`Fallback for ${toolName} already exists: ${fallbackPath}`);
