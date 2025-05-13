@@ -13,7 +13,7 @@ Some of its key capabilities include:
 - Execute and fix tests, lint, and other commands
 - Search through git history, resolve merge conflicts, and create commits and PRs
 
-**Learn more in the [official documentation](https://docs.anthropic.com/en/docs/agents/claude-code/introduction)**.
+**Learn more in the [official documentation](https://docs.anthropic.com/en/docs/claude-code/overview)**.
 
 ## Get started
 
