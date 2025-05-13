@@ -37,6 +37,7 @@ Die vollständige Dokumentation finden Sie im `docs`-Verzeichnis:
 - [MCP Hooks Usage](docs/guides/mcp_hooks_usage.md)
 - [Sequentieller Planer](docs/guides/sequential_planner.md)
 - [Dokumentationsgenerator](docs/guides/documentation_generator.md)
+- [Sequentieller Execution Manager](docs/guides/sequential_execution_manager.md)
 - [Cognitive Prompting](docs/guides/cognitive-prompting.md)
 - [Agent-Kommunikation](docs/guides/agent-communication.md)
 
