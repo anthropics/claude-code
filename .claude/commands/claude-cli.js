@@ -3,7 +3,7 @@
 const { program } = require('commander');
 const fs = require('fs');
 const path = require('path');
-const { version } = require('../package.json');
+const { version } = require('../../package.json');
 
 // Import commands
 const debugCommand = require('./commands/debug');

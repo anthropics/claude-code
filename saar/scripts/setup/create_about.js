@@ -15,7 +15,7 @@ const chalk = require('chalk');
 const os = require('os');
 
 // Farbschema-Manager importieren
-const colorSchemaManager = require('../../core/mcp/color_schema_manager');
+const colorSchemaManager = require('../../../src/core/mcp/color_schema_manager');
 
 // Konfigurationspfade
 const CONFIG_DIR = path.join(os.homedir(), '.claude');
@@ -167,13 +167,13 @@ async function createAboutInteractive() {
       
       // Standardfarbschema basierend auf Thema verwenden
       const themeName = prefInfo.theme;
-      const themeConfig = require('../../core/config/color_schema_config.json');
+      const themeConfig = require('../../../src/core/config/color_schema_config.json');
       colorScheme = themeConfig.themes[themeName].colors;
     }
   } else {
     // Standardfarbschema basierend auf Thema verwenden
     const themeName = prefInfo.theme;
-    const themeConfig = require('../../core/config/color_schema_config.json');
+    const themeConfig = require('../../../src/core/config/color_schema_config.json');
     colorScheme = themeConfig.themes[themeName].colors;
     
     console.log(chalk.cyan('\nStandardfarbschema für das Thema wird verwendet.'));
