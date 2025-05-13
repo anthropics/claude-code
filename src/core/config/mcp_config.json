@@ -1,0 +1,183 @@
+{
+  "version": "1.0.0",
+  "servers": {
+    "mcp-api": {
+      "enabled": true,
+      "autostart": true,
+      "command": "node",
+      "args": [
+        "core/mcp/api.js"
+      ],
+      "description": "API-Server für MCP-Hooks"
+    },
+    "desktop-commander": {
+      "enabled": true,
+      "autostart": true,
+      "command": "npx",
+      "args": [
+        "-y",
+        "@smithery/cli@latest",
+        "run",
+        "@wonderwhy-er/desktop-commander",
+        "--key",
+        "${MCP_API_KEY}"
+      ],
+      "description": "Dateisystem und Shell-Integration"
+    },
+    "code-mcp": {
+      "enabled": true,
+      "autostart": true,
+      "command": "npx",
+      "args": [
+        "-y",
+        "@smithery/cli@latest",
+        "run",
+        "@block/code-mcp",
+        "--key",
+        "${MCP_API_KEY}"
+      ],
+      "description": "Code-Analyse und -Manipulation"
+    },
+    "sequentialthinking": {
+      "enabled": true,
+      "autostart": true,
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-sequential-thinking"
+      ],
+      "description": "Rekursive Gedankengenerierung"
+    },
+    "think-mcp-server": {
+      "enabled": true,
+      "autostart": true,
+      "command": "npx",
+      "args": [
+        "-y",
+        "@smithery/cli@latest",
+        "run",
+        "@PhillipRt/think-mcp-server",
+        "--key",
+        "${MCP_API_KEY}"
+      ],
+      "description": "Meta-kognitive Reflexion"
+    },
+    "context7-mcp": {
+      "enabled": true,
+      "autostart": true,
+      "command": "npx",
+      "args": [
+        "-y",
+        "@smithery/cli@latest",
+        "run",
+        "@upstash/context7-mcp",
+        "--key",
+        "${MCP_API_KEY}"
+      ],
+      "description": "Kontextuelles Bewusstseinsframework"
+    },
+    "memory-bank-mcp": {
+      "enabled": true,
+      "autostart": false,
+      "command": "npx",
+      "args": [
+        "-y",
+        "@smithery/cli@latest",
+        "run",
+        "@alioshr/memory-bank-mcp",
+        "--key",
+        "${MCP_API_KEY}",
+        "--profile",
+        "${MCP_PROFILE}"
+      ],
+      "description": "Langfristige Musterpersistenz"
+    },
+    "mcp-file-context-server": {
+      "enabled": true,
+      "autostart": false,
+      "command": "npx",
+      "args": [
+        "-y",
+        "@smithery/cli@latest",
+        "run",
+        "@bsmi021/mcp-file-context-server",
+        "--key",
+        "${MCP_API_KEY}"
+      ],
+      "description": "Dateikontextserver"
+    },
+    "brave-search": {
+      "enabled": true,
+      "autostart": false,
+      "command": "npx",
+      "args": [
+        "-y",
+        "@smithery/cli@latest",
+        "run",
+        "@smithery-ai/brave-search",
+        "--key",
+        "${MCP_API_KEY}",
+        "--profile",
+        "${MCP_PROFILE}"
+      ],
+      "description": "Externe Wissensakquisition"
+    },
+    "21st-dev-magic": {
+      "enabled": true,
+      "autostart": false,
+      "command": "npx",
+      "args": [
+        "-y",
+        "@21st-dev/magic@latest",
+        "API_KEY=\"${MAGIC_API_KEY}\""
+      ],
+      "description": "UI-Komponenten und -Generierung"
+    },
+    "imagen-3-0-generate": {
+      "enabled": true,
+      "autostart": false,
+      "command": "npx",
+      "args": [
+        "-y",
+        "@smithery/cli@latest",
+        "run",
+        "@falahgs/imagen-3-0-generate-google-mcp-server",
+        "--key",
+        "${MCP_API_KEY}",
+        "--profile",
+        "${MCP_PROFILE}"
+      ],
+      "description": "Bildgenerierung"
+    },
+    "mcp-taskmanager": {
+      "enabled": true,
+      "autostart": false,
+      "command": "npx",
+      "args": [
+        "-y",
+        "@smithery/cli@latest",
+        "run",
+        "@kazuph/mcp-taskmanager",
+        "--key",
+        "${MCP_API_KEY}"
+      ],
+      "description": "Aufgabenverwaltung"
+    },
+    "mcp-veo2": {
+      "enabled": true,
+      "autostart": false,
+      "command": "npx",
+      "args": [
+        "-y",
+        "@smithery/cli@latest",
+        "run",
+        "@mario-andreschak/mcp-veo2",
+        "--key",
+        "${MCP_API_KEY}",
+        "--profile",
+        "${MCP_PROFILE}"
+      ],
+      "description": "Visualisierungsserver"
+    }
+  }
+}

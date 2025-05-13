@@ -1,0 +1,31 @@
+{
+  "version": "1.0.0",
+  "environment": "development",
+  "settings": {
+    "defaultDomain": "documentation",
+    "fallbackMode": true,
+    "maxSteps": 20,
+    "stepTimeout": 30000,
+    "planningDepth": "medium"
+  },
+  "mcp": {
+    "servers": {
+      "sequentialthinking": {
+        "enabled": true,
+        "url": "http://localhost:3001"
+      },
+      "context7": {
+        "enabled": true,
+        "url": "http://localhost:3002"
+      },
+      "brave-search": {
+        "enabled": true,
+        "url": "http://localhost:3003"
+      },
+      "desktop-commander": {
+        "enabled": true,
+        "url": "http://localhost:3004"
+      }
+    }
+  }
+}

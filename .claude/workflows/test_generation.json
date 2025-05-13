@@ -1,0 +1,116 @@
+{
+  "name": "test_generation",
+  "description": "Generates tests for code using multiple MCP tools",
+  "version": "1.0.0",
+  "steps": [
+    {
+      "name": "context_lookup",
+      "type": "file-context",
+      "input": "{library}",
+      "output": "documentation",
+      "tokens": 5000,
+      "continueOnError": true
+    },
+    {
+      "name": "code_analysis",
+      "type": "command",
+      "command": "find {codeDir} -name '*.{fileExt}' | xargs cat | wc -l",
+      "output": "lineCount",
+      "continueOnError": false
+    },
+    {
+      "name": "dependencies_check",
+      "type": "command",
+      "command": "if [ -f \"{codeDir}/package.json\" ]; then cat \"{codeDir}/package.json\" | grep -A 50 '\"dependencies\"'; elif [ -f \"{codeDir}/requirements.txt\" ]; then cat \"{codeDir}/requirements.txt\"; elif [ -f \"{codeDir}/Cargo.toml\" ]; then cat \"{codeDir}/Cargo.toml\" | grep -A 50 '[dependencies]'; else echo \"No dependency file found\"; fi",
+      "output": "dependencies",
+      "continueOnError": true
+    },
+    {
+      "name": "test_framework_detection",
+      "type": "command",
+      "command": "if [ -f \"{codeDir}/package.json\" ]; then cat \"{codeDir}/package.json\" | grep -E '\"jest\"|\"mocha\"|\"jasmine\"|\"karma\"|\"cypress\"|\"playwright\"|\"puppeteer\"|\"vitest\"'; elif [ -f \"{codeDir}/requirements.txt\" ]; then grep -E 'pytest|unittest|nose|behave|robot' \"{codeDir}/requirements.txt\"; elif [ -f \"{codeDir}/Cargo.toml\" ]; then grep -E 'pretty_assertions|mockall|rstest|tokio-test' \"{codeDir}/Cargo.toml\"; else echo \"No test framework detected\"; fi",
+      "output": "testFramework",
+      "continueOnError": true
+    },
+    {
+      "name": "deepthink_test_strategy",
+      "type": "deepthink",
+      "input": "Develop a comprehensive test strategy for a {language} codebase with {lineCount} lines of code. The project uses the following dependencies: {dependencies}. The test framework detected is: {testFramework}. Focus on creating a strategy that covers unit tests, integration tests, and end-to-end tests where appropriate.",
+      "output": "testStrategy",
+      "continueOnError": false
+    },
+    {
+      "name": "file_structure_analysis",
+      "type": "command",
+      "command": "find {codeDir} -type f -name \"*.{fileExt}\" | sort",
+      "output": "fileList",
+      "continueOnError": false
+    },
+    {
+      "name": "test_files_analysis",
+      "type": "command",
+      "command": "find {codeDir} -type f -name \"*test*.{fileExt}\" -o -name \"*spec*.{fileExt}\" | sort",
+      "output": "existingTests",
+      "continueOnError": true
+    },
+    {
+      "name": "test_template_generation",
+      "type": "sequentialthinking",
+      "input": "Based on the test strategy: {testStrategy.synthesis} and the file structure: {fileList}, generate a template for a test file in {language}. Consider the existing tests: {existingTests} and make sure the new tests follow the same patterns and conventions. Focus on creating a reusable test template that can be applied to multiple files.",
+      "totalThoughts": 5,
+      "output": "testTemplate",
+      "continueOnError": false
+    },
+    {
+      "name": "test_implementation_plan",
+      "type": "sequentialthinking",
+      "input": "Create a detailed step-by-step plan for implementing tests based on the test template: {testTemplate.thought}. The plan should include: 1) Which files to test first, 2) What test utilities or mocks to create, 3) How to organize the test files, and 4) How to ensure good test coverage.",
+      "totalThoughts": 3,
+      "output": "implementationPlan",
+      "continueOnError": false
+    }
+  ],
+  "inputs": [
+    {
+      "name": "codeDir",
+      "description": "The directory containing the code to test",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "language",
+      "description": "The programming language of the codebase",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "fileExt",
+      "description": "The file extension to look for (js, py, rs, etc.)",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "library",
+      "description": "The primary library or framework used in the codebase",
+      "type": "string",
+      "required": false
+    }
+  ],
+  "outputs": [
+    {
+      "name": "testStrategy",
+      "description": "The overall test strategy",
+      "type": "object"
+    },
+    {
+      "name": "testTemplate",
+      "description": "Template for test files",
+      "type": "object"
+    },
+    {
+      "name": "implementationPlan",
+      "description": "Step-by-step plan for implementing tests",
+      "type": "object"
+    }
+  ]
+}
