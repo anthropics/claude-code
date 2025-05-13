@@ -22,9 +22,7 @@ Das Claude Neural Framework ist eine leistungsstarke Plattform für die Integrat
 git clone https://github.com/username/claude-code.git
 cd claude-code
 
-# Installation ausführen
-./installation/install.sh
-```
+
 
 ## Dokumentation
 
