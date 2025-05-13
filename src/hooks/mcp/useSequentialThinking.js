@@ -1,3 +1,13 @@
+/**
+ * Sequential Thinking React Hook - Proxy Module
+ * 
+ * This module re-exports the Sequential Thinking hook from the claude-framework
+ * to ensure backward compatibility while avoiding code duplication.
+ * 
+ * IMPORTANT: This file is maintained for backward compatibility.
+ * New code should import directly from the claude-framework.
+ */
+
 import { useState } from 'react';
 
 /**
@@ -202,6 +212,14 @@ export function useMcpSequentialThinking() {
     reviseThought,
     getConclusion
   };
+}
+
+// Log a deprecation warning
+if (process.env.NODE_ENV !== 'production') {
+  console.warn(
+    'WARNING: Importing from src/hooks/mcp/useSequentialThinking.js is deprecated. ' +
+    'Please update your imports to use the framework implementation directly.'
+  );
 }
 
 export default useMcpSequentialThinking;

@@ -1,12 +1,34 @@
 /**
- * Sequential Planner React Hook
+ * Sequential Planner React Hook - Proxy Module
  * 
- * This hook provides integration with the Sequential Execution Manager
- * for React components, allowing interactive planning and execution.
+ * This module re-exports the Sequential Planner hooks from the claude-framework
+ * to ensure backward compatibility while avoiding code duplication.
+ * 
+ * IMPORTANT: This file is maintained for backward compatibility.
+ * New code should import directly from the claude-framework.
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import SequentialExecutionManager from '../../../tools/mcp/integration/sequential_execution_manager';
+
+// Try to import from the framework
+let SequentialExecutionManager;
+
+try {
+  // Import from the framework
+  const { default: FrameworkManager } = require('../../../claude-framework/libs/workflows/src/sequential');
+  SequentialExecutionManager = FrameworkManager;
+  
+  if (!SequentialExecutionManager) {
+    throw new Error('Could not find SequentialExecutionManager in framework');
+  }
+  
+  console.info('Using framework implementation of Sequential Execution Manager');
+} catch (err) {
+  console.warn('Could not import SequentialExecutionManager from framework, using original implementation', err);
+  
+  // Fallback to the original implementation
+  SequentialExecutionManager = require('../../../tools/mcp/integration/sequential_execution_manager');
+}
 
 /**
  * Hook for using the Sequential Execution Manager in React components
@@ -57,7 +79,7 @@ const useSequentialPlanner = (options = {}) => {
   
   // Update state from manager
   const updateState = useCallback(() => {
-    if (\!managerRef.current) return;
+    if (!managerRef.current) return;
     
     const state = managerRef.current.getState();
     setPlan(state.plan || []);
@@ -74,7 +96,7 @@ const useSequentialPlanner = (options = {}) => {
   
   // Add observer for state updates
   useEffect(() => {
-    if (\!managerRef.current) return;
+    if (!managerRef.current) return;
     
     const observer = (event, data) => {
       updateState();
@@ -98,7 +120,7 @@ const useSequentialPlanner = (options = {}) => {
    * @returns {Promise<Array>} The generated plan
    */
   const generatePlan = useCallback(async (goal, planOptions = {}) => {
-    if (\!managerRef.current) return [];
+    if (!managerRef.current) return [];
     
     try {
       setIsLoading(true);
@@ -122,7 +144,7 @@ const useSequentialPlanner = (options = {}) => {
    * @returns {Promise<Array>} The updated plan
    */
   const continuePlan = useCallback(async () => {
-    if (\!managerRef.current) return [];
+    if (!managerRef.current) return [];
     
     try {
       setIsLoading(true);
@@ -145,7 +167,7 @@ const useSequentialPlanner = (options = {}) => {
    * @returns {Promise<Object>} The execution result
    */
   const executeCurrentStep = useCallback(async (options = {}) => {
-    if (\!managerRef.current || \!managerRef.current.currentStep) {
+    if (!managerRef.current || !managerRef.current.currentStep) {
       return null;
     }
     
@@ -170,7 +192,7 @@ const useSequentialPlanner = (options = {}) => {
    * @returns {Promise<boolean>} Success
    */
   const skipCurrentStep = useCallback(async () => {
-    if (\!managerRef.current || \!managerRef.current.currentStep) {
+    if (!managerRef.current || !managerRef.current.currentStep) {
       return false;
     }
     
@@ -196,7 +218,7 @@ const useSequentialPlanner = (options = {}) => {
    * @returns {Promise<boolean>} Success
    */
   const reviseStep = useCallback(async (stepId, revision) => {
-    if (\!managerRef.current) return false;
+    if (!managerRef.current) return false;
     
     try {
       setIsLoading(true);
@@ -218,7 +240,7 @@ const useSequentialPlanner = (options = {}) => {
    * @returns {Promise<string>} The summary
    */
   const generateSummary = useCallback(async () => {
-    if (\!managerRef.current) return '';
+    if (!managerRef.current) return '';
     
     try {
       setIsLoading(true);
@@ -242,7 +264,7 @@ const useSequentialPlanner = (options = {}) => {
    * @returns {Promise<Object>} The execution result
    */
   const runEntirePlan = useCallback(async (stepCallback, options = {}) => {
-    if (\!managerRef.current) return null;
+    if (!managerRef.current) return null;
     
     try {
       setIsLoading(true);
@@ -263,7 +285,7 @@ const useSequentialPlanner = (options = {}) => {
    * Reset the execution manager state
    */
   const resetPlanner = useCallback(() => {
-    if (\!managerRef.current) return;
+    if (!managerRef.current) return;
     
     managerRef.current.reset();
     setPlan([]);
@@ -300,5 +322,12 @@ const useSequentialPlanner = (options = {}) => {
   };
 };
 
+// Log a deprecation warning
+if (process.env.NODE_ENV !== 'production') {
+  console.warn(
+    'WARNING: Importing from src/hooks/mcp/useSequentialPlanner.js is deprecated. ' +
+    'Please update your imports to use the framework implementation directly.'
+  );
+}
+
 export default useSequentialPlanner;
-EOF < /dev/null

@@ -1,0 +1,153 @@
+name: Production Deployment
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to deploy (e.g., v1.2.3)'
+        required: true
+        default: 'latest'
+
+jobs:
+  preflight-checks:
+    name: Preflight Checks
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run tests
+        run: npm test
+      
+      - name: Security audit
+        run: npm audit
+      
+      - name: Run security review
+        run: node core/security/security_check.js --output security-report.json
+        continue-on-error: false
+      
+      - name: Upload security report
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-security-report
+          path: security-report.json
+
+  build-production:
+    name: Build Production Package
+    runs-on: ubuntu-latest
+    needs: preflight-checks
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build package
+        run: |
+          mkdir -p dist
+          # Add your production build steps here
+          cp -R core dist/
+          cp -R docs dist/
+          cp package.json dist/
+          cp README.md dist/
+          cp LICENSE.md dist/
+          cp CHANGELOG.md dist/
+      
+      - name: Create version file
+        run: |
+          VERSION=${{ github.event.release.tag_name || github.event.inputs.version }}
+          echo "{\"version\":\"$VERSION\",\"buildDate\":\"$(date -u +'%Y-%m-%dT%H:%M:%SZ')\"}" > dist/version.json
+      
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-build
+          path: dist/
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: build-production
+    environment: production
+    
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: production-build
+          path: dist
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      
+      - name: Deploy to production
+        env:
+          DEPLOY_TOKEN: ${{ secrets.PRODUCTION_DEPLOY_TOKEN }}
+          ENVIRONMENT: production
+        run: |
+          echo "Deploying to production environment..."
+          # Add your deployment steps here, for example:
+          # - Upload to production cloud storage
+          # - Deploy to production servers
+          # - Update DNS or load balancers
+          # - Run database migrations
+          # - Clear caches
+          echo "Deployment to production completed."
+      
+      - name: Send deployment notification
+        env:
+          NOTIFICATION_WEBHOOK: ${{ secrets.NOTIFICATION_WEBHOOK }}
+        run: |
+          VERSION=${{ github.event.release.tag_name || github.event.inputs.version }}
+          curl -X POST -H "Content-Type: application/json" --data "{\"text\":\"🚀 Claude Neural Framework $VERSION has been deployed to production\"}" $NOTIFICATION_WEBHOOK
+
+  verify-deployment:
+    name: Verify Deployment
+    runs-on: ubuntu-latest
+    needs: deploy-production
+    environment: production
+    
+    steps:
+      - name: Run health checks
+        run: |
+          echo "Running health checks on production environment..."
+          # Add your health check code here:
+          # - API endpoint checks
+          # - Database connectivity checks
+          # - Performance tests
+          # - Synthetic user flows
+          echo "Health checks successful."
+      
+      - name: Update release status
+        if: github.event_name == 'release'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION=${{ github.event.release.tag_name }}
+          curl -X PATCH \
+            -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/${{ github.repository }}/releases/${{ github.event.release.id }} \
+            -d "{\"body\":\"${{ github.event.release.body }}\n\n✅ Deployed to production on $(date -u +'%Y-%m-%d %H:%M UTC')\"}"

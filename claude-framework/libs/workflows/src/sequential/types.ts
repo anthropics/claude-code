@@ -9,14 +9,24 @@ export type PlanStatus = 'created' | 'in_progress' | 'completed' | 'failed' | 'c
 export type StepStatus = 'pending' | 'in_progress' | 'completed' | 'failed' | 'skipped';
 
 /**
+ * Action type
+ */
+export type ActionType = 'context' | 'ui' | 'manual' | 'executable' | 'code_analysis' | 'documentation' | 
+                         'test' | 'build' | 'deploy' | 'extract' | 'transform' | 'load' | string;
+
+/**
  * Plan step interface
  */
 export interface PlanStep {
   id: string;
-  name: string;
+  number: number;
+  name?: string;
   description: string;
+  actionType: ActionType;
   status: StepStatus;
+  isRevised?: boolean;
   dependsOn?: string[];
+  result?: ExecutionResult;
   data?: Record<string, any>;
 }
 
@@ -37,12 +47,52 @@ export interface Plan {
  * Execution result interface
  */
 export interface ExecutionResult {
-  success: boolean;
-  stepId: string;
+  type: string;
+  data: Record<string, any>;
+  summary: string;
+  success?: boolean;
+  stepId?: string;
   message?: string;
   error?: string;
-  data?: Record<string, any>;
 }
+
+/**
+ * Execution options
+ */
+export interface ExecutionOptions {
+  [key: string]: any;
+  timeout?: number;
+  fallbackMode?: boolean;
+  maxSteps?: number;
+  initialSteps?: number;
+  depth?: 'shallow' | 'medium' | 'deep';
+  planningDepth?: 'shallow' | 'medium' | 'deep';
+  searchTerm?: string;
+  componentSpec?: any;
+  result?: any;
+  summary?: string;
+  executeFunction?: (step: PlanStep) => Promise<any>;
+  fileContent?: any;
+  path?: string;
+  outputPath?: string;
+  content?: string;
+  testResults?: any;
+  testCount?: number;
+  failCount?: number;
+  artifacts?: string[];
+  artifactCount?: number;
+  environment?: string;
+  url?: string;
+  recordCount?: number;
+  source?: string;
+  transformationCount?: number;
+  destination?: string;
+}
+
+/**
+ * Step handler function
+ */
+export type StepHandler = (step: PlanStep, options?: ExecutionOptions) => Promise<ExecutionResult>;
 
 /**
  * Execution observer callback type
@@ -85,4 +135,4 @@ export interface PlanExecutionResult {
 /**
  * Domain type
  */
-export type Domain = 'documentation' | 'cicd' | 'data' | 'general';
+export type Domain = 'documentation' | 'cicd' | 'data' | 'custom' | 'general';

@@ -1,0 +1,189 @@
+name: Create Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version (e.g., 1.2.3) - without the "v" prefix'
+        required: true
+      releaseType:
+        description: 'Release type'
+        required: true
+        default: 'minor'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      prerelease:
+        description: 'Pre-release'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for proper versioning
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      
+      - name: Configure Git
+        run: |
+          git config --global user.name "GitHub Release Bot"
+          git config --global user.email "noreply@github.com"
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Get current version from package.json
+        id: current-version
+        run: |
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          echo "Current version: $CURRENT_VERSION"
+          echo "current=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+      
+      - name: Determine new version (if not provided)
+        id: determine-version
+        run: |
+          CURRENT_VERSION="${{ steps.current-version.outputs.current }}"
+          REQUESTED_VERSION="${{ github.event.inputs.version }}"
+          
+          if [[ -z "$REQUESTED_VERSION" ]]; then
+            # Calculate new version based on release type
+            if [[ "${{ github.event.inputs.releaseType }}" == "major" ]]; then
+              NEW_VERSION=$(echo $CURRENT_VERSION | awk -F. '{print $1+1".0.0"}')
+            elif [[ "${{ github.event.inputs.releaseType }}" == "minor" ]]; then
+              NEW_VERSION=$(echo $CURRENT_VERSION | awk -F. '{print $1"."$2+1".0"}')
+            else # patch
+              NEW_VERSION=$(echo $CURRENT_VERSION | awk -F. '{print $1"."$2"."$3+1}')
+            fi
+          else
+            NEW_VERSION=$REQUESTED_VERSION
+          fi
+          
+          echo "New version: $NEW_VERSION"
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+      
+      - name: Update version in package.json
+        run: |
+          VERSION="${{ steps.determine-version.outputs.version }}"
+          npm version $VERSION --no-git-tag-version
+          
+          # Also update version in any other files that need it
+          # For example: sed -i "s/version = \".*\"/version = \"$VERSION\"/" src/config.js
+      
+      - name: Generate changelog entries
+        id: changelog
+        run: |
+          # Get all commits since last tag
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          
+          if [[ -z "$LAST_TAG" ]]; then
+            echo "No previous tags found. Including all commits."
+            RANGE="HEAD"
+          else
+            RANGE="$LAST_TAG..HEAD"
+          fi
+          
+          echo "Getting commits from range: $RANGE"
+          
+          # Format commits by type
+          FEATURES=$(git log $RANGE --pretty=format:"- %s" --grep="^feat" --grep="^feature" || echo "")
+          FIXES=$(git log $RANGE --pretty=format:"- %s" --grep="^fix" --grep="^bug" || echo "")
+          CHORES=$(git log $RANGE --pretty=format:"- %s" --grep="^chore" --grep="^build" --grep="^ci" || echo "")
+          DOCS=$(git log $RANGE --pretty=format:"- %s" --grep="^docs" || echo "")
+          
+          # Prepare changelog content
+          CHANGELOG="## [v${{ steps.determine-version.outputs.version }}] - $(date +'%Y-%m-%d')\n\n"
+          
+          if [[ -n "$FEATURES" ]]; then
+            CHANGELOG+="### Features\n\n$FEATURES\n\n"
+          fi
+          
+          if [[ -n "$FIXES" ]]; then
+            CHANGELOG+="### Bug Fixes\n\n$FIXES\n\n"
+          fi
+          
+          if [[ -n "$DOCS" ]]; then
+            CHANGELOG+="### Documentation\n\n$DOCS\n\n"
+          fi
+          
+          if [[ -n "$CHORES" ]]; then
+            CHANGELOG+="### Chores\n\n$CHORES\n\n"
+          fi
+          
+          # Save changelog to a file
+          echo -e "$CHANGELOG" > changelog-entry.md
+          
+          # Create multiline output for GitHub Actions
+          EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
+          echo "changelog<<$EOF" >> $GITHUB_OUTPUT
+          echo -e "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "$EOF" >> $GITHUB_OUTPUT
+      
+      - name: Update CHANGELOG.md
+        run: |
+          # Add new entry at the top of CHANGELOG.md
+          if [ -f CHANGELOG.md ]; then
+            cat changelog-entry.md CHANGELOG.md > CHANGELOG.md.new
+            mv CHANGELOG.md.new CHANGELOG.md
+          else
+            echo "# Changelog\n\nAll notable changes to this project will be documented in this file.\n\n" > CHANGELOG.md
+            cat changelog-entry.md >> CHANGELOG.md
+          fi
+      
+      - name: Commit changes
+        run: |
+          git add package.json CHANGELOG.md
+          git commit -m "chore: bump version to v${{ steps.determine-version.outputs.version }}"
+      
+      - name: Push changes
+        run: git push
+      
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ steps.determine-version.outputs.version }}
+          release_name: v${{ steps.determine-version.outputs.version }}
+          body: ${{ steps.changelog.outputs.changelog }}
+          draft: false
+          prerelease: ${{ github.event.inputs.prerelease }}
+      
+      - name: Build package
+        run: |
+          mkdir -p dist
+          # Add your build steps here
+          cp -R core dist/
+          cp -R docs dist/
+          cp package.json dist/
+          cp README.md dist/
+          cp LICENSE.md dist/
+          cp CHANGELOG.md dist/
+          
+          # Create package
+          cd dist
+          npm pack
+          mv *.tgz ../claude-neural-framework-${{ steps.determine-version.outputs.version }}.tgz
+      
+      - name: Upload package to release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./claude-neural-framework-${{ steps.determine-version.outputs.version }}.tgz
+          asset_name: claude-neural-framework-${{ steps.determine-version.outputs.version }}.tgz
+          asset_content_type: application/gzip

@@ -232,24 +232,30 @@ export class SequentialExecutionManager {
         steps = [
           {
             id: `step-${timestamp}-1`,
+            number: 1,
             name: 'Analyze codebase structure',
             description: 'Scan codebase to identify components requiring documentation',
+            actionType: 'code_analysis',
             status: 'pending',
             data: { patterns: ['**/*.ts', '**/*.js'] }
           },
           {
             id: `step-${timestamp}-2`,
+            number: 2,
             name: 'Extract documentation from code',
             description: 'Parse JSDoc, TSDoc and other documentation comments',
             status: 'pending',
+            actionType: 'extract',
             dependsOn: [`step-${timestamp}-1`],
             data: { extractComments: true, extractTypes: true }
           },
           {
             id: `step-${timestamp}-3`,
+            number: 3,
             name: 'Generate documentation',
             description: 'Create documentation files based on extracted information',
             status: 'pending',
+            actionType: 'documentation',
             dependsOn: [`step-${timestamp}-2`],
             data: { format: 'markdown', outputDir: './docs' }
           }
@@ -260,23 +266,29 @@ export class SequentialExecutionManager {
         steps = [
           {
             id: `step-${timestamp}-1`,
+            number: 1,
             name: 'Lint code',
             description: 'Run code linting to ensure code quality',
+            actionType: 'test',
             status: 'pending',
             data: { linters: ['eslint'], fix: false }
           },
           {
             id: `step-${timestamp}-2`,
+            number: 2,
             name: 'Run tests',
             description: 'Execute test suite',
+            actionType: 'test',
             status: 'pending',
             dependsOn: [`step-${timestamp}-1`],
             data: { testTypes: ['unit', 'integration'], coverage: true }
           },
           {
             id: `step-${timestamp}-3`,
+            number: 3,
             name: 'Build project',
             description: 'Compile and build the project',
+            actionType: 'build',
             status: 'pending',
             dependsOn: [`step-${timestamp}-2`],
             data: { production: true, optimize: true }
@@ -288,23 +300,29 @@ export class SequentialExecutionManager {
         steps = [
           {
             id: `step-${timestamp}-1`,
+            number: 1,
             name: 'Collect data',
             description: 'Gather data from specified sources',
+            actionType: 'extract',
             status: 'pending',
             data: { sources: ['local'], formats: ['json', 'csv'] }
           },
           {
             id: `step-${timestamp}-2`,
+            number: 2,
             name: 'Transform data',
             description: 'Process and transform the data',
+            actionType: 'transform',
             status: 'pending',
             dependsOn: [`step-${timestamp}-1`],
             data: { transformations: ['normalize', 'filter'], inPlace: false }
           },
           {
             id: `step-${timestamp}-3`,
+            number: 3,
             name: 'Store processed data',
             description: 'Save the processed data to the target location',
+            actionType: 'load',
             status: 'pending',
             dependsOn: [`step-${timestamp}-2`],
             data: { destination: './data/processed', format: 'json' }
@@ -316,21 +334,27 @@ export class SequentialExecutionManager {
         steps = [
           {
             id: `step-${timestamp}-1`,
+            number: 1,
             name: 'Research information',
             description: 'Gather information related to the task',
+            actionType: 'context',
             status: 'pending'
           },
           {
             id: `step-${timestamp}-2`,
+            number: 2,
             name: 'Process information',
             description: 'Process and analyze the gathered information',
+            actionType: 'ui',
             status: 'pending',
             dependsOn: [`step-${timestamp}-1`]
           },
           {
             id: `step-${timestamp}-3`,
+            number: 3,
             name: 'Generate output',
             description: 'Generate output based on processed information',
+            actionType: 'manual',
             status: 'pending',
             dependsOn: [`step-${timestamp}-2`]
           }
@@ -468,6 +492,9 @@ export class SequentialExecutionManager {
           
           // Create error result
           const errorResult: ExecutionResult = {
+            type: 'error',
+            data: { error: errorMessage },
+            summary: `Error: ${errorMessage}`,
             success: false,
             stepId: step.id,
             error: errorMessage,
@@ -645,6 +672,9 @@ export class SequentialExecutionManager {
       
       // Create error result
       const errorResult: ExecutionResult = {
+        type: 'error',
+        data: { error: errorMessage },
+        summary: `Error: ${errorMessage}`,
         success: false,
         stepId: step.id,
         error: errorMessage,
@@ -731,14 +761,14 @@ export class SequentialExecutionManager {
     // Determine successful steps
     const successfulSteps = this.executedSteps
       .filter(s => s.status === 'completed')
-      .map(s => `- ${s.name}`).join('\n');
+      .map(s => `- ${s.name || s.description}`).join('\n');
     
     // Determine failed steps
     const failedSteps = this.executedSteps
       .filter(s => s.status === 'failed')
       .map(s => {
         const result = this.executionResults[s.id];
-        return `- ${s.name}: ${result?.error || 'Unknown error'}`;
+        return `- ${s.name || s.description}: ${result?.error || 'Unknown error'}`;
       }).join('\n');
     
     // Generate summary
