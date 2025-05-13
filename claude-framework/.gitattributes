@@ -1,0 +1,41 @@
+# Auto detect text files and perform LF normalization
+* text=auto eol=lf
+
+# TypeScript and JavaScript files
+*.ts linguist-language=TypeScript
+*.js linguist-language=JavaScript
+*.tsx linguist-language=TypeScript
+*.jsx linguist-language=JavaScript
+
+# Markdown files
+*.md linguist-detectable=true
+*.md linguist-documentation=false
+
+# JSON files
+*.json linguist-detectable=true
+
+# YAML files
+*.yaml linguist-detectable=true
+*.yml linguist-detectable=true
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.mov binary
+*.mp4 binary
+*.mp3 binary
+*.zip binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.pdf binary
+
+# Exclude from language statistics
+.vscode/** linguist-vendored
+dist/** linguist-generated
+*.min.js linguist-generated
+node_modules/** linguist-vendored

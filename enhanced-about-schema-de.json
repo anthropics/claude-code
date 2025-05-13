@@ -1,0 +1,416 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "VibeCodingFramework .about Profil-Schema",
+  "description": "Erweitertes Schema für das .about-Profil, das vom VibeCodingFramework verwendet wird, um personalisierte Agenten-Interaktionen bereitzustellen",
+  "type": "object",
+  "required": ["userId", "personal", "goals", "preferences", "agentSettings"],
+  "properties": {
+    "userId": {
+      "type": "string",
+      "description": "Eindeutige UUID-Kennung für den Benutzer",
+      "examples": ["550e8400-e29b-41d4-a716-446655440000"]
+    },
+    "personal": {
+      "type": "object",
+      "description": "Persönliche Informationen des Benutzers",
+      "required": ["name", "skills"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Vollständiger Name des Benutzers",
+          "minLength": 1,
+          "examples": ["Max Mustermann"]
+        },
+        "contact": {
+          "type": "object",
+          "description": "Kontaktinformationen des Benutzers",
+          "properties": {
+            "email": {
+              "type": "string",
+              "description": "E-Mail-Adresse des Benutzers",
+              "format": "email",
+              "examples": ["max@example.com"]
+            },
+            "phone": {
+              "type": "string",
+              "description": "Telefonnummer des Benutzers",
+              "examples": ["+49 123 4567890"]
+            }
+          }
+        },
+        "skills": {
+          "type": "array",
+          "description": "Technische Fähigkeiten und Kenntnisse des Benutzers",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          },
+          "examples": [["Python", "Next.js", "Prompt Engineering"]]
+        },
+        "communicationStyle": {
+          "type": "string",
+          "description": "Bevorzugter Kommunikationsstil des Benutzers",
+          "examples": ["prägnant, technisch"]
+        }
+      }
+    },
+    "goals": {
+      "type": "object",
+      "description": "Persönliche und berufliche Ziele des Benutzers",
+      "properties": {
+        "shortTerm": {
+          "type": "array",
+          "description": "Kurzfristige Ziele des Benutzers",
+          "items": {
+            "type": "string"
+          },
+          "examples": [["Projekt X abschließen", "Neue Tests implementieren"]]
+        },
+        "longTerm": {
+          "type": "array",
+          "description": "Langfristige Ziele des Benutzers",
+          "items": {
+            "type": "string"
+          },
+          "examples": [["Experte für KI-Agenten werden", "Leitender Entwickler werden"]]
+        }
+      }
+    },
+    "companyContext": {
+      "type": "object",
+      "description": "Beruflicher Kontext und Unternehmensumfeld des Benutzers",
+      "properties": {
+        "currentCompany": {
+          "type": "string",
+          "description": "Aktuelles Unternehmen des Benutzers",
+          "examples": ["VibeCoding Inc."]
+        },
+        "role": {
+          "type": "string",
+          "description": "Aktuelle Position oder Rolle des Benutzers",
+          "examples": ["Lead AI Developer"]
+        },
+        "industryFocus": {
+          "type": "array",
+          "description": "Industriezweige, auf die sich der Benutzer konzentriert",
+          "items": {
+            "type": "string"
+          },
+          "examples": [["Softwareentwicklung", "KI"]]
+        },
+        "teamSize": {
+          "type": "string",
+          "description": "Größe des Entwicklungsteams",
+          "enum": ["solo", "klein", "mittel", "groß"],
+          "default": "mittel"
+        }
+      }
+    },
+    "preferences": {
+      "type": "object",
+      "description": "Benutzeroberflächen- und Interaktionspräferenzen",
+      "required": ["uiTheme"],
+      "properties": {
+        "uiTheme": {
+          "type": "string",
+          "description": "UI-Theme-Präferenz",
+          "enum": ["light", "dark", "system"],
+          "default": "dark"
+        },
+        "language": {
+          "type": "string",
+          "description": "Bevorzugte Sprache",
+          "enum": ["de", "en", "fr", "es"],
+          "default": "de"
+        },
+        "aiInteractionStyle": {
+          "type": "string",
+          "description": "Bevorzugter KI-Interaktionsstil",
+          "enum": ["kollaborativ", "direktiv", "explorativ"],
+          "default": "kollaborativ"
+        },
+        "notificationFrequency": {
+          "type": "string",
+          "description": "Häufigkeit von Benachrichtigungen",
+          "enum": ["keine", "täglich", "wöchentlich", "sofort"],
+          "default": "täglich"
+        },
+        "colorScheme": {
+          "type": "object",
+          "description": "Benutzerdefinierte Farbdefinitionen für UI-Elemente",
+          "required": [
+            "primary", "secondary", "accent", "success", "warning", 
+            "danger", "info", "background", "surface", "text", 
+            "textSecondary", "border"
+          ],
+          "properties": {
+            "primary": {
+              "type": "string",
+              "description": "Primäre UI-Farbe",
+              "pattern": "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$",
+              "examples": ["#bb86fc"]
+            },
+            "secondary": {
+              "type": "string",
+              "description": "Sekundäre UI-Farbe",
+              "pattern": "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$",
+              "examples": ["#03dac6"]
+            },
+            "accent": {
+              "type": "string",
+              "description": "Akzentfarbe für Hervorhebungen",
+              "pattern": "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$",
+              "examples": ["#cf6679"]
+            },
+            "success": {
+              "type": "string",
+              "description": "Farbe für Erfolgszustände",
+              "pattern": "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$",
+              "examples": ["#4caf50"]
+            },
+            "warning": {
+              "type": "string",
+              "description": "Farbe für Warnzustände",
+              "pattern": "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$",
+              "examples": ["#ff9800"]
+            },
+            "danger": {
+              "type": "string",
+              "description": "Farbe für Fehler- oder Gefahrenzustände",
+              "pattern": "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$",
+              "examples": ["#cf6679"]
+            },
+            "info": {
+              "type": "string",
+              "description": "Farbe für Informationszustände",
+              "pattern": "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$",
+              "examples": ["#2196f3"]
+            },
+            "background": {
+              "type": "string",
+              "description": "Hintergrundfarbe für die Benutzeroberfläche",
+              "pattern": "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$",
+              "examples": ["#121212"]
+            },
+            "surface": {
+              "type": "string",
+              "description": "Oberflächenfarbe für Karten und erhöhte Elemente",
+              "pattern": "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$",
+              "examples": ["#1e1e1e"]
+            },
+            "text": {
+              "type": "string",
+              "description": "Primäre Textfarbe",
+              "pattern": "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$",
+              "examples": ["#ffffff"]
+            },
+            "textSecondary": {
+              "type": "string",
+              "description": "Sekundäre Textfarbe für weniger wichtigen Inhalt",
+              "pattern": "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$",
+              "examples": ["#b0b0b0"]
+            },
+            "border": {
+              "type": "string",
+              "description": "Rahmenfarbe für UI-Elemente",
+              "pattern": "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$",
+              "examples": ["#333333"]
+            }
+          }
+        }
+      }
+    },
+    "agentSettings": {
+      "type": "object",
+      "description": "Einstellungen für KI-Agenten-Funktionalitäten",
+      "required": ["isActive"],
+      "properties": {
+        "isActive": {
+          "type": "boolean",
+          "description": "Ob der KI-Agent aktiviert ist",
+          "default": true
+        },
+        "capabilities": {
+          "type": "array",
+          "description": "Aktivierte Fähigkeiten des KI-Agenten",
+          "items": {
+            "type": "string"
+          },
+          "examples": [["Code-Analyse", "Dokumenten-Zusammenfassung", "Bug-Erkennung"]]
+        },
+        "connectedServices": {
+          "type": "array",
+          "description": "Verbundene Dienste und Tools für den KI-Agenten",
+          "items": {
+            "type": "string"
+          },
+          "examples": [["claude", "google_calendar_tool", "mcp_user_profile_context"]]
+        },
+        "debugPreferences": {
+          "type": "object",
+          "description": "Präferenzen des Benutzers für Debugging-Workflows",
+          "properties": {
+            "strategy": {
+              "type": "string",
+              "description": "Bevorzugte Debugging-Methodik",
+              "enum": ["bottom-up", "top-down"],
+              "default": "bottom-up"
+            },
+            "detailLevel": {
+              "type": "string",
+              "description": "Bevorzugter Detaillierungsgrad in Debugging-Berichten",
+              "enum": ["niedrig", "mittel", "hoch"],
+              "default": "mittel"
+            },
+            "autoFix": {
+              "type": "boolean",
+              "description": "Ob Fehler wenn möglich automatisch behoben werden sollen",
+              "default": true
+            }
+          }
+        }
+      }
+    },
+    "workEnvironment": {
+      "type": "object",
+      "description": "Details zur technischen Arbeitsumgebung des Benutzers",
+      "properties": {
+        "editor": {
+          "type": "string",
+          "description": "Bevorzugter Code-Editor oder IDE",
+          "examples": ["VS Code", "IntelliJ", "Vim"]
+        },
+        "os": {
+          "type": "string",
+          "description": "Betriebssystem",
+          "examples": ["Windows", "macOS", "Linux"]
+        },
+        "cicd": {
+          "type": "string",
+          "description": "CI/CD-Plattform",
+          "examples": ["GitHub Actions", "Jenkins", "GitLab CI"]
+        },
+        "gitWorkflow": {
+          "type": "string",
+          "description": "Bevorzugter Git-Workflow",
+          "enum": ["GitFlow", "GitHub Flow", "Trunk-Based", "Custom"],
+          "default": "GitFlow"
+        }
+      }
+    },
+    "projectContext": {
+      "type": "object",
+      "description": "Informationen über den Projektkontext des Benutzers",
+      "properties": {
+        "currentProjects": {
+          "type": "array",
+          "description": "Liste der aktuellen Projekte",
+          "items": {
+            "type": "string"
+          },
+          "examples": [["VibeCoding Framework", "KI-Agent Dashboard"]]
+        },
+        "architecturePatterns": {
+          "type": "array",
+          "description": "Verwendete Architekturmuster",
+          "items": {
+            "type": "string"
+          },
+          "examples": [["Microservices", "MVC", "CQRS", "DDD"]]
+        }
+      }
+    },
+    "learningPreferences": {
+      "type": "object",
+      "description": "Lernstil-Präferenzen des Benutzers",
+      "properties": {
+        "resources": {
+          "type": "array",
+          "description": "Bevorzugte Lernressourcen",
+          "items": {
+            "type": "string",
+            "enum": ["Dokumentation", "Tutorials", "Beispiele", "Videos", "Interaktiv"]
+          }
+        },
+        "feedbackStyle": {
+          "type": "string",
+          "description": "Bevorzugter Feedback-Stil",
+          "enum": ["direkt", "vorschlagend", "erklärend"],
+          "default": "erklärend"
+        },
+        "adaptationPace": {
+          "type": "string",
+          "description": "Wie schnell der Benutzer neue Technologien übernimmt",
+          "enum": ["vorsichtig", "moderat", "früher Anwender"],
+          "default": "moderat"
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "userId": "550e8400-e29b-41d4-a716-446655440000",
+      "personal": {
+        "name": "Max Mustermann",
+        "contact": {"email": "max@example.com"},
+        "skills": ["Python", "Next.js", "Prompt Engineering"],
+        "communicationStyle": "prägnant, technisch"
+      },
+      "goals": {
+        "shortTerm": ["Projekt X abschließen"],
+        "longTerm": ["Experte für KI-Agenten werden"]
+      },
+      "companyContext": {
+        "currentCompany": "VibeCoding Inc.",
+        "role": "Lead AI Developer",
+        "industryFocus": ["Softwareentwicklung", "KI"],
+        "teamSize": "mittel"
+      },
+      "preferences": {
+        "uiTheme": "dark",
+        "language": "de",
+        "aiInteractionStyle": "kollaborativ",
+        "notificationFrequency": "täglich",
+        "colorScheme": {
+          "primary": "#bb86fc",
+          "secondary": "#03dac6",
+          "accent": "#cf6679",
+          "success": "#4caf50",
+          "warning": "#ff9800",
+          "danger": "#cf6679",
+          "info": "#2196f3",
+          "background": "#121212",
+          "surface": "#1e1e1e",
+          "text": "#ffffff",
+          "textSecondary": "#b0b0b0",
+          "border": "#333333"
+        }
+      },
+      "agentSettings": {
+        "isActive": true,
+        "capabilities": ["Code-Analyse", "Dokumenten-Zusammenfassung"],
+        "connectedServices": ["claude", "google_calendar_tool", "mcp_user_profile_context"],
+        "debugPreferences": {
+          "strategy": "bottom-up",
+          "detailLevel": "hoch",
+          "autoFix": true
+        }
+      },
+      "workEnvironment": {
+        "editor": "VS Code",
+        "os": "macOS",
+        "cicd": "GitHub Actions",
+        "gitWorkflow": "GitFlow"
+      },
+      "projectContext": {
+        "currentProjects": ["VibeCoding Framework", "KI-Agent Dashboard"],
+        "architecturePatterns": ["Microservices", "DDD"]
+      },
+      "learningPreferences": {
+        "resources": ["Dokumentation", "Beispiele"],
+        "feedbackStyle": "erklärend",
+        "adaptationPace": "früher Anwender"
+      }
+    }
+  ]
+}

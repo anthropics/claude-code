@@ -1,0 +1,153 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Benutzer-Profil Schema",
+  "description": "Schema für die Claude Framework Benutzerprofile",
+  "type": "object",
+  "required": ["name", "preferences", "themeSettings", "workflow"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Name des Benutzers"
+    },
+    "email": {
+      "type": "string",
+      "description": "E-Mail-Adresse des Benutzers",
+      "format": "email"
+    },
+    "role": {
+      "type": "string",
+      "description": "Rolle des Benutzers im System",
+      "enum": ["developer", "administrator", "reviewer", "guest"]
+    },
+    "preferences": {
+      "type": "object",
+      "description": "Benutzereinstellungen",
+      "required": ["language", "codeStyle"],
+      "properties": {
+        "language": {
+          "type": "string",
+          "description": "Bevorzugte Sprache für die Benutzeroberfläche",
+          "enum": ["deutsch", "english", "français", "español"],
+          "default": "deutsch"
+        },
+        "codeStyle": {
+          "type": "string",
+          "description": "Bevorzugter Code-Stil",
+          "enum": ["standard", "google", "airbnb", "benutzerdefiniert"],
+          "default": "standard"
+        },
+        "tabSize": {
+          "type": "integer",
+          "description": "Bevorzugte Tabulator-Größe",
+          "minimum": 2,
+          "maximum": 8,
+          "default": 2
+        },
+        "indentWithTabs": {
+          "type": "boolean",
+          "description": "Mit Tabs oder Leerzeichen einrücken",
+          "default": false
+        },
+        "lineWrapping": {
+          "type": "boolean",
+          "description": "Automatischer Zeilenumbruch",
+          "default": true
+        },
+        "showLineNumbers": {
+          "type": "boolean",
+          "description": "Zeilennummern anzeigen",
+          "default": true
+        }
+      }
+    },
+    "themeSettings": {
+      "type": "object",
+      "description": "Einstellungen für das Erscheinungsbild",
+      "required": ["colorScheme"],
+      "properties": {
+        "colorScheme": {
+          "type": "string",
+          "description": "Farbschema für die Benutzeroberfläche",
+          "enum": ["hell", "dunkel", "system"],
+          "default": "system"
+        },
+        "accentColor": {
+          "type": "string",
+          "description": "Akzentfarbe für die Benutzeroberfläche",
+          "pattern": "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$",
+          "default": "#0066cc"
+        },
+        "fontSize": {
+          "type": "integer",
+          "description": "Schriftgröße in Pixeln",
+          "minimum": 10,
+          "maximum": 32,
+          "default": 14
+        },
+        "fontFamily": {
+          "type": "string",
+          "description": "Bevorzugte Schriftart",
+          "default": "Source Code Pro, monospace"
+        }
+      }
+    },
+    "workflow": {
+      "type": "object",
+      "description": "Arbeitsablauf-Einstellungen",
+      "required": ["defaultDomain"],
+      "properties": {
+        "defaultDomain": {
+          "type": "string",
+          "description": "Standard-Domain für sequenzielle Ausführung",
+          "enum": ["documentation", "cicd", "data", "general"],
+          "default": "general"
+        },
+        "fallbackMode": {
+          "type": "boolean",
+          "description": "Immer Fallback-Modus verwenden",
+          "default": false
+        },
+        "autoExecute": {
+          "type": "boolean",
+          "description": "Pläne automatisch ausführen",
+          "default": false
+        },
+        "maxSteps": {
+          "type": "integer",
+          "description": "Maximale Anzahl von Schritten in einem Plan",
+          "minimum": 5,
+          "maximum": 50,
+          "default": 20
+        },
+        "planningDepth": {
+          "type": "string",
+          "description": "Tiefe der Planung",
+          "enum": ["shallow", "medium", "deep"],
+          "default": "medium"
+        }
+      }
+    },
+    "advanced": {
+      "type": "object",
+      "description": "Erweiterte Einstellungen",
+      "properties": {
+        "enableDebugMode": {
+          "type": "boolean",
+          "description": "Debug-Modus aktivieren",
+          "default": false
+        },
+        "enableExperimentalFeatures": {
+          "type": "boolean",
+          "description": "Experimentelle Funktionen aktivieren",
+          "default": false
+        },
+        "logLevel": {
+          "type": "string",
+          "description": "Log-Level für die Konsole",
+          "enum": ["error", "warn", "info", "debug", "trace"],
+          "default": "info"
+        }
+      }
+    }
+  }
+}

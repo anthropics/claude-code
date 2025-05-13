@@ -1,0 +1,129 @@
+{
+  "name": "documentation_update",
+  "description": "Updates or generates documentation for code",
+  "version": "1.0.0",
+  "steps": [
+    {
+      "name": "context_lookup",
+      "type": "file-context",
+      "input": "{library}",
+      "output": "documentation",
+      "tokens": 5000,
+      "continueOnError": true
+    },
+    {
+      "name": "code_analysis",
+      "type": "command",
+      "command": "find {codeDir} -name '*.{fileExt}' | xargs cat | wc -l",
+      "output": "lineCount",
+      "continueOnError": false
+    },
+    {
+      "name": "existing_docs_check",
+      "type": "command",
+      "command": "find {codeDir} -name '*.md' -o -name '*.rst' -o -name '*.txt' | grep -v 'node_modules\\|venv\\|__pycache__' | sort",
+      "output": "existingDocs",
+      "continueOnError": true
+    },
+    {
+      "name": "file_structure_analysis",
+      "type": "command",
+      "command": "find {codeDir} -type f -name \"*.{fileExt}\" | grep -v 'node_modules\\|venv\\|__pycache__' | sort",
+      "output": "fileList",
+      "continueOnError": false
+    },
+    {
+      "name": "readme_check",
+      "type": "command",
+      "command": "if [ -f \"{codeDir}/README.md\" ]; then cat \"{codeDir}/README.md\"; else echo \"No README.md found\"; fi",
+      "output": "readmeContent",
+      "continueOnError": true
+    },
+    {
+      "name": "sample_file_content",
+      "type": "command",
+      "command": "find {codeDir} -type f -name \"*.{fileExt}\" | grep -v 'node_modules\\|venv\\|__pycache__' | head -n 3 | xargs cat",
+      "output": "sampleCode",
+      "continueOnError": true
+    },
+    {
+      "name": "deepthink_doc_strategy",
+      "type": "deepthink",
+      "input": "Develop a comprehensive documentation strategy for a {language} codebase with {lineCount} lines of code. The project has these existing documentation files: {existingDocs}. The current README content is: {readmeContent}. Sample code from the project: {sampleCode}. Focus on creating a documentation strategy that improves code understanding, provides clear API documentation, and helps onboard new developers.",
+      "output": "docStrategy",
+      "continueOnError": false
+    },
+    {
+      "name": "documentation_structure",
+      "type": "sequentialthinking",
+      "input": "Based on the documentation strategy: {docStrategy.synthesis}, design a documentation structure for this {language} project. Include: 1) README organization, 2) API documentation approach, 3) Directory structure for documentation files, 4) Integration with code comments. Consider the existing files: {fileList} and existing documentation: {existingDocs}.",
+      "totalThoughts": 5,
+      "output": "docStructure",
+      "continueOnError": false
+    },
+    {
+      "name": "readme_improvement",
+      "type": "sequentialthinking",
+      "input": "Create an improved README.md for this project based on the documentation strategy. Current README: {readmeContent}. Sample code: {sampleCode}. Follow this structure: 1) Project title and description, 2) Installation instructions, 3) Usage examples, 4) Features, 5) Contributing guidelines, 6) License information. The README should be clear, concise, and follow best practices for {language} projects.",
+      "totalThoughts": 3,
+      "output": "improvedReadme",
+      "continueOnError": false
+    },
+    {
+      "name": "implementation_plan",
+      "type": "sequentialthinking",
+      "input": "Create a detailed plan for implementing the documentation updates. The plan should include: 1) Which files to document first, 2) How to implement the documentation structure from {docStructure.thought}, 3) How to ensure consistent documentation style, 4) How to validate documentation completeness. Consider the file list: {fileList} and documentation strategy: {docStrategy.synthesis}.",
+      "totalThoughts": 3,
+      "output": "implementationPlan",
+      "continueOnError": false
+    }
+  ],
+  "inputs": [
+    {
+      "name": "codeDir",
+      "description": "The directory containing the code to document",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "language",
+      "description": "The programming language of the codebase",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "fileExt",
+      "description": "The file extension to look for (js, py, rs, etc.)",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "library",
+      "description": "The primary library or framework used in the codebase",
+      "type": "string",
+      "required": false
+    }
+  ],
+  "outputs": [
+    {
+      "name": "docStrategy",
+      "description": "The overall documentation strategy",
+      "type": "object"
+    },
+    {
+      "name": "docStructure",
+      "description": "The structure for documentation files",
+      "type": "object"
+    },
+    {
+      "name": "improvedReadme",
+      "description": "Improved README.md content",
+      "type": "object"
+    },
+    {
+      "name": "implementationPlan",
+      "description": "Step-by-step plan for implementing documentation",
+      "type": "object"
+    }
+  ]
+}

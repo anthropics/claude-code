@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude Recursion Monitor Dashboard</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.2/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="color-schema.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/moment.min.js"></script>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="bi bi-braces"></i> Claude Recursion Monitor
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#settingsModal">Settings</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#helpModal">Help</a>
+                    </li>
+                </ul>
+                <div class="ms-auto">
+                    <button id="refreshButton" class="btn btn-outline-light" title="Refresh data">
+                        <i class="bi bi-arrow-clockwise"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-4">
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Recursion Overview</h5>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="autoRefreshToggle" checked>
+                            <label class="form-check-label" for="autoRefreshToggle">Auto Refresh</label>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="metric-card text-center p-3 bg-light">
+                                    <h3 id="totalFunctionsMonitored">0</h3>
+                                    <p class="text-muted">Functions Monitored</p>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="metric-card text-center p-3 bg-light">
+                                    <h3 id="totalIssuesDetected">0</h3>
+                                    <p class="text-muted">Issues Detected</p>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="metric-card text-center p-3 bg-light">
+                                    <h3 id="totalIssuesFixed">0</h3>
+                                    <p class="text-muted">Issues Fixed</p>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="metric-card text-center p-3 bg-light">
+                                    <h3 id="maxRecursionDepth">0</h3>
+                                    <p class="text-muted">Max Recursion Depth</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <canvas id="recursionTrendsChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Active Recursive Calls</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Function</th>
+                                        <th>File</th>
+                                        <th>Current Depth</th>
+                                        <th>Call Count</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="activeRecursionsTable">
+                                    <!-- Data will be populated by JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Recent Issues</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="recentIssues">
+                            <!-- Data will be populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Optimization Suggestions</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="optimizationSuggestions">
+                            <!-- Data will be populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Quick Actions</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-primary" id="fullScanButton">
+                                <i class="bi bi-search"></i> Full Project Scan
+                            </button>
+                            <button class="btn btn-success" id="autoFixAllButton">
+                                <i class="bi bi-wrench"></i> Auto-Fix All Issues
+                            </button>
+                            <button class="btn btn-warning" id="exportReportButton">
+                                <i class="bi bi-file-earmark-text"></i> Export Report
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-12">
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Recursive Function History</h5>
+                        <div class="input-group" style="width: 300px;">
+                            <input type="text" class="form-control" placeholder="Search functions..." id="functionSearchInput">
+                            <button class="btn btn-outline-secondary" type="button" id="functionSearchButton">
+                                <i class="bi bi-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Function</th>
+                                        <th>File</th>
+                                        <th>Max Depth</th>
+                                        <th>Call Count</th>
+                                        <th>Last Invocation</th>
+                                        <th>Issues</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="recursiveFunctionsTable">
+                                    <!-- Data will be populated by JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <nav>
+                            <ul class="pagination justify-content-center" id="functionsPagination">
+                                <!-- Pagination will be populated by JavaScript -->
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal fade" id="settingsModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Monitor Settings</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="settingsForm">
+                        <div class="mb-3">
+                            <label for="maxRecursionDepthSetting" class="form-label">Max Recursion Depth Warning</label>
+                            <input type="number" class="form-control" id="maxRecursionDepthSetting" min="100" value="1000">
+                        </div>
+                        <div class="mb-3">
+                            <label for="maxCallCountSetting" class="form-label">Max Call Count Warning</label>
+                            <input type="number" class="form-control" id="maxCallCountSetting" min="1000" value="10000">
+                        </div>
+                        <div class="mb-3">
+                            <label for="refreshIntervalSetting" class="form-label">Dashboard Refresh Interval (seconds)</label>
+                            <input type="number" class="form-control" id="refreshIntervalSetting" min="5" value="30">
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="enableNotifications" checked>
+                            <label class="form-check-label" for="enableNotifications">Enable Notifications</label>
+                        </div>
+                        <div class="mb-3">
+                            <label for="notificationChannelSetting" class="form-label">Notification Channel</label>
+                            <select class="form-select" id="notificationChannelSetting">
+                                <option value="browser">Browser</option>
+                                <option value="slack">Slack</option>
+                                <option value="email">Email</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="webhookUrlSetting" class="form-label">Webhook URL (for Slack)</label>
+                            <input type="text" class="form-control" id="webhookUrlSetting" placeholder="https://hooks.slack.com/services/...">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="saveSettingsButton">Save Settings</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div class="modal fade" id="helpModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Recursion Monitor Help</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <h5>About Recursion Monitoring</h5>
+                    <p>The Claude Recursion Monitor tracks and analyzes recursive function calls in your codebase to identify potential issues like:</p>
+                    <ul>
+                        <li>Stack overflow risks</li>
+                        <li>Infinite recursion</li>
+                        <li>Performance bottlenecks</li>
+                        <li>Missing optimization opportunities</li>
+                    </ul>
+
+                    <h5>Dashboard Features</h5>
+                    <ul>
+                        <li><strong>Recursion Overview</strong>: High-level metrics about recursive functions</li>
+                        <li><strong>Active Recursive Calls</strong>: Currently executing recursive functions</li>
+                        <li><strong>Recent Issues</strong>: Latest detected recursive problems</li>
+                        <li><strong>Optimization Suggestions</strong>: AI-powered recommendations</li>
+                        <li><strong>Function History</strong>: Complete list of monitored recursive functions</li>
+                    </ul>
+
+                    <h5>Quick Actions</h5>
+                    <ul>
+                        <li><strong>Full Project Scan</strong>: Analyze all files for recursive patterns</li>
+                        <li><strong>Auto-Fix All Issues</strong>: Apply recommended fixes automatically</li>
+                        <li><strong>Export Report</strong>: Generate a detailed PDF report</li>
+                    </ul>
+
+                    <h5>Getting Started</h5>
+                    <ol>
+                        <li>Install the recursive monitoring tools in your codebase</li>
+                        <li>Run the agent to start collecting data</li>
+                        <li>View the dashboard to monitor recursive functions</li>
+                        <li>Apply suggested optimizations as needed</li>
+                    </ol>
+
+                    <p>For more detailed documentation, please refer to the <a href="../docs/guides/recursive_debugging_guide.md" target="_blank">Recursive Debugging Guide</a>.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Function Details Modal -->
+    <div class="modal fade" id="functionDetailsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="functionDetailsTitle">Function Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>General Information</h6>
+                            <table class="table table-sm">
+                                <tr>
+                                    <th>Function:</th>
+                                    <td id="detailsFunctionName"></td>
+                                </tr>
+                                <tr>
+                                    <th>File:</th>
+                                    <td id="detailsFilePath"></td>
+                                </tr>
+                                <tr>
+                                    <th>First Seen:</th>
+                                    <td id="detailsFirstSeen"></td>
+                                </tr>
+                                <tr>
+                                    <th>Last Called:</th>
+                                    <td id="detailsLastCalled"></td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Metrics</h6>
+                            <table class="table table-sm">
+                                <tr>
+                                    <th>Total Calls:</th>
+                                    <td id="detailsTotalCalls"></td>
+                                </tr>
+                                <tr>
+                                    <th>Max Recursion Depth:</th>
+                                    <td id="detailsMaxDepth"></td>
+                                </tr>
+                                <tr>
+                                    <th>Avg. Execution Time:</th>
+                                    <td id="detailsAvgExecTime"></td>
+                                </tr>
+                                <tr>
+                                    <th>Issues Detected:</th>
+                                    <td id="detailsIssuesCount"></td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="mt-3">
+                        <h6>Recursive Pattern</h6>
+                        <pre><code id="detailsCodeSnippet" class="language-javascript"></code></pre>
+                    </div>
+
+                    <div class="mt-3">
+                        <h6>Call History</h6>
+                        <canvas id="callHistoryChart"></canvas>
+                    </div>
+
+                    <div class="mt-3">
+                        <h6>Detected Issues</h6>
+                        <div id="detailsIssuesList" class="list-group">
+                            <!-- Issues will be populated by JavaScript -->
+                        </div>
+                    </div>
+
+                    <div class="mt-3">
+                        <h6>Optimization Recommendations</h6>
+                        <div id="detailsOptimizationList" class="list-group">
+                            <!-- Optimizations will be populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-success" id="optimizeFunctionButton">Apply Optimizations</button>
+                    <button type="button" class="btn btn-primary" id="debugFunctionButton">Debug Function</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.24.1/prism.min.js"></script>
+    <script src="color-schema-integration.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>

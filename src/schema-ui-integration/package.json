@@ -1,0 +1,40 @@
+{
+  "name": "claude-schema-ui",
+  "version": "1.0.0",
+  "description": "Schema-driven UI components for Claude integrations",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "jest",
+    "build": "babel src --out-dir dist",
+    "lint": "eslint src"
+  },
+  "keywords": [
+    "claude",
+    "ui",
+    "schema",
+    "form",
+    "json-schema",
+    "context7"
+  ],
+  "author": "Claude Framework Team",
+  "license": "MIT",
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "peerDependencies": {
+    "react": ">=16.8.0",
+    "react-dom": ">=16.8.0"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.22.5",
+    "@babel/core": "^7.22.5",
+    "@babel/preset-env": "^7.22.5",
+    "@babel/preset-react": "^7.22.5",
+    "babel-jest": "^29.5.0",
+    "eslint": "^8.42.0",
+    "eslint-plugin-react": "^7.32.2",
+    "jest": "^29.5.0",
+    "react-test-renderer": "^18.2.0"
+  }
+}

@@ -1,0 +1,146 @@
+{
+  "version": "1.0.0",
+  "environment": "production",
+  "security": {
+    "sso": {
+      "enabled": false,
+      "providers": [
+        {
+          "name": "okta",
+          "enabled": false,
+          "client_id": "",
+          "client_secret": "",
+          "auth_url": "",
+          "token_url": ""
+        },
+        {
+          "name": "azure_ad",
+          "enabled": false,
+          "tenant_id": "",
+          "client_id": "",
+          "client_secret": ""
+        }
+      ]
+    },
+    "rbac": {
+      "enabled": true,
+      "default_role": "user",
+      "roles": [
+        {
+          "name": "admin",
+          "permissions": ["*"]
+        },
+        {
+          "name": "user",
+          "permissions": ["read", "write", "execute"]
+        },
+        {
+          "name": "viewer",
+          "permissions": ["read"]
+        }
+      ]
+    },
+    "compliance": {
+      "audit_logging": true,
+      "data_retention_days": 90,
+      "encryption": {
+        "enabled": true,
+        "algorithm": "AES-256"
+      }
+    }
+  },
+  "performance": {
+    "cache": {
+      "enabled": true,
+      "ttl_seconds": 3600
+    },
+    "rate_limiting": {
+      "enabled": true,
+      "requests_per_minute": 100
+    }
+  },
+  "monitoring": {
+    "metrics": {
+      "enabled": true,
+      "interval_seconds": 60
+    },
+    "alerts": {
+      "enabled": false,
+      "channels": [
+        {
+          "type": "email",
+          "recipients": []
+        },
+        {
+          "type": "slack",
+          "webhook_url": ""
+        }
+      ]
+    }
+  },
+  "teams": {
+    "enabled": true,
+    "max_members_per_team": 25
+  },
+  "license": {
+    "type": "beta",
+    "expiration": "",
+    "features": {
+      "multi_user": true,
+      "advanced_analytics": false,
+      "priority_support": false
+    }
+  },
+  "integrations": {
+    "jira": {
+      "enabled": false,
+      "url": "",
+      "project_key": "",
+      "issue_types": {
+        "feature": "Story",
+        "bugfix": "Bug",
+        "hotfix": "Bug",
+        "release": "Task"
+      }
+    },
+    "github": {
+      "enabled": false,
+      "enterprise_url": ""
+    },
+    "ci_cd": {
+      "enabled": false,
+      "provider": "jenkins",
+      "url": "",
+      "credential_id": ""
+    }
+  },
+  "mcp": {
+    "servers": {
+      "enterprise_auth": {
+        "enabled": true,
+        "port": 3010,
+        "endpoint": "/auth"
+      },
+      "enterprise_rbac": {
+        "enabled": true,
+        "port": 3011,
+        "endpoint": "/rbac"
+      },
+      "enterprise_audit": {
+        "enabled": true,
+        "port": 3012,
+        "endpoint": "/audit"
+      },
+      "enterprise_compliance": {
+        "enabled": true,
+        "port": 3013,
+        "endpoint": "/compliance"
+      },
+      "enterprise_teams": {
+        "enabled": true,
+        "port": 3014,
+        "endpoint": "/teams"
+      }
+    }
+  }
+}

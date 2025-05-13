@@ -1,0 +1,290 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Claude Neural Framework .about Profil-Schema",
+  "description": "Schema für das .about-Profil, das vom Claude Neural Framework verwendet wird, um personalisierte Agenten-Interaktionen bereitzustellen",
+  "type": "object",
+  "required": ["user_id", "name", "goals", "preferences", "expertise", "debug_preferences", "is_agent"],
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "Eindeutige Kennung für den Benutzer",
+      "pattern": "^user-[0-9]+$",
+      "examples": ["user-12345"]
+    },
+    "name": {
+      "type": "string",
+      "description": "Vollständiger Name des Benutzers",
+      "minLength": 1,
+      "examples": ["Alice Schmidt"]
+    },
+    "goals": {
+      "type": "array",
+      "description": "Berufliche oder Projektziele des Benutzers",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      },
+      "examples": [["KI-basierte Codeverbesserung", "Automatisierung von Tests", "Debugging-Effizienz steigern"]]
+    },
+    "companies": {
+      "type": "array",
+      "description": "Unternehmen oder Organisationen, mit denen der Benutzer verbunden ist",
+      "items": {
+        "type": "string"
+      },
+      "examples": [["TechInnovation GmbH"]]
+    },
+    "preferences": {
+      "type": "object",
+      "description": "Benutzeroberflächen- und Interaktionspräferenzen",
+      "required": ["theme", "lang", "colorScheme"],
+      "properties": {
+        "theme": {
+          "type": "string",
+          "description": "UI-Theme-Präferenz",
+          "enum": ["light", "dark"],
+          "default": "dark"
+        },
+        "lang": {
+          "type": "string",
+          "description": "Bevorzugte Sprache",
+          "enum": ["de", "en"],
+          "default": "en"
+        },
+        "colorScheme": {
+          "type": "object",
+          "description": "Benutzerdefinierte Farbdefinitionen für UI-Elemente",
+          "required": [
+            "primary", "secondary", "accent", "success", "warning", 
+            "danger", "info", "background", "surface", "text", 
+            "textSecondary", "border"
+          ],
+          "properties": {
+            "primary": {
+              "type": "string",
+              "description": "Primäre UI-Farbe",
+              "pattern": "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$",
+              "examples": ["#bb86fc"]
+            },
+            "secondary": {
+              "type": "string",
+              "description": "Sekundäre UI-Farbe",
+              "pattern": "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$",
+              "examples": ["#03dac6"]
+            },
+            "accent": {
+              "type": "string",
+              "description": "Akzentfarbe für Hervorhebungen",
+              "pattern": "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$",
+              "examples": ["#cf6679"]
+            },
+            "success": {
+              "type": "string",
+              "description": "Farbe für Erfolgszustände",
+              "pattern": "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$",
+              "examples": ["#4caf50"]
+            },
+            "warning": {
+              "type": "string",
+              "description": "Farbe für Warnzustände",
+              "pattern": "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$",
+              "examples": ["#ff9800"]
+            },
+            "danger": {
+              "type": "string",
+              "description": "Farbe für Fehler- oder Gefahrenzustände",
+              "pattern": "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$",
+              "examples": ["#cf6679"]
+            },
+            "info": {
+              "type": "string",
+              "description": "Farbe für Informationszustände",
+              "pattern": "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$",
+              "examples": ["#2196f3"]
+            },
+            "background": {
+              "type": "string",
+              "description": "Hintergrundfarbe für die Benutzeroberfläche",
+              "pattern": "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$",
+              "examples": ["#121212"]
+            },
+            "surface": {
+              "type": "string",
+              "description": "Oberflächenfarbe für Karten und erhöhte Elemente",
+              "pattern": "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$",
+              "examples": ["#1e1e1e"]
+            },
+            "text": {
+              "type": "string",
+              "description": "Primäre Textfarbe",
+              "pattern": "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$",
+              "examples": ["#ffffff"]
+            },
+            "textSecondary": {
+              "type": "string",
+              "description": "Sekundäre Textfarbe für weniger wichtigen Inhalt",
+              "pattern": "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$",
+              "examples": ["#b0b0b0"]
+            },
+            "border": {
+              "type": "string",
+              "description": "Rahmenfarbe für UI-Elemente",
+              "pattern": "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$",
+              "examples": ["#333333"]
+            }
+          }
+        }
+      }
+    },
+    "expertise": {
+      "type": "array",
+      "description": "Technische Bereiche, in denen der Benutzer Fachwissen besitzt",
+      "items": {
+        "type": "string"
+      },
+      "examples": [["javascript", "python", "recursion", "database-design"]]
+    },
+    "debug_preferences": {
+      "type": "object",
+      "description": "Präferenzen des Benutzers für Debugging-Workflows",
+      "required": ["strategy", "detail_level", "auto_fix"],
+      "properties": {
+        "strategy": {
+          "type": "string",
+          "description": "Bevorzugte Debugging-Methodik",
+          "enum": ["bottom-up", "top-down"],
+          "default": "bottom-up"
+        },
+        "detail_level": {
+          "type": "string",
+          "description": "Bevorzugter Detaillierungsgrad in Debugging-Berichten",
+          "enum": ["low", "medium", "high"],
+          "default": "medium"
+        },
+        "auto_fix": {
+          "type": "boolean",
+          "description": "Ob Fehler wenn möglich automatisch behoben werden sollen",
+          "default": true
+        }
+      }
+    },
+    "is_agent": {
+      "type": "boolean",
+      "description": "Ob dieses Profil für einen Agenten und nicht für einen menschlichen Benutzer bestimmt ist",
+      "default": true
+    },
+    "learning_preferences": {
+      "type": "object",
+      "description": "Lernstil-Präferenzen des Benutzers (optional)",
+      "properties": {
+        "resources": {
+          "type": "array",
+          "description": "Bevorzugte Lernressourcen",
+          "items": {
+            "type": "string",
+            "enum": ["documentation", "tutorials", "examples", "videos", "interactive"]
+          }
+        },
+        "feedback_style": {
+          "type": "string",
+          "description": "Bevorzugter Feedback-Stil",
+          "enum": ["direct", "suggestive", "explanatory"]
+        },
+        "adaptation_pace": {
+          "type": "string",
+          "description": "Wie schnell der Benutzer neue Technologien übernimmt",
+          "enum": ["cautious", "moderate", "early-adopter"]
+        }
+      }
+    },
+    "work_environment": {
+      "type": "object",
+      "description": "Details zur technischen Arbeitsumgebung des Benutzers (optional)",
+      "properties": {
+        "editor": {
+          "type": "string",
+          "description": "Bevorzugter Code-Editor oder IDE",
+          "examples": ["VS Code", "IntelliJ", "Vim"]
+        },
+        "os": {
+          "type": "string",
+          "description": "Betriebssystem",
+          "examples": ["Windows", "macOS", "Linux"]
+        },
+        "ci_cd": {
+          "type": "string",
+          "description": "CI/CD-Plattform",
+          "examples": ["GitHub Actions", "Jenkins", "GitLab CI"]
+        }
+      }
+    },
+    "project_context": {
+      "type": "object",
+      "description": "Informationen über den Projektkontext des Benutzers (optional)",
+      "properties": {
+        "current_projects": {
+          "type": "array",
+          "description": "Liste der aktuellen Projekte",
+          "items": {
+            "type": "string"
+          }
+        },
+        "architecture_patterns": {
+          "type": "array",
+          "description": "Verwendete Architekturmuster",
+          "items": {
+            "type": "string",
+            "examples": ["Microservices", "MVC", "CQRS"]
+          }
+        },
+        "team_size": {
+          "type": "string",
+          "description": "Größe des Entwicklungsteams",
+          "enum": ["solo", "small", "medium", "large"]
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "user_id": "user-12345",
+      "name": "Alice Schmidt",
+      "goals": [
+        "KI-basierte Codeverbesserung",
+        "Automatisierung von Tests",
+        "Debugging-Effizienz steigern"
+      ],
+      "companies": ["TechInnovation GmbH"],
+      "preferences": {
+        "theme": "dark",
+        "lang": "de",
+        "colorScheme": {
+          "primary": "#bb86fc",
+          "secondary": "#03dac6",
+          "accent": "#cf6679",
+          "success": "#4caf50",
+          "warning": "#ff9800",
+          "danger": "#cf6679",
+          "info": "#2196f3",
+          "background": "#121212",
+          "surface": "#1e1e1e",
+          "text": "#ffffff",
+          "textSecondary": "#b0b0b0",
+          "border": "#333333"
+        }
+      },
+      "expertise": [
+        "javascript",
+        "python",
+        "recursion",
+        "database-design"
+      ],
+      "debug_preferences": {
+        "strategy": "bottom-up",
+        "detail_level": "high",
+        "auto_fix": true
+      },
+      "is_agent": true
+    }
+  ]
+}

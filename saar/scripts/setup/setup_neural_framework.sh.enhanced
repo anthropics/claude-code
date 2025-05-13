@@ -1,0 +1,1794 @@
+#!/bin/bash
+# Neural Framework Integration Setup Script
+# Version: 1.1.0
+
+# Set strict mode
+set -e
+set -o pipefail
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+NC='\033[0m' # No Color
+BOLD='\033[1m'
+
+# Configuration
+WORKSPACE_DIR="$(pwd)"
+CONFIG_DIR="$HOME/.claude"
+NEURAL_DIR="$WORKSPACE_DIR/src/neural"
+LOG_FILE="$CONFIG_DIR/neural_framework_setup.log"
+PYTHON_REQUIREMENTS_FILE="$WORKSPACE_DIR/requirements.txt"
+TEMP_DIR="$CONFIG_DIR/tmp"
+
+# Template directories
+TEMPLATES_DIR="$WORKSPACE_DIR/ai_docs/templates"
+SPECS_DIR="$WORKSPACE_DIR/specs"
+CLAUDE_DIR="$WORKSPACE_DIR/.claude"
+
+# Log function
+log() {
+  local level=$1
+  local message=$2
+  local timestamp=$(date "+%Y-%m-%d %H:%M:%S")
+  
+  # Log to file
+  mkdir -p "$(dirname "$LOG_FILE")"
+  echo "[$timestamp] [$level] $message" >> "$LOG_FILE"
+  
+  # Print to console
+  case $level in
+    INFO)
+      echo -e "${GREEN}[INFO]${NC} $message"
+      ;;
+    WARN)
+      echo -e "${YELLOW}[WARN]${NC} $message"
+      ;;
+    ERROR)
+      echo -e "${RED}[ERROR]${NC} $message"
+      ;;
+    DEBUG)
+      echo -e "${BLUE}[DEBUG]${NC} $message"
+      ;;
+    SUCCESS)
+      echo -e "${GREEN}[SUCCESS]${NC} $message"
+      ;;
+    *)
+      echo "$message"
+      ;;
+  esac
+}
+
+# Run a command with proper error handling
+run_command() {
+  local command=$1
+  local error_message=${2:-"Command failed: $command"}
+  local capture_output=${3:-false}
+  local output=""
+  
+  log "DEBUG" "Running command: $command"
+  
+  if [ "$capture_output" = true ]; then
+    output=$(eval "$command" 2>&1) || {
+      local exit_code=$?
+      log "ERROR" "$error_message"
+      log "ERROR" "Command output: $output"
+      log "ERROR" "Exit code: $exit_code"
+      echo "$output" >> "$LOG_FILE"
+      return $exit_code
+    }
+    echo "$output"
+    return 0
+  else
+    if ! eval "$command"; then
+      local exit_code=$?
+      log "ERROR" "$error_message"
+      log "ERROR" "Exit code: $exit_code"
+      return $exit_code
+    fi
+    return 0
+  fi
+}
+
+# Check if a python package is installed
+check_python_package() {
+  local package=$1
+  
+  python3 -c "import $package" 2>/dev/null
+  return $?
+}
+
+# Check if a node package is installed
+check_node_package() {
+  local package=$1
+  
+  # Check if the package is installed globally
+  npm list -g $package >/dev/null 2>&1 || npm list $package >/dev/null 2>&1
+  return $?
+}
+
+# Create directory if it doesn't exist
+ensure_directory() {
+  local dir_path=$1
+  
+  if [ ! -d "$dir_path" ]; then
+    mkdir -p "$dir_path"
+    log "DEBUG" "Created directory: $dir_path"
+  fi
+}
+
+# Validate working directory
+validate_directory() {
+  log "INFO" "Validating working directory"
+  
+  # Check for key directories that should exist in the claude-code repo
+  if [ ! -d "$WORKSPACE_DIR/core" ] || [ ! -d "$WORKSPACE_DIR/docs" ]; then
+    log "WARN" "This doesn't appear to be the claude-code repository."
+    echo -n "Continue anyway? (y/n): "
+    read -r response
+    if [[ ! "$response" =~ ^[Yy]$ ]]; then
+      log "ERROR" "Setup aborted by user."
+      exit 1
+    fi
+  else
+    log "INFO" "Valid claude-code repository detected."
+  fi
+}
+
+# Banner function
+show_banner() {
+  echo -e "${CYAN}${BOLD}"
+  echo "███╗   ██╗███████╗██╗   ██╗██████╗  █████╗ ██╗     "
+  echo "████╗  ██║██╔════╝██║   ██║██╔══██╗██╔══██╗██║     "
+  echo "██╔██╗ ██║█████╗  ██║   ██║██████╔╝███████║██║     "
+  echo "██║╚██╗██║██╔══╝  ██║   ██║██╔══██╗██╔══██║██║     "
+  echo "██║ ╚████║███████╗╚██████╔╝██║  ██║██║  ██║███████╗"
+  echo "╚═╝  ╚═══╝╚══════╝ ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝"                                      
+  echo -e "${NC}"
+  echo -e "${CYAN}${BOLD}Neural Framework Integration${NC}"
+  echo "Version: 1.1.0"
+  echo
+}
+
+#
+# Core Neural Framework Structure
+#
+
+# Create core neural framework structure
+create_neural_structure() {
+  log "INFO" "Creating neural framework structure"
+  
+  # Create directory structure
+  ensure_directory "$NEURAL_DIR"
+  ensure_directory "$NEURAL_DIR/embedding"
+  ensure_directory "$NEURAL_DIR/models"
+  ensure_directory "$NEURAL_DIR/services"
+  
+  log "SUCCESS" "Neural framework directory structure created"
+}
+
+# Create model provider module
+create_model_provider() {
+  log "INFO" "Creating model provider module"
+  
+  local model_provider_path="$NEURAL_DIR/models/ModelProvider.js"
+  
+  if [ ! -f "$model_provider_path" ]; then
+    cat > "$model_provider_path" << 'EOF'
+/**
+ * ModelProvider.js - Neural Framework Model Provider
+ * 
+ * This module provides a unified interface to access different AI models
+ * through a consistent API.
+ */
+
+const anthropic = require('@anthropic/sdk');
+const os = require('os');
+const fs = require('fs');
+const path = require('path');
+
+class ModelProvider {
+  constructor(options = {}) {
+    this.options = {
+      defaultModel: 'claude-3-opus-20240229',
+      apiKeyPath: path.join(os.homedir(), '.claude', 'api_keys.json'),
+      ...options
+    };
+    
+    this.clients = {};
+    this.initializeClients();
+  }
+  
+  /**
+   * Initialize API clients for different providers
+   */
+  initializeClients() {
+    try {
+      // Load API keys
+      let apiKeys = {};
+      if (fs.existsSync(this.options.apiKeyPath)) {
+        apiKeys = JSON.parse(fs.readFileSync(this.options.apiKeyPath, 'utf8'));
+      }
+      
+      // Initialize Anthropic client if API key is available
+      if (apiKeys.api_key || process.env.ANTHROPIC_API_KEY) {
+        const apiKey = apiKeys.api_key || process.env.ANTHROPIC_API_KEY;
+        this.clients.anthropic = new anthropic.Anthropic({
+          apiKey
+        });
+        console.log('Initialized Anthropic client');
+      }
+      
+      // Add more model providers here as needed
+    } catch (error) {
+      console.error('Error initializing model providers:', error);
+    }
+  }
+  
+  /**
+   * Get available models
+   */
+  async getAvailableModels() {
+    const models = {
+      anthropic: [
+        'claude-3-opus-20240229',
+        'claude-3-sonnet-20240229',
+        'claude-3-haiku-20240307'
+      ]
+    };
+    
+    return models;
+  }
+  
+  /**
+   * Generate completion using the specified model
+   */
+  async generateCompletion(prompt, options = {}) {
+    const {
+      model = this.options.defaultModel,
+      temperature = 0.7,
+      maxTokens = 1000,
+      ...otherOptions
+    } = options;
+    
+    // Determine provider based on model name
+    const provider = model.startsWith('claude') ? 'anthropic' : null;
+    
+    if (!provider) {
+      throw new Error(`Unsupported model: ${model}`);
+    }
+    
+    if (!this.clients[provider]) {
+      throw new Error(`Provider ${provider} is not initialized. Please check your API keys.`);
+    }
+    
+    try {
+      // Generate based on provider
+      if (provider === 'anthropic') {
+        const response = await this.clients.anthropic.messages.create({
+          model,
+          messages: [
+            { role: 'user', content: prompt }
+          ],
+          temperature,
+          max_tokens: maxTokens,
+          ...otherOptions
+        });
+        
+        return {
+          text: response.content[0].text,
+          model: response.model,
+          usage: response.usage
+        };
+      }
+    } catch (error) {
+      console.error(`Error generating completion with ${provider}:`, error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Check connection to the model provider
+   */
+  async testConnection() {
+    try {
+      // Test anthropic if available
+      if (this.clients.anthropic) {
+        const models = await this.getAvailableModels();
+        return {
+          connected: true,
+          providers: Object.keys(this.clients),
+          models
+        };
+      }
+      
+      return {
+        connected: false,
+        error: 'No model providers initialized'
+      };
+    } catch (error) {
+      return {
+        connected: false,
+        error: error.message
+      };
+    }
+  }
+}
+
+module.exports = ModelProvider;
+EOF
+    
+    log "SUCCESS" "Model provider module created"
+  else
+    log "INFO" "Model provider module already exists, skipping"
+  fi
+}
+
+# Create text chunker
+create_text_chunker() {
+  log "INFO" "Creating text chunker module"
+  
+  local text_chunker_path="$NEURAL_DIR/embedding/TextChunker.js"
+  
+  if [ ! -f "$text_chunker_path" ]; then
+    cat > "$text_chunker_path" << 'EOF'
+/**
+ * TextChunker.js - Neural Framework Text Chunker
+ * 
+ * This module provides functionality to split text into chunks
+ * for processing with embedding models.
+ */
+
+class TextChunker {
+  constructor(options = {}) {
+    this.options = {
+      maxChunkSize: 1000,
+      overlapSize: 200,
+      separators: ['\n\n', '\n', '. ', ' ', ''],
+      ...options
+    };
+  }
+  
+  /**
+   * Split text into chunks with optional overlap
+   */
+  splitText(text, options = {}) {
+    const {
+      maxChunkSize = this.options.maxChunkSize,
+      overlapSize = this.options.overlapSize,
+      separators = this.options.separators
+    } = options;
+    
+    // Handle empty or very short text
+    if (!text || text.length <= maxChunkSize) {
+      return [text];
+    }
+    
+    const chunks = [];
+    let startIndex = 0;
+    
+    while (startIndex < text.length) {
+      // Determine end index for this chunk
+      let endIndex = Math.min(startIndex + maxChunkSize, text.length);
+      
+      // If we're not at the end of text, find a good separator to break at
+      if (endIndex < text.length) {
+        let foundSeparator = false;
+        
+        // Try each separator in order
+        for (const separator of separators) {
+          // Skip empty separators
+          if (separator === '') continue;
+          
+          // Look for the separator within the allowed range
+          const separatorIndex = text.lastIndexOf(separator, endIndex);
+          
+          // If we found a separator in the allowed range, use it
+          if (separatorIndex !== -1 && separatorIndex > startIndex) {
+            endIndex = separatorIndex + separator.length;
+            foundSeparator = true;
+            break;
+          }
+        }
+        
+        // If no separator was found, just use the character boundary
+        if (!foundSeparator) {
+          endIndex = Math.min(startIndex + maxChunkSize, text.length);
+        }
+      }
+      
+      // Extract the chunk
+      const chunk = text.substring(startIndex, endIndex);
+      chunks.push(chunk);
+      
+      // Move to next chunk, considering overlap
+      startIndex = Math.max(startIndex, endIndex - overlapSize);
+      
+      // If we're making no progress, force advancement
+      if (startIndex === endIndex) {
+        startIndex = endIndex + 1;
+      }
+    }
+    
+    return chunks;
+  }
+  
+  /**
+   * Split a document (object with text content) into chunks
+   */
+  splitDocument(document, options = {}) {
+    const { text, metadata = {} } = document;
+    const chunks = this.splitText(text, options);
+    
+    // Create document chunks with metadata
+    return chunks.map((chunk, index) => ({
+      text: chunk,
+      metadata: {
+        ...metadata,
+        chunk_index: index,
+        total_chunks: chunks.length
+      }
+    }));
+  }
+}
+
+module.exports = TextChunker;
+EOF
+    
+    log "SUCCESS" "Text chunker module created"
+  else
+    log "INFO" "Text chunker module already exists, skipping"
+  fi
+}
+
+# Create embedding service
+create_embedding_service() {
+  log "INFO" "Creating embedding service module"
+  
+  local embedding_service_path="$NEURAL_DIR/services/EmbeddingService.js"
+  
+  if [ ! -f "$embedding_service_path" ]; then
+    cat > "$embedding_service_path" << 'EOF'
+/**
+ * EmbeddingService.js - Neural Framework Embedding Service
+ * 
+ * This module provides functionality to generate embeddings for text
+ * using various embedding models.
+ */
+
+const fetch = require('node-fetch');
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
+const TextChunker = require('../embedding/TextChunker');
+
+class EmbeddingService {
+  constructor(options = {}) {
+    this.options = {
+      defaultModel: 'voyage-2',
+      apiKeyPath: path.join(os.homedir(), '.claude', 'api_keys.json'),
+      dimensions: 1024,
+      ...options
+    };
+    
+    this.chunker = new TextChunker();
+    this.loadApiKeys();
+  }
+  
+  /**
+   * Load API keys from configuration
+   */
+  loadApiKeys() {
+    try {
+      if (fs.existsSync(this.options.apiKeyPath)) {
+        const apiKeys = JSON.parse(fs.readFileSync(this.options.apiKeyPath, 'utf8'));
+        this.voyageApiKey = apiKeys.voyage_api_key || process.env.VOYAGE_API_KEY;
+      } else {
+        this.voyageApiKey = process.env.VOYAGE_API_KEY;
+      }
+    } catch (error) {
+      console.error('Error loading API keys:', error);
+    }
+  }
+  
+  /**
+   * Generate embeddings for a text using the specified model
+   */
+  async generateEmbedding(text, options = {}) {
+    const { model = this.options.defaultModel } = options;
+    
+    if (!text || text.trim().length === 0) {
+      throw new Error('Text cannot be empty');
+    }
+    
+    // Based on model, use the appropriate API
+    if (model.startsWith('voyage')) {
+      return this.generateVoyageEmbedding(text, model);
+    } else {
+      throw new Error(`Unsupported embedding model: ${model}`);
+    }
+  }
+  
+  /**
+   * Generate embeddings using Voyage AI API
+   */
+  async generateVoyageEmbedding(text, model) {
+    if (!this.voyageApiKey) {
+      throw new Error('Voyage API key not found. Please add it to your API keys configuration.');
+    }
+    
+    try {
+      const response = await fetch('https://api.voyageai.com/v1/embeddings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.voyageApiKey}`
+        },
+        body: JSON.stringify({
+          model,
+          input: text
+        })
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(`Voyage API error: ${error.message || response.statusText}`);
+      }
+      
+      const result = await response.json();
+      return {
+        embedding: result.data[0].embedding,
+        model,
+        dimensions: result.data[0].embedding.length
+      };
+    } catch (error) {
+      console.error('Error generating Voyage embedding:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Generate embeddings for a batch of texts
+   */
+  async generateBatchEmbeddings(texts, options = {}) {
+    return Promise.all(texts.map(text => this.generateEmbedding(text, options)));
+  }
+  
+  /**
+   * Process a document, splitting it into chunks and generating embeddings
+   */
+  async processDocument(document, options = {}) {
+    const chunks = this.chunker.splitDocument(document, options);
+    const chunkTexts = chunks.map(chunk => chunk.text);
+    
+    const embeddings = await this.generateBatchEmbeddings(chunkTexts, options);
+    
+    return chunks.map((chunk, i) => ({
+      ...chunk,
+      embedding: embeddings[i].embedding
+    }));
+  }
+  
+  /**
+   * Test connection to embedding provider
+   */
+  async testConnection() {
+    try {
+      // Use a short text to test the embedding generation
+      const testText = 'This is a test text to verify the embedding service.';
+      const result = await this.generateEmbedding(testText);
+      
+      return {
+        connected: true,
+        model: result.model,
+        dimensions: result.dimensions
+      };
+    } catch (error) {
+      return {
+        connected: false,
+        error: error.message
+      };
+    }
+  }
+}
+
+module.exports = EmbeddingService;
+EOF
+    
+    log "SUCCESS" "Embedding service module created"
+  else
+    log "INFO" "Embedding service module already exists, skipping"
+  fi
+}
+
+# Create index file
+create_index_file() {
+  log "INFO" "Creating index file"
+  
+  local index_path="$NEURAL_DIR/index.js"
+  
+  if [ ! -f "$index_path" ]; then
+    cat > "$index_path" << 'EOF'
+/**
+ * Neural Framework - Main Entry Point
+ */
+
+const ModelProvider = require('./models/ModelProvider');
+const TextChunker = require('./embedding/TextChunker');
+const EmbeddingService = require('./services/EmbeddingService');
+
+module.exports = {
+  ModelProvider,
+  TextChunker,
+  EmbeddingService
+};
+EOF
+    
+    log "SUCCESS" "Index file created"
+  else
+    log "INFO" "Index file already exists, skipping"
+  fi
+}
+
+# Create test script
+create_test_script() {
+  log "INFO" "Creating test script"
+  
+  local test_script_path="$NEURAL_DIR/test_connection.js"
+  
+  if [ ! -f "$test_script_path" ]; then
+    cat > "$test_script_path" << 'EOF'
+/**
+ * Test script for Neural Framework connection
+ */
+
+const ModelProvider = require('./models/ModelProvider');
+const EmbeddingService = require('./services/EmbeddingService');
+
+async function testConnections() {
+  console.log('Testing Neural Framework connections...\n');
+  
+  // Test Model Provider
+  console.log('1. Testing Model Provider connections:');
+  try {
+    const modelProvider = new ModelProvider();
+    const modelStatus = await modelProvider.testConnection();
+    
+    if (modelStatus.connected) {
+      console.log('✅ Model Provider connection successful');
+      console.log('   Available providers:', modelStatus.providers.join(', '));
+      
+      // List available models
+      for (const provider in modelStatus.models) {
+        console.log(`   ${provider} models:`, modelStatus.models[provider].join(', '));
+      }
+    } else {
+      console.log('❌ Model Provider connection failed');
+      console.log('   Error:', modelStatus.error);
+    }
+  } catch (error) {
+    console.log('❌ Model Provider test failed with error:');
+    console.error('  ', error);
+  }
+  
+  console.log('\n2. Testing Embedding Service connections:');
+  try {
+    const embeddingService = new EmbeddingService();
+    const embeddingStatus = await embeddingService.testConnection();
+    
+    if (embeddingStatus.connected) {
+      console.log('✅ Embedding Service connection successful');
+      console.log('   Model:', embeddingStatus.model);
+      console.log('   Dimensions:', embeddingStatus.dimensions);
+    } else {
+      console.log('❌ Embedding Service connection failed');
+      console.log('   Error:', embeddingStatus.error);
+    }
+  } catch (error) {
+    console.log('❌ Embedding Service test failed with error:');
+    console.error('  ', error);
+  }
+  
+  console.log('\nNeural Framework connection tests completed.');
+}
+
+// Run the tests
+testConnections().catch(console.error);
+EOF
+    
+    chmod +x "$test_script_path"
+    log "SUCCESS" "Test script created and made executable"
+  else
+    log "INFO" "Test script already exists, skipping"
+  fi
+}
+
+#
+# Integration with existing Claude Framework
+#
+
+# Setup templates
+setup_templates() {
+  log "INFO" "Setting up AI documentation templates"
+  
+  # Create template directories
+  ensure_directory "$TEMPLATES_DIR"
+  ensure_directory "$TEMPLATES_DIR/neural"
+  
+  # Create neural prompt template
+  local neural_template_path="$TEMPLATES_DIR/neural/neural-analysis.md"
+  
+  if [ ! -f "$neural_template_path" ]; then
+    cat > "$neural_template_path" << 'EOF'
+# Neural Analysis Template
+
+<role>
+You are an expert Neural Networks and Deep Learning engineer with extensive knowledge of neural architectures, training methodologies, and optimization techniques.
+</role>
+
+<instructions>
+Analyze the neural architecture with attention to:
+1. Layer structure and connectivity
+2. Activation functions and their impact
+3. Parameter efficiency and model size
+4. Training dynamics and convergence properties
+5. Bottlenecks and performance limitations
+6. Optimization opportunities
+
+Provide a comprehensive analysis with:
+- Architecture diagram visualization
+- Complexity analysis (time and space)
+- Parameter count and distribution
+- Gradient flow analysis
+- Recommendations for architecture improvements
+- Training strategy optimization
+</instructions>
+
+<architecture>
+{{NEURAL_ARCHITECTURE}}
+</architecture>
+
+<performance_metrics>
+{{PERFORMANCE_METRICS}}
+</performance_metrics>
+EOF
+    
+    log "SUCCESS" "Neural analysis template created"
+  fi
+  
+  # Create embedding analysis template
+  local embedding_template_path="$TEMPLATES_DIR/neural/embedding-analysis.md"
+  
+  if [ ! -f "$embedding_template_path" ]; then
+    cat > "$embedding_template_path" << 'EOF'
+# Embedding Analysis Template
+
+<role>
+You are an expert in Embeddings and Vector Representations with deep knowledge of semantic embedding models, vector similarity, and embedding spaces.
+</role>
+
+<instructions>
+Analyze the embeddings with attention to:
+1. Dimensionality and information density
+2. Clustering and separation of related concepts
+3. Semantic consistency and drift
+4. Contextual sensitivity
+5. Cross-lingual alignment (if applicable)
+6. Domain-specific adaptations
+
+Provide a comprehensive analysis with:
+- Vector space visualization
+- Similarity distribution analysis
+- Outlier identification
+- Dimensionality reduction assessment
+- Recommendations for improved embeddings
+- Fine-tuning strategies for domain adaptation
+</instructions>
+
+<embeddings>
+{{EMBEDDINGS_DATA}}
+</embeddings>
+
+<query_examples>
+{{QUERY_EXAMPLES}}
+</query_examples>
+EOF
+    
+    log "SUCCESS" "Embedding analysis template created"
+  fi
+  
+  log "SUCCESS" "AI documentation templates setup complete"
+}
+
+# Setup commands
+setup_commands() {
+  log "INFO" "Setting up Neural commands"
+  
+  # Create command directories
+  ensure_directory "$CLAUDE_DIR/commands"
+  
+  # Create embedding analysis command
+  local embedding_command_path="$CLAUDE_DIR/commands/embedding-analysis.md"
+  
+  if [ ! -f "$embedding_command_path" ]; then
+    cat > "$embedding_command_path" << 'EOF'
+# Embedding Analysis
+
+Analyze embeddings and vector representations to gain insights into their semantic structure.
+
+## Usage
+/embedding-analysis $ARGUMENTS
+
+## Parameters
+- text: Text to generate and analyze embeddings for
+- model: Embedding model to use (default: voyage-2)
+- dimensions: Dimensionality of embeddings to analyze (default: 1024)
+
+## Example
+/embedding-analysis "Climate change is a global challenge requiring immediate action." --model=voyage-2
+
+The command will:
+1. Generate embeddings for the provided text
+2. Analyze semantic structure and properties
+3. Compare with known reference embeddings
+4. Visualize the embedding space
+5. Identify nearest semantic neighbors
+6. Suggest potential applications
+
+Results are returned with visualizations and actionable insights about the embedding properties.
+EOF
+    
+    log "SUCCESS" "Embedding analysis command created"
+  fi
+  
+  # Create neural generation command
+  local neural_command_path="$CLAUDE_DIR/commands/neural-generate.md"
+  
+  if [ ! -f "$neural_command_path" ]; then
+    cat > "$neural_command_path" << 'EOF'
+# Neural Generation
+
+Generate text using neural models with specific parameters and settings.
+
+## Usage
+/neural-generate $ARGUMENTS
+
+## Parameters
+- prompt: Prompt text to use for generation
+- model: Model to use (default: claude-3-opus-20240229)
+- temperature: Randomness control (0.0-1.0, default: 0.7)
+- max_tokens: Maximum tokens to generate (default: 1000)
+
+## Example
+/neural-generate "Explain quantum computing in simple terms" --model=claude-3-opus-20240229 --temperature=0.3
+
+The command will:
+1. Connect to the specified neural model
+2. Generate text based on the prompt
+3. Apply the specified parameters
+4. Provide metadata about the generation process
+5. Include token usage statistics
+
+Generated text is returned with model-specific metadata and performance information.
+EOF
+    
+    log "SUCCESS" "Neural generation command created"
+  fi
+  
+  log "SUCCESS" "Neural commands setup complete"
+}
+
+# Setup specs
+setup_specs() {
+  log "INFO" "Setting up Neural specifications"
+  
+  # Create specs directory
+  ensure_directory "$SPECS_DIR/neural"
+  
+  # Create neural architecture specs
+  local neural_specs_path="$SPECS_DIR/neural/neural-architectures.md"
+  
+  if [ ! -f "$neural_specs_path" ]; then
+    cat > "$neural_specs_path" << 'EOF'
+# Neural Architecture Specifications
+
+## Model Requirements
+
+### Embedding Models
+- **Dimensions**: 1024 for primary embeddings, 384 for lightweight applications
+- **Context Length**: Support for at least 8192 tokens
+- **Multilingual Support**: Required for all production models
+- **Domain Adaptation**: Fine-tuning capabilities required
+
+### Language Models
+- **Parameter Sizes**:
+  - Small: 7B-13B parameters for edge deployment
+  - Medium: 34B-70B parameters for standard use cases
+  - Large: 70B+ parameters for advanced reasoning
+- **Context Length**: Minimum 32K tokens, 100K+ preferred
+- **Response Format**: Structured output capability (JSON, XML, etc.)
+- **Tool Usage**: Function calling capability required
+
+## Integration Requirements
+
+### API Standards
+- REST API with OpenAPI 3.0 specification
+- Authentication via API keys and OAuth 2.0
+- Rate limiting with clear headers
+- Comprehensive error reporting
+
+### Performance Targets
+- **Latency**:
+  - p50 < 500ms for embedding generation
+  - p95 < 2000ms for standard LLM completion
+  - p99 < 5000ms for complex reasoning tasks
+- **Throughput**:
+  - 100+ requests/second for embeddings
+  - 20+ requests/second for LLM completions
+- **Availability**: 99.9% uptime
+
+### Security Requirements
+- All API keys stored in secure vault
+- No PII in logs or error messages
+- Regular security audits
+- Model output content filtering
+EOF
+    
+    log "SUCCESS" "Neural architecture specifications created"
+  fi
+  
+  # Create neural schema
+  local neural_schema_path="$SPECS_DIR/schemas/neural-config-schema.json"
+  
+  ensure_directory "$SPECS_DIR/schemas"
+  
+  if [ ! -f "$neural_schema_path" ]; then
+    cat > "$neural_schema_path" << 'EOF'
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Neural Framework Configuration",
+  "type": "object",
+  "properties": {
+    "models": {
+      "type": "object",
+      "properties": {
+        "embedding": {
+          "type": "object",
+          "properties": {
+            "provider": {
+              "type": "string",
+              "enum": ["voyage", "openai", "huggingface", "local"],
+              "description": "Provider of the embedding model"
+            },
+            "model": {
+              "type": "string",
+              "description": "Model identifier (e.g., voyage-2, text-embedding-3-large)"
+            },
+            "dimensions": {
+              "type": "integer",
+              "minimum": 384,
+              "description": "Embedding dimensions"
+            },
+            "batchSize": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 32,
+              "description": "Maximum batch size for embedding requests"
+            },
+            "cache": {
+              "type": "boolean",
+              "default": true,
+              "description": "Whether to cache embedding results"
+            }
+          },
+          "required": ["provider", "model", "dimensions"]
+        },
+        "llm": {
+          "type": "object",
+          "properties": {
+            "provider": {
+              "type": "string",
+              "enum": ["anthropic", "openai", "huggingface", "local"],
+              "description": "Provider of the language model"
+            },
+            "model": {
+              "type": "string",
+              "description": "Model identifier (e.g., claude-3-opus-20240229, gpt-4)"
+            },
+            "temperature": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "default": 0.7,
+              "description": "Temperature for generation"
+            },
+            "maxTokens": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 2000,
+              "description": "Maximum tokens to generate"
+            },
+            "stopSequences": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Sequences that will stop generation"
+            }
+          },
+          "required": ["provider", "model"]
+        }
+      },
+      "required": ["embedding", "llm"]
+    },
+    "storage": {
+      "type": "object",
+      "properties": {
+        "vectorDb": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["lancedb", "qdrant", "milvus", "pinecone", "memory"],
+              "description": "Vector database type"
+            },
+            "connection": {
+              "type": "object",
+              "description": "Connection details specific to the database type"
+            }
+          },
+          "required": ["type"]
+        },
+        "documentDb": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["mongodb", "elasticsearch", "postgresql", "memory"],
+              "description": "Document database type"
+            },
+            "connection": {
+              "type": "object",
+              "description": "Connection details specific to the database type"
+            }
+          }
+        },
+        "caching": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": true,
+              "description": "Whether to enable caching"
+            },
+            "maxSize": {
+              "type": "integer",
+              "default": 1000,
+              "description": "Maximum number of entries in the cache"
+            },
+            "ttl": {
+              "type": "integer",
+              "default": 3600,
+              "description": "Time to live in seconds"
+            }
+          }
+        }
+      },
+      "required": ["vectorDb"]
+    },
+    "processing": {
+      "type": "object",
+      "properties": {
+        "chunking": {
+          "type": "object",
+          "properties": {
+            "method": {
+              "type": "string",
+              "enum": ["fixed", "semantic", "recursive", "hybrid"],
+              "default": "hybrid",
+              "description": "Chunking method"
+            },
+            "maxChunkSize": {
+              "type": "integer",
+              "default": 1000,
+              "description": "Maximum chunk size in characters"
+            },
+            "overlapSize": {
+              "type": "integer",
+              "default": 200,
+              "description": "Overlap size in characters"
+            },
+            "separators": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "default": ["\n\n", "\n", ". ", " ", ""],
+              "description": "Separators to use for chunking"
+            }
+          }
+        },
+        "retrieval": {
+          "type": "object",
+          "properties": {
+            "topK": {
+              "type": "integer",
+              "default": 5,
+              "description": "Number of top results to retrieve"
+            },
+            "minScore": {
+              "type": "number",
+              "default": 0.7,
+              "description": "Minimum similarity score for retrieval"
+            },
+            "reranking": {
+              "type": "boolean",
+              "default": false,
+              "description": "Whether to use reranking"
+            }
+          }
+        }
+      }
+    },
+    "security": {
+      "type": "object",
+      "properties": {
+        "apiKeys": {
+          "type": "object",
+          "properties": {
+            "storageMethod": {
+              "type": "string",
+              "enum": ["file", "environment", "vault"],
+              "default": "file",
+              "description": "Method for storing API keys"
+            },
+            "filePath": {
+              "type": "string",
+              "description": "Path to API keys file if using file storage"
+            }
+          }
+        },
+        "contentFiltering": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether to enable content filtering"
+        }
+      }
+    }
+  },
+  "required": ["models"]
+}
+EOF
+    
+    log "SUCCESS" "Neural configuration schema created"
+  fi
+  
+  log "SUCCESS" "Neural specifications setup complete"
+}
+
+# Create neural config
+create_neural_config() {
+  log "INFO" "Creating neural configuration"
+  
+  local config_dir="$WORKSPACE_DIR/core/config"
+  local config_path="$config_dir/neural_framework_config.json"
+  
+  ensure_directory "$config_dir"
+  
+  if [ ! -f "$config_path" ]; then
+    cat > "$config_path" << 'EOF'
+{
+  "models": {
+    "embedding": {
+      "provider": "voyage",
+      "model": "voyage-2",
+      "dimensions": 1024,
+      "batchSize": 32,
+      "cache": true
+    },
+    "llm": {
+      "provider": "anthropic",
+      "model": "claude-3-opus-20240229",
+      "temperature": 0.7,
+      "maxTokens": 2000,
+      "stopSequences": []
+    }
+  },
+  "storage": {
+    "vectorDb": {
+      "type": "lancedb",
+      "connection": {
+        "path": "data/lancedb"
+      }
+    },
+    "caching": {
+      "enabled": true,
+      "maxSize": 1000,
+      "ttl": 3600
+    }
+  },
+  "processing": {
+    "chunking": {
+      "method": "hybrid",
+      "maxChunkSize": 1000,
+      "overlapSize": 200,
+      "separators": ["\n\n", "\n", ". ", " ", ""]
+    },
+    "retrieval": {
+      "topK": 5,
+      "minScore": 0.7,
+      "reranking": false
+    }
+  },
+  "security": {
+    "apiKeys": {
+      "storageMethod": "file",
+      "filePath": "~/.claude/api_keys.json"
+    },
+    "contentFiltering": true
+  }
+}
+EOF
+    
+    log "SUCCESS" "Neural configuration created"
+  else
+    log "INFO" "Neural configuration already exists, skipping"
+  fi
+}
+
+# Install dependencies
+install_dependencies() {
+  log "INFO" "Installing dependencies"
+  
+  # Check for npm
+  if ! command -v npm &> /dev/null; then
+    log "ERROR" "npm not found. Please install Node.js and npm before continuing."
+    return 1
+  fi
+  
+  # Create temporary package.json if needed
+  local needs_cleanup=false
+  if [ ! -f "$WORKSPACE_DIR/package.json" ]; then
+    log "INFO" "Creating temporary package.json"
+    cat > "$WORKSPACE_DIR/package.json" << 'EOF'
+{
+  "name": "claude-neural-framework",
+  "version": "1.0.0",
+  "description": "Neural framework for Claude integration",
+  "main": "index.js",
+  "private": true,
+  "dependencies": {}
+}
+EOF
+    needs_cleanup=true
+  fi
+  
+  # Install Node dependencies
+  log "INFO" "Installing Node dependencies"
+  run_command "npm install --save @anthropic/sdk node-fetch" "Failed to install Node dependencies"
+  
+  # Install Python dependencies if needed
+  if command -v pip3 &> /dev/null || command -v pip &> /dev/null; then
+    log "INFO" "Installing Python dependencies"
+    
+    # Determine pip command
+    local pip_cmd="pip3"
+    if ! command -v pip3 &> /dev/null; then
+      pip_cmd="pip"
+    fi
+    
+    # Install dependencies
+    run_command "$pip_cmd install --user anthropic sentence-transformers voyageai numpy pandas" "Failed to install Python dependencies"
+    
+    # Add to requirements.txt if it exists
+    if [ -f "$PYTHON_REQUIREMENTS_FILE" ]; then
+      log "INFO" "Adding dependencies to requirements.txt"
+      
+      local packages=("anthropic" "sentence-transformers" "voyageai" "numpy" "pandas")
+      
+      for package in "${packages[@]}"; do
+        if ! grep -q "^$package" "$PYTHON_REQUIREMENTS_FILE"; then
+          echo "$package" >> "$PYTHON_REQUIREMENTS_FILE"
+        fi
+      done
+    fi
+  else
+    log "WARN" "pip not found. Skipping Python dependency installation."
+  fi
+  
+  # Clean up temporary package.json if needed
+  if [ "$needs_cleanup" = true ]; then
+    log "INFO" "Cleaning up temporary package.json"
+    rm -f "$WORKSPACE_DIR/package.json"
+  fi
+  
+  log "SUCCESS" "Dependencies installed"
+}
+
+# Create sample application
+create_sample_application() {
+  log "INFO" "Creating sample application"
+  
+  local samples_dir="$WORKSPACE_DIR/examples/neural"
+  local sample_app_path="$samples_dir/text_embedding_demo.js"
+  
+  ensure_directory "$samples_dir"
+  
+  if [ ! -f "$sample_app_path" ]; then
+    cat > "$sample_app_path" << 'EOF'
+/**
+ * Neural Framework Demo - Text Embedding
+ * 
+ * This demo shows how to use the Neural Framework to generate embeddings
+ * for text and perform similarity comparisons.
+ */
+
+const path = require('path');
+const { EmbeddingService, TextChunker } = require('../../src/neural');
+
+async function runDemo() {
+  try {
+    console.log('Neural Framework Demo - Text Embedding\n');
+    
+    // Initialize services
+    const embeddingService = new EmbeddingService();
+    const chunker = new TextChunker();
+    
+    // Sample texts
+    const texts = [
+      "The quick brown fox jumps over the lazy dog.",
+      "A fox that is brown and quick jumps over a dog that is lazy.",
+      "The weather today is sunny and warm.",
+      "Artificial intelligence is transforming how we interact with technology."
+    ];
+    
+    console.log('Generating embeddings for sample texts...\n');
+    
+    // Generate embeddings for each text
+    const embeddings = await Promise.all(
+      texts.map(text => embeddingService.generateEmbedding(text))
+    );
+    
+    console.log('Embeddings generated successfully:');
+    embeddings.forEach((embedding, i) => {
+      console.log(`Text ${i+1}: Dimensions = ${embedding.dimensions}`);
+    });
+    
+    // Function to calculate cosine similarity between two vectors
+    function cosineSimilarity(vecA, vecB) {
+      const dotProduct = vecA.reduce((sum, a, i) => sum + a * vecB[i], 0);
+      const magA = Math.sqrt(vecA.reduce((sum, a) => sum + a * a, 0));
+      const magB = Math.sqrt(vecB.reduce((sum, b) => sum + b * b, 0));
+      return dotProduct / (magA * magB);
+    }
+    
+    // Compare similarities between texts
+    console.log('\nText Similarity Comparison:');
+    for (let i = 0; i < texts.length; i++) {
+      for (let j = i + 1; j < texts.length; j++) {
+        const similarity = cosineSimilarity(
+          embeddings[i].embedding,
+          embeddings[j].embedding
+        );
+        
+        console.log(`Similarity between Text ${i+1} and Text ${j+1}: ${similarity.toFixed(4)}`);
+      }
+    }
+    
+    console.log('\nDemo completed successfully.');
+  } catch (error) {
+    console.error('Demo failed with error:', error);
+  }
+}
+
+// Run the demo
+runDemo();
+EOF
+    
+    log "SUCCESS" "Sample application created at $sample_app_path"
+  else
+    log "INFO" "Sample application already exists, skipping"
+  fi
+}
+
+# Create integration examples
+create_integration_examples() {
+  log "INFO" "Creating integration examples"
+  
+  local examples_dir="$WORKSPACE_DIR/examples/neural/integration"
+  local rag_example_path="$examples_dir/rag_integration.js"
+  
+  ensure_directory "$examples_dir"
+  
+  if [ ! -f "$rag_example_path" ]; then
+    cat > "$rag_example_path" << 'EOF'
+/**
+ * Neural Framework RAG Integration Example
+ * 
+ * This example demonstrates how to integrate the Neural Framework
+ * with the RAG system for enhanced context-aware responses.
+ */
+
+const fs = require('fs');
+const path = require('path');
+const { ModelProvider, EmbeddingService, TextChunker } = require('../../../src/neural');
+
+// Sample document for RAG
+const sampleDocument = `
+# Neural Framework
+
+The Neural Framework provides integration between various AI models and the Claude
+Neural Framework. It supports embeddings generation, text chunking, and model inference
+through a consistent API.
+
+## Key Components
+
+1. ModelProvider: Access to various AI models through a unified interface
+2. EmbeddingService: Generate and manipulate vector representations of text
+3. TextChunker: Split documents into manageable chunks for processing
+
+## Use Cases
+
+- Semantic search with vector embeddings
+- Document similarity analysis
+- Retrieval Augmented Generation (RAG)
+- Multi-step reasoning with context
+`;
+
+async function ragExample() {
+  try {
+    console.log('Neural Framework RAG Integration Example\n');
+    
+    // Initialize services
+    const modelProvider = new ModelProvider();
+    const embeddingService = new EmbeddingService();
+    const chunker = new TextChunker({ maxChunkSize: 500, overlapSize: 100 });
+    
+    console.log('1. Chunking document...');
+    const chunks = chunker.splitText(sampleDocument);
+    console.log(`   Created ${chunks.length} chunks\n`);
+    
+    console.log('2. Generating embeddings for chunks...');
+    const chunkEmbeddings = await Promise.all(
+      chunks.map(chunk => embeddingService.generateEmbedding(chunk))
+    );
+    console.log(`   Embeddings generated successfully\n`);
+    
+    // User query
+    const query = "How can I use embeddings for semantic search?";
+    console.log(`3. User Query: "${query}"`);
+    
+    console.log('4. Generating query embedding...');
+    const queryEmbedding = await embeddingService.generateEmbedding(query);
+    console.log(`   Query embedding generated\n`);
+    
+    // Function to calculate cosine similarity
+    function cosineSimilarity(vecA, vecB) {
+      const dotProduct = vecA.reduce((sum, a, i) => sum + a * vecB[i], 0);
+      const magA = Math.sqrt(vecA.reduce((sum, a) => sum + a * a, 0));
+      const magB = Math.sqrt(vecB.reduce((sum, b) => sum + b * b, 0));
+      return dotProduct / (magA * magB);
+    }
+    
+    // Find most relevant chunks
+    console.log('5. Finding most relevant chunks...');
+    const relevanceScores = chunkEmbeddings.map((embedding, i) => ({
+      index: i,
+      chunk: chunks[i],
+      similarity: cosineSimilarity(embedding.embedding, queryEmbedding.embedding)
+    }));
+    
+    // Sort by relevance
+    relevanceScores.sort((a, b) => b.similarity - a.similarity);
+    
+    // Get top chunks
+    const topK = 2;
+    const retrievedChunks = relevanceScores.slice(0, topK);
+    
+    console.log(`   Top ${topK} relevant chunks:`);
+    retrievedChunks.forEach((item, i) => {
+      console.log(`   ${i+1}. Similarity: ${item.similarity.toFixed(4)}`);
+      console.log(`      Chunk: "${item.chunk.substring(0, 100)}..."\n`);
+    });
+    
+    // Build context for LLM
+    const context = retrievedChunks.map(item => item.chunk).join('\n\n');
+    
+    // Create prompt with context
+    const prompt = `
+Context:
+${context}
+
+Based on the above context, please answer the following question:
+${query}
+`;
+    
+    console.log('6. Generating response with context...');
+    const completion = await modelProvider.generateCompletion(prompt, {
+      maxTokens: 500,
+      temperature: 0.3
+    });
+    
+    console.log('\n--- RAG Response ---');
+    console.log(completion.text);
+    console.log('-------------------\n');
+    
+    console.log('RAG Integration Example completed successfully.');
+  } catch (error) {
+    console.error('Example failed with error:', error);
+  }
+}
+
+// Run the example
+ragExample();
+EOF
+    
+    log "SUCCESS" "RAG integration example created"
+  fi
+  
+  # Create multi-model example
+  local multi_model_path="$examples_dir/multi_model_pipeline.js"
+  
+  if [ ! -f "$multi_model_path" ]; then
+    cat > "$multi_model_path" << 'EOF'
+/**
+ * Neural Framework Multi-Model Pipeline Example
+ * 
+ * This example demonstrates how to create a pipeline that uses multiple
+ * models for different stages of processing.
+ */
+
+const { ModelProvider, EmbeddingService, TextChunker } = require('../../../src/neural');
+
+async function multiModelPipeline() {
+  try {
+    console.log('Neural Framework Multi-Model Pipeline Example\n');
+    
+    // Initialize services
+    const modelProvider = new ModelProvider();
+    const embeddingService = new EmbeddingService();
+    
+    // Sample input
+    const userInput = "I need to write a concise summary of the latest climate change research.";
+    console.log(`User Input: "${userInput}"\n`);
+    
+    // Step 1: Task Classification
+    console.log('Step 1: Task Classification');
+    const classificationPrompt = `
+Classify the following request into one of these categories:
+- Writing/Content Creation
+- Research/Information Retrieval
+- Analysis/Interpretation
+- Code/Technical
+- Creative/Artistic
+- Other
+
+Request: "${userInput}"
+
+Output just the category name.
+`;
+    
+    const classificationResult = await modelProvider.generateCompletion(classificationPrompt, {
+      model: 'claude-3-haiku-20240307',  // Using a smaller, faster model for classification
+      maxTokens: 20,
+      temperature: 0.1
+    });
+    
+    const category = classificationResult.text.trim();
+    console.log(`   Classified as: ${category}\n`);
+    
+    // Step 2: Context Enrichment
+    console.log('Step 2: Context Enrichment');
+    let contextPrompt = '';
+    
+    if (category === 'Research/Information Retrieval' || category === 'Writing/Content Creation') {
+      contextPrompt = `
+What are the key topics, themes, or keywords that would be helpful for researching:
+"${userInput}"
+
+Output a list of 5-7 key terms or phrases, one per line.
+`;
+    } else if (category === 'Analysis/Interpretation') {
+      contextPrompt = `
+What background knowledge and frameworks would be helpful for analyzing:
+"${userInput}"
+
+Output a list of 3-5 relevant concepts or frameworks, one per line.
+`;
+    } else {
+      contextPrompt = `
+What context would make the response to this request more useful:
+"${userInput}"
+
+Output 3-5 contextual points that would enhance the response, one per line.
+`;
+    }
+    
+    const contextResult = await modelProvider.generateCompletion(contextPrompt, {
+      model: 'claude-3-haiku-20240307',
+      maxTokens: 200,
+      temperature: 0.5
+    });
+    
+    const contextItems = contextResult.text.trim().split('\n');
+    console.log('   Context items:');
+    contextItems.forEach(item => console.log(`   - ${item.trim()}`));
+    console.log();
+    
+    // Step 3: Generate embeddings for context items
+    console.log('Step 3: Generate embeddings for context items');
+    const contextEmbeddings = await Promise.all(
+      contextItems.map(item => embeddingService.generateEmbedding(item))
+    );
+    console.log(`   Generated ${contextEmbeddings.length} embeddings\n`);
+    
+    // Step 4: Main response generation
+    console.log('Step 4: Main response generation');
+    const mainPrompt = `
+I'll help you with the following request: "${userInput}"
+
+Context and key points to consider:
+${contextItems.join('\n')}
+
+Please provide a comprehensive and well-structured response.
+`;
+    
+    const mainResponse = await modelProvider.generateCompletion(mainPrompt, {
+      model: 'claude-3-opus-20240229',  // Using the most capable model for the main response
+      maxTokens: 1000,
+      temperature: 0.7
+    });
+    
+    console.log('\n--- Final Output ---');
+    console.log(mainResponse.text);
+    console.log('-------------------\n');
+    
+    // Step 5: Output metrics
+    console.log('Step 5: Pipeline metrics');
+    console.log(`   Classification model: ${classificationResult.model || 'claude-3-haiku'}`);
+    console.log(`   Classification tokens: ${classificationResult.usage?.total_tokens || 'N/A'}`);
+    console.log(`   Embedding model: ${contextEmbeddings[0].model || 'voyage-2'}`);
+    console.log(`   Main model: ${mainResponse.model || 'claude-3-opus'}`);
+    console.log(`   Main response tokens: ${mainResponse.usage?.total_tokens || 'N/A'}`);
+    
+    console.log('\nMulti-Model Pipeline Example completed successfully.');
+  } catch (error) {
+    console.error('Example failed with error:', error);
+  }
+}
+
+// Run the example
+multiModelPipeline();
+EOF
+    
+    log "SUCCESS" "Multi-model pipeline example created"
+  fi
+  
+  log "SUCCESS" "Integration examples created"
+}
+
+# Set up global integration
+setup_global_integration() {
+  log "INFO" "Setting up global integration"
+  
+  # Create .claude directory if it doesn't exist
+  ensure_directory "$HOME/.claude/commands"
+  
+  # Copy neural commands to global directory
+  if [ -d "$CLAUDE_DIR/commands" ]; then
+    for cmd_file in "$CLAUDE_DIR/commands"/*; do
+      if [ -f "$cmd_file" ]; then
+        local cmd_name=$(basename "$cmd_file")
+        if [ ! -f "$HOME/.claude/commands/$cmd_name" ]; then
+          log "INFO" "Copying command $cmd_name to global directory"
+          cp "$cmd_file" "$HOME/.claude/commands/"
+        else
+          log "DEBUG" "Command $cmd_name already exists in global directory"
+        fi
+      fi
+    done
+  fi
+  
+  log "SUCCESS" "Global integration setup complete"
+}
+
+# Test Neural Framework connection
+test_neural_framework() {
+  log "INFO" "Testing Neural Framework connection"
+  
+  if [ -f "$NEURAL_DIR/test_connection.js" ]; then
+    log "INFO" "Running connection test script"
+    
+    # Run test script and capture output
+    local test_output
+    test_output=$(run_command "node $NEURAL_DIR/test_connection.js" "Failed to run test script" true)
+    
+    echo "$test_output"
+    
+    # Check for success indicators in output
+    if echo "$test_output" | grep -q "✅ Model Provider connection successful"; then
+      log "SUCCESS" "Model provider connection test passed"
+    else
+      log "WARN" "Model provider connection test failed or skipped"
+    fi
+    
+    if echo "$test_output" | grep -q "✅ Embedding Service connection successful"; then
+      log "SUCCESS" "Embedding service connection test passed"
+    else
+      log "WARN" "Embedding service connection test failed or skipped"
+    fi
+  else
+    log "ERROR" "Test script not found"
+    return 1
+  fi
+}
+
+# Main setup function
+main() {
+  # Create temp directory
+  mkdir -p "$TEMP_DIR"
+  
+  # Show banner
+  show_banner
+  
+  # Validate directory
+  validate_directory
+  
+  # Create directories
+  ensure_directories
+  
+  # Core neural framework setup
+  log "INFO" "Setting up core Neural Framework modules"
+  create_neural_structure
+  create_model_provider
+  create_text_chunker
+  create_embedding_service
+  create_index_file
+  create_test_script
+  
+  # Install dependencies
+  install_dependencies
+  
+  # Create neural config
+  create_neural_config
+  
+  # Integration setup
+  log "INFO" "Setting up Neural Framework integration"
+  setup_templates
+  setup_commands
+  setup_specs
+  
+  # Create examples
+  create_sample_application
+  create_integration_examples
+  
+  # Global integration
+  setup_global_integration
+  
+  # Test neural framework connection
+  test_neural_framework
+  
+  log "SUCCESS" "Neural Framework setup complete!"
+  echo ""
+  echo -e "${GREEN}${BOLD}SETUP COMPLETE${NC}"
+  echo -e "Neural Framework has been successfully integrated into your project."
+  echo ""
+  echo -e "${CYAN}Available components:${NC}"
+  echo -e "- Core neural modules in ${BOLD}src/neural/${NC}"
+  echo -e "- Neural configuration in ${BOLD}core/config/neural_framework_config.json${NC}"
+  echo -e "- AI templates in ${BOLD}ai_docs/templates/neural/${NC}"
+  echo -e "- Neural commands in ${BOLD}.claude/commands/${NC}"
+  echo -e "- Examples in ${BOLD}examples/neural/${NC}"
+  echo ""
+  echo -e "${CYAN}To test the Neural Framework:${NC}"
+  echo -e "${BLUE}node src/neural/test_connection.js${NC}"
+  echo ""
+  echo -e "${CYAN}To run the sample application:${NC}"
+  echo -e "${BLUE}node examples/neural/text_embedding_demo.js${NC}"
+  echo ""
+}
+
+# Run the main function
+main "$@"

@@ -1,0 +1,213 @@
+openapi: 3.0.0
+info:
+  title: Claude Framework API
+  version: 1.0.0
+  description: API specification for the Claude Framework
+servers:
+  - url: http://localhost:3000/api/v1
+    description: Development server
+paths:
+  /workflows/sequential/create-plan:
+    post:
+      summary: Create a sequential execution plan
+      operationId: createSequentialPlan
+      tags:
+        - Sequential Planning
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - domain
+                - parameters
+              properties:
+                domain:
+                  type: string
+                  enum: [documentation, cicd, data, general]
+                  description: The domain for planning
+                parameters:
+                  type: object
+                  description: Domain-specific planning parameters
+      responses:
+        '200':
+          description: Plan created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Plan'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /workflows/sequential/execute-plan:
+    post:
+      summary: Execute a sequential plan
+      operationId: executeSequentialPlan
+      tags:
+        - Sequential Planning
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - planId
+              properties:
+                planId:
+                  type: string
+                  description: ID of the plan to execute
+                options:
+                  type: object
+                  properties:
+                    stopOnError:
+                      type: boolean
+                      description: Whether to stop execution on error
+      responses:
+        '200':
+          description: Plan executed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlanExecutionResult'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+components:
+  schemas:
+    Plan:
+      type: object
+      required:
+        - id
+        - name
+        - description
+        - domain
+        - steps
+        - createdAt
+        - status
+      properties:
+        id:
+          type: string
+          description: Unique plan ID
+        name:
+          type: string
+          description: Plan name
+        description:
+          type: string
+          description: Plan description
+        domain:
+          type: string
+          enum: [documentation, cicd, data, general]
+          description: Plan domain
+        steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlanStep'
+        createdAt:
+          type: string
+          format: date-time
+          description: Plan creation timestamp
+        status:
+          type: string
+          enum: [created, in_progress, completed, failed, cancelled]
+          description: Plan status
+    PlanStep:
+      type: object
+      required:
+        - id
+        - name
+        - description
+        - status
+      properties:
+        id:
+          type: string
+          description: Unique step ID
+        name:
+          type: string
+          description: Step name
+        description:
+          type: string
+          description: Step description
+        status:
+          type: string
+          enum: [pending, in_progress, completed, failed, skipped]
+          description: Step status
+        dependsOn:
+          type: array
+          items:
+            type: string
+          description: IDs of steps this step depends on
+        data:
+          type: object
+          description: Step-specific data
+    PlanExecutionResult:
+      type: object
+      required:
+        - planId
+        - domain
+        - success
+        - executedSteps
+        - results
+      properties:
+        planId:
+          type: string
+          description: Plan ID
+        domain:
+          type: string
+          description: Plan domain
+        success:
+          type: boolean
+          description: Whether the execution was successful
+        executedSteps:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlanStep'
+        results:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/ExecutionResult'
+        error:
+          type: string
+          description: Error message if execution failed
+        summary:
+          type: string
+          description: Execution summary
+    ExecutionResult:
+      type: object
+      required:
+        - success
+        - stepId
+      properties:
+        success:
+          type: boolean
+          description: Whether the step execution was successful
+        stepId:
+          type: string
+          description: Step ID
+        message:
+          type: string
+          description: Execution message
+        error:
+          type: string
+          description: Error message if execution failed
+        data:
+          type: object
+          description: Step-specific result data
+    Error:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: Error message
+        details:
+          type: object
+          description: Additional error details
