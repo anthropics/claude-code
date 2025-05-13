@@ -1,0 +1,31 @@
+{
+  "name": "@claude-framework/cli",
+  "version": "1.0.0",
+  "description": "Claude Neural Framework CLI",
+  "main": "src/index.ts",
+  "bin": {
+    "claude": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc",
+    "lint": "eslint src/**/*.ts",
+    "test": "jest",
+    "start": "node ./dist/index.js"
+  },
+  "dependencies": {
+    "@claude-framework/core": "*",
+    "@claude-framework/workflows": "*",
+    "chalk": "^4.1.2",
+    "commander": "^9.4.0",
+    "inquirer": "^8.2.4",
+    "ora": "^5.4.1"
+  },
+  "devDependencies": {
+    "@types/inquirer": "^8.2.1",
+    "@types/jest": "^29.5.7",
+    "@types/node": "^20.8.10",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.1",
+    "typescript": "^5.2.2"
+  }
+}
