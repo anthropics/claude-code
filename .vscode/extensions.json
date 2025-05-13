@@ -1,0 +1,25 @@
+{
+  "recommendations": [
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "ms-vscode-remote.remote-containers",
+    "eamodio.gitlens",
+    "ms-ceintl.vscode-language-pack-de",
+    "semanticworkbenchteam.mcp-server-vscode",
+    "ms-azuretools.vscode-docker",
+    "mtxr.sqltools",
+    "christian-kohler.npm-intellisense",
+    "ms-vscode.azure-repos",
+    "github.remotehub",
+    "bradlc.vscode-tailwindcss",
+    "block.vscode-mcp-extension",
+    "buildwithlayer.mcp-integration-expert-eligr",
+    "mindaro-dev.file-downloader",
+    "automatalabs.copilot-mcp",
+    "ms-azuretools.vscode-containers",
+    "aiqubit.claude",
+    "codeontherocks.claude-config",
+    "ms-windows-ai-studio.windows-ai-studio",
+    "ms-vscode.vscode-websearchforcopilot"
+  ]
+}

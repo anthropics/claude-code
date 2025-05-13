@@ -1,0 +1,23 @@
+// PROXY MODULE - This file now serves as a proxy to the main TypeScript implementation
+// Import from claude-framework directly in new code
+
+let sequential_execution_manager;
+
+try {
+  // Path will need to be manually adjusted based on the actual location in the framework
+  sequential_execution_manager = require('../../../claude-framework/libs/workflows/src/sequential/services/sequential_execution_manager');
+  
+  if (process.env.NODE_ENV !== 'production') {
+    console.warn(
+      '\x1b[33m%s\x1b[0m',
+      'DEPRECATED: Importing from tools/mcp/integration/sequential_execution_manager.js is deprecated. ' +
+      'Import from @claude-framework/workflows/sequential/sequential_execution_manager directly.'
+    );
+  }
+} catch (error) {
+  console.warn('\x1b[31m%s\x1b[0m', 'Failed to load from framework, using legacy implementation.');
+  // Fall back to original implementation
+  sequential_execution_manager = require('./sequential_execution_manager.original');
+}
+
+module.exports = sequential_execution_manager;

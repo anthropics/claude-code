@@ -1,0 +1,114 @@
+{
+  "execution": {
+    "confirmation_required": true,
+    "allowed_commands": [
+      "git",
+      "npm",
+      "node",
+      "python",
+      "docker",
+      "test",
+      "ls",
+      "find",
+      "grep"
+    ],
+    "blocked_commands": [
+      "rm -rf /",
+      "sudo",
+      "chmod 777",
+      "curl | bash",
+      "wget | bash"
+    ]
+  },
+  "filesystem": {
+    "read": {
+      "allowed": true,
+      "paths": [
+        "./",
+        "../",
+        "~/.claude/"
+      ]
+    },
+    "write": {
+      "allowed": true,
+      "confirmation_required": true,
+      "paths": [
+        "./",
+        "./src/",
+        "./docs/",
+        "./ai_docs/",
+        "./specs/",
+        "./.claude/",
+        "~/.claude/"
+      ]
+    }
+  },
+  "network": {
+    "allowed": true,
+    "restricted_domains": [
+      "localhost"
+    ]
+  },
+  "enterprise": {
+    "enabled": true,
+    "auditing": {
+      "enabled": true,
+      "level": "detailed",
+      "storage": "database"
+    },
+    "compliance": {
+      "enabled": true,
+      "frameworks": [
+        "gdpr",
+        "hipaa",
+        "sox"
+      ],
+      "dataClassification": true,
+      "piiDetection": true
+    },
+    "accessControl": {
+      "enabled": true,
+      "rbac": true,
+      "apiKeyRestrictions": true,
+      "ipWhitelisting": true
+    },
+    "authentication": {
+      "sso": true,
+      "mfa": true,
+      "providers": [
+        "oidc",
+        "saml"
+      ]
+    },
+    "dataProtection": {
+      "encryption": {
+        "atRest": true,
+        "inTransit": true,
+        "level": "highest"
+      },
+      "masking": {
+        "enabled": true,
+        "patterns": [
+          "creditCard",
+          "ssn",
+          "email",
+          "phone"
+        ]
+      }
+    },
+    "resourceLimits": {
+      "enabled": true,
+      "maxMemory": "4GB",
+      "maxCpu": 2,
+      "timeouts": {
+        "request": 60,
+        "job": 3600
+      }
+    },
+    "allowedModels": [
+      "claude-3-7-sonnet",
+      "claude-3-5-sonnet",
+      "claude-3-haiku"
+    ]
+  }
+}

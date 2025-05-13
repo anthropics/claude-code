@@ -1,0 +1,20 @@
+:root {
+  /* Primary colors */
+  --primary-color: #bb86fc;
+  --secondary-color: #03dac6;
+  --accent-color: #cf6679;
+  
+  /* Status colors */
+  --success-color: #4caf50;
+  --warning-color: #ff9800;
+  --danger-color: #cf6679;
+  --info-color: #2196f3;
+  
+  /* Neutral colors */
+  --background-color: #121212;
+  --surface-color: #1e1e1e;
+  --text-color: #ffffff;
+  --text-secondary-color: #b0b0b0;
+  --border-color: #333333;
+  --shadow-color: rgba(0, 0, 0, 0.5);
+}

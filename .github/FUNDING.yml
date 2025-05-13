@@ -1,0 +1,15 @@
+# Diese Plattformen werden für Finanzierungsmodelle unterstützt
+
+github: [Vesias] # Ersetzen Sie dies durch bis zu 4 GitHub Sponsors-Benutzernamen (z. B. [user1, user2])
+patreon: username # Ersetzen Sie dies durch Ihren Patreon-Benutzernamen
+open_collective: username # Ersetzen Sie dies durch Ihren Open Collective-Benutzernamen
+ko_fi: username # Ersetzen Sie dies durch Ihren Ko-fi-Benutzernamen
+tidelift: npm/package-name # Beispiel: npm/babel
+community_bridge: project-name # Beispiel: cloud-foundry
+liberapay: username # Ersetzen Sie dies durch Ihren Liberapay-Benutzernamen
+issuehunt: username # Ersetzen Sie dies durch Ihren IssueHunt-Benutzernamen
+lfx_crowdfunding: project-name # Beispiel: cloud-foundry
+polar: username # Ersetzen Sie dies durch Ihren Polar-Benutzernamen
+buy_me_a_coffee: username # Ersetzen Sie dies durch Ihren Buy Me a Coffee-Benutzernamen
+thanks_dev: username # Ersetzen Sie dies durch Ihren Thanks.dev-Benutzernamen
+custom: ['https://example.com', 'https://example2.com'] # Ersetzen Sie dies durch bis zu 4 benutzerdefinierte Sponsoring-URLs

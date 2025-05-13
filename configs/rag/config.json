@@ -1,0 +1,20 @@
+{
+  "database": {
+    "type": "lancedb",
+    "connection": {
+      "path": "data/lancedb"
+    },
+    "dimensions": 1024
+  },
+  "embedding": {
+    "provider": "voyage",
+    "model": "voyage-2",
+    "dimensions": 1024,
+    "api_key_env": "VOYAGE_API_KEY"
+  },
+  "retrieval": {
+    "top_k": 5,
+    "similarity_threshold": 0.7,
+    "reranking": false
+  }
+}

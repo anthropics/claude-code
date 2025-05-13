@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neural Recursive Debugging Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        .card {
+            background-color: #1f2937;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        .progress-bar {
+            height: 8px;
+            border-radius: 4px;
+            background-color: #4b5563;
+            overflow: hidden;
+        }
+        .progress-value {
+            height: 100%;
+            border-radius: 4px;
+            background-color: #10b981;
+            transition: width 0.5s ease;
+        }
+        .function-box {
+            border: 1px solid #4b5563;
+            border-radius: 0.375rem;
+            transition: all 0.3s ease;
+        }
+        .function-box:hover {
+            border-color: #10b981;
+            transform: translateY(-2px);
+        }
+        .recursive-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 6px;
+        }
+        .tooltip {
+            position: absolute;
+            padding: 10px;
+            background-color: #374151;
+            border-radius: 6px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 100;
+            max-width: 300px;
+        }
+        .callgraph-container {
+            width: 100%;
+            height: 400px;
+            background-color: #111827;
+            border-radius: 0.5rem;
+        }
+        .node circle {
+            stroke: #10b981;
+            stroke-width: 2px;
+            fill: #1f2937;
+        }
+        .node text {
+            font-size: 12px;
+            fill: white;
+        }
+        .link {
+            fill: none;
+            stroke: #4b5563;
+            stroke-width: 2px;
+        }
+        .recursive-link {
+            fill: none;
+            stroke: #ef4444;
+            stroke-width: 2px;
+            stroke-dasharray: 5,5;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <header class="mb-8">
+            <div class="flex justify-between items-center">
+                <h1 class="text-3xl font-bold text-green-500">Neural Recursive Debugging Dashboard</h1>
+                <div>
+                    <button id="refreshButton" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md mr-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block mr-1" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
+                        </svg>
+                        Aktualisieren
+                    </button>
+                    <button id="settingsButton" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-md">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block mr-1" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
+                        </svg>
+                        Einstellungen
+                    </button>
+                </div>
+            </div>
+            <div class="mt-4 bg-gray-800 p-4 rounded-md">
+                <div class="flex flex-wrap gap-4">
+                    <div>
+                        <span class="text-gray-400">Projekt:</span>
+                        <span id="projectName" class="ml-2 font-semibold">Custom Grow Platform</span>
+                    </div>
+                    <div>
+                        <span class="text-gray-400">Branch:</span>
+                        <span id="branchName" class="ml-2 font-semibold">feature/recursive-optimization</span>
+                    </div>
+                    <div>
+                        <span class="text-gray-400">Letzte Analyse:</span>
+                        <span id="lastAnalysis" class="ml-2 font-semibold">11.05.2025 14:35</span>
+                    </div>
+                    <div>
+                        <span class="text-gray-400">Status:</span>
+                        <span id="status" class="ml-2 font-semibold text-yellow-500">Warnungen (3)</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Status-Übersicht -->
+        <section class="mb-8 grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div class="card p-4">
+                <h3 class="text-gray-400 mb-1">Analysierte Funktionen</h3>
+                <div class="flex items-end">
+                    <span id="analyzedFunctions" class="text-3xl font-bold">182</span>
+                    <span class="ml-2 text-green-500 text-sm">+12 heute</span>
+                </div>
+            </div>
+            <div class="card p-4">
+                <h3 class="text-gray-400 mb-1">Rekursive Funktionen</h3>
+                <div class="flex items-end">
+                    <span id="recursiveFunctions" class="text-3xl font-bold">38</span>
+                    <span class="ml-2 text-gray-400 text-sm">(20.8%)</span>
+                </div>
+            </div>
+            <div class="card p-4">
+                <h3 class="text-gray-400 mb-1">Optimierungspotenzial</h3>
+                <div class="flex items-end mb-2">
+                    <span id="optimizationPotential" class="text-3xl font-bold">72%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-value" style="width: 72%"></div>
+                </div>
+            </div>
+            <div class="card p-4">
+                <h3 class="text-gray-400 mb-1">Behobene Probleme</h3>
+                <div class="flex items-end">
+                    <span id="fixedIssues" class="text-3xl font-bold">24</span>
+                    <span class="ml-2 text-green-500 text-sm">+3 heute</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Hauptinhalt -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Problematische Funktionen -->
+            <div class="lg:col-span-2">
+                <div class="card p-4 mb-6">
+                    <h2 class="text-xl font-bold mb-4">Top-Problematische Funktionen</h2>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full">
+                            <thead>
+                                <tr class="border-b border-gray-700">
+                                    <th class="py-2 text-left text-gray-400">Funktion</th>
+                                    <th class="py-2 text-left text-gray-400">Sprache</th>
+                                    <th class="py-2 text-left text-gray-400">Dateipfad</th>
+                                    <th class="py-2 text-left text-gray-400">Komplexität</th>
+                                    <th class="py-2 text-left text-gray-400">Problem</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="border-b border-gray-800 hover:bg-gray-800">
+                                    <td class="py-3">
+                                        <div class="flex items-center">
+                                            <span class="recursive-indicator bg-red-500"></span>
+                                            <span>processData</span>
+                                        </div>
+                                    </td>
+                                    <td class="py-3">JavaScript</td>
+                                    <td class="py-3 text-gray-400">/src/utils/dataProcessor.js</td>
+                                    <td class="py-3">
+                                        <span class="px-2 py-1 bg-red-900 text-red-300 rounded-md text-xs">Hoch (18)</span>
+                                    </td>
+                                    <td class="py-3 text-red-400">Stack Overflow Risiko</td>
+                                </tr>
+                                <tr class="border-b border-gray-800 hover:bg-gray-800">
+                                    <td class="py-3">
+                                        <div class="flex items-center">
+                                            <span class="recursive-indicator bg-yellow-500"></span>
+                                            <span>traverse_tree</span>
+                                        </div>
+                                    </td>
+                                    <td class="py-3">Python</td>
+                                    <td class="py-3 text-gray-400">/src/analyzer/tree_utils.py</td>
+                                    <td class="py-3">
+                                        <span class="px-2 py-1 bg-yellow-900 text-yellow-300 rounded-md text-xs">Mittel (9)</span>
+                                    </td>
+                                    <td class="py-3 text-yellow-400">Keine Zyklus-Erkennung</td>
+                                </tr>
+                                <tr class="border-b border-gray-800 hover:bg-gray-800">
+                                    <td class="py-3">
+                                        <div class="flex items-center">
+                                            <span class="recursive-indicator bg-orange-500"></span>
+                                            <span>calculateFactorial</span>
+                                        </div>
+                                    </td>
+                                    <td class="py-3">TypeScript</td>
+                                    <td class="py-3 text-gray-400">/src/core/math.ts</td>
+                                    <td class="py-3">
+                                        <span class="px-2 py-1 bg-green-900 text-green-300 rounded-md text-xs">Niedrig (3)</span>
+                                    </td>
+                                    <td class="py-3 text-orange-400">Keine Memoization</td>
+                                </tr>
+                                <tr class="border-b border-gray-800 hover:bg-gray-800">
+                                    <td class="py-3">
+                                        <div class="flex items-center">
+                                            <span class="recursive-indicator bg-yellow-500"></span>
+                                            <span>parseJsonRecursive</span>
+                                        </div>
+                                    </td>
+                                    <td class="py-3">JavaScript</td>
+                                    <td class="py-3 text-gray-400">/src/utils/parser.js</td>
+                                    <td class="py-3">
+                                        <span class="px-2 py-1 bg-yellow-900 text-yellow-300 rounded-md text-xs">Mittel (12)</span>
+                                    </td>
+                                    <td class="py-3 text-yellow-400">Tiefe Rekursion</td>
+                                </tr>
+                                <tr class="hover:bg-gray-800">
+                                    <td class="py-3">
+                                        <div class="flex items-center">
+                                            <span class="recursive-indicator bg-red-500"></span>
+                                            <span>mergeSort</span>
+                                        </div>
+                                    </td>
+                                    <td class="py-3">Python</td>
+                                    <td class="py-3 text-gray-400">/src/algorithms/sorting.py</td>
+                                    <td class="py-3">
+                                        <span class="px-2 py-1 bg-red-900 text-red-300 rounded-md text-xs">Hoch (15)</span>
+                                    </td>
+                                    <td class="py-3 text-red-400">Speicher-Overhead</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Call Graph -->
+                <div class="card p-4">
+                    <h2 class="text-xl font-bold mb-4">Rekursions-Callgraph</h2>
+                    <div class="flex mb-3">
+                        <select id="callgraphFunction" class="bg-gray-700 text-white px-3 py-2 rounded-md mr-3">
+                            <option value="processData">processData()</option>
+                            <option value="traverse_tree">traverse_tree()</option>
+                            <option value="calculateFactorial">calculateFactorial()</option>
+                            <option value="parseJsonRecursive">parseJsonRecursive()</option>
+                            <option value="mergeSort">mergeSort()</option>
+                        </select>
+                        <select id="callgraphDepth" class="bg-gray-700 text-white px-3 py-2 rounded-md">
+                            <option value="3">Tiefe: 3</option>
+                            <option value="5" selected>Tiefe: 5</option>
+                            <option value="10">Tiefe: 10</option>
+                            <option value="all">Alle</option>
+                        </select>
+                    </div>
+                    <div id="callgraph" class="callgraph-container"></div>
+                </div>
+            </div>
+
+            <!-- Rechte Spalte -->
+            <div class="lg:col-span-1">
+                <!-- Sprach-Verteilung -->
+                <div class="card p-4 mb-6">
+                    <h2 class="text-xl font-bold mb-4">Sprach-Verteilung</h2>
+                    <canvas id="languageChart" class="w-full h-64"></canvas>
+                </div>
+                
+                <!-- Optimierungsvorschläge -->
+                <div class="card p-4 mb-6">
+                    <h2 class="text-xl font-bold mb-4">Optimierungsvorschläge</h2>
+                    <div>
+                        <div class="function-box p-3 mb-3">
+                            <h3 class="font-semibold">Memoization für <span class="text-green-500">calculateFactorial</span></h3>
+                            <p class="text-gray-400 text-sm mb-2">Performance-Steigerung um 73%</p>
+                            <div class="flex justify-between items-center">
+                                <span class="text-xs px-2 py-1 bg-gray-700 rounded-full">3 Min. Umsetzung</span>
+                                <button class="text-green-500 hover:text-green-400 text-sm">
+                                    Code anzeigen
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="function-box p-3 mb-3">
+                            <h3 class="font-semibold">Tail-Rekursion für <span class="text-green-500">processData</span></h3>
+                            <p class="text-gray-400 text-sm mb-2">Elimiert Stack Overflow Risiko</p>
+                            <div class="flex justify-between items-center">
+                                <span class="text-xs px-2 py-1 bg-gray-700 rounded-full">7 Min. Umsetzung</span>
+                                <button class="text-green-500 hover:text-green-400 text-sm">
+                                    Code anzeigen
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="function-box p-3 mb-3">
+                            <h3 class="font-semibold">Zyklus-Erkennung für <span class="text-green-500">traverse_tree</span></h3>
+                            <p class="text-gray-400 text-sm mb-2">Verhindert Endlosrekursion</p>
+                            <div class="flex justify-between items-center">
+                                <span class="text-xs px-2 py-1 bg-gray-700 rounded-full">5 Min. Umsetzung</span>
+                                <button class="text-green-500 hover:text-green-400 text-sm">
+                                    Code anzeigen
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="function-box p-3">
+                            <h3 class="font-semibold">Iterative Version für <span class="text-green-500">mergeSort</span></h3>
+                            <p class="text-gray-400 text-sm mb-2">Reduziert Speicherverbrauch um 62%</p>
+                            <div class="flex justify-between items-center">
+                                <span class="text-xs px-2 py-1 bg-gray-700 rounded-full">12 Min. Umsetzung</span>
+                                <button class="text-green-500 hover:text-green-400 text-sm">
+                                    Code anzeigen
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Aktivitätslog -->
+                <div class="card p-4">
+                    <h2 class="text-xl font-bold mb-4">Aktivitätslog</h2>
+                    <div class="max-h-80 overflow-y-auto">
+                        <div class="border-l-2 border-green-500 pl-3 pb-5 relative">
+                            <div class="absolute w-2 h-2 rounded-full bg-green-500" style="left: -4.5px; top: 6px;"></div>
+                            <p class="text-sm text-gray-300 font-semibold">Problem behoben: Fakultäts-Funktion optimiert</p>
+                            <p class="text-xs text-gray-500">Heute, 14:35 - Jan S.</p>
+                        </div>
+                        <div class="border-l-2 border-yellow-500 pl-3 pb-5 relative">
+                            <div class="absolute w-2 h-2 rounded-full bg-yellow-500" style="left: -4.5px; top: 6px;"></div>
+                            <p class="text-sm text-gray-300 font-semibold">Warnung: Neue rekursive Funktion erkannt</p>
+                            <p class="text-xs text-gray-500">Heute, 13:22 - Auto-Analyse</p>
+                        </div>
+                        <div class="border-l-2 border-blue-500 pl-3 pb-5 relative">
+                            <div class="absolute w-2 h-2 rounded-full bg-blue-500" style="left: -4.5px; top: 6px;"></div>
+                            <p class="text-sm text-gray-300 font-semibold">CI/CD: Pre-Commit-Hook aktiviert</p>
+                            <p class="text-xs text-gray-500">Heute, 11:45 - System</p>
+                        </div>
+                        <div class="border-l-2 border-red-500 pl-3 pb-5 relative">
+                            <div class="absolute w-2 h-2 rounded-full bg-red-500" style="left: -4.5px; top: 6px;"></div>
+                            <p class="text-sm text-gray-300 font-semibold">Kritisch: Stack Overflow in processData</p>
+                            <p class="text-xs text-gray-500">Heute, 10:18 - Runtime-Analyse</p>
+                        </div>
+                        <div class="border-l-2 border-green-500 pl-3 pb-5 relative">
+                            <div class="absolute w-2 h-2 rounded-full bg-green-500" style="left: -4.5px; top: 6px;"></div>
+                            <p class="text-sm text-gray-300 font-semibold">Problem behoben: Tree-Traversierung optimiert</p>
+                            <p class="text-xs text-gray-500">Gestern, 17:52 - Serhan K.</p>
+                        </div>
+                        <div class="border-l-2 border-gray-500 pl-3 relative">
+                            <div class="absolute w-2 h-2 rounded-full bg-gray-500" style="left: -4.5px; top: 6px;"></div>
+                            <p class="text-sm text-gray-300 font-semibold">Projekt-Setup abgeschlossen</p>
+                            <p class="text-xs text-gray-500">Gestern, 09:30 - System</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tooltip für zusätzliche Informationen -->
+    <div id="tooltip" class="tooltip"></div>
+
+    <script>
+        // Sprach-Verteilung Chart
+        const languageCtx = document.getElementById('languageChart').getContext('2d');
+        const languageChart = new Chart(languageCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['JavaScript', 'TypeScript', 'Python', 'Java', 'C++'],
+                datasets: [{
+                    data: [38, 27, 22, 8, 5],
+                    backgroundColor: [
+                        '#10B981', // green-500
+                        '#3B82F6', // blue-500
+                        '#F59E0B', // amber-500
+                        '#EF4444', // red-500
+                        '#8B5CF6'  // purple-500
+                    ],
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: {
+                            color: 'white',
+                            font: {
+                                size: 12
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Callgraph Visualisierung mit D3.js
+        function renderCallgraph() {
+            // Demo-Daten für den Callgraph
+            const data = {
+                name: "processData",
+                children: [
+                    {
+                        name: "parseInput",
+                        children: [
+                            { name: "validateFormat" },
+                            { name: "cleanData" }
+                        ]
+                    },
+                    {
+                        name: "transformData",
+                        children: [
+                            { 
+                                name: "processData", 
+                                isRecursive: true 
+                            },
+                            { name: "applyTransformation" }
+                        ]
+                    },
+                    {
+                        name: "aggregateResults",
+                        children: [
+                            { name: "calculateSum" },
+                            { name: "formatOutput" }
+                        ]
+                    }
+                ]
+            };
+
+            const width = document.getElementById('callgraph').offsetWidth;
+            const height = 400;
+            const margin = { top: 20, right: 120, bottom: 20, left: 120 };
+
+            // Bestehende SVG löschen
+            d3.select("#callgraph svg").remove();
+
+            // Neue SVG erstellen
+            const svg = d3.select("#callgraph")
+                .append("svg")
+                .attr("width", width)
+                .attr("height", height)
+                .append("g")
+                .attr("transform", `translate(${margin.left},${margin.top})`);
+
+            // Hierarchie erstellen
+            const root = d3.hierarchy(data);
+            const treeLayout = d3.tree().size([height - margin.top - margin.bottom, width - margin.left - margin.right]);
+            treeLayout(root);
+
+            // Links zeichnen (Verbindungen zwischen Knoten)
+            svg.selectAll(".link")
+                .data(root.links())
+                .enter()
+                .append("path")
+                .attr("class", d => d.target.data.isRecursive ? "recursive-link" : "link")
+                .attr("d", d => {
+                    return `M${d.source.y},${d.source.x}
+                            C${(d.source.y + d.target.y) / 2},${d.source.x}
+                             ${(d.source.y + d.target.y) / 2},${d.target.x}
+                             ${d.target.y},${d.target.x}`;
+                });
+
+            // Knoten zeichnen
+            const node = svg.selectAll(".node")
+                .data(root.descendants())
+                .enter()
+                .append("g")
+                .attr("class", "node")
+                .attr("transform", d => `translate(${d.y},${d.x})`);
+
+            // Kreise für Knoten
+            node.append("circle")
+                .attr("r", 6)
+                .style("fill", d => d.data.isRecursive ? "#EF4444" : "#1F2937")
+                .style("stroke", d => d.data.isRecursive ? "#EF4444" : "#10B981");
+
+            // Text-Labels für Knoten
+            node.append("text")
+                .attr("dy", "0.31em")
+                .attr("x", d => d.children ? -8 : 8)
+                .style("text-anchor", d => d.children ? "end" : "start")
+                .text(d => d.data.name);
+        }
+
+        // Event-Listener für Callgraph-Steuerelemente
+        document.getElementById('callgraphFunction').addEventListener('change', renderCallgraph);
+        document.getElementById('callgraphDepth').addEventListener('change', renderCallgraph);
+
+        // Initialisierung
+        document.addEventListener('DOMContentLoaded', function() {
+            renderCallgraph();
+            
+            // Tooltip-Funktionalität
+            const functionBoxes = document.querySelectorAll('.function-box');
+            const tooltip = document.getElementById('tooltip');
+            
+            functionBoxes.forEach(box => {
+                box.addEventListener('mouseover', function(e) {
+                    const functionName = this.querySelector('span.text-green-500').textContent;
+                    
+                    // Tooltip-Inhalt basierend auf Funktion
+                    let tooltipContent = "";
+                    switch(functionName) {
+                        case 'calculateFactorial':
+                            tooltipContent = `
+                                <div class="mb-2 font-semibold">Memoization-Lösung:</div>
+                                <pre class="text-xs bg-gray-700 p-2 rounded-md">function calculateFactorial(n, memo = {}) {
+  if (n in memo) return memo[n];
+  if (n <= 1) return 1;
+  return memo[n] = n * calculateFactorial(n - 1, memo);
+}</pre>
+                            `;
+                            break;
+                        case 'processData':
+                            tooltipContent = `
+                                <div class="mb-2 font-semibold">Tail-Rekursion-Lösung:</div>
+                                <pre class="text-xs bg-gray-700 p-2 rounded-md">function processData(data, results = []) {
+  if (data.length === 0) return results;
+  const [first, ...rest] = data;
+  return processData(rest, [...results, transform(first)]);
+}</pre>
+                            `;
+                            break;
+                        // Weitere Fälle hier...
+                    }
+                    
+                    tooltip.innerHTML = tooltipContent;
+                    tooltip.style.left = `${e.pageX + 10}px`;
+                    tooltip.style.top = `${e.pageY + 10}px`;
+                    tooltip.style.opacity = 1;
+                });
+                
+                box.addEventListener('mouseout', function() {
+                    tooltip.style.opacity = 0;
+                });
+            });
+        });
+    </script>
+</body>
+</html>

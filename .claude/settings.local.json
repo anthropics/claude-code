@@ -1,0 +1,43 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(# Check for running mcp servers on ports\nnetstat -tulpn 2>/dev/null | grep node | grep LISTEN\n\n# Use a different approach to see running MCP servers\nps aux | grep -E \"mcp-server-|desktop-commander|context7-mcp|memory-bank\" | grep -v grep | head -10)",
+      "Bash(# Create summary of MCP servers status\necho \"===== MCP Servers Status =====\"\necho \"\"\n\n# Check sequentialthinking\nif pgrep -f \"mcp-server-sequential-thinking\" > /dev/null; then\n  echo \"✅ sequentialthinking - RUNNING\"\nelse\n  echo \"❌ sequentialthinking - NOT RUNNING\"\nfi\n\n# Check brave-search\nif pgrep -f \"@smithery-ai/brave-search\" > /dev/null; then\n  echo \"✅ brave-search - RUNNING\"\nelse\n  echo \"❌ brave-search - NOT RUNNING\"\nfi\n\n# Check desktop-commander\nif pgrep -f \"@wonderwhy-er/desktop-commander\" > /dev/null; then\n  echo \"✅ desktop-commander - RUNNING\"\nelse\n  echo \"❌ desktop-commander - NOT RUNNING\"\nfi\n\n# Check think-mcp-server\nif pgrep -f \"@PhillipRt/think-mcp-server\" > /dev/null; then\n  echo \"✅ think-mcp-server - RUNNING\"\nelse\n  echo \"❌ think-mcp-server - NOT RUNNING\"\nfi\n\n# Check memory-bank-mcp\nif pgrep -f \"@alioshr/memory-bank-mcp\\|mcp-server-memory-bank\" > /dev/null; then\n  echo \"✅ memory-bank-mcp - RUNNING\"\nelse\n  echo \"❌ memory-bank-mcp - NOT RUNNING\"\nfi\n\n# Check context7-mcp\nif pgrep -f \"@upstash/context7-mcp\" > /dev/null; then\n  echo \"✅ context7-mcp - RUNNING\"\nelse\n  echo \"❌ context7-mcp - NOT RUNNING\"\nfi\n\n# Check taskmanager\nif pgrep -f \"@kazuph/mcp-taskmanager\" > /dev/null; then\n  echo \"✅ mcp-taskmanager - RUNNING\"\nelse\n  echo \"❌ mcp-taskmanager - NOT RUNNING\"\nfi\n\n# Check file-context-server\nif pgrep -f \"@bsmi021/mcp-file-context-server\" > /dev/null; then\n  echo \"✅ mcp-file-context-server - RUNNING\"\nelse\n  echo \"❌ mcp-file-context-server - NOT RUNNING\"\nfi\n\n# Check qdrant\nif pgrep -f \"mcp-server-qdrant\" > /dev/null; then\n  echo \"✅ qdrant - RUNNING\"\nelse\n  echo \"❌ qdrant - NOT RUNNING\"\nfi\n\necho \"\"\necho \"===== MCP Server Ports =====\"\necho \"\"\nnetstat -tulpn 2>/dev/null | grep node | grep LISTEN)",
+      "Bash(find:*)",
+      "Bash(cloc:*)",
+      "mcp__sequentialthinking__sequentialthinking",
+      "Bash(chmod:*)",
+      "Bash(./saar.sh:*)",
+      "Bash(sed:*)",
+      "Bash(# Check MCP server status\necho \"===== MCP Servers Status =====\"\necho \"\"\n\n# Check sequentialthinking\nif pgrep -f \"mcp-server-sequential-thinking\" > /dev/null; then\n  echo \"✅ sequentialthinking - RUNNING\"\nelse\n  echo \"❌ sequentialthinking - NOT RUNNING\"\nfi\n\n# Check brave-search\nif pgrep -f \"@smithery-ai/brave-search\" > /dev/null; then\n  echo \"✅ brave-search - RUNNING\"\nelse\n  echo \"❌ brave-search - NOT RUNNING\"\nfi\n\n# Check desktop-commander\nif pgrep -f \"@wonderwhy-er/desktop-commander\" > /dev/null; then\n  echo \"✅ desktop-commander - RUNNING\"\nelse\n  echo \"❌ desktop-commander - NOT RUNNING\"\nfi\n\n# Check think-mcp-server\nif pgrep -f \"@PhillipRt/think-mcp-server\" > /dev/null; then\n  echo \"✅ think-mcp-server - RUNNING\"\nelse\n  echo \"❌ think-mcp-server - NOT RUNNING\"\nfi\n\n# Check memory-bank-mcp\nif pgrep -f \"@alioshr/memory-bank-mcp\\|mcp-server-memory-bank\" > /dev/null; then\n  echo \"✅ memory-bank-mcp - RUNNING\"\nelse\n  echo \"❌ memory-bank-mcp - NOT RUNNING\"\nfi\n\necho \"\"\necho \"===== MCP Server Ports =====\"\necho \"\"\nnetstat -tulpn 2>/dev/null | grep node | grep LISTEN)",
+      "Bash(mkdir:*)",
+      "Bash(ls:*)",
+      "Bash(grep:*)",
+      "Bash(bash:*)",
+      "Bash(git add:*)",
+      "Bash(node:*)",
+      "Bash(cp:*)",
+      "Bash(/home/jan/Schreibtisch/TEST/claude-code/saar.sh status:*)",
+      "Bash(/home/jan/Schreibtisch/TEST/claude-code/saar.sh:*)",
+      "Bash(test:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git --version)",
+      "Bash(git config:*)",
+      "Bash(git remote set-url:*)",
+      "Bash(/workspace/saar.sh.modular:*)",
+      "Bash(mv:*)",
+      "Bash(claude mcp:*)",
+      "Bash(claude --mcp)",
+      "Bash(mcp:*)",
+      "Bash(./claude-wrapper.sh)",
+      "Bash(npx -y @smithery/cli@latest run @alioshr/memory-bank-mcp --key 7d1fa500-da11-4040-b21b-39f1014ed8fb --profile youngest-smelt-DDZA3B)",
+      "mcp__context7-mcp__resolve-library-id",
+      "mcp__21st-dev-magic__21st_magic_component_inspiration",
+      "Bash(cat:*)",
+      "Bash(git pull:*)",
+      "Bash(touch:*)"
+    ],
+    "deny": []
+  }
+}

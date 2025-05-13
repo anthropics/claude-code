@@ -1,0 +1,92 @@
+# Claude-specific ignore patterns
+# Files and directories in this list will be ignored by Claude AI during analysis
+
+# Dependencies
+node_modules/
+.pnp/
+.pnp.js
+
+# Build outputs
+dist/
+build/
+out/
+.next/
+
+# Generated files
+*.min.js
+*.min.css
+*.bundle.js
+coverage/
+storybook-static/
+
+# Python virtual environments and caches
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+ENV/
+env/
+.pytest_cache/
+
+# Environment files
+.env
+.env.local
+.env.*
+*.env.json
+
+# Large binary files
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.mp4
+*.mp3
+*.mov
+*.pdf
+*.zip
+*.gz
+*.tar
+*.7z
+*.rar
+
+# Large data files
+*.csv
+*.json
+!package.json
+!tsconfig.json
+!.clauderules
+!about-schema*.json
+*.sqlite
+*.sqlite3
+*.db
+
+# Logs
+logs/
+*.log
+
+# Version control
+.git/
+.github/workflows/
+.github/actions/
+
+# Temporary files
+tmp/
+temp/
+.temp/
+.tmp/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Claude caches and sessions
+.claude/cache/
+.claude/sessions/
+.claude/tmp/
+.claudetemp/
+
+# Test fixtures - large test files
+tests/fixtures/large/
+tests/e2e/screenshots/

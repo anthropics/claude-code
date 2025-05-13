@@ -1,0 +1,37 @@
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "rootDir": ".",
+    "sourceMap": true,
+    "declaration": false,
+    "moduleResolution": "node",
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "importHelpers": true,
+    "target": "es2015",
+    "module": "esnext",
+    "lib": ["es2020", "dom"],
+    "skipLibCheck": true,
+    "skipDefaultLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "@claude-framework/agents": ["libs/agents/src/index.ts"],
+      "@claude-framework/core": ["libs/core/src/index.ts"],
+      "@claude-framework/mcp": ["libs/mcp/src/index.ts"],
+      "@claude-framework/rag": ["libs/rag/src/index.ts"],
+      "@claude-framework/shared": ["libs/shared/src/index.ts"],
+      "@claude-framework/workflows": ["libs/workflows/src/index.ts"],
+      
+      "@core/*": ["libs/core/src/*"],
+      "@mcp/*": ["libs/mcp/src/*"],
+      "@agents/*": ["libs/agents/src/*"],
+      "@rag/*": ["libs/rag/src/*"],
+      "@workflows/*": ["libs/workflows/src/*"],
+      "@shared/*": ["libs/shared/src/*"],
+      "@apps/*": ["apps/*"],
+      "@configs/*": ["configs/*"],
+      "@tools/*": ["tools/*"]
+    }
+  },
+  "exclude": ["node_modules", "tmp"]
+}

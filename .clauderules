@@ -1,0 +1,28 @@
+# Claude Rules
+# These rules guide Claude AI's behavior when working with this codebase
+
+## File Access
+allowed_directories:
+  - /home/jan/Schreibtisch/TEST/claude-code/claude-framework/
+  - /home/jan/.claude/
+
+## Security
+sensitive_patterns:
+  - API_KEY
+  - PASSWORD
+  - SECRET
+  - CREDENTIAL
+  - TOKEN
+
+## Generated Content
+insert_attribution: true
+attribution_format: |
+  Generated with Claude Framework v1.0.0
+  🤖 Created by Claude AI
+
+## Behavior
+max_file_size_mb: 10
+default_language: typescript
+preserve_formatting: true
+respect_existing_patterns: true
+follow_architecture: true

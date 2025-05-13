@@ -1,0 +1,416 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "User Profile Schema",
+  "description": "Standardized schema for user profiles used to provide personalized agent interactions",
+  "type": "object",
+  "required": ["userId", "personal", "goals", "preferences", "agentSettings"],
+  "properties": {
+    "userId": {
+      "type": "string",
+      "description": "Unique identifier for the user (UUID format)",
+      "examples": ["550e8400-e29b-41d4-a716-446655440000"]
+    },
+    "personal": {
+      "type": "object",
+      "description": "Personal information about the user",
+      "required": ["name", "skills"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Full name of the user",
+          "minLength": 1,
+          "examples": ["Max Mustermann"]
+        },
+        "contact": {
+          "type": "object",
+          "description": "Contact information for the user",
+          "properties": {
+            "email": {
+              "type": "string",
+              "description": "Email address of the user",
+              "format": "email",
+              "examples": ["max@example.com"]
+            },
+            "phone": {
+              "type": "string",
+              "description": "Phone number of the user",
+              "examples": ["+49 123 4567890"]
+            }
+          }
+        },
+        "skills": {
+          "type": "array",
+          "description": "Technical skills and knowledge of the user",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          },
+          "examples": [["Python", "Next.js", "Prompt Engineering"]]
+        },
+        "communicationStyle": {
+          "type": "string",
+          "description": "Preferred communication style of the user",
+          "examples": ["concise, technical"]
+        }
+      }
+    },
+    "goals": {
+      "type": "object",
+      "description": "Personal and professional goals of the user",
+      "properties": {
+        "shortTerm": {
+          "type": "array",
+          "description": "Short-term goals of the user",
+          "items": {
+            "type": "string"
+          },
+          "examples": [["Complete Project X", "Implement new tests"]]
+        },
+        "longTerm": {
+          "type": "array",
+          "description": "Long-term goals of the user",
+          "items": {
+            "type": "string"
+          },
+          "examples": [["Become an expert in AI agents", "Become a lead developer"]]
+        }
+      }
+    },
+    "companyContext": {
+      "type": "object",
+      "description": "Professional context and company environment of the user",
+      "properties": {
+        "currentCompany": {
+          "type": "string",
+          "description": "Current company of the user",
+          "examples": ["VibeCoding Inc."]
+        },
+        "role": {
+          "type": "string",
+          "description": "Current position or role of the user",
+          "examples": ["Lead AI Developer"]
+        },
+        "industryFocus": {
+          "type": "array",
+          "description": "Industries the user focuses on",
+          "items": {
+            "type": "string"
+          },
+          "examples": [["Software Development", "AI"]]
+        },
+        "teamSize": {
+          "type": "string",
+          "description": "Size of the development team",
+          "enum": ["solo", "small", "medium", "large"],
+          "default": "medium"
+        }
+      }
+    },
+    "preferences": {
+      "type": "object",
+      "description": "User interface and interaction preferences",
+      "required": ["uiTheme"],
+      "properties": {
+        "uiTheme": {
+          "type": "string",
+          "description": "UI theme preference",
+          "enum": ["light", "dark", "system"],
+          "default": "dark"
+        },
+        "language": {
+          "type": "string",
+          "description": "Preferred language",
+          "enum": ["de", "en", "fr", "es"],
+          "default": "en"
+        },
+        "aiInteractionStyle": {
+          "type": "string",
+          "description": "Preferred AI interaction style",
+          "enum": ["collaborative", "directive", "explorative"],
+          "default": "collaborative"
+        },
+        "notificationFrequency": {
+          "type": "string",
+          "description": "Frequency of notifications",
+          "enum": ["none", "daily", "weekly", "immediate"],
+          "default": "daily"
+        },
+        "colorScheme": {
+          "type": "object",
+          "description": "Custom color definitions for UI elements",
+          "required": [
+            "primary", "secondary", "accent", "success", "warning", 
+            "danger", "info", "background", "surface", "text", 
+            "textSecondary", "border"
+          ],
+          "properties": {
+            "primary": {
+              "type": "string",
+              "description": "Primary UI color",
+              "pattern": "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$",
+              "examples": ["#bb86fc"]
+            },
+            "secondary": {
+              "type": "string",
+              "description": "Secondary UI color",
+              "pattern": "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$",
+              "examples": ["#03dac6"]
+            },
+            "accent": {
+              "type": "string",
+              "description": "Accent color for highlights",
+              "pattern": "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$",
+              "examples": ["#cf6679"]
+            },
+            "success": {
+              "type": "string",
+              "description": "Color for success states",
+              "pattern": "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$",
+              "examples": ["#4caf50"]
+            },
+            "warning": {
+              "type": "string",
+              "description": "Color for warning states",
+              "pattern": "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$",
+              "examples": ["#ff9800"]
+            },
+            "danger": {
+              "type": "string",
+              "description": "Color for error or danger states",
+              "pattern": "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$",
+              "examples": ["#cf6679"]
+            },
+            "info": {
+              "type": "string",
+              "description": "Color for information states",
+              "pattern": "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$",
+              "examples": ["#2196f3"]
+            },
+            "background": {
+              "type": "string",
+              "description": "Background color for the user interface",
+              "pattern": "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$",
+              "examples": ["#121212"]
+            },
+            "surface": {
+              "type": "string",
+              "description": "Surface color for cards and elevated elements",
+              "pattern": "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$",
+              "examples": ["#1e1e1e"]
+            },
+            "text": {
+              "type": "string",
+              "description": "Primary text color",
+              "pattern": "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$",
+              "examples": ["#ffffff"]
+            },
+            "textSecondary": {
+              "type": "string",
+              "description": "Secondary text color for less important content",
+              "pattern": "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$",
+              "examples": ["#b0b0b0"]
+            },
+            "border": {
+              "type": "string",
+              "description": "Border color for UI elements",
+              "pattern": "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$",
+              "examples": ["#333333"]
+            }
+          }
+        }
+      }
+    },
+    "agentSettings": {
+      "type": "object",
+      "description": "Settings for AI agent functionality",
+      "required": ["isActive"],
+      "properties": {
+        "isActive": {
+          "type": "boolean",
+          "description": "Whether the AI agent is activated",
+          "default": true
+        },
+        "capabilities": {
+          "type": "array",
+          "description": "Enabled capabilities of the AI agent",
+          "items": {
+            "type": "string"
+          },
+          "examples": [["code-analysis", "document-summarization", "bug-detection"]]
+        },
+        "connectedServices": {
+          "type": "array",
+          "description": "Connected services and tools for the AI agent",
+          "items": {
+            "type": "string"
+          },
+          "examples": [["claude", "google_calendar_tool", "mcp_user_profile_context"]]
+        },
+        "debugPreferences": {
+          "type": "object",
+          "description": "User preferences for debugging workflows",
+          "properties": {
+            "strategy": {
+              "type": "string",
+              "description": "Preferred debugging methodology",
+              "enum": ["bottom-up", "top-down"],
+              "default": "bottom-up"
+            },
+            "detailLevel": {
+              "type": "string",
+              "description": "Preferred level of detail in debugging reports",
+              "enum": ["low", "medium", "high"],
+              "default": "medium"
+            },
+            "autoFix": {
+              "type": "boolean",
+              "description": "Whether to automatically fix errors when possible",
+              "default": true
+            }
+          }
+        }
+      }
+    },
+    "workEnvironment": {
+      "type": "object",
+      "description": "Details about the user's technical work environment",
+      "properties": {
+        "editor": {
+          "type": "string",
+          "description": "Preferred code editor or IDE",
+          "examples": ["VS Code", "IntelliJ", "Vim"]
+        },
+        "os": {
+          "type": "string",
+          "description": "Operating system",
+          "examples": ["Windows", "macOS", "Linux"]
+        },
+        "cicd": {
+          "type": "string",
+          "description": "CI/CD platform",
+          "examples": ["GitHub Actions", "Jenkins", "GitLab CI"]
+        },
+        "gitWorkflow": {
+          "type": "string",
+          "description": "Preferred Git workflow",
+          "enum": ["GitFlow", "GitHub Flow", "Trunk-Based", "Custom"],
+          "default": "GitFlow"
+        }
+      }
+    },
+    "projectContext": {
+      "type": "object",
+      "description": "Information about the user's project context",
+      "properties": {
+        "currentProjects": {
+          "type": "array",
+          "description": "List of current projects",
+          "items": {
+            "type": "string"
+          },
+          "examples": [["VibeCoding Framework", "AI Agent Dashboard"]]
+        },
+        "architecturePatterns": {
+          "type": "array",
+          "description": "Used architecture patterns",
+          "items": {
+            "type": "string"
+          },
+          "examples": [["Microservices", "MVC", "CQRS", "DDD"]]
+        }
+      }
+    },
+    "learningPreferences": {
+      "type": "object",
+      "description": "Learning style preferences of the user",
+      "properties": {
+        "resources": {
+          "type": "array",
+          "description": "Preferred learning resources",
+          "items": {
+            "type": "string",
+            "enum": ["documentation", "tutorials", "examples", "videos", "interactive"]
+          }
+        },
+        "feedbackStyle": {
+          "type": "string",
+          "description": "Preferred feedback style",
+          "enum": ["direct", "suggestive", "explanatory"],
+          "default": "explanatory"
+        },
+        "adaptationPace": {
+          "type": "string",
+          "description": "How quickly the user adopts new technologies",
+          "enum": ["cautious", "moderate", "early-adopter"],
+          "default": "moderate"
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "userId": "550e8400-e29b-41d4-a716-446655440000",
+      "personal": {
+        "name": "Max Mustermann",
+        "contact": {"email": "max@example.com"},
+        "skills": ["Python", "Next.js", "Prompt Engineering"],
+        "communicationStyle": "concise, technical"
+      },
+      "goals": {
+        "shortTerm": ["Complete Project X"],
+        "longTerm": ["Become an expert in AI agents"]
+      },
+      "companyContext": {
+        "currentCompany": "VibeCoding Inc.",
+        "role": "Lead AI Developer",
+        "industryFocus": ["Software Development", "AI"],
+        "teamSize": "medium"
+      },
+      "preferences": {
+        "uiTheme": "dark",
+        "language": "en",
+        "aiInteractionStyle": "collaborative",
+        "notificationFrequency": "daily",
+        "colorScheme": {
+          "primary": "#bb86fc",
+          "secondary": "#03dac6",
+          "accent": "#cf6679",
+          "success": "#4caf50",
+          "warning": "#ff9800",
+          "danger": "#cf6679",
+          "info": "#2196f3",
+          "background": "#121212",
+          "surface": "#1e1e1e",
+          "text": "#ffffff",
+          "textSecondary": "#b0b0b0",
+          "border": "#333333"
+        }
+      },
+      "agentSettings": {
+        "isActive": true,
+        "capabilities": ["code-analysis", "document-summarization"],
+        "connectedServices": ["claude", "google_calendar_tool", "mcp_user_profile_context"],
+        "debugPreferences": {
+          "strategy": "bottom-up",
+          "detailLevel": "high",
+          "autoFix": true
+        }
+      },
+      "workEnvironment": {
+        "editor": "VS Code",
+        "os": "macOS",
+        "cicd": "GitHub Actions",
+        "gitWorkflow": "GitFlow"
+      },
+      "projectContext": {
+        "currentProjects": ["VibeCoding Framework", "AI Agent Dashboard"],
+        "architecturePatterns": ["Microservices", "DDD"]
+      },
+      "learningPreferences": {
+        "resources": ["documentation", "examples"],
+        "feedbackStyle": "explanatory",
+        "adaptationPace": "early-adopter"
+      }
+    }
+  ]
+}

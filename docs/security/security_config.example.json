@@ -1,0 +1,142 @@
+{
+  "version": "1.0.0",
+  "mcp": {
+    "allowed_servers": [
+      "sequentialthinking",
+      "context7-mcp",
+      "desktop-commander",
+      "brave-search",
+      "think-mcp-server"
+    ],
+    "allow_server_autostart": true,
+    "allow_remote_servers": false
+  },
+  "filesystem": {
+    "allowed_directories": [
+      "/home/user/claude_projects",
+      "/tmp/claude_temp"
+    ]
+  },
+  "api": {
+    "require_https": true,
+    "rate_limit": {
+      "enabled": true,
+      "requests_per_window": 100,
+      "window_ms": 900000
+    },
+    "policies": [
+      {
+        "id": "default-policy",
+        "name": "Default Policy",
+        "description": "Default security policy for API access",
+        "level": "strict",
+        "default": true,
+        "rules": [
+          {
+            "id": "rate-limit-rule",
+            "type": "rate_limit",
+            "description": "Limit API requests to prevent abuse",
+            "enabled": true,
+            "parameters": {
+              "limit": 100,
+              "window_ms": 900000
+            },
+            "priority": 10
+          },
+          {
+            "id": "auth-required-rule",
+            "type": "auth_required",
+            "description": "Require authentication for all API endpoints",
+            "enabled": true,
+            "path": "/api",
+            "priority": 20
+          },
+          {
+            "id": "cors-rule",
+            "type": "cors",
+            "description": "CORS policy for API endpoints",
+            "enabled": true,
+            "parameters": {
+              "allowed_origins": ["https://example.com"],
+              "allowed_methods": ["GET", "POST", "PUT", "DELETE"],
+              "allow_credentials": true
+            },
+            "path": "/api",
+            "priority": 30
+          },
+          {
+            "id": "content-type-rule",
+            "type": "content_type",
+            "description": "Enforce content type restrictions",
+            "enabled": true,
+            "parameters": {
+              "allowed_types": ["application/json"]
+            },
+            "path": "/api",
+            "method": "POST",
+            "priority": 40
+          },
+          {
+            "id": "request-size-rule",
+            "type": "request_size",
+            "description": "Limit request body size",
+            "enabled": true,
+            "parameters": {
+              "max_size_bytes": 1048576
+            },
+            "path": "/api/upload",
+            "priority": 50
+          }
+        ]
+      },
+      {
+        "id": "moderate-policy",
+        "name": "Moderate Policy",
+        "description": "Moderate security policy for internal services",
+        "level": "moderate",
+        "default": false,
+        "rules": [
+          {
+            "id": "rate-limit-moderate",
+            "type": "rate_limit",
+            "description": "Higher rate limits for internal services",
+            "enabled": true,
+            "parameters": {
+              "limit": 1000,
+              "window_ms": 900000
+            },
+            "priority": 10
+          },
+          {
+            "id": "auth-required-moderate",
+            "type": "auth_required",
+            "description": "Require authentication for sensitive endpoints",
+            "enabled": true,
+            "path": "/api/sensitive",
+            "priority": 20
+          }
+        ]
+      },
+      {
+        "id": "open-policy",
+        "name": "Open Policy",
+        "description": "Open policy for development environments",
+        "level": "open",
+        "default": false,
+        "rules": [
+          {
+            "id": "rate-limit-open",
+            "type": "rate_limit",
+            "description": "Minimal rate limiting for development",
+            "enabled": true,
+            "parameters": {
+              "limit": 10000,
+              "window_ms": 900000
+            },
+            "priority": 10
+          }
+        ]
+      }
+    ]
+  }
+}

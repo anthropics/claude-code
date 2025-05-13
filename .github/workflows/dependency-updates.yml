@@ -1,0 +1,68 @@
+name: Dependency Updates
+
+on:
+  schedule:
+    - cron: '0 0 * * 1'  # Run weekly on Mondays
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  update-dependencies:
+    name: Update Dependencies
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      
+      - name: Install npm-check-updates
+        run: npm install -g npm-check-updates
+      
+      - name: Check for updates
+        run: |
+          ncu --packageFile package.json > dependency-report.txt
+          cat dependency-report.txt
+          echo "UPDATES_AVAILABLE=$(grep -c "Run ncu -u to upgrade" dependency-report.txt || echo "0")" >> $GITHUB_ENV
+      
+      - name: Create Pull Request if updates available
+        if: env.UPDATES_AVAILABLE != '0'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Create a new branch
+          git config --global user.name 'GitHub Dependency Bot'
+          git config --global user.email 'bot@example.com'
+          BRANCH_NAME="deps/update-$(date +%Y-%m-%d)"
+          git checkout -b $BRANCH_NAME
+          
+          # Update dependencies
+          ncu -u
+          npm install
+          
+          # Commit changes
+          git add package.json package-lock.json
+          git commit -m "chore: update dependencies $(date +%Y-%m-%d)"
+          
+          # Push to remote
+          git push origin $BRANCH_NAME
+          
+          # Create Pull Request
+          # Using GitHub CLI to create the PR
+          gh pr create \
+            --title "chore: update dependencies $(date +%Y-%m-%d)" \
+            --body "This PR updates the project dependencies to their latest versions.
+
+## Changes
+$(cat dependency-report.txt)
+
+## Automated Tests
+- CI checks must pass before merging
+- Please review dependency changes carefully" \
+            --base main \
+            --head $BRANCH_NAME \
+            --label dependencies \
+            --label automated

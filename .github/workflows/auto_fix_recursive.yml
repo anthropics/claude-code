@@ -1,0 +1,130 @@
+name: Auto-Fix Recursive Issues
+
+on:
+  # Triggered manually or by an issue with tag 'recursion-bug'
+  workflow_dispatch:
+    inputs:
+      filePath:
+        description: 'Path to file with recursive issues'
+        required: true
+        type: string
+      workflowType:
+        description: 'Type of workflow to run'
+        required: true
+        default: 'standard'
+        type: choice
+        options:
+          - standard
+          - deep
+          - performance
+          - stack_overflow
+  issues:
+    types: [opened, labeled]
+    
+jobs:
+  auto-fix:
+    # Only run if issue has label 'recursion-bug' or from workflow_dispatch
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.issue.labels.*.name, 'recursion-bug')
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: 16
+        
+    - name: Install dependencies
+      run: npm ci || npm install
+        
+    - name: Prepare debug environment
+      run: |
+        mkdir -p ~/.claude/config
+        cp core/config/debug_workflow_config.json ~/.claude/config/ || echo '{
+          "workflows": {
+            "standard": [
+              { "command": "debug-recursive", "options": { "template": "recursive_bug_analysis" } },
+              { "command": "optimize-recursive", "options": { "strategy": "auto" } }
+            ],
+            "stack_overflow": [
+              { "command": "debug-recursive", "options": { "template": "stack_overflow_debugging" } },
+              { "command": "optimize-recursive", "options": { "strategy": "iterative" } }
+            ]
+          }
+        }' > ~/.claude/config/debug_workflow_config.json
+    
+    - name: Extract file path from issue
+      if: github.event_name == 'issues'
+      id: extract-path
+      run: |
+        ISSUE_BODY="${{ github.event.issue.body }}"
+        FILE_PATH=$(echo "$ISSUE_BODY" | grep -oP '(?<=File path: ).*$' | head -1 || echo "")
+        echo "::set-output name=filePath::$FILE_PATH"
+        
+    - name: Determine file to fix
+      id: determine-file
+      run: |
+        FILE_PATH="${{ github.event.inputs.filePath || steps.extract-path.outputs.filePath }}"
+        if [ -z "$FILE_PATH" ]; then
+          echo "No file path provided"
+          exit 1
+        fi
+        echo "::set-output name=filePath::$FILE_PATH"
+        
+    - name: Run auto-fix
+      id: auto-fix
+      run: |
+        FILE_PATH="${{ steps.determine-file.outputs.filePath }}"
+        WORKFLOW="${{ github.event.inputs.workflowType || 'standard' }}"
+        
+        # Make sure file exists
+        if [ ! -f "$FILE_PATH" ]; then
+          echo "File $FILE_PATH does not exist"
+          exit 1
+        fi
+        
+        # Create backup
+        cp "$FILE_PATH" "${FILE_PATH}.bak"
+        
+        # Run debug workflow with fix
+        node scripts/debug_workflow_engine.js run $WORKFLOW --file "$FILE_PATH" --save --output json > fix-result.json
+        
+        # Check if file was modified
+        if cmp -s "$FILE_PATH" "${FILE_PATH}.bak"; then
+          echo "::set-output name=fixed::false"
+          echo "No changes were made to the file"
+        else
+          echo "::set-output name=fixed::true"
+          echo "File was fixed"
+        fi
+        
+    - name: Create PR if fixed
+      if: steps.auto-fix.outputs.fixed == 'true'
+      uses: peter-evans/create-pull-request@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        commit-message: "Auto-fix recursive issues in ${{ steps.determine-file.outputs.filePath }}"
+        title: "Auto-fix recursive issues in ${{ steps.determine-file.outputs.filePath }}"
+        body: |
+          This PR automatically fixes recursive issues in `${{ steps.determine-file.outputs.filePath }}`.
+          
+          The following improvements were made:
+          ```
+          $(cat fix-result.json | jq -r '.optimizations[] | "- " + .type + ": " + .description' 2>/dev/null || echo "- Optimizations applied via debug workflow")
+          ```
+          
+          Please review the changes carefully before merging.
+        branch: fix-recursive-${{ github.run_id }}
+        
+    - name: Comment on issue
+      if: github.event_name == 'issues'
+      uses: peter-evans/create-or-update-comment@v2
+      with:
+        issue-number: ${{ github.event.issue.number }}
+        body: |
+          I've analyzed the recursive issues in `${{ steps.determine-file.outputs.filePath }}`.
+          
+          ${{ steps.auto-fix.outputs.fixed == 'true' && 'Fixed the problem and created a pull request.' || 'Unable to automatically fix the problem.' }}
+          
+          ${{ steps.auto-fix.outputs.fixed == 'true' && format('See PR: #{0}', github.run_id) || 'Please fix the issues manually.' }}

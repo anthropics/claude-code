@@ -1,0 +1,151 @@
+{
+  "workflows": {
+    "standard": [
+      {
+        "command": "debug-recursive",
+        "options": {
+          "template": "recursive_bug_analysis"
+        }
+      },
+      {
+        "command": "optimize-recursive",
+        "options": {
+          "strategy": "auto"
+        }
+      }
+    ],
+    "deep": [
+      {
+        "command": "debug-recursive",
+        "options": {
+          "template": "recursive_bug_analysis",
+          "depth": "deep"
+        }
+      },
+      {
+        "command": "debug-recursive",
+        "options": {
+          "template": "stack_overflow_debugging"
+        }
+      },
+      {
+        "command": "bug-hunt",
+        "options": {
+          "focus": "recursive",
+          "depth": "deep"
+        }
+      },
+      {
+        "command": "optimize-recursive",
+        "options": {
+          "strategy": "auto"
+        }
+      }
+    ],
+    "quick": [
+      {
+        "command": "debug-recursive",
+        "options": {
+          "template": "recursive_bug_analysis",
+          "depth": "quick"
+        }
+      }
+    ],
+    "performance": [
+      {
+        "command": "optimize-recursive",
+        "options": {
+          "strategy": "auto",
+          "measure": "all"
+        }
+      }
+    ],
+    "stack_overflow": [
+      {
+        "command": "debug-recursive",
+        "options": {
+          "template": "stack_overflow_debugging",
+          "depth": "deep"
+        }
+      },
+      {
+        "command": "optimize-recursive",
+        "options": {
+          "strategy": "iterative"
+        }
+      }
+    ],
+    "tree_traversal": [
+      {
+        "command": "bug-hunt",
+        "options": {
+          "focus": "recursive",
+          "patterns": "cycle-detection,null-check"
+        }
+      },
+      {
+        "command": "debug-recursive",
+        "options": {
+          "template": "recursive_bug_analysis"
+        }
+      },
+      {
+        "command": "optimize-recursive",
+        "options": {
+          "strategy": "memoization"
+        }
+      }
+    ]
+  },
+  "triggers": {
+    "git_pre_commit": "quick",
+    "git_pre_push": "standard",
+    "runtime_error": "standard",
+    "ci_failure": "deep",
+    "manual": "standard",
+    "test_failure": "deep",
+    "memory_warning": "performance"
+  },
+  "auto_triggers": {
+    "file_patterns": {
+      "**/*fibonacci*.{js,py,ts}": "stack_overflow",
+      "**/*tree*.{js,py,ts}": "tree_traversal",
+      "**/*recursive*.{js,py,ts}": "standard",
+      "**/*graph*.{js,py,ts}": "deep"
+    },
+    "error_patterns": {
+      "RangeError: Maximum call stack size exceeded": "stack_overflow",
+      "RecursionError: maximum recursion depth exceeded": "stack_overflow",
+      "JavaScript heap out of memory": "performance",
+      "Execution timed out": "performance",
+      "TypeError: Cannot read property": "quick"
+    },
+    "test_failures": {
+      "infinite loop detected": "performance",
+      "timeout exceeded": "stack_overflow",
+      "memory leak detected": "performance"
+    }
+  },
+  "debugging_thresholds": {
+    "recursion_depth_warning": 1000,
+    "function_call_warning": 10000,
+    "memory_usage_warning": "500MB"
+  },
+  "notification_settings": {
+    "slack_webhook": "",
+    "email": "",
+    "desktop_notification": true,
+    "log_file": "logs/debug_workflow.log",
+    "notify_on": [
+      "error",
+      "fix_found",
+      "workflow_complete"
+    ]
+  },
+  "integration": {
+    "auto_commit_fixes": false,
+    "create_pull_request": false,
+    "update_issues": true,
+    "ci_integration": true
+  }
+}

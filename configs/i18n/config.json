@@ -1,0 +1,47 @@
+{
+  "version": "1.0.0",
+  "locale": "en",
+  "fallbackLocale": "en",
+  "loadPath": "core/i18n/locales/{{lng}}.json",
+  "debug": false,
+  "supportedLocales": [
+    "en",
+    "fr"
+  ],
+  "dateFormat": {
+    "short": {
+      "year": "numeric",
+      "month": "numeric",
+      "day": "numeric"
+    },
+    "medium": {
+      "year": "numeric",
+      "month": "short",
+      "day": "numeric"
+    },
+    "long": {
+      "year": "numeric",
+      "month": "long",
+      "day": "numeric",
+      "weekday": "long"
+    }
+  },
+  "numberFormat": {
+    "decimal": {
+      "style": "decimal",
+      "minimumFractionDigits": 2,
+      "maximumFractionDigits": 2
+    },
+    "percent": {
+      "style": "percent",
+      "minimumFractionDigits": 0,
+      "maximumFractionDigits": 0
+    },
+    "currency": {
+      "style": "currency",
+      "currency": "USD",
+      "minimumFractionDigits": 2,
+      "maximumFractionDigits": 2
+    }
+  }
+}

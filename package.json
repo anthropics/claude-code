@@ -1,0 +1,43 @@
+{
+  "name": "claude-framework",
+  "version": "1.0.0",
+  "description": "Claude Neural Framework for AI Agent Integration",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "libs/*"
+  ],
+  "scripts": {
+    "build": "nx run-many --target=build",
+    "test": "nx run-many --target=test",
+    "lint": "nx run-many --target=lint",
+    "dev": "nx run-many --target=serve --parallel=3"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "express": "^4.18.2",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@nx/eslint-plugin": "latest",
+    "@nx/jest": "latest",
+    "@nx/js": "latest",
+    "@nx/node": "latest",
+    "@nx/react": "latest",
+    "@nx/workspace": "latest",
+    "@types/express": "^4.17.21",
+    "@types/jest": "^29.5.7",
+    "@types/node": "^20.8.10",
+    "@types/react": "^18.2.33",
+    "@types/react-dom": "^18.2.14",
+    "eslint": "^8.52.0",
+    "eslint-config-prettier": "^9.0.0",
+    "jest": "^29.7.0",
+    "nx": "latest",
+    "prettier": "^3.0.3",
+    "ts-jest": "^29.1.1",
+    "typescript": "^5.2.2"
+  }
+}
