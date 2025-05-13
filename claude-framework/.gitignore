@@ -1,0 +1,110 @@
+# Dependencies
+node_modules/
+.pnp/
+.pnp.js
+
+# Build outputs
+dist/
+build/
+out/
+.next/
+.nuxt/
+storybook-static/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+env/
+*.so
+.Python
+.pytest_cache/
+
+# Testing
+coverage/
+.coverage
+.nyc_output/
+junit.xml
+test-results/
+
+# Environment and configuration
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.envrc
+*.env.json
+*.env.js
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+pnpm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor directories and files
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.history/
+
+# Database
+*.sqlite
+*.sqlite3
+.qdrant/storage
+
+# Temporary files
+tmp/
+temp/
+.temp/
+.tmp/
+
+# Qdrant vector databases
+.qdrant/
+
+# Turbo
+.turbo/
+
+# Generated types
+*.tsbuildinfo
+
+# Cache directories
+.cache/
+.eslintcache
+.stylelintcache
+
+# Local certificates
+*.pem
+*.crt
+*.key
+*.csr
+
+# Build reports
+stats.html
+size-plugin.json
+
+# Claude specific
+.claude/cache/
+.claude/sessions/
+.claude/tmp/
+.claudetemp/

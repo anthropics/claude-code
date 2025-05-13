@@ -1,35 +1,38 @@
 # Sequential Execution Manager Guide
 
-The Sequential Execution Manager provides a powerful, unified interface for sequential planning and execution across different domains, integrating Context7, sequential thinking, and 21st-dev-magic MCP tools.
+The Sequential Execution Manager provides a powerful, unified interface for sequential planning and execution across different domains, integrating with domain-specific planners and executors.
 
 ## Overview
 
-The Sequential Execution Manager is an advanced evolution of the Sequential Planner that adds:
+The Sequential Execution Manager is a comprehensive tool for planning and executing complex tasks that:
 
-1. **Domain-Specific Planning**: Specialized planning and execution for different domains
-2. **Step Handlers**: Custom handlers for different types of actions
-3. **Observer Pattern**: Real-time notifications of planning and execution events
-4. **Event-Driven Execution**: Event-based workflow for better control and integration
-5. **Error Handling**: Robust error handling and recovery
-6. **State Management**: Complete state tracking throughout the execution process
+1. **Domain-Specific Planning**: Creates specialized plans for documentation, CI/CD, data processing, and more
+2. **Step Dependencies**: Defines dependencies between steps to ensure proper execution order
+3. **Execution Monitoring**: Observes execution progress through the observer pattern
+4. **Error Handling**: Provides robust error handling with detailed error information
+5. **Fallback Mode**: Runs without MCP server dependency for testing and development
+6. **Extensible Architecture**: Easily extends with new domain-specific planners and executors
 
 ## Architecture
 
-The Sequential Execution Manager is built on top of the Sequential Planner and provides a higher-level interface for managing complex planning and execution scenarios:
+The Sequential Execution Manager is built on a modular architecture that separates concerns and allows for domain-specific implementations:
 
 ```
-┌─────────────────┐       ┌───────────────────┐       ┌──────────────────┐
-│   Client        │       │  Sequential       │       │ Sequential       │
-│   Application   │──────▶│  Execution Mgr    │──────▶│ Planner          │
-│                 │       │                   │       │                  │
-└─────────────────┘       └───────────────────┘       └──────────────────┘
-                                    │                          │
-                                    ▼                          ▼
-                          ┌───────────────────┐       ┌──────────────────┐
-                          │  Step Handlers    │       │ MCP Tools        │
-                          │  & Observers      │──────▶│                  │
-                          └───────────────────┘       └──────────────────┘
+┌─────────────────────────────────────────────┐
+│            SequentialExecutionManager        │
+└───────────────┬───────────────┬─────────────┘
+                │               │
+    ┌───────────▼───────┐   ┌───▼───────────┐
+    │  Domain Planners  │   │ Domain Executors │
+    └───────────────────┘   └─────────────────┘
 ```
+
+The manager uses:
+
+1. **Domain Planners**: Create specialized execution plans based on domain-specific parameters
+2. **Domain Executors**: Execute steps in the plan using domain-specific logic
+3. **Observer Pattern**: Notify clients of events during planning and execution
+4. **State Management**: Track the state of execution throughout the process
 
 ## Implementation Details
 
@@ -37,7 +40,7 @@ The Sequential Execution Manager (`libs/workflows/src/sequential/sequential-exec
 
 ```typescript
 class SequentialExecutionManager {
-  constructor(options = {}) {
+  constructor(domain = 'general', options = {}) {
     // Initialize options
     this.options = {
       fallbackMode: options.fallbackMode || false,
@@ -48,30 +51,29 @@ class SequentialExecutionManager {
     };
     
     // Initialize state
-    this.handlers = new Map();
+    this.planners = new Map();
+    this.executors = new Map();
     this.observers = [];
     this.currentPlan = null;
     this.currentStep = null;
     this.executedSteps = [];
+    this.executionResults = {};
     this.isLoading = false;
     this.error = null;
     this.isComplete = false;
-    this.currentGoal = null;
-    this.executionResult = null;
+    this.domain = domain;
     
-    // Register standard handlers
-    this._registerStandardHandlers();
+    // Register planners and executors
+    this._registerPlannersAndExecutors();
   }
   
   // Core methods
-  async generatePlan(goal, options = {}) { ... }
-  async executeCurrentStep(options = {}) { ... }
-  async skipCurrentStep() { ... }
-  async generateSummary() { ... }
-  async runEntirePlan(stepCallback, options = {}) { ... }
+  async createPlan(params = {}) { ... }
+  async executePlan(options = {}) { ... }
+  async executeStep(stepId, options = {}) { ... }
+  async skipStep(stepId) { ... }
   
-  // Handler and observer management
-  registerHandler(actionType, handler) { ... }
+  // Observer management
   addObserver(observer) { ... }
   removeObserver(observer) { ... }
   
@@ -86,87 +88,86 @@ class SequentialExecutionManager {
 
 ## Domain-Specific Planning
 
-The Sequential Execution Manager supports domain-specific planning and execution through specialized configurations:
+The Sequential Execution Manager supports domain-specific planning through specialized planners:
 
 ### Documentation Generation
 
 ```typescript
-const manager = SequentialExecutionManager.forDomain('documentation', {
-  fallbackMode: false,
-  maxSteps: 20,
-  planningDepth: 'deep'
-});
+const manager = SequentialExecutionManager.forDomain('documentation');
 
-await manager.generatePlan('Generate documentation for src/components/MyComponent.jsx in markdown format');
+// Create a documentation plan with specific parameters
+const plan = await manager.createPlan({
+  name: 'API Documentation Generation',
+  description: 'Generate documentation for the project API',
+  patterns: ['**/*.ts'],
+  excludePatterns: ['**/*.test.ts'],
+  format: 'markdown',
+  outputDir: './docs/api',
+  extractExamples: true,
+  includeApi: true
+});
 ```
 
 ### CI/CD Automation
 
 ```typescript
-const manager = SequentialExecutionManager.forDomain('cicd', {
-  fallbackMode: false,
-  maxSteps: 15,
-  planningDepth: 'medium'
-});
+const manager = SequentialExecutionManager.forDomain('cicd');
 
-await manager.generatePlan('Build and deploy my-app to staging environment. Include tests.');
+// Create a CI/CD plan with specific parameters
+const plan = await manager.createPlan({
+  name: 'Deployment Pipeline',
+  description: 'Build, test, and deploy the application to staging',
+  pipelineType: 'deployment',
+  linters: ['eslint'],
+  autoFix: true,
+  testTypes: ['unit', 'integration'],
+  coverage: true,
+  environment: 'staging',
+  deployStrategy: 'standard',
+  notifications: true
+});
 ```
 
 ### Data Processing
 
 ```typescript
-const manager = SequentialExecutionManager.forDomain('data', {
-  fallbackMode: false,
-  maxSteps: 10,
-  planningDepth: 'medium'
-});
+const manager = SequentialExecutionManager.forDomain('data');
 
-await manager.generatePlan('Perform ETL operation from MySQL database to data warehouse.');
-```
-
-## Features
-
-### Step Handlers
-
-Step handlers are functions that execute specific types of actions. You can register custom handlers for different action types:
-
-```typescript
-manager.registerHandler('custom_action', async (step, options) => {
-  // Execute custom action
-  return {
-    type: 'custom_action',
-    data: { /* result data */ },
-    summary: 'Custom action executed'
-  };
+// Create a data processing plan with specific parameters
+const plan = await manager.createPlan({
+  name: 'Data Analysis Workflow',
+  description: 'Collect, transform, and analyze customer data',
+  workflowType: 'analysis',
+  sources: ['database', 'api'],
+  formats: ['json', 'csv'],
+  transformations: ['normalize', 'aggregate'],
+  destination: './data/processed',
+  analysisTypes: ['statistical', 'predictive'],
+  generateReports: true,
+  interactive: true
 });
 ```
 
-The Sequential Execution Manager includes built-in handlers for:
+## Execution
 
-1. **Context Steps**: Using Context7 to gather information
-2. **UI Steps**: Using 21st-dev/magic to generate UI components
-3. **Manual Steps**: For user-guided execution
-4. **Executable Steps**: For programmatic execution
+### Automatic Execution
 
-### Observer Pattern
-
-The Sequential Execution Manager uses the observer pattern to notify clients of events during planning and execution:
+You can execute an entire plan automatically:
 
 ```typescript
-manager.addObserver((event, data) => {
-  switch (event) {
-    case 'planStart':
-      console.log('Plan generation started');
-      break;
-    case 'stepExecuted':
-      console.log(`Step ${data.step.number} executed: ${data.result.summary}`);
-      break;
-    case 'planComplete':
-      console.log('Plan execution completed');
-      break;
-    // Handle other events...
-  }
-});
+// Create a plan
+const plan = await manager.createPlan(params);
+
+// Execute the plan
+const result = await manager.executePlan();
+
+// Check execution result
+if (result.success) {
+  console.log('Plan executed successfully');
+  console.log(`Executed ${result.executedSteps.length} steps`);
+} else {
+  console.error('Plan execution failed:', result.error);
+}
 ```
 
 ### Step-by-Step Execution
@@ -174,29 +175,61 @@ manager.addObserver((event, data) => {
 You can execute a plan step by step, with full control over each step:
 
 ```typescript
-await manager.generatePlan('Generate documentation for src/components/MyComponent.jsx');
+// Create a plan
+const plan = await manager.createPlan(params);
 
-// Execute current step
-await manager.executeCurrentStep();
-
-// Skip a step
-await manager.skipCurrentStep();
-
-// Generate summary
-const summary = await manager.generateSummary();
+// Execute steps one by one
+for (const step of plan.steps) {
+  // Execute the step
+  try {
+    const result = await manager.executeStep(step.id);
+    console.log(`Step "${step.name}" executed: ${result.success}`);
+  } catch (err) {
+    console.error(`Step "${step.name}" failed:`, err.message);
+    // Option to skip remaining steps or continue
+  }
+}
 ```
 
-### Automatic Execution
+### Skipping Steps
 
-You can execute an entire plan automatically:
+You can skip steps that you don't want to execute:
 
 ```typescript
-await manager.generatePlan('Generate documentation for src/components/MyComponent.jsx');
+// Skip a specific step
+manager.skipStep(stepId);
+```
 
-// Execute entire plan
-const result = await manager.runEntirePlan((step) => {
-  console.log(`Executing step ${step.number}`);
-  return undefined; // Let the manager execute the step
+## Observer Pattern
+
+The Sequential Execution Manager uses the observer pattern to notify clients of events during planning and execution:
+
+```typescript
+manager.addObserver((event, data) => {
+  switch (event) {
+    case 'planStart':
+      console.log('Plan creation started');
+      break;
+    case 'planCreated':
+      console.log(`Plan created with ${data.plan.steps.length} steps`);
+      break;
+    case 'stepExecuteStart':
+      console.log(`Executing step: ${data.step.name}`);
+      break;
+    case 'stepExecuted':
+      console.log(`Step completed: ${data.step.name}`);
+      break;
+    case 'stepSkipped':
+      console.log(`Step skipped: ${data.step.name}`);
+      break;
+    case 'planExecuteComplete':
+      console.log('Plan execution completed');
+      break;
+    case 'planExecuteError':
+      console.error('Plan execution failed:', data.error);
+      break;
+    // Handle other events...
+  }
 });
 ```
 
@@ -206,91 +239,121 @@ const result = await manager.runEntirePlan((step) => {
 
 The Sequential Execution Manager is integrated with the CLI through the `sequential-execute` command:
 
-```typescript
-import { SequentialExecutionManager } from '@claude-framework/workflows';
-
-export async function run(options = {}) {
-  const manager = SequentialExecutionManager.forDomain(options.domain, {
-    fallbackMode: options.fallback,
-    maxSteps: options.steps,
-    planningDepth: options.depth
-  });
-  
-  // Add observers, generate plan, and execute...
-}
-```
-
-### Web Interface Integration
-
-The Sequential Execution Manager can be integrated with React components through custom hooks:
-
-```tsx
-function DocumentationGenerator() {
-  const [path, setPath] = useState('');
-  const [format, setFormat] = useState('markdown');
-  
-  const {
-    plan,
-    currentStep,
-    executedSteps,
-    isLoading,
-    error,
-    isComplete,
-    generatePlan,
-    executeCurrentStep,
-    skipCurrentStep,
-    generateSummary,
-    resetPlanner
-  } = useSequentialExecution('documentation');
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const goal = `Generate comprehensive documentation for ${path} in ${format} format`;
-    await generatePlan(goal);
-  };
-  
-  // Rendering UI for plan execution...
-}
-```
-
-## Command-Line Interface
-
-The Sequential Execution Manager is available through the command-line interface:
-
 ```bash
 # Start the interactive planner for a specific domain
-claude sequential-execute --domain=documentation
+npx claude-cli sequential-execute --domain documentation
 
-# Specify a goal
-claude sequential-execute --domain=cicd --goal="Build and deploy my-app to staging"
+# Use JSON parameters
+npx claude-cli sequential-execute --domain cicd --params '{"pipelineType":"deployment"}'
 
 # Use fallback mode (no MCP)
-claude sequential-execute --domain=data --fallback
+npx claude-cli sequential-execute --domain data --fallback
 
-# Customize planning
-claude sequential-execute --steps=15 --depth=deep
+# Customize maximum steps
+npx claude-cli sequential-execute --steps 15
 ```
+
+### React Integration Example
+
+The Sequential Execution Manager can be integrated with React components:
+
+```tsx
+import { useState } from 'react';
+import { SequentialExecutionManager } from '@claude-framework/workflows';
+
+function DocumentationGenerator() {
+  const [manager] = useState(() => 
+    SequentialExecutionManager.forDomain('documentation')
+  );
+  const [plan, setPlan] = useState(null);
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  
+  const handleCreatePlan = async (params) => {
+    try {
+      setLoading(true);
+      setError(null);
+      const newPlan = await manager.createPlan(params);
+      setPlan(newPlan);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const handleExecutePlan = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const executionResult = await manager.executePlan();
+      setResult(executionResult);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Render UI for plan creation and execution...
+}
+```
+
+## Domain-Specific Planners and Executors
+
+The Sequential Execution Manager includes specialized planners and executors for different domains:
+
+### Documentation Domain
+
+**Planner:** Generates plans for documenting code bases with steps like:
+1. Analyze codebase structure
+2. Extract documentation from code
+3. Generate documentation files
+4. Validate documentation
+5. Generate API documentation (optional)
+
+**Executor:** Executes documentation steps with specialized logic for code analysis, documentation extraction, and generation.
+
+### CI/CD Domain
+
+**Planner:** Generates plans for CI/CD workflows with steps like:
+1. Lint code
+2. Run tests
+3. Build project
+4. Deploy project (for deployment pipelines)
+5. Verify deployment (for deployment pipelines)
+6. Send notifications (optional)
+
+**Executor:** Executes CI/CD steps with specialized logic for testing, building, and deployment.
+
+### Data Domain
+
+**Planner:** Generates plans for data processing with steps like:
+1. Collect data
+2. Validate data
+3. Transform data
+4. Analyze data (for analysis workflows)
+5. Visualize results (for analysis workflows)
+6. Store processed data
+
+**Executor:** Executes data processing steps with specialized logic for data collection, transformation, analysis, and storage.
 
 ## Events
 
 The Sequential Execution Manager emits the following events:
 
-- **planStart**: When plan generation starts
-- **planGenerated**: When a plan is generated
-- **planError**: When an error occurs during plan generation
+- **planStart**: When plan creation starts
+- **planCreated**: When a plan is created
+- **planError**: When an error occurs during plan creation
 - **stepExecuteStart**: When step execution starts
 - **stepExecuted**: When a step is executed
 - **stepExecuteError**: When an error occurs during step execution
-- **stepSkipStart**: When step skipping starts
 - **stepSkipped**: When a step is skipped
 - **stepSkipError**: When an error occurs during step skipping
-- **summaryStart**: When summary generation starts
-- **summaryGenerated**: When a summary is generated
-- **summaryError**: When an error occurs during summary generation
 - **planExecuteStart**: When plan execution starts
 - **planExecuteComplete**: When plan execution completes
 - **planExecuteError**: When an error occurs during plan execution
-- **planComplete**: When a plan is complete
 - **reset**: When the manager is reset
 
 ## API Reference
@@ -298,15 +361,17 @@ The Sequential Execution Manager emits the following events:
 ### Constructor
 
 ```typescript
-const manager = new SequentialExecutionManager(options);
+const manager = new SequentialExecutionManager(domain, options);
 ```
 
-**Options:**
+**Parameters:**
 
-- `fallbackMode` (boolean): Whether to use fallback mode (no MCP)
-- `maxSteps` (number): Maximum number of steps in a plan
-- `stepTimeout` (number): Timeout for step execution in milliseconds
-- `planningDepth` (string): Depth of planning ('shallow', 'medium', 'deep')
+- `domain` (string): The domain name ('documentation', 'cicd', 'data', or 'general')
+- `options` (Object): Configuration options
+  - `fallbackMode` (boolean): Whether to use fallback mode (no MCP)
+  - `maxSteps` (number): Maximum number of steps in a plan
+  - `stepTimeout` (number): Timeout for step execution in milliseconds
+  - `planningDepth` (string): Depth of planning ('shallow', 'medium', 'deep')
 
 ### Static Methods
 
@@ -316,7 +381,7 @@ Create a specialized execution manager for a specific domain.
 
 **Parameters:**
 
-- `domain` (string): The domain name ('documentation', 'cicd', 'data', or 'custom')
+- `domain` (string): The domain name ('documentation', 'cicd', 'data', or 'general')
 - `options` (Object): Domain-specific options
 
 **Returns:**
@@ -325,14 +390,55 @@ A specialized execution manager for the specified domain.
 
 ### Instance Methods
 
-#### `registerHandler(actionType, handler)`
+#### `createPlan(params)`
 
-Register a step handler for a specific action type.
+Create a plan with domain-specific parameters.
 
 **Parameters:**
 
-- `actionType` (string): The action type to handle
-- `handler` (Function): The handler function
+- `params` (Object): Domain-specific parameters
+
+**Returns:**
+
+The created plan.
+
+#### `executePlan(options)`
+
+Execute the current plan.
+
+**Parameters:**
+
+- `options` (Object): Execution options
+  - `stopOnError` (boolean): Whether to stop execution on error
+
+**Returns:**
+
+The execution result.
+
+#### `executeStep(stepId, options)`
+
+Execute a specific step in the current plan.
+
+**Parameters:**
+
+- `stepId` (string): The ID of the step to execute
+- `options` (Object): Execution options
+
+**Returns:**
+
+The execution result.
+
+#### `skipStep(stepId)`
+
+Skip a specific step in the current plan.
+
+**Parameters:**
+
+- `stepId` (string): The ID of the step to skip
+
+**Returns:**
+
+Success (boolean).
 
 #### `addObserver(observer)`
 
@@ -350,63 +456,6 @@ Remove an observer.
 
 - `observer` (Function): The observer function to remove
 
-#### `generatePlan(goal, options)`
-
-Generate a plan for a goal.
-
-**Parameters:**
-
-- `goal` (string): The goal to plan for
-- `options` (Object): Planning options
-  - `initialSteps` (number): Initial number of steps to generate
-  - `maxSteps` (number): Maximum number of steps
-  - `depth` (string): Planning depth ('shallow', 'medium', 'deep')
-
-**Returns:**
-
-The generated plan.
-
-#### `executeCurrentStep(options)`
-
-Execute the current step.
-
-**Parameters:**
-
-- `options` (Object): Execution options
-
-**Returns:**
-
-The execution result.
-
-#### `skipCurrentStep()`
-
-Skip the current step.
-
-**Returns:**
-
-Success (boolean).
-
-#### `generateSummary()`
-
-Generate a summary of the executed plan.
-
-**Returns:**
-
-The summary (string).
-
-#### `runEntirePlan(stepCallback, options)`
-
-Run the entire plan execution.
-
-**Parameters:**
-
-- `stepCallback` (Function): Optional callback for each step
-- `options` (Object): Execution options
-
-**Returns:**
-
-The execution result.
-
 #### `reset()`
 
 Reset the execution manager state.
@@ -419,16 +468,119 @@ Get the current state.
 
 The current state (Object).
 
+## Types
+
+### Plan
+
+```typescript
+interface Plan {
+  id: string;
+  name: string;
+  description: string;
+  domain: string;
+  steps: PlanStep[];
+  createdAt: Date;
+  status: PlanStatus;
+}
+```
+
+### PlanStep
+
+```typescript
+interface PlanStep {
+  id: string;
+  name: string;
+  description: string;
+  status: StepStatus;
+  dependsOn?: string[];
+  data?: Record<string, any>;
+}
+```
+
+### ExecutionResult
+
+```typescript
+interface ExecutionResult {
+  success: boolean;
+  stepId: string;
+  message?: string;
+  error?: string;
+  data?: Record<string, any>;
+}
+```
+
+### PlanExecutionResult
+
+```typescript
+interface PlanExecutionResult {
+  planId: string;
+  domain: string;
+  success: boolean;
+  executedSteps: PlanStep[];
+  results: Record<string, ExecutionResult>;
+  error?: string;
+  summary?: string;
+}
+```
+
 ## Best Practices
 
-1. **Use Domain-Specific Planning**: Use the `forDomain` method to create a specialized execution manager for your domain.
-2. **Register Custom Handlers**: Register custom handlers for domain-specific action types.
-3. **Add Observers**: Add observers to track planning and execution events.
-4. **Handle Errors**: Use try-catch blocks to handle errors during planning and execution.
-5. **Provide Timeout**: Set appropriate timeout values for step execution to prevent long-running steps.
-6. **Use Fallback Mode**: Use fallback mode when MCP services are not available.
-7. **Monitor State**: Use the `getState` method to monitor the current state of the execution manager.
-8. **Reset When Done**: Use the `reset` method to reset the execution manager when done.
+1. **Choose the Right Domain**: Select the appropriate domain for your task to get the most relevant planning.
+2. **Provide Detailed Parameters**: The more detailed your parameters, the better the plan will be.
+3. **Handle Errors**: Always handle errors that might occur during planning and execution.
+4. **Use Observers**: Add observers to monitor execution progress and respond to events.
+5. **Step Dependencies**: Respect step dependencies when executing steps manually.
+6. **Timeouts**: Set appropriate timeout values to prevent long-running steps.
+7. **Fallback Mode**: Use fallback mode for testing and development when MCP services are not available.
+8. **Reset When Done**: Reset the execution manager state when done to free resources.
+
+## Example Usage
+
+Here's a complete example of using the Sequential Execution Manager:
+
+```typescript
+import { SequentialExecutionManager } from '@claude-framework/workflows';
+
+async function generateDocumentation() {
+  // Create a manager for documentation domain
+  const manager = SequentialExecutionManager.forDomain('documentation', {
+    fallbackMode: true // Use fallback mode for testing
+  });
+  
+  // Add an observer
+  manager.addObserver((event, data) => {
+    console.log(`Event: ${event}`);
+  });
+  
+  try {
+    // Create a plan with specific parameters
+    const plan = await manager.createPlan({
+      name: 'API Documentation',
+      description: 'Generate API documentation for the project',
+      patterns: ['**/*.ts'],
+      excludePatterns: ['**/*.test.ts'],
+      format: 'markdown',
+      outputDir: './docs/api',
+      extractExamples: true,
+      includeApi: true
+    });
+    
+    console.log(`Plan created with ${plan.steps.length} steps`);
+    
+    // Execute the plan
+    const result = await manager.executePlan();
+    
+    if (result.success) {
+      console.log('Documentation generated successfully');
+      console.log(`Generated ${result.executedSteps.length} documentation files`);
+    } else {
+      console.error('Documentation generation failed:', result.error);
+    }
+  } catch (err) {
+    console.error('Error:', err.message);
+  }
+}
+```
 
 ## See Also
 
