@@ -1,0 +1,27 @@
+{
+  "version": "1.0.0",
+  "timezone": "Europe/Berlin",
+  "language": "de",
+  "notifications": {
+    "enabled": true,
+    "showErrors": true,
+    "showWarnings": true
+  },
+  "COLOR_SCHEMA": {
+    "activeTheme": "dark"
+  },
+  "logging": {
+    "level": 30,
+    "format": "json",
+    "colorize": true,
+    "timestamp": true,
+    "showSource": true,
+    "showHostname": false,
+    "consoleOutput": true,
+    "fileOutput": false
+  },
+  "GLOBAL": {
+    "timezone": "Europe/Berlin",
+    "language": "de"
+  }
+}

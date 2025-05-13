@@ -1,0 +1,100 @@
+{
+  "enabled": true,
+  "version": "1.0.0",
+  "backupLocations": {
+    "local": {
+      "path": "/var/backups/claude-neural-framework",
+      "enabled": true
+    },
+    "remote": {
+      "provider": "s3",
+      "bucket": "claude-neural-framework-backups",
+      "region": "us-west-2",
+      "prefix": "backups",
+      "enabled": true
+    }
+  },
+  "encryption": {
+    "enabled": true,
+    "algorithm": "aes-256-gcm",
+    "keyStore": "environment",
+    "keyVariable": "BACKUP_ENCRYPTION_KEY"
+  },
+  "dataCategories": {
+    "critical": {
+      "paths": [
+        "/core/config",
+        "/core/mcp/server_config.json",
+        "/.env"
+      ],
+      "databases": [
+        {
+          "type": "vector",
+          "name": "rag_vector_store"
+        }
+      ],
+      "fullBackupSchedule": "0 0 * * *",
+      "incrementalBackupSchedule": "0 * * * *",
+      "localRetentionDays": 30,
+      "remoteRetentionDays": 365
+    },
+    "important": {
+      "paths": [
+        "/logs",
+        "/core/rag/embeddings",
+        "/core/dashboard/metrics"
+      ],
+      "databases": [],
+      "fullBackupSchedule": "0 0 * * 0",
+      "incrementalBackupSchedule": "0 0 * * *",
+      "localRetentionDays": 90,
+      "remoteRetentionDays": 365
+    },
+    "historical": {
+      "paths": [
+        "/data/historical",
+        "/data/analytics"
+      ],
+      "databases": [],
+      "fullBackupSchedule": "0 0 1 * *",
+      "incrementalBackupSchedule": "0 0 * * 0",
+      "localRetentionDays": 180,
+      "remoteRetentionDays": 1095
+    }
+  },
+  "notification": {
+    "email": {
+      "enabled": true,
+      "recipients": ["admin@example.com"],
+      "onFailure": true,
+      "onSuccess": false
+    },
+    "slack": {
+      "enabled": false,
+      "webhookUrl": "",
+      "channel": "#system-alerts",
+      "onFailure": true,
+      "onSuccess": false
+    }
+  },
+  "compression": {
+    "enabled": true,
+    "algorithm": "gzip",
+    "level": 9
+  },
+  "verification": {
+    "enabled": true,
+    "validateChecksum": true,
+    "runTests": true,
+    "testScript": "scripts/backup/verify.js"
+  },
+  "logging": {
+    "level": "info",
+    "path": "/logs/backup",
+    "rotation": {
+      "enabled": true,
+      "maxFiles": 30,
+      "maxSize": "100m"
+    }
+  }
+}

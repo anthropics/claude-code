@@ -1,0 +1,104 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Claude Neural API",
+    "version": "1.0.0",
+    "description": "API specification for the Claude Neural Framework"
+  },
+  "paths": {
+    "/api/cognitive/analyze": {
+      "post": {
+        "summary": "Analyze code patterns",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnalyzeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful analysis",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyzeResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AnalyzeRequest": {
+        "type": "object",
+        "required": ["code", "language"],
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Code to analyze"
+          },
+          "language": {
+            "type": "string",
+            "description": "Programming language"
+          },
+          "depth": {
+            "type": "integer",
+            "description": "Analysis depth level",
+            "default": 3
+          }
+        }
+      },
+      "AnalyzeResponse": {
+        "type": "object",
+        "properties": {
+          "patterns": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Pattern"
+            }
+          },
+          "metrics": {
+            "type": "object",
+            "properties": {
+              "complexity": {
+                "type": "number"
+              },
+              "maintainability": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      },
+      "Pattern": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "location": {
+            "type": "object",
+            "properties": {
+              "line": {
+                "type": "integer"
+              },
+              "column": {
+                "type": "integer"
+              }
+            }
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

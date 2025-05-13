@@ -1,0 +1,127 @@
+{
+  "version": "1.0.0",
+  "themes": {
+    "light": {
+      "name": "Helles Theme",
+      "colors": {
+        "primary": "#3f51b5",
+        "secondary": "#7986cb",
+        "accent": "#ff4081",
+        "success": "#4caf50",
+        "warning": "#ff9800",
+        "danger": "#f44336",
+        "info": "#2196f3",
+        "background": "#f8f9fa",
+        "surface": "#ffffff",
+        "text": "#212121",
+        "textSecondary": "#757575",
+        "border": "#e0e0e0",
+        "shadow": "rgba(0, 0, 0, 0.1)"
+      },
+      "accessibility": {
+        "wcag2AA": true,
+        "wcag2AAA": false,
+        "contrastRatio": 4.5
+      }
+    },
+    "dark": {
+      "name": "Dunkles Theme",
+      "colors": {
+        "primary": "#bb86fc",
+        "secondary": "#03dac6",
+        "accent": "#cf6679",
+        "success": "#4caf50",
+        "warning": "#ff9800",
+        "danger": "#cf6679",
+        "info": "#2196f3",
+        "background": "#121212",
+        "surface": "#1e1e1e",
+        "text": "#ffffff",
+        "textSecondary": "#b0b0b0",
+        "border": "#333333",
+        "shadow": "rgba(0, 0, 0, 0.5)"
+      },
+      "accessibility": {
+        "wcag2AA": true,
+        "wcag2AAA": false,
+        "contrastRatio": 4.5
+      }
+    },
+    "blue": {
+      "name": "Blaues Theme",
+      "colors": {
+        "primary": "#1565c0",
+        "secondary": "#42a5f5",
+        "accent": "#82b1ff",
+        "success": "#4caf50",
+        "warning": "#ff9800",
+        "danger": "#f44336",
+        "info": "#29b6f6",
+        "background": "#f5f9ff",
+        "surface": "#ffffff",
+        "text": "#263238",
+        "textSecondary": "#546e7a",
+        "border": "#bbdefb",
+        "shadow": "rgba(21, 101, 192, 0.1)"
+      },
+      "accessibility": {
+        "wcag2AA": true,
+        "wcag2AAA": false,
+        "contrastRatio": 4.5
+      }
+    },
+    "green": {
+      "name": "Grünes Theme",
+      "colors": {
+        "primary": "#2e7d32",
+        "secondary": "#66bb6a",
+        "accent": "#81c784",
+        "success": "#388e3c",
+        "warning": "#ff9800",
+        "danger": "#f44336",
+        "info": "#0288d1",
+        "background": "#f1f8e9",
+        "surface": "#ffffff",
+        "text": "#212121",
+        "textSecondary": "#757575",
+        "border": "#c8e6c9",
+        "shadow": "rgba(46, 125, 50, 0.1)"
+      },
+      "accessibility": {
+        "wcag2AA": true,
+        "wcag2AAA": false,
+        "contrastRatio": 4.5
+      }
+    },
+    "purple": {
+      "name": "Violettes Theme",
+      "colors": {
+        "primary": "#6a1b9a",
+        "secondary": "#9c27b0",
+        "accent": "#e040fb",
+        "success": "#4caf50",
+        "warning": "#ff9800",
+        "danger": "#f44336",
+        "info": "#2196f3",
+        "background": "#f3e5f5",
+        "surface": "#ffffff",
+        "text": "#212121",
+        "textSecondary": "#757575",
+        "border": "#e1bee7",
+        "shadow": "rgba(106, 27, 154, 0.1)"
+      },
+      "accessibility": {
+        "wcag2AA": true,
+        "wcag2AAA": false,
+        "contrastRatio": 4.5
+      }
+    }
+  },
+  "userPreferences": {
+    "activeTheme": "dark",
+    "custom": null
+  },
+  "COLOR_SCHEMA": {
+    "activeTheme": "dark"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "mcpServers": {
+    "github.com/modelcontextprotocol/servers/tree/main/src/sequentialthinking": {
+      "command": "node",
+      "args": [
+        "--no-warnings",
+        "/home/node/Documents/Cline/MCP/sequentialthinking/node_modules/.bin/mcp-server-sequential-thinking"
+      ],
+      "cwd": "/home/node/Documents/Cline/MCP/sequentialthinking",
+      "disabled": false,
+      "autoApprove": []
+    },
+    "github.com/upstash/context7-mcp": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp@1.0.6"],
+      "env": {
+        "NODE_OPTIONS": "--max-old-space-size=4096"
+      },
+      "disabled": false,
+      "autoApprove": []
+    }
+  }
+}
