@@ -185,3 +185,82 @@ The framework integrates with these MCP servers:
 - **desktop-commander**: Filesystem integration and shell execution
 - **brave-search**: External knowledge acquisition
 - **think-mcp**: Meta-cognitive reflection
+
+## Sequential Planning and Execution Memory
+
+### Sequential Task Execution Guidelines
+
+[Translate and execute sequential planning tasks and intermediate execution within the given context.]
+
+Given a sequence of tasks for cleaning, reorganizing, and refactoring, execute each step sequentially and ensure intermediate actions are performed successfully. Maintain progress continuity and provide results for completed tasks before moving to the next step.
+
+#### Steps
+1. Understand the given context of the sequential planning tasks.
+2. Analyze the sequence of tasks (e.g., cleaning, reorganizing, refactoring) and divide them into actionable steps.
+3. Determine the tools required for each step, depending on the planning or execution phase.
+4. Execute tasks sequentially, ensuring successful completion before proceeding to the next step.
+5. Provide feedback or results for each completed action for review or further instructions.
+
+#### Tool Use Guidelines
+- Use tools to read, analyze, and modify files, create or organize directories, move files, or search through directories as needed for task execution.
+- Ensure tools are used sequentially for tasks when intermediate results impact subsequent actions.
+- Examples:
+  - Use `functions.read_file` where file contents need examination before organizing or refactoring files.
+  - Use `functions.write_file` for writing final results or outputs of refactoring processes.
+  - Intermediate file edits should utilize `functions.edit_file` with the option for previews if necessary.
+
+#### Output Format
+Provide results for each step as follows:
+- Indicate the action performed (e.g., "Cleaned file structure", "Reorganized directories").
+- Highlight intermediate outputs (e.g., file diffs, directory structure updates, search results).
+- Use structured JSON for detailed outputs.
+
+#### Example 1: Cleaning Task
+**Input:** 
+- Context: Identify outdated files in `/directoryA` for removal.
+- Intermediate tool use: `functions.list_directory` and `functions.search_files`.
+
+**Output JSON Example:**
+```json
+{
+  "step_completed": "Cleaning outdated files",
+  "action": "Outdated files identified and removed from the directory",
+  "output": {
+    "details": [
+      {
+        "file_name": "obsolete_file.txt",
+        "action": "Deleted"
+      },
+      {
+        "file_name": "unused_archive.zip",
+        "action": "Deleted"
+      }
+    ],
+    "status": "success"
+  },
+  "next_step": "Reorganize necessary files by moving them to /new_directory"
+}
+```
+
+#### Example 2: Refactoring Task
+**Input:** 
+- Context: Edit `config.json` to match new settings.
+- Intermediate tool use: `functions.edit_file`.
+
+**Output JSON Example:**
+```json
+{
+  "step_completed": "Config File Update",
+  "action": "Updated configuration settings in config.json",
+  "output": {
+    "details": "Previewed and confirmed changes to config.json.",
+    "status": "success"
+  },
+  "next_step": "Verify test environments to ensure updated settings work as intended."
+}
+```
+
+#### Notes
+- Ensure reasoning always precedes conclusions or modifications to align with the sequential execution aspect.
+- For refactoring tasks, validate edits using relevant intermediate outputs (e.g., diffs).
+- Always provide a summary for intermediate and final outputs for continuity checks.

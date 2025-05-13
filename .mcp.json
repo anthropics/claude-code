@@ -74,19 +74,6 @@
         "youngest-smelt-DDZA3B"
       ]
     },
-    "memory-bank-mcp": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@smithery/cli@latest",
-        "run",
-        "@alioshr/memory-bank-mcp",
-        "--key",
-        "7d1fa500-da11-4040-b21b-39f1014ed8fb",
-        "--profile",
-        "youngest-smelt-DDZA3B"
-      ]
-    },
     "context7-mcp": {
       "command": "npx",
       "args": [

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.108
+
+- You can now send messages to Claude while it works to steer Claude in real-time
+- Introduced BASH_DEFAULT_TIMEOUT_MS and BASH_MAX_TIMEOUT_MS env vars
+- Fixed a bug where thinking was not working in -p mode
+- Fixed a regression in /cost reporting
+- Deprecated MCP wizard interface in favor of other MCP commands
+- Lots of other bugfixes and improvements
+
 ## 0.2.107
 
 - CLAUDE.md files can now import other files. Add @path/to/file.md to ./CLAUDE.md to load additional files on launch

@@ -183,20 +183,23 @@ show_help() {
   echo -e "${BOLD}Usage:${NC} ./saar.sh [command] [options]"
   echo ""
   echo -e "${BOLD}Commands:${NC}"
-  echo "  setup       Full setup of the Agentic OS"
-  echo "  about       Configure .about profile"
-  echo "  colors      Configure color schema"
-  echo "  project     Set up a new project"
-  echo "  memory      Manage memory system"
-  echo "  start       Start MCP servers and services"
-  echo "  agent       Launch Claude agent"
-  echo "  dashboard   Launch User Main Dashboard"
-  echo "  a2a         Agent-to-Agent communication"
-  echo "  ui          Configure UI components"
-  echo "  status      Show system status"
-  echo "  enterprise  Manage enterprise features"
-  echo "  git         Git operations through A2A"
-  echo "  help        Show this help message"
+  echo "  setup                Full setup of the Agentic OS"
+  echo "  about                Configure .about profile"
+  echo "  colors               Configure color schema"
+  echo "  project              Set up a new project"
+  echo "  memory               Manage memory system"
+  echo "  start                Start MCP servers and services"
+  echo "  agent                Launch Claude agent"
+  echo "  dashboard            Launch User Main Dashboard"
+  echo "  a2a                  Agent-to-Agent communication"
+  echo "  ui                   Configure UI components"
+  echo "  status               Show system status"
+  echo "  enterprise           Manage enterprise features"
+  echo "  git                  Git operations through A2A"
+  echo "  update-mcp           Update MCP tools"
+  echo "  check-mcp-updates    Check for MCP tool updates"
+  echo "  configure-mcp-update Configure MCP update settings"
+  echo "  help                 Show this help message"
   echo ""
   echo -e "${BOLD}Options:${NC}"
   echo "  --quick     Quick setup with defaults"
@@ -221,6 +224,9 @@ show_help() {
   echo "  ./saar.sh ui customize                # Customize UI components"
   echo "  ./saar.sh enterprise setup            # Setup enterprise features"
   echo "  ./saar.sh enterprise license activate # Activate enterprise license"
+  echo "  ./saar.sh update-mcp                  # Update all MCP tools"
+  echo "  ./saar.sh check-mcp-updates           # Check for available MCP updates"
+  echo "  ./saar.sh configure-mcp-update        # Configure automatic update settings"
   echo ""
 }
 
@@ -786,6 +792,19 @@ do_setup() {
   setup_specialized_agents
   do_memory init
   setup_workspace "$user_id" "$theme"
+
+  # Set up MCP auto-update
+  log "INFO" "Setting up MCP tools auto-update mechanism"
+  if [ -f "saar/startup/10_mcp_auto_update.sh" ]; then
+    chmod +x "saar/startup/10_mcp_auto_update.sh"
+    # Export SCRIPT_DIR for sub-scripts
+    export SCRIPT_DIR="$(pwd)/saar/startup"
+    # Execute the auto-update setup script
+    ./saar/startup/10_mcp_auto_update.sh
+    log "INFO" "MCP tools auto-update mechanism set up"
+  else
+    log "WARN" "MCP auto-update script not found. Skipping MCP auto-update setup."
+  fi
 
   log "INFO" "Setup complete"
   show_setup_complete_message
@@ -2353,7 +2372,20 @@ do_status() {
   echo -e "npm: $(npm -v)"
   echo -e "OS: $(uname -s) $(uname -r)"
   echo ""
-  
+
+  # Check MCP auto-update status
+  echo -e "${BOLD}MCP Update System:${NC}"
+  if [ -f "${SCRIPT_DIR:-$(pwd)/saar/startup}/mcp_tools_updater.js" ]; then
+    # Run status check
+    echo -e "MCP Update Status:"
+    node "${SCRIPT_DIR:-$(pwd)/saar/startup}/mcp_tools_updater.js" status
+    echo -e "Run './saar.sh check-mcp-updates' for detailed information"
+  else
+    echo -e "Status: ${YELLOW}Not installed${NC}"
+    echo -e "Run './saar.sh setup' to install the MCP auto-update system"
+  fi
+  echo ""
+
   log "INFO" "Status check complete"
 }
 
@@ -2411,11 +2443,69 @@ do_git() {
   esac
 }
 
+# MCP Update functions
+do_mcp_update() {
+  local operation=${1:-"check"}
+
+  check_dependencies
+  ensure_directories
+
+  log "INFO" "MCP tools update operation: $operation"
+
+  # Get the script paths
+  local updater_js="${SCRIPT_DIR:-$(pwd)/saar/startup}/mcp_tools_updater.js"
+
+  if [ ! -f "$updater_js" ]; then
+    log "ERROR" "MCP tools updater script not found: $updater_js"
+    log "ERROR" "Please run './saar.sh setup' to set up the MCP tools updater"
+    return 1
+  fi
+
+  case $operation in
+    check)
+      log "INFO" "Checking for MCP tool updates"
+      node "$updater_js" check
+      ;;
+    update)
+      log "INFO" "Updating MCP tools"
+      node "$updater_js" update
+      ;;
+    configure)
+      log "INFO" "Configuring MCP tools update settings"
+      node "$updater_js" configure
+      ;;
+    schedule)
+      log "INFO" "Scheduling MCP tools updates"
+      node "$updater_js" schedule
+      ;;
+    status)
+      log "INFO" "Checking MCP tools update status"
+      node "$updater_js" status
+      ;;
+    enable)
+      log "INFO" "Enabling automatic MCP tools updates"
+      node "$updater_js" enable
+      ;;
+    disable)
+      log "INFO" "Disabling automatic MCP tools updates"
+      node "$updater_js" disable
+      ;;
+    *)
+      log "ERROR" "Unknown MCP update operation: $operation"
+      echo -e "Available operations: check, update, configure, schedule, status, enable, disable"
+      return 1
+      ;;
+  esac
+}
+
 # Main function
 main() {
   # Global flags
   export DEBUG_MODE=false
   export QUIET_MODE=false
+
+  # Set script directory for sub-scripts
+  export SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/saar/startup"
 
   # Save original arguments
   local orig_args=("$@")
@@ -2492,6 +2582,18 @@ main() {
     enterprise)
       shift
       do_enterprise "$@"
+      ;;
+    update-mcp)
+      shift
+      do_mcp_update "update" "$@"
+      ;;
+    check-mcp-updates)
+      shift
+      do_mcp_update "check" "$@"
+      ;;
+    configure-mcp-update)
+      shift
+      do_mcp_update "configure" "$@"
       ;;
     help|--help|-h)
       show_banner

@@ -19,6 +19,7 @@
     "ms-azuretools.vscode-containers",
     "aiqubit.claude",
     "codeontherocks.claude-config",
-    "ms-windows-ai-studio.windows-ai-studio"
+    "ms-windows-ai-studio.windows-ai-studio",
+    "ms-vscode.vscode-websearchforcopilot"
   ]
 }
