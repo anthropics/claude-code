@@ -1,0 +1,30 @@
+{
+  "name": "claude-merge-visualizer",
+  "version": "1.0.0",
+  "description": "Enhanced visual interface for Claude-assisted git merges",
+  "main": "claude-merge-visualizer.js",
+  "bin": {
+    "claude-merge-visualizer": "./claude-merge-visualizer.js"
+  },
+  "scripts": {
+    "start": "node claude-merge-visualizer.js"
+  },
+  "dependencies": {
+    "boxen": "^6.2.1",
+    "chalk": "^4.1.2",
+    "figlet": "^1.5.2",
+    "inquirer": "^8.2.4",
+    "ora": "^5.4.1"
+  },
+  "keywords": [
+    "claude",
+    "git",
+    "merge",
+    "ai",
+    "visualizer",
+    "terminal",
+    "ui"
+  ],
+  "author": "",
+  "license": "MIT"
+}

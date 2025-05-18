@@ -33,6 +33,41 @@ Some of its key capabilities include:
 
 4. Complete the one-time OAuth process with your Anthropic Console account.
 
+## Extensions
+
+Claude Code supports extensions that enhance its capabilities. Here are some available extensions:
+
+### Claude Merge Visualizer
+
+A rich visual interface for AI-assisted git merges, giving Claude more presence and control during the merge process.
+
+<img src="https://raw.githubusercontent.com/anthropics/claude-code/main/extensions/merge-visualizer/screenshot.png" alt="Claude Merge Visualizer" width="700">
+
+#### Features
+
+- Interactive terminal UI with Claude's avatar and styled dialog boxes
+- Visual progress bars and animations for merge operations
+- Enhanced conflict visualization with context-aware information
+- Interactive resolution options with AI guidance
+- Rich text formatting and color schemes
+
+#### Installation
+
+To install the Merge Visualizer extension:
+
+```sh
+cd ~/.claude-code/extensions/merge-visualizer
+npm install
+```
+
+#### Usage
+
+```sh
+claude merge-visualizer
+```
+
+Learn more in the [Merge Visualizer documentation](extensions/merge-visualizer/README.md).
+
 ### Research Preview
 
 We're launching Claude Code as a beta product in research preview to learn directly from developers about their experiences collaborating with AI agents. Our aim is to learn more about how developers prefer to collaborate with AI tools, which development workflows benefit most from working with the agent, and how we can make the agent experience more intuitive.
