@@ -54,8 +54,8 @@ USER node
 ENV NPM_CONFIG_PREFIX=/usr/local/share/npm-global
 ENV PATH=$PATH:/usr/local/share/npm-global/bin
 
-# Set the default shell to bash rather than sh
-ENV SHELL /bin/zsh
+# Set the default shell to zsh rather than sh
+ENV SHELL=/bin/zsh
 
 # Default powerline10k theme
 RUN sh -c "$(wget -O- https://github.com/deluan/zsh-in-docker/releases/download/v1.2.0/zsh-in-docker.sh)" -- \
