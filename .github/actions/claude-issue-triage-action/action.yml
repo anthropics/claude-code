@@ -55,22 +55,14 @@ runs:
            - User impact
            - Components affected
 
-        4. Identify existing duplicate issues:
-           - Use mcp__github__search_issues to find similar issues
-           - List out all open or recently closed issues that seem likely to be reports of the same problem
-           - Place the best candidate issue to merge into at the top of the list.
-             The best candidate issue is the one that is:
-               1. Has the same underlying cause as the current issue
-               2. Is the most complete and well-documented
-               3. Is the oldest open issue that is still relevant
-
-        5. Select appropriate labels from the available labels list provided above:
+        4. Select appropriate labels from the available labels list provided above:
            - Choose labels that accurately reflect the issue's nature
            - Be specific but comprehensive
-           - Consider platform labels (macos, linux, windows) if applicable
-           - Do not apply the "duplicate" label unless you are certain the issue is a duplicate of another open issue
+           - Select priority labels if you can determine urgency (high-priority, med-priority, or low-priority)
+           - Consider platform labels (android, ios) if applicable
+           - If you find similar issues using mcp__github__search_issues, consider using a "duplicate" label if appropriate. Only do so if the issue is a duplicate of another OPEN issue.
 
-        6. Apply the selected labels:
+        5. Apply the selected labels:
            - Use mcp__github__update_issue to apply your selected labels
            - DO NOT post any comments explaining your decision
            - DO NOT communicate directly with users
