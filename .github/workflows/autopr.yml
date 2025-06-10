@@ -1,0 +1,14 @@
+name: AutoPR
+
+on:
+    merge_group:
+    pull_request:
+        types: [opened, synchronize, edited]
+
+permissions: {}
+
+jobs:
+    autopr:
+        uses: anthropics/actions/.github/workflows/trigger-autopr.yml@main
+        secrets: inherit
+
