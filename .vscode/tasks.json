@@ -1,0 +1,37 @@
+{
+     // See https://go.microsoft.com/fwlink/?LinkId=733558
+     // for the documentation about the tasks.json format
+     "version": "2.0.0",
+     "tasks": [
+          {
+               "label": "Run Claude in WSL Terminal",
+               "type": "shell",
+               "command": "claude",
+               "options": {
+                    "shell": {
+                         "executable": "wsl.exe",
+                         "args": [
+                              "-e",
+                              "bash",
+                              "-c",
+                              "\"source ~/.nvm/nvm.sh && claude\""
+                         ]
+                    }
+               },
+               "presentation": {
+                    "reveal": "always",
+                    "panel": "new"
+               },
+               "group": {
+                    "kind": "build",
+                    "isDefault": true
+               },
+               "problemMatcher": [],
+               // comment out the following line due to the disturbance to our development by automatically opening the terminal with Claude Code
+               // If you want to run the task when the folder is opened, uncomment the following line
+               // "runOptions": {
+               //      "runOn": "folderOpen"
+               // }
+          }
+     ]
+}
