@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.0.35
+
+- Added support for MCP OAuth Authorization Server discovery
+
+## 1.0.34
+
+- Fixed a memory leak causing a MaxListenersExceededWarning message to appear
+
+## 1.0.33
+
+- Improved logging functionality with session ID support
+- Added undo functionality (Ctrl+Z and vim 'u' command)
+- Improvements to plan mode
+
+## 1.0.32
+
+- Updated loopback config for litellm
+- Added forceLoginMethod setting to bypass login selection screen
+
 ## 1.0.31
 
 - Fixed a bug where ~/.claude.json would get reset when file contained invalid JSON
