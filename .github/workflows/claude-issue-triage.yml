@@ -1,6 +1,5 @@
 name: Claude Issue Triage
-description: "Automatically triage GitHub issues using Claude Code"
-
+description: Automatically triage GitHub issues using Claude Code
 on:
   issues:
     types: [opened]
@@ -12,14 +11,12 @@ jobs:
     permissions:
       contents: read
       issues: write
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
-      - name: Create prompt file
+    steps:
+      - name: Create triage prompt
         run: |
           mkdir -p /tmp/claude-prompts
-          cat > /tmp/claude-prompts/claude-issue-triage-prompt.txt << 'EOF'
+          cat > /tmp/claude-prompts/triage-prompt.txt << 'EOF'
           You're an issue triage assistant for GitHub issues. Your task is to analyze the issue and select appropriate labels from the provided list.
 
           IMPORTANT: Don't post any comments or messages to the issue. Your only action should be to apply labels.
@@ -70,12 +67,37 @@ jobs:
           - It's okay to not add any labels if none are clearly applicable
           EOF
 
-      - name: Run Claude Code
+      - name: Setup GitHub MCP Server
+        run: |
+          mkdir -p /tmp/mcp-config
+          cat > /tmp/mcp-config/mcp-servers.json << 'EOF'
+          {
+            "mcpServers": {
+              "github": {
+                "command": "docker",
+                "args": [
+                  "run",
+                  "-i",
+                  "--rm",
+                  "-e",
+                  "GITHUB_PERSONAL_ACCESS_TOKEN",
+                  "ghcr.io/github/github-mcp-server:sha-7aced2b"
+                ],
+                "env": {
+                  "GITHUB_PERSONAL_ACCESS_TOKEN": "${{ secrets.GITHUB_TOKEN }}"
+                }
+              }
+            }
+          }
+          EOF
+
+      - name: Run Claude Code for Issue Triage
         uses: anthropics/claude-code-base-action@beta
         with:
-          prompt_file: /tmp/claude-prompts/claude-issue-triage-prompt.txt
+          prompt_file: /tmp/claude-prompts/triage-prompt.txt
           allowed_tools: "Bash(gh label list),mcp__github__get_issue,mcp__github__get_issue_comments,mcp__github__update_issue,mcp__github__search_issues,mcp__github__list_issues"
-          install_github_mcp: "true"
           timeout_minutes: "5"
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          mcp_config: /tmp/mcp-config/mcp-servers.json
+          claude_env: |
+            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
