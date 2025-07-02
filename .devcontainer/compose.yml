@@ -1,0 +1,25 @@
+version: "3.8"
+
+services:
+  node:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - TZ=${TZ:-America/Los_Angeles}
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - claude-code-bashhistory:/commandhistory
+      - claude-code-config:/home/node/.claude
+      - ../:/workspace:delegated
+    environment:
+      - NODE_OPTIONS=--max-old-space-size=4096
+      - CLAUDE_CONFIG_DIR=/home/node/.claude
+      - POWERLEVEL9K_DISABLE_GITSTATUS=true
+    working_dir: /workspace
+    tty: true
+volumes:
+  claude-code-bashhistory:
+  claude-code-config:
