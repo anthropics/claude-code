@@ -1,4 +1,10 @@
 #!/usr/bin/env python3
+
+parser.add_argument("--search", 
+                    choices=["auto", "ask", "off"],
+                    default="ask",  # 建议默认改为 ask
+                    help="Web search behavior (auto/ask/off)")
+
 """
 Claude Code Hook: Bash Command Validator
 =========================================
