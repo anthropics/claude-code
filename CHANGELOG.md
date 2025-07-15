@@ -1,8 +1,71 @@
 # Changelog
 
+## 1.0.51
+
+- Added support for native Windows (requires Git for Windows)
+- Added support for Bedrock API keys through environment variable AWS_BEARER_TOKEN_BEDROCK
+- Settings: /doctor can now help you identify and fix invalid setting files
+- `--append-system-prompt` can now be used in interactive mode, not just --print/-p.
+- Increased auto-compact warning threshold from 60% to 80%
+- Fixed an issue with handling user directories with spaces for shell snapshots
+- OTEL resource now includes os.type, os.version, host.arch, and wsl.version (if running on Windows Subsystem for Linux)
+- Custom slash commands: Fixed user-level commands in subdirectories
+- Plan mode: Fixed issue where rejected plan from sub-task would get discarded
+
+## 1.0.48
+
+- Fixed a bug in v1.0.45 where the app would sometimes freeze on launch
+- Added progress messages to Bash tool based on the last 5 lines of command output
+- Added expanding variables support for MCP server configuration
+- Moved shell snapshots from /tmp to ~/.claude for more reliable Bash tool calls
+- Improved IDE extension path handling when Claude Code runs in WSL
+- Hooks: Added a PreCompact hook
+- Vim mode: Added c, f/F, t/T
+
+## 1.0.45
+
+- Redesigned Search (Grep) tool with new tool input parameters and features
+- Disabled IDE diffs for notebook files, fixing "Timeout waiting after 1000ms" error
+- Fixed config file corruption issue by enforcing atomic writes
+- Updated prompt input undo to Ctrl+\_ to avoid breaking existing Ctrl+U behavior, matching zsh's undo shortcut
+- Stop Hooks: Fixed transcript path after /clear and fixed triggering when loop ends with tool call
+- Custom slash commands: Restored namespacing in command names based on subdirectories. For example, .claude/commands/frontend/component.md is now /frontend:component, not /component.
+
+## 1.0.44
+
+- New /export command lets you quickly export a conversation for sharing
+- MCP: resource_link tool results are now supported
+- MCP: tool annotations and tool titles now display in /mcp view
+- Changed Ctrl+Z to suspend Claude Code. Resume by running `fg`. Prompt input undo is now Ctrl+U.
+
+## 1.0.43
+
+- Fixed a bug where the theme selector was saving excessively
+- Hooks: Added EPIPE system error handling
+
+## 1.0.42
+
+- Added tilde (`~`) expansion support to `/add-dir` command
+
+## 1.0.41
+
+- Hooks: Split Stop hook triggering into Stop and SubagentStop
+- Hooks: Enabled optional timeout configuration for each command
+- Hooks: Added "hook_event_name" to hook input
+- Fixed a bug where MCP tools would display twice in tool list
+- New tool parameters JSON for Bash tool in `tool_decision` event
+
+## 1.0.40
+
+- Fixed a bug causing API connection errors with UNABLE_TO_GET_ISSUER_CERT_LOCALLY if `NODE_EXTRA_CA_CERTS` was set
+
+## 1.0.39
+
+- New Active Time metric in OpenTelemetry logging
+
 ## 1.0.38
 
-- Released [hooks](https://docs.anthropic.com/en/docs/claude-code/hooks). Special thanks to community input in [Github Issues](https://github.com/anthropics/claude-code/issues/712)
+- Released hooks. Special thanks to community input in https://github.com/anthropics/claude-code/issues/712. Docs: https://docs.anthropic.com/en/docs/claude-code/hooks
 
 ## 1.0.37
 
@@ -24,7 +87,7 @@
 ## 1.0.33
 
 - Improved logging functionality with session ID support
-- Added undo functionality (Ctrl+Z and vim 'u' command)
+- Added prompt input undo functionality (Ctrl+Z and vim 'u' command)
 - Improvements to plan mode
 
 ## 1.0.32

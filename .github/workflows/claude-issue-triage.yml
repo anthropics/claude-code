@@ -13,6 +13,9 @@ jobs:
       issues: write
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Create triage prompt
         run: |
           mkdir -p /tmp/claude-prompts
