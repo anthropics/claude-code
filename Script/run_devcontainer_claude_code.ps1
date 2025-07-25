@@ -37,6 +37,21 @@ param(
 Write-Host "--- DevContainer Startup & Connection Script ---"
 Write-Host "Using backend: $($Backend)"
 
+# --- Prerequisite Check ---
+Write-Host "Checking for required commands..."
+try {
+    Get-Command $Backend -ErrorAction Stop | Out-Null
+    Write-Host "- $($Backend) command found."
+    Get-Command devcontainer -ErrorAction Stop | Out-Null
+    Write-Host "- devcontainer command found."
+}
+catch {
+    Write-Error "A required command is not installed or not in your PATH."
+    Write-Error "Please ensure '$($_.Exception.Message.Split(':')[0])' and 'devcontainer' are installed and accessible."
+    exit 1
+}
+
+
 # --- Backend-Specific Initialization ---
 if ($Backend -eq 'podman') {
     Write-Host "--- Podman Backend Initialization ---"
