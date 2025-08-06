@@ -1,0 +1,75 @@
+{
+  "name": "@anthropic-ai/claude-code-extended",
+  "version": "1.0.0",
+  "description": "Claude Code Extended - Mobile remote access backend for Claude Code",
+  "main": "dist/server.js",
+  "bin": {
+    "claude-server": "./dist/server.js",
+    "claude-setup": "./dist/setup-wizard.js",
+    "claude-daemon": "./dist/daemon.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "ts-node-dev -r tsconfig-paths/register --respawn --transpile-only src/server.ts",
+    "start": "node dist/server.js",
+    "setup": "node dist/setup-wizard.js",
+    "daemon": "node dist/daemon.js",
+    "test": "jest",
+    "lint": "eslint src/**/*.ts",
+    "lint:fix": "eslint src/**/*.ts --fix",
+    "format": "prettier --write src/**/*.ts"
+  },
+  "keywords": [
+    "claude-code",
+    "remote-access",
+    "mobile",
+    "websocket",
+    "api",
+    "terminal"
+  ],
+  "author": "Anthropic",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "chokidar": "^3.5.3",
+    "compression": "^1.7.4",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "node-pty": "^0.10.1",
+    "qrcode": "^1.5.3",
+    "rate-limiter-flexible": "^2.4.1",
+    "simple-git": "^3.20.0",
+    "sqlite3": "^5.1.6",
+    "uuid": "^9.0.1",
+    "winston": "^3.11.0",
+    "ws": "^8.14.2",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.5",
+    "@types/compression": "^1.7.5",
+    "@types/cors": "^2.8.16",
+    "@types/express": "^4.17.20",
+    "@types/jest": "^29.5.7",
+    "@types/jsonwebtoken": "^9.0.4",
+    "@types/node": "^20.8.10",
+    "@types/qrcode": "^1.5.5",
+    "@types/uuid": "^9.0.6",
+    "@types/ws": "^8.5.8",
+    "@typescript-eslint/eslint-plugin": "^6.9.1",
+    "@typescript-eslint/parser": "^6.9.1",
+    "eslint": "^8.53.0",
+    "jest": "^29.7.0",
+    "prettier": "^3.0.3",
+    "ts-node": "^10.9.1",
+    "ts-node-dev": "^2.0.0",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

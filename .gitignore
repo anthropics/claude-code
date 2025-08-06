@@ -1,0 +1,64 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build output
+dist/
+build/
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Logs
+logs/
+*.log
+*.log.*
+
+# Runtime data
+lib-cov
+coverage/
+.nyc_output
+.coverage
+
+# Environment variables
+.env
+.env.local
+.env.production
+.env.development
+
+# Configuration files (contain secrets)
+config.json
+*.db
+*.sqlite
+*.sqlite3
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Claude Code specific
+.claude/
+data/
+!data/.gitkeep
