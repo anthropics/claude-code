@@ -51,9 +51,34 @@ jobs:
 
       - name: Clone source repository
         run: |
+          set -euo pipefail
           cd workspace
-          git clone --depth 1 --branch "${{ inputs.branch }}" "${{ inputs.source_repo_url }}" source
-          echo "Cloned repo." >> run.log
+          URL="${{ inputs.source_repo_url }}"
+          REQ_BRANCH="${{ inputs.branch }}"
+          echo "Requested branch: '${REQ_BRANCH}'" | tee -a run.log
+          echo "Probing remote branches..." | tee -a run.log
+          DEFAULT_BRANCH=$(git ls-remote --symref "$URL" HEAD 2>/dev/null | awk '/^ref:/ {print $2}' | sed 's#refs/heads/##' || true)
+          echo "Default branch detected: '${DEFAULT_BRANCH:-unknown}'" | tee -a run.log
+          BRANCH_CANDIDATES=()
+          if [ -n "${REQ_BRANCH:-}" ]; then BRANCH_CANDIDATES+=("$REQ_BRANCH"); fi
+          if [ -n "${DEFAULT_BRANCH:-}" ]; then BRANCH_CANDIDATES+=("$DEFAULT_BRANCH"); fi
+          BRANCH_CANDIDATES+=(main master)
+          CLONED=false
+          for BR in "${BRANCH_CANDIDATES[@]}"; do
+            if [ -z "$BR" ]; then continue; fi
+            if git ls-remote --heads "$URL" "refs/heads/$BR" >/dev/null 2>&1; then
+              echo "Trying branch '$BR'..." | tee -a run.log
+              if git clone --depth 1 --branch "$BR" "$URL" source; then
+                echo "Cloned repo (branch '$BR')." >> run.log
+                CLONED=true
+                break
+              fi
+            fi
+          done
+          if [ "$CLONED" != true ]; then
+            echo "No valid branch found (tried: ${BRANCH_CANDIDATES[*]})." | tee -a run.log
+            exit 1
+          fi
 
       - name: Generate prompt from repository
         run: |
