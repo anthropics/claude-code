@@ -1,0 +1,173 @@
+name: Port repository to Rust
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_repo_url:
+        description: "Git URL of the Python or C++ repository to port (e.g., https://github.com/user/repo)"
+        required: true
+        type: string
+      branch:
+        description: "Branch or tag to use"
+        required: false
+        default: "main"
+        type: string
+      llm_provider:
+        description: "LLM provider to use (openai or anthropic)"
+        required: false
+        default: "openai"
+        type: choice
+        options:
+          - openai
+          - anthropic
+          - google
+      model:
+        description: "Model name (e.g., gpt-4o-mini, o4-mini, claude-3-5-sonnet-20240620)"
+        required: false
+        default: "gpt-4o-mini"
+        type: string
+
+jobs:
+  convert:
+    name: Convert to Rust and Compile
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout this repository
+        uses: actions/checkout@v4
+
+      - name: Install basic tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq python3-full python3-pip
+
+      - name: Set up Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Prepare workspace
+        run: |
+          rm -rf workspace && mkdir -p workspace
+          echo "Repo: ${{ inputs.source_repo_url }}" > workspace/run.log
+
+      - name: Clone source repository
+        run: |
+          cd workspace
+          git clone --depth 1 --branch "${{ inputs.branch }}" "${{ inputs.source_repo_url }}" source
+          echo "Cloned repo." >> run.log
+
+      - name: Generate prompt from repository
+        run: |
+          bash scripts/make_prompt.sh workspace/source > workspace/prompt.txt
+          echo "Prompt size: $(wc -c < workspace/prompt.txt) bytes" | tee -a workspace/run.log
+
+      - name: Build LLM request payload
+        id: mkprompt
+        env:
+          MODEL: ${{ inputs.model }}
+          PROVIDER: ${{ inputs.llm_provider }}
+        run: |
+          set -euo pipefail
+          mkdir -p workspace
+          printf '%s\n' \
+            'You are a senior software engineer who translates small Python or C++ projects into a compiling Rust program.' \
+            'Output ONLY a single Rust source file inside a fenced code block. Use language tag `rust`.' \
+            'Constraints:' \
+            '- Produce a single executable Rust file suitable for `cargo new port-rust --bin` at `src/main.rs`.' \
+            '- Do not include explanations or comments outside the code fence.' \
+            '- Avoid external crates unless strictly necessary; prefer the standard library.' \
+            > workspace/system.txt
+          echo "System prompt written" >> workspace/run.log
+          # Trim prompt to a safe size to avoid token overflow (approx 900KB max)
+          head -c 900000 workspace/prompt.txt > workspace/prompt.trimmed.txt
+
+      - name: Call OpenAI (if selected)
+        if: inputs.llm_provider == 'openai'
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          MODEL: ${{ inputs.model }}
+        run: |
+          set -euo pipefail
+          if [ -z "${OPENAI_API_KEY:-}" ]; then
+            echo "Missing OPENAI_API_KEY secret" >&2
+            exit 1
+          fi
+          jq -Rs --arg sys "$(cat workspace/system.txt)" --arg usr "Port this repository to Rust. Provide only src/main.rs.\n\nRepository content follows:\n\n$(cat workspace/prompt.trimmed.txt)" \
+            '{model: env.MODEL, temperature: 0, messages: [ {role:"system", content:$sys}, {role:"user", content:$usr} ] }' \
+            <<< "" > workspace/openai_body.json
+
+          curl -sS https://api.openai.com/v1/chat/completions \
+            -H "Authorization: Bearer $OPENAI_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d @workspace/openai_body.json \
+            | tee workspace/openai_response.json >/dev/null
+
+          jq -r '.choices[0].message.content' workspace/openai_response.json > workspace/llm_output.txt
+
+      - name: Call Anthropic (if selected)
+        if: inputs.llm_provider == 'anthropic'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          MODEL: ${{ inputs.model }}
+        run: |
+          set -euo pipefail
+          if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
+            echo "Missing ANTHROPIC_API_KEY secret" >&2
+            exit 1
+          fi
+          jq -Rs --arg sys "$(cat workspace/system.txt)" --arg usr "Port this repository to Rust. Provide only src/main.rs.\n\nRepository content follows:\n\n$(cat workspace/prompt.trimmed.txt)" \
+            '{model: env.MODEL, max_tokens: 8192, temperature: 0, system: $sys, messages: [ {role:"user", content:$usr} ] }' \
+            <<< "" > workspace/anthropic_body.json
+
+          curl -sS https://api.anthropic.com/v1/messages \
+            -H "x-api-key: $ANTHROPIC_API_KEY" \
+            -H "anthropic-version: 2023-06-01" \
+            -H "content-type: application/json" \
+            -d @workspace/anthropic_body.json \
+            | tee workspace/anthropic_response.json >/dev/null
+
+          jq -r '.content[0].text' workspace/anthropic_response.json > workspace/llm_output.txt
+
+      - name: Call Google Gemini (if selected)
+        if: inputs.llm_provider == 'google'
+        env:
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          MODEL: ${{ inputs.model }}
+        run: |
+          set -euo pipefail
+          if [ -z "${GOOGLE_API_KEY:-}" ]; then
+            echo "Missing GOOGLE_API_KEY secret" >&2
+            exit 1
+          fi
+          COMBINED_MSG="$(cat workspace/system.txt)\n\nPort this repository to Rust. Provide only src/main.rs.\n\nRepository content follows:\n\n$(cat workspace/prompt.trimmed.txt)"
+          jq -n --arg txt "$COMBINED_MSG" '{contents:[{parts:[{text:$txt}]}]}' > workspace/google_body.json
+          curl -sS "https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${GOOGLE_API_KEY}" \
+            -H "Content-Type: application/json" \
+            -d @workspace/google_body.json \
+            | tee workspace/google_response.json >/dev/null
+          jq -r '.candidates[0].content.parts[0].text' workspace/google_response.json > workspace/llm_output.txt
+
+      - name: Extract Rust code from LLM output
+        run: |
+          python3 scripts/extract_rust_from_markdown.py < workspace/llm_output.txt > workspace/main.rs || {
+            echo "Falling back to raw output"; cp workspace/llm_output.txt workspace/main.rs; }
+          echo "Extracted src/main.rs bytes: $(wc -c < workspace/main.rs)" | tee -a workspace/run.log
+
+      - name: Create Cargo project and compile
+        run: |
+          cd workspace
+          cargo new port-rust --bin
+          cp main.rs port-rust/src/main.rs
+          cd port-rust
+          cargo build --verbose | tee ../build.log
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: port-to-rust-output
+          path: |
+            workspace/port-rust/
+            workspace/llm_output.txt
+            workspace/run.log
+            workspace/build.log
+
+
