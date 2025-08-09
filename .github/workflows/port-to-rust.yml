@@ -51,6 +51,9 @@ jobs:
         run: |
           rm -rf workspace && mkdir -p workspace
           echo "Repo: ${{ inputs.source_repo_url }}" > workspace/run.log
+          # Make helper scripts available inside workspace for later steps
+          mkdir -p workspace/scripts
+          cp scripts/extract_rust_from_markdown.py workspace/scripts/
 
       - name: Clone source repository
         run: |
@@ -98,11 +101,11 @@ jobs:
           mkdir -p workspace
           printf '%s\n' \
             'You are a senior software engineer who translates small Python or C++ projects into a compiling Rust program.' \
-            'Output ONLY a single Rust source file inside a fenced code block. Use language tag `rust`.' \
+            'Output ONLY a single Rust source file inside a fenced code block. Use language tag `rust`. Do not include any prose before or after the code fence.' \
             'Constraints:' \
             '- Produce a single executable Rust file suitable for `cargo new port-rust --bin` at `src/main.rs`.' \
             '- Do not include explanations or comments outside the code fence.' \
-            '- Avoid external crates unless strictly necessary; prefer the standard library.' \
+            '- Use ONLY the Rust standard library. Do NOT import or reference any external crates (e.g., glob). Do NOT include Cargo.toml content.' \
             > workspace/system.txt
           echo "System prompt written" >> workspace/run.log
           # Trim prompt to a safe size to avoid token overflow (approx 900KB max)
@@ -216,6 +219,7 @@ jobs:
             # Prepare retry prompt with compiler errors and current code
             printf '%s\n' \
               'Fix the Rust code so it compiles successfully. Output ONLY the corrected src/main.rs inside a rust fenced code block.' \
+              'Use ONLY the Rust standard library. Remove any external crate usage (e.g., glob) and any non-code text or markdown.' \
               '' \
               'Current src/main.rs:' \
               '' \
