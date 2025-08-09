@@ -132,7 +132,8 @@ jobs:
             -d @workspace/openai_body.json \
             | tee workspace/openai_response.json >/dev/null
 
-          jq -r '.choices[0].message.content' workspace/openai_response.json > workspace/llm_output.txt
+          jq -r '.choices[0].message.content // empty' workspace/openai_response.json > workspace/llm_output.txt
+          if [ ! -s workspace/llm_output.txt ]; then echo "" > workspace/llm_output.txt; fi
 
       - name: Call Anthropic (if selected)
         if: inputs.llm_provider == 'anthropic'
@@ -156,7 +157,8 @@ jobs:
             -d @workspace/anthropic_body.json \
             | tee workspace/anthropic_response.json >/dev/null
 
-          jq -r '.content[0].text' workspace/anthropic_response.json > workspace/llm_output.txt
+          jq -r '.content[0].text // empty' workspace/anthropic_response.json > workspace/llm_output.txt
+          if [ ! -s workspace/llm_output.txt ]; then echo "" > workspace/llm_output.txt; fi
 
       - name: Call Google Gemini (if selected)
         if: inputs.llm_provider == 'google'
@@ -175,7 +177,8 @@ jobs:
             -H "Content-Type: application/json" \
             -d @workspace/google_body.json \
             | tee workspace/google_response.json >/dev/null
-          jq -r '.candidates[0].content.parts[0].text' workspace/google_response.json > workspace/llm_output.txt
+          jq -r '.candidates[0].content.parts[0].text // empty' workspace/google_response.json > workspace/llm_output.txt
+          if [ ! -s workspace/llm_output.txt ]; then echo "" > workspace/llm_output.txt; fi
 
       - name: Extract Rust code from LLM output
         run: |
@@ -263,6 +266,9 @@ jobs:
 
             # Extract corrected code and retry build
             python3 scripts/extract_rust_from_markdown.py < llm_output.txt > main.rs || cp llm_output.txt main.rs
+            # Ensure file starts with valid Rust and contains no markdown fences
+            sed -i '1,/^\s*fn\s\|^\s*use\s\|^\s*mod\s\|^\s*pub\s\|^\s*extern\s\|^\s*const\s\|^\s*static\s\|^\s*#!\[/d' main.rs || true
+            sed -i 's/^```.*$//g' main.rs || true
             cp main.rs port-rust/src/main.rs
             TRY=$((TRY+1))
           done
