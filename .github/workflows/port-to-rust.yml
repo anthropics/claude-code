@@ -32,6 +32,9 @@ jobs:
     name: Convert to Rust and Compile
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - name: Checkout this repository
         uses: actions/checkout@v4
@@ -177,13 +180,140 @@ jobs:
             echo "Falling back to raw output"; cp workspace/llm_output.txt workspace/main.rs; }
           echo "Extracted src/main.rs bytes: $(wc -c < workspace/main.rs)" | tee -a workspace/run.log
 
-      - name: Create Cargo project and compile
+      - name: Create Cargo project and compile with retries
+        env:
+          PROVIDER: ${{ inputs.llm_provider }}
+          MODEL: ${{ inputs.model }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+        id: build
         run: |
+          set -euo pipefail
           cd workspace
+          rm -rf port-rust
           cargo new port-rust --bin
           cp main.rs port-rust/src/main.rs
-          cd port-rust
-          cargo build --verbose | tee ../build.log
+          ATTEMPTS=3
+          TRY=1
+          SUCCESS=0
+          while [ $TRY -le $ATTEMPTS ]; do
+            echo "Build attempt $TRY" | tee -a run.log
+            set +e
+            (cd port-rust && cargo build --verbose) 2>&1 | tee build.log
+            STATUS=${PIPESTATUS[0]}
+            set -e
+            if [ $STATUS -eq 0 ]; then
+              echo "Build succeeded on attempt $TRY" | tee -a run.log
+              SUCCESS=1
+              break
+            fi
+            echo "Build failed on attempt $TRY (status=$STATUS)." | tee -a run.log
+            if [ $TRY -eq $ATTEMPTS ]; then
+              echo "Max attempts reached; keeping last build.log." | tee -a run.log
+              break
+            fi
+            # Prepare retry prompt with compiler errors and current code
+            printf '%s\n' \
+              'Fix the Rust code so it compiles successfully. Output ONLY the corrected src/main.rs inside a rust fenced code block.' \
+              '' \
+              'Current src/main.rs:' \
+              '' \
+              '```rust' \
+              "$(cat port-rust/src/main.rs)" \
+              '```' \
+              '' \
+              'Compiler errors:' \
+              '' \
+              '```' \
+              "$(tail -n 1000 build.log)" \
+              '```' \
+              > retry_user.txt
+
+            # Call provider again to get a fixed file
+            if [ "$PROVIDER" = "openai" ]; then
+              if [ -z "${OPENAI_API_KEY:-}" ]; then echo "Missing OPENAI_API_KEY" >&2; exit 1; fi
+              jq -Rs --arg sys "$(cat system.txt)" --arg usr "$(cat retry_user.txt)" \
+                '{model: env.MODEL, temperature: 0, messages: [ {role:"system", content:$sys}, {role:"user", content:$usr} ] }' <<< "" > retry_openai_body.json
+              curl -sS https://api.openai.com/v1/chat/completions \
+                -H "Authorization: Bearer $OPENAI_API_KEY" -H "Content-Type: application/json" \
+                -d @retry_openai_body.json | tee retry_openai_response.json >/dev/null
+              jq -r '.choices[0].message.content' retry_openai_response.json > llm_output.txt
+            elif [ "$PROVIDER" = "anthropic" ]; then
+              if [ -z "${ANTHROPIC_API_KEY:-}" ]; then echo "Missing ANTHROPIC_API_KEY" >&2; exit 1; fi
+              jq -Rs --arg sys "$(cat system.txt)" --arg usr "$(cat retry_user.txt)" \
+                '{model: env.MODEL, max_tokens: 8192, temperature: 0, system: $sys, messages: [ {role:"user", content:$usr} ] }' <<< "" > retry_anthropic_body.json
+              curl -sS https://api.anthropic.com/v1/messages \
+                -H "x-api-key: $ANTHROPIC_API_KEY" -H "anthropic-version: 2023-06-01" -H "content-type: application/json" \
+                -d @retry_anthropic_body.json | tee retry_anthropic_response.json >/dev/null
+              jq -r '.content[0].text' retry_anthropic_response.json > llm_output.txt
+            else
+              # google (Gemini)
+              if [ -z "${GOOGLE_API_KEY:-}" ]; then echo "Missing GOOGLE_API_KEY" >&2; exit 1; fi
+              COMBINED_MSG="$(cat system.txt)\n\n$(cat retry_user.txt)"
+              jq -n --arg txt "$COMBINED_MSG" '{contents:[{parts:[{text:$txt}]}]}' > retry_google_body.json
+              curl -sS "https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${GOOGLE_API_KEY}" \
+                -H "Content-Type: application/json" -d @retry_google_body.json | tee retry_google_response.json >/dev/null
+              jq -r '.candidates[0].content.parts[0].text' retry_google_response.json > llm_output.txt
+            fi
+
+            # Extract corrected code and retry build
+            python3 scripts/extract_rust_from_markdown.py < llm_output.txt > main.rs || cp llm_output.txt main.rs
+            cp main.rs port-rust/src/main.rs
+            TRY=$((TRY+1))
+          done
+          # keep final build.log in workspace for artifact
+          if [ "$SUCCESS" = 1 ]; then echo "compiled=true" >> "$GITHUB_OUTPUT"; else echo "compiled=false" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Prepare PR content
+        id: prep_pr
+        env:
+          SRC_URL: ${{ inputs.source_repo_url }}
+          MODEL: ${{ inputs.model }}
+          PROVIDER: ${{ inputs.llm_provider }}
+        run: |
+          set -euo pipefail
+          REPO_NAME=$(basename "$SRC_URL")
+          REPO_NAME=${REPO_NAME%.git}
+          SLUG="$(date +%Y%m%d-%H%M%S)-${REPO_NAME}"
+          OUT_DIR="ports/${SLUG}"
+          mkdir -p "$OUT_DIR"
+          rsync -a --delete workspace/port-rust/ "$OUT_DIR/"
+          STATUS="${{ steps.build.outputs.compiled }}"
+          : "${STATUS:=false}"
+          printf '%s\n' \
+            '# Ported to Rust' \
+            '' \
+            "- Source repository: $SRC_URL" \
+            "- Model: $PROVIDER / $MODEL" \
+            "- Build status: ${STATUS}" \
+            '' \
+            '## Build' \
+            '' \
+            '```bash' \
+            'cargo build' \
+            'cargo run' \
+            '```' \
+            '' \
+            'This project was generated by a GitHub Actions workflow that ingests the source repo, asks an LLM to port it to Rust, and then compiles the result.' \
+            > "$OUT_DIR/README.md"
+          echo "out_dir=${OUT_DIR}" >> "$GITHUB_OUTPUT"
+          echo "slug=${SLUG}" >> "$GITHUB_OUTPUT"
+
+      - name: Create pull request with changes
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: port-to-rust/${{ steps.prep_pr.outputs.slug }}
+          title: Port ${{ inputs.source_repo_url }} to Rust
+          commit-message: Add Rust port for ${{ inputs.source_repo_url }}
+          body: |
+            This PR adds an auto-generated Rust port for `${{ inputs.source_repo_url }}`.
+
+            - Model: `${{ inputs.llm_provider }} / ${{ inputs.model }}`
+            - Build status: `${{ steps.build.outputs.compiled }}`
+            - Output directory: `${{ steps.prep_pr.outputs.out_dir }}`
+          add-paths: |
+            ${{ steps.prep_pr.outputs.out_dir }}/**
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
