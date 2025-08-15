@@ -1,0 +1,338 @@
+name: Port repository to Rust
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_repo_url:
+        description: "Git URL of the Python or C++ repository to port (e.g., https://github.com/user/repo)"
+        required: true
+        type: string
+      branch:
+        description: "Branch or tag to use"
+        required: false
+        default: "main"
+        type: string
+      llm_provider:
+        description: "LLM provider to use (openai or anthropic)"
+        required: false
+        default: "openai"
+        type: choice
+        options:
+          - openai
+          - anthropic
+          - google
+      model:
+        description: "Model name (e.g., gpt-4o-mini, o4-mini, claude-3-5-sonnet-20240620)"
+        required: false
+        default: "gpt-4o-mini"
+        type: string
+
+jobs:
+  convert:
+    name: Convert to Rust and Compile
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout this repository
+        uses: actions/checkout@v4
+
+      - name: Install basic tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq python3-full python3-pip
+
+      - name: Set up Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Prepare workspace
+        run: |
+          rm -rf workspace && mkdir -p workspace
+          echo "Repo: ${{ inputs.source_repo_url }}" > workspace/run.log
+          # Make helper scripts available inside workspace for later steps
+          mkdir -p workspace/scripts
+          cp scripts/extract_rust_from_markdown.py workspace/scripts/
+
+      - name: Clone source repository
+        run: |
+          set -euo pipefail
+          cd workspace
+          URL="${{ inputs.source_repo_url }}"
+          REQ_BRANCH="${{ inputs.branch }}"
+          echo "Requested branch: '${REQ_BRANCH}'" | tee -a run.log
+          echo "Probing remote branches..." | tee -a run.log
+          DEFAULT_BRANCH=$(git ls-remote --symref "$URL" HEAD 2>/dev/null | awk '/^ref:/ {print $2}' | sed 's#refs/heads/##' || true)
+          echo "Default branch detected: '${DEFAULT_BRANCH:-unknown}'" | tee -a run.log
+          BRANCH_CANDIDATES=()
+          if [ -n "${REQ_BRANCH:-}" ]; then BRANCH_CANDIDATES+=("$REQ_BRANCH"); fi
+          if [ -n "${DEFAULT_BRANCH:-}" ]; then BRANCH_CANDIDATES+=("$DEFAULT_BRANCH"); fi
+          BRANCH_CANDIDATES+=(main master)
+          CLONED=false
+          for BR in "${BRANCH_CANDIDATES[@]}"; do
+            if [ -z "$BR" ]; then continue; fi
+            if git ls-remote --heads "$URL" "refs/heads/$BR" >/dev/null 2>&1; then
+              echo "Trying branch '$BR'..." | tee -a run.log
+              if git clone --depth 1 --branch "$BR" "$URL" source; then
+                echo "Cloned repo (branch '$BR')." >> run.log
+                CLONED=true
+                break
+              fi
+            fi
+          done
+          if [ "$CLONED" != true ]; then
+            echo "No valid branch found (tried: ${BRANCH_CANDIDATES[*]})." | tee -a run.log
+            exit 1
+          fi
+
+      - name: Generate prompt from repository
+        run: |
+          bash scripts/make_prompt.sh workspace/source > workspace/prompt.txt
+          echo "Prompt size: $(wc -c < workspace/prompt.txt) bytes" | tee -a workspace/run.log
+
+      - name: Build LLM request payload
+        id: mkprompt
+        env:
+          MODEL: ${{ inputs.model }}
+          PROVIDER: ${{ inputs.llm_provider }}
+        run: |
+          set -euo pipefail
+          mkdir -p workspace
+          printf '%s\n' \
+            'You are a senior software engineer who translates small Python or C++ projects into a compiling Rust program.' \
+            'Output ONLY a single Rust source file inside a fenced code block. Use language tag `rust`. Do not include any prose before or after the code fence.' \
+            'Constraints:' \
+            '- Produce a single executable Rust file suitable for `cargo new port-rust --bin` at `src/main.rs`.' \
+            '- Do not include explanations or comments outside the code fence.' \
+            '- Use ONLY the Rust standard library. Do NOT import or reference any external crates (e.g., glob). Do NOT include Cargo.toml content.' \
+            > workspace/system.txt
+          echo "System prompt written" >> workspace/run.log
+          # Trim prompt to a safe size to avoid token overflow (approx 900KB max)
+          head -c 900000 workspace/prompt.txt > workspace/prompt.trimmed.txt
+
+      - name: Call OpenAI (if selected)
+        if: inputs.llm_provider == 'openai'
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          MODEL: ${{ inputs.model }}
+        run: |
+          set -euo pipefail
+          if [ -z "${OPENAI_API_KEY:-}" ]; then
+            echo "Missing OPENAI_API_KEY secret" >&2
+            exit 1
+          fi
+          jq -Rs --arg sys "$(cat workspace/system.txt)" --arg usr "Port this repository to Rust. Provide only src/main.rs.\n\nRepository content follows:\n\n$(cat workspace/prompt.trimmed.txt)" \
+            '{model: env.MODEL, temperature: 0, messages: [ {role:"system", content:$sys}, {role:"user", content:$usr} ] }' \
+            <<< "" > workspace/openai_body.json
+
+          curl -sS https://api.openai.com/v1/chat/completions \
+            -H "Authorization: Bearer $OPENAI_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d @workspace/openai_body.json \
+            | tee workspace/openai_response.json >/dev/null
+
+          jq -r '.choices[0].message.content // empty' workspace/openai_response.json > workspace/llm_output.txt
+          if [ ! -s workspace/llm_output.txt ]; then echo "" > workspace/llm_output.txt; fi
+
+      - name: Call Anthropic (if selected)
+        if: inputs.llm_provider == 'anthropic'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          MODEL: ${{ inputs.model }}
+        run: |
+          set -euo pipefail
+          if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
+            echo "Missing ANTHROPIC_API_KEY secret" >&2
+            exit 1
+          fi
+          jq -Rs --arg sys "$(cat workspace/system.txt)" --arg usr "Port this repository to Rust. Provide only src/main.rs.\n\nRepository content follows:\n\n$(cat workspace/prompt.trimmed.txt)" \
+            '{model: env.MODEL, max_tokens: 8192, temperature: 0, system: $sys, messages: [ {role:"user", content:$usr} ] }' \
+            <<< "" > workspace/anthropic_body.json
+
+          curl -sS https://api.anthropic.com/v1/messages \
+            -H "x-api-key: $ANTHROPIC_API_KEY" \
+            -H "anthropic-version: 2023-06-01" \
+            -H "content-type: application/json" \
+            -d @workspace/anthropic_body.json \
+            | tee workspace/anthropic_response.json >/dev/null
+
+          jq -r '.content[0].text // empty' workspace/anthropic_response.json > workspace/llm_output.txt
+          if [ ! -s workspace/llm_output.txt ]; then echo "" > workspace/llm_output.txt; fi
+
+      - name: Call Google Gemini (if selected)
+        if: inputs.llm_provider == 'google'
+        env:
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          MODEL: ${{ inputs.model }}
+        run: |
+          set -euo pipefail
+          if [ -z "${GOOGLE_API_KEY:-}" ]; then
+            echo "Missing GOOGLE_API_KEY secret" >&2
+            exit 1
+          fi
+          COMBINED_MSG="$(cat workspace/system.txt)\n\nPort this repository to Rust. Provide only src/main.rs.\n\nRepository content follows:\n\n$(cat workspace/prompt.trimmed.txt)"
+          jq -n --arg txt "$COMBINED_MSG" '{contents:[{parts:[{text:$txt}]}]}' > workspace/google_body.json
+          curl -sS "https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${GOOGLE_API_KEY}" \
+            -H "Content-Type: application/json" \
+            -d @workspace/google_body.json \
+            | tee workspace/google_response.json >/dev/null
+          jq -r '.candidates[0].content.parts[0].text // empty' workspace/google_response.json > workspace/llm_output.txt
+          if [ ! -s workspace/llm_output.txt ]; then echo "" > workspace/llm_output.txt; fi
+
+      - name: Extract Rust code from LLM output
+        run: |
+          python3 scripts/extract_rust_from_markdown.py < workspace/llm_output.txt > workspace/main.rs || {
+            echo "Falling back to raw output"; cp workspace/llm_output.txt workspace/main.rs; }
+          echo "Extracted src/main.rs bytes: $(wc -c < workspace/main.rs)" | tee -a workspace/run.log
+
+      - name: Create Cargo project and compile with retries
+        env:
+          PROVIDER: ${{ inputs.llm_provider }}
+          MODEL: ${{ inputs.model }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+        id: build
+        run: |
+          set -euo pipefail
+          cd workspace
+          rm -rf port-rust
+          cargo new port-rust --bin
+          cp main.rs port-rust/src/main.rs
+          ATTEMPTS=3
+          TRY=1
+          SUCCESS=0
+          while [ $TRY -le $ATTEMPTS ]; do
+            echo "Build attempt $TRY" | tee -a run.log
+            set +e
+            (cd port-rust && cargo build --verbose) 2>&1 | tee build.log
+            STATUS=${PIPESTATUS[0]}
+            set -e
+            if [ $STATUS -eq 0 ]; then
+              echo "Build succeeded on attempt $TRY" | tee -a run.log
+              SUCCESS=1
+              break
+            fi
+            echo "Build failed on attempt $TRY (status=$STATUS)." | tee -a run.log
+            if [ $TRY -eq $ATTEMPTS ]; then
+              echo "Max attempts reached; keeping last build.log." | tee -a run.log
+              break
+            fi
+            # Prepare retry prompt with compiler errors and current code
+            printf '%s\n' \
+              'Fix the Rust code so it compiles successfully. Output ONLY the corrected src/main.rs inside a rust fenced code block.' \
+              'Use ONLY the Rust standard library. Remove any external crate usage (e.g., glob) and any non-code text or markdown.' \
+              '' \
+              'Current src/main.rs:' \
+              '' \
+              '```rust' \
+              "$(cat port-rust/src/main.rs)" \
+              '```' \
+              '' \
+              'Compiler errors:' \
+              '' \
+              '```' \
+              "$(tail -n 1000 build.log)" \
+              '```' \
+              > retry_user.txt
+
+            # Call provider again to get a fixed file
+            if [ "$PROVIDER" = "openai" ]; then
+              if [ -z "${OPENAI_API_KEY:-}" ]; then echo "Missing OPENAI_API_KEY" >&2; exit 1; fi
+              jq -Rs --arg sys "$(cat system.txt)" --arg usr "$(cat retry_user.txt)" \
+                '{model: env.MODEL, temperature: 0, messages: [ {role:"system", content:$sys}, {role:"user", content:$usr} ] }' <<< "" > retry_openai_body.json
+              curl -sS https://api.openai.com/v1/chat/completions \
+                -H "Authorization: Bearer $OPENAI_API_KEY" -H "Content-Type: application/json" \
+                -d @retry_openai_body.json | tee retry_openai_response.json >/dev/null
+              jq -r '.choices[0].message.content' retry_openai_response.json > llm_output.txt
+            elif [ "$PROVIDER" = "anthropic" ]; then
+              if [ -z "${ANTHROPIC_API_KEY:-}" ]; then echo "Missing ANTHROPIC_API_KEY" >&2; exit 1; fi
+              jq -Rs --arg sys "$(cat system.txt)" --arg usr "$(cat retry_user.txt)" \
+                '{model: env.MODEL, max_tokens: 8192, temperature: 0, system: $sys, messages: [ {role:"user", content:$usr} ] }' <<< "" > retry_anthropic_body.json
+              curl -sS https://api.anthropic.com/v1/messages \
+                -H "x-api-key: $ANTHROPIC_API_KEY" -H "anthropic-version: 2023-06-01" -H "content-type: application/json" \
+                -d @retry_anthropic_body.json | tee retry_anthropic_response.json >/dev/null
+              jq -r '.content[0].text' retry_anthropic_response.json > llm_output.txt
+            else
+              # google (Gemini)
+              if [ -z "${GOOGLE_API_KEY:-}" ]; then echo "Missing GOOGLE_API_KEY" >&2; exit 1; fi
+              COMBINED_MSG="$(cat system.txt)\n\n$(cat retry_user.txt)"
+              jq -n --arg txt "$COMBINED_MSG" '{contents:[{parts:[{text:$txt}]}]}' > retry_google_body.json
+              curl -sS "https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${GOOGLE_API_KEY}" \
+                -H "Content-Type: application/json" -d @retry_google_body.json | tee retry_google_response.json >/dev/null
+              jq -r '.candidates[0].content.parts[0].text' retry_google_response.json > llm_output.txt
+            fi
+
+            # Extract corrected code and retry build
+            python3 scripts/extract_rust_from_markdown.py < llm_output.txt > main.rs || cp llm_output.txt main.rs
+            # Ensure file starts with valid Rust and contains no markdown fences
+            sed -i '1,/^\s*fn\s\|^\s*use\s\|^\s*mod\s\|^\s*pub\s\|^\s*extern\s\|^\s*const\s\|^\s*static\s\|^\s*#!\[/d' main.rs || true
+            sed -i 's/^```.*$//g' main.rs || true
+            cp main.rs port-rust/src/main.rs
+            TRY=$((TRY+1))
+          done
+          # keep final build.log in workspace for artifact
+          if [ "$SUCCESS" = 1 ]; then echo "compiled=true" >> "$GITHUB_OUTPUT"; else echo "compiled=false" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Prepare PR content
+        id: prep_pr
+        env:
+          SRC_URL: ${{ inputs.source_repo_url }}
+          MODEL: ${{ inputs.model }}
+          PROVIDER: ${{ inputs.llm_provider }}
+        run: |
+          set -euo pipefail
+          REPO_NAME=$(basename "$SRC_URL")
+          REPO_NAME=${REPO_NAME%.git}
+          SLUG="$(date +%Y%m%d-%H%M%S)-${REPO_NAME}"
+          OUT_DIR="ports/${SLUG}"
+          mkdir -p "$OUT_DIR"
+          rsync -a --delete workspace/port-rust/ "$OUT_DIR/"
+          STATUS="${{ steps.build.outputs.compiled }}"
+          : "${STATUS:=false}"
+          printf '%s\n' \
+            '# Ported to Rust' \
+            '' \
+            "- Source repository: $SRC_URL" \
+            "- Model: $PROVIDER / $MODEL" \
+            "- Build status: ${STATUS}" \
+            '' \
+            '## Build' \
+            '' \
+            '```bash' \
+            'cargo build' \
+            'cargo run' \
+            '```' \
+            '' \
+            'This project was generated by a GitHub Actions workflow that ingests the source repo, asks an LLM to port it to Rust, and then compiles the result.' \
+            > "$OUT_DIR/README.md"
+          echo "out_dir=${OUT_DIR}" >> "$GITHUB_OUTPUT"
+          echo "slug=${SLUG}" >> "$GITHUB_OUTPUT"
+
+      - name: Create pull request with changes
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: port-to-rust/${{ steps.prep_pr.outputs.slug }}
+          title: Port ${{ inputs.source_repo_url }} to Rust
+          commit-message: Add Rust port for ${{ inputs.source_repo_url }}
+          body: |
+            This PR adds an auto-generated Rust port for `${{ inputs.source_repo_url }}`.
+
+            - Model: `${{ inputs.llm_provider }} / ${{ inputs.model }}`
+            - Build status: `${{ steps.build.outputs.compiled }}`
+            - Output directory: `${{ steps.prep_pr.outputs.out_dir }}`
+          add-paths: |
+            ${{ steps.prep_pr.outputs.out_dir }}/**
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: port-to-rust-output
+          path: |
+            workspace/port-rust/
+            workspace/llm_output.txt
+            workspace/run.log
+            workspace/build.log
+
+
