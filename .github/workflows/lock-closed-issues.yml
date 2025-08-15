@@ -15,7 +15,6 @@ concurrency:
 jobs:
   lock-closed-issues:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
     steps:
       - name: Lock closed issues after 7 days of inactivity
         uses: actions/github-script@v7
@@ -23,13 +22,13 @@ jobs:
           script: |
             const sevenDaysAgo = new Date();
             sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-            
+
             const lockComment = `This issue has been automatically locked since it was closed and has not had any activity for 7 days. If you're experiencing a similar issue, please file a new issue and reference this one if it's relevant.`;
-            
+
             let page = 1;
             let hasMore = true;
             let totalLocked = 0;
-            
+
             while (hasMore) {
               // Get closed issues (pagination)
               const { data: issues } = await github.rest.issues.listForRepo({
@@ -89,5 +88,5 @@ jobs:
               
               page++;
             }
-            
+
             console.log(`Total issues locked: ${totalLocked}`);
