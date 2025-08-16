@@ -40,14 +40,18 @@ Write-Host "Using backend: $($Backend)"
 # --- Prerequisite Check ---
 Write-Host "Checking for required commands..."
 try {
-    Get-Command $Backend -ErrorAction Stop | Out-Null
+    if (-not (Get-Command $Backend -ErrorAction SilentlyContinue)) {
+        throw "Required command '$($Backend)' not found."
+    }
     Write-Host "- $($Backend) command found."
-    Get-Command devcontainer -ErrorAction Stop | Out-Null
+    if (-not (Get-Command devcontainer -ErrorAction SilentlyContinue)) {
+        throw "Required command 'devcontainer' not found."
+    }
     Write-Host "- devcontainer command found."
 }
 catch {
-    Write-Error "A required command is not installed or not in your PATH."
-    Write-Error "Please ensure '$($_.Exception.Message.Split(':')[0])' and 'devcontainer' are installed and accessible."
+    Write-Error "A required command is not installed or not in your PATH. $($_.Exception.Message)"
+    Write-Error "Please ensure both '$Backend' and 'devcontainer' are installed and accessible in your system's PATH."
     exit 1
 }
 
