@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+# Claude Code wrapper
+DEV_ROOT=${DEV_ROOT:-/Users/user/dev}
+REPO_ROOT="$DEV_ROOT"
+ENV_LOADER="$REPO_ROOT/config/env"
+
+# Load unified env loader
+if [ -f "$ENV_LOADER" ]; then
+  . "$ENV_LOADER"
+fi
+
+# Enforce allowed root (defaults to repo root for shared AI workspace)
+ALLOWED_ROOT=${ALLOWED_ROOT:-"$REPO_ROOT"}
+CUR=$(pwd)
+case "$CUR" in
+  "$ALLOWED_ROOT"*) ;;
+  *) echo "Refusing to run outside allowed root $ALLOWED_ROOT. cd there or set ALLOWED_ROOT to override." >&2; exit 2 ;;
+esac
+
+# Set tool home to repo-local (git-ignored)
+export CLAUDE_CONFIG_DIR="$REPO_ROOT/.claude"
+
+# Resolve CLI
+CLAUDE_BIN=${CLAUDE_BIN:-claude}
+if ! command -v "$CLAUDE_BIN" >/dev/null 2>&1; then
+  echo "Claude Code CLI (claude) not found. Install with: npm install -g @anthropic-ai/claude-code" >&2
+  exit 127
+fi
+
+exec "$CLAUDE_BIN" "$@"
+

@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+# Repo root (DEV_ROOT default)
+DEV_ROOT=${DEV_ROOT:-/Users/user/dev}
+REPO_ROOT="$DEV_ROOT"
+ENV_LOADER="$REPO_ROOT/config/env"
+
+# Load unified env loader (does not print secrets)
+if [ -f "$ENV_LOADER" ]; then
+  . "$ENV_LOADER"
+fi
+
+# Resolve codex binary
+CODEX_BIN=${CODEX_BIN:-codex}
+if ! command -v "$CODEX_BIN" >/dev/null 2>&1; then
+  echo "codex binary not found. Install Codex CLI and ensure it is on PATH." >&2
+  exit 127
+fi
+
+# Enforce allowed root by default (defaults to repo root for shared AI workspace)
+ALLOWED_ROOT=${CODEX_ALLOWED_ROOT:-"$REPO_ROOT"}
+CUR=$(pwd)
+case "$CUR" in
+  "$ALLOWED_ROOT"*) ;;
+  *) echo "Refusing to run outside allowed root $ALLOWED_ROOT. cd there or set CODEX_ALLOWED_ROOT to override." >&2; exit 2 ;;
+esac
+
+# Defaults: opt-out telemetry if variable not set
+export CODEX_TELEMETRY_OPTOUT=${CODEX_TELEMETRY_OPTOUT:-1}
+# Pass-through optional envs
+export CODEX_API_KEY="${CODEX_API_KEY-}"
+export CODEX_BASE_URL="${CODEX_BASE_URL-}"
+export CODEX_DEFAULT_MODEL="${CODEX_DEFAULT_MODEL-}"
+
+# Execute Codex CLI with provided args (non-interactive if subcommand given)
+exec "$CODEX_BIN" "$@"
+

@@ -3,6 +3,7 @@
     "dbaeumer.vscode-eslint",
     "esbenp.prettier-vscode",
     "ms-vscode-remote.remote-containers",
-    "eamodio.gitlens"
+    "eamodio.gitlens",
+    "ms-python.python"
   ]
 }

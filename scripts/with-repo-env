@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# Run a command with /Users/user/dev repo environment loaded.
+# - Loads config/env (which sources the consolidated ./.env)
+# - Maps GITHUB_PERSONAL_ACCESS_TOKEN from GH_TOKEN if not already set
+# - Does not print or log secrets
+#
+# Usage:
+#   /Users/user/dev/scripts/with-repo-env <command> [args...]
+# Example:
+#   /Users/user/dev/scripts/with-repo-env env | grep -E 'OPENAI_|ANTHROPIC_|GH_'
+#
+# Note: Prefer GitHub MCP for GitHub operations per repo rules; this wrapper is for local tools.
+set -Eeuo pipefail
+DEV_ROOT=${DEV_ROOT:-/Users/user/dev}
+ENV_LOADER="$DEV_ROOT/config/env"
+if [ -f "$ENV_LOADER" ]; then
+  . "$ENV_LOADER"
+fi
+# Map GH token to tools that expect GITHUB_PERSONAL_ACCESS_TOKEN
+if [ -n "${GH_TOKEN-}" ] && [ -z "${GITHUB_PERSONAL_ACCESS_TOKEN-}" ]; then
+  export GITHUB_PERSONAL_ACCESS_TOKEN="$GH_TOKEN"
+fi
+exec "$@"
+

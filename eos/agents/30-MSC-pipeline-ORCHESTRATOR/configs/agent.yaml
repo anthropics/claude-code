@@ -1,0 +1,28 @@
+agent:
+  id: "30-MSC-pipeline-ORCHESTRATOR"
+  name: "ORCHESTRATOR"
+  version: "0.1.0"
+  description: "Pipeline orchestrator (plans/executions)."
+  autodaemon: true
+  roles: ["S","C"]
+
+plugins:
+  enabled: [core, http, dag, cli]
+
+network:
+  host: "0.0.0.0"
+  port: 3521
+
+wiring:
+  configuration_url: "http://configuration:3511"
+  auth_jwks_url:     "http://auth_service:3512/.well-known/jwks.json"
+  db_agg_ingest_url: "http://db_aggregator:3516/rpc/ingest"
+
+logging:
+  level: INFO
+  oftx:
+    local_state: "/app/data/state.db"
+    purge_after_sync: true
+
+heartbeat:
+  interval_ms: 5000

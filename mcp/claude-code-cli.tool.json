@@ -1,0 +1,15 @@
+{
+  "name": "claude-code-cli",
+  "description": "Safe wrapper for Claude Code CLI in /Users/user/dev",
+  "tools": [
+    {
+      "name": "claude-code",
+      "type": "command",
+      "command": "scripts/claude-code-safe",
+      "args": [
+        {"name": "args", "variadic": true, "description": "Arguments passed to Claude Code CLI"}
+      ]
+    }
+  ]
+}
+

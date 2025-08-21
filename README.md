@@ -1,45 +1,58 @@
-# Claude Code
+# dev monorepo — Podman-first, agent-first (EOS + tools)
 
-![](https://img.shields.io/badge/Node.js-18%2B-brightgreen?style=flat-square) [![npm]](https://www.npmjs.com/package/@anthropic-ai/claude-code)
+Welcome. This is a tool-agnostic monorepo that hosts EOS and your working projects.
+No installs are performed from here; this README only explains the layout and how to proceed.
 
-[npm]: https://img.shields.io/npm/v/@anthropic-ai/claude-code.svg?style=flat-square
+## Top-level map
+- eos/ — EOS runtime: core agents and compose files
+- workspaces/ — vendor-neutral working folders (example: ws-example)
+- config/ — shared env & policy (no secrets committed)
+- memory/ — read-only snapshots/indexes (published later by EOS)
+- mcp/ — shared MCP manifests
+- Claude Code CLI runs via scripts/claude-code-safe and stores local state in .claude (git-ignored)
+- Codex CLI runs via scripts/codex-safe and can use .codex (git-ignored)
+- playbooks/ — repo playbooks: standards, process, rules, EOS overview
+- scripts/ — helper scripts (placeholders now)
 
-Claude Code is an agentic coding tool that lives in your terminal, understands your codebase, and helps you code faster by executing routine tasks, explaining complex code, and handling git workflows -- all through natural language commands. Use it in your terminal, IDE, or tag @claude on Github.
+See also:
+- playbooks/README.md — start here for coding standards & process
+- workspaces/ws-example/VERIFY_BEFORE_RUN.md — pre-run checklist
+- workspaces/ws-example/DRY_RUN_CONFIG.md — how to validate compose config (no start)
 
-**Learn more in the [official documentation](https://docs.anthropic.com/en/docs/claude-code/overview)**.
+## Compose files (do not run yet)
+- Core wiring: eos/compose/core.podman.yml
+- Runtime overlay: eos/compose/runtime.podman.yml (optional app/dev binds)
 
-<img src="./demo.gif" />
+These files wire each agent’s config to /app/config/agent.yaml:ro and mount a
+per-agent state volume at /app/data (agents store local state at /app/data/state.db).
 
-## Get started
+### Canonical ports
+| Service              | Port |
+|----------------------|------|
+| SESSION_LOG          | 3510 |
+| CONFIGURATION        | 3511 |
+| AUTH_SERVICE         | 3512 |
+| SERVICE_REGISTRY     | 3515 |
+| DB_AGGREGATOR        | 3516 |
+| CONTEXT_AGGREGATOR   | 3517 |
+| ROUTER               | 3434 |
+| DASHBOARD            | 3000 |
+| ORCHESTRATOR         | 3521 |
+| EXEC                 | 3522 |
 
-1. Install Claude Code:
+## Environment
+Local secrets are loaded via config/env, which sources a single consolidated .env at the repo root (git-ignored).
+Examples:
+- .env values: OPENAI_API_KEY, ANTHROPIC_API_KEY, GH_TOKEN or GITHUB_PERSONAL_ACCESS_TOKEN, CODEX_API_KEY, defaults like OPENAI_MODEL/CLAUDE_MODEL
 
-```sh
-npm install -g @anthropic-ai/claude-code
-```
+direnv support is prepared via config/.envrc if you choose to enable direnv later.
 
-2. Navigate to your project directory and run `claude`.
+## First-run flow (high level, manual steps)
+1. Review workspaces/ws-example/VERIFY_BEFORE_RUN.md and check every box.
+2. Dry-run (when you’re ready) — see workspaces/ws-example/DRY_RUN_CONFIG.md for the exact podman-compose ... config command.
+3. Only after dry-run looks correct, proceed to any install/start steps you choose (separate instructions).
 
-## Reporting Bugs
+## Notes
+- Roles use flags ["S"] or ["S","C"] (don’t write SERVER/CLIENT).
+- Tools (Claude/Codex) keep native memory in their home dirs; shared knowledge will be exported later into memory/ as read-only artifacts.
 
-We welcome your feedback. Use the `/bug` command to report issues directly within Claude Code, or file a [GitHub issue](https://github.com/anthropics/claude-code/issues).
-
-## Connect on Discord
-
-Join the [Claude Developers Discord](https://anthropic.com/discord) to connect with other developers using Claude Code. Get help, share feedback, and discuss your projects with the community.
-
-## Data collection, usage, and retention
-
-When you use Claude Code, we collect feedback, which includes usage data (such as code acceptance or rejections), associated conversation data, and user feedback submitted via the `/bug` command.
-
-### How we use your data
-
-We may use feedback to improve our products and services, but we will not train generative models using your feedback from Claude Code. Given their potentially sensitive nature, we store user feedback transcripts for only 30 days.
-
-If you choose to send us feedback about Claude Code, such as transcripts of your usage, Anthropic may use that feedback to debug related issues and improve Claude Code's functionality (e.g., to reduce the risk of similar bugs occurring in the future).
-
-### Privacy safeguards
-
-We have implemented several safeguards to protect your data, including limited retention periods for sensitive information, restricted access to user session data, and clear policies against using feedback for model training.
-
-For full details, please review our [Commercial Terms of Service](https://www.anthropic.com/legal/commercial-terms) and [Privacy Policy](https://www.anthropic.com/legal/privacy).

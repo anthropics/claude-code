@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# env-check: validate repo env and print a redacted readiness summary.
+# - Checks presence of key variables for OpenAI, Anthropic, GitHub, Codex
+# - Loads config/env (which now sources a single ./.env at repo root)
+# - Prints only first 4 and last 4 characters for secrets
+set -Eeuo pipefail
+DEV_ROOT=${DEV_ROOT:-/Users/user/dev}
+ENV_LOADER="$DEV_ROOT/config/env"
+if [ -f "$ENV_LOADER" ]; then
+  . "$ENV_LOADER"
+fi
+
+redact() {
+  local v="$1"; local n=${#v}
+  if [ -z "$v" ]; then echo "(unset)"; return; fi
+  if [ $n -le 8 ]; then echo "(set, redacted)"; return; fi
+  printf "%s…%s" "${v:0:4}" "${v: -4}"
+}
+
+printf "OpenAI:   OPENAI_API_KEY=%s  MODEL=%s\n" "$(redact "${OPENAI_API_KEY-}")" "${OPENAI_MODEL-}"
+printf "Anthropic: ANTHROPIC_API_KEY=%s  MODEL=%s\n" "$(redact "${ANTHROPIC_API_KEY-}")" "${CLAUDE_MODEL-}"
+printf "GitHub:   GH_TOKEN=%s  OWNER=%s  SSH_EMAIL=%s\n" "$(redact "${GH_TOKEN-}")" "${GH_OWNER-}" "${GH_SSH_EMAIL-}"
+printf "Codex:    CODEX_API_KEY=%s  MODEL=%s  ALLOWED_ROOT=%s\n" "$(redact "${CODEX_API_KEY-}")" "${CODEX_DEFAULT_MODEL-}" "${CODEX_ALLOWED_ROOT-}"
+

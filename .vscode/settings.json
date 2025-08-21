@@ -1,0 +1,26 @@
+{
+  "github.copilot.advanced": {},
+  "editor.inlineSuggest.enabled": true,
+  "github.copilot.enable": {
+    "*": true
+  },
+
+  // MCP settings
+  "chat.mcp.enabled": true,
+  "chat.mcp.discovery.enabled": true,
+  "chat.mcp.autostart": true,
+  // Discover manifests in repo mcp/ folder
+  "chat.mcp.manifestGlobs": [
+    "mcp/*.json",
+    "mcp/**/*.json"
+  ],
+
+  // Formatting and safety
+  "editor.formatOnSave": true,
+  "prettier.enable": true,
+  "telemetry.telemetryLevel": "off",
+
+  // Terminal integration (macOS); external terminal opens Warp.app
+  "terminal.external.osxExec": "Warp.app",
+  "terminal.integrated.defaultProfile.osx": "zsh"
+}

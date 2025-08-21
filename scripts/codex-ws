@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+DEV_ROOT=${DEV_ROOT:-/Users/user/dev}
+cd "$DEV_ROOT/workspaces/ws-example"
+"$DEV_ROOT/scripts/codex-safe" "$@"
+

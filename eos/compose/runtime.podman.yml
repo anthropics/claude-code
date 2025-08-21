@@ -1,0 +1,25 @@
+# Runtime overlay (Podman Compose v2)
+# Usage (when you're ready to run, later): podman-compose -f core.podman.yml -f runtime.podman.yml up -d
+# This overlay keeps dev mounts and env separate from the core wiring.
+
+services:
+  app:
+    image: ghcr.io/your-org/your-app:dev   # change when you have an image
+    container_name: eos-app
+    env_file:
+      - ../../config/env                   # local, git-ignored secrets/env
+    ports:
+      - "8080:8080"                        # change to match your app
+    volumes:
+      # Live-edit code (example workspace). Adjust or add more binds as needed.
+      - ../../workspaces/ws-example:/workspace:rw
+      # Read-only knowledge exports from EOS (once you start exporting snapshots)
+      - ../../memory/snapshots:/opt/knowledge/snapshots:ro
+      - ../../memory/indexes:/opt/knowledge/indexes:ro
+    depends_on:
+      - router
+      - configuration
+      - auth_service
+      # add context_aggregator / db_aggregator if your app queries them directly
+
+# Add other dev-only services here (e.g., a mock, a local DB, a file watcher).

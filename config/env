@@ -1,0 +1,18 @@
+# Unified env loader for /Users/user/dev
+# Preferred: load a single consolidated .env from repo root (git-ignored)
+# Optional: for backward compatibility, also load any config/env.d/*.env overrides if present
+# Safe for direnv or manual sourcing; does not echo values
+
+set -a
+# Load consolidated root .env first if present
+if [ -f "./.env" ]; then
+  . "./.env"
+fi
+# Then load optional per-tool overrides (if any exist)
+if [ -d "./config/env.d" ]; then
+  for f in ./config/env.d/*.env; do
+    [ -f "$f" ] && . "$f"
+  done
+fi
+set +a
+

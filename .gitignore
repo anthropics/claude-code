@@ -1,0 +1,22 @@
+# secrets & local env
+.env
+.env.*.local
+config/.env.local
+
+# Local Codex config (kept out of git)
+.codex/
+# Local Claude Code config (kept out of git)
+.claude/
+
+# Claude & Codex native stores are NOT here (they live in ~/.claude ~/.codex)
+# build artifacts
+**/__pycache__/
+**/.pytest_cache/
+**/dist/
+**/node_modules/
+
+# memory exports (keep, but ok to ignore transient files)
+memory/indexes/*.tmp
+
+# root env (optional fallback)
+.env.shared

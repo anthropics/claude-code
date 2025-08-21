@@ -1,0 +1,15 @@
+{
+  "name": "codex-cli",
+  "description": "Safe wrapper for Codex CLI in /Users/user/dev",
+  "tools": [
+    {
+      "name": "codex",
+      "type": "command",
+      "command": "scripts/codex-safe",
+      "args": [
+        {"name": "args", "variadic": true, "description": "Arguments passed to Codex CLI"}
+      ]
+    }
+  ]
+}
+

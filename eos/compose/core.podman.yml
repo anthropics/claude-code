@@ -1,0 +1,105 @@
+# EOS core wiring (Podman Compose v2) — rootless friendly
+# Core five ports map 3510–3517 (Playbook quick-start); Router on 3434.
+# Configs bind to /app/config/agent.yaml (ro); state volume mounts to /app/data (state.db).
+
+services:
+  session_log:
+    image: mr10x/eos-session_log:latest
+    container_name: eos-session_log
+    ports: ["3510:3510"]
+    volumes:
+      - ../agents/00-MS-core-SESSION_LOG/configs/agent.yaml:/app/config/agent.yaml:ro
+      - eos-session_log-state:/app/data
+
+  configuration:
+    image: mr10x/eos-configuration:latest
+    container_name: eos-configuration
+    depends_on: [ session_log ]
+    ports: ["3511:3511"]
+    volumes:
+      - ../agents/01-MS-service-CONFIGURATION/configs/agent.yaml:/app/config/agent.yaml:ro
+      - eos-configuration-state:/app/data
+
+  auth_service:
+    image: mr10x/eos-auth_service:latest
+    container_name: eos-auth_service
+    depends_on: [ configuration ]
+    ports: ["3512:3512"]
+    volumes:
+      - ../agents/02-MS-service-AUTH_SERVICE/configs/agent.yaml:/app/config/agent.yaml:ro
+      - eos-auth_service-state:/app/data
+
+  service_registry:
+    image: mr10x/eos-service_registry:latest
+    container_name: eos-service_registry
+    depends_on: [ session_log, configuration, auth_service ]
+    ports: ["3515:3515"]
+    volumes:
+      - ../agents/07-MS-service-SERVICE_REGISTRY/configs/agent.yaml:/app/config/agent.yaml:ro
+      - eos-service_registry-state:/app/data
+
+  db_aggregator:
+    image: mr10x/eos-db_aggregator:latest
+    container_name: eos-db_aggregator
+    depends_on: [ session_log, configuration ]
+    ports: ["3516:3516"]
+    volumes:
+      - ../agents/06-MS-service-DB_AGGREGATOR/configs/agent.yaml:/app/config/agent.yaml:ro
+      - eos-db_aggregator-state:/app/data
+
+  context_aggregator:
+    image: mr10x/eos-context_aggregator:latest
+    container_name: eos-context_aggregator
+    depends_on: [ db_aggregator ]
+    ports: ["3517:3517"]
+    volumes:
+      - ../agents/05-MS-core-CONTEXT_AGGREGATOR/configs/agent.yaml:/app/config/agent.yaml:ro
+      - eos-context_aggregator-state:/app/data
+
+  router:
+    image: mr10x/eos-router:latest
+    container_name: eos-router
+    depends_on: [ configuration, auth_service, service_registry ]
+    ports: ["3434:3434"]
+    volumes:
+      - ../agents/10-MS-service-ROUTER/configs/agent.yaml:/app/config/agent.yaml:ro
+      - eos-router-state:/app/data
+
+  dashboard:
+    image: mr10x/eos-dashboard:latest
+    container_name: eos-dashboard
+    depends_on: [ service_registry ]
+    ports: ["3000:3000"]
+    volumes:
+      - ../agents/08-MS-service-DASHBOARD/configs/agent.yaml:/app/config/agent.yaml:ro
+      - eos-dashboard-state:/app/data
+
+  orchestrator:
+    image: mr10x/eos-orchestrator:latest
+    container_name: eos-orchestrator
+    depends_on: [ router ]
+    ports: ["3521:3521"]
+    volumes:
+      - ../agents/30-MSC-pipeline-ORCHESTRATOR/configs/agent.yaml:/app/config/agent.yaml:ro
+      - eos-orchestrator-state:/app/data
+
+  exec:
+    image: mr10x/eos-exec:latest
+    container_name: eos-exec
+    depends_on: [ orchestrator ]
+    ports: ["3522:3522"]
+    volumes:
+      - ../agents/40-MSC-pipeline-EXEC/configs/agent.yaml:/app/config/agent.yaml:ro
+      - eos-exec-state:/app/data
+
+volumes:
+  eos-session_log-state: {}
+  eos-configuration-state: {}
+  eos-auth_service-state: {}
+  eos-service_registry-state: {}
+  eos-db_aggregator-state: {}
+  eos-context_aggregator-state: {}
+  eos-router-state: {}
+  eos-dashboard-state: {}
+  eos-orchestrator-state: {}
+  eos-exec-state: {}
