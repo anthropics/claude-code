@@ -58,6 +58,12 @@ Rules and operating notes
 - Secrets/env: single consolidated .env at repo root (git-ignored). Source via config/env, which loads .env; per-tool env.d is deprecated.
 - Tool homes (repo-local, git-ignored): .claude for Claude Code, .codex for Codex; use wrappers under scripts/
 
+GitHub operations (MCP-only)
+- Do not run git pushes or GitHub operations directly from the terminal over HTTPS.
+- Use your MCP-enabled client (e.g., VS Code with MCP) to push branches and open PRs.
+- If a branch is prepared locally (e.g., chore/env-mcp-docs-unify), push it via MCP so authentication is handled by your MCP client.
+- Avoid configuring ad-hoc tokens or changing remotes to bypass MCP policy. If a terminal push is absolutely required, explicitly document the exception and revert to MCP flows immediately after.
+
 Tooling status
 - Repo root has no build/lint/test toolchain (no package.json, pyproject.toml, Makefile)
 - Test/build commands are N/A here; use per-agent/app repositories for language-specific tasks
