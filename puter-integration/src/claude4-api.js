@@ -3,7 +3,7 @@
  * Provides keyless access to Claude 4 models through Puter.js
  */
 
-const puter = require('@puter/sdk');
+const puter = require('./puter-sdk');
 const chalk = require('chalk');
 const ora = require('ora');
 
