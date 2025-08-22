@@ -1,0 +1,57 @@
+{
+  "name": "@anthropic-ai/claude-code-puter",
+  "version": "1.0.0",
+  "description": "Claude Code with Puter.js Claude 4 keyless integration",
+  "main": "src/index.js",
+  "bin": {
+    "claude-puter": "bin/claude-puter.js"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "build": "npm run build:cli && npm run build:web",
+    "build:cli": "node scripts/build-cli.js",
+    "build:web": "node scripts/build-web.js",
+    "test": "jest",
+    "lint": "eslint src/"
+  },
+  "dependencies": {
+    "@puter/sdk": "^2.0.0",
+    "commander": "^11.0.0",
+    "chalk": "^5.3.0",
+    "inquirer": "^9.2.0",
+    "ora": "^7.0.0",
+    "boxen": "^7.1.0",
+    "figlet": "^1.7.0",
+    "node-fetch": "^3.3.0",
+    "ws": "^8.14.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "eslint": "^8.50.0",
+    "jest": "^29.7.0",
+    "nodemon": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "claude",
+    "ai",
+    "coding",
+    "terminal",
+    "puter",
+    "keyless",
+    "claude-4"
+  ],
+  "author": "Anthropic (Puter Integration)",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/anthropics/claude-code.git"
+  },
+  "bugs": {
+    "url": "https://github.com/anthropics/claude-code/issues"
+  },
+  "homepage": "https://github.com/anthropics/claude-code#readme"
+}
