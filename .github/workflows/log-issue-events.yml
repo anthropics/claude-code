@@ -2,7 +2,7 @@ name: Log Issue Events to Statsig
 
 on:
   issues:
-    types: [opened]
+    types: [opened, closed]
 
 jobs:
   log-to-statsig:
