@@ -1,0 +1,42 @@
+name: "Remove Autoclose Label on Activity"
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  issues: write
+
+jobs:
+  remove-autoclose:
+    # Only run if the issue has the autoclose label
+    if: |
+      github.event.issue.state == 'open' &&
+      contains(github.event.issue.labels.*.name, 'autoclose') &&
+      github.event.comment.user.login != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Remove autoclose label
+        uses: actions/github-script@v7
+        with:
+          script: |
+            console.log(`Removing autoclose label from issue #${context.issue.number} due to new comment from ${context.payload.comment.user.login}`);
+            
+            try {
+              // Remove the autoclose label
+              await github.rest.issues.removeLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                name: 'autoclose'
+              });
+              
+              console.log(`Successfully removed autoclose label from issue #${context.issue.number}`);
+            } catch (error) {
+              // If the label was already removed or doesn't exist, that's fine
+              if (error.status === 404) {
+                console.log(`Autoclose label was already removed from issue #${context.issue.number}`);
+              } else {
+                throw error;
+              }
+            }
