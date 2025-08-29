@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 /Users/yourusername/src/claude-code/examples/hooks/zero_trust_env_accountability.py"
+          }
+        ]
+      }
+    ]
+  }
+}
