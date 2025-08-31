@@ -23,11 +23,11 @@ This is a fork of Anthropic's official Claude Code CLI, maintained by nexcallai.
 
 # Security Protocols
 
-- [ ] Never commit secrets, API keys, or sensitive data
-- [ ] Validate all user inputs before processing
-- [ ] Use secure authentication methods (OAuth, SSH keys)
-- [ ] Follow OWASP security guidelines for CLI applications
-- [ ] Review dependencies for known vulnerabilities
+- Never commit secrets, API keys, or sensitive data
+- Validate all user inputs before processing
+- Use secure authentication methods (OAuth, SSH keys)
+- Follow OWASP security guidelines for CLI applications
+- Review dependencies for known vulnerabilities
 
 # Documentation Standards
 
