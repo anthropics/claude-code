@@ -1,0 +1,52 @@
+{
+  "zero_trust_security": {
+    "enabled": true,
+    "secret_detection": {
+      "patterns": [
+        {
+          "type": "openai_api_key",
+          "pattern": "sk-[a-zA-Z0-9]{48}",
+          "enabled": true,
+          "validator": "not_test_pattern"
+        },
+        {
+          "type": "anthropic_api_key",
+          "pattern": "sk-ant-[a-zA-Z0-9_-]{94}R",
+          "enabled": true,
+          "validator": "not_test_pattern"
+        },
+        {
+          "type": "aws_access_key",
+          "pattern": "AKIA[0-9A-Z]{16}",
+          "enabled": true,
+          "validator": "not_test_pattern"
+        },
+        {
+          "type": "github_token",
+          "pattern": "(ghp|github_pat)_[a-zA-Z0-9_]+",
+          "enabled": true,
+          "validator": "not_test_pattern"
+        },
+        {
+          "type": "google_api_key",
+          "pattern": "AIza[0-9A-Za-z_-]{35}",
+          "enabled": true,
+          "validator": "not_test_pattern"
+        },
+        {
+          "type": "slack_token",
+          "pattern": "xox[baprs]-[0-9a-zA-Z]{10,48}",
+          "enabled": true,
+          "validator": "not_test_pattern"
+        }
+      ],
+      "entropy_threshold": 3.5,
+      "context_aware": true
+    },
+    "placeholder_format": "<SECRET_PLACEHOLDER_{counter}>",
+    "audit": {
+      "enabled": true,
+      "log_level": "INFO"
+    }
+  }
+}
