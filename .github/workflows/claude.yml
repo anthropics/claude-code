@@ -1,4 +1,4 @@
-name: Claude Code
+name: Claude Code - Advanced
 
 on:
   issue_comment:
@@ -23,15 +23,26 @@ jobs:
       pull-requests: read
       issues: read
       id-token: write
+      actions: read
+      checks: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4
         with:
           fetch-depth: 1
 
-      - name: Run Claude Code
+      - name: Run Claude Code with Experimental Features
         id: claude
-        uses: anthropics/claude-code-action@beta
+        uses: anthropics/claude-code-action@experimental
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          experimental_features: true
+          alpha_features: true
+          beta_features: true
+          performance_optimization: true
+          advanced_analysis: true
+        env:
+          CLAUDE_EXPERIMENTAL_FEATURES: "true"
+          CLAUDE_ALPHA_FEATURES: "true"
+          CLAUDE_BETA_FEATURES: "true"
 
