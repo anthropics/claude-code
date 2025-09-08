@@ -1,30 +1,83 @@
 {
-  "name": "Claude Code Sandbox",
+  "name": "Claude Code Sandbox - Advanced",
   "build": {
     "dockerfile": "Dockerfile",
     "args": {
       "TZ": "${localEnv:TZ:America/Los_Angeles}",
-      "CLAUDE_CODE_VERSION": "latest",
+      "CLAUDE_CODE_VERSION": "1.0.108",
       "GIT_DELTA_VERSION": "0.18.2",
-      "ZSH_IN_DOCKER_VERSION": "1.2.0"
+      "ZSH_IN_DOCKER_VERSION": "1.2.0",
+      "ENABLE_EXPERIMENTAL_FEATURES": "true",
+      "ENABLE_ALPHA_FEATURES": "true",
+      "ENABLE_BETA_FEATURES": "true",
+      "INSTALL_ADVANCED_TOOLS": "true",
+      "NODE_ENV": "development"
     }
   },
   "runArgs": [
     "--cap-add=NET_ADMIN",
-    "--cap-add=NET_RAW"
+    "--cap-add=NET_RAW",
+    "--cap-add=SYS_PTRACE",
+    "--security-opt=seccomp=unconfined"
   ],
   "customizations": {
     "vscode": {
       "extensions": [
         "dbaeumer.vscode-eslint",
         "esbenp.prettier-vscode",
-        "eamodio.gitlens"
+        "eamodio.gitlens",
+        "mhutchie.git-graph",
+        "donjayamanne.githistory",
+        "waderyan.gitblame",
+        "ms-vscode.vscode-typescript-next",
+        "bradlc.vscode-tailwindcss",
+        "usernamehw.errorlens",
+        "github.copilot",
+        "github.copilot-chat",
+        "ms-vscode.vscode-ai",
+        "ms-vscode.vscode-json",
+        "redhat.vscode-yaml",
+        "ms-python.python",
+        "ms-python.pylint",
+        "ms-vscode-remote.remote-containers",
+        "ms-azuretools.vscode-docker",
+        "streetsidesoftware.code-spell-checker",
+        "christian-kohler.path-intellisense",
+        "formulahendry.auto-rename-tag",
+        "ms-vscode.wordcount",
+        "pkief.material-icon-theme",
+        "zhuangtongfa.material-theme",
+        "oderwat.indent-rainbow",
+        "aaron-bond.better-comments",
+        "ms-vscode.vscode-js-profile-flame",
+        "ms-vscode.vscode-performance",
+        "ms-vscode.vscode-experimental-features",
+        "ms-vscode.remote-explorer"
       ],
       "settings": {
         "editor.formatOnSave": true,
+        "editor.formatOnPaste": true,
+        "editor.formatOnType": true,
         "editor.defaultFormatter": "esbenp.prettier-vscode",
         "editor.codeActionsOnSave": {
-          "source.fixAll.eslint": "explicit"
+          "source.fixAll.eslint": "explicit",
+          "source.organizeImports": "explicit",
+          "source.fixAll": "explicit"
+        },
+        "editor.experimental.asyncTokenization": true,
+        "editor.experimental.asyncTokenizationLogging": true,
+        "editor.experimental.stickyScroll.enabled": true,
+        "editor.inlineSuggest.enabled": true,
+        "editor.suggestSelection": "first",
+        "editor.quickSuggestions": {
+          "other": "on",
+          "comments": "on",
+          "strings": "on"
+        },
+        "editor.wordBasedSuggestions": "off",
+        "editor.wordBasedSuggestionsMode": "currentDocument",
+        "editor.semanticTokenColorCustomizations": {
+          "enabled": true
         },
         "terminal.integrated.defaultProfile.linux": "zsh",
         "terminal.integrated.profiles.linux": {
@@ -35,7 +88,53 @@
           "zsh": {
             "path": "zsh"
           }
-        }
+        },
+        "terminal.integrated.enableMultiLinePasteWarning": false,
+        "terminal.integrated.fontSize": 14,
+        "terminal.integrated.fontFamily": "JetBrains Mono, Consolas, 'Courier New', monospace",
+        "git.enableSmartCommit": true,
+        "git.confirmSync": false,
+        "git.autofetch": true,
+        "git.experimental.useBuiltinFSWatcher": true,
+        "gitlens.currentLine.enabled": true,
+        "gitlens.hovers.enabled": true,
+        "gitlens.blame.highlight.enabled": true,
+        "search.experimental.closedNotebookRichContentResults": true,
+        "search.useGlobalIgnoreFiles": true,
+        "files.watcherExclude": {
+          "**/node_modules/**": true,
+          "**/.git/objects/**": true,
+          "**/.git/subtree-cache/**": true,
+          "**/dist/**": true,
+          "**/build/**": true
+        },
+        "typescript.experimental.enableProjectDiagnostics": true,
+        "typescript.enablePromptUseWorkspaceTsdk": true,
+        "typescript.preferences.includePackageJsonAutoImports": "on",
+        "javascript.preferences.includePackageJsonAutoImports": "on",
+        "python.analysis.experimental.enableTypeInlayHints": true,
+        "python.analysis.completeFunctionParens": true,
+        "github.copilot.enable": {
+          "*": true,
+          "yaml": true,
+          "plaintext": true,
+          "markdown": true
+        },
+        "github.copilot.experimental.chat.enabled": true,
+        "workbench.colorTheme": "Material Theme Darker High Contrast",
+        "workbench.iconTheme": "material-icon-theme",
+        "workbench.experimental.enableNewProfilesUI": true,
+        "workbench.tree.indent": 15,
+        "extensions.experimental.affinity": {
+          "github.copilot": 1,
+          "ms-vscode.vscode-typescript-next": 1
+        },
+        "security.workspace.trust.enabled": false,
+        "telemetry.telemetryLevel": "off",
+        "cSpell.enabled": true,
+        "cSpell.showStatus": true,
+        "errorLens.enabled": true,
+        "errorLens.enabledDiagnosticLevels": ["error", "warning", "info", "hint"]
       }
     }
   },
@@ -45,9 +144,19 @@
     "source=claude-code-config-${devcontainerId},target=/home/node/.claude,type=volume"
   ],
   "containerEnv": {
-    "NODE_OPTIONS": "--max-old-space-size=4096",
+    "NODE_OPTIONS": "--max-old-space-size=8192 --experimental-modules --experimental-specifier-resolution=node",
     "CLAUDE_CONFIG_DIR": "/home/node/.claude",
-    "POWERLEVEL9K_DISABLE_GITSTATUS": "true"
+    "POWERLEVEL9K_DISABLE_GITSTATUS": "true",
+    "ENABLE_EXPERIMENTAL_FEATURES": "true",
+    "ENABLE_ALPHA_FEATURES": "true",
+    "ENABLE_BETA_FEATURES": "true",
+    "GIT_EDITOR": "nano",
+    "EDITOR": "nano",
+    "VISUAL": "nano",
+    "FZF_DEFAULT_OPTS": "--height 40% --reverse --border",
+    "HISTSIZE": "50000",
+    "SAVEHIST": "50000",
+    "TERM": "xterm-256color"
   },
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=delegated",
   "workspaceFolder": "/workspace",

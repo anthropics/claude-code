@@ -1,0 +1,164 @@
+{
+  "experimental": {
+    "description": "Cutting-edge features that are actively being developed",
+    "enabled": true,
+    "features": {
+      "advancedCodeAnalysis": {
+        "enabled": true,
+        "description": "Deep semantic code analysis with AI",
+        "options": {
+          "contextWindow": 32000,
+          "analysisDepth": "deep",
+          "includeComments": true,
+          "crossFileAnalysis": true
+        }
+      },
+      "multiFileEditing": {
+        "enabled": true,
+        "description": "Edit multiple files simultaneously with context awareness",
+        "options": {
+          "maxFiles": 10,
+          "autoSave": true,
+          "conflictResolution": "smart"
+        }
+      },
+      "intelligentSuggestions": {
+        "enabled": true,
+        "description": "AI-powered code suggestions and completions",
+        "options": {
+          "suggestionThreshold": 0.7,
+          "includeDocumentation": true,
+          "contextualHelp": true
+        }
+      },
+      "contextAwareCompletions": {
+        "enabled": true,
+        "description": "Code completions that understand project context",
+        "options": {
+          "projectAnalysis": true,
+          "dependencyAwareness": true,
+          "patternRecognition": true
+        }
+      },
+      "advancedDebugging": {
+        "enabled": true,
+        "description": "Enhanced debugging with AI assistance",
+        "options": {
+          "predictiveBreakpoints": true,
+          "rootCauseAnalysis": true,
+          "performanceHints": true
+        }
+      }
+    }
+  },
+  "alpha": {
+    "description": "Early-stage features with limited testing",
+    "enabled": true,
+    "features": {
+      "aiPoweredRefactoring": {
+        "enabled": true,
+        "description": "Automated code refactoring with AI guidance",
+        "options": {
+          "aggressiveness": "moderate",
+          "preserveSemantics": true,
+          "optimizePerformance": true
+        }
+      },
+      "predictiveCoding": {
+        "enabled": true,
+        "description": "Predict and suggest next code blocks",
+        "options": {
+          "predictionAccuracy": "high",
+          "cacheSize": "1GB",
+          "learningMode": true
+        }
+      },
+      "smartErrorDetection": {
+        "enabled": true,
+        "description": "Proactive error detection and prevention",
+        "options": {
+          "staticAnalysis": true,
+          "runtimePrediction": true,
+          "securityScanning": true
+        }
+      },
+      "automatedTesting": {
+        "enabled": true,
+        "description": "Generate and run tests automatically",
+        "options": {
+          "testCoverage": 85,
+          "testTypes": ["unit", "integration", "e2e"],
+          "continuousValidation": true
+        }
+      }
+    }
+  },
+  "beta": {
+    "description": "Stable features ready for wider testing",
+    "enabled": true,
+    "features": {
+      "enhancedGitIntegration": {
+        "enabled": true,
+        "description": "Advanced Git operations with AI assistance",
+        "options": {
+          "smartCommitMessages": true,
+          "conflictResolution": "assisted",
+          "branchSuggestions": true
+        }
+      },
+      "collaborativeEditing": {
+        "enabled": true,
+        "description": "Real-time collaborative development",
+        "options": {
+          "maxCollaborators": 5,
+          "conflictResolution": "automatic",
+          "versionTracking": true
+        }
+      },
+      "advancedSearch": {
+        "enabled": true,
+        "description": "Semantic search across codebase",
+        "options": {
+          "fuzzyMatching": true,
+          "contextualSearch": true,
+          "crossLanguageSearch": true
+        }
+      },
+      "smartFileNavigation": {
+        "enabled": true,
+        "description": "Intelligent file and symbol navigation",
+        "options": {
+          "predictiveNavigation": true,
+          "contextAwareness": true,
+          "favoriteFiles": true
+        }
+      }
+    }
+  },
+  "performance": {
+    "description": "Performance optimization settings",
+    "maxMemory": "8192mb",
+    "parallelProcessing": true,
+    "cacheEnabled": true,
+    "optimizationLevel": "aggressive",
+    "backgroundProcessing": true,
+    "preloadModules": true,
+    "options": {
+      "cpuUtilization": 80,
+      "memoryThreshold": 75,
+      "diskCacheSize": "2GB",
+      "networkOptimization": true
+    }
+  },
+  "security": {
+    "description": "Security and privacy settings",
+    "enabled": true,
+    "options": {
+      "dataEncryption": true,
+      "secureConnections": true,
+      "auditLogging": true,
+      "accessControl": "strict",
+      "vulnerabilityScanning": true
+    }
+  }
+}
