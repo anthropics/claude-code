@@ -8,9 +8,14 @@ body:
     attributes:
       value: |
         Thanks for taking the time to report this bug! Please fill out the sections below to help us understand and fix the issue.
-        
-        Before submitting, please check:
-        - You're using the [latest version](https://www.npmjs.com/package/@anthropic-ai/claude-code?activeTab=versions) of Claude Code (`claude --version`) 
+
+        **📝 Reporting Guidelines:**
+        - **Please write your report in English** to ensure our team can respond quickly. This helps us maintain consistency and speed up issue resolution.
+        - Use clear formatting with proper line breaks and code blocks for better readability
+        - When attaching images, use GitHub's drag-and-drop feature or paste images directly into text areas
+
+        **Before submitting, please check:**
+        - You're using the [latest version](https://www.npmjs.com/package/@anthropic-ai/claude-code?activeTab=versions) of Claude Code (`claude --version`)
         - This issue hasn't already been reported by searching [existing issues](https://github.com/anthropics/claude-code/issues?q=is%3Aissue%20state%3Aopen%20label%3Abug).
         - This is a bug, not a feature request or support question
         
@@ -179,10 +184,19 @@ body:
       label: Additional Information
       description: |
         Anything else that might help us understand the issue?
-        - Screenshots (drag and drop images here)
-        - Configuration files
-        - Related files or code
-        - Links to repositories demonstrating the issue
-      placeholder: Any additional context, screenshots, or information...
+
+        **📎 How to attach files properly:**
+        - **Images**: Drag and drop images directly into this text area, or use the toolbar to upload
+        - **DO NOT** paste empty image placeholders or broken image references
+        - **Screenshots**: Take clear, properly formatted screenshots that show the full error context
+        - **Code files**: Use code blocks with proper syntax highlighting (e.g., ```python)
+        - **Configuration files**: Paste content in code blocks or attach as files
+        - **Links**: Include links to repositories demonstrating the issue
+
+        **Note**: If you're experiencing "empty base64 image" errors, make sure images are fully uploaded before submitting.
+      placeholder: |
+        Any additional context that might help us understand and fix the issue.
+
+        You can drag and drop images, paste code blocks, or attach files here.
     validations:
       required: false

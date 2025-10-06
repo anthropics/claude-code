@@ -8,9 +8,15 @@ body:
     attributes:
       value: |
         ## Thanks for suggesting a feature!
-        
+
         We love hearing ideas from our community. Please help us understand your use case by filling out the sections below.
-        Before submitting, please check if this feature has already been requested.
+
+        **📝 Reporting Guidelines:**
+        - **Please write your request in English** to ensure our team can respond quickly and prioritize effectively
+        - Use clear formatting with proper line breaks and code examples for better readability
+        - When sharing mockups or screenshots, use GitHub's drag-and-drop feature
+
+        **Before submitting, please check if this feature has already been requested.**
         
   - type: checkboxes
     id: preflight
@@ -123,10 +129,18 @@ body:
     attributes:
       label: Additional Context
       description: |
-        - Screenshots or mockups of the proposed feature
+        - Screenshots or mockups of the proposed feature (drag and drop images here)
         - Links to similar features in other tools
         - Technical considerations or constraints
         - Any other relevant information
-      placeholder: Add any other context, mockups, or examples here...
+
+        **📎 How to attach files properly:**
+        - **Images/Mockups**: Drag and drop images directly, or paste them into this text area
+        - **DO NOT** paste empty image placeholders
+        - **Code examples**: Use code blocks with proper syntax highlighting
+      placeholder: |
+        Add any other context, mockups, or examples here.
+
+        You can drag and drop images or paste code blocks.
     validations:
       required: false
