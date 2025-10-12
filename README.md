@@ -28,6 +28,32 @@ We welcome your feedback. Use the `/bug` command to report issues directly withi
 
 Join the [Claude Developers Discord](https://anthropic.com/discord) to connect with other developers using Claude Code. Get help, share feedback, and discuss your projects with the community.
 
+## Community Marketplaces
+
+Extend Claude Code with community-created plugin marketplaces:
+
+### Titanium Plugins
+
+**Voice-enhanced development toolkit from Titanium Computing**
+
+Features:
+- 16 specialized builder agents for implementation
+- Real-time voice announcements via ElevenLabs
+- GPT-5 powered summaries and notifications
+- Pieces LTM integration for context recovery
+- Complete voice hook system
+
+```bash
+/plugin marketplace add webdevtodayjason/titanium-plugins
+/plugin install titanium-toolkit
+```
+
+[→ View on GitHub](https://github.com/webdevtodayjason/titanium-plugins)
+
+---
+
+*Want to add your marketplace here? Submit a PR with your marketplace details!*
+
 ## Data collection, usage, and retention
 
 When you use Claude Code, we collect feedback, which includes usage data (such as code acceptance or rejections), associated conversation data, and user feedback submitted via the `/bug` command.
