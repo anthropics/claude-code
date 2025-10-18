@@ -1,0 +1,60 @@
+{
+  "$schema": "https://anthropic.com/claude-code/org-policy.schema.json",
+  "mcp": {
+    "allowlist": [
+      "^docker$",
+      "^k8s$",
+      "^git$",
+      "^http(s)?://.*trusted\\.corp\\.com/.*"
+    ],
+    "denylist": [
+      "^experimental-.*$",
+      "^prod-.*-write$"
+    ],
+    "defaultPermissions": {
+      "read": "allow",
+      "write": "ask",
+      "network": "ask"
+    }
+  },
+  "plugins": {
+    "allowlist": [
+      "commit-commands",
+      "feature-dev",
+      "pr-review-toolkit",
+      "security-guidance"
+    ],
+    "denylist": []
+  },
+  "agents": {
+    "allowlist": [
+      "feature-dev",
+      "pr-review-toolkit",
+      "commit-commands"
+    ],
+    "denylist": [
+      "experimental-*"
+    ]
+  },
+  "tools": {
+    "rules": [
+      { "pattern": "Bash(*)", "policy": "ask" },
+      { "pattern": "Write(*)", "policy": "ask" },
+      { "pattern": "Edit(*)", "policy": "ask" },
+      { "pattern": "Read(*)", "policy": "allow" },
+      { "pattern": "Grep(*)", "policy": "allow" }
+    ]
+  },
+  "models": {
+    "defaultPlan": "sonnet-4.5",
+    "defaultExecute": "haiku-4.5",
+    "allowed": []
+  },
+  "privacy": {
+    "disableNonessentialTraffic": true
+  },
+  "audit": {
+    "decisionsFile": "CLAUDE_DECISIONS.md"
+  }
+}
+

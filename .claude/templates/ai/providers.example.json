@@ -1,0 +1,56 @@
+{
+  "$schema": "https://example.com/ai/providers.schema.json",
+  "providers": [
+    {
+      "name": "anthropic",
+      "baseUrl": "${ANTHROPIC_BASE_URL:-https://api.anthropic.com}",
+      "model": "claude-3-5-sonnet-latest",
+      "stream": true,
+      "tools": true,
+      "timeoutMs": 60000,
+      "weight": 1
+    },
+    {
+      "name": "openai",
+      "baseUrl": "${OPENAI_BASE_URL:-https://api.openai.com/v1}",
+      "model": "gpt-4o-mini",
+      "stream": true,
+      "tools": true,
+      "timeoutMs": 60000,
+      "weight": 1
+    },
+    {
+      "name": "openrouter",
+      "baseUrl": "${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}",
+      "model": "anthropic/claude-3.5-sonnet",
+      "stream": true,
+      "tools": false,
+      "timeoutMs": 60000,
+      "weight": 1
+    },
+    {
+      "name": "gemini",
+      "baseUrl": "${GEMINI_BASE_URL:-https://generativelanguage.googleapis.com}",
+      "model": "gemini-1.5-pro-latest",
+      "stream": true,
+      "tools": true,
+      "timeoutMs": 60000,
+      "weight": 1
+    },
+    {
+      "name": "xai",
+      "baseUrl": "${XAI_BASE_URL:-https://api.x.ai/v1}",
+      "model": "grok-beta",
+      "stream": true,
+      "tools": false,
+      "timeoutMs": 60000,
+      "weight": 1
+    }
+  ],
+  "routing": {
+    "strategy": "primary-fallback",
+    "order": ["anthropic", "openai", "openrouter", "gemini", "xai"],
+    "retry": { "retries": 3, "baseMs": 500, "jitter": true }
+  }
+}
+
