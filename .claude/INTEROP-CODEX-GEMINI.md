@@ -138,6 +138,31 @@ CODEX_API_KEY="$KEY" codex exec \
 
 ---
 
+## 8) Gemini CLI 使用要點（一次性整合）
+
+- 提示語：使用 `-p "…"` 或位置參數（二擇一）；不可同時使用 `-p` 與 `-i`，且管線輸入時不可用 `-i`。
+- 建議輸出：`--output-format json`（機器解析），或 `--output-format stream-json`（逐行 JSONL 事件）。
+- 安全預設：
+  - `--approval-mode default` 僅允許安全工具（讀檔/匹配），排除會卡核准的副作用工具
+  - 若需自動檔案編輯，使用 `--approval-mode auto_edit` 並白名單 `--allowed-tools "read_many_files,glob"`
+  - 停用不必要擴充：`-e none`
+  - 建議啟用沙箱：`-s` 或 `GEMINI_SANDBOX=true`
+- 引入檔案：在 prompt 中加入 `@path`（可含 glob，如 `@src/**.ts`）讓 CLI 自動讀入檔案內容。
+- 退出碼：成功 `0`；常見致命錯誤如認證 `41`、輸入 `42`、沙箱 `44`、設定 `52` 等，可據此重試或告警。
+
+推薦一次性範式：
+
+```bash
+gemini -m <MODEL> \
+  --output-format json \
+  --approval-mode auto_edit \
+  --allowed-tools "read_many_files,glob" \
+  -e none -s \
+  -p "說明並修正 @.claude/interop/context/gemini-ctx-<ts>.md 的問題"
+```
+
+---
+
 ## 8) 推薦 Slash 指令（已提供模板）
 
 - `/interop-broker`：自動判斷 Router/Broker/Cascade，並提示下一步

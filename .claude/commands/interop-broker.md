@@ -14,7 +14,7 @@ allowed-tools: Bash(codex:*), Bash(gemini:*), Bash(ls:*), Bash(cat:*), Bash(rg:*
 
 3) 可執行指令草案
 - 若系統存在 `codex`：預設以 `--full-auto` 生成命令（允許改檔、仍禁網），與輸出路徑 `.claude/interop/artifacts/codex-<ts>.out`
-- 若系統存在 `gemini`：產生 `gemini ...` 命令與輸出路徑 `.claude/interop/artifacts/gemini-<ts>.out`
+- 若系統存在 `gemini`：預設以 `--output-format json --approval-mode auto_edit --allowed-tools "read_many_files,glob" -e none -s` 生成命令，輸出到 `.claude/interop/artifacts/gemini-<ts>.json`
 - 不直接執行，先顯示合併的最小授權請求（一次確認）
 
 4) 執行與收斂（選用）
