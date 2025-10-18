@@ -66,6 +66,18 @@ Claude 取回後：
 
 ---
 
+## 5.1) Codex CLI 使用要點（避免常見錯誤）
+
+- `-p/--profile` 是「設定檔名稱」，不是「prompt」。請用 `exec -- "<prompt>"` 傳遞提示詞。
+- 全域旗標（如 `-a/--ask-for-approval`, `-s/--sandbox`, `-C/--cd`, `-m/--model`）需置於子命令 `exec` 之前：
+  ```bash
+  codex -a on-failure -s workspace-write -C "$PWD" -m <MODEL> exec -- "$(cat ctx.md)" > out.txt
+  ```
+- 使用 `--` 讓後續內容被視為「提示詞」或參數值，避免誤被解析成 CLI 旗標。
+- 若需把 `-a` 作為「提示詞內容」的一部分而非旗標，請用 `-- -a`（一般不建議把旗標文字放進提示詞）。
+
+---
+
 ## 6) 目錄與檔案建議
 
 - `.claude/interop/`：
@@ -107,4 +119,3 @@ Claude 取回後：
 - CLI 不在 PATH：提示安裝命令與權限需求（不主動安裝）
 - 輸出非結構化：由 Claude 嘗試正規化，失敗則退回人審
 - 大型 patch：請求對方分批或以檔案分組；Claude 逐批審查
-
