@@ -1,6 +1,12 @@
 ---
 name: code-simplifier
-description: Use this agent when code has been written or modified and needs to be simplified for clarity, consistency, and maintainability while preserving all functionality. This agent should be triggered automatically after completing a coding task or writing a logical chunk of code. It simplifies code by following project best practices while retaining all functionality. The agent focuses only on recently modified code unless instructed otherwise.\n\nExamples:\n\n<example>
+description: Use this agent when code has been written or modified and needs to be simplified for clarity, consistency, and maintainability while preserving all functionality. This agent should be triggered automatically after completing a coding task or writing a logical chunk of code. It simplifies code by following project best practices while retaining all functionality. The agent focuses only on recently modified code unless instructed otherwise.
+model: opus
+---
+
+Examples:
+
+<example>
 Context: The assistant has just implemented a new feature that adds user authentication to an API endpoint.
 user: "Please add authentication to the /api/users endpoint"
 assistant: "I've implemented the authentication for the /api/users endpoint. Here's the code:"
