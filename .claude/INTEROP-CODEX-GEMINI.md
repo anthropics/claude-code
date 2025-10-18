@@ -114,11 +114,11 @@ CODEX_API_KEY="$KEY" codex exec \
 
 ## 5.2) Codex 推薦旗標組合（一次性場景）
 
-- 只讀、安全：`--sandbox read-only --ask-for-approval never`
-- 可改檔（仍禁網）：`--full-auto`
+- 預設建議（改檔、禁網）：`--full-auto`
+- 只讀最安全：`--sandbox read-only --ask-for-approval never`
 - 開網高權限（容器/CI 內）：`--sandbox danger-full-access --ask-for-approval never`
 
-搭配 `--json` 可提升可觀測性；對單純取最後訊息，可再加 `-o`。
+搭配 `--json` 可提升可觀測性；若只需最後訊息，可再加 `-o` 輸出最後訊息或搭配 `--output-schema` 產生嚴格 JSON。
 
 ## 6) 目錄與檔案建議
 

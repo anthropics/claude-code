@@ -13,7 +13,7 @@ allowed-tools: Bash(codex:*), Bash(gemini:*), Bash(ls:*), Bash(cat:*), Bash(rg:*
 - 萃取必要片段與 `git diff`（若適用），存到 `.claude/interop/context/ctx-<ts>.md`
 
 3) 可執行指令草案
-- 若系統存在 `codex`：產生 `codex ...` 命令與輸出路徑 `.claude/interop/artifacts/codex-<ts>.out`
+- 若系統存在 `codex`：預設以 `--full-auto` 生成命令（允許改檔、仍禁網），與輸出路徑 `.claude/interop/artifacts/codex-<ts>.out`
 - 若系統存在 `gemini`：產生 `gemini ...` 命令與輸出路徑 `.claude/interop/artifacts/gemini-<ts>.out`
 - 不直接執行，先顯示合併的最小授權請求（一次確認）
 
@@ -26,4 +26,3 @@ allowed-tools: Bash(codex:*), Bash(gemini:*), Bash(ls:*), Bash(cat:*), Bash(rg:*
 - 將命令、輸入摘要、輸出摘要與決策寫入 `CLAUDE_DECISIONS.md`，並提供回復指令
 
 提示：若偵測不到外部 CLI，則僅提供可複製的命令與整合方案，不會嘗試執行。
-
