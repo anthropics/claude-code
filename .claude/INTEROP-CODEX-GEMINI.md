@@ -27,6 +27,14 @@
 
 ---
 
+## 2.1) 環境與認證建議（Codex）
+
+- 自動化/非互動：以環境變數注入 API Key 最單純
+  - `CODEX_API_KEY=... codex exec "…"`
+- 或一次性寫入本機憑證：
+  - `printenv OPENAI_API_KEY | codex login --with-api-key`
+  - 之後可直接執行 `codex …`（憑證保存在 `~/.codex/auth.json`）
+
 ## 3) 輸出標準化（Result Normalization）
 
 鼓勵外部 CLI 以結構化輸出（若不支援，請求 JSON in code fence）：
@@ -46,6 +54,32 @@
 Claude 取回後：
 - 先審查（PR Review Toolkit + security-guidance），再決定是否套用
 - 一律以「最小變更、可回復」落地（apply_patch / 產生 PR）
+
+### 3.1 Codex JSON 事件串流（整合首選）
+
+加上 `--json` 後，stdout 以 JSONL 事件輸出，便於機器解析：
+
+```bash
+CODEX_API_KEY="$KEY" codex exec --json "盤點頂層檔案並摘要" \
+  | jq -c 'select(.type=="item.completed" and .item.type=="agent_message")'
+```
+
+處理建議：
+- 監看 `turn.failed` 擷取錯誤
+- 以 `item.completed` + `item.type==agent_message` 收斂最終訊息
+
+### 3.2 嚴格結構化輸出（JSON Schema）
+
+`--output-schema <schema.json>` 可要求最後輸出符合指定 JSON Schema；可搭配 `-o` 僅輸出最後 JSON：
+
+```bash
+CODEX_API_KEY="$KEY" codex exec \
+  "擷取此專案資訊" \
+  --output-schema schema.json \
+  -o project.json
+```
+
+此模式適合讓 Claude 後處理時有穩定欄位可依循。
 
 ---
 
@@ -77,6 +111,14 @@ Claude 取回後：
 - 若需把 `-a` 作為「提示詞內容」的一部分而非旗標，請用 `-- -a`（一般不建議把旗標文字放進提示詞）。
 
 ---
+
+## 5.2) Codex 推薦旗標組合（一次性場景）
+
+- 只讀、安全：`--sandbox read-only --ask-for-approval never`
+- 可改檔（仍禁網）：`--full-auto`
+- 開網高權限（容器/CI 內）：`--sandbox danger-full-access --ask-for-approval never`
+
+搭配 `--json` 可提升可觀測性；對單純取最後訊息，可再加 `-o`。
 
 ## 6) 目錄與檔案建議
 
