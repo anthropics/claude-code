@@ -150,7 +150,7 @@ CODEX_API_KEY="$KEY" codex exec \
 - 引入檔案：在 prompt 中加入 `@path`（可含 glob，如 `@src/**.ts`）讓 CLI 自動讀入檔案內容。
 - 退出碼：成功 `0`；常見致命錯誤如認證 `41`、輸入 `42`、沙箱 `44`、設定 `52` 等，可據此重試或告警。
 
-推薦一次性範式：
+推薦一次性範式（JSON）：
 
 ```bash
 gemini -m <MODEL> \
@@ -159,6 +159,19 @@ gemini -m <MODEL> \
   --allowed-tools "read_many_files,glob" \
   -e none -s \
   -p "說明並修正 @.claude/interop/context/gemini-ctx-<ts>.md 的問題"
+```
+
+長時任務（stream-json）：
+
+```bash
+gemini -m <MODEL> \
+  --output-format stream-json \
+  --approval-mode auto_edit \
+  --allowed-tools "read_many_files,glob" \
+  -e none -s \
+  -p "執行並監控 @.claude/interop/context/gemini-ctx-<ts>.md 的任務" \
+  | tee .claude/interop/artifacts/gemini-<ts>.jsonl \
+  | jq -rc 'select(.type=="result")'
 ```
 
 ---
