@@ -1,0 +1,31 @@
+# CLAUDE.md（專案指引）
+
+## 專案摘要
+- 名稱：{{PROJECT_NAME}}
+- 類型：{{STACK}}
+- 目的：{{PURPOSE}}
+
+## 重要腳本 / 指令
+- 建置：{{BUILD_CMD}}
+- 測試：{{TEST_CMD}}
+- 格式/靜態檢查：{{LINT_CMD}}
+- 文件：{{DOCS_CMD}}
+
+## 目錄結構（節選）
+{{TREE}}
+
+## 開發規範
+- 分支策略：{{BRANCHING}}
+- Commit 信息：指令語態、簡潔摘要；可使用 /commit 或 /commit-push-pr
+- PR 規範：摘要 + 測試計畫；可用 /handoff-* 取得候選，再由 Claude 收斂
+
+## 測試與檢查
+- 先跑格式與靜態檢查再執行測試；/auto-dev 會自動連續完成
+
+## 安全與權限
+- 高風險工具需詢問；Write/Edit 最小化；AutoGuard 啟用
+- 外部 CLI：Codex(--full-auto, 禁網)、Gemini(json+auto_edit+唯讀白名單+沙箱)
+
+## 自動交接
+- 預設啟用；如需只建議不執行，將 .claude/flags/auto-interop.json 設為 {"enabled": false}
+

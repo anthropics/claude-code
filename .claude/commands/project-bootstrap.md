@@ -44,9 +44,10 @@ allowed-tools: Bash(node:*), Bash(python3:*), Bash(git status:*), Bash(git rev-p
 - 確認 `security-guidance` 的 PreToolUse Hook 正常生效
 - 顯示將攔截的風險規則與替代作法摘要
 
-8) 專案探索與上下文
+8) 專案探索與上下文 + 專案指引
 - 以 rg 與檔案讀取快速建立「關鍵檔案一覽」與「入口點/模組/測試/組態」摘要
 - 利用 `/add-dir` 與 @ 檔案提及，將必要目錄與檔案加入上下文建議清單
+ - 若專案根無 `CLAUDE.md`，自動呼叫 `/refresh-claude-md` 產生最小版；若已存在，提示是否整合更新
 
 9) 驗證與輸出（含審計）
 - 執行 `/doctor`，顯示錯誤與修正結果
