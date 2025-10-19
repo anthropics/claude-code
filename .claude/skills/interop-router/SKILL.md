@@ -20,7 +20,7 @@ description: >
 - 風險（-0.3–0.0）：權限、寫入、機密資料外洩風險（預設唯讀可降低）
 - 旗標判斷：
   - 專案層 `.claude/flags/auto-interop.json` 若為 `{ "enabled": true }` → 視為本專案已允許一次性自動交接（首次仍簡要提示）。
-  - 否則若使用者層 `~/.claude/flags/auto-interop.json` 為 true → 提出建議並詢問是否沿用到本專案。
+  - 使用者層 `~/.claude/flags/auto-interop.json` 若為 `{ "enabled": true }` → 視為當前工作階段允許自動交接（首次仍簡要提示）；若專案層存在 `enabled: false` 則以專案層為準。
 - 綜合評分與旗標：若總分 ≥ 0.4 → 建議交由外部；若 ≥ 0.6 且旗標允許（或已口頭同意一次性授權）→ 可直接呼叫 /interop-broker。
 
 ## 執行步驟
