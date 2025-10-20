@@ -1,15 +1,19 @@
 name: Claude Oncall Issue Triage
 description: Identify critical issues that require oncall attention
 on:
+  issues:
+    types: [opened, edited, labeled, reopened]
+  issue_comment:
+    types: [created]
   schedule:
-    # Run every 6 hours
+    # Run every 6 hours to catch issues that recently crossed the threshold
     - cron: '0 */6 * * *'
   workflow_dispatch: # Allow manual trigger
 
 jobs:
   oncall-triage:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     permissions:
       contents: read
       issues: write
@@ -27,15 +31,20 @@ jobs:
           IMPORTANT: Don't post any comments or messages to the issues. Your only action should be to apply the "oncall" label to qualifying issues.
 
           Repository: ${{ github.repository }}
+          Triggered by: ${{ github.event_name }}
+          Issue number (if triggered by issue event): ${{ github.event.issue.number }}
 
           TASK OVERVIEW:
 
-          1. Use mcp__github__list_issues to get all open issues in the repository.
+          1. Determine which issues to process:
+             - If this workflow was triggered by an issue event (issue number provided above), process ONLY that issue
+             - If triggered by schedule or manual trigger, use mcp__github__search_issues to find issues created in the last 7 days (use query: "is:issue is:open created:>=$(date -d '7 days ago' +%Y-%m-%d)")
+             - This keeps the dataset small and focused on recent activity
 
-          2. For each issue, gather the following information using the GitHub MCP tools:
+          2. For each issue to process, gather information using GitHub MCP tools:
              - Issue details (title, body, labels) using mcp__github__get_issue
              - All comments using mcp__github__get_issue_comments
-             - Reaction counts from the issue data (available in the reactionGroups field)
+             - Reaction counts from the reactionGroups field
 
           3. Evaluate each issue against the oncall criteria. An issue is oncall-worthy if ALL of the following are true:
 
@@ -58,21 +67,20 @@ jobs:
                 - Count total number of comments
                 - Sum must be >= 5
 
-          4. For issues that meet ALL criteria above:
+          4. For issues that meet ALL criteria above AND don't already have the "oncall" label:
              - Use mcp__github__update_issue to add the "oncall" label
              - DO NOT post any comments
              - DO NOT remove any existing labels
 
-          5. For issues that already have the "oncall" label but NO LONGER meet the criteria:
-             - Use mcp__github__update_issue to remove the "oncall" label
-             - This keeps the oncall board current
+          5. Do NOT remove the "oncall" label from any issues
 
           IMPORTANT GUIDELINES:
           - Be conservative in your assessment - only flag truly critical blocking issues
           - ALL four criteria must be met for an issue to receive the "oncall" label
           - DO NOT post any comments to issues
-          - Your ONLY action should be to apply or remove the "oncall" label using mcp__github__update_issue
-          - Process issues systematically and thoroughly
+          - Your ONLY action should be to apply the "oncall" label using mcp__github__update_issue
+          - Only add the label, never remove it
+          - Process efficiently - only check recent issues (last 7 days) when running on schedule
           EOF
 
       - name: Setup GitHub MCP Server
@@ -103,7 +111,7 @@ jobs:
         uses: anthropics/claude-code-base-action@beta
         with:
           prompt_file: /tmp/claude-prompts/oncall-triage-prompt.txt
-          allowed_tools: "mcp__github__list_issues,mcp__github__get_issue,mcp__github__get_issue_comments,mcp__github__update_issue"
+          allowed_tools: "mcp__github__search_issues,mcp__github__get_issue,mcp__github__get_issue_comments,mcp__github__update_issue"
           timeout_minutes: "10"
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           mcp_config: /tmp/mcp-config/mcp-servers.json
