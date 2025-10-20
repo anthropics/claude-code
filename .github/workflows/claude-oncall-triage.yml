@@ -35,7 +35,7 @@ jobs:
           2. For each issue, gather the following information using the GitHub MCP tools:
              - Issue details (title, body, labels) using mcp__github__get_issue
              - All comments using mcp__github__get_issue_comments
-             - Reaction counts from the issue data
+             - Reaction counts from the issue data (available in the reactionGroups field)
 
           3. Evaluate each issue against the oncall criteria. An issue is oncall-worthy if ALL of the following are true:
 
@@ -54,7 +54,7 @@ jobs:
                 - Activity includes: new comments, reactions, or label changes
 
              d) At least 5 engagements:
-                - Count total reactions on the issue (👍, ❤️, 😄, 🎉, 😕, 👀, etc.)
+                - Count total reactions from the reactionGroups field (sum all reaction counts)
                 - Count total number of comments
                 - Sum must be >= 5
 
