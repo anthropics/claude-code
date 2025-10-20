@@ -1,0 +1,111 @@
+name: Claude Oncall Issue Triage
+description: Identify critical issues that require oncall attention
+on:
+  schedule:
+    # Run every 6 hours
+    - cron: '0 */6 * * *'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  oncall-triage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      issues: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create oncall triage prompt
+        run: |
+          mkdir -p /tmp/claude-prompts
+          cat > /tmp/claude-prompts/oncall-triage-prompt.txt << 'EOF'
+          You're an oncall triage assistant for GitHub issues. Your task is to identify critical issues that require immediate oncall attention.
+
+          IMPORTANT: Don't post any comments or messages to the issues. Your only action should be to apply the "oncall" label to qualifying issues.
+
+          Repository: ${{ github.repository }}
+
+          TASK OVERVIEW:
+
+          1. Use mcp__github__list_issues to get all open issues in the repository.
+
+          2. For each issue, gather the following information using the GitHub MCP tools:
+             - Issue details (title, body, labels) using mcp__github__get_issue
+             - All comments using mcp__github__get_issue_comments
+             - Reaction counts from the issue data
+
+          3. Evaluate each issue against the oncall criteria. An issue is oncall-worthy if ALL of the following are true:
+
+             a) Must be a bug:
+                - The issue has a "bug" label OR
+                - The issue content clearly describes a bug (error, crash, unexpected behavior)
+
+             b) Must be blocking users from using Claude Code:
+                - Look for keywords indicating severity: "crash", "stuck", "frozen", "hang", "unresponsive", "cannot use", "blocked", "broken"
+                - The issue prevents core functionality from working
+                - Users cannot work around the issue
+
+             c) Last activity is within the last 3 days:
+                - Check the issue's updated_at timestamp
+                - Calculate if it was updated within the last 72 hours from now
+                - Activity includes: new comments, reactions, or label changes
+
+             d) At least 5 engagements:
+                - Count total reactions on the issue (👍, ❤️, 😄, 🎉, 😕, 👀, etc.)
+                - Count total number of comments
+                - Sum must be >= 5
+
+          4. For issues that meet ALL criteria above:
+             - Use mcp__github__update_issue to add the "oncall" label
+             - DO NOT post any comments
+             - DO NOT remove any existing labels
+
+          5. For issues that already have the "oncall" label but NO LONGER meet the criteria:
+             - Use mcp__github__update_issue to remove the "oncall" label
+             - This keeps the oncall board current
+
+          IMPORTANT GUIDELINES:
+          - Be conservative in your assessment - only flag truly critical blocking issues
+          - ALL four criteria must be met for an issue to receive the "oncall" label
+          - DO NOT post any comments to issues
+          - Your ONLY action should be to apply or remove the "oncall" label using mcp__github__update_issue
+          - Process issues systematically and thoroughly
+          EOF
+
+      - name: Setup GitHub MCP Server
+        run: |
+          mkdir -p /tmp/mcp-config
+          cat > /tmp/mcp-config/mcp-servers.json << 'EOF'
+          {
+            "mcpServers": {
+              "github": {
+                "command": "docker",
+                "args": [
+                  "run",
+                  "-i",
+                  "--rm",
+                  "-e",
+                  "GITHUB_PERSONAL_ACCESS_TOKEN",
+                  "ghcr.io/github/github-mcp-server:sha-7aced2b"
+                ],
+                "env": {
+                  "GITHUB_PERSONAL_ACCESS_TOKEN": "${{ secrets.GITHUB_TOKEN }}"
+                }
+              }
+            }
+          }
+          EOF
+
+      - name: Run Claude Code for Oncall Triage
+        uses: anthropics/claude-code-base-action@beta
+        with:
+          prompt_file: /tmp/claude-prompts/oncall-triage-prompt.txt
+          allowed_tools: "mcp__github__list_issues,mcp__github__get_issue,mcp__github__get_issue_comments,mcp__github__update_issue"
+          timeout_minutes: "10"
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          mcp_config: /tmp/mcp-config/mcp-servers.json
+          claude_env: |
+            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
