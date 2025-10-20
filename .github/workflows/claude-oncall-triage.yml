@@ -2,7 +2,7 @@ name: Claude Oncall Issue Triage
 description: Identify critical issues that require oncall attention
 on:
   issues:
-    types: [opened, edited, labeled, reopened]
+    types: [opened, edited, reopened]
   issue_comment:
     types: [created]
   schedule:
@@ -32,12 +32,13 @@ jobs:
 
           Repository: ${{ github.repository }}
           Triggered by: ${{ github.event_name }}
-          Issue number (if triggered by issue event): ${{ github.event.issue.number }}
+          Issue number (if triggered by issue event or comment): ${{ github.event.issue.number }}
 
           TASK OVERVIEW:
 
           1. Determine which issues to process:
-             - If this workflow was triggered by an issue event (issue number provided above), process ONLY that issue
+             - If this workflow was triggered by an issue event or comment (issue number provided above), process ONLY that issue
+             - This includes NEW comments on OLDER issues - they may now qualify for oncall if they meet the criteria
              - If triggered by schedule or manual trigger, use mcp__github__search_issues to find issues created in the last 7 days (use query: "is:issue is:open created:>=$(date -d '7 days ago' +%Y-%m-%d)")
              - This keeps the dataset small and focused on recent activity
 
