@@ -62,7 +62,7 @@ def main():
     if hook_data.get("hook_event_name") != "Notification":
         sys.exit(0)
 
-    message = hook_data.get("message", None)
+    message = hook_data.get("message")
     if not isinstance(message, str):
         sys.exit(2)
     message = message.strip()
