@@ -45,6 +45,18 @@ Provides a structured 7-phase approach to feature development with specialized a
   - `code-reviewer` - Reviews code for bugs, quality issues, and project conventions
 - **Use case**: Building new features with systematic codebase understanding and quality assurance
 
+### [api-fallback](./api-fallback/)
+
+**API Fallback Plugin**
+
+Quick commands for switching between Claude Pro/Max subscription and API key billing when usage limits are reached.
+
+- **Commands**:
+  - `/switch-to-api` - Switch from subscription to API key billing
+  - `/switch-to-subscription` - Switch back to subscription billing
+  - `/fallback-status` - Check authentication setup and fallback options
+- **Use case**: Interim solution for manual auth switching while awaiting automatic fallback ([issue #2944](https://github.com/anthropics/claude-code/issues/2944))
+
 ## Installation
 
 These plugins are included in the Claude Code repository. To use them in your own projects:
