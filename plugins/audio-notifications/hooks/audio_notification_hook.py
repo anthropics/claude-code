@@ -28,20 +28,20 @@ def get_user_config() -> UserConfig:
     config = UserConfig()
     # attempt to load user config, return defaults if fail
     try:
-        user_raw_config_json = json.loads(CONFIG_PATH.read_text())
+        user_config_json = json.loads(CONFIG_PATH.read_text())
     except Exception:
         return config
 
-    if not isinstance(user_raw_config_json, dict):
+    if not isinstance(user_config_json, dict):
         return config
 
-    user_config_val_audio_off = user_raw_config_json.get("audio_off")
-    if isinstance(user_config_val_audio_off, bool):
-        config.audio_off = user_config_val_audio_off
+    user_audio_off = user_config_json.get("audio_off")
+    if isinstance(user_audio_off, bool):
+        config.audio_off = user_audio_off
 
-    user_config_val_speech = user_raw_config_json.get("speech_command")
-    if isinstance(user_config_val_speech, str):
-        config.speech_command = user_config_val_speech.strip()
+    user_speech_command = user_config_json.get("speech_command")
+    if isinstance(user_speech_command, str):
+        config.speech_command = user_speech_command.strip()
 
     return config
 
@@ -69,9 +69,8 @@ def main():
 
     # attempt command set by user if available, else default options
     speech_command = user_config.speech_command or detect_default_command()
-    if speech_command is None:
+    if not isinstance(speech_command, str):
         sys.exit(2)
-    # if user provided command with flags etc, we break it up into a list
     speech_command = shlex.split(speech_command)
 
     try:
