@@ -1,0 +1,9 @@
+{
+  "name": "audio-notifications",
+  "version": "1.0.0",
+  "description": "Audio notifications for Claude Code - speaks notification messages out loud",
+  "author": {
+    "name": "Fred Lacs",
+    "email": "fredlacs@gmail.com"
+  }
+}

@@ -57,6 +57,17 @@
       },
       "source": "./plugins/security-guidance",
       "category": "security"
+    },
+    {
+      "name": "audio-notifications",
+      "description": "Audio notifications for Claude Code - speaks notification messages out loud",
+      "version": "1.0.0",
+      "author": {
+        "name": "Fred Lacs",
+        "email": "fredlacs@gmail.com"
+      },
+      "source": "./plugins/audio-notifications",
+      "category": "qol"
     }
   ]
 }
