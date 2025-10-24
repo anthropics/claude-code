@@ -1,0 +1,16 @@
+{
+  "description": "Audio notification hook that warns user of notification",
+  "hooks": {
+    "Notification": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/audio_notification_hook.sh"
+          }
+        ]
+      }
+    ]
+  }
+}

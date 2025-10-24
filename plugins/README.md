@@ -10,6 +10,17 @@ Learn more in the [official plugins documentation](https://docs.claude.com/en/do
 
 ## Plugins in This Directory
 
+### [audio-notifications](./audio-notifications/)
+
+**Audio Notifications Plugin**
+
+Automatically speaks notification messages out loud using system text-to-speech.
+
+- **Feature**: Audio notifications for Claude Code tasks
+- **Configuration**: Customizable via `~/.claude/audio_notifications.json`
+- **Supported systems**: macOS (`say`), Linux (`spd-say`, `espeak`), or custom commands
+- **Use case**: Stay informed during long-running tasks without watching the terminal
+
 ### [agent-sdk-dev](./agent-sdk-dev/)
 
 **Claude Agent SDK Development Plugin**
