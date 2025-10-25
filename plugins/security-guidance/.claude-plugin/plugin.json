@@ -1,9 +1,65 @@
 {
   "name": "security-guidance",
-  "version": "1.0.0",
-  "description": "Security reminder hook that warns about potential security issues when editing files, including command injection, XSS, and unsafe code patterns",
+  "version": "2.0.0",
+  "description": "Enhanced security reminder hook that warns about potential security issues when editing files, including command injection, XSS, SQL injection, and more",
   "author": {
-    "name": "David Dworken",
-    "email": "dworken@anthropic.com"
+    "name": "Enhanced Security Team",
+    "email": "security@anthropic.com"
+  },
+  "features": [
+    "Comprehensive security pattern detection",
+    "Performance optimizations",
+    "Enhanced error handling",
+    "Severity classification",
+    "Session state management",
+    "Automatic cleanup",
+    "Type safety",
+    "Extensible architecture"
+  ],
+  "security_patterns": {
+    "critical": [
+      "eval_injection",
+      "pickle_deserialization"
+    ],
+    "high": [
+      "child_process_exec",
+      "new_function_injection",
+      "react_dangerously_set_html",
+      "innerHTML_xss",
+      "os_system_injection",
+      "sql_injection",
+      "path_traversal",
+      "github_actions_workflow"
+    ],
+    "medium": [
+      "document_write_xss",
+      "hardcoded_secrets"
+    ]
+  },
+  "performance": {
+    "max_content_length": 10000,
+    "cleanup_probability": 0.1,
+    "state_retention_days": 30
+  },
+  "configuration": {
+    "environment_variables": {
+      "ENABLE_SECURITY_REMINDER": "Set to '0' to disable security warnings (default: '1')"
+    },
+    "state_files": {
+      "location": "~/.claude/security_warnings_state_{session_id}.json",
+      "cleanup": "Automatic cleanup of files older than 30 days"
+    }
+  },
+  "changelog": {
+    "2.0.0": [
+      "Added comprehensive security pattern detection",
+      "Implemented performance optimizations",
+      "Enhanced error handling and logging",
+      "Added type hints and better code structure",
+      "Improved warning messages with code examples",
+      "Added severity classification system",
+      "Implemented efficient state management",
+      "Added automatic cleanup functionality"
+    ]
   }
 }
