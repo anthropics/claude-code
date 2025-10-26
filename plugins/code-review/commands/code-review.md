@@ -62,9 +62,7 @@ Found 3 issues:
 
 🤖 Generated with [Claude Code](https://claude.ai/code)
 
-<sub>[ANT-ONLY]</sub>
 <sub>- If this code review was useful, please react with 👍. Otherwise, react with 👎.</sub>
-<sub>- To improve the quality of this code review, update the relevant CLAUDE.md with better guidance or post in #claude-code-feedback on Slack for advice.</sub>
 
 ---
 
