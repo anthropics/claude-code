@@ -4,12 +4,6 @@
  * This implementation demonstrates how to properly update a terminal spinner/status indicator
  * without causing the entire terminal buffer to redraw, which causes flickering and
  * accessibility issues.
- * 
- * Key improvements:
- * - Uses ANSI escape codes (\r) for carriage return to overwrite the current line
- * - Avoids console.clear() or full buffer redraws
- * - Only updates the spinner/status line, leaving the rest of terminal content stable
- * - Compatible with common terminals (Windows Terminal, tmux, VS Code, Alacritty, etc.)
  */
 
 const SPINNER_FRAMES = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
@@ -17,10 +11,7 @@ let currentFrame = 0;
 let startTime: number;
 let spinnerInterval: NodeJS.Timeout | null = null;
 
-/**
- * Start the spinner with a message
- * Uses \r (carriage return) to update only the current line, preventing flicker
- */
+
 export function startSpinner(message: string): void {
   startTime = Date.now();
   currentFrame = 0;
@@ -52,8 +43,7 @@ export function stopSpinner(completionMessage?: string): void {
   }
   
   if (completionMessage) {
-    // FIX: Use \r to overwrite the spinner line, then \n to move to next line
-    // This ensures the completion message replaces the spinner without flickering
+
     process.stdout.write(`\r${completionMessage}\n`);
   } else {
     // Clear the spinner line
@@ -61,9 +51,7 @@ export function stopSpinner(completionMessage?: string): void {
   }
 }
 
-/**
- * Update the spinner message without stopping it
- */
+
 export function updateSpinnerMessage(newMessage: string): void {
   if (!spinnerInterval) {
     return;
@@ -72,7 +60,7 @@ export function updateSpinnerMessage(newMessage: string): void {
   const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
   const frame = SPINNER_FRAMES[currentFrame % SPINNER_FRAMES.length];
   
-  // FIX: Update message in-place using \r
+
   process.stdout.write(`\r${frame} ${newMessage} (${elapsed}s)`);
 }
 
@@ -108,10 +96,7 @@ export function badSpinnerImplementation(message: string): void {
   }, 100);
 }
 
-/**
- * Additional ANSI escape codes for advanced terminal control
- * These can be used for more sophisticated status displays
- */
+
 export const ANSI = {
   // Cursor movement
   cursorUp: (lines: number) => `\x1b[${lines}A`,
