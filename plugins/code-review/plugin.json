@@ -1,0 +1,15 @@
+{
+  "name": "code-review",
+  "description": "",
+  "version": "1.0.0",
+  "mcpServers": {
+    "github-inline-comment": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/github-tools/index.ts"],
+      "env": {
+        "GITHUB_TOKEN": "${GITHUB_TOKEN}"
+      }
+    }
+  }
+}
