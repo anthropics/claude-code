@@ -88,6 +88,16 @@ https://github.com/owner/repo/blob/abc123.../src/utils.ts#L23-L28
 
 This plugin is included in the Claude Code repository. The command is automatically available when using Claude Code.
 
+### Building the MCP server
+
+To build the GitHub tools MCP server:
+
+```bash
+cd plugins/code-review/github-tools
+bun install
+bun run build
+```
+
 ## Best Practices
 
 ### Using `/code-review`
