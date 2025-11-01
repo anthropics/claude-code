@@ -1,6 +1,7 @@
 ---
-allowed-tools: Bash(git add:*), Bash(git status:*), Bash(git commit:*)
+allowed-tools: Bash(git add:*), Bash(git status:*), Bash(git commit:*), Task
 description: Create a git commit
+model: claude-3-5-haiku-latest
 ---
 
 ## Context
@@ -11,6 +12,8 @@ description: Create a git commit
 - Recent commits: !`git log --oneline -10`
 
 ## Your task
+
+**IMPORTANT: You MUST use the Task tool to complete ALL tasks.**
 
 Based on the above changes, create a single git commit.
 
