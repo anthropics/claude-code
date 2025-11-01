@@ -68,6 +68,17 @@
       },
       "source": "./plugins/code-review",
       "category": "productivity"
+    },
+    {
+      "name": "Explanatory Output Style",
+      "description": "Recreates the deprecated Explanatory output style as a SessionStart hook",
+      "version": "1.0.0",
+      "author": {
+        "name": "Dickson Tsai",
+        "email": "dickson.tsai@gmail.com"
+      },
+      "source": "./plugins/code-review",
+      "category": "productivity"
     }
   ]
 }
