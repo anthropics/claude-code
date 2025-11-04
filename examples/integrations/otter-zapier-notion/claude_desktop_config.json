@@ -1,0 +1,24 @@
+{
+  "mcpServers": {
+    "zapier-mcp": {
+      "command": "npx",
+      "args": [
+        "mcp-remote",
+        "https://actions.zapier.com/mcp/<YOUR_ENDPOINT_ID>/sse"
+      ],
+      "env": {
+        "ZAPIER_API_KEY": "<YOUR_ZAPIER_API_KEY>"
+      }
+    },
+    "notion-mcp": {
+      "command": "npx",
+      "args": [
+        "@notionhq/client"
+      ],
+      "env": {
+        "NOTION_API_KEY": "<YOUR_NOTION_INTEGRATION_TOKEN>"
+      }
+    }
+  },
+  "globalShortcut": "CommandOrControl+Shift+Space"
+}
