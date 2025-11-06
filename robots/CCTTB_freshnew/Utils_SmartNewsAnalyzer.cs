@@ -1,9 +1,11 @@
 /* COMPLETE FILE: Utils_SmartNewsAnalyzer.cs
   FIX #1: Made HttpClient non-static to fix "Key has already been added" crash on restart.
   FIX #2: Wrapped all _robot.Print() calls in BeginInvokeOnMainThread.
+  FIX #3: Added Google Cloud OAuth authentication using service account credentials.
 */
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -12,6 +14,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using cAlgo.API;
 using cAlgo.API.Indicators;
+using Google.Apis.Auth.OAuth2;
 
 namespace CCTTB
 {
@@ -65,6 +68,11 @@ namespace CCTTB
         // This prevents the "Key has already been added" crash on bot restart.
         private readonly string _workflowApiUrl = "https://workflowexecutions.googleapis.com/v1/projects/my-trader-bot-api/locations/europe-west2/workflows/smart-news-api/executions";
 
+        // --- NEW: Path to service account JSON file ---
+        // IMPORTANT: Store this file securely, NOT in the repository!
+        // Place it in: C:\Users\Administrator\Documents\cAlgo\ServiceAccount\credentials.json
+        private readonly string _serviceAccountPath = @"C:\Users\Administrator\Documents\cAlgo\ServiceAccount\credentials.json";
+
         public SmartNewsAnalyzer(Robot robot, bool enableDebugLogging)
         {
             _robot = robot;
@@ -74,6 +82,34 @@ namespace CCTTB
             // The code that set up the HttpClient headers (which caused the crash)
             // has been moved inside the GetGeminiAnalysis method.
             // This constructor is now clean.
+        }
+
+        // --- NEW: Method to get OAuth token from service account ---
+        private async Task<string> GetAccessTokenAsync()
+        {
+            try
+            {
+                if (!File.Exists(_serviceAccountPath))
+                {
+                    _robot.BeginInvokeOnMainThread(() => _robot.Print($"[Gemini] ERROR: Service account file not found at: {_serviceAccountPath}"));
+                    return null;
+                }
+
+                GoogleCredential credential;
+                using (var stream = new FileStream(_serviceAccountPath, FileMode.Open, FileAccess.Read))
+                {
+                    credential = GoogleCredential.FromStream(stream)
+                        .CreateScoped("https://www.googleapis.com/auth/cloud-platform");
+                }
+
+                var accessToken = await credential.UnderlyingCredential.GetAccessTokenForRequestAsync();
+                return accessToken;
+            }
+            catch (Exception ex)
+            {
+                _robot.BeginInvokeOnMainThread(() => _robot.Print($"[Gemini] ERROR: Failed to get access token: {ex.Message}"));
+                return null;
+            }
         }
 
         public async Task<NewsContextAnalysis> GetGeminiAnalysis(
@@ -100,6 +136,14 @@ namespace CCTTB
             string jsonRequest = JsonSerializer.Serialize(requestPayload);
             var httpContent = new StringContent(jsonRequest, Encoding.UTF8, "application/json");
 
+            // --- NEW: Get OAuth access token ---
+            string accessToken = await GetAccessTokenAsync();
+            if (string.IsNullOrEmpty(accessToken))
+            {
+                _robot.BeginInvokeOnMainThread(() => _robot.Print("[Gemini] ERROR: Could not obtain access token"));
+                return GetFailSafeContext("Failed to obtain access token");
+            }
+
             // --- CRITICAL FIX: Create a new HttpClient for each call. ---
             // This is the standard, safe way to use HttpClient in modern .NET.
             // (We are using 'using' so it's disposed of properly)
@@ -107,6 +151,9 @@ namespace CCTTB
             {
                 httpClient.DefaultRequestHeaders.Accept.Clear();
                 httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+                // --- NEW: Add Authorization header with Bearer token ---
+                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
                 try
                 {
