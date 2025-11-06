@@ -19,7 +19,7 @@ A comprehensive set of coding standards and best practices that guide all develo
 
 ### 2. **Specialized Expert Agents** (`agents/`)
 
-Five world-class expert agents, each with deep domain knowledge:
+**Seven** world-class expert agents, each with deep domain knowledge:
 
 #### 🔒 **security-expert**
 Elite security analyst that finds vulnerabilities and ensures defense in depth.
@@ -81,21 +81,47 @@ Documentation excellence expert making your project accessible.
 
 **When to use**: Documentation audits, onboarding docs, API docs, architecture diagrams.
 
+#### 🗺️ **code-explorer**
+Elite codebase exploration expert for understanding complex systems.
+- Architecture mapping and visualization
+- Dependency tracing and graph analysis
+- Pattern recognition (design patterns, architectural patterns)
+- Entry point discovery and critical path mapping
+- Code organization analysis
+- Legacy code understanding
+- Impact analysis and technical debt assessment
+
+**When to use**: Onboarding to new codebases, planning refactoring, understanding legacy code, preparing for major changes, finding how features work.
+
+#### 🚀 **devops-expert**
+Elite DevOps and infrastructure expert for operational excellence.
+- CI/CD pipeline optimization
+- Container and Kubernetes best practices
+- Infrastructure as Code (Terraform, CloudFormation)
+- Cloud architecture (AWS, GCP, Azure)
+- Monitoring and observability setup
+- Deployment strategies (blue-green, canary, rolling)
+- Security and compliance (DevSecOps)
+
+**When to use**: Pipeline optimization, container security, infrastructure reviews, monitoring setup, deployment strategy design, DevOps maturity assessment.
+
 ### 3. **Powerful Workflow Commands** (`commands/`)
 
-Five comprehensive workflows that orchestrate multiple agents:
+**Seven** comprehensive workflows that orchestrate multiple agents:
 
 #### `/full-feature [feature description]`
 **Complete feature development from design to deployment.**
 
 Workflow:
-1. **Architecture phase** - Design system structure with architecture-guru
-2. **Security planning** - Identify security requirements with security-expert
-3. **Implementation** - Build the feature following best practices
-4. **Testing** - Design and implement tests with test-master
-5. **Performance review** - Optimize with performance-optimizer
-6. **Documentation** - Document with docs-wizard
-7. **Quality check** - Final review before deployment
+1. **Codebase exploration** (optional) - Understand existing code with code-explorer
+2. **Architecture phase** - Design system structure with architecture-guru
+3. **Security planning** - Identify security requirements with security-expert
+4. **Implementation** - Build the feature following best practices
+5. **Testing** - Design and implement tests with test-master
+6. **Performance review** - Optimize with performance-optimizer
+7. **Documentation** - Document with docs-wizard
+8. **DevOps integration** (optional) - CI/CD updates with devops-expert
+9. **Quality check** - Final review before deployment
 
 **Perfect for**: Building new features the right way from start to finish.
 
@@ -143,13 +169,44 @@ Workflow:
 **Ultimate code review using all expert agents.**
 
 Workflow:
-- Multi-dimensional expert review (all 5 agents in parallel)
+- Multi-dimensional expert review (all core agents in parallel)
 - CLAUDE.md compliance verification
 - Aggregate comprehensive feedback
 - Provide APPROVE/REQUEST CHANGES/REJECT decision
 - Generate detailed review report with action items
 
 **Perfect for**: Critical code reviews, production deployments, major features.
+
+#### `/explore-codebase [path or scope]`
+**Deep codebase exploration and architecture mapping.**
+
+Workflow:
+1. Launch code-explorer for comprehensive analysis
+2. Reconnaissance (understand project, tech stack, entry points)
+3. Structural analysis (map modules, layers, patterns)
+4. Critical path mapping (trace key workflows)
+5. Dependency analysis (build dependency graph)
+6. Pattern recognition (identify patterns and anti-patterns)
+7. Technical debt assessment
+8. Generate visual maps and documentation
+
+**Perfect for**: Onboarding new developers, planning refactoring, understanding legacy code, preparing for security audits, dependency management.
+
+#### `/devops-review [scope]`
+**Comprehensive DevOps and infrastructure review.**
+
+Workflow:
+1. Launch devops-expert for infrastructure assessment
+2. CI/CD pipeline analysis and optimization
+3. Container and Kubernetes security review
+4. Infrastructure as Code assessment
+5. Monitoring and observability evaluation
+6. Security and compliance check
+7. Generate maturity score and improvement roadmap
+
+**Scope options**: `all`, `cicd`, `containers`, `infra`, `monitoring`
+
+**Perfect for**: Pipeline optimization, container security audits, infrastructure health checks, DevOps maturity assessment, preparing for scale.
 
 ### 4. **Excellence Guardian Hook** (`hooks/`)
 
@@ -238,6 +295,8 @@ With these enhancements, you can measure:
 - **Testing**: Coverage percentage and test quality
 - **Performance**: Response times, throughput, resource usage
 - **Documentation**: Documentation coverage percentage
+- **DevOps Maturity**: DORA metrics, pipeline performance
+- **Code Understanding**: Exploration depth, documentation completeness
 
 **Overall Quality Score**: 0-100 composite score across all dimensions.
 

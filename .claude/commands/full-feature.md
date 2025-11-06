@@ -5,6 +5,17 @@ argument-hint: "[feature description]"
 
 You are building a world-class feature from scratch. Follow this comprehensive workflow:
 
+## Phase 0: Codebase Exploration (if needed)
+
+If you're unfamiliar with the codebase, first launch the **code-explorer** agent to understand the system:
+
+**Task for code-explorer:**
+- Map the current architecture and identify where the new feature fits
+- Find relevant existing code that the feature will interact with
+- Identify patterns and conventions to follow
+- Locate entry points and integration points
+- **Note:** Skip this phase if you already understand the codebase well
+
 ## Phase 1: Architecture & Design
 
 Launch the **architecture-guru** agent to analyze the current codebase and design the feature architecture.
@@ -78,7 +89,18 @@ Launch the **docs-wizard** agent to create comprehensive documentation.
 - Add usage examples
 - Update changelog with new feature
 
-## Phase 7: Final Quality Check
+## Phase 7: DevOps Integration (if needed)
+
+If the feature requires deployment changes, CI/CD updates, or infrastructure:
+
+Launch the **devops-expert** agent:
+- Review deployment requirements
+- Update CI/CD pipeline if needed
+- Add monitoring/alerting for the new feature
+- Ensure proper rollback strategy
+- **Note:** Skip this phase if no DevOps changes needed
+
+## Phase 8: Final Quality Check
 
 Run a final review to ensure:
 - ✅ All tests pass
@@ -86,6 +108,7 @@ Run a final review to ensure:
 - ✅ Security measures implemented
 - ✅ Performance is acceptable
 - ✅ Documentation is complete
+- ✅ DevOps considerations addressed (if applicable)
 - ✅ No linting errors
 
 ## Deliverables
