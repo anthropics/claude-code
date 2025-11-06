@@ -1,0 +1,16 @@
+{
+  "description": "Excellence Guardian - Enforces coding excellence by detecting dangerous patterns and best practice violations",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_CODE_ROOT}/.claude/hooks/excellence-guardian.py"
+          }
+        ],
+        "matcher": "Write|Edit|MultiEdit"
+      }
+    ]
+  }
+}
