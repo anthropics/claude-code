@@ -1,0 +1,15 @@
+{
+  "name": "PostNews_TripleStrict",
+  "EntryGateMode": "Triple",
+  "StrictSequence": true,
+  "OtePolicy": "StrictAfterMSS",
+  "SweepScope": "Any",
+  "TpTargetPolicy": "OppositeLiquidity",
+  "Session": "NY",
+  "BiasAlign": "Strict",
+  "NewsFilter": "AllowOnlyPostNews",
+  "NewsDelayMinutes": 3,
+  "UseKillzone": false,
+  "KillzoneStartUtc": "00:00",
+  "KillzoneEndUtc": "23:59"
+}

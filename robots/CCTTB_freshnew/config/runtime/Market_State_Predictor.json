@@ -1,0 +1,290 @@
+{
+  "predictorName": "Market_State_Predictor",
+  "version": "1.0",
+  "description": "Real-time market state detection and prediction system. Forecasts next moves based on current conditions.",
+
+  "realTimeDetection": {
+    "enabled": true,
+    "updateFrequency": "every_bar",
+
+    "indicators": {
+      "atr": {
+        "period": 14,
+        "maPeriod": 50,
+        "purpose": "Volatility measurement"
+      },
+      "adx": {
+        "period": 14,
+        "purpose": "Trend strength measurement"
+      },
+      "bollingerBands": {
+        "period": 20,
+        "stdDev": 2,
+        "purpose": "Range detection"
+      },
+      "rsi": {
+        "period": 14,
+        "purpose": "Momentum and overbought/oversold"
+      }
+    },
+
+    "stateClassification": {
+      "trending_strong": {
+        "condition": "ADX > 30 AND ATR > ATR_MA * 1.1",
+        "prediction": "Expect continuation, hold for higher RR",
+        "confidence": 0.85,
+        "recommendedBehavior": {
+          "minRR": 2.0,
+          "tolerance": "tighter (0.9x)",
+          "holdLonger": true,
+          "riskMultiplier": 1.1
+        }
+      },
+
+      "trending_moderate": {
+        "condition": "ADX 25-30 AND ATR normal",
+        "prediction": "Trend likely to continue but watch for pullbacks",
+        "confidence": 0.75,
+        "recommendedBehavior": {
+          "minRR": 1.5,
+          "tolerance": "normal (1.0x)",
+          "holdLonger": true,
+          "riskMultiplier": 1.0
+        }
+      },
+
+      "ranging_tight": {
+        "condition": "ADX < 20 AND BB_width < 0.015",
+        "prediction": "Expect quick reversals, take quick profits",
+        "confidence": 0.80,
+        "recommendedBehavior": {
+          "minRR": 0.9,
+          "tolerance": "wider (1.3x)",
+          "quickExit": true,
+          "partialProfits": "early and aggressive",
+          "riskMultiplier": 0.8
+        }
+      },
+
+      "ranging_wide": {
+        "condition": "ADX < 20 AND BB_width 0.015-0.025",
+        "prediction": "Range-bound, fade extremes",
+        "confidence": 0.70,
+        "recommendedBehavior": {
+          "minRR": 1.1,
+          "tolerance": "wider (1.2x)",
+          "quickExit": true,
+          "riskMultiplier": 0.9
+        }
+      },
+
+      "volatile_expansion": {
+        "condition": "ATR > ATR_MA * 1.4",
+        "prediction": "High volatility, wider stops needed, big moves possible",
+        "confidence": 0.65,
+        "recommendedBehavior": {
+          "minRR": 1.3,
+          "tolerance": "much wider (1.4x)",
+          "widerStops": true,
+          "riskMultiplier": 0.75
+        }
+      },
+
+      "quiet_compression": {
+        "condition": "ATR < ATR_MA * 0.7 AND BB_squeeze",
+        "prediction": "Compression before expansion, breakout coming",
+        "confidence": 0.60,
+        "recommendedBehavior": {
+          "minRR": 1.2,
+          "tolerance": "tighter (0.9x)",
+          "waitForBreakout": true,
+          "riskMultiplier": 0.7
+        }
+      },
+
+      "overbought": {
+        "condition": "RSI > 70 AND price at upper BB",
+        "prediction": "Reversal or pullback likely",
+        "confidence": 0.70,
+        "recommendedBehavior": {
+          "preferBearish": true,
+          "avoidBullishEntries": true,
+          "tightenStops": true
+        }
+      },
+
+      "oversold": {
+        "condition": "RSI < 30 AND price at lower BB",
+        "prediction": "Reversal or bounce likely",
+        "confidence": 0.70,
+        "recommendedBehavior": {
+          "preferBullish": true,
+          "avoidBearishEntries": true,
+          "tightenStops": true
+        }
+      }
+    }
+  },
+
+  "patternPrediction": {
+    "enabled": true,
+    "useHistoricalData": true,
+
+    "recognizedPatterns": {
+      "sweep_then_reversal": {
+        "sequence": ["Liquidity sweep detected", "Clean rejection", "MSS forming"],
+        "prediction": "High probability move to opposite liquidity",
+        "expectedRR": "2.5-4.0",
+        "confidence": 0.85,
+        "action": "Prioritize this setup"
+      },
+
+      "failed_breakout": {
+        "sequence": ["Price breaks structure", "No follow-through", "Returns to range"],
+        "prediction": "Likely false breakout, reversal coming",
+        "expectedRR": "2.0-3.5",
+        "confidence": 0.75,
+        "action": "Wait for MSS confirmation"
+      },
+
+      "triple_tap_ote": {
+        "sequence": ["OTE zone tapped", "Rejected", "Tapped again", "Rejected again"],
+        "prediction": "Zone is strong, likely to hold third tap",
+        "expectedRR": "3.0-5.0",
+        "confidence": 0.90,
+        "action": "Enter with higher risk on third tap"
+      },
+
+      "weak_mss_no_oppliq": {
+        "sequence": ["MSS detected", "OppLiq = 0 or invalid"],
+        "prediction": "Low probability setup, likely to fail",
+        "expectedRR": "0.5-1.0",
+        "confidence": 0.30,
+        "action": "SKIP - validation gate should block this"
+      },
+
+      "confluence_stack": {
+        "sequence": ["Sweep + MSS + OTE + IFVG + BreakerBlock"],
+        "prediction": "Maximum probability setup",
+        "expectedRR": "3.5-6.0",
+        "confidence": 0.95,
+        "action": "Enter with maximum allowed risk"
+      }
+    }
+  },
+
+  "timeBasedPrediction": {
+    "enabled": true,
+    "trackSessionPerformance": true,
+
+    "sessionBehavior": {
+      "asia": {
+        "typical": "Ranging, lower volatility, internal liquidity sweeps",
+        "bestSetups": ["Internal range sweeps", "Quick scalps"],
+        "avoidSetups": ["Large RR targets", "Breakout trades"],
+        "recommendedMinRR": 0.9,
+        "recommendedRisk": 0.6
+      },
+
+      "london": {
+        "typical": "Trending, higher volatility, weekly/daily sweeps",
+        "bestSetups": ["PDH/PDL sweeps", "Strong trends"],
+        "avoidSetups": ["Counter-trend entries"],
+        "recommendedMinRR": 1.5,
+        "recommendedRisk": 1.0
+      },
+
+      "newyork": {
+        "typical": "High volatility, strong moves, continuation",
+        "bestSetups": ["Continuation entries", "Large RR setups"],
+        "avoidSetups": ["Tight ranges"],
+        "recommendedMinRR": 1.8,
+        "recommendedRisk": 1.0
+      },
+
+      "overlap_london_ny": {
+        "typical": "Maximum volatility, best opportunities",
+        "bestSetups": ["All high-quality setups"],
+        "avoidSetups": ["Low confluence setups"],
+        "recommendedMinRR": 1.2,
+        "recommendedRisk": 1.2
+      }
+    }
+  },
+
+  "adaptiveForecasting": {
+    "enabled": true,
+    "forecastHorizon": "next_4_hours",
+
+    "forecastingRules": {
+      "current_state_trending_strong": {
+        "next_4h_prediction": "70% chance trend continues, 20% pullback, 10% reversal",
+        "action": "Hold current positions longer, accept continuation entries"
+      },
+
+      "current_state_ranging_tight": {
+        "next_4h_prediction": "60% stay in range, 30% breakout, 10% fake breakout",
+        "action": "Quick profits, don't hold for large targets"
+      },
+
+      "current_state_quiet_compression": {
+        "next_4h_prediction": "80% expansion coming within 2-4 hours",
+        "action": "Prepare for breakout, tighten tolerance, wait for clean setup"
+      },
+
+      "current_state_volatile": {
+        "next_4h_prediction": "50% volatility continues, 30% calms down, 20% whipsaw",
+        "action": "Reduce risk, widen stops, be selective"
+      }
+    }
+  },
+
+  "performanceBasedLearning": {
+    "enabled": true,
+    "trackPredictionAccuracy": true,
+
+    "learningMetrics": {
+      "track": [
+        "state_prediction_accuracy",
+        "pattern_prediction_accuracy",
+        "recommended_behavior_effectiveness",
+        "forecast_accuracy"
+      ],
+
+      "adjustmentRules": {
+        "if_state_prediction_accuracy_below_60%": "reduce_confidence_10%",
+        "if_pattern_prediction_accuracy_above_80%": "increase_confidence_15%",
+        "if_forecast_consistently_wrong": "recalibrate_thresholds"
+      }
+    }
+  },
+
+  "integrationWithOtherSystems": {
+    "signalLogicValidator": "Predictor provides confidence boost/penalty to validator",
+    "patternLearningDatabase": "Predictor reads learned patterns to improve forecasts",
+    "intelligentUniversal": "Predictor sets market-state parameters",
+    "learningAdaptive": "Predictor identifies which patterns to prioritize"
+  },
+
+  "realTimeOutput": {
+    "logPredictions": true,
+    "logFormat": {
+      "example": "Market State: TRENDING_STRONG (ADX=32, ATR=1.4x) → Prediction: 70% continuation → Action: minRR=2.0, tolerance=0.9x, hold longer"
+    },
+    "updateFrequency": "every_bar_and_on_state_change",
+    "criticalAlerts": [
+      "state_change_detected",
+      "high_confidence_pattern_recognized",
+      "forecast_suggests_exit"
+    ]
+  },
+
+  "failsafes": {
+    "if_indicators_unavailable": "default_to_neutral_state",
+    "if_conflicting_signals": "reduce_confidence_to_0.5",
+    "if_prediction_accuracy_very_low": "disable_until_recalibrated",
+    "never_override_validation_gates": true
+  },
+
+  "notes": "This predictor UNDERSTANDS current market state and FORECASTS what will happen next. It adapts bot behavior in real-time based on conditions, not fixed rules. Works with Pattern_Learning_Database to improve predictions continuously."
+}

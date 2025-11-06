@@ -1,0 +1,97 @@
+{
+  "name": "Adaptive_Preset_Scheduler",
+  "description": "Intelligent preset rotation based on time and market conditions",
+  "version": "2.0",
+
+  "schedule": [
+    {
+      "day": "Monday",
+      "presets": [
+        {"time": "00:00-06:00", "preset": "aggressive_scalp", "reason": "Low liquidity scalping"},
+        {"time": "06:00-12:00", "preset": "london_monster", "reason": "London momentum"},
+        {"time": "12:00-16:00", "preset": "overlap_mayhem", "reason": "Maximum volatility"},
+        {"time": "16:00-20:00", "preset": "ny_assassin", "reason": "NY continuation"},
+        {"time": "20:00-23:59", "preset": "aggressive_scalp", "reason": "End of day scalping"}
+      ]
+    },
+    {
+      "day": "Tuesday",
+      "presets": [
+        {"time": "00:00-06:00", "preset": "asia_internal_mechanical", "reason": "Asia session"},
+        {"time": "06:00-12:00", "preset": "london_monster", "reason": "London momentum"},
+        {"time": "12:00-16:00", "preset": "overlap_mayhem", "reason": "Maximum volatility"},
+        {"time": "16:00-20:00", "preset": "ny_assassin", "reason": "NY session"},
+        {"time": "20:00-23:59", "preset": "aggressive_scalp", "reason": "Late scalping"}
+      ]
+    },
+    {
+      "day": "Wednesday",
+      "presets": [
+        {"time": "00:00-06:00", "preset": "aggressive_scalp", "reason": "Mid-week Asia"},
+        {"time": "06:00-12:00", "preset": "london_monster", "reason": "London session"},
+        {"time": "12:00-16:00", "preset": "overlap_mayhem", "reason": "Overlap period"},
+        {"time": "16:00-20:00", "preset": "ny_assassin", "reason": "NY with news"},
+        {"time": "20:00-23:59", "preset": "aggressive_scalp", "reason": "Evening scalp"}
+      ]
+    },
+    {
+      "day": "Thursday",
+      "presets": [
+        {"time": "00:00-06:00", "preset": "asia_liquidity_sweep", "reason": "Asia sweep"},
+        {"time": "06:00-12:00", "preset": "london_monster", "reason": "London aggression"},
+        {"time": "12:00-16:00", "preset": "overlap_mayhem", "reason": "Peak volatility"},
+        {"time": "16:00-20:00", "preset": "ny_assassin", "reason": "NY momentum"},
+        {"time": "20:00-23:59", "preset": "aggressive_scalp", "reason": "Late session"}
+      ]
+    },
+    {
+      "day": "Friday",
+      "presets": [
+        {"time": "00:00-06:00", "preset": "aggressive_scalp", "reason": "Friday Asia"},
+        {"time": "06:00-12:00", "preset": "london_monster", "reason": "London Friday"},
+        {"time": "12:00-16:00", "preset": "overlap_mayhem", "reason": "Friday overlap"},
+        {"time": "16:00-18:00", "preset": "ny_assassin", "reason": "NFP/News day"},
+        {"time": "18:00-23:59", "preset": "aggressive_scalp", "reason": "Weekend positioning"}
+      ]
+    }
+  ],
+
+  "adaptiveRules": {
+    "volatilityAdjustment": {
+      "enabled": true,
+      "lowVolatility": {"riskMultiplier": 0.7, "toleranceMultiplier": 1.3},
+      "normalVolatility": {"riskMultiplier": 1.0, "toleranceMultiplier": 1.0},
+      "highVolatility": {"riskMultiplier": 1.3, "toleranceMultiplier": 0.8}
+    },
+
+    "performanceAdjustment": {
+      "enabled": true,
+      "winStreak": {
+        "3": {"riskBoost": 1.2, "aggressionBoost": 1.1},
+        "5": {"riskBoost": 1.5, "aggressionBoost": 1.3},
+        "7": {"riskBoost": 2.0, "aggressionBoost": 1.5}
+      },
+      "lossStreak": {
+        "2": {"riskReduction": 0.8, "aggressionReduction": 0.9},
+        "3": {"riskReduction": 0.5, "aggressionReduction": 0.7},
+        "5": {"riskReduction": 0.3, "aggressionReduction": 0.5}
+      }
+    },
+
+    "marketConditionOverride": {
+      "trending": {"preset": "london_monster", "override": true},
+      "ranging": {"preset": "aggressive_scalp", "override": true},
+      "volatile": {"preset": "overlap_mayhem", "override": true},
+      "quiet": {"preset": "asia_internal_mechanical", "override": false}
+    }
+  },
+
+  "emergencyRules": {
+    "drawdownLimit": 5.0,
+    "drawdownAction": "reduce_risk",
+    "profitTarget": 10.0,
+    "profitAction": "increase_aggression",
+    "maxDailyTrades": 20,
+    "minDailyTrades": 3
+  }
+}

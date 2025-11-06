@@ -1,0 +1,57 @@
+{
+  "orchestratorStamp": "hs-session-kgz@1.0.0",
+  "presets": {
+    "EURUSD_Tight_0.0_0.2": {
+      "symbol": "EURUSD",
+      "commissionType": "USD per 1 mln USD volume",
+      "commission": 60,
+      "spread": {
+        "mode": "Random",
+        "minPips": 0.0,
+        "maxPips": 0.2
+      }
+    },
+    "EURUSD_Base_0.2_1.2": {
+      "symbol": "EURUSD",
+      "commissionType": "USD per 1 mln USD volume",
+      "commission": 60,
+      "spread": {
+        "mode": "Random",
+        "minPips": 0.2,
+        "maxPips": 1.2
+      }
+    },
+    "XAUUSD_Tight": {
+      "symbol": "XAUUSD",
+      "spread": {
+        "mode": "Random",
+        "minPoints": 10,
+        "maxPoints": 15
+      }
+    },
+    "XAUUSD_Base": {
+      "symbol": "XAUUSD",
+      "spread": {
+        "mode": "Random",
+        "minPoints": 15,
+        "maxPoints": 30
+      }
+    },
+    "US30_Tight": {
+      "symbol": "US30",
+      "spread": {
+        "mode": "Random",
+        "minPoints": 1,
+        "maxPoints": 2
+      }
+    },
+    "US30_Base": {
+      "symbol": "US30",
+      "spread": {
+        "mode": "Random",
+        "minPoints": 2,
+        "maxPoints": 4
+      }
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "NY_Strict_InternalOnly",
+  "EntryGateMode": "MSS_and_OTE",
+  "OtePolicy": "StrictAfterMSS",
+  "SweepScope": "Internal_Only",
+  "TpTargetPolicy": "OppositeLiquidity",
+  "Session": "NY",
+  "BiasAlign": "Strict",
+  "UseKillzone": true,
+  "KillzoneStartUtc": "00:00",
+  "KillzoneEndUtc": "23:59"
+}

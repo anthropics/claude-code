@@ -1,0 +1,146 @@
+{
+  "presetName": "Perfect_Sequence_Hunter",
+  "version": "1.0",
+  "description": "Only trades PERFECT ICT sequences: Sweep → MSS → OTE/OB → Confluence. High win rate, selective.",
+
+  "philosophy": "Quality over quantity. Wait for perfect setup, then strike with confidence.",
+
+  "requiredSequence": {
+    "strictMode": true,
+    "step1": {
+      "signal": "LiquiditySweep",
+      "type": ["PDH", "PDL", "EQH", "EQL", "Weekly"],
+      "validation": "clean_rejection",
+      "required": true
+    },
+    "step2": {
+      "signal": "MSS",
+      "timing": "within_10_bars_of_sweep",
+      "validation": "opposite_liquidity_must_be_set",
+      "direction": "opposite_to_sweep",
+      "required": true
+    },
+    "step3": {
+      "signal": "OTE_or_OrderBlock",
+      "timing": "after_MSS_confirmed",
+      "validation": "entry_zone_not_invalidated",
+      "fibLevel": "0.618_to_0.79_for_OTE",
+      "required": true
+    },
+    "step4": {
+      "signal": "Confluence",
+      "options": ["IFVG", "BreakerBlock", "HTF_OB"],
+      "minimumConfluence": 1,
+      "perfectConfluence": 2,
+      "required": false,
+      "bonusConfidence": 0.15
+    }
+  },
+
+  "sequenceValidation": {
+    "maxBarsTotal": 25,
+    "maxBarsBetweenSteps": 12,
+    "noSkippedSteps": true,
+    "invalidateIf": {
+      "sweep_failed": "no_clean_rejection",
+      "mss_incomplete": "no_opposite_liquidity",
+      "ote_invalidated": "price_broke_zone",
+      "sequence_broken": "new_opposite_sweep"
+    }
+  },
+
+  "signalLogicUnderstanding": {
+    "sweep_meaning": "Smart money grabbed liquidity, now ready to reverse",
+    "mss_meaning": "Structure confirmed changed, new trend established",
+    "ote_meaning": "Optimal entry in new trend, retracement complete",
+    "confluence_meaning": "Multiple reasons align, maximum probability",
+
+    "perfectSequence_predicts": "High probability move to opposite liquidity",
+    "expectedWinRate": "65-75%",
+    "expectedAvgRR": "2.5+"
+  },
+
+  "confidenceCalculation": {
+    "baseConfidence": 0.80,
+    "bonuses": {
+      "cleanSweep_rejection": 0.05,
+      "mss_after_sweep": 0.05,
+      "perfect_OTE_fib": 0.05,
+      "IFVG_confluence": 0.10,
+      "HTF_confirmation": 0.08,
+      "all_steps_perfect": 0.12
+    },
+    "penalties": {
+      "ote_outside_optimal": -0.10,
+      "weak_sweep": -0.15,
+      "long_delay_between_steps": -0.05
+    },
+    "minimumConfidence": 0.75,
+    "perfectConfidence": 0.95
+  },
+
+  "entryRules": {
+    "onlyEnterIf": {
+      "all_steps_complete": true,
+      "confidence_above_75%": true,
+      "opposite_liquidity_intact": true,
+      "no_invalidation": true
+    },
+    "preferredEntry": "OTE_0.618_to_0.71",
+    "acceptableEntry": "OTE_0.71_to_0.79_or_OrderBlock",
+    "rejectEntry": "outside_optimal_zone"
+  },
+
+  "riskManagement": {
+    "baseRisk": 0.6,
+    "adjustByConfidence": {
+      "confidence_0.75_to_0.85": "0.6%",
+      "confidence_0.85_to_0.95": "0.8%",
+      "confidence_above_0.95": "1.0%"
+    },
+    "minRR": 2.0,
+    "targetRR": 3.0,
+    "perfectSetupRR": 4.0
+  },
+
+  "profitManagement": {
+    "partialProfits": [
+      {"rr": 1.5, "percent": 25, "reason": "secure_partial"},
+      {"rr": 2.5, "percent": 25, "reason": "lock_winner"}
+    ],
+    "letRun": 50,
+    "trailingStart": 3.0,
+    "breakEven": 0.8
+  },
+
+  "expectedPerformance": {
+    "tradesPerDay": "1-3",
+    "tradesPerWeek": "5-15",
+    "winRate": "65-75%",
+    "avgRR": "2.5-3.5",
+    "monthlyReturn": "20-35%",
+    "maxDrawdown": "< 8%"
+  },
+
+  "learningSystem": {
+    "enabled": true,
+    "trackSequenceQuality": true,
+    "rememberBestSetups": true,
+    "avoidFailedPatterns": true,
+    "refineConfidenceScoring": true
+  },
+
+  "sequenceGate": {
+    "enabled": true,
+    "minChain": ["LiquiditySweep", "MSS", "OppLiq_set", "EntryZone"],
+    "rejectIf": ["OTE_without_MSS", "MSS_without_OppLiq", "Entry_without_Sweep"]
+  },
+
+  "signalLogicValidationRef": "config/runtime/Signal_Logic_Validator.json",
+
+  "UseKillzone": false,
+  "KillzoneStartUtc": "00:00",
+  "KillzoneEndUtc": "23:59",
+
+  "notes": "This preset waits for PERFECT setups only. Sweep must be clean, MSS must set opposite liquidity, OTE/OB must form in optimal zone, confluence preferred. High win rate but lower frequency."
+}

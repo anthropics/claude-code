@@ -1,0 +1,155 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v6.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v6.0": {
+      "CCTTB_freshnew/1.0.0": {
+        "dependencies": {
+          "Google.Apis.Auth": "1.72.0",
+          "Newtonsoft.Json": "13.0.4",
+          "cTrader.Automate": "1.0.14"
+        },
+        "runtime": {
+          "CCTTB_freshnew.dll": {}
+        }
+      },
+      "cTrader.Automate/1.0.14": {
+        "runtime": {
+          "lib/net6.0/cAlgo.API.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      },
+      "Google.Apis/1.72.0": {
+        "dependencies": {
+          "Google.Apis.Core": "1.72.0"
+        },
+        "runtime": {
+          "lib/net6.0/Google.Apis.dll": {
+            "assemblyVersion": "1.72.0.0",
+            "fileVersion": "1.72.0.0"
+          }
+        }
+      },
+      "Google.Apis.Auth/1.72.0": {
+        "dependencies": {
+          "Google.Apis": "1.72.0",
+          "Google.Apis.Core": "1.72.0",
+          "System.Management": "7.0.2"
+        },
+        "runtime": {
+          "lib/net6.0/Google.Apis.Auth.dll": {
+            "assemblyVersion": "1.72.0.0",
+            "fileVersion": "1.72.0.0"
+          }
+        }
+      },
+      "Google.Apis.Core/1.72.0": {
+        "dependencies": {
+          "Newtonsoft.Json": "13.0.4"
+        },
+        "runtime": {
+          "lib/net6.0/Google.Apis.Core.dll": {
+            "assemblyVersion": "1.72.0.0",
+            "fileVersion": "1.72.0.0"
+          }
+        }
+      },
+      "Newtonsoft.Json/13.0.4": {
+        "runtime": {
+          "lib/net6.0/Newtonsoft.Json.dll": {
+            "assemblyVersion": "13.0.0.0",
+            "fileVersion": "13.0.4.30916"
+          }
+        }
+      },
+      "System.CodeDom/7.0.0": {
+        "runtime": {
+          "lib/net6.0/System.CodeDom.dll": {
+            "assemblyVersion": "7.0.0.0",
+            "fileVersion": "7.0.22.51805"
+          }
+        }
+      },
+      "System.Management/7.0.2": {
+        "dependencies": {
+          "System.CodeDom": "7.0.0"
+        },
+        "runtime": {
+          "lib/net6.0/System.Management.dll": {
+            "assemblyVersion": "7.0.0.2",
+            "fileVersion": "7.0.723.27404"
+          }
+        },
+        "runtimeTargets": {
+          "runtimes/win/lib/net6.0/System.Management.dll": {
+            "rid": "win",
+            "assetType": "runtime",
+            "assemblyVersion": "7.0.0.2",
+            "fileVersion": "7.0.723.27404"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "CCTTB_freshnew/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "cTrader.Automate/1.0.14": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-eNwE7WL90MGBKb5MuLAtZLdQy0vxkI5EVhLWAQ9S83EAdYkGAzdccvGFLk2oqmtSGBtD+gEpyrJUW/ej4dI4jw==",
+      "path": "ctrader.automate/1.0.14",
+      "hashPath": "ctrader.automate.1.0.14.nupkg.sha512"
+    },
+    "Google.Apis/1.72.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-QbSJ08W7QuqsfzDPOZDHl1aFzCYwMcfBoHqQRh7koglwDN5WacShCKYMpU/zR1Pf3h3sH6JTGEeM/txAxaJuEg==",
+      "path": "google.apis/1.72.0",
+      "hashPath": "google.apis.1.72.0.nupkg.sha512"
+    },
+    "Google.Apis.Auth/1.72.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-RBoFwFKBHKUjuyJf2weEnqICQLaY0TdIrdFv2yC8bsiR2VFYxizOn3C/qN1FWCCb0Uh9GhW+zwAV1yUxPjiocw==",
+      "path": "google.apis.auth/1.72.0",
+      "hashPath": "google.apis.auth.1.72.0.nupkg.sha512"
+    },
+    "Google.Apis.Core/1.72.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-ZmYX1PU0vTKFT42c7gp4zaYcb/0TFAXrt9qw8yEz0wjvaug85+/WddlPTfT525Qei8iIUsF6t4bHYrsb2O7crg==",
+      "path": "google.apis.core/1.72.0",
+      "hashPath": "google.apis.core.1.72.0.nupkg.sha512"
+    },
+    "Newtonsoft.Json/13.0.4": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-pdgNNMai3zv51W5aq268sujXUyx7SNdE2bj1wZcWjAQrKMFZV260lbqYop1d2GM67JI1huLRwxo9ZqnfF/lC6A==",
+      "path": "newtonsoft.json/13.0.4",
+      "hashPath": "newtonsoft.json.13.0.4.nupkg.sha512"
+    },
+    "System.CodeDom/7.0.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-GLltyqEsE5/3IE+zYRP5sNa1l44qKl9v+bfdMcwg+M9qnQf47wK3H0SUR/T+3N4JEQXF3vV4CSuuo0rsg+nq2A==",
+      "path": "system.codedom/7.0.0",
+      "hashPath": "system.codedom.7.0.0.nupkg.sha512"
+    },
+    "System.Management/7.0.2": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-/qEUN91mP/MUQmJnM5y5BdT7ZoPuVrtxnFlbJ8a3kBJGhe2wCzBfnPFtK2wTtEEcf3DMGR9J00GZZfg6HRI6yA==",
+      "path": "system.management/7.0.2",
+      "hashPath": "system.management.7.0.2.nupkg.sha512"
+    }
+  }
+}

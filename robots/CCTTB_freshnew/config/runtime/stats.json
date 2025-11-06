@@ -1,0 +1,24 @@
+{
+  "orchestratorStamp": "hs-session-kgz@1.0.0",
+  "lastUpdate": "2025-10-22T00:00:00Z",
+  "currentSession": "london",
+  "trades": {
+    "lastMins": 2
+  },
+  "market": {
+    "symbol": "EURUSD",
+    "realizedVol": 0.42,
+    "spreadZ": 0.75,
+    "isOverlap": true
+  },
+  "news": {
+    "imminent": false,
+    "severity": "low",
+    "minutesTo": 120
+  },
+  "equity": {
+    "drawdownPct": 0.02
+  },
+  "prevRiskMultiplier": 0.85,
+  "notes": "This file is populated by the bot/service. Default values shown for demonstration."
+}

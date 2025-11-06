@@ -1,0 +1,141 @@
+{
+  "name": "PROFIT_MAXIMIZATION_CONFIG",
+  "description": "Aggressive settings for maximum profitability",
+
+  "ote": {
+    "baseTolerance": {
+      "EURUSD": 1.5,
+      "XAUUSD": 15,
+      "US30": 10
+    },
+    "autoRelax": {
+      "enabled": true,
+      "missWindowBars": 3,
+      "toleranceStepPips": 0.3,
+      "maxTolerancePips": 2.0,
+      "requireKillzone": false,
+      "onlyIfDirMatch": true
+    },
+    "dualTap": {
+      "enabled": true,
+      "secondChanceWindow": 5,
+      "allowOppositeDirection": false
+    },
+    "limitToMarketConvert": {
+      "enabled": true,
+      "onRetap": true,
+      "aggressiveMode": true,
+      "slippageCapPips": {
+        "EURUSD": 1.0,
+        "XAUUSD": 2.5,
+        "US30": 3.0
+      }
+    }
+  },
+
+  "gates": {
+    "sequenceGate": false,
+    "pullbackGate": false,
+    "microBreakGate": false,
+    "killzoneGate": false,
+    "mssRequirement": "relaxed",
+    "dailyBiasVeto": false,
+    "confirmationThreshold": 1.0
+  },
+
+  "presetRotation": {
+    "mode": "adaptive",
+    "presets": [
+      {
+        "name": "ASIAN_AGGRO",
+        "hours": "22:00-06:00",
+        "focus": "scalp",
+        "minRR": 1.2,
+        "maxSL": 15,
+        "riskPct": 0.6
+      },
+      {
+        "name": "LONDON_KILLER",
+        "hours": "06:00-12:00",
+        "focus": "momentum",
+        "minRR": 1.5,
+        "maxSL": 20,
+        "riskPct": 0.8
+      },
+      {
+        "name": "NY_HUNTER",
+        "hours": "12:00-19:00",
+        "focus": "reversal",
+        "minRR": 1.8,
+        "maxSL": 25,
+        "riskPct": 0.7
+      },
+      {
+        "name": "OVERLAP_BEAST",
+        "hours": "12:00-16:00",
+        "focus": "any",
+        "minRR": 1.0,
+        "maxSL": 30,
+        "riskPct": 1.0
+      }
+    ]
+  },
+
+  "multiSymbolParallel": {
+    "enabled": true,
+    "maxOpenPerSymbol": 3,
+    "symbols": {
+      "EURUSD": {
+        "weight": 0.4,
+        "preferredSessions": ["london", "ny"]
+      },
+      "GBPUSD": {
+        "weight": 0.3,
+        "preferredSessions": ["london"]
+      },
+      "XAUUSD": {
+        "weight": 0.3,
+        "preferredSessions": ["ny", "asia"]
+      }
+    }
+  },
+
+  "profitAccelerators": {
+    "partialTakeProfit": {
+      "enabled": true,
+      "levels": [
+        {"rr": 0.5, "closePercent": 25},
+        {"rr": 1.0, "closePercent": 25},
+        {"rr": 1.5, "closePercent": 25}
+      ],
+      "letRemainingRun": true
+    },
+    "reEntry": {
+      "enabled": true,
+      "maxReEntries": 3,
+      "cooldownBars": 2,
+      "requireNewSignal": false
+    },
+    "pyramiding": {
+      "enabled": true,
+      "addOnPullback": true,
+      "maxPyramids": 2,
+      "sizeMultiplier": 0.5
+    }
+  },
+
+  "riskManagement": {
+    "dynamicSizing": true,
+    "kellyFraction": 0.25,
+    "maxDailyLoss": 8.0,
+    "maxDailyProfit": 15.0,
+    "compoundingEnabled": true,
+    "riskPerTrade": {
+      "base": 0.8,
+      "winStreak3": 1.0,
+      "winStreak5": 1.2,
+      "lossStreak2": 0.5,
+      "lossStreak3": 0.3
+    }
+  }
+}

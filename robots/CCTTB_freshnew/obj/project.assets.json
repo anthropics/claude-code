@@ -1,0 +1,380 @@
+{
+  "version": 3,
+  "targets": {
+    "net6.0": {
+      "cTrader.Automate/1.0.14": {
+        "type": "package",
+        "compile": {
+          "lib/net6.0/cAlgo.API.dll": {}
+        },
+        "runtime": {
+          "lib/net6.0/cAlgo.API.dll": {}
+        },
+        "build": {
+          "build/cTrader.Automate.props": {},
+          "build/cTrader.Automate.targets": {}
+        }
+      },
+      "Google.Apis/1.72.0": {
+        "type": "package",
+        "dependencies": {
+          "Google.Apis.Core": "1.72.0"
+        },
+        "compile": {
+          "lib/net6.0/Google.Apis.dll": {}
+        },
+        "runtime": {
+          "lib/net6.0/Google.Apis.dll": {}
+        }
+      },
+      "Google.Apis.Auth/1.72.0": {
+        "type": "package",
+        "dependencies": {
+          "Google.Apis": "1.72.0",
+          "Google.Apis.Core": "1.72.0",
+          "System.Management": "7.0.2"
+        },
+        "compile": {
+          "lib/net6.0/Google.Apis.Auth.dll": {}
+        },
+        "runtime": {
+          "lib/net6.0/Google.Apis.Auth.dll": {}
+        }
+      },
+      "Google.Apis.Core/1.72.0": {
+        "type": "package",
+        "dependencies": {
+          "Newtonsoft.Json": "13.0.4"
+        },
+        "compile": {
+          "lib/net6.0/Google.Apis.Core.dll": {}
+        },
+        "runtime": {
+          "lib/net6.0/Google.Apis.Core.dll": {}
+        }
+      },
+      "Newtonsoft.Json/13.0.4": {
+        "type": "package",
+        "compile": {
+          "lib/net6.0/Newtonsoft.Json.dll": {}
+        },
+        "runtime": {
+          "lib/net6.0/Newtonsoft.Json.dll": {}
+        }
+      },
+      "System.CodeDom/7.0.0": {
+        "type": "package",
+        "compile": {
+          "lib/net6.0/System.CodeDom.dll": {}
+        },
+        "runtime": {
+          "lib/net6.0/System.CodeDom.dll": {}
+        },
+        "build": {
+          "buildTransitive/net6.0/_._": {}
+        }
+      },
+      "System.Management/7.0.2": {
+        "type": "package",
+        "dependencies": {
+          "System.CodeDom": "7.0.0"
+        },
+        "compile": {
+          "lib/net6.0/System.Management.dll": {}
+        },
+        "runtime": {
+          "lib/net6.0/System.Management.dll": {}
+        },
+        "build": {
+          "buildTransitive/net6.0/_._": {}
+        },
+        "runtimeTargets": {
+          "runtimes/win/lib/net6.0/System.Management.dll": {
+            "assetType": "runtime",
+            "rid": "win"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "cTrader.Automate/1.0.14": {
+      "sha512": "eNwE7WL90MGBKb5MuLAtZLdQy0vxkI5EVhLWAQ9S83EAdYkGAzdccvGFLk2oqmtSGBtD+gEpyrJUW/ej4dI4jw==",
+      "type": "package",
+      "path": "ctrader.automate/1.0.14",
+      "hasTools": true,
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "build/cTrader.Automate.props",
+        "build/cTrader.Automate.targets",
+        "ctrader.automate.1.0.14.nupkg.sha512",
+        "ctrader.automate.nuspec",
+        "eula.md",
+        "icon.png",
+        "lib/net40/cAlgo.API.dll",
+        "lib/net40/cAlgo.API.xml",
+        "lib/net6.0/cAlgo.API.dll",
+        "lib/net6.0/cAlgo.API.xml",
+        "tools/net472/Core.AlgoFormat.Compose.Reflection.dll",
+        "tools/net472/Core.AlgoFormat.Writer.dll",
+        "tools/net472/Core.AlgoFormat.dll",
+        "tools/net472/Core.Domain.Primitives.dll",
+        "tools/net472/Newtonsoft.Json.dll",
+        "tools/net472/System.Buffers.dll",
+        "tools/net472/System.Collections.Immutable.dll",
+        "tools/net472/System.Memory.dll",
+        "tools/net472/System.Numerics.Vectors.dll",
+        "tools/net472/System.Reflection.Metadata.dll",
+        "tools/net472/System.Reflection.MetadataLoadContext.dll",
+        "tools/net472/System.Runtime.CompilerServices.Unsafe.dll",
+        "tools/net472/cTrader.Automate.Sdk.Tasks.dll",
+        "tools/net6.0/Core.AlgoFormat.Compose.Reflection.dll",
+        "tools/net6.0/Core.AlgoFormat.Writer.dll",
+        "tools/net6.0/Core.AlgoFormat.dll",
+        "tools/net6.0/Core.Connection.Protobuf.Common.dll",
+        "tools/net6.0/Core.Domain.Primitives.dll",
+        "tools/net6.0/Microsoft.Win32.SystemEvents.dll",
+        "tools/net6.0/Newtonsoft.Json.dll",
+        "tools/net6.0/System.Drawing.Common.dll",
+        "tools/net6.0/System.Reflection.MetadataLoadContext.dll",
+        "tools/net6.0/System.Security.Permissions.dll",
+        "tools/net6.0/System.Windows.Extensions.dll",
+        "tools/net6.0/cTrader.Automate.Sdk.Tasks.dll",
+        "tools/net6.0/protobuf-net.Core.dll",
+        "tools/net6.0/protobuf-net.dll",
+        "tools/net6.0/runtimes/unix/lib/net6.0/System.Drawing.Common.dll",
+        "tools/net6.0/runtimes/win/lib/net6.0/Microsoft.Win32.SystemEvents.dll",
+        "tools/net6.0/runtimes/win/lib/net6.0/System.Drawing.Common.dll",
+        "tools/net6.0/runtimes/win/lib/net6.0/System.Windows.Extensions.dll"
+      ]
+    },
+    "Google.Apis/1.72.0": {
+      "sha512": "QbSJ08W7QuqsfzDPOZDHl1aFzCYwMcfBoHqQRh7koglwDN5WacShCKYMpU/zR1Pf3h3sH6JTGEeM/txAxaJuEg==",
+      "type": "package",
+      "path": "google.apis/1.72.0",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "LICENSE",
+        "NuGetIcon.png",
+        "google.apis.1.72.0.nupkg.sha512",
+        "google.apis.nuspec",
+        "lib/net462/Google.Apis.dll",
+        "lib/net462/Google.Apis.pdb",
+        "lib/net462/Google.Apis.xml",
+        "lib/net6.0/Google.Apis.dll",
+        "lib/net6.0/Google.Apis.pdb",
+        "lib/net6.0/Google.Apis.xml",
+        "lib/netstandard2.0/Google.Apis.dll",
+        "lib/netstandard2.0/Google.Apis.pdb",
+        "lib/netstandard2.0/Google.Apis.xml"
+      ]
+    },
+    "Google.Apis.Auth/1.72.0": {
+      "sha512": "RBoFwFKBHKUjuyJf2weEnqICQLaY0TdIrdFv2yC8bsiR2VFYxizOn3C/qN1FWCCb0Uh9GhW+zwAV1yUxPjiocw==",
+      "type": "package",
+      "path": "google.apis.auth/1.72.0",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "LICENSE",
+        "NuGetIcon.png",
+        "google.apis.auth.1.72.0.nupkg.sha512",
+        "google.apis.auth.nuspec",
+        "lib/net462/Google.Apis.Auth.dll",
+        "lib/net462/Google.Apis.Auth.pdb",
+        "lib/net462/Google.Apis.Auth.xml",
+        "lib/net6.0/Google.Apis.Auth.dll",
+        "lib/net6.0/Google.Apis.Auth.pdb",
+        "lib/net6.0/Google.Apis.Auth.xml",
+        "lib/netstandard2.0/Google.Apis.Auth.dll",
+        "lib/netstandard2.0/Google.Apis.Auth.pdb",
+        "lib/netstandard2.0/Google.Apis.Auth.xml"
+      ]
+    },
+    "Google.Apis.Core/1.72.0": {
+      "sha512": "ZmYX1PU0vTKFT42c7gp4zaYcb/0TFAXrt9qw8yEz0wjvaug85+/WddlPTfT525Qei8iIUsF6t4bHYrsb2O7crg==",
+      "type": "package",
+      "path": "google.apis.core/1.72.0",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "LICENSE",
+        "NuGetIcon.png",
+        "google.apis.core.1.72.0.nupkg.sha512",
+        "google.apis.core.nuspec",
+        "lib/net462/Google.Apis.Core.dll",
+        "lib/net462/Google.Apis.Core.pdb",
+        "lib/net462/Google.Apis.Core.xml",
+        "lib/net6.0/Google.Apis.Core.dll",
+        "lib/net6.0/Google.Apis.Core.pdb",
+        "lib/net6.0/Google.Apis.Core.xml",
+        "lib/netstandard2.0/Google.Apis.Core.dll",
+        "lib/netstandard2.0/Google.Apis.Core.pdb",
+        "lib/netstandard2.0/Google.Apis.Core.xml"
+      ]
+    },
+    "Newtonsoft.Json/13.0.4": {
+      "sha512": "pdgNNMai3zv51W5aq268sujXUyx7SNdE2bj1wZcWjAQrKMFZV260lbqYop1d2GM67JI1huLRwxo9ZqnfF/lC6A==",
+      "type": "package",
+      "path": "newtonsoft.json/13.0.4",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "LICENSE.md",
+        "README.md",
+        "lib/net20/Newtonsoft.Json.dll",
+        "lib/net20/Newtonsoft.Json.xml",
+        "lib/net35/Newtonsoft.Json.dll",
+        "lib/net35/Newtonsoft.Json.xml",
+        "lib/net40/Newtonsoft.Json.dll",
+        "lib/net40/Newtonsoft.Json.xml",
+        "lib/net45/Newtonsoft.Json.dll",
+        "lib/net45/Newtonsoft.Json.xml",
+        "lib/net6.0/Newtonsoft.Json.dll",
+        "lib/net6.0/Newtonsoft.Json.xml",
+        "lib/netstandard1.0/Newtonsoft.Json.dll",
+        "lib/netstandard1.0/Newtonsoft.Json.xml",
+        "lib/netstandard1.3/Newtonsoft.Json.dll",
+        "lib/netstandard1.3/Newtonsoft.Json.xml",
+        "lib/netstandard2.0/Newtonsoft.Json.dll",
+        "lib/netstandard2.0/Newtonsoft.Json.xml",
+        "newtonsoft.json.13.0.4.nupkg.sha512",
+        "newtonsoft.json.nuspec",
+        "packageIcon.png"
+      ]
+    },
+    "System.CodeDom/7.0.0": {
+      "sha512": "GLltyqEsE5/3IE+zYRP5sNa1l44qKl9v+bfdMcwg+M9qnQf47wK3H0SUR/T+3N4JEQXF3vV4CSuuo0rsg+nq2A==",
+      "type": "package",
+      "path": "system.codedom/7.0.0",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "Icon.png",
+        "LICENSE.TXT",
+        "THIRD-PARTY-NOTICES.TXT",
+        "buildTransitive/net461/System.CodeDom.targets",
+        "buildTransitive/net462/_._",
+        "buildTransitive/net6.0/_._",
+        "buildTransitive/netcoreapp2.0/System.CodeDom.targets",
+        "lib/net462/System.CodeDom.dll",
+        "lib/net462/System.CodeDom.xml",
+        "lib/net6.0/System.CodeDom.dll",
+        "lib/net6.0/System.CodeDom.xml",
+        "lib/net7.0/System.CodeDom.dll",
+        "lib/net7.0/System.CodeDom.xml",
+        "lib/netstandard2.0/System.CodeDom.dll",
+        "lib/netstandard2.0/System.CodeDom.xml",
+        "system.codedom.7.0.0.nupkg.sha512",
+        "system.codedom.nuspec",
+        "useSharedDesignerContext.txt"
+      ]
+    },
+    "System.Management/7.0.2": {
+      "sha512": "/qEUN91mP/MUQmJnM5y5BdT7ZoPuVrtxnFlbJ8a3kBJGhe2wCzBfnPFtK2wTtEEcf3DMGR9J00GZZfg6HRI6yA==",
+      "type": "package",
+      "path": "system.management/7.0.2",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "Icon.png",
+        "LICENSE.TXT",
+        "THIRD-PARTY-NOTICES.TXT",
+        "buildTransitive/net6.0/_._",
+        "buildTransitive/netcoreapp2.0/System.Management.targets",
+        "lib/net462/_._",
+        "lib/net6.0/System.Management.dll",
+        "lib/net6.0/System.Management.xml",
+        "lib/net7.0/System.Management.dll",
+        "lib/net7.0/System.Management.xml",
+        "lib/netstandard2.0/System.Management.dll",
+        "lib/netstandard2.0/System.Management.xml",
+        "runtimes/win/lib/net6.0/System.Management.dll",
+        "runtimes/win/lib/net6.0/System.Management.xml",
+        "runtimes/win/lib/net7.0/System.Management.dll",
+        "runtimes/win/lib/net7.0/System.Management.xml",
+        "system.management.7.0.2.nupkg.sha512",
+        "system.management.nuspec",
+        "useSharedDesignerContext.txt"
+      ]
+    }
+  },
+  "projectFileDependencyGroups": {
+    "net6.0": [
+      "Google.Apis.Auth >= 1.72.0",
+      "Newtonsoft.Json >= 13.0.4",
+      "cTrader.Automate >= *"
+    ]
+  },
+  "packageFolders": {
+    "C:\\Users\\Administrator\\.nuget\\packages\\": {}
+  },
+  "project": {
+    "version": "1.0.0",
+    "restore": {
+      "projectUniqueName": "C:\\Users\\Administrator\\Documents\\cAlgo\\Sources\\Robots\\CCTTB_freshnew\\CCTTB_freshnew\\CCTTB_freshnew.csproj",
+      "projectName": "CCTTB_freshnew",
+      "projectPath": "C:\\Users\\Administrator\\Documents\\cAlgo\\Sources\\Robots\\CCTTB_freshnew\\CCTTB_freshnew\\CCTTB_freshnew.csproj",
+      "packagesPath": "C:\\Users\\Administrator\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\Administrator\\Documents\\cAlgo\\Sources\\Robots\\CCTTB_freshnew\\CCTTB_freshnew\\obj\\",
+      "projectStyle": "PackageReference",
+      "configFilePaths": [
+        "C:\\Users\\Administrator\\AppData\\Roaming\\NuGet\\NuGet.Config"
+      ],
+      "originalTargetFrameworks": [
+        "net6.0"
+      ],
+      "sources": {
+        "https://api.nuget.org/v3/index.json": {}
+      },
+      "frameworks": {
+        "net6.0": {
+          "targetAlias": "net6.0",
+          "projectReferences": {}
+        }
+      },
+      "warningProperties": {
+        "warnAsError": [
+          "NU1605"
+        ]
+      }
+    },
+    "frameworks": {
+      "net6.0": {
+        "targetAlias": "net6.0",
+        "dependencies": {
+          "Google.Apis.Auth": {
+            "target": "Package",
+            "version": "[1.72.0, )"
+          },
+          "Newtonsoft.Json": {
+            "target": "Package",
+            "version": "[13.0.4, )"
+          },
+          "cTrader.Automate": {
+            "target": "Package",
+            "version": "[*, )"
+          }
+        },
+        "imports": [
+          "net461",
+          "net462",
+          "net47",
+          "net471",
+          "net472",
+          "net48"
+        ],
+        "assetTargetFallback": true,
+        "warn": true,
+        "frameworkReferences": {
+          "Microsoft.NETCore.App": {
+            "privateAssets": "all"
+          }
+        },
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\6.0.136\\RuntimeIdentifierGraph.json"
+      }
+    }
+  }
+}

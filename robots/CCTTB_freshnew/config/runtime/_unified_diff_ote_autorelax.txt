@@ -1,0 +1,90 @@
+--- policy.json (before: no OTE auto-relax)
++++ policy.json (after: OTE auto-relax + finalized sizing)
+
+@@ Line 209 (sizer notes): UPDATED @@
+-    "notes": "qty = (equity * riskPctBase) / (stopDistancePts * valuePerPoint) * risk.multiplier; then apply positionRiskCaps"
++    "notes": "qty = (equity * riskPctBase[symbol]) / (stopDistancePts * valuePerPoint[symbol]) * risk.multiplier; clamp to qtyBounds; then enforce positionRiskCaps"
+
+@@ Line 260-283 (NEW ote block): ADDED @@
++  "ote": {
++    "autoRelax": {
++      "enabled": true,
++      "missWindowBars": 6,
++      "toleranceStepPips": 0.2,
++      "maxTolerancePips": 1.4,
++      "requireKillzone": true,
++      "onlyIfDirMatch": true
++    },
++    "limitToMarketConvert": {
++      "enabled": true,
++      "onRetap": true,
++      "slippageCapPips": {
++        "EURUSD": 0.6,
++        "XAUUSD": 1.5,
++        "US30": 2.0
++      }
++    },
++    "expiryBars": {
++      "EURUSD": 4,
++      "XAUUSD": 4,
++      "US30": 2
++    }
++  }
+
+--- active.json
++++ active.json
+
+@@ Line 3-4 (runMeta): UPDATED @@
+-    "preset": "EURUSD_Tight_0.0_0.2",
+-    "backtestLabel": "EURUSD_preset_compare"
++    "preset": "EURUSD_Base_0.2_1.2",
++    "backtestLabel": "preset_compare"
+
+SUMMARY OF CHANGES:
+==================
+policy.json:
+1. Updated sizer notes for clarity (added [symbol] notation)
+2. NEW: Added complete "ote" block with:
+   - autoRelax: Enabled with 6-bar window, 0.2 pip steps, max 1.4 pips
+   - limitToMarketConvert: Enabled with per-symbol slippage caps
+   - expiryBars: Per-symbol expiry (4 bars for FX, 2 for US30)
+
+active.json:
+1. Updated preset from Tight to Base spread configuration
+2. Simplified backtestLabel
+
+PRESERVED SETTINGS:
+===================
+✓ riskEngine.bounds (min: 0.40, max: 1.25)
+✓ sessionMultipliers (overlap: 1.00, london: 0.80, newyork: 1.00, asia: 0.60)
+✓ XAUUSD.volTarget (target: 0.62, upperClip: 1.35)
+✓ Tap tolerances (EURUSD: 1.0 pips, XAUUSD: 10 pts, US30: 6 pts)
+✓ executionGuards.positionRiskCaps (0.8% per trade, 2.0% aggregate, $1.5M notional)
+✓ sizer block (riskPct mode, equity scaled, with contract specs)
+✓ All other existing configurations
+
+ORCHESTRATOR EXPECTATIONS (OTE Auto-Relax):
+============================================
+Behavior:
+1. Track OTE zones that are "NOT tapped" while EntryCheck.allowed=True && inKillzone=True
+2. If same OTE box misses for missWindowBars (6) consecutive bars:
+   - Increment tolerance by toleranceStepPips (0.2)
+   - Cap at maxTolerancePips (1.4)
+3. On retap with expanded tolerance:
+   - Convert limit order to market order
+   - Apply slippageCapPips to protect against adverse fills
+4. Reset tolerance when:
+   - OTE is finally tapped
+   - New MSS creates new OTE zone
+   - Exit killzone
+
+Example Flow (from log):
+- Bar 1: OTE [1.17196,1.17198] NOT tapped (tol=1.00 pips)
+- Bar 2-6: Still NOT tapped (all within killzone)
+- Bar 7: Auto-relax kicks in → tol=1.20 pips
+- Bar 8: Chart hits 1.17176 → NOW TAPPED with expanded tolerance
+- Convert to market with 0.6 pip slippage cap
+
+NO DUPLICATES: All changes are new additions or clarifications
+NO CODE CHANGES: Only config/runtime/ modified
+orchestratorStamp: preserved at "hs-session-kgz@1.0.0"

@@ -1,0 +1,14 @@
+{
+  "scoring": {
+    "weights": {
+      "w_session": 0.20,
+      "w_vol": 0.40,
+      "w_spread": 0.30,
+      "w_news": 0.30
+    }
+  },
+  "risk": {
+    "multiplier": 0.85
+  },
+  "orchestratorStamp": "default-config"
+}

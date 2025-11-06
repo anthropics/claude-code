@@ -1,0 +1,16 @@
+{
+  "Enable Phase4o4 strict mode": false,
+  "Enable PingPong (range mode)": true,
+  "PingPong max range (pips)": 30.0,
+  "PingPong min bounce (pips)": 7.0,
+  "Include Equal High/Low zones": true,
+  "Include Current Day H/L": true,
+  "Require PDH/PDL sweeps only": false,
+  "Enable Sequence Gate": false,
+  "Enable Killzone Gate": true,
+  "Kill Zone Start (Hours EST)": 9.5,
+  "Kill Zone End (Hours EST)": 11.5,
+  "UseKillzone": false,
+  "KillzoneStartUtc": "00:00",
+  "KillzoneEndUtc": "23:59"
+}

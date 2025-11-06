@@ -1,0 +1,32 @@
+{
+  "name": "NY_Assassin",
+  "description": "Aggressive NY session with news trading",
+  "UseKillzone": true,
+  "KillzoneStartUtc": "12:00",
+  "KillzoneEndUtc": "20:00",
+  "Focus": "NYSweep,NYOpen,NewsVolatility",
+  "EntryGateMode": "None",
+  "MinRR": 0.7,
+  "MaxStopLossPips": 25,
+  "RiskPercent": 0.8,
+  "AllowMultipleEntries": true,
+  "MaxPositions": 4,
+  "NewsTrading": {
+    "enabled": true,
+    "preNewsMinutes": 5,
+    "postNewsMinutes": 15,
+    "volatilityMultiplier": 1.5
+  },
+  "PartialProfits": [
+    {"at": 0.3, "close": 30},
+    {"at": 0.7, "close": 30},
+    {"at": 1.2, "close": 20}
+  ],
+  "TrailingStopRR": 1.0,
+  "BreakEvenRR": 0.4,
+  "RequireMSS": false,
+  "RequireOTE": false,
+  "AllowAnySignal": true,
+  "AggressiveFill": true,
+  "MarketOrdersAllowed": true
+}

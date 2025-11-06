@@ -1,0 +1,36 @@
+{
+  "name": "Overlap_Mayhem",
+  "description": "Maximum aggression during London-NY overlap",
+  "UseKillzone": true,
+  "KillzoneStartUtc": "12:00",
+  "KillzoneEndUtc": "16:00",
+  "Focus": "Overlap,HighVolume,AllSignals",
+  "EntryGateMode": "None",
+  "MinRR": 0.5,
+  "MaxStopLossPips": 30,
+  "RiskPercent": 1.2,
+  "AllowMultipleEntries": true,
+  "MaxPositions": 6,
+  "OverlapBoost": {
+    "enabled": true,
+    "riskMultiplier": 1.5,
+    "toleranceBoost": 1.5,
+    "allowBothDirections": true
+  },
+  "GridTrading": {
+    "enabled": true,
+    "gridLevels": 3,
+    "gridSpacing": 8,
+    "gridSizeMultiplier": 0.5
+  },
+  "PartialProfits": [
+    {"at": 0.2, "close": 40},
+    {"at": 0.5, "close": 30},
+    {"at": 1.0, "close": 20}
+  ],
+  "NoStopLossMode": false,
+  "RequireMSS": false,
+  "RequireOTE": false,
+  "TakeAnyEntry": true,
+  "MarketOrdersOnly": true
+}

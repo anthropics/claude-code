@@ -1,0 +1,242 @@
+{
+  "presetName": "Learning_Adaptive",
+  "version": "1.0",
+  "description": "Self-learning preset that continuously improves from every trade. Remembers what works, avoids what fails.",
+
+  "corePrinciple": "Learn from experience, adapt to reality, improve continuously",
+
+  "learningEngine": {
+    "enabled": true,
+    "mode": "reinforcement_learning",
+    "goal": "maximize_profit_factor",
+    "method": "pattern_outcome_correlation",
+
+    "memorySystem": {
+      "rememberLast": 200,
+      "retainPermanently": "patterns_with_20+_samples",
+      "forgetAfter": "patterns_not_seen_in_100_trades"
+    },
+
+    "patternRecognition": {
+      "trackPatterns": [
+        "Sweep+MSS+OTE",
+        "Sweep+MSS+OrderBlock",
+        "MSS+OTE_only",
+        "MSS+OrderBlock_only",
+        "MSS+IFVG",
+        "OTE_with_HTF_confirmation",
+        "Triple_confluence",
+        "BreakerBlock_entry",
+        "Sweep_type_PDH",
+        "Sweep_type_PDL",
+        "Sweep_type_EQH",
+        "Sweep_type_EQL",
+        "Sweep_type_Weekly"
+      ],
+      "recordFor Each Pattern": {
+        "total_occurrences": 0,
+        "wins": 0,
+        "losses": 0,
+        "winRate": 0.0,
+        "avgRR": 0.0,
+        "avgProfit": 0.0,
+        "confidence": 0.5
+      }
+    },
+
+    "learningRules": {
+      "afterEvery_10_trades": {
+        "recalculate_all_pattern_winRates": true,
+        "adjust_confidence_scores": true,
+        "identify_best_patterns": true,
+        "identify_worst_patterns": true
+      },
+
+      "confidenceAdjustment": {
+        "if_winRate_above_70%": "confidence = 0.95",
+        "if_winRate_60_to_70%": "confidence = 0.85",
+        "if_winRate_50_to_60%": "confidence = 0.75",
+        "if_winRate_40_to_50%": "confidence = 0.60",
+        "if_winRate_below_40%": "confidence = 0.40"
+      },
+
+      "patternAvoidance": {
+        "if_pattern_lost_3_consecutive": "skip_for_next_20_occurrences",
+        "if_pattern_winRate_below_30%": "reduce_confidence_to_0.3",
+        "if_pattern_avgRR_below_0.8": "increase_minRR_requirement"
+      },
+
+      "patternPrioritization": {
+        "if_pattern_won_5_consecutive": "increase_risk_20%_for_this",
+        "if_pattern_winRate_above_75%": "prioritize_this_pattern",
+        "if_pattern_avgRR_above_3.0": "hold_longer_for_this"
+      }
+    }
+  },
+
+  "adaptiveParameters": {
+    "enabled": true,
+    "learningSpeed": "moderate",
+    "updateFrequency": 10,
+
+    "tolerance_learning": {
+      "track_missRate_by_tolerance": true,
+      "track_falseEntry_by_tolerance": true,
+      "optimize_for": "best_balance",
+      "adjustment": {
+        "if_missRate_high": "widen_tolerance_0.1_pips",
+        "if_falseEntry_high": "tighten_tolerance_0.1_pips"
+      }
+    },
+
+    "minRR_learning": {
+      "track_winRate_by_minRR": true,
+      "track_tradeFrequency_by_minRR": true,
+      "optimize_for": "best_profit_factor",
+      "adjustment": {
+        "if_too_restrictive": "lower_minRR_0.1",
+        "if_too_many_losers": "raise_minRR_0.2"
+      }
+    },
+
+    "risk_learning": {
+      "track_drawdown_by_riskLevel": true,
+      "track_return_by_riskLevel": true,
+      "optimize_for": "sharpe_ratio",
+      "adjustment": {
+        "if_sharp_ratio_improving": "maintain_risk",
+        "if_sharpe_ratio_declining": "reduce_risk_10%"
+      }
+    }
+  },
+
+  "marketConditionMemory": {
+    "enabled": true,
+    "remember_market_states": true,
+    "correlate_state_to_outcome": true,
+
+    "stateTracking": {
+      "track": [
+        "trending_ADX_high",
+        "ranging_ADX_low",
+        "volatile_ATR_high",
+        "quiet_ATR_low",
+        "london_session",
+        "ny_session",
+        "asia_session",
+        "overlap_period"
+      ],
+      "recordOutcome": "winRate_and_avgRR_per_state",
+      "adaptBehavior": "use_best_parameters_for_each_state"
+    },
+
+    "example": {
+      "state": "ranging_ADX_18_london",
+      "learnedWinRate": 0.62,
+      "learnedAvgRR": 1.4,
+      "bestParameters": {
+        "minRR": 0.9,
+        "tolerance": 1.3,
+        "quickExit": true
+      },
+      "action": "apply_these_when_state_detected_again"
+    }
+  },
+
+  "intelligentFiltering": {
+    "enabled": true,
+    "basedOnLearning": true,
+
+    "filters": {
+      "avoid_failed_patterns": {
+        "if_pattern_failed_last_3_times": "skip_this_pattern",
+        "until": "pattern_wins_twice_in_row"
+      },
+      "prioritize_winners": {
+        "if_pattern_won_last_5_times": "take_immediately",
+        "increase_risk": "120%_of_base"
+      },
+      "time_based_learning": {
+        "if_london_wins_70%": "increase_london_activity",
+        "if_asia_wins_30%": "reduce_asia_activity"
+      }
+    }
+  },
+
+  "selfOptimization": {
+    "enabled": true,
+    "goal": "maximize_monthly_return_while_limiting_drawdown",
+
+    "optimizationTargets": {
+      "winRate": "target_55%_minimum",
+      "avgRR": "target_2.0_minimum",
+      "profitFactor": "target_2.5_minimum",
+      "sharpeRatio": "target_1.5_minimum",
+      "maxDrawdown": "limit_10%"
+    },
+
+    "adjustmentStrategy": {
+      "if_underperforming": "tighten_filters_improve_quality",
+      "if_overperforming": "relax_slightly_increase_frequency",
+      "if_drawdown_high": "reduce_risk_increase_selectivity",
+      "if_winRate_low": "require_higher_confluence"
+    }
+  },
+
+  "signalRequirements": {
+    "baseRequirement": ["MSS", "Entry_zone"],
+    "dynamicRequirement": "learned_from_best_patterns",
+    "confidenceThreshold": "learned_from_outcomes",
+    "neverTradeWithout": "signal_validation"
+  },
+
+  "riskManagement": {
+    "baseRisk": 0.5,
+    "learnedRisk": "optimized_by_sharpe_ratio",
+    "adjustBy": {
+      "pattern_confidence": "high_confidence_patterns_get_more_risk",
+      "recent_performance": "winning_streaks_increase_risk",
+      "market_state": "favorable_states_get_more_risk"
+    },
+    "bounds": {
+      "min": 0.2,
+      "max": 1.0
+    }
+  },
+
+  "profitManagement": {
+    "mode": "learned_optimal",
+    "partials": "optimized_by_pattern_type",
+    "trailing": "activated_based_on_learned_avgRR",
+    "breakEven": "timing_learned_from_data"
+  },
+
+  "reportingAndAnalysis": {
+    "logEveryDecision": true,
+    "recordLearningUpdates": true,
+    "trackConfidenceChanges": true,
+    "reportEvery": 25,
+
+    "reportIncludes": {
+      "best_patterns": "top_5_by_winRate",
+      "worst_patterns": "bottom_5_by_winRate",
+      "parameter_changes": "all_adjustments_made",
+      "performance_metrics": "winRate_avgRR_profitFactor",
+      "learning_progress": "how_bot_improved"
+    }
+  },
+
+  "sequenceGate": {
+    "enabled": true,
+    "minChain": ["MSS", "OppLiq_set", "EntryZone"],
+    "rejectIf": ["OTE_without_MSS", "MSS_without_OppLiq"]
+  },
+
+  "signalLogicValidationRef": "config/runtime/Signal_Logic_Validator.json",
+
+  "UseKillzone": false,
+  "KillzoneStartUtc": "00:00",
+  "KillzoneEndUtc": "23:59",
+
+  "notes": "This preset LEARNS and ADAPTS continuously. After 100 trades, it will be optimized specifically for your market conditions, time periods, and trading style. The more it trades, the smarter it gets."
+}

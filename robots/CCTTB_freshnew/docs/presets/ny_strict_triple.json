@@ -1,0 +1,13 @@
+{
+  "name": "NY_Strict_TripleSequence",
+  "EntryGateMode": "Triple",
+  "StrictSequence": true,
+  "OtePolicy": "StrictAfterMSS",
+  "SweepScope": "Any",
+  "TpTargetPolicy": "OppositeLiquidity",
+  "Session": "NY",
+  "BiasAlign": "Strict",
+  "UseKillzone": true,
+  "KillzoneStartUtc": "00:00",
+  "KillzoneEndUtc": "23:59"
+}

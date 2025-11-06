@@ -1,0 +1,458 @@
+{
+  "systemName": "Intelligent Self-Learning Trading System",
+  "version": "3.0",
+  "description": "Bot that UNDERSTANDS logic, PREDICTS future, LEARNS continuously",
+
+  "corePhilosophy": {
+    "principle": "UNDERSTAND_THEN_ACT",
+    "neverTradeWithoutReason": true,
+    "alwaysValidateDetectorSignals": true,
+    "learnFromEveryTrade": true,
+    "adaptToUnknownFuture": true
+  },
+
+  "signalLogicUnderstanding": {
+    "description": "Bot must understand WHY each signal exists, not just detect it",
+
+    "liquiditySweepLogic": {
+      "purpose": "Identify liquidity grabs before reversal",
+      "prerequisites": [
+        "PDH/PDL/EQH/EQL level established",
+        "Price breaks level temporarily",
+        "Quick rejection (wick formation)",
+        "No sustained break (close back inside)"
+      ],
+      "marketMeaning": "Smart money grabbed liquidity, now reversing",
+      "whatItPredictsNext": "Reversal in opposite direction",
+      "confidence_if": {
+        "strongRejection": 0.9,
+        "weakRejection": 0.6,
+        "multipleTimeframes": 0.95
+      }
+    },
+
+    "mssLogic": {
+      "purpose": "Confirm market structure change",
+      "prerequisites": [
+        "Previous swing high/low broken",
+        "Clean break with momentum",
+        "Opposite liquidity level identified",
+        "Structure shift confirmed"
+      ],
+      "marketMeaning": "Trend changed, new direction established",
+      "whatItPredictsNext": "Price will move toward opposite liquidity",
+      "confidence_if": {
+        "afterSweep": 0.95,
+        "standalone": 0.7,
+        "multipleConfirmations": 0.98
+      }
+    },
+
+    "oteLogic": {
+      "purpose": "Find optimal entry in new trend",
+      "prerequisites": [
+        "MSS already occurred",
+        "Price retraces 61.8%-79% of MSS move",
+        "Opposite liquidity still intact",
+        "Entry zone not invalidated"
+      ],
+      "marketMeaning": "Retracement complete, resumption likely",
+      "whatItPredictsNext": "Resumption toward opposite liquidity",
+      "confidence_if": {
+        "perfectFibLevel": 0.9,
+        "withOrderBlock": 0.95,
+        "withIFVG": 0.92
+      }
+    },
+
+    "orderBlockLogic": {
+      "purpose": "Identify institutional order zones",
+      "prerequisites": [
+        "Strong move away from zone",
+        "Zone remained untouched",
+        "Price returns to zone",
+        "Confluence with MSS direction"
+      ],
+      "marketMeaning": "Institutions defending price level",
+      "whatItPredictsNext": "Bounce from zone",
+      "confidence_if": {
+        "firstTouch": 0.85,
+        "withMSS": 0.90,
+        "withIFVG": 0.88
+      }
+    },
+
+    "fvgLogic": {
+      "purpose": "Identify imbalance zones (gaps)",
+      "prerequisites": [
+        "3-candle gap formation",
+        "No overlap between candle 1 and 3",
+        "Strong directional move",
+        "Zone not filled yet"
+      ],
+      "marketMeaning": "Price moved too fast, imbalance created",
+      "whatItPredictsNext": "Rebalance (fill gap) or bounce",
+      "confidence_if": {
+        "inverted": 0.90,
+        "withMSS": 0.85,
+        "fresh": 0.80
+      }
+    },
+
+    "breakerBlockLogic": {
+      "purpose": "Identify flipped supply/demand zones",
+      "prerequisites": [
+        "Previous OrderBlock invalidated",
+        "Block became opposite type",
+        "Price returned to flipped zone",
+        "Confluence with trend"
+      ],
+      "marketMeaning": "Support became resistance or vice versa",
+      "whatItPredictsNext": "Rejection from flipped zone",
+      "confidence_if": {
+        "cleanFlip": 0.85,
+        "withMSS": 0.88,
+        "firstRetest": 0.82
+      }
+    }
+  },
+
+  "sequenceLogicChain": {
+    "description": "Bot understands the CAUSE → EFFECT chain",
+
+    "perfectSequence": {
+      "step1": {
+        "event": "LiquiditySweep",
+        "meaning": "Smart money grabbed liquidity",
+        "predictNext": "Reversal coming",
+        "confidence": 0.7
+      },
+      "step2": {
+        "event": "MSS after sweep",
+        "meaning": "Structure confirmed changed",
+        "predictNext": "New trend established",
+        "confidence": 0.85,
+        "oppositeLiquiditySet": true
+      },
+      "step3": {
+        "event": "Price retraces to OTE",
+        "meaning": "Pullback complete",
+        "predictNext": "Resumption toward opposite liquidity",
+        "confidence": 0.90
+      },
+      "step4": {
+        "event": "OTE tap with OrderBlock/IFVG",
+        "meaning": "Maximum confluence",
+        "predictNext": "High probability move to target",
+        "confidence": 0.95,
+        "action": "ENTER_TRADE"
+      }
+    },
+
+    "acceptableSequences": [
+      {
+        "name": "MSS_OTE_Only",
+        "chain": ["MSS", "OTE"],
+        "confidence": 0.75,
+        "condition": "When sweep not visible but MSS clear"
+      },
+      {
+        "name": "Sweep_MSS_OrderBlock",
+        "chain": ["Sweep", "MSS", "OrderBlock"],
+        "confidence": 0.85,
+        "condition": "When OTE not formed but OB available"
+      },
+      {
+        "name": "MSS_IFVG",
+        "chain": ["MSS", "IFVG"],
+        "confidence": 0.80,
+        "condition": "When OTE missed but IFVG forms"
+      }
+    ],
+
+    "rejectedSequences": [
+      {
+        "pattern": "OTE_without_MSS",
+        "reason": "No structural confirmation",
+        "action": "SKIP"
+      },
+      {
+        "pattern": "MSS_without_OppositeLiquidity",
+        "reason": "No target identified",
+        "action": "SKIP"
+      },
+      {
+        "pattern": "Entry_against_DailyBias",
+        "reason": "Counter to higher timeframe",
+        "action": "REDUCE_CONFIDENCE_50%"
+      }
+    ]
+  },
+
+  "marketStatePredictor": {
+    "description": "Bot predicts what will happen next based on current signals",
+
+    "predictionEngine": {
+      "mode": "pattern_recognition",
+      "learnFrom": "last_100_trades",
+      "updateEvery": "10_trades",
+
+      "patterns": {
+        "trendingMarket": {
+          "indicators": ["ADX > 25", "MSS_frequency_high", "clean_sweeps"],
+          "prediction": "Continue trend, ride momentum",
+          "adjustParameters": {
+            "minRR": 1.8,
+            "tolerance": 0.9,
+            "holdLonger": true
+          }
+        },
+
+        "rangingMarket": {
+          "indicators": ["ADX < 20", "BB_tight", "choppy_price"],
+          "prediction": "Range-bound, quick reversals",
+          "adjustParameters": {
+            "minRR": 0.9,
+            "tolerance": 1.3,
+            "quickExit": true
+          }
+        },
+
+        "volatileMarket": {
+          "indicators": ["ATR_spike", "wide_candles", "fast_moves"],
+          "prediction": "High volatility, wider stops needed",
+          "adjustParameters": {
+            "minRR": 1.2,
+            "tolerance": 1.5,
+            "reduceSize": true
+          }
+        },
+
+        "quietMarket": {
+          "indicators": ["ATR_low", "small_candles", "tight_range"],
+          "prediction": "Low activity, patient waiting",
+          "adjustParameters": {
+            "minRR": 1.0,
+            "tolerance": 0.8,
+            "selectiveEntry": true
+          }
+        },
+
+        "sweepSetup": {
+          "indicators": ["approaching_PDH/PDL", "liquidity_buildup", "weak_push"],
+          "prediction": "Sweep likely coming, prepare for reversal",
+          "adjustParameters": {
+            "waitForSweep": true,
+            "prepareReversal": true
+          }
+        },
+
+        "breakoutPending": {
+          "indicators": ["consolidation_at_level", "volume_increase", "MSS_forming"],
+          "prediction": "Breakout imminent, prepare for momentum",
+          "adjustParameters": {
+            "anticipateBreak": true,
+            "widerTarget": true
+          }
+        }
+      }
+    }
+  },
+
+  "selfLearningSystem": {
+    "description": "Bot learns from every trade and adjusts itself",
+
+    "learningMechanisms": {
+      "patternRecognition": {
+        "track": [
+          "Which sequences win most",
+          "Which signal combinations work best",
+          "Which market states favor which setups",
+          "Which parameters work in which conditions"
+        ],
+        "updateEvery": 10,
+        "confidenceThreshold": 20
+      },
+
+      "parameterOptimization": {
+        "method": "reinforcement_learning",
+        "rewardFunction": "profitFactor",
+        "adjustmentSpeed": "gradual",
+
+        "learningRules": {
+          "ifWinRate_above_60": "increase_risk_10%",
+          "ifWinRate_below_40": "tighten_filters_20%",
+          "ifAvgRR_above_3": "hold_longer",
+          "ifAvgRR_below_1": "exit_faster",
+          "ifConsecutive_3wins": "increase_aggression_15%",
+          "ifConsecutive_3losses": "reduce_aggression_30%"
+        }
+      },
+
+      "marketConditionMemory": {
+        "remember": "last_50_market_states",
+        "correlate": "state_to_outcome",
+        "predict": "likely_success_in_current_state",
+
+        "example": {
+          "state": "ranging_ADX_18_ATR_6",
+          "historicalWinRate": "58%",
+          "bestParameters": {"minRR": 0.9, "tolerance": 1.2},
+          "action": "Use_these_parameters_when_detected_again"
+        }
+      }
+    }
+  },
+
+  "strictSignalValidation": {
+    "description": "NEVER trade without detector signal confirmation",
+
+    "validationRules": {
+      "rule1_mustHaveSignal": {
+        "requirement": "At least 1 detector must fire",
+        "acceptedDetectors": ["LiquiditySweep", "MSS", "OTE", "OrderBlock", "FVG", "BreakerBlock"],
+        "minimumDetectors": 1,
+        "preferredDetectors": 2,
+        "perfectSetup": 3
+      },
+
+      "rule2_signalMustBeValid": {
+        "checks": [
+          "Signal not expired",
+          "Zone not invalidated",
+          "Direction matches bias",
+          "Prerequisites met",
+          "Logic chain complete"
+        ]
+      },
+
+      "rule3_confluenceScoring": {
+        "method": "weighted_sum",
+        "weights": {
+          "LiquiditySweep": 1.5,
+          "MSS": 2.0,
+          "OTE": 1.8,
+          "OrderBlock": 1.3,
+          "IFVG": 1.2,
+          "BreakerBlock": 1.1
+        },
+        "minimumScore": 2.0,
+        "highConfidenceScore": 4.0
+      },
+
+      "rule4_logicChainValidation": {
+        "perfectChain": ["Sweep", "MSS", "OppLiq_set", "OTE", "Tap"],
+        "minimumChain": ["MSS", "OppLiq_set", "Entry_zone"],
+        "rejectIf": ["No_MSS", "No_OppLiq", "Invalid_sequence"]
+      }
+    },
+
+    "entryDecisionProcess": {
+      "step1": "Detect all active signals",
+      "step2": "Validate each signal logic",
+      "step3": "Calculate confluence score",
+      "step4": "Check logic chain completeness",
+      "step5": "Predict outcome based on history",
+      "step6": "If_score >= threshold AND logic_valid → ENTER",
+      "step7": "Else → SKIP and log reason"
+    }
+  },
+
+  "adaptiveParameterSystem": {
+    "description": "Parameters adjust based on learned patterns",
+
+    "parameterRules": {
+      "ote_tolerance": {
+        "baseValue": 1.2,
+        "adjustBy": {
+          "currentATR": "ATR * 0.18",
+          "recentMissRate": "if > 70% → +0.3 pips",
+          "recentFalseRate": "if > 30% → -0.2 pips",
+          "marketState": "trending:-10%, ranging:+20%"
+        },
+        "bounds": [0.8, 2.0]
+      },
+
+      "minRR": {
+        "baseValue": 1.2,
+        "adjustBy": {
+          "marketState": "trending:1.8, ranging:0.9",
+          "recentWinRate": "if < 45% → +0.2",
+          "avgWinnerRR": "if < 1.5 → +0.3",
+          "consecutiveLosses": "if >= 3 → +0.4"
+        },
+        "bounds": [0.8, 2.5]
+      },
+
+      "riskPercent": {
+        "baseValue": 0.5,
+        "adjustBy": {
+          "winStreak": {
+            "3": "*1.2",
+            "5": "*1.4",
+            "7": "*1.6"
+          },
+          "lossStreak": {
+            "2": "*0.8",
+            "3": "*0.6",
+            "5": "*0.4"
+          },
+          "drawdown": "if > 5% → *0.5",
+          "profitTarget": "if monthly > 20% → *1.3"
+        },
+        "bounds": [0.2, 1.2]
+      }
+    }
+  },
+
+  "intelligentPresetSelection": {
+    "description": "Bot chooses preset based on market understanding",
+
+    "selectionLogic": {
+      "analyzeCurrentMarket": [
+        "Calculate ADX, ATR, BB_width",
+        "Identify recent sweep patterns",
+        "Detect MSS frequency",
+        "Assess liquidity zone activity"
+      ],
+
+      "matchToPreset": {
+        "if_trending_strong": "phase4o4_strict_preset",
+        "if_ranging_tight": "phase4o4_pingpong_range",
+        "if_sweep_active": "asia_liquidity_sweep",
+        "if_confluence_high": "phase4o4_triple_confirm",
+        "if_volatile": "ny_strict_internal",
+        "if_quiet": "london_internal_mechanical"
+      },
+
+      "dynamicSwitching": {
+        "enabled": true,
+        "reassessEvery": "20_bars",
+        "smoothTransition": true
+      }
+    }
+  },
+
+  "reasoningEngine": {
+    "description": "Bot explains WHY it takes each action",
+
+    "logEveryDecision": {
+      "entryReason": [
+        "Which detectors fired",
+        "Signal confidence scores",
+        "Logic chain completed",
+        "Market state detected",
+        "Prediction made",
+        "Historical win rate in similar setups"
+      ],
+
+      "skipReason": [
+        "Which signal missing",
+        "Which prerequisite not met",
+        "Logic chain incomplete",
+        "Confidence below threshold",
+        "Learned this pattern fails"
+      ]
+    }
+  }
+}

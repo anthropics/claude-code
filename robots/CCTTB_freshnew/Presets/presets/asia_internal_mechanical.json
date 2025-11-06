@@ -1,0 +1,22 @@
+{
+  "name": "Asia_Internal_Mechanical",
+  "Description": "Asian Accumulation phase - HTF bias establishment",
+  "EntryGateMode": "ICT_Sequence",
+  "StrictSequence": true,
+  "OtePolicy": "StrictAfterMSS",
+  "SweepScope": "Opposite_Direction",
+  "TpTargetPolicy": "OppositeLiquidity",
+  "Session": "Asia_Accumulation",
+  "BiasAlign": "HTF_4H_Daily",
+  "NewsFilter": "Off",
+  "UseKillzone": true,
+  "KillzoneStartUtc": "00:00",
+  "KillzoneEndUtc": "09:00",
+  "Focus": "AsiaSweep,AsianRange,Accumulation",
+  "ICTSequence": {
+    "RequireHTFBias": true,
+    "Phase": "Accumulation",
+    "HTFTimeframes": ["4H", "Daily"],
+    "EstablishBiasDuringSession": true
+  }
+}

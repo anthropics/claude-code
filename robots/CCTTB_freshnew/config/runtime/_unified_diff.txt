@@ -1,0 +1,97 @@
+--- policy.json (original)
++++ policy.json (merged with forensic patch 21-24 Sep)
+
+@@ Line 29-34: riskEngine.sessionMultipliers @@
+   "sessionMultipliers": {
+     "overlap": 1.00,
+-    "london": 0.85,
++    "london": 0.80,
+     "newyork": 1.00,
+     "asia": 0.60
+   },
+
+@@ Line 61-81: riskEngine.symbols.EURUSD @@
+   "EURUSD": {
++    "tap": {
++      "tolerancePips": 0.8,
++      "expiryBars": 3,
++      "limitToMarketConvert": true
++    },
+     "bounds": {
+       "min": 0.50,
+       "max": 1.20
+@@ Line 75-80: EURUSD.sessionMultipliers @@
+     "sessionMultipliers": {
+       "overlap": 1.00,
+-      "london": 0.95,
++      "london": 0.90,
+       "newyork": 1.00,
+       "asia": 0.80
+     }
+
+@@ Line 82-102: riskEngine.symbols.XAUUSD @@
+   "XAUUSD": {
++    "tap": {
++      "tolerancePoints": 8,
++      "expiryBars": 3,
++      "limitToMarketConvert": true
++    },
+     "bounds": {
+       "min": 0.40,
+
+@@ Line 103-123: riskEngine.symbols.US30 @@
+   "US30": {
++    "tap": {
++      "tolerancePoints": 6,
++      "expiryBars": 2,
++      "limitToMarketConvert": true
++    },
+     "bounds": {
+       "min": 0.45,
+
+@@ After Line 138: NEW top-level sections @@
++  "tpRule": {
++    "minRR": 1.8,
++    "allowPartial": true,
++    "partialAtRR": 1.2,
++    "trailAfterRR": 2.5
++  },
++  "confirm": {
++    "mode": "score",
++    "needAtLeast": 2,
++    "components": [
++      "MSS",
++      "OTE",
++      "OrderBlock",
++      "IFVG"
++    ],
++    "weights": {
++      "MSS": 1.0,
++      "OTE": 1.0,
++      "OrderBlock": 0.8,
++      "IFVG": 0.6
++    },
++    "threshold": 1.8
++  },
++  "cooldown": {
++    "bars": 3,
++    "overrideIf": {
++      "betterRR": 0.3,
++      "spreadZBelow": 0.5
++    }
++  },
+   "rollout": {
+
+SUMMARY OF CHANGES:
+==================
+1. Updated riskEngine.sessionMultipliers.london: 0.85 → 0.80
+2. Added EURUSD.tap block (tolerancePips: 0.8, expiryBars: 3, limitToMarketConvert: true)
+3. Updated EURUSD.sessionMultipliers.london: 0.95 → 0.90
+4. Added XAUUSD.tap block (tolerancePoints: 8, expiryBars: 3, limitToMarketConvert: true)
+5. Added US30.tap block (tolerancePoints: 6, expiryBars: 2, limitToMarketConvert: true)
+6. Added NEW top-level section: tpRule (minRR: 1.8, partial/trail settings)
+7. Added NEW top-level section: confirm (score mode, 4 components with weights)
+8. Added NEW top-level section: cooldown (3 bars, with RR/spreadZ override conditions)
+
+NO DUPLICATES: orchestratorStamp preserved at line 2
+NO CODE CHANGES: Only config/runtime/policy.json modified

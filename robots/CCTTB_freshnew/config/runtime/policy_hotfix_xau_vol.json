@@ -1,0 +1,9 @@
+{
+  "riskEngine": {
+    "symbols": {
+      "XAUUSD": {
+        "volTarget": { "target": 0.62, "upperClip": 1.35 }
+      }
+    }
+  }
+}

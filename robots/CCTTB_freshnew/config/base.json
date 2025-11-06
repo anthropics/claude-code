@@ -1,0 +1,65 @@
+{
+  "presets": [
+    {
+      "name": "Default",
+      "focus": "",
+      "useKillzone": false,
+      "killzoneStartUtc": "00:00",
+      "killzoneEndUtc": "23:59"
+    },
+    {
+      "name": "Asia_Internal_Mechanical",
+      "focus": "internal",
+      "useKillzone": true,
+      "killzoneStartUtc": "00:00",
+      "killzoneEndUtc": "06:00"
+    },
+    {
+      "name": "London_Internal_Mechanical",
+      "focus": "internal",
+      "useKillzone": true,
+      "killzoneStartUtc": "07:00",
+      "killzoneEndUtc": "12:00"
+    },
+    {
+      "name": "NY_Strict_Internal",
+      "focus": "internal",
+      "useKillzone": true,
+      "killzoneStartUtc": "13:30",
+      "killzoneEndUtc": "16:30"
+    },
+    {
+      "name": "Weekly_Focused",
+      "focus": "weekly",
+      "useKillzone": false,
+      "killzoneStartUtc": "00:00",
+      "killzoneEndUtc": "23:59"
+    }
+  ],
+  "schedules": [
+    {
+      "presetName": "Asia_Internal_Mechanical",
+      "startUtc": "00:00",
+      "endUtc": "06:00",
+      "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+    },
+    {
+      "presetName": "London_Internal_Mechanical",
+      "startUtc": "07:00",
+      "endUtc": "12:00",
+      "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+    },
+    {
+      "presetName": "NY_Strict_Internal",
+      "startUtc": "13:30",
+      "endUtc": "16:30",
+      "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+    },
+    {
+      "presetName": "Default",
+      "startUtc": "00:00",
+      "endUtc": "23:59",
+      "days": ["Saturday", "Sunday"]
+    }
+  ]
+}

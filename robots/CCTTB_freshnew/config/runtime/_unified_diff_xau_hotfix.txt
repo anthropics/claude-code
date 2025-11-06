@@ -1,0 +1,37 @@
+--- policy.json (current)
++++ policy.json (with XAUUSD vol-target hotfix)
+
+@@ Line 97-101: riskEngine.symbols.XAUUSD.volTarget @@
+       "XAUUSD": {
+         ...
+         "volTarget": {
+-          "target": 0.60,
++          "target": 0.62,
++          "upperClip": 1.35,
+           "halfLifeMin": 240,
+           "alpha": 1.00
+         },
+
+SUMMARY OF CHANGES:
+==================
+1. XAUUSD.volTarget.target: 0.60 → 0.62 (mild increase, 3.3%)
+2. XAUUSD.volTarget.upperClip: ADDED (1.35 cap on f_vol factor)
+
+RATIONALE:
+==========
+- target: 0.62 reduces aggressive vol scaling (was amplifying too much during London low-vol)
+- upperClip: 1.35 prevents f_vol from exceeding 1.35, reducing likelihood of hitting max bound (1.25)
+
+EXPECTED BEHAVIOR (London scenario):
+====================================
+BEFORE:
+  realizedVol=0.40 → f_vol = (0.60/0.40)^1.0 = 1.500
+  With f_session=0.90 → raw = 0.90 × 1.500 = 1.350 → clamped to MAX 1.25
+
+AFTER:
+  realizedVol=0.40 → f_vol_raw = (0.62/0.40)^1.0 = 1.550
+  With upperClip=1.35 → f_vol = min(1.550, 1.35) = 1.35
+  With f_session=0.90 → raw = 0.90 × 1.35 = 1.215 → within bounds ✅
+
+NO DUPLICATES: orchestratorStamp preserved
+NO CODE CHANGES: Only config/runtime/policy.json modified

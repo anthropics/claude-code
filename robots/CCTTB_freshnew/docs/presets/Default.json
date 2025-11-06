@@ -1,0 +1,12 @@
+{
+  "name": "Default",
+  "EntryGateMode": "MSS_and_OTE",
+  "OtePolicy": "StrictAfterMSS",
+  "SweepScope": "Internal_Only",
+  "TpTargetPolicy": "OppositeLiquidity",
+  "Session": "Default",
+  "BiasAlign": "Strict",
+  "UseKillzone": true,
+  "KillzoneStartUtc": "00:00",
+  "KillzoneEndUtc": "23:59"
+}

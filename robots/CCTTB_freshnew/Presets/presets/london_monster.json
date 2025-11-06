@@ -1,0 +1,28 @@
+{
+  "name": "London_Monster",
+  "description": "Aggressive London session trading",
+  "UseKillzone": true,
+  "KillzoneStartUtc": "06:00",
+  "KillzoneEndUtc": "12:00",
+  "Focus": "LondonSweep,LondonOpen,LondonMomentum",
+  "EntryGateMode": "Relaxed",
+  "MinRR": 0.8,
+  "MaxStopLossPips": 20,
+  "RiskPercent": 1.0,
+  "AllowMultipleEntries": true,
+  "MaxPositions": 3,
+  "PyramidingEnabled": true,
+  "PyramidScale": 0.5,
+  "PartialProfits": [
+    {"at": 0.5, "close": 25},
+    {"at": 1.0, "close": 25},
+    {"at": 1.5, "close": 25}
+  ],
+  "TrailingStopRR": 1.5,
+  "BreakEvenRR": 0.5,
+  "RequireMSS": true,
+  "RequireOTE": false,
+  "AllowOrderBlocks": true,
+  "AllowFVG": true,
+  "AggressiveFill": true
+}

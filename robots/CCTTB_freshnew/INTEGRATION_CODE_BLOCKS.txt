@@ -1,0 +1,186 @@
+=================================================================
+GEMINI API INTEGRATION - CODE BLOCKS TO ADD TO JadecapStrategy.cs
+=================================================================
+
+This file contains the exact code blocks you need to manually add to
+JadecapStrategy.cs to complete the Gemini API integration.
+
+IMPORTANT: Utils_SmartNewsAnalyzer.cs is ALREADY COMPLETE. You only
+need to modify JadecapStrategy.cs using the blocks below.
+
+=================================================================
+BLOCK 1: ADD NEW FIELDS (Around line 692)
+=================================================================
+
+FIND THIS SECTION:
+    private NewsAwareness _newsAwareness;  // Legacy simple news detection
+    private SmartNewsAnalyzer _smartNews; // NEW: Smart contextual news analysis
+    private NewsContextAnalysis _currentNewsContext;
+
+    // ═══════════════════════════════════════════════════════════════════
+    // ADVANCED FEATURE: MULTI-TIMEFRAME BIAS INTEGRATION
+
+ADD THESE TWO LINES AFTER "_currentNewsContext;" (line 692):
+
+        private System.Threading.Timer _analysisTimer; // NEW: Timer for API calls
+        private object _analysisLock = new object(); // NEW: For thread safety
+
+RESULT SHOULD LOOK LIKE:
+    private News Awareness _newsAwareness;  // Legacy simple news detection
+    private SmartNewsAnalyzer _smartNews; // NEW: Smart contextual news analysis
+    private NewsContextAnalysis _currentNewsContext;
+    private System.Threading.Timer _analysisTimer; // NEW: Timer for API calls
+    private object _analysisLock = new object(); // NEW: For thread safety
+
+    // ═══════════════════════════════════════════════════════════════════
+
+=================================================================
+BLOCK 2: MODIFY OnStart() METHOD (Around line 1495)
+=================================================================
+
+FIND THIS LINE (around line 1495):
+    _smartNews = new SmartNewsAnalyzer(this, _atr, Bars, NewsBlackoutWindowsParam, _config.EnableDebugLogging);
+    Print("[SMART NEWS] Smart contextual news analyzer initialized (pre/post analysis, bias validation)");
+
+ADD THIS ENTIRE BLOCK IMMEDIATELY AFTER THOSE TWO LINES:
+
+        // ═══════════════════════════════════════════════════════════════════
+        // NEW: Initialize Gemini API Integration
+        // ═══════════════════════════════════════════════════════════════════
+
+        // Initialize the news context as "Normal" until the first API call
+        _currentNewsContext = new NewsContextAnalysis
+        {
+            Context = NewsContext.Normal,
+            Reaction = VolatilityReaction.Normal,
+            ConfidenceAdjustment = 0.0,
+            RiskMultiplier = 1.0,
+            BlockNewEntries = false,
+            InvalidateBias = false,
+            Reasoning = "Initializing..."
+        };
+
+        // Start the background timer to update news analysis every 15 minutes
+        // It will wait 10 seconds before the first call, then run every 15 mins
+        _analysisTimer = new System.Threading.Timer(
+            async _ => await UpdateNewsAnalysis(),
+            null,
+            TimeSpan.FromSeconds(10),       // Wait 10s for first run
+            TimeSpan.FromMinutes(15)      // Run every 15 minutes
+        );
+
+        Print("[GEMINI API] Background news analysis timer started (15-minute interval)");
+
+=================================================================
+BLOCK 3: ADD NEW METHOD UpdateNewsAnalysis() (Around line 1700)
+=================================================================
+
+FIND A GOOD LOCATION AFTER THE OnStart() METHOD (around line 1700)
+ADD THIS ENTIRE METHOD:
+
+        /// <summary>
+        /// This method is called by a background timer to update the news analysis via Gemini API.
+        /// </summary>
+        private async Task UpdateNewsAnalysis()
+        {
+            try
+            {
+                // Get the bot's current state
+                string asset = Symbol.Name;
+                DateTime utcTime = Server.TimeInUtc;
+                BiasDirection bias = _currentBias; // Current bias direction
+                int lookahead = 240; // Look ahead 4 hours
+
+                // Call the Gemini API
+                NewsContextAnalysis newAnalysis = await _smartNews.GetGeminiAnalysis(
+                    asset,
+                    utcTime,
+                    bias,
+                    lookahead
+                );
+
+                // Safely update the shared variable
+                lock (_analysisLock)
+                {
+                    _currentNewsContext = newAnalysis;
+                }
+
+                if (_config.EnableDebugLogging)
+                {
+                    Print($"[GEMINI API] News analysis updated: {newAnalysis.Reasoning}");
+                    Print($"[GEMINI API] BlockNewEntries={newAnalysis.BlockNewEntries}, RiskMult={newAnalysis.RiskMultiplier:F2}, ConfAdj={newAnalysis.ConfidenceAdjustment:F2}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Print($"[GEMINI API] CRITICAL TIMER ERROR: {ex.Message}");
+            }
+        }
+
+=================================================================
+BLOCK 4: ADD NEWS BLOCKING CHECK (Around line 3575)
+=================================================================
+
+FIND THE BuildTradeSignal() METHOD (starts around line 3575):
+
+        private TradeSignal BuildTradeSignal(
+            BiasDirection bias,
+            List<OTEZone> oteZones,
+            List<OrderBlock> orderBlocks,
+            List<MSSSignal> mssSignals,
+            List<BreakerBlock> breakerBlocks = null,
+            List<FVGZone> fvgZones = null,
+            List<LiquiditySweep> sweeps = null)
+        {
+            // ... existing code storing context ...
+            _currentMssSignals = mssSignals;
+            _currentSweeps = sweeps;
+            _currentSmtDirection = null;
+
+ADD THIS CODE BLOCK RIGHT AFTER THE CONTEXT STORAGE (BEFORE THE ICT GATE CHECK):
+
+            // ═══════════════════════════════════════════════════════════════════
+            // GEMINI API NEWS FILTER: Block entries based on AI news analysis
+            // ═══════════════════════════════════════════════════════════════════
+            NewsContextAnalysis newsContext;
+            lock (_analysisLock)
+            {
+                newsContext = _currentNewsContext; // Get the latest analysis
+            }
+
+            if (newsContext != null && newsContext.BlockNewEntries)
+            {
+                if (_config.EnableDebugLogging)
+                    _journal.Debug($"[GEMINI API] Entry BLOCKED: {newsContext.Reasoning}");
+                return null; // Stop processing this signal
+            }
+
+            // OPTIONAL: You can also use the other values to adjust your confidence score:
+            // double newsConfidence = newsContext?.ConfidenceAdjustment ?? 0.0;
+            // double newsRiskMultiplier = newsContext?.RiskMultiplier ?? 1.0;
+            // Example: unifiedScore = (biasScore * 0.4) + (paScore * 0.4) + (newsConfidence * 0.2);
+            // Example: riskToUse = baseRisk * newsRiskMultiplier;
+
+            // Continue with existing ICT GATE check below...
+
+=================================================================
+BLOCK 5: UPDATE AccessRights (Line 15)
+=================================================================
+
+FIND THIS LINE (around line 15):
+    [Robot(TimeZone = TimeZones.EasternStandardTime, AccessRights = AccessRights.None)]
+
+CHANGE IT TO:
+    [Robot(TimeZone = TimeZones.EasternStandardTime, AccessRights = AccessRights.FullAccess)]
+
+THIS IS REQUIRED FOR HTTP API CALLS.
+
+=================================================================
+END OF CODE BLOCKS
+=================================================================
+
+After adding all 5 blocks above, run:
+    cd C:\Users\Administrator\Documents\cAlgo\Sources\Robots\CCTTB_freshnew\CCTTB_freshnew
+    dotnet build --configuration Debug
+
+Check for errors and look for log messages starting with "[GEMINI API]" when running the bot.
