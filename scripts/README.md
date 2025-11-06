@@ -2,6 +2,13 @@
 
 This directory contains deployment and automation scripts for the claude-code project.
 
+## 📚 Documentation
+
+- **[Quick Start Guide](QUICKSTART.md)** - Step-by-step tutorial for first-time users
+- **[Troubleshooting Guide](TROUBLESHOOTING.md)** - Solutions for common issues
+- **[Changelog](CHANGELOG.md)** - Version history and roadmap
+- **[Test Script](test-deployment.sh)** - Validate your environment before deploying
+
 ## Available Scripts
 
 ### 📱 termux-deploy.sh
@@ -171,6 +178,100 @@ For issues or questions:
 - [ ] Automated webhook configuration
 - [ ] Multi-platform support (non-Termux)
 - [ ] Docker containerization option
+
+---
+
+### 🧪 test-deployment.sh
+
+**Purpose:** Validate your environment before running the deployment script
+
+**Version:** 1.0
+
+**Features:**
+- ✅ 9 comprehensive test categories
+- ✅ Environment validation
+- ✅ Required command checks
+- ✅ Network connectivity tests
+- ✅ Git configuration verification
+- ✅ Package manager health check
+- ✅ Script syntax validation
+- ✅ Security audit
+- ✅ Performance benchmarking
+- ✅ Detailed summary and recommendations
+
+**Usage:**
+
+```bash
+# Run validation before deployment
+./test-deployment.sh
+```
+
+**Time Required:** ~30 seconds
+
+**Test Categories:**
+
+1. **Environment Check**
+   - Termux detection
+   - Bash version
+   - Disk space
+   - Available memory
+
+2. **Required Commands**
+   - Node.js (>=18.x)
+   - npm
+   - Git
+   - OpenSSL
+   - curl/wget (optional)
+
+3. **Network Connectivity**
+   - Internet connection
+   - DNS resolution
+   - GitHub accessibility
+   - npm registry access
+
+4. **Git Configuration**
+   - user.name
+   - user.email
+
+5. **Package Manager**
+   - Lock file check
+   - Broken packages audit
+
+6. **Script File Check**
+   - Deployment script exists
+   - Executable permissions
+   - Valid shebang
+   - Syntax validation
+
+7. **Security**
+   - Existing .env files
+   - Home directory permissions
+   - Root user check
+
+8. **Performance**
+   - Write speed test
+   - CPU core count
+
+9. **Optional Enhancements**
+   - SSH keys
+   - Termux:API
+   - Termux services
+
+**Output:**
+
+```
+╔════════════════════════════════════════╗
+║  ✅ READY FOR DEPLOYMENT! ✅         ║
+╚════════════════════════════════════════╝
+
+  ✅ Passed:   24
+  ❌ Failed:   0
+  ⚠️  Warnings: 3
+```
+
+**Exit Codes:**
+- `0` - All tests passed, ready for deployment
+- `1` - Critical failures detected, fix required
 
 ---
 
