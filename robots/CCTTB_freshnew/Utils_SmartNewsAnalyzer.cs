@@ -56,6 +56,12 @@ namespace CCTTB
         public int lookahead_minutes { get; set; }
     }
 
+    // --- Wrapper class for Google Workflow API format ---
+    public class WorkflowExecutionRequest
+    {
+        public GeminiApiRequest argument { get; set; }
+    }
+
 
     // --- YOUR SmartNewsAnalyzer CLASS, NOW WITH API LOGIC ---
     public class SmartNewsAnalyzer
@@ -140,7 +146,13 @@ namespace CCTTB
                 lookahead_minutes = lookaheadMinutes
             };
 
-            string jsonRequest = JsonSerializer.Serialize(requestPayload);
+            // Wrap payload in "argument" object for Google Workflow API
+            var workflowRequest = new WorkflowExecutionRequest
+            {
+                argument = requestPayload
+            };
+
+            string jsonRequest = JsonSerializer.Serialize(workflowRequest);
             var httpContent = new StringContent(jsonRequest, Encoding.UTF8, "application/json");
 
             // --- NEW: Get OAuth access token ---
