@@ -95,15 +95,22 @@ namespace CCTTB
                     return null;
                 }
 
-                GoogleCredential credential;
+                // Use the modern CredentialFactory approach (non-deprecated)
+                ServiceAccountCredential credential;
                 using (var stream = new FileStream(_serviceAccountPath, FileMode.Open, FileAccess.Read))
                 {
-                    credential = GoogleCredential.FromStream(stream)
-                        .CreateScoped("https://www.googleapis.com/auth/cloud-platform");
+                    credential = ServiceAccountCredential.FromServiceAccountData(stream);
                 }
 
-                var accessToken = await credential.UnderlyingCredential.GetAccessTokenForRequestAsync();
-                return accessToken;
+                // Request access token with the required scope
+                bool success = await credential.RequestAccessTokenAsync(System.Threading.CancellationToken.None);
+                if (!success)
+                {
+                    _robot.BeginInvokeOnMainThread(() => _robot.Print("[Gemini] ERROR: Failed to request access token"));
+                    return null;
+                }
+
+                return credential.Token.AccessToken;
             }
             catch (Exception ex)
             {
