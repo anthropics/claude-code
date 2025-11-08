@@ -50,13 +50,14 @@
     },
     {
       "name": "code-review",
-      "description": "自动化代码审查（需要 GitHub CLI）",
+      "description": "自动化代码审查（仅适用于 GitHub，需要 gh CLI）",
       "source": {
         "source": "github",
         "repo": "anthropics/claude-code",
         "path": "plugins/code-review"
       },
-      "category": "productivity"
+      "category": "productivity",
+      "tags": ["github-only"]
     }
   ]
 }

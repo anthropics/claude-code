@@ -1,0 +1,89 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "gitlab-bitbucket-plugins",
+  "version": "1.0.0",
+  "description": "适用于 GitLab/Bitbucket 的 Claude Code 插件集合（排除 GitHub 专用插件）",
+  "owner": {
+    "name": "Your Company",
+    "email": "dev-tools@company.com"
+  },
+  "plugins": [
+    {
+      "name": "commit-commands",
+      "description": "Git 工作流自动化（/commit, /commit-push-pr 等）",
+      "source": {
+        "source": "github",
+        "repo": "anthropics/claude-code",
+        "path": "plugins/commit-commands"
+      },
+      "category": "productivity",
+      "tags": ["git", "workflow", "recommended"]
+    },
+    {
+      "name": "feature-dev",
+      "description": "完整的特性开发工作流（7阶段，含代码探索和架构设计）",
+      "source": {
+        "source": "github",
+        "repo": "anthropics/claude-code",
+        "path": "plugins/feature-dev"
+      },
+      "category": "development",
+      "tags": ["workflow", "recommended"]
+    },
+    {
+      "name": "security-guidance",
+      "description": "安全提示钩子（检查 XSS、命令注入等，需要 Python 3）",
+      "source": {
+        "source": "github",
+        "repo": "anthropics/claude-code",
+        "path": "plugins/security-guidance"
+      },
+      "category": "security",
+      "tags": ["security", "hooks", "recommended"]
+    },
+    {
+      "name": "pr-review-toolkit",
+      "description": "PR 审查工具包（6个专化代理：注释分析、测试覆盖率、错误处理、类型设计、代码质量、代码简化）- 推荐用于 GitLab/Bitbucket 代码审查",
+      "source": {
+        "source": "github",
+        "repo": "anthropics/claude-code",
+        "path": "plugins/pr-review-toolkit"
+      },
+      "category": "productivity",
+      "tags": ["code-review", "gitlab", "bitbucket", "recommended"]
+    },
+    {
+      "name": "agent-sdk-dev",
+      "description": "Agent SDK 开发工具（需要 Python 或 TypeScript）",
+      "source": {
+        "source": "github",
+        "repo": "anthropics/claude-code",
+        "path": "plugins/agent-sdk-dev"
+      },
+      "category": "development",
+      "tags": ["sdk", "development"]
+    },
+    {
+      "name": "explanatory-output-style",
+      "description": "教育性输出风格（提供代码实现选择的教育见解）",
+      "source": {
+        "source": "github",
+        "repo": "anthropics/claude-code",
+        "path": "plugins/explanatory-output-style"
+      },
+      "category": "learning",
+      "tags": ["learning", "output-style"]
+    },
+    {
+      "name": "learning-output-style",
+      "description": "交互式学习模式（在决策点请求代码贡献）",
+      "source": {
+        "source": "github",
+        "repo": "anthropics/claude-code",
+        "path": "plugins/learning-output-style"
+      },
+      "category": "learning",
+      "tags": ["learning", "output-style", "interactive"]
+    }
+  ]
+}
