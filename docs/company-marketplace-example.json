@@ -1,0 +1,62 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "company-claude-plugins",
+  "version": "1.0.0",
+  "description": "公司内部 Claude Code 插件集合",
+  "owner": {
+    "name": "Your Company",
+    "email": "dev-tools@company.com"
+  },
+  "plugins": [
+    {
+      "name": "commit-commands",
+      "description": "Git 工作流自动化",
+      "source": {
+        "source": "github",
+        "repo": "anthropics/claude-code",
+        "path": "plugins/commit-commands"
+      },
+      "category": "productivity"
+    },
+    {
+      "name": "feature-dev",
+      "description": "完整的特性开发工作流",
+      "source": {
+        "source": "github",
+        "repo": "anthropics/claude-code",
+        "path": "plugins/feature-dev"
+      },
+      "category": "development"
+    },
+    {
+      "name": "security-guidance",
+      "description": "安全提示钩子",
+      "source": {
+        "source": "github",
+        "repo": "anthropics/claude-code",
+        "path": "plugins/security-guidance"
+      },
+      "category": "security"
+    },
+    {
+      "name": "pr-review-toolkit",
+      "description": "PR 审查工具包",
+      "source": {
+        "source": "github",
+        "repo": "anthropics/claude-code",
+        "path": "plugins/pr-review-toolkit"
+      },
+      "category": "productivity"
+    },
+    {
+      "name": "code-review",
+      "description": "自动化代码审查（需要 GitHub CLI）",
+      "source": {
+        "source": "github",
+        "repo": "anthropics/claude-code",
+        "path": "plugins/code-review"
+      },
+      "category": "productivity"
+    }
+  ]
+}
