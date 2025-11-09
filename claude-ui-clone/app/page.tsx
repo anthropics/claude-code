@@ -294,6 +294,8 @@ export default function Home() {
             if (line.startsWith('data: ')) {
               const data = JSON.parse(line.slice(6));
 
+              console.log('[FRONTEND] Received event:', data.type, data);
+
               if (data.error) {
                 console.error('Stream error:', data.error);
                 break;
@@ -370,25 +372,38 @@ export default function Home() {
                   contentBlocks.push({ type: 'text', content: currentTextContent, blockIndex: currentBlockIndex });
                 }
 
-                // DON'T SORT! Keep blocks in the exact order they were added
-                // Build final message content
+                // Merge all text blocks into final content
                 const finalContent = contentBlocks.filter(b => b.type === 'text').map(b => b.content).join('\n\n');
 
-                // Build display blocks WITHOUT sorting (preserving exact streaming order)
-                const displayBlocks = contentBlocks.map(b =>
-                  b.type === 'text'
-                    ? {type: 'text' as const, content: b.content}
-                    : {type: 'tool' as const, tool: b.tool, toolUseId: b.toolUseId}
-                );
+                // Build display blocks - merge consecutive text blocks into ONE
+                const displayBlocks: Array<{type: 'text', content: string} | {type: 'tool', tool: string, toolUseId: string}> = [];
+                let mergedTextContent = '';
 
-                console.log('[FRONTEND] Final displayBlocks:', displayBlocks);
+                for (const block of contentBlocks) {
+                  if (block.type === 'text') {
+                    // Accumulate text
+                    mergedTextContent += (mergedTextContent ? '\n\n' : '') + block.content;
+                  } else {
+                    // Tool block - flush any accumulated text first
+                    if (mergedTextContent) {
+                      displayBlocks.push({type: 'text' as const, content: mergedTextContent});
+                      mergedTextContent = '';
+                    }
+                    displayBlocks.push({type: 'tool' as const, tool: block.tool, toolUseId: block.toolUseId});
+                  }
+                }
+                // Flush any remaining text
+                if (mergedTextContent) {
+                  displayBlocks.push({type: 'text' as const, content: mergedTextContent});
+                }
 
-                // Clear streaming state first to avoid duplication
+                // CRITICAL FIX: Stop loading IMMEDIATELY to hide streaming message
+                setIsLoading(false);
                 setStreamingContent('');
                 setStreamingBlocks([]);
                 setIsThinking(false);
 
-                // Then add the completed message
+                // Build the completed message
                 const assistantMessage: Message = {
                   id: Date.now().toString(),
                   role: 'assistant',
@@ -396,6 +411,11 @@ export default function Home() {
                   contentBlocks: displayBlocks.length > 0 ? displayBlocks : undefined,
                 };
 
+                console.log('[FRONTEND] Adding completed message:', assistantMessage);
+                console.log('[FRONTEND] Message has contentBlocks:', !!assistantMessage.contentBlocks);
+                console.log('[FRONTEND] Message has content:', !!assistantMessage.content);
+
+                // Add completed message - streaming is already hidden
                 setConversations(prev =>
                   prev.map(conv =>
                     conv.id === conversationId
@@ -523,8 +543,8 @@ export default function Home() {
                     contentBlocks={message.contentBlocks}
                   />
                 ))}
-                {/* Thinking indicator */}
-                {isThinking && streamingBlocks.length === 0 && (
+                {/* Thinking indicator - show when processing but not outputting text */}
+                {isThinking && (
                   <div className="group w-full py-6">
                     <div className="max-w-3xl mx-auto px-4 sm:px-6" style={{ paddingLeft: '24px', paddingRight: '24px' }}>
                       <div className="flex gap-3 sm:gap-4">
@@ -546,8 +566,8 @@ export default function Home() {
                   </div>
                 )}
 
-                {/* Streaming content with inline tools */}
-                {streamingBlocks.length > 0 && (
+                {/* Streaming content with inline tools - only show while actually loading */}
+                {isLoading && streamingBlocks.length > 0 && (
                   <ChatMessage
                     role="assistant"
                     content=""

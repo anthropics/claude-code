@@ -5,6 +5,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const fs = require('fs');
 const path = require('path');
+const multer = require('multer');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -201,31 +202,8 @@ app.post('/api/chat', authenticateToken, async (req, res) => {
         })}\n\n`);
       }
 
-      // Handle assistant messages (when not using includePartialMessages)
-      if (sdkMsg.type === 'assistant') {
-        if (sdkMsg.message && sdkMsg.message.content) {
-          for (const block of sdkMsg.message.content) {
-            if (block.type === 'text') {
-              fullResponse += block.text;
-              res.write(`data: ${JSON.stringify({
-                type: 'text',
-                content: block.text,
-                done: false
-              })}\n\n`);
-            } else if (block.type === 'tool_use') {
-              res.write(`data: ${JSON.stringify({
-                type: 'tool_use',
-                tool: block.name,
-                toolUseId: block.id,
-                done: false
-              })}\n\n`);
-            }
-          }
-        }
-      }
-
       // Handle stream events for real-time streaming (when using includePartialMessages)
-      else if (sdkMsg.type === 'stream_event') {
+      if (sdkMsg.type === 'stream_event') {
         const event = sdkMsg.event;
 
         if (event.type === 'content_block_start') {
@@ -438,6 +416,43 @@ app.get('/api/files/tree', authenticateToken, (req, res) => {
 
   const tree = buildTree(claudeDir, '');
   res.json(tree);
+});
+
+// File upload endpoint
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      const username = req.user.username;
+      const userDir = path.join(CLAUDE_SESSIONS_DIR, username);
+      const attachmentsDir = path.join(userDir, 'attachments');
+
+      // Ensure attachments directory exists
+      if (!fs.existsSync(attachmentsDir)) {
+        fs.mkdirSync(attachmentsDir, { recursive: true });
+      }
+
+      cb(null, attachmentsDir);
+    },
+    filename: (req, file, cb) => {
+      // Keep original filename
+      cb(null, file.originalname);
+    }
+  })
+});
+
+app.post('/api/upload', authenticateToken, upload.single('file'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'No file uploaded' });
+  }
+
+  // Return relative path from user directory (includes attachments/ prefix)
+  const relativePath = `attachments/${req.file.filename}`;
+  res.json({
+    success: true,
+    filename: req.file.filename,
+    relativePath: relativePath,
+    size: req.file.size
+  });
 });
 
 app.listen(PORT, '0.0.0.0', () => {
