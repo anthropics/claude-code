@@ -27,7 +27,7 @@ export default function ThemeToggle() {
   return (
     <button
       onClick={toggleTheme}
-      className="rounded-lg p-2 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
+      className="rounded-lg p-2 hover:bg-zinc-200 transition-colors"
       aria-label="Toggle theme"
     >
       {isDark ? (

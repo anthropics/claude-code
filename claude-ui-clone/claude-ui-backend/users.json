@@ -1,0 +1,14 @@
+{
+  "mike": {
+    "passwordHash": "$2b$10$ysROvFrjl1yF.8GyomFNc.ou.41fG928/a//URdJQMfqCaKrtY2bC",
+    "createdAt": "2025-11-08T00:00:00.000Z"
+  },
+  "maricar": {
+    "passwordHash": "$2b$10$ysROvFrjl1yF.8GyomFNc.ou.41fG928/a//URdJQMfqCaKrtY2bC",
+    "createdAt": "2025-11-08T00:00:00.000Z"
+  },
+  "testuser": {
+    "passwordHash": "$2b$10$JTehgGET6fo9JQeleGBdWeHA8Qys8npyp3m1xtft159u0dzX75xBO",
+    "createdAt": "2025-11-09T06:22:33.104Z"
+  }
+}

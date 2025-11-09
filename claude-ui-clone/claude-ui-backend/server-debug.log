@@ -1,0 +1,43 @@
+Backend server running on port 3001 and accessible from network
+[CHAT] User: mike, Message: Hey..., SessionId: d0596e42-7cd3-4405-bccb-8edb85f34ec9
+[CHAT] Query options: {
+  "cwd": "/Users/mikeshaffer/claude-code/claude-ui-clone/claude-ui-backend/users/mike",
+  "resume": "d0596e42-7cd3-4405-bccb-8edb85f34ec9",
+  "allowDangerouslySkipPermissions": true
+}
+[CHAT] Starting to process SDK messages...
+[CHAT] SDK Message type: system
+[CHAT] SDK Message type: assistant
+[CHAT] SDK Message type: result
+[CHAT] User: mike, Message: What’s the weather?..., SessionId: d0596e42-7cd3-4405-bccb-8edb85f34ec9
+[CHAT] Query options: {
+  "cwd": "/Users/mikeshaffer/claude-code/claude-ui-clone/claude-ui-backend/users/mike",
+  "resume": "d0596e42-7cd3-4405-bccb-8edb85f34ec9",
+  "allowDangerouslySkipPermissions": true
+}
+[CHAT] Starting to process SDK messages...
+[CHAT] SDK Message type: system
+[CHAT] SDK Message type: assistant
+[CHAT] SDK Message type: result
+[CHAT] User: mike, Message: Look it up online..., SessionId: d0596e42-7cd3-4405-bccb-8edb85f34ec9
+[CHAT] Query options: {
+  "cwd": "/Users/mikeshaffer/claude-code/claude-ui-clone/claude-ui-backend/users/mike",
+  "resume": "d0596e42-7cd3-4405-bccb-8edb85f34ec9",
+  "allowDangerouslySkipPermissions": true
+}
+[CHAT] Starting to process SDK messages...
+[CHAT] SDK Message type: system
+[CHAT] SDK Message type: assistant
+[CHAT] SDK Message type: result
+[CHAT] User: mike, Message: Los Angeles ..., SessionId: d0596e42-7cd3-4405-bccb-8edb85f34ec9
+[CHAT] Query options: {
+  "cwd": "/Users/mikeshaffer/claude-code/claude-ui-clone/claude-ui-backend/users/mike",
+  "resume": "d0596e42-7cd3-4405-bccb-8edb85f34ec9",
+  "allowDangerouslySkipPermissions": true
+}
+[CHAT] Starting to process SDK messages...
+[CHAT] SDK Message type: system
+[CHAT] SDK Message type: assistant
+[CHAT] SDK Message type: user
+[CHAT] SDK Message type: assistant
+[CHAT] SDK Message type: result

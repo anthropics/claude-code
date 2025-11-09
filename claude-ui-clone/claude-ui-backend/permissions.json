@@ -1,0 +1,8 @@
+{
+  "mike": {
+    "allowedTools": [],
+    "deniedTools": [],
+    "allowedDirectories": [],
+    "permissionMode": "bypassPermissions"
+  }
+}

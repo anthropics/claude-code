@@ -1,0 +1,41 @@
+# Usage:
+#
+#   docker build -t bcryptjs-linux-alpine-builder -f Dockerfile-alpine .
+#   CONTAINER=$(docker create bcryptjs-linux-alpine-builder)
+#   # Then copy the artifact to your host:
+#   docker cp "$CONTAINER:/usr/local/opt/bcrypt-js/prebuilds" .
+#   docker rm "$CONTAINER"
+
+ARG FROM_IMAGE=node:18-alpine
+FROM ${FROM_IMAGE}
+
+ENV project bcrypt-js
+ENV DEBIAN_FRONTEND noninteractive
+ENV LC_ALL en_US.UTF-8
+ENV LANG ${LC_ALL}
+
+RUN echo "#log: ${project}: Setup system" \
+  && set -x \
+  && apk add --update build-base python3 \
+  && npm i -g prebuildify@5 node-gyp@9 \
+  && sync
+
+ADD . /usr/local/opt/${project}
+WORKDIR /usr/local/opt/${project}
+
+RUN echo "#log: ${project}: Running build" \
+  && set -x \
+  && npm ci \
+  && npm run build
+
+ARG RUN_TESTS=true
+ARG TEST_TIMEOUT_SECONDS=
+
+RUN if "${RUN_TESTS}"; then \
+    echo "#log ${project}: Running tests" \
+    && npm test; \
+  else \
+    echo "#log ${project}: Tests were skipped!"; \
+  fi
+
+CMD /bin/bash -l

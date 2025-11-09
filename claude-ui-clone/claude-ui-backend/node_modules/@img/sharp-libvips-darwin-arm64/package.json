@@ -1,0 +1,36 @@
+{
+  "name": "@img/sharp-libvips-darwin-arm64",
+  "version": "1.0.4",
+  "description": "Prebuilt libvips and dependencies for use with sharp on macOS 64-bit ARM",
+  "author": "Lovell Fuller <npm@lovell.info>",
+  "homepage": "https://sharp.pixelplumbing.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lovell/sharp-libvips.git",
+    "directory": "npm/darwin-arm64"
+  },
+  "license": "LGPL-3.0-or-later",
+  "funding": {
+    "url": "https://opencollective.com/libvips"
+  },
+  "preferUnplugged": true,
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "lib",
+    "versions.json"
+  ],
+  "type": "commonjs",
+  "exports": {
+    "./lib": "./lib/index.js",
+    "./package": "./package.json",
+    "./versions": "./versions.json"
+  },
+  "os": [
+    "darwin"
+  ],
+  "cpu": [
+    "arm64"
+  ]
+}

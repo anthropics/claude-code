@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, KeyboardEvent } from 'react';
+import { useState, KeyboardEvent, useRef, useEffect } from 'react';
 
 interface ChatInputProps {
   onSend: (message: string) => void;
@@ -9,11 +9,15 @@ interface ChatInputProps {
 
 export default function ChatInput({ onSend, disabled }: ChatInputProps) {
   const [input, setInput] = useState('');
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleSend = () => {
     if (input.trim() && !disabled) {
       onSend(input);
       setInput('');
+      if (textareaRef.current) {
+        textareaRef.current.style.height = 'auto';
+      }
     }
   };
 
@@ -24,46 +28,49 @@ export default function ChatInput({ onSend, disabled }: ChatInputProps) {
     }
   };
 
+  useEffect(() => {
+    if (textareaRef.current) {
+      // Reset to minimum height first
+      textareaRef.current.style.height = '20px';
+
+      // Only grow if there's content
+      if (input) {
+        const scrollHeight = textareaRef.current.scrollHeight;
+        textareaRef.current.style.height = Math.min(Math.max(scrollHeight, 20), 200) + 'px';
+      }
+    }
+  }, [input]);
+
   return (
-    <div className="border-t border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900">
-      <div className="mx-auto max-w-4xl px-4 py-4">
-        <div className="relative flex items-end gap-3">
+    <div className="w-full" style={{ backgroundColor: 'rgb(250, 249, 245)' }}>
+      <div className="max-w-3xl mx-auto" style={{ paddingTop: '8px', paddingBottom: '8px', paddingLeft: '12px', paddingRight: '12px' }}>
+        <div className="flex flex-col rounded-2xl bg-white shadow-sm" style={{ border: '1px solid rgba(31, 30, 29, 0.15)', paddingLeft: '12px', paddingRight: '12px', paddingTop: '8px', paddingBottom: '8px', gap: '8px' }}>
           <textarea
+            ref={textareaRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Message Claude..."
+            placeholder="How can I help you today?"
             disabled={disabled}
             rows={1}
-            className="flex-1 resize-none rounded-2xl border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-4 py-3 pr-12 text-zinc-900 dark:text-zinc-100 placeholder-zinc-500 dark:placeholder-zinc-400 focus:border-blue-500 dark:focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-blue-400/20 disabled:opacity-50 disabled:cursor-not-allowed min-h-[52px] max-h-[200px] overflow-y-auto"
-            style={{
-              height: 'auto',
-              minHeight: '52px',
-            }}
-            onInput={(e) => {
-              const target = e.target as HTMLTextAreaElement;
-              target.style.height = 'auto';
-              target.style.height = Math.min(target.scrollHeight, 200) + 'px';
-            }}
+            className="resize-none bg-transparent text-[15px] leading-6 text-zinc-900 placeholder-zinc-400 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed overflow-y-auto w-full border-0"
+            style={{ minHeight: '20px', maxHeight: '200px', height: '20px', padding: '0' }}
           />
-          <button
-            onClick={handleSend}
-            disabled={!input.trim() || disabled}
-            className="absolute right-2 bottom-2 flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            aria-label="Send message"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-              className="h-5 w-5"
-            >
-              <path d="M3.105 2.289a.75.75 0 00-.826.95l1.414 4.925A1.5 1.5 0 005.135 9.25h6.115a.75.75 0 010 1.5H5.135a1.5 1.5 0 00-1.442 1.086l-1.414 4.926a.75.75 0 00.826.95 28.896 28.896 0 0015.293-7.154.75.75 0 000-1.115A28.897 28.897 0 003.105 2.289z" />
-            </svg>
-          </button>
-        </div>
-        <div className="mt-2 text-xs text-zinc-500 dark:text-zinc-400 text-center">
-          Press Enter to send, Shift+Enter for new line
+
+          <div className="flex items-center justify-end gap-2 flex-wrap">
+              {/* Send button */}
+              <button
+                onClick={handleSend}
+                disabled={!input.trim() || disabled}
+                className="flex items-center justify-center rounded-lg text-zinc-900 hover:bg-zinc-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                style={{ width: '36px', height: '36px' }}
+                aria-label="Send message"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+                </svg>
+              </button>
+          </div>
         </div>
       </div>
     </div>

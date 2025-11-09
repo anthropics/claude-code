@@ -1,14 +1,129 @@
 @import "tailwindcss";
 
 @theme {
-  --color-background: #ffffff;
-  --color-foreground: #171717;
-  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  /* Claude.ai exact colors */
+  --color-background: rgb(250, 249, 245);
+  --color-foreground: rgb(20, 20, 19);
+  --color-border: rgba(31, 30, 29, 0.15);
+
+  /* Claude orange accent */
+  --color-claude-orange: #CC6633;
+
+  /* Fonts - anthropicSans with fallbacks */
+  --font-sans: 'anthropicSans', 'anthropicSans Fallback', system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+
+  /* Dark mode colors */
+  --color-dark-background: rgb(20, 20, 19);
+  --color-dark-foreground: rgb(250, 249, 245);
+  --color-dark-border: rgba(250, 249, 245, 0.15);
 }
 
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Support for iPhone safe areas */
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Utility classes for better text overflow handling */
+.overflow-wrap-anywhere {
+  overflow-wrap: anywhere;
+}
+
+/* Ensure all text content wraps properly */
+p, h1, h2, h3, h4, h5, h6, li, span {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+}
+
+/* Custom checkbox styling */
+input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  width: 18px;
+  height: 18px;
+  border: 2px solid #d4d4d8;
+  border-radius: 4px;
+  background-color: white;
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+input[type="checkbox"]:hover {
+  border-color: #a1a1aa;
+}
+
+input[type="checkbox"]:checked {
+  background-color: #18181b;
+  border-color: #18181b;
+}
+
+input[type="checkbox"]:checked::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 2px;
+  width: 4px;
+  height: 8px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+input[type="checkbox"]:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(24, 24, 27, 0.1);
+}
+
+/* Custom radio button styling */
+input[type="radio"] {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  width: 18px;
+  height: 18px;
+  border: 2px solid #d4d4d8;
+  border-radius: 50%;
+  background-color: white;
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+input[type="radio"]:hover {
+  border-color: #a1a1aa;
+}
+
+input[type="radio"]:checked {
+  border-color: #18181b;
+}
+
+input[type="radio"]:checked::after {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 3px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #18181b;
+}
+
+input[type="radio"]:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(24, 24, 27, 0.1);
 }

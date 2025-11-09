@@ -1,0 +1,62 @@
+{
+  "name": "bcrypt",
+  "description": "A bcrypt library for NodeJS.",
+  "keywords": [
+    "bcrypt",
+    "password",
+    "auth",
+    "authentication",
+    "encryption",
+    "crypt",
+    "crypto"
+  ],
+  "main": "./bcrypt",
+  "version": "6.0.0",
+  "author": "Nick Campbell (https://github.com/ncb000gt)",
+  "engines": {
+    "node": ">= 18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kelektiv/node.bcrypt.js.git"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/kelektiv/node.bcrypt.js/issues"
+  },
+  "scripts": {
+    "test": "jest",
+    "install": "node-gyp-build",
+    "build": "prebuildify --napi --tag-libc --strip"
+  },
+  "dependencies": {
+    "node-addon-api": "^8.3.0",
+    "node-gyp-build": "^4.8.4"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "prebuildify": "^6.0.1"
+  },
+  "contributors": [
+    "Antonio Salazar Cardozo <savedfastcool@gmail.com> (https://github.com/Shadowfiend)",
+    "Van Nguyen <the.gol.effect@gmail.com> (https://github.com/thegoleffect)",
+    "David Trejo <david@dtrejo.com> (https://github.com/dtrejo)",
+    "Ben Glow <glen.low@pixelglow.com> (https://github.com/pixelglow)",
+    "NewITFarmer.com <> (https://github.com/newitfarmer)",
+    "Alfred Westerveld <alfredwesterveld@gmail.com> (https://github.com/alfredwesterveld)",
+    "Vincent Côté-Roy <vincentcr@gmail.com> (https://github.com/vincentcr)",
+    "Lloyd Hilaiel <lloyd@hilaiel.com> (https://github.com/lloyd)",
+    "Roman Shtylman <shtylman@gmail.com> (https://github.com/shtylman)",
+    "Vadim Graboys <dimva13@gmail.com> (https://github.com/vadimg)",
+    "Ben Noorduis <> (https://github.com/bnoordhuis)",
+    "Nate Rajlich <nathan@tootallnate.net> (https://github.com/tootallnate)",
+    "Sean McArthur <sean.monstar@gmail.com> (https://github.com/seanmonstar)",
+    "Fanie Oosthuysen <fanie.oosthuysen@gmail.com> (https://github.com/weareu)",
+    "Amitosh Swain Mahapatra <amitosh.swain@gmail.com> (https://github.com/Agathver)",
+    "Corbin Crutchley <crutchcorn@gmail.com> (https://github.com/crutchcorn)",
+    "Nicola Del Gobbo <nicoladelgobbo@gmail.com> (https://github.com/NickNaso)"
+  ],
+  "binary": {
+    "module_name": "bcrypt_lib"
+  }
+}

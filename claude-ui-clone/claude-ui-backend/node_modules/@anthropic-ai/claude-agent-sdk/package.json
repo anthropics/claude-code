@@ -1,0 +1,38 @@
+{
+  "name": "@anthropic-ai/claude-agent-sdk",
+  "version": "0.1.30",
+  "main": "sdk.mjs",
+  "types": "sdk.d.ts",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "type": "module",
+  "author": "Anthropic <support@anthropic.com>",
+  "license": "SEE LICENSE IN README.md",
+  "description": "SDK for building AI agents with Claude Code's capabilities. Programmatically interact with Claude to build autonomous agents that can understand codebases, edit files, and execute workflows.",
+  "homepage": "https://github.com/anthropics/claude-agent-sdk-typescript",
+  "bugs": {
+    "url": "https://github.com/anthropics/claude-agent-sdk-typescript/issues"
+  },
+  "keywords": [
+    "ai",
+    "agent",
+    "sdk",
+    "claude",
+    "anthropic",
+    "automation",
+    "code-generation"
+  ],
+  "dependencies": {},
+  "peerDependencies": {
+    "zod": "^3.24.1"
+  },
+  "optionalDependencies": {
+    "@img/sharp-darwin-arm64": "^0.33.5",
+    "@img/sharp-darwin-x64": "^0.33.5",
+    "@img/sharp-linux-arm": "^0.33.5",
+    "@img/sharp-linux-arm64": "^0.33.5",
+    "@img/sharp-linux-x64": "^0.33.5",
+    "@img/sharp-win32-x64": "^0.33.5"
+  }
+}
