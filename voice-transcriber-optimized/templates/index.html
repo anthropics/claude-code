@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#6366f1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Voice Transcriber Pro</title>
+
+    <!-- PWA Links -->
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/static/icon-192.png">
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="/static/css/style.css">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-content">
+                <div class="logo">
+                    <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                        <line x1="12" y1="19" x2="12" y2="23"></line>
+                        <line x1="8" y1="23" x2="16" y2="23"></line>
+                    </svg>
+                    <h1>Voice Transcriber <span class="pro-badge">PRO</span></h1>
+                </div>
+                <button class="settings-btn" id="settingsBtn" title="Einstellungen">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M12 1v6m0 6v6m-5-13L9 9m6 6l2 2m-1-11l-2 2M7 15l-2 2"></path>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Upload Section -->
+            <section class="upload-section">
+                <div class="upload-card">
+                    <div class="upload-area" id="uploadArea">
+                        <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                        <h2>Audio-Datei hochladen</h2>
+                        <p>Ziehen Sie eine Datei hierher oder klicken Sie zum Auswählen</p>
+                        <input type="file" id="audioInput" accept="audio/*,.mp3,.wav,.m4a,.ogg,.webm" hidden>
+                        <button class="btn btn-primary" id="selectFileBtn">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4m14-7l-5-5-5 5m5-5v12"></path>
+                            </svg>
+                            Datei auswählen
+                        </button>
+                    </div>
+
+                    <!-- File Info -->
+                    <div class="file-info" id="fileInfo" style="display: none;">
+                        <div class="file-details">
+                            <svg class="file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M9 18V5l12-2v13M6 15h3m-3 3h3m-3 3h3"></path>
+                            </svg>
+                            <div class="file-meta">
+                                <span class="file-name" id="fileName"></span>
+                                <span class="file-size" id="fileSize"></span>
+                            </div>
+                        </div>
+                        <button class="btn btn-icon" id="removeFileBtn" title="Entfernen">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Quick Options -->
+                <div class="quick-options">
+                    <div class="option-group">
+                        <label class="option-label">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                <line x1="3" y1="9" x2="21" y2="9"></line>
+                                <line x1="9" y1="21" x2="9" y2="9"></line>
+                            </svg>
+                            Provider
+                        </label>
+                        <select class="select-input" id="providerSelect">
+                            <option value="openai">OpenAI Whisper</option>
+                            <option value="groq">Groq Whisper</option>
+                            <option value="local">Local Whisper</option>
+                        </select>
+                    </div>
+
+                    <div class="option-group">
+                        <label class="option-label">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                            </svg>
+                            Modell
+                        </label>
+                        <select class="select-input" id="modelSelect">
+                            <option value="whisper-1">whisper-1</option>
+                        </select>
+                    </div>
+
+                    <div class="option-group">
+                        <label class="option-label">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="2" y1="12" x2="22" y2="12"></line>
+                                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                            </svg>
+                            Sprache
+                        </label>
+                        <select class="select-input" id="languageSelect">
+                            <option value="de">Deutsch</option>
+                            <option value="en">English</option>
+                            <option value="es">Español</option>
+                            <option value="fr">Français</option>
+                            <option value="it">Italiano</option>
+                            <option value="pt">Português</option>
+                            <option value="nl">Nederlands</option>
+                            <option value="pl">Polski</option>
+                            <option value="ru">Русский</option>
+                            <option value="zh">中文</option>
+                            <option value="ja">日本語</option>
+                            <option value="ko">한국어</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- GPT-4 Processing -->
+                <div class="gpt4-section">
+                    <div class="section-header">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="enableGpt4" class="checkbox-input">
+                            <span class="checkbox-custom"></span>
+                            <span class="checkbox-text">
+                                <svg class="gpt4-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                                    <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                                    <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                                </svg>
+                                GPT-4 Post-Processing
+                            </span>
+                        </label>
+                    </div>
+
+                    <div class="gpt4-options" id="gpt4Options" style="display: none;">
+                        <select class="select-input" id="gpt4PromptType">
+                            <option value="correct_grammar">Grammatik & Rechtschreibung korrigieren</option>
+                            <option value="add_punctuation">Satzzeichen & Formatierung hinzufügen</option>
+                            <option value="professional">Professionell formulieren</option>
+                            <option value="summarize">Zusammenfassung erstellen</option>
+                            <option value="bullet_points">Hauptpunkte extrahieren</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Transcribe Button -->
+                <button class="btn btn-transcribe" id="transcribeBtn" disabled>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                    </svg>
+                    Transkription starten
+                </button>
+
+                <!-- Progress -->
+                <div class="progress-container" id="progressContainer" style="display: none;">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <div class="progress-text" id="progressText">Wird verarbeitet...</div>
+                </div>
+            </section>
+
+            <!-- Results Section -->
+            <section class="results-section" id="resultsSection" style="display: none;">
+                <div class="results-header">
+                    <h2>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="9 11 12 14 22 4"></polyline>
+                            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                        </svg>
+                        Ergebnis
+                    </h2>
+                    <div class="results-actions">
+                        <button class="btn btn-secondary btn-sm" id="copyBtn">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
+                            Kopieren
+                        </button>
+                        <button class="btn btn-secondary btn-sm" id="downloadBtn">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4m14-7l-5 5-5-5m5-5v12"></path>
+                            </svg>
+                            Download
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Original Transcription -->
+                <div class="result-card">
+                    <div class="result-label">
+                        <span class="status-badge status-primary">Original</span>
+                        <span class="result-meta" id="resultMeta"></span>
+                    </div>
+                    <div class="result-content" id="originalText"></div>
+                </div>
+
+                <!-- Processed Text -->
+                <div class="result-card" id="processedCard" style="display: none;">
+                    <div class="result-label">
+                        <span class="status-badge status-success">GPT-4 Optimiert</span>
+                        <span class="result-meta" id="processedMeta"></span>
+                    </div>
+                    <div class="result-content" id="processedText"></div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Settings Modal -->
+        <div class="modal" id="settingsModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path d="M12 1v6m0 6v6m-5-13L9 9m6 6l2 2m-1-11l-2 2M7 15l-2 2"></path>
+                        </svg>
+                        Einstellungen
+                    </h2>
+                    <button class="modal-close" id="closeSettingsBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="settings-group">
+                        <h3>API-Konfiguration</h3>
+
+                        <div class="form-group">
+                            <label class="form-label">OpenAI API Key</label>
+                            <input type="password" class="form-input" id="openaiApiKey" placeholder="sk-...">
+                            <small class="form-hint">Für OpenAI Whisper und GPT-4</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Groq API Key</label>
+                            <input type="password" class="form-input" id="groqApiKey" placeholder="gsk_...">
+                            <small class="form-hint">Für Groq Whisper (schneller & günstiger)</small>
+                        </div>
+                    </div>
+
+                    <div class="settings-group">
+                        <h3>GPT-4 Konfiguration</h3>
+
+                        <div class="form-group">
+                            <label class="form-label">GPT-4 Modell</label>
+                            <select class="form-input" id="gpt4Model">
+                                <option value="gpt-4-turbo-preview">GPT-4 Turbo</option>
+                                <option value="gpt-4">GPT-4</option>
+                                <option value="gpt-4-32k">GPT-4 32K</option>
+                                <option value="gpt-3.5-turbo">GPT-3.5 Turbo (günstiger)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" class="checkbox-input" id="enableGpt4Default">
+                                <span class="checkbox-custom"></span>
+                                <span class="checkbox-text">GPT-4 standardmäßig aktivieren</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="settings-group">
+                        <h3>Standard-Einstellungen</h3>
+
+                        <div class="form-group">
+                            <label class="form-label">Standard Provider</label>
+                            <select class="form-input" id="defaultProvider">
+                                <option value="openai">OpenAI</option>
+                                <option value="groq">Groq</option>
+                                <option value="local">Local</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Standard Sprache</label>
+                            <select class="form-input" id="defaultLanguage">
+                                <option value="de">Deutsch</option>
+                                <option value="en">English</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" id="cancelSettingsBtn">Abbrechen</button>
+                    <button class="btn btn-primary" id="saveSettingsBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                            <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                            <polyline points="7 3 7 8 15 8"></polyline>
+                        </svg>
+                        Speichern
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast Notifications -->
+        <div class="toast-container" id="toastContainer"></div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/static/js/app.js"></script>
+    <script>
+        // Register Service Worker for PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => console.log('Service Worker registered'))
+                    .catch(err => console.log('Service Worker registration failed'));
+            });
+        }
+    </script>
+</body>
+</html>

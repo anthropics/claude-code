@@ -1,0 +1,22 @@
+# Voice Transcriber Pro - Python Dependencies
+
+# Web Framework
+Flask==3.0.0
+flask-cors==4.0.0
+
+# API Clients
+openai==1.6.1
+groq==0.4.2
+
+# Local Whisper (optional - requires FFmpeg)
+openai-whisper==20231117
+
+# Audio Processing
+pydub==0.25.1
+
+# Utilities
+python-dotenv==1.0.0
+
+# Production Server (optional)
+gunicorn==21.2.0
+waitress==2.1.2
