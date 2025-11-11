@@ -22,7 +22,18 @@ npm install -g @anthropic-ai/claude-code
 
 ## Plugins
 
-This repository includes several Claude Code plugins that extend functionality with custom commands and agents. See the [plugins directory](./plugins/README.md) for detailed documentation on available plugins.
+This repository includes 8 official Claude Code plugins that extend functionality with custom commands and agents:
+
+- **[agent-sdk-dev](./plugins/agent-sdk-dev/)** - Development tools for Claude Agent SDK applications
+- **[code-review](./plugins/code-review/)** - Automated pull request code review
+- **[commit-commands](./plugins/commit-commands/)** - Git workflow automation
+- **[explanatory-output-style](./plugins/explanatory-output-style/)** - Enhanced explanatory communication style
+- **[feature-dev](./plugins/feature-dev/)** - Comprehensive feature development workflow
+- **[learning-output-style](./plugins/learning-output-style/)** - Educational and learning-focused output
+- **[pr-review-toolkit](./plugins/pr-review-toolkit/)** - Advanced PR review tools
+- **[security-guidance](./plugins/security-guidance/)** - Security-focused development guidance
+
+See the [plugins directory](./plugins/README.md) for detailed documentation on available plugins.
 
 ## Reporting Bugs
 
