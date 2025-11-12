@@ -11,6 +11,7 @@ from utils.config import *
 from gui.lesson_browser import LessonBrowser
 from gui.video_player_window import VideoPlayerWindow
 from gui.game_window import GameWindow
+from gui.about_window import AboutWindow
 from content.content_manager import ContentManager
 import json
 import os
@@ -48,9 +49,21 @@ class MainWindow:
             font=(FONT_FAMILY, FONT_SIZE_LARGE, "bold"),
             bg=COLOR_PRIMARY,
             fg=COLOR_BG,
-            pady=20
+            pady=10
         )
         title_label.pack()
+
+        # School name
+        school_text = PersianText.display(f"🏫 {SCHOOL_NAME}")
+        school_label = tk.Label(
+            header_frame,
+            text=school_text,
+            font=(FONT_FAMILY, FONT_SIZE_MEDIUM),
+            bg=COLOR_PRIMARY,
+            fg=COLOR_BG,
+            pady=5
+        )
+        school_label.pack()
 
         # User info frame
         user_frame = tk.Frame(header_frame, bg=COLOR_PRIMARY)
@@ -100,7 +113,8 @@ class MainWindow:
             ("📚 درس‌ها", self.open_lessons, COLOR_PRIMARY),
             ("🎮 بازی‌ها", self.open_games, COLOR_SECONDARY),
             ("🎥 فیلم‌ها", self.open_videos, COLOR_ACCENT),
-            ("📊 پیشرفت من", self.show_progress, COLOR_SUCCESS)
+            ("📊 پیشرفت من", self.show_progress, COLOR_SUCCESS),
+            ("ℹ️ درباره برنامه", self.show_about, "#9B59B6")
         ]
 
         for i, (text, command, color) in enumerate(buttons):
@@ -118,7 +132,11 @@ class MainWindow:
                 cursor="hand2",
                 command=command
             )
-            btn.grid(row=i // 2, column=i % 2, padx=20, pady=15, sticky="nsew")
+            # Layout: 2 columns for first 4 buttons, last button centered
+            if i < 4:
+                btn.grid(row=i // 2, column=i % 2, padx=20, pady=15, sticky="nsew")
+            else:
+                btn.grid(row=2, column=0, columnspan=2, padx=20, pady=15, sticky="ew")
 
             # Hover effects
             btn.bind("<Enter>", lambda e, b=btn: b.config(relief=tk.SUNKEN))
@@ -128,16 +146,19 @@ class MainWindow:
         button_frame.grid_columnconfigure(0, weight=1)
         button_frame.grid_columnconfigure(1, weight=1)
 
-        # Footer
-        footer_text = PersianText.display("ساخته شده با ❤️ برای دانش‌آموزان")
+        # Footer with school info
+        footer_frame = tk.Frame(self.root, bg=APP_BG_COLOR)
+        footer_frame.pack(side=tk.BOTTOM, pady=5)
+
+        footer_text = PersianText.display(f"ساخته شده توسط {DEVELOPER_NAME} با ❤️ برای دانش‌آموزان عزیز")
         footer_label = tk.Label(
-            self.root,
+            footer_frame,
             text=footer_text,
             font=(FONT_FAMILY, FONT_SIZE_SMALL),
             bg=APP_BG_COLOR,
             fg=COLOR_TEXT
         )
-        footer_label.pack(side=tk.BOTTOM, pady=10)
+        footer_label.pack()
 
     def open_lessons(self):
         """Open lessons browser"""
@@ -170,6 +191,11 @@ class MainWindow:
             PersianText.display("پیشرفت من"),
             display_text
         )
+
+    def show_about(self):
+        """Show about window"""
+        about_window = tk.Toplevel(self.root)
+        AboutWindow(about_window)
 
     def update_points(self, points):
         """Update user points"""

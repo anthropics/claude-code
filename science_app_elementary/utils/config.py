@@ -50,3 +50,11 @@ STARS_FOR_COMPLETE = 3
 # User data
 USER_DATA_FILE = os.path.join(BASE_DIR, 'user_data.json')
 CONTENT_INDEX_FILE = os.path.join(CONTENT_DIR, 'lessons.json')
+
+# School and Creator Information
+SCHOOL_NAME = "دبستان پیوند"
+DEVELOPER_NAME = "کارن ابوعلی"
+TEACHER_NAME = "سرکار خانم ضابطی"
+PRINCIPAL_NAME = "جناب آقای کاظمی فر"
+APP_VERSION = "1.0.0"
+APP_YEAR = "1403"
