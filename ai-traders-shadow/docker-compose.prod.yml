@@ -1,0 +1,143 @@
+# Docker Compose for Production Deployment
+# AI Trader's Shadow - Complete Stack
+
+version: '3.8'
+
+services:
+  # TimescaleDB Database
+  db:
+    image: timescale/timescaledb:latest-pg14
+    container_name: ai_traders_db_prod
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ai_traders_shadow
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme_prod_password}
+      POSTGRES_INITDB_ARGS: "-c shared_buffers=256MB -c max_connections=200"
+    volumes:
+      - timescaledb_data_prod:/var/lib/postgresql/data
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+    ports:
+      - "5432:5432"
+    networks:
+      - ai_traders_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ai_traders_shadow"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # FastAPI Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ai_traders_backend_prod
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # Database
+      DATABASE_URL: postgresql://postgres:${DB_PASSWORD:-changeme_prod_password}@db:5432/ai_traders_shadow
+
+      # API Configuration
+      API_HOST: 0.0.0.0
+      API_PORT: 8000
+      DEBUG: "false"
+      SECRET_KEY: ${SECRET_KEY:-change-this-in-production-use-strong-secret}
+      CORS_ORIGINS: '["http://localhost", "http://localhost:80"]'
+
+      # Exchange (Paper Trading)
+      EXCHANGE_NAME: binance
+      EXCHANGE_TESTNET: "true"
+      EXCHANGE_API_KEY: ${EXCHANGE_API_KEY:-}
+      EXCHANGE_API_SECRET: ${EXCHANGE_API_SECRET:-}
+
+      # CryptoFeed
+      CRYPTOFEED_SYMBOLS: '["BTC-USDT", "ETH-USDT"]'
+      CRYPTOFEED_EXCHANGE: BINANCE
+      CRYPTOFEED_CHANNELS: '["trades", "l2_book", "ticker"]'
+
+      # ML Configuration
+      MODEL_PATH: /app/models
+      RL_TRAINING_MODE: "false"
+      PAPER_TRADING_INITIAL_BALANCE: 100.0
+
+      # Telegram (optional)
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_ADMIN_CHAT_ID: ${TELEGRAM_ADMIN_CHAT_ID:-}
+
+      # Risk Management
+      MAX_SPREAD_BPS: 50.0
+      MIN_LIQUIDITY_USD: 10000.0
+      MAX_TRADES_PER_HOUR: 5
+      MIN_ORDER_SIZE_USD: 10.0
+
+      # Mood Meter
+      MOOD_LOOKBACK_TRADES: 10
+      MOOD_UPDATE_INTERVAL_SECONDS: 60
+    volumes:
+      # Mount logs directory for persistence
+      - backend_logs:/app/logs
+    networks:
+      - ai_traders_network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Next.js Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ai_traders_frontend_prod
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: http://localhost/api
+      NEXT_PUBLIC_WS_URL: ws://localhost/ws
+    networks:
+      - ai_traders_network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Nginx Reverse Proxy
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: ai_traders_nginx_prod
+    restart: unless-stopped
+    depends_on:
+      - backend
+      - frontend
+    ports:
+      - "80:80"
+    networks:
+      - ai_traders_network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+networks:
+  ai_traders_network:
+    driver: bridge
+    name: ai_traders_prod_network
+
+volumes:
+  timescaledb_data_prod:
+    name: ai_traders_timescaledb_prod
+  backend_logs:
+    name: ai_traders_backend_logs_prod
