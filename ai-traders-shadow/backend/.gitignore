@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Logs
+*.log
+logs/
+
+# Environment
+.env
+.env.local
+.env.production
+
+# Git
+.git/
+.gitignore
+
+# Documentation (temporary)
+*.md.tmp
+
+# Training artifacts (keep only final models)
+training_logs/
+tensorboard_logs/
+checkpoints/
+
+# Modal.com specific
+modal_secrets_reference.txt
+.modal/
+*.modal.toml
