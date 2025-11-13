@@ -20,6 +20,7 @@ class PredictionResponse(BaseModel):
     current_price: Optional[float]
     confidence: Optional[float]
     timestamp: datetime
+    strategy: str  # PPO or GAIL
     model_version: str
     explanation: Optional[str] = None
 
@@ -39,27 +40,39 @@ class ModelInfoResponse(BaseModel):
 @router.get("/predict/{symbol}", response_model=PredictionResponse)
 async def get_prediction(
     symbol: str,
+    strategy: str = "PPO",
     include_explanation: bool = False
 ):
     """
     Get ML prediction for a trading symbol.
 
+    Supports multiple strategies:
+    - PPO (Lapis 2): Baseline RL model
+    - GAIL (Lapis 3): Imitation learning from expert demonstrations
+
     Args:
         symbol: Trading pair symbol (e.g., "BTC-USDT" or "BTC/USDT")
+        strategy: Model to use - "PPO" or "GAIL" (default: "PPO")
         include_explanation: Include human-readable explanation
 
     Returns:
         Prediction with action recommendation
     """
-    if not prediction_service.is_model_loaded():
+    strategy = strategy.upper()
+
+    # Check if requested model is loaded
+    if not prediction_service.is_model_loaded(strategy):
+        available_models = prediction_service.get_available_models()
         raise HTTPException(
             status_code=503,
-            detail="ML model not loaded. Train a model first: python -m app.ml.train_ppo"
+            detail=f"{strategy} model not loaded. Available models: {available_models}. "
+                   f"Train model first: python -m app.ml.train_ppo (for PPO) or "
+                   f"python -m app.ml.train_gail (for GAIL)"
         )
 
-    logger.info(f"Prediction request for {symbol}")
+    logger.info(f"Prediction request for {symbol} using strategy: {strategy}")
 
-    prediction = await prediction_service.get_predicted_action(symbol)
+    prediction = await prediction_service.get_predicted_action(symbol, strategy=strategy)
 
     if prediction is None:
         raise HTTPException(
@@ -91,18 +104,25 @@ async def get_model_info():
 
 
 @router.get("/model/health")
-async def check_model_health():
+async def check_model_health(strategy: str = "PPO"):
     """
     Check if ML model is loaded and ready.
+
+    Args:
+        strategy: Model type to check - "PPO" or "GAIL" (default: "PPO")
 
     Returns:
         Health status of ML inference service
     """
-    is_loaded = prediction_service.is_model_loaded()
+    strategy = strategy.upper()
+    is_loaded = prediction_service.is_model_loaded(strategy)
+    available_models = prediction_service.get_available_models()
 
     return {
         "status": "healthy" if is_loaded else "unavailable",
         "model_loaded": is_loaded,
+        "strategy": strategy,
+        "available_models": available_models,
         "service": "ML Prediction Service",
-        "message": "Model ready for predictions" if is_loaded else "Model not loaded"
+        "message": f"{strategy} model ready for predictions" if is_loaded else f"{strategy} model not loaded"
     }

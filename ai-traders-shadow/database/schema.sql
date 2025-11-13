@@ -96,7 +96,65 @@ CREATE INDEX idx_trades_paper_symbol ON trades_paper(symbol);
 
 
 -- ========================================
--- 5. AGENT_STATUS_LOG (Time-Series - Mood Meter & AI State)
+-- 5. EXPERT_DEMONSTRATIONS (Relational - Imitation Learning Dataset)
+-- ========================================
+-- This table stores successful paper trades to train GAIL model
+-- Data Flywheel: Profitable trades from human traders become training data
+CREATE TABLE IF NOT EXISTS expert_demonstrations (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    trade_id INTEGER REFERENCES trades_paper(id) ON DELETE SET NULL,  -- Link to original trade
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+
+    -- Trade Context
+    symbol VARCHAR(20) NOT NULL,
+    action INTEGER NOT NULL CHECK (action IN (0, 1, 2)),  -- 0: HOLD, 1: BUY, 2: SELL
+    executed_price DECIMAL(18, 8) NOT NULL,
+
+    -- Outcome
+    reward FLOAT NOT NULL,  -- Realized P&L or reward signal
+    pnl DECIMAL(18, 8),  -- Actual profit/loss from the trade
+    win_rate FLOAT,  -- User's win rate at time of trade
+
+    -- Expert Label
+    is_expert_trade BOOLEAN DEFAULT false,  -- Marked as expert if meets profitability threshold
+    expert_score FLOAT,  -- Quality score: based on pnl, consistency, risk-adjusted returns
+
+    -- ML Training Data (Most Important!)
+    observation_data JSONB NOT NULL,  -- State before action: market features, indicators, etc.
+    -- observation_data schema:
+    -- {
+    --   "features": [...],  -- Normalized feature vector (50 timesteps x 10 features)
+    --   "market_conditions": {...},  -- Additional context
+    --   "shape": [50, 10],  -- Array dimensions
+    --   "normalization": "minmax"  -- Normalization method used
+    -- }
+
+    -- Metadata
+    strategy_used VARCHAR(50),  -- 'manual', 'ppo', 'gail', etc.
+    market_conditions JSONB,  -- Volatility, spread, liquidity at time of trade
+    notes TEXT  -- Optional human annotations
+);
+
+-- Indexes for GAIL training queries
+CREATE INDEX idx_expert_demonstrations_user_id ON expert_demonstrations(user_id);
+CREATE INDEX idx_expert_demonstrations_created_at ON expert_demonstrations(created_at DESC);
+CREATE INDEX idx_expert_demonstrations_is_expert ON expert_demonstrations(is_expert_trade) WHERE is_expert_trade = true;
+CREATE INDEX idx_expert_demonstrations_symbol ON expert_demonstrations(symbol);
+CREATE INDEX idx_expert_demonstrations_expert_score ON expert_demonstrations(expert_score DESC NULLS LAST);
+
+-- Index for fast JSONB queries
+CREATE INDEX idx_expert_demonstrations_observation ON expert_demonstrations USING GIN (observation_data);
+
+-- Comments
+COMMENT ON TABLE expert_demonstrations IS 'Stores expert demonstrations from profitable paper trades for GAIL (Imitation Learning) training';
+COMMENT ON COLUMN expert_demonstrations.observation_data IS 'JSONB containing normalized market state (50x10 array) captured before action execution';
+COMMENT ON COLUMN expert_demonstrations.is_expert_trade IS 'True if trade meets profitability threshold (e.g., pnl > 0.5%)';
+COMMENT ON COLUMN expert_demonstrations.expert_score IS 'Quality metric: higher score = better demonstration for training';
+
+
+-- ========================================
+-- 6. AGENT_STATUS_LOG (Time-Series - Mood Meter & AI State)
 -- ========================================
 CREATE TABLE IF NOT EXISTS agent_status_log (
     time TIMESTAMPTZ NOT NULL,

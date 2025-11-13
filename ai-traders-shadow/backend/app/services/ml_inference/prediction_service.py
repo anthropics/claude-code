@@ -8,7 +8,7 @@ Singleton pattern ensures model is loaded only once for efficiency.
 """
 import os
 from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 import numpy as np
 import pandas as pd
 from datetime import datetime, timedelta
@@ -26,12 +26,16 @@ class PredictionService:
     """
     Singleton service for ML model inference.
 
-    Loads PPO model once and provides predictions based on current market state.
+    Supports multiple models:
+    - PPO (Lapis 2): Baseline RL model
+    - GAIL (Lapis 3): Imitation learning from expert demonstrations
+
+    Model switching via strategy parameter.
     """
 
     _instance: Optional['PredictionService'] = None
-    _model: Optional[PPO] = None
-    _model_loaded: bool = False
+    _models: Dict[str, Optional[PPO]] = {}  # Support multiple models
+    _models_loaded: Dict[str, bool] = {}
 
     def __new__(cls):
         """Singleton pattern - only one instance allowed."""
@@ -46,20 +50,29 @@ class PredictionService:
             self._initialized = True
             self.window_size = 50  # Must match training environment
             self.num_features = 10  # Must match training environment
-            logger.info("PredictionService initialized (singleton)")
+            self._models = {}
+            self._models_loaded = {}
+            logger.info("PredictionService initialized (singleton) with multi-model support")
 
-    def load_model(self, model_path: str) -> bool:
+    def load_model(self, model_path: str, model_type: str = "PPO") -> bool:
         """
-        Load trained PPO model from file.
+        Load trained model from file.
+
+        Supports multiple model types:
+        - PPO: Baseline RL model
+        - GAIL: Imitation learning model
 
         Args:
             model_path: Path to saved model (.zip file)
+            model_type: Model type ('PPO' or 'GAIL')
 
         Returns:
             True if successful, False otherwise
         """
-        if self._model_loaded:
-            logger.warning("Model already loaded, skipping reload")
+        model_type = model_type.upper()
+
+        if model_type in self._models_loaded and self._models_loaded[model_type]:
+            logger.warning(f"{model_type} model already loaded, skipping reload")
             return True
 
         try:
@@ -68,35 +81,63 @@ class PredictionService:
                 logger.error(f"Model file not found: {model_path}")
                 return False
 
-            logger.info(f"Loading PPO model from: {model_path}")
-            self._model = PPO.load(model_path)
-            self._model_loaded = True
+            logger.info(f"Loading {model_type} model from: {model_path}")
 
-            logger.info("✅ PPO model loaded successfully")
-            logger.info(f"Model policy: {self._model.policy.__class__.__name__}")
+            # Both PPO and GAIL use PPO.load() since GAIL trains a PPO agent
+            model = PPO.load(model_path)
+
+            self._models[model_type] = model
+            self._models_loaded[model_type] = True
+
+            logger.info(f"✅ {model_type} model loaded successfully")
+            logger.info(f"Model policy: {model.policy.__class__.__name__}")
 
             return True
 
         except Exception as e:
-            logger.error(f"Failed to load model: {e}")
-            self._model_loaded = False
+            logger.error(f"Failed to load {model_type} model: {e}")
+            self._models_loaded[model_type] = False
             return False
 
-    def get_model(self) -> Optional[PPO]:
+    def get_model(self, model_type: str = "PPO") -> Optional[PPO]:
         """
-        Get the loaded model.
+        Get the loaded model by type.
+
+        Args:
+            model_type: Model type ('PPO' or 'GAIL')
 
         Returns:
-            Loaded PPO model or None if not loaded
+            Loaded model or None if not loaded
         """
-        if not self._model_loaded:
-            logger.warning("Model not loaded yet")
-            return None
-        return self._model
+        model_type = model_type.upper()
 
-    def is_model_loaded(self) -> bool:
-        """Check if model is loaded."""
-        return self._model_loaded
+        if not self._models_loaded.get(model_type, False):
+            logger.warning(f"{model_type} model not loaded yet")
+            return None
+
+        return self._models.get(model_type)
+
+    def is_model_loaded(self, model_type: str = "PPO") -> bool:
+        """
+        Check if model is loaded.
+
+        Args:
+            model_type: Model type ('PPO' or 'GAIL')
+
+        Returns:
+            True if loaded, False otherwise
+        """
+        model_type = model_type.upper()
+        return self._models_loaded.get(model_type, False)
+
+    def get_available_models(self) -> List[str]:
+        """
+        Get list of loaded models.
+
+        Returns:
+            List of model types that are loaded
+        """
+        return [model_type for model_type, loaded in self._models_loaded.items() if loaded]
 
     async def _prepare_observation_data(
         self,
@@ -185,28 +226,46 @@ class PredictionService:
     async def get_predicted_action(
         self,
         symbol: str,
+        strategy: str = "PPO",
         deterministic: bool = True
     ) -> Optional[Dict[str, Any]]:
         """
-        Get predicted action from PPO model.
+        Get predicted action from selected model.
+
+        Supports multiple strategies:
+        - PPO (Lapis 2): Baseline RL model
+        - GAIL (Lapis 3): Imitation learning model trained on expert demonstrations
 
         Args:
             symbol: Trading pair symbol (e.g., "BTC-USDT" or "BTC/USDT")
+            strategy: Model type to use ('PPO' or 'GAIL')
             deterministic: Use deterministic policy (True for production)
 
         Returns:
             Dictionary with:
                 - action_id: int (0=HOLD, 1=BUY, 2=SELL)
                 - action_name: str ('HOLD', 'BUY', 'SELL')
-                - confidence: float (not available in PPO, placeholder)
+                - confidence: float (not available in PPO/GAIL, placeholder)
                 - timestamp: datetime
+                - strategy: str (model type used)
             Or None if prediction failed
         """
-        if not self._model_loaded:
-            logger.error("Cannot predict: model not loaded")
+        strategy = strategy.upper()
+
+        # Check if requested model is loaded
+        if not self.is_model_loaded(strategy):
+            logger.error(f"Cannot predict: {strategy} model not loaded")
+            logger.info(f"Available models: {self.get_available_models()}")
             return None
 
         try:
+            # Get the model
+            model = self.get_model(strategy)
+
+            if model is None:
+                logger.error(f"Failed to get {strategy} model")
+                return None
+
             # Prepare observation
             observation = await self._prepare_observation_data(symbol)
 
@@ -215,7 +274,7 @@ class PredictionService:
                 return None
 
             # Get prediction from model
-            action, _states = self._model.predict(observation, deterministic=deterministic)
+            action, _states = model.predict(observation, deterministic=deterministic)
 
             # Convert action to int (in case it's numpy type)
             action = int(action)
@@ -242,13 +301,14 @@ class PredictionService:
                 'action_name': action_name,
                 'symbol': symbol,
                 'current_price': current_price,
-                'confidence': None,  # PPO doesn't provide confidence scores
+                'confidence': None,  # PPO/GAIL don't provide confidence scores
                 'timestamp': datetime.utcnow(),
-                'model_version': 'ppo_v1',
+                'strategy': strategy,  # PPO or GAIL
+                'model_version': f'{strategy.lower()}_v1',
             }
 
             logger.info(
-                f"Prediction for {symbol}: {action_name} (action_id={action})"
+                f"Prediction [{strategy}] for {symbol}: {action_name} (action_id={action})"
                 + (f" @ ${current_price:.2f}" if current_price else "")
             )
 
@@ -296,23 +356,37 @@ class PredictionService:
 
     def get_model_info(self) -> Dict[str, Any]:
         """
-        Get information about loaded model.
+        Get information about all loaded models.
 
         Returns:
-            Dictionary with model metadata
+            Dictionary with model metadata for each loaded model
         """
-        if not self._model_loaded:
+        available_models = self.get_available_models()
+
+        if not available_models:
             return {
                 'loaded': False,
-                'error': 'Model not loaded'
+                'error': 'No models loaded',
+                'available_models': []
             }
+
+        models_info = {}
+
+        for model_type in available_models:
+            model = self.get_model(model_type)
+            if model:
+                models_info[model_type] = {
+                    'loaded': True,
+                    'model_type': model_type,
+                    'policy': model.policy.__class__.__name__,
+                    'observation_space': str(model.observation_space),
+                    'action_space': str(model.action_space),
+                }
 
         return {
             'loaded': True,
-            'model_type': 'PPO',
-            'policy': self._model.policy.__class__.__name__,
-            'observation_space': str(self._model.observation_space),
-            'action_space': str(self._model.action_space),
+            'available_models': available_models,
+            'models': models_info,
             'window_size': self.window_size,
             'num_features': self.num_features,
         }

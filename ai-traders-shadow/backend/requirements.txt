@@ -21,6 +21,10 @@ numpy==1.24.3
 pandas==2.1.4
 scikit-learn==1.4.0
 
+# Imitation Learning (GAIL)
+imitation==1.0.0
+torch==2.1.2
+
 # Monitoring & Logging
 python-telegram-bot==20.8
 pydantic==2.5.3
