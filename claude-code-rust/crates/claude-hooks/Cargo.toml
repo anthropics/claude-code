@@ -1,0 +1,22 @@
+[package]
+name = "claude-hooks"
+version = "0.1.0"
+edition = "2021"
+authors = ["Anthropic"]
+description = "Hook system for Claude Code (PreToolUse, PostToolUse, SessionStart)"
+license = "MIT"
+
+[dependencies]
+claude-core = { path = "../claude-core" }
+claude-tools = { path = "../claude-tools" }
+tokio = { version = "1.0", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+regex = "1.10"
+anyhow = "1.0"
+thiserror = "1.0"
+async-trait = "0.1"
+
+[dev-dependencies]
+tokio-test = "0.4"
+tempfile = "3.10"

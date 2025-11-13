@@ -1,0 +1,25 @@
+[package]
+name = "claude-api"
+version = "0.1.0"
+edition = "2021"
+authors = ["Anthropic"]
+description = "Anthropic API client with streaming support for Claude Code"
+license = "MIT"
+
+[dependencies]
+claude-core = { path = "../claude-core" }
+reqwest = { version = "0.11", features = ["json", "stream"] }
+tokio = { version = "1.0", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+futures = "0.3"
+async-trait = "0.1"
+thiserror = "1.0"
+anyhow = "1.0"
+tokio-stream = "0.1"
+bytes = "1.0"
+pin-project = "1.0"
+
+[dev-dependencies]
+tokio-test = "0.4"
+mockito = "1.0"

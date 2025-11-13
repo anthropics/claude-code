@@ -1,0 +1,31 @@
+[package]
+name = "claude-agents"
+version = "0.1.0"
+edition = "2021"
+authors = ["Anthropic"]
+description = "Multi-agent orchestration for Claude Code"
+license = "MIT"
+
+[dependencies]
+# Path dependencies
+claude-core = { path = "../claude-core" }
+claude-api = { path = "../claude-api" }
+claude-tools = { path = "../claude-tools" }
+claude-plugins = { path = "../claude-plugins" }
+
+# Async runtime
+tokio = { version = "1.42", features = ["full"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Async utilities
+futures = "0.3"
+
+# Error handling
+anyhow = "1.0"
+thiserror = "2.0"
+
+# Async trait support
+async-trait = "0.1"
