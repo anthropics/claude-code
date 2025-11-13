@@ -20,6 +20,7 @@ claude-plugins = { path = "../claude-plugins" }
 claude-hooks = { path = "../claude-hooks" }
 claude-agents = { path = "../claude-agents" }
 claude-mcp = { path = "../claude-mcp" }
+claude-session = { path = "../claude-session" }
 
 # External dependencies
 clap = { version = "4.5", features = ["derive", "env"] }
@@ -32,3 +33,4 @@ serde_json = "1.0"
 colored = "2.1"
 rustyline = "14.0"
 dirs = "5.0"
+futures = "0.3"
