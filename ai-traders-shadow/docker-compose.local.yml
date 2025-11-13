@@ -1,0 +1,78 @@
+version: '3.8'
+
+services:
+  # Backend - FastAPI
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.local
+    container_name: ai-trader-backend
+    ports:
+      - "8000:8000"
+    environment:
+      # Database connection (using your Supabase)
+      - DATABASE_URL=postgresql://postgres:Shadow19*@db.rjkcbdvnnzfqgxgwlabi.supabase.co:5432/postgres
+      - DB_HOST=db.rjkcbdvnnzfqgxgwlabi.supabase.co
+      - DB_PORT=5432
+      - DB_NAME=postgres
+      - DB_USER=postgres
+      - DB_PASSWORD=Shadow19*
+
+      # Security
+      - SECRET_KEY=your-secret-key-change-this-in-production
+
+      # API Keys (optional)
+      - BINANCE_API_KEY=
+      - BINANCE_API_SECRET=
+      - TELEGRAM_BOT_TOKEN=
+
+      # Development settings
+      - ENVIRONMENT=development
+      - DEBUG=true
+    volumes:
+      - ./backend:/app
+      - backend-models:/app/models
+    restart: unless-stopped
+    networks:
+      - ai-trader-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Frontend - Next.js
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.local
+    container_name: ai-trader-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - NEXT_PUBLIC_WS_URL=ws://localhost:8000
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - ai-trader-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  backend-models:
+    driver: local
+
+networks:
+  ai-trader-network:
+    driver: bridge
