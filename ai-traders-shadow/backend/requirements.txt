@@ -40,3 +40,6 @@ pytz==2023.3
 pytest==7.4.3
 pytest-asyncio==0.23.3
 pytest-cov==4.1.0
+
+# Modal.com deployment
+modal==0.56.4582
