@@ -6,6 +6,7 @@ Runs SQL migrations without requiring psql client
 import psycopg2
 import os
 
+# Supabase Database Connection
 DATABASE_URL = "postgresql://postgres:Shadow19*@db.rjkcbdvnnzfqgxgwlabi.supabase.co:5432/postgres"
 
 def run_sql_file(cursor, filepath):

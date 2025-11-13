@@ -16,33 +16,34 @@ from pathlib import Path
 # Modal Configuration
 # ============================================================================
 
-# Modal stub (app) - this is the main application container
+# Modal app - this is the main application container
 app = modal.App(name="ai-traders-shadow-backend")
 
 # ============================================================================
 # Docker Image Configuration
 # ============================================================================
 
-# Use the existing production Dockerfile
-# This includes all dependencies, ML model, and application code
+# Build image with dependencies from requirements.txt
+# Using Python 3.10 slim image as base
 backend_dir = Path(__file__).parent.parent
-dockerfile_path = backend_dir / "Dockerfile"
 
-# Build image from Dockerfile
-# The Dockerfile already includes:
-# - Python dependencies (requirements.txt)
-# - ML model (backend/models/ppo_crypto_final.zip)
-# - Application code (backend/app/)
+# Read requirements from requirements.txt
+requirements_path = backend_dir / "requirements.txt"
+with open(requirements_path, "r") as f:
+    requirements = [line.strip() for line in f if line.strip() and not line.startswith("#")]
+
+# Build image step by step
 modal_image = (
-    modal.Image.from_dockerfile(
-        dockerfile_path,
-        context_mount=modal.Mount.from_local_dir(
-            backend_dir,
-            remote_path="/root/backend",
-        ),
-    )
-    # Add any additional Python packages if needed
-    .pip_install("modal")  # Modal SDK for debugging
+    modal.Image.debian_slim()
+    .apt_install([
+        "gcc",
+        "g++",
+        "postgresql-client",
+        "build-essential",
+        "python3-dev",
+    ])
+    .pip_install(*requirements)
+    .pip_install("modal", "gunicorn")
 )
 
 # ============================================================================
