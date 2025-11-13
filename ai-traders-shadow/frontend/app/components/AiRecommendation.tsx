@@ -37,7 +37,7 @@ interface Props {
 }
 
 export const AiRecommendation: React.FC<Props> = ({ symbol = 'BTC-USDT' }) => {
-  const { currentPrediction, isConnected } = useWebSocket();
+  const { currentPrediction, isConnected, selectedStrategy } = useWebSocket();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,7 +49,10 @@ export const AiRecommendation: React.FC<Props> = ({ symbol = 'BTC-USDT' }) => {
     setError(null);
 
     try {
-      const response = await axios.get(`${apiUrl}/api/v1/prediction/predict/${symbol}?include_explanation=true`);
+      // Add strategy parameter to API call
+      const response = await axios.get(
+        `${apiUrl}/api/v1/prediction/predict/${symbol}?strategy=${selectedStrategy}&include_explanation=true`
+      );
       console.log('[AiRecommendation] Prediction fetched:', response.data);
     } catch (err: any) {
       console.error('[AiRecommendation] Error fetching prediction:', err);
@@ -60,13 +63,14 @@ export const AiRecommendation: React.FC<Props> = ({ symbol = 'BTC-USDT' }) => {
   };
 
   // Fetch prediction on mount and periodically
+  // Also re-fetch when strategy changes
   useEffect(() => {
     fetchPrediction();
 
     // Refresh every 60 seconds
     const interval = setInterval(fetchPrediction, 60000);
     return () => clearInterval(interval);
-  }, [symbol]);
+  }, [symbol, selectedStrategy]);
 
   if (loading && !currentPrediction) {
     return (
@@ -113,8 +117,8 @@ export const AiRecommendation: React.FC<Props> = ({ symbol = 'BTC-USDT' }) => {
         <h3 className="text-xl font-bold text-gray-800">
           🧠 AI Recommendation
         </h3>
-        <div className="text-xs text-gray-500">
-          PPO Layer 2
+        <div className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+          {selectedStrategy === 'PPO' ? '🤖 Layer 2: PPO' : '🧠 Layer 3: GAIL'}
         </div>
       </div>
 

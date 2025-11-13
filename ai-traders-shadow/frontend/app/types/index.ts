@@ -26,6 +26,7 @@ export interface PredictionData {
   confidence: number | null;
   timestamp: string;
   model_version: string;
+  strategy?: string; // PPO or GAIL
 }
 
 export interface PortfolioData {
@@ -60,4 +61,5 @@ export interface TradeRequest {
   side: 'buy' | 'sell';
   quantity: number;
   order_type?: string;
+  strategy?: string; // PPO or GAIL - used by ExpertCollector
 }

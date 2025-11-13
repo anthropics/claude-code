@@ -3,6 +3,8 @@
 import React, { createContext, useContext, useEffect, useState, useRef, ReactNode } from 'react';
 import { MoodData, PredictionData, PortfolioData, WebSocketMessage } from '../types';
 
+export type StrategyType = 'PPO' | 'GAIL';
+
 interface WebSocketContextType {
   // Connection state
   isConnected: boolean;
@@ -12,6 +14,10 @@ interface WebSocketContextType {
   currentMood: MoodData | null;
   currentPrediction: PredictionData | null;
   currentPortfolio: PortfolioData | null;
+
+  // Strategy state
+  selectedStrategy: StrategyType;
+  setSelectedStrategy: (strategy: StrategyType) => void;
 
   // Methods
   sendMessage: (message: any) => void;
@@ -43,6 +49,9 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
   const [currentMood, setCurrentMood] = useState<MoodData | null>(null);
   const [currentPrediction, setCurrentPrediction] = useState<PredictionData | null>(null);
   const [currentPortfolio, setCurrentPortfolio] = useState<PortfolioData | null>(null);
+
+  // Strategy state (default: PPO for free tier)
+  const [selectedStrategy, setSelectedStrategy] = useState<StrategyType>('PPO');
 
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
@@ -204,6 +213,8 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
     currentMood,
     currentPrediction,
     currentPortfolio,
+    selectedStrategy,
+    setSelectedStrategy,
     sendMessage,
     reconnect,
   };

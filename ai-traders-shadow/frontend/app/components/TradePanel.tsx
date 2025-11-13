@@ -2,12 +2,14 @@
 
 import React, { useState } from 'react';
 import axios from 'axios';
+import { useWebSocket } from '../contexts/WebSocketContext';
 
 interface Props {
   defaultSymbol?: string;
 }
 
 export const TradePanel: React.FC<Props> = ({ defaultSymbol = 'BTC-USDT' }) => {
+  const { selectedStrategy } = useWebSocket();
   const [symbol, setSymbol] = useState(defaultSymbol);
   const [quantity, setQuantity] = useState('0.001');
   const [loading, setLoading] = useState(false);
@@ -25,6 +27,7 @@ export const TradePanel: React.FC<Props> = ({ defaultSymbol = 'BTC-USDT' }) => {
         side,
         quantity: parseFloat(quantity),
         order_type: 'market',
+        strategy: selectedStrategy, // Include strategy for expert collector
       });
 
       console.log('[TradePanel] Trade executed:', response.data);
@@ -49,9 +52,14 @@ export const TradePanel: React.FC<Props> = ({ defaultSymbol = 'BTC-USDT' }) => {
   return (
     <div className="bg-white rounded-xl shadow-lg p-6 border-2 border-gray-200">
       {/* Header */}
-      <h3 className="text-xl font-bold text-gray-800 mb-4">
-        📊 Trade Panel
-      </h3>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-xl font-bold text-gray-800">
+          📊 Trade Panel
+        </h3>
+        <div className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+          Using: {selectedStrategy}
+        </div>
+      </div>
 
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
         <p className="text-xs text-blue-800">

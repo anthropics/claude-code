@@ -5,10 +5,11 @@ import { MoodMeter } from './components/MoodMeter';
 import { AiRecommendation } from './components/AiRecommendation';
 import { TradePanel } from './components/TradePanel';
 import { PortfolioStatus } from './components/PortfolioStatus';
+import { StrategySelector } from './components/StrategySelector';
 import { useWebSocket } from './contexts/WebSocketContext';
 
 export default function Home() {
-  const { isConnected, connectionStatus, reconnect } = useWebSocket();
+  const { isConnected, connectionStatus, reconnect, selectedStrategy, setSelectedStrategy } = useWebSocket();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
@@ -87,22 +88,29 @@ export default function Home() {
 
         {/* Dashboard Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column - Mood Meter */}
+          {/* First Row - Mood Meter & Strategy Selector */}
           <div className="lg:col-span-2">
             <MoodMeter />
           </div>
 
-          {/* Right Column - Portfolio */}
+          <div className="lg:col-span-1">
+            <StrategySelector
+              selectedStrategy={selectedStrategy}
+              onStrategyChange={setSelectedStrategy}
+            />
+          </div>
+
+          {/* Second Row - Portfolio */}
           <div className="lg:col-span-1">
             <PortfolioStatus />
           </div>
 
-          {/* Second Row - AI Recommendation */}
+          {/* AI Recommendation */}
           <div className="lg:col-span-2">
             <AiRecommendation symbol="BTC-USDT" />
           </div>
 
-          {/* Trade Panel */}
+          {/* Third Row - Trade Panel */}
           <div className="lg:col-span-1">
             <TradePanel defaultSymbol="BTC-USDT" />
           </div>
