@@ -2,7 +2,7 @@
 API routes initialization.
 """
 from fastapi import APIRouter
-from app.api.endpoints import health, trading, mood, market_data
+from app.api.endpoints import health, trading, mood, market_data, prediction
 
 api_router = APIRouter()
 
@@ -11,3 +11,4 @@ api_router.include_router(health.router, prefix="/health", tags=["health"])
 api_router.include_router(trading.router, prefix="/trading", tags=["trading"])
 api_router.include_router(mood.router, prefix="/mood", tags=["mood-meter"])
 api_router.include_router(market_data.router, prefix="/market", tags=["market-data"])
+api_router.include_router(prediction.router, prefix="/prediction", tags=["ml-prediction"])

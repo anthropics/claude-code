@@ -10,6 +10,7 @@ import json
 from app.core.config import settings
 from app.core.logger import logger
 from app.api import api_router
+from app.services.ml_inference.prediction_service import prediction_service
 
 
 # WebSocket connection manager
@@ -70,10 +71,22 @@ async def lifespan(app: FastAPI):
     logger.info(f"Environment: {'Development' if settings.DEBUG else 'Production'}")
     logger.info(f"Database: {settings.DATABASE_URL.split('@')[-1]}")
 
-    # TODO: Initialize services here
+    # Initialize ML Prediction Service
+    logger.info("🤖 Loading ML model...")
+    model_path = settings.MODEL_PATH + "/ppo_crypto_final.zip"
+
+    model_loaded = prediction_service.load_model(model_path)
+    if model_loaded:
+        logger.info("✅ ML model loaded successfully")
+        model_info = prediction_service.get_model_info()
+        logger.info(f"Model info: {model_info}")
+    else:
+        logger.warning("⚠️ ML model not loaded - predictions will be unavailable")
+        logger.warning("To train a model, run: python -m app.ml.train_ppo")
+
+    # TODO: Initialize other services
     # - Start CryptoFeed data ingestion
     # - Initialize CCXT exchange connection
-    # - Load ML models
     # - Start Telegram bot
 
     yield

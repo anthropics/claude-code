@@ -26,6 +26,7 @@ from app.core.config import settings
 from app.core.logger import logger
 from app.db.database import SessionLocal
 from app.services.monitoring.agent_state_monitor import agent_state_monitor
+from app.services.ml_inference.prediction_service import prediction_service
 
 
 class TelegramBotService:
@@ -118,13 +119,14 @@ Let's learn together! 🚀
 
         # TODO: Get user_id from chat_id lookup
         user_id = 1  # Placeholder
+        symbol = "BTC-USDT"  # TODO: Get user's preferred symbol
 
         try:
             # Get current mood from AgentStateMonitor
             db = SessionLocal()
             mood_data = await agent_state_monitor.get_current_state(
                 user_id=user_id,
-                symbol="BTC-USDT",  # TODO: Get user's preferred symbol
+                symbol=symbol,
                 db=db
             )
             db.close()
@@ -138,11 +140,43 @@ Let's learn together! 🚀
                 "learning": "📚"
             }.get(mood_data["mood"], "🤖")
 
-            status_message = f"""
-{mood_emoji} **Current Status**
+            # Get ML prediction (Layer 2 PPO)
+            ml_prediction = None
+            ml_prediction_text = ""
 
-**Mood:** {mood_data["mood"].title()}
-**Mood Score:** {mood_data["mood_score"]:.0f}/100
+            if prediction_service.is_model_loaded():
+                try:
+                    ml_prediction = await prediction_service.get_predicted_action(symbol)
+
+                    if ml_prediction:
+                        action_emoji = {
+                            'HOLD': '⏸️',
+                            'BUY': '🟢',
+                            'SELL': '🔴'
+                        }.get(ml_prediction['action_name'], '❓')
+
+                        price_text = ""
+                        if ml_prediction.get('current_price'):
+                            price_text = f"\n• Current Price: ${ml_prediction['current_price']:.2f}"
+
+                        ml_prediction_text = f"""
+
+🧠 **AI Recommendation (PPO Layer 2):**
+{action_emoji} **Action: {ml_prediction['action_name']}**{price_text}
+_Model: {ml_prediction.get('model_version', 'ppo_v1')}_
+"""
+                except Exception as e:
+                    logger.error(f"Error getting ML prediction: {e}")
+                    ml_prediction_text = "\n\n🧠 **AI Recommendation:** _Unavailable_"
+            else:
+                ml_prediction_text = "\n\n🧠 **AI Recommendation:** _Model not loaded_"
+
+            status_message = f"""
+📊 **AI Trader's Shadow Status**
+
+{mood_emoji} **Mood (Layer 1 - Heuristic):**
+• Status: {mood_data["mood"].title()}
+• Score: {mood_data["mood_score"]:.0f}/100
 
 **Recent Performance:**
 • P&L: ${mood_data["recent_pnl"]:.2f}
@@ -153,8 +187,10 @@ Let's learn together! 🚀
 • Volatility: {mood_data["market_volatility"]:.0f}
 • Liquidity: {mood_data["liquidity_score"]:.0f}/100
 
-**Why?**
-{mood_data["reason"]}
+**Analysis:**
+{mood_data["reason"]}{ml_prediction_text}
+
+⚠️ _This is for PAPER TRADING only. Educational purposes._
 
 _Updated: {mood_data["timestamp"].strftime("%H:%M:%S UTC")}_
 """
