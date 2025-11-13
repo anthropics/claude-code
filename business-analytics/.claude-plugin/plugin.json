@@ -1,0 +1,9 @@
+{
+  "name": "business-analytics",
+  "description": "Multi-agent workflow for business analytics course assignments with Python analysis and R Markdown reporting",
+  "version": "1.0.0",
+  "author": {
+    "name": "Business Analytics Student",
+    "email": "student@university.edu"
+  }
+}

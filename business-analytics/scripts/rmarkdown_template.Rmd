@@ -1,0 +1,463 @@
+---
+title: "Business Analytics Assignment - [TITLE]"
+author: "[Your Name]"
+date: "`r Sys.Date()`"
+output:
+  pdf_document:
+    toc: true
+    toc_depth: 2
+    number_sections: true
+    fig_caption: true
+header-includes:
+  - \usepackage{booktabs}
+  - \usepackage{longtable}
+  - \usepackage{float}
+  - \floatplacement{figure}{H}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,           # Show code by default
+  warning = FALSE,       # Hide warnings
+  message = FALSE,       # Hide messages
+  fig.width = 8,         # Default figure width
+  fig.height = 6,        # Default figure height
+  fig.align = 'center',  # Center figures
+  cache = FALSE          # Don't cache results
+)
+
+# Load required libraries
+library(tidyverse)
+library(haven)
+library(knitr)
+library(kableExtra)
+
+# Set ggplot theme
+theme_set(theme_minimal())
+
+# Global options
+options(digits = 3)
+```
+
+\newpage
+
+# Executive Summary
+
+[2-3 paragraphs summarizing:
+- The business problem
+- Key findings
+- Primary recommendations]
+
+This analysis examines [business problem]. Using a sample of [N] observations, we find that [key finding 1] and [key finding 2]. Based on these findings, we recommend [primary recommendation].
+
+\newpage
+
+# Introduction
+
+## Business Context
+
+[Describe the business problem from case materials. Include:
+- Who is the decision-maker?
+- What decision needs to be made?
+- What's at stake?]
+
+## Analytical Approach
+
+This analysis uses [benchmarking/A/B testing/prediction/etc.] to [objective]. We employ ordinary least squares (OLS) regression to model the relationship between [outcome] and various explanatory factors.
+
+Our analysis proceeds in two parts:
+
+- **Part I**: Benchmarking regression controlling for structural factors outside management control
+- **Part II**: Augmented model including actionable management practices
+
+## Data Overview
+
+```{r load-data}
+# Load data
+df <- read_stata("data/filename.dta")
+# Or: df <- read_csv("data/cleaned_data.csv")
+
+# Display basic information
+cat("Sample Size:", nrow(df), "\n")
+cat("Number of Variables:", ncol(df), "\n")
+cat("Unit of Observation: [Store/Customer/Product/etc.]", "\n")
+cat("Dependent Variable: [outcome_variable]", "\n")
+
+# Preview data
+head(df, 5) %>%
+  kable(caption = "Data Preview (First 5 Observations)") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"),
+                latex_options = "hold_position")
+```
+
+\newpage
+
+# Question 1: [Insert Actual Question Text Here]
+
+## Answer
+
+**[Lead with a clear, concise answer in 2-3 sentences. Use specific numbers and business language.]**
+
+For example: "Store X ranks 15th out of 50 stores by raw sales ($850K). However, after adjusting for structural factors (market size, competition, location), it ranks 8th, indicating strong management performance given its challenging market conditions."
+
+## Analysis
+
+### Naive Ranking
+
+[Explain what naive ranking is and why it's insufficient]
+
+```{r q1-naive-ranking}
+# Calculate naive ranking by raw outcome
+df <- df %>%
+  arrange(desc(sales)) %>%
+  mutate(naive_rank = row_number())
+
+# Display top 10
+df %>%
+  select(store_name, sales, naive_rank) %>%
+  head(10) %>%
+  kable(caption = "Top 10 Stores by Raw Sales",
+        col.names = c("Store", "Sales ($K)", "Naive Rank"),
+        digits = 0) %>%
+  kable_styling(bootstrap_options = c("striped", "hover"),
+                latex_options = "hold_position")
+```
+
+[Interpretation: What does this ranking tell us? What are its limitations?]
+
+### Structural Factors Model
+
+[Explain why we need to control for structural factors]
+
+```{r q1-model-specification}
+# Part I: Benchmarking regression
+# Adjust formula based on your variables
+model1 <- lm(sales ~ market_size + population_density +
+              factor(region) + competition_index + square_footage,
+            data = df)
+
+# Display results
+summary(model1)
+```
+
+**Model Fit:**
+
+- R² = `r round(summary(model1)$r.squared, 3)`
+- Adjusted R² = `r round(summary(model1)$adj.r.squared, 3)`
+- Interpretation: This model explains `r round(summary(model1)$r.squared * 100, 1)`% of the variation in sales across stores.
+
+**Key Findings:**
+
+[For each significant variable, interpret in business terms:]
+
+**Market Size** (β̂ = `r round(coef(model1)["market_size"], 2)`, p `r ifelse(summary(model1)$coefficients["market_size", "Pr(>|t|)"] < 0.001, "< 0.001", paste0("= ", round(summary(model1)$coefficients["market_size", "Pr(>|t|)"], 3)))`):
+
+Holding all other factors constant, a 1,000-person increase in market size is associated with a $`r round(coef(model1)["market_size"], 2)`K increase in monthly sales. This is statistically significant.
+
+[Continue for other significant variables...]
+
+### Adjusted Rankings
+
+```{r q1-adjusted-ranking}
+# Calculate residuals and adjusted rankings
+df <- df %>%
+  mutate(
+    fitted = fitted(model1),
+    residuals = resid(model1)
+  ) %>%
+  arrange(desc(residuals)) %>%
+  mutate(adjusted_rank = row_number())
+
+# Display top 10 adjusted performers
+df %>%
+  select(store_name, sales, fitted, residuals, adjusted_rank) %>%
+  head(10) %>%
+  kable(caption = "Top 10 Stores by Adjusted Performance (Residuals)",
+        col.names = c("Store", "Actual Sales", "Predicted Sales",
+                     "Residual", "Adj. Rank"),
+        digits = 0) %>%
+  kable_styling(bootstrap_options = c("striped", "hover"),
+                latex_options = "hold_position")
+```
+
+[Interpretation: How do rankings change after adjusting for structural factors? What does this reveal about management quality vs market advantages?]
+
+### Visualization
+
+```{r q1-viz, fig.cap="Actual vs Predicted Sales (Part I Model)"}
+# Import Python-generated figure, or create in R:
+knitr::include_graphics("outputs/figures/report/actual_vs_predicted.png")
+
+# Alternatively, create directly in R:
+# ggplot(df, aes(x = fitted, y = sales)) +
+#   geom_point(alpha = 0.6) +
+#   geom_abline(slope = 1, intercept = 0, color = "red", linetype = "dashed") +
+#   labs(title = "Actual vs Predicted Sales",
+#        x = "Predicted Sales (from structural factors)",
+#        y = "Actual Sales") +
+#   theme_minimal()
+```
+
+[Interpret: Points above the line outperform predictions; points below underperform.]
+
+## Conclusion for Question 1
+
+[2-3 sentence summary emphasizing the business takeaway]
+
+\newpage
+
+# Question 2: [Insert Actual Question Text]
+
+## Answer
+
+**[Clear answer using specific numbers]**
+
+## Analysis
+
+### Management Practices Model (Part II)
+
+[Explain what actionable/management practice variables you're adding]
+
+```{r q2-model-specification}
+# Part II: Adding management practices
+model2 <- lm(sales ~ market_size + population_density +
+              factor(region) + competition_index + square_footage +
+              staffing_ratio + training_hours + inventory_turnover,
+            data = df)
+
+summary(model2)
+```
+
+### Model Comparison
+
+```{r q2-model-comparison}
+# Create comparison table
+comparison <- data.frame(
+  Metric = c("R²", "Adjusted R²", "N Variables", "N Observations"),
+  Part_I = c(summary(model1)$r.squared,
+            summary(model1)$adj.r.squared,
+            length(coef(model1)) - 1,
+            nobs(model1)),
+  Part_II = c(summary(model2)$r.squared,
+             summary(model2)$adj.r.squared,
+             length(coef(model2)) - 1,
+             nobs(model2))
+)
+
+kable(comparison,
+      caption = "Model Comparison: Part I vs Part II",
+      col.names = c("Metric", "Part I (Structural)", "Part II (+ Practices)"),
+      digits = 3) %>%
+  kable_styling(bootstrap_options = c("striped", "hover"),
+                latex_options = "hold_position")
+```
+
+The addition of management practice variables increases R² by `r round((summary(model2)$r.squared - summary(model1)$r.squared) * 100, 1)`%, indicating these practices explain additional performance variation beyond structural factors.
+
+### Significant Management Practices
+
+**Staffing Ratio:**
+
+- Coefficient: `r round(coef(model2)["staffing_ratio"], 2)`
+- 95% CI: [`r round(confint(model2)["staffing_ratio", 1], 2)`, `r round(confint(model2)["staffing_ratio", 2], 2)`]
+- p-value: `r round(summary(model2)$coefficients["staffing_ratio", "Pr(>|t|)"], 3)`
+- **Interpretation:** [Business interpretation - what this means practically]
+
+[Continue for other significant actionable variables...]
+
+### Coefficient Visualization
+
+```{r q2-coef-plot, fig.cap="Management Practices: Effect Sizes with 95% CIs"}
+knitr::include_graphics("outputs/figures/report/coefficient_plot_ci.png")
+```
+
+[Interpret: Which practices have the largest effects? Which are statistically significant?]
+
+## Conclusion for Question 2
+
+[Summary of which practices matter most]
+
+\newpage
+
+# Question 3: [Deficiency Table Analysis]
+
+## Answer
+
+**[Specific answer about focal observation's performance and why]**
+
+## Deficiency Table: Part I (Structural Factors)
+
+```{r q3-deficiency-part1}
+# Import from Python analysis
+deficiency_p1 <- read_csv("outputs/tables/deficiency_part1.csv")
+
+kable(deficiency_p1,
+      caption = "Deficiency Table: Structural Factors",
+      col.names = c("Variable", "Focal Value", "Sample Avg",
+                   "Δ", "β̂", "Contribution (β̂·Δ)"),
+      digits = 2) %>%
+  kable_styling(bootstrap_options = c("striped", "hover"),
+                latex_options = c("hold_position", "scale_down")) %>%
+  row_spec(nrow(deficiency_p1) - 2, bold = TRUE, background = "#E8E8E8") %>%
+  row_spec(nrow(deficiency_p1) - 1, italic = TRUE) %>%
+  row_spec(nrow(deficiency_p1), bold = TRUE, color = "blue")
+```
+
+**Interpretation:**
+
+[Walk through the table systematically:
+- What is the total gap?
+- How much is explained by structural factors?
+- How much is unexplained?
+- Which structural factors contribute most?
+- What does this mean for the focal observation?]
+
+## Deficiency Table: Part II (Actionable Factors)
+
+```{r q3-deficiency-part2}
+deficiency_p2 <- read_csv("outputs/tables/deficiency_part2.csv")
+
+kable(deficiency_p2,
+      caption = "Deficiency Table: Management Practices",
+      col.names = c("Variable", "Focal Value", "Sample Avg",
+                   "Δ", "β̂", "Contribution (β̂·Δ)", "Sig", "p-value"),
+      digits = 2) %>%
+  kable_styling(bootstrap_options = c("striped", "hover"),
+                latex_options = c("hold_position", "scale_down"))
+```
+
+**Interpretation:**
+
+[Identify opportunities or strengths:
+- Which practices are the focal observation doing well/poorly?
+- What is the expected impact of changing each practice?
+- Prioritize recommendations based on magnitude and feasibility]
+
+### Visualization
+
+```{r q3-viz, fig.cap="Management Practice Contributions to Performance Gap"}
+knitr::include_graphics("outputs/figures/report/actionable_contributions.png")
+```
+
+## Conclusion for Question 3
+
+[Specific recommendations for focal observation with expected impacts]
+
+\newpage
+
+# Recommendations
+
+Based on our analysis, we offer the following recommendations:
+
+## Recommendation 1: [Action Item]
+
+**For:** [Focal observation / all underperformers / etc.]
+
+**Action:** [Specific, concrete action]
+
+**Rationale:** [Why this matters - cite statistics]
+
+**Expected Impact:** [Quantified estimate based on coefficient]
+
+**Implementation:** [How to do this practically]
+
+**Caution:** [Limitations - correlation vs causation, costs, etc.]
+
+## Recommendation 2: [Action Item]
+
+[Same structure...]
+
+## Recommendation 3: [Action Item]
+
+[Same structure...]
+
+\newpage
+
+# Limitations & Caveats
+
+## Correlation vs Causation
+
+This analysis is based on observational data, not a randomized experiment. Therefore, we cannot definitively claim that management practices *cause* performance differences. Alternative explanations include:
+
+- **Reverse causality**: High-performing stores may have more resources to invest in training
+- **Omitted variables**: Other unmeasured factors may drive both practices and performance
+
+We recommend pilot testing recommendations before broad implementation.
+
+## Omitted Variable Bias
+
+Potential omitted variables include:
+
+- [Variable 1]: Would likely bias [coefficient] [upward/downward]
+- [Variable 2]: Would likely bias [coefficient] [upward/downward]
+
+## Data Quality
+
+[Note any data limitations identified during data inspection]
+
+## Generalizability
+
+Our sample consists of [description]. Findings may not generalize to [different contexts].
+
+\newpage
+
+# Appendix A: Regression Tables
+
+```{r appendix-regression, results='asis'}
+# Formatted side-by-side regression output
+library(stargazer)
+
+stargazer(model1, model2,
+          type = "latex",
+          title = "Regression Results",
+          column.labels = c("Part I: Structural", "Part II: w/ Practices"),
+          dep.var.labels = "Monthly Sales ($K)",
+          # Adjust covariate labels to match your variables
+          covariate.labels = c("Market Size", "Pop Density",
+                              "Competition Index", "Square Footage",
+                              "Staffing Ratio", "Training Hours",
+                              "Inventory Turnover"),
+          omit.stat = c("ser", "f"),
+          header = FALSE,
+          font.size = "small",
+          digits = 2,
+          star.cutoffs = c(0.05, 0.01, 0.001),
+          notes = c("*** p<0.001, ** p<0.01, * p<0.05"),
+          notes.append = FALSE)
+```
+
+\newpage
+
+# Appendix B: Python Code
+
+The analysis was conducted using Python for data processing and regression, with results imported into R for reporting.
+
+```{python, eval=FALSE}
+# Key Python code snippets
+
+import pandas as pd
+import statsmodels.formula.api as ols
+
+# Load data
+df = pd.read_stata('data/filename.dta')
+
+# Part I regression
+model1 = ols('sales ~ market_size + population_density + ...', data=df).fit()
+print(model1.summary())
+
+# Deficiency table calculation
+focal_obs = df[df['identifier'] == 'focal_name'].iloc[0]
+sample_means = df.mean()
+# ... etc
+```
+
+\newpage
+
+# Appendix C: Data Dictionary
+
+| Variable | Definition | Units | Source |
+|----------|------------|-------|--------|
+| sales | Monthly sales revenue | $ thousands | Internal sales system |
+| market_size | Population in trade area | thousands | US Census |
+| staffing_ratio | Employees per 1,000 sq ft | employees | HR records |
+| ... | ... | ... | ... |
