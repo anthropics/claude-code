@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  # TimescaleDB (PostgreSQL with TimescaleDB extension)
+  timescaledb:
+    image: timescale/timescaledb:latest-pg14
+    container_name: ai_traders_shadow_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: ai_traders_shadow
+    ports:
+      - "5432:5432"
+    volumes:
+      - timescaledb_data:/var/lib/postgresql/data
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis (for caching and WebSocket state - optional)
+  redis:
+    image: redis:7-alpine
+    container_name: ai_traders_shadow_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  timescaledb_data:
+  redis_data:
