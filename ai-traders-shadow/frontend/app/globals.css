@@ -1,0 +1,59 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-gray-50 text-gray-900;
+  }
+}
+
+/* Custom animations */
+@keyframes pulse-slow {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: .5;
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Mood meter specific styles */
+.mood-confident {
+  @apply bg-gradient-to-r from-green-400 to-green-600;
+}
+
+.mood-cautious {
+  @apply bg-gradient-to-r from-yellow-400 to-yellow-600;
+}
+
+.mood-fatigued {
+  @apply bg-gradient-to-r from-orange-400 to-orange-600;
+}
+
+.mood-conservative {
+  @apply bg-gradient-to-r from-blue-400 to-blue-600;
+}
+
+.mood-learning {
+  @apply bg-gradient-to-r from-purple-400 to-purple-600;
+}
