@@ -1,0 +1,18 @@
+[package]
+name = "claude-session"
+version = "0.1.0"
+edition = "2021"
+authors = ["Anthropic"]
+description = "Session state management for Claude Code"
+license = "MIT"
+
+[dependencies]
+claude-core = { path = "../claude-core" }
+tokio = { version = "1.41", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+uuid = { version = "1.11", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+anyhow = "1.0"
+thiserror = "2.0"
+dirs = "5.0"
