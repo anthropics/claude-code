@@ -124,10 +124,60 @@ impl ToolExecutor {
 
     /// Validate tool input before execution
     ///
-    /// This can be extended to perform schema validation, parameter checking, etc.
-    async fn validate_input(&self, _tool_name: &str, _input: &ToolInput) -> Result<()> {
-        // TODO: Implement schema validation
-        // For now, we assume input is valid if it can be serialized
+    /// Validates that the input matches the tool's schema
+    async fn validate_input(&self, tool_name: &str, input: &ToolInput) -> Result<()> {
+        let registry = self.registry.read().await;
+
+        // Get the tool
+        let tool = registry.get(tool_name)
+            .ok_or_else(|| ClaudeError::tool(format!("Tool not found: {}", tool_name)))?;
+
+        // Get the tool's schema
+        let schema = tool.input_schema();
+
+        // Validate using jsonschema (basic validation)
+        // Check if required fields are present
+        if let Some(required) = schema.get("required").and_then(|v| v.as_array()) {
+            for required_field in required {
+                if let Some(field_name) = required_field.as_str() {
+                    if !input.parameters.get(field_name).is_some() {
+                        return Err(ClaudeError::tool(format!(
+                            "Missing required field '{}' for tool '{}'",
+                            field_name,
+                            tool_name
+                        )));
+                    }
+                }
+            }
+        }
+
+        // Check field types if properties are defined
+        if let Some(properties) = schema.get("properties").and_then(|v| v.as_object()) {
+            for (field_name, value) in input.parameters.as_object().unwrap_or(&serde_json::Map::new()) {
+                if let Some(field_schema) = properties.get(field_name) {
+                    if let Some(expected_type) = field_schema.get("type").and_then(|v| v.as_str()) {
+                        let actual_type = match value {
+                            serde_json::Value::Null => "null",
+                            serde_json::Value::Bool(_) => "boolean",
+                            serde_json::Value::Number(_) => "number",
+                            serde_json::Value::String(_) => "string",
+                            serde_json::Value::Array(_) => "array",
+                            serde_json::Value::Object(_) => "object",
+                        };
+
+                        if expected_type != actual_type && expected_type != "integer" {
+                            return Err(ClaudeError::tool(format!(
+                                "Type mismatch for field '{}': expected '{}', got '{}'",
+                                field_name,
+                                expected_type,
+                                actual_type
+                            )));
+                        }
+                    }
+                }
+            }
+        }
+
         Ok(())
     }
 

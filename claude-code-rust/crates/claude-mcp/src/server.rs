@@ -103,20 +103,97 @@ impl McpServer {
     ///
     /// This will read from stdin and write to stdout, making it suitable
     /// for use as an MCP server process.
-    ///
-    /// # Note
-    ///
-    /// This is a placeholder implementation. In a real-world scenario,
-    /// you would need to create a proper stdio transport from the current
-    /// process's stdin/stdout using platform-specific code or a helper
-    /// library that wraps the unsafe operations.
-    ///
-    /// For now, this method is primarily for documentation purposes.
-    /// Use `serve()` with a custom transport for actual implementations.
     pub async fn serve_stdio(self) -> McpServerResult<()> {
-        Err(McpServerError::Protocol(
-            "serve_stdio is not yet implemented - use serve() with a custom transport".to_string(),
-        ))
+        use tokio::io::{stdin, stdout};
+        use tokio::process::{ChildStdin, ChildStdout};
+
+        // Convert tokio stdin/stdout to the types expected by StdioTransport
+        // We use unsafe here because we need to convert from Stdin/Stdout to ChildStdin/ChildStdout
+        // This is safe because we're the only ones using these handles and we won't drop them prematurely
+        let stdin_handle = stdin();
+        let stdout_handle = stdout();
+
+        // We need to create ChildStdin/ChildStdout from the current process stdio
+        // Since StdioTransport expects these types, we'll use a workaround with channels
+        use tokio::sync::mpsc;
+        use crate::transport::Message;
+
+        let (write_tx, mut write_rx) = mpsc::unbounded_channel::<Message>();
+        let (read_tx, mut read_rx) = mpsc::unbounded_channel::<Message>();
+
+        // Spawn reader task for stdin
+        let reader_handle = tokio::spawn(async move {
+            use tokio::io::{AsyncBufReadExt, BufReader};
+            let mut reader = BufReader::new(stdin_handle);
+            let mut line = String::new();
+
+            loop {
+                line.clear();
+                match reader.read_line(&mut line).await {
+                    Ok(0) => break, // EOF
+                    Ok(_) => {
+                        let trimmed = line.trim();
+                        if trimmed.is_empty() {
+                            continue;
+                        }
+
+                        if let Ok(message) = serde_json::from_str::<Message>(trimmed) {
+                            if read_tx.send(message).is_err() {
+                                break;
+                            }
+                        }
+                    }
+                    Err(_) => break,
+                }
+            }
+        });
+
+        // Spawn writer task for stdout
+        let writer_handle = tokio::spawn(async move {
+            use tokio::io::AsyncWriteExt;
+            let mut stdout = stdout_handle;
+
+            while let Some(message) = write_rx.recv().await {
+                if let Ok(json) = serde_json::to_string(&message) {
+                    let line = format!("{}\n", json);
+                    if stdout.write_all(line.as_bytes()).await.is_err() {
+                        break;
+                    }
+                    if stdout.flush().await.is_err() {
+                        break;
+                    }
+                }
+            }
+        });
+
+        // Main serve loop
+        loop {
+            let message = match read_rx.recv().await {
+                Some(msg) => msg,
+                None => break,
+            };
+
+            match message {
+                Message::Request(request) => {
+                    let response = self.handle_request(request).await;
+                    if write_tx.send(Message::Response(response)).is_err() {
+                        break;
+                    }
+                }
+                Message::Notification(notification) => {
+                    self.handle_notification(notification).await;
+                }
+                Message::Response(_) => {
+                    tracing::warn!("Servers should not receive responses");
+                }
+            }
+        }
+
+        // Cleanup
+        reader_handle.abort();
+        writer_handle.abort();
+
+        Ok(())
     }
 
     /// Serve using a custom transport

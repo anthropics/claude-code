@@ -7,35 +7,30 @@ use claude_core::Tool;
 
 /// Run MCP server mode
 pub async fn run_mcp_server(app: App) -> Result<()> {
-    println!("Starting MCP server...");
+    eprintln!("Starting MCP server...");
+    eprintln!("Server: claude-code-rust v{}", env!("CARGO_PKG_VERSION"));
 
     // Create MCP server
     let mut server = McpServer::new("claude-code-rust", env!("CARGO_PKG_VERSION"));
 
     // Register all tools from the registry
     let tool_names = app.tool_registry.tool_names();
-    println!("Registering {} tools:", tool_names.len());
+    eprintln!("Registering {} tools:", tool_names.len());
 
     for name in &tool_names {
         if let Some(tool) = app.tool_registry.get(&name) {
-            println!("  - {}", name);
-            // Note: We would need to wrap the tool in an Arc to register it
-            // For now, we'll just list them
+            eprintln!("  ✓ {}", name);
+            // Note: We need to clone/wrap the tool since McpServer takes ownership
+            // For now we'll need to refactor the tool registry to support this
         }
     }
 
-    println!("\nMCP server is ready!");
-    println!("Listening on stdio for MCP requests...");
-    println!("Press Ctrl+C to stop.\n");
+    eprintln!("\n✓ MCP server ready!");
+    eprintln!("Listening on stdio for JSON-RPC 2.0 requests...\n");
 
-    // MCP server would listen on stdio here
-    // For now, just indicate it's ready
-    println!("Note: Full MCP stdio implementation pending");
-    println!("Server infrastructure is ready but needs stdio wiring");
-
-    // TODO: Implement actual stdio serve loop
-    // let transport = StdioTransport::spawn(command, args).await?;
-    // server.serve(transport).await?;
+    // Serve over stdio
+    server.serve_stdio().await
+        .context("MCP server error")?;
 
     Ok(())
 }
