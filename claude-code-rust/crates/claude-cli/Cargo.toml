@@ -7,7 +7,7 @@ description = "Main CLI application for Claude Code"
 license = "MIT"
 
 [[bin]]
-name = "claude-cli"
+name = "claude"
 path = "src/main.rs"
 
 [dependencies]

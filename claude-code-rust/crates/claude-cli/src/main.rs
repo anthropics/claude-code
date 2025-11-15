@@ -16,7 +16,7 @@ async fn main() -> Result<()> {
     let cli = cli::Cli::parse();
 
     // Initialize tracing
-    let log_level = if cli.debug {
+    let log_level = if cli.debug.is_some() {
         tracing::Level::TRACE
     } else if cli.verbose {
         tracing::Level::DEBUG
@@ -35,15 +35,17 @@ async fn main() -> Result<()> {
     }
 
     // Get API key from CLI or environment
-    let api_key = cli.api_key
+    let api_key = cli.api_key.clone()
         .or_else(|| std::env::var("ANTHROPIC_API_KEY").ok())
         .or_else(|| std::env::var("CLAUDE_API_KEY").ok());
 
     // Handle print mode (one-shot execution)
-    if let Some(prompt) = cli.print {
+    if cli.print {
+        let prompt = cli.prompt.clone().context("Prompt required for print mode")?;
         let api_key = api_key.context("API key required for print mode")?;
-        let app = app::App::new(api_key, cli.model).await?;
-        return run_print_mode(app, &prompt).await;
+        let model = cli.model.clone();
+        let app = app::App::new(api_key, model).await?;
+        return run_print_mode(app, &prompt, &cli).await;
     }
 
     // Handle commands
@@ -57,29 +59,110 @@ async fn main() -> Result<()> {
                 }
             }
         }
+        Some(cli::Commands::Plugin { command }) => {
+            run_plugin_command(command);
+            Ok(())
+        }
+        Some(cli::Commands::MigrateInstaller) => {
+            run_migrate_installer();
+            Ok(())
+        }
+        Some(cli::Commands::SetupToken) => {
+            run_setup_token();
+            Ok(())
+        }
         Some(cli::Commands::Doctor) => {
             run_doctor();
             Ok(())
         }
+        Some(cli::Commands::AutoUpdater { command }) => {
+            run_auto_updater(command);
+            Ok(())
+        }
+        Some(cli::Commands::Install { target }) => {
+            run_install(target);
+            Ok(())
+        }
         None => {
-            // Interactive mode
-            let api_key = api_key.context(
-                "API key required. Set ANTHROPIC_API_KEY environment variable or use --api-key",
-            )?;
+            // Interactive mode (or print mode with prompt argument)
+            if let Some(prompt) = cli.prompt.clone() {
+                // Non-interactive mode with prompt argument
+                let api_key = api_key.context("API key required")?;
+                let model = cli.model.clone();
+                let app = app::App::new(api_key, model).await?;
+                return run_print_mode(app, &prompt, &cli).await;
+            } else {
+                // Interactive mode
+                let api_key = api_key.context(
+                    "API key required. Set ANTHROPIC_API_KEY environment variable or use --api-key",
+                )?;
 
-            let app = app::App::new(api_key, cli.model).await?;
-            let mut repl = repl::Repl::new(app, 100);
-            repl.run().await
+                let app = app::App::new(api_key, cli.model).await?;
+                let mut repl = repl::Repl::new(app, 100);
+                repl.run().await
+            }
         }
     }
 }
 
 /// Run print mode - one-shot prompt execution
-async fn run_print_mode(_app: app::App, prompt: &str) -> Result<()> {
+async fn run_print_mode(_app: app::App, prompt: &str, _cli: &cli::Cli) -> Result<()> {
     // For now, just print the prompt since full implementation requires more API work
     println!("Print mode requested: {}", prompt);
     println!("\nNote: Full print mode implementation pending");
+    println!("Note: Output format, input format, and other options will be supported in future updates");
     Ok(())
+}
+
+/// Run plugin command
+fn run_plugin_command(command: cli::PluginCommands) {
+    match command {
+        cli::PluginCommands::List => {
+            println!("Listing installed plugins...");
+            println!("\nNote: Plugin management will be implemented in future updates");
+        }
+        cli::PluginCommands::Install { name } => {
+            println!("Installing plugin: {}", name);
+            println!("\nNote: Plugin management will be implemented in future updates");
+        }
+        cli::PluginCommands::Uninstall { name } => {
+            println!("Uninstalling plugin: {}", name);
+            println!("\nNote: Plugin management will be implemented in future updates");
+        }
+    }
+}
+
+/// Migrate from global npm installation to local installation
+fn run_migrate_installer() {
+    println!("Migrating installer...");
+    println!("\nNote: This command is not applicable to the Rust implementation");
+    println!("The Rust version is already a native build and doesn't require migration");
+}
+
+/// Set up a long-lived authentication token
+fn run_setup_token() {
+    println!("Setting up authentication token...");
+    println!("\nNote: Token management will be implemented in future updates");
+    println!("For now, please use the --api-key flag or ANTHROPIC_API_KEY environment variable");
+}
+
+/// Check for updates and install if available
+fn run_auto_updater(command: cli::AutoUpdaterCommands) {
+    match command {
+        cli::AutoUpdaterCommands::Update => {
+            println!("Checking for updates...");
+            println!("\nNote: Auto-updater will be implemented in future updates");
+            println!("Current version: {}", env!("CARGO_PKG_VERSION"));
+        }
+    }
+}
+
+/// Install Claude Code native build
+fn run_install(target: Option<String>) {
+    let target_version = target.unwrap_or_else(|| "stable".to_string());
+    println!("Installing Claude Code native build: {}", target_version);
+    println!("\nNote: Install command will be implemented in future updates");
+    println!("The current binary is already a native Rust build");
 }
 
 /// Run diagnostics
