@@ -13,8 +13,11 @@ pub const DEFAULT_BASE_URL: &str = "https://api.anthropic.com";
 /// Default API version
 pub const DEFAULT_API_VERSION: &str = "2023-06-01";
 
-/// Default timeout for requests
-pub const DEFAULT_TIMEOUT: Duration = Duration::from_secs(60);
+/// Default timeout for requests (increased for API calls with tools)
+pub const DEFAULT_TIMEOUT: Duration = Duration::from_secs(120);
+
+/// Default connection timeout
+pub const DEFAULT_CONNECT_TIMEOUT: Duration = Duration::from_secs(30);
 
 /// Errors that can occur when using the API client
 #[derive(Debug, Error)]
@@ -104,6 +107,9 @@ impl AnthropicClient {
     pub fn new(config: ClientConfig) -> Result<Self> {
         let http_client = ClientBuilder::new()
             .timeout(config.timeout)
+            .connect_timeout(DEFAULT_CONNECT_TIMEOUT)
+            .pool_idle_timeout(Duration::from_secs(90))
+            .pool_max_idle_per_host(10)
             .build()?;
 
         Ok(Self {

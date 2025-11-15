@@ -36,7 +36,7 @@ impl Default for RetryConfig {
     fn default() -> Self {
         Self {
             max_retries: 3,
-            initial_backoff: Duration::from_millis(500),
+            initial_backoff: Duration::from_secs(2),  // Increased from 500ms to 2s
             max_backoff: Duration::from_secs(60),
             backoff_multiplier: 2.0,
             retry_on_rate_limit: true,
@@ -220,7 +220,7 @@ mod tests {
     fn test_default_config() {
         let config = RetryConfig::default();
         assert_eq!(config.max_retries, 3);
-        assert_eq!(config.initial_backoff, Duration::from_millis(500));
+        assert_eq!(config.initial_backoff, Duration::from_secs(2));
     }
 
     #[test]
@@ -228,9 +228,9 @@ mod tests {
         let config = RetryConfig::default();
 
         assert_eq!(config.backoff_duration(0), Duration::from_secs(0));
-        assert_eq!(config.backoff_duration(1), Duration::from_millis(500));
-        assert_eq!(config.backoff_duration(2), Duration::from_secs(1));
-        assert_eq!(config.backoff_duration(3), Duration::from_secs(2));
+        assert_eq!(config.backoff_duration(1), Duration::from_secs(2));
+        assert_eq!(config.backoff_duration(2), Duration::from_secs(4));
+        assert_eq!(config.backoff_duration(3), Duration::from_secs(8));
     }
 
     #[test]
