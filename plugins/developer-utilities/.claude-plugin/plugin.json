@@ -1,0 +1,9 @@
+{
+  "name": "developer-utilities",
+  "description": "Essential developer utilities for cache cleanup, command validation, and workflow optimization",
+  "version": "1.0.0",
+  "author": {
+    "name": "Claude Code Community",
+    "email": "support@anthropic.com"
+  }
+}
