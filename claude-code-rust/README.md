@@ -17,7 +17,7 @@ A high-performance Rust implementation of Claude Code - the AI-powered coding as
 
 **Option 1: Build from Source**
 ```bash
-git clone https://github.com/anthropics/claude-code.git
+git clone https://github.com/0xinf0/claude-code.git
 cd claude-code/claude-code-rust
 cargo build --release
 ./target/release/claude-cli --version
