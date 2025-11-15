@@ -2,6 +2,7 @@
 #![forbid(unsafe_code)]
 
 mod app;
+mod auth;
 mod cli;
 mod conversation;
 mod mcp_server;
@@ -42,7 +43,10 @@ async fn main() -> Result<()> {
     // Handle print mode (one-shot execution)
     if cli.print {
         let prompt = cli.prompt.clone().context("Prompt required for print mode")?;
-        let api_key = api_key.context("API key required for print mode")?;
+        let api_key = match api_key {
+            Some(key) => key,
+            None => auth::get_or_authenticate().await?,
+        };
         let model = cli.model.clone();
         let app = app::App::new(api_key, model).await?;
         return run_print_mode(app, &prompt, &cli).await;
@@ -68,8 +72,7 @@ async fn main() -> Result<()> {
             Ok(())
         }
         Some(cli::Commands::SetupToken) => {
-            run_setup_token();
-            Ok(())
+            run_setup_token().await
         }
         Some(cli::Commands::Doctor) => {
             run_doctor();
@@ -87,15 +90,19 @@ async fn main() -> Result<()> {
             // Interactive mode (or print mode with prompt argument)
             if let Some(prompt) = cli.prompt.clone() {
                 // Non-interactive mode with prompt argument
-                let api_key = api_key.context("API key required")?;
+                let api_key = match api_key {
+                    Some(key) => key,
+                    None => auth::get_or_authenticate().await?,
+                };
                 let model = cli.model.clone();
                 let app = app::App::new(api_key, model).await?;
                 return run_print_mode(app, &prompt, &cli).await;
             } else {
-                // Interactive mode
-                let api_key = api_key.context(
-                    "API key required. Set ANTHROPIC_API_KEY environment variable or use --api-key",
-                )?;
+                // Interactive mode - get or authenticate for API key
+                let api_key = match api_key {
+                    Some(key) => key,
+                    None => auth::get_or_authenticate().await?,
+                };
 
                 let app = app::App::new(api_key, cli.model).await?;
                 let mut repl = repl::Repl::new(app, 100);
@@ -140,10 +147,19 @@ fn run_migrate_installer() {
 }
 
 /// Set up a long-lived authentication token
-fn run_setup_token() {
+async fn run_setup_token() -> Result<()> {
     println!("Setting up authentication token...");
-    println!("\nNote: Token management will be implemented in future updates");
-    println!("For now, please use the --api-key flag or ANTHROPIC_API_KEY environment variable");
+    println!();
+
+    // Run the authentication flow
+    let _token = auth::authenticate().await?;
+
+    println!();
+    println!("✓ Token setup complete!");
+    println!();
+    println!("You can now use Claude Code without specifying an API key.");
+
+    Ok(())
 }
 
 /// Check for updates and install if available
