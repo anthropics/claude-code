@@ -2,8 +2,7 @@
 
 use crate::app::App;
 use anyhow::{Context, Result};
-use claude_mcp::{McpServer, StdioTransport};
-use claude_core::Tool;
+use claude_mcp::McpServer;
 
 /// Run MCP server mode
 pub async fn run_mcp_server(app: App) -> Result<()> {
@@ -11,7 +10,7 @@ pub async fn run_mcp_server(app: App) -> Result<()> {
     eprintln!("Server: claude-code-rust v{}", env!("CARGO_PKG_VERSION"));
 
     // Create MCP server
-    let mut server = McpServer::new("claude-code-rust", env!("CARGO_PKG_VERSION"));
+    let server = McpServer::new("claude-code-rust", env!("CARGO_PKG_VERSION"));
 
     // Register all tools from the registry
     let tool_names = app.tool_registry.tool_names();

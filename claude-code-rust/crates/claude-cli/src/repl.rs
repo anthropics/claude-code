@@ -5,7 +5,6 @@ use crate::conversation::ConversationManager;
 use anyhow::{Context, Result};
 use claude_api::{ContentBlock, MessageRequestBuilder};
 use claude_core::{ToolInput, ToolResult};
-use futures::StreamExt;
 use std::io::{self, Write};
 
 /// Interactive REPL

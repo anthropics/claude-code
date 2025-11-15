@@ -1,7 +1,6 @@
 //! Conversation management for interactive sessions
 
-use anyhow::Result;
-use claude_api::{ContentBlock, Message, Role};
+use claude_api::{ContentBlock, Message};
 use claude_core::ToolResult;
 use serde_json::Value;
 
