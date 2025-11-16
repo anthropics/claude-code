@@ -46,11 +46,7 @@ pub struct ShellInfo {
 
 impl ShellInfo {
     /// Create a new shell info instance
-    pub fn new(
-        shell_id: impl Into<String>,
-        pid: u32,
-        command: impl Into<String>,
-    ) -> Self {
+    pub fn new(shell_id: impl Into<String>, pid: u32, command: impl Into<String>) -> Self {
         ShellInfo {
             shell_id: shell_id.into(),
             pid,
@@ -98,7 +94,9 @@ impl BackgroundShellRegistry {
         let shell_id = shell_info.shell_id.clone();
 
         if shell_id.is_empty() {
-            return Err(ShellError::InvalidId("Shell ID cannot be empty".to_string()));
+            return Err(ShellError::InvalidId(
+                "Shell ID cannot be empty".to_string(),
+            ));
         }
 
         self.shells.insert(shell_id, shell_info);
@@ -132,14 +130,15 @@ impl BackgroundShellRegistry {
 
     /// Kill a specific shell process and remove it from the registry
     pub fn kill_shell(&mut self, shell_id: &str) -> Result<(), ShellError> {
-        let shell_info = self.shells.get(shell_id)
+        let shell_info = self
+            .shells
+            .get(shell_id)
             .ok_or_else(|| ShellError::NotFound(shell_id.to_string()))?;
 
         let pid = shell_info.pid;
 
         // Attempt to kill the process
-        kill_process(pid)
-            .map_err(|e| ShellError::KillFailed(format!("PID {}: {}", pid, e)))?;
+        kill_process(pid).map_err(|e| ShellError::KillFailed(format!("PID {}: {}", pid, e)))?;
 
         // Remove from registry
         self.shells.remove(shell_id);
@@ -164,7 +163,8 @@ impl BackgroundShellRegistry {
 
     /// Remove shells that are no longer running
     pub fn cleanup_dead_shells(&mut self) -> Vec<String> {
-        let dead_shells: Vec<String> = self.shells
+        let dead_shells: Vec<String> = self
+            .shells
             .iter()
             .filter(|(_, info)| !info.is_running())
             .map(|(id, _)| id.clone())
@@ -286,8 +286,7 @@ mod tests {
 
     #[test]
     fn test_shell_info_with_working_dir() {
-        let info = ShellInfo::new("shell-1", 12345, "echo hello")
-            .with_working_dir("/home/user");
+        let info = ShellInfo::new("shell-1", 12345, "echo hello").with_working_dir("/home/user");
 
         assert_eq!(info.working_dir, Some("/home/user".to_string()));
     }
@@ -334,8 +333,12 @@ mod tests {
     fn test_list_shells() {
         let mut registry = BackgroundShellRegistry::new();
 
-        registry.register_shell(ShellInfo::new("shell-1", 12345, "cmd1")).unwrap();
-        registry.register_shell(ShellInfo::new("shell-2", 67890, "cmd2")).unwrap();
+        registry
+            .register_shell(ShellInfo::new("shell-1", 12345, "cmd1"))
+            .unwrap();
+        registry
+            .register_shell(ShellInfo::new("shell-2", 67890, "cmd2"))
+            .unwrap();
 
         let shells = registry.list_shells();
         assert_eq!(shells.len(), 2);
@@ -348,7 +351,9 @@ mod tests {
     #[test]
     fn test_unregister_shell() {
         let mut registry = BackgroundShellRegistry::new();
-        registry.register_shell(ShellInfo::new("shell-1", 12345, "cmd")).unwrap();
+        registry
+            .register_shell(ShellInfo::new("shell-1", 12345, "cmd"))
+            .unwrap();
 
         assert_eq!(registry.count(), 1);
 
@@ -366,7 +371,9 @@ mod tests {
     #[test]
     fn test_serialization() {
         let mut registry = BackgroundShellRegistry::new();
-        registry.register_shell(ShellInfo::new("shell-1", 12345, "echo test")).unwrap();
+        registry
+            .register_shell(ShellInfo::new("shell-1", 12345, "echo test"))
+            .unwrap();
 
         let json = serde_json::to_string(&registry).unwrap();
         let deserialized: BackgroundShellRegistry = serde_json::from_str(&json).unwrap();

@@ -25,24 +25,26 @@ async fn main() -> Result<()> {
         tracing::Level::WARN
     };
 
-    tracing_subscriber::fmt()
-        .with_max_level(log_level)
-        .init();
+    tracing_subscriber::fmt().with_max_level(log_level).init();
 
     // Handle working directory
     if let Some(working_dir) = &cli.working_dir {
-        std::env::set_current_dir(working_dir)
-            .context("Failed to set working directory")?;
+        std::env::set_current_dir(working_dir).context("Failed to set working directory")?;
     }
 
     // Get API key from CLI or environment
-    let api_key = cli.api_key.clone()
+    let api_key = cli
+        .api_key
+        .clone()
         .or_else(|| std::env::var("ANTHROPIC_API_KEY").ok())
         .or_else(|| std::env::var("CLAUDE_API_KEY").ok());
 
     // Handle print mode (one-shot execution)
     if cli.print {
-        let prompt = cli.prompt.clone().context("Prompt required for print mode")?;
+        let prompt = cli
+            .prompt
+            .clone()
+            .context("Prompt required for print mode")?;
         let api_key = match api_key {
             Some(key) => key,
             None => auth::get_or_authenticate().await?,
@@ -54,15 +56,13 @@ async fn main() -> Result<()> {
 
     // Handle commands
     match cli.command {
-        Some(cli::Commands::Mcp { command }) => {
-            match command {
-                cli::McpCommands::Serve => {
-                    let api_key = api_key.unwrap_or_else(|| "dummy-key-for-mcp".to_string());
-                    let app = app::App::new(api_key, cli.model).await?;
-                    mcp_server::run_mcp_server(app).await
-                }
+        Some(cli::Commands::Mcp { command }) => match command {
+            cli::McpCommands::Serve => {
+                let api_key = api_key.unwrap_or_else(|| "dummy-key-for-mcp".to_string());
+                let app = app::App::new(api_key, cli.model).await?;
+                mcp_server::run_mcp_server(app).await
             }
-        }
+        },
         Some(cli::Commands::Plugin { command }) => {
             run_plugin_command(command);
             Ok(())
@@ -71,9 +71,7 @@ async fn main() -> Result<()> {
             run_migrate_installer();
             Ok(())
         }
-        Some(cli::Commands::SetupToken) => {
-            run_setup_token().await
-        }
+        Some(cli::Commands::SetupToken) => run_setup_token().await,
         Some(cli::Commands::Doctor) => {
             run_doctor();
             Ok(())
@@ -117,7 +115,9 @@ async fn run_print_mode(_app: app::App, prompt: &str, _cli: &cli::Cli) -> Result
     // For now, just print the prompt since full implementation requires more API work
     println!("Print mode requested: {}", prompt);
     println!("\nNote: Full print mode implementation pending");
-    println!("Note: Output format, input format, and other options will be supported in future updates");
+    println!(
+        "Note: Output format, input format, and other options will be supported in future updates"
+    );
     Ok(())
 }
 

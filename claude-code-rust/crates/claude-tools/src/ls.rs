@@ -52,10 +52,7 @@ impl LsTool {
         }
 
         if !path.is_dir() {
-            return Err(anyhow::anyhow!(
-                "Path is not a directory: {}",
-                path.display()
-            ).into());
+            return Err(anyhow::anyhow!("Path is not a directory: {}", path.display()).into());
         }
 
         let mut entries = Vec::new();
@@ -84,11 +81,7 @@ impl LsTool {
                     size: metadata.as_ref().map(|m| m.len()),
                     is_dir: metadata.as_ref().map(|m| m.is_dir()),
                     is_symlink: metadata.as_ref().map(|m| m.is_symlink()),
-                    modified: metadata.and_then(|m| {
-                        m.modified().ok().map(|t| {
-                            format!("{:?}", t)
-                        })
-                    }),
+                    modified: metadata.and_then(|m| m.modified().ok().map(|t| format!("{:?}", t))),
                 }
             } else {
                 LsEntry {
@@ -104,12 +97,10 @@ impl LsTool {
         }
 
         // Sort entries: directories first, then alphabetically
-        entries.sort_by(|a, b| {
-            match (a.is_dir, b.is_dir) {
-                (Some(true), Some(false)) => std::cmp::Ordering::Less,
-                (Some(false), Some(true)) => std::cmp::Ordering::Greater,
-                _ => a.name.cmp(&b.name),
-            }
+        entries.sort_by(|a, b| match (a.is_dir, b.is_dir) {
+            (Some(true), Some(false)) => std::cmp::Ordering::Less,
+            (Some(false), Some(true)) => std::cmp::Ordering::Greater,
+            _ => a.name.cmp(&b.name),
         });
 
         let total = entries.len();
@@ -162,7 +153,7 @@ impl Tool for LsTool {
 
         match self.list_directory(path, ls_input.all, ls_input.long).await {
             Ok(output) => Ok(ToolResult::success(json!(output))),
-            Err(e) => Ok(ToolResult::error(&e.to_string())),
+            Err(e) => Ok(ToolResult::error(e.to_string())),
         }
     }
 }

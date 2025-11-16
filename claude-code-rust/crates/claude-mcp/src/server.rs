@@ -10,7 +10,7 @@ use tokio::sync::RwLock;
 use claude_core::{Tool, ToolInput};
 
 use crate::protocol::*;
-use crate::transport::{Message, StdioTransport, TransportError, TransportResult};
+use crate::transport::{Message, StdioTransport, TransportError};
 
 /// Errors that can occur during MCP server operations
 #[derive(Debug, thiserror::Error)]
@@ -105,7 +105,7 @@ impl McpServer {
     /// for use as an MCP server process.
     pub async fn serve_stdio(self) -> McpServerResult<()> {
         use tokio::io::{stdin, stdout};
-        use tokio::process::{ChildStdin, ChildStdout};
+        
 
         // Convert tokio stdin/stdout to the types expected by StdioTransport
         // We use unsafe here because we need to convert from Stdin/Stdout to ChildStdin/ChildStdout
@@ -115,8 +115,8 @@ impl McpServer {
 
         // We need to create ChildStdin/ChildStdout from the current process stdio
         // Since StdioTransport expects these types, we'll use a workaround with channels
-        use tokio::sync::mpsc;
         use crate::transport::Message;
+        use tokio::sync::mpsc;
 
         let (write_tx, mut write_rx) = mpsc::unbounded_channel::<Message>();
         let (read_tx, mut read_rx) = mpsc::unbounded_channel::<Message>();
@@ -233,10 +233,9 @@ impl McpServer {
             "initialize" => self.handle_initialize(request).await,
             "tools/list" => self.handle_list_tools(request).await,
             "tools/call" => self.handle_call_tool(request).await,
-            _ => JsonRpcResponse::error(
-                request.id,
-                JsonRpcError::method_not_found(&request.method),
-            ),
+            _ => {
+                JsonRpcResponse::error(request.id, JsonRpcError::method_not_found(&request.method))
+            }
         }
     }
 
@@ -376,8 +375,8 @@ impl McpServer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use claude_core::{Tool, ToolResult};
     use async_trait::async_trait;
+    use claude_core::{Tool, ToolResult};
     use serde_json::json;
 
     struct TestTool;
@@ -458,8 +457,7 @@ mod tests {
         assert!(response.result.is_some());
         assert!(response.error.is_none());
 
-        let result: ListToolsResult =
-            serde_json::from_value(response.result.unwrap()).unwrap();
+        let result: ListToolsResult = serde_json::from_value(response.result.unwrap()).unwrap();
         assert_eq!(result.tools.len(), 1);
         assert_eq!(result.tools[0].name, "TestTool");
     }

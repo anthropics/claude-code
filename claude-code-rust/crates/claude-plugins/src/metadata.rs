@@ -37,8 +37,7 @@ pub struct PluginMetadata {
 impl PluginMetadata {
     /// Load plugin metadata from a plugin.json file.
     pub fn from_file<P: AsRef<Path>>(path: P) -> Result<Self> {
-        let content = fs::read_to_string(path.as_ref())
-            .context("Failed to read plugin.json")?;
+        let content = fs::read_to_string(path.as_ref()).context("Failed to read plugin.json")?;
 
         Self::from_json(&content)
     }

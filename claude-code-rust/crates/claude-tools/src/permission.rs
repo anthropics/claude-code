@@ -221,8 +221,7 @@ impl DefaultPermissionChecker {
     /// ```
     pub fn from_config(config: &HashMap<String, serde_json::Value>) -> Result<Self> {
         let default_perm = if let Some(default) = config.get("default_permission") {
-            serde_json::from_value(default.clone())
-                .unwrap_or(ToolPermission::Prompt)
+            serde_json::from_value(default.clone()).unwrap_or(ToolPermission::Prompt)
         } else {
             ToolPermission::Prompt
         };
@@ -320,16 +319,25 @@ mod tests {
         let mut checker = DefaultPermissionChecker::allow_all();
         let input = ToolInput::new(json!({"command": "test"})).unwrap();
 
-        assert_eq!(checker.check_permission("Bash", &input), ToolPermission::Allow);
+        assert_eq!(
+            checker.check_permission("Bash", &input),
+            ToolPermission::Allow
+        );
 
         // Add a deny rule for specific command
         checker.add_rule(PermissionRule::new("Bash:rm *", ToolPermission::Deny));
 
         let rm_input = ToolInput::new(json!({"command": "rm -rf /"})).unwrap();
-        assert_eq!(checker.check_permission("Bash", &rm_input), ToolPermission::Deny);
+        assert_eq!(
+            checker.check_permission("Bash", &rm_input),
+            ToolPermission::Deny
+        );
 
         let ls_input = ToolInput::new(json!({"command": "ls"})).unwrap();
-        assert_eq!(checker.check_permission("Bash", &ls_input), ToolPermission::Allow);
+        assert_eq!(
+            checker.check_permission("Bash", &ls_input),
+            ToolPermission::Allow
+        );
     }
 
     #[test]
@@ -353,13 +361,22 @@ mod tests {
         let checker = DefaultPermissionChecker::from_config(&config_map).unwrap();
 
         let git_input = ToolInput::new(json!({"command": "git status"})).unwrap();
-        assert_eq!(checker.check_permission("Bash", &git_input), ToolPermission::Allow);
+        assert_eq!(
+            checker.check_permission("Bash", &git_input),
+            ToolPermission::Allow
+        );
 
         let write_input = ToolInput::new(json!({"file_path": "/test.txt"})).unwrap();
-        assert_eq!(checker.check_permission("Write", &write_input), ToolPermission::Deny);
+        assert_eq!(
+            checker.check_permission("Write", &write_input),
+            ToolPermission::Deny
+        );
 
         let read_input = ToolInput::new(json!({"file_path": "/test.txt"})).unwrap();
-        assert_eq!(checker.check_permission("Read", &read_input), ToolPermission::Prompt);
+        assert_eq!(
+            checker.check_permission("Read", &read_input),
+            ToolPermission::Prompt
+        );
     }
 
     #[test]

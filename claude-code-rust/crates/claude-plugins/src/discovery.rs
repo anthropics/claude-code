@@ -36,7 +36,9 @@ impl PluginDiscovery {
             let entry_path = entry.path();
 
             // Only process .md files
-            if !entry_path.is_file() || entry_path.extension().and_then(|s| s.to_str()) != Some("md") {
+            if !entry_path.is_file()
+                || entry_path.extension().and_then(|s| s.to_str()) != Some("md")
+            {
                 continue;
             }
 
@@ -82,7 +84,9 @@ impl PluginDiscovery {
             let entry_path = entry.path();
 
             // Only process .md files
-            if !entry_path.is_file() || entry_path.extension().and_then(|s| s.to_str()) != Some("md") {
+            if !entry_path.is_file()
+                || entry_path.extension().and_then(|s| s.to_str()) != Some("md")
+            {
                 continue;
             }
 
@@ -125,9 +129,7 @@ impl PluginDiscovery {
     ///     agent1.md
     ///     agent2.md
     /// ```
-    pub fn discover_plugin_directory<P: AsRef<Path>>(
-        path: P,
-    ) -> Result<DiscoveredPlugin> {
+    pub fn discover_plugin_directory<P: AsRef<Path>>(path: P) -> Result<DiscoveredPlugin> {
         let path = path.as_ref();
 
         let metadata = {

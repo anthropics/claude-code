@@ -66,7 +66,10 @@ impl Repl {
 
             turn += 1;
             if turn >= self.max_turns {
-                println!("\nReached maximum turns ({}). Use 'clear' to start a new conversation.", self.max_turns);
+                println!(
+                    "\nReached maximum turns ({}). Use 'clear' to start a new conversation.",
+                    self.max_turns
+                );
                 break;
             }
         }
@@ -96,7 +99,9 @@ impl Repl {
 
         // Build and send request
         let req = request.build();
-        let response = self.app.api_client
+        let response = self
+            .app
+            .api_client
             .create_message(req)
             .await
             .context("Failed to send message")?;
@@ -127,19 +132,20 @@ impl Repl {
             for (tool_id, tool_name, input) in tool_uses {
                 println!("Executing tool: {} ...", tool_name);
 
-                let tool_input = ToolInput::new(input.clone())
-                    .unwrap_or_else(|_| ToolInput { parameters: input.clone() });
+                let tool_input = ToolInput::new(input.clone()).unwrap_or_else(|_| ToolInput {
+                    parameters: input.clone(),
+                });
 
-                let result = self.app.tool_registry
+                let result = self
+                    .app
+                    .tool_registry
                     .execute(&tool_name, tool_input)
                     .await
-                    .unwrap_or_else(|e| {
-                        ToolResult {
-                            success: false,
-                            output: None,
-                            error: Some(e.to_string()),
-                            metadata: std::collections::HashMap::new(),
-                        }
+                    .unwrap_or_else(|e| ToolResult {
+                        success: false,
+                        output: None,
+                        error: Some(e.to_string()),
+                        metadata: std::collections::HashMap::new(),
                     });
 
                 // Add tool result to conversation
@@ -158,7 +164,8 @@ impl Repl {
 
         // Add assistant response to conversation
         if !text_parts.is_empty() {
-            self.conversation.add_assistant_message(text_parts.join("\n"));
+            self.conversation
+                .add_assistant_message(text_parts.join("\n"));
         }
 
         Ok(())

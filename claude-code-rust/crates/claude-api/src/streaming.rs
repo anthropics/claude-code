@@ -75,8 +75,9 @@ impl SseStream {
         }
 
         // Parse JSON data
-        let event: StreamEvent = serde_json::from_str(&data_str)
-            .map_err(|e| StreamError::InvalidFormat(format!("Failed to parse event: {} (data: {})", e, data_str)))?;
+        let event: StreamEvent = serde_json::from_str(&data_str).map_err(|e| {
+            StreamError::InvalidFormat(format!("Failed to parse event: {} (data: {})", e, data_str))
+        })?;
 
         Ok(Some(event))
     }
@@ -101,8 +102,7 @@ impl Stream for SseStream {
                         let event_data = this.buffer.drain(..pos + 2).collect::<Vec<_>>();
 
                         // Parse the event
-                        let event_str = String::from_utf8(event_data)
-                            .map_err(StreamError::Utf8)?;
+                        let event_str = String::from_utf8(event_data).map_err(StreamError::Utf8)?;
 
                         match Self::parse_event(&event_str) {
                             Ok(Some(event)) => return Poll::Ready(Some(Ok(event))),
@@ -118,8 +118,8 @@ impl Stream for SseStream {
                 Poll::Ready(None) => {
                     // Stream ended - check if we have any remaining data in buffer
                     if !this.buffer.is_empty() {
-                        let event_str = String::from_utf8(this.buffer.clone())
-                            .map_err(StreamError::Utf8)?;
+                        let event_str =
+                            String::from_utf8(this.buffer.clone()).map_err(StreamError::Utf8)?;
                         this.buffer.clear();
 
                         if !event_str.trim().is_empty() {
@@ -178,23 +178,30 @@ impl Stream for MessageStream {
                         *this.current_message_id = Some(message.id.clone());
                         MessageStreamItem::MessageStart(message)
                     }
-                    StreamEvent::ContentBlockStart { index, content_block } => {
+                    StreamEvent::ContentBlockStart {
+                        index,
+                        content_block,
+                    } => {
                         this.accumulated_text.clear();
                         this.accumulated_json.clear();
-                        MessageStreamItem::ContentBlockStart { index, content_block }
-                    }
-                    StreamEvent::ContentBlockDelta { index, delta } => {
-                        match delta {
-                            crate::models::ContentBlockDelta::TextDelta { text } => {
-                                this.accumulated_text.push_str(&text);
-                                MessageStreamItem::TextDelta { index, text }
-                            }
-                            crate::models::ContentBlockDelta::InputJsonDelta { partial_json } => {
-                                this.accumulated_json.push_str(&partial_json);
-                                MessageStreamItem::InputJsonDelta { index, partial_json }
-                            }
+                        MessageStreamItem::ContentBlockStart {
+                            index,
+                            content_block,
                         }
                     }
+                    StreamEvent::ContentBlockDelta { index, delta } => match delta {
+                        crate::models::ContentBlockDelta::TextDelta { text } => {
+                            this.accumulated_text.push_str(&text);
+                            MessageStreamItem::TextDelta { index, text }
+                        }
+                        crate::models::ContentBlockDelta::InputJsonDelta { partial_json } => {
+                            this.accumulated_json.push_str(&partial_json);
+                            MessageStreamItem::InputJsonDelta {
+                                index,
+                                partial_json,
+                            }
+                        }
+                    },
                     StreamEvent::ContentBlockStop { index } => {
                         MessageStreamItem::ContentBlockStop { index }
                     }
@@ -210,9 +217,7 @@ impl Stream for MessageStream {
                         cx.waker().wake_by_ref();
                         return Poll::Pending;
                     }
-                    StreamEvent::Error { error } => {
-                        MessageStreamItem::Error(error)
-                    }
+                    StreamEvent::Error { error } => MessageStreamItem::Error(error),
                 };
                 Poll::Ready(Some(Ok(item)))
             }

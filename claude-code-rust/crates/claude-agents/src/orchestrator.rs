@@ -126,11 +126,7 @@ impl AgentOrchestrator {
     ///
     /// # Returns
     /// Handle to the spawned agent task
-    pub fn spawn_agent(
-        &self,
-        agent_def: AgentDefinition,
-        prompt: String,
-    ) -> AgentHandle {
+    pub fn spawn_agent(&self, agent_def: AgentDefinition, prompt: String) -> AgentHandle {
         let config = Arc::clone(&self.config);
         let name = agent_def.name.clone();
 
@@ -149,10 +145,7 @@ impl AgentOrchestrator {
     ///
     /// # Returns
     /// Vector of handles to spawned agent tasks
-    pub fn spawn_parallel(
-        &self,
-        agents: Vec<(AgentDefinition, String)>,
-    ) -> Vec<AgentHandle> {
+    pub fn spawn_parallel(&self, agents: Vec<(AgentDefinition, String)>) -> Vec<AgentHandle> {
         agents
             .into_iter()
             .map(|(agent_def, prompt)| self.spawn_agent(agent_def, prompt))

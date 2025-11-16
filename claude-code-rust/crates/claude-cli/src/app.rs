@@ -32,9 +32,8 @@ impl App {
 
         // Create API client
         let client_config = ClientConfig::new(api_key);
-        let api_client = Arc::new(
-            AnthropicClient::new(client_config).context("Failed to create API client")?
-        );
+        let api_client =
+            Arc::new(AnthropicClient::new(client_config).context("Failed to create API client")?);
 
         // Create tool registry and register built-in tools
         let mut tool_registry = ToolRegistry::new();
@@ -45,9 +44,7 @@ impl App {
         let session = Session::new();
 
         // Create orchestrator
-        let orchestrator = AgentOrchestrator::new(
-            config.get_api_key().unwrap_or_default()
-        );
+        let orchestrator = AgentOrchestrator::new(config.get_api_key().unwrap_or_default());
 
         Ok(Self {
             config,
@@ -64,7 +61,10 @@ impl App {
         // Save session
         self.session.save().context("Failed to save session")?;
 
-        tracing::info!("Application initialized with session: {}", self.session.id().as_str());
+        tracing::info!(
+            "Application initialized with session: {}",
+            self.session.id().as_str()
+        );
         Ok(())
     }
 

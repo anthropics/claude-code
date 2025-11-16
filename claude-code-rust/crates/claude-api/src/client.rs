@@ -102,9 +102,7 @@ pub struct AnthropicClient {
 impl AnthropicClient {
     /// Create a new Anthropic API client
     pub fn new(config: ClientConfig) -> Result<Self> {
-        let http_client = ClientBuilder::new()
-            .timeout(config.timeout)
-            .build()?;
+        let http_client = ClientBuilder::new().timeout(config.timeout).build()?;
 
         Ok(Self {
             config,
@@ -128,8 +126,7 @@ impl AnthropicClient {
 
         headers.insert(
             "x-api-key",
-            reqwest::header::HeaderValue::from_str(&self.config.api_key)
-                .expect("Invalid API key"),
+            reqwest::header::HeaderValue::from_str(&self.config.api_key).expect("Invalid API key"),
         );
 
         headers.insert(
@@ -266,7 +263,8 @@ impl MessageRequestBuilder {
 
     /// Add an assistant message
     pub fn assistant(mut self, content: impl Into<String>) -> Self {
-        self.messages.push(crate::models::Message::assistant(content));
+        self.messages
+            .push(crate::models::Message::assistant(content));
         self
     }
 
@@ -357,15 +355,27 @@ mod tests {
 
         assert_eq!(request.messages.len(), 1);
         assert_eq!(request.max_tokens, 1000);
-        assert_eq!(request.system, Some("You are a helpful assistant".to_string()));
+        assert_eq!(
+            request.system,
+            Some("You are a helpful assistant".to_string())
+        );
         assert_eq!(request.temperature, Some(0.7));
     }
 
     #[test]
     fn test_model_selection() {
-        assert_eq!(AnthropicClient::default_model().as_str(), "claude-sonnet-4-5-20250929");
-        assert_eq!(AnthropicClient::sonnet().as_str(), "claude-sonnet-4-5-20250929");
-        assert_eq!(AnthropicClient::haiku().as_str(), "claude-3-5-haiku-20241022");
+        assert_eq!(
+            AnthropicClient::default_model().as_str(),
+            "claude-sonnet-4-5-20250929"
+        );
+        assert_eq!(
+            AnthropicClient::sonnet().as_str(),
+            "claude-sonnet-4-5-20250929"
+        );
+        assert_eq!(
+            AnthropicClient::haiku().as_str(),
+            "claude-3-5-haiku-20241022"
+        );
         assert_eq!(AnthropicClient::opus().as_str(), "claude-opus-4-20250514");
     }
 }

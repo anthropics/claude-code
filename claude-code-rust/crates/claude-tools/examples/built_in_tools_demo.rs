@@ -19,9 +19,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let temp_path = temp_dir.path();
 
     // Create some test files
-    fs::write(temp_path.join("hello.txt"), "Hello, World!\nWelcome to Claude Code")?;
-    fs::write(temp_path.join("test.rs"), "fn main() { println!(\"test\"); }")?;
-    fs::write(temp_path.join("data.json"), r#"{"name": "example", "value": 42}"#)?;
+    fs::write(
+        temp_path.join("hello.txt"),
+        "Hello, World!\nWelcome to Claude Code",
+    )?;
+    fs::write(
+        temp_path.join("test.rs"),
+        "fn main() { println!(\"test\"); }",
+    )?;
+    fs::write(
+        temp_path.join("data.json"),
+        r#"{"name": "example", "value": 42}"#,
+    )?;
 
     // Set up the tool executor with all built-in tools
     let mut registry = ToolRegistry::new();

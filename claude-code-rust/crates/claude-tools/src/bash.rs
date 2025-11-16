@@ -105,7 +105,10 @@ impl BashTool {
 
                 Ok(ToolResult::success(json!(result)))
             }
-            Ok(Err(e)) => Ok(ToolResult::error(&format!("Failed to execute command: {}", e))),
+            Ok(Err(e)) => Ok(ToolResult::error(format!(
+                "Failed to execute command: {}",
+                e
+            ))),
             Err(_) => {
                 let result = BashOutput {
                     stdout: String::new(),

@@ -135,7 +135,7 @@ impl Tool for GlobTool {
                 let output = GlobOutput { files, count };
                 Ok(ToolResult::success(json!(output)))
             }
-            Err(e) => Ok(ToolResult::error(&e.to_string())),
+            Err(e) => Ok(ToolResult::error(e.to_string())),
         }
     }
 }
@@ -227,10 +227,7 @@ impl GrepTool {
             None
         };
 
-        let output_mode = input
-            .output_mode
-            .as_deref()
-            .unwrap_or("files_with_matches");
+        let output_mode = input.output_mode.as_deref().unwrap_or("files_with_matches");
 
         match output_mode {
             "content" => {
@@ -277,10 +274,7 @@ impl GrepTool {
         let mut all_matches = Vec::new();
 
         // Determine context lines
-        let before = input
-            .before_context
-            .or(input.context)
-            .unwrap_or(0);
+        let before = input.before_context.or(input.context).unwrap_or(0);
         let after = input.after_context.or(input.context).unwrap_or(0);
 
         for entry in WalkDir::new(base)
@@ -509,7 +503,7 @@ impl Tool for GrepTool {
 
         match self.search_files(grep_input).await {
             Ok(output) => Ok(ToolResult::success(json!(output))),
-            Err(e) => Ok(ToolResult::error(&e.to_string())),
+            Err(e) => Ok(ToolResult::error(e.to_string())),
         }
     }
 }
@@ -574,8 +568,11 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let base = temp_dir.path();
 
-        fs::write(base.join("test.txt"), "Line 1: Hello\nLine 2: World\nLine 3: Hello")
-            .unwrap();
+        fs::write(
+            base.join("test.txt"),
+            "Line 1: Hello\nLine 2: World\nLine 3: Hello",
+        )
+        .unwrap();
 
         let tool = GrepTool::new();
         let input = ToolInput::new(json!({

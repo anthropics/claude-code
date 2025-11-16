@@ -84,9 +84,8 @@ pub use config::ClaudeConfig;
 pub use env::EnvConfig;
 pub use mcp::{McpConfig, McpServerConfig};
 pub use paths::{
-    ensure_project_config_dir, ensure_user_config_dir, project_config_dir,
-    project_mcp_path, project_settings_path, user_config_dir, user_mcp_path,
-    user_settings_path,
+    ensure_project_config_dir, ensure_user_config_dir, project_config_dir, project_mcp_path,
+    project_settings_path, user_config_dir, user_mcp_path, user_settings_path,
 };
 
 // Re-export from claude-core

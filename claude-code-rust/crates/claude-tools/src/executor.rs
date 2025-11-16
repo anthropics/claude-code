@@ -28,10 +28,7 @@ impl ToolExecutor {
     /// # Arguments
     /// * `registry` - The tool registry to use
     /// * `permission_checker` - The permission checker for validating tool execution
-    pub fn new(
-        registry: ToolRegistry,
-        permission_checker: Arc<dyn PermissionChecker>,
-    ) -> Self {
+    pub fn new(registry: ToolRegistry, permission_checker: Arc<dyn PermissionChecker>) -> Self {
         Self {
             registry: Arc::new(RwLock::new(registry)),
             permission_checker,
@@ -59,7 +56,11 @@ impl ToolExecutor {
     /// List all registered tools
     pub async fn list_tools(&self) -> Vec<String> {
         let registry = self.registry.read().await;
-        registry.tool_names().into_iter().map(|s| s.to_string()).collect()
+        registry
+            .tool_names()
+            .into_iter()
+            .map(|s| s.to_string())
+            .collect()
     }
 
     /// Execute a tool with permission checking and validation
@@ -96,12 +97,10 @@ impl ToolExecutor {
                 // Execute directly
                 self.execute_tool(tool_name, input).await
             }
-            ToolPermission::Deny => {
-                Err(ClaudeError::Config(format!(
-                    "Permission denied for tool '{}'",
-                    tool_name
-                )))
-            }
+            ToolPermission::Deny => Err(ClaudeError::Config(format!(
+                "Permission denied for tool '{}'",
+                tool_name
+            ))),
             ToolPermission::Prompt => {
                 // Prompt the user
                 if self.permission_checker.prompt_user(tool_name, &input) {
@@ -129,7 +128,8 @@ impl ToolExecutor {
         let registry = self.registry.read().await;
 
         // Get the tool
-        let tool = registry.get(tool_name)
+        let tool = registry
+            .get(tool_name)
             .ok_or_else(|| ClaudeError::tool(format!("Tool not found: {}", tool_name)))?;
 
         // Get the tool's schema
@@ -140,11 +140,10 @@ impl ToolExecutor {
         if let Some(required) = schema.get("required").and_then(|v| v.as_array()) {
             for required_field in required {
                 if let Some(field_name) = required_field.as_str() {
-                    if !input.parameters.get(field_name).is_some() {
+                    if input.parameters.get(field_name).is_none() {
                         return Err(ClaudeError::tool(format!(
                             "Missing required field '{}' for tool '{}'",
-                            field_name,
-                            tool_name
+                            field_name, tool_name
                         )));
                     }
                 }
@@ -153,7 +152,11 @@ impl ToolExecutor {
 
         // Check field types if properties are defined
         if let Some(properties) = schema.get("properties").and_then(|v| v.as_object()) {
-            for (field_name, value) in input.parameters.as_object().unwrap_or(&serde_json::Map::new()) {
+            for (field_name, value) in input
+                .parameters
+                .as_object()
+                .unwrap_or(&serde_json::Map::new())
+            {
                 if let Some(field_schema) = properties.get(field_name) {
                     if let Some(expected_type) = field_schema.get("type").and_then(|v| v.as_str()) {
                         let actual_type = match value {
@@ -168,9 +171,7 @@ impl ToolExecutor {
                         if expected_type != actual_type && expected_type != "integer" {
                             return Err(ClaudeError::tool(format!(
                                 "Type mismatch for field '{}': expected '{}', got '{}'",
-                                field_name,
-                                expected_type,
-                                actual_type
+                                field_name, expected_type, actual_type
                             )));
                         }
                     }
