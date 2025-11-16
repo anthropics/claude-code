@@ -72,9 +72,7 @@ impl fmt::Display for Role {
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum ContentBlock {
     /// Text content
-    Text {
-        text: String,
-    },
+    Text { text: String },
     /// Image content
     Image {
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -103,7 +101,11 @@ impl ContentBlock {
     }
 
     /// Create a new tool use content block
-    pub fn tool_use(id: impl Into<String>, name: impl Into<String>, input: serde_json::Value) -> Self {
+    pub fn tool_use(
+        id: impl Into<String>,
+        name: impl Into<String>,
+        input: serde_json::Value,
+    ) -> Self {
         ContentBlock::ToolUse {
             id: id.into(),
             name: name.into(),
@@ -112,7 +114,11 @@ impl ContentBlock {
     }
 
     /// Create a new tool result content block
-    pub fn tool_result(tool_use_id: impl Into<String>, content: Option<String>, is_error: bool) -> Self {
+    pub fn tool_result(
+        tool_use_id: impl Into<String>,
+        content: Option<String>,
+        is_error: bool,
+    ) -> Self {
         ContentBlock::ToolResult {
             tool_use_id: tool_use_id.into(),
             content,
@@ -126,14 +132,9 @@ impl ContentBlock {
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum ImageSource {
     /// Base64-encoded image
-    Base64 {
-        media_type: String,
-        data: String,
-    },
+    Base64 { media_type: String, data: String },
     /// URL to image
-    Url {
-        url: String,
-    },
+    Url { url: String },
 }
 
 /// A message in a conversation
@@ -343,7 +344,11 @@ mod tests {
         let block = ContentBlock::tool_use("tool-1", "search", input.clone());
 
         match &block {
-            ContentBlock::ToolUse { id, name, input: actual_input } => {
+            ContentBlock::ToolUse {
+                id,
+                name,
+                input: actual_input,
+            } => {
                 assert_eq!(id, "tool-1");
                 assert_eq!(name, "search");
                 assert_eq!(actual_input, &input);
@@ -367,8 +372,7 @@ mod tests {
 
     #[test]
     fn test_message_with_multiple_content() {
-        let msg = Message::user("Hello!")
-            .with_content(ContentBlock::text("Another block"));
+        let msg = Message::user("Hello!").with_content(ContentBlock::text("Another block"));
         assert_eq!(msg.content.len(), 2);
     }
 
@@ -399,7 +403,10 @@ mod tests {
         assert_eq!(config.max_tokens, Some(8192));
         assert_eq!(config.temperature, Some(0.7));
         assert_eq!(config.top_p, Some(0.9));
-        assert_eq!(config.system, Some("You are a helpful assistant".to_string()));
+        assert_eq!(
+            config.system,
+            Some("You are a helpful assistant".to_string())
+        );
     }
 
     #[test]

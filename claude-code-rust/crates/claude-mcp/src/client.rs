@@ -8,7 +8,7 @@ use std::sync::Arc;
 use tokio::sync::{Mutex, RwLock};
 
 use crate::protocol::*;
-use crate::transport::{Message, StdioTransport, TransportError, TransportResult};
+use crate::transport::{Message, StdioTransport, TransportError};
 
 /// Errors that can occur during MCP client operations
 #[derive(Debug, thiserror::Error)]

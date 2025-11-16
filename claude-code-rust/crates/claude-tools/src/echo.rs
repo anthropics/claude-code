@@ -108,9 +108,7 @@ impl Tool for EchoTool {
 
         // Validate repeat count
         if params.repeat == 0 || params.repeat > 100 {
-            return Ok(ToolResult::error(
-                "repeat must be between 1 and 100",
-            ));
+            return Ok(ToolResult::error("repeat must be between 1 and 100"));
         }
 
         // Build the output

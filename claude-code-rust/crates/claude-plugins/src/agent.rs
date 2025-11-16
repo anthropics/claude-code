@@ -57,16 +57,15 @@ impl AgentDefinition {
     /// * `path` - Path to the .md file
     /// * `name` - Agent name (typically derived from filename without .md extension)
     pub fn from_file<P: AsRef<Path>>(path: P, name: String) -> Result<Self> {
-        let content = fs::read_to_string(path.as_ref())
-            .context("Failed to read agent file")?;
+        let content = fs::read_to_string(path.as_ref()).context("Failed to read agent file")?;
 
         Self::from_markdown(&content, name)
     }
 
     /// Parse an agent definition from markdown content.
     pub fn from_markdown(content: &str, name: String) -> Result<Self> {
-        let parsed: ParsedMarkdown<AgentFrontmatter> = FrontmatterParser::parse(content)
-            .context("Failed to parse agent frontmatter")?;
+        let parsed: ParsedMarkdown<AgentFrontmatter> =
+            FrontmatterParser::parse(content).context("Failed to parse agent frontmatter")?;
 
         let tools = parsed
             .frontmatter

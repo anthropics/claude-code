@@ -363,11 +363,7 @@ mod tests {
 
     #[test]
     fn test_jsonrpc_request() {
-        let req = JsonRpcRequest::new(
-            RequestId::from(1),
-            "testMethod",
-            json!({"param": "value"}),
-        );
+        let req = JsonRpcRequest::new(RequestId::from(1), "testMethod", json!({"param": "value"}));
 
         assert_eq!(req.jsonrpc, "2.0");
         assert_eq!(req.method, "testMethod");
@@ -376,10 +372,7 @@ mod tests {
 
     #[test]
     fn test_jsonrpc_response_success() {
-        let resp = JsonRpcResponse::success(
-            RequestId::from(1),
-            json!({"result": "ok"}),
-        );
+        let resp = JsonRpcResponse::success(RequestId::from(1), json!({"result": "ok"}));
 
         assert!(resp.result.is_some());
         assert!(resp.error.is_none());

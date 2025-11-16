@@ -31,8 +31,8 @@ impl FrontmatterParser {
     pub fn parse<T: DeserializeOwned>(content: &str) -> Result<ParsedMarkdown<T>> {
         let (frontmatter_str, body) = Self::extract_frontmatter(content)?;
 
-        let frontmatter: T = serde_yaml::from_str(&frontmatter_str)
-            .context("Failed to parse YAML frontmatter")?;
+        let frontmatter: T =
+            serde_yaml::from_str(frontmatter_str).context("Failed to parse YAML frontmatter")?;
 
         Ok(ParsedMarkdown {
             frontmatter,
@@ -97,7 +97,10 @@ This is the body."#;
         let result: ParsedMarkdown<TestFrontmatter> = FrontmatterParser::parse(content).unwrap();
 
         assert_eq!(result.frontmatter.title, "Test Command");
-        assert_eq!(result.frontmatter.description, Some("A test description".to_string()));
+        assert_eq!(
+            result.frontmatter.description,
+            Some("A test description".to_string())
+        );
         assert!(result.body.contains("# Body Content"));
     }
 

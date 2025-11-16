@@ -6,10 +6,7 @@
 //! 3. User authenticates and is redirected back to localhost
 //! 4. Token is received and stored in config
 
-use anyhow::{Context, Result, bail};
-use serde::{Deserialize, Serialize};
-use std::sync::Arc;
-use tokio::sync::oneshot;
+use anyhow::{Context, Result};
 use axum::{
     extract::{Query, State},
     response::{Html, IntoResponse},
@@ -17,6 +14,9 @@ use axum::{
     Router,
 };
 use colored::Colorize;
+use serde::Deserialize;
+use std::sync::Arc;
+use tokio::sync::oneshot;
 
 /// Authentication state shared between handlers
 #[derive(Clone)]
@@ -195,7 +195,10 @@ pub async fn authenticate() -> Result<String> {
     let addr = listener.local_addr()?;
     let port = addr.port();
 
-    println!("Started local server on {}", format!("http://127.0.0.1:{}", port).green());
+    println!(
+        "Started local server on {}",
+        format!("http://127.0.0.1:{}", port).green()
+    );
 
     // Build the authentication URL
     let auth_url = format!(
@@ -206,7 +209,10 @@ pub async fn authenticate() -> Result<String> {
     println!();
     println!("Opening browser to: {}", auth_url.blue().underline());
     println!();
-    println!("{}", "If the browser doesn't open automatically, please visit the URL above.".yellow());
+    println!(
+        "{}",
+        "If the browser doesn't open automatically, please visit the URL above.".yellow()
+    );
     println!();
 
     // Open the browser
@@ -225,7 +231,7 @@ pub async fn authenticate() -> Result<String> {
     // Wait for the token with a timeout
     let token = tokio::time::timeout(
         std::time::Duration::from_secs(300), // 5 minute timeout
-        rx
+        rx,
     )
     .await
     .context("Authentication timed out after 5 minutes")?
@@ -246,7 +252,7 @@ pub async fn authenticate() -> Result<String> {
 
 /// Save the API token to the user's config file
 async fn save_token_to_config(token: &str) -> Result<()> {
-    use claude_config::{ClaudeConfig, user_settings_path, ensure_user_config_dir};
+    use claude_config::{ensure_user_config_dir, user_settings_path, ClaudeConfig};
 
     // Ensure config directory exists
     ensure_user_config_dir()?;
@@ -259,10 +265,14 @@ async fn save_token_to_config(token: &str) -> Result<()> {
 
     // Save to user settings
     let settings_path = user_settings_path()?;
-    config.save(&settings_path)
+    config
+        .save(&settings_path)
         .context("Failed to save API token to config")?;
 
-    println!("API token saved to: {}", settings_path.display().to_string().green());
+    println!(
+        "API token saved to: {}",
+        settings_path.display().to_string().green()
+    );
 
     Ok(())
 }

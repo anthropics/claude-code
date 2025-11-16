@@ -17,7 +17,7 @@ pub async fn run_mcp_server(app: App) -> Result<()> {
     eprintln!("Registering {} tools:", tool_names.len());
 
     for name in &tool_names {
-        if let Some(tool) = app.tool_registry.get(&name) {
+        if let Some(tool) = app.tool_registry.get(name) {
             eprintln!("  ✓ {}", name);
             // Note: We need to clone/wrap the tool since McpServer takes ownership
             // For now we'll need to refactor the tool registry to support this
@@ -28,8 +28,7 @@ pub async fn run_mcp_server(app: App) -> Result<()> {
     eprintln!("Listening on stdio for JSON-RPC 2.0 requests...\n");
 
     // Serve over stdio
-    server.serve_stdio().await
-        .context("MCP server error")?;
+    server.serve_stdio().await.context("MCP server error")?;
 
     Ok(())
 }

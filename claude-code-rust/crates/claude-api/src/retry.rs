@@ -80,8 +80,8 @@ impl RetryConfig {
             return Duration::from_secs(0);
         }
 
-        let backoff_secs = self.initial_backoff.as_secs_f64()
-            * self.backoff_multiplier.powi(attempt as i32 - 1);
+        let backoff_secs =
+            self.initial_backoff.as_secs_f64() * self.backoff_multiplier.powi(attempt as i32 - 1);
 
         let backoff = Duration::from_secs_f64(backoff_secs);
 
@@ -235,8 +235,7 @@ mod tests {
 
     #[test]
     fn test_backoff_max() {
-        let config = RetryConfig::default()
-            .with_max_backoff(Duration::from_secs(5));
+        let config = RetryConfig::default().with_max_backoff(Duration::from_secs(5));
 
         // Should be capped at max_backoff
         assert!(config.backoff_duration(10) <= Duration::from_secs(5));
@@ -259,7 +258,8 @@ mod tests {
                     Ok("success")
                 }
             }
-        }).await;
+        })
+        .await;
 
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), "success");
@@ -273,9 +273,13 @@ mod tests {
 
         let result = with_retry(&config, &strategy, || async {
             Err::<(), _>("persistent error")
-        }).await;
+        })
+        .await;
 
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), RetryError::MaxRetriesExceeded));
+        assert!(matches!(
+            result.unwrap_err(),
+            RetryError::MaxRetriesExceeded
+        ));
     }
 }

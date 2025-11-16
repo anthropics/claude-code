@@ -185,8 +185,8 @@ pub use transport::{Message, StdioTransport, TransportError, TransportResult};
 #[cfg(test)]
 mod integration_tests {
     use super::*;
-    use claude_core::{Tool, ToolInput, ToolResult};
     use async_trait::async_trait;
+    use claude_core::{Tool, ToolInput, ToolResult};
     use serde_json::json;
 
     struct TestTool;

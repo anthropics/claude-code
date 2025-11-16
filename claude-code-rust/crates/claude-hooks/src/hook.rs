@@ -269,7 +269,7 @@ mod tests {
 
     #[test]
     fn test_hook_definition_matcher() {
-        let mut hook = HookDefinition::new(
+        let hook = HookDefinition::new(
             Hook::PreToolUse,
             "test.sh".to_string(),
             Some("^(Write|Edit)$".to_string()),
@@ -285,13 +285,8 @@ mod tests {
 
     #[test]
     fn test_hook_definition_no_matcher() {
-        let hook = HookDefinition::new(
-            Hook::PreToolUse,
-            "test.sh".to_string(),
-            None,
-            None,
-        )
-        .unwrap();
+        let hook =
+            HookDefinition::new(Hook::PreToolUse, "test.sh".to_string(), None, None).unwrap();
 
         // Without matcher, should match all tools
         assert!(hook.matches_tool("Write"));
@@ -326,13 +321,7 @@ mod tests {
         let mut config = HookConfig::new();
 
         config.add_hook(
-            HookDefinition::new(
-                Hook::SessionStart,
-                "start.sh".to_string(),
-                None,
-                None,
-            )
-            .unwrap(),
+            HookDefinition::new(Hook::SessionStart, "start.sh".to_string(), None, None).unwrap(),
         );
 
         config.add_hook(
@@ -346,13 +335,7 @@ mod tests {
         );
 
         config.add_hook(
-            HookDefinition::new(
-                Hook::PostToolUse,
-                "post.sh".to_string(),
-                None,
-                None,
-            )
-            .unwrap(),
+            HookDefinition::new(Hook::PostToolUse, "post.sh".to_string(), None, None).unwrap(),
         );
 
         assert_eq!(config.session_start_hooks().len(), 1);

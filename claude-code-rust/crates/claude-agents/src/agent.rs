@@ -43,8 +43,7 @@ impl Agent {
         let model = Self::parse_model(&definition.model);
 
         let config = ClientConfig::new(api_key);
-        let client = AnthropicClient::new(config)
-            .context("Failed to create Anthropic client")?;
+        let client = AnthropicClient::new(config).context("Failed to create Anthropic client")?;
 
         let context = AgentContext::new(definition.name.clone(), definition.tools.clone());
 
@@ -64,8 +63,8 @@ impl Agent {
     pub fn with_config(definition: AgentDefinition, config: ClientConfig) -> Result<Self> {
         let model = Self::parse_model(&definition.model);
 
-        let client = Arc::new(AnthropicClient::new(config)
-            .context("Failed to create Anthropic client")?);
+        let client =
+            Arc::new(AnthropicClient::new(config).context("Failed to create Anthropic client")?);
 
         let context = AgentContext::new(definition.name.clone(), definition.tools.clone());
 

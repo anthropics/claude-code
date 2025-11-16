@@ -3,7 +3,7 @@
 //! This module handles the execution of hooks as external processes,
 //! managing stdin/stdout communication and exit code handling.
 
-use crate::hook::{Hook, HookConfig, HookDefinition, HookError};
+use crate::hook::{HookConfig, HookDefinition, HookError};
 use crate::protocol::{HookInput, HookOutput, HookResult};
 use serde_json::Value;
 use std::path::PathBuf;
@@ -30,10 +30,7 @@ pub struct HookExecutor {
 impl HookExecutor {
     /// Creates a new hook executor with the given configuration.
     pub fn new(config: HookConfig, session_id: String) -> Self {
-        Self {
-            config,
-            session_id,
-        }
+        Self { config, session_id }
     }
 
     /// Executes all SessionStart hooks.
@@ -163,8 +160,7 @@ impl HookExecutor {
             tool_input: tool_input.clone(),
         };
 
-        let input_json = serde_json::to_string(&input)
-            .map_err(|e| HookError::JsonError(e))?;
+        let input_json = serde_json::to_string(&input).map_err(HookError::JsonError)?;
 
         // Spawn the process
         let mut child = Command::new(command_name)
@@ -190,10 +186,7 @@ impl HookExecutor {
             match serde_json::from_slice::<HookOutput>(&output.stdout) {
                 Ok(out) => Some(out),
                 Err(e) => {
-                    eprintln!(
-                        "Warning: Failed to parse hook output as JSON: {}",
-                        e
-                    );
+                    eprintln!("Warning: Failed to parse hook output as JSON: {}", e);
                     eprintln!("Raw output: {}", String::from_utf8_lossy(&output.stdout));
                     None
                 }
@@ -204,10 +197,7 @@ impl HookExecutor {
 
         // Log stderr if present
         if !output.stderr.is_empty() {
-            eprintln!(
-                "Hook stderr: {}",
-                String::from_utf8_lossy(&output.stderr)
-            );
+            eprintln!("Hook stderr: {}", String::from_utf8_lossy(&output.stderr));
         }
 
         // Interpret the exit code
@@ -234,7 +224,7 @@ impl HookExecutor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::hook::HookDefinition;
+    use crate::hook::{Hook, HookDefinition};
     use std::fs;
     use tempfile::TempDir;
 
@@ -271,13 +261,8 @@ mod tests {
     #[tokio::test]
     async fn test_execute_hook_with_echo_command() {
         // Create a simple hook that uses echo (exit code 0)
-        let hook = HookDefinition::new(
-            Hook::SessionStart,
-            "echo test".to_string(),
-            None,
-            None,
-        )
-        .unwrap();
+        let hook =
+            HookDefinition::new(Hook::SessionStart, "echo test".to_string(), None, None).unwrap();
 
         let config = HookConfig::new();
         let executor = HookExecutor::new(config, "test".to_string());

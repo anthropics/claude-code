@@ -143,9 +143,7 @@ pub use echo::EchoTool;
 pub use executor::{ToolExecutor, ToolExecutorBuilder};
 pub use file_ops::{EditTool, ReadTool, WriteTool};
 pub use ls::LsTool;
-pub use permission::{
-    DefaultPermissionChecker, PermissionChecker, PermissionRule, ToolPermission,
-};
+pub use permission::{DefaultPermissionChecker, PermissionChecker, PermissionRule, ToolPermission};
 pub use search::{GlobTool, GrepTool};
 
 // Re-export core types for convenience
@@ -294,8 +292,8 @@ mod integration_tests {
 
     #[tokio::test]
     async fn test_built_in_tools_basic_execution() {
-        use tempfile::TempDir;
         use std::fs;
+        use tempfile::TempDir;
 
         let temp_dir = TempDir::new().unwrap();
         let test_file = temp_dir.path().join("test.txt");
@@ -311,14 +309,16 @@ mod integration_tests {
         // Test Bash tool
         let bash_input = ToolInput::new(json!({
             "command": "echo 'test'"
-        })).unwrap();
+        }))
+        .unwrap();
         let result = executor.execute("Bash", bash_input).await.unwrap();
         assert!(result.success);
 
         // Test Read tool
         let read_input = ToolInput::new(json!({
             "file_path": test_file.to_str().unwrap()
-        })).unwrap();
+        }))
+        .unwrap();
         let result = executor.execute("Read", read_input).await.unwrap();
         assert!(result.success);
 
@@ -327,14 +327,16 @@ mod integration_tests {
         let write_input = ToolInput::new(json!({
             "file_path": write_file.to_str().unwrap(),
             "content": "New content"
-        })).unwrap();
+        }))
+        .unwrap();
         let result = executor.execute("Write", write_input).await.unwrap();
         assert!(result.success);
 
         // Test Ls tool
         let ls_input = ToolInput::new(json!({
             "path": temp_dir.path().to_str().unwrap()
-        })).unwrap();
+        }))
+        .unwrap();
         let result = executor.execute("Ls", ls_input).await.unwrap();
         assert!(result.success);
 
@@ -342,7 +344,8 @@ mod integration_tests {
         let glob_input = ToolInput::new(json!({
             "pattern": "*.txt",
             "path": temp_dir.path().to_str().unwrap()
-        })).unwrap();
+        }))
+        .unwrap();
         let result = executor.execute("Glob", glob_input).await.unwrap();
         assert!(result.success);
 
@@ -351,7 +354,8 @@ mod integration_tests {
             "pattern": "Hello",
             "path": temp_dir.path().to_str().unwrap(),
             "output_mode": "files_with_matches"
-        })).unwrap();
+        }))
+        .unwrap();
         let result = executor.execute("Grep", grep_input).await.unwrap();
         assert!(result.success);
     }

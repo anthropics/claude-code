@@ -70,13 +70,13 @@ pub mod streaming;
 
 // Re-export commonly used types at the crate root
 pub use client::{
-    AnthropicClient, ClientConfig, ClientError, MessageRequestBuilder,
-    DEFAULT_API_VERSION, DEFAULT_BASE_URL, DEFAULT_TIMEOUT,
+    AnthropicClient, ClientConfig, ClientError, MessageRequestBuilder, DEFAULT_API_VERSION,
+    DEFAULT_BASE_URL, DEFAULT_TIMEOUT,
 };
 
 pub use models::{
-    ContentBlock, CreateMessageRequest, ImageSource, Message, MessageResponse,
-    Model, Role, StreamEvent, Tool, Usage,
+    ContentBlock, CreateMessageRequest, ImageSource, Message, MessageResponse, Model, Role,
+    StreamEvent, Tool, Usage,
 };
 
 pub use retry::{RetryConfig, RetryError, RetryStrategy};

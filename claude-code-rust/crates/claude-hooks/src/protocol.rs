@@ -88,8 +88,7 @@ impl HookResult {
     pub fn from_exit_code(code: i32, output: Option<HookOutput>) -> Self {
         match code {
             0 => {
-                let context = output
-                    .and_then(|o| o.hook_specific_output.additional_context);
+                let context = output.and_then(|o| o.hook_specific_output.additional_context);
                 HookResult::Allow(context)
             }
             1 => {

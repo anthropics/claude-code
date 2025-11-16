@@ -50,9 +50,9 @@ impl ReadTool {
         offset: Option<usize>,
         limit: Option<usize>,
     ) -> Result<(String, usize)> {
-        let file = fs::File::open(path).await.map_err(|e| {
-            anyhow::anyhow!("Failed to open file '{}': {}", path.display(), e)
-        })?;
+        let file = fs::File::open(path)
+            .await
+            .map_err(|e| anyhow::anyhow!("Failed to open file '{}': {}", path.display(), e))?;
 
         let reader = BufReader::new(file);
         let mut lines = reader.lines();
@@ -61,9 +61,11 @@ impl ReadTool {
         let offset_val = offset.unwrap_or(0);
         let limit_val = limit.unwrap_or(usize::MAX);
 
-        while let Some(line) = lines.next_line().await.map_err(|e| {
-            anyhow::anyhow!("Failed to read line from '{}': {}", path.display(), e)
-        })? {
+        while let Some(line) = lines
+            .next_line()
+            .await
+            .map_err(|e| anyhow::anyhow!("Failed to read line from '{}': {}", path.display(), e))?
+        {
             line_num += 1;
 
             // Skip lines before offset
@@ -136,14 +138,14 @@ impl Tool for ReadTool {
         let path = Path::new(&read_input.file_path);
 
         if !path.exists() {
-            return Ok(ToolResult::error(&format!(
+            return Ok(ToolResult::error(format!(
                 "File does not exist: {}",
                 read_input.file_path
             )));
         }
 
         if !path.is_file() {
-            return Ok(ToolResult::error(&format!(
+            return Ok(ToolResult::error(format!(
                 "Path is not a file: {}",
                 read_input.file_path
             )));
@@ -162,7 +164,7 @@ impl Tool for ReadTool {
                 };
                 Ok(ToolResult::success(json!(output)))
             }
-            Err(e) => Ok(ToolResult::error(&e.to_string())),
+            Err(e) => Ok(ToolResult::error(e.to_string())),
         }
     }
 }
@@ -252,10 +254,7 @@ impl Tool for WriteTool {
                 };
                 Ok(ToolResult::success(json!(output)))
             }
-            Err(e) => Ok(ToolResult::error(&format!(
-                "Failed to write file: {}",
-                e
-            ))),
+            Err(e) => Ok(ToolResult::error(format!("Failed to write file: {}", e))),
         }
     }
 }
@@ -336,23 +335,19 @@ impl Tool for EditTool {
         let path = Path::new(&edit_input.file_path);
 
         if !path.exists() {
-            return Ok(ToolResult::error(&format!(
+            return Ok(ToolResult::error(format!(
                 "File does not exist: {}",
                 edit_input.file_path
             )));
         }
 
         let content = fs::read_to_string(path).await.map_err(|e| {
-            anyhow::anyhow!(
-                "Failed to read file '{}': {}",
-                edit_input.file_path,
-                e
-            )
+            anyhow::anyhow!("Failed to read file '{}': {}", edit_input.file_path, e)
         })?;
 
         // Check if old_string exists
         if !content.contains(&edit_input.old_string) {
-            return Ok(ToolResult::error(&format!(
+            return Ok(ToolResult::error(format!(
                 "String not found in file: '{}'",
                 edit_input.old_string
             )));
@@ -368,7 +363,7 @@ impl Tool for EditTool {
             // Replace only first occurrence
             let occurrences = content.matches(&edit_input.old_string).count();
             if occurrences > 1 {
-                return Ok(ToolResult::error(&format!(
+                return Ok(ToolResult::error(format!(
                     "String '{}' appears {} times in the file. Use replace_all=true to replace all occurrences, or provide more context to make it unique.",
                     edit_input.old_string, occurrences
                 )));
@@ -380,11 +375,7 @@ impl Tool for EditTool {
         };
 
         fs::write(path, new_content).await.map_err(|e| {
-            anyhow::anyhow!(
-                "Failed to write file '{}': {}",
-                edit_input.file_path,
-                e
-            )
+            anyhow::anyhow!("Failed to write file '{}': {}", edit_input.file_path, e)
         })?;
 
         let output = EditOutput {

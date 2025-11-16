@@ -265,27 +265,35 @@ mod tests {
 
         // Create hooks.json in root
         let root_hooks = temp_dir.path().join("hooks.json");
-        fs::write(&root_hooks, r#"{
+        fs::write(
+            &root_hooks,
+            r#"{
             "hooks": [
                 {
                     "hook": "SessionStart",
                     "command": "root.sh"
                 }
             ]
-        }"#).unwrap();
+        }"#,
+        )
+        .unwrap();
 
         // Create plugin with hooks
         let plugin_dir = temp_dir.path().join("plugin1");
         fs::create_dir(&plugin_dir).unwrap();
         let plugin_hooks = plugin_dir.join("hooks.json");
-        fs::write(&plugin_hooks, r#"{
+        fs::write(
+            &plugin_hooks,
+            r#"{
             "hooks": [
                 {
                     "hook": "PreToolUse",
                     "command": "plugin.sh"
                 }
             ]
-        }"#).unwrap();
+        }"#,
+        )
+        .unwrap();
 
         let mut discovery = HookDiscovery::new();
         discovery.add_search_path(temp_dir.path().to_path_buf());

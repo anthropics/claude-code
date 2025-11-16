@@ -30,23 +30,19 @@ impl StateFile {
     /// target path to ensure the operation is atomic and prevents corruption.
     pub fn save_state<T: Serialize>(session_id: &str, state: &T) -> Result<()> {
         let sessions_dir = Self::sessions_dir()?;
-        fs::create_dir_all(&sessions_dir)
-            .context("Failed to create sessions directory")?;
+        fs::create_dir_all(&sessions_dir).context("Failed to create sessions directory")?;
 
         let target_path = Self::session_path(session_id)?;
         let temp_path = sessions_dir.join(format!("{}.tmp", session_id));
 
         // Serialize state to JSON
-        let json = serde_json::to_string_pretty(state)
-            .context("Failed to serialize state")?;
+        let json = serde_json::to_string_pretty(state).context("Failed to serialize state")?;
 
         // Write to temporary file
-        fs::write(&temp_path, json)
-            .context("Failed to write temporary state file")?;
+        fs::write(&temp_path, json).context("Failed to write temporary state file")?;
 
         // Atomically rename temp file to target
-        fs::rename(&temp_path, &target_path)
-            .context("Failed to rename temporary state file")?;
+        fs::rename(&temp_path, &target_path).context("Failed to rename temporary state file")?;
 
         Ok(())
     }
@@ -58,8 +54,7 @@ impl StateFile {
         let contents = fs::read_to_string(&path)
             .with_context(|| format!("Failed to read state file: {}", path.display()))?;
 
-        let state = serde_json::from_str(&contents)
-            .context("Failed to deserialize state")?;
+        let state = serde_json::from_str(&contents).context("Failed to deserialize state")?;
 
         Ok(state)
     }
@@ -86,9 +81,7 @@ impl StateFile {
 
         let mut session_ids = Vec::new();
 
-        for entry in fs::read_dir(&sessions_dir)
-            .context("Failed to read sessions directory")? {
-
+        for entry in fs::read_dir(&sessions_dir).context("Failed to read sessions directory")? {
             let entry = entry.context("Failed to read directory entry")?;
             let path = entry.path();
 
@@ -137,7 +130,9 @@ mod tests {
     #[test]
     fn test_session_path() {
         let path = StateFile::session_path("test-session").unwrap();
-        assert!(path.to_string_lossy().contains(".claude/sessions/test-session.json"));
+        assert!(path
+            .to_string_lossy()
+            .contains(".claude/sessions/test-session.json"));
     }
 
     #[test]

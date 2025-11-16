@@ -5,8 +5,10 @@ use std::collections::HashMap;
 
 /// Model identifiers for Claude models
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default)]
 pub enum Model {
     #[serde(rename = "claude-sonnet-4-5-20250929")]
+    #[default]
     Sonnet,
     #[serde(rename = "claude-3-5-haiku-20241022")]
     Haiku,
@@ -27,11 +29,6 @@ impl Model {
     }
 }
 
-impl Default for Model {
-    fn default() -> Self {
-        Model::Sonnet
-    }
-}
 
 /// Role in a conversation
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -69,7 +66,11 @@ impl ContentBlock {
         ContentBlock::Text { text: text.into() }
     }
 
-    pub fn tool_use(id: impl Into<String>, name: impl Into<String>, input: serde_json::Value) -> Self {
+    pub fn tool_use(
+        id: impl Into<String>,
+        name: impl Into<String>,
+        input: serde_json::Value,
+    ) -> Self {
         ContentBlock::ToolUse {
             id: id.into(),
             name: name.into(),
@@ -98,13 +99,8 @@ impl ContentBlock {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum ImageSource {
-    Base64 {
-        media_type: String,
-        data: String,
-    },
-    Url {
-        url: String,
-    },
+    Base64 { media_type: String, data: String },
+    Url { url: String },
 }
 
 /// Tool definition
@@ -116,7 +112,11 @@ pub struct Tool {
 }
 
 impl Tool {
-    pub fn new(name: impl Into<String>, description: impl Into<String>, input_schema: serde_json::Value) -> Self {
+    pub fn new(
+        name: impl Into<String>,
+        description: impl Into<String>,
+        input_schema: serde_json::Value,
+    ) -> Self {
         Self {
             name: name.into(),
             description: description.into(),
@@ -282,25 +282,16 @@ pub struct MessageStart {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum ContentBlockStart {
-    Text {
-        text: String,
-    },
-    ToolUse {
-        id: String,
-        name: String,
-    },
+    Text { text: String },
+    ToolUse { id: String, name: String },
 }
 
 /// Content block delta event
 #[derive(Debug, Clone, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum ContentBlockDelta {
-    TextDelta {
-        text: String,
-    },
-    InputJsonDelta {
-        partial_json: String,
-    },
+    TextDelta { text: String },
+    InputJsonDelta { partial_json: String },
 }
 
 /// Message delta event
@@ -330,10 +321,42 @@ mod tests {
     }
 
     #[test]
+    fn test_model_as_str() {
+        assert_eq!(Model::Sonnet.as_str(), "claude-sonnet-4-5-20250929");
+        assert_eq!(Model::Haiku.as_str(), "claude-3-5-haiku-20241022");
+        assert_eq!(Model::Opus.as_str(), "claude-opus-4-20250514");
+        assert_eq!(
+            Model::Custom("custom-model".to_string()).as_str(),
+            "custom-model"
+        );
+    }
+
+    #[test]
+    fn test_model_default() {
+        let model = Model::default();
+        assert_eq!(model.as_str(), "claude-sonnet-4-5-20250929");
+    }
+
+    #[test]
     fn test_message_creation() {
         let msg = Message::user("Hello");
         assert_eq!(msg.role, Role::User);
         assert_eq!(msg.content.len(), 1);
+    }
+
+    #[test]
+    fn test_message_assistant() {
+        let msg = Message::assistant("Hello");
+        assert_eq!(msg.role, Role::Assistant);
+        assert_eq!(msg.content.len(), 1);
+    }
+
+    #[test]
+    fn test_message_with_blocks() {
+        let blocks = vec![ContentBlock::text("test1"), ContentBlock::text("test2")];
+        let msg = Message::with_blocks(Role::User, blocks);
+        assert_eq!(msg.role, Role::User);
+        assert_eq!(msg.content.len(), 2);
     }
 
     #[test]
@@ -342,6 +365,147 @@ mod tests {
         match block {
             ContentBlock::Text { text } => assert_eq!(text, "test"),
             _ => panic!("Expected text block"),
+        }
+    }
+
+    #[test]
+    fn test_content_block_tool_use() {
+        let input = serde_json::json!({"key": "value"});
+        let block = ContentBlock::tool_use("tool-1", "my_tool", input.clone());
+        match block {
+            ContentBlock::ToolUse {
+                id,
+                name,
+                input: tool_input,
+            } => {
+                assert_eq!(id, "tool-1");
+                assert_eq!(name, "my_tool");
+                assert_eq!(tool_input, input);
+            }
+            _ => panic!("Expected tool_use block"),
+        }
+    }
+
+    #[test]
+    fn test_content_block_tool_result() {
+        let block = ContentBlock::tool_result("tool-1", "result content");
+        match block {
+            ContentBlock::ToolResult {
+                tool_use_id,
+                content,
+                is_error,
+            } => {
+                assert_eq!(tool_use_id, "tool-1");
+                assert_eq!(content, "result content");
+                assert_eq!(is_error, None);
+            }
+            _ => panic!("Expected tool_result block"),
+        }
+    }
+
+    #[test]
+    fn test_content_block_tool_result_error() {
+        let block = ContentBlock::tool_result_error("tool-1", "error message");
+        match block {
+            ContentBlock::ToolResult {
+                tool_use_id,
+                content,
+                is_error,
+            } => {
+                assert_eq!(tool_use_id, "tool-1");
+                assert_eq!(content, "error message");
+                assert_eq!(is_error, Some(true));
+            }
+            _ => panic!("Expected tool_result block"),
+        }
+    }
+
+    #[test]
+    fn test_tool_creation() {
+        let schema = serde_json::json!({"type": "object", "properties": {}});
+        let tool = Tool::new("my_tool", "A test tool", schema.clone());
+        assert_eq!(tool.name, "my_tool");
+        assert_eq!(tool.description, "A test tool");
+        assert_eq!(tool.input_schema, schema);
+    }
+
+    #[test]
+    fn test_create_message_request_builder() {
+        let messages = vec![Message::user("Hello")];
+        let request = CreateMessageRequest::new(Model::Sonnet, messages.clone(), 1024);
+        assert_eq!(request.model, "claude-sonnet-4-5-20250929");
+        assert_eq!(request.max_tokens, 1024);
+        assert_eq!(request.messages.len(), 1);
+        assert_eq!(request.system, None);
+    }
+
+    #[test]
+    fn test_create_message_request_with_system() {
+        let messages = vec![Message::user("Hello")];
+        let request = CreateMessageRequest::new(Model::Sonnet, messages, 1024)
+            .with_system("You are a helpful assistant");
+        assert_eq!(
+            request.system,
+            Some("You are a helpful assistant".to_string())
+        );
+    }
+
+    #[test]
+    fn test_create_message_request_with_temperature() {
+        let messages = vec![Message::user("Hello")];
+        let request =
+            CreateMessageRequest::new(Model::Sonnet, messages, 1024).with_temperature(0.7);
+        assert_eq!(request.temperature, Some(0.7));
+    }
+
+    #[test]
+    fn test_create_message_request_with_stream() {
+        let messages = vec![Message::user("Hello")];
+        let request = CreateMessageRequest::new(Model::Sonnet, messages, 1024).with_stream(true);
+        assert_eq!(request.stream, Some(true));
+    }
+
+    #[test]
+    fn test_create_message_request_with_tools() {
+        let messages = vec![Message::user("Hello")];
+        let tool = Tool::new("test_tool", "A test", serde_json::json!({}));
+        let request =
+            CreateMessageRequest::new(Model::Sonnet, messages, 1024).with_tools(vec![tool]);
+        assert!(request.tools.is_some());
+        assert_eq!(request.tools.unwrap().len(), 1);
+    }
+
+    #[test]
+    fn test_role_serialization() {
+        assert_eq!(serde_json::to_string(&Role::User).unwrap(), r#""user""#);
+        assert_eq!(
+            serde_json::to_string(&Role::Assistant).unwrap(),
+            r#""assistant""#
+        );
+    }
+
+    #[test]
+    fn test_usage_creation() {
+        let usage = Usage {
+            input_tokens: 100,
+            output_tokens: 200,
+        };
+        assert_eq!(usage.input_tokens, 100);
+        assert_eq!(usage.output_tokens, 200);
+    }
+
+    #[test]
+    fn test_image_source_base64() {
+        let source = ImageSource::Base64 {
+            media_type: "image/png".to_string(),
+            data: "base64data".to_string(),
+        };
+        match source {
+            ImageSource::Base64 { media_type, data } => {
+                assert_eq!(media_type, "image/png");
+                assert_eq!(data, "base64data");
+            }
+            _ => panic!("Expected Base64 variant"),
         }
     }
 }

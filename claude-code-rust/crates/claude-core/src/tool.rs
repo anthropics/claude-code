@@ -75,11 +75,7 @@ impl ToolResult {
     }
 
     /// Add metadata to the result
-    pub fn with_metadata<K: Into<String>, V: Serialize>(
-        mut self,
-        key: K,
-        value: V,
-    ) -> Self {
+    pub fn with_metadata<K: Into<String>, V: Serialize>(mut self, key: K, value: V) -> Self {
         if let Ok(v) = serde_json::to_value(value) {
             self.metadata.insert(key.into(), v);
         }

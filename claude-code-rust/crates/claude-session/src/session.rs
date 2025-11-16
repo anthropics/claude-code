@@ -186,8 +186,7 @@ impl Session {
         key: impl Into<String>,
         value: &T,
     ) -> Result<()> {
-        let json_value = serde_json::to_value(value)
-            .context("Failed to serialize state value")?;
+        let json_value = serde_json::to_value(value).context("Failed to serialize state value")?;
         self.set_state(key, json_value);
         Ok(())
     }
@@ -295,8 +294,7 @@ impl Session {
     /// println!("Removed {} old sessions", removed.len());
     /// ```
     pub fn cleanup_old_sessions(days: i64) -> Result<Vec<String>> {
-        let session_ids = StateFile::list_sessions()
-            .context("Failed to list sessions")?;
+        let session_ids = StateFile::list_sessions().context("Failed to list sessions")?;
 
         let mut removed = Vec::new();
         let cutoff = Utc::now() - Duration::days(days);
@@ -316,7 +314,10 @@ impl Session {
                 }
                 Err(e) => {
                     // If we can't load it, it might be corrupted - try to delete it
-                    eprintln!("Failed to load session {} (may be corrupted): {}", session_id, e);
+                    eprintln!(
+                        "Failed to load session {} (may be corrupted): {}",
+                        session_id, e
+                    );
                     if let Err(e) = StateFile::delete_state(&session_id) {
                         eprintln!("Failed to delete corrupted session {}: {}", session_id, e);
                     } else {
@@ -375,7 +376,10 @@ mod tests {
         session.set_state("key2", serde_json::json!(42));
 
         // Get state
-        assert_eq!(session.get_state("key1"), Some(&serde_json::json!("value1")));
+        assert_eq!(
+            session.get_state("key1"),
+            Some(&serde_json::json!("value1"))
+        );
         assert_eq!(session.get_state("key2"), Some(&serde_json::json!(42)));
         assert_eq!(session.get_state("nonexistent"), None);
 
@@ -426,7 +430,10 @@ mod tests {
         let loaded = Session::from_id(&session_id).unwrap();
 
         assert_eq!(loaded.id(), &session_id);
-        assert_eq!(loaded.get_state("test_key"), Some(&serde_json::json!("test_value")));
+        assert_eq!(
+            loaded.get_state("test_key"),
+            Some(&serde_json::json!("test_value"))
+        );
         assert_eq!(loaded.working_dir(), &PathBuf::from("/tmp/test"));
 
         // Clean up

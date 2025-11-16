@@ -57,28 +57,23 @@ impl CommandDefinition {
     /// * `path` - Path to the .md file
     /// * `name` - Command name (typically derived from filename without .md extension)
     pub fn from_file<P: AsRef<Path>>(path: P, name: String) -> Result<Self> {
-        let content = fs::read_to_string(path.as_ref())
-            .context("Failed to read command file")?;
+        let content = fs::read_to_string(path.as_ref()).context("Failed to read command file")?;
 
         Self::from_markdown(&content, name)
     }
 
     /// Parse a command definition from markdown content.
     pub fn from_markdown(content: &str, name: String) -> Result<Self> {
-        let parsed: ParsedMarkdown<CommandFrontmatter> = FrontmatterParser::parse(content)
-            .context("Failed to parse command frontmatter")?;
+        let parsed: ParsedMarkdown<CommandFrontmatter> =
+            FrontmatterParser::parse(content).context("Failed to parse command frontmatter")?;
 
-        let allowed_tools = parsed
-            .frontmatter
-            .allowed_tools
-            .as_ref()
-            .map(|tools_str| {
-                tools_str
-                    .split(',')
-                    .map(|s| s.trim().to_string())
-                    .filter(|s| !s.is_empty())
-                    .collect()
-            });
+        let allowed_tools = parsed.frontmatter.allowed_tools.as_ref().map(|tools_str| {
+            tools_str
+                .split(',')
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty())
+                .collect()
+        });
 
         Ok(CommandDefinition {
             name,
@@ -134,6 +129,6 @@ Do something simple"#;
         assert_eq!(cmd.name, "simple");
         assert_eq!(cmd.description, "Simple command");
         assert_eq!(cmd.allowed_tools, None);
-        assert_eq!(cmd.disable_model_invocation, false);
+        assert!(!cmd.disable_model_invocation);
     }
 }

@@ -42,9 +42,17 @@ impl ConversationManager {
     /// Add a tool result
     pub fn add_tool_result(&mut self, tool_use_id: String, result: &ToolResult) {
         let content = if result.success {
-            result.output.clone().unwrap_or(Value::String("Success".to_string()))
+            result
+                .output
+                .clone()
+                .unwrap_or(Value::String("Success".to_string()))
         } else {
-            Value::String(result.error.clone().unwrap_or_else(|| "Unknown error".to_string()))
+            Value::String(
+                result
+                    .error
+                    .clone()
+                    .unwrap_or_else(|| "Unknown error".to_string()),
+            )
         };
 
         // Create a tool result message

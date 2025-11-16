@@ -50,7 +50,10 @@ impl Tool for CalculatorTool {
     }
 
     async fn execute(&self, input: ToolInput) -> Result<ToolResult> {
-        let operation = input.get("operation").and_then(|v| v.as_str()).unwrap_or("");
+        let operation = input
+            .get("operation")
+            .and_then(|v| v.as_str())
+            .unwrap_or("");
         let a = input.get("a").and_then(|v| v.as_f64()).unwrap_or(0.0);
         let b = input.get("b").and_then(|v| v.as_f64()).unwrap_or(0.0);
 

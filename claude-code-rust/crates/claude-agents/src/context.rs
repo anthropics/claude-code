@@ -84,9 +84,10 @@ impl AgentContext {
     /// * `key` - Result identifier
     /// * `value` - Result value
     pub fn store_result(&self, key: String, value: Value) -> Result<()> {
-        let mut results = self.results.write().map_err(|e| {
-            anyhow::anyhow!("Failed to acquire write lock on results: {}", e)
-        })?;
+        let mut results = self
+            .results
+            .write()
+            .map_err(|e| anyhow::anyhow!("Failed to acquire write lock on results: {}", e))?;
         results.insert(key, value);
         Ok(())
     }
@@ -96,17 +97,19 @@ impl AgentContext {
     /// # Arguments
     /// * `key` - Result identifier
     pub fn get_result(&self, key: &str) -> Result<Option<Value>> {
-        let results = self.results.read().map_err(|e| {
-            anyhow::anyhow!("Failed to acquire read lock on results: {}", e)
-        })?;
+        let results = self
+            .results
+            .read()
+            .map_err(|e| anyhow::anyhow!("Failed to acquire read lock on results: {}", e))?;
         Ok(results.get(key).cloned())
     }
 
     /// Get all results from the context
     pub fn get_all_results(&self) -> Result<HashMap<String, Value>> {
-        let results = self.results.read().map_err(|e| {
-            anyhow::anyhow!("Failed to acquire read lock on results: {}", e)
-        })?;
+        let results = self
+            .results
+            .read()
+            .map_err(|e| anyhow::anyhow!("Failed to acquire read lock on results: {}", e))?;
         Ok(results.clone())
     }
 
@@ -116,9 +119,10 @@ impl AgentContext {
     /// * `key` - Metadata key
     /// * `value` - Metadata value
     pub fn set_metadata(&self, key: String, value: String) -> Result<()> {
-        let mut metadata = self.metadata.write().map_err(|e| {
-            anyhow::anyhow!("Failed to acquire write lock on metadata: {}", e)
-        })?;
+        let mut metadata = self
+            .metadata
+            .write()
+            .map_err(|e| anyhow::anyhow!("Failed to acquire write lock on metadata: {}", e))?;
         metadata.insert(key, value);
         Ok(())
     }
@@ -128,17 +132,19 @@ impl AgentContext {
     /// # Arguments
     /// * `key` - Metadata key
     pub fn get_metadata(&self, key: &str) -> Result<Option<String>> {
-        let metadata = self.metadata.read().map_err(|e| {
-            anyhow::anyhow!("Failed to acquire read lock on metadata: {}", e)
-        })?;
+        let metadata = self
+            .metadata
+            .read()
+            .map_err(|e| anyhow::anyhow!("Failed to acquire read lock on metadata: {}", e))?;
         Ok(metadata.get(key).cloned())
     }
 
     /// Clear all results
     pub fn clear_results(&self) -> Result<()> {
-        let mut results = self.results.write().map_err(|e| {
-            anyhow::anyhow!("Failed to acquire write lock on results: {}", e)
-        })?;
+        let mut results = self
+            .results
+            .write()
+            .map_err(|e| anyhow::anyhow!("Failed to acquire write lock on results: {}", e))?;
         results.clear();
         Ok(())
     }
@@ -195,7 +201,9 @@ mod tests {
         let context = AgentContext::new("test-agent".to_string(), vec![]);
 
         let value = serde_json::json!({"status": "success"});
-        context.store_result("result1".to_string(), value.clone()).unwrap();
+        context
+            .store_result("result1".to_string(), value.clone())
+            .unwrap();
 
         let retrieved = context.get_result("result1").unwrap();
         assert_eq!(retrieved, Some(value));

@@ -121,10 +121,7 @@ impl StdioTransport {
     }
 
     /// Reader task that reads messages from stdout
-    async fn reader_task(
-        stdout: ChildStdout,
-        tx: mpsc::UnboundedSender<Message>,
-    ) {
+    async fn reader_task(stdout: ChildStdout, tx: mpsc::UnboundedSender<Message>) {
         let mut reader = BufReader::new(stdout);
         let mut line = String::new();
 
@@ -166,10 +163,7 @@ impl StdioTransport {
     }
 
     /// Writer task that writes messages to stdin
-    async fn writer_task(
-        mut stdin: ChildStdin,
-        mut rx: mpsc::UnboundedReceiver<Message>,
-    ) {
+    async fn writer_task(mut stdin: ChildStdin, mut rx: mpsc::UnboundedReceiver<Message>) {
         while let Some(message) = rx.recv().await {
             match serde_json::to_string(&message) {
                 Ok(json) => {
@@ -202,10 +196,7 @@ impl StdioTransport {
 
     /// Receive a message from the transport
     pub async fn receive(&mut self) -> TransportResult<Message> {
-        self.read_rx
-            .recv()
-            .await
-            .ok_or(TransportError::Closed)
+        self.read_rx.recv().await.ok_or(TransportError::Closed)
     }
 
     /// Close the transport and wait for the process to exit
@@ -246,16 +237,12 @@ impl Drop for StdioTransport {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::protocol::{RequestId, JsonRpcRequest};
+    use crate::protocol::{JsonRpcRequest, RequestId};
     use serde_json::json;
 
     #[test]
     fn test_message_serialization() {
-        let req = JsonRpcRequest::new(
-            RequestId::from(1),
-            "test",
-            json!({"key": "value"}),
-        );
+        let req = JsonRpcRequest::new(RequestId::from(1), "test", json!({"key": "value"}));
 
         let msg = Message::Request(req);
         let json = serde_json::to_string(&msg).unwrap();
