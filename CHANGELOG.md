@@ -1,5 +1,24 @@
 # Changelog
 
+## 2.0.42
+
+- Added `agent_id` and `agent_transcript_path` fields to `SubagentStop` hooks.
+
+## 2.0.41
+
+- Added `model` parameter to prompt-based stop hooks, allowing users to specify a custom model for hook evaluation
+- Fixed slash commands from user settings being loaded twice, which could cause rendering issues
+- Fixed incorrect labeling of user settings vs project settings in command descriptions
+- Fixed crash when plugin command hooks timeout during execution
+- Fixed: Bedrock users no longer see duplicate Opus entries in the /model picker when using `--model haiku`
+- Fixed broken security documentation links in trust dialogs and onboarding
+- Fixed issue where pressing ESC to close the diff modal would also interrupt the model
+- ctrl-r history search landing on a slash command no longer cancels the search
+- SDK: Support custom timeouts for hooks
+- Allow more safe git commands to run without approval
+- Plugins: Added support for sharing and installing output styles
+- Teleporting a session from web will automatically set the upstream branch
+
 ## 2.0.37
 
 - Fixed how idleness is computed for notifications
