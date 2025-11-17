@@ -1,0 +1,16 @@
+# AppDater - Python Dependencies
+
+# CLI framework
+click>=8.0
+
+# YAML configuration
+pyyaml>=6.0
+
+# Rich terminal output
+rich>=12.0
+
+# System monitoring (disk space, RAM)
+psutil>=5.9
+
+# Date utilities
+python-dateutil>=2.8

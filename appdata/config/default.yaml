@@ -1,0 +1,58 @@
+# AppDater - Default Configuration
+# This file contains default settings for AppDater operations
+
+# Safety Settings (prevents system crashes)
+safety:
+  # Minimum free disk space in GB (operations abort if below this)
+  min_disk_free_gb: 10
+
+  # Warning threshold for disk space in GB
+  warn_disk_free_gb: 20
+
+  # Maximum RAM usage percentage before warning
+  max_ram_usage_pct: 85
+
+# File Processing Settings
+processing:
+  # Supported file extensions
+  supported_extensions:
+    - .dmg
+    - .pkg
+    - .iso
+
+  # Skip hidden files (starting with .)
+  skip_hidden_files: true
+
+  # Search subdirectories recursively
+  recursive: true
+
+# Renaming Settings
+renaming:
+  # Automatically remove Intel-only builds
+  remove_intel_files: true
+
+  # Remove release group tags ([TNT], [atb], etc.)
+  remove_release_tags: true
+
+  # Use modification date as fallback when no version found
+  use_date_fallback: true
+
+# Logging Settings
+logging:
+  # Directory to store log files
+  log_dir: ./logs
+
+  # Directory to store restore scripts
+  restore_dir: ./restore
+
+  # Keep logs for X days (cleanup old logs)
+  keep_logs_days: 30
+
+# Duplicate Detection Settings
+duplicates:
+  # Automatically delete old versions without confirmation
+  # WARNING: Set to false for safety!
+  auto_delete: false
+
+  # Keep newest version by modification time
+  keep_newest: true
