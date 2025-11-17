@@ -1,0 +1,9 @@
+{
+  "name": "linear-mcp",
+  "description": "Integrate Linear's project management system with Claude Code through the Model Context Protocol (MCP) to search, create, and update Linear issues directly from conversations",
+  "version": "1.0.0",
+  "author": {
+    "name": "Anthropic",
+    "email": "support@anthropic.com"
+  }
+}

@@ -55,6 +55,20 @@ Provides a structured 7-phase approach to feature development with specialized a
   - `code-reviewer` - Reviews code for bugs, quality issues, and project conventions
 - **Use case**: Building new features with systematic codebase understanding and quality assurance
 
+### [linear-mcp](./linear-mcp/)
+
+**Linear Project Management Integration Plugin**
+
+Integrates Linear's project management system with Claude Code through the Model Context Protocol (MCP) to search, create, and update Linear issues directly from conversations.
+
+- **MCP Server**: Remote Linear MCP server at `https://mcp.linear.app/sse`
+- **Features**:
+  - Query and search Linear issues, projects, and comments
+  - Create new issues and projects
+  - Update issue status and add comments
+  - Real-time context from Linear workspace
+- **Use case**: Managing Linear issues and staying in flow during development without context switching
+
 ## Installation
 
 These plugins are included in the Claude Code repository. To use them in your own projects:
