@@ -1,0 +1,9 @@
+{
+  "name": "seven-integration",
+  "version": "1.0.0",
+  "description": "Seven AI orchestration daemon integration hooks for Claude Code lifecycle events",
+  "author": {
+    "name": "Heimdall Engineering",
+    "email": "engineering@heimdall.ai"
+  }
+}

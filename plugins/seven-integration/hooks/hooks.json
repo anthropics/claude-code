@@ -1,0 +1,27 @@
+{
+  "description": "Seven integration hooks for tool lifecycle event logging and awareness",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/seven_pre_tool_hook.py"
+          }
+        ],
+        "matcher": ".*"
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/seven_post_tool_hook.py"
+          }
+        ],
+        "matcher": ".*"
+      }
+    ]
+  }
+}
