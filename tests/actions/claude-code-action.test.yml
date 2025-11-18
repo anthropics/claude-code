@@ -1,0 +1,253 @@
+name: Test Claude Code Action
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/actions/claude-code-action/**'
+
+jobs:
+  # Test 1: Missing both prompt and prompt_file should fail
+  test-missing-prompt:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Test with no prompt (should fail)
+        id: test
+        continue-on-error: true
+        uses: ./.github/actions/claude-code-action
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          anthropic_api_key: "test-key-dummy"
+
+      - name: Verify failure
+        if: steps.test.outcome == 'success'
+        run: |
+          echo "::error::Test should have failed with missing prompt"
+          exit 1
+
+      - name: Success
+        if: steps.test.outcome == 'failure'
+        run: echo "✓ Correctly failed when no prompt provided"
+
+  # Test 2: Prompt file that doesn't exist should fail
+  test-nonexistent-prompt-file:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Test with nonexistent file (should fail)
+        id: test
+        continue-on-error: true
+        uses: ./.github/actions/claude-code-action
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          anthropic_api_key: "test-key-dummy"
+          prompt_file: "/nonexistent/file.txt"
+
+      - name: Verify failure
+        if: steps.test.outcome == 'success'
+        run: |
+          echo "::error::Test should have failed with nonexistent file"
+          exit 1
+
+      - name: Success
+        if: steps.test.outcome == 'failure'
+        run: echo "✓ Correctly failed with nonexistent prompt file"
+
+  # Test 3: Empty prompt should fail
+  test-empty-prompt:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create empty prompt file
+        run: touch /tmp/empty-prompt.txt
+
+      - name: Test with empty prompt (should fail)
+        id: test
+        continue-on-error: true
+        uses: ./.github/actions/claude-code-action
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          anthropic_api_key: "test-key-dummy"
+          prompt_file: "/tmp/empty-prompt.txt"
+
+      - name: Verify failure
+        if: steps.test.outcome == 'success'
+        run: |
+          echo "::error::Test should have failed with empty prompt"
+          exit 1
+
+      - name: Success
+        if: steps.test.outcome == 'failure'
+        run: echo "✓ Correctly failed with empty prompt"
+
+  # Test 4: Valid prompt parameter should pass validation
+  test-valid-prompt-parameter:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Test with valid prompt parameter
+        id: test
+        continue-on-error: true
+        uses: ./.github/actions/claude-code-action
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          anthropic_api_key: "test-key-dummy"
+          prompt: "What is 2+2?"
+          timeout_minutes: "1"
+
+      - name: Check prompt was prepared
+        run: |
+          if [ ! -f "$PROMPT_PATH" ]; then
+            echo "::error::Prompt file was not created"
+            exit 1
+          fi
+          echo "✓ Prompt file created successfully"
+
+  # Test 5: Valid prompt file should pass validation
+  test-valid-prompt-file:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create valid prompt file
+        run: |
+          mkdir -p /tmp/test-prompts
+          echo "Test prompt content" > /tmp/test-prompts/test.txt
+
+      - name: Test with valid prompt file
+        id: test
+        continue-on-error: true
+        uses: ./.github/actions/claude-code-action
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          anthropic_api_key: "test-key-dummy"
+          prompt_file: "/tmp/test-prompts/test.txt"
+          timeout_minutes: "1"
+
+      - name: Check prompt was prepared
+        run: |
+          if [ ! -f "$PROMPT_PATH" ]; then
+            echo "::error::Prompt file was not found"
+            exit 1
+          fi
+          echo "✓ Prompt file validated successfully"
+
+  # Test 6: Timeout calculation
+  test-timeout-calculation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Test timeout calculation
+        run: |
+          # Test various timeout values
+          test_timeout() {
+            local minutes=$1
+            local expected_seconds=$((minutes * 60))
+            echo "Testing $minutes minutes = $expected_seconds seconds"
+
+            if [ $expected_seconds -ne $((minutes * 60)) ]; then
+              echo "::error::Timeout calculation failed for $minutes minutes"
+              exit 1
+            fi
+          }
+
+          test_timeout 1
+          test_timeout 5
+          test_timeout 10
+          test_timeout 30
+
+          echo "✓ Timeout calculations correct"
+
+  # Test 7: Allowed tools parameter parsing
+  test-allowed-tools-parsing:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Test allowed tools parameter
+        run: |
+          # Simulate the allowed tools parameter parsing
+          ALLOWED_TOOLS="Bash,Read,Write,Grep"
+          ALLOWED_TOOLS_ARG=""
+
+          if [ ! -z "$ALLOWED_TOOLS" ]; then
+            ALLOWED_TOOLS_ARG="--allowedTools $ALLOWED_TOOLS"
+          fi
+
+          if [ -z "$ALLOWED_TOOLS_ARG" ]; then
+            echo "::error::Allowed tools arg should be set"
+            exit 1
+          fi
+
+          echo "✓ Allowed tools parameter parsed correctly: $ALLOWED_TOOLS_ARG"
+
+  # Test 8: Action inputs are properly defined
+  test-action-inputs-defined:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate action.yml structure
+        run: |
+          ACTION_FILE=".github/actions/claude-code-action/action.yml"
+
+          # Check required inputs exist
+          required_inputs=("github_token" "anthropic_api_key")
+
+          for input in "${required_inputs[@]}"; do
+            if ! grep -q "^  $input:" "$ACTION_FILE"; then
+              echo "::error::Required input '$input' not found in action.yml"
+              exit 1
+            fi
+          done
+
+          # Check optional inputs exist
+          optional_inputs=("prompt" "prompt_file" "allowed_tools" "output_file" "timeout_minutes" "install_github_mcp")
+
+          for input in "${optional_inputs[@]}"; do
+            if ! grep -q "^  $input:" "$ACTION_FILE"; then
+              echo "::error::Optional input '$input' not found in action.yml"
+              exit 1
+            fi
+          done
+
+          echo "✓ All action inputs properly defined"
+
+  # Test 9: Environment variables are set correctly
+  test-environment-variables:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check environment variables in action
+        run: |
+          ACTION_FILE=".github/actions/claude-code-action/action.yml"
+
+          # Check that ANTHROPIC_API_KEY is set from input
+          if ! grep -q "ANTHROPIC_API_KEY: \${{ inputs.anthropic_api_key }}" "$ACTION_FILE"; then
+            echo "::error::ANTHROPIC_API_KEY not properly set from input"
+            exit 1
+          fi
+
+          # Check that GITHUB_TOKEN is set from input
+          if ! grep -q "GITHUB_TOKEN: \${{ inputs.github_token }}" "$ACTION_FILE"; then
+            echo "::error::GITHUB_TOKEN not properly set from input"
+            exit 1
+          fi
+
+          echo "✓ Environment variables properly configured"

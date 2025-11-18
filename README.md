@@ -1,6 +1,6 @@
 # Claude Code
 
-![](https://img.shields.io/badge/Node.js-18%2B-brightgreen?style=flat-square) [![npm]](https://www.npmjs.com/package/@anthropic-ai/claude-code)
+![](https://img.shields.io/badge/Node.js-18%2B-brightgreen?style=flat-square) [![npm]](https://www.npmjs.com/package/@anthropic-ai/claude-code) ![Tests](https://github.com/anthropics/claude-code/workflows/Tests/badge.svg) [![codecov](https://codecov.io/gh/anthropics/claude-code/branch/main/graph/badge.svg)](https://codecov.io/gh/anthropics/claude-code)
 
 [npm]: https://img.shields.io/npm/v/@anthropic-ai/claude-code.svg?style=flat-square
 
@@ -32,6 +32,36 @@ Some of its key capabilities include:
 3. Navigate to your project directory and run `claude`.
 
 4. Complete the one-time OAuth process with your Claude Max or Anthropic Console account.
+
+## Development
+
+### Running Tests
+
+This repository includes comprehensive tests for workflows, shell scripts, and configurations:
+
+```sh
+# Install dependencies
+npm install
+
+# Run all tests
+npm test
+
+# Run specific test suites
+npm run test:config  # Configuration validation
+npm run test:shell   # Shell script tests
+npm run lint         # YAML and shell linting
+```
+
+See [TESTING.md](TESTING.md) for detailed testing documentation.
+
+### Contributing
+
+When contributing to this repository:
+
+1. Ensure all tests pass: `npm test`
+2. Add tests for new features
+3. Run linters before committing
+4. Install pre-commit hooks: `pre-commit install`
 
 ### Reporting Bugs
 

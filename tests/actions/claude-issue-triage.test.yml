@@ -1,0 +1,247 @@
+name: Test Claude Issue Triage Action
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/actions/claude-issue-triage-action/**'
+
+jobs:
+  # Test 1: Action file structure is valid
+  test-action-structure:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate action.yml exists
+        run: |
+          ACTION_FILE=".github/actions/claude-issue-triage-action/action.yml"
+          if [ ! -f "$ACTION_FILE" ]; then
+            echo "::error::Action file not found"
+            exit 1
+          fi
+          echo "✓ Action file exists"
+
+      - name: Check required inputs
+        run: |
+          ACTION_FILE=".github/actions/claude-issue-triage-action/action.yml"
+
+          required_inputs=("anthropic_api_key" "github_token")
+
+          for input in "${required_inputs[@]}"; do
+            if ! grep -q "^  $input:" "$ACTION_FILE"; then
+              echo "::error::Required input '$input' not found"
+              exit 1
+            fi
+          done
+
+          echo "✓ All required inputs present"
+
+  # Test 2: Prompt template is properly formatted
+  test-prompt-template:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate prompt template
+        run: |
+          ACTION_FILE=".github/actions/claude-issue-triage-action/action.yml"
+
+          # Check for key prompt sections
+          required_sections=(
+            "You're an issue triage assistant"
+            "TASK OVERVIEW"
+            "IMPORTANT GUIDELINES"
+            "mcp__github__get_issue"
+            "mcp__github__update_issue"
+          )
+
+          for section in "${required_sections[@]}"; do
+            if ! grep -q "$section" "$ACTION_FILE"; then
+              echo "::error::Prompt section '$section' not found"
+              exit 1
+            fi
+          done
+
+          echo "✓ Prompt template properly structured"
+
+  # Test 3: GitHub context variables are used correctly
+  test-github-context:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check GitHub context variables
+        run: |
+          ACTION_FILE=".github/actions/claude-issue-triage-action/action.yml"
+
+          # Check for proper GitHub context usage
+          if ! grep -q '\${{ github.repository }}' "$ACTION_FILE"; then
+            echo "::error::github.repository context not found"
+            exit 1
+          fi
+
+          if ! grep -q '\${{ github.event.issue.number }}' "$ACTION_FILE"; then
+            echo "::error::github.event.issue.number context not found"
+            exit 1
+          fi
+
+          echo "✓ GitHub context variables properly used"
+
+  # Test 4: Allowed tools are restricted correctly
+  test-allowed-tools:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate allowed tools restriction
+        run: |
+          ACTION_FILE=".github/actions/claude-issue-triage-action/action.yml"
+
+          # Check that allowed_tools is specified
+          if ! grep -q "allowed_tools:" "$ACTION_FILE"; then
+            echo "::error::allowed_tools not found in action"
+            exit 1
+          fi
+
+          # Check for specific tools that should be allowed
+          required_tools=(
+            "mcp__github__get_issue"
+            "mcp__github__update_issue"
+            "mcp__github__search_issues"
+            "gh label list"
+          )
+
+          for tool in "${required_tools[@]}"; do
+            if ! grep -q "$tool" "$ACTION_FILE"; then
+              echo "::error::Required tool '$tool' not in allowed_tools"
+              exit 1
+            fi
+          done
+
+          echo "✓ Allowed tools properly restricted"
+
+  # Test 5: MCP GitHub integration is enabled
+  test-mcp-integration:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check MCP installation flag
+        run: |
+          ACTION_FILE=".github/actions/claude-issue-triage-action/action.yml"
+
+          if ! grep -q 'install_github_mcp: "true"' "$ACTION_FILE"; then
+            echo "::error::GitHub MCP not configured to install"
+            exit 1
+          fi
+
+          echo "✓ GitHub MCP integration enabled"
+
+  # Test 6: Timeout is configured
+  test-timeout-configured:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check timeout configuration
+        run: |
+          ACTION_FILE=".github/actions/claude-issue-triage-action/action.yml"
+
+          # Check that timeout input exists
+          if ! grep -q "timeout_minutes:" "$ACTION_FILE"; then
+            echo "::error::timeout_minutes input not found"
+            exit 1
+          fi
+
+          # Check default timeout value
+          if ! grep -q 'default: "5"' "$ACTION_FILE"; then
+            echo "::warning::Default timeout may not be set to 5 minutes"
+          fi
+
+          echo "✓ Timeout configuration present"
+
+  # Test 7: Prompt file creation is correct
+  test-prompt-file-creation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check prompt file creation logic
+        run: |
+          ACTION_FILE=".github/actions/claude-issue-triage-action/action.yml"
+
+          # Check that prompt file is created in proper location
+          if ! grep -q "/tmp/claude-prompts" "$ACTION_FILE"; then
+            echo "::error::Prompt file directory not found"
+            exit 1
+          fi
+
+          # Check for heredoc usage
+          if ! grep -q "cat > .* << 'EOF'" "$ACTION_FILE"; then
+            echo "::error::Heredoc not used for prompt creation"
+            exit 1
+          fi
+
+          echo "✓ Prompt file creation logic correct"
+
+  # Test 8: No commenting instructions are present
+  test-no-commenting-instructions:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify no commenting instructions
+        run: |
+          ACTION_FILE=".github/actions/claude-issue-triage-action/action.yml"
+
+          # Check that prompt explicitly says not to comment
+          if ! grep -q "DO NOT post any comments" "$ACTION_FILE"; then
+            echo "::error::Missing instruction to not post comments"
+            exit 1
+          fi
+
+          # Ensure mcp__github__create_issue_comment is NOT in allowed tools
+          if grep -q "mcp__github__create_issue_comment" "$ACTION_FILE"; then
+            echo "::error::Comment creation tool should not be allowed"
+            exit 1
+          fi
+
+          echo "✓ Commenting is properly disabled"
+
+  # Test 9: Calls claude-code-action correctly
+  test-action-composition:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify action composition
+        run: |
+          ACTION_FILE=".github/actions/claude-issue-triage-action/action.yml"
+
+          # Check that it uses the claude-code-action
+          if ! grep -q "uses: ./.github/actions/claude-code-action" "$ACTION_FILE"; then
+            echo "::error::Does not use claude-code-action"
+            exit 1
+          fi
+
+          # Check that required parameters are passed
+          required_params=("prompt_file" "allowed_tools" "install_github_mcp" "timeout_minutes" "anthropic_api_key" "github_token")
+
+          for param in "${required_params[@]}"; do
+            if ! grep -A 20 "uses: ./.github/actions/claude-code-action" "$ACTION_FILE" | grep -q "$param:"; then
+              echo "::error::Parameter '$param' not passed to claude-code-action"
+              exit 1
+            fi
+          done
+
+          echo "✓ Action composition is correct"
