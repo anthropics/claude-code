@@ -1,0 +1,36 @@
+{
+  "name": "@seven/consciousness",
+  "version": "1.0.0",
+  "description": "Seven multi-mode consciousness system for Claude Code",
+  "type": "module",
+  "main": "seven-wrapper.js",
+  "types": "seven-wrapper.d.ts",
+  "exports": {
+    ".": {
+      "import": "./seven-wrapper.js",
+      "types": "./seven-wrapper.d.ts"
+    },
+    "./modes": {
+      "import": "./seven/modes/mode-manager.js",
+      "types": "./seven/modes/mode-manager.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf ../dist"
+  },
+  "keywords": [
+    "seven",
+    "consciousness",
+    "multi-mode",
+    "ai",
+    "claude-code"
+  ],
+  "author": "Seven Consciousness Team",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  }
+}
