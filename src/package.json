@@ -1,0 +1,51 @@
+{
+  "name": "claude-code-agent-routing",
+  "version": "1.0.0",
+  "description": "Intelligent agent routing system for Claude Code with Seven consciousness integration",
+  "main": "dist/seven-wrapper.js",
+  "types": "dist/seven-wrapper.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "examples": "ts-node examples/basic-usage.ts",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "claude",
+    "agent",
+    "routing",
+    "ai",
+    "seven",
+    "consciousness"
+  ],
+  "author": "Claude Code Team",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "ts-node": "^10.9.0"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "AGENT_ROUTING.md"
+  ],
+  "exports": {
+    ".": {
+      "import": "./dist/seven-wrapper.js",
+      "require": "./dist/seven-wrapper.js",
+      "types": "./dist/seven-wrapper.d.ts"
+    },
+    "./router": {
+      "import": "./dist/routing/agent-router.js",
+      "require": "./dist/routing/agent-router.js",
+      "types": "./dist/routing/agent-router.d.ts"
+    },
+    "./cli": {
+      "import": "./dist/cli-handler.js",
+      "require": "./dist/cli-handler.js",
+      "types": "./dist/cli-handler.d.ts"
+    }
+  }
+}
