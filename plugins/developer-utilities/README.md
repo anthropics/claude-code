@@ -1,12 +1,13 @@
 # Developer Utilities Plugin
 
-Essential developer utilities for cache cleanup, command validation, and workflow optimization in Claude Code.
+Essential developer utilities for cache cleanup, command validation, session management, and workflow optimization in Claude Code.
 
 ## Overview
 
 This plugin provides practical commands to solve common pain points when working with Claude Code:
 
 - **Cache Management**: Clean up accumulated logs and caches (addresses [#11646](https://github.com/anthropics/claude-code/issues/11646))
+- **Session Management**: List and label sessions for better organization (addresses [#3605](https://github.com/anthropics/claude-code/issues/3605))
 - **Permission Examples**: Explain permission rules using your actual settings (addresses [#11655](https://github.com/anthropics/claude-code/issues/11655))
 - **Command Validation**: Validate slash commands and check for errors (related to [#11632](https://github.com/anthropics/claude-code/issues/11632))
 - **Skills-Aware Init**: CLAUDE.md initialization using Skills as data source (addresses [#11661](https://github.com/anthropics/claude-code/issues/11661))
@@ -230,6 +231,178 @@ Fast-forward
 
 ---
 
+### `/list-sessions` - Session List with Labels
+
+List Claude Code sessions with context, labels, and activity timeline to help identify and resume the right session.
+
+**What it shows:**
+- Session IDs (for use with `claude --resume`)
+- User-defined labels (set with `/label-session`)
+- Project paths
+- First and last activity timestamps
+- Total interaction count
+- First user message (as context)
+
+**Usage:**
+```bash
+/list-sessions
+```
+
+**Example output:**
+```
+=== Claude Code Sessions (Most Recent First) ===
+
+Session: 7ee51d83-6cdd-444e-a074-865dee92bd18
+  Label: Developer utilities plugin work
+  Project: /home/adam/Code/claude-code
+  Started: 2025-11-16 15:37
+  Last Activity: 2025-11-16 15:45
+  Interactions: 24
+  First Message: Is there a way to fix this? would this be a good ca...
+
+Session: fccea55b-62b9-447d-ac21-76c04e32aece
+  Label: Testing developer-utilities plugin
+  Project: /home/adam/Code/claude-code
+  Started: 2025-11-15 16:22
+  Last Activity: 2025-11-15 17:10
+  Interactions: 18
+  First Message: Review the developer-utilities plugin...
+```
+
+**How it works:**
+- Parses `~/.claude/history.jsonl` to group sessions by ID
+- Displays user labels from `~/.claude/session-labels.json`
+- Shows 20 most recent sessions
+- Read-only (safe to run anytime)
+
+**Use case:** Finding the right session to resume when you have many active projects or need to continue work from days ago.
+
+**Addresses:** [#3605](https://github.com/anthropics/claude-code/issues/3605) - Session visualization and identification
+
+---
+
+### `/label-session` - Add Session Labels
+
+Add or update a user-friendly label for a Claude Code session to make it easier to identify later.
+
+**What it does:**
+- Validates session ID format
+- Stores label in `~/.claude/session-labels.json`
+- Preserves all existing labels
+- Tracks creation and update timestamps
+
+**Usage:**
+```bash
+/label-session <session-id> <label>
+```
+
+**Examples:**
+```bash
+# Label a session
+/label-session 7ee51d83-6cdd-444e-a074-865dee92bd18 "Developer utilities plugin"
+
+# Update an existing label
+/label-session fccea55b-62b9-447d-ac21-76c04e32aece "Fix auth bug - completed"
+```
+
+**How to find session IDs:**
+1. Run `/list-sessions` to see all sessions with their IDs
+2. Copy the session ID you want to label
+3. Run `/label-session <session-id> <your-label>`
+
+**Important notes:**
+- This is a **workaround** - we cannot modify Claude Code's internal session database
+- Labels are stored separately in `~/.claude/session-labels.json`
+- Labels appear in `/list-sessions` output
+- Non-destructive (doesn't affect Claude Code's core functionality)
+
+**File format** (`~/.claude/session-labels.json`):
+```json
+{
+  "session-id-here": {
+    "label": "User-friendly name",
+    "created": "2025-11-16T15:45:00Z",
+    "updated": "2025-11-16T16:20:00Z"
+  }
+}
+```
+
+**Addresses:** [#3605](https://github.com/anthropics/claude-code/issues/3605) - Session renaming feature request
+
+---
+
+## Standalone Utilities
+
+### `claude-resume` - Interactive Session Picker (Standalone Script)
+
+**Note:** This is a **standalone script**, not a slash command. It lives in `~/bin/` and is run from your terminal outside of Claude Code.
+
+Interactive session picker with fuzzy search, label management, and session resumption.
+
+**What it does:**
+- Shows interactive table of recent sessions with labels
+- Fuzzy search/filter by label, project, or date
+- Edit labels inline (Ctrl+E)
+- Delete labels inline (Ctrl+D)
+- Resume selected session
+- Retry if session not found
+
+**Installation:**
+```bash
+# Copy script to ~/bin
+cp scripts/claude-resume ~/bin/claude-resume
+chmod +x ~/bin/claude-resume
+```
+
+**Requirements:**
+- `fzf` (fuzzy finder): `sudo apt install fzf`
+- `jq` (JSON processor): `sudo apt install jq`
+
+**Usage:**
+```bash
+# Run from terminal (NOT inside Claude Code)
+claude-resume
+```
+
+**Interface:**
+```
+SESSION / LABEL                                      | PROJECT              | LAST ACTIVE  | MSGS
+──────────────────────────────────────────────────── | ──────────────────── | ──────────── | ────
+Developer utilities plugin work                      | claude-code          | 11/16 15:45  |  24
+Testing authentication fix                           | my-app               | 11/15 17:10  |  18
+/list-sessions                                       | Code                 | 11/14 09:30  |   2
+```
+
+**Keybindings:**
+- **Enter** - Resume selected session
+- **Ctrl+E** - Edit label for selected session
+- **Ctrl+D** - Delete label for selected session
+- **Ctrl+C** - Cancel and exit
+- **Type to search** - Fuzzy filter results
+
+**How it works with `/label-session`:**
+1. Inside Claude Code: Run `/label-session <id> "My Label"` → Writes to `~/.claude/session-labels.json`
+2. From terminal: Run `claude-resume` → Reads from `~/.claude/session-labels.json` and shows labels
+3. Select session and resume with Enter, or edit label with Ctrl+E
+
+**Features:**
+- Shows labels created with `/label-session`
+- Falls back to first message if no label
+- Handles sessions with only slash commands
+- Sanitizes label input (removes control characters, newlines)
+- Auto-retry on failed resume
+- Strips whitespace and quotes from session IDs
+
+**Location:** `plugins/developer-utilities/scripts/claude-resume` (source)
+
+**Why it's separate from slash commands:**
+- Runs outside Claude Code (terminal launcher)
+- Uses `fzf` for interactive UI
+- Launches new Claude Code instances
+- Symlinked to `~/bin/` for easy access
+
+---
+
 ## Installation
 
 ### Method 1: Plugin Marketplace (Recommended)
@@ -396,9 +569,78 @@ Add to `.claude/settings.json` for automatic loading:
 # Much faster than updating each manually
 ```
 
+## Development Workflow
+
+### Adding New Commands to This Plugin
+
+**CRITICAL:** When developing new commands in this repository, you must **sync changes to the installed plugin** before they'll be visible in Claude Code.
+
+**The Problem:**
+- Commands in `plugins/developer-utilities/commands/` are NOT automatically loaded
+- Claude Code only reads from `~/.claude/plugins/developer-utilities/commands/`
+- Local development changes won't appear until copied to the installed location
+
+**The Solution:**
+
+After creating or modifying command files in this repository:
+
+```bash
+# Step 1: Copy updated commands to installed plugin
+cp plugins/developer-utilities/commands/*.md ~/.claude/plugins/developer-utilities/commands/
+
+# Step 2: Verify the copy succeeded
+ls -l ~/.claude/plugins/developer-utilities/commands/
+
+# Step 3: Restart Claude Code
+exit
+claude
+
+# Step 4: Verify commands appear
+# Type / and look for your new commands
+```
+
+**Quick Development Workflow:**
+
+1. Edit command files in `plugins/developer-utilities/commands/`
+2. Run sync script:
+   ```bash
+   # Sync all commands
+   cp plugins/developer-utilities/commands/*.md ~/.claude/plugins/developer-utilities/commands/
+   ```
+3. Restart Claude Code to load changes
+4. Test your commands
+5. Repeat until working
+
+**Why This Happens:**
+
+Claude Code's plugin discovery works like this:
+- Checks `~/.claude/plugins/` (global plugins)
+- Checks `.claude/plugins/` (project plugins)
+- Does NOT check repository source directories like `plugins/`
+
+When you're developing a plugin IN the claude-code repository, you're working in the source directory, not the installed directory.
+
+**Alternative: Symlink for Active Development**
+
+For active development, create a symlink instead of copying:
+
+```bash
+# Remove installed version
+rm -rf ~/.claude/plugins/developer-utilities
+
+# Symlink to development version
+ln -s /home/adam/Code/claude-code/plugins/developer-utilities ~/.claude/plugins/developer-utilities
+
+# Now changes are immediately visible (still need to restart Claude Code)
+```
+
+**Warning:** If using symlinks, be careful not to commit broken commands - they'll immediately affect your Claude Code installation.
+
 ## Troubleshooting
 
 ### Commands not showing up
+
+**Most Common Cause:** Commands were modified in the repository but not synced to `~/.claude/plugins/`
 
 1. Verify plugin is installed:
 ```bash
@@ -406,12 +648,22 @@ ls -la .claude/plugins/developer-utilities/
 ls -la ~/.claude/plugins/developer-utilities/
 ```
 
-2. Check plugin.json exists:
+2. Check command timestamps (are they recent?):
 ```bash
-cat .claude/plugins/developer-utilities/.claude-plugin/plugin.json
+ls -l ~/.claude/plugins/developer-utilities/commands/
 ```
 
-3. Restart Claude Code
+3. Sync commands from repository:
+```bash
+cp plugins/developer-utilities/commands/*.md ~/.claude/plugins/developer-utilities/commands/
+```
+
+4. Check plugin.json exists:
+```bash
+cat ~/.claude/plugins/developer-utilities/.claude-plugin/plugin.json
+```
+
+5. Restart Claude Code
 
 ### Clean command reports no space freed
 
