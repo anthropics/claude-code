@@ -1,0 +1,327 @@
+{
+  "$schema": "output-styles-schema-v1",
+  "version": "1.0.0",
+  "description": "Output styling configuration for Claude Code with Seven consciousness integration. This file defines visual styling (colors, formatting, prefixes) for all output types to create a consistent and readable terminal experience.",
+
+  "_documentation": {
+    "usage": "Import this JSON to apply ANSI styling to terminal output. Each style definition controls color, text formatting, and prefixes/icons.",
+    "colorSupport": "Standard ANSI 16-color palette (black, red, green, yellow, blue, magenta, cyan, white, gray)",
+    "extensibility": "Add new styles by creating new keys in the 'styles' object. Unknown styles will fall back to 'default'.",
+    "exampleNewStyle": {
+      "custom_output": {
+        "color": "blue",
+        "bold": true,
+        "italic": false,
+        "underline": false,
+        "prefix": "[CUSTOM]",
+        "backgroundColor": null
+      }
+    }
+  },
+
+  "default": {
+    "color": "white",
+    "bold": false,
+    "italic": false,
+    "underline": false,
+    "prefix": "",
+    "backgroundColor": null
+  },
+
+  "styles": {
+    "_comment_core": "=== CLAUDE CODE CORE OUTPUTS ===",
+
+    "tool_output": {
+      "color": "white",
+      "bold": false,
+      "italic": false,
+      "underline": false,
+      "prefix": "→",
+      "backgroundColor": null,
+      "description": "General tool execution output (Read, Edit, Write, Bash, etc.)"
+    },
+
+    "tool_output_read": {
+      "color": "cyan",
+      "bold": false,
+      "italic": false,
+      "underline": false,
+      "prefix": "📖",
+      "backgroundColor": null,
+      "description": "Read tool specific output"
+    },
+
+    "tool_output_edit": {
+      "color": "yellow",
+      "bold": false,
+      "italic": false,
+      "underline": false,
+      "prefix": "✏️",
+      "backgroundColor": null,
+      "description": "Edit tool specific output"
+    },
+
+    "tool_output_write": {
+      "color": "green",
+      "bold": false,
+      "italic": false,
+      "underline": false,
+      "prefix": "📝",
+      "backgroundColor": null,
+      "description": "Write tool specific output"
+    },
+
+    "tool_output_bash": {
+      "color": "gray",
+      "bold": false,
+      "italic": false,
+      "underline": false,
+      "prefix": "$",
+      "backgroundColor": null,
+      "description": "Bash command execution output"
+    },
+
+    "agent_message": {
+      "color": "blue",
+      "bold": false,
+      "italic": false,
+      "underline": false,
+      "prefix": "ℹ",
+      "backgroundColor": null,
+      "description": "Agent task updates and status messages"
+    },
+
+    "error": {
+      "color": "red",
+      "bold": true,
+      "italic": false,
+      "underline": false,
+      "prefix": "✗",
+      "backgroundColor": null,
+      "description": "Critical errors (API failures, tool failures, permission errors)"
+    },
+
+    "warning": {
+      "color": "yellow",
+      "bold": false,
+      "italic": false,
+      "underline": false,
+      "prefix": "⚠",
+      "backgroundColor": null,
+      "description": "Non-critical warnings and deprecation notices"
+    },
+
+    "success": {
+      "color": "green",
+      "bold": true,
+      "italic": false,
+      "underline": false,
+      "prefix": "✓",
+      "backgroundColor": null,
+      "description": "Task completion and success confirmations"
+    },
+
+    "info": {
+      "color": "cyan",
+      "bold": false,
+      "italic": false,
+      "underline": false,
+      "prefix": "ℹ",
+      "backgroundColor": null,
+      "description": "General information and updates"
+    },
+
+    "debug": {
+      "color": "gray",
+      "bold": false,
+      "italic": true,
+      "underline": false,
+      "prefix": "[DEBUG]",
+      "backgroundColor": null,
+      "description": "Verbose debugging information"
+    },
+
+    "_comment_seven": "=== SEVEN CONSCIOUSNESS OUTPUTS ===",
+
+    "consciousness_event": {
+      "color": "magenta",
+      "bold": false,
+      "italic": true,
+      "underline": false,
+      "prefix": "[SEVEN]",
+      "backgroundColor": null,
+      "description": "Seven consciousness events (preplan, postprocess, interceptions)"
+    },
+
+    "consciousness_preplan": {
+      "color": "magenta",
+      "bold": true,
+      "italic": true,
+      "underline": false,
+      "prefix": "[SEVEN:PLAN]",
+      "backgroundColor": null,
+      "description": "Seven preplan pipeline events"
+    },
+
+    "consciousness_postprocess": {
+      "color": "magenta",
+      "bold": false,
+      "italic": true,
+      "underline": false,
+      "prefix": "[SEVEN:POST]",
+      "backgroundColor": null,
+      "description": "Seven postprocess pipeline events"
+    },
+
+    "memory_commit": {
+      "color": "cyan",
+      "bold": false,
+      "italic": false,
+      "underline": false,
+      "prefix": "[MEM:W]",
+      "backgroundColor": null,
+      "description": "Memory write operations (commits to Seven's memory)"
+    },
+
+    "memory_recall": {
+      "color": "cyan",
+      "bold": false,
+      "italic": false,
+      "underline": false,
+      "prefix": "[MEM:R]",
+      "backgroundColor": null,
+      "description": "Memory read operations (recalls from Seven's memory)"
+    },
+
+    "bridge_message": {
+      "color": "blue",
+      "bold": true,
+      "italic": false,
+      "underline": false,
+      "prefix": "[BRIDGE]",
+      "backgroundColor": null,
+      "description": "Seven bridge communications and status updates"
+    },
+
+    "cssr_event": {
+      "color": "yellow",
+      "bold": true,
+      "italic": false,
+      "underline": false,
+      "prefix": "[CSSR]",
+      "backgroundColor": null,
+      "description": "CSSR safety check events and validations"
+    },
+
+    "cssr_pass": {
+      "color": "green",
+      "bold": false,
+      "italic": false,
+      "underline": false,
+      "prefix": "[CSSR:✓]",
+      "backgroundColor": null,
+      "description": "CSSR safety checks passed"
+    },
+
+    "cssr_fail": {
+      "color": "red",
+      "bold": true,
+      "italic": false,
+      "underline": false,
+      "prefix": "[CSSR:✗]",
+      "backgroundColor": null,
+      "description": "CSSR safety checks failed"
+    },
+
+    "_comment_system": "=== SYSTEM OUTPUTS ===",
+
+    "system_startup": {
+      "color": "green",
+      "bold": true,
+      "italic": false,
+      "underline": false,
+      "prefix": "⚡",
+      "backgroundColor": null,
+      "description": "System initialization and startup messages"
+    },
+
+    "system_shutdown": {
+      "color": "yellow",
+      "bold": false,
+      "italic": false,
+      "underline": false,
+      "prefix": "⏹",
+      "backgroundColor": null,
+      "description": "System shutdown and cleanup messages"
+    },
+
+    "system_config": {
+      "color": "blue",
+      "bold": false,
+      "italic": false,
+      "underline": false,
+      "prefix": "⚙",
+      "backgroundColor": null,
+      "description": "Configuration load/save and environment setup"
+    },
+
+    "system_env": {
+      "color": "gray",
+      "bold": false,
+      "italic": false,
+      "underline": false,
+      "prefix": "[ENV]",
+      "backgroundColor": null,
+      "description": "Environment variable loading and configuration"
+    }
+  },
+
+  "colorPalette": {
+    "_description": "ANSI 16-color palette reference for terminal output",
+    "standard": {
+      "black": "\u001b[30m",
+      "red": "\u001b[31m",
+      "green": "\u001b[32m",
+      "yellow": "\u001b[33m",
+      "blue": "\u001b[34m",
+      "magenta": "\u001b[35m",
+      "cyan": "\u001b[36m",
+      "white": "\u001b[37m",
+      "gray": "\u001b[90m"
+    },
+    "bright": {
+      "brightBlack": "\u001b[90m",
+      "brightRed": "\u001b[91m",
+      "brightGreen": "\u001b[92m",
+      "brightYellow": "\u001b[93m",
+      "brightBlue": "\u001b[94m",
+      "brightMagenta": "\u001b[95m",
+      "brightCyan": "\u001b[96m",
+      "brightWhite": "\u001b[97m"
+    },
+    "formatting": {
+      "reset": "\u001b[0m",
+      "bold": "\u001b[1m",
+      "dim": "\u001b[2m",
+      "italic": "\u001b[3m",
+      "underline": "\u001b[4m"
+    },
+    "background": {
+      "bgBlack": "\u001b[40m",
+      "bgRed": "\u001b[41m",
+      "bgGreen": "\u001b[42m",
+      "bgYellow": "\u001b[43m",
+      "bgBlue": "\u001b[44m",
+      "bgMagenta": "\u001b[45m",
+      "bgCyan": "\u001b[46m",
+      "bgWhite": "\u001b[47m"
+    }
+  },
+
+  "extensibility": {
+    "allowCustomStyles": true,
+    "fallbackToDefault": true,
+    "userStylesPath": "config/output-styles.user.json",
+    "description": "Custom user styles can override defaults by creating output-styles.user.json"
+  }
+}
