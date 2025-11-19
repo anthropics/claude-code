@@ -23,13 +23,80 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run Claude Code slash command
+        id: claude
         uses: anthropics/claude-code-base-action@beta
         with:
           prompt: "/dedupe ${{ github.repository }}/issues/${{ github.event.issue.number || inputs.issue_number }}"
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           claude_args: "--model claude-sonnet-4-5-20250929"
+          # Note: GH_TOKEN only provides read access for issue viewing/searching
+          # Comment posting is handled in a separate isolated step below
           claude_env: |
             GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # SECURITY: This step runs in isolation without access to ANTHROPIC_API_KEY
+      # It only has GITHUB_TOKEN for posting comments, preventing secret exfiltration
+      - name: Post duplicate comment (isolated from API key)
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ISSUE_NUMBER=${{ github.event.issue.number || inputs.issue_number }}
+          RESULT_FILE="/tmp/dedupe-result.json"
+
+          if [ ! -f "$RESULT_FILE" ]; then
+            echo "No dedupe result file found, skipping comment"
+            exit 0
+          fi
+
+          # Check if we should skip
+          if jq -e '.skip' "$RESULT_FILE" > /dev/null 2>&1; then
+            REASON=$(jq -r '.reason // "unknown"' "$RESULT_FILE")
+            echo "Skipping comment: $REASON"
+            exit 0
+          fi
+
+          # Get duplicates array
+          DUPLICATES=$(jq -r '.duplicates // []' "$RESULT_FILE")
+          COUNT=$(echo "$DUPLICATES" | jq 'length')
+
+          if [ "$COUNT" -eq 0 ]; then
+            echo "No duplicates found, skipping comment"
+            exit 0
+          fi
+
+          # Build comment body (limit to 3 duplicates for safety)
+          SAFE_COUNT=$((COUNT > 3 ? 3 : COUNT))
+
+          COMMENT="Found $SAFE_COUNT possible duplicate issue"
+          if [ "$SAFE_COUNT" -ne 1 ]; then
+            COMMENT="${COMMENT}s"
+          fi
+          COMMENT="${COMMENT}:"
+          COMMENT="${COMMENT}
+          "
+
+          for i in $(seq 0 $((SAFE_COUNT - 1))); do
+            URL=$(echo "$DUPLICATES" | jq -r ".[$i]")
+            # Validate URL format to prevent injection
+            if [[ "$URL" =~ ^https://github\.com/[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+/issues/[0-9]+$ ]]; then
+              COMMENT="${COMMENT}
+          $((i + 1)). $URL"
+            fi
+          done
+
+          COMMENT="${COMMENT}
+
+          This issue will be automatically closed as a duplicate in 3 days.
+
+          - If your issue is a duplicate, please close it and 👍 the existing issue instead
+          - To prevent auto-closure, add a comment or 👎 this comment
+
+          🤖 Generated with [Claude Code](https://claude.ai/code)"
+
+          # Post the comment
+          gh issue comment "$ISSUE_NUMBER" --repo "${{ github.repository }}" --body "$COMMENT"
+          echo "Posted duplicate comment on issue #$ISSUE_NUMBER"
 
       - name: Log duplicate comment event to Statsig
         if: always()
