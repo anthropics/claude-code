@@ -388,7 +388,7 @@ namespace CCTTB
         public int MaxSwingLines { get; set; } = 16;
         public int MaxLiquidityLines { get; set; } = 16;
         public int MaxMssLines { get; set; } = 6;
-        public int MaxOTEBoxes { get; set; } = 4;
+        public int MaxOTEBoxes { get; set; } = 10;  // Increased from 4 to 10 for better visibility across all timeframes
         public int MaxOBBoxes { get; set; } = 8;
         public int MaxPDObjects { get; set; } = 4;
 

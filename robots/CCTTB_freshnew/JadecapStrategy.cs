@@ -3595,6 +3595,10 @@ namespace CCTTB
                     _drawer.DrawFibPackFromMSS(latestMss, minutes: 45);
 
                 // 6) OTE boxes - main TF and entry TF (entry TF uses shorter box duration)
+                // DYNAMIC BOX DURATION: Scale with timeframe so boxes stay visible longer on HTF
+                int mainOteBoxMinutes = GetOTEBoxDuration(Chart.TimeFrame);
+                int entryOteBoxMinutes = Math.Max(20, mainOteBoxMinutes / 2);  // Entry TF uses half duration
+
                 if (_config.EnableDebugLogging)
                 {
                     Print($"[VISUAL DEBUG] Drawing {oteZones?.Count ?? 0} OTE boxes (main TF)");
@@ -3606,13 +3610,13 @@ namespace CCTTB
                         }
                     }
                 }
-                _drawer.DrawOTE(oteZones, boxMinutes: 45, drawEq50: OteDrawExtras, mssDirection: lastMssDir, enforceDailyEqSide: true);
+                _drawer.DrawOTE(oteZones, boxMinutes: mainOteBoxMinutes, drawEq50: OteDrawExtras, mssDirection: lastMssDir, enforceDailyEqSide: true);
 
                 if (oteEntry.Any())
                 {
                     if (_config.EnableDebugLogging)
                         Print($"[VISUAL DEBUG] Drawing {oteEntry.Count} OTE boxes (entry TF)");
-                    _drawer.DrawOTE(oteEntry, boxMinutes: 20, drawEq50: OteDrawExtras, mssDirection: lastMssDir, enforceDailyEqSide: true);
+                    _drawer.DrawOTE(oteEntry, boxMinutes: entryOteBoxMinutes, drawEq50: OteDrawExtras, mssDirection: lastMssDir, enforceDailyEqSide: true);
                 }
                 // no sweep-MSS OTE overlay (legacy path removed)
                 // draw sequence OB at sweep candle if gated
@@ -7779,6 +7783,33 @@ namespace CCTTB
                 return 0.5; // Good confidence → Reduced risk (0.4% becomes 0.2%)
             else
                 return 0.3; // Below threshold (shouldn't happen due to MinConfidenceScore filter)
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // OTE BOX DURATION HELPER (TIMEFRAME-AWARE)
+        // ═══════════════════════════════════════════════════════════════════
+        /// <summary>
+        /// Calculates appropriate OTE box duration based on current timeframe.
+        /// Ensures boxes stay visible long enough on all timeframes (M1 to Daily).
+        /// </summary>
+        private int GetOTEBoxDuration(TimeFrame timeframe)
+        {
+            // Return duration in minutes - boxes will extend this far into the future
+            if (timeframe == TimeFrame.Minute)        return 120;    // M1: 2 hours (120 candles)
+            if (timeframe == TimeFrame.Minute2)       return 180;    // M2: 3 hours (90 candles)
+            if (timeframe == TimeFrame.Minute3)       return 240;    // M3: 4 hours (80 candles)
+            if (timeframe == TimeFrame.Minute4)       return 240;    // M4: 4 hours (60 candles)
+            if (timeframe == TimeFrame.Minute5)       return 300;    // M5: 5 hours (60 candles)
+            if (timeframe == TimeFrame.Minute10)      return 480;    // M10: 8 hours (48 candles)
+            if (timeframe == TimeFrame.Minute15)      return 720;    // M15: 12 hours (48 candles)
+            if (timeframe == TimeFrame.Minute30)      return 1440;   // M30: 24 hours (48 candles)
+            if (timeframe == TimeFrame.Hour)          return 2880;   // H1: 2 days (48 candles)
+            if (timeframe == TimeFrame.Hour4)         return 5760;   // H4: 4 days (24 candles)
+            if (timeframe == TimeFrame.Daily)         return 10080;  // D1: 7 days (7 candles)
+            if (timeframe == TimeFrame.Weekly)        return 20160;  // W1: 14 days (2 candles)
+
+            // Default fallback
+            return 240; // 4 hours
         }
     }
 }
