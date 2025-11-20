@@ -198,6 +198,7 @@ namespace CCTTB
 
         // === Validate if MSS is "REAL" (not fake/weak) ===
         // Real MSS requires: strong move, clear break, proper context
+        // NOTE: Relaxed validation to show more OTE zones (user can fine-tune later)
         private bool IsRealMSS(MSSSignal mss, Bars bars)
         {
             if (mss == null || bars == null) return false;
@@ -205,7 +206,7 @@ namespace CCTTB
             int idx = mss.Index;
             if (idx < 5 || idx >= bars.Count - 1) return false;
 
-            // Check 1: MSS must have strong momentum (not weak break)
+            // Check 1: MSS must have reasonable momentum (relaxed from 60% to 25%)
             double mssRange = Math.Abs(bars.ClosePrices[idx] - bars.OpenPrices[idx]);
             double avgRange = 0;
             for (int i = 1; i <= 5; i++)
@@ -215,38 +216,36 @@ namespace CCTTB
             }
             avgRange /= 5;
 
-            // MSS candle should be at least 60% of average range (not tiny)
-            if (mssRange < avgRange * 0.6) return false;
+            // MSS candle should be at least 25% of average range (relaxed for visibility)
+            if (avgRange > 0 && mssRange < avgRange * 0.25) return false;
 
-            // Check 2: Must have clear structure break (not sideways chop)
+            // Check 2: Must have structure break (relaxed - just needs ANY break)
             if (mss.Direction == BiasDirection.Bullish)
             {
-                // Bullish MSS: should have clear higher high
+                // Bullish MSS: should break above recent prices
                 double recentHigh = double.MinValue;
-                for (int i = idx - 10; i < idx; i++)
+                for (int i = Math.Max(0, idx - 10); i < idx; i++)
                 {
-                    if (i >= 0 && i < bars.Count)
-                        recentHigh = Math.Max(recentHigh, bars.HighPrices[i]);
+                    recentHigh = Math.Max(recentHigh, bars.HighPrices[i]);
                 }
 
-                // MSS high must clearly break above recent highs
-                if (bars.HighPrices[idx] <= recentHigh) return false;
+                // MSS high must break above (relaxed - allows equal or slight above)
+                if (bars.HighPrices[idx] < recentHigh * 0.9999) return false;
             }
             else if (mss.Direction == BiasDirection.Bearish)
             {
-                // Bearish MSS: should have clear lower low
+                // Bearish MSS: should break below recent prices
                 double recentLow = double.MaxValue;
-                for (int i = idx - 10; i < idx; i++)
+                for (int i = Math.Max(0, idx - 10); i < idx; i++)
                 {
-                    if (i >= 0 && i < bars.Count)
-                        recentLow = Math.Min(recentLow, bars.LowPrices[i]);
+                    recentLow = Math.Min(recentLow, bars.LowPrices[i]);
                 }
 
-                // MSS low must clearly break below recent lows
-                if (bars.LowPrices[idx] >= recentLow) return false;
+                // MSS low must break below (relaxed - allows equal or slight below)
+                if (bars.LowPrices[idx] > recentLow * 1.0001) return false;
             }
 
-            // Check 3: MSS must not be in tight consolidation
+            // Check 3: MSS must have some meaningful move (relaxed from 40% to 15%)
             double high10 = double.MinValue;
             double low10 = double.MaxValue;
             for (int i = Math.Max(0, idx - 10); i < idx; i++)
@@ -256,14 +255,17 @@ namespace CCTTB
             }
 
             double consolidationRange = high10 - low10;
-            double mssMove = mss.Direction == BiasDirection.Bullish
-                ? (bars.HighPrices[idx] - low10)
-                : (high10 - bars.LowPrices[idx]);
+            if (consolidationRange > 0)
+            {
+                double mssMove = mss.Direction == BiasDirection.Bullish
+                    ? (bars.HighPrices[idx] - low10)
+                    : (high10 - bars.LowPrices[idx]);
 
-            // MSS move should be at least 40% of consolidation range (not tiny break)
-            if (consolidationRange > 0 && mssMove < consolidationRange * 0.4) return false;
+                // MSS move should be at least 15% of consolidation range (relaxed for visibility)
+                if (mssMove < consolidationRange * 0.15) return false;
+            }
 
-            return true; // All checks passed - this is a REAL MSS
+            return true; // All checks passed - this is a REAL MSS (with relaxed thresholds)
         }
 
         // === OTE derived from REAL MSS (filtered for quality) ===
