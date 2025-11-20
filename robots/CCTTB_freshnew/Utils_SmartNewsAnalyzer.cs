@@ -57,9 +57,10 @@ namespace CCTTB
     }
 
     // --- Wrapper class for Google Workflow API format ---
+    // CRITICAL: Google Workflows API expects 'argument' as a JSON STRING, not an object
     public class WorkflowExecutionRequest
     {
-        public GeminiApiRequest argument { get; set; }
+        public string argument { get; set; }
     }
 
 
@@ -231,10 +232,13 @@ namespace CCTTB
                 lookahead_minutes = lookaheadMinutes
             };
 
-            // Wrap payload in "argument" object for Google Workflow API
+            // CRITICAL FIX: Serialize payload to JSON STRING first (Google Workflows expects string, not object)
+            string argumentJsonString = JsonSerializer.Serialize(requestPayload);
+
+            // Wrap JSON string in "argument" field for Google Workflow API
             var workflowRequest = new WorkflowExecutionRequest
             {
-                argument = requestPayload
+                argument = argumentJsonString
             };
 
             string jsonRequest = JsonSerializer.Serialize(workflowRequest);
