@@ -1,0 +1,401 @@
+{
+  "orchestratorStamp": "hs-session-kgz@1.0.0",
+  "timezone": "UTC",
+  "sessionOrder": ["asia", "london", "newyork"],
+  "rest": {
+    "end": "23:59"
+  },
+  "minTradesTarget": 3,
+  "relax": {
+    "decay": 0.10,
+    "restore": 0.05
+  },
+  "bandit": {
+    "enabled": false,
+    "metric": "sharpe",
+    "windowTrades": 50,
+    "cooldownMinutes": 60,
+    "algorithm": "ucb1",
+    "profiles": ["Conservative", "Balanced", "Aggressive"]
+  },
+  "riskEngine": {
+    "bounds": {
+      "min": 0.40,
+      "max": 1.25
+    },
+    "smooth": {
+      "halfLifeMin": 20
+    },
+    "sessionMultipliers": {
+      "overlap": 1.00,
+      "london": 0.80,
+      "newyork": 1.00,
+      "asia": 0.60
+    },
+    "volTarget": {
+      "target": 0.55,
+      "estimator": "EWMA",
+      "halfLifeMin": 240,
+      "alpha": 1.00
+    },
+    "spreadPenalty": {
+      "zThreshold": 1.0,
+      "beta": 0.30
+    },
+    "news": {
+      "preMin": 10,
+      "postMin": 10,
+      "severityScale": {
+        "low": 0.90,
+        "med": 0.70,
+        "high": 0.50
+      }
+    },
+    "drawdown": {
+      "kink1": 0.05,
+      "kink2": 0.10,
+      "slope1": 2.0,
+      "slope2": 4.0
+    },
+    "symbols": {
+      "EURUSD": {
+        "tap": {
+          "tolerancePips": 1.5,
+          "expiryBars": 6,
+          "limitToMarketConvert": true,
+          "aggressiveFill": true
+        },
+        "bounds": {
+          "min": 0.50,
+          "max": 1.20
+        },
+        "volTarget": {
+          "target": 0.35,
+          "halfLifeMin": 240,
+          "alpha": 1.00
+        },
+        "spreadPenalty": {
+          "zThreshold": 1.0,
+          "beta": 0.15
+        },
+        "sessionMultipliers": {
+          "overlap": 1.00,
+          "london": 0.90,
+          "newyork": 1.00,
+          "asia": 0.80
+        }
+      },
+      "XAUUSD": {
+        "tap": {
+          "tolerancePoints": 15,
+          "expiryBars": 6,
+          "limitToMarketConvert": true,
+          "aggressiveFill": true
+        },
+        "bounds": {
+          "min": 0.40,
+          "max": 1.25
+        },
+        "volTarget": {
+          "target": 0.62,
+          "upperClip": 1.35,
+          "halfLifeMin": 240,
+          "alpha": 1.00
+        },
+        "spreadPenalty": {
+          "zThreshold": 1.0,
+          "beta": 0.35
+        },
+        "sessionMultipliers": {
+          "overlap": 1.00,
+          "london": 0.90,
+          "newyork": 1.00,
+          "asia": 0.55
+        }
+      },
+      "US30": {
+        "tap": {
+          "tolerancePoints": 6,
+          "expiryBars": 2,
+          "limitToMarketConvert": true
+        },
+        "bounds": {
+          "min": 0.45,
+          "max": 1.25
+        },
+        "volTarget": {
+          "target": 0.55,
+          "halfLifeMin": 240,
+          "alpha": 1.00
+        },
+        "spreadPenalty": {
+          "zThreshold": 1.2,
+          "beta": 0.25
+        },
+        "sessionMultipliers": {
+          "overlap": 1.00,
+          "london": 0.75,
+          "newyork": 1.05,
+          "asia": 0.60
+        }
+      }
+    },
+    "broker": {
+      "name": "IC Markets",
+      "accountType": "Raw",
+      "commission": {
+        "MetaTrader": {
+          "perLotPerSideUSD": 3.5
+        },
+        "cTrader": {
+          "perUSD100kPerSideUSD": 3.0
+        }
+      },
+      "notes": "Official pricing pages indicate Raw commissions and low average EURUSD spreads; spreads widen at news/low-liquidity."
+    }
+  },
+  "executionGuards": {
+    "positionRiskCaps": {
+      "maxRiskPctPerTrade": 0.8,
+      "maxOpenRiskPct": 2.0,
+      "maxNotionalUSD": 1500000
+    },
+    "circuitBreaker": {
+      "onBreach": "skip_or_halve",
+      "log": true
+    }
+  },
+  "sizer": {
+    "mode": "riskPct",
+    "equitySource": "equity",
+    "includeFloatingPnL": true,
+    "scaleWithEquity": true,
+    "useRiskMultiplier": true,
+    "riskPctBase": {
+      "EURUSD": 0.50,
+      "XAUUSD": 0.40,
+      "US30": 0.40
+    },
+    "contract": {
+      "EURUSD": {
+        "valuePerPip": 10.0,
+        "pipSize": 0.0001
+      },
+      "XAUUSD": {
+        "valuePerPoint": 1.0,
+        "pointSize": 0.1
+      },
+      "US30": {
+        "valuePerPoint": 1.0,
+        "pointSize": 1.0
+      }
+    },
+    "qtyBounds": {
+      "EURUSD": {
+        "min": 0.01,
+        "max": 50.0,
+        "step": 0.01
+      },
+      "XAUUSD": {
+        "min": 0.01,
+        "max": 20.0,
+        "step": 0.01
+      },
+      "US30": {
+        "min": 0.10,
+        "max": 50.0,
+        "step": 0.10
+      }
+    },
+    "rounding": "toStep",
+    "notes": "qty = (equity * riskPctBase[symbol]) / (stopDistancePts * valuePerPoint[symbol]) * risk.multiplier; clamp to qtyBounds; then enforce positionRiskCaps"
+  },
+  "audit": {
+    "includeMeta": true,
+    "metaFields": ["preset", "backtestLabel"]
+  },
+  "learningAdjustments": {
+    "recalcEveryTrades": 10,
+    "confluenceWeightStep": 0.1,
+    "maxTotalShift": 0.3,
+    "reduceStateMinRROnRepeatedTPRejects": {
+      "threshold": 5,
+      "delta": 0.1,
+      "applyToNext": 3,
+      "floors": {
+        "ranging": 1.0,
+        "quiet": 1.0
+      }
+    }
+  },
+  "tpRule": {
+    "minRR": 1.0,
+    "allowPartial": true,
+    "partialAtRR": 0.8,
+    "trailAfterRR": 2.0,
+    "aggressiveTP": true,
+    "scalping": {
+      "enabled": true,
+      "quickExitRR": 0.5,
+      "quickExitPercent": 50
+    }
+  },
+  "tpGovernor": {
+    "enabled": true,
+    "stateMinRR": {
+      "trending": 1.8,
+      "ranging": 1.1,
+      "volatile": 1.4,
+      "quiet": 1.1
+    },
+    "targetPriority": [
+      "OppositeLiquidity",
+      "RecentSwing",
+      "SessionExtreme",
+      "IFVGEdge",
+      "OBEdge"
+    ],
+    "nearMissRule": {
+      "enabled": true,
+      "threshold": 0.8,
+      "action": {
+        "riskMultiplier": 0.7,
+        "partials": [
+          {"rr": 0.8, "percent": 35},
+          {"rr": 1.2, "percent": 35}
+        ],
+        "trailing": {
+          "activateRR": 1.2,
+          "stepPips": 5
+        }
+      }
+    }
+  },
+  "confirm": {
+    "mode": "score",
+    "needAtLeast": 1,
+    "components": [
+      "MSS",
+      "OTE",
+      "OrderBlock",
+      "IFVG"
+    ],
+    "weights": {
+      "MSS": 1.0,
+      "OTE": 1.0,
+      "OrderBlock": 0.8,
+      "IFVG": 0.6
+    },
+    "threshold": 0.8,
+    "aggressiveMode": true
+  },
+  "cooldown": {
+    "bars": 3,
+    "overrideIf": {
+      "betterRR": 0.3,
+      "spreadZBelow": 0.5
+    }
+  },
+  "rollout": {
+    "shadowMode": true,
+    "rampSchedule": {
+      "day1": 0.50,
+      "day2": 0.75,
+      "day3": 1.00
+    },
+    "minEffectThreshold": 0.05,
+    "cashOpenGuard": {
+      "enabled": true,
+      "symbols": ["US30", "XAUUSD"],
+      "preMin": 10,
+      "postMin": 10
+    }
+  },
+  "ote": {
+    "autoRelax": {
+      "enabled": true,
+      "missWindowBars": 3,
+      "toleranceStepPips": 0.3,
+      "maxTolerancePips": 2.0,
+      "requireKillzone": false,
+      "onlyIfDirMatch": true,
+      "aggressiveMode": true
+    },
+    "limitToMarketConvert": {
+      "enabled": true,
+      "onRetap": true,
+      "slippageCapPips": {
+        "EURUSD": 0.6,
+        "XAUUSD": 1.5,
+        "US30": 2.0
+      }
+    },
+    "expiryBars": {
+      "EURUSD": 4,
+      "XAUUSD": 4,
+      "US30": 2
+    }
+  },
+  "oteAdaptive": {
+    "enabled": true,
+    "base": {
+      "mode": "atr",
+      "period": 14,
+      "multiplier": 0.18,
+      "roundTo": 0.1,
+      "bounds": [0.9, 1.8]
+    },
+    "missStreakAutoRelax": {
+      "enabled": true,
+      "triggerMisses": 4,
+      "stepPips": 0.2,
+      "maxExtraPips": 0.6,
+      "resetOn": ["tap", "session_change"]
+    },
+    "retapMarketConversion": {
+      "enabled": true,
+      "withinPips": 0.3,
+      "maxSlippagePips": 0.2
+    }
+  },
+  "oteTapFallback": {
+    "enabled": true,
+    "when": "tp_reject_after_tap",
+    "try": ["OrderBlock", "IFVG"],
+    "confidencePenalty": 0.15,
+    "minRRPenalty": 0.2,
+    "enterIfMeetsStateMinRR": true
+  },
+  "profitBoost": {
+    "multiEntry": {
+      "enabled": true,
+      "maxPositionsPerSymbol": 3,
+      "pyramiding": true,
+      "gridSpacing": 10
+    },
+    "reEntry": {
+      "enabled": true,
+      "cooldownBars": 2,
+      "maxReEntries": 5,
+      "allowSameZone": true
+    },
+    "partialClose": {
+      "levels": [
+        {"rr": 0.5, "percent": 30},
+        {"rr": 1.0, "percent": 30},
+        {"rr": 1.5, "percent": 20}
+      ],
+      "letRun": 20
+    }
+  },
+  "gates": {
+    "relaxAll": false,
+    "sequenceGate": true,
+    "pullbackRequirement": false,
+    "microBreakGate": false,
+    "killzoneStrict": false,
+    "mssOppLiqGate": "strict",
+    "dailyBiasVeto": false,
+    "allowCounterTrend": true
+  }
+}

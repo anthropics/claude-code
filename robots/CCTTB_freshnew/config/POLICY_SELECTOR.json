@@ -1,0 +1,87 @@
+{
+  "policySelector": {
+    "version": "1.0",
+    "description": "Master policy selector - Choose which policy configuration to use",
+
+    "activePolicyMode": "auto_switching",
+
+    "availableModes": {
+      "auto_switching": {
+        "displayName": "Auto-Switching (Orchestrator)",
+        "description": "Bot auto-switches presets based on market state (ADX, ATR)",
+        "configFile": "policy_universal.json",
+        "useOrchestrator": true,
+        "bestFor": "Unknown future days, all market conditions",
+        "tradesPerDay": "8-15"
+      },
+
+      "manual_intelligent": {
+        "displayName": "Manual - Intelligent Universal",
+        "description": "Single preset: Intelligent_Universal (adaptive to all conditions)",
+        "configFile": "policy.json",
+        "forcedPreset": "Intelligent_Universal",
+        "useOrchestrator": false,
+        "bestFor": "General purpose, set-and-forget",
+        "tradesPerDay": "5-15"
+      },
+
+      "manual_perfect": {
+        "displayName": "Manual - Perfect Sequence Hunter",
+        "description": "Single preset: Perfect_Sequence_Hunter (only perfect setups)",
+        "configFile": "policy.json",
+        "forcedPreset": "Perfect_Sequence_Hunter",
+        "useOrchestrator": false,
+        "bestFor": "High win rate, conservative",
+        "tradesPerDay": "1-3"
+      },
+
+      "manual_learning": {
+        "displayName": "Manual - Learning Adaptive",
+        "description": "Single preset: Learning_Adaptive (learns continuously)",
+        "configFile": "policy.json",
+        "forcedPreset": "Learning_Adaptive",
+        "useOrchestrator": false,
+        "bestFor": "Long-term deployment, continuous improvement",
+        "tradesPerDay": "Varies, optimizes over time"
+      },
+
+      "manual_strict": {
+        "displayName": "Manual - Phase4o4 Strict Enhanced",
+        "description": "Single preset: phase4o4_strict_ENHANCED (strict + intelligent)",
+        "configFile": "policy.json",
+        "forcedPreset": "phase4o4_strict_ENHANCED",
+        "useOrchestrator": false,
+        "bestFor": "Familiar strict rules + smart fallback",
+        "tradesPerDay": "2-5"
+      }
+    },
+
+    "howToUse": {
+      "step1": "Change 'activePolicyMode' above to one of the mode names",
+      "step2": "Restart bot (or wait for next config reload - 60 seconds)",
+      "step3": "Check logs for 'Policy mode: [name]' and 'Active preset: [name]'",
+      "modes": [
+        "auto_switching",
+        "manual_intelligent",
+        "manual_perfect",
+        "manual_learning",
+        "manual_strict"
+      ]
+    },
+
+    "currentSelection": {
+      "mode": "auto_switching",
+      "configFile": "policy_universal.json",
+      "orchestratorEnabled": true,
+      "presetSwitching": "Automatic (every 20 bars by market state)"
+    }
+  },
+
+  "notes": [
+    "RECOMMENDED: Use 'auto_switching' for best results (bot adapts to conditions)",
+    "ALTERNATIVE: Use 'manual_intelligent' for set-and-forget single preset",
+    "TESTING: Use 'manual_perfect' for high-quality low-frequency trades",
+    "Bot reads this file on startup and every 60 seconds",
+    "Changes take effect on next reload cycle"
+  ]
+}

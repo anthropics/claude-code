@@ -1,0 +1,14 @@
+{
+  "name": "Asia_Internal_StrictMechanical",
+  "EntryGateMode": "MSS_and_OTE",
+  "StrictSequence": true,
+  "OtePolicy": "StrictAfterMSS",
+  "SweepScope": "Internal_Only",
+  "TpTargetPolicy": "InternalBoundary",
+  "Session": "Asia",
+  "BiasAlign": "Strict",
+  "NewsFilter": "Off",
+  "UseKillzone": true,
+  "KillzoneStartUtc": "00:00",
+  "KillzoneEndUtc": "23:59"
+}

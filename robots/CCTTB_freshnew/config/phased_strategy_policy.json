@@ -1,0 +1,448 @@
+{
+  "$schema": "./phased_strategy_policy_schema.json",
+  "strategyName": "Sweep-MSS_MultiTF_Intraday",
+  "version": "2.0",
+  "description": "Multi-timeframe sweep-MSS strategy with daily bias for intraday execution. Two cascades: Daily→1H→15M (bias) and 4H→15M→5M (execution).",
+  "integrationMode": "overlay",
+
+  "timeframeCascades": {
+    "description": "Multiple cascade configurations for different signal types",
+    "cascades": [
+      {
+        "name": "DailyBias",
+        "enabled": true,
+        "priority": 1,
+        "higherTimeframe": "D1",
+        "sweepTimeframe": "1h",
+        "confirmTimeframe": "15m",
+        "cascadeTimeoutMinutes": 240,
+        "requireCascade": true,
+        "fallbackToSameTF": false,
+        "purpose": "Establish daily bias from liquidity sweep"
+      },
+      {
+        "name": "IntradayExecution",
+        "enabled": true,
+        "priority": 2,
+        "higherTimeframe": "4h",
+        "sweepTimeframe": "15m",
+        "confirmTimeframe": "5m",
+        "cascadeTimeoutMinutes": 60,
+        "requireCascade": true,
+        "fallbackToSameTF": false,
+        "purpose": "Execute intraday entries with tight confirmation"
+      }
+    ],
+    "biasSource": "DailyBias",
+    "executionSource": "IntradayExecution"
+  },
+
+  "biasDetection": {
+    "description": "Daily bias is PRIMARY for intraday trading",
+    "useExistingBiasStateMachine": true,
+    "enhanceWithCascade": true,
+
+    "daily": {
+      "enabled": true,
+      "lookbackDays": 1,
+      "sweepMethod": "hybrid",
+      "levels": ["PDH", "PDL", "WeeklyHigh", "WeeklyLow"],
+      "requireDisplacement": true,
+      "requireReturnClose": false,
+      "minCandlesForConfirm": 1,
+      "minSwingSizePips": 30,
+      "weight": 1.0,
+      "description": "Daily sweep sets primary bias (Buyside sweep = Bearish bias)"
+    },
+
+    "h4": {
+      "enabled": true,
+      "lookbackBars": 20,
+      "sweepMethod": "hybrid",
+      "levels": ["SwingHigh", "SwingLow", "EQH", "EQL"],
+      "requireDisplacement": true,
+      "requireReturnClose": false,
+      "minCandlesForConfirm": 2,
+      "minSwingSizePips": 20,
+      "weight": 0.7,
+      "description": "4H sweep provides secondary confirmation"
+    },
+
+    "h1": {
+      "enabled": true,
+      "lookbackBars": 24,
+      "sweepMethod": "hybrid",
+      "levels": ["SessionHigh", "SessionLow"],
+      "requireDisplacement": true,
+      "requireReturnClose": true,
+      "minCandlesForConfirm": 2,
+      "minSwingSizePips": 15,
+      "weight": 0.5,
+      "description": "1H sweep confirms daily bias cascade"
+    },
+
+    "m15": {
+      "enabled": true,
+      "lookbackBars": 48,
+      "sweepMethod": "hybrid",
+      "levels": ["LocalHigh", "LocalLow"],
+      "requireDisplacement": true,
+      "requireReturnClose": true,
+      "minCandlesForConfirm": 3,
+      "minSwingSizePips": 10,
+      "weight": 0.3,
+      "description": "15M sweep triggers intraday entries"
+    },
+
+    "biasAggregation": {
+      "method": "weighted",
+      "requireDailyAlignment": true,
+      "minConfidencePercent": 60,
+      "allowConflictingSignals": false,
+      "description": "Daily bias MUST align with lower TF signals"
+    }
+  },
+
+  "sweepConfirmation": {
+    "description": "ATR-based hybrid buffer for adaptive sweep detection",
+    "method": "hybrid",
+    "atrPeriod": 17,
+    "atrMultiplierByTimeframe": {
+      "D1": 0.50,
+      "4h": 0.40,
+      "1h": 0.35,
+      "15m": 0.25,
+      "5m": 0.20
+    },
+    "minBufferPipsByTimeframe": {
+      "D1": 20,
+      "4h": 12,
+      "1h": 8,
+      "15m": 3,
+      "5m": 2
+    },
+    "maxBufferPipsByTimeframe": {
+      "D1": 100,
+      "4h": 50,
+      "1h": 30,
+      "15m": 20,
+      "5m": 10
+    },
+    "requireBodyClose": true,
+    "requireDisplacement": true,
+    "minDisplacementFactor": 1.5,
+    "description": "Sweep buffer adapts to timeframe and volatility"
+  },
+
+  "OTEZone": {
+    "enabled": true,
+    "fibRange": [0.618, 0.79],
+    "sweetSpot": 0.705,
+    "equilibrium": 0.50,
+    "useDailyRange": true,
+    "useH4Range": true,
+    "minSwingSizePips": 20,
+
+    "touchDetection": {
+      "method": "tiered",
+      "levels": {
+        "Shallow": [0.50, 0.618],
+        "Optimal": [0.618, 0.79],
+        "DeepOptimal": [0.705, 0.79],
+        "TooDeep": [0.79, 0.88]
+      },
+      "proximityPips": 5,
+      "touchMethod": "BodyClose",
+      "wickTouchForDetection": true,
+      "bodyCloseForConfirmation": true
+    },
+
+    "invalidation": {
+      "exceedsPercent": 0.88,
+      "action": "BlockPhase3Entry",
+      "reason": "OTE exceeded, structure weakening"
+    },
+
+    "description": "OTE zone 61.8%-79% with 70.5% sweet spot for Phase 3 entries"
+  },
+
+  "riskManagement": {
+    "maxDailyRiskPercent": 6.0,
+    "maxDailyLossPercent": 6.0,
+    "useExistingRiskManager": true,
+    "enhanceWithPhaseLogic": true,
+
+    "baseRiskPercent": 0.4,
+
+    "phases": {
+      "phase1": {
+        "name": "CounterTrendTowardOTE",
+        "enabled": true,
+        "riskPercent": 0.2,
+        "riskMultiplier": 0.5,
+        "rewardRiskTarget": 2.0,
+        "maxConsecutiveAttempts": 2,
+        "description": "Counter-trend entry toward daily OTE (lower risk)",
+
+        "entry": {
+          "condition": "DailySweep_NoMSS",
+          "biasRequired": true,
+          "oteNotTouched": true,
+          "cascadeRequired": "IntradayExecution",
+          "description": "Enter when daily sweep occurs WITHOUT daily MSS"
+        },
+
+        "stopLoss": {
+          "method": "SwingLevel",
+          "timeframe": "15m",
+          "lookbackBars": 10,
+          "bufferPips": 5,
+          "minStopDistancePips": 15,
+          "maxStopDistancePips": 30
+        },
+
+        "takeProfit": {
+          "method": "OTEZoneEntry",
+          "target": "DailyOTE_50Percent",
+          "offsetPips": 2,
+          "description": "TP 1-2 pips before 50% of daily candle (OTE zone entry)"
+        }
+      },
+
+      "phase3": {
+        "name": "WithTrendFromOTE",
+        "enabled": true,
+        "riskPercent": 0.6,
+        "riskMultiplier": 1.5,
+        "rewardRiskTarget": 3.0,
+        "maxConsecutiveAttempts": 1,
+        "description": "With-trend entry from daily OTE rejection (higher risk)",
+
+        "entry": {
+          "condition": "OTETouched_MSS_Confirmed",
+          "biasRequired": true,
+          "oteTouchRequired": true,
+          "cascadeRequired": "IntradayExecution",
+          "description": "Enter after OTE touched and MSS confirms rejection"
+        },
+
+        "stopLoss": {
+          "method": "OTEZoneExtreme",
+          "bufferPips": 10,
+          "minStopDistancePips": 20,
+          "maxStopDistancePips": 40
+        },
+
+        "takeProfit": {
+          "method": "DailyOppositeLiquidity",
+          "target": "50PercentDailySwing",
+          "offsetPips": 2,
+          "description": "TP at 50% of daily swing with 2 pip offset"
+        },
+
+        "allowIndependent": true,
+        "conditionalLogic": {
+          "noPhase1": {
+            "allowed": true,
+            "riskMultiplier": 1.5,
+            "extraConfirmation": false,
+            "description": "Allow Phase 3 if OTE touched without Phase 1 entry"
+          },
+          "afterPhase1Success": {
+            "allowed": true,
+            "riskMultiplier": 1.5,
+            "extraConfirmation": false,
+            "description": "High confidence after Phase 1 TP hit"
+          },
+          "afterPhase1Failure1x": {
+            "allowed": true,
+            "riskMultiplier": 0.5,
+            "extraConfirmation": true,
+            "requireFVG": true,
+            "requireOrderBlock": true,
+            "description": "Reduced risk + extra confirmation after 1× Phase 1 SL"
+          },
+          "afterPhase1Failure2x": {
+            "allowed": false,
+            "blockReason": "Structure invalidated after 2× Phase 1 failures",
+            "requireNewDailySweep": true
+          }
+        }
+      }
+    },
+
+    "failSafes": {
+      "maxConsecutiveLosses": 3,
+      "pauseAfterLosses": true,
+      "pauseDurationMinutes": 60,
+      "reduceRiskAfterLoss": true,
+      "riskReductionFactor": 0.75,
+      "description": "Reduce risk by 25% after each consecutive loss"
+    }
+  },
+
+  "entryLogic": {
+    "useExistingTradeManager": true,
+    "enhanceWithPhaseLogic": true,
+
+    "phase1": {
+      "structureConfirmation": "MSS",
+      "confirmTimeframe": "5m",
+      "entryTrigger": "MarketOnMSS",
+      "allowLimitOrders": false,
+      "maxDelayBarsAfterMSS": 3,
+
+      "additionalConfirmations": [
+        "15M_Sweep_Confirmed",
+        "5M_MSS_Confirmed",
+        "Bias_Aligned"
+      ],
+
+      "invalidationRules": [
+        "OTE_Already_Touched",
+        "Daily_Bias_Invalidated",
+        "Cascade_Timeout_Exceeded"
+      ]
+    },
+
+    "phase3": {
+      "structureConfirmation": "MSS",
+      "confirmTimeframe": "5m",
+      "entryTrigger": "OrderBlockRetest",
+      "allowLimitOrders": true,
+      "oteTouchRequired": true,
+      "minOTELevel": "Optimal",
+      "preferredOTELevel": "DeepOptimal",
+      "maxDelayBarsAfterOTE": 10,
+
+      "additionalConfirmations": [
+        "OTE_Touched",
+        "5M_MSS_Confirmed",
+        "Bias_Still_Valid",
+        "OrderBlock_Present"
+      ],
+
+      "optionalConfirmations": [
+        "FVG_Present",
+        "BreakOfStructure_Confirmed"
+      ],
+
+      "invalidationRules": [
+        "OTE_Exceeded_88Percent",
+        "Daily_Bias_Invalidated",
+        "Phase1_Failed_2x"
+      ]
+    },
+
+    "tradeManagement": {
+      "breakEven": {
+        "enabled": true,
+        "triggerRR": 1.0,
+        "offsetPips": 2
+      },
+      "partialTP": {
+        "enabled": true,
+        "closePercent": 0.5,
+        "triggerLevel": "50PercentToTarget"
+      },
+      "trailStop": {
+        "enabled": true,
+        "activationRR": 1.5,
+        "trailDistancePips": 10,
+        "lockInProfitRR": 2.0
+      },
+      "maxTradeHours": 8,
+      "description": "Standard trade management with BE, partial TP, trailing SL"
+    }
+  },
+
+  "orchestrator": {
+    "useExistingOrchestrator": true,
+    "enhancementMode": "phased",
+
+    "sessionFiltering": {
+      "enabled": true,
+      "preferredSessions": ["London", "NewYork"],
+      "avoidSessions": ["Asia"],
+      "allowOverlapTrading": true,
+      "description": "Focus on London/NY sessions for intraday trading"
+    },
+
+    "biasManagement": {
+      "dailyBiasSource": "IntelligentBiasAnalyzer",
+      "requireDailyAlignment": true,
+      "biasInvalidation": {
+        "onOppositeSweep": true,
+        "onNoMSSWithinMinutes": 240,
+        "onStructureBreakAgainstBias": true
+      },
+      "biasRefresh": {
+        "method": "DailyReset",
+        "resetTime": "00:00",
+        "carryOverIfValid": false
+      }
+    },
+
+    "phaseTransitions": {
+      "noBias_to_Phase1": {
+        "trigger": "DailySweepConfirmed",
+        "cascadeRequired": "DailyBias",
+        "minConfidence": 60
+      },
+      "phase1_to_Phase3": {
+        "trigger": "OTETouched_OR_Phase1Success",
+        "conditions": [
+          "Phase1NotFailed2x",
+          "BiasStillValid",
+          "OTETouched"
+        ]
+      },
+      "phase3_to_Complete": {
+        "trigger": "Phase3Exit_OR_BiasInvalidated",
+        "resetState": true
+      }
+    },
+
+    "failSafes": {
+      "maxEntriesPerBias": 4,
+      "maxEntriesPerDay": 6,
+      "cooldownAfterLossMinutes": 30,
+      "biasInvalidationActions": [
+        "CancelPendingOrders",
+        "TightenStops",
+        "BlockNewEntries"
+      ]
+    }
+  },
+
+  "logging": {
+    "enableDebugLogging": true,
+    "logLevel": "DEBUG",
+    "logComponents": [
+      "BiasDetection",
+      "SweepConfirmation",
+      "OTETouch",
+      "CascadeValidation",
+      "PhaseTransitions",
+      "RiskAllocation",
+      "EntryTriggers"
+    ],
+    "logToFile": true,
+    "logPath": "data/logs/phased_strategy_{date}.log"
+  },
+
+  "metadata": {
+    "author": "CCTTB Enhanced Strategy",
+    "created": "2025-10-25",
+    "lastModified": "2025-10-25",
+    "version": "2.0.0",
+    "compatibleWith": "CCTTB v1.5+",
+    "tested": {
+      "period": "2025-09-18 to 2025-10-01",
+      "symbols": ["EURUSD"],
+      "timeframes": ["M5"],
+      "winRate": "Expected 55-65%",
+      "avgRR": "Expected 2.5-3.5:1"
+    }
+  }
+}

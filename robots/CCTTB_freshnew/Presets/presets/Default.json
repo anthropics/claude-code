@@ -1,0 +1,26 @@
+{
+  "name": "Default",
+  "Description": "ICT HTF Bias with complete sequence validation",
+  "EntryGateMode": "ICT_Sequence",
+  "OtePolicy": "StrictAfterMSS",
+  "SweepScope": "Opposite_Direction",
+  "TpTargetPolicy": "OppositeLiquidity",
+  "Session": "Power_of_Three",
+  "BiasAlign": "HTF_4H_Daily",
+  "UseKillzone": true,
+  "KillzoneStartUtc": "00:00",
+  "KillzoneEndUtc": "23:59",
+  "ICTSequence": {
+    "RequireHTFBias": true,
+    "RequireLiquiditySweep": true,
+    "RequireMSSWithDisplacement": true,
+    "RequireFVG": true,
+    "HTFTimeframes": ["4H", "Daily"],
+    "DisplacementATRMultiplier": 0.75,
+    "PowerOfThreePhases": {
+      "Accumulation": "00:00-09:00",
+      "Manipulation": "09:00-13:00",
+      "Distribution": "13:00-24:00"
+    }
+  }
+}

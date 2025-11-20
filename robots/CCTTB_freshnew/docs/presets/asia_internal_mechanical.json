@@ -1,0 +1,14 @@
+{
+  "name": "Asia_Internal_Mechanical",
+  "EntryGateMode": "None",
+  "StrictSequence": false,
+  "OtePolicy": "IfAvailable",
+  "SweepScope": "Internal_Only",
+  "TpTargetPolicy": "InternalBoundary",
+  "Session": "Asia",
+  "BiasAlign": "Loose",
+  "NewsFilter": "Off",
+  "UseKillzone": true,
+  "KillzoneStartUtc": "00:00",
+  "KillzoneEndUtc": "23:59"
+}

@@ -1,0 +1,74 @@
+{
+  "format": 1,
+  "restore": {
+    "C:\\Users\\Administrator\\Documents\\cAlgo\\Sources\\Robots\\CCTTB_freshnew\\CCTTB_freshnew\\CCTTB_freshnew.csproj": {}
+  },
+  "projects": {
+    "C:\\Users\\Administrator\\Documents\\cAlgo\\Sources\\Robots\\CCTTB_freshnew\\CCTTB_freshnew\\CCTTB_freshnew.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "C:\\Users\\Administrator\\Documents\\cAlgo\\Sources\\Robots\\CCTTB_freshnew\\CCTTB_freshnew\\CCTTB_freshnew.csproj",
+        "projectName": "CCTTB_freshnew",
+        "projectPath": "C:\\Users\\Administrator\\Documents\\cAlgo\\Sources\\Robots\\CCTTB_freshnew\\CCTTB_freshnew\\CCTTB_freshnew.csproj",
+        "packagesPath": "C:\\Users\\Administrator\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\Administrator\\Documents\\cAlgo\\Sources\\Robots\\CCTTB_freshnew\\CCTTB_freshnew\\obj\\",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "C:\\Users\\Administrator\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net6.0"
+        ],
+        "sources": {
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net6.0": {
+            "targetAlias": "net6.0",
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        }
+      },
+      "frameworks": {
+        "net6.0": {
+          "targetAlias": "net6.0",
+          "dependencies": {
+            "Google.Apis.Auth": {
+              "target": "Package",
+              "version": "[1.72.0, )"
+            },
+            "Newtonsoft.Json": {
+              "target": "Package",
+              "version": "[13.0.4, )"
+            },
+            "cTrader.Automate": {
+              "target": "Package",
+              "version": "[*, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\6.0.136\\RuntimeIdentifierGraph.json"
+        }
+      }
+    }
+  }
+}

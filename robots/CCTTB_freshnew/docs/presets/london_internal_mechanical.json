@@ -1,0 +1,14 @@
+{
+  "name": "London_Internal_Mechanical",
+  "EntryGateMode": "MSSOnly",
+  "StrictSequence": false,
+  "OtePolicy": "IfAvailable",
+  "SweepScope": "Internal_Only",
+  "TpTargetPolicy": "InternalBoundary",
+  "Session": "London",
+  "BiasAlign": "Loose",
+  "NewsFilter": "Off",
+  "UseKillzone": true,
+  "KillzoneStartUtc": "00:00",
+  "KillzoneEndUtc": "23:59"
+}

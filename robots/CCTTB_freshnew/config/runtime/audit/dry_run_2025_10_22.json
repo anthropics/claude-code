@@ -1,0 +1,269 @@
+{
+  "orchestratorStamp": "hs-session-kgz@1.0.0",
+  "timestamp": "2025-10-22T00:00:00Z",
+  "mode": "DRY_RUN",
+  "description": "Initial risk.multiplier calculation with factor breakdown for EURUSD, XAUUSD, and US30",
+
+  "inputs": {
+    "currentSession": "london",
+    "isOverlap": true,
+    "trades_lastMins": 2,
+    "drawdownPct": 0.02,
+    "prevRiskMultiplier": 0.85
+  },
+
+  "calculations": {
+    "EURUSD": {
+      "inputs": {
+        "symbol": "EURUSD",
+        "realizedVol": 0.42,
+        "spreadZ": 0.75,
+        "news_imminent": false,
+        "news_severity": "low",
+        "isOverlap": true,
+        "drawdownPct": 0.02
+      },
+      "factors": {
+        "f_session": {
+          "value": 1.00,
+          "source": "overlap",
+          "note": "London-NY overlap active (most liquid period)"
+        },
+        "f_vol": {
+          "value": 0.833,
+          "calculation": "min(1.5, max(0.5, (0.35 / 0.42) ^ 1.00))",
+          "note": "Vol targeting: target=0.35, realized=0.42 → slight scaling down",
+          "clipped": false
+        },
+        "f_spread": {
+          "value": 0.989,
+          "calculation": "exp(-0.15 * max(0, 0.75 - 1.0))",
+          "note": "Spread Z=0.75 below threshold 1.0 → no penalty",
+          "penalty_applied": false
+        },
+        "f_news": {
+          "value": 1.00,
+          "note": "No imminent news event"
+        },
+        "f_dd": {
+          "value": 1.00,
+          "note": "Drawdown 2.0% below kink1 (5%) → no reduction"
+        }
+      },
+      "raw_multiplier": 0.824,
+      "raw_calculation": "1.00 * 0.833 * 0.989 * 1.00 * 1.00",
+      "smoothed_multiplier": 0.838,
+      "smoothing": {
+        "method": "EMA",
+        "halfLife": 20,
+        "prev": 0.85,
+        "formula": "prev * (1 - α) + raw * α where α = 1 - exp(-ln(2)/halfLife)"
+      },
+      "final_multiplier": 0.838,
+      "bounds_applied": {
+        "min": 0.50,
+        "max": 1.20,
+        "clipped": false
+      },
+      "change_from_prev": -0.012,
+      "change_pct": -1.41
+    },
+
+    "XAUUSD": {
+      "inputs": {
+        "symbol": "XAUUSD",
+        "realizedVol": 0.68,
+        "spreadZ": 1.35,
+        "news_imminent": false,
+        "news_severity": "low",
+        "isOverlap": true,
+        "drawdownPct": 0.02
+      },
+      "factors": {
+        "f_session": {
+          "value": 1.00,
+          "source": "overlap",
+          "note": "London-NY overlap active"
+        },
+        "f_vol": {
+          "value": 0.882,
+          "calculation": "min(1.5, max(0.5, (0.60 / 0.68) ^ 1.00))",
+          "note": "Vol targeting: target=0.60, realized=0.68 → scaling down",
+          "clipped": false
+        },
+        "f_spread": {
+          "value": 0.890,
+          "calculation": "exp(-0.35 * max(0, 1.35 - 1.0))",
+          "note": "Spread Z=1.35 above threshold 1.0 → penalty applied (beta=0.35)",
+          "penalty_applied": true,
+          "spread_excess": 0.35
+        },
+        "f_news": {
+          "value": 1.00,
+          "note": "No imminent news event"
+        },
+        "f_dd": {
+          "value": 1.00,
+          "note": "Drawdown 2.0% below kink1 (5%) → no reduction"
+        }
+      },
+      "raw_multiplier": 0.785,
+      "raw_calculation": "1.00 * 0.882 * 0.890 * 1.00 * 1.00",
+      "smoothed_multiplier": 0.811,
+      "smoothing": {
+        "method": "EMA",
+        "halfLife": 20,
+        "prev": 0.85,
+        "formula": "prev * (1 - α) + raw * α"
+      },
+      "final_multiplier": 0.811,
+      "bounds_applied": {
+        "min": 0.40,
+        "max": 1.25,
+        "clipped": false
+      },
+      "change_from_prev": -0.039,
+      "change_pct": -4.59
+    },
+
+    "US30": {
+      "inputs": {
+        "symbol": "US30",
+        "realizedVol": 0.58,
+        "spreadZ": 1.45,
+        "news_imminent": false,
+        "news_severity": "low",
+        "isOverlap": true,
+        "drawdownPct": 0.02
+      },
+      "factors": {
+        "f_session": {
+          "value": 1.00,
+          "source": "overlap",
+          "note": "London-NY overlap (US30 benefits from NY activity)"
+        },
+        "f_vol": {
+          "value": 0.948,
+          "calculation": "min(1.5, max(0.5, (0.55 / 0.58) ^ 1.00))",
+          "note": "Vol targeting: target=0.55, realized=0.58 → slight scaling down",
+          "clipped": false
+        },
+        "f_spread": {
+          "value": 0.893,
+          "calculation": "exp(-0.25 * max(0, 1.45 - 1.2))",
+          "note": "Spread Z=1.45 above threshold 1.2 → penalty applied (beta=0.25)",
+          "penalty_applied": true,
+          "spread_excess": 0.25
+        },
+        "f_news": {
+          "value": 1.00,
+          "note": "No imminent news event"
+        },
+        "f_dd": {
+          "value": 1.00,
+          "note": "Drawdown 2.0% below kink1 (5%) → no reduction"
+        }
+      },
+      "raw_multiplier": 0.846,
+      "raw_calculation": "1.00 * 0.948 * 0.893 * 1.00 * 1.00",
+      "smoothed_multiplier": 0.848,
+      "smoothing": {
+        "method": "EMA",
+        "halfLife": 20,
+        "prev": 0.85,
+        "formula": "prev * (1 - α) + raw * α"
+      },
+      "final_multiplier": 0.848,
+      "bounds_applied": {
+        "min": 0.45,
+        "max": 1.25,
+        "clipped": false
+      },
+      "change_from_prev": -0.002,
+      "change_pct": -0.24
+    }
+  },
+
+  "scenario_variations": {
+    "description": "Demonstrating how factors change under different market conditions",
+
+    "scenario_1_high_news_risk": {
+      "description": "High-impact news imminent (e.g., NFP, FOMC)",
+      "inputs": {
+        "news_imminent": true,
+        "news_severity": "high"
+      },
+      "EURUSD_f_news": 0.50,
+      "EURUSD_final": 0.419,
+      "note": "Risk cut in half during major news events"
+    },
+
+    "scenario_2_asia_session": {
+      "description": "Asia session (low liquidity)",
+      "inputs": {
+        "currentSession": "asia",
+        "isOverlap": false
+      },
+      "EURUSD_f_session": 0.80,
+      "XAUUSD_f_session": 0.55,
+      "US30_f_session": 0.60,
+      "note": "Reduced session multipliers for Asia (especially XAUUSD/US30)"
+    },
+
+    "scenario_3_high_drawdown": {
+      "description": "Account at 12% drawdown",
+      "inputs": {
+        "drawdownPct": 0.12
+      },
+      "f_dd_calculation": "1 - 2.0*(0.10-0.05) - 4.0*(0.12-0.10) = 0.82",
+      "all_symbols_f_dd": 0.82,
+      "note": "Progressive drawdown scaling kicks in above 10%"
+    },
+
+    "scenario_4_high_volatility": {
+      "description": "XAUUSD realized vol spikes to 1.2",
+      "inputs": {
+        "XAUUSD_realizedVol": 1.20
+      },
+      "XAUUSD_f_vol": 0.50,
+      "XAUUSD_f_vol_note": "Clipped to minimum 0.5 (vol target 0.60 / 1.20 = 0.50)",
+      "note": "Vol targeting caps extreme scaling"
+    }
+  },
+
+  "summary": {
+    "EURUSD": {
+      "old_multiplier": 0.850,
+      "new_multiplier": 0.838,
+      "delta": -0.012,
+      "action": "BELOW_THRESHOLD",
+      "reason": "Change < minEffectThreshold (0.05) → no update applied in production"
+    },
+    "XAUUSD": {
+      "old_multiplier": 0.850,
+      "new_multiplier": 0.811,
+      "delta": -0.039,
+      "action": "BELOW_THRESHOLD",
+      "reason": "Change < minEffectThreshold (0.05) → no update applied in production"
+    },
+    "US30": {
+      "old_multiplier": 0.850,
+      "new_multiplier": 0.848,
+      "delta": -0.002,
+      "action": "BELOW_THRESHOLD",
+      "reason": "Change < minEffectThreshold (0.05) → no update applied in production"
+    }
+  },
+
+  "rollout_status": {
+    "shadowMode": true,
+    "note": "Currently in shadow mode (first trading day). Calculations logged but NOT applied to live trading.",
+    "next_steps": [
+      "Day 1: Shadow mode - compute and log only",
+      "Day 2: Apply 50% of delta if |delta| >= 0.05",
+      "Day 3: Apply 75% of delta if |delta| >= 0.05",
+      "Day 4+: Apply 100% of delta if |delta| >= 0.05",
+      "Override: If drawdownPct >= kink1 (5%), apply full safety immediately"
+    ]
+  }
+}

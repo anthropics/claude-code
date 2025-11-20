@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "dgSpecHash": "vj75hlNvH6e4kRSG99+bSydjmW/dspZ9VrcLMrpeBaj0H8j4iuIy+E9oDuDWJA/x3V2PYgltPyhI3rk73EwPqA==",
+  "success": true,
+  "projectFilePath": "C:\\Users\\Administrator\\Documents\\cAlgo\\Sources\\Robots\\CCTTB_freshnew\\CCTTB_freshnew\\CCTTB_freshnew.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\Administrator\\.nuget\\packages\\ctrader.automate\\1.0.14\\ctrader.automate.1.0.14.nupkg.sha512",
+    "C:\\Users\\Administrator\\.nuget\\packages\\google.apis\\1.72.0\\google.apis.1.72.0.nupkg.sha512",
+    "C:\\Users\\Administrator\\.nuget\\packages\\google.apis.auth\\1.72.0\\google.apis.auth.1.72.0.nupkg.sha512",
+    "C:\\Users\\Administrator\\.nuget\\packages\\google.apis.core\\1.72.0\\google.apis.core.1.72.0.nupkg.sha512",
+    "C:\\Users\\Administrator\\.nuget\\packages\\newtonsoft.json\\13.0.4\\newtonsoft.json.13.0.4.nupkg.sha512",
+    "C:\\Users\\Administrator\\.nuget\\packages\\system.codedom\\7.0.0\\system.codedom.7.0.0.nupkg.sha512",
+    "C:\\Users\\Administrator\\.nuget\\packages\\system.management\\7.0.2\\system.management.7.0.2.nupkg.sha512"
+  ],
+  "logs": []
+}

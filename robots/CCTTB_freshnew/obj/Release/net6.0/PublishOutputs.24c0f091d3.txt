@@ -1,0 +1,11 @@
+C:\Users\Administrator\Documents\cAlgo\Sources\Robots\CCTTB_freshnew\CCTTB_freshnew\bin\Release\net6.0\publish\CCTTB_freshnew.dll
+C:\Users\Administrator\Documents\cAlgo\Sources\Robots\CCTTB_freshnew\CCTTB_freshnew\bin\Release\net6.0\publish\CCTTB_freshnew.deps.json
+C:\Users\Administrator\Documents\cAlgo\Sources\Robots\CCTTB_freshnew\CCTTB_freshnew\bin\Release\net6.0\publish\CCTTB_freshnew.pdb
+C:\Users\Administrator\Documents\cAlgo\Sources\Robots\CCTTB_freshnew\CCTTB_freshnew\bin\Release\net6.0\publish\cAlgo.API.dll
+C:\Users\Administrator\Documents\cAlgo\Sources\Robots\CCTTB_freshnew\CCTTB_freshnew\bin\Release\net6.0\publish\Google.Apis.dll
+C:\Users\Administrator\Documents\cAlgo\Sources\Robots\CCTTB_freshnew\CCTTB_freshnew\bin\Release\net6.0\publish\Google.Apis.Auth.dll
+C:\Users\Administrator\Documents\cAlgo\Sources\Robots\CCTTB_freshnew\CCTTB_freshnew\bin\Release\net6.0\publish\Google.Apis.Core.dll
+C:\Users\Administrator\Documents\cAlgo\Sources\Robots\CCTTB_freshnew\CCTTB_freshnew\bin\Release\net6.0\publish\Newtonsoft.Json.dll
+C:\Users\Administrator\Documents\cAlgo\Sources\Robots\CCTTB_freshnew\CCTTB_freshnew\bin\Release\net6.0\publish\System.CodeDom.dll
+C:\Users\Administrator\Documents\cAlgo\Sources\Robots\CCTTB_freshnew\CCTTB_freshnew\bin\Release\net6.0\publish\System.Management.dll
+C:\Users\Administrator\Documents\cAlgo\Sources\Robots\CCTTB_freshnew\CCTTB_freshnew\bin\Release\net6.0\publish\runtimes\win\lib\net6.0\System.Management.dll

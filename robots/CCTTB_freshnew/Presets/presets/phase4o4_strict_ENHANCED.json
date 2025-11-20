@@ -1,0 +1,228 @@
+{
+  "presetName": "phase4o4_strict_ENHANCED",
+  "version": "2.0",
+  "description": "Enhanced version of phase4o4_strict with intelligence, learning, and adaptive fallback",
+
+  "originalSettings": {
+    "Enable Phase4o4 strict mode": true,
+    "Require MSS to Enter": true,
+    "Require OTE always": true,
+    "Enable Sequence Gate": true,
+    "Allow Sequence Fallback": false,
+    "Require Opposite-Side Sweep": true,
+    "Require Retest to FOI": true,
+    "Enable Killzone Gate": true,
+    "POI Priority (e.g. OTE>FVG>OB>Breaker)": "OTE",
+    "Enable Continuation OTE (re-anchor)": false,
+    "Use Counter-Trend Bias": false,
+    "Enable Sweep-MSS OTE": true,
+    "Include PDH/PDL as liquidity zones": true,
+    "Require PDH/PDL sweeps only": true,
+    "Strict OTE after MSS completion": true,
+    "Min Risk/Reward": 2.0,
+    "Min SL Floor (pips)": 5.0,
+    "ATR Sanity Enabled": true,
+    "ATR Period": 14,
+    "ATR Sanity Factor": 0.25,
+    "Risk Percent": 1.0,
+    "Max Concurrent Positions": 1
+  },
+
+  "newEnhancements": {
+    "intelligentFallback": {
+      "enabled": true,
+      "description": "When perfect OTE doesn't form, accept high-quality alternatives",
+
+      "fallbackRules": {
+        "if_no_OTE_after_20_bars": {
+          "accept": "OrderBlock_with_MSS_and_OppLiq",
+          "confidence_reduction": 0.15,
+          "minRR_increase": 0.3,
+          "condition": "OrderBlock_must_be_clean_and_first_touch"
+        },
+
+        "if_OTE_missed_but_IFVG_present": {
+          "accept": "IFVG_with_MSS_confirmation",
+          "confidence_reduction": 0.10,
+          "minRR_increase": 0.2,
+          "condition": "IFVG_must_be_inverted_and_fresh"
+        },
+
+        "if_OppLiq_too_far": {
+          "accept": "nearest_liquidity_zone_above_minRR",
+          "confidence_reduction": 0.20,
+          "minRR_increase": 0.4,
+          "condition": "must_be_PDH/PDL/EQH/EQL"
+        }
+      },
+
+      "fallbackLimits": {
+        "max_confidence_reduction": 0.25,
+        "minimum_confidence_after_fallback": 0.60,
+        "reject_if_confidence_below": 0.60
+      }
+    },
+
+    "confidenceScoring": {
+      "enabled": true,
+      "baseConfidence": 0.85,
+
+      "bonuses": {
+        "clean_sweep_rejection": 0.05,
+        "perfect_OTE_0.618_fib": 0.05,
+        "IFVG_confluence": 0.08,
+        "BreakerBlock_confluence": 0.06,
+        "HTF_daily_bias_alignment": 0.07
+      },
+
+      "penalties": {
+        "using_fallback": "see_fallback_reduction",
+        "OTE_outside_optimal_0.618_0.71": -0.10,
+        "weak_sweep": -0.12,
+        "delayed_sequence": -0.05
+      },
+
+      "actionByConfidence": {
+        "above_0.90": "enter_with_110%_risk",
+        "0.80_to_0.90": "enter_with_100%_risk",
+        "0.70_to_0.80": "enter_with_85%_risk",
+        "0.60_to_0.70": "enter_with_70%_risk",
+        "below_0.60": "skip"
+      }
+    },
+
+    "adaptiveTolerance": {
+      "enabled": true,
+      "baseTolerancePips": 1.0,
+
+      "adjustBy": {
+        "ATR": "ATR * 0.15",
+        "missRate": "if_above_60%_add_0.2_pips",
+        "falseEntryRate": "if_above_25%_subtract_0.15_pips"
+      },
+
+      "bounds": {
+        "min": 0.8,
+        "max": 1.6
+      }
+    },
+
+    "learningSystem": {
+      "enabled": true,
+      "trackPatterns": true,
+      "rememberOutcomes": true,
+
+      "patterns": [
+        "PDH_sweep + MSS + OTE",
+        "PDL_sweep + MSS + OTE",
+        "EQH_sweep + MSS + OTE",
+        "EQL_sweep + MSS + OTE",
+        "Weekly_sweep + MSS + OTE",
+        "MSS + OTE (no_sweep_visible)",
+        "MSS + OrderBlock_fallback",
+        "MSS + IFVG_fallback"
+      ],
+
+      "learnFrom": "last_50_trades",
+      "updateConfidenceEvery": 10,
+      "avoidFailedPatterns": true
+    },
+
+    "marketStateAdaptation": {
+      "enabled": true,
+
+      "adjustmentsByState": {
+        "trending_market": {
+          "keep_strict_rules": true,
+          "hold_for_higher_RR": true,
+          "target_RR": 2.5
+        },
+
+        "ranging_market": {
+          "allow_fallback_earlier": true,
+          "accept_lower_RR": 1.6,
+          "quick_partial_profits": true
+        },
+
+        "volatile_market": {
+          "widen_tolerance": 1.2,
+          "increase_minRR": 2.3,
+          "reduce_risk": 0.85
+        }
+      }
+    },
+
+    "intelligentRetryLogic": {
+      "enabled": true,
+      "description": "If OTE missed, monitor zone for potential retap",
+
+      "retryRules": {
+        "if_OTE_NOT_tapped": {
+          "monitor_for": 10,
+          "allow_retap": true,
+          "widen_tolerance_on_retap": 0.3,
+          "max_retries": 2
+        },
+
+        "if_zone_approached_but_missed": {
+          "prepare_limit_order": true,
+          "place_at": "optimal_0.618",
+          "tolerance": "ATR_based"
+        }
+      }
+    },
+
+    "riskOptimization": {
+      "baseRisk": 1.0,
+
+      "adjustBy": {
+        "confidence": {
+          "above_0.90": "*1.10",
+          "0.80_to_0.90": "*1.00",
+          "0.70_to_0.80": "*0.85",
+          "0.60_to_0.70": "*0.70"
+        },
+
+        "recentPerformance": {
+          "winStreak_3": "*1.15",
+          "lossStreak_2": "*0.75"
+        }
+      },
+
+      "bounds": {
+        "min": 0.5,
+        "max": 1.3
+      }
+    }
+  },
+
+  "strictValidation": {
+    "alwaysEnforce": {
+      "MSS_must_have_OppLiq": true,
+      "OppLiq_must_be_nonzero": true,
+      "OppLiq_direction_must_be_correct": true,
+      "Sweep_must_be_clean": true,
+      "Sequence_must_be_valid": true
+    },
+
+    "neverAllowBypass": [
+      "MSS_OppLiq_gate",
+      "Signal_validation",
+      "Logic_chain_check"
+    ]
+  },
+
+  "sequenceGate": {
+    "enabled": true,
+    "minChain": ["MSS", "OppLiq_set", "EntryZone"],
+    "rejectIf": ["OTE_without_MSS", "MSS_without_OppLiq"]
+  },
+
+  "signalLogicValidationRef": "config/runtime/Signal_Logic_Validator.json",
+
+  "UseKillzone": false,
+  "KillzoneStartUtc": "00:00",
+  "KillzoneEndUtc": "23:59",
+
+  "notes": "This is the ENHANCED version of phase4o4_strict. It keeps all the strict rules but adds intelligence: smart fallback when OTE doesn't form, confidence scoring, learning from outcomes, and market-state adaptation. Best of both worlds: strict quality + intelligent flexibility."
+}

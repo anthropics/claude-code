@@ -1,0 +1,247 @@
+{
+  "databaseName": "Pattern_Learning_Database",
+  "version": "1.0",
+  "description": "Bot fills this database as it trades. Learns which patterns win, which fail. Self-improves over time.",
+
+  "initialization": {
+    "startDate": "2025-10-24",
+    "totalTrades": 0,
+    "lastUpdate": "never",
+    "learningStatus": "ready_to_learn"
+  },
+
+  "patterns": {
+    "Sweep_MSS_OTE": {
+      "description": "Perfect ICT sequence: Liquidity sweep → MSS → OTE",
+      "occurrences": 0,
+      "wins": 0,
+      "losses": 0,
+      "winRate": 0.0,
+      "avgRR": 0.0,
+      "avgProfit": 0.0,
+      "confidence": 0.85,
+      "status": "learning",
+      "lastSeen": "never"
+    },
+
+    "Sweep_MSS_OrderBlock": {
+      "description": "Sweep → MSS → OrderBlock (OTE fallback)",
+      "occurrences": 0,
+      "wins": 0,
+      "losses": 0,
+      "winRate": 0.0,
+      "avgRR": 0.0,
+      "avgProfit": 0.0,
+      "confidence": 0.75,
+      "status": "learning",
+      "lastSeen": "never"
+    },
+
+    "MSS_OTE_Only": {
+      "description": "MSS → OTE without visible sweep",
+      "occurrences": 0,
+      "wins": 0,
+      "losses": 0,
+      "winRate": 0.0,
+      "avgRR": 0.0,
+      "avgProfit": 0.0,
+      "confidence": 0.70,
+      "status": "learning",
+      "lastSeen": "never"
+    },
+
+    "MSS_OrderBlock_Only": {
+      "description": "MSS → OrderBlock without OTE",
+      "occurrences": 0,
+      "wins": 0,
+      "losses": 0,
+      "winRate": 0.0,
+      "avgRR": 0.0,
+      "avgProfit": 0.0,
+      "confidence": 0.65,
+      "status": "learning",
+      "lastSeen": "never"
+    },
+
+    "MSS_IFVG": {
+      "description": "MSS → Inverted FVG",
+      "occurrences": 0,
+      "wins": 0,
+      "losses": 0,
+      "winRate": 0.0,
+      "avgRR": 0.0,
+      "avgProfit": 0.0,
+      "confidence": 0.70,
+      "status": "learning",
+      "lastSeen": "never"
+    },
+
+    "Triple_Confluence": {
+      "description": "MSS + OTE + IFVG or MSS + OTE + OrderBlock",
+      "occurrences": 0,
+      "wins": 0,
+      "losses": 0,
+      "winRate": 0.0,
+      "avgRR": 0.0,
+      "avgProfit": 0.0,
+      "confidence": 0.90,
+      "status": "learning",
+      "lastSeen": "never"
+    },
+
+    "HTF_Confirmation": {
+      "description": "Entry with higher timeframe confirmation",
+      "occurrences": 0,
+      "wins": 0,
+      "losses": 0,
+      "winRate": 0.0,
+      "avgRR": 0.0,
+      "avgProfit": 0.0,
+      "confidence": 0.80,
+      "status": "learning",
+      "lastSeen": "never"
+    },
+
+    "BreakerBlock_Entry": {
+      "description": "Entry at flipped breaker block",
+      "occurrences": 0,
+      "wins": 0,
+      "losses": 0,
+      "winRate": 0.0,
+      "avgRR": 0.0,
+      "avgProfit": 0.0,
+      "confidence": 0.72,
+      "status": "learning",
+      "lastSeen": "never"
+    }
+  },
+
+  "marketStates": {
+    "trending_ADX_high": {
+      "description": "Trending market (ADX > 25)",
+      "tradesInState": 0,
+      "wins": 0,
+      "losses": 0,
+      "winRate": 0.0,
+      "avgRR": 0.0,
+      "bestPattern": "unknown",
+      "worstPattern": "unknown",
+      "learnedParameters": {
+        "optimalMinRR": 1.8,
+        "optimalTolerance": 0.9,
+        "optimalRisk": 0.8
+      }
+    },
+
+    "ranging_ADX_low": {
+      "description": "Ranging market (ADX < 20)",
+      "tradesInState": 0,
+      "wins": 0,
+      "losses": 0,
+      "winRate": 0.0,
+      "avgRR": 0.0,
+      "bestPattern": "unknown",
+      "worstPattern": "unknown",
+      "learnedParameters": {
+        "optimalMinRR": 1.0,
+        "optimalTolerance": 1.3,
+        "optimalRisk": 0.6
+      }
+    },
+
+    "volatile_ATR_high": {
+      "description": "Volatile market (ATR > ATR_MA * 1.3)",
+      "tradesInState": 0,
+      "wins": 0,
+      "losses": 0,
+      "winRate": 0.0,
+      "avgRR": 0.0,
+      "bestPattern": "unknown",
+      "worstPattern": "unknown",
+      "learnedParameters": {
+        "optimalMinRR": 1.3,
+        "optimalTolerance": 1.5,
+        "optimalRisk": 0.5
+      }
+    },
+
+    "quiet_ATR_low": {
+      "description": "Quiet market (ATR < ATR_MA * 0.8)",
+      "tradesInState": 0,
+      "wins": 0,
+      "losses": 0,
+      "winRate": 0.0,
+      "avgRR": 0.0,
+      "bestPattern": "unknown",
+      "worstPattern": "unknown",
+      "learnedParameters": {
+        "optimalMinRR": 1.1,
+        "optimalTolerance": 0.9,
+        "optimalRisk": 0.7
+      }
+    }
+  },
+
+  "sessions": {
+    "london": {
+      "trades": 0,
+      "wins": 0,
+      "losses": 0,
+      "winRate": 0.0,
+      "avgRR": 0.0,
+      "bestPattern": "unknown"
+    },
+
+    "newyork": {
+      "trades": 0,
+      "wins": 0,
+      "losses": 0,
+      "winRate": 0.0,
+      "avgRR": 0.0,
+      "bestPattern": "unknown"
+    },
+
+    "asia": {
+      "trades": 0,
+      "wins": 0,
+      "losses": 0,
+      "winRate": 0.0,
+      "avgRR": 0.0,
+      "bestPattern": "unknown"
+    },
+
+    "overlap": {
+      "trades": 0,
+      "wins": 0,
+      "losses": 0,
+      "winRate": 0.0,
+      "avgRR": 0.0,
+      "bestPattern": "unknown"
+    }
+  },
+
+  "learningRules": {
+    "updateFrequency": "every_10_trades",
+    "confidenceAdjustment": {
+      "if_winRate_above_70%": "confidence = 0.95",
+      "if_winRate_60_to_70%": "confidence = 0.85",
+      "if_winRate_50_to_60%": "confidence = 0.75",
+      "if_winRate_40_to_50%": "confidence = 0.60",
+      "if_winRate_below_40%": "confidence = 0.40"
+    },
+
+    "patternAvoidance": {
+      "if_pattern_lost_3_consecutive": "skip_for_20_occurrences",
+      "if_winRate_below_30%": "reduce_confidence_to_0.3",
+      "if_avgRR_below_0.8": "increase_minRR_by_0.3"
+    },
+
+    "patternPrioritization": {
+      "if_pattern_won_5_consecutive": "increase_risk_20%",
+      "if_winRate_above_75%": "prioritize_this_pattern",
+      "if_avgRR_above_3.0": "hold_longer_for_this_pattern"
+    }
+  },
+
+  "instructions": "This database starts empty. As the bot trades, it fills in the data. After 50-100 trades, patterns emerge. The bot learns which setups work best in which conditions, and adapts accordingly. DO NOT manually edit trade outcomes - let the bot learn naturally."
+}

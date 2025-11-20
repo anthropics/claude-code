@@ -1,0 +1,13 @@
+{
+  "name": "PostNews_Continuation",
+  "EntryGateMode": "MSS_and_OTE",
+  "OtePolicy": "ContinuationReanchor",
+  "SweepScope": "Any",
+  "TpTargetPolicy": "OppositeLiquidity",
+  "NewsFilter": "AllowOnlyPostNews",
+  "NewsDelayMinutes": 3,
+  "BiasAlign": "Strict",
+  "UseKillzone": false,
+  "KillzoneStartUtc": "00:00",
+  "KillzoneEndUtc": "23:59"
+}

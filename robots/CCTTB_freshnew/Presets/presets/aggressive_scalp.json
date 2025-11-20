@@ -1,0 +1,23 @@
+{
+  "name": "Aggressive_Scalp",
+  "description": "Maximum entry frequency for scalping",
+  "UseKillzone": false,
+  "KillzoneStartUtc": "00:00",
+  "KillzoneEndUtc": "23:59",
+  "Focus": "Any",
+  "EntryGateMode": "None",
+  "MinRR": 0.5,
+  "MaxStopLossPips": 10,
+  "RiskPercent": 0.5,
+  "AllowMultipleEntries": true,
+  "MaxPositions": 5,
+  "QuickExitEnabled": true,
+  "QuickExitRR": 0.3,
+  "PartialClosePercent": 50,
+  "ReEntryEnabled": true,
+  "ReEntryCooldown": 1,
+  "AllowCounterTrend": true,
+  "RequireMSS": false,
+  "RequireOTE": false,
+  "AcceptAnyPOI": true
+}

@@ -1,0 +1,6 @@
+{
+  "runMeta": {
+    "preset": "EURUSD_Base_0.2_1.2",
+    "backtestLabel": "preset_compare"
+  }
+}

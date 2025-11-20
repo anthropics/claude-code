@@ -1,0 +1,246 @@
+{
+  "name": "Signal_Logic_Validator",
+  "version": "1.0",
+  "purpose": "ENFORCES strict signal validation. Bot NEVER trades without valid detector signal and proper logic chain.",
+
+  "corePrinciple": "UNDERSTAND before ACT. VALIDATE before ENTER. REASON for every DECISION.",
+
+  "validationLayers": {
+    "layer1_signalDetection": {
+      "description": "At least one valid detector must fire",
+      "acceptedDetectors": [
+        "LiquiditySweepDetector",
+        "MSSignalDetector",
+        "OptimalTradeEntryDetector",
+        "OrderBlockDetector",
+        "FVGDetector",
+        "BreakerBlockDetector"
+      ],
+      "minimumDetectors": 1,
+      "preferredDetectors": 2,
+      "perfectSetup": 3,
+      "rejectIf": "no_detector_fired"
+    },
+
+    "layer2_signalValidation": {
+      "description": "Each detected signal must pass validation checks",
+
+      "liquiditySweepValidation": {
+        "check_liquidityLevel_exists": true,
+        "check_priceBreak_occurred": true,
+        "check_rejection_clean": true,
+        "check_no_sustained_break": true,
+        "rejectIf": "weak_rejection_or_sustained_break"
+      },
+
+      "mssValidation": {
+        "check_structure_broken": true,
+        "check_opposite_liquidity_SET": true,
+        "check_oppLiq_direction_correct": true,
+        "check_oppLiq_value_greater_than_zero": true,
+        "rejectIf": "no_oppLiq_OR_oppLiq_equals_zero"
+      },
+
+      "oteValidation": {
+        "check_MSS_occurred_before": true,
+        "check_fib_level_optimal": "0.618_to_0.79",
+        "check_zone_not_invalidated": true,
+        "check_oppLiq_still_intact": true,
+        "rejectIf": "no_MSS_OR_zone_invalid_OR_no_oppLiq"
+      },
+
+      "orderBlockValidation": {
+        "check_strong_move_away": true,
+        "check_zone_untouched": true,
+        "check_price_returned": true,
+        "check_direction_alignment": true,
+        "rejectIf": "weak_OB_or_already_tested_multiple_times"
+      },
+
+      "fvgValidation": {
+        "check_3candle_gap": true,
+        "check_no_overlap": true,
+        "check_directional_move": true,
+        "check_not_filled": true,
+        "rejectIf": "gap_already_filled_OR_weak_formation"
+      }
+    },
+
+    "layer3_logicChainValidation": {
+      "description": "Signals must form proper cause-effect chain",
+
+      "perfectChain": {
+        "sequence": ["LiquiditySweep", "MSS", "OppLiq_set", "OTE_or_OB", "Price_tap"],
+        "confidence": 0.95,
+        "action": "enter_with_full_risk"
+      },
+
+      "acceptableChains": [
+        {
+          "sequence": ["MSS", "OppLiq_set", "OTE"],
+          "confidence": 0.85,
+          "condition": "when_sweep_not_visible",
+          "action": "enter_with_reduced_risk_80%"
+        },
+        {
+          "sequence": ["Sweep", "MSS", "OppLiq_set", "OrderBlock"],
+          "confidence": 0.80,
+          "condition": "when_OTE_not_formed",
+          "action": "enter_with_reduced_risk_75%"
+        },
+        {
+          "sequence": ["MSS", "OppLiq_set", "IFVG"],
+          "confidence": 0.75,
+          "condition": "when_strong_MSS_and_clean_IFVG",
+          "action": "enter_with_reduced_risk_70%"
+        }
+      ],
+
+      "rejectedChains": [
+        {
+          "pattern": "OTE_without_MSS",
+          "reason": "no_structural_confirmation",
+          "action": "SKIP_and_log"
+        },
+        {
+          "pattern": "MSS_without_OppLiq",
+          "reason": "no_target_identified",
+          "action": "SKIP_and_log"
+        },
+        {
+          "pattern": "Entry_zone_invalidated",
+          "reason": "zone_broken_before_tap",
+          "action": "SKIP_and_log"
+        },
+        {
+          "pattern": "OppLiq_equals_zero",
+          "reason": "critical_MSS_gate_failed",
+          "action": "SKIP_and_log"
+        }
+      ]
+    },
+
+    "layer4_prerequisiteChecks": {
+      "description": "Each signal type has prerequisites that must be met",
+
+      "ote_prerequisites": [
+        "MSS_must_have_occurred",
+        "MSS_must_have_set_OppLiq",
+        "OppLiq_must_be_nonzero",
+        "OppLiq_direction_must_match_MSS",
+        "Price_must_retrace_to_fib_zone",
+        "Zone_must_not_be_invalidated"
+      ],
+
+      "orderBlock_prerequisites": [
+        "Strong_move_must_have_occurred",
+        "Zone_must_be_untouched",
+        "Price_must_return_to_zone",
+        "Direction_must_align_with_trend"
+      ],
+
+      "mss_prerequisites": [
+        "Previous_structure_must_exist",
+        "Structure_must_be_broken",
+        "Opposite_liquidity_must_be_identified",
+        "Clean_break_required"
+      ],
+
+      "sweep_prerequisites": [
+        "Liquidity_level_must_exist",
+        "Price_must_break_level",
+        "Rejection_must_be_clean",
+        "No_sustained_break_allowed"
+      ]
+    },
+
+    "layer5_confluenceScoring": {
+      "description": "Calculate total confluence score from all valid signals",
+
+      "scoreWeights": {
+        "LiquiditySweep": 1.5,
+        "MSS": 2.0,
+        "OTE": 1.8,
+        "OrderBlock": 1.3,
+        "IFVG": 1.2,
+        "BreakerBlock": 1.1,
+        "HTF_Confirmation": 1.4,
+        "DailyBias_Alignment": 0.8
+      },
+
+      "bonusMultipliers": {
+        "perfect_fib_0.618": 1.1,
+        "clean_sweep_rejection": 1.05,
+        "fresh_zone_first_touch": 1.08,
+        "all_timeframes_align": 1.15
+      },
+
+      "minimumScore": 2.0,
+      "highConfidenceScore": 4.0,
+      "perfectScore": 6.0,
+
+      "actionByScore": {
+        "below_2.0": "SKIP_insufficient_confluence",
+        "2.0_to_3.0": "ENTER_with_50%_risk",
+        "3.0_to_4.0": "ENTER_with_75%_risk",
+        "4.0_to_5.0": "ENTER_with_100%_risk",
+        "above_5.0": "ENTER_with_120%_risk"
+      }
+    }
+  },
+
+  "decisionProcess": {
+    "step1": "Detect_all_active_signals",
+    "step2": "Validate_each_signal_individually",
+    "step3": "Check_prerequisites_for_each_signal",
+    "step4": "Validate_logic_chain_sequence",
+    "step5": "Calculate_confluence_score",
+    "step6": "Check_critical_gates_MSS_OppLiq",
+    "step7": "Determine_confidence_level",
+    "step8": "Decision: if_valid_AND_score>=threshold → ENTER, else → SKIP",
+    "step9": "Log_reason_for_decision"
+  },
+
+  "loggingRequirements": {
+    "logEveryDecision": true,
+    "includeInLog": {
+      "detected_signals": ["list_all_detectors_that_fired"],
+      "validation_results": ["pass_or_fail_for_each"],
+      "prerequisites_checked": ["all_checks_with_results"],
+      "logic_chain": ["sequence_identified"],
+      "confluence_score": ["total_score_and_breakdown"],
+      "confidence": ["calculated_confidence_level"],
+      "decision": ["ENTER_or_SKIP"],
+      "reason": ["detailed_explanation"]
+    }
+  },
+
+  "criticalGates": {
+    "MSS_OppositeLiquidity_Gate": {
+      "description": "MOST CRITICAL. Prevents low-RR random trades.",
+      "check": "if MSS detected, OppLiq MUST be set and > 0",
+      "rejectIf": "OppLiq <= 0",
+      "logReason": "MSS OppLiq gate failed, no valid target"
+    },
+
+    "Entry_Zone_Validity_Gate": {
+      "description": "Prevents entries on invalidated zones",
+      "check": "Zone not broken before entry attempt",
+      "rejectIf": "Price broke zone before tap",
+      "logReason": "Entry zone invalidated"
+    },
+
+    "Signal_Expiry_Gate": {
+      "description": "Signals must be fresh, not stale",
+      "check": "Signal age < expiry bars",
+      "rejectIf": "Signal expired",
+      "logReason": "Signal too old, expired"
+    }
+  },
+
+  "enforcementMode": "strict",
+  "allowBypass": false,
+  "failSafe": "if_validation_fails_always_skip",
+
+  "notes": "This validator ensures the bot NEVER takes a random trade. Every entry must have valid detector signals, proper prerequisites, correct logic chain, and sufficient confluence. NO EXCEPTIONS."
+}

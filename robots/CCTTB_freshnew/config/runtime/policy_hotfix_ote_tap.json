@@ -1,0 +1,18 @@
+{
+  "riskEngine": {
+    "symbols": {
+      "EURUSD": {
+        "tap": {
+          "tolerancePips": 1.0,
+          "expiryBars": 4
+        }
+      },
+      "XAUUSD": {
+        "tap": {
+          "tolerancePoints": 10,
+          "expiryBars": 4
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,179 @@
+{
+  "orchestratorStamp": "hs-session-kgz@1.0.0",
+  "deploymentDate": "2025-10-22T00:00:00Z",
+  "status": "DEPLOYED",
+  "mode": "SHADOW_MODE_DAY_1",
+  "version": "1.0.0",
+
+  "deployment": {
+    "approved": true,
+    "approvedBy": "user",
+    "approvalTime": "2025-10-22T00:00:00Z",
+    "backupCreated": true,
+    "filesModified": []
+  },
+
+  "currentPhase": {
+    "phase": "SHADOW_MODE",
+    "day": 1,
+    "description": "Risk engine computes multipliers but does NOT apply to live trading",
+    "behavior": "All calculations logged to config/runtime/audit/ for analysis",
+    "nextPhase": {
+      "phase": "RAMP_50PCT",
+      "day": 2,
+      "requiresApproval": true
+    }
+  },
+
+  "riskEngine": {
+    "enabled": true,
+    "shadowMode": true,
+    "instruments": ["EURUSD", "XAUUSD", "US30"],
+    "factors": ["session", "volatility", "spread", "news", "drawdown"],
+    "currentMultipliers": {
+      "EURUSD": {
+        "current": 0.850,
+        "computed": 0.838,
+        "applied": 0.850,
+        "reason": "Shadow mode - no application"
+      },
+      "XAUUSD": {
+        "current": 0.850,
+        "computed": 0.811,
+        "applied": 0.850,
+        "reason": "Shadow mode - no application"
+      },
+      "US30": {
+        "current": 0.850,
+        "computed": 0.848,
+        "applied": 0.850,
+        "reason": "Shadow mode - no application"
+      }
+    }
+  },
+
+  "integrationChecklist": {
+    "configFiles": {
+      "policy.json": true,
+      "stats.json": true,
+      "active.json": true
+    },
+    "directories": {
+      "runtime": true,
+      "audit": true,
+      "backup": true
+    },
+    "validation": {
+      "schemaValid": true,
+      "boundsValid": true,
+      "factorsValid": true,
+      "instrumentsValid": true
+    }
+  },
+
+  "botIntegration": {
+    "required": true,
+    "status": "PENDING",
+    "tasks": [
+      {
+        "task": "Populate config/runtime/stats.json each cycle",
+        "fields": ["currentSession", "trades.lastMins", "market.*", "news.*", "equity.drawdownPct"],
+        "frequency": "Every bar/tick cycle",
+        "priority": "HIGH"
+      },
+      {
+        "task": "Read config/runtime/policy.json on startup",
+        "priority": "HIGH"
+      },
+      {
+        "task": "Compute risk.multiplier using 5-factor formula",
+        "frequency": "Each cycle after stats update",
+        "priority": "HIGH"
+      },
+      {
+        "task": "Write audit log to config/runtime/audit/<timestamp>.json",
+        "frequency": "On each risk.multiplier computation",
+        "priority": "MEDIUM"
+      },
+      {
+        "task": "Apply risk.multiplier to position sizing (after Day 1)",
+        "status": "NOT YET - Shadow mode",
+        "priority": "HIGH"
+      }
+    ]
+  },
+
+  "monitoring": {
+    "auditLogs": "config/runtime/audit/",
+    "statsFile": "config/runtime/stats.json",
+    "reportFile": "config/runtime/RISK_ENGINE_DRY_RUN_REPORT.md",
+    "dailyReview": [
+      "Check audit logs for factor breakdowns",
+      "Verify stats.json is being populated correctly",
+      "Compare computed vs current multipliers",
+      "Assess readiness for Day 2 ramp"
+    ]
+  },
+
+  "safetyMechanisms": {
+    "shadowMode": true,
+    "minEffectThreshold": 0.05,
+    "drawdownOverride": {
+      "enabled": true,
+      "threshold": 0.05,
+      "action": "Apply full safety immediately if DD >= 5%"
+    },
+    "cashOpenGuard": {
+      "enabled": true,
+      "symbols": ["US30", "XAUUSD"],
+      "prePostMinutes": 10
+    },
+    "failOpen": {
+      "enabled": true,
+      "restoreTo": "base.json + session overlay"
+    },
+    "backups": {
+      "enabled": true,
+      "location": "config/.backup/<timestamp>/"
+    }
+  },
+
+  "schedule": {
+    "day1": {
+      "date": "2025-10-22",
+      "mode": "SHADOW_MODE",
+      "rampPercent": 0,
+      "action": "Compute and log only - NO application to live trading"
+    },
+    "day2": {
+      "date": "2025-10-23",
+      "mode": "RAMP_50PCT",
+      "rampPercent": 50,
+      "action": "Apply 50% of delta if |Δ| >= 0.05",
+      "requiresApproval": true
+    },
+    "day3": {
+      "date": "2025-10-24",
+      "mode": "RAMP_75PCT",
+      "rampPercent": 75,
+      "action": "Apply 75% of delta if |Δ| >= 0.05",
+      "requiresApproval": true
+    },
+    "day4": {
+      "date": "2025-10-25",
+      "mode": "FULL_APPLICATION",
+      "rampPercent": 100,
+      "action": "Apply 100% of delta if |Δ| >= 0.05",
+      "requiresApproval": false
+    }
+  },
+
+  "notes": [
+    "Risk engine deployed successfully in shadow mode",
+    "No changes to live trading during Day 1",
+    "Bot must populate stats.json for calculations to work",
+    "Review audit logs daily to validate calculations",
+    "Approve Day 2 ramp only after validating Day 1 behavior",
+    "Drawdown override bypasses shadow mode if DD >= 5%"
+  ]
+}

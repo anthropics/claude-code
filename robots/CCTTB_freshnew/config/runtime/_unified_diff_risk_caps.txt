@@ -1,0 +1,74 @@
+--- policy.json (current)
++++ policy.json (with execution guards, sizer, and audit meta)
+
+@@ After Line 153 (after riskEngine.broker block): NEW SECTIONS @@
++  "executionGuards": {
++    "positionRiskCaps": {
++      "maxRiskPctPerTrade": 0.8,
++      "maxOpenRiskPct": 2.0,
++      "maxNotionalUSD": 1500000
++    },
++    "circuitBreaker": {
++      "onBreach": "skip_or_halve",
++      "log": true
++    }
++  },
++  "sizer": {
++    "mode": "volAndRR",
++    "useRiskMultiplier": true,
++    "notes": "finalQty = baseQty * risk.multiplier, then apply positionRiskCaps"
++  },
++  "audit": {
++    "includeMeta": true,
++    "metaFields": ["preset", "backtestLabel"]
++  },
+   "tpRule": {
+
+--- active.json (NEW FILE) ---
++++ active.json (created)
+
+@@ New file @@
++{
++  "runMeta": {
++    "preset": "EURUSD_Tight_0.0_0.2",
++    "backtestLabel": "EURUSD_preset_compare"
++  }
++}
+
+SUMMARY OF CHANGES:
+==================
+policy.json:
+1. NEW executionGuards section:
+   - maxRiskPctPerTrade: 0.8% (caps risk per trade)
+   - maxOpenRiskPct: 2.0% (caps aggregate open risk)
+   - maxNotionalUSD: 1,500,000 (caps notional exposure)
+   - onBreach: skip_or_halve (halve once, then skip if still over)
+   - log: true (log to audit.csv)
+
+2. NEW sizer section:
+   - mode: volAndRR
+   - useRiskMultiplier: true (finalQty = baseQty * risk.multiplier)
+   - notes: Apply positionRiskCaps after multiplier
+
+3. NEW audit section:
+   - includeMeta: true
+   - metaFields: ["preset", "backtestLabel"]
+
+active.json:
+4. NEW FILE created:
+   - preset: "EURUSD_Tight_0.0_0.2"
+   - backtestLabel: "EURUSD_preset_compare"
+
+ORCHESTRATOR EXPECTATIONS:
+==========================
+- Before sizing an order, compute risk% = (|entry - stop| * contractValue * qty) / equity
+- If risk% > 0.8%, halve size once; if still > 0.8%, skip
+- If aggregate open risk > 2.0%, skip
+- If notional > $1.5M, halve then skip if still over
+- Always log breach reason in audit.csv
+- finalQty = baseQty * risk.multiplier (from policy), then apply caps
+- Audit meta fields appended to audit.csv in memory (no header rewrite)
+
+NO DUPLICATES: All new sections added without conflicts
+NO CODE CHANGES: Only config/runtime/ modified
+orchestratorStamp: preserved at "hs-session-kgz@1.0.0"

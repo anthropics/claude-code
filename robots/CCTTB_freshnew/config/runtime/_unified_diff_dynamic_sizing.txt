@@ -1,0 +1,96 @@
+--- policy.json (before: volAndRR sizer)
++++ policy.json (after: riskPct with equity scaling + contract specs)
+
+@@ Line 166-170 (sizer block): REPLACED @@
+-  "sizer": {
+-    "mode": "volAndRR",
+-    "useRiskMultiplier": true,
+-    "notes": "finalQty = baseQty * risk.multiplier, then apply positionRiskCaps"
+-  },
++  "sizer": {
++    "mode": "riskPct",
++    "equitySource": "equity",
++    "includeFloatingPnL": true,
++    "scaleWithEquity": true,
++    "useRiskMultiplier": true,
++    "riskPctBase": {
++      "EURUSD": 0.50,
++      "XAUUSD": 0.40,
++      "US30": 0.40
++    },
++    "contract": {
++      "EURUSD": {
++        "valuePerPip": 10.0,
++        "pipSize": 0.0001
++      },
++      "XAUUSD": {
++        "valuePerPoint": 1.0,
++        "pointSize": 0.1
++      },
++      "US30": {
++        "valuePerPoint": 1.0,
++        "pointSize": 1.0
++      }
++    },
++    "qtyBounds": {
++      "EURUSD": {
++        "min": 0.01,
++        "max": 50.0,
++        "step": 0.01
++      },
++      "XAUUSD": {
++        "min": 0.01,
++        "max": 20.0,
++        "step": 0.01
++      },
++      "US30": {
++        "min": 0.10,
++        "max": 50.0,
++        "step": 0.10
++      }
++    },
++    "rounding": "toStep",
++    "notes": "qty = (equity * riskPctBase) / (stopDistancePts * valuePerPoint) * risk.multiplier; then apply positionRiskCaps"
++  },
+
+active.json: NO CHANGES (runMeta already present)
+
+SUMMARY OF CHANGES:
+==================
+policy.json sizer section:
+1. mode: "volAndRR" → "riskPct"
+2. NEW: equitySource, includeFloatingPnL, scaleWithEquity
+3. NEW: riskPctBase per symbol (EURUSD: 0.50%, XAUUSD: 0.40%, US30: 0.40%)
+4. NEW: contract specs (valuePerPip/Point, pipSize/pointSize)
+5. NEW: qtyBounds (min/max/step) per symbol
+6. NEW: rounding mode ("toStep")
+7. PRESERVED: useRiskMultiplier: true
+8. UPDATED: notes with full formula
+
+ORCHESTRATOR EXPECTATIONS:
+==========================
+Position Sizing Formula:
+  baseQty = (equity * riskPctBase[symbol]) / (stopDistancePts * valuePerPoint)
+  finalQty = baseQty * risk.multiplier
+  finalQty = round(finalQty, toStep[symbol])
+  if finalQty < min[symbol]: finalQty = min[symbol]
+  if finalQty > max[symbol]: finalQty = max[symbol]
+
+Risk Multiplier (from risk engine):
+  risk.multiplier = f_session × f_vol × f_spread × f_news × f_dd
+  clipped to [bounds.min, bounds.max] (0.40 to 1.25)
+
+Position Risk Caps (executionGuards):
+  risk% = (stopDistancePts × valuePerPoint × finalQty) / equity × 100
+  if risk% > 0.8%: halve once, then skip if still > 0.8%
+  if aggregate open risk > 2.0%: skip
+  if notional > $1.5M: halve then skip if still over
+
+Equity Scaling Examples:
+  Equity $1,000 → EURUSD 15 pips → baseQty = 1000 × 0.005 / (15 × 10) = 0.033 lots
+  Equity $10,000 → EURUSD 15 pips → baseQty = 10000 × 0.005 / (15 × 10) = 0.33 lots (10x)
+  Equity $10,000 → XAUUSD 50 pts → baseQty = 10000 × 0.004 / (50 × 1) = 0.80 lots
+
+NO DUPLICATES: All changes within existing sizer block
+NO CODE CHANGES: Only config/runtime/ modified
+orchestratorStamp: preserved at "hs-session-kgz@1.0.0"

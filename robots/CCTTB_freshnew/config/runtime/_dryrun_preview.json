@@ -1,0 +1,164 @@
+{
+  "policyPatchApplied": false,
+  "status": "DRY-RUN PREVIEW - AWAITING APPROVAL",
+  "timestamp": "2025-10-23T13:12:27",
+  "backupLocation": "config/.backup/2025-10-23T13-12-27/",
+  "summary": {
+    "changesCount": 8,
+    "sectionsModified": [
+      "riskEngine.sessionMultipliers",
+      "riskEngine.symbols.EURUSD",
+      "riskEngine.symbols.XAUUSD",
+      "riskEngine.symbols.US30",
+      "NEW: tpRule",
+      "NEW: confirm",
+      "NEW: cooldown"
+    ]
+  },
+  "effectiveConfig": {
+    "riskEngine": {
+      "sessionMultipliers": {
+        "overlap": 1.00,
+        "london": 0.80,
+        "newyork": 1.00,
+        "asia": 0.60,
+        "_change": "london: 0.85 → 0.80"
+      },
+      "smooth": {
+        "halfLifeMin": 20
+      },
+      "bounds": {
+        "min": 0.40,
+        "max": 1.25
+      },
+      "symbols": {
+        "EURUSD": {
+          "tap": {
+            "tolerancePips": 0.8,
+            "expiryBars": 3,
+            "limitToMarketConvert": true,
+            "_change": "ADDED - New OTE tap configuration"
+          },
+          "bounds": {
+            "min": 0.50,
+            "max": 1.20
+          },
+          "sessionMultipliers": {
+            "overlap": 1.00,
+            "london": 0.90,
+            "newyork": 1.00,
+            "asia": 0.80,
+            "_change": "london: 0.95 → 0.90"
+          }
+        },
+        "XAUUSD": {
+          "tap": {
+            "tolerancePoints": 8,
+            "expiryBars": 3,
+            "limitToMarketConvert": true,
+            "_change": "ADDED - New OTE tap configuration"
+          },
+          "bounds": {
+            "min": 0.40,
+            "max": 1.25
+          }
+        },
+        "US30": {
+          "tap": {
+            "tolerancePoints": 6,
+            "expiryBars": 2,
+            "limitToMarketConvert": true,
+            "_change": "ADDED - New OTE tap configuration"
+          },
+          "bounds": {
+            "min": 0.45,
+            "max": 1.25
+          }
+        }
+      }
+    },
+    "tpRule": {
+      "minRR": 1.8,
+      "allowPartial": true,
+      "partialAtRR": 1.2,
+      "trailAfterRR": 2.5,
+      "_change": "ADDED - New RR-based TP rule section"
+    },
+    "confirm": {
+      "mode": "score",
+      "needAtLeast": 2,
+      "components": [
+        "MSS",
+        "OTE",
+        "OrderBlock",
+        "IFVG"
+      ],
+      "weights": {
+        "MSS": 1.0,
+        "OTE": 1.0,
+        "OrderBlock": 0.8,
+        "IFVG": 0.6
+      },
+      "threshold": 1.8,
+      "_change": "ADDED - New confirmation scoring system"
+    },
+    "cooldown": {
+      "bars": 3,
+      "overrideIf": {
+        "betterRR": 0.3,
+        "spreadZBelow": 0.5
+      },
+      "_change": "ADDED - New cooldown with context-aware override"
+    }
+  },
+  "orchestratorExpectations": {
+    "perSymbolOteTap": {
+      "enabled": true,
+      "description": "Each symbol has instrument-specific OTE tolerance (EURUSD: 0.8 pips, XAUUSD: 8 pts, US30: 6 pts)",
+      "limitToMarketConversion": "Allowed if OTE not tapped within expiryBars AND bias/structure still valid",
+      "expiryBarsRange": "2-3 bars depending on symbol"
+    },
+    "rrBasedTpRule": {
+      "enabled": true,
+      "minRR": 1.8,
+      "description": "Block entries if projected RR < 1.8; otherwise adjust TP (or partial) rather than rejecting for geometric constraints",
+      "partialExits": "Enabled at RR 1.2",
+      "trailingStop": "Activated after RR 2.5"
+    },
+    "riskEngine": {
+      "smoothing": "halfLifeMin=20",
+      "bounds": "min=0.4, max=1.25",
+      "description": "Applies EWMA smoothing and clamps risk multiplier to bounds"
+    },
+    "confirmationStack": {
+      "mode": "score",
+      "needAtLeast": 2,
+      "description": "At least 2 components required; scores weighted (MSS=1.0, OTE=1.0, OrderBlock=0.8, IFVG=0.6)",
+      "threshold": 1.8
+    },
+    "cooldown": {
+      "bars": 3,
+      "overrideConditions": [
+        "RR improves by ≥30%",
+        "spreadZ ≤ 0.5"
+      ],
+      "description": "Context-aware cooldown allows one override if conditions met"
+    }
+  },
+  "notes": [
+    "Strategy code NOT modified - only config/runtime/policy.json",
+    "orchestratorStamp preserved: 'hs-session-kgz@1.0.0'",
+    "No duplicate keys introduced",
+    "All numeric values validated (no NaN/Inf)",
+    "Backup created at: config/.backup/2025-10-23T13-12-27/",
+    "stats.json will NOT be overwritten - only stats.README.json will be created",
+    "audit.csv will be created with correct header if missing"
+  ],
+  "validationStatus": {
+    "schemaValid": true,
+    "typesValid": true,
+    "noDuplicates": true,
+    "numericValuesValid": true,
+    "requiredKeysPresent": true
+  }
+}

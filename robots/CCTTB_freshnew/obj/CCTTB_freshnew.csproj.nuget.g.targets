@@ -1,0 +1,6 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<Project ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ImportGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
+    <Import Project="$(NuGetPackageRoot)ctrader.automate\1.0.14\build\cTrader.Automate.targets" Condition="Exists('$(NuGetPackageRoot)ctrader.automate\1.0.14\build\cTrader.Automate.targets')" />
+  </ImportGroup>
+</Project>

@@ -1,0 +1,242 @@
+{
+  "presetName": "Intelligent_Universal",
+  "version": "1.0",
+  "description": "Universal preset that works in ANY market condition through intelligent adaptation",
+
+  "signalLogicUnderstanding": {
+    "enabled": true,
+    "validatePrerequisites": true,
+    "understandMarketMeaning": true,
+    "predictNextMove": true
+  },
+
+  "signalRequirements": {
+    "minimumRequired": ["MSS"],
+    "mssRequirements": {
+      "mustHaveOppositeLiquidity": true,
+      "oppLiqMustBeValid": true,
+      "oppLiqDirection": "correct_side"
+    },
+    "preferredSignals": ["LiquiditySweep", "MSS", "OTE"],
+    "perfectSetup": ["LiquiditySweep", "MSS", "OTE", "IFVG"],
+    "acceptableBackup": ["MSS", "OrderBlock"],
+    "neverAccept": ["OTE_without_MSS", "Entry_without_OppLiq"]
+  },
+
+  "confidenceScoring": {
+    "enabled": true,
+    "method": "weighted_sum",
+    "weights": {
+      "LiquiditySweep": 1.5,
+      "MSS": 2.0,
+      "OTE": 1.8,
+      "OrderBlock": 1.3,
+      "IFVG": 1.2,
+      "BreakerBlock": 1.1,
+      "HTF_Confirmation": 1.4
+    },
+    "minimumScore": 2.5,
+    "highConfidenceScore": 4.0,
+    "perfectScore": 5.5,
+    "actionByScore": {
+      "below_2.5": "skip",
+      "2.5_to_3.5": "enter_reduced_risk_70%",
+      "3.5_to_4.5": "enter_normal_risk_100%",
+      "above_4.5": "enter_increased_risk_120%"
+    }
+  },
+
+  "marketStateDetection": {
+    "enabled": true,
+    "indicators": {
+      "atr": {"period": 14, "maPeriod": 50},
+      "adx": {"period": 14},
+      "bollingerBands": {"period": 20, "stdDev": 2}
+    },
+    "states": {
+      "trending": {
+        "detection": "ADX > 25",
+        "adjustments": {
+          "minRR": 1.8,
+          "toleranceMultiplier": 0.9,
+          "holdLonger": true,
+          "trailingStart": 2.5
+        }
+      },
+      "ranging": {
+        "detection": "ADX < 20 AND BB_width < 0.02",
+        "adjustments": {
+          "minRR": 1.0,
+          "toleranceMultiplier": 1.2,
+          "quickExit": true,
+          "trailingStart": 1.5
+        }
+      },
+      "volatile": {
+        "detection": "ATR > ATR_MA * 1.3",
+        "adjustments": {
+          "minRR": 1.3,
+          "toleranceMultiplier": 1.1,
+          "widerStops": true,
+          "reduceRisk": 0.8
+        }
+      },
+      "quiet": {
+        "detection": "ATR < ATR_MA * 0.8",
+        "adjustments": {
+          "minRR": 1.1,
+          "toleranceMultiplier": 1.0,
+          "selectiveEntry": true,
+          "tighterStops": true
+        }
+      }
+    }
+  },
+
+  "adaptiveParameters": {
+    "enabled": true,
+    "reassessEvery": 10,
+
+    "ote_tolerance": {
+      "mode": "atr_based",
+      "formula": "ATR * 0.18",
+      "bounds": {
+        "min": 0.9,
+        "max": 2.0
+      },
+      "adjustByMissRate": {
+        "if_missRate_above_70%": "+0.3_pips",
+        "if_missRate_below_30%": "-0.2_pips"
+      }
+    },
+
+    "minRR": {
+      "baseValue": 1.2,
+      "adjustBy": {
+        "marketState": "use_state_specific_value",
+        "recentWinRate": {
+          "below_40%": "+0.3",
+          "above_60%": "-0.2"
+        },
+        "consecutiveLosses": {
+          "3_losses": "+0.4",
+          "5_losses": "+0.6"
+        }
+      },
+      "bounds": {
+        "min": 0.9,
+        "max": 2.5
+      }
+    },
+
+    "riskPercent": {
+      "baseValue": 0.5,
+      "adjustBy": {
+        "winStreak": {
+          "3": "*1.2",
+          "5": "*1.4"
+        },
+        "lossStreak": {
+          "2": "*0.8",
+          "3": "*0.6"
+        },
+        "drawdown": {
+          "above_3%": "*0.7",
+          "above_5%": "*0.5"
+        },
+        "monthlyProfit": {
+          "above_15%": "*1.2",
+          "above_25%": "*1.3"
+        }
+      },
+      "bounds": {
+        "min": 0.2,
+        "max": 1.0
+      }
+    }
+  },
+
+  "learningSystem": {
+    "enabled": true,
+    "rememberPatterns": true,
+    "trackLast": 100,
+    "updateEvery": 10,
+
+    "patternTracking": {
+      "track": [
+        "Sweep+MSS+OTE",
+        "MSS+OTE",
+        "MSS+OrderBlock",
+        "MSS+IFVG",
+        "OTE_without_Sweep",
+        "Triple_Confirmation"
+      ],
+      "recordOutcome": true,
+      "calculateWinRate": true,
+      "adjustConfidence": true
+    },
+
+    "learningRules": {
+      "if_pattern_won_5_times": "increase_confidence_20%",
+      "if_pattern_lost_3_times": "decrease_confidence_30%",
+      "if_winRate_above_70%": "prioritize_this_pattern",
+      "if_winRate_below_35%": "avoid_this_pattern"
+    }
+  },
+
+  "profitManagement": {
+    "mode": "adaptive_to_market_state",
+    "baseMinRR": 1.2,
+
+    "partialProfits": {
+      "enabled": true,
+      "levels": {
+        "trending": [
+          {"rr": 1.0, "percent": 25},
+          {"rr": 2.0, "percent": 25}
+        ],
+        "ranging": [
+          {"rr": 0.6, "percent": 35},
+          {"rr": 1.1, "percent": 35}
+        ],
+        "volatile": [
+          {"rr": 0.8, "percent": 30},
+          {"rr": 1.5, "percent": 30}
+        ]
+      }
+    },
+
+    "breakEven": {
+      "enabled": true,
+      "atRR": 0.6
+    },
+
+    "trailingStop": {
+      "enabled": true,
+      "activateAtRR": "market_state_dependent",
+      "stepPips": 5
+    }
+  },
+
+  "strictValidation": {
+    "neverTradeWithoutSignal": true,
+    "validateLogicChain": true,
+    "checkPrerequisites": true,
+    "requireMSS_OppositeLiquidity": true,
+    "rejectInvalidSequence": true
+  },
+
+  "sequenceGate": {
+    "enabled": true,
+    "minChain": ["MSS", "OppLiq_set", "EntryZone"],
+    "rejectIf": ["OTE_without_MSS", "MSS_without_OppLiq"]
+  },
+
+  "signalLogicValidationRef": "config/runtime/Signal_Logic_Validator.json",
+
+  "UseKillzone": false,
+  "KillzoneStartUtc": "00:00",
+  "KillzoneEndUtc": "23:59",
+
+  "notes": "This preset adapts to any market condition. It understands signal logic, predicts outcomes, and learns continuously. Perfect for unknown future days."
+}

@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/Administrator/Documents/cAlgo/Sources/Robots/**)",
+      "Bash(dotnet build --configuration Debug)",
+      "Bash(dotnet --version)",
+      "Bash(md5sum JadecapStrategy.cs)",
+      "Bash(powershell -Command \"\n$content = Get-Content ''JadecapStrategy.cs'' -Raw\n$oldText = @''\n                    // Partition POIs by direction - DO NOT FILTER by dailyBias, use MSS direction instead\n                    // The OTE direction should match the MSS direction (structure shift), not the HTF bias\n                    var activeMssDir = _state.ActiveMSS?.Direction ?? BiasDirection.Neutral;\n                    var filterDir = activeMssDir != BiasDirection.Neutral ? activeMssDir : dailyBias;\n\n                    if (EnableDebugLoggingParam)\n                        _journal.Debug(\\`$\"\"\"\"OTE FILTER: dailyBias={dailyBias} | activeMssDir={activeMssDir} | filterDir={filterDir}\"\"\"\");\n''@\n\n$newText = @''\n                    // Partition POIs by direction - DO NOT FILTER by dailyBias, use MSS direction instead\n                    // The OTE direction should match the MSS direction (structure shift), not the HTF bias\n                    var activeMssDir = _state.ActiveMSS?.Direction ?? BiasDirection.Neutral;\n                    var filterDir = activeMssDir != BiasDirection.Neutral ? activeMssDir : dailyBias;\n\n                    // CRITICAL: Daily Bias acts as a VETO filter\n                    // If Daily Bias is strongly directional (not Neutral), BLOCK trades that conflict with it\n                    // This prevents counter-trend entries that lead to losses\n                    if (dailyBias != BiasDirection.Neutral && filterDir != BiasDirection.Neutral && dailyBias != filterDir)\n                    {\n                        if (EnableDebugLoggingParam)\n                            _journal.Debug(\\`$\"\"\"\"❌ DAILY BIAS VETO: filterDir={filterDir} conflicts with dailyBias={dailyBias} → Trade BLOCKED\"\"\"\");\n                        _tradeManager.ManageOpenPositions(Symbol);\n                        return;\n                    }\n\n                    if (EnableDebugLoggingParam)\n                        _journal.Debug(\\`$\"\"\"\"OTE FILTER: dailyBias={dailyBias} | activeMssDir={activeMssDir} | filterDir={filterDir}\"\"\"\");\n''@\n\n$newContent = $content.Replace($oldText, $newText)\nSet-Content ''JadecapStrategy.cs'' -Value $newContent -NoNewline\nWrite-Host ''SUCCESS: Added Daily Bias veto filter''\n\")",
+      "Bash(powershell:*)",
+      "Bash(dotnet clean:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "Enable Phase4o4 strict mode": true,
+  "Require MSS to Enter": true,
+  "Require MSS+Breaker+IFVG": true,
+  "POI Priority (e.g. OTE>FVG>OB>Breaker)": "OTE",
+  "Enable FVG Drawing": true,
+  "Require PDH/PDL sweeps only": false,
+  "Allow EQH/EQL sweeps": true,
+  "Include Equal High/Low zones": true,
+  "Enable Killzone Gate": true,
+  "Kill Zone Start (Hours EST)": 9.5,
+  "Kill Zone End (Hours EST)": 11.5,
+  "UseKillzone": false,
+  "KillzoneStartUtc": "00:00",
+  "KillzoneEndUtc": "23:59"
+}

@@ -1,0 +1,11 @@
+C:\Users\Administrator\Documents\cAlgo\Sources\Robots\CCTTB_freshnew\CCTTB_freshnew\bin\Release\net6.0\CCTTB_freshnew.deps.json
+C:\Users\Administrator\Documents\cAlgo\Sources\Robots\CCTTB_freshnew\CCTTB_freshnew\bin\Release\net6.0\CCTTB_freshnew.dll
+C:\Users\Administrator\Documents\cAlgo\Sources\Robots\CCTTB_freshnew\CCTTB_freshnew\bin\Release\net6.0\ref\CCTTB_freshnew.dll
+C:\Users\Administrator\Documents\cAlgo\Sources\Robots\CCTTB_freshnew\CCTTB_freshnew\bin\Release\net6.0\CCTTB_freshnew.pdb
+C:\Users\Administrator\Documents\cAlgo\Sources\Robots\CCTTB_freshnew\CCTTB_freshnew\obj\Release\net6.0\CCTTB_freshnew.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Administrator\Documents\cAlgo\Sources\Robots\CCTTB_freshnew\CCTTB_freshnew\obj\Release\net6.0\CCTTB_freshnew.AssemblyInfoInputs.cache
+C:\Users\Administrator\Documents\cAlgo\Sources\Robots\CCTTB_freshnew\CCTTB_freshnew\obj\Release\net6.0\CCTTB_freshnew.AssemblyInfo.cs
+C:\Users\Administrator\Documents\cAlgo\Sources\Robots\CCTTB_freshnew\CCTTB_freshnew\obj\Release\net6.0\CCTTB_freshnew.csproj.CoreCompileInputs.cache
+C:\Users\Administrator\Documents\cAlgo\Sources\Robots\CCTTB_freshnew\CCTTB_freshnew\obj\Release\net6.0\CCTTB_freshnew.dll
+C:\Users\Administrator\Documents\cAlgo\Sources\Robots\CCTTB_freshnew\CCTTB_freshnew\obj\Release\net6.0\ref\CCTTB_freshnew.dll
+C:\Users\Administrator\Documents\cAlgo\Sources\Robots\CCTTB_freshnew\CCTTB_freshnew\obj\Release\net6.0\CCTTB_freshnew.pdb

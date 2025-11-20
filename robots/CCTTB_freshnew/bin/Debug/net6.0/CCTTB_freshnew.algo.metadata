@@ -1,0 +1,1600 @@
+[
+  {
+    "Flags": "Robot",
+    "Guid": "00000000-0000-0000-0000-000000000000",
+    "Group": "Custom",
+    "FriendlyName": "JadecapStrategy",
+    "ShortName": null,
+    "TypeName": "CCTTB.JadecapStrategy",
+    "AssemblyName": "CCTTB_freshnew, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null",
+    "TimeZone": "Eastern Standard Time",
+    "IsOverlay": false,
+    "IsPercentage": false,
+    "ScalePrecision": null,
+    "Levels": [],
+    "DefaultSymbolName": null,
+    "DefaultTimeFrame": null,
+    "Video": null,
+    "Lines": [],
+    "Clouds": [],
+    "Parameters": [
+      {
+        "EnumValues": {
+          "None": 0,
+          "NY_Strict_InternalOnly": 1,
+          "PostNews_Continuation": 2,
+          "Asia_Liquidity_Sweep": 3,
+          "NY_Strict_TripleSequence": 4,
+          "PostNews_TripleStrict": 5,
+          "Asia_Internal_Mechanical": 6,
+          "Asia_Internal_StrictMechanical": 7,
+          "London_Internal_Mechanical": 8,
+          "London_Internal_StrictMechanical": 9,
+          "London_Triple_Strict": 10,
+          "Weekly_Focused": 11,
+          "London_Weekly_Focused": 12,
+          "NY_Weekly_Focused": 13,
+          "Asia_Weekly_Focused": 14,
+          "NY_Strict": 15,
+          "NY_Strict_Triple": 16,
+          "Phase4o4_NY_Strict": 17,
+          "Phase4o4_Pingpong_Range": 18,
+          "Phase4o4_PO3_Strict": 19,
+          "Phase4o4_SMT_Filter": 20,
+          "Phase4o4_Strict_Preset": 21,
+          "Phase4o4_Triple_Confirm": 22,
+          "Phase4o4_Video_Strict": 23,
+          "PostNews_Triple_Strict": 24,
+          "Asia_Internal_Mechanical_Alt": 25
+        },
+        "DefaultValue": 3,
+        "ParameterType": "Enum",
+        "PropertyName": "PresetSelect",
+        "FriendlyName": "Preset",
+        "GroupName": "Profiles",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "EnumValues": {
+          "AutoSwitching_Orchestrator": 0,
+          "Manual_Intelligent_Universal": 1,
+          "Manual_Perfect_Sequence_Hunter": 2,
+          "Manual_Learning_Adaptive": 3,
+          "Manual_Phase4o4_Strict_Enhanced": 4,
+          "Custom_Path": 99
+        },
+        "DefaultValue": 0,
+        "ParameterType": "Enum",
+        "PropertyName": "PolicyModeSelect",
+        "FriendlyName": "Policy Mode",
+        "GroupName": "Profiles",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": "config/active.json",
+        "ParameterType": "String",
+        "PropertyName": "ConfigPath",
+        "FriendlyName": "Orchestrator Config Path",
+        "GroupName": "Profiles",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": false,
+        "ParameterType": "Boolean",
+        "PropertyName": "EnableHtfOrchestratedSystem",
+        "FriendlyName": "Enable HTF Orchestrated Bias/Sweep",
+        "GroupName": "HTF System",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": false,
+        "ParameterType": "Boolean",
+        "PropertyName": "Phase4o4StrictMode",
+        "FriendlyName": "Enable Phase4o4 strict mode",
+        "GroupName": "Strategy",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": "h1",
+        "ParameterType": "TimeFrame",
+        "PropertyName": "BiasTfParam",
+        "FriendlyName": "Bias TF (Pro-Trend)",
+        "GroupName": "Bias",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "MinValue": 1,
+        "MaxValue": 2147483647,
+        "Step": 1,
+        "DefaultValue": 2,
+        "ParameterType": "Integer",
+        "PropertyName": "BiasConfirmationBarsParam",
+        "FriendlyName": "Bias Confirmation Bars",
+        "GroupName": "Bias",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": false,
+        "ParameterType": "Boolean",
+        "PropertyName": "EnableIntradayBiasParam",
+        "FriendlyName": "Enable Intraday Bias (DayOpen+sweep+shift)",
+        "GroupName": "Bias",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": "m15",
+        "ParameterType": "TimeFrame",
+        "PropertyName": "IntradayBiasTfParam",
+        "FriendlyName": "Intraday Bias TF",
+        "GroupName": "Bias",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "EnumValues": {
+          "Both": 0,
+          "WickOnly": 1,
+          "BodyPercentOnly": 2
+        },
+        "DefaultValue": 0,
+        "ParameterType": "Enum",
+        "PropertyName": "MSSBreakTypeParam",
+        "FriendlyName": "MSS Break Type",
+        "GroupName": "MSS",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "MinValue": 0.0,
+        "MaxValue": 100.0,
+        "Step": 0.1,
+        "DefaultValue": 60.0,
+        "ParameterType": "Double",
+        "PropertyName": "BodyPercentThreshold",
+        "FriendlyName": "Body Percent Threshold",
+        "GroupName": "MSS",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "MinValue": 0.0,
+        "MaxValue": 100.0,
+        "Step": 0.1,
+        "DefaultValue": 25.0,
+        "ParameterType": "Double",
+        "PropertyName": "WickThreshold",
+        "FriendlyName": "Wick Threshold",
+        "GroupName": "MSS",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "MinValue": 0.0,
+        "MaxValue": 100.0,
+        "Step": 0.1,
+        "DefaultValue": 65.0,
+        "ParameterType": "Double",
+        "PropertyName": "BothThreshold",
+        "FriendlyName": "Both Threshold",
+        "GroupName": "MSS",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": true,
+        "ParameterType": "Boolean",
+        "PropertyName": "EnableMultiConfirmation",
+        "FriendlyName": "Enable Multi Confirmation",
+        "GroupName": "Entry",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "EnumValues": {
+          "Single": 0,
+          "Double": 1,
+          "Triple": 2
+        },
+        "DefaultValue": 1,
+        "ParameterType": "Enum",
+        "PropertyName": "ConfirmationModeParam",
+        "FriendlyName": "Confirmation Mode",
+        "GroupName": "Entry",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "EnumValues": {
+          "None": 0,
+          "ModelA_MSS_OTE": 1,
+          "ModelB_MSS_IFVG": 2,
+          "ModelC_Breaker_IFVG": 3
+        },
+        "DefaultValue": 0,
+        "ParameterType": "Enum",
+        "PropertyName": "EntryPresetParam",
+        "FriendlyName": "Entry Preset (A/B/C)",
+        "GroupName": "Entry",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": "",
+        "ParameterType": "String",
+        "PropertyName": "PresetNameParam",
+        "FriendlyName": "Preset Name",
+        "GroupName": "Profiles",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "EnumValues": {
+          "None": 0,
+          "IntradayBias": 1,
+          "WeeklyAccumulation": 2,
+          "PO3_Strict": 3
+        },
+        "DefaultValue": 0,
+        "ParameterType": "Enum",
+        "PropertyName": "ProfileParam",
+        "FriendlyName": "Profile",
+        "GroupName": "Profiles",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": true,
+        "ParameterType": "Boolean",
+        "PropertyName": "RequireMSSForEntry",
+        "FriendlyName": "Require MSS to Enter",
+        "GroupName": "MSS",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": true,
+        "ParameterType": "Boolean",
+        "PropertyName": "CountMSSOnce",
+        "FriendlyName": "Count MSS Once",
+        "GroupName": "MSS",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "MinValue": 0,
+        "MaxValue": 2147483647,
+        "Step": 1,
+        "DefaultValue": 3,
+        "ParameterType": "Integer",
+        "PropertyName": "MssDebounceBars",
+        "FriendlyName": "MSS Debounce (bars)",
+        "GroupName": "MSS",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": false,
+        "ParameterType": "Boolean",
+        "PropertyName": "RequireRetestToFOI",
+        "FriendlyName": "Require Retest to FOI",
+        "GroupName": "MSS",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": false,
+        "ParameterType": "Boolean",
+        "PropertyName": "UseTimeframeAlignment",
+        "FriendlyName": "Align MSS With Bias",
+        "GroupName": "MSS",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": false,
+        "ParameterType": "Boolean",
+        "PropertyName": "RequireSwingDiscountPremiumParam",
+        "FriendlyName": "Require swing discount/premium",
+        "GroupName": "Entry",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": false,
+        "ParameterType": "Boolean",
+        "PropertyName": "RequirePoiKeyLevelInteractionParam",
+        "FriendlyName": "Require POI key-level interaction",
+        "GroupName": "Entry",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "MinValue": 0.0,
+        "MaxValue": 1.7976931348623157E+308,
+        "Step": 0.1,
+        "DefaultValue": 1.0,
+        "ParameterType": "Double",
+        "PropertyName": "KeyLevelTolerancePipsParam",
+        "FriendlyName": "Key-level tolerance (pips)",
+        "GroupName": "Entry",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": true,
+        "ParameterType": "Boolean",
+        "PropertyName": "KeyValidUsePDH_PDLParam",
+        "FriendlyName": "KeyValid: PDH/PDL",
+        "GroupName": "Entry",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": true,
+        "ParameterType": "Boolean",
+        "PropertyName": "KeyValidUseCDH_CDLParam",
+        "FriendlyName": "KeyValid: CDH/CDL",
+        "GroupName": "Entry",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": true,
+        "ParameterType": "Boolean",
+        "PropertyName": "KeyValidUseEQH_EQLParam",
+        "FriendlyName": "KeyValid: EQH/EQL",
+        "GroupName": "Entry",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": true,
+        "ParameterType": "Boolean",
+        "PropertyName": "KeyValidUsePWH_PWLParam",
+        "FriendlyName": "KeyValid: PWH/PWL",
+        "GroupName": "Entry",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": true,
+        "ParameterType": "Boolean",
+        "PropertyName": "ShowMonTueOverlayParam",
+        "FriendlyName": "Show Mon/Tue overlay",
+        "GroupName": "Visual",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": true,
+        "ParameterType": "Boolean",
+        "PropertyName": "ShowInternalSweepLabelsParam",
+        "FriendlyName": "Show internal sweep labels",
+        "GroupName": "Visual",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": true,
+        "ParameterType": "Boolean",
+        "PropertyName": "ColorizeKeyLabelsParam",
+        "FriendlyName": "Colorize key-level labels",
+        "GroupName": "Visual",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": true,
+        "ParameterType": "Boolean",
+        "PropertyName": "ShowBOSArrowsParam",
+        "FriendlyName": "Show BOS arrows",
+        "GroupName": "Visual",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": true,
+        "ParameterType": "Boolean",
+        "PropertyName": "ShowImpulseZonesParam",
+        "FriendlyName": "Show impulse zones",
+        "GroupName": "Visual",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": true,
+        "ParameterType": "Boolean",
+        "PropertyName": "ShowLiquiditySideLabelsParam",
+        "FriendlyName": "Show Liquidity Side labels",
+        "GroupName": "Visual",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": "Goldenrod",
+        "ParameterType": "String",
+        "PropertyName": "KeyColorPDParam",
+        "FriendlyName": "Key label color PD",
+        "GroupName": "Visual",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": "Gray",
+        "ParameterType": "String",
+        "PropertyName": "KeyColorCDParam",
+        "FriendlyName": "Key label color CD",
+        "GroupName": "Visual",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": "SlateGray",
+        "ParameterType": "String",
+        "PropertyName": "KeyColorEQParam",
+        "FriendlyName": "Key label color EQ",
+        "GroupName": "Visual",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": "TopCenter",
+        "ParameterType": "String",
+        "PropertyName": "SummaryPositionParam",
+        "FriendlyName": "Summary position",
+        "GroupName": "Visual",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": "TopRight",
+        "ParameterType": "String",
+        "PropertyName": "LegendPositionParam",
+        "FriendlyName": "Legend position",
+        "GroupName": "Visual",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": false,
+        "ParameterType": "Boolean",
+        "PropertyName": "RequireInternalSweepParam",
+        "FriendlyName": "Require internal sweeps only",
+        "GroupName": "Entry",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": false,
+        "ParameterType": "Boolean",
+        "PropertyName": "InternalLiquidityFocusParam",
+        "FriendlyName": "Internal-liquidity focus (TP)",
+        "GroupName": "Entry",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": false,
+        "ParameterType": "Boolean",
+        "PropertyName": "UseScoring",
+        "FriendlyName": "Use Scoring Mode",
+        "GroupName": "Scoring",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": true,
+        "ParameterType": "Boolean",
+        "PropertyName": "EnableScalingEntries",
+        "FriendlyName": "Enable Scaling Entries",
+        "GroupName": "Execution",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": true,
+        "ParameterType": "Boolean",
+        "PropertyName": "EnableDynamicStopLoss",
+        "FriendlyName": "Enable Dynamic StopLoss",
+        "GroupName": "Execution",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "MinValue": 0.1,
+        "MaxValue": 5.0,
+        "Step": 0.1,
+        "DefaultValue": 0.4,
+        "ParameterType": "Double",
+        "PropertyName": "RiskPercent",
+        "FriendlyName": "Risk Percent",
+        "GroupName": "Risk",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "MinValue": 0.1,
+        "MaxValue": 1.7976931348623157E+308,
+        "Step": 0.1,
+        "DefaultValue": 1.0,
+        "ParameterType": "Double",
+        "PropertyName": "TapTolerancePipsParam",
+        "FriendlyName": "Tap Tolerance (pips)",
+        "GroupName": "Entry",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": false,
+        "ParameterType": "Boolean",
+        "PropertyName": "RequireDualTapParam",
+        "FriendlyName": "Require Dual Tap",
+        "GroupName": "Entry",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "EnumValues": {
+          "OTE_OB": 0,
+          "OTE_Breaker": 1,
+          "OTE_FVG": 2
+        },
+        "DefaultValue": 0,
+        "ParameterType": "Enum",
+        "PropertyName": "DualTapPairParam",
+        "FriendlyName": "Dual Tap Pair",
+        "GroupName": "Entry",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "MinValue": 0.0,
+        "MaxValue": 1.7976931348623157E+308,
+        "Step": 0.1,
+        "DefaultValue": 1.0,
+        "ParameterType": "Double",
+        "PropertyName": "DualTapOverlapPipsParam",
+        "FriendlyName": "Overlap Tolerance (pips)",
+        "GroupName": "Entry",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "MinValue": 0.5,
+        "MaxValue": 10.0,
+        "Step": 0.1,
+        "DefaultValue": 0.75,
+        "ParameterType": "Double",
+        "PropertyName": "MinRiskReward",
+        "FriendlyName": "Min Risk/Reward",
+        "GroupName": "Risk",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "MinValue": 0.1,
+        "MaxValue": 1.7976931348623157E+308,
+        "Step": 0.1,
+        "DefaultValue": 20.0,
+        "ParameterType": "Double",
+        "PropertyName": "MinStopClampPipsParam",
+        "FriendlyName": "Min Stop Clamp (pips)",
+        "GroupName": "Risk",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "MinValue": 1000,
+        "MaxValue": 2147483647,
+        "Step": 1,
+        "DefaultValue": 300000,
+        "ParameterType": "Integer",
+        "PropertyName": "MaxVolumeUnitsParam",
+        "FriendlyName": "Max Volume (units)",
+        "GroupName": "Risk",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "MinValue": 1,
+        "MaxValue": 2147483647,
+        "Step": 1,
+        "DefaultValue": 2,
+        "ParameterType": "Integer",
+        "PropertyName": "MaxConcurrentPositionsParam",
+        "FriendlyName": "Max Concurrent Positions",
+        "GroupName": "Risk",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": true,
+        "ParameterType": "Boolean",
+        "PropertyName": "EnableCircuitBreaker",
+        "FriendlyName": "Enable Circuit Breaker",
+        "GroupName": "Risk",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "MinValue": 2,
+        "MaxValue": 10,
+        "Step": 1,
+        "DefaultValue": 3,
+        "ParameterType": "Integer",
+        "PropertyName": "MaxConsecutiveLosses",
+        "FriendlyName": "Max Consecutive Losses",
+        "GroupName": "Risk",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "MinValue": 30,
+        "MaxValue": 1440,
+        "Step": 1,
+        "DefaultValue": 240,
+        "ParameterType": "Integer",
+        "PropertyName": "CircuitBreakerPauseMinutes",
+        "FriendlyName": "Circuit Breaker Pause (Minutes)",
+        "GroupName": "Risk",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "MinValue": 0,
+        "MaxValue": 2147483647,
+        "Step": 1,
+        "DefaultValue": 3,
+        "ParameterType": "Integer",
+        "PropertyName": "CooldownBarsAfterEntryParam",
+        "FriendlyName": "Cooldown Bars After Entry",
+        "GroupName": "Execution",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": true,
+        "ParameterType": "Boolean",
+        "PropertyName": "EnablePOIBoxDraw",
+        "FriendlyName": "Enable POI Box Draw",
+        "GroupName": "Visual",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "MinValue": 1,
+        "MaxValue": 2147483647,
+        "Step": 1,
+        "DefaultValue": 6,
+        "ParameterType": "Integer",
+        "PropertyName": "MaxFVGBoxesParam",
+        "FriendlyName": "Max FVG Boxes",
+        "GroupName": "Visual",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": "Goldenrod",
+        "ParameterType": "String",
+        "PropertyName": "FVGColorParam",
+        "FriendlyName": "FVG Color",
+        "GroupName": "Visual",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": "OrangeRed",
+        "ParameterType": "String",
+        "PropertyName": "BreakerColorParam",
+        "FriendlyName": "Breaker Color",
+        "GroupName": "Visual",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": false,
+        "ParameterType": "Boolean",
+        "PropertyName": "OteDrawExtras",
+        "FriendlyName": "OTE Box Extras (mid/EQ/fib)",
+        "GroupName": "Visual",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": false,
+        "ParameterType": "Boolean",
+        "PropertyName": "EnableFvgDrawing",
+        "FriendlyName": "Enable FVG Drawing",
+        "GroupName": "Visual",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": false,
+        "ParameterType": "Boolean",
+        "PropertyName": "EnableMssFibPack",
+        "FriendlyName": "Enable MSS Fib-Pack",
+        "GroupName": "Visual",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": "OTE",
+        "ParameterType": "String",
+        "PropertyName": "PoiPriorityOrderParam",
+        "FriendlyName": "POI Priority (e.g. OTE>FVG>OB>Breaker)",
+        "GroupName": "Entry",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": true,
+        "ParameterType": "Boolean",
+        "PropertyName": "EnableSweepMssOte",
+        "FriendlyName": "Enable Sweep-MSS OTE",
+        "GroupName": "Entry",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "MinValue": 0,
+        "MaxValue": 2147483647,
+        "Step": 1,
+        "DefaultValue": 3,
+        "ParameterType": "Integer",
+        "PropertyName": "SweepMssExtensionBarsParam",
+        "FriendlyName": "Sweep-MSS Extension Bars",
+        "GroupName": "Entry",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": "LightSkyBlue",
+        "ParameterType": "String",
+        "PropertyName": "SweepMssOteColorParam",
+        "FriendlyName": "Sweep-MSS OTE Color",
+        "GroupName": "Visual",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": false,
+        "ParameterType": "Boolean",
+        "PropertyName": "RequireOteIfAvailableParam",
+        "FriendlyName": "Require OTE if available",
+        "GroupName": "Entry",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": false,
+        "ParameterType": "Boolean",
+        "PropertyName": "EnableDebugLoggingParam",
+        "FriendlyName": "Enable Debug Logging",
+        "GroupName": "Debug",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": false,
+        "ParameterType": "Boolean",
+        "PropertyName": "EnableFileLoggingParam",
+        "FriendlyName": "Enable File Logging",
+        "GroupName": "Debug",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": false,
+        "ParameterType": "Boolean",
+        "PropertyName": "RequireOteAlwaysParam",
+        "FriendlyName": "Require OTE always",
+        "GroupName": "Entry",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": false,
+        "ParameterType": "Boolean",
+        "PropertyName": "EnableKillzoneGateParam",
+        "FriendlyName": "Enable Killzone Gate",
+        "GroupName": "Entry",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": true,
+        "ParameterType": "Boolean",
+        "PropertyName": "IncludePrevDayLevelsAsZonesParam",
+        "FriendlyName": "Include PDH/PDL as liquidity zones",
+        "GroupName": "Entry",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": false,
+        "ParameterType": "Boolean",
+        "PropertyName": "RequirePdhPdlSweepOnlyParam",
+        "FriendlyName": "Require PDH/PDL sweeps only",
+        "GroupName": "Entry",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": true,
+        "ParameterType": "Boolean",
+        "PropertyName": "IncludeEqualHighsLowsAsZonesParam",
+        "FriendlyName": "Include Equal High/Low zones",
+        "GroupName": "Entry",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "MinValue": 0.0,
+        "MaxValue": 1.7976931348623157E+308,
+        "Step": 0.1,
+        "DefaultValue": 1.0,
+        "ParameterType": "Double",
+        "PropertyName": "EqTolerancePipsParam",
+        "FriendlyName": "EQH/EQL tolerance (pips)",
+        "GroupName": "Entry",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "MinValue": 5,
+        "MaxValue": 2147483647,
+        "Step": 1,
+        "DefaultValue": 50,
+        "ParameterType": "Integer",
+        "PropertyName": "EqLookbackBarsParam",
+        "FriendlyName": "EQH/EQL lookback (bars)",
+        "GroupName": "Entry",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": true,
+        "ParameterType": "Boolean",
+        "PropertyName": "IncludeCurrentDayLevelsAsZonesParam",
+        "FriendlyName": "Include Current Day H/L",
+        "GroupName": "Entry",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": true,
+        "ParameterType": "Boolean",
+        "PropertyName": "AllowEqhEqlSweepsParam",
+        "FriendlyName": "Allow EQH/EQL sweeps",
+        "GroupName": "Entry",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": true,
+        "ParameterType": "Boolean",
+        "PropertyName": "AllowCdhCdlSweepsParam",
+        "FriendlyName": "Allow CDH/CDL sweeps",
+        "GroupName": "Entry",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": true,
+        "ParameterType": "Boolean",
+        "PropertyName": "SkipDoubleSweepInKillzoneParam",
+        "FriendlyName": "Skip double sweep in killzone",
+        "GroupName": "Entry",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": false,
+        "ParameterType": "Boolean",
+        "PropertyName": "RequireTripleConfirmationParam",
+        "FriendlyName": "Require MSS+Breaker+IFVG",
+        "GroupName": "Entry",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": false,
+        "ParameterType": "Boolean",
+        "PropertyName": "RequireBreakerRetestParam",
+        "FriendlyName": "Require Breaker Retest",
+        "GroupName": "Entry",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": true,
+        "ParameterType": "Boolean",
+        "PropertyName": "BreakerEntryAtMidParam",
+        "FriendlyName": "Breaker entry at 50%",
+        "GroupName": "Entry",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": true,
+        "ParameterType": "Boolean",
+        "PropertyName": "StopUseFOIEdgeParam",
+        "FriendlyName": "Stop at FOI edge",
+        "GroupName": "Stops",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": true,
+        "ParameterType": "Boolean",
+        "PropertyName": "EnableReEntryParam",
+        "FriendlyName": "Enable Re-entry on retap",
+        "GroupName": "Entry",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "MinValue": 0,
+        "MaxValue": 2147483647,
+        "Step": 1,
+        "DefaultValue": 1,
+        "ParameterType": "Integer",
+        "PropertyName": "ReEntryMaxParam",
+        "FriendlyName": "Re-entry max attempts",
+        "GroupName": "Entry",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "MinValue": 1,
+        "MaxValue": 2147483647,
+        "Step": 1,
+        "DefaultValue": 30,
+        "ParameterType": "Integer",
+        "PropertyName": "ReEntryWithinBarsParam",
+        "FriendlyName": "Re-entry within (bars)",
+        "GroupName": "Entry",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "MinValue": 0,
+        "MaxValue": 2147483647,
+        "Step": 1,
+        "DefaultValue": 3,
+        "ParameterType": "Integer",
+        "PropertyName": "ReEntryCooldownBarsParam",
+        "FriendlyName": "Re-entry cooldown (bars)",
+        "GroupName": "Entry",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": false,
+        "ParameterType": "Boolean",
+        "PropertyName": "EnableNewsModeOnlyParam",
+        "FriendlyName": "Enable News Mode (trade only in windows)",
+        "GroupName": "News",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": "",
+        "ParameterType": "String",
+        "PropertyName": "NewsTradeWindowsParam",
+        "FriendlyName": "News trade windows (HH:mm-HH:mm;..)",
+        "GroupName": "News",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": false,
+        "ParameterType": "Boolean",
+        "PropertyName": "EnableSequenceGateParam",
+        "FriendlyName": "Enable Sequence Gate",
+        "GroupName": "Entry",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "MinValue": 1,
+        "MaxValue": 2147483647,
+        "Step": 1,
+        "DefaultValue": 200,
+        "ParameterType": "Integer",
+        "PropertyName": "SequenceLookbackBarsParam",
+        "FriendlyName": "Sequence Lookback (bars)",
+        "GroupName": "Entry",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": false,
+        "ParameterType": "Boolean",
+        "PropertyName": "RequireMicroBreakParam",
+        "FriendlyName": "Require Micro Break",
+        "GroupName": "Entry",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": false,
+        "ParameterType": "Boolean",
+        "PropertyName": "RequirePullbackAfterBreakParam",
+        "FriendlyName": "Require Pullback After Break",
+        "GroupName": "Entry",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "MinValue": 0.0,
+        "MaxValue": 1.7976931348623157E+308,
+        "Step": 0.1,
+        "DefaultValue": 0.5,
+        "ParameterType": "Double",
+        "PropertyName": "PullbackMinPipsParam",
+        "FriendlyName": "Pullback Min (pips)",
+        "GroupName": "Entry",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": false,
+        "ParameterType": "Boolean",
+        "PropertyName": "EnableContinuationReanchorOTEParam",
+        "FriendlyName": "Enable Continuation OTE (re-anchor)",
+        "GroupName": "Entry",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": false,
+        "ParameterType": "Boolean",
+        "PropertyName": "AllowSequenceGateFallbackParam",
+        "FriendlyName": "Allow Sequence Fallback",
+        "GroupName": "Entry",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "EnumValues": {
+          "PrevCandle": 0,
+          "LastOppositeCandle": 1
+        },
+        "DefaultValue": 0,
+        "ParameterType": "Enum",
+        "PropertyName": "BreakReferenceParam",
+        "FriendlyName": "Break Reference",
+        "GroupName": "Entry",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": true,
+        "ParameterType": "Boolean",
+        "PropertyName": "StrictOteAfterMssCompletionParam",
+        "FriendlyName": "Strict OTE after MSS completion",
+        "GroupName": "Entry",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "MinValue": 1,
+        "MaxValue": 2147483647,
+        "Step": 1,
+        "DefaultValue": 20,
+        "ParameterType": "Integer",
+        "PropertyName": "BreakLookbackBarsParam",
+        "FriendlyName": "Break Lookback (bars)",
+        "GroupName": "Entry",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": "DeepSkyBlue",
+        "ParameterType": "String",
+        "PropertyName": "SequenceObColorParam",
+        "FriendlyName": "Sequence OB Color",
+        "GroupName": "Visual",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "MinValue": 0.0,
+        "MaxValue": 1.7976931348623157E+308,
+        "Step": 0.1,
+        "DefaultValue": 1.0,
+        "ParameterType": "Double",
+        "PropertyName": "StopExtraPipsSeqParam",
+        "FriendlyName": "Seq Stop Extra (pips)",
+        "GroupName": "Stops",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": true,
+        "ParameterType": "Boolean",
+        "PropertyName": "UseOppositeLiquidityTPParam",
+        "FriendlyName": "Use Opposite Liquidity TP",
+        "GroupName": "Risk",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "MinValue": 0.0,
+        "MaxValue": 1.7976931348623157E+308,
+        "Step": 0.1,
+        "DefaultValue": 1.0,
+        "ParameterType": "Double",
+        "PropertyName": "TpOffsetPipsParam",
+        "FriendlyName": "TP Offset (pips)",
+        "GroupName": "Risk",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "MinValue": 0.0,
+        "MaxValue": 1.7976931348623157E+308,
+        "Step": 0.1,
+        "DefaultValue": 5.0,
+        "ParameterType": "Double",
+        "PropertyName": "MinSlPipsFloorParam",
+        "FriendlyName": "Min SL Floor (pips)",
+        "GroupName": "Risk",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": true,
+        "ParameterType": "Boolean",
+        "PropertyName": "EnforceAtrSanityParam",
+        "FriendlyName": "ATR Sanity Enabled",
+        "GroupName": "Risk",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "MinValue": 2,
+        "MaxValue": 2147483647,
+        "Step": 1,
+        "DefaultValue": 14,
+        "ParameterType": "Integer",
+        "PropertyName": "AtrPeriodParam",
+        "FriendlyName": "ATR Period",
+        "GroupName": "Risk",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "MinValue": 0.05,
+        "MaxValue": 1.0,
+        "Step": 0.1,
+        "DefaultValue": 0.25,
+        "ParameterType": "Double",
+        "PropertyName": "AtrSanityFactorParam",
+        "FriendlyName": "ATR Sanity Factor",
+        "GroupName": "Risk",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": true,
+        "ParameterType": "Boolean",
+        "PropertyName": "EnableTpSpreadCushionParam",
+        "FriendlyName": "TP Spread Cushion Enabled",
+        "GroupName": "Risk",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "MinValue": 0.0,
+        "MaxValue": 1.7976931348623157E+308,
+        "Step": 0.1,
+        "DefaultValue": 0.2,
+        "ParameterType": "Double",
+        "PropertyName": "SpreadCushionExtraPipsParam",
+        "FriendlyName": "Spread Cushion Extra (pips)",
+        "GroupName": "Risk",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": false,
+        "ParameterType": "Boolean",
+        "PropertyName": "SpreadCushionUseAvgParam",
+        "FriendlyName": "Use Avg Spread Cushion",
+        "GroupName": "Risk",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "MinValue": 1,
+        "MaxValue": 2147483647,
+        "Step": 1,
+        "DefaultValue": 10,
+        "ParameterType": "Integer",
+        "PropertyName": "SpreadAvgPeriodParam",
+        "FriendlyName": "Spread Avg Period",
+        "GroupName": "Risk",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": true,
+        "ParameterType": "Boolean",
+        "PropertyName": "ShowBoxLabelsParam",
+        "FriendlyName": "Show Box Labels",
+        "GroupName": "Visual",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "MinValue": 1.0,
+        "MaxValue": 1.7976931348623157E+308,
+        "Step": 0.1,
+        "DefaultValue": 30.0,
+        "ParameterType": "Double",
+        "PropertyName": "DefaultLeverageAssumptionParam",
+        "FriendlyName": "Default Leverage Assumption",
+        "GroupName": "Risk",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": true,
+        "ParameterType": "Boolean",
+        "PropertyName": "EnableMarginCheckParam",
+        "FriendlyName": "Enable Margin Check",
+        "GroupName": "Risk",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "MinValue": 0.05,
+        "MaxValue": 1.0,
+        "Step": 0.1,
+        "DefaultValue": 0.5,
+        "ParameterType": "Double",
+        "PropertyName": "MarginUtilizationMaxParam",
+        "FriendlyName": "Max Margin Utilization",
+        "GroupName": "Risk",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": false,
+        "ParameterType": "Boolean",
+        "PropertyName": "EnforceNotionalCapParam",
+        "FriendlyName": "Enforce Notional Cap",
+        "GroupName": "Risk",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "MinValue": 0.5,
+        "MaxValue": 10.0,
+        "Step": 0.1,
+        "DefaultValue": 2.0,
+        "ParameterType": "Double",
+        "PropertyName": "NotionalCapMultipleParam",
+        "FriendlyName": "Notional Cap Multiple",
+        "GroupName": "Risk",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": true,
+        "ParameterType": "Boolean",
+        "PropertyName": "EnableCircuitBreakerParam",
+        "FriendlyName": "Enable Circuit Breaker",
+        "GroupName": "Risk",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "MinValue": 1.0,
+        "MaxValue": 10.0,
+        "Step": 0.1,
+        "DefaultValue": 6.0,
+        "ParameterType": "Double",
+        "PropertyName": "DailyLossLimitPercentParam",
+        "FriendlyName": "Daily Loss Limit %",
+        "GroupName": "Risk",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "MinValue": 1,
+        "MaxValue": 20,
+        "Step": 1,
+        "DefaultValue": 4,
+        "ParameterType": "Integer",
+        "PropertyName": "MaxDailyTradesParam",
+        "FriendlyName": "Max Daily Trades",
+        "GroupName": "Risk",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "MinValue": 1.0,
+        "MaxValue": 24.0,
+        "Step": 0.1,
+        "DefaultValue": 8.0,
+        "ParameterType": "Double",
+        "PropertyName": "MaxTimeInTradeHoursParam",
+        "FriendlyName": "Max Time In Trade (hours)",
+        "GroupName": "Risk",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": true,
+        "ParameterType": "Boolean",
+        "PropertyName": "EnableClusteringPreventionParam",
+        "FriendlyName": "Enable Trade Clustering Prevention",
+        "GroupName": "Risk",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "MinValue": 1,
+        "MaxValue": 5,
+        "Step": 1,
+        "DefaultValue": 2,
+        "ParameterType": "Integer",
+        "PropertyName": "CooldownAfterLossesParam",
+        "FriendlyName": "Cooldown After Losses",
+        "GroupName": "Risk",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "MinValue": 0.5,
+        "MaxValue": 24.0,
+        "Step": 0.1,
+        "DefaultValue": 4.0,
+        "ParameterType": "Double",
+        "PropertyName": "CooldownDurationHoursParam",
+        "FriendlyName": "Cooldown Duration (hours)",
+        "GroupName": "Risk",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": true,
+        "ParameterType": "Boolean",
+        "PropertyName": "UseHtfOrderBlocks",
+        "FriendlyName": "Use HTF OBs",
+        "GroupName": "OrderBlocks",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": "h1",
+        "ParameterType": "TimeFrame",
+        "PropertyName": "HtfObTfParam",
+        "FriendlyName": "HTF OB TimeFrame",
+        "GroupName": "OrderBlocks",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": "m15",
+        "ParameterType": "TimeFrame",
+        "PropertyName": "NestedObTfParam",
+        "FriendlyName": "Nested OB TimeFrame",
+        "GroupName": "OrderBlocks",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": "Green",
+        "ParameterType": "String",
+        "PropertyName": "BullishColorParam",
+        "FriendlyName": "Bullish Color",
+        "GroupName": "Visual",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": "Red",
+        "ParameterType": "String",
+        "PropertyName": "BearishColorParam",
+        "FriendlyName": "Bearish Color",
+        "GroupName": "Visual",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "MinValue": 0.0,
+        "MaxValue": 1.7976931348623157E+308,
+        "Step": 0.1,
+        "DefaultValue": 15.0,
+        "ParameterType": "Double",
+        "PropertyName": "StopBufferOTEParam",
+        "FriendlyName": "Stop Buffer OTE (pips)",
+        "GroupName": "Stops",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "MinValue": 0.0,
+        "MaxValue": 1.7976931348623157E+308,
+        "Step": 0.1,
+        "DefaultValue": 10.0,
+        "ParameterType": "Double",
+        "PropertyName": "StopBufferOBParam",
+        "FriendlyName": "Stop Buffer OB (pips)",
+        "GroupName": "Stops",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "MinValue": 0.0,
+        "MaxValue": 1.7976931348623157E+308,
+        "Step": 0.1,
+        "DefaultValue": 10.0,
+        "ParameterType": "Double",
+        "PropertyName": "StopBufferFVGParam",
+        "FriendlyName": "Stop Buffer FVG (pips)",
+        "GroupName": "Stops",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": true,
+        "ParameterType": "Boolean",
+        "PropertyName": "PM_EnableBreakEven",
+        "FriendlyName": "Enable BreakEven",
+        "GroupName": "Trade Mgmt",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "MinValue": 0.0,
+        "MaxValue": 1.7976931348623157E+308,
+        "Step": 0.1,
+        "DefaultValue": 1.0,
+        "ParameterType": "Double",
+        "PropertyName": "PM_BreakEvenTriggerRR",
+        "FriendlyName": "BE Trigger RR",
+        "GroupName": "Trade Mgmt",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "MinValue": 0.0,
+        "MaxValue": 1.7976931348623157E+308,
+        "Step": 0.1,
+        "DefaultValue": 0.0,
+        "ParameterType": "Double",
+        "PropertyName": "PM_BreakEvenTriggerPips",
+        "FriendlyName": "BE Trigger Pips (opt)",
+        "GroupName": "Trade Mgmt",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "MinValue": 0.0,
+        "MaxValue": 1.7976931348623157E+308,
+        "Step": 0.1,
+        "DefaultValue": 0.0,
+        "ParameterType": "Double",
+        "PropertyName": "PM_BreakEvenOffsetPips",
+        "FriendlyName": "BE Offset Pips",
+        "GroupName": "Trade Mgmt",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": true,
+        "ParameterType": "Boolean",
+        "PropertyName": "PM_EnablePartial",
+        "FriendlyName": "Enable Partial Close",
+        "GroupName": "Trade Mgmt",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "MinValue": 0.0,
+        "MaxValue": 1.7976931348623157E+308,
+        "Step": 0.1,
+        "DefaultValue": 1.0,
+        "ParameterType": "Double",
+        "PropertyName": "PM_PartialRR",
+        "FriendlyName": "Partial at RR",
+        "GroupName": "Trade Mgmt",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "MinValue": 0.0,
+        "MaxValue": 1.7976931348623157E+308,
+        "Step": 0.1,
+        "DefaultValue": 0.0,
+        "ParameterType": "Double",
+        "PropertyName": "PM_PartialPips",
+        "FriendlyName": "Partial at Pips (opt)",
+        "GroupName": "Trade Mgmt",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "MinValue": 1.0,
+        "MaxValue": 100.0,
+        "Step": 0.1,
+        "DefaultValue": 50.0,
+        "ParameterType": "Double",
+        "PropertyName": "PM_PartialPercent",
+        "FriendlyName": "Partial %",
+        "GroupName": "Trade Mgmt",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "DefaultValue": true,
+        "ParameterType": "Boolean",
+        "PropertyName": "PM_EnableTrailing",
+        "FriendlyName": "Enable Trailing Stop",
+        "GroupName": "Trade Mgmt",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "MinValue": 0.0,
+        "MaxValue": 1.7976931348623157E+308,
+        "Step": 0.1,
+        "DefaultValue": 1.0,
+        "ParameterType": "Double",
+        "PropertyName": "PM_TrailStartRR",
+        "FriendlyName": "Trail Start RR",
+        "GroupName": "Trade Mgmt",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "MinValue": 0.0,
+        "MaxValue": 1.7976931348623157E+308,
+        "Step": 0.1,
+        "DefaultValue": 0.0,
+        "ParameterType": "Double",
+        "PropertyName": "PM_TrailStartPips",
+        "FriendlyName": "Trail Start Pips (opt)",
+        "GroupName": "Trade Mgmt",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
+        "MinValue": 1.0,
+        "MaxValue": 1.7976931348623157E+308,
+        "Step": 0.1,
+        "DefaultValue": 20.0,
+        "ParameterType": "Double",
+        "PropertyName": "PM_TrailDistancePips",
+        "FriendlyName": "Trail Distance (pips)",
+        "GroupName": "Trade Mgmt",
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      }
+    ],
+    "Capabilities": [
+      {
+        "CapabilityType": "FullTrust"
+      }
+    ],
+    "CustomAttributes": [],
+    "Sets": [],
+    "AddIndicatorsToChart": false,
+    "AdditionalInfoUrl": null,
+    "Bars": []
+  }
+]

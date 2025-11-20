@@ -1,0 +1,55 @@
+--- policy.json (current)
++++ policy.json (with OTE tap tolerance increases)
+
+@@ Line 62-66: riskEngine.symbols.EURUSD.tap @@
+       "EURUSD": {
+         "tap": {
+-          "tolerancePips": 0.8,
++          "tolerancePips": 1.0,
+-          "expiryBars": 3,
++          "expiryBars": 4,
+           "limitToMarketConvert": true
+         },
+
+@@ Line 88-92: riskEngine.symbols.XAUUSD.tap @@
+       "XAUUSD": {
+         "tap": {
+-          "tolerancePoints": 8,
++          "tolerancePoints": 10,
+-          "expiryBars": 3,
++          "expiryBars": 4,
+           "limitToMarketConvert": true
+         },
+
+SUMMARY OF CHANGES:
+==================
+1. EURUSD.tap.tolerancePips: 0.8 → 1.0 (+25% increase, 0.2 pip wider)
+2. EURUSD.tap.expiryBars: 3 → 4 (+1 bar, more time to tap OTE)
+3. XAUUSD.tap.tolerancePoints: 8 → 10 (+25% increase, 2 points wider)
+4. XAUUSD.tap.expiryBars: 3 → 4 (+1 bar, more time to tap OTE)
+
+RATIONALE:
+==========
+- Slightly wider OTE tolerances reduce missed entries due to price not quite reaching exact Fibonacci levels
+- +1 expiryBars gives the orchestrator more patience before converting limit orders to market
+- US30 unchanged (already has shorter expiry at 2 bars, appropriate for faster-moving index)
+
+EXPECTED BEHAVIOR:
+==================
+BEFORE:
+  EURUSD: OTE must tap within 0.8 pips of 0.618-0.79 Fib zone within 3 bars
+  XAUUSD: OTE must tap within 8 points of Fib zone within 3 bars
+
+AFTER:
+  EURUSD: OTE can tap within 1.0 pip of 0.618-0.79 Fib zone within 4 bars
+  XAUUSD: OTE can tap within 10 points of Fib zone within 4 bars
+
+IMPACT:
+=======
+- More forgiving entry criteria → slightly higher fill rate
+- Longer expiry window → reduces premature limit→market conversions
+- Still maintains OTE discipline (not removing the requirement, just loosening slightly)
+
+NO DUPLICATES: orchestratorStamp preserved
+NO CODE CHANGES: Only config/runtime/policy.json modified
+US30 UNCHANGED: tolerancePoints=6, expiryBars=2 (retained for faster index behavior)

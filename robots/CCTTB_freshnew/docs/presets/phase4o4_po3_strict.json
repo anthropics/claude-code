@@ -1,0 +1,21 @@
+{
+  "Enable Phase4o4 strict mode": true,
+  "Enable PO3 (Asia sweep gating)": true,
+  "Asia Start (HH:mm)": "00:00",
+  "Asia End (HH:mm)": "05:00",
+  "Require Asia sweep before entry": true,
+  "Require MSS to Enter": true,
+  "Require MSS+Breaker+IFVG": false,
+  "POI Priority (e.g. OTE>FVG>OB>Breaker)": "OTE",
+  "Require PDH/PDL sweeps only": true,
+  "Include PDH/PDL as liquidity zones": true,
+  "Include Equal High/Low zones": false,
+  "Include Current Day H/L": false,
+  "Include Weekly H/L zones": false,
+  "Enable Killzone Gate": true,
+  "Kill Zone Start (Hours EST)": 9.5,
+  "Kill Zone End (Hours EST)": 11.5,
+  "UseKillzone": false,
+  "KillzoneStartUtc": "00:00",
+  "KillzoneEndUtc": "23:59"
+}

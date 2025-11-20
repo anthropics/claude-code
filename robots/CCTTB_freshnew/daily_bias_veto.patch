@@ -1,0 +1,19 @@
+--- a/JadecapStrategy.cs
++++ b/JadecapStrategy.cs
+@@ -1917,6 +1917,15 @@
+                     // The OTE direction should match the MSS direction (structure shift), not the HTF bias
+                     var activeMssDir = _state.ActiveMSS?.Direction ?? BiasDirection.Neutral;
+                     var filterDir = activeMssDir != BiasDirection.Neutral ? activeMssDir : dailyBias;
++
++                    // CRITICAL: Daily Bias acts as a VETO filter
++                    // If Daily Bias is strongly directional (not Neutral), BLOCK trades that conflict with it
++                    // This prevents counter-trend entries that lead to losses
++                    if (dailyBias != BiasDirection.Neutral && filterDir != BiasDirection.Neutral && dailyBias != filterDir)
++                    {
++                        if (EnableDebugLoggingParam)
++                            _journal.Debug($"❌ DAILY BIAS VETO: filterDir={filterDir} conflicts with dailyBias={dailyBias} → Trade BLOCKED");
++                        _tradeManager.ManageOpenPositions(Symbol);
++                        return;
++                    }
+ 
+                     if (EnableDebugLoggingParam)

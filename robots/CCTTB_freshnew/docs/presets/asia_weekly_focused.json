@@ -1,0 +1,13 @@
+{
+  "name": "Asia_Weekly_Focused",
+  "EntryGateMode": "MSS_and_OTE",
+  "StrictSequence": true,
+  "OtePolicy": "StrictAfterMSS",
+  "SweepScope": "Weekly_Only",
+  "TpTargetPolicy": "WeeklyHighLow",
+  "Session": "Asia",
+  "BiasAlign": "Strict",
+  "UseKillzone": true,
+  "KillzoneStartUtc": "00:00",
+  "KillzoneEndUtc": "23:59"
+}

@@ -1,0 +1,268 @@
+{
+  "orchestratorStamp": "hs-session-kgz@1.0.0",
+  "mode": "universal_adaptive",
+  "description": "Robust configuration for ANY market condition, ANY day",
+
+  "oteAdaptive": {
+    "enabled": true,
+    "base": {
+      "mode": "atr",
+      "period": 14,
+      "multiplier": 0.18,
+      "roundTo": 0.1,
+      "bounds": [0.9, 1.8]
+    },
+    "missStreakAutoRelax": {
+      "enabled": true,
+      "triggerMisses": 4,
+      "stepPips": 0.2,
+      "maxExtraPips": 0.6,
+      "resetOn": ["tap", "session_change"]
+    },
+    "retapMarketConversion": {
+      "enabled": true,
+      "withinPips": 0.3,
+      "maxSlippagePips": 0.2
+    }
+  },
+
+  "gates": {
+    "relaxAll": false,
+    "sequenceGate": true,
+    "pullbackRequirement": false,
+    "microBreakGate": false,
+    "killzoneStrict": false,
+    "mssOppLiqGate": "strict",
+    "dailyBiasVeto": false
+  },
+
+  "scoring": {
+    "weights": {
+      "w_session": 0.25,
+      "w_vol": 0.40,
+      "w_spread": 0.30,
+      "w_news": 0.30
+    }
+  },
+
+  "risk": {
+    "multiplier": 1.00
+  },
+
+  "riskEngine": {
+    "adaptiveMode": true,
+    "bounds": {
+      "min": 0.40,
+      "max": 1.25
+    },
+    "baseRisk": {
+      "EURUSD": 0.50,
+      "XAUUSD": 0.40,
+      "US30": 0.40
+    },
+    "riskAdjustment": {
+      "enabled": true,
+      "winRateBoost": {
+        "above55": 1.2,
+        "above60": 1.4
+      },
+      "lossReduction": {
+        "lossStreak2": 0.8,
+        "lossStreak3": 0.6,
+        "lossStreak5": 0.4
+      },
+      "drawdownReduction": {
+        "above3pct": 0.8,
+        "above5pct": 0.5
+      }
+    },
+    "sessionMultipliers": {
+      "overlap": 1.00,
+      "london": 0.85,
+      "newyork": 1.00,
+      "asia": 0.70
+    }
+  },
+
+  "ote": {
+    "adaptiveTolerance": {
+      "enabled": true,
+      "mode": "atr_based",
+      "atrPeriod": 14,
+      "atrMultiplier": 0.18,
+      "minPips": 0.9,
+      "maxPips": 2.0,
+      "baseEURUSD": 1.2,
+      "baseXAUUSD": 12,
+      "baseUS30": 8
+    },
+    "autoRelax": {
+      "enabled": true,
+      "missWindowBars": 4,
+      "toleranceStepPips": 0.2,
+      "maxTolerancePips": 1.8,
+      "requireKillzone": false,
+      "onlyIfDirMatch": true
+    },
+    "limitToMarketConvert": {
+      "enabled": true,
+      "onRetap": true,
+      "slippageCapPips": {
+        "EURUSD": 0.8,
+        "XAUUSD": 2.0,
+        "US30": 2.5
+      }
+    },
+    "expiryBars": {
+      "EURUSD": 5,
+      "XAUUSD": 5,
+      "US30": 3
+    }
+  },
+
+  "marketConditionDetection": {
+    "enabled": true,
+    "indicators": {
+      "atr": {
+        "period": 14,
+        "maPeriod": 50
+      },
+      "adx": {
+        "period": 14,
+        "trendingThreshold": 25,
+        "rangingThreshold": 20
+      }
+    },
+    "states": {
+      "trending": {
+        "minRR": 1.5,
+        "tolerance_multiplier": 0.9,
+        "partialTP": [
+          {"rr": 1.0, "percent": 25},
+          {"rr": 2.0, "percent": 25}
+        ],
+        "trailingStart": 2.5
+      },
+      "ranging": {
+        "minRR": 0.9,
+        "tolerance_multiplier": 1.2,
+        "partialTP": [
+          {"rr": 0.5, "percent": 35},
+          {"rr": 1.0, "percent": 35}
+        ],
+        "trailingStart": 1.5
+      },
+      "volatile": {
+        "minRR": 1.2,
+        "tolerance_multiplier": 1.1,
+        "partialTP": [
+          {"rr": 0.8, "percent": 30},
+          {"rr": 1.5, "percent": 30}
+        ],
+        "trailingStart": 2.0
+      },
+      "quiet": {
+        "minRR": 1.0,
+        "tolerance_multiplier": 1.0,
+        "partialTP": [
+          {"rr": 0.6, "percent": 40},
+          {"rr": 1.2, "percent": 30}
+        ],
+        "trailingStart": 1.8
+      }
+    }
+  },
+
+  "entryLogic": {
+    "multiPOI": true,
+    "scoringMode": true,
+    "scoreWeights": {
+      "MSS": 2.0,
+      "OTE": 1.5,
+      "OrderBlock": 1.2,
+      "FVG": 0.9,
+      "IFVG": 1.0,
+      "BreakerBlock": 1.1
+    },
+    "minScore": 1.2,
+    "minComponents": 1,
+    "gates": {
+      "mode": "soft",
+      "sequenceGate": "optional",
+      "pullbackGate": "optional",
+      "killzoneGate": "preferred",
+      "mssOppLiqGate": "warning",
+      "dailyBiasVeto": false
+    }
+  },
+
+  "profitManagement": {
+    "mode": "adaptive_to_market_state",
+    "baseMinRR": 1.2,
+    "allowPartial": true,
+    "breakEven": {
+      "enabled": true,
+      "atRR": 0.6
+    },
+    "trailingStop": {
+      "enabled": true,
+      "activateAtRR": 2.0,
+      "stepPips": 5
+    }
+  },
+
+  "reEntry": {
+    "enabled": true,
+    "maxReEntries": 3,
+    "cooldownBars": 3,
+    "requireNewSignal": true,
+    "sameZoneAllowed": false
+  },
+
+  "executionGuards": {
+    "positionRiskCaps": {
+      "maxRiskPctPerTrade": 0.8,
+      "maxOpenRiskPct": 2.5,
+      "maxNotionalUSD": 1500000
+    },
+    "circuitBreaker": {
+      "onBreach": "reduce_not_skip",
+      "log": true
+    },
+    "dailyLimits": {
+      "maxDrawdown": 6.0,
+      "maxProfit": 20.0,
+      "maxTrades": 25
+    }
+  },
+
+  "adaptation": {
+    "reassessEveryBars": 10,
+    "performanceWindow": 20,
+    "adjustmentSpeed": "moderate",
+    "failsafe": {
+      "winRateBelow35After20": "reduce_aggression",
+      "consecutiveLosses5": "pause_1hour",
+      "drawdownAbove8pct": "minimum_risk_mode"
+    }
+  },
+
+  "orchestrator": {
+    "enabled": true,
+    "reassessEveryBars": 20,
+    "stateDetection": {
+      "adxThresholds": {
+        "trend": 25,
+        "range": 20
+      },
+      "atrSpike": 1.3
+    },
+    "presetMap": {
+      "trending": "Perfect_Sequence_Hunter",
+      "ranging": "Intelligent_Universal",
+      "volatile": "phase4o4_strict_ENHANCED",
+      "quiet": "Intelligent_Universal"
+    },
+    "smoothSwitch": true
+  }
+}
