@@ -999,10 +999,15 @@ namespace CCTTB
 [Parameter("Include Current Day H/L", Group = "Entry", DefaultValue = true)]
         public bool IncludeCurrentDayLevelsAsZonesParam { get; set; }
 
+        [Parameter("Include Weekly H/L (PWH/PWL)", Group = "Entry", DefaultValue = true)]
+        public bool IncludeWeeklyLevelsAsZonesParam { get; set; }
+
 [Parameter("Allow EQH/EQL sweeps", Group = "Entry", DefaultValue = true)]
         public bool AllowEqhEqlSweepsParam { get; set; }
 [Parameter("Allow CDH/CDL sweeps", Group = "Entry", DefaultValue = true)]
         public bool AllowCdhCdlSweepsParam { get; set; }
+        [Parameter("Allow PWH/PWL sweeps", Group = "Entry", DefaultValue = true)]
+        public bool AllowWeeklySweepsParam { get; set; }
 
 
         [Parameter("Skip double sweep in killzone", Group = "Entry", DefaultValue = true)]
@@ -1896,10 +1901,10 @@ namespace CCTTB
             _config.EqTolerancePips = EqTolerancePipsParam;
             _config.EqLookbackBars = EqLookbackBarsParam;
             _config.IncludeCurrentDayLevelsAsZones = IncludeCurrentDayLevelsAsZonesParam;
-            _config.IncludeWeeklyLevelsAsZones = false;
+            _config.IncludeWeeklyLevelsAsZones = IncludeWeeklyLevelsAsZonesParam;
             _config.AllowEqhEqlSweeps = AllowEqhEqlSweepsParam;
             _config.AllowCdhCdlSweeps = AllowCdhCdlSweepsParam;
-            _config.AllowWeeklySweeps = false;
+            _config.AllowWeeklySweeps = AllowWeeklySweepsParam;
             _config.EnablePO3 = false;
             _config.AsiaStart = new TimeSpan(0,0,0);
             _config.AsiaEnd = new TimeSpan(5,0,0);
