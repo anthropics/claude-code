@@ -8,12 +8,10 @@ namespace CCTTB
     public class OptimalTradeEntryDetector
     {
         private readonly StrategyConfig _config;
-        private readonly cAlgo.API.Symbol _symbol;
 
-        public OptimalTradeEntryDetector(StrategyConfig config, cAlgo.API.Symbol symbol = null)
+        public OptimalTradeEntryDetector(StrategyConfig config)
         {
             _config = config;
-            _symbol = symbol;
         }
 
         // === Continuation OTE: re-anchor after impulse extension, gated by an opposite micro-break ===
@@ -300,13 +298,6 @@ namespace CCTTB
                     double swingRange = swingHigh - swingLow;
                     if (swingRange <= 0) continue;
 
-                    // Swing should be meaningful (at least 2 pips if symbol info available)
-                    if (_symbol != null)
-                    {
-                        double minSwing = _symbol.PipSize * 2;
-                        if (swingRange < minSwing) continue;
-                    }
-
                     var lv = Fibonacci.CalculateOTE(swingLow, swingHigh, isBullish: true);
                     zones.Add(new OTEZone
                     {
@@ -329,13 +320,6 @@ namespace CCTTB
                     // ✅ Additional validation: swing must be significant
                     double swingRange = swingHigh - swingLow;
                     if (swingRange <= 0) continue;
-
-                    // Swing should be meaningful (at least 2 pips if symbol info available)
-                    if (_symbol != null)
-                    {
-                        double minSwing = _symbol.PipSize * 2;
-                        if (swingRange < minSwing) continue;
-                    }
 
                     var lv = Fibonacci.CalculateOTE(swingHigh, swingLow, isBullish: false);
                     zones.Add(new OTEZone
