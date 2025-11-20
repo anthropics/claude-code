@@ -4,34 +4,37 @@
 
 [npm]: https://img.shields.io/npm/v/@anthropic-ai/claude-code.svg?style=flat-square
 
-Claude Code is an agentic coding tool that lives in your terminal, understands your codebase, and helps you code faster by executing routine tasks, explaining complex code, and handling git workflows - all through natural language commands.
-
-Some of its key capabilities include:
-
-- Edit files and fix bugs across your codebase
-- Answer questions about your code's architecture and logic
-- Execute and fix tests, lint, and other commands
-- Search through git history, resolve merge conflicts, and create commits and PRs
+Claude Code is an agentic coding tool that lives in your terminal, understands your codebase, and helps you code faster by executing routine tasks, explaining complex code, and handling git workflows -- all through natural language commands. Use it in your terminal, IDE, or tag @claude on Github.
 
 **Learn more in the [official documentation](https://docs.anthropic.com/en/docs/claude-code/overview)**.
 
+<img src="./demo.gif" />
+
 ## Get started
 
-1. If you are new to Node.js and Node Package Manager (`npm`), then it is recommended that you configure an NPM prefix for your user.
-   Instructions on how to do this can be found [here](https://docs.anthropic.com/en/docs/claude-code/troubleshooting#recommended-solution-create-a-user-writable-npm-prefix).
+1. Install Claude Code:
 
-   _Important_ We recommend installing this package as a non-privileged user, not as an administrative user like `root`.
-   Installing as a non-privileged user helps maintain your system's security and stability.
+**MacOS/Linux:**
+```bash
+curl -fsSL https://claude.ai/install.sh | bash
+```
 
-2. Install Claude Code:
+**Homebrew (MacOS):**
+```bash
+brew install --cask claude-code
+```
 
-   ```sh
-   npm install -g @anthropic-ai/claude-code
-   ```
+**Windows:**
+```powershell
+irm https://claude.ai/install.ps1 | iex
+```
 
-3. Navigate to your project directory and run `claude`.
+**NPM:**
+```bash
+npm install -g @anthropic-ai/claude-code
+```
 
-4. Complete the one-time OAuth process with your Claude Max or Anthropic Console account.
+NOTE: If installing with NPM, you also need to install [Node.js 18+](https://nodejs.org/en/download/)
 
 ## Development
 
@@ -65,17 +68,25 @@ When contributing to this repository:
 
 ### Reporting Bugs
 
-We welcome feedback during this beta period. Use the `/bug` command to report issues directly within Claude Code, or file a [GitHub issue](https://github.com/anthropics/claude-code/issues).
+## Plugins
 
-### Data collection, usage, and retention
+This repository includes several Claude Code plugins that extend functionality with custom commands and agents. See the [plugins directory](./plugins/README.md) for detailed documentation on available plugins.
+
+## Reporting Bugs
+
+We welcome your feedback. Use the `/bug` command to report issues directly within Claude Code, or file a [GitHub issue](https://github.com/anthropics/claude-code/issues).
+
+## Connect on Discord
+
+Join the [Claude Developers Discord](https://anthropic.com/discord) to connect with other developers using Claude Code. Get help, share feedback, and discuss your projects with the community.
+
+## Data collection, usage, and retention
 
 When you use Claude Code, we collect feedback, which includes usage data (such as code acceptance or rejections), associated conversation data, and user feedback submitted via the `/bug` command.
 
-#### How we use your data
+### How we use your data
 
-We may use feedback to improve our products and services, but we will not train generative models using your feedback from Claude Code. Given their potentially sensitive nature, we store user feedback transcripts for only 30 days.
-
-If you choose to send us feedback about Claude Code, such as transcripts of your usage, Anthropic may use that feedback to debug related issues and improve Claude Code's functionality (e.g., to reduce the risk of similar bugs occurring in the future).
+See our [data usage policies](https://docs.anthropic.com/en/docs/claude-code/data-usage).
 
 ### Privacy safeguards
 
