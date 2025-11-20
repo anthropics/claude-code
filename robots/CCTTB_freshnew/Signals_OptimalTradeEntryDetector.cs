@@ -8,10 +8,12 @@ namespace CCTTB
     public class OptimalTradeEntryDetector
     {
         private readonly StrategyConfig _config;
+        private readonly cAlgo.API.Symbol _symbol;
 
-        public OptimalTradeEntryDetector(StrategyConfig config)
+        public OptimalTradeEntryDetector(StrategyConfig config, cAlgo.API.Symbol symbol = null)
         {
             _config = config;
+            _symbol = symbol;
         }
 
         // === Continuation OTE: re-anchor after impulse extension, gated by an opposite micro-break ===
@@ -196,7 +198,77 @@ namespace CCTTB
             }
         }
 
-        // === OTE derived from the MSS swing that made the break ===
+        // === Validate if MSS is "REAL" (not fake/weak) ===
+        // Real MSS requires: strong move, clear break, proper context
+        private bool IsRealMSS(MSSSignal mss, Bars bars)
+        {
+            if (mss == null || bars == null) return false;
+
+            int idx = mss.Index;
+            if (idx < 5 || idx >= bars.Count - 1) return false;
+
+            // Check 1: MSS must have strong momentum (not weak break)
+            double mssRange = Math.Abs(bars.ClosePrices[idx] - bars.OpenPrices[idx]);
+            double avgRange = 0;
+            for (int i = 1; i <= 5; i++)
+            {
+                if (idx - i >= 0)
+                    avgRange += Math.Abs(bars.ClosePrices[idx - i] - bars.OpenPrices[idx - i]);
+            }
+            avgRange /= 5;
+
+            // MSS candle should be at least 60% of average range (not tiny)
+            if (mssRange < avgRange * 0.6) return false;
+
+            // Check 2: Must have clear structure break (not sideways chop)
+            if (mss.Direction == BiasDirection.Bullish)
+            {
+                // Bullish MSS: should have clear higher high
+                double recentHigh = double.MinValue;
+                for (int i = idx - 10; i < idx; i++)
+                {
+                    if (i >= 0 && i < bars.Count)
+                        recentHigh = Math.Max(recentHigh, bars.HighPrices[i]);
+                }
+
+                // MSS high must clearly break above recent highs
+                if (bars.HighPrices[idx] <= recentHigh) return false;
+            }
+            else if (mss.Direction == BiasDirection.Bearish)
+            {
+                // Bearish MSS: should have clear lower low
+                double recentLow = double.MaxValue;
+                for (int i = idx - 10; i < idx; i++)
+                {
+                    if (i >= 0 && i < bars.Count)
+                        recentLow = Math.Min(recentLow, bars.LowPrices[i]);
+                }
+
+                // MSS low must clearly break below recent lows
+                if (bars.LowPrices[idx] >= recentLow) return false;
+            }
+
+            // Check 3: MSS must not be in tight consolidation
+            double high10 = double.MinValue;
+            double low10 = double.MaxValue;
+            for (int i = Math.Max(0, idx - 10); i < idx; i++)
+            {
+                high10 = Math.Max(high10, bars.HighPrices[i]);
+                low10 = Math.Min(low10, bars.LowPrices[i]);
+            }
+
+            double consolidationRange = high10 - low10;
+            double mssMove = mss.Direction == BiasDirection.Bullish
+                ? (bars.HighPrices[idx] - low10)
+                : (high10 - bars.LowPrices[idx]);
+
+            // MSS move should be at least 40% of consolidation range (not tiny break)
+            if (consolidationRange > 0 && mssMove < consolidationRange * 0.4) return false;
+
+            return true; // All checks passed - this is a REAL MSS
+        }
+
+        // === OTE derived from REAL MSS (filtered for quality) ===
         public List<OTEZone> DetectOTEFromMSS(Bars bars, List<MSSSignal> mssSignals)
         {
             var zones = new List<OTEZone>();
@@ -205,6 +277,14 @@ namespace CCTTB
             foreach (var sig in mssSignals)
             {
                 if (sig == null) continue;
+
+                // ✅ CRITICAL: Validate this is a REAL MSS (not fake/weak)
+                if (!IsRealMSS(sig, bars))
+                {
+                    // Skip fake/weak MSS - don't create OTE zones for noise
+                    continue;
+                }
+
                 int i = sig.Index;
                 if (i <= 2 || i >= bars.Count) continue;
 
@@ -214,8 +294,18 @@ namespace CCTTB
                     if (loIdx < 0) continue;
 
                     double swingLow  = bars.LowPrices[loIdx];
-                    double swingHigh = bars.HighPrices[i]; // break bar’s high
-                    if (swingHigh <= swingLow) continue;
+                    double swingHigh = bars.HighPrices[i]; // break bar's high
+
+                    // ✅ Additional validation: swing must be significant
+                    double swingRange = swingHigh - swingLow;
+                    if (swingRange <= 0) continue;
+
+                    // Swing should be meaningful (at least 2 pips if symbol info available)
+                    if (_symbol != null)
+                    {
+                        double minSwing = _symbol.PipSize * 2;
+                        if (swingRange < minSwing) continue;
+                    }
 
                     var lv = Fibonacci.CalculateOTE(swingLow, swingHigh, isBullish: true);
                     zones.Add(new OTEZone
@@ -234,8 +324,18 @@ namespace CCTTB
                     if (hiIdx < 0) continue;
 
                     double swingHigh = bars.HighPrices[hiIdx];
-                    double swingLow  = bars.LowPrices[i];   // break bar’s low
-                    if (swingHigh <= swingLow) continue;
+                    double swingLow  = bars.LowPrices[i];   // break bar's low
+
+                    // ✅ Additional validation: swing must be significant
+                    double swingRange = swingHigh - swingLow;
+                    if (swingRange <= 0) continue;
+
+                    // Swing should be meaningful (at least 2 pips if symbol info available)
+                    if (_symbol != null)
+                    {
+                        double minSwing = _symbol.PipSize * 2;
+                        if (swingRange < minSwing) continue;
+                    }
 
                     var lv = Fibonacci.CalculateOTE(swingHigh, swingLow, isBullish: false);
                     zones.Add(new OTEZone
