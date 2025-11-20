@@ -6827,10 +6827,23 @@ namespace CCTTB
             catch { return false; }
         }
 
+        /// <summary>
+        /// ✨ cTrader 5.5 UPGRADE: Enhanced killzone check using TimeOnly for better performance
+        /// Checks if current time falls within killzone window (handles overnight ranges)
+        /// </summary>
         private bool IsWithinKillZone(TimeSpan now, TimeSpan start, TimeSpan end)
         {
-            if (start <= end) return now >= start && now <= end;
-            return now >= start || now <= end; // overnight window
+            // Convert TimeSpan to TimeOnly for more efficient time comparisons
+            TimeOnly currentTime = TimeOnly.FromTimeSpan(now);
+            TimeOnly killzoneStart = TimeOnly.FromTimeSpan(start);
+            TimeOnly killzoneEnd = TimeOnly.FromTimeSpan(end);
+
+            // Normal range (e.g., 08:00-17:00)
+            if (killzoneStart <= killzoneEnd)
+                return currentTime >= killzoneStart && currentTime <= killzoneEnd;
+
+            // Overnight range (e.g., 20:00-08:00 crosses midnight)
+            return currentTime >= killzoneStart || currentTime <= killzoneEnd;
         }
 
         // Removed broker-specific margin override parsing to keep bot broker-agnostic

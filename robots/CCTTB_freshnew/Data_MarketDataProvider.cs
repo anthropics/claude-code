@@ -391,8 +391,14 @@ namespace CCTTB
                         double pdh = dBars.HighPrices[pdIdx];
                         double pdl = dBars.LowPrices[pdIdx];
                         double padPd = _symbol.PipSize * 1.0;
-                        var pdStart = dBars.OpenTimes[pdIdx].AddDays(1); // effective on current day
-                        var pdEnd = pdStart.AddDays(1);
+
+                        // ✨ cTrader 5.5 UPGRADE: Use DateOnly for cleaner date arithmetic
+                        DateOnly previousDay = DateOnly.FromDateTime(dBars.OpenTimes[pdIdx]);
+                        DateOnly currentDay = previousDay.AddDays(1);
+                        DateOnly nextDay = currentDay.AddDays(1);
+
+                        var pdStart = currentDay.ToDateTime(TimeOnly.MinValue);  // Start of current day
+                        var pdEnd = nextDay.ToDateTime(TimeOnly.MinValue);       // Start of next day
 
                         // PDH as supply zone
                         _zones.Add(new LiquidityZone
@@ -424,16 +430,20 @@ namespace CCTTB
             {
                 if (_cfg != null && _cfg.IncludeCurrentDayLevelsAsZones)
                 {
-                    // Use bars' date; compute today's range up to now
+                    // ✨ cTrader 5.5 UPGRADE: Use DateOnly for current day calculation
                     var lastTime = bars.OpenTimes[bars.Count - 1];
-                    var day = lastTime.Date;
+                    DateOnly today = DateOnly.FromDateTime(lastTime);
+
                     double dayHigh = double.MinValue;
                     double dayLow = double.MaxValue;
                     DateTime dayStartTime = DateTime.MinValue;
                     DateTime dayEndTime = DateTime.MinValue;
+
                     for (int i = Math.Max(1, bars.Count - 500); i < bars.Count; i++)
                     {
-                        if (bars.OpenTimes[i].Date != day) continue;
+                        // Compare DateOnly values instead of DateTime.Date (more efficient!)
+                        if (DateOnly.FromDateTime(bars.OpenTimes[i]) != today) continue;
+
                         if (dayStartTime == DateTime.MinValue) dayStartTime = bars.OpenTimes[i];
                         dayEndTime = bars.OpenTimes[i];
                         dayHigh = Math.Max(dayHigh, bars.HighPrices[i]);
