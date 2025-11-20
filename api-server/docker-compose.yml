@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  claude-api:
+    build: .
+    ports:
+      - "${PORT:-8000}:8000"
+    environment:
+      - ENABLE_AUTH=${ENABLE_AUTH:-true}
+      - CLAUDE_API_KEY=${CLAUDE_API_KEY}
+      - CLAUDE_CODE_PATH=${CLAUDE_CODE_PATH:-claude}
+      - DEFAULT_WORKING_DIR=${DEFAULT_WORKING_DIR:-/workspace}
+      - HOST=0.0.0.0
+      - PORT=8000
+    volumes:
+      # Mount workspace directory
+      - ${DEFAULT_WORKING_DIR:-./workspace}:/workspace
+      # Optionally mount Claude Code config
+      - ~/.claude:/root/.claude:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
