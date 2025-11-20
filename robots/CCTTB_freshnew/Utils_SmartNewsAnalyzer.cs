@@ -141,7 +141,7 @@ namespace CCTTB
             return null;
         }
 
-        // --- IMPROVED: Method to get OAuth token with retry logic ---
+        // --- IMPROVED: Method to get OAuth token with correct scope ---
         private async Task<string> GetAccessTokenAsync()
         {
             try
@@ -153,25 +153,28 @@ namespace CCTTB
                     return null;
                 }
 
-                // Use the modern CredentialFactory approach (non-deprecated)
-                ServiceAccountCredential credential;
+                // Load service account credentials with Google Cloud Platform scope
+                GoogleCredential credential;
                 using (var stream = new FileStream(credPath, FileMode.Open, FileAccess.Read))
                 {
-                    credential = ServiceAccountCredential.FromServiceAccountData(stream);
+                    credential = GoogleCredential.FromStream(stream)
+                        .CreateScoped("https://www.googleapis.com/auth/cloud-platform");
                 }
 
-                // Request access token with the required scope
-                bool success = await credential.RequestAccessTokenAsync(System.Threading.CancellationToken.None);
-                if (!success)
+                // Get access token using the modern async API
+                var accessToken = await credential.UnderlyingCredential.GetAccessTokenForRequestAsync(
+                    cancellationToken: System.Threading.CancellationToken.None);
+
+                if (string.IsNullOrEmpty(accessToken))
                 {
-                    _robot.BeginInvokeOnMainThread(() => _robot.Print("[Gemini] ERROR: Failed to request access token from Google"));
+                    _robot.BeginInvokeOnMainThread(() => _robot.Print("[Gemini] ERROR: Received empty access token from Google"));
                     _consecutiveFailures++;
                     return null;
                 }
 
                 // Success! Reset failure counter
                 _consecutiveFailures = 0;
-                return credential.Token.AccessToken;
+                return accessToken;
             }
             catch (Exception ex)
             {
