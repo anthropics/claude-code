@@ -1,0 +1,58 @@
+{
+  "name": "@anthropic-ai/claude-code-repo",
+  "version": "1.0.0",
+  "description": "Claude Code CLI - Public repository with documentation and workflows",
+  "private": true,
+  "scripts": {
+    "test": "npm run test:config && npm run test:shell && npm run test:actions",
+    "test:config": "jest tests/config",
+    "test:shell": "bats tests/shell",
+    "test:actions": "echo 'GitHub Actions tests require act or GitHub runners'",
+    "test:watch": "jest --watch",
+    "lint": "npm run lint:yaml && npm run lint:shell",
+    "lint:yaml": "yamllint .github/",
+    "lint:shell": "shellcheck .devcontainer/*.sh",
+    "validate": "npm run lint && npm test"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.11",
+    "@types/node": "^20.10.6",
+    "bats": "^1.10.0",
+    "bats-assert": "^2.1.0",
+    "bats-support": "^0.3.0",
+    "jest": "^29.7.0",
+    "prettier": "^3.1.1",
+    "shellcheck": "^2.2.0",
+    "ts-jest": "^29.1.1",
+    "typescript": "^5.3.3",
+    "yaml-lint": "^1.7.0"
+  },
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node",
+    "testMatch": [
+      "**/tests/**/*.test.js",
+      "**/tests/**/*.test.ts"
+    ],
+    "collectCoverage": true,
+    "coverageDirectory": "coverage",
+    "coverageReporters": ["text", "lcov", "html"],
+    "collectCoverageFrom": [
+      "tests/**/*.{js,ts}",
+      "!tests/**/*.test.{js,ts}"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/anthropics/claude-code.git"
+  },
+  "keywords": [
+    "claude",
+    "ai",
+    "cli",
+    "coding-assistant",
+    "anthropic"
+  ],
+  "author": "Anthropic",
+  "license": "MIT"
+}

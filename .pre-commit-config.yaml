@@ -1,0 +1,95 @@
+# Pre-commit hooks configuration
+# See https://pre-commit.com for more information
+
+default_language_version:
+  python: python3
+
+repos:
+  # General file checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+        name: Trim trailing whitespace
+      - id: end-of-file-fixer
+        name: Fix end of files
+      - id: check-yaml
+        name: Check YAML syntax
+        args: [--allow-multiple-documents]
+      - id: check-json
+        name: Check JSON syntax
+      - id: check-added-large-files
+        name: Check for large files
+        args: ['--maxkb=1000']
+      - id: check-merge-conflict
+        name: Check for merge conflicts
+      - id: check-case-conflict
+        name: Check for case conflicts
+      - id: check-executables-have-shebangs
+        name: Check executables have shebangs
+      - id: check-shebang-scripts-are-executable
+        name: Check scripts are executable
+      - id: mixed-line-ending
+        name: Check mixed line endings
+
+  # Shell script linting
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.9.0.6
+    hooks:
+      - id: shellcheck
+        name: ShellCheck
+        args: [-x]
+        files: \.sh$
+
+  # YAML linting
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.33.0
+    hooks:
+      - id: yamllint
+        name: YAML Lint
+        args: [-d, '{extends: default, rules: {line-length: {max: 120}, document-start: disable}}']
+
+  # Prettier for formatting
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v3.1.0
+    hooks:
+      - id: prettier
+        name: Prettier
+        types_or: [json, yaml, markdown]
+        exclude: ^(package-lock\.json|CHANGELOG\.md)$
+
+  # Local hooks for custom checks
+  - repo: local
+    hooks:
+      - id: no-hardcoded-secrets
+        name: Check for hardcoded secrets
+        entry: bash -c 'if grep -r -i -E "(password|api_key|secret|token)\s*=\s*['\'''][a-zA-Z0-9]{20,}" --exclude-dir=node_modules --exclude-dir=.git --exclude="*.test.*" .; then echo "Potential secrets found!"; exit 1; fi'
+        language: system
+        pass_filenames: false
+
+      - id: no-todos-in-workflows
+        name: No TODOs in workflow files
+        entry: bash -c 'if grep -r -i "TODO\|FIXME" .github/workflows/; then echo "Found TODO/FIXME in workflows"; exit 1; fi'
+        language: system
+        pass_filenames: false
+        files: ^\.github/workflows/
+
+      - id: run-tests
+        name: Run all tests
+        entry: npm test
+        language: system
+        pass_filenames: false
+        stages: [push]
+
+# Configuration
+ci:
+  autofix_commit_msg: |
+    [pre-commit.ci] auto fixes from pre-commit hooks
+
+    for more information, see https://pre-commit.ci
+  autofix_prs: true
+  autoupdate_branch: ''
+  autoupdate_commit_msg: '[pre-commit.ci] pre-commit autoupdate'
+  autoupdate_schedule: weekly
+  skip: []
+  submodules: false
