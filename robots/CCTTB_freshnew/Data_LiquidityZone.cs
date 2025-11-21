@@ -15,6 +15,17 @@ namespace CCTTB
 
         public bool Bullish => Type == LiquidityZoneType.Demand;
 
+        // --- Entry Tool Confluence (ICT Liquidity-First Approach) ---
+        // These properties indicate which entry tools overlap with this liquidity zone
+        public bool HasOrderBlock { get; set; } = false;
+        public bool HasOTE { get; set; } = false;
+        public bool HasFVG { get; set; } = false;
+        public bool HasBreakerBlock { get; set; } = false;
+
+        // IsEntryReady = true if this liquidity zone has at least one entry tool
+        // This marks "strong, reliable liquidity with entry confirmation"
+        public bool IsEntryReady => HasOrderBlock || HasOTE || HasFVG || HasBreakerBlock;
+
         // --- Helpers ---
         public double Mid  => (Low + High) * 0.5;
         public double Range => High - Low;

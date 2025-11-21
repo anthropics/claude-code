@@ -3048,10 +3048,6 @@ namespace CCTTB
                             if (!exists) oteZones.Add(altOte);
                         }
                     }
-
-                    // ✨ LIQUIDITY FILTER: Only keep OTE zones that overlap with actual liquidity
-                    // This ensures OTE boxes appear WHERE LIQUIDITY EXISTS (PDH/PDL/PWH/PWL/swings)
-                    oteZones = FilterOTEByLiquidityOverlap(oteZones);
                 }
 
                 if (EnableDebugLoggingParam && Bars.Count % 10 == 0 && oteZones != null)
@@ -3173,6 +3169,15 @@ namespace CCTTB
                     if (fvgZones != null && fvgZones.Count > 0)
                         foreach (var fvg in fvgZones.TakeLast(5)) // Show last 5 to avoid spam
                             Print($"  FVG → {fvg.Direction} | Range=[{fvg.Low:F5}-{fvg.High:F5}] | Time={fvg.Time:yyyy-MM-dd HH:mm}");
+                }
+
+                // ✨ LIQUIDITY-FIRST APPROACH: Enrich liquidity zones with entry tool information
+                // Mark which liquidity zones have OB, OTE, FVG, or Breaker Block overlap
+                // This implements ICT method: "Strong liquidity + entry tool = valid entry point"
+                var liquidityZones = _marketData?.GetLiquidityZones();
+                if (liquidityZones != null && liquidityZones.Count > 0)
+                {
+                    EnrichLiquidityWithEntryTools(liquidityZones, oteZones, orderBlocks, breakerBlocks);
                 }
 
                 // ──────────────────────────────────────────────────────────────────────────
@@ -7839,63 +7844,109 @@ namespace CCTTB
         }
 
         // ═══════════════════════════════════════════════════════════════════
-        // OTE LIQUIDITY FILTER (USER REQUESTED FEATURE)
+        // ✨ LIQUIDITY-FIRST APPROACH (ICT Method)
         // ═══════════════════════════════════════════════════════════════════
+        // Priority 1: Identify strong, reliable LIQUIDITY zones (PDH/PDL/PWH/PWL/swings)
+        // Priority 2: Check if liquidity has ANY entry tool (OB/OTE/FVG/BreakerBlock)
+        // Result: Mark liquidity as "entry-ready" if it has at least one entry tool
+        // ═══════════════════════════════════════════════════════════════════
+
         /// <summary>
-        /// ✨ Filters OTE zones to only show where REAL LIQUIDITY exists
-        /// Only draws OTE boxes that overlap with liquidity zones (PDH/PDL/PWH/PWL/swings/EQH/EQL)
-        /// This ensures entries align with smart money levels
+        /// Enriches liquidity zones with entry tool information.
+        /// Checks each liquidity zone for overlap with: OB, OTE, FVG, BreakerBlock
+        /// Sets HasOrderBlock, HasOTE, HasFVG, HasBreakerBlock flags
         /// </summary>
-        private List<OTEZone> FilterOTEByLiquidityOverlap(List<OTEZone> oteZones)
+        private void EnrichLiquidityWithEntryTools(
+            List<LiquidityZone> liquidityZones,
+            List<OTEZone> oteZones,
+            List<OrderBlock> orderBlocks,
+            List<BreakerBlock> breakerBlocks = null)
         {
-            if (oteZones == null || oteZones.Count == 0) return oteZones;
+            if (liquidityZones == null || liquidityZones.Count == 0) return;
 
-            var liquidityZones = _marketData?.GetLiquidityZones();
-            if (liquidityZones == null || liquidityZones.Count == 0) return oteZones; // No liquidity data - show all OTE
-
-            var filteredOTE = new List<OTEZone>();
             double tolerance = Symbol.PipSize * 5; // 5 pip tolerance for overlap detection
 
-            foreach (var ote in oteZones)
+            foreach (var liq in liquidityZones)
             {
-                // OTE zone boundaries (61.8% to 79%)
-                double oteMin = Math.Min(ote.OTE618, ote.OTE79);
-                double oteMax = Math.Max(ote.OTE618, ote.OTE79);
+                // Reset flags
+                liq.HasOrderBlock = false;
+                liq.HasOTE = false;
+                liq.HasFVG = false;
+                liq.HasBreakerBlock = false;
 
-                // Check if OTE overlaps with ANY liquidity zone
-                bool hasLiquidityOverlap = false;
-                foreach (var liq in liquidityZones)
+                double liqMin = Math.Min(liq.Low, liq.High);
+                double liqMax = Math.Max(liq.Low, liq.High);
+
+                // Check OTE overlap
+                if (oteZones != null)
                 {
-                    // Liquidity zone boundaries
-                    double liqMin = Math.Min(liq.Low, liq.High);
-                    double liqMax = Math.Max(liq.Low, liq.High);
-
-                    // Check for overlap (with tolerance)
-                    bool overlaps = (oteMax + tolerance >= liqMin) && (oteMin - tolerance <= liqMax);
-
-                    if (overlaps)
+                    foreach (var ote in oteZones)
                     {
-                        hasLiquidityOverlap = true;
-                        if (_config.EnableDebugLogging)
-                            Print($"[OTE+LIQUIDITY] ✅ OTE zone overlaps with {liq.Label ?? "liquidity"} | OTE: {oteMin:F5}-{oteMax:F5} | Liq: {liqMin:F5}-{liqMax:F5}");
-                        break;
+                        if (CheckOverlap(liqMin, liqMax,
+                            Math.Min(ote.OTE618, ote.OTE79),
+                            Math.Max(ote.OTE618, ote.OTE79),
+                            tolerance))
+                        {
+                            liq.HasOTE = true;
+                            if (_config.EnableDebugLogging)
+                                Print($"[LIQUIDITY+ENTRY] ✅ {liq.Label} has OTE | Liq: {liqMin:F5}-{liqMax:F5}");
+                            break;
+                        }
                     }
                 }
 
-                if (hasLiquidityOverlap)
+                // Check Order Block overlap
+                if (orderBlocks != null)
                 {
-                    filteredOTE.Add(ote); // ✅ Keep this OTE - it has liquidity!
+                    foreach (var ob in orderBlocks)
+                    {
+                        if (CheckOverlap(liqMin, liqMax, ob.LowPrice, ob.HighPrice, tolerance))
+                        {
+                            liq.HasOrderBlock = true;
+                            if (_config.EnableDebugLogging)
+                                Print($"[LIQUIDITY+ENTRY] ✅ {liq.Label} has Order Block | Liq: {liqMin:F5}-{liqMax:F5}");
+                            break;
+                        }
+                    }
                 }
-                else if (_config.EnableDebugLogging)
+
+                // Check Breaker Block overlap
+                if (breakerBlocks != null)
                 {
-                    Print($"[OTE+LIQUIDITY] ❌ OTE zone SKIPPED (no liquidity overlap) | OTE: {oteMin:F5}-{oteMax:F5}");
+                    foreach (var bb in breakerBlocks)
+                    {
+                        if (CheckOverlap(liqMin, liqMax, bb.LowPrice, bb.HighPrice, tolerance))
+                        {
+                            liq.HasBreakerBlock = true;
+                            if (_config.EnableDebugLogging)
+                                Print($"[LIQUIDITY+ENTRY] ✅ {liq.Label} has Breaker Block | Liq: {liqMin:F5}-{liqMax:F5}");
+                            break;
+                        }
+                    }
+                }
+
+                // FVG detection - placeholder for future implementation
+                // liq.HasFVG = CheckFVGOverlap(liq);
+
+                // Log entry-ready liquidity
+                if (liq.IsEntryReady && _config.EnableDebugLogging)
+                {
+                    var tools = new List<string>();
+                    if (liq.HasOTE) tools.Add("OTE");
+                    if (liq.HasOrderBlock) tools.Add("OB");
+                    if (liq.HasFVG) tools.Add("FVG");
+                    if (liq.HasBreakerBlock) tools.Add("BB");
+                    Print($"[LIQUIDITY+ENTRY] 🎯 {liq.Label} is ENTRY-READY with: {string.Join(", ", tools)}");
                 }
             }
+        }
 
-            if (_config.EnableDebugLogging && oteZones.Count > 0)
-                Print($"[OTE+LIQUIDITY] Filtered: {oteZones.Count} → {filteredOTE.Count} zones (kept only OTE with liquidity)");
-
-            return filteredOTE;
+        /// <summary>
+        /// Checks if two price ranges overlap (with tolerance)
+        /// </summary>
+        private bool CheckOverlap(double min1, double max1, double min2, double max2, double tolerance)
+        {
+            return (max1 + tolerance >= min2) && (min1 - tolerance <= max2);
         }
     }
 }
