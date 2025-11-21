@@ -1,0 +1,198 @@
+name: Matrix Test Suite
+
+on:
+  push:
+    branches: [ "main", "claude/**" ]
+  pull_request:
+    branches: [ "main" ]
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+jobs:
+  # Matrix testing across multiple environments
+  test-matrix:
+    name: Test (${{ matrix.os }}, ${{ matrix.shell }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, ubuntu-20.04, macos-13, macos-14]
+        shell: [bash]
+        include:
+          # Additional test configurations
+          - os: ubuntu-22.04
+            shell: bash
+            coverage: true
+          - os: ubuntu-22.04
+            shell: bash
+            benchmarks: true
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup test environment
+        run: |
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            sudo apt-get update
+            sudo apt-get install -y bats shellcheck jq curl iptables ipset
+          elif [[ "$RUNNER_OS" == "macOS" ]]; then
+            brew install bats-core shellcheck jq
+          fi
+
+      - name: Run unit tests
+        run: bats tests/unit/**/*.bats
+
+      - name: Run integration tests
+        run: bats tests/integration/**/*.bats
+        continue-on-error: ${{ matrix.os == 'macos-13' || matrix.os == 'macos-14' }}
+
+      - name: Generate coverage report
+        if: matrix.coverage == true
+        run: |
+          bash tests/scripts/generate-coverage.sh
+          echo "### 📊 Test Coverage" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Coverage reports generated successfully" >> $GITHUB_STEP_SUMMARY
+
+      - name: Run performance benchmarks
+        if: matrix.benchmarks == true
+        run: |
+          bash tests/benchmarks/firewall-performance.sh
+          echo "### ⚡ Performance Benchmarks" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Benchmarks completed successfully" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload coverage artifacts
+        if: matrix.coverage == true
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report-${{ matrix.os }}
+          path: coverage/
+
+  # Docker-based testing
+  docker-tests:
+    name: Docker Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build test image
+        run: docker build -f tests/docker/Dockerfile.test -t claude-code-test .
+
+      - name: Run unit tests in Docker
+        run: docker run --rm claude-code-test bats tests/unit/**/*.bats
+
+      - name: Run integration tests in Docker
+        run: |
+          docker run --rm \
+            --cap-add=NET_ADMIN \
+            --cap-add=NET_RAW \
+            --privileged \
+            claude-code-test bats tests/integration/**/*.bats
+
+      - name: Run using docker-compose
+        run: |
+          cd tests/docker
+          docker-compose -f docker-compose.test.yml up --abort-on-container-exit unit-tests
+          docker-compose -f docker-compose.test.yml up --abort-on-container-exit static-analysis
+
+  # Parallel test execution
+  parallel-tests:
+    name: Parallel Test Execution
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 4
+      matrix:
+        test-suite:
+          - unit/firewall
+          - unit/actions
+          - integration/devcontainer
+          - integration/workflows
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bats shellcheck jq
+
+      - name: Run test suite
+        run: bats tests/${{ matrix.test-suite }}/**/*.bats
+
+  # Nightly comprehensive tests
+  nightly-tests:
+    name: Nightly Comprehensive Suite
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install all dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bats shellcheck jq curl iptables ipset yamllint
+
+      - name: Install actionlint
+        run: |
+          bash <(curl https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
+          sudo mv actionlint /usr/local/bin/
+
+      - name: Run all tests
+        run: bats tests/**/*.bats
+
+      - name: Run static analysis
+        run: |
+          shellcheck .devcontainer/*.sh tests/**/*.sh
+          actionlint .github/workflows/*.yml
+          yamllint .github/**/*.yml
+
+      - name: Run benchmarks
+        run: bash tests/benchmarks/firewall-performance.sh
+
+      - name: Generate full coverage report
+        run: bash tests/scripts/generate-coverage.sh
+
+      - name: Upload comprehensive results
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-test-results
+          path: |
+            coverage/
+            *.log
+
+  # Test result aggregation
+  test-results:
+    name: Test Results Summary
+    runs-on: ubuntu-latest
+    needs: [test-matrix, docker-tests, parallel-tests]
+    if: always()
+
+    steps:
+      - name: Check all test results
+        run: |
+          echo "## 🎯 Test Results Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Matrix Tests | ${{ needs.test-matrix.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Docker Tests | ${{ needs.docker-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Parallel Tests | ${{ needs.parallel-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+
+      - name: Fail if any test failed
+        if: |
+          needs.test-matrix.result == 'failure' ||
+          needs.docker-tests.result == 'failure' ||
+          needs.parallel-tests.result == 'failure'
+        run: exit 1

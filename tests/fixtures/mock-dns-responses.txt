@@ -1,0 +1,13 @@
+# Mock DNS responses for testing
+# Format: domain=ip1,ip2,ip3
+
+registry.npmjs.org=104.16.16.35,104.16.17.35,104.16.18.35
+api.anthropic.com=54.230.156.89,54.230.156.12
+sentry.io=35.186.224.25
+statsig.anthropic.com=52.85.151.22
+statsig.com=13.225.78.64,13.225.78.89
+
+# Invalid responses for testing error handling
+invalid.domain=
+malformed.domain=not-an-ip-address
+timeout.domain=TIMEOUT

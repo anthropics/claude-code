@@ -1,0 +1,47 @@
+FROM ubuntu:22.04
+
+# Prevent interactive prompts
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install test dependencies
+RUN apt-get update && apt-get install -y \
+    bash \
+    bats \
+    shellcheck \
+    jq \
+    curl \
+    git \
+    iptables \
+    ipset \
+    iproute2 \
+    dnsutils \
+    aggregate \
+    python3 \
+    python3-pip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install additional tools
+RUN pip3 install --no-cache-dir yamllint pre-commit
+
+# Install actionlint
+RUN curl -sSL https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash | bash && \
+    mv actionlint /usr/local/bin/
+
+# Create test user
+RUN useradd -m -s /bin/bash testuser
+
+# Set working directory
+WORKDIR /workspace
+
+# Copy test files
+COPY . /workspace/
+
+# Make scripts executable
+RUN find /workspace/tests -name "*.sh" -exec chmod +x {} \;
+RUN find /workspace/tests -name "*.bats" -exec chmod +x {} \;
+
+# Switch to test user for non-privileged tests
+USER testuser
+
+# Default command runs all tests
+CMD ["bats", "tests/unit/**/*.bats", "tests/integration/**/*.bats"]

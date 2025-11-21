@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  # Unit tests - fast, isolated tests
+  unit-tests:
+    build:
+      context: ../..
+      dockerfile: tests/docker/Dockerfile.test
+    command: bats tests/unit/**/*.bats
+    volumes:
+      - ../..:/workspace
+    environment:
+      - TEST_ENV=docker
+      - CI=true
+
+  # Integration tests - require more privileges
+  integration-tests:
+    build:
+      context: ../..
+      dockerfile: tests/docker/Dockerfile.test
+    command: bats tests/integration/**/*.bats
+    volumes:
+      - ../..:/workspace
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    privileged: true
+    environment:
+      - TEST_ENV=docker
+      - CI=true
+
+  # Static analysis
+  static-analysis:
+    build:
+      context: ../..
+      dockerfile: tests/docker/Dockerfile.test
+    command: bash -c "shellcheck .devcontainer/*.sh tests/**/*.sh && actionlint .github/workflows/*.yml"
+    volumes:
+      - ../..:/workspace
+
+  # Performance benchmarks
+  benchmarks:
+    build:
+      context: ../..
+      dockerfile: tests/docker/Dockerfile.test
+    command: bash tests/benchmarks/firewall-performance.sh
+    volumes:
+      - ../..:/workspace
+
+  # Coverage report generation
+  coverage:
+    build:
+      context: ../..
+      dockerfile: tests/docker/Dockerfile.test
+    command: bash tests/scripts/generate-coverage.sh
+    volumes:
+      - ../..:/workspace
+      - coverage-data:/workspace/coverage
+    environment:
+      - COVERAGE_OUTPUT=/workspace/coverage
+
+volumes:
+  coverage-data:

@@ -1,0 +1,21 @@
+# ShellCheck configuration file
+# https://github.com/koalaman/shellcheck/wiki/Directive
+
+# Exclude specific checks:
+
+# SC2086: Double quote to prevent globbing and word splitting
+# (Sometimes intentional in our scripts)
+disable=SC2086
+
+# SC2181: Check exit code directly with e.g. 'if mycmd;', not indirectly with $?
+# (We prefer explicit status checks in some cases)
+# disable=SC2181
+
+# Source directory for including other scripts
+source-path=SCRIPTDIR
+
+# Enable all optional checks
+enable=all
+
+# Specify shell dialect
+shell=bash

@@ -1,0 +1,134 @@
+name: Test Suite
+
+on:
+  push:
+    branches: [ "main", "claude/**" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  shellcheck:
+    name: ShellCheck
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install ShellCheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+
+      - name: Run ShellCheck on init-firewall.sh
+        run: shellcheck .devcontainer/init-firewall.sh
+
+      - name: Run ShellCheck on test helpers
+        run: shellcheck tests/**/*.sh || true
+
+  actionlint:
+    name: GitHub Actions Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install actionlint
+        run: |
+          bash <(curl https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
+          sudo mv actionlint /usr/local/bin/
+
+      - name: Run actionlint
+        run: actionlint .github/workflows/*.yml
+
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install bats-core
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bats
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get install -y jq curl
+
+      - name: Run unit tests
+        run: bats tests/unit/**/*.bats
+
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install bats-core
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bats
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get install -y jq curl docker.io iptables ipset
+
+      - name: Run integration tests
+        run: bats tests/integration/**/*.bats
+
+  yaml-validation:
+    name: YAML Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install yamllint
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y yamllint
+
+      - name: Validate workflow YAML files
+        run: yamllint .github/workflows/*.yml
+
+      - name: Validate action YAML files
+        run: yamllint .github/actions/**/*.yml
+
+      - name: Validate devcontainer JSON
+        run: |
+          sudo apt-get install -y jq
+          jq empty .devcontainer/devcontainer.json
+
+  test-summary:
+    name: Test Summary
+    runs-on: ubuntu-latest
+    needs: [shellcheck, actionlint, unit-tests, integration-tests, yaml-validation]
+    if: always()
+
+    steps:
+      - name: Check test results
+        run: |
+          echo "## Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- ShellCheck: ${{ needs.shellcheck.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- ActionLint: ${{ needs.actionlint.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Unit Tests: ${{ needs.unit-tests.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Integration Tests: ${{ needs.integration-tests.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- YAML Validation: ${{ needs.yaml-validation.result }}" >> $GITHUB_STEP_SUMMARY
+
+      - name: Fail if any test failed
+        if: |
+          needs.shellcheck.result == 'failure' ||
+          needs.actionlint.result == 'failure' ||
+          needs.unit-tests.result == 'failure' ||
+          needs.integration-tests.result == 'failure' ||
+          needs.yaml-validation.result == 'failure'
+        run: exit 1

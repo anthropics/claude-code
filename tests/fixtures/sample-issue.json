@@ -1,0 +1,11 @@
+{
+  "number": 123,
+  "title": "Bug: Application crashes on startup",
+  "body": "## Description\n\nThe application crashes immediately after launching on macOS.\n\n## Steps to Reproduce\n\n1. Install Claude Code\n2. Run `claude` command\n3. Application crashes\n\n## Expected Behavior\n\nApplication should start normally\n\n## Actual Behavior\n\nCrashes with error: `ENOENT: no such file or directory`\n\n## Environment\n\n- OS: macOS 14.1\n- Node: v20.10.0\n- Claude Code: 1.0.0",
+  "state": "open",
+  "user": {
+    "login": "testuser"
+  },
+  "labels": [],
+  "created_at": "2024-01-15T10:30:00Z"
+}

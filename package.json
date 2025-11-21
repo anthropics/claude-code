@@ -1,0 +1,38 @@
+{
+  "name": "@anthropic-ai/claude-code-tests",
+  "version": "2.0.0",
+  "description": "Advanced test suite for Claude Code repository with parallel execution, coverage, and analytics",
+  "scripts": {
+    "test": "bats tests/**/*.bats",
+    "test:unit": "bats tests/unit/**/*.bats",
+    "test:integration": "bats tests/integration/**/*.bats",
+    "test:parallel": "bash tests/scripts/parallel-runner.sh",
+    "test:watch": "bash tests/scripts/watch-tests.sh",
+    "test:shellcheck": "shellcheck .devcontainer/*.sh tests/**/*.sh",
+    "test:actionlint": "actionlint .github/workflows/*.yml",
+    "test:all": "npm run test:shellcheck && npm run test:actionlint && npm run test",
+    "test:docker": "cd tests/docker && docker-compose -f docker-compose.test.yml up --abort-on-container-exit",
+    "test:mutation": "bash tests/scripts/mutation-test.sh",
+    "coverage": "bash tests/scripts/generate-coverage.sh",
+    "analytics": "bash tests/scripts/test-analytics.sh",
+    "benchmark": "bash tests/benchmarks/firewall-performance.sh",
+    "lint": "npm run test:shellcheck && npm run test:actionlint",
+    "pre-commit": "pre-commit run --all-files"
+  },
+  "devDependencies": {
+    "bats": "^1.10.0",
+    "shellcheck": "^2.2.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/anthropics/claude-code.git"
+  },
+  "keywords": [
+    "testing",
+    "bats",
+    "shell",
+    "github-actions"
+  ],
+  "author": "Anthropic",
+  "license": "MIT"
+}
