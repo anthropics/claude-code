@@ -3060,8 +3060,8 @@ namespace CCTTB
                 // ✨ CRITICAL FIX: Validate OTE position relative to current price
                 // Bearish OTE must be ABOVE current price (retracement up, then down)
                 // Bullish OTE must be BELOW current price (retracement down, then up)
-                double currentPrice = Symbol.Bid;
-                oteZones = ValidateOTEPosition(oteZones, currentPrice);
+                double oteValidationPrice = Symbol.Bid;
+                oteZones = ValidateOTEPosition(oteZones, oteValidationPrice);
                 if (EnableDebugLoggingParam && Bars.Count % 10 == 0)
                     Print($"[OTE VALIDATION] After position check: {oteZones?.Count ?? 0} valid zones");
 
@@ -3105,8 +3105,8 @@ namespace CCTTB
                     }
 
                     // ✨ CRITICAL FIX: Validate HTF OTE positions too
-                    oteH1 = ValidateOTEPosition(oteH1, currentPrice);
-                    oteH4 = ValidateOTEPosition(oteH4, currentPrice);
+                    oteH1 = ValidateOTEPosition(oteH1, oteValidationPrice);
+                    oteH4 = ValidateOTEPosition(oteH4, oteValidationPrice);
 
                     if (EnableDebugLoggingParam && Bars.Count % 10 == 0)
                     {
