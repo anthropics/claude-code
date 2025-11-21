@@ -541,7 +541,7 @@ namespace CCTTB
             bool drawEq50 = true,
             BiasDirection? mssDirection = null,
             bool enforceDailyEqSide = true,
-            Color? colorOverride = null,
+            Color colorOverride = default(Color),
             string labelSuffix = "")
         {
             if (!_config.EnablePOIBoxDraw || zones == null || zones.Count == 0) return;
@@ -558,7 +558,7 @@ namespace CCTTB
             foreach (var o in zones.OrderByDescending(z => z.Time))
             {
                 // Use color override if provided, otherwise use direction-based colors
-                var c = colorOverride ?? ((o.Direction == BiasDirection.Bullish) ? _config.BullishColor : _config.BearishColor);
+                var c = (colorOverride != default(Color)) ? colorOverride : ((o.Direction == BiasDirection.Bullish) ? _config.BullishColor : _config.BearishColor);
 
                 // Draw OTE box from 0.618 to 0.79 strictly
                 double lo = Math.Min(o.OTE618, o.OTE79);

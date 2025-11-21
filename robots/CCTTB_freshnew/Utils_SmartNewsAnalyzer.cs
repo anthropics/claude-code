@@ -158,8 +158,10 @@ namespace CCTTB
                 GoogleCredential credential;
                 using (var stream = new FileStream(credPath, FileMode.Open, FileAccess.Read))
                 {
+#pragma warning disable CS0618 // GoogleCredential.FromStream is deprecated but still secure when using service account JSON files
                     credential = GoogleCredential.FromStream(stream)
                         .CreateScoped("https://www.googleapis.com/auth/cloud-platform");
+#pragma warning restore CS0618
                 }
 
                 // Get access token using the modern async API
