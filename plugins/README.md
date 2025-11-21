@@ -55,6 +55,57 @@ Provides a structured 7-phase approach to feature development with specialized a
   - `code-reviewer` - Reviews code for bugs, quality issues, and project conventions
 - **Use case**: Building new features with systematic codebase understanding and quality assurance
 
+### [explanatory-output-style](./explanatory-output-style/)
+
+**Explanatory Output Style Plugin**
+
+Adds educational insights about implementation choices and codebase patterns using a SessionStart hook.
+
+- **Hook**: SessionStart - Automatically provides educational insights at the start of each session
+- **Use case**: Learning about codebase patterns, design decisions, and implementation trade-offs
+
+### [frontend-design](./frontend-design/)
+
+**Frontend Design Skill Plugin**
+
+Creates distinctive, production-grade frontend interfaces with bold aesthetic choices that avoid generic AI aesthetics.
+
+- **Skill**: `frontend-design` - Automatically activates for frontend UI/UX implementation
+- **Use case**: Building production-ready frontend interfaces with strong visual design
+
+### [learning-output-style](./learning-output-style/)
+
+**Learning Output Style Plugin**
+
+Interactive learning mode that combines explanatory insights with requests for meaningful code contributions at decision points.
+
+- **Hook**: SessionStart - Engages you in active learning by requesting code contributions
+- **Use case**: Learning by doing through hands-on coding of meaningful business logic and design choices
+
+### [pr-review-toolkit](./pr-review-toolkit/)
+
+**PR Review Toolkit Plugin**
+
+Comprehensive collection of specialized agents for thorough pull request review across multiple quality dimensions.
+
+- **Agents**:
+  - `comment-analyzer` - Reviews code comment accuracy and documentation
+  - `pr-test-analyzer` - Analyzes test coverage quality and completeness
+  - `silent-failure-hunter` - Identifies error handling issues and silent failures
+  - `type-design-analyzer` - Reviews type design quality and invariants
+  - `code-reviewer` - General code review for project guidelines
+  - `code-simplifier` - Suggests code clarity improvements and refactoring
+- **Use case**: Thorough PR review covering tests, error handling, types, comments, and code quality
+
+### [security-guidance](./security-guidance/)
+
+**Security Guidance Plugin**
+
+Security reminder hook that warns about potential security issues when editing files.
+
+- **Hook**: PreToolUse - Triggers before Edit/Write operations to check for security concerns
+- **Use case**: Preventing common security vulnerabilities like command injection, XSS, and unsafe code patterns
+
 ## Installation
 
 These plugins are included in the Claude Code repository. To use them in your own projects:
