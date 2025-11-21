@@ -1,0 +1,66 @@
+[workspace]
+resolver = "2"
+
+members = [
+    "crates/claude-core",
+    "crates/claude-api",
+    "crates/claude-config",
+    "crates/claude-tools",
+    "crates/claude-plugins",
+    # Phase 2
+    "crates/claude-mcp",
+    "crates/claude-hooks",
+    "crates/claude-agents",
+    "crates/claude-session",
+    "crates/claude-cli",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["Claude Code Contributors"]
+license = "MIT"
+repository = "https://github.com/anthropics/claude-code"
+
+[workspace.dependencies]
+# Core dependencies
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Async/HTTP
+reqwest = { version = "0.12", features = ["json", "stream"] }
+futures = "0.3"
+async-trait = "0.1"
+
+# CLI
+clap = { version = "4", features = ["derive"] }
+
+# File/Path operations
+walkdir = "2"
+globset = "0.4"
+notify = "6"
+dirs = "5"
+
+# Parsing/Serialization
+toml = "0.8"
+serde_yaml = "0.9"
+pulldown-cmark = "0.11"
+
+# Text processing
+regex = "1"
+grep = "0.3"
+
+# Other
+uuid = { version = "1", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+tracing = "0.1"
+tracing-subscriber = "0.3"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true

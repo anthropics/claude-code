@@ -1,0 +1,32 @@
+[package]
+name = "claude-mcp"
+version = "0.1.0"
+edition = "2021"
+authors = ["Anthropic"]
+description = "Model Context Protocol (MCP) client and server implementation for Claude Code"
+license = "MIT"
+
+[dependencies]
+# Path dependencies
+claude-core = { path = "../claude-core" }
+claude-tools = { path = "../claude-tools" }
+
+# Async runtime
+tokio = { version = "1.41", features = ["full"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Async trait support
+async-trait = "0.1"
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Logging
+tracing = "0.1"
+
+[dev-dependencies]
+tokio-test = "0.4"

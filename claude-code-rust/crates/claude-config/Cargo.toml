@@ -1,0 +1,23 @@
+[package]
+name = "claude-config"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Configuration management for Claude Code"
+
+[dependencies]
+# Internal dependencies
+claude-core = { path = "../claude-core" }
+
+# Core dependencies
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+
+# Config file formats
+toml = { workspace = true }
+
+# File/Path operations
+dirs = { workspace = true }
