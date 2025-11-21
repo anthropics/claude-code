@@ -1,2 +1,43 @@
-.DS_Store
+ claude/analyze-test-coverage-01KBZmFsE9Bk53MkTuzyk4AQ
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
 
+# Test artifacts
+*.bats.tmp
+tests/tmp/
+test-results/
+coverage/
+.coverage/
+.benchmarks/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Environment
+.env
+.env.local
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+.DS_Store
+ main

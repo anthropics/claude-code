@@ -1,0 +1,8 @@
+This is an example prompt for testing the Claude Code action.
+
+It should be:
+1. Non-empty
+2. Valid UTF-8
+3. Contain meaningful content
+
+Use this for testing prompt file handling.

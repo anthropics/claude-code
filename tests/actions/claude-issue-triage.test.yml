@@ -1,0 +1,288 @@
+name: Test Claude Issue Triage Action
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/actions/claude-issue-triage-action/**'
+      - 'tests/actions/**'
+
+jobs:
+  # Test 1: Verify prompt file creation
+  test-prompt-file-creation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Simulate prompt file creation
+        run: |
+          mkdir -p /tmp/claude-prompts
+          cat > /tmp/claude-prompts/claude-issue-triage-prompt.txt << 'EOF'
+          You're an issue triage assistant for GitHub issues.
+          EOF
+
+          # Verify file was created
+          if [ ! -f "/tmp/claude-prompts/claude-issue-triage-prompt.txt" ]; then
+            echo "ERROR: Prompt file was not created"
+            exit 1
+          fi
+
+          # Verify file is not empty
+          if [ ! -s "/tmp/claude-prompts/claude-issue-triage-prompt.txt" ]; then
+            echo "ERROR: Prompt file is empty"
+            exit 1
+          fi
+
+          echo "✓ Prompt file created successfully"
+          wc -l /tmp/claude-prompts/claude-issue-triage-prompt.txt
+
+  # Test 2: Verify prompt contains required instructions
+  test-prompt-content:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Read action.yml and verify prompt content
+        run: |
+          ACTION_FILE=".github/actions/claude-issue-triage-action/action.yml"
+
+          # Check for key instructions in the prompt template
+          if ! grep -q "issue triage assistant" "$ACTION_FILE"; then
+            echo "ERROR: Missing triage assistant instruction"
+            exit 1
+          fi
+
+          if ! grep -q "Don't post any comments" "$ACTION_FILE"; then
+            echo "ERROR: Missing no-comment instruction"
+            exit 1
+          fi
+
+          if ! grep -q "gh label list" "$ACTION_FILE"; then
+            echo "ERROR: Missing label list command"
+            exit 1
+          fi
+
+          if ! grep -q "mcp__github__get_issue" "$ACTION_FILE"; then
+            echo "ERROR: Missing get_issue tool"
+            exit 1
+          fi
+
+          if ! grep -q "mcp__github__update_issue" "$ACTION_FILE"; then
+            echo "ERROR: Missing update_issue tool"
+            exit 1
+          fi
+
+          echo "✓ Prompt contains all required instructions"
+
+  # Test 3: Verify allowed tools list
+  test-allowed-tools-list:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify allowed tools configuration
+        run: |
+          ACTION_FILE=".github/actions/claude-issue-triage-action/action.yml"
+
+          # Extract allowed_tools line
+          ALLOWED_TOOLS=$(grep "allowed_tools:" "$ACTION_FILE" | sed 's/.*allowed_tools: "\(.*\)"/\1/')
+
+          # Verify specific tools are allowed
+          required_tools=(
+            "Bash(gh label list)"
+            "mcp__github__get_issue"
+            "mcp__github__get_issue_comments"
+            "mcp__github__update_issue"
+            "mcp__github__search_issues"
+            "mcp__github__list_issues"
+          )
+
+          for tool in "${required_tools[@]}"; do
+            if ! grep -q "$tool" "$ACTION_FILE"; then
+              echo "ERROR: Missing required tool: $tool"
+              exit 1
+            fi
+            echo "✓ Found tool: $tool"
+          done
+
+          echo "✓ All required tools are in the allowed list"
+
+  # Test 4: Verify timeout configuration
+  test-timeout-configuration:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check timeout input definition
+        run: |
+          ACTION_FILE=".github/actions/claude-issue-triage-action/action.yml"
+
+          # Verify timeout_minutes input exists
+          if ! grep -q "timeout_minutes:" "$ACTION_FILE"; then
+            echo "ERROR: timeout_minutes input not defined"
+            exit 1
+          fi
+
+          # Verify default value is 5
+          if ! grep -A2 "timeout_minutes:" "$ACTION_FILE" | grep -q "default.*5"; then
+            echo "ERROR: Default timeout should be 5 minutes"
+            exit 1
+          fi
+
+          echo "✓ Timeout configuration is correct"
+
+  # Test 5: Verify required inputs
+  test-required-inputs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check required inputs are defined
+        run: |
+          ACTION_FILE=".github/actions/claude-issue-triage-action/action.yml"
+
+          # Check anthropic_api_key is required
+          if ! grep -A2 "anthropic_api_key:" "$ACTION_FILE" | grep -q "required: true"; then
+            echo "ERROR: anthropic_api_key should be required"
+            exit 1
+          fi
+
+          # Check github_token is required
+          if ! grep -A2 "github_token:" "$ACTION_FILE" | grep -q "required: true"; then
+            echo "ERROR: github_token should be required"
+            exit 1
+          fi
+
+          echo "✓ All required inputs are properly marked"
+
+  # Test 6: Verify GitHub MCP installation
+  test-github-mcp-installation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check MCP installation configuration
+        run: |
+          ACTION_FILE=".github/actions/claude-issue-triage-action/action.yml"
+
+          # Verify install_github_mcp is set to true
+          if ! grep -q 'install_github_mcp: "true"' "$ACTION_FILE"; then
+            echo "ERROR: GitHub MCP should be installed"
+            exit 1
+          fi
+
+          echo "✓ GitHub MCP installation is enabled"
+
+  # Test 7: Verify prompt template variables
+  test-prompt-template-variables:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check prompt template contains required variables
+        run: |
+          ACTION_FILE=".github/actions/claude-issue-triage-action/action.yml"
+
+          # Check for GitHub context variables
+          if ! grep -q '\${{ github.repository }}' "$ACTION_FILE"; then
+            echo "ERROR: Missing repository variable"
+            exit 1
+          fi
+
+          if ! grep -q '\${{ github.event.issue.number }}' "$ACTION_FILE"; then
+            echo "ERROR: Missing issue number variable"
+            exit 1
+          fi
+
+          echo "✓ Prompt template contains required variables"
+
+  # Test 8: Verify action uses claude-code-action
+  test-composite-action-usage:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify uses claude-code-action
+        run: |
+          ACTION_FILE=".github/actions/claude-issue-triage-action/action.yml"
+
+          # Check that it uses the claude-code-action
+          if ! grep -q "uses: ./.github/actions/claude-code-action" "$ACTION_FILE"; then
+            echo "ERROR: Should use claude-code-action"
+            exit 1
+          fi
+
+          echo "✓ Correctly uses claude-code-action"
+
+  # Test 9: Verify checkout configuration
+  test-checkout-configuration:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check repository checkout settings
+        run: |
+          ACTION_FILE=".github/actions/claude-issue-triage-action/action.yml"
+
+          # Verify fetch-depth is 0 (full history)
+          if ! grep -q "fetch-depth: 0" "$ACTION_FILE"; then
+            echo "ERROR: fetch-depth should be 0"
+            exit 1
+          fi
+
+          echo "✓ Checkout configuration is correct"
+
+  # Test 10: Verify no comment instructions are clear
+  test-no-comment-instructions:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify multiple no-comment instructions
+        run: |
+          ACTION_FILE=".github/actions/claude-issue-triage-action/action.yml"
+
+          # Count occurrences of no-comment instructions
+          count=$(grep -c "DO NOT post any comments" "$ACTION_FILE" || true)
+
+          if [ "$count" -lt 2 ]; then
+            echo "ERROR: Should emphasize no-comment instruction multiple times"
+            exit 1
+          fi
+
+          echo "✓ No-comment instruction is properly emphasized ($count times)"
+
+  # Test 11: Test prompt file path consistency
+  test-prompt-file-path:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify prompt file path matches between steps
+        run: |
+          ACTION_FILE=".github/actions/claude-issue-triage-action/action.yml"
+          EXPECTED_PATH="/tmp/claude-prompts/claude-issue-triage-prompt.txt"
+
+          # Check creation path
+          if ! grep -q "cat > $EXPECTED_PATH" "$ACTION_FILE"; then
+            echo "ERROR: Prompt file creation path mismatch"
+            exit 1
+          fi
+
+          # Check usage path
+          if ! grep -q "prompt_file: $EXPECTED_PATH" "$ACTION_FILE"; then
+            echo "ERROR: Prompt file usage path mismatch"
+            exit 1
+          fi
+
+          echo "✓ Prompt file path is consistent"
+
+  # Test 12: Verify security - restricted tool access
+  test-security-restricted-tools:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify dangerous tools are NOT allowed
+        run: |
+          ACTION_FILE=".github/actions/claude-issue-triage-action/action.yml"
+
+          # List of tools that should NOT be allowed
+          dangerous_tools=(
+            "mcp__github__delete_issue"
+            "mcp__github__create_issue"
+            "mcp__github__add_comment"
+            "Write"
+            "Edit"
+          )
+
+          for tool in "${dangerous_tools[@]}"; do
+            if grep -q "allowed_tools:.*$tool" "$ACTION_FILE"; then
+              echo "ERROR: Dangerous tool should not be allowed: $tool"
+              exit 1
+            fi
+            echo "✓ Correctly excludes: $tool"
+          done
+
+          echo "✓ No dangerous tools in allowed list"

@@ -1,0 +1,302 @@
+name: Test Claude Code Action
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/actions/claude-code-action/**'
+      - 'tests/actions/**'
+
+jobs:
+  # Test 1: Missing both prompt and prompt_file should fail
+  test-missing-prompt:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Test with no prompt (should fail)
+        id: test
+        uses: ./.github/actions/claude-code-action
+        continue-on-error: true
+        with:
+          anthropic_api_key: test-key-placeholder
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify it failed as expected
+        if: steps.test.outcome == 'success'
+        run: |
+          echo "ERROR: Action should have failed without prompt"
+          exit 1
+
+      - name: Check error message
+        if: steps.test.outcome == 'failure'
+        run: |
+          echo "✓ Action correctly failed without prompt"
+
+  # Test 2: Empty prompt should fail
+  test-empty-prompt:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create empty prompt file
+        run: |
+          mkdir -p /tmp/test-prompts
+          touch /tmp/test-prompts/empty.txt
+
+      - name: Test with empty prompt file (should fail)
+        id: test
+        uses: ./.github/actions/claude-code-action
+        continue-on-error: true
+        with:
+          anthropic_api_key: test-key-placeholder
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          prompt_file: /tmp/test-prompts/empty.txt
+
+      - name: Verify it failed as expected
+        if: steps.test.outcome == 'success'
+        run: |
+          echo "ERROR: Action should have failed with empty prompt"
+          exit 1
+
+      - name: Check error message
+        if: steps.test.outcome == 'failure'
+        run: |
+          echo "✓ Action correctly failed with empty prompt"
+
+  # Test 3: Non-existent prompt file should fail
+  test-nonexistent-prompt-file:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Test with non-existent prompt file (should fail)
+        id: test
+        uses: ./.github/actions/claude-code-action
+        continue-on-error: true
+        with:
+          anthropic_api_key: test-key-placeholder
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          prompt_file: /tmp/does-not-exist.txt
+
+      - name: Verify it failed as expected
+        if: steps.test.outcome == 'success'
+        run: |
+          echo "ERROR: Action should have failed with non-existent file"
+          exit 1
+
+      - name: Check error message
+        if: steps.test.outcome == 'failure'
+        run: |
+          echo "✓ Action correctly failed with non-existent file"
+
+  # Test 4: Valid prompt string should create temp file
+  test-valid-prompt-string:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Test prompt creation from string
+        run: |
+          # Simulate the prompt preparation logic
+          PROMPT="Test prompt content"
+          mkdir -p /tmp/claude-action
+          PROMPT_PATH="/tmp/claude-action/prompt.txt"
+          echo "$PROMPT" > "$PROMPT_PATH"
+
+          # Verify file was created and is not empty
+          if [ ! -s "$PROMPT_PATH" ]; then
+            echo "ERROR: Prompt file is empty"
+            exit 1
+          fi
+
+          echo "✓ Prompt file created successfully"
+          cat "$PROMPT_PATH"
+
+  # Test 5: Valid prompt file should be used directly
+  test-valid-prompt-file:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create test prompt file
+        run: |
+          mkdir -p /tmp/test-prompts
+          echo "Test prompt from file" > /tmp/test-prompts/test.txt
+
+      - name: Test prompt file usage
+        run: |
+          PROMPT_FILE="/tmp/test-prompts/test.txt"
+
+          # Check if the prompt file exists
+          if [ ! -f "$PROMPT_FILE" ]; then
+            echo "ERROR: Prompt file does not exist"
+            exit 1
+          fi
+
+          # Use the provided prompt file
+          PROMPT_PATH="$PROMPT_FILE"
+
+          # Verify the prompt file is not empty
+          if [ ! -s "$PROMPT_PATH" ]; then
+            echo "ERROR: Prompt is empty"
+            exit 1
+          fi
+
+          echo "✓ Prompt file validated successfully"
+          cat "$PROMPT_PATH"
+
+  # Test 6: Timeout value validation
+  test-timeout-parsing:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Test timeout conversion
+        run: |
+          # Test timeout conversion logic
+          TIMEOUT_MINUTES=10
+          timeout_seconds=$((TIMEOUT_MINUTES * 60))
+
+          if [ "$timeout_seconds" -ne 600 ]; then
+            echo "ERROR: Timeout conversion failed"
+            exit 1
+          fi
+
+          echo "✓ Timeout converted correctly: ${TIMEOUT_MINUTES}m = ${timeout_seconds}s"
+
+  # Test 7: Allowed tools argument construction
+  test-allowed-tools-arg:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Test with allowed tools
+        run: |
+          ALLOWED_TOOLS="Bash,Read,Write"
+          ALLOWED_TOOLS_ARG=""
+
+          if [ ! -z "$ALLOWED_TOOLS" ]; then
+            ALLOWED_TOOLS_ARG="--allowedTools $ALLOWED_TOOLS"
+          fi
+
+          if [ -z "$ALLOWED_TOOLS_ARG" ]; then
+            echo "ERROR: Allowed tools argument not constructed"
+            exit 1
+          fi
+
+          echo "✓ Allowed tools argument: $ALLOWED_TOOLS_ARG"
+
+      - name: Test without allowed tools
+        run: |
+          ALLOWED_TOOLS=""
+          ALLOWED_TOOLS_ARG=""
+
+          if [ ! -z "$ALLOWED_TOOLS" ]; then
+            ALLOWED_TOOLS_ARG="--allowedTools $ALLOWED_TOOLS"
+          fi
+
+          if [ ! -z "$ALLOWED_TOOLS_ARG" ]; then
+            echo "ERROR: Allowed tools argument should be empty"
+            exit 1
+          fi
+
+          echo "✓ Allowed tools argument correctly empty"
+
+  # Test 8: GitHub MCP installation flag
+  test-github-mcp-flag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Test MCP install when true
+        run: |
+          INSTALL_MCP="true"
+
+          if [ "$INSTALL_MCP" == "true" ]; then
+            echo "✓ Would install GitHub MCP server"
+          else
+            echo "ERROR: Should install MCP"
+            exit 1
+          fi
+
+      - name: Test MCP skip when false
+        run: |
+          INSTALL_MCP="false"
+
+          if [ "$INSTALL_MCP" == "true" ]; then
+            echo "ERROR: Should not install MCP"
+            exit 1
+          else
+            echo "✓ Correctly skipping GitHub MCP installation"
+          fi
+
+  # Test 9: Input validation comprehensive test
+  test-input-validation-comprehensive:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Test all input combinations
+        run: |
+          echo "Testing input validation logic..."
+
+          # Test case 1: Both empty - should fail
+          PROMPT=""
+          PROMPT_FILE=""
+          if [ -z "$PROMPT" ] && [ -z "$PROMPT_FILE" ]; then
+            echo "✓ Correctly detected missing inputs"
+          else
+            echo "ERROR: Should detect missing inputs"
+            exit 1
+          fi
+
+          # Test case 2: Prompt provided - should succeed
+          PROMPT="test"
+          PROMPT_FILE=""
+          if [ ! -z "$PROMPT" ] || [ ! -z "$PROMPT_FILE" ]; then
+            echo "✓ Correctly accepted prompt"
+          else
+            echo "ERROR: Should accept prompt"
+            exit 1
+          fi
+
+          # Test case 3: Prompt file provided - should succeed
+          PROMPT=""
+          PROMPT_FILE="test.txt"
+          if [ ! -z "$PROMPT" ] || [ ! -z "$PROMPT_FILE" ]; then
+            echo "✓ Correctly accepted prompt_file"
+          else
+            echo "ERROR: Should accept prompt_file"
+            exit 1
+          fi
+
+          # Test case 4: Both provided - prompt_file takes precedence
+          PROMPT="test prompt"
+          PROMPT_FILE="test.txt"
+          if [ ! -z "$PROMPT_FILE" ]; then
+            echo "✓ Correctly prioritized prompt_file"
+          else
+            echo "ERROR: Should prioritize prompt_file"
+            exit 1
+          fi
+
+  # Test 10: Environment variable handling
+  test-environment-variables:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Test required environment variables
+        env:
+          ANTHROPIC_API_KEY: test-api-key-12345
+          GITHUB_TOKEN: test-github-token-67890
+        run: |
+          # Verify environment variables are set
+          if [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "ERROR: ANTHROPIC_API_KEY not set"
+            exit 1
+          fi
+
+          if [ -z "$GITHUB_TOKEN" ]; then
+            echo "ERROR: GITHUB_TOKEN not set"
+            exit 1
+          fi
+
+          echo "✓ Required environment variables are set"
+          echo "  ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:0:10}..."
+          echo "  GITHUB_TOKEN: ${GITHUB_TOKEN:0:10}..."

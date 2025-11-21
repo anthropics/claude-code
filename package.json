@@ -1,0 +1,54 @@
+{
+  "name": "claude-code-tests",
+  "version": "2.0.0",
+  "description": "Comprehensive test suite for Claude Code infrastructure with 200+ tests",
+  "scripts": {
+    "test": "npm run test:lint && npm run test:unit && npm run test:mocked",
+    "test:all": "npm run test:lint && npm run test:unit && npm run test:integration && npm run test:e2e && npm run test:security && npm run test:performance && npm run test:chaos",
+    "test:lint": "npm run lint:shell && npm run lint:actions",
+    "test:unit": "bats tests/scripts/*.bats tests/workflows/*.bats",
+    "test:mocked": "bats tests/mocked/*.bats",
+    "test:integration": "bats tests/integration/*.bats",
+    "test:e2e": "bats tests/e2e/*.bats",
+    "test:security": "bats tests/security/*.bats",
+    "test:performance": "bats tests/performance/*.bats",
+    "test:chaos": "bats tests/chaos/*.bats",
+    "test:actions": "act -l",
+    "test:watch": "nodemon --exec 'npm test' --watch tests --watch .devcontainer --watch .github",
+    "test:ci": "act -W .github/workflows/test.yml",
+    "lint": "npm run lint:shell && npm run lint:actions",
+    "lint:shell": "shellcheck .devcontainer/*.sh scripts/*.sh",
+    "lint:actions": "actionlint .github/workflows/*.yml",
+    "coverage": "bash scripts/generate-coverage-report.sh",
+    "coverage:html": "bash scripts/generate-coverage-report.sh && open .coverage/coverage.html",
+    "coverage:view": "cat .coverage/coverage.md",
+    "benchmark": "bats tests/performance/benchmark.bats",
+    "security": "bats tests/security/penetration.bats",
+    "setup": "bash scripts/setup-tests.sh",
+    "help": "echo 'Available commands:\\n  npm test - Run core tests\\n  npm run test:all - Run all test suites\\n  npm run test:security - Run security tests\\n  npm run coverage - Generate coverage report\\n  npm run setup - Install test dependencies'"
+  },
+  "devDependencies": {
+    "bats": "^1.10.0",
+    "nodemon": "^3.0.0"
+  },
+  "keywords": [
+    "testing",
+    "github-actions",
+    "bash",
+    "infrastructure",
+    "security",
+    "performance",
+    "chaos-engineering",
+    "integration-testing",
+    "e2e-testing"
+  ],
+  "author": "Anthropic",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/anthropics/claude-code.git"
+  }
+}

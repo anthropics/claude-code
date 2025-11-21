@@ -1,0 +1,54 @@
+{
+  "verifiable_password_authentication": true,
+  "ssh_key_fingerprints": {
+    "SHA256_RSA": "SHA256:nThbg6kXUpJWGl7E1IGOCspRomTxdCARLviKw6E5SY8",
+    "SHA256_ECDSA": "SHA256:p2QAMXNIC1TJYWeIOttrVc98/R1BUFWu3/LiyKgUfQM",
+    "SHA256_ED25519": "SHA256:+DiY3wvvV6TuJJhbpZisF/zLDA0zPMSvHdkr4UvCOqU"
+  },
+  "ssh_keys": [
+    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl",
+    "ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEmKSENjQEezOmxkZMy7opKgwFB9nkt5YRrYMjNuG5N87uRgg6CLrbo5wAdT/y6v0mKV0U2w0WZ2YB/++Tpockg=",
+    "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCj7ndNxQowgcQnjshcLrqPEiiphnt+VTTvDP6mHBL9j1aNUkY4Ue1gvwnGLVlOhGeYrnZaMgRK6+PKCUXaDbC7qtbW8gIkhL7aGCsOr/C56SJMy/BCZfxd1nWzAOxSDPgVsmerOBYfNqltV9/hWCqBywINIR+5dIg6JTJ72pcEpEjcYgXkE2YEFXV1JHnsKgbLWNlhScqb2UmyRkQyytRLtL+38TGxkxCflmO+5Z8CSSNY7GidjMIZ7Q4zMjA2n1nGrlTDkzwDCsw+wqFPGQA179cnfGWOWRVruj16z6XyvxvjJwbz0wQZ75XK5tKSb7FNyeIEs4TT4jk+S4dhPeAUC5y+bDYirYgM4GC7uEnztnZyaVWQ7B381AK4Qdrwt51ZqExKbQpTUNn+EjqoTwvqNj4kqx5QUCI0ThS/YkOxJCXmPUWZbhjpCg56i+2aB6CmK2JGhn57K5mj0MNdBXA4/WnwH6XoPWJzK5Nyu2zB3nwjk9vRn5BwR8S2HoXZOC="
+  ],
+  "hooks": [
+    "192.30.252.0/22",
+    "185.199.108.0/22",
+    "140.82.112.0/20"
+  ],
+  "web": [
+    "192.30.252.0/22",
+    "185.199.108.0/22",
+    "140.82.112.0/20"
+  ],
+  "api": [
+    "192.30.252.0/22",
+    "185.199.108.0/22",
+    "140.82.112.0/20"
+  ],
+  "git": [
+    "192.30.252.0/22",
+    "185.199.108.0/22",
+    "140.82.112.0/20"
+  ],
+  "packages": [
+    "192.30.252.0/22",
+    "185.199.108.0/22",
+    "140.82.112.0/20"
+  ],
+  "pages": [
+    "185.199.108.0/22"
+  ],
+  "importer": [
+    "54.87.5.173",
+    "54.166.52.62",
+    "23.20.92.3"
+  ],
+  "actions": [
+    "13.64.0.0/16",
+    "13.65.0.0/16"
+  ],
+  "dependabot": [
+    "192.30.252.0/22",
+    "185.199.108.0/22"
+  ]
+}
