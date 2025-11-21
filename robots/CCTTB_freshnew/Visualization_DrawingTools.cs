@@ -540,7 +540,9 @@ namespace CCTTB
             int boxMinutes = 45,
             bool drawEq50 = true,
             BiasDirection? mssDirection = null,
-            bool enforceDailyEqSide = true)
+            bool enforceDailyEqSide = true,
+            Color? colorOverride = null,
+            string labelSuffix = "")
         {
             if (!_config.EnablePOIBoxDraw || zones == null || zones.Count == 0) return;
 
@@ -555,7 +557,8 @@ namespace CCTTB
             int iBox = 0;
             foreach (var o in zones.OrderByDescending(z => z.Time))
             {
-                var c = (o.Direction == BiasDirection.Bullish) ? _config.BullishColor : _config.BearishColor;
+                // Use color override if provided, otherwise use direction-based colors
+                var c = colorOverride ?? ((o.Direction == BiasDirection.Bullish) ? _config.BullishColor : _config.BearishColor);
 
                 // Draw OTE box from 0.618 to 0.79 strictly
                 double lo = Math.Min(o.OTE618, o.OTE79);
@@ -602,6 +605,7 @@ namespace CCTTB
                 if (ShowLabels)
                 {
                     string zl = o.Direction == BiasDirection.Bullish ? "OTE Bullish" : "OTE Bearish";
+                    if (!string.IsNullOrEmpty(labelSuffix)) zl += " " + labelSuffix;
                     _chart.DrawText(id + "_LBL", zl, o.Time, (lo + hi) * 0.5, c);
                     Track("OTE", id + "_LBL", CapOte);
                 }

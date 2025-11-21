@@ -3056,7 +3056,56 @@ namespace CCTTB
                     foreach (var ote in oteZones)
                         Print($"  OTE → {ote.Direction} | 0.618={ote.OTE618:F5} | 0.79={ote.OTE79:F5} | Range=[{ote.Low:F5}-{ote.High:F5}]");
                 }
-                // Remove legacy Continuation OTE and Sweep->MSS OTE; rely on core MSS-derived OTE + alternative
+
+                // 6b) HTF OTE ZONES: Detect OTE from H1 and H4 timeframes (multi-timeframe view)
+                // These will be drawn with different colors: H1 (yellow), H4 (blue)
+                List<OTEZone> oteH1 = new List<OTEZone>();
+                List<OTEZone> oteH4 = new List<OTEZone>();
+
+                try
+                {
+                    // H1 OTE detection
+                    var barsH1 = MarketData.GetBars(TimeFrame.Hour);
+                    if (barsH1 != null && barsH1.Count > 10)
+                    {
+                        oteH1 = _oteDetector.DetectOTEFromMSS(barsH1, mssSignals) ?? new List<OTEZone>();
+                        var oteH1Alt = _oteDetector.DetectOTEFromSweepToMSS(barsH1, sweeps, mssSignals);
+                        if (oteH1Alt != null && oteH1Alt.Count > 0)
+                        {
+                            foreach (var altOte in oteH1Alt)
+                            {
+                                bool exists = oteH1.Any(z => Math.Abs(z.OTE618 - altOte.OTE618) < 0.0001);
+                                if (!exists) oteH1.Add(altOte);
+                            }
+                        }
+                    }
+
+                    // H4 OTE detection
+                    var barsH4 = MarketData.GetBars(TimeFrame.Hour4);
+                    if (barsH4 != null && barsH4.Count > 10)
+                    {
+                        oteH4 = _oteDetector.DetectOTEFromMSS(barsH4, mssSignals) ?? new List<OTEZone>();
+                        var oteH4Alt = _oteDetector.DetectOTEFromSweepToMSS(barsH4, sweeps, mssSignals);
+                        if (oteH4Alt != null && oteH4Alt.Count > 0)
+                        {
+                            foreach (var altOte in oteH4Alt)
+                            {
+                                bool exists = oteH4.Any(z => Math.Abs(z.OTE618 - altOte.OTE618) < 0.0001);
+                                if (!exists) oteH4.Add(altOte);
+                            }
+                        }
+                    }
+
+                    if (EnableDebugLoggingParam && Bars.Count % 10 == 0)
+                    {
+                        Print($"[HTF OTE] H1: {oteH1.Count} zones | H4: {oteH4.Count} zones");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    if (EnableDebugLoggingParam)
+                        Print($"[HTF OTE ERROR] {ex.Message}");
+                }
 
                 // 6c) ENTRY-TF MSS/OTE: Use locked OTE if available (same as oteZones)
                 var mssEntry = mssSignals;
@@ -3174,10 +3223,17 @@ namespace CCTTB
                 // ✨ LIQUIDITY-FIRST APPROACH: Enrich liquidity zones with entry tool information
                 // Mark which liquidity zones have OB, OTE, FVG, or Breaker Block overlap
                 // This implements ICT method: "Strong liquidity + entry tool = valid entry point"
+                // Include ALL OTE zones (main TF + H1 + H4) for confluence detection
                 var liquidityZones = _marketData?.GetLiquidityZones();
                 if (liquidityZones != null && liquidityZones.Count > 0)
                 {
-                    EnrichLiquidityWithEntryTools(liquidityZones, oteZones, orderBlocks, breakerBlocks);
+                    // Combine all OTE zones from different timeframes
+                    var allOteZones = new List<OTEZone>();
+                    if (oteZones != null) allOteZones.AddRange(oteZones);
+                    if (oteH1 != null && oteH1.Count > 0) allOteZones.AddRange(oteH1);
+                    if (oteH4 != null && oteH4.Count > 0) allOteZones.AddRange(oteH4);
+
+                    EnrichLiquidityWithEntryTools(liquidityZones, allOteZones, orderBlocks, breakerBlocks);
                 }
 
                 // ──────────────────────────────────────────────────────────────────────────
@@ -3626,6 +3682,28 @@ namespace CCTTB
                     if (_config.EnableDebugLogging)
                         Print($"[VISUAL DEBUG] Drawing {oteEntry.Count} OTE boxes (entry TF)");
                     _drawer.DrawOTE(oteEntry, boxMinutes: entryOteBoxMinutes, drawEq50: OteDrawExtras, mssDirection: lastMssDir, enforceDailyEqSide: true);
+                }
+
+                // 6b) HTF OTE boxes - H1 (yellow) and H4 (blue)
+                // Multi-timeframe view: show higher timeframe OTE zones on lower timeframe charts
+                if (oteH1 != null && oteH1.Any())
+                {
+                    int h1BoxMinutes = GetOTEBoxDuration(TimeFrame.Hour);
+                    if (_config.EnableDebugLogging)
+                        Print($"[VISUAL DEBUG] Drawing {oteH1.Count} OTE boxes (H1 - yellow)");
+                    _drawer.DrawOTE(oteH1, boxMinutes: h1BoxMinutes, drawEq50: false,
+                        mssDirection: lastMssDir, enforceDailyEqSide: false,
+                        colorOverride: Color.Yellow, labelSuffix: "H1");
+                }
+
+                if (oteH4 != null && oteH4.Any())
+                {
+                    int h4BoxMinutes = GetOTEBoxDuration(TimeFrame.Hour4);
+                    if (_config.EnableDebugLogging)
+                        Print($"[VISUAL DEBUG] Drawing {oteH4.Count} OTE boxes (H4 - blue)");
+                    _drawer.DrawOTE(oteH4, boxMinutes: h4BoxMinutes, drawEq50: false,
+                        mssDirection: lastMssDir, enforceDailyEqSide: false,
+                        colorOverride: Color.DodgerBlue, labelSuffix: "H4");
                 }
                 // no sweep-MSS OTE overlay (legacy path removed)
                 // draw sequence OB at sweep candle if gated
