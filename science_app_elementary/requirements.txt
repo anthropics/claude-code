@@ -1,0 +1,5 @@
+pygame==2.5.2
+pillow==10.2.0
+python-bidi==0.4.2
+arabic-reshaper==3.0.0
+opencv-python==4.9.0.80
