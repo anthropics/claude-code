@@ -1,0 +1,27 @@
+# AI Trader's Shadow - PPO Training Requirements
+# Python 3.8+ required
+
+# Core ML/RL libraries
+stable-baselines3>=2.0.0
+gymnasium>=0.28.1
+torch>=2.0.0
+tensorboard>=2.13.0
+
+# Data handling
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Exchange APIs
+ccxt>=4.0.0
+
+# Utilities
+python-dateutil>=2.8.2
+pytz>=2023.3
+
+# Optional: GPU support (uncomment if using CUDA)
+# torch-cuda>=2.0.0
+
+# Development
+pytest>=7.4.0
+black>=23.7.0
+flake8>=6.1.0
