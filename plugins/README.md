@@ -85,6 +85,7 @@ plugin-name/
 ├── agents/                  # Specialized agents (optional)
 ├── skills/                  # Agent Skills (optional)
 ├── hooks/                   # Event handlers (optional)
+├── .mcp.json                # External tool configuration (optional)
 └── README.md                # Plugin documentation
 ```
 
