@@ -32,6 +32,22 @@ Simplifies common git operations with streamlined commands for committing, pushi
   - `/clean_gone` - Clean up stale local branches marked as [gone]
 - **Use case**: Faster git workflows with less context switching
 
+### [developer-utilities](./developer-utilities/)
+
+**Developer Utilities Plugin**
+
+Essential developer utilities for cache cleanup, command validation, and workflow optimization. Addresses multiple community-requested features.
+
+- **Commands**:
+  - `/clean` - Clean up cache, logs, and temporary files (frees 3-6GB typically)
+  - `/validate-commands` - Validate slash command files and check for errors
+  - `/permission-examples` - Explain your actual permission rules with examples
+  - `/init-skills` - Skills-aware CLAUDE.md initialization
+  - `/diagnose-skills` - Troubleshoot skill discovery and invocation issues
+  - `/update-plugins` - Update all git-based plugins with one command
+- **Use case**: System maintenance, understanding permissions, efficient project initialization, debugging Skills, plugin management
+- **Addresses**: [#11646](https://github.com/anthropics/claude-code/issues/11646), [#11655](https://github.com/anthropics/claude-code/issues/11655), [#11632](https://github.com/anthropics/claude-code/issues/11632), [#11661](https://github.com/anthropics/claude-code/issues/11661), [#11459](https://github.com/anthropics/claude-code/issues/11459), [#9716](https://github.com/anthropics/claude-code/issues/9716), [#11322](https://github.com/anthropics/claude-code/issues/11322), [#11676](https://github.com/anthropics/claude-code/issues/11676)
+
 ### [code-review](./code-review/)
 
 **Automated Pull Request Code Review Plugin**
