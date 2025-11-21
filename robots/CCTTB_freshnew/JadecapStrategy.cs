@@ -6833,10 +6833,19 @@ namespace CCTTB
         /// </summary>
         private bool IsWithinKillZone(TimeSpan now, TimeSpan start, TimeSpan end)
         {
+            // IMPORTANT: TimeOnly can only handle 0-24 hours. Clamp values to valid range.
+            // If killzone is set to 24:00:00, treat it as 23:59:59 (end of day)
+            TimeSpan ClampToTimeOnlyRange(TimeSpan ts)
+            {
+                if (ts < TimeSpan.Zero) return TimeSpan.Zero;
+                if (ts >= TimeSpan.FromHours(24)) return TimeSpan.FromHours(24) - TimeSpan.FromTicks(1); // 23:59:59.9999999
+                return ts;
+            }
+
             // Convert TimeSpan to TimeOnly for more efficient time comparisons
-            TimeOnly currentTime = TimeOnly.FromTimeSpan(now);
-            TimeOnly killzoneStart = TimeOnly.FromTimeSpan(start);
-            TimeOnly killzoneEnd = TimeOnly.FromTimeSpan(end);
+            TimeOnly currentTime = TimeOnly.FromTimeSpan(ClampToTimeOnlyRange(now));
+            TimeOnly killzoneStart = TimeOnly.FromTimeSpan(ClampToTimeOnlyRange(start));
+            TimeOnly killzoneEnd = TimeOnly.FromTimeSpan(ClampToTimeOnlyRange(end));
 
             // Normal range (e.g., 08:00-17:00)
             if (killzoneStart <= killzoneEnd)
