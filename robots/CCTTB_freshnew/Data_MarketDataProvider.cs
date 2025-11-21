@@ -233,47 +233,70 @@ namespace CCTTB
             // Rebuild recent zones each bar (simple & robust)
             _zones.Clear();
 
-            int lookbackBars = 120;                 // scan window
-            int pivot = 3;                          // swing pivot left/right
-            int start = Math.Max(pivot, bars.Count - lookbackBars);
-            int end = bars.Count - pivot - 1;
-
+            // ✨ CRITICAL FIX: Enhanced swing detection with multiple pivot sizes
+            // This catches more valid liquidity zones that were previously missed
+            int lookbackBars = 200;                 // Increased from 120 to 200 - catch more swings
             double pad = _bot.Symbol.PipSize * 2;   // small band around pivot
 
-            for (int i = start; i <= end; i++)
+            // Use multiple pivot sizes to catch both major and minor swings
+            var pivotSizes = new int[] { 3, 2 };    // Check pivot=3 (major) and pivot=2 (minor)
+
+            foreach (int pivot in pivotSizes)
             {
-                bool isHigh = true, isLow = true;
+                int start = Math.Max(pivot, bars.Count - lookbackBars);
+                int end = bars.Count - pivot - 1;
 
-                for (int k = 1; k <= pivot; k++)
+                for (int i = start; i <= end; i++)
                 {
-                    if (bars.HighPrices[i] <= bars.HighPrices[i - k] || bars.HighPrices[i] <= bars.HighPrices[i + k]) isHigh = false;
-                    if (bars.LowPrices[i] >= bars.LowPrices[i - k] || bars.LowPrices[i] >= bars.LowPrices[i + k]) isLow = false;
-                    if (!isHigh && !isLow) break;
-                }
+                    bool isHigh = true, isLow = true;
 
-                if (isHigh)
-                {
-                    _zones.Add(new LiquidityZone
+                    for (int k = 1; k <= pivot; k++)
                     {
-                        Start = bars.OpenTimes[i],
-                        End = bars.OpenTimes[i].AddMinutes(240), // extend to the right
-                        Low = bars.HighPrices[i] - pad,
-                        High = bars.HighPrices[i] + pad,
-                        Type = LiquidityZoneType.Supply,
-                        Label = "Swing High"
-                    });
-                }
-                else if (isLow)
-                {
-                    _zones.Add(new LiquidityZone
+                        if (bars.HighPrices[i] <= bars.HighPrices[i - k] || bars.HighPrices[i] <= bars.HighPrices[i + k]) isHigh = false;
+                        if (bars.LowPrices[i] >= bars.LowPrices[i - k] || bars.LowPrices[i] >= bars.LowPrices[i + k]) isLow = false;
+                        if (!isHigh && !isLow) break;
+                    }
+
+                    if (isHigh)
                     {
-                        Start = bars.OpenTimes[i],
-                        End = bars.OpenTimes[i].AddMinutes(240),
-                        Low = bars.LowPrices[i] - pad,
-                        High = bars.LowPrices[i] + pad,
-                        Type = LiquidityZoneType.Demand,
-                        Label = "Swing Low"
-                    });
+                        // Check if this swing high already exists (avoid duplicates)
+                        double price = bars.HighPrices[i];
+                        bool exists = _zones.Any(z => z.Type == LiquidityZoneType.Supply &&
+                            Math.Abs((z.Low + z.High) / 2 - price) < _bot.Symbol.PipSize * 3);
+
+                        if (!exists)
+                        {
+                            _zones.Add(new LiquidityZone
+                            {
+                                Start = bars.OpenTimes[i],
+                                End = bars.OpenTimes[i].AddMinutes(240), // extend to the right
+                                Low = price - pad,
+                                High = price + pad,
+                                Type = LiquidityZoneType.Supply,
+                                Label = pivot == 3 ? "Swing High" : "Minor Swing High"
+                            });
+                        }
+                    }
+                    else if (isLow)
+                    {
+                        // Check if this swing low already exists (avoid duplicates)
+                        double price = bars.LowPrices[i];
+                        bool exists = _zones.Any(z => z.Type == LiquidityZoneType.Demand &&
+                            Math.Abs((z.Low + z.High) / 2 - price) < _bot.Symbol.PipSize * 3);
+
+                        if (!exists)
+                        {
+                            _zones.Add(new LiquidityZone
+                            {
+                                Start = bars.OpenTimes[i],
+                                End = bars.OpenTimes[i].AddMinutes(240),
+                                Low = price - pad,
+                                High = price + pad,
+                                Type = LiquidityZoneType.Demand,
+                                Label = pivot == 3 ? "Swing Low" : "Minor Swing Low"
+                            });
+                        }
+                    }
                 }
             }
 
@@ -379,143 +402,143 @@ namespace CCTTB
             }
             catch { }
 
-            // Optionally include previous day high/low as liquidity zones
+            // ✨ CRITICAL FIX: ALWAYS include previous day high/low as liquidity zones
+            // These are fundamental ICT levels that must always be tracked
             try
             {
-                if (_cfg != null && _cfg.IncludePrevDayLevelsAsZones)
+                var dBars = GetBars(TimeFrame.Daily);
+                if (dBars != null && dBars.Count >= 2)
                 {
-                    var dBars = GetBars(TimeFrame.Daily);
-                    if (dBars != null && dBars.Count >= 2)
+                    int pdIdx = dBars.Count - 2; // last closed daily bar
+                    double pdh = dBars.HighPrices[pdIdx];
+                    double pdl = dBars.LowPrices[pdIdx];
+                    double padPd = _symbol.PipSize * 1.0;
+
+                    // ✨ cTrader 5.5 UPGRADE: Use DateOnly for cleaner date arithmetic
+                    DateOnly previousDay = DateOnly.FromDateTime(dBars.OpenTimes[pdIdx]);
+                    DateOnly currentDay = previousDay.AddDays(1);
+                    DateOnly nextDay = currentDay.AddDays(1);
+
+                    var pdStart = currentDay.ToDateTime(TimeOnly.MinValue);  // Start of current day
+                    var pdEnd = nextDay.ToDateTime(TimeOnly.MinValue);       // Start of next day
+
+                    // PDH as supply zone
+                    _zones.Add(new LiquidityZone
                     {
-                        int pdIdx = dBars.Count - 2; // last closed daily bar
-                        double pdh = dBars.HighPrices[pdIdx];
-                        double pdl = dBars.LowPrices[pdIdx];
-                        double padPd = _symbol.PipSize * 1.0;
-
-                        // ✨ cTrader 5.5 UPGRADE: Use DateOnly for cleaner date arithmetic
-                        DateOnly previousDay = DateOnly.FromDateTime(dBars.OpenTimes[pdIdx]);
-                        DateOnly currentDay = previousDay.AddDays(1);
-                        DateOnly nextDay = currentDay.AddDays(1);
-
-                        var pdStart = currentDay.ToDateTime(TimeOnly.MinValue);  // Start of current day
-                        var pdEnd = nextDay.ToDateTime(TimeOnly.MinValue);       // Start of next day
-
-                        // PDH as supply zone
-                        _zones.Add(new LiquidityZone
-                        {
-                            Start = pdStart,
-                            End = pdEnd,
-                            Low = pdh - padPd,
-                            High = pdh + padPd,
-                            Type = LiquidityZoneType.Supply,
-                            Label = "PDH"
-                        });
-                        // PDL as demand zone
-                        _zones.Add(new LiquidityZone
-                        {
-                            Start = pdStart,
-                            End = pdEnd,
-                            Low = pdl - padPd,
-                            High = pdl + padPd,
-                            Type = LiquidityZoneType.Demand,
-                            Label = "PDL"
-                        });
-                    }
+                        Start = pdStart,
+                        End = pdEnd,
+                        Low = pdh - padPd,
+                        High = pdh + padPd,
+                        Type = LiquidityZoneType.Supply,
+                        Label = "PDH"
+                    });
+                    // PDL as demand zone
+                    _zones.Add(new LiquidityZone
+                    {
+                        Start = pdStart,
+                        End = pdEnd,
+                        Low = pdl - padPd,
+                        High = pdl + padPd,
+                        Type = LiquidityZoneType.Demand,
+                        Label = "PDL"
+                    });
                 }
             }
             catch { }
 
-            // Optionally include current day high/low as liquidity zones
+            // ✨ CRITICAL FIX: ALWAYS include current day high/low as liquidity zones
+            // These are fundamental ICT levels that must always be tracked
             try
             {
-                if (_cfg != null && _cfg.IncludeCurrentDayLevelsAsZones)
+                // ✨ cTrader 5.5 UPGRADE: Use DateOnly for current day calculation
+                var lastTime = bars.OpenTimes[bars.Count - 1];
+                DateOnly today = DateOnly.FromDateTime(lastTime);
+
+                double dayHigh = double.MinValue;
+                double dayLow = double.MaxValue;
+                DateTime dayStartTime = DateTime.MinValue;
+                DateTime dayEndTime = DateTime.MinValue;
+
+                for (int i = Math.Max(1, bars.Count - 500); i < bars.Count; i++)
                 {
-                    // ✨ cTrader 5.5 UPGRADE: Use DateOnly for current day calculation
-                    var lastTime = bars.OpenTimes[bars.Count - 1];
-                    DateOnly today = DateOnly.FromDateTime(lastTime);
+                    // Compare DateOnly values instead of DateTime.Date (more efficient!)
+                    if (DateOnly.FromDateTime(bars.OpenTimes[i]) != today) continue;
 
-                    double dayHigh = double.MinValue;
-                    double dayLow = double.MaxValue;
-                    DateTime dayStartTime = DateTime.MinValue;
-                    DateTime dayEndTime = DateTime.MinValue;
-
-                    for (int i = Math.Max(1, bars.Count - 500); i < bars.Count; i++)
+                    if (dayStartTime == DateTime.MinValue) dayStartTime = bars.OpenTimes[i];
+                    dayEndTime = bars.OpenTimes[i];
+                    dayHigh = Math.Max(dayHigh, bars.HighPrices[i]);
+                    dayLow = Math.Min(dayLow, bars.LowPrices[i]);
+                }
+                if (dayStartTime != DateTime.MinValue)
+                {
+                    double padCd = _symbol.PipSize * 1.0;
+                    // CDH supply
+                    _zones.Add(new LiquidityZone
                     {
-                        // Compare DateOnly values instead of DateTime.Date (more efficient!)
-                        if (DateOnly.FromDateTime(bars.OpenTimes[i]) != today) continue;
-
-                        if (dayStartTime == DateTime.MinValue) dayStartTime = bars.OpenTimes[i];
-                        dayEndTime = bars.OpenTimes[i];
-                        dayHigh = Math.Max(dayHigh, bars.HighPrices[i]);
-                        dayLow = Math.Min(dayLow, bars.LowPrices[i]);
-                    }
-                    if (dayStartTime != DateTime.MinValue)
+                        Start = dayStartTime,
+                        End = dayEndTime.AddHours(4),
+                        Low = dayHigh - padCd,
+                        High = dayHigh + padCd,
+                        Type = LiquidityZoneType.Supply,
+                        Label = "CDH"
+                    });
+                    // CDL demand
+                    _zones.Add(new LiquidityZone
                     {
-                        double padCd = _symbol.PipSize * 1.0;
-                        // CDH supply
-                        _zones.Add(new LiquidityZone
-                        {
-                            Start = dayStartTime,
-                            End = dayEndTime.AddHours(4),
-                            Low = dayHigh - padCd,
-                            High = dayHigh + padCd,
-                            Type = LiquidityZoneType.Supply,
-                            Label = "CDH"
-                        });
-                        // CDL demand
-                        _zones.Add(new LiquidityZone
-                        {
-                            Start = dayStartTime,
-                            End = dayEndTime.AddHours(4),
-                            Low = dayLow - padCd,
-                            High = dayLow + padCd,
-                            Type = LiquidityZoneType.Demand,
-                            Label = "CDL"
-                        });
-                    }
+                        Start = dayStartTime,
+                        End = dayEndTime.AddHours(4),
+                        Low = dayLow - padCd,
+                        High = dayLow + padCd,
+                        Type = LiquidityZoneType.Demand,
+                        Label = "CDL"
+                    });
                 }
             }
             catch { }
 
-            // Optionally include previous week high/low as liquidity zones
+            // ✨ CRITICAL FIX: ALWAYS include previous week high/low as liquidity zones
+            // PWH/PWL are critical ICT levels for higher timeframe context
             try
             {
-                if (_cfg != null && _cfg.IncludeWeeklyLevelsAsZones)
+                var wBars = GetBars(TimeFrame.Weekly);
+                if (wBars != null && wBars.Count >= 2)
                 {
-                    var wBars = GetBars(TimeFrame.Weekly);
-                    if (wBars != null && wBars.Count >= 2)
+                    int pwIdx = wBars.Count - 2; // last closed weekly bar
+                    double pwh = wBars.HighPrices[pwIdx];
+                    double pwl = wBars.LowPrices[pwIdx];
+                    double padPw = _symbol.PipSize * 1.0;
+
+                    DateTime pwStart = wBars.OpenTimes[pwIdx];
+                    DateTime pwEnd = wBars.OpenTimes[wBars.Count - 1].AddDays(7); // Extend through current week
+
+                    // PWH as supply zone
+                    _zones.Add(new LiquidityZone
                     {
-                        int pwIdx = wBars.Count - 2; // last closed weekly
-                        double pwh = wBars.HighPrices[pwIdx];
-                        double pwl = wBars.LowPrices[pwIdx];
-                        double padW = _symbol.PipSize * 2.0;
-                        var wStart = wBars.OpenTimes[pwIdx].AddDays(7); // effective this week
-                        var wEnd = wStart.AddDays(7);
-                        _zones.Add(new LiquidityZone
-                        {
-                            Start = wStart,
-                            End = wEnd,
-                            Low = pwh - padW,
-                            High = pwh + padW,
-                            Type = LiquidityZoneType.Supply,
-                            Label = "PWH"
-                        });
-                        _zones.Add(new LiquidityZone
-                        {
-                            Start = wStart,
-                            End = wEnd,
-                            Low = pwl - padW,
-                            High = pwl + padW,
-                            Type = LiquidityZoneType.Demand,
-                            Label = "PWL"
-                        });
-                    }
+                        Start = pwStart,
+                        End = pwEnd,
+                        Low = pwh - padPw,
+                        High = pwh + padPw,
+                        Type = LiquidityZoneType.Supply,
+                        Label = "PWH"
+                    });
+                    // PWL as demand zone
+                    _zones.Add(new LiquidityZone
+                    {
+                        Start = pwStart,
+                        End = pwEnd,
+                        Low = pwl - padPw,
+                        High = pwl + padPw,
+                        Type = LiquidityZoneType.Demand,
+                        Label = "PWL"
+                    });
                 }
             }
             catch { }
 
-            // Keep most recent N zones to avoid clutter
-            const int maxZones = 14;
+            // Keep most recent N zones to avoid clutter (increased from 14 to 25)
+            // With enhanced detection (pivot=2 and 3, PDH/PDL/PWH/PWL/CDH/CDL always included),
+            // we need more capacity to show all important liquidity
+            const int maxZones = 25;
             if (_zones.Count > maxZones)
                 _zones.RemoveRange(0, _zones.Count - maxZones);
         }

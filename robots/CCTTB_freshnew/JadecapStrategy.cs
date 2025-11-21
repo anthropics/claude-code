@@ -3057,6 +3057,14 @@ namespace CCTTB
                         Print($"  OTE → {ote.Direction} | 0.618={ote.OTE618:F5} | 0.79={ote.OTE79:F5} | Range=[{ote.Low:F5}-{ote.High:F5}]");
                 }
 
+                // ✨ CRITICAL FIX: Validate OTE position relative to current price
+                // Bearish OTE must be ABOVE current price (retracement up, then down)
+                // Bullish OTE must be BELOW current price (retracement down, then up)
+                double currentPrice = Symbol.Bid;
+                oteZones = ValidateOTEPosition(oteZones, currentPrice);
+                if (EnableDebugLoggingParam && Bars.Count % 10 == 0)
+                    Print($"[OTE VALIDATION] After position check: {oteZones?.Count ?? 0} valid zones");
+
                 // 6b) HTF OTE ZONES: Detect OTE from H1 and H4 timeframes (multi-timeframe view)
                 // These will be drawn with different colors: H1 (yellow), H4 (blue)
                 List<OTEZone> oteH1 = new List<OTEZone>();
@@ -3096,9 +3104,13 @@ namespace CCTTB
                         }
                     }
 
+                    // ✨ CRITICAL FIX: Validate HTF OTE positions too
+                    oteH1 = ValidateOTEPosition(oteH1, currentPrice);
+                    oteH4 = ValidateOTEPosition(oteH4, currentPrice);
+
                     if (EnableDebugLoggingParam && Bars.Count % 10 == 0)
                     {
-                        Print($"[HTF OTE] H1: {oteH1.Count} zones | H4: {oteH4.Count} zones");
+                        Print($"[HTF OTE] H1: {oteH1.Count} valid zones | H4: {oteH4.Count} valid zones");
                     }
                 }
                 catch (Exception ex)
@@ -7928,6 +7940,76 @@ namespace CCTTB
         // Priority 2: Check if liquidity has ANY entry tool (OB/OTE/FVG/BreakerBlock)
         // Result: Mark liquidity as "entry-ready" if it has at least one entry tool
         // ═══════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// ✨ CRITICAL FIX: Validates OTE zones are on correct side of current price
+        ///
+        /// ICT Rule:
+        /// - BEARISH OTE must be ABOVE current price (price retraces UP into OTE, then DOWN)
+        /// - BULLISH OTE must be BELOW current price (price retraces DOWN into OTE, then UP)
+        ///
+        /// This prevents invalid scenarios like:
+        /// - Bearish OTE below price (wrong!)
+        /// - Bullish OTE above price (wrong!)
+        /// </summary>
+        private List<OTEZone> ValidateOTEPosition(List<OTEZone> oteZones, double currentPrice)
+        {
+            if (oteZones == null || oteZones.Count == 0) return oteZones;
+
+            var validOTE = new List<OTEZone>();
+            double tolerance = Symbol.PipSize * 2; // 2 pip tolerance for validation
+
+            foreach (var ote in oteZones)
+            {
+                double oteMin = Math.Min(ote.OTE618, ote.OTE79);
+                double oteMax = Math.Max(ote.OTE618, ote.OTE79);
+                double oteMid = (oteMin + oteMax) / 2;
+
+                bool isValid = false;
+                string reason = "";
+
+                if (ote.Direction == BiasDirection.Bearish)
+                {
+                    // Bearish OTE: Must be ABOVE current price (with tolerance)
+                    if (oteMid > currentPrice + tolerance)
+                    {
+                        isValid = true;
+                        reason = "Bearish OTE above price ✅";
+                    }
+                    else
+                    {
+                        reason = $"Bearish OTE below/at price ❌ (OTE: {oteMid:F5}, Price: {currentPrice:F5})";
+                    }
+                }
+                else if (ote.Direction == BiasDirection.Bullish)
+                {
+                    // Bullish OTE: Must be BELOW current price (with tolerance)
+                    if (oteMid < currentPrice - tolerance)
+                    {
+                        isValid = true;
+                        reason = "Bullish OTE below price ✅";
+                    }
+                    else
+                    {
+                        reason = $"Bullish OTE above/at price ❌ (OTE: {oteMid:F5}, Price: {currentPrice:F5})";
+                    }
+                }
+
+                if (isValid)
+                {
+                    validOTE.Add(ote);
+                    if (_config.EnableDebugLogging && Bars.Count % 10 == 0)
+                        Print($"[OTE VALIDATION] {reason}");
+                }
+                else
+                {
+                    if (_config.EnableDebugLogging && Bars.Count % 10 == 0)
+                        Print($"[OTE VALIDATION] FILTERED: {reason}");
+                }
+            }
+
+            return validOTE;
+        }
 
         /// <summary>
         /// Enriches liquidity zones with entry tool information.
