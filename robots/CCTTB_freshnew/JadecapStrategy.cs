@@ -7942,28 +7942,71 @@ namespace CCTTB
         // ═══════════════════════════════════════════════════════════════════
 
         /// <summary>
-        /// ✨ CRITICAL FIX: Validates OTE zones are on correct side of current price
+        /// ✨ CRITICAL FIX V2: Validates OTE zones with SMART filtering
         ///
         /// ICT Rule:
         /// - BEARISH OTE must be ABOVE current price (price retraces UP into OTE, then DOWN)
         /// - BULLISH OTE must be BELOW current price (price retraces DOWN into OTE, then UP)
         ///
-        /// This prevents invalid scenarios like:
-        /// - Bearish OTE below price (wrong!)
-        /// - Bullish OTE above price (wrong!)
+        /// Additional Quality Filters:
+        /// - Recency: Only show OTE from recent bars (not old zones)
+        /// - Distance: Only show OTE within reasonable distance from price
+        /// - Count limit: Max 3 OTE zones to avoid clutter
+        /// - Age limit: Remove OTE older than certain number of bars
         /// </summary>
         private List<OTEZone> ValidateOTEPosition(List<OTEZone> oteZones, double currentPrice)
         {
             if (oteZones == null || oteZones.Count == 0) return oteZones;
 
             var validOTE = new List<OTEZone>();
-            double tolerance = Symbol.PipSize * 2; // 2 pip tolerance for validation
+
+            // ✨ TIMEFRAME-AWARE TOLERANCE: Larger tolerance for higher timeframes
+            double tolerance = Symbol.PipSize * 10; // Increased from 2 to 10 pips
+            if (Chart.TimeFrame == TimeFrame.Minute) tolerance = Symbol.PipSize * 5;      // M1: 5 pips
+            else if (Chart.TimeFrame == TimeFrame.Minute5) tolerance = Symbol.PipSize * 15;  // M5: 15 pips
+            else if (Chart.TimeFrame == TimeFrame.Minute15) tolerance = Symbol.PipSize * 20; // M15: 20 pips
+            else if (Chart.TimeFrame == TimeFrame.Hour) tolerance = Symbol.PipSize * 30;     // H1: 30 pips
+
+            // ✨ RECENCY FILTER: Only show OTE from last N bars
+            int maxAgeBars = 50; // Default
+            if (Chart.TimeFrame == TimeFrame.Minute) maxAgeBars = 30;      // M1: last 30 bars (30 minutes)
+            else if (Chart.TimeFrame == TimeFrame.Minute5) maxAgeBars = 24; // M5: last 24 bars (2 hours)
+            else if (Chart.TimeFrame == TimeFrame.Minute15) maxAgeBars = 20; // M15: last 20 bars (5 hours)
+            else if (Chart.TimeFrame == TimeFrame.Hour) maxAgeBars = 24;    // H1: last 24 bars (1 day)
+
+            DateTime cutoffTime = Bars.OpenTimes[Math.Max(0, Bars.Count - maxAgeBars)];
+
+            // ✨ DISTANCE FILTER: Only show OTE within reasonable range
+            double maxDistancePips = 100; // Default: 100 pips
+            if (Chart.TimeFrame == TimeFrame.Minute) maxDistancePips = 30;      // M1: 30 pips
+            else if (Chart.TimeFrame == TimeFrame.Minute5) maxDistancePips = 50;  // M5: 50 pips
+            else if (Chart.TimeFrame == TimeFrame.Minute15) maxDistancePips = 80; // M15: 80 pips
+            else if (Chart.TimeFrame == TimeFrame.Hour) maxDistancePips = 150;    // H1: 150 pips
+
+            double maxDistance = maxDistancePips * Symbol.PipSize;
 
             foreach (var ote in oteZones)
             {
+                // ✅ RECENCY CHECK: Filter old OTE zones
+                if (ote.Time < cutoffTime)
+                {
+                    if (_config.EnableDebugLogging && Bars.Count % 10 == 0)
+                        Print($"[OTE VALIDATION] FILTERED: OTE too old | Time: {ote.Time:HH:mm} < Cutoff: {cutoffTime:HH:mm}");
+                    continue;
+                }
+
                 double oteMin = Math.Min(ote.OTE618, ote.OTE79);
                 double oteMax = Math.Max(ote.OTE618, ote.OTE79);
                 double oteMid = (oteMin + oteMax) / 2;
+
+                // ✅ DISTANCE CHECK: Filter OTE too far from price
+                double distance = Math.Abs(oteMid - currentPrice);
+                if (distance > maxDistance)
+                {
+                    if (_config.EnableDebugLogging && Bars.Count % 10 == 0)
+                        Print($"[OTE VALIDATION] FILTERED: OTE too far | Distance: {distance / Symbol.PipSize:F1} pips > Max: {maxDistancePips} pips");
+                    continue;
+                }
 
                 bool isValid = false;
                 string reason = "";
@@ -7974,7 +8017,7 @@ namespace CCTTB
                     if (oteMid > currentPrice + tolerance)
                     {
                         isValid = true;
-                        reason = "Bearish OTE above price ✅";
+                        reason = $"Bearish OTE above price ✅ (Distance: {distance / Symbol.PipSize:F1} pips)";
                     }
                     else
                     {
@@ -7987,7 +8030,7 @@ namespace CCTTB
                     if (oteMid < currentPrice - tolerance)
                     {
                         isValid = true;
-                        reason = "Bullish OTE below price ✅";
+                        reason = $"Bullish OTE below price ✅ (Distance: {distance / Symbol.PipSize:F1} pips)";
                     }
                     else
                     {
@@ -8006,6 +8049,14 @@ namespace CCTTB
                     if (_config.EnableDebugLogging && Bars.Count % 10 == 0)
                         Print($"[OTE VALIDATION] FILTERED: {reason}");
                 }
+            }
+
+            // ✨ COUNT LIMIT: Max 3 OTE zones (most recent)
+            if (validOTE.Count > 3)
+            {
+                validOTE = validOTE.OrderByDescending(z => z.Time).Take(3).ToList();
+                if (_config.EnableDebugLogging && Bars.Count % 10 == 0)
+                    Print($"[OTE VALIDATION] Limited to 3 most recent OTE zones");
             }
 
             return validOTE;

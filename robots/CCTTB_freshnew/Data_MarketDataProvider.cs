@@ -233,70 +233,48 @@ namespace CCTTB
             // Rebuild recent zones each bar (simple & robust)
             _zones.Clear();
 
-            // ✨ CRITICAL FIX: Enhanced swing detection with multiple pivot sizes
-            // This catches more valid liquidity zones that were previously missed
-            int lookbackBars = 200;                 // Increased from 120 to 200 - catch more swings
+            // ✨ BALANCED swing detection: Quality over quantity
+            int lookbackBars = 150;                 // Balanced: not too many, not too few
+            int pivot = 3;                          // Standard pivot (major swings only)
+            int start = Math.Max(pivot, bars.Count - lookbackBars);
+            int end = bars.Count - pivot - 1;
+
             double pad = _bot.Symbol.PipSize * 2;   // small band around pivot
 
-            // Use multiple pivot sizes to catch both major and minor swings
-            var pivotSizes = new int[] { 3, 2 };    // Check pivot=3 (major) and pivot=2 (minor)
-
-            foreach (int pivot in pivotSizes)
+            for (int i = start; i <= end; i++)
             {
-                int start = Math.Max(pivot, bars.Count - lookbackBars);
-                int end = bars.Count - pivot - 1;
+                bool isHigh = true, isLow = true;
 
-                for (int i = start; i <= end; i++)
+                for (int k = 1; k <= pivot; k++)
                 {
-                    bool isHigh = true, isLow = true;
+                    if (bars.HighPrices[i] <= bars.HighPrices[i - k] || bars.HighPrices[i] <= bars.HighPrices[i + k]) isHigh = false;
+                    if (bars.LowPrices[i] >= bars.LowPrices[i - k] || bars.LowPrices[i] >= bars.LowPrices[i + k]) isLow = false;
+                    if (!isHigh && !isLow) break;
+                }
 
-                    for (int k = 1; k <= pivot; k++)
+                if (isHigh)
+                {
+                    _zones.Add(new LiquidityZone
                     {
-                        if (bars.HighPrices[i] <= bars.HighPrices[i - k] || bars.HighPrices[i] <= bars.HighPrices[i + k]) isHigh = false;
-                        if (bars.LowPrices[i] >= bars.LowPrices[i - k] || bars.LowPrices[i] >= bars.LowPrices[i + k]) isLow = false;
-                        if (!isHigh && !isLow) break;
-                    }
-
-                    if (isHigh)
+                        Start = bars.OpenTimes[i],
+                        End = bars.OpenTimes[i].AddMinutes(240), // extend to the right
+                        Low = bars.HighPrices[i] - pad,
+                        High = bars.HighPrices[i] + pad,
+                        Type = LiquidityZoneType.Supply,
+                        Label = "Swing High"
+                    });
+                }
+                else if (isLow)
+                {
+                    _zones.Add(new LiquidityZone
                     {
-                        // Check if this swing high already exists (avoid duplicates)
-                        double price = bars.HighPrices[i];
-                        bool exists = _zones.Any(z => z.Type == LiquidityZoneType.Supply &&
-                            Math.Abs((z.Low + z.High) / 2 - price) < _bot.Symbol.PipSize * 3);
-
-                        if (!exists)
-                        {
-                            _zones.Add(new LiquidityZone
-                            {
-                                Start = bars.OpenTimes[i],
-                                End = bars.OpenTimes[i].AddMinutes(240), // extend to the right
-                                Low = price - pad,
-                                High = price + pad,
-                                Type = LiquidityZoneType.Supply,
-                                Label = pivot == 3 ? "Swing High" : "Minor Swing High"
-                            });
-                        }
-                    }
-                    else if (isLow)
-                    {
-                        // Check if this swing low already exists (avoid duplicates)
-                        double price = bars.LowPrices[i];
-                        bool exists = _zones.Any(z => z.Type == LiquidityZoneType.Demand &&
-                            Math.Abs((z.Low + z.High) / 2 - price) < _bot.Symbol.PipSize * 3);
-
-                        if (!exists)
-                        {
-                            _zones.Add(new LiquidityZone
-                            {
-                                Start = bars.OpenTimes[i],
-                                End = bars.OpenTimes[i].AddMinutes(240),
-                                Low = price - pad,
-                                High = price + pad,
-                                Type = LiquidityZoneType.Demand,
-                                Label = pivot == 3 ? "Swing Low" : "Minor Swing Low"
-                            });
-                        }
-                    }
+                        Start = bars.OpenTimes[i],
+                        End = bars.OpenTimes[i].AddMinutes(240),
+                        Low = bars.LowPrices[i] - pad,
+                        High = bars.LowPrices[i] + pad,
+                        Type = LiquidityZoneType.Demand,
+                        Label = "Swing Low"
+                    });
                 }
             }
 
@@ -535,10 +513,9 @@ namespace CCTTB
             }
             catch { }
 
-            // Keep most recent N zones to avoid clutter (increased from 14 to 25)
-            // With enhanced detection (pivot=2 and 3, PDH/PDL/PWH/PWL/CDH/CDL always included),
-            // we need more capacity to show all important liquidity
-            const int maxZones = 25;
+            // Keep most recent N zones to avoid clutter
+            // Balanced capacity: enough for PDH/PDL/PWH/PWL/CDH/CDL + recent swings
+            const int maxZones = 18;
             if (_zones.Count > maxZones)
                 _zones.RemoveRange(0, _zones.Count - maxZones);
         }
