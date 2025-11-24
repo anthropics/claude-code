@@ -1,0 +1,248 @@
+#!/bin/bash
+# Claude Code Session Picker with Labels
+# Usage: claude-resume
+# Shows labeled sessions and resumes the selected one
+
+# Check if fzf is installed
+if ! command -v fzf >/dev/null 2>&1; then
+  echo "ERROR: fzf is required but not installed."
+  echo "Install with: sudo apt install fzf"
+  exit 1
+fi
+
+# Check if history file exists
+if [ ! -f ~/.claude/history.jsonl ]; then
+  echo "ERROR: ~/.claude/history.jsonl not found. No sessions to display."
+  exit 1
+fi
+
+# Create a temporary file for session list
+SESSIONS_FILE="/tmp/claude-sessions-$$.txt"
+
+echo "Loading sessions..."
+
+# Add header to sessions file
+{
+  # Print header
+  printf "%-52s | %-20s | %-12s | %s\n" "SESSION / LABEL" "PROJECT" "LAST ACTIVE" "MSGS"
+  printf "%-52s | %-20s | %-12s | %s\n" "$(printf '%.0s─' {1..52})" "$(printf '%.0s─' {1..20})" "$(printf '%.0s─' {1..12})" "----"
+
+  # Get last 30 unique sessions with details
+  cat ~/.claude/history.jsonl | jq -r '.sessionId' | sort | uniq | tail -30 | tac | while read session_id; do
+  # Skip null sessions
+  if [ "$session_id" = "null" ] || [ -z "$session_id" ]; then
+    continue
+  fi
+
+  # Get session details
+  FIRST_TS=$(cat ~/.claude/history.jsonl | jq -r "select(.sessionId==\"$session_id\") | .timestamp" | head -1)
+  LAST_TS=$(cat ~/.claude/history.jsonl | jq -r "select(.sessionId==\"$session_id\") | .timestamp" | tail -1)
+  PROJECT=$(cat ~/.claude/history.jsonl | jq -r "select(.sessionId==\"$session_id\") | .project" | head -1)
+  COUNT=$(cat ~/.claude/history.jsonl | jq -r "select(.sessionId==\"$session_id\")" | wc -l)
+  # Get first meaningful message (skip empty lines)
+  # First try: non-slash commands (regular messages)
+  FIRST_MSG=$(cat ~/.claude/history.jsonl | jq -r "select(.sessionId==\"$session_id\") | .display" | grep -v "^$" | grep -v "^/" | head -1 | cut -c1-50 | sed 's/^[[:space:]]*//')
+
+  # If no regular message, use first slash command (except startup commands)
+  if [ -z "$FIRST_MSG" ]; then
+    FIRST_MSG=$(cat ~/.claude/history.jsonl | jq -r "select(.sessionId==\"$session_id\") | .display" | grep -v "^$" | grep -v "^/StartOfTheDay$" | grep -v "^/WrapUpForTheDay$" | head -1 | cut -c1-50 | sed 's/^[[:space:]]*//')
+    if [ -z "$FIRST_MSG" ]; then
+      FIRST_MSG="(untitled session)"
+    fi
+  fi
+
+  # Get label if exists
+  LABEL=""
+  if [ -f ~/.claude/session-labels.json ]; then
+    LABEL=$(jq -r --arg sid "$session_id" '.[$sid].label // ""' ~/.claude/session-labels.json 2>/dev/null)
+  fi
+
+  # Convert timestamp to relative time
+  LAST_DATE=$(date -d "@$((LAST_TS/1000))" "+%m/%d %H:%M" 2>/dev/null || date -r "$((LAST_TS/1000))" "+%m/%d %H:%M" 2>/dev/null)
+
+  # Use label if available, otherwise first message
+  DISPLAY_NAME="$LABEL"
+  if [ -z "$DISPLAY_NAME" ]; then
+    DISPLAY_NAME="$FIRST_MSG"
+  fi
+
+  # Truncate display name if too long
+  if [ ${#DISPLAY_NAME} -gt 50 ]; then
+    DISPLAY_NAME="${DISPLAY_NAME:0:47}..."
+  fi
+
+  # Get project basename
+  PROJECT_NAME=$(basename "$PROJECT")
+
+    # Format: [Label/Message] | [Project] | [Date] | [Count msgs] | [SessionID]
+    printf "%-52s | %-20s | %-12s | %3d | %s\n" "$DISPLAY_NAME" "$PROJECT_NAME" "$LAST_DATE" "$COUNT" "$session_id"
+  done
+} > "$SESSIONS_FILE"
+
+# Check if we have any sessions
+if [ ! -s "$SESSIONS_FILE" ]; then
+  echo "No sessions found in ~/.claude/history.jsonl"
+  rm -f "$SESSIONS_FILE"
+  exit 1
+fi
+
+# Clean up any old temp files
+rm -f /tmp/claude-session-action.txt
+
+# Show picker with fzf
+SELECTION=$(cat "$SESSIONS_FILE" | fzf \
+  --height=40% \
+  --border \
+  --header="📋 Resume Session | Ctrl+E: Edit Label | Ctrl+D: Delete Label | Ctrl+C: Cancel" \
+  --header-lines=2 \
+  --prompt="🔍 Search: " \
+  --pointer="→" \
+  --color="header:italic:blue,prompt:cyan,pointer:green" \
+  --preview='echo "Session ID: {}" | sed "s/.*| //" | tr -d "'"'"'"' \
+  --preview-window=down:1 \
+  --reverse \
+  --bind='ctrl-e:execute(echo "EDIT:{}" > /tmp/claude-session-action.txt)+abort' \
+  --bind='ctrl-d:execute(echo "DELETE:{}" > /tmp/claude-session-action.txt)+abort')
+
+# Clean up temp file
+rm -f "$SESSIONS_FILE"
+
+# Check if user pressed Ctrl+E or Ctrl+D
+if [ -f "/tmp/claude-session-action.txt" ]; then
+  ACTION_LINE=$(cat "/tmp/claude-session-action.txt")
+  rm -f /tmp/claude-session-action.txt
+
+  ACTION=$(echo "$ACTION_LINE" | cut -d: -f1)
+  SELECTED_LINE=$(echo "$ACTION_LINE" | cut -d: -f2-)
+  SESSION_ID=$(echo "$SELECTED_LINE" | awk -F' | ' '{print $NF}' | tr -d "'")
+
+  if [ "$ACTION" = "EDIT" ]; then
+    # Edit label logic
+
+    echo ""
+    echo "Edit label for session: $SESSION_ID"
+    echo ""
+
+    # Get current label if exists
+    CURRENT_LABEL=""
+    if [ -f ~/.claude/session-labels.json ]; then
+      CURRENT_LABEL=$(jq -r --arg sid "$SESSION_ID" '.[$sid].label // ""' ~/.claude/session-labels.json 2>/dev/null)
+    fi
+
+    if [ -n "$CURRENT_LABEL" ]; then
+      echo "Current label: $CURRENT_LABEL"
+    else
+      echo "No label set for this session"
+    fi
+
+    echo ""
+    read -p "Enter new label (or press Enter to keep current): " NEW_LABEL
+
+    if [ -n "$NEW_LABEL" ]; then
+      # Sanitize label: remove newlines, tabs, and control characters
+      NEW_LABEL=$(echo "$NEW_LABEL" | tr -d '\n\r\t' | tr -cd '[:print:]')
+      # Create labels file if doesn't exist
+      LABELS_FILE=~/.claude/session-labels.json
+      if [ ! -f "$LABELS_FILE" ]; then
+        echo '{}' > "$LABELS_FILE"
+      fi
+
+      TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+      EXISTING_CREATED=$(jq -r --arg sid "$SESSION_ID" '.[$sid].created // ""' "$LABELS_FILE" 2>/dev/null)
+
+      if [ -z "$EXISTING_CREATED" ]; then
+        CREATED="$TIMESTAMP"
+      else
+        CREATED="$EXISTING_CREATED"
+      fi
+
+      jq --arg sid "$SESSION_ID" \
+         --arg label "$NEW_LABEL" \
+         --arg created "$CREATED" \
+         --arg updated "$TIMESTAMP" \
+         '.[$sid] = {label: $label, created: $created, updated: $updated}' \
+         "$LABELS_FILE" > "$LABELS_FILE.tmp" && mv "$LABELS_FILE.tmp" "$LABELS_FILE"
+
+      echo ""
+      echo "✓ Label updated to: $NEW_LABEL"
+    fi
+
+    echo ""
+    read -p "Resume this session? [Y/n]: " RESUME_CHOICE
+
+    if [[ "$RESUME_CHOICE" =~ ^[Yy]?$ ]]; then
+      exec /home/adam/.claude/local/claude --resume "$SESSION_ID"
+    else
+      echo "Not resuming. Run claude-resume again to pick a session."
+      exit 0
+    fi
+
+  elif [ "$ACTION" = "DELETE" ]; then
+    # Delete label logic
+    echo ""
+    echo "Delete label for session: $SESSION_ID"
+    echo ""
+
+    # Get current label
+    CURRENT_LABEL=""
+    if [ -f ~/.claude/session-labels.json ]; then
+      CURRENT_LABEL=$(jq -r --arg sid "$SESSION_ID" '.[$sid].label // ""' ~/.claude/session-labels.json 2>/dev/null)
+    fi
+
+    if [ -z "$CURRENT_LABEL" ]; then
+      echo "This session has no label to delete."
+    else
+      echo "Current label: $CURRENT_LABEL"
+      echo ""
+      read -p "Delete this label? [y/N]: " DELETE_CONFIRM
+
+      if [[ "$DELETE_CONFIRM" =~ ^[Yy]$ ]]; then
+        LABELS_FILE=~/.claude/session-labels.json
+        jq --arg sid "$SESSION_ID" 'del(.[$sid])' "$LABELS_FILE" > "$LABELS_FILE.tmp" && mv "$LABELS_FILE.tmp" "$LABELS_FILE"
+        echo ""
+        echo "✓ Label deleted"
+      else
+        echo "Cancelled"
+      fi
+    fi
+
+    echo ""
+    read -p "Resume this session? [Y/n]: " RESUME_CHOICE
+
+    if [[ "$RESUME_CHOICE" =~ ^[Yy]?$ ]]; then
+      exec /home/adam/.claude/local/claude --resume "$SESSION_ID"
+    else
+      echo "Not resuming. Run claude-resume again to pick a session."
+      exit 0
+    fi
+  fi
+
+  # Exit after handling the action
+  exit 0
+fi
+
+# If user cancelled, exit
+if [ -z "$SELECTION" ]; then
+  echo "Cancelled"
+  exit 0
+fi
+
+# Extract session ID (last field after final |)
+SESSION_ID=$(echo "$SELECTION" | awk -F' | ' '{print $NF}')
+
+echo ""
+echo "Resuming session: $SESSION_ID"
+echo ""
+
+# Resume the session
+# Use full path since aliases don't work in scripts
+/home/adam/.claude/local/claude --resume "$SESSION_ID"
+
+# Check if resume failed
+if [ $? -ne 0 ]; then
+  echo ""
+  read -p "Session not found. Run claude-resume again? [Y/n]: " RETRY
+  if [[ "$RETRY" =~ ^[Yy]?$ ]]; then
+    exec "$0"
+  fi
+fi
