@@ -1,5 +1,65 @@
 # Changelog
 
+## 2.0.52
+
+- Fixed duplicate message display when starting Claude with a command line argument
+- Fixed `/usage` command progress bars to fill up as usage increases (instead of showing remaining percentage)
+- Fixed image pasting not working on Linux systems running Wayland (now falls back to wl-paste when xclip is unavailable)
+- Permit some uses of `$!` in bash commands
+
+## 2.0.51
+
+- Added Opus 4.5! https://www.anthropic.com/news/claude-opus-4-5
+- Introducing Claude Code for Desktop: https://claude.com/download
+- To give you room to try out our new model, we've updated usage limits for Claude Code users. See the Claude Opus 4.5 blog for full details
+- Pro users can now purchase extra usage for access to Opus 4.5 in Claude Code
+- Plan Mode now builds more precise plans and executes more thoroughly
+- Usage limit notifications now easier to understand
+- Switched `/usage` back to "% used"
+- Fixed handling of thinking errors
+- Fixed performance regression
+
+## 2.0.50
+
+- Fixed bug preventing calling MCP tools that have nested references in their input schemas
+- Silenced a noisy but harmless error during upgrades
+- Improved ultrathink text display
+- Improved clarity of 5-hour session limit warning message
+
+## 2.0.49
+
+- Added readline-style ctrl-y for pasting deleted text
+- Improved clarity of usage limit warning message
+- Fixed handling of subagent permissions
+
+## 2.0.47
+
+- Improved error messages and validation for `claude --teleport`
+- Improved error handling in `/usage`
+- Fixed race condition with history entry not getting logged at exit
+- Fixed Vertex AI configuration not being applied from `settings.json`
+
+## 2.0.46
+
+- Fixed image files being reported with incorrect media type when format cannot be detected from metadata
+
+## 2.0.45
+
+- Add support for Microsoft Foundry! See https://code.claude.com/docs/en/azure-ai-foundry
+- Added `PermissionRequest` hook to automatically approve or deny tool permission requests with custom logic
+- Send background tasks to Claude Code on the web by starting a message with `&`
+
+## 2.0.43
+
+- Added `permissionMode` field for custom agents
+- Added `tool_use_id` field to `PreToolUseHookInput` and `PostToolUseHookInput` types
+- Added skills frontmatter field to declare skills to auto-load for subagents
+- Added the `SubagentStart` hook event
+- Fixed nested `CLAUDE.md` files not loading when @-mentioning files
+- Fixed duplicate rendering of some messages in the UI
+- Fixed some visual flickers
+- Fixed NotebookEdit tool inserting cells at incorrect positions when cell IDs matched the pattern `cell-N`
+
 ## 2.0.42
 
 - Added `agent_id` and `agent_transcript_path` fields to `SubagentStop` hooks.
@@ -37,7 +97,6 @@
 - Improved VS Code extension to respect `chat.fontSize` and `chat.fontFamily` settings throughout the entire UI, and apply font changes immediately without requiring reload
 - Added `CLAUDE_CODE_EXIT_AFTER_STOP_DELAY` environment variable to automatically exit SDK mode after a specified idle duration, useful for automated workflows and scripts
 - Migrated `ignorePatterns` from project config to deny permissions in the localSettings.
-- Fixed messages returning null `stop_reason` and `stop_sequence` values
 - Fixed menu navigation getting stuck on items with empty string or other falsy values (e.g., in the `/hooks` menu)
 
 ## 2.0.34

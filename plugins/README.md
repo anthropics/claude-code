@@ -81,8 +81,11 @@ Each plugin follows the standard Claude Code plugin structure:
 plugin-name/
 ├── .claude-plugin/
 │   └── plugin.json          # Plugin metadata
-├── commands/                 # Slash commands (optional)
-├── agents/                   # Specialized agents (optional)
+├── commands/                # Slash commands (optional)
+├── agents/                  # Specialized agents (optional)
+├── skills/                  # Agent Skills (optional)
+├── hooks/                   # Event handlers (optional)
+├── .mcp.json                # External tool configuration (optional)
 └── README.md                # Plugin documentation
 ```
 
