@@ -3,6 +3,10 @@
 /**
  * Termux Deployment Dashboard Server
  * Real-time monitoring and live feed for deployments
+ *
+ * Copyright (c) 2025 Ljupco Arsovski
+ * Author: Ljupco Arsovski <lousta79@gmail.com>
+ * Licensed under MIT License
  */
 
 const http = require('http');

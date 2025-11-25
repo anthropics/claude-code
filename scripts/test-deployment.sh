@@ -3,6 +3,10 @@
 # ============================================
 # TERMUX DEPLOYMENT SCRIPT - VALIDATOR
 # ============================================
+# Copyright (c) 2025 Ljupco Arsovski
+# Author: Ljupco Arsovski <lousta79@gmail.com>
+# Licensed under MIT License
+#
 # This script validates your environment before
 # running the full deployment script.
 #

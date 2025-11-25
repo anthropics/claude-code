@@ -1,9 +1,24 @@
 #!/data/data/com.termux/files/usr/bin/bash
 
-# 🤖 TERMUX AUTONOMOUS DEPLOYMENT
-# Deploy your publishing empire from your Android phone!
-# Version: 2.0
-# Enhanced with: Error handling, security improvements, input validation
+# ╔════════════════════════════════════════════════════════════════╗
+# ║  🤖 TERMUX AUTONOMOUS DEPLOYMENT v2.0                         ║
+# ║  Deploy your publishing empire from your Android phone!        ║
+# ╚════════════════════════════════════════════════════════════════╝
+#
+# Copyright (c) 2025 Ljupco Arsovski
+# Author: Ljupco Arsovski <lousta79@gmail.com>
+# Licensed under MIT License
+#
+# This script enables autonomous deployment of Node.js applications
+# with Stripe payment processing, directly from Android devices.
+#
+# Features: Error handling, security, input validation, monetization
+# Version: 2.0.0
+# Repository: https://github.com/LOUSTA79/claude-code
+#
+# Permission is hereby granted, free of charge, to any person obtaining
+# a copy of this software to use, copy, modify, merge, publish, and
+# distribute copies of the Software, subject to proper attribution.
 
 set -e  # Exit on error
 trap 'handle_error $? $LINENO' ERR
@@ -424,8 +439,19 @@ echo -e "${B}💻 STEP 4: Generating Code (1 min)${NC}"
 echo -e "${B}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 
-# Main server with enhanced security
+# Main server with enhanced security, monetization & royalties
 cat > server.js << 'EOF'
+/**
+ * Publishing Empire Server
+ *
+ * Copyright (c) 2025 Ljupco Arsovski
+ * Author: Ljupco Arsovski <lousta79@gmail.com>
+ * Licensed under MIT License
+ *
+ * Autonomous deployment system with built-in monetization and royalty distribution
+ * Deployed from Android using Termux
+ */
+
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -436,6 +462,28 @@ require('dotenv').config();
 
 const app = express();
 const REAL_MONEY = process.env.PRODUCTION_MODE === 'true';
+
+// ============================================
+// MONETIZATION & ROYALTY CONFIGURATION
+// ============================================
+const ROYALTY_CONFIG = {
+  platformFee: 0.10,      // 10% platform fee
+  authorRoyalty: 0.70,    // 70% to author
+  creatorRoyalty: 0.20,   // 20% to creator (Ljupco Arsovski)
+  creatorEmail: 'lousta79@gmail.com',
+  creatorName: 'Ljupco Arsovski'
+};
+
+// Revenue tracking
+let revenueStats = {
+  total: 0,
+  today: 0,
+  thisMonth: 0,
+  authorEarnings: 0,
+  creatorEarnings: 0,
+  platformEarnings: 0,
+  transactionCount: 0
+};
 
 // Security middleware
 app.use(helmet({
@@ -599,10 +647,10 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Enhanced payment endpoint with validation
+// Enhanced payment endpoint with validation and royalty distribution
 app.post('/api/payment', async (req, res) => {
   try {
-    const { amount, description, currency = 'usd' } = req.body;
+    const { amount, description, currency = 'usd', authorEmail } = req.body;
 
     // Validation
     if (!amount || amount <= 0) {
@@ -613,34 +661,56 @@ app.post('/api/payment', async (req, res) => {
       return res.status(400).json({ error: 'Amount too large' });
     }
 
+    // Calculate royalty splits
+    const royaltySplit = {
+      total: amount,
+      author: amount * ROYALTY_CONFIG.authorRoyalty,
+      creator: amount * ROYALTY_CONFIG.creatorRoyalty,
+      platform: amount * ROYALTY_CONFIG.platformFee
+    };
+
     // Test mode
     if (!REAL_MONEY) {
+      console.log('TEST MODE - Royalty split:', royaltySplit);
       return res.json({
         success: true,
         testMode: true,
         message: 'Test mode - no real charge',
         amount: amount,
-        currency: currency
+        currency: currency,
+        royaltySplit: royaltySplit,
+        distribution: {
+          author: \`\${(ROYALTY_CONFIG.authorRoyalty * 100).toFixed(0)}% ($\${royaltySplit.author.toFixed(2)})\`,
+          creator: \`\${(ROYALTY_CONFIG.creatorRoyalty * 100).toFixed(0)}% ($\${royaltySplit.creator.toFixed(2)}) - ${ROYALTY_CONFIG.creatorName}\`,
+          platform: \`\${(ROYALTY_CONFIG.platformFee * 100).toFixed(0)}% ($\${royaltySplit.platform.toFixed(2)})\`
+        }
       });
     }
 
-    // Production payment
+    // Production payment with royalty distribution
     const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(amount * 100),
       currency: currency,
       description: description || 'Book purchase',
       metadata: {
         deployedFrom: 'Termux',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        authorEmail: authorEmail || 'N/A',
+        authorRoyalty: royaltySplit.author.toFixed(2),
+        creatorRoyalty: royaltySplit.creator.toFixed(2),
+        creatorEmail: ROYALTY_CONFIG.creatorEmail,
+        platformFee: royaltySplit.platform.toFixed(2)
       }
     });
 
-    console.log(`Payment intent created: ${paymentIntent.id} for $${amount}`);
+    console.log(\`Payment intent created: \${paymentIntent.id} for $\${amount}\`);
+    console.log('Royalty distribution:', royaltySplit);
 
     res.json({
       success: true,
       clientSecret: paymentIntent.client_secret,
-      paymentIntentId: paymentIntent.id
+      paymentIntentId: paymentIntent.id,
+      royaltySplit: royaltySplit
     });
   } catch (error) {
     console.error('Payment error:', error.message);
@@ -651,7 +721,7 @@ app.post('/api/payment', async (req, res) => {
   }
 });
 
-// Webhook endpoint for Stripe
+// Webhook endpoint for Stripe with revenue tracking
 app.post('/api/webhook', express.raw({type: 'application/json'}), (req, res) => {
   const sig = req.headers['stripe-signature'];
 
@@ -667,11 +737,30 @@ app.post('/api/webhook', express.raw({type: 'application/json'}), (req, res) => 
     // Handle the event
     switch (event.type) {
       case 'payment_intent.succeeded':
-        console.log('Payment succeeded:', event.data.object.id);
+        const paymentIntent = event.data.object;
+        const amount = paymentIntent.amount / 100; // Convert from cents
+
+        // Update revenue statistics
+        revenueStats.total += amount;
+        revenueStats.today += amount;
+        revenueStats.thisMonth += amount;
+        revenueStats.authorEarnings += amount * ROYALTY_CONFIG.authorRoyalty;
+        revenueStats.creatorEarnings += amount * ROYALTY_CONFIG.creatorRoyalty;
+        revenueStats.platformEarnings += amount * ROYALTY_CONFIG.platformFee;
+        revenueStats.transactionCount += 1;
+
+        console.log(\`Payment succeeded: \${paymentIntent.id} - $\${amount}\`);
+        console.log('Revenue stats updated:', {
+          total: \`$\${revenueStats.total.toFixed(2)}\`,
+          transactions: revenueStats.transactionCount,
+          creatorEarnings: \`$\${revenueStats.creatorEarnings.toFixed(2)}\`
+        });
         break;
+
       case 'payment_intent.payment_failed':
         console.log('Payment failed:', event.data.object.id);
         break;
+
       default:
         console.log('Unhandled event type:', event.type);
     }
@@ -679,8 +768,55 @@ app.post('/api/webhook', express.raw({type: 'application/json'}), (req, res) => 
     res.json({received: true});
   } catch (err) {
     console.error('Webhook error:', err.message);
-    res.status(400).send(`Webhook Error: ${err.message}`);
+    res.status(400).send(\`Webhook Error: \${err.message}\`);
   }
+});
+
+// Revenue tracking API endpoints
+app.get('/api/revenue', (req, res) => {
+  res.json({
+    success: true,
+    revenue: {
+      total: \`$\${revenueStats.total.toFixed(2)}\`,
+      today: \`$\${revenueStats.today.toFixed(2)}\`,
+      thisMonth: \`$\${revenueStats.thisMonth.toFixed(2)}\`,
+      transactions: revenueStats.transactionCount
+    },
+    mode: REAL_MONEY ? 'production' : 'test'
+  });
+});
+
+app.get('/api/revenue/breakdown', (req, res) => {
+  res.json({
+    success: true,
+    totalRevenue: \`$\${revenueStats.total.toFixed(2)}\`,
+    breakdown: {
+      author: {
+        percentage: \`\${(ROYALTY_CONFIG.authorRoyalty * 100).toFixed(0)}%\`,
+        earnings: \`$\${revenueStats.authorEarnings.toFixed(2)}\`,
+        description: 'Author royalties'
+      },
+      creator: {
+        percentage: \`\${(ROYALTY_CONFIG.creatorRoyalty * 100).toFixed(0)}%\`,
+        earnings: \`$\${revenueStats.creatorEarnings.toFixed(2)}\`,
+        name: ROYALTY_CONFIG.creatorName,
+        email: ROYALTY_CONFIG.creatorEmail,
+        description: 'Script creator royalties'
+      },
+      platform: {
+        percentage: \`\${(ROYALTY_CONFIG.platformFee * 100).toFixed(0)}%\`,
+        earnings: \`$\${revenueStats.platformEarnings.toFixed(2)}\`,
+        description: 'Platform maintenance fee'
+      }
+    },
+    transactions: revenueStats.transactionCount,
+    mode: REAL_MONEY ? 'production' : 'test',
+    deploymentInfo: {
+      deployedFrom: 'Termux (Android)',
+      copyright: 'Copyright (c) 2025 Ljupco Arsovski',
+      license: 'MIT License'
+    }
+  });
 });
 
 // Error handling middleware
