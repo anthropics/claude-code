@@ -1,0 +1,9 @@
+{
+  "name": "auto-format",
+  "version": "1.0.0",
+  "description": "Automatically format code files after Write or Edit operations using appropriate formatters (prettier, black, gofmt, rustfmt, clang-format, etc.)",
+  "author": {
+    "name": "Claude Code Community",
+    "email": "noreply@anthropic.com"
+  }
+}

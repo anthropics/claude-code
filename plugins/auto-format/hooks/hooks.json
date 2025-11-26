@@ -1,0 +1,16 @@
+{
+  "description": "Auto-format code files after they are written or edited using appropriate formatters (prettier, black, gofmt, rustfmt, etc.)",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/auto_formatter.py"
+          }
+        ],
+        "matcher": "Write|Edit"
+      }
+    ]
+  }
+}
