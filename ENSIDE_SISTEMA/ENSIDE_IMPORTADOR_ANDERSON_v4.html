@@ -1,0 +1,1344 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧠 ENSIDE IMPORTADOR v4.0 - Anderson Enside</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #fff;
+            padding: 20px;
+        }
+        .container { max-width: 1600px; margin: 0 auto; }
+        .header {
+            text-align: center;
+            padding: 30px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 20px;
+            margin-bottom: 30px;
+            backdrop-filter: blur(10px);
+        }
+        .header h1 { font-size: 2.5em; margin-bottom: 10px; }
+        .header p { color: #aaa; }
+        .version {
+            display: inline-block;
+            background: linear-gradient(135deg, #28a745, #20c997);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            margin-top: 10px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            background: rgba(255,255,255,0.05);
+            padding: 15px;
+            border-radius: 15px;
+        }
+        .tab-btn {
+            padding: 15px 25px;
+            background: rgba(255,255,255,0.1);
+            border: none;
+            border-radius: 10px;
+            color: #fff;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            position: relative;
+        }
+        .tab-btn:hover { background: rgba(255,255,255,0.2); }
+        .tab-btn.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            box-shadow: 0 5px 20px rgba(102,126,234,0.4);
+        }
+        .tab-btn .badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #dc3545;
+            color: white;
+            font-size: 0.7em;
+            padding: 2px 8px;
+            border-radius: 10px;
+            min-width: 20px;
+        }
+
+        .panel {
+            background: rgba(255,255,255,0.1);
+            border-radius: 20px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+            margin-bottom: 20px;
+        }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .upload-area {
+            border: 3px dashed rgba(102,126,234,0.5);
+            border-radius: 15px;
+            padding: 60px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: rgba(102,126,234,0.1);
+        }
+        .upload-area:hover {
+            border-color: #667eea;
+            background: rgba(102,126,234,0.2);
+        }
+        .upload-area .icon { font-size: 4em; margin-bottom: 15px; }
+        .upload-area.dragover {
+            border-color: #28a745;
+            background: rgba(40,167,69,0.2);
+        }
+
+        input[type="file"] { display: none; }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin: 30px 0;
+        }
+        .stat {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            transition: transform 0.3s;
+        }
+        .stat:hover { transform: translateY(-5px); }
+        .stat-number { font-size: 2.5em; font-weight: bold; }
+        .stat-label { font-size: 0.85em; opacity: 0.9; margin-top: 5px; }
+
+        .card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-left: 4px solid #667eea;
+            transition: all 0.3s;
+        }
+        .card:hover {
+            background: rgba(255,255,255,0.1);
+            transform: translateX(5px);
+        }
+        .card-title { font-weight: 600; font-size: 1.1em; margin-bottom: 10px; }
+        .card-info { color: #aaa; font-size: 0.9em; margin: 5px 0; }
+        .card-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 15px;
+            font-size: 0.75em;
+            font-weight: 600;
+            margin-right: 5px;
+        }
+        .badge-cliente { background: #28a745; }
+        .badge-fornecedor { background: #ffc107; color: #000; }
+        .badge-motorista { background: #17a2b8; }
+        .badge-frete { background: #dc3545; }
+        .badge-pf { background: #6c757d; }
+        .badge-pj { background: #007bff; }
+
+        input[type="text"], select, textarea {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            background: rgba(255,255,255,0.05);
+            color: #fff;
+            font-size: 1em;
+            margin-bottom: 15px;
+        }
+        input[type="text"]:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1em;
+            transition: all 0.3s;
+            margin: 5px;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102,126,234,0.4);
+        }
+        .btn-success { background: linear-gradient(135deg, #28a745, #20c997); }
+        .btn-danger { background: linear-gradient(135deg, #dc3545, #e83e8c); }
+        .btn-warning { background: linear-gradient(135deg, #ffc107, #fd7e14); color: #000; }
+        .btn-info { background: linear-gradient(135deg, #17a2b8, #20c997); }
+        .btn-full { width: 100%; margin: 10px 0; }
+        .btn-sm { padding: 8px 15px; font-size: 0.9em; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            padding: 15px;
+            text-align: left;
+            position: sticky;
+            top: 0;
+        }
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        tbody tr:hover { background: rgba(255,255,255,0.05); }
+
+        .alert {
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .alert-success { background: rgba(40,167,69,0.2); border-left: 4px solid #28a745; }
+        .alert-warning { background: rgba(255,193,7,0.2); border-left: 4px solid #ffc107; }
+        .alert-info { background: rgba(23,162,184,0.2); border-left: 4px solid #17a2b8; }
+        .alert-danger { background: rgba(220,53,69,0.2); border-left: 4px solid #dc3545; }
+
+        .progress-bar {
+            height: 10px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 5px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            transition: width 0.5s;
+        }
+
+        .section-title {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(255,255,255,0.1);
+        }
+
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+        .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+
+        @media (max-width: 768px) {
+            .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+            .dashboard { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        .whatsapp-icon { color: #25d366; }
+        .email-icon { color: #ea4335; }
+        .phone-icon { color: #4285f4; }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px;
+            color: #666;
+        }
+        .empty-state .icon { font-size: 4em; margin-bottom: 20px; opacity: 0.5; }
+
+        .list-scroll {
+            max-height: 600px;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+        .list-scroll::-webkit-scrollbar { width: 8px; }
+        .list-scroll::-webkit-scrollbar-track { background: rgba(255,255,255,0.1); border-radius: 4px; }
+        .list-scroll::-webkit-scrollbar-thumb { background: #667eea; border-radius: 4px; }
+
+        .filter-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .filter-bar input { flex: 1; min-width: 200px; margin-bottom: 0; }
+        .filter-bar select { width: auto; min-width: 150px; margin-bottom: 0; }
+
+        .info-box {
+            background: rgba(102,126,234,0.1);
+            border: 1px solid rgba(102,126,234,0.3);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .info-box h4 { margin-bottom: 10px; color: #667eea; }
+        .info-box ul { margin-left: 20px; }
+        .info-box li { margin: 5px 0; color: #ccc; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧠 ENSIDE IMPORTADOR</h1>
+            <p>Sistema Inteligente de Triagem e Organização de Dados</p>
+            <p style="margin-top: 10px; color: #667eea;">Anderson Enside | Grupo Líder Madeiras</p>
+            <div class="version">v4.0 - Otimizado para seus CSVs</div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="abrirAba('importar', event)">📤 Importar</button>
+            <button class="tab-btn" onclick="abrirAba('clientes', event)">👥 Clientes <span class="badge" id="badge-clientes">0</span></button>
+            <button class="tab-btn" onclick="abrirAba('fornecedores', event)">📦 Fornecedores <span class="badge" id="badge-fornecedores">0</span></button>
+            <button class="tab-btn" onclick="abrirAba('motoristas', event)">🚚 Motoristas <span class="badge" id="badge-motoristas">0</span></button>
+            <button class="tab-btn" onclick="abrirAba('produtos', event)">🪵 Produtos <span class="badge" id="badge-produtos">0</span></button>
+            <button class="tab-btn" onclick="abrirAba('vendas', event)">💰 Vendas <span class="badge" id="badge-vendas">0</span></button>
+            <button class="tab-btn" onclick="abrirAba('analise', event)">📊 Análise</button>
+            <button class="tab-btn" onclick="abrirAba('whatsapp', event)">💬 WhatsApp</button>
+            <button class="tab-btn" onclick="abrirAba('exportar', event)">💾 Exportar</button>
+        </div>
+
+        <div class="panel">
+            <!-- ABA IMPORTAR -->
+            <div id="importar" class="tab-content active">
+                <div class="section-title">📤 Importar Dados</div>
+
+                <div class="info-box">
+                    <h4>ℹ️ Arquivos Suportados (Formato Anderson Enside)</h4>
+                    <ul>
+                        <li><strong>cliente_fornecedor.csv</strong> - Clientes e Fornecedores (separador: ;)</li>
+                        <li><strong>produtos.csv</strong> - Produtos de madeira</li>
+                        <li><strong>vendas.csv</strong> - Vendas realizadas</li>
+                        <li><strong>vendaitem.csv</strong> - Itens de venda</li>
+                        <li><strong>vendafinanceiro.csv</strong> - Pagamentos</li>
+                    </ul>
+                </div>
+
+                <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+                    <div class="icon">📁</div>
+                    <div style="font-size: 1.2em; margin-bottom: 10px;">Clique ou arraste seu arquivo</div>
+                    <div style="color: #aaa;">Suporta: CSV com separador ; (ponto-e-vírgula)</div>
+                </div>
+                <input type="file" id="fileInput" accept=".csv" onchange="processarArquivo(event)" multiple>
+
+                <div id="previewArea" style="display: none; margin-top: 30px;">
+                    <div class="section-title">🔍 Preview dos Dados</div>
+                    <div id="previewContent"></div>
+                    <div class="grid-2" style="margin-top: 20px;">
+                        <button onclick="iniciarTriagem()" class="btn-full btn-success">
+                            🚀 INICIAR TRIAGEM AUTOMÁTICA
+                        </button>
+                        <button onclick="limparPreview()" class="btn-full btn-danger">
+                            ❌ Cancelar
+                        </button>
+                    </div>
+                </div>
+
+                <div id="resultadoImportacao"></div>
+
+                <div style="margin-top: 30px;">
+                    <h3 style="margin-bottom: 15px;">📋 Arquivos Importados</h3>
+                    <div id="listaArquivosImportados"></div>
+                </div>
+            </div>
+
+            <!-- ABA CLIENTES -->
+            <div id="clientes" class="tab-content">
+                <div class="section-title">👥 Clientes</div>
+                <div class="filter-bar">
+                    <input type="text" id="searchCliente" placeholder="🔍 Buscar por nome, telefone, cidade..." onkeyup="filtrarLista('clientes')">
+                    <select id="filterTipoPessoa" onchange="filtrarLista('clientes')">
+                        <option value="">Todos</option>
+                        <option value="F">Pessoa Física</option>
+                        <option value="J">Pessoa Jurídica</option>
+                    </select>
+                    <button onclick="exportarCSV('clientes')" class="btn-sm btn-success">📄 Exportar</button>
+                </div>
+                <div class="dashboard" id="statsClientes"></div>
+                <div class="list-scroll" id="listaClientes"></div>
+            </div>
+
+            <!-- ABA FORNECEDORES -->
+            <div id="fornecedores" class="tab-content">
+                <div class="section-title">📦 Fornecedores</div>
+                <div class="filter-bar">
+                    <input type="text" id="searchFornecedor" placeholder="🔍 Buscar fornecedor..." onkeyup="filtrarLista('fornecedores')">
+                    <button onclick="exportarCSV('fornecedores')" class="btn-sm btn-success">📄 Exportar</button>
+                </div>
+                <div class="dashboard" id="statsFornecedores"></div>
+                <div class="list-scroll" id="listaFornecedores"></div>
+            </div>
+
+            <!-- ABA MOTORISTAS -->
+            <div id="motoristas" class="tab-content">
+                <div class="section-title">🚚 Motoristas / Fretes</div>
+                <div class="filter-bar">
+                    <input type="text" id="searchMotorista" placeholder="🔍 Buscar motorista..." onkeyup="filtrarLista('motoristas')">
+                    <button onclick="exportarCSV('motoristas')" class="btn-sm btn-success">📄 Exportar</button>
+                </div>
+                <div class="dashboard" id="statsMotoristas"></div>
+                <div class="list-scroll" id="listaMotoristas"></div>
+            </div>
+
+            <!-- ABA PRODUTOS -->
+            <div id="produtos" class="tab-content">
+                <div class="section-title">🪵 Produtos</div>
+                <div class="filter-bar">
+                    <input type="text" id="searchProduto" placeholder="🔍 Buscar produto (PINUS, MADEIRITE, CAIBRO...)..." onkeyup="filtrarLista('produtos')">
+                    <button onclick="exportarCSV('produtos')" class="btn-sm btn-success">📄 Exportar</button>
+                </div>
+                <div class="dashboard" id="statsProdutos"></div>
+                <div class="list-scroll" id="listaProdutos"></div>
+            </div>
+
+            <!-- ABA VENDAS -->
+            <div id="vendas" class="tab-content">
+                <div class="section-title">💰 Vendas</div>
+                <div class="filter-bar">
+                    <input type="text" id="searchVenda" placeholder="🔍 Buscar venda..." onkeyup="filtrarLista('vendas')">
+                    <button onclick="exportarCSV('vendas')" class="btn-sm btn-success">📄 Exportar</button>
+                </div>
+                <div class="dashboard" id="statsVendas"></div>
+                <div class="list-scroll" id="listaVendas"></div>
+            </div>
+
+            <!-- ABA ANÁLISE -->
+            <div id="analise" class="tab-content">
+                <div class="section-title">📊 Análise Completa</div>
+                <div class="dashboard">
+                    <div class="stat">
+                        <div class="stat-number" id="totalRegistros">0</div>
+                        <div class="stat-label">Total de Registros</div>
+                    </div>
+                    <div class="stat" style="background: linear-gradient(135deg, #28a745, #20c997);">
+                        <div class="stat-number" id="totalClientes">0</div>
+                        <div class="stat-label">Clientes</div>
+                    </div>
+                    <div class="stat" style="background: linear-gradient(135deg, #ffc107, #fd7e14);">
+                        <div class="stat-number" id="totalFornecedores">0</div>
+                        <div class="stat-label">Fornecedores</div>
+                    </div>
+                    <div class="stat" style="background: linear-gradient(135deg, #17a2b8, #20c997);">
+                        <div class="stat-number" id="totalMotoristas">0</div>
+                        <div class="stat-label">Motoristas</div>
+                    </div>
+                    <div class="stat" style="background: linear-gradient(135deg, #6c757d, #495057);">
+                        <div class="stat-number" id="totalProdutos">0</div>
+                        <div class="stat-label">Produtos</div>
+                    </div>
+                    <div class="stat" style="background: linear-gradient(135deg, #dc3545, #e83e8c);">
+                        <div class="stat-number" id="totalVendas">0</div>
+                        <div class="stat-label">Vendas</div>
+                    </div>
+                </div>
+
+                <div class="grid-2" style="margin-top: 30px;">
+                    <div>
+                        <h3 style="margin-bottom: 15px;">📈 Distribuição por Categoria</h3>
+                        <div id="chartCategoria"></div>
+                    </div>
+                    <div>
+                        <h3 style="margin-bottom: 15px;">📊 Qualidade dos Dados</h3>
+                        <div id="chartQualidade"></div>
+                    </div>
+                </div>
+
+                <table style="margin-top: 30px;">
+                    <thead>
+                        <tr>
+                            <th>Categoria</th>
+                            <th>Total</th>
+                            <th>Com Celular</th>
+                            <th>Com Email</th>
+                            <th>Completos</th>
+                            <th>%</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaAnalise"></tbody>
+                </table>
+            </div>
+
+            <!-- ABA WHATSAPP -->
+            <div id="whatsapp" class="tab-content">
+                <div class="section-title">💬 Integração WhatsApp</div>
+
+                <div class="grid-2">
+                    <div>
+                        <h3 style="margin-bottom: 15px;">📱 Enviar Mensagem em Massa</h3>
+                        <select id="grupoEnvio" style="margin-bottom: 15px;">
+                            <option value="">Selecione o grupo...</option>
+                            <option value="clientes">👥 Todos os Clientes</option>
+                            <option value="fornecedores">📦 Todos os Fornecedores</option>
+                            <option value="motoristas">🚚 Todos os Motoristas</option>
+                        </select>
+                        <textarea id="mensagemWhatsApp" placeholder="Digite sua mensagem..." style="height: 150px;"></textarea>
+                        <button onclick="gerarLinksWhatsApp()" class="btn-full btn-success">
+                            📤 Gerar Links de Envio
+                        </button>
+                    </div>
+                    <div>
+                        <h3 style="margin-bottom: 15px;">📋 Contatos com WhatsApp</h3>
+                        <div class="list-scroll" id="listaWhatsApp" style="max-height: 400px;"></div>
+                    </div>
+                </div>
+
+                <div id="linksGerados" style="margin-top: 30px;"></div>
+            </div>
+
+            <!-- ABA EXPORTAR -->
+            <div id="exportar" class="tab-content">
+                <div class="section-title">💾 Exportar Dados</div>
+
+                <div class="grid-3">
+                    <div>
+                        <h3 style="margin-bottom: 15px;">📄 Por Categoria</h3>
+                        <button onclick="exportarCSV('clientes')" class="btn-full">👥 Exportar Clientes</button>
+                        <button onclick="exportarCSV('fornecedores')" class="btn-full">📦 Exportar Fornecedores</button>
+                        <button onclick="exportarCSV('motoristas')" class="btn-full">🚚 Exportar Motoristas</button>
+                        <button onclick="exportarCSV('produtos')" class="btn-full">🪵 Exportar Produtos</button>
+                        <button onclick="exportarCSV('vendas')" class="btn-full">💰 Exportar Vendas</button>
+                    </div>
+                    <div>
+                        <h3 style="margin-bottom: 15px;">📊 Completo</h3>
+                        <button onclick="exportarTudoCSV()" class="btn-full btn-success">📄 Exportar Tudo (CSV)</button>
+                        <button onclick="exportarTudoJSON()" class="btn-full btn-success">📋 Exportar Tudo (JSON)</button>
+                        <button onclick="exportarRelatorio()" class="btn-full btn-warning">📊 Gerar Relatório</button>
+                    </div>
+                    <div>
+                        <h3 style="margin-bottom: 15px;">🗑️ Gerenciar</h3>
+                        <button onclick="limparCategoria('clientes')" class="btn-full btn-danger">🗑️ Limpar Clientes</button>
+                        <button onclick="limparCategoria('fornecedores')" class="btn-full btn-danger">🗑️ Limpar Fornecedores</button>
+                        <button onclick="limparCategoria('motoristas')" class="btn-full btn-danger">🗑️ Limpar Motoristas</button>
+                        <button onclick="limparTudo()" class="btn-full btn-danger">⚠️ LIMPAR TUDO</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div style="text-align: center; padding: 20px; color: #666; font-size: 0.9em;">
+            ENSIDE Importador v4.0 | Anderson Enside | Grupo Líder Madeiras<br>
+            🧠 Otimizado para arquivos CSV com separador ; (ponto-e-vírgula)
+        </div>
+    </div>
+
+    <script>
+        // ==================== BANCO DE DADOS ====================
+        let database = {
+            clientes: [],
+            fornecedores: [],
+            motoristas: [],
+            produtos: [],
+            vendas: [],
+            arquivosImportados: []
+        };
+
+        let dadosImportados = [];
+        let headers = [];
+        let arquivoAtual = '';
+
+        // ==================== MAPEAMENTO DE COLUNAS ====================
+        const MAPEAMENTO = {
+            nome: ['des_nome', 'des_fantasia', 'nome', 'NOME', 'razao_social', 'Name'],
+            celular: ['num_celular', 'celular', 'CELULAR', 'fone_celular', 'whatsapp'],
+            telefone: ['num_telefone', 'telefone', 'TELEFONE', 'fone', 'FONE'],
+            email: ['des_email', 'email', 'EMAIL', 'e_mail'],
+            bairro: ['des_bairro', 'bairro', 'BAIRRO'],
+            endereco: ['des_endereco', 'endereco', 'ENDERECO'],
+            cidade: ['cod_cidade', 'cidade', 'CIDADE', 'municipio'],
+            cep: ['num_cep', 'cep', 'CEP'],
+            tipoParceiro: ['tpo_parceiro'],
+            tipoPessoa: ['tpo_pessoa'],
+            cpf: ['num_cpf', 'cpf', 'CPF'],
+            rg: ['num_rg', 'rg', 'RG'],
+            observacao: ['des_observacao', 'observacao', 'obs'],
+            codigo: ['cod_pessoa', 'codigo', 'id', 'cod_plu', 'cod_venda'],
+            produto: ['des_produto', 'produto', 'PRODUTO'],
+            valor: ['val_venda', 'valor', 'val_total', 'val_unitario'],
+            quantidade: ['qtd_estoque_atual', 'quantidade', 'qtd_item']
+        };
+
+        // ==================== PALAVRAS-CHAVE PARA TRIAGEM ====================
+        const PALAVRAS_MOTORISTA = ['frete', 'motorista', 'transporte', 'entrega', 'caminhão', 'truck', 'moto', 'viagem', 'rota', 'transportadora'];
+        const PALAVRAS_FORNECEDOR = ['serraria', 'fornecedor', 'madeireira', 'indústria', 'fábrica', 'atacado', 'distribuidora'];
+
+        // ==================== FUNÇÕES UTILITÁRIAS ====================
+        function getValor(registro, campo) {
+            const chaves = MAPEAMENTO[campo] || [campo];
+            for (const chave of chaves) {
+                if (registro[chave] !== undefined && registro[chave] !== '') {
+                    return registro[chave];
+                }
+            }
+            return '';
+        }
+
+        function formatarTelefone(tel) {
+            if (!tel) return '';
+            const numeros = tel.toString().replace(/\D/g, '');
+            if (numeros.length === 11) {
+                return `(${numeros.slice(0,2)}) ${numeros.slice(2,7)}-${numeros.slice(7)}`;
+            } else if (numeros.length === 10) {
+                return `(${numeros.slice(0,2)}) ${numeros.slice(2,6)}-${numeros.slice(6)}`;
+            }
+            return tel;
+        }
+
+        // ==================== FUNÇÕES DE NAVEGAÇÃO ====================
+        function abrirAba(nome, event) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(nome).classList.add('active');
+            event.target.classList.add('active');
+
+            if (nome === 'clientes') renderizarLista('clientes');
+            if (nome === 'fornecedores') renderizarLista('fornecedores');
+            if (nome === 'motoristas') renderizarLista('motoristas');
+            if (nome === 'produtos') renderizarLista('produtos');
+            if (nome === 'vendas') renderizarLista('vendas');
+            if (nome === 'analise') atualizarAnalise();
+            if (nome === 'whatsapp') atualizarWhatsApp();
+        }
+
+        function atualizarBadges() {
+            document.getElementById('badge-clientes').textContent = database.clientes.length;
+            document.getElementById('badge-fornecedores').textContent = database.fornecedores.length;
+            document.getElementById('badge-motoristas').textContent = database.motoristas.length;
+            document.getElementById('badge-produtos').textContent = database.produtos.length;
+            document.getElementById('badge-vendas').textContent = database.vendas.length;
+        }
+
+        // ==================== FUNÇÕES DE IMPORTAÇÃO ====================
+        function processarArquivo(event) {
+            const files = event.target.files;
+            if (!files || files.length === 0) return;
+
+            Array.from(files).forEach(file => {
+                arquivoAtual = file.name;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const content = e.target.result;
+                    processarConteudo(content, file.name);
+                };
+                reader.readAsText(file, 'UTF-8');
+            });
+        }
+
+        function processarConteudo(content, nomeArquivo) {
+            const linhas = content.trim().split('\n');
+
+            if (linhas.length < 2) {
+                mostrarAlerta('resultadoImportacao', 'warning', '⚠️ Arquivo vazio ou inválido');
+                return;
+            }
+
+            // Detectar separador (prioridade para ;)
+            const primeiraLinha = linhas[0];
+            let separador = ';';
+            if (!primeiraLinha.includes(';')) {
+                if (primeiraLinha.includes(',')) separador = ',';
+                if (primeiraLinha.includes('\t')) separador = '\t';
+            }
+
+            headers = primeiraLinha.split(separador).map(h => h.trim().replace(/"/g, ''));
+            dadosImportados = [];
+
+            for (let i = 1; i < linhas.length; i++) {
+                if (!linhas[i].trim()) continue;
+                const valores = linhas[i].split(separador).map(v => v.trim().replace(/"/g, ''));
+                const registro = {};
+                headers.forEach((h, idx) => {
+                    registro[h] = valores[idx] || '';
+                });
+                registro._arquivo = nomeArquivo;
+                dadosImportados.push(registro);
+            }
+
+            // Mostrar preview
+            document.getElementById('previewArea').style.display = 'block';
+            let previewHtml = `
+                <div class="alert alert-success">
+                    ✅ <strong>${nomeArquivo}</strong><br>
+                    📊 <strong>${dadosImportados.length}</strong> registros encontrados<br>
+                    📋 Colunas: ${headers.slice(0, 8).join(', ')}${headers.length > 8 ? '...' : ''}
+                </div>
+                <table>
+                    <thead><tr>${headers.slice(0, 6).map(h => `<th>${h}</th>`).join('')}</tr></thead>
+                    <tbody>
+                        ${dadosImportados.slice(0, 5).map(r =>
+                            `<tr>${headers.slice(0, 6).map(h => `<td>${(r[h] || '-').toString().substring(0, 30)}</td>`).join('')}</tr>`
+                        ).join('')}
+                    </tbody>
+                </table>
+                ${dadosImportados.length > 5 ? `<p style="text-align: center; margin-top: 10px; color: #aaa;">... e mais ${dadosImportados.length - 5} registros</p>` : ''}
+            `;
+            document.getElementById('previewContent').innerHTML = previewHtml;
+        }
+
+        function limparPreview() {
+            document.getElementById('previewArea').style.display = 'none';
+            dadosImportados = [];
+            headers = [];
+        }
+
+        // ==================== FUNÇÕES DE TRIAGEM ====================
+        function iniciarTriagem() {
+            let stats = { clientes: 0, fornecedores: 0, motoristas: 0, produtos: 0, vendas: 0 };
+
+            // Detectar tipo de arquivo pelo nome ou colunas
+            const temProduto = headers.includes('des_produto') || headers.includes('cod_plu');
+            const temVenda = headers.includes('cod_venda') && (headers.includes('val_total') || headers.includes('num_nf'));
+            const temPessoa = headers.includes('des_nome') || headers.includes('tpo_parceiro');
+
+            dadosImportados.forEach(registro => {
+                // Se é arquivo de produtos
+                if (temProduto && !temVenda) {
+                    database.produtos.push({...registro, _categoria: 'produto'});
+                    stats.produtos++;
+                    return;
+                }
+
+                // Se é arquivo de vendas
+                if (temVenda) {
+                    database.vendas.push({...registro, _categoria: 'venda'});
+                    stats.vendas++;
+                    return;
+                }
+
+                // Se é arquivo de pessoas (cliente_fornecedor)
+                if (temPessoa) {
+                    const nome = (getValor(registro, 'nome') || '').toLowerCase();
+                    const texto = Object.values(registro).join(' ').toLowerCase();
+                    const tipoParceiro = registro.tpo_parceiro || '';
+
+                    // 1️⃣ PRIMEIRO: Verificar se é MOTORISTA/FRETE
+                    const ehMotorista = PALAVRAS_MOTORISTA.some(p => texto.includes(p) || nome.includes(p));
+                    if (ehMotorista) {
+                        database.motoristas.push({...registro, _categoria: 'motorista'});
+                        stats.motoristas++;
+                        return;
+                    }
+
+                    // 2️⃣ SEGUNDO: Verificar se é FORNECEDOR (por tpo_parceiro ou palavras-chave)
+                    const ehFornecedor = tipoParceiro === 'F' ||
+                                        PALAVRAS_FORNECEDOR.some(p => texto.includes(p) || nome.includes(p));
+                    if (ehFornecedor) {
+                        database.fornecedores.push({...registro, _categoria: 'fornecedor'});
+                        stats.fornecedores++;
+                        return;
+                    }
+
+                    // 3️⃣ TERCEIRO: O resto é CLIENTE
+                    database.clientes.push({...registro, _categoria: 'cliente'});
+                    stats.clientes++;
+                    return;
+                }
+
+                // Fallback: adiciona como cliente
+                database.clientes.push({...registro, _categoria: 'cliente'});
+                stats.clientes++;
+            });
+
+            // Registrar arquivo importado
+            database.arquivosImportados.push({
+                nome: arquivoAtual,
+                data: new Date().toLocaleString('pt-BR'),
+                registros: dadosImportados.length,
+                stats: {...stats}
+            });
+
+            salvarDatabase();
+            atualizarBadges();
+
+            const total = stats.clientes + stats.fornecedores + stats.motoristas + stats.produtos + stats.vendas;
+            mostrarAlerta('resultadoImportacao', 'success', `
+                ✅ <strong>TRIAGEM CONCLUÍDA!</strong><br><br>
+                📊 Total processado: <strong>${total}</strong> registros<br><br>
+                👥 Clientes: <strong>${stats.clientes}</strong><br>
+                📦 Fornecedores: <strong>${stats.fornecedores}</strong><br>
+                🚚 Motoristas: <strong>${stats.motoristas}</strong><br>
+                🪵 Produtos: <strong>${stats.produtos}</strong><br>
+                💰 Vendas: <strong>${stats.vendas}</strong>
+            `);
+
+            document.getElementById('previewArea').style.display = 'none';
+            atualizarListaArquivosImportados();
+            atualizarAnalise();
+        }
+
+        function atualizarListaArquivosImportados() {
+            const container = document.getElementById('listaArquivosImportados');
+            if (database.arquivosImportados.length === 0) {
+                container.innerHTML = '<div class="alert alert-info">Nenhum arquivo importado ainda</div>';
+                return;
+            }
+
+            container.innerHTML = database.arquivosImportados.map(a => `
+                <div class="card">
+                    <div class="card-title">📄 ${a.nome}</div>
+                    <div class="card-info">📅 ${a.data}</div>
+                    <div class="card-info">📊 ${a.registros} registros</div>
+                    <div style="margin-top: 10px;">
+                        ${a.stats.clientes ? `<span class="card-badge badge-cliente">${a.stats.clientes} Clientes</span>` : ''}
+                        ${a.stats.fornecedores ? `<span class="card-badge badge-fornecedor">${a.stats.fornecedores} Fornecedores</span>` : ''}
+                        ${a.stats.motoristas ? `<span class="card-badge badge-motorista">${a.stats.motoristas} Motoristas</span>` : ''}
+                        ${a.stats.produtos ? `<span class="card-badge" style="background:#6c757d;">${a.stats.produtos} Produtos</span>` : ''}
+                        ${a.stats.vendas ? `<span class="card-badge" style="background:#dc3545;">${a.stats.vendas} Vendas</span>` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // ==================== FUNÇÕES DE RENDERIZAÇÃO ====================
+        function renderizarLista(tipo) {
+            const container = document.getElementById(`lista${tipo.charAt(0).toUpperCase() + tipo.slice(1)}`);
+            const statsContainer = document.getElementById(`stats${tipo.charAt(0).toUpperCase() + tipo.slice(1)}`);
+            const lista = database[tipo];
+
+            if (lista.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">📭</div>
+                        <p>Nenhum registro encontrado</p>
+                        <p style="margin-top: 10px;">Importe um arquivo CSV para começar</p>
+                    </div>
+                `;
+                statsContainer.innerHTML = '';
+                return;
+            }
+
+            // Stats
+            if (tipo === 'clientes' || tipo === 'fornecedores' || tipo === 'motoristas') {
+                const comCelular = lista.filter(r => getValor(r, 'celular')).length;
+                const comEmail = lista.filter(r => getValor(r, 'email')).length;
+                const pf = lista.filter(r => r.tpo_pessoa === 'F').length;
+                const pj = lista.filter(r => r.tpo_pessoa === 'J').length;
+
+                statsContainer.innerHTML = `
+                    <div class="stat">
+                        <div class="stat-number">${lista.length}</div>
+                        <div class="stat-label">Total</div>
+                    </div>
+                    <div class="stat" style="background: linear-gradient(135deg, #25d366, #128c7e);">
+                        <div class="stat-number">${comCelular}</div>
+                        <div class="stat-label">Com Celular</div>
+                    </div>
+                    <div class="stat" style="background: linear-gradient(135deg, #ea4335, #c5221f);">
+                        <div class="stat-number">${comEmail}</div>
+                        <div class="stat-label">Com Email</div>
+                    </div>
+                    <div class="stat" style="background: linear-gradient(135deg, #6c757d, #495057);">
+                        <div class="stat-number">${pf}</div>
+                        <div class="stat-label">Pessoa Física</div>
+                    </div>
+                    <div class="stat" style="background: linear-gradient(135deg, #007bff, #0056b3);">
+                        <div class="stat-number">${pj}</div>
+                        <div class="stat-label">Pessoa Jurídica</div>
+                    </div>
+                `;
+            } else if (tipo === 'produtos') {
+                const totalEstoque = lista.reduce((acc, r) => acc + parseFloat(r.qtd_estoque_atual || 0), 0);
+                statsContainer.innerHTML = `
+                    <div class="stat">
+                        <div class="stat-number">${lista.length}</div>
+                        <div class="stat-label">Total Produtos</div>
+                    </div>
+                    <div class="stat" style="background: linear-gradient(135deg, #28a745, #20c997);">
+                        <div class="stat-number">${totalEstoque.toFixed(0)}</div>
+                        <div class="stat-label">Estoque Total</div>
+                    </div>
+                `;
+            } else if (tipo === 'vendas') {
+                const totalVendas = lista.reduce((acc, r) => acc + parseFloat(r.val_total || 0), 0);
+                statsContainer.innerHTML = `
+                    <div class="stat">
+                        <div class="stat-number">${lista.length}</div>
+                        <div class="stat-label">Total Vendas</div>
+                    </div>
+                    <div class="stat" style="background: linear-gradient(135deg, #28a745, #20c997);">
+                        <div class="stat-number">R$ ${totalVendas.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</div>
+                        <div class="stat-label">Valor Total</div>
+                    </div>
+                `;
+            }
+
+            // Lista de cards
+            if (tipo === 'clientes' || tipo === 'fornecedores' || tipo === 'motoristas') {
+                const html = lista.slice(0, 100).map((r, idx) => {
+                    const nome = getValor(r, 'nome') || 'Sem nome';
+                    const celular = getValor(r, 'celular');
+                    const telefone = getValor(r, 'telefone');
+                    const email = getValor(r, 'email');
+                    const bairro = getValor(r, 'bairro');
+                    const tipoPessoa = r.tpo_pessoa;
+
+                    return `
+                        <div class="card">
+                            <div class="card-title">
+                                ${nome}
+                                ${tipoPessoa === 'F' ? '<span class="card-badge badge-pf">PF</span>' : ''}
+                                ${tipoPessoa === 'J' ? '<span class="card-badge badge-pj">PJ</span>' : ''}
+                            </div>
+                            ${celular ? `<div class="card-info"><span class="whatsapp-icon">📱</span> ${formatarTelefone(celular)}</div>` : ''}
+                            ${telefone && telefone !== celular ? `<div class="card-info"><span class="phone-icon">📞</span> ${formatarTelefone(telefone)}</div>` : ''}
+                            ${email ? `<div class="card-info"><span class="email-icon">📧</span> ${email}</div>` : ''}
+                            ${bairro ? `<div class="card-info">📍 ${bairro}</div>` : ''}
+                        </div>
+                    `;
+                }).join('');
+
+                container.innerHTML = html;
+                if (lista.length > 100) {
+                    container.innerHTML += `<p style="text-align: center; color: #aaa; padding: 20px;">Mostrando 100 de ${lista.length} registros</p>`;
+                }
+            } else if (tipo === 'produtos') {
+                const html = lista.slice(0, 100).map(r => {
+                    const nome = r.des_produto || 'Sem nome';
+                    const estoque = r.qtd_estoque_atual || 0;
+                    const valor = r.val_venda || 0;
+
+                    return `
+                        <div class="card">
+                            <div class="card-title">🪵 ${nome}</div>
+                            <div class="card-info">📦 Estoque: ${estoque}</div>
+                            <div class="card-info">💰 Valor: R$ ${parseFloat(valor).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</div>
+                        </div>
+                    `;
+                }).join('');
+                container.innerHTML = html;
+            } else if (tipo === 'vendas') {
+                const html = lista.slice(0, 100).map(r => {
+                    const codigo = r.cod_venda || r.num_nf || 'N/A';
+                    const valor = r.val_total || 0;
+                    const data = r.dta_venda || r.dta_cadastro || '';
+
+                    return `
+                        <div class="card">
+                            <div class="card-title">💰 Venda #${codigo}</div>
+                            <div class="card-info">📅 ${data.split(' ')[0]}</div>
+                            <div class="card-info">💵 R$ ${parseFloat(valor).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</div>
+                        </div>
+                    `;
+                }).join('');
+                container.innerHTML = html;
+            }
+        }
+
+        function filtrarLista(tipo) {
+            const searchId = `search${tipo.charAt(0).toUpperCase() + tipo.slice(1)}`;
+            const busca = document.getElementById(searchId).value.toLowerCase();
+            const container = document.getElementById(`lista${tipo.charAt(0).toUpperCase() + tipo.slice(1)}`);
+
+            let filtered = database[tipo].filter(r => {
+                const texto = Object.values(r).join(' ').toLowerCase();
+                return texto.includes(busca);
+            });
+
+            // Filtro adicional por tipo de pessoa (apenas para clientes)
+            if (tipo === 'clientes') {
+                const tipoPessoaFilter = document.getElementById('filterTipoPessoa').value;
+                if (tipoPessoaFilter) {
+                    filtered = filtered.filter(r => r.tpo_pessoa === tipoPessoaFilter);
+                }
+            }
+
+            if (filtered.length === 0) {
+                container.innerHTML = `<div class="alert alert-warning">⚠️ Nenhum resultado encontrado para "${busca}"</div>`;
+                return;
+            }
+
+            // Re-renderizar com filtro
+            const html = filtered.slice(0, 50).map(r => {
+                const nome = getValor(r, 'nome') || r.des_produto || `Venda #${r.cod_venda}` || 'Sem nome';
+                const celular = getValor(r, 'celular');
+
+                return `
+                    <div class="card">
+                        <div class="card-title">${nome}</div>
+                        ${celular ? `<div class="card-info"><span class="whatsapp-icon">📱</span> ${formatarTelefone(celular)}</div>` : ''}
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = html;
+            if (filtered.length > 50) {
+                container.innerHTML += `<p style="text-align: center; color: #aaa;">Mostrando 50 de ${filtered.length} resultados</p>`;
+            }
+        }
+
+        // ==================== FUNÇÕES DE ANÁLISE ====================
+        function atualizarAnalise() {
+            const total = database.clientes.length + database.fornecedores.length + database.motoristas.length + database.produtos.length + database.vendas.length;
+
+            document.getElementById('totalRegistros').textContent = total;
+            document.getElementById('totalClientes').textContent = database.clientes.length;
+            document.getElementById('totalFornecedores').textContent = database.fornecedores.length;
+            document.getElementById('totalMotoristas').textContent = database.motoristas.length;
+            document.getElementById('totalProdutos').textContent = database.produtos.length;
+            document.getElementById('totalVendas').textContent = database.vendas.length;
+
+            const calcStats = (arr) => ({
+                celular: arr.filter(r => getValor(r, 'celular')).length,
+                email: arr.filter(r => getValor(r, 'email')).length,
+                completos: arr.filter(r => getValor(r, 'nome') && (getValor(r, 'celular') || getValor(r, 'telefone'))).length
+            });
+
+            const statsC = calcStats(database.clientes);
+            const statsF = calcStats(database.fornecedores);
+            const statsM = calcStats(database.motoristas);
+
+            document.getElementById('tabelaAnalise').innerHTML = `
+                <tr>
+                    <td>👥 Clientes</td>
+                    <td>${database.clientes.length}</td>
+                    <td>${statsC.celular}</td>
+                    <td>${statsC.email}</td>
+                    <td>${statsC.completos}</td>
+                    <td>${total > 0 ? ((database.clientes.length/total)*100).toFixed(1) : 0}%</td>
+                </tr>
+                <tr>
+                    <td>📦 Fornecedores</td>
+                    <td>${database.fornecedores.length}</td>
+                    <td>${statsF.celular}</td>
+                    <td>${statsF.email}</td>
+                    <td>${statsF.completos}</td>
+                    <td>${total > 0 ? ((database.fornecedores.length/total)*100).toFixed(1) : 0}%</td>
+                </tr>
+                <tr>
+                    <td>🚚 Motoristas</td>
+                    <td>${database.motoristas.length}</td>
+                    <td>${statsM.celular}</td>
+                    <td>${statsM.email}</td>
+                    <td>${statsM.completos}</td>
+                    <td>${total > 0 ? ((database.motoristas.length/total)*100).toFixed(1) : 0}%</td>
+                </tr>
+                <tr>
+                    <td>🪵 Produtos</td>
+                    <td>${database.produtos.length}</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>${total > 0 ? ((database.produtos.length/total)*100).toFixed(1) : 0}%</td>
+                </tr>
+                <tr>
+                    <td>💰 Vendas</td>
+                    <td>${database.vendas.length}</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>${total > 0 ? ((database.vendas.length/total)*100).toFixed(1) : 0}%</td>
+                </tr>
+            `;
+
+            // Gráficos de barras
+            if (total > 0) {
+                const categorias = [
+                    { nome: '👥 Clientes', valor: database.clientes.length, cor: '#28a745' },
+                    { nome: '📦 Fornecedores', valor: database.fornecedores.length, cor: '#ffc107' },
+                    { nome: '🚚 Motoristas', valor: database.motoristas.length, cor: '#17a2b8' },
+                    { nome: '🪵 Produtos', valor: database.produtos.length, cor: '#6c757d' },
+                    { nome: '💰 Vendas', valor: database.vendas.length, cor: '#dc3545' }
+                ];
+
+                const maxVal = Math.max(...categorias.map(c => c.valor));
+
+                document.getElementById('chartCategoria').innerHTML = categorias.map(c => `
+                    <div style="margin-bottom: 15px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                            <span>${c.nome}</span>
+                            <span>${c.valor}</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${maxVal > 0 ? (c.valor/maxVal)*100 : 0}%; background: ${c.cor};"></div>
+                        </div>
+                    </div>
+                `).join('');
+
+                // Qualidade dos dados
+                const totalPessoas = database.clientes.length + database.fornecedores.length + database.motoristas.length;
+                const comCelular = statsC.celular + statsF.celular + statsM.celular;
+                const comEmail = statsC.email + statsF.email + statsM.email;
+
+                document.getElementById('chartQualidade').innerHTML = `
+                    <div style="margin-bottom: 15px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                            <span>📱 Com Celular</span>
+                            <span>${comCelular} (${totalPessoas > 0 ? ((comCelular/totalPessoas)*100).toFixed(1) : 0}%)</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${totalPessoas > 0 ? (comCelular/totalPessoas)*100 : 0}%; background: #25d366;"></div>
+                        </div>
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                            <span>📧 Com Email</span>
+                            <span>${comEmail} (${totalPessoas > 0 ? ((comEmail/totalPessoas)*100).toFixed(1) : 0}%)</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${totalPessoas > 0 ? (comEmail/totalPessoas)*100 : 0}%; background: #ea4335;"></div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // ==================== FUNÇÕES DE WHATSAPP ====================
+        function atualizarWhatsApp() {
+            const todos = [...database.clientes, ...database.fornecedores, ...database.motoristas];
+            const comWhatsApp = todos.filter(r => getValor(r, 'celular'));
+
+            const html = comWhatsApp.slice(0, 50).map(r => {
+                const nome = getValor(r, 'nome') || 'Sem nome';
+                const celular = getValor(r, 'celular');
+                const telefoneFormatado = celular.toString().replace(/\D/g, '');
+
+                return `
+                    <div class="card" style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <strong>${nome}</strong>
+                            <div style="color: #25d366; font-size: 0.9em;">📱 ${formatarTelefone(celular)}</div>
+                        </div>
+                        <a href="https://wa.me/55${telefoneFormatado}" target="_blank" style="background: #25d366; color: white; padding: 8px 15px; border-radius: 20px; text-decoration: none; font-size: 0.9em;">
+                            💬 Abrir
+                        </a>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('listaWhatsApp').innerHTML = html || '<div class="empty-state"><div class="icon">📱</div><p>Nenhum contato com celular</p></div>';
+        }
+
+        function gerarLinksWhatsApp() {
+            const grupo = document.getElementById('grupoEnvio').value;
+            const mensagem = document.getElementById('mensagemWhatsApp').value;
+
+            if (!grupo) {
+                mostrarAlerta('linksGerados', 'warning', '⚠️ Selecione um grupo para enviar');
+                return;
+            }
+
+            if (!mensagem) {
+                mostrarAlerta('linksGerados', 'warning', '⚠️ Digite uma mensagem');
+                return;
+            }
+
+            const lista = database[grupo].filter(r => getValor(r, 'celular'));
+            const mensagemEncoded = encodeURIComponent(mensagem);
+
+            const html = lista.slice(0, 20).map(r => {
+                const nome = getValor(r, 'nome') || 'Sem nome';
+                const celular = getValor(r, 'celular').toString().replace(/\D/g, '');
+
+                return `
+                    <a href="https://wa.me/55${celular}?text=${mensagemEncoded}" target="_blank" class="card" style="display: block; text-decoration: none; color: inherit;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span>${nome}</span>
+                            <span style="color: #25d366;">📱 Enviar</span>
+                        </div>
+                    </a>
+                `;
+            }).join('');
+
+            document.getElementById('linksGerados').innerHTML = `
+                <div class="section-title">📤 Links Gerados (${lista.length} contatos)</div>
+                ${html}
+                ${lista.length > 20 ? `<p style="text-align: center; color: #aaa;">Mostrando 20 de ${lista.length} contatos</p>` : ''}
+            `;
+        }
+
+        // ==================== FUNÇÕES DE EXPORTAÇÃO ====================
+        function exportarCSV(tipo) {
+            const lista = database[tipo];
+            if (lista.length === 0) {
+                alert('Nenhum dado para exportar!');
+                return;
+            }
+
+            const headers = Object.keys(lista[0]).filter(k => !k.startsWith('_'));
+            let csv = headers.join(';') + '\n';
+
+            lista.forEach(r => {
+                const linha = headers.map(h => `"${(r[h] || '').toString().replace(/"/g, '""')}"`);
+                csv += linha.join(';') + '\n';
+            });
+
+            downloadFile(csv, `enside_${tipo}_${new Date().toISOString().slice(0,10)}.csv`, 'text/csv');
+        }
+
+        function exportarTudoCSV() {
+            const todos = [
+                ...database.clientes.map(r => ({...r, CATEGORIA: 'CLIENTE'})),
+                ...database.fornecedores.map(r => ({...r, CATEGORIA: 'FORNECEDOR'})),
+                ...database.motoristas.map(r => ({...r, CATEGORIA: 'MOTORISTA'})),
+                ...database.produtos.map(r => ({...r, CATEGORIA: 'PRODUTO'})),
+                ...database.vendas.map(r => ({...r, CATEGORIA: 'VENDA'}))
+            ];
+
+            if (todos.length === 0) {
+                alert('Nenhum dado para exportar!');
+                return;
+            }
+
+            const headers = [...new Set(todos.flatMap(r => Object.keys(r)))].filter(k => !k.startsWith('_'));
+            let csv = headers.join(';') + '\n';
+
+            todos.forEach(r => {
+                const linha = headers.map(h => `"${(r[h] || '').toString().replace(/"/g, '""')}"`);
+                csv += linha.join(';') + '\n';
+            });
+
+            downloadFile(csv, `enside_completo_${new Date().toISOString().slice(0,10)}.csv`, 'text/csv');
+        }
+
+        function exportarTudoJSON() {
+            const json = JSON.stringify(database, null, 2);
+            downloadFile(json, `enside_database_${new Date().toISOString().slice(0,10)}.json`, 'application/json');
+        }
+
+        function exportarRelatorio() {
+            const total = database.clientes.length + database.fornecedores.length + database.motoristas.length + database.produtos.length + database.vendas.length;
+
+            let relatorio = `
+╔══════════════════════════════════════════════════════════════╗
+║           RELATÓRIO ENSIDE IMPORTADOR v4.0                   ║
+║                     Anderson Enside                          ║
+║                   Grupo Líder Madeiras                       ║
+╚══════════════════════════════════════════════════════════════╝
+
+📅 Data: ${new Date().toLocaleString('pt-BR')}
+
+═══════════════════════════════════════════════════════════════
+                    RESUMO DA TRIAGEM
+═══════════════════════════════════════════════════════════════
+
+📊 TOTAL DE REGISTROS: ${total}
+
+👥 CLIENTES:      ${database.clientes.length.toString().padStart(6)} (${total > 0 ? ((database.clientes.length/total)*100).toFixed(1) : 0}%)
+📦 FORNECEDORES:  ${database.fornecedores.length.toString().padStart(6)} (${total > 0 ? ((database.fornecedores.length/total)*100).toFixed(1) : 0}%)
+🚚 MOTORISTAS:    ${database.motoristas.length.toString().padStart(6)} (${total > 0 ? ((database.motoristas.length/total)*100).toFixed(1) : 0}%)
+🪵 PRODUTOS:      ${database.produtos.length.toString().padStart(6)} (${total > 0 ? ((database.produtos.length/total)*100).toFixed(1) : 0}%)
+💰 VENDAS:        ${database.vendas.length.toString().padStart(6)} (${total > 0 ? ((database.vendas.length/total)*100).toFixed(1) : 0}%)
+
+═══════════════════════════════════════════════════════════════
+                  ARQUIVOS IMPORTADOS
+═══════════════════════════════════════════════════════════════
+
+${database.arquivosImportados.map(a => `📄 ${a.nome} - ${a.registros} registros (${a.data})`).join('\n')}
+
+═══════════════════════════════════════════════════════════════
+             GERADO POR ENSIDE IMPORTADOR v4.0
+═══════════════════════════════════════════════════════════════
+`;
+
+            downloadFile(relatorio, `enside_relatorio_${new Date().toISOString().slice(0,10)}.txt', 'text/plain');
+        }
+
+        function downloadFile(content, filename, type) {
+            const blob = new Blob([content], { type: type + ';charset=utf-8' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            link.click();
+            URL.revokeObjectURL(link.href);
+        }
+
+        // ==================== FUNÇÕES DE GERENCIAMENTO ====================
+        function limparCategoria(tipo) {
+            if (!confirm(`⚠️ Tem certeza que deseja limpar todos os ${tipo}?`)) return;
+            database[tipo] = [];
+            salvarDatabase();
+            renderizarLista(tipo);
+            atualizarAnalise();
+            atualizarBadges();
+            mostrarAlerta('resultadoImportacao', 'success', `✅ ${tipo} limpos com sucesso!`);
+        }
+
+        function limparTudo() {
+            if (!confirm('⚠️ ATENÇÃO! Isso vai apagar TODOS os dados. Tem certeza?')) return;
+            if (!confirm('🔴 ÚLTIMA CHANCE! Todos os dados serão perdidos. Confirma?')) return;
+
+            database.clientes = [];
+            database.fornecedores = [];
+            database.motoristas = [];
+            database.produtos = [];
+            database.vendas = [];
+            database.arquivosImportados = [];
+            salvarDatabase();
+            atualizarAnalise();
+            atualizarBadges();
+            atualizarListaArquivosImportados();
+            mostrarAlerta('resultadoImportacao', 'success', '✅ Banco de dados limpo!');
+        }
+
+        // ==================== FUNÇÕES DE PERSISTÊNCIA ====================
+        function salvarDatabase() {
+            localStorage.setItem('enside_database_v4', JSON.stringify(database));
+        }
+
+        function carregarDatabase() {
+            const saved = localStorage.getItem('enside_database_v4');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                database = {...database, ...parsed};
+            }
+        }
+
+        // ==================== FUNÇÕES UTILITÁRIAS ====================
+        function mostrarAlerta(containerId, tipo, mensagem) {
+            document.getElementById(containerId).innerHTML = `
+                <div class="alert alert-${tipo}">${mensagem}</div>
+            `;
+        }
+
+        // ==================== DRAG AND DROP ====================
+        document.addEventListener('DOMContentLoaded', () => {
+            const uploadArea = document.getElementById('uploadArea');
+
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                uploadArea.addEventListener(eventName, preventDefaults, false);
+            });
+
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                uploadArea.addEventListener(eventName, () => uploadArea.classList.add('dragover'), false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                uploadArea.addEventListener(eventName, () => uploadArea.classList.remove('dragover'), false);
+            });
+
+            uploadArea.addEventListener('drop', (e) => {
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    document.getElementById('fileInput').files = files;
+                    Array.from(files).forEach(file => {
+                        arquivoAtual = file.name;
+                        const reader = new FileReader();
+                        reader.onload = (ev) => processarConteudo(ev.target.result, file.name);
+                        reader.readAsText(file, 'UTF-8');
+                    });
+                }
+            }, false);
+        });
+
+        // ==================== INICIALIZAÇÃO ====================
+        document.addEventListener('DOMContentLoaded', () => {
+            carregarDatabase();
+            atualizarAnalise();
+            atualizarBadges();
+            atualizarListaArquivosImportados();
+        });
+    </script>
+</body>
+</html>
