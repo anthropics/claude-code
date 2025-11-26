@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧠 ENSIDE IMPORTADOR UNIVERSAL v3.0</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #fff;
+            padding: 20px;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        .header {
+            text-align: center;
+            padding: 30px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 20px;
+            margin-bottom: 30px;
+            backdrop-filter: blur(10px);
+        }
+        .header h1 { font-size: 2.5em; margin-bottom: 10px; }
+        .header p { color: #aaa; }
+        
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            background: rgba(255,255,255,0.05);
+            padding: 15px;
+            border-radius: 15px;
+        }
+        .tab-btn {
+            padding: 15px 25px;
+            background: rgba(255,255,255,0.1);
+            border: none;
+            border-radius: 10px;
+            color: #fff;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        .tab-btn:hover { background: rgba(255,255,255,0.2); }
+        .tab-btn.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            box-shadow: 0 5px 20px rgba(102,126,234,0.4);
+        }
+        
+        .panel {
+            background: rgba(255,255,255,0.1);
+            border-radius: 20px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+            margin-bottom: 20px;
+        }
+        
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        .upload-area {
+            border: 3px dashed rgba(102,126,234,0.5);
+            border-radius: 15px;
+            padding: 60px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: rgba(102,126,234,0.1);
+        }
+        .upload-area:hover {
+            border-color: #667eea;
+            background: rgba(102,126,234,0.2);
+        }
+        .upload-area .icon { font-size: 4em; margin-bottom: 15px; }
+        
+        input[type="file"] { display: none; }
+        
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        .stat {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+        }
+        .stat-number { font-size: 3em; font-weight: bold; }
+        .stat-label { font-size: 0.9em; opacity: 0.9; margin-top: 10px; }
+        
+        .card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-left: 4px solid #667eea;
+            transition: all 0.3s;
+        }
+        .card:hover {
+            background: rgba(255,255,255,0.1);
+            transform: translateX(5px);
+        }
+        .card-title { font-weight: 600; font-size: 1.1em; margin-bottom: 10px; }
+        .card-info { color: #aaa; font-size: 0.9em; margin: 5px 0; }
+        
+        input[type="text"], select, textarea {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            background: rgba(255,255,255,0.05);
+            color: #fff;
+            font-size: 1em;
+            margin-bottom: 15px;
+        }
+        input[type="text"]:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        button {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1em;
+            transition: all 0.3s;
+            margin: 5px;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102,126,234,0.4);
+        }
+        .btn-success { background: linear-gradient(135deg, #28a745, #20c997); }
+        .btn-danger { background: linear-gradient(135deg, #dc3545, #e83e8c); }
+        .btn-warning { background: linear-gradient(135deg, #ffc107, #fd7e14); color: #000; }
+        .btn-full { width: 100%; margin: 10px 0; }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            padding: 15px;
+            text-align: left;
+        }
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        tbody tr:hover { background: rgba(255,255,255,0.05); }
+        
+        .alert {
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .alert-success { background: rgba(40,167,69,0.2); border-left: 4px solid #28a745; }
+        .alert-warning { background: rgba(255,193,7,0.2); border-left: 4px solid #ffc107; }
+        .alert-info { background: rgba(23,162,184,0.2); border-left: 4px solid #17a2b8; }
+        
+        .progress-bar {
+            height: 10px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 5px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            transition: width 0.5s;
+        }
+        
+        .section-title {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(255,255,255,0.1);
+        }
+        
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+        
+        @media (max-width: 768px) {
+            .grid-2, .grid-3 { grid-template-columns: 1fr; }
+            .dashboard { grid-template-columns: repeat(2, 1fr); }
+        }
+        
+        .whatsapp-icon { color: #25d366; }
+        .email-icon { color: #ea4335; }
+        .phone-icon { color: #4285f4; }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px;
+            color: #666;
+        }
+        .empty-state .icon { font-size: 4em; margin-bottom: 20px; opacity: 0.5; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧠 ENSIDE IMPORTADOR UNIVERSAL</h1>
+            <p>Sistema Inteligente de Triagem e Organização de Dados</p>
+            <p style="margin-top: 10px; color: #667eea;">Anderson Enside | Grupo Líder Madeiras</p>
+        </div>
+        
+        <div class="tabs">
+            <button class="tab-btn active" onclick="abrirAba('importar', event)">📤 Importar</button>
+            <button class="tab-btn" onclick="abrirAba('triagem', event)">🔀 Triagem</button>
+            <button class="tab-btn" onclick="abrirAba('clientes', event)">👥 Clientes</button>
+            <button class="tab-btn" onclick="abrirAba('fornecedores', event)">📦 Fornecedores</button>
+            <button class="tab-btn" onclick="abrirAba('motoristas', event)">🚚 Motoristas</button>
+            <button class="tab-btn" onclick="abrirAba('fretes', event)">📍 Fretes</button>
+            <button class="tab-btn" onclick="abrirAba('analise', event)">📊 Análise</button>
+            <button class="tab-btn" onclick="abrirAba('whatsapp', event)">💬 WhatsApp</button>
+            <button class="tab-btn" onclick="abrirAba('exportar', event)">💾 Exportar</button>
+        </div>
+        
+        <div class="panel">
+            <div id="importar" class="tab-content active">
+                <div class="section-title">📤 Importar Dados</div>
+                <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+                    <div class="icon">📁</div>
+                    <div style="font-size: 1.2em; margin-bottom: 10px;">Clique ou arraste seu arquivo</div>
+                    <div style="color: #aaa;">Suporta: CSV, Excel (.xlsx, .xls), JSON, TXT</div>
+                </div>
+                <input type="file" id="fileInput" accept=".csv,.xlsx,.xls,.json,.txt" onchange="processarArquivo(event)">
+                
+                <div id="previewArea" style="display: none; margin-top: 30px;">
+                    <div class="section-title">🔍 Preview dos Dados</div>
+                    <div id="previewContent"></div>
+                    <button onclick="iniciarTriagem()" class="btn-full btn-success" style="margin-top: 20px;">
+                        🚀 INICIAR TRIAGEM AUTOMÁTICA
+                    </button>
+                </div>
+                
+                <div id="resultadoImportacao"></div>
+            </div>
+            
+            <div id="triagem" class="tab-content">
+                <div class="section-title">🔀 Configuração de Triagem</div>
+                <div class="alert alert-info">
+                    <strong>ℹ️ Ordem de Triagem:</strong><br>
+                    1️⃣ FRETES/MOTORISTAS → 2️⃣ FORNECEDORES → 3️⃣ CLIENTES (o que sobrar)
+                </div>
+                <div class="grid-2">
+                    <div>
+                        <h3 style="margin-bottom: 15px;">🚚 Palavras-chave FRETES:</h3>
+                        <input type="text" id="palavrasFrete" value="frete, entrega, transporte, motorista, caminhão, truck, moto, viagem, rota">
+                    </div>
+                    <div>
+                        <h3 style="margin-bottom: 15px;">📦 Palavras-chave FORNECEDORES:</h3>
+                        <input type="text" id="palavrasFornecedor" value="serraria, fornecedor, supplier, madeireira, indústria, fábrica, atacado">
+                    </div>
+                </div>
+                <div style="margin-top: 20px;">
+                    <h3 style="margin-bottom: 15px;">👥 Identificadores de CLIENTES (Estados):</h3>
+                    <input type="text" id="estadosCliente" value="SP, RJ, MG, PR, SC, RS, BA, PE, CE, GO, MT, MS, ES, PA, AM, MA, PI, RN, PB, AL, SE">
+                </div>
+                <button onclick="salvarConfiguracaoTriagem()" class="btn-success" style="margin-top: 20px;">💾 Salvar Configuração</button>
+            </div>
+            
+            <div id="clientes" class="tab-content">
+                <div class="section-title">👥 Clientes</div>
+                <input type="text" id="searchCliente" placeholder="🔍 Buscar cliente..." onkeyup="filtrarLista('clientes')">
+                <div class="dashboard" id="statsClientes"></div>
+                <div id="listaClientes"></div>
+            </div>
+            
+            <div id="fornecedores" class="tab-content">
+                <div class="section-title">📦 Fornecedores</div>
+                <input type="text" id="searchFornecedor" placeholder="🔍 Buscar fornecedor..." onkeyup="filtrarLista('fornecedores')">
+                <div class="dashboard" id="statsFornecedores"></div>
+                <div id="listaFornecedores"></div>
+            </div>
+            
+            <div id="motoristas" class="tab-content">
+                <div class="section-title">🚚 Motoristas</div>
+                <input type="text" id="searchMotorista" placeholder="🔍 Buscar motorista..." onkeyup="filtrarLista('motoristas')">
+                <div class="dashboard" id="statsMotoristas"></div>
+                <div id="listaMotoristas"></div>
+            </div>
+            
+            <div id="fretes" class="tab-content">
+                <div class="section-title">📍 Fretes e Entregas</div>
+                <input type="text" id="searchFrete" placeholder="🔍 Buscar frete..." onkeyup="filtrarLista('fretes')">
+                <div class="dashboard" id="statsFretes"></div>
+                <div id="listaFretes"></div>
+            </div>
+            
+            <div id="analise" class="tab-content">
+                <div class="section-title">📊 Análise Completa</div>
+                <div class="dashboard">
+                    <div class="stat"><div class="stat-number" id="totalRegistros">0</div><div class="stat-label">Total</div></div>
+                    <div class="stat" style="background: linear-gradient(135deg, #28a745, #20c997);"><div class="stat-number" id="totalClientes">0</div><div class="stat-label">Clientes</div></div>
+                    <div class="stat" style="background: linear-gradient(135deg, #ffc107, #fd7e14);"><div class="stat-number" id="totalFornecedores">0</div><div class="stat-label">Fornecedores</div></div>
+                    <div class="stat" style="background: linear-gradient(135deg, #17a2b8, #20c997);"><div class="stat-number" id="totalMotoristas">0</div><div class="stat-label">Motoristas</div></div>
+                    <div class="stat" style="background: linear-gradient(135deg, #dc3545, #e83e8c);"><div class="stat-number" id="totalFretes">0</div><div class="stat-label">Fretes</div></div>
+                </div>
+                <div id="chartCategoria" style="margin-top: 30px;"></div>
+                <table style="margin-top: 30px;">
+                    <thead><tr><th>Categoria</th><th>Quantidade</th><th>Com WhatsApp</th><th>Completos</th><th>%</th></tr></thead>
+                    <tbody id="tabelaAnalise"></tbody>
+                </table>
+            </div>
+            
+            <div id="whatsapp" class="tab-content">
+                <div class="section-title">💬 Integração WhatsApp</div>
+                <div class="grid-2">
+                    <div>
+                        <h3 style="margin-bottom: 15px;">📱 Enviar Mensagem em Massa</h3>
+                        <select id="grupoEnvio"><option value="">Selecione...</option><option value="clientes">👥 Clientes</option><option value="fornecedores">📦 Fornecedores</option><option value="motoristas">🚚 Motoristas</option></select>
+                        <textarea id="mensagemWhatsApp" placeholder="Digite sua mensagem..." style="height: 150px;"></textarea>
+                        <button onclick="gerarLinksWhatsApp()" class="btn-full btn-success">📤 Gerar Links</button>
+                    </div>
+                    <div>
+                        <h3 style="margin-bottom: 15px;">📋 Contatos com WhatsApp</h3>
+                        <div id="listaWhatsApp" style="max-height: 400px; overflow-y: auto;"></div>
+                    </div>
+                </div>
+                <div id="linksGerados" style="margin-top: 30px;"></div>
+            </div>
+            
+            <div id="exportar" class="tab-content">
+                <div class="section-title">💾 Exportar Dados</div>
+                <div class="grid-3">
+                    <div>
+                        <h3 style="margin-bottom: 15px;">📄 Por Categoria</h3>
+                        <button onclick="exportarCSV('clientes')" class="btn-full">👥 Exportar Clientes</button>
+                        <button onclick="exportarCSV('fornecedores')" class="btn-full">📦 Exportar Fornecedores</button>
+                        <button onclick="exportarCSV('motoristas')" class="btn-full">🚚 Exportar Motoristas</button>
+                        <button onclick="exportarCSV('fretes')" class="btn-full">📍 Exportar Fretes</button>
+                    </div>
+                    <div>
+                        <h3 style="margin-bottom: 15px;">📊 Completo</h3>
+                        <button onclick="exportarTudoCSV()" class="btn-full btn-success">📄 Exportar Tudo (CSV)</button>
+                        <button onclick="exportarTudoJSON()" class="btn-full btn-success">📋 Exportar Tudo (JSON)</button>
+                        <button onclick="exportarRelatorio()" class="btn-full btn-warning">📊 Gerar Relatório</button>
+                    </div>
+                    <div>
+                        <h3 style="margin-bottom: 15px;">🗑️ Gerenciar</h3>
+                        <button onclick="limparCategoria('clientes')" class="btn-full btn-danger">🗑️ Limpar Clientes</button>
+                        <button onclick="limparCategoria('fornecedores')" class="btn-full btn-danger">🗑️ Limpar Fornecedores</button>
+                        <button onclick="limparTudo()" class="btn-full btn-danger">⚠️ LIMPAR TUDO</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div style="text-align: center; padding: 20px; color: #666; font-size: 0.9em;">
+            ENSIDE Importador Universal v3.0 | Anderson Enside | Grupo Líder Madeiras
+        </div>
+    </div>
+    
+    <script>
+        let database = { clientes: [], fornecedores: [], motoristas: [], fretes: [], config: { palavrasFrete: ['frete','entrega','transporte','motorista','caminhão','truck','moto','viagem','rota'], palavrasFornecedor: ['serraria','fornecedor','supplier','madeireira','indústria','fábrica','atacado'], estadosCliente: ['SP','RJ','MG','PR','SC','RS','BA','PE','CE','GO','MT','MS','ES','PA','AM','MA','PI','RN','PB','AL','SE'] } };
+        let dadosImportados = [], headers = [];
+        
+        function abrirAba(nome, event) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(nome).classList.add('active');
+            event.target.classList.add('active');
+            if (nome === 'clientes') renderizarLista('clientes');
+            if (nome === 'fornecedores') renderizarLista('fornecedores');
+            if (nome === 'motoristas') renderizarLista('motoristas');
+            if (nome === 'fretes') renderizarLista('fretes');
+            if (nome === 'analise') atualizarAnalise();
+            if (nome === 'whatsapp') atualizarWhatsApp();
+        }
+        
+        function processarArquivo(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const content = e.target.result;
+                const linhas = content.trim().split('\n');
+                if (linhas.length < 2) { mostrarAlerta('resultadoImportacao', 'warning', '⚠️ Arquivo vazio'); return; }
+                let separador = ',';
+                if (linhas[0].includes(';')) separador = ';';
+                if (linhas[0].includes('\t')) separador = '\t';
+                headers = linhas[0].split(separador).map(h => h.trim().replace(/"/g, ''));
+                dadosImportados = [];
+                for (let i = 1; i < linhas.length; i++) {
+                    if (!linhas[i].trim()) continue;
+                    const valores = linhas[i].split(separador).map(v => v.trim().replace(/"/g, ''));
+                    const registro = {};
+                    headers.forEach((h, idx) => { registro[h] = valores[idx] || ''; });
+                    dadosImportados.push(registro);
+                }
+                document.getElementById('previewArea').style.display = 'block';
+                document.getElementById('previewContent').innerHTML = '<div class="alert alert-success">✅ <strong>' + dadosImportados.length + '</strong> registros encontrados<br>📊 Colunas: ' + headers.join(', ') + '</div><table><thead><tr>' + headers.map(h => '<th>' + h + '</th>').join('') + '</tr></thead><tbody>' + dadosImportados.slice(0,5).map(r => '<tr>' + headers.map(h => '<td>' + (r[h] || '-') + '</td>').join('') + '</tr>').join('') + '</tbody></table>';
+            };
+            reader.readAsText(file);
+        }
+        
+        function iniciarTriagem() {
+            const config = database.config;
+            let stats = { clientes: 0, fornecedores: 0, motoristas: 0, fretes: 0 };
+            dadosImportados.forEach(registro => {
+                const texto = Object.values(registro).join(' ').toLowerCase();
+                const nome = (registro.nome || registro.NOME || registro.Name || registro.razao_social || registro.RAZAO_SOCIAL || '').toLowerCase();
+                const ehFrete = config.palavrasFrete.some(p => texto.includes(p.toLowerCase()));
+                if (ehFrete) { database.fretes.push({...registro, _categoria: 'frete'}); stats.fretes++; return; }
+                const ehFornecedor = config.palavrasFornecedor.some(p => texto.includes(p.toLowerCase()));
+                if (ehFornecedor) { database.fornecedores.push({...registro, _categoria: 'fornecedor'}); stats.fornecedores++; return; }
+                const temEstado = config.estadosCliente.some(e => nome.includes(e.toLowerCase()) || texto.includes(' ' + e.toLowerCase() + ' ') || texto.startsWith(e.toLowerCase()));
+                const tipoPessoa = registro.tpo_pessoa || registro.TPO_PESSOA || '';
+                if (temEstado || tipoPessoa === 'F') { database.clientes.push({...registro, _categoria: 'cliente'}); stats.clientes++; return; }
+                database.fornecedores.push({...registro, _categoria: 'fornecedor'}); stats.fornecedores++;
+            });
+            salvarDatabase();
+            const total = stats.clientes + stats.fornecedores + stats.motoristas + stats.fretes;
+            mostrarAlerta('resultadoImportacao', 'success', '✅ <strong>TRIAGEM CONCLUÍDA!</strong><br><br>📊 Total: <strong>' + total + '</strong><br><br>👥 Clientes: <strong>' + stats.clientes + '</strong><br>📦 Fornecedores: <strong>' + stats.fornecedores + '</strong><br>🚚 Motoristas: <strong>' + stats.motoristas + '</strong><br>📍 Fretes: <strong>' + stats.fretes + '</strong>');
+            document.getElementById('previewArea').style.display = 'none';
+            atualizarAnalise();
+        }
+        
+        function renderizarLista(tipo) {
+            const container = document.getElementById('lista' + tipo.charAt(0).toUpperCase() + tipo.slice(1));
+            const statsContainer = document.getElementById('stats' + tipo.charAt(0).toUpperCase() + tipo.slice(1));
+            const lista = database[tipo];
+            if (lista.length === 0) { container.innerHTML = '<div class="empty-state"><div class="icon">📭</div><p>Nenhum registro</p></div>'; statsContainer.innerHTML = ''; return; }
+            const comWhatsApp = lista.filter(r => r.whatsapp || r.WHATSAPP || r.celular || r.CELULAR || r.fone_celular).length;
+            const comEmail = lista.filter(r => r.email || r.EMAIL || r.e_mail).length;
+            statsContainer.innerHTML = '<div class="stat"><div class="stat-number">' + lista.length + '</div><div class="stat-label">Total</div></div><div class="stat" style="background: linear-gradient(135deg, #25d366, #128c7e);"><div class="stat-number">' + comWhatsApp + '</div><div class="stat-label">WhatsApp</div></div><div class="stat" style="background: linear-gradient(135deg, #ea4335, #c5221f);"><div class="stat-number">' + comEmail + '</div><div class="stat-label">Email</div></div>';
+            container.innerHTML = lista.slice(0,100).map(r => {
+                const nome = r.nome || r.NOME || r.razao_social || r.RAZAO_SOCIAL || 'Sem nome';
+                const tel = r.telefone || r.TELEFONE || r.fone || r.fone_celular || '';
+                const wa = r.whatsapp || r.WHATSAPP || r.celular || r.CELULAR || tel;
+                const em = r.email || r.EMAIL || '';
+                const cid = r.cidade || r.CIDADE || '';
+                const est = r.estado || r.ESTADO || r.uf || r.UF || '';
+                return '<div class="card"><div class="card-title">' + nome + '</div>' + (tel ? '<div class="card-info">📞 ' + tel + '</div>' : '') + (wa ? '<div class="card-info" style="color:#25d366;">📱 ' + wa + '</div>' : '') + (em ? '<div class="card-info">📧 ' + em + '</div>' : '') + (cid || est ? '<div class="card-info">📍 ' + cid + (cid && est ? ' - ' : '') + est + '</div>' : '') + '</div>';
+            }).join('');
+        }
+        
+        function filtrarLista(tipo) {
+            const busca = document.getElementById('search' + tipo.charAt(0).toUpperCase() + tipo.slice(1)).value.toLowerCase();
+            const container = document.getElementById('lista' + tipo.charAt(0).toUpperCase() + tipo.slice(1));
+            const filtered = database[tipo].filter(r => Object.values(r).join(' ').toLowerCase().includes(busca));
+            if (filtered.length === 0) { container.innerHTML = '<div class="alert alert-warning">⚠️ Nenhum resultado</div>'; return; }
+            container.innerHTML = filtered.slice(0,50).map(r => { const nome = r.nome || r.NOME || r.razao_social || 'Sem nome'; const wa = r.whatsapp || r.WHATSAPP || r.celular || ''; return '<div class="card"><div class="card-title">' + nome + '</div>' + (wa ? '<div class="card-info" style="color:#25d366;">📱 ' + wa + '</div>' : '') + '</div>'; }).join('');
+        }
+        
+        function atualizarAnalise() {
+            const total = database.clientes.length + database.fornecedores.length + database.motoristas.length + database.fretes.length;
+            document.getElementById('totalRegistros').textContent = total;
+            document.getElementById('totalClientes').textContent = database.clientes.length;
+            document.getElementById('totalFornecedores').textContent = database.fornecedores.length;
+            document.getElementById('totalMotoristas').textContent = database.motoristas.length;
+            document.getElementById('totalFretes').textContent = database.fretes.length;
+            const calcStats = arr => ({ whatsapp: arr.filter(r => r.whatsapp || r.WHATSAPP || r.celular || r.CELULAR || r.fone_celular).length, completos: arr.filter(r => (r.nome || r.NOME || r.razao_social) && (r.telefone || r.TELEFONE || r.fone || r.whatsapp || r.celular)).length });
+            const sC = calcStats(database.clientes), sF = calcStats(database.fornecedores), sM = calcStats(database.motoristas), sFr = calcStats(database.fretes);
+            document.getElementById('tabelaAnalise').innerHTML = '<tr><td>👥 Clientes</td><td>' + database.clientes.length + '</td><td>' + sC.whatsapp + '</td><td>' + sC.completos + '</td><td>' + (total > 0 ? ((database.clientes.length/total)*100).toFixed(1) : 0) + '%</td></tr><tr><td>📦 Fornecedores</td><td>' + database.fornecedores.length + '</td><td>' + sF.whatsapp + '</td><td>' + sF.completos + '</td><td>' + (total > 0 ? ((database.fornecedores.length/total)*100).toFixed(1) : 0) + '%</td></tr><tr><td>🚚 Motoristas</td><td>' + database.motoristas.length + '</td><td>' + sM.whatsapp + '</td><td>' + sM.completos + '</td><td>' + (total > 0 ? ((database.motoristas.length/total)*100).toFixed(1) : 0) + '%</td></tr><tr><td>📍 Fretes</td><td>' + database.fretes.length + '</td><td>' + sFr.whatsapp + '</td><td>' + sFr.completos + '</td><td>' + (total > 0 ? ((database.fretes.length/total)*100).toFixed(1) : 0) + '%</td></tr>';
+            if (total > 0) {
+                const maxVal = Math.max(database.clientes.length, database.fornecedores.length, database.motoristas.length, database.fretes.length);
+                document.getElementById('chartCategoria').innerHTML = '<div style="margin-bottom:15px;"><div style="display:flex;justify-content:space-between;margin-bottom:5px;"><span>👥 Clientes</span><span>' + database.clientes.length + '</span></div><div class="progress-bar"><div class="progress-fill" style="width:' + ((database.clientes.length/maxVal)*100) + '%;background:linear-gradient(90deg,#28a745,#20c997);"></div></div></div><div style="margin-bottom:15px;"><div style="display:flex;justify-content:space-between;margin-bottom:5px;"><span>📦 Fornecedores</span><span>' + database.fornecedores.length + '</span></div><div class="progress-bar"><div class="progress-fill" style="width:' + ((database.fornecedores.length/maxVal)*100) + '%;background:linear-gradient(90deg,#ffc107,#fd7e14);"></div></div></div><div style="margin-bottom:15px;"><div style="display:flex;justify-content:space-between;margin-bottom:5px;"><span>🚚 Motoristas</span><span>' + database.motoristas.length + '</span></div><div class="progress-bar"><div class="progress-fill" style="width:' + ((database.motoristas.length/maxVal)*100) + '%;background:linear-gradient(90deg,#17a2b8,#20c997);"></div></div></div><div style="margin-bottom:15px;"><div style="display:flex;justify-content:space-between;margin-bottom:5px;"><span>📍 Fretes</span><span>' + database.fretes.length + '</span></div><div class="progress-bar"><div class="progress-fill" style="width:' + ((database.fretes.length/maxVal)*100) + '%;background:linear-gradient(90deg,#dc3545,#e83e8c);"></div></div></div>';
+            }
+        }
+        
+        function atualizarWhatsApp() {
+            const todos = [...database.clientes, ...database.fornecedores, ...database.motoristas, ...database.fretes];
+            const comWA = todos.filter(r => r.whatsapp || r.WHATSAPP || r.celular || r.CELULAR || r.fone_celular);
+            document.getElementById('listaWhatsApp').innerHTML = comWA.slice(0,50).map(r => {
+                const nome = r.nome || r.NOME || r.razao_social || 'Sem nome';
+                const wa = r.whatsapp || r.WHATSAPP || r.celular || r.CELULAR || r.fone_celular;
+                const tel = wa.replace(/\D/g, '');
+                return '<div class="card" style="display:flex;justify-content:space-between;align-items:center;"><div><strong>' + nome + '</strong><div style="color:#25d366;font-size:0.9em;">📱 ' + wa + '</div></div><a href="https://wa.me/55' + tel + '" target="_blank" style="background:#25d366;color:white;padding:8px 15px;border-radius:20px;text-decoration:none;font-size:0.9em;">💬 Abrir</a></div>';
+            }).join('') || '<div class="empty-state"><div class="icon">📱</div><p>Nenhum contato com WhatsApp</p></div>';
+        }
+        
+        function gerarLinksWhatsApp() {
+            const grupo = document.getElementById('grupoEnvio').value;
+            const msg = document.getElementById('mensagemWhatsApp').value;
+            if (!grupo) { mostrarAlerta('linksGerados', 'warning', '⚠️ Selecione um grupo'); return; }
+            if (!msg) { mostrarAlerta('linksGerados', 'warning', '⚠️ Digite uma mensagem'); return; }
+            const lista = database[grupo].filter(r => r.whatsapp || r.WHATSAPP || r.celular || r.CELULAR || r.fone_celular);
+            const msgEnc = encodeURIComponent(msg);
+            document.getElementById('linksGerados').innerHTML = '<div class="section-title">📤 Links Gerados (' + lista.length + ')</div>' + lista.slice(0,20).map(r => {
+                const nome = r.nome || r.NOME || r.razao_social || 'Sem nome';
+                const wa = (r.whatsapp || r.WHATSAPP || r.celular || r.CELULAR || r.fone_celular).replace(/\D/g, '');
+                return '<a href="https://wa.me/55' + wa + '?text=' + msgEnc + '" target="_blank" class="card" style="display:block;text-decoration:none;color:inherit;"><div style="display:flex;justify-content:space-between;align-items:center;"><span>' + nome + '</span><span style="color:#25d366;">📱 Enviar</span></div></a>';
+            }).join('');
+        }
+        
+        function exportarCSV(tipo) {
+            const lista = database[tipo];
+            if (lista.length === 0) { alert('Nenhum dado!'); return; }
+            const h = Object.keys(lista[0]).filter(k => !k.startsWith('_'));
+            let csv = h.join(',') + '\n';
+            lista.forEach(r => { csv += h.map(k => '"' + (r[k] || '').toString().replace(/"/g, '""') + '"').join(',') + '\n'; });
+            downloadFile(csv, 'enside_' + tipo + '_' + new Date().toISOString().slice(0,10) + '.csv', 'text/csv');
+        }
+        
+        function exportarTudoCSV() {
+            const todos = [...database.clientes.map(r => ({...r, CATEGORIA: 'CLIENTE'})), ...database.fornecedores.map(r => ({...r, CATEGORIA: 'FORNECEDOR'})), ...database.motoristas.map(r => ({...r, CATEGORIA: 'MOTORISTA'})), ...database.fretes.map(r => ({...r, CATEGORIA: 'FRETE'}))];
+            if (todos.length === 0) { alert('Nenhum dado!'); return; }
+            const h = [...new Set(todos.flatMap(r => Object.keys(r)))].filter(k => !k.startsWith('_'));
+            let csv = h.join(',') + '\n';
+            todos.forEach(r => { csv += h.map(k => '"' + (r[k] || '').toString().replace(/"/g, '""') + '"').join(',') + '\n'; });
+            downloadFile(csv, 'enside_completo_' + new Date().toISOString().slice(0,10) + '.csv', 'text/csv');
+        }
+        
+        function exportarTudoJSON() { downloadFile(JSON.stringify(database, null, 2), 'enside_database_' + new Date().toISOString().slice(0,10) + '.json', 'application/json'); }
+        
+        function exportarRelatorio() {
+            const total = database.clientes.length + database.fornecedores.length + database.motoristas.length + database.fretes.length;
+            let rel = '╔══════════════════════════════════════════════════════════════╗\n║           RELATÓRIO ENSIDE IMPORTADOR UNIVERSAL              ║\n╚══════════════════════════════════════════════════════════════╝\n\n📅 Data: ' + new Date().toLocaleString('pt-BR') + '\n\n📊 TOTAL: ' + total + '\n\n👥 Clientes: ' + database.clientes.length + ' (' + ((database.clientes.length/total)*100).toFixed(1) + '%)\n📦 Fornecedores: ' + database.fornecedores.length + ' (' + ((database.fornecedores.length/total)*100).toFixed(1) + '%)\n🚚 Motoristas: ' + database.motoristas.length + ' (' + ((database.motoristas.length/total)*100).toFixed(1) + '%)\n📍 Fretes: ' + database.fretes.length + ' (' + ((database.fretes.length/total)*100).toFixed(1) + '%)';
+            downloadFile(rel, 'enside_relatorio_' + new Date().toISOString().slice(0,10) + '.txt', 'text/plain');
+        }
+        
+        function downloadFile(content, filename, type) { const blob = new Blob([content], { type: type + ';charset=utf-8' }); const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = filename; link.click(); URL.revokeObjectURL(link.href); }
+        
+        function limparCategoria(tipo) { if (!confirm('⚠️ Limpar ' + tipo + '?')) return; database[tipo] = []; salvarDatabase(); renderizarLista(tipo); atualizarAnalise(); mostrarAlerta('resultadoImportacao', 'success', '✅ ' + tipo + ' limpos!'); }
+        
+        function limparTudo() { if (!confirm('⚠️ APAGAR TUDO?')) return; if (!confirm('🔴 CONFIRMA?')) return; database.clientes = []; database.fornecedores = []; database.motoristas = []; database.fretes = []; salvarDatabase(); atualizarAnalise(); mostrarAlerta('resultadoImportacao', 'success', '✅ Banco limpo!'); }
+        
+        function salvarConfiguracaoTriagem() { database.config.palavrasFrete = document.getElementById('palavrasFrete').value.split(',').map(p => p.trim()); database.config.palavrasFornecedor = document.getElementById('palavrasFornecedor').value.split(',').map(p => p.trim()); database.config.estadosCliente = document.getElementById('estadosCliente').value.split(',').map(e => e.trim()); salvarDatabase(); alert('✅ Salvo!'); }
+        
+        function salvarDatabase() { localStorage.setItem('enside_database_v3', JSON.stringify(database)); }
+        function carregarDatabase() { const saved = localStorage.getItem('enside_database_v3'); if (saved) { const parsed = JSON.parse(saved); database = {...database, ...parsed}; } }
+        function mostrarAlerta(id, tipo, msg) { document.getElementById(id).innerHTML = '<div class="alert alert-' + tipo + '">' + msg + '</div>'; }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            carregarDatabase();
+            atualizarAnalise();
+            document.getElementById('palavrasFrete').value = database.config.palavrasFrete.join(', ');
+            document.getElementById('palavrasFornecedor').value = database.config.palavrasFornecedor.join(', ');
+            document.getElementById('estadosCliente').value = database.config.estadosCliente.join(', ');
+        });
+    </script>
+</body>
+</html>
