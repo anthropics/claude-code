@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Output the explanatory mode instructions as additionalContext
 # This mimics the deprecated Explanatory output style

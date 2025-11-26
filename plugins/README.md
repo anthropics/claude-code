@@ -10,50 +10,21 @@ Learn more in the [official plugins documentation](https://docs.claude.com/en/do
 
 ## Plugins in This Directory
 
-### [agent-sdk-dev](./agent-sdk-dev/)
-
-**Claude Agent SDK Development Plugin**
-
-Streamlines the development of Claude Agent SDK applications with scaffolding commands and verification agents.
-
-- **Command**: `/new-sdk-app` - Interactive setup for new Agent SDK projects
-- **Agents**: `agent-sdk-verifier-py` and `agent-sdk-verifier-ts` - Validate SDK applications against best practices
-- **Use case**: Creating and verifying Claude Agent SDK applications in Python or TypeScript
-
-### [commit-commands](./commit-commands/)
-
-**Git Workflow Automation Plugin**
-
-Simplifies common git operations with streamlined commands for committing, pushing, and creating pull requests.
-
-- **Commands**:
-  - `/commit` - Create a git commit with appropriate message
-  - `/commit-push-pr` - Commit, push, and create a PR in one command
-  - `/clean_gone` - Clean up stale local branches marked as [gone]
-- **Use case**: Faster git workflows with less context switching
-
-### [code-review](./code-review/)
-
-**Automated Pull Request Code Review Plugin**
-
-Provides automated code review for pull requests using multiple specialized agents with confidence-based scoring to filter false positives.
-
-- **Command**:
-  - `/code-review` - Automated PR review workflow
-- **Use case**: Automated code review on pull requests with high-confidence issue detection (threshold ≥80)
-
-### [feature-dev](./feature-dev/)
-
-**Comprehensive Feature Development Workflow Plugin**
-
-Provides a structured 7-phase approach to feature development with specialized agents for exploration, architecture, and review.
-
-- **Command**: `/feature-dev` - Guided feature development workflow
-- **Agents**:
-  - `code-explorer` - Deeply analyzes existing codebase features
-  - `code-architect` - Designs feature architectures and implementation blueprints
-  - `code-reviewer` - Reviews code for bugs, quality issues, and project conventions
-- **Use case**: Building new features with systematic codebase understanding and quality assurance
+| Name | Description | Contents |
+|------|-------------|----------|
+| [agent-sdk-dev](./agent-sdk-dev/) | Development kit for working with the Claude Agent SDK | **Command:** `/new-sdk-app` - Interactive setup for new Agent SDK projects<br>**Agents:** `agent-sdk-verifier-py`, `agent-sdk-verifier-ts` - Validate SDK applications against best practices |
+| [claude-opus-4-5-migration](./claude-opus-4-5-migration/) | Migrate code and prompts from Sonnet 4.x and Opus 4.1 to Opus 4.5 | **Skill:** `claude-opus-4-5-migration` - Automated migration of model strings, beta headers, and prompt adjustments |
+| [code-review](./code-review/) | Automated PR code review using multiple specialized agents with confidence-based scoring to filter false positives | **Command:** `/code-review` - Automated PR review workflow<br>**Agents:** 5 parallel Sonnet agents for CLAUDE.md compliance, bug detection, historical context, PR history, and code comments |
+| [commit-commands](./commit-commands/) | Git workflow automation for committing, pushing, and creating pull requests | **Commands:** `/commit`, `/commit-push-pr`, `/clean_gone` - Streamlined git operations |
+| [explanatory-output-style](./explanatory-output-style/) | Adds educational insights about implementation choices and codebase patterns (mimics the deprecated Explanatory output style) | **Hook:** SessionStart - Injects educational context at the start of each session |
+| [feature-dev](./feature-dev/) | Comprehensive feature development workflow with a structured 7-phase approach | **Command:** `/feature-dev` - Guided feature development workflow<br>**Agents:** `code-explorer`, `code-architect`, `code-reviewer` - For codebase analysis, architecture design, and quality review |
+| [frontend-design](./frontend-design/) | Create distinctive, production-grade frontend interfaces that avoid generic AI aesthetics | **Skill:** `frontend-design` - Auto-invoked for frontend work, providing guidance on bold design choices, typography, animations, and visual details |
+| [hookify](./hookify/) | Easily create custom hooks to prevent unwanted behaviors by analyzing conversation patterns or explicit instructions | **Commands:** `/hookify`, `/hookify:list`, `/hookify:configure`, `/hookify:help`<br>**Agent:** `conversation-analyzer` - Analyzes conversations for problematic behaviors<br>**Skill:** `writing-rules` - Guidance on hookify rule syntax |
+| [learning-output-style](./learning-output-style/) | Interactive learning mode that requests meaningful code contributions at decision points (mimics the unshipped Learning output style) | **Hook:** SessionStart - Encourages users to write meaningful code (5-10 lines) at decision points while receiving educational insights |
+| [plugin-dev](./plugin-dev/) | Comprehensive toolkit for developing Claude Code plugins with 7 expert skills and AI-assisted creation | **Command:** `/plugin-dev:create-plugin` - 8-phase guided workflow for building plugins<br>**Agents:** `agent-creator`, `plugin-validator`, `skill-reviewer`<br>**Skills:** Hook development, MCP integration, plugin structure, settings, commands, agents, and skill development |
+| [pr-review-toolkit](./pr-review-toolkit/) | Comprehensive PR review agents specializing in comments, tests, error handling, type design, code quality, and code simplification | **Command:** `/pr-review-toolkit:review-pr` - Run with optional review aspects (comments, tests, errors, types, code, simplify, all)<br>**Agents:** `comment-analyzer`, `pr-test-analyzer`, `silent-failure-hunter`, `type-design-analyzer`, `code-reviewer`, `code-simplifier` |
+| [ralph-wiggum](./ralph-wiggum/) | Interactive self-referential AI loops for iterative development. Claude works on the same task repeatedly until completion | **Commands:** `/ralph-loop`, `/cancel-ralph` - Start/stop autonomous iteration loops<br>**Hook:** Stop - Intercepts exit attempts to continue iteration |
+| [security-guidance](./security-guidance/) | Security reminder hook that warns about potential security issues when editing files | **Hook:** PreToolUse - Monitors 9 security patterns including command injection, XSS, eval usage, dangerous HTML, pickle deserialization, and os.system calls |
 
 ## Installation
 
@@ -81,8 +52,11 @@ Each plugin follows the standard Claude Code plugin structure:
 plugin-name/
 ├── .claude-plugin/
 │   └── plugin.json          # Plugin metadata
-├── commands/                 # Slash commands (optional)
-├── agents/                   # Specialized agents (optional)
+├── commands/                # Slash commands (optional)
+├── agents/                  # Specialized agents (optional)
+├── skills/                  # Agent Skills (optional)
+├── hooks/                   # Event handlers (optional)
+├── .mcp.json                # External tool configuration (optional)
 └── README.md                # Plugin documentation
 ```
 
