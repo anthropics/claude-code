@@ -30,12 +30,32 @@ Remove the `context-1m-2025-08-07` beta header if present—it is not yet suppor
 
 ### Target Model Strings (Opus 4.5)
 
+#### Standard Opus 4.5 (200k context limit)
+
 | Platform | Opus 4.5 Model String |
 |----------|----------------------|
 | Anthropic API (1P) | `claude-opus-4-5-20251101` |
 | AWS Bedrock | `anthropic.claude-opus-4-5-20251101-v1:0` |
 | Google Vertex AI | `claude-opus-4-5@20251101` |
 | Azure AI Foundry | `claude-opus-4-5-20251101` |
+
+#### Fast Opus 4.5 (Extended context)
+
+For applications requiring >200k tokens, use the fast deployment:
+
+| Platform | Fast Opus 4.5 Model String |
+|----------|---------------------------|
+| Anthropic API (1P) | `claude-opus-4-5-20251101-fast` |
+| AWS Bedrock | `anthropic.claude-opus-4-5-20251101-fast-v1:0` |
+| Google Vertex AI | `claude-opus-4-5-fast@20251101` |
+| Azure AI Foundry | `claude-opus-4-5-20251101-fast` |
+
+To configure Claude Code to use the fast deployment, set:
+```bash
+export ANTHROPIC_DEFAULT_OPUS_MODEL="claude-opus-4-5-20251101-fast"
+```
+
+**Note**: See `FAST_MODEL_CONFIG.md` for complete configuration details.
 
 ### Source Model Strings to Replace
 
