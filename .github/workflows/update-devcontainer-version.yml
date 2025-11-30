@@ -1,0 +1,62 @@
+name: Update DevContainer Claude Code Version
+
+on:
+  schedule:
+    # Run daily at 00:00 UTC
+    - cron: '0 0 * * *'
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  update-version:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4
+
+      - name: Get latest npm version
+        id: npm-version
+        run: |
+          LATEST_VERSION=$(npm view @anthropic-ai/claude-code version)
+          echo "version=$LATEST_VERSION" >> $GITHUB_OUTPUT
+          echo "Latest npm version: $LATEST_VERSION"
+
+      - name: Get current version from Dockerfile
+        id: current-version
+        run: |
+          CURRENT_VERSION=$(grep -oP 'ARG CLAUDE_CODE_VERSION=\K[^\s]+' .devcontainer/Dockerfile)
+          echo "version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          echo "Current version: $CURRENT_VERSION"
+
+      - name: Update version if changed
+        if: steps.npm-version.outputs.version != steps.current-version.outputs.version
+        run: |
+          NEW_VERSION="${{ steps.npm-version.outputs.version }}"
+
+          # Update Dockerfile
+          sed -i "s/ARG CLAUDE_CODE_VERSION=.*/ARG CLAUDE_CODE_VERSION=$NEW_VERSION/" .devcontainer/Dockerfile
+
+          # Update devcontainer.json
+          sed -i "s/\"CLAUDE_CODE_VERSION\": \".*\"/\"CLAUDE_CODE_VERSION\": \"$NEW_VERSION\"/" .devcontainer/devcontainer.json
+
+          echo "Updated version to $NEW_VERSION"
+
+      - name: Create Pull Request
+        if: steps.npm-version.outputs.version != steps.current-version.outputs.version
+        uses: peter-evans/create-pull-request@v7
+        with:
+          commit-message: "chore: update devcontainer claude-code to v${{ steps.npm-version.outputs.version }}"
+          title: "chore: update devcontainer claude-code to v${{ steps.npm-version.outputs.version }}"
+          body: |
+            This PR automatically updates the claude-code version in the devcontainer configuration.
+
+            **Changes:**
+            - Updated `CLAUDE_CODE_VERSION` from `${{ steps.current-version.outputs.version }}` to `${{ steps.npm-version.outputs.version }}`
+
+            This ensures Docker cache is invalidated when rebuilding images, allowing users to get the latest claude-code version.
+
+            Related: #582
+          branch: chore/update-claude-code-version
+          delete-branch: true
