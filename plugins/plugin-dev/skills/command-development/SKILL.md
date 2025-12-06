@@ -11,6 +11,7 @@ version: 0.2.0
 Slash commands are frequently-used prompts defined as Markdown files that Claude executes during interactive sessions. Understanding command structure, frontmatter options, and dynamic features enables creating powerful, reusable workflows.
 
 **Key concepts:**
+
 - Markdown file format for commands
 - YAML frontmatter for configuration
 - Dynamic arguments and file references
@@ -22,6 +23,7 @@ Slash commands are frequently-used prompts defined as Markdown files that Claude
 ### What is a Slash Command?
 
 A slash command is a Markdown file containing a prompt that Claude executes when invoked. Commands provide:
+
 - **Reusability**: Define once, use repeatedly
 - **Consistency**: Standardize common workflows
 - **Sharing**: Distribute across team or projects
@@ -34,6 +36,7 @@ A slash command is a Markdown file containing a prompt that Claude executes when
 When a user invokes `/command-name`, the command content becomes Claude's instructions. Write commands as directives TO Claude about what to do, not as messages TO the user.
 
 **Correct approach (instructions for Claude):**
+
 ```markdown
 Review this code for security vulnerabilities including:
 - SQL injection
@@ -44,6 +47,7 @@ Provide specific line numbers and severity ratings.
 ```
 
 **Incorrect approach (messages to user):**
+
 ```markdown
 This command will review your code for security issues.
 You'll receive a report with vulnerability details.
@@ -54,18 +58,21 @@ The first example tells Claude what to do. The second tells the user what will h
 ### Command Locations
 
 **Project commands** (shared with team):
+
 - Location: `.claude/commands/`
 - Scope: Available in specific project
 - Label: Shown as "(project)" in `/help`
 - Use for: Team workflows, project-specific tasks
 
 **Personal commands** (available everywhere):
+
 - Location: `~/.claude/commands/`
 - Scope: Available in all projects
 - Label: Shown as "(user)" in `/help`
 - Use for: Personal workflows, cross-project utilities
 
 **Plugin commands** (bundled with plugins):
+
 - Location: `plugin-name/commands/`
 - Scope: Available when plugin installed
 - Label: Shown as "(plugin-name)" in `/help`
@@ -85,6 +92,7 @@ Commands are Markdown files with `.md` extension:
 ```
 
 **Simple command:**
+
 ```markdown
 Review this code for security vulnerabilities including:
 - SQL injection
@@ -138,6 +146,7 @@ allowed-tools: Read, Write, Edit, Bash(git:*)
 ```
 
 **Patterns:**
+
 - `Read, Write, Edit` - Specific tools
 - `Bash(git:*)` - Bash with git commands only
 - `*` - All tools (rarely needed)
@@ -157,6 +166,7 @@ model: haiku
 ```
 
 **Use cases:**
+
 - `haiku` - Fast, simple commands
 - `sonnet` - Standard workflows
 - `opus` - Complex analysis
@@ -174,6 +184,7 @@ argument-hint: [pr-number] [priority] [assignee]
 ```
 
 **Benefits:**
+
 - Helps users understand command arguments
 - Improves command discovery
 - Documents command interface
@@ -208,12 +219,14 @@ Fix issue #$ARGUMENTS following our coding standards and best practices.
 ```
 
 **Usage:**
+
 ```
 > /fix-issue 123
 > /fix-issue 456
 ```
 
 **Expands to:**
+
 ```
 Fix issue #123 following our coding standards...
 Fix issue #456 following our coding standards...
@@ -234,11 +247,13 @@ After review, assign to $3 for follow-up.
 ```
 
 **Usage:**
+
 ```
 > /review-pr 123 high alice
 ```
 
 **Expands to:**
+
 ```
 Review pull request #123 with priority level high.
 After review, assign to alice for follow-up.
@@ -253,11 +268,13 @@ Deploy $1 to $2 environment with options: $3
 ```
 
 **Usage:**
+
 ```
 > /deploy api staging --force --skip-tests
 ```
 
 **Expands to:**
+
 ```
 Deploy api to staging environment with options: --force --skip-tests
 ```
@@ -281,6 +298,7 @@ Review @$1 for:
 ```
 
 **Usage:**
+
 ```
 > /review-file src/api/users.ts
 ```
@@ -318,6 +336,7 @@ Ensure:
 Commands can execute bash commands inline to dynamically gather context before Claude processes the command. This is useful for including repository state, environment information, or project-specific context.
 
 **When to use:**
+
 - Include dynamic context (git status, environment vars, etc.)
 - Gather project/repository state
 - Build context-aware workflows
@@ -361,6 +380,7 @@ Organize commands in subdirectories:
 ```
 
 **Benefits:**
+
 - Logical grouping by category
 - Namespace shown in `/help`
 - Easier to find related commands
@@ -463,23 +483,27 @@ PR #$1 Workflow:
 ## Troubleshooting
 
 **Command not appearing:**
+
 - Check file is in correct directory
 - Verify `.md` extension present
 - Ensure valid Markdown format
 - Restart Claude Code
 
 **Arguments not working:**
+
 - Verify `$1`, `$2` syntax correct
 - Check `argument-hint` matches usage
 - Ensure no extra spaces
 
 **Bash execution failing:**
+
 - Check `allowed-tools` includes Bash
 - Verify command syntax in backticks
 - Test command in terminal first
 - Check for required permissions
 
 **File references not working:**
+
 - Verify `@` syntax correct
 - Check file path is valid
 - Ensure Read tool allowed
@@ -492,6 +516,7 @@ PR #$1 Workflow:
 Plugin commands have access to `${CLAUDE_PLUGIN_ROOT}`, an environment variable that resolves to the plugin's absolute path.
 
 **Purpose:**
+
 - Reference plugin files portably
 - Execute plugin scripts
 - Load plugin configuration
@@ -527,6 +552,7 @@ Review results and report findings.
 ```
 
 **Why use it:**
+
 - Works across all installations
 - Portable between systems
 - No hardcoded paths needed
@@ -547,12 +573,14 @@ plugin-name/
 ```
 
 **Namespace benefits:**
+
 - Logical command grouping
 - Shown in `/help` output
 - Avoid name conflicts
 - Organize related commands
 
 **Naming conventions:**
+
 - Use descriptive action names
 - Avoid generic names (test, run)
 - Consider plugin-specific prefix
@@ -631,7 +659,14 @@ Commands should validate inputs and resources before processing:
 
 ---
 
+## Additional Resources
+
 For detailed frontmatter field specifications, see `references/frontmatter-reference.md`.
 For plugin-specific features and patterns, see `references/plugin-features-reference.md`.
 For plugin integration and validation patterns, see `references/plugin-integration.md`.
+For interactive user input patterns using AskUserQuestion, see `references/interactive-commands.md`.
+For multi-step command sequences and state management, see `references/advanced-workflows.md`.
+For self-documenting command patterns and maintenance docs, see `references/documentation-patterns.md`.
+For testing approaches from syntax validation to user acceptance, see `references/testing-strategies.md`.
+For distribution guidelines and quality standards, see `references/marketplace-considerations.md`.
 For command pattern examples, see `examples/` directory.
