@@ -85,7 +85,7 @@ allowed-tools: Bash(node:*), Read
 Target: @$1
 
 Phase 1 - Static Analysis:
-!`node ${CLAUDE_PLUGIN_ROOT}/scripts/lint.js $1`
+`node ${CLAUDE_PLUGIN_ROOT}/scripts/lint.js $1`
 
 Phase 2 - Deep Review:
 Launch code-reviewer agent for detailed analysis.
@@ -118,7 +118,7 @@ description: Deploy with validation
 argument-hint: [environment]
 ---
 
-Validate environment: !`echo "$1" | grep -E "^(dev|staging|prod)$" || echo "INVALID"`
+Validate environment: `echo "$1" | grep -E "^(dev|staging|prod)$" || echo "INVALID"`
 
 If $1 is valid environment:
   Deploy to $1
@@ -135,7 +135,7 @@ description: Process configuration
 argument-hint: [config-file]
 ---
 
-Check file exists: !`test -f $1 && echo "EXISTS" || echo "MISSING"`
+Check file exists: `test -f $1 && echo "EXISTS" || echo "MISSING"`
 
 If file exists:
   Process configuration: @$1
@@ -154,8 +154,8 @@ allowed-tools: Bash(test:*)
 ---
 
 Validate plugin setup:
-- Script: !`test -x ${CLAUDE_PLUGIN_ROOT}/bin/analyze && echo "✓" || echo "✗"`
-- Config: !`test -f ${CLAUDE_PLUGIN_ROOT}/config.json && echo "✓" || echo "✗"`
+- Script: `test -x ${CLAUDE_PLUGIN_ROOT}/bin/analyze && echo "✓" || echo "✗"`
+- Config: `test -f ${CLAUDE_PLUGIN_ROOT}/config.json && echo "✓" || echo "✗"`
 
 If all checks pass, run analysis.
 Otherwise, report missing components.
@@ -169,7 +169,7 @@ description: Build with error handling
 allowed-tools: Bash(*)
 ---
 
-Execute build: !`bash ${CLAUDE_PLUGIN_ROOT}/scripts/build.sh 2>&1 || echo "BUILD_FAILED"`
+Execute build: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/build.sh 2>&1 || echo "BUILD_FAILED"`
 
 If build succeeded:
   Report success and output location
