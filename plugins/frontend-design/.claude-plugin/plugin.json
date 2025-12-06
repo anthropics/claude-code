@@ -5,5 +5,6 @@
   "author": {
     "name": "Prithvi Rajasekaran, Alexander Bricken",
     "email": "prithvi@anthropic.com, alexander@anthropic.com"
-  }
+  },
+  "skills": "./skills"
 }
