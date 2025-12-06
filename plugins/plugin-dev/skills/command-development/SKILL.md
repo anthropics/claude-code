@@ -416,21 +416,6 @@ $IF($1,
 3. **List requirements:** Document dependencies
 4. **Version commands:** Note breaking changes
 
-```markdown
----
-description: Deploy application to environment
-argument-hint: [environment] [version]
----
-
-<!--
-Usage: /deploy [staging|production] [version]
-Requires: AWS credentials configured
-Example: /deploy staging v1.2.3
--->
-
-Deploy application to $1 environment using version $2...
-```
-
 ## Common Patterns
 
 ### Review Pattern
@@ -443,13 +428,7 @@ allowed-tools: Read, Bash(git:*)
 
 Files changed: !`git diff --name-only`
 
-Review each file for:
-1. Code quality and style
-2. Potential bugs or issues
-3. Test coverage
-4. Documentation needs
-
-Provide specific feedback for each file.
+Review each file for code quality, bugs, test coverage, documentation needs.
 ```
 
 ### Testing Pattern
@@ -462,24 +441,7 @@ allowed-tools: Bash(npm:*)
 ---
 
 Run tests: !`npm test $1`
-
 Analyze results and suggest fixes for failures.
-```
-
-### Documentation Pattern
-
-```markdown
----
-description: Generate documentation for file
-argument-hint: [source-file]
----
-
-Generate comprehensive documentation for @$1 including:
-- Function/class descriptions
-- Parameter documentation
-- Return value descriptions
-- Usage examples
-- Edge cases and errors
 ```
 
 ### Workflow Pattern
@@ -492,7 +454,6 @@ allowed-tools: Bash(gh:*), Read
 ---
 
 PR #$1 Workflow:
-
 1. Fetch PR: !`gh pr view $1`
 2. Review changes
 3. Run checks
@@ -646,189 +607,31 @@ Review outputs and report workflow status.
 
 ## Integration with Plugin Components
 
-Commands can integrate with other plugin components for powerful workflows.
+Commands integrate with other plugin components for powerful workflows:
 
-### Agent Integration
+- **Agents**: Launch plugin agents for complex tasks (agent must exist in `plugin/agents/`)
+- **Skills**: Leverage plugin skills for specialized knowledge (mention skill name to trigger)
+- **Hooks**: Coordinate with hooks that execute on tool events
+- **Multi-component**: Combine agents, skills, and scripts in phased workflows
 
-Launch plugin agents for complex tasks:
-
-```markdown
----
-description: Deep code review
-argument-hint: [file-path]
----
-
-Initiate comprehensive review of @$1 using the code-reviewer agent.
-
-The agent will analyze:
-- Code structure
-- Security issues
-- Performance
-- Best practices
-
-Agent uses plugin resources:
-- ${CLAUDE_PLUGIN_ROOT}/config/rules.json
-- ${CLAUDE_PLUGIN_ROOT}/checklists/review.md
-```
-
-**Key points:**
-- Agent must exist in `plugin/agents/` directory
-- Claude uses Task tool to launch agent
-- Document agent capabilities
-- Reference plugin resources agent uses
-
-### Skill Integration
-
-Leverage plugin skills for specialized knowledge:
-
-```markdown
----
-description: Document API with standards
-argument-hint: [api-file]
----
-
-Document API in @$1 following plugin standards.
-
-Use the api-docs-standards skill to ensure:
-- Complete endpoint documentation
-- Consistent formatting
-- Example quality
-- Error documentation
-
-Generate production-ready API docs.
-```
-
-**Key points:**
-- Skill must exist in `plugin/skills/` directory
-- Mention skill name to trigger invocation
-- Document skill purpose
-- Explain what skill provides
-
-### Hook Coordination
-
-Design commands that work with plugin hooks:
-- Commands can prepare state for hooks to process
-- Hooks execute automatically on tool events
-- Commands should document expected hook behavior
-- Guide Claude on interpreting hook output
-
-See `references/plugin-features-reference.md` for examples of commands that coordinate with hooks
-
-### Multi-Component Workflows
-
-Combine agents, skills, and scripts:
-
-```markdown
----
-description: Comprehensive review workflow
-argument-hint: [file]
-allowed-tools: Bash(node:*), Read
----
-
-Target: @$1
-
-Phase 1 - Static Analysis:
-!`node ${CLAUDE_PLUGIN_ROOT}/scripts/lint.js $1`
-
-Phase 2 - Deep Review:
-Launch code-reviewer agent for detailed analysis.
-
-Phase 3 - Standards Check:
-Use coding-standards skill for validation.
-
-Phase 4 - Report:
-Template: @${CLAUDE_PLUGIN_ROOT}/templates/review.md
-
-Compile findings into report following template.
-```
-
-**When to use:**
-- Complex multi-step workflows
-- Leverage multiple plugin capabilities
-- Require specialized analysis
-- Need structured outputs
+**See `references/plugin-integration.md` for detailed patterns and examples.**
 
 ## Validation Patterns
 
-Commands should validate inputs and resources before processing.
+Commands should validate inputs and resources before processing:
 
-### Argument Validation
+- **Argument validation**: Check required arguments match expected values
+- **File existence**: Verify files exist before processing
+- **Plugin resources**: Validate scripts and configs are present
+- **Error handling**: Capture failures and provide helpful messages
 
-```markdown
----
-description: Deploy with validation
-argument-hint: [environment]
----
+**Best practices:** Validate early, provide helpful errors, suggest corrections.
 
-Validate environment: !`echo "$1" | grep -E "^(dev|staging|prod)$" || echo "INVALID"`
-
-If $1 is valid environment:
-  Deploy to $1
-Otherwise:
-  Explain valid environments: dev, staging, prod
-  Show usage: /deploy [environment]
-```
-
-### File Existence Checks
-
-```markdown
----
-description: Process configuration
-argument-hint: [config-file]
----
-
-Check file exists: !`test -f $1 && echo "EXISTS" || echo "MISSING"`
-
-If file exists:
-  Process configuration: @$1
-Otherwise:
-  Explain where to place config file
-  Show expected format
-  Provide example configuration
-```
-
-### Plugin Resource Validation
-
-```markdown
----
-description: Run plugin analyzer
-allowed-tools: Bash(test:*)
----
-
-Validate plugin setup:
-- Script: !`test -x ${CLAUDE_PLUGIN_ROOT}/bin/analyze && echo "✓" || echo "✗"`
-- Config: !`test -f ${CLAUDE_PLUGIN_ROOT}/config.json && echo "✓" || echo "✗"`
-
-If all checks pass, run analysis.
-Otherwise, report missing components.
-```
-
-### Error Handling
-
-```markdown
----
-description: Build with error handling
-allowed-tools: Bash(*)
----
-
-Execute build: !`bash ${CLAUDE_PLUGIN_ROOT}/scripts/build.sh 2>&1 || echo "BUILD_FAILED"`
-
-If build succeeded:
-  Report success and output location
-If build failed:
-  Analyze error output
-  Suggest likely causes
-  Provide troubleshooting steps
-```
-
-**Best practices:**
-- Validate early in command
-- Provide helpful error messages
-- Suggest corrective actions
-- Handle edge cases gracefully
+**See `references/plugin-integration.md` for validation examples.**
 
 ---
 
 For detailed frontmatter field specifications, see `references/frontmatter-reference.md`.
 For plugin-specific features and patterns, see `references/plugin-features-reference.md`.
+For plugin integration and validation patterns, see `references/plugin-integration.md`.
 For command pattern examples, see `examples/` directory.
