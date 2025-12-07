@@ -659,7 +659,7 @@ enable_feature: true
 
 - Git 2.x or later
 - jq (for JSON processing)
-- Node.js 14+ (optional, for advanced features)
+- Node.js 18+ (matches the minimum runtime required by Claude Code)
 
 ## Troubleshooting
 
