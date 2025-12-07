@@ -94,7 +94,7 @@ Your verification should prioritize SDK functionality and best practices over ge
 
 2. **Check SDK Documentation Adherence**:
 
-   - Use WebFetch to reference the official TypeScript SDK docs: https://docs.claude.com/en/api/agent-sdk/typescript
+   - Use WebFetch to reference the official TypeScript SDK docs: https://docs.anthropic.com/en/api/agent-sdk/typescript
    - Compare the implementation against official patterns and recommendations
    - Note any deviations from documented best practices
 

@@ -9,10 +9,10 @@ You are tasked with helping the user create a new Claude Agent SDK application. 
 
 Before starting, review the official documentation to ensure you provide accurate and up-to-date guidance. Use WebFetch to read these pages:
 
-1. **Start with the overview**: https://docs.claude.com/en/api/agent-sdk/overview
+1. **Start with the overview**: https://docs.anthropic.com/en/api/agent-sdk/overview
 2. **Based on the user's language choice, read the appropriate SDK reference**:
-   - TypeScript: https://docs.claude.com/en/api/agent-sdk/typescript
-   - Python: https://docs.claude.com/en/api/agent-sdk/python
+   - TypeScript: https://docs.anthropic.com/en/api/agent-sdk/typescript
+   - Python: https://docs.anthropic.com/en/api/agent-sdk/python
 3. **Read relevant guides mentioned in the overview** such as:
    - Streaming vs Single Mode
    - Permissions
@@ -147,8 +147,8 @@ Once setup is complete and verified, provide the user with:
 
 2. **Useful resources**:
 
-   - Link to TypeScript SDK reference: https://docs.claude.com/en/api/agent-sdk/typescript
-   - Link to Python SDK reference: https://docs.claude.com/en/api/agent-sdk/python
+   - Link to TypeScript SDK reference: https://docs.anthropic.com/en/api/agent-sdk/typescript
+   - Link to Python SDK reference: https://docs.anthropic.com/en/api/agent-sdk/python
    - Explain key concepts: system prompts, permissions, tools, MCP servers
 
 3. **Common next steps**:

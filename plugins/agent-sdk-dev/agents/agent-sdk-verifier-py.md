@@ -88,7 +88,7 @@ Your verification should prioritize SDK functionality and best practices over ge
 
 2. **Check SDK Documentation Adherence**:
 
-   - Use WebFetch to reference the official Python SDK docs: https://docs.claude.com/en/api/agent-sdk/python
+   - Use WebFetch to reference the official Python SDK docs: https://docs.anthropic.com/en/api/agent-sdk/python
    - Compare the implementation against official patterns and recommendations
    - Note any deviations from documented best practices
 

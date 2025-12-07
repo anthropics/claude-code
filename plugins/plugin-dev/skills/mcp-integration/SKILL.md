@@ -533,7 +533,7 @@ Working examples in `examples/`:
 ### External Resources
 
 - **Official MCP Docs**: https://modelcontextprotocol.io/
-- **Claude Code MCP Docs**: https://docs.claude.com/en/docs/claude-code/mcp
+- **Claude Code MCP Docs**: https://docs.anthropic.com/en/docs/claude-code/mcp
 - **MCP SDK**: @modelcontextprotocol/sdk
 - **Testing**: Use `claude --debug` and `/mcp` command
 

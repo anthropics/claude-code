@@ -86,7 +86,7 @@ This SessionStart hook pattern is roughly equivalent to CLAUDE.md, but it is mor
 - Disable the plugin - keep the code installed on your device
 - Uninstall the plugin - remove the code from your device
 - Update the plugin - create a local copy of this plugin to personalize it
-  - Hint: Ask Claude to read https://docs.claude.com/en/docs/claude-code/plugins.md and set it up for you!
+  - Hint: Ask Claude to read https://docs.anthropic.com/en/docs/claude-code/plugins.md and set it up for you!
 
 ## Philosophy
 

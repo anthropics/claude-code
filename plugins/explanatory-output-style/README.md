@@ -57,7 +57,7 @@ CLAUDE.md, but it is more flexible and allows for distribution through plugins.
 
 Note: Output styles that involve tasks besides software development, are better
 expressed as
-[subagents](https://docs.claude.com/en/docs/claude-code/sub-agents), not as
+[subagents](https://docs.anthropic.com/en/docs/claude-code/sub-agents), not as
 SessionStart hooks. Subagents change the system prompt while SessionStart hooks
 add to the default system prompt.
 
@@ -68,5 +68,5 @@ add to the default system prompt.
 - Update the plugin - create a local copy of this plugin to personalize this
   plugin
   - Hint: Ask Claude to read
-    https://docs.claude.com/en/docs/claude-code/plugins.md and set it up for
+    https://docs.anthropic.com/en/docs/claude-code/plugins.md and set it up for
     you!

@@ -690,7 +690,7 @@ Development tools in `scripts/`:
 
 ### External Resources
 
-- **Official Docs**: https://docs.claude.com/en/docs/claude-code/hooks
+- **Official Docs**: https://docs.anthropic.com/en/docs/claude-code/hooks
 - **Examples**: See security-guidance plugin in marketplace
 - **Testing**: Use `claude --debug` for detailed logs
 - **Validation**: Use `jq` to validate hook JSON output
