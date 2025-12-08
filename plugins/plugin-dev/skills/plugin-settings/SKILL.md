@@ -230,8 +230,8 @@ Read from hooks to coordinate agents:
 AGENT_NAME=$(echo "$FRONTMATTER" | grep '^agent_name:' | sed 's/agent_name: *//')
 COORDINATOR=$(echo "$FRONTMATTER" | grep '^coordinator_session:' | sed 's/coordinator_session: *//')
 
-# Send notification to coordinator
-tmux send-keys -t "$COORDINATOR" "Agent $AGENT_NAME completed task" Enter
+# Send notification to coordinator (use -L default to ensure correct socket)
+tmux -L default send-keys -t "$COORDINATOR" "Agent $AGENT_NAME completed task" Enter
 ```
 
 ### Pattern 3: Configuration-Driven Behavior

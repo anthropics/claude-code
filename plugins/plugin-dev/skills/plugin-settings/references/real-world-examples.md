@@ -76,10 +76,10 @@ fi
 # Send notification to coordinator
 NOTIFICATION="🤖 Agent ${AGENT_NAME} (Task ${TASK_NUMBER}, PR #${PR_NUMBER}) is idle."
 
-if tmux has-session -t "$COORDINATOR_SESSION" 2>/dev/null; then
-  tmux send-keys -t "$COORDINATOR_SESSION" "$NOTIFICATION" Enter
+if tmux -L default has-session -t "$COORDINATOR_SESSION" 2>/dev/null; then
+  tmux -L default send-keys -t "$COORDINATOR_SESSION" "$NOTIFICATION" Enter
   sleep 0.5
-  tmux send-keys -t "$COORDINATOR_SESSION" Enter
+  tmux -L default send-keys -t "$COORDINATOR_SESSION" Enter
 fi
 
 exit 0
