@@ -38,6 +38,8 @@ NOTE: If installing with NPM, you also need to install [Node.js 18+](https://nod
 
 2. Navigate to your project directory and run `claude`.
 
+3. Say hello world! Try asking Claude: "Say hello world"
+
 ## Plugins
 
 This repository includes several Claude Code plugins that extend functionality with custom commands and agents. See the [plugins directory](./plugins/README.md) for detailed documentation on available plugins.
