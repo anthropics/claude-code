@@ -1,39 +1,25 @@
-# Telemetry Fix Plugin
+# Fix for Telemetry DNS Errors (Issue #13272)
 
-Diagnostic tools and workarounds for telemetry connection issues in Claude Code, including DNS failures for monitoring services like Datadog.
+## Problem
 
-> **Note**: This plugin resolves issue [#13272](https://github.com/anthropics/claude-code/issues/13272) where users experienced repeated DNS errors (`getaddrinfo ENOTFOUND http-intake.logs.datadoghq.com`) that didn't affect core functionality but cluttered error logs.
+Users experience repeated DNS errors that clutter logs without affecting core functionality:
 
-## Overview
-
-Claude Code sends telemetry data to monitoring services for analytics and error tracking. When these connections fail due to network restrictions, DNS issues, or connectivity problems, error logs can accumulate without affecting core functionality.
-
-**This plugin helps you:**
-- Diagnose telemetry connection issues
-- Apply workarounds to suppress non-critical errors
-- Configure Claude Code to work better in restricted networks
-
-## Common Symptoms
-
-You may see repeated errors like:
 ```
 Error: getaddrinfo ENOTFOUND http-intake.logs.datadoghq.com
 ```
 
-**These errors don't affect Claude Code's core functionality**, but they:
+These errors occur when Claude Code attempts to send telemetry data to Datadog monitoring services but encounters network restrictions, DNS failures, or connectivity issues. While **core functionality remains unaffected**, the errors:
 - Clutter error logs
-- Waste network resources with retry attempts
-- May trigger security alerts in corporate environments
+- Waste network resources on retry attempts
+- May trigger security alerts in restricted environments
 
-## Quick Fix
+## Solution
 
-The fastest way to resolve telemetry issues is to disable non-essential network traffic:
+Use the `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` environment variable (available since v2.0.17) to disable telemetry and other non-essential network traffic.
 
-### Environment Variable
+### Quick Fix
 
-Set this environment variable before starting Claude Code:
-
-**macOS/Linux (bash/zsh):**
+**macOS/Linux:**
 ```bash
 export CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=true
 ```
@@ -50,161 +36,70 @@ set CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=true
 
 ### Permanent Configuration
 
-**macOS/Linux:**
-Add to your `~/.bashrc`, `~/.zshrc`, or `~/.profile`:
+**macOS/Linux** - Add to `~/.bashrc`, `~/.zshrc`, or `~/.profile`:
 ```bash
 export CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=true
 ```
 
-**Windows (PowerShell):**
-Add to your PowerShell profile (`$PROFILE`):
+**Windows (PowerShell)** - Add to your PowerShell profile (`$PROFILE`):
 ```powershell
 $env:CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC = "true"
 ```
 
-Or set as a system environment variable through Windows Settings.
+**Windows (System)** - Set as system environment variable through Windows Settings → System → Advanced → Environment Variables.
 
-## Commands
+## Documentation Updates
 
-### `/telemetry-fix:diagnose`
+This PR adds troubleshooting documentation to help users resolve telemetry-related errors:
 
-Diagnoses telemetry connection issues and provides specific recommendations.
+1. **Main README** - Added "Telemetry Connection Errors" section under Common Issues
+2. **Plugins README** - Added telemetry-fix entry to plugins table
+3. **Plugin README** - Comprehensive guide with troubleshooting steps
 
-**Usage:**
-```bash
-/telemetry-fix:diagnose
-```
+## Common Scenarios
 
-**What it checks:**
-- Environment variable configuration
-- Network connectivity to telemetry endpoints
-- DNS resolution capabilities
-- Proxy configuration
-- Common network restrictions
+### Corporate Networks
+- **DNS restrictions**: Corporate DNS may not resolve external monitoring domains
+- **Firewall rules**: Connections to `*.datadoghq.com` may be blocked
+- **Solution**: Use the environment variable or work with IT to whitelist required domains
 
-### `/telemetry-fix:disable`
+### VPN Usage
+- **DNS blocking**: Some VPNs block or redirect DNS queries to monitoring services
+- **Solution**: Configure VPN allowlist or use the environment variable
 
-Quick command to disable telemetry for the current session.
-
-**Usage:**
-```bash
-/telemetry-fix:disable
-```
-
-Equivalent to running:
-```bash
-export CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=true
-```
+### Offline/Air-gapped Environments
+- **No connectivity**: System has limited or no internet access
+- **Solution**: Set the environment variable to prevent connection attempts
 
 ## Related Environment Variables
 
-Claude Code supports several environment variables for network configuration:
-
-| Variable | Purpose | Since Version |
-|----------|---------|---------------|
-| `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` | Disables telemetry and release notes fetching | 2.0.17 |
-| `CLAUDE_CODE_PROXY_RESOLVES_HOSTS` | Enables proxy DNS resolution (opt-in) | 2.0.55 |
-| `HTTP_PROXY` / `HTTPS_PROXY` | Configure HTTP proxy | 2.0.26 |
+| Variable | Purpose | Since |
+|----------|---------|-------|
+| `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` | Disables telemetry and release notes | 2.0.17 |
+| `CLAUDE_CODE_PROXY_RESOLVES_HOSTS` | Proxy DNS resolution (opt-in) | 2.0.55 |
+| `HTTP_PROXY` / `HTTPS_PROXY` | HTTP proxy configuration | 2.0.26 |
 | `NO_PROXY` | Bypass proxy for specific hosts | 1.0.90 |
 
-## Troubleshooting
+## Privacy Considerations
 
-### Error Persists After Setting Environment Variable
-
-1. **Verify the variable is set:**
-   ```bash
-   echo $CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC  # macOS/Linux
-   echo %CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC% # Windows CMD
-   $env:CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC   # Windows PowerShell
-   ```
-
-2. **Restart Claude Code** after setting the variable
-
-3. **Check for typos** - the variable name is case-sensitive
-
-### Corporate Network / Firewall Issues
-
-If you're on a corporate network:
-
-1. **Work with IT** to whitelist these domains (if you want telemetry):
-   - `*.datadoghq.com`
-   - `*.anthropic.com`
-   - `*.claude.ai`
-
-2. **Configure proxy** if your network requires it:
-   ```bash
-   export HTTP_PROXY=http://proxy.company.com:8080
-   export HTTPS_PROXY=http://proxy.company.com:8080
-   export NO_PROXY=localhost,127.0.0.1
-   ```
-
-3. **Use offline mode** with the disable flag as shown above
-
-### VPN Issues
-
-Some VPNs block or redirect DNS queries:
-
-1. Try disabling VPN temporarily to test
-2. Configure VPN to allow `*.datadoghq.com` 
-3. Use the `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` workaround
-
-## Why This Happens
-
-Telemetry failures occur when:
-
-1. **DNS Resolution Fails**
-   - Corporate DNS doesn't resolve external domains
-   - VPN blocks certain DNS queries
-   - DNS server is unreachable
-
-2. **Network Restrictions**
-   - Firewall blocks connections to monitoring services
-   - Proxy configuration doesn't include telemetry endpoints
-   - Geographic restrictions on certain domains
-
-3. **Offline Usage**
-   - No internet connection
-   - Limited connectivity
-
-## Impact on Privacy
-
-**Disabling telemetry:**
+Disabling telemetry:
 - ✅ Reduces network traffic
-- ✅ Works in offline/restricted environments
-- ✅ No impact on core Claude Code functionality
-- ⚠️ Anthropic won't receive usage data or error reports
+- ✅ Enables offline/restricted network usage
+- ✅ No impact on core functionality
+- ⚠️ Anthropic won't receive usage analytics or error reports
 - ⚠️ May delay bug fixes for issues you encounter
 
 See [Data Usage Policies](https://docs.anthropic.com/en/docs/claude-code/data-usage) for details.
 
-## Reporting Issues
+## Testing
 
-If you continue to experience problems:
-
-1. Use `/bug` command in Claude Code to report the issue
-2. Include error messages and your network environment details
-3. File an issue at: https://github.com/anthropics/claude-code/issues
-4. Join the [Claude Developers Discord](https://anthropic.com/discord)
-
-## Contributing
-
-Found a better solution? Contributions welcome! See the main repository's contribution guidelines.
-
-## Version History
-
-**v1.0.0** (December 2025)
-- Initial release
-- Added `/telemetry-fix:diagnose` command for comprehensive diagnostics
-- Added `/telemetry-fix:disable` command for quick telemetry disable
-- Cross-platform support (Windows, macOS, Linux)
-- Resolves issue #13272
+Verified on:
+- ✅ Windows 11 (PowerShell 5.1)
+- ✅ Cross-platform shell commands validated
+- ✅ Environment variable behavior confirmed
 
 ## References
 
+- [Issue #13272](https://github.com/anthropics/claude-code/issues/13272) - Original bug report
 - [Claude Code Documentation](https://docs.anthropic.com/en/docs/claude-code/overview)
 - [Data Usage Policies](https://docs.anthropic.com/en/docs/claude-code/data-usage)
-- [Issue #13272](https://github.com/anthropics/claude-code/issues/13272) - Original report
-
-## Contributing
-
-This plugin was created to help users experiencing telemetry connection issues. If you have suggestions for improvements or encounter issues, please open an issue in the main repository.
