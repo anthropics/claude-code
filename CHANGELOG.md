@@ -1,5 +1,35 @@
 # Changelog
 
+## 2.0.64
+
+- Made auto-compacting instant
+- Agents and bash commands can run asynchronously and send messages to wake up the main agent
+- /stats now provides users with interesting CC stats, such as favorite model, usage graph, usage streak
+- Added named session support: use `/rename` to name sessions, `/resume <name>` in REPL or `claude --resume <name>` from the terminal to resume them
+- Added support for .claude/rules/`.  See https://code.claude.com/docs/en/memory for details.
+- Added image dimension metadata when images are resized, enabling accurate coordinate mappings for large images
+- Fixed auto-loading .env when using native installer
+- Fixed `--system-prompt` being ignored when using `--continue` or `--resume` flags
+- Improved `/resume` screen with grouped forked sessions and keyboard shortcuts for preview (P) and rename (R)
+- VSCode: Added copy-to-clipboard button on code blocks and bash tool inputs
+- VSCode: Fixed extension not working on Windows ARM64 by falling back to x64 binary via emulation
+- Bedrock: Improve efficiency of token counting
+- Unshipped AgentOutputTool and BashOutputTool, in favor of a new unified TaskOutputTool
+
+## 2.0.62
+
+- Added "(Recommended)" indicator for multiple-choice questions, with the recommended option moved to the top of the list
+- Added `attribution` setting to customize commit and PR bylines (deprecates `includeCoAuthoredBy`)
+- Fixed duplicate slash commands appearing when ~/.claude is symlinked to a project directory
+- Fixed slash command selection not working when multiple commands share the same name
+- Fixed an issue where skill files inside symlinked skill directories could become circular symlinks
+- Fixed running versions getting removed because lock file incorrectly going stale
+- Fixed IDE diff tab not closing when rejecting file changes
+
+## 2.0.61
+
+- Reverted VSCode support for multiple terminal clients due to responsiveness issues.
+
 ## 2.0.60
 
 - Added background agent support. Agents run in the background while you work
