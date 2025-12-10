@@ -1,0 +1,8 @@
+Luton Field Model (LFM) / KLTOE  
+© 2025 Keith Luton – All Rights Reserved  
+
+Free for education & research with attribution  
+Commercial licensing: keith@lutonfield.com
+
+Derives 28 Standard Model parameters + gravity + cosmological constant from nuclear-density anchor.
+Applies V3.0 AGI Stability Lock for inference optimization.
