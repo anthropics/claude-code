@@ -63,11 +63,48 @@ Included files can themselves contain `@include` directives:
 | Case | Behavior |
 |------|----------|
 | Missing file | Warns to stderr, continues processing |
-| Circular include | Errors to stderr, stops that branch |
+| Circular include | Warns to stderr, stops that branch |
 | Invalid path | Warns to stderr, skips |
 | Empty @include | Skips line |
 | @include mid-line | Not processed (must be at line start) |
+| @include in code block | Not processed (preserved as-is) |
 | Max depth exceeded | Warns at depth 10, stops recursion |
+| Path with spaces | Supported (e.g., `@include ~/my docs/file.md`) |
+| Path traversal attack | Blocked with security warning |
+
+## Security
+
+The plugin validates all include paths to prevent directory traversal attacks:
+
+**Allowed locations:**
+- Within the project directory (and subdirectories)
+- Within `~/.claude/` (user's Claude config directory)
+- Other readable paths (excluding system directories)
+
+**Blocked locations:**
+- `/etc/`, `/var/`, `/usr/`, `/sys/`, `/proc/`
+- Any path using `../` to escape allowed boundaries
+
+**Example blocked paths:**
+```markdown
+@include ../../../etc/passwd           # Blocked: system directory
+@include /etc/shadow                   # Blocked: sensitive system file
+```
+
+## Code Blocks
+
+The `@include` directive is **not processed** inside markdown code blocks:
+
+````markdown
+This @include ~/.claude/rules.md will be processed.
+
+```markdown
+# Example documentation
+@include ~/.claude/example.md  # This is preserved as-is (not processed)
+```
+
+This @include ~/.claude/more.md will also be processed.
+````
 
 ## Example Setup
 

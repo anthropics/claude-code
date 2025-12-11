@@ -10,6 +10,10 @@ Path resolution:
 - ./...     → relative to the including file's directory
 - relative  → relative to the including file's directory
 - absolute  → used as-is
+
+Security:
+- Paths are validated to prevent directory traversal attacks
+- Only files within allowed directories can be included
 """
 
 import json
@@ -17,12 +21,14 @@ import os
 import re
 import sys
 from pathlib import Path
+from typing import Optional, Set
 
-INCLUDE_PATTERN = re.compile(r'^@include\s+(.+?)\s*$')
+# Use greedy match (.+) to support paths with spaces
+INCLUDE_PATTERN = re.compile(r'^@include\s+(.+)\s*$')
 MAX_DEPTH = 10  # Prevent runaway recursion
 
 
-def resolve_path(include_path: str, base_dir: Path) -> Path:
+def resolve_path(include_path: str, base_dir: Path) -> Optional[Path]:
     """Resolve an include path relative to the base directory."""
     include_path = include_path.strip()
 
@@ -41,14 +47,77 @@ def resolve_path(include_path: str, base_dir: Path) -> Path:
     return base_dir / include_path
 
 
-def process_file(file_path: Path, seen: set, depth: int = 0) -> str:
+def is_path_safe(resolved_path: Path, base_dir: Path) -> bool:
+    """
+    Validate that the resolved path doesn't escape allowed boundaries.
+
+    Allowed locations:
+    - Within the project directory (base_dir or its subdirectories)
+    - Within user's home directory ~/.claude/ folder
+    - Absolute paths that exist and are readable
+
+    This prevents directory traversal attacks like @include ../../../etc/passwd
+    """
+    try:
+        resolved = resolved_path.resolve()
+        base_resolved = base_dir.resolve()
+        home_claude = Path.home() / '.claude'
+
+        # Allow paths within project directory
+        try:
+            resolved.relative_to(base_resolved)
+            return True
+        except ValueError:
+            pass
+
+        # Allow paths within ~/.claude/
+        try:
+            resolved.relative_to(home_claude)
+            return True
+        except ValueError:
+            pass
+
+        # For absolute paths outside these directories, check they're not
+        # trying to access sensitive system files
+        if resolved.exists():
+            # Block common sensitive paths
+            sensitive_prefixes = ['/etc/', '/var/', '/usr/', '/sys/', '/proc/']
+            resolved_str = str(resolved)
+            for prefix in sensitive_prefixes:
+                if resolved_str.startswith(prefix):
+                    return False
+            return True
+
+        return False
+    except (OSError, ValueError):
+        return False
+
+
+def is_in_code_block(lines: list, current_index: int) -> bool:
+    """
+    Check if the current line is inside a markdown code block.
+
+    Tracks opening/closing triple backticks to determine if we're
+    inside a fenced code block where @include should be ignored.
+    """
+    in_block = False
+    for i in range(current_index):
+        line = lines[i].rstrip()
+        # Check for code fence (``` with optional language specifier)
+        if line.startswith('```'):
+            in_block = not in_block
+    return in_block
+
+
+def process_file(file_path: Path, include_chain: Set[Path], depth: int = 0, project_dir: Optional[Path] = None) -> str:
     """
     Process a file, expanding @include directives.
 
     Args:
         file_path: Path to the file to process
-        seen: Set of already-seen absolute paths (for circular detection)
+        include_chain: Set of files currently being processed (for circular detection)
         depth: Current recursion depth
+        project_dir: Root project directory for path validation
 
     Returns:
         Processed file content with includes expanded
@@ -60,8 +129,8 @@ def process_file(file_path: Path, seen: set, depth: int = 0) -> str:
     abs_path = file_path.resolve()
 
     # Check for circular includes
-    if abs_path in seen:
-        print(f"Error: Circular include detected: {file_path}", file=sys.stderr)
+    if abs_path in include_chain:
+        print(f"Warning: Circular include detected: {file_path}", file=sys.stderr)
         return ""
 
     # Check if file exists
@@ -73,20 +142,28 @@ def process_file(file_path: Path, seen: set, depth: int = 0) -> str:
         print(f"Warning: Include path is not a file: {file_path}", file=sys.stderr)
         return ""
 
-    seen.add(abs_path)
+    include_chain.add(abs_path)
     base_dir = file_path.parent
+
+    # Use project_dir for path validation, defaulting to base_dir
+    validation_base = project_dir if project_dir else base_dir
 
     try:
         content = file_path.read_text(encoding='utf-8')
     except Exception as e:
         print(f"Warning: Could not read {file_path}: {e}", file=sys.stderr)
-        seen.discard(abs_path)
+        include_chain.discard(abs_path)
         return ""
 
     lines = content.splitlines(keepends=True)
     result = []
 
-    for line in lines:
+    for i, line in enumerate(lines):
+        # Skip @include directives inside code blocks
+        if is_in_code_block(lines, i):
+            result.append(line)
+            continue
+
         match = INCLUDE_PATTERN.match(line)
         if match:
             include_path_str = match.group(1)
@@ -96,8 +173,13 @@ def process_file(file_path: Path, seen: set, depth: int = 0) -> str:
                 # Empty @include, skip
                 continue
 
+            # Validate path for security
+            if not is_path_safe(include_path, validation_base):
+                print(f"Warning: Path not allowed (security): {include_path}", file=sys.stderr)
+                continue
+
             # Recursively process the included file
-            included_content = process_file(include_path, seen, depth + 1)
+            included_content = process_file(include_path, include_chain, depth + 1, validation_base)
             if included_content:
                 # Ensure included content ends with newline for clean joining
                 if not included_content.endswith('\n'):
@@ -106,7 +188,7 @@ def process_file(file_path: Path, seen: set, depth: int = 0) -> str:
         else:
             result.append(line)
 
-    seen.discard(abs_path)
+    include_chain.discard(abs_path)
     return ''.join(result)
 
 
@@ -140,8 +222,9 @@ def get_project_dir() -> str:
 
 def main():
     # Get the project directory
-    project_dir = get_project_dir()
-    claude_md_path = Path(project_dir) / 'CLAUDE.md'
+    project_dir_str = get_project_dir()
+    project_dir = Path(project_dir_str)
+    claude_md_path = project_dir / 'CLAUDE.md'
 
     if not claude_md_path.exists():
         # No CLAUDE.md in project, output empty context
@@ -155,8 +238,8 @@ def main():
         return
 
     # Process the CLAUDE.md file
-    seen = set()
-    merged_content = process_file(claude_md_path, seen)
+    include_chain: Set[Path] = set()
+    merged_content = process_file(claude_md_path, include_chain, project_dir=project_dir)
 
     # Output the result as JSON for the hook
     output = {
