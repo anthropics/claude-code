@@ -12,6 +12,7 @@ description: Brief description
 allowed-tools: Read, Write
 model: sonnet
 argument-hint: [arg1] [arg2]
+skills: skill-a, skill-b
 ---
 
 Command prompt content here...
@@ -321,6 +322,51 @@ disable-model-invocation: true
 - Document why in command comments
 - Consider if command should exist if always manual
 
+### skills
+
+**Type:** String (comma-separated list)
+**Required:** No
+**Default:** None
+
+**Purpose:** Declare skills to auto-load when this command executes. Ensures specific skills are always available regardless of context matching.
+
+**Examples:**
+```yaml
+skills: database-migration, sql-optimization
+```
+
+**When to use:**
+
+1. **Commands requiring domain knowledge:** Ensure relevant skills load
+   ```yaml
+   ---
+   description: Run database migration
+   skills: database-migration, postgres-ops
+   ---
+   ```
+
+2. **Skills that should persist across compaction:** Force-load skills that might otherwise be lost
+   ```yaml
+   ---
+   description: Complex multi-step workflow
+   skills: workflow-skill, validation-skill
+   ---
+   ```
+
+3. **Specialized commands:** Commands that always need specific expertise
+   ```yaml
+   ---
+   description: Generate API documentation
+   skills: api-documentation, openapi-spec
+   ---
+   ```
+
+**Best practices:**
+- Only declare skills essential to the command's function
+- Use skill names exactly as defined in SKILL.md frontmatter
+- Keep the list focused (2-4 skills max)
+- Let context-triggered skills load naturally for optional capabilities
+
 ## Complete Examples
 
 ### Minimal Command
@@ -451,6 +497,7 @@ Before committing command:
 - [ ] model is valid value if specified
 - [ ] argument-hint matches positional arguments
 - [ ] disable-model-invocation used appropriately
+- [ ] skills references valid skill names if specified
 
 ## Best Practices Summary
 
@@ -460,4 +507,5 @@ Before committing command:
 4. **Choose right model:** Use haiku for speed, opus for complexity
 5. **Manual-only sparingly:** Only use disable-model-invocation when necessary
 6. **Clear descriptions:** Make commands discoverable in `/help`
-7. **Test thoroughly:** Verify frontmatter works as expected
+7. **Declare essential skills:** Use skills field for domain knowledge that must persist
+8. **Test thoroughly:** Verify frontmatter works as expected

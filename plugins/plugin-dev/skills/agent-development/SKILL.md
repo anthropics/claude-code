@@ -42,6 +42,7 @@ assistant: "[How assistant should respond and use this agent]"
 model: inherit
 color: blue
 tools: ["Read", "Write", "Grep"]
+skills: skill-name-1, skill-name-2
 ---
 
 You are [agent role description]...
@@ -158,6 +159,35 @@ tools: ["Read", "Write", "Grep", "Bash"]
 - Code generation: `["Read", "Write", "Grep"]`
 - Testing: `["Read", "Bash", "Grep"]`
 - Full access: Omit field or use `["*"]`
+
+### skills (optional)
+
+Declare skills to auto-load when this agent is invoked.
+
+**Format:** Comma-separated list of skill names
+
+```yaml
+skills: database-migration, postgres-ops
+```
+
+**Purpose:** Ensures specific skills are always available to the agent, regardless of context matching. This is especially useful for:
+- Skills that should persist across context compaction
+- Specialized agents that always need certain domain knowledge
+- Ensuring consistent agent behavior with required skills
+
+**Example:**
+```yaml
+---
+name: db-admin
+description: Use this agent for database administration tasks...
+model: inherit
+color: cyan
+tools: ["Bash", "Read", "Write"]
+skills: database-migration, sql-optimization
+---
+```
+
+**Best practice:** Only declare skills essential to the agent's core function. Let context-triggered skills load naturally for optional capabilities.
 
 ## System Prompt Design
 
@@ -355,6 +385,7 @@ Output: [What to provide]
 | model | Yes | inherit/sonnet/opus/haiku | inherit |
 | color | Yes | Color name | blue |
 | tools | No | Array of tool names | ["Read", "Grep"] |
+| skills | No | Comma-separated names | skill-a, skill-b |
 
 ### Best Practices
 
