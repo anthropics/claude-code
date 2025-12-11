@@ -1,0 +1,5 @@
+{
+  "name": "claude-md-includes",
+  "version": "1.0.0",
+  "description": "Process @include directives in CLAUDE.md for composable instructions"
+}
