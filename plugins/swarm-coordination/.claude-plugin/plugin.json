@@ -1,0 +1,7 @@
+{
+  "name": "swarm-coordination",
+  "version": "1.0.0",
+  "description": "Coordinates multi-agent swarms with status polling, file claiming, and checkpoint-based orchestration to prevent conflicts and enable proactive monitoring",
+  "author": "Anthropic",
+  "keywords": ["swarm", "multi-agent", "coordination", "orchestration", "parallel"]
+}
