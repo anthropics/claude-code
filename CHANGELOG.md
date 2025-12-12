@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Fixed marketplace auto-installation failure during native install. Workaround: If you encounter "officialMarketplaceAutoInstallFailReason: unknown" in ~/.claude.json, clear the officialMarketplaceAutoInstall* fields and restart Claude to trigger marketplace installation in interactive mode
+
 ## 2.0.67
 
 - Claude now suggests prompts to speed up your workflow: press Tab to accept or Enter to submit
