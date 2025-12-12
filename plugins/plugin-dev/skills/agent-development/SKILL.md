@@ -42,6 +42,7 @@ assistant: "[How assistant should respond and use this agent]"
 model: inherit
 color: blue
 tools: ["Read", "Write", "Grep"]
+permissionMode: default
 ---
 
 You are [agent role description]...
@@ -158,6 +159,41 @@ tools: ["Read", "Write", "Grep", "Bash"]
 - Code generation: `["Read", "Write", "Grep"]`
 - Testing: `["Read", "Bash", "Grep"]`
 - Full access: Omit field or use `["*"]`
+
+### permissionMode (optional)
+
+Control how permission prompts are handled for the agent.
+
+**Format:** String
+
+**Options:**
+- `default` - Inherit permission mode from parent conversation (default behavior)
+- `ask` - Always prompt for permission before tool use
+- `accept-edits` - Auto-accept file edits without prompting
+
+```yaml
+permissionMode: accept-edits
+```
+
+**Default:** If omitted, inherits from parent conversation settings
+
+**Backwards compatibility:** `acceptEdits` is also accepted but `accept-edits` (kebab-case) is preferred for consistency with CLI flags.
+
+**Use cases:**
+- Agents performing many file operations: Use `accept-edits`
+- Security-sensitive agents: Use `ask` to ensure oversight
+- General purpose: Omit field to inherit conversation settings
+
+**Example:**
+```yaml
+---
+name: code-generator
+description: Use this agent when...
+model: inherit
+color: green
+permissionMode: accept-edits
+---
+```
 
 ## System Prompt Design
 
@@ -355,6 +391,7 @@ Output: [What to provide]
 | model | Yes | inherit/sonnet/opus/haiku | inherit |
 | color | Yes | Color name | blue |
 | tools | No | Array of tool names | ["Read", "Grep"] |
+| permissionMode | No | default/ask/accept-edits | accept-edits |
 
 ### Best Practices
 
