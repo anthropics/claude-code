@@ -198,6 +198,10 @@ def extract_frontmatter(content: str) -> tuple[Dict[str, Any], str]:
 def load_rules(event: Optional[str] = None) -> List[Rule]:
     """Load all hookify rules from .claude directory.
 
+    Loads rules from both:
+    - Project-level: ./.claude/hookify.*.local.md (relative to cwd)
+    - Global: ~/.claude/hookify.*.local.md (user's home directory)
+
     Args:
         event: Optional event filter ("bash", "file", "stop", etc.)
 
@@ -206,9 +210,14 @@ def load_rules(event: Optional[str] = None) -> List[Rule]:
     """
     rules = []
 
-    # Find all hookify.*.local.md files
-    pattern = os.path.join('.claude', 'hookify.*.local.md')
-    files = glob.glob(pattern)
+    # Find all hookify.*.local.md files from both project and global .claude
+    patterns = [
+        os.path.join('.claude', 'hookify.*.local.md'),  # Project-level
+        os.path.expanduser(os.path.join('~', '.claude', 'hookify.*.local.md')),  # Global
+    ]
+    files = []
+    for pattern in patterns:
+        files.extend(glob.glob(pattern))
 
     for file_path in files:
         try:
