@@ -1,0 +1,9 @@
+{
+  "name": "accept-with-feedback",
+  "version": "1.0.0",
+  "description": "Accept permission requests with feedback - provide guidance to Claude when approving operations",
+  "author": {
+    "name": "Anthropic",
+    "email": "support@anthropic.com"
+  }
+}

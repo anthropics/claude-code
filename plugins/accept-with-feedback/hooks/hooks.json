@@ -1,0 +1,17 @@
+{
+  "description": "Accept with feedback - allows users to provide guidance when approving tool permissions",
+  "hooks": {
+    "PermissionRequest": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/accept_with_feedback.py",
+            "timeout": 300
+          }
+        ]
+      }
+    ]
+  }
+}
