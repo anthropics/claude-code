@@ -344,3 +344,69 @@ fi
 - Per-project settings
 - Team-specific rules
 - Dynamic validation criteria
+
+## Pattern 11: Format Teammate Idle Notifications
+
+Format raw JSON IPC messages from workers/teammates into user-friendly display:
+
+```json
+{
+  "Notification": [
+    {
+      "matcher": "*",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/notification.py",
+          "timeout": 10
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Example script (format-idle-notification.py):**
+```python
+#!/usr/bin/env python3
+import sys
+import json
+
+def format_idle_notification(data):
+    """Format idle notification for display."""
+    worker_name = data.get('from', 'worker')
+    # Output format:
+    # ⏺ worker-1
+    #   ⎿ Status is idle
+    return f"⏺ {worker_name}\n  ⎿ Status is idle"
+
+def main():
+    input_data = json.load(sys.stdin)
+
+    # Check for idle notification
+    if input_data.get('type') == 'idle_notification':
+        formatted = format_idle_notification(input_data)
+        print(json.dumps({"systemMessage": formatted}))
+    else:
+        print(json.dumps({}))
+
+if __name__ == '__main__':
+    main()
+```
+
+**Input (raw JSON IPC message):**
+```json
+{"type": "idle_notification", "from": "worker-1", "timestamp": "2025-12-15T05:22:40.320Z"}
+```
+
+**Output (formatted for display):**
+```
+⏺ worker-1
+  ⎿ Status is idle
+```
+
+**Use for:**
+- Formatting teammate/worker status messages
+- Converting internal IPC messages to user-friendly display
+- Multi-agent swarm coordination UI
+- Any notification that shouldn't show raw JSON to users
