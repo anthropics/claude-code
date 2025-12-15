@@ -5,6 +5,9 @@ description: Code review a pull request
 
 Provide a code review for the given pull request.
 
+**Arguments:**
+- `--no-comment`: Skip posting the review as a PR comment. Instead, output the review to the terminal only. This is useful when running locally and you don't want to post to GitHub.
+
 To do this, follow these steps precisely:
 
 1. Launch a haiku agent to check if any of the following are true:
@@ -52,8 +55,11 @@ Note: Still review Claude generated PR's.
 
 6. Filter out any issues that were not validated in step 5. This step will give us our list of high signal issues for our review.
 
-7. Finally, comment on the pull request.
-   When writing your comment, follow these guidelines:
+7. Finally, output the review:
+   - If `--no-comment` was passed as an argument, output the review directly to the terminal (do NOT post to GitHub)
+   - Otherwise, post the review as a comment on the pull request using `gh pr comment`
+
+   When writing your review, follow these guidelines:
    a. Keep your output brief
    b. Avoid emojis
    c. Link and cite relevant code, files, and URLs for each issue

@@ -26,8 +26,11 @@ Performs automated code review on a pull request using multiple specialized agen
 
 **Usage:**
 ```bash
-/code-review
+/code-review [--no-comment]
 ```
+
+**Options:**
+- `--no-comment`: Skip posting the review to GitHub. Output the review to the terminal only. Useful for local review without creating PR comments.
 
 **Example workflow:**
 ```bash
@@ -39,6 +42,9 @@ Performs automated code review on a pull request using multiple specialized agen
 # - Score each issue for confidence
 # - Post comment with issues ≥80 confidence
 # - Skip posting if no high-confidence issues found
+
+# For local-only review (no GitHub comment):
+/code-review --no-comment
 ```
 
 **Features:**
@@ -49,6 +55,7 @@ Performs automated code review on a pull request using multiple specialized agen
 - Historical context analysis via git blame
 - Automatic skipping of closed, draft, or already-reviewed PRs
 - Links directly to code with full SHA and line ranges
+- Optional `--no-comment` flag for local-only review without posting to GitHub
 
 **Review comment format:**
 ```markdown
@@ -196,6 +203,7 @@ https://github.com/owner/repo/blob/[full-sha]/path/file.ext#L[start]-L[end]
 - **Iterate on guidelines**: Update CLAUDE.md based on patterns
 - **Review automatically**: Set up as part of PR workflow
 - **Trust the filtering**: Threshold prevents noise
+- **Use `--no-comment` for local development**: Get review feedback without cluttering the PR
 
 ## Configuration
 
