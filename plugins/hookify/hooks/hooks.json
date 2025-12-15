@@ -3,6 +3,7 @@
   "hooks": {
     "PreToolUse": [
       {
+        "matcher": "*",
         "hooks": [
           {
             "type": "command",
@@ -14,6 +15,7 @@
     ],
     "PostToolUse": [
       {
+        "matcher": "*",
         "hooks": [
           {
             "type": "command",
@@ -25,6 +27,7 @@
     ],
     "Stop": [
       {
+        "matcher": "*",
         "hooks": [
           {
             "type": "command",
@@ -36,6 +39,7 @@
     ],
     "UserPromptSubmit": [
       {
+        "matcher": "*",
         "hooks": [
           {
             "type": "command",
