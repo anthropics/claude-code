@@ -344,3 +344,97 @@ fi
 - Per-project settings
 - Team-specific rules
 - Dynamic validation criteria
+
+## Pattern 11: Teleport Workflow Automation
+
+Automate setup when teleporting sessions between web and CLI:
+
+**Pre-teleport hook (prepare for transfer):**
+```json
+{
+  "PreTeleport": [
+    {
+      "matcher": "*",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/pre-teleport.sh"
+        }
+      ]
+    }
+  ]
+}
+```
+
+**pre-teleport.sh:**
+```bash
+#!/bin/bash
+cd "$CLAUDE_PROJECT_DIR" || exit 0
+
+# Stash uncommitted changes before teleporting
+if [ -d ".git" ] && [ -n "$(git status --porcelain)" ]; then
+  echo "📦 Stashing uncommitted changes..."
+  git stash push -m "pre-teleport-$(date +%s)"
+fi
+
+# Save current state for restoration
+echo "$(git branch --show-current)" > .claude/.teleport-state
+```
+
+**Post-teleport hook (set up after transfer):**
+```json
+{
+  "PostTeleport": [
+    {
+      "matcher": "*",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/post-teleport.sh"
+        }
+      ]
+    }
+  ]
+}
+```
+
+**post-teleport.sh:**
+```bash
+#!/bin/bash
+cd "$CLAUDE_PROJECT_DIR" || exit 0
+
+# Pull latest changes
+if [ -d ".git" ]; then
+  echo "🔄 Pulling latest changes..."
+  git pull origin "$(git branch --show-current)" 2>/dev/null || true
+
+  # Restore stashed changes if any
+  if git stash list | grep -q "pre-teleport"; then
+    echo "📦 Restoring stashed changes..."
+    git stash pop
+  fi
+fi
+
+# Install dependencies
+if [ -f "package.json" ]; then
+  echo "📦 Installing dependencies..."
+  npm install --silent
+fi
+
+# Start dev server
+if [ -f "package.json" ] && grep -q '"dev:staging"' package.json; then
+  echo "🚀 Starting staging dev server..."
+  npm run dev:staging &
+elif [ -f "package.json" ] && grep -q '"dev"' package.json; then
+  echo "🚀 Starting dev server..."
+  npm run dev &
+fi
+
+echo "✅ Teleport complete! Environment ready."
+```
+
+**Use for:**
+- Seamless web-to-CLI workflow transitions
+- Automatic dev server startup after teleporting
+- Preserving uncommitted work across teleports
+- Environment setup automation
