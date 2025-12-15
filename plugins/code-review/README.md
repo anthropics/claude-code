@@ -26,25 +26,24 @@ Performs automated code review on a pull request using multiple specialized agen
 
 **Usage:**
 ```bash
-/code-review [--no-comment]
+/code-review [--comment]
 ```
 
 **Options:**
-- `--no-comment`: Skip posting the review to GitHub. Output the review to the terminal only. Useful for local review without creating PR comments.
+- `--comment`: Post the review as a PR comment on GitHub. By default, the review is output to the terminal only.
 
 **Example workflow:**
 ```bash
-# On a PR branch, run:
+# On a PR branch, run (outputs to terminal only):
 /code-review
 
 # Claude will:
 # - Launch 4 review agents in parallel
 # - Score each issue for confidence
-# - Post comment with issues ≥80 confidence
-# - Skip posting if no high-confidence issues found
+# - Output review with issues ≥80 confidence to terminal
 
-# For local-only review (no GitHub comment):
-/code-review --no-comment
+# To post review as a GitHub PR comment:
+/code-review --comment
 ```
 
 **Features:**
@@ -55,7 +54,7 @@ Performs automated code review on a pull request using multiple specialized agen
 - Historical context analysis via git blame
 - Automatic skipping of closed, draft, or already-reviewed PRs
 - Links directly to code with full SHA and line ranges
-- Optional `--no-comment` flag for local-only review without posting to GitHub
+- Local-only output by default; use `--comment` flag to post to GitHub PR
 
 **Review comment format:**
 ```markdown
@@ -203,7 +202,7 @@ https://github.com/owner/repo/blob/[full-sha]/path/file.ext#L[start]-L[end]
 - **Iterate on guidelines**: Update CLAUDE.md based on patterns
 - **Review automatically**: Set up as part of PR workflow
 - **Trust the filtering**: Threshold prevents noise
-- **Use `--no-comment` for local development**: Get review feedback without cluttering the PR
+- **Use `--comment` for CI/CD**: Post review to PR when running in automated workflows
 
 ## Configuration
 
