@@ -2,6 +2,7 @@
 
 ## 2.0.69
 
+- Improved `/resume` summaries after compaction to show what was actually being worked on instead of generic compaction messages
 - Minor bugfixes
 
 ## 2.0.68
