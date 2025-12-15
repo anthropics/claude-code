@@ -347,46 +347,14 @@ fi
 
 ## Pattern 11: Teleport Workflow Automation
 
-Automate setup when teleporting sessions between web and CLI:
+Automate setup when teleporting sessions from web to CLI using the `teleport` matcher:
 
-**Pre-teleport hook (prepare for transfer):**
+**SessionStart hook with teleport matcher:**
 ```json
 {
-  "PreTeleport": [
+  "SessionStart": [
     {
-      "matcher": "*",
-      "hooks": [
-        {
-          "type": "command",
-          "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/pre-teleport.sh"
-        }
-      ]
-    }
-  ]
-}
-```
-
-**pre-teleport.sh:**
-```bash
-#!/bin/bash
-cd "$CLAUDE_PROJECT_DIR" || exit 0
-
-# Stash uncommitted changes before teleporting
-if [ -d ".git" ] && [ -n "$(git status --porcelain)" ]; then
-  echo "📦 Stashing uncommitted changes..."
-  git stash push -m "pre-teleport-$(date +%s)"
-fi
-
-# Save current state for restoration
-echo "$(git branch --show-current)" > .claude/.teleport-state
-```
-
-**Post-teleport hook (set up after transfer):**
-```json
-{
-  "PostTeleport": [
-    {
-      "matcher": "*",
+      "matcher": "teleport",
       "hooks": [
         {
           "type": "command",
@@ -407,12 +375,6 @@ cd "$CLAUDE_PROJECT_DIR" || exit 0
 if [ -d ".git" ]; then
   echo "🔄 Pulling latest changes..."
   git pull origin "$(git branch --show-current)" 2>/dev/null || true
-
-  # Restore stashed changes if any
-  if git stash list | grep -q "pre-teleport"; then
-    echo "📦 Restoring stashed changes..."
-    git stash pop
-  fi
 fi
 
 # Install dependencies
@@ -433,8 +395,13 @@ fi
 echo "✅ Teleport complete! Environment ready."
 ```
 
+**Available matchers for SessionStart:**
+- `*` - All session starts (both fresh and teleported)
+- `teleport` - Only teleported sessions (web → CLI)
+- `fresh` - Only fresh sessions (not teleported)
+
 **Use for:**
 - Seamless web-to-CLI workflow transitions
 - Automatic dev server startup after teleporting
-- Preserving uncommitted work across teleports
-- Environment setup automation
+- Pulling latest changes and installing dependencies
+- Running project-specific setup scripts

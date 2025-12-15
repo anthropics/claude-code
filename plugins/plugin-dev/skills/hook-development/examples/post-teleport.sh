@@ -1,6 +1,7 @@
 #!/bin/bash
-# Example PostTeleport hook for setting up environment after teleporting
-# This script pulls changes, installs dependencies, and starts dev server
+# Example SessionStart hook with "teleport" matcher for setting up environment
+# after teleporting from web to CLI. This script pulls changes, installs
+# dependencies, and starts the dev server.
 
 set -euo pipefail
 
@@ -14,12 +15,6 @@ if [ -d ".git" ]; then
   current_branch=$(git branch --show-current)
   echo "🔄 Pulling latest changes for branch: $current_branch"
   git pull origin "$current_branch" 2>/dev/null || echo "Could not pull (may be offline or no upstream)"
-
-  # Check for stashed changes from pre-teleport
-  if git stash list | grep -q "pre-teleport-stash"; then
-    echo "📦 Restoring stashed changes from pre-teleport..."
-    git stash pop || echo "Could not restore stash (may have conflicts)"
-  fi
 fi
 
 # Install dependencies based on project type

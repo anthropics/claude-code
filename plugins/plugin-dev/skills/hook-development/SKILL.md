@@ -1,6 +1,6 @@
 ---
 name: Hook Development
-description: This skill should be used when the user asks to "create a hook", "add a PreToolUse/PostToolUse/Stop hook", "validate tool use", "implement prompt-based hooks", "use ${CLAUDE_PLUGIN_ROOT}", "set up event-driven automation", "block dangerous commands", or mentions hook events (PreToolUse, PostToolUse, Stop, SubagentStop, SessionStart, SessionEnd, UserPromptSubmit, PreCompact, Notification, PreTeleport, PostTeleport). Provides comprehensive guidance for creating and implementing Claude Code plugin hooks with focus on advanced prompt-based hooks API.
+description: This skill should be used when the user asks to "create a hook", "add a PreToolUse/PostToolUse/Stop hook", "validate tool use", "implement prompt-based hooks", "use ${CLAUDE_PLUGIN_ROOT}", "set up event-driven automation", "block dangerous commands", "teleport hook", or mentions hook events (PreToolUse, PostToolUse, Stop, SubagentStop, SessionStart, SessionEnd, UserPromptSubmit, PreCompact, Notification). Provides comprehensive guidance for creating and implementing Claude Code plugin hooks with focus on advanced prompt-based hooks API.
 version: 0.1.0
 ---
 
@@ -239,7 +239,12 @@ Execute when user submits a prompt. Use to add context, validate, or block promp
 
 Execute when Claude Code session begins. Use to load context and set environment.
 
-**Example:**
+**Matchers for SessionStart:**
+- `*` - All session starts
+- `teleport` - Only when session started via teleport (web → CLI)
+- `fresh` - Only for fresh sessions (not teleported)
+
+**Example (general context loading):**
 ```json
 {
   "SessionStart": [
@@ -256,79 +261,12 @@ Execute when Claude Code session begins. Use to load context and set environment
 }
 ```
 
-**Special capability:** Persist environment variables using `$CLAUDE_ENV_FILE`:
-```bash
-echo "export PROJECT_TYPE=nodejs" >> "$CLAUDE_ENV_FILE"
-```
-
-See `examples/load-context.sh` for complete example.
-
-### SessionEnd
-
-Execute when session ends. Use for cleanup, logging, and state preservation.
-
-### PreCompact
-
-Execute before context compaction. Use to add critical information to preserve.
-
-### Notification
-
-Execute when Claude sends notifications. Use to react to user notifications.
-
-### PreTeleport
-
-Execute before a session teleports (transfers from web to CLI or vice versa). Use to prepare the environment, sync state, or validate teleport conditions.
-
-**Example:**
+**Example (teleport-specific setup):**
 ```json
 {
-  "PreTeleport": [
+  "SessionStart": [
     {
-      "matcher": "*",
-      "hooks": [
-        {
-          "type": "command",
-          "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/pre-teleport.sh"
-        }
-      ]
-    }
-  ]
-}
-```
-
-**Example script (pre-teleport.sh):**
-```bash
-#!/bin/bash
-# Stash any uncommitted changes before teleporting
-cd "$CLAUDE_PROJECT_DIR" || exit 0
-
-if [ -d ".git" ] && [ -n "$(git status --porcelain)" ]; then
-  echo "📦 Stashing uncommitted changes before teleport..."
-  git stash push -m "pre-teleport-stash-$(date +%s)"
-fi
-```
-
-**Input fields:**
-- `source`: The origin of the teleport ("web" or "cli")
-- `destination`: Where the session is going ("web" or "cli")
-- `branch`: The git branch being teleported (if applicable)
-
-**Use for:**
-- Stashing uncommitted work before teleporting
-- Syncing local state with remote
-- Validating prerequisites before teleport
-- Cleaning up temporary files
-
-### PostTeleport
-
-Execute after a session successfully teleports. Use to set up the environment in the new context, run dev servers, or restore state.
-
-**Example:**
-```json
-{
-  "PostTeleport": [
-    {
-      "matcher": "*",
+      "matcher": "teleport",
       "hooks": [
         {
           "type": "command",
@@ -364,18 +302,29 @@ if [ -f "package.json" ] && grep -q '"dev"' package.json; then
 fi
 ```
 
-**Input fields:**
-- `source`: Where the session came from ("web" or "cli")
-- `destination`: The current context ("web" or "cli")
-- `branch`: The git branch that was teleported
-- `teleport_success`: Boolean indicating if teleport completed successfully
+**Special capability:** Persist environment variables using `$CLAUDE_ENV_FILE`:
+```bash
+echo "export PROJECT_TYPE=nodejs" >> "$CLAUDE_ENV_FILE"
+```
 
-**Use for:**
-- Pulling latest changes after teleporting
-- Installing/updating dependencies
-- Starting development servers
-- Restoring stashed work
-- Running project-specific setup scripts
+**Teleport-specific input fields:**
+- `is_teleport`: Boolean indicating if this session started via teleport
+- `source`: Where the session came from ("web" or "cli") - only present for teleports
+- `branch`: The git branch that was teleported - only present for teleports
+
+See `examples/load-context.sh` and `examples/post-teleport.sh` for complete examples.
+
+### SessionEnd
+
+Execute when session ends. Use for cleanup, logging, and state preservation.
+
+### PreCompact
+
+Execute before context compaction. Use to add critical information to preserve.
+
+### Notification
+
+Execute when Claude sends notifications. Use to react to user notifications.
 
 ## Hook Output Format
 
@@ -740,12 +689,10 @@ echo "$output" | jq .
 | UserPromptSubmit | User input | Context, validation |
 | Stop | Agent stopping | Completeness check |
 | SubagentStop | Subagent done | Task validation |
-| SessionStart | Session begins | Context loading |
+| SessionStart | Session begins | Context loading (use `teleport` matcher for teleport-specific setup) |
 | SessionEnd | Session ends | Cleanup, logging |
 | PreCompact | Before compact | Preserve context |
 | Notification | User notified | Logging, reactions |
-| PreTeleport | Before teleport | Stash work, sync state |
-| PostTeleport | After teleport | Setup env, start servers |
 
 ### Best Practices
 
@@ -783,8 +730,7 @@ Working examples in `examples/`:
 - **`validate-write.sh`** - File write validation example
 - **`validate-bash.sh`** - Bash command validation example
 - **`load-context.sh`** - SessionStart context loading example
-- **`pre-teleport.sh`** - PreTeleport state preservation example
-- **`post-teleport.sh`** - PostTeleport environment setup example
+- **`post-teleport.sh`** - SessionStart teleport matcher setup example
 
 ### Utility Scripts
 
