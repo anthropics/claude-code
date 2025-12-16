@@ -12,7 +12,8 @@
   "license": "MIT",
   "dependencies": {
     "express": "^4.18.2",
-    "cors": "^2.8.5"
+    "cors": "^2.8.5",
+    "googleapis": "^130.0.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
