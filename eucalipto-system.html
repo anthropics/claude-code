@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eucalipto - Sistema Integrado</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3e 100%); color: #eee; min-height: 100vh; }
+        .header { background: linear-gradient(90deg, #0f3460, #16213e); padding: 20px; text-align: center; border-bottom: 3px solid #4ecca3; }
+        .header h1 { color: #4ecca3; font-size: 24px; }
+        .header p { color: #888; font-size: 12px; }
+        .badges { margin-top: 10px; }
+        .badge { display: inline-block; padding: 5px 15px; border-radius: 20px; font-weight: bold; font-size: 11px; margin: 0 5px; }
+        .badge.ia { background: linear-gradient(90deg, #4ecca3, #00ff88); color: #0a0a1a; }
+        .badge.backend { background: linear-gradient(90deg, #ff6b9d, #c44569); color: #fff; }
+        .container { max-width: 1900px; margin: 0 auto; padding: 20px; }
+        .tabs { display: flex; gap: 5px; margin-bottom: 20px; flex-wrap: wrap; background: #16213e; padding: 10px; border-radius: 10px; overflow-x: auto; }
+        .tab { padding: 12px 18px; background: transparent; border: 2px solid transparent; color: #888; cursor: pointer; border-radius: 8px; font-size: 12px; font-weight: bold; transition: all 0.3s; white-space: nowrap; }
+        .tab.active { background: #4ecca3; color: #0a0a1a; }
+        .tab:hover { border-color: #4ecca3; }
+        .panel { display: none; }
+        .panel.active { display: block; }
+        .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; margin-bottom: 20px; }
+        .card { background: linear-gradient(135deg, #16213e, #0f3460); border-radius: 12px; padding: 20px; border: 1px solid #4ecca322; }
+        .card h3 { color: #4ecca3; font-size: 13px; margin-bottom: 12px; }
+        .card-value { font-size: 28px; font-weight: bold; color: #fff; }
+        .card-label { color: #888; font-size: 11px; margin-top: 5px; }
+        .table-container { background: #16213e; border-radius: 12px; overflow: hidden; margin-bottom: 20px; }
+        .table-header { background: #0f3460; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .table-title { color: #4ecca3; font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        th { background: #0a0a1a; color: #4ecca3; padding: 12px 8px; text-align: center; font-size: 11px; }
+        td { padding: 10px 8px; text-align: center; border-bottom: 1px solid #0f3460; }
+        tr:hover { background: rgba(78,204,163,0.05); }
+        input[type="number"], input[type="text"], input[type="date"], select { background: #0a0a1a; border: 2px solid #4ecca3; color: #fff; padding: 8px 10px; border-radius: 6px; width: 90px; text-align: right; font-size: 13px; font-weight: bold; }
+        input:focus { outline: none; border-color: #00ff88; box-shadow: 0 0 15px #4ecca344; }
+        input.nome { text-align: left; width: 100px; }
+        input.venda { border-color: #00ff88; background: #0a1a0a; }
+        .btn { background: linear-gradient(90deg, #4ecca3, #00ff88); color: #0a0a1a; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 13px; transition: all 0.3s; }
+        .btn:hover { transform: scale(1.05); }
+        .btn.secondary { background: linear-gradient(90deg, #ffcc00, #ff9900); }
+        .btn.danger { background: linear-gradient(90deg, #ff6b6b, #ff4444); }
+        .btn.small { padding: 6px 12px; font-size: 11px; }
+        .btn-icon { width: 30px; height: 30px; border-radius: 50%; padding: 0; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+        .status { padding: 4px 10px; border-radius: 15px; font-size: 10px; font-weight: bold; }
+        .status.lucro { background: rgba(78,204,163,0.2); color: #4ecca3; }
+        .status.prejuizo { background: rgba(255,107,107,0.2); color: #ff6b6b; }
+        .status.atencao { background: rgba(255,204,0,0.2); color: #ffcc00; }
+        .green { color: #4ecca3; }
+        .red { color: #ff6b6b; }
+        .yellow { color: #ffcc00; }
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-overlay.active { display: flex; }
+        .modal { background: #16213e; border-radius: 15px; padding: 30px; width: 90%; max-width: 500px; border: 2px solid #4ecca3; max-height: 90vh; overflow-y: auto; }
+        .modal h2 { color: #4ecca3; margin-bottom: 20px; }
+        .modal-row { margin-bottom: 15px; }
+        .modal-row label { display: block; color: #888; font-size: 12px; margin-bottom: 5px; }
+        .modal-row input, .modal-row select { width: 100%; }
+        .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+        .alert { padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+        .alert.success { background: rgba(78,204,163,0.2); border-left: 4px solid #4ecca3; color: #4ecca3; }
+        .alert.error { background: rgba(255,107,107,0.2); border-left: 4px solid #ff6b6b; color: #ff6b6b; }
+        .alert.warning { background: rgba(255,204,0,0.2); border-left: 4px solid #ffcc00; color: #ffcc00; }
+        .orcamento-item { background: #0f3460; padding: 15px; border-radius: 8px; margin-bottom: 10px; }
+        .orcamento-item h4 { color: #4ecca3; margin-bottom: 10px; }
+        .orcamento-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+        @media print { .tabs, .btn, .modal { display: none; } .panel { display: block !important; } }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🌲 EUCALIPTO TRATADO - SISTEMA INTEGRADO</h1>
+        <p>Gestão Completa de Produtos, Preços, Cálculos e Orçamentos</p>
+        <div class="badges"><span class="badge ia">🤖 IA ATIVA</span><span class="badge backend">⚙️ BACKEND CONECTADO</span></div>
+    </div>
+
+    <div class="container">
+        <div id="alertContainer"></div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('dashboard')">📊 DASHBOARD</button>
+            <button class="tab" onclick="showTab('produtos')">📦 PRODUTOS</button>
+            <button class="tab" onclick="showTab('precos')">💰 PREÇOS</button>
+            <button class="tab" onclick="showTab('orcamentos')">📋 ORÇAMENTOS</button>
+            <button class="tab" onclick="showTab('analise')">📈 ANÁLISE</button>
+            <button class="tab" onclick="showTab('config')">⚙️ CONFIG</button>
+        </div>
+
+        <!-- DASHBOARD -->
+        <div id="dashboard" class="panel active">
+            <div class="grid-4">
+                <div class="card"><h3>📈 MARGEM MÉDIA</h3><div class="card-value" id="kpiMargem">0%</div><div class="card-label">Rentabilidade geral</div></div>
+                <div class="card"><h3>💰 LUCRO/ST</h3><div class="card-value" id="kpiLucro">R$ 0</div><div class="card-label">Lucro médio por estéreo</div></div>
+                <div class="card"><h3>⚠️ ALERTAS</h3><div class="card-value" id="kpiAlertas">0</div><div class="card-label">Produtos críticos</div></div>
+                <div class="card"><h3>📦 PRODUTOS</h3><div class="card-value" id="kpiProdutos">0</div><div class="card-label">Bitolas ativas</div></div>
+            </div>
+
+            <div class="grid-2">
+                <div class="card"><h3>🏆 TOP 3 RENTÁVEIS</h3><div id="topRentaveis"></div></div>
+                <div class="card"><h3>🚨 ALERTAS</h3><div id="produtosAlerta"></div></div>
+            </div>
+        </div>
+
+        <!-- PRODUTOS -->
+        <div id="produtos" class="panel">
+            <div class="table-container">
+                <div class="table-header">
+                    <span class="table-title">📦 GESTÃO DE PRODUTOS</span>
+                    <button class="btn" onclick="abrirModalProduto()">➕ ADICIONAR</button>
+                </div>
+                <table>
+                    <thead><tr><th></th><th>BITOLA</th><th>Ø cm</th><th>COMP. (m)</th><th>VOLUME (m³)</th><th>PÇ/m³</th><th>PÇ/st</th><th>CUSTO/PÇ</th><th>STATUS</th></tr></thead>
+                    <tbody id="tabelaProdutos"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- PREÇOS -->
+        <div id="precos" class="panel">
+            <div class="table-container">
+                <div class="table-header">
+                    <span class="table-title">💰 PREÇOS DE VENDA</span>
+                    <div><button class="btn small" onclick="aplicarSugeridos()">✨ SUGERIDOS</button><button class="btn small secondary" onclick="resetar()">🔄 RESETAR</button></div>
+                </div>
+                <table>
+                    <thead><tr><th>PRODUTO</th><th>CUSTO/PÇ</th><th>PREÇO MÍN</th><th>PREÇO MÁX</th><th>MARGEM MÍN</th><th>MARGEM MÁX</th><th>SUGERIDO</th><th>STATUS</th></tr></thead>
+                    <tbody id="tabelaPrecos"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ORÇAMENTOS -->
+        <div id="orcamentos" class="panel">
+            <div style="margin-bottom: 20px;">
+                <button class="btn" onclick="abrirModalOrcamento()">➕ NOVO ORÇAMENTO</button>
+            </div>
+            <div id="listaOrcamentos"></div>
+        </div>
+
+        <!-- ANÁLISE -->
+        <div id="analise" class="panel">
+            <div class="grid-3">
+                <div class="card"><h3>💵 CUSTO/ST</h3><div class="card-value red" id="custoSt">R$ 0</div></div>
+                <div class="card"><h3>🌲 MADEIRA</h3><div class="card-value" id="custoMadeira">R$ 0</div></div>
+                <div class="card"><h3>🧪 TRATAMENTO</h3><div class="card-value" id="custoTrat">R$ 0</div></div>
+            </div>
+
+            <div class="table-container">
+                <div class="table-header"><span class="table-title">📈 ANÁLISE DETALHADA POR PRODUTO</span></div>
+                <table>
+                    <thead><tr><th>PRODUTO</th><th>PÇ/ST</th><th>CUSTO/ST</th><th>VENDA MÍN</th><th>VENDA MÁX</th><th>LUCRO MÍN</th><th>LUCRO MÁX</th><th>MARGEM</th><th>STATUS</th></tr></thead>
+                    <tbody id="tabelaAnalise"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- CONFIG -->
+        <div id="config" class="panel">
+            <div class="grid-3">
+                <div class="card"><h3>🌲 CUSTOS</h3>
+                    <div style="margin:15px 0"><label style="color:#888;font-size:12px">Madeira (R$/st):</label><br><input type="number" id="cfgMadeira" value="135" onchange="recalcular()" style="width:100%;margin-top:5px"></div>
+                    <div style="margin:15px 0"><label style="color:#888;font-size:12px">Tratamento (R$/m³):</label><br><input type="number" id="cfgTratamento" value="350" onchange="recalcular()" style="width:100%;margin-top:5px"></div>
+                </div>
+
+                <div class="card"><h3>📐 CONVERSÕES</h3>
+                    <div style="margin:15px 0"><label style="color:#888;font-size:12px">Coeficiente st→m³:</label><br><input type="number" id="cfgCoef" value="0.65" step="0.01" onchange="recalcular()" style="width:100%;margin-top:5px"></div>
+                    <div style="margin:15px 0"><label style="color:#888;font-size:12px">Comprimento padrão:</label><br><input type="number" id="cfgComp" value="2.20" step="0.1" onchange="recalcular()" style="width:100%;margin-top:5px"></div>
+                </div>
+
+                <div class="card"><h3>🎯 METAS</h3>
+                    <div style="margin:15px 0"><label style="color:#888;font-size:12px">Margem desejada (%):</label><br><input type="number" id="cfgMargem" value="30" onchange="recalcular()" style="width:100%;margin-top:5px"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL PRODUTO -->
+    <div class="modal-overlay" id="modalProduto">
+        <div class="modal">
+            <h2>➕ Novo Produto</h2>
+            <div class="modal-row"><label>Bitola (ex: 22 a 25)</label><input type="text" id="novoNome" placeholder="Ex: 22 a 25"></div>
+            <div class="modal-row"><label>Diâmetro (cm)</label><input type="number" id="novoDiam" value="23" step="0.5" style="width:100%"></div>
+            <div class="modal-row"><label>Comprimento (m)</label><input type="number" id="novoComp" value="2.20" step="0.1" style="width:100%"></div>
+            <div class="modal-row"><label>Preço Mín (R$)</label><input type="number" id="novoMin" value="70" step="0.5" style="width:100%"></div>
+            <div class="modal-row"><label>Preço Máx (R$)</label><input type="number" id="novoMax" value="85" step="0.5" style="width:100%"></div>
+            <div class="modal-actions"><button class="btn" onclick="adicionarProduto()">✅ Adicionar</button><button class="btn danger" onclick="fecharModalProduto()">❌ Cancelar</button></div>
+        </div>
+    </div>
+
+    <!-- MODAL ORÇAMENTO -->
+    <div class="modal-overlay" id="modalOrcamento">
+        <div class="modal">
+            <h2>📋 Novo Orçamento</h2>
+            <div class="modal-row"><label>Data</label><input type="date" id="orcData" style="width:100%"></div>
+            <div class="modal-row"><label>Cliente</label><input type="text" id="orcCliente" placeholder="Nome do cliente" style="width:100%"></div>
+            <div id="itensOrcamento"></div>
+            <button class="btn small secondary" onclick="adicionarItemOrcamento()" style="margin-bottom:15px">➕ Adicionar Item</button>
+            <div class="modal-actions"><button class="btn" onclick="salvarOrcamento()">✅ Salvar</button><button class="btn danger" onclick="fecharModalOrcamento()">❌ Cancelar</button></div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3000/api';
+        let produtos = [
+            { id: 1, nome: '6 a 8', diametro: 7.0, comprimento: 2.20, precoMin: 7.00, precoMax: 8.50 },
+            { id: 2, nome: '8 a 10', diametro: 9.0, comprimento: 2.20, precoMin: 9.00, precoMax: 11.00 },
+            { id: 3, nome: '10 a 12', diametro: 11.0, comprimento: 2.20, precoMin: 14.00, precoMax: 17.00 },
+            { id: 4, nome: '12 a 14', diametro: 13.0, comprimento: 2.20, precoMin: 20.00, precoMax: 24.00 },
+            { id: 5, nome: '14 a 16', diametro: 15.0, comprimento: 2.20, precoMin: 28.00, precoMax: 33.00 },
+            { id: 6, nome: '16 a 18', diametro: 17.0, comprimento: 2.20, precoMin: 36.00, precoMax: 42.00 },
+            { id: 7, nome: '18 a 20', diametro: 19.0, comprimento: 2.20, precoMin: 45.00, precoMax: 52.00 },
+            { id: 8, nome: '20 a 22', diametro: 21.0, comprimento: 2.20, precoMin: 55.00, precoMax: 65.00 }
+        ];
+
+        let orcamentos = [];
+        let nextId = 9;
+        const produtosPadrao = JSON.parse(JSON.stringify(produtos));
+
+        // ===== FUNÇÕES AUXILIARES =====
+        function getConfig() {
+            return {
+                madeira: parseFloat(document.getElementById('cfgMadeira').value) || 135,
+                tratamento: parseFloat(document.getElementById('cfgTratamento').value) || 350,
+                coef: parseFloat(document.getElementById('cfgCoef').value) || 0.65,
+                comp: parseFloat(document.getElementById('cfgComp').value) || 2.20,
+                margemDesejada: parseFloat(document.getElementById('cfgMargem').value) || 30
+            };
+        }
+
+        function fmt(v) {
+            return 'R$ ' + (v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function calcVolume(d, c) {
+            return Math.PI * Math.pow((d / 100) / 2, 2) * c;
+        }
+
+        // ===== CÁLCULOS CORRIGIDOS =====
+        function calcDados(p, cfg) {
+            const comp = p.comprimento || cfg.comp;
+            const vol = calcVolume(p.diametro, comp); // Volume em m³
+            const pecasM3 = Math.round(1 / vol); // Quantas peças cabem em 1 m³
+            const pecasSt = Math.round(pecasM3 * cfg.coef); // Peças por estéreo
+
+            // CUSTO POR PEÇA (CORRIGIDO)
+            const custoPorPecaMadeira = cfg.madeira / pecasSt; // Custo da madeira dividido pelas peças do st
+            const custoPorPecaTratamento = vol * cfg.tratamento; // Volume da peça vezes custo/m³
+            const custoTotal = custoPorPecaMadeira + custoPorPecaTratamento;
+
+            // PREÇO SUGERIDO
+            const sugerido = custoTotal * (1 + cfg.margemDesejada / 100);
+
+            // MARGENS (CORRIGIDAS)
+            const margemMin = ((p.precoMin - custoTotal) / custoTotal) * 100;
+            const margemMax = ((p.precoMax - custoTotal) / custoTotal) * 100;
+
+            return {
+                vol,
+                pecasM3,
+                pecasSt,
+                custoPorPecaMadeira,
+                custoPorPecaTratamento,
+                custoTotal,
+                sugerido,
+                margemMin,
+                margemMax,
+                comp
+            };
+        }
+
+        // ===== MODAL PRODUTO =====
+        function abrirModalProduto() {
+            document.getElementById('novoNome').value = '';
+            document.getElementById('novoDiam').value = '23';
+            document.getElementById('novoComp').value = '2.20';
+            document.getElementById('novoMin').value = '70';
+            document.getElementById('novoMax').value = '85';
+            document.getElementById('modalProduto').classList.add('active');
+        }
+
+        function fecharModalProduto() {
+            document.getElementById('modalProduto').classList.remove('active');
+        }
+
+        function adicionarProduto() {
+            const nome = document.getElementById('novoNome').value?.trim();
+            const diam = parseFloat(document.getElementById('novoDiam').value);
+            const comp = parseFloat(document.getElementById('novoComp').value);
+            const min = parseFloat(document.getElementById('novoMin').value);
+            const max = parseFloat(document.getElementById('novoMax').value);
+
+            // VALIDAÇÕES
+            if (!nome) {
+                mostraAlerta('Bitola é obrigatória', 'error');
+                return;
+            }
+            if (!diam || diam <= 0) {
+                mostraAlerta('Diâmetro deve ser maior que 0', 'error');
+                return;
+            }
+            if (!comp || comp <= 0) {
+                mostraAlerta('Comprimento deve ser maior que 0', 'error');
+                return;
+            }
+            if (!min || !max || min >= max) {
+                mostraAlerta('Preço mínimo deve ser menor que máximo', 'error');
+                return;
+            }
+
+            produtos.push({
+                id: nextId++,
+                nome: nome,
+                diametro: diam,
+                comprimento: comp,
+                precoMin: min,
+                precoMax: max
+            });
+
+            mostraAlerta(`Produto "${nome}" adicionado com sucesso!`, 'success');
+            fecharModalProduto();
+            recalcular();
+        }
+
+        function remover(id) {
+            if (confirm('Tem certeza que deseja remover este produto?')) {
+                const produto = produtos.find(p => p.id === id);
+                produtos = produtos.filter(x => x.id !== id);
+                mostraAlerta(`Produto "${produto.nome}" removido`, 'success');
+                recalcular();
+            }
+        }
+
+        function atualizar(id, campo, valor) {
+            const p = produtos.find(x => x.id === id);
+            if (p) {
+                p[campo] = campo === 'nome' ? valor : parseFloat(valor) || 0;
+                recalcular();
+            }
+        }
+
+        // ===== ORÇAMENTOS =====
+        function abrirModalOrcamento() {
+            document.getElementById('orcData').valueAsDate = new Date();
+            document.getElementById('orcCliente').value = '';
+            document.getElementById('itensOrcamento').innerHTML = '';
+            adicionarItemOrcamento();
+            document.getElementById('modalOrcamento').classList.add('active');
+        }
+
+        function fecharModalOrcamento() {
+            document.getElementById('modalOrcamento').classList.remove('active');
+        }
+
+        function adicionarItemOrcamento() {
+            const itemId = 'item_' + Date.now();
+            const html = `
+                <div style="background:#0f3460;padding:15px;border-radius:8px;margin-bottom:10px" id="${itemId}">
+                    <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px;margin-bottom:10px">
+                        <div>
+                            <label style="color:#888;font-size:11px">Produto</label>
+                            <select class="orcProduto" style="width:100%;margin-top:5px">
+                                <option value="">-- Selecionar --</option>
+                                ${produtos.map(p => `<option value="${p.id}">${p.nome} cm</option>`).join('')}
+                            </select>
+                        </div>
+                        <div>
+                            <label style="color:#888;font-size:11px">Quantidade</label>
+                            <input type="number" class="orcQtd" value="1" min="1" style="width:100%;margin-top:5px">
+                        </div>
+                        <div>
+                            <label style="color:#888;font-size:11px">Unidade</label>
+                            <select class="orcUnid" style="width:100%;margin-top:5px">
+                                <option value="peca">Peças</option>
+                                <option value="st">Estéreos</option>
+                                <option value="m3">M³</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:10px">
+                        <input type="number" class="orcPreco" placeholder="Preço unitário" step="0.5" style="flex:1">
+                        <button class="btn danger btn-icon" onclick="document.getElementById('${itemId}').remove()">🗑️</button>
+                    </div>
+                </div>
+            `;
+            document.getElementById('itensOrcamento').insertAdjacentHTML('beforeend', html);
+        }
+
+        function salvarOrcamento() {
+            const data = document.getElementById('orcData').value;
+            const cliente = document.getElementById('orcCliente').value?.trim();
+
+            if (!data || !cliente) {
+                mostraAlerta('Data e Cliente são obrigatórios', 'error');
+                return;
+            }
+
+            const itens = [];
+            document.querySelectorAll('#itensOrcamento > div').forEach(itemDiv => {
+                const prodId = parseInt(itemDiv.querySelector('.orcProduto').value);
+                const qtd = parseFloat(itemDiv.querySelector('.orcQtd').value);
+                const unid = itemDiv.querySelector('.orcUnid').value;
+                const preco = parseFloat(itemDiv.querySelector('.orcPreco').value);
+
+                if (prodId && qtd && preco) {
+                    itens.push({ produtoId: prodId, qtd, unidade: unid, precoUnitario: preco });
+                }
+            });
+
+            if (itens.length === 0) {
+                mostraAlerta('Adicione pelo menos um item ao orçamento', 'error');
+                return;
+            }
+
+            const orcamento = {
+                id: 'ORC-' + Date.now(),
+                data,
+                cliente,
+                itens,
+                total: itens.reduce((s, i) => s + (i.qtd * i.precoUnitario), 0),
+                dataCriacao: new Date().toLocaleString('pt-BR')
+            };
+
+            orcamentos.push(orcamento);
+            mostraAlerta('Orçamento salvo com sucesso!', 'success');
+            fecharModalOrcamento();
+            renderOrcamentos();
+        }
+
+        function renderOrcamentos() {
+            if (orcamentos.length === 0) {
+                document.getElementById('listaOrcamentos').innerHTML = '<div style="text-align:center;color:#888;padding:40px">Nenhum orçamento criado ainda</div>';
+                return;
+            }
+
+            document.getElementById('listaOrcamentos').innerHTML = orcamentos.map(orc => `
+                <div class="orcamento-item">
+                    <div style="display:flex;justify-content:space-between;align-items:center">
+                        <div>
+                            <h4>${orc.id} - ${orc.cliente}</h4>
+                            <div style="color:#888;font-size:11px">${orc.data} | Criado em: ${orc.dataCriacao}</div>
+                        </div>
+                        <div style="text-align:right">
+                            <div class="green" style="font-weight:bold;font-size:16px">${fmt(orc.total)}</div>
+                            <button class="btn small secondary" onclick="imprimirOrcamento('${orc.id}')">🖨️ Imprimir</button>
+                            <button class="btn small danger" onclick="removerOrcamento('${orc.id}')">🗑️ Deletar</button>
+                        </div>
+                    </div>
+                    <div style="margin-top:10px;border-top:1px solid #4ecca333;padding-top:10px">
+                        ${orc.itens.map((item, idx) => {
+                            const prod = produtos.find(p => p.id === item.produtoId);
+                            return `<div style="font-size:12px;margin-bottom:5px">
+                                ${idx + 1}. ${prod?.nome || 'Produto'} - ${item.qtd} ${item.unidade} × ${fmt(item.precoUnitario)} = <strong>${fmt(item.qtd * item.precoUnitario)}</strong>
+                            </div>`;
+                        }).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function removerOrcamento(id) {
+            if (confirm('Remover este orçamento?')) {
+                orcamentos = orcamentos.filter(o => o.id !== id);
+                renderOrcamentos();
+                mostraAlerta('Orçamento removido', 'success');
+            }
+        }
+
+        function imprimirOrcamento(id) {
+            const orc = orcamentos.find(o => o.id === id);
+            if (!orc) return;
+
+            const html = `
+                <style>body{font-family:Arial;margin:20px}</style>
+                <h1>ORÇAMENTO ${orc.id}</h1>
+                <p><strong>Cliente:</strong> ${orc.cliente}</p>
+                <p><strong>Data:</strong> ${orc.data}</p>
+                <table border="1" cellpadding="10" style="width:100%;margin:20px 0">
+                    <thead><tr><th>Produto</th><th>Qtd</th><th>Unid.</th><th>Preço</th><th>Total</th></tr></thead>
+                    <tbody>
+                        ${orc.itens.map(item => {
+                            const prod = produtos.find(p => p.id === item.produtoId);
+                            return `<tr>
+                                <td>${prod?.nome}</td>
+                                <td>${item.qtd}</td>
+                                <td>${item.unidade}</td>
+                                <td>${fmt(item.precoUnitario)}</td>
+                                <td>${fmt(item.qtd * item.precoUnitario)}</td>
+                            </tr>`;
+                        }).join('')}
+                    </tbody>
+                </table>
+                <h3>TOTAL: ${fmt(orc.total)}</h3>
+            `;
+
+            const janela = window.open('', '', 'height=600,width=800');
+            janela.document.write(html);
+            janela.document.close();
+            janela.print();
+        }
+
+        // ===== RENDERS =====
+        function renderTabelas(cfg, custoSt) {
+            document.getElementById('tabelaProdutos').innerHTML = produtos.map(p => {
+                const dados = calcDados(p, cfg);
+                const status = dados.margemMax < 0 ? 'prejuizo' : dados.margemMax < 15 ? 'atencao' : 'lucro';
+                return `<tr>
+                    <td><button class="btn-icon danger" onclick="remover(${p.id})">🗑️</button></td>
+                    <td><input type="text" class="nome" value="${p.nome}" onchange="atualizar(${p.id},'nome',this.value)"></td>
+                    <td><input type="number" value="${p.diametro}" step="0.5" onchange="atualizar(${p.id},'diametro',this.value)" style="width:70px"></td>
+                    <td><input type="number" value="${p.comprimento || cfg.comp}" step="0.1" onchange="atualizar(${p.id},'comprimento',this.value)" style="width:70px"></td>
+                    <td>${(dados.vol * 1000).toFixed(2)}</td>
+                    <td>${dados.pecasM3}</td>
+                    <td><strong>${dados.pecasSt}</strong></td>
+                    <td class="red">${fmt(dados.custoTotal)}</td>
+                    <td><span class="status ${status}">${status.toUpperCase()}</span></td>
+                </tr>`;
+            }).join('');
+
+            document.getElementById('tabelaPrecos').innerHTML = produtos.map(p => {
+                const dados = calcDados(p, cfg);
+                const status = dados.margemMax < 0 ? 'prejuizo' : dados.margemMax < 15 ? 'atencao' : 'lucro';
+                return `<tr>
+                    <td><strong>${p.nome}</strong></td>
+                    <td class="red">${fmt(dados.custoTotal)}</td>
+                    <td><input type="number" class="venda" value="${p.precoMin}" step="0.5" onchange="atualizar(${p.id},'precoMin',this.value)" style="width:90px"></td>
+                    <td><input type="number" class="venda" value="${p.precoMax}" step="0.5" onchange="atualizar(${p.id},'precoMax',this.value)" style="width:90px"></td>
+                    <td class="${dados.margemMin < 0 ? 'red' : 'green'}">${dados.margemMin.toFixed(1)}%</td>
+                    <td class="${dados.margemMax < 0 ? 'red' : 'green'}">${dados.margemMax.toFixed(1)}%</td>
+                    <td class="yellow">${fmt(dados.sugerido)}</td>
+                    <td><span class="status ${status}">${status.toUpperCase()}</span></td>
+                </tr>`;
+            }).join('');
+
+            document.getElementById('tabelaAnalise').innerHTML = produtos.map(p => {
+                const dados = calcDados(p, cfg);
+                const vendaMin = dados.pecasSt * p.precoMin;
+                const vendaMax = dados.pecasSt * p.precoMax;
+                const lucroMin = vendaMin - custoSt;
+                const lucroMax = vendaMax - custoSt;
+                const status = dados.margemMax < 0 ? 'prejuizo' : dados.margemMax < 15 ? 'atencao' : 'lucro';
+                return `<tr>
+                    <td><strong>${p.nome}</strong></td>
+                    <td>${dados.pecasSt}</td>
+                    <td class="red">${fmt(custoSt)}</td>
+                    <td>${fmt(vendaMin)}</td>
+                    <td class="green">${fmt(vendaMax)}</td>
+                    <td class="${lucroMin < 0 ? 'red' : 'green'}">${fmt(lucroMin)}</td>
+                    <td class="${lucroMax < 0 ? 'red' : 'green'}">${fmt(lucroMax)}</td>
+                    <td class="${dados.margemMax < 0 ? 'red' : 'green'}">${dados.margemMax.toFixed(1)}%</td>
+                    <td><span class="status ${status}">${status.toUpperCase()}</span></td>
+                </tr>`;
+            }).join('');
+        }
+
+        function renderDashboard(cfg, custoSt) {
+            const dadosProdutos = produtos.map(p => ({ ...p, ...calcDados(p, cfg) }));
+            const ordenados = [...dadosProdutos].sort((a, b) => b.margemMax - a.margemMax);
+
+            document.getElementById('topRentaveis').innerHTML = ordenados.slice(0, 3).map((p, i) => `
+                <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #0f3460">
+                    <span style="font-size:20px">${['🥇', '🥈', '🥉'][i]}</span>
+                    <div style="flex:1"><div style="font-weight:bold">${p.nome} cm</div><div style="color:#888;font-size:11px">${p.pecasSt} pç/st</div></div>
+                    <div class="green" style="font-weight:bold">${p.margemMax.toFixed(1)}%</div>
+                </div>
+            `).join('');
+
+            const alertas = dadosProdutos.filter(p => p.margemMax < 15);
+            document.getElementById('produtosAlerta').innerHTML = alertas.length === 0 ?
+                '<div style="color:#4ecca3;padding:20px;text-align:center">✅ Nenhum alerta!</div>' :
+                alertas.map(p => `
+                    <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #0f3460">
+                        <span style="font-size:20px">${p.margemMax < 0 ? '🚨' : '⚠️'}</span>
+                        <div style="flex:1"><div style="font-weight:bold">${p.nome} cm</div><div style="color:#888;font-size:11px">Sugerido: ${fmt(p.sugerido)}</div></div>
+                        <div class="${p.margemMax < 0 ? 'red' : 'yellow'}" style="font-weight:bold">${p.margemMax.toFixed(1)}%</div>
+                    </div>
+                `).join('');
+        }
+
+        function aplicarSugeridos() {
+            const cfg = getConfig();
+            produtos.forEach(p => {
+                const dados = calcDados(p, cfg);
+                p.precoMin = Math.round(dados.sugerido * 100) / 100;
+                p.precoMax = Math.round(dados.sugerido * 1.2 * 100) / 100;
+            });
+            mostraAlerta('Preços sugeridos aplicados!', 'success');
+            recalcular();
+        }
+
+        function resetar() {
+            if (confirm('Restaurar produtos padrão? Esta ação não pode ser desfeita.')) {
+                produtos = JSON.parse(JSON.stringify(produtosPadrao));
+                nextId = 9;
+                mostraAlerta('Produtos restaurados', 'success');
+                recalcular();
+            }
+        }
+
+        function recalcular() {
+            const cfg = getConfig();
+            const custoTratSt = cfg.tratamento * cfg.coef;
+            const custoTotalSt = cfg.madeira + custoTratSt;
+
+            const dadosProdutos = produtos.map(p => ({ ...p, ...calcDados(p, cfg) }));
+            const margemMedia = dadosProdutos.reduce((s, p) => s + p.margemMax, 0) / dadosProdutos.length;
+            const lucroMedio = dadosProdutos.reduce((s, p) => s + (p.pecasSt * p.precoMax - custoTotalSt), 0) / dadosProdutos.length;
+            const alertas = dadosProdutos.filter(p => p.margemMax < 15).length;
+
+            document.getElementById('kpiMargem').textContent = margemMedia.toFixed(1) + '%';
+            document.getElementById('kpiMargem').style.color = margemMedia >= 20 ? '#4ecca3' : margemMedia >= 10 ? '#ffcc00' : '#ff6b6b';
+            document.getElementById('kpiLucro').textContent = fmt(lucroMedio);
+            document.getElementById('kpiAlertas').textContent = alertas;
+            document.getElementById('kpiAlertas').style.color = alertas > 0 ? '#ff6b6b' : '#4ecca3';
+            document.getElementById('kpiProdutos').textContent = produtos.length;
+            document.getElementById('custoSt').textContent = fmt(custoTotalSt);
+            document.getElementById('custoMadeira').textContent = fmt(cfg.madeira);
+            document.getElementById('custoTrat').textContent = fmt(custoTratSt);
+
+            renderTabelas(cfg, custoTotalSt);
+            renderDashboard(cfg, custoTotalSt);
+        }
+
+        function mostraAlerta(msg, tipo = 'info') {
+            const container = document.getElementById('alertContainer');
+            const alertId = 'alert_' + Date.now();
+            const html = `<div id="${alertId}" class="alert ${tipo}">${msg}</div>`;
+            container.insertAdjacentHTML('beforeend', html);
+            setTimeout(() => {
+                const el = document.getElementById(alertId);
+                if (el) el.remove();
+            }, 4000);
+        }
+
+        function showTab(id) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+            document.querySelector(`.tab[onclick="showTab('${id}')"]`).classList.add('active');
+            document.getElementById(id).classList.add('active');
+        }
+
+        // INICIALIZAÇÃO
+        recalcular();
+        renderOrcamentos();
+    </script>
+</body>
+</html>

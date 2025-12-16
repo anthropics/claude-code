@@ -1,65 +1,87 @@
-# Claude Code
+# 🌲 Sistema Integrado de Eucalipto Tratado
 
-![](https://img.shields.io/badge/Node.js-18%2B-brightgreen?style=flat-square) [![npm]](https://www.npmjs.com/package/@anthropic-ai/claude-code)
+Sistema completo de gestão de produtos, preços, cálculos de rentabilidade e geração de orçamentos para eucalipto tratado.
 
-[npm]: https://img.shields.io/npm/v/@anthropic-ai/claude-code.svg?style=flat-square
+## ✨ Características Principais
 
-Claude Code is an agentic coding tool that lives in your terminal, understands your codebase, and helps you code faster by executing routine tasks, explaining complex code, and handling git workflows -- all through natural language commands. Use it in your terminal, IDE, or tag @claude on Github.
+### 📊 Dashboard Inteligente
+- KPIs em tempo real (margem média, lucro/st, alertas)
+- Top 3 produtos mais rentáveis
+- Visualização de produtos em risco
 
-**Learn more in the [official documentation](https://docs.anthropic.com/en/docs/claude-code/overview)**.
+### 📦 Gestão de Produtos
+- CRUD completo de bitolas
+- Suporta **comprimento variável por produto** (não apenas 2.20m)
+- Cálculo automático de volume e peças/m³/st
+- Validação de entrada com feedback visual
 
-<img src="./demo.gif" />
+### 💰 Gestão de Preços
+- Preço mínimo e máximo por produto
+- Cálculo automático de margem
+- Preço sugerido baseado em margem desejada
+- Sugestão em massa com um clique
 
-## Get started
+### 📋 Sistema de Orçamentos
+- Criação de orçamentos com múltiplos itens
+- Conversão automática entre unidades (peças, st, m³)
+- Impressão de orçamentos
+- Histórico completo
 
-1. Install Claude Code:
+### 📈 Análise Detalhada
+- Análise por estéreo
+- Custos discriminados (madeira, tratamento, frete, manuseio, impostos)
+- Lucro mínimo/máximo por produto
+- Status visual por produto
 
-**MacOS/Linux:**
+## 🔧 Instalação
+
+### Pré-requisitos
+- Node.js 14+
+- npm
+
+### Setup
+
 ```bash
-curl -fsSL https://claude.ai/install.sh | bash
+# Instalar dependências
+npm install
+
+# Iniciar servidor
+npm start
+
+# Ou com auto-reload (desenvolvimento)
+npm run dev
 ```
 
-**Homebrew (MacOS):**
-```bash
-brew install --cask claude-code
-```
+## 📊 Melhorias Implementadas
 
-**Windows:**
-```powershell
-irm https://claude.ai/install.ps1 | iex
-```
+✅ **Cálculos Corrigidos**: Margens agora calculadas corretamente
+✅ **Comprimento Variável**: Cada produto pode ter comprimento diferente
+✅ **Múltiplos Custos**: Suporta frete, manuseio, impostos
+✅ **Sistema de Orçamentos**: Completo com impressão
+✅ **Backend API**: Node.js com Express
+✅ **Validação**: Entrada de dados robusta
+✅ **Persistência**: Dados salvos em JSON
 
-**NPM:**
-```bash
-npm install -g @anthropic-ai/claude-code
-```
+## 🚀 Como Usar
 
-NOTE: If installing with NPM, you also need to install [Node.js 18+](https://nodejs.org/en/download/)
+### Adicionar Produto
+1. Clique em "📦 PRODUTOS"
+2. Clique em "➕ ADICIONAR"
+3. Preencha bitola, diâmetro, **comprimento específico**, e preços
 
-2. Navigate to your project directory and run `claude`.
+### Criar Orçamento
+1. Clique em "📋 ORÇAMENTOS"
+2. Clique em "➕ NOVO ORÇAMENTO"
+3. Selecione produtos e quantidades
+4. Salve e imprima
 
-## Plugins
+## 📁 Arquivos
 
-This repository includes several Claude Code plugins that extend functionality with custom commands and agents. See the [plugins directory](./plugins/README.md) for detailed documentation on available plugins.
+- `eucalipto-system.html` - Frontend completo
+- `server.js` - Backend Node.js
+- `package.json` - Dependências
+- `data.json` - Base de dados
 
-## Reporting Bugs
+## 📞 Versão
 
-We welcome your feedback. Use the `/bug` command to report issues directly within Claude Code, or file a [GitHub issue](https://github.com/anthropics/claude-code/issues).
-
-## Connect on Discord
-
-Join the [Claude Developers Discord](https://anthropic.com/discord) to connect with other developers using Claude Code. Get help, share feedback, and discuss your projects with the community.
-
-## Data collection, usage, and retention
-
-When you use Claude Code, we collect feedback, which includes usage data (such as code acceptance or rejections), associated conversation data, and user feedback submitted via the `/bug` command.
-
-### How we use your data
-
-See our [data usage policies](https://docs.anthropic.com/en/docs/claude-code/data-usage).
-
-### Privacy safeguards
-
-We have implemented several safeguards to protect your data, including limited retention periods for sensitive information, restricted access to user session data, and clear policies against using feedback for model training.
-
-For full details, please review our [Commercial Terms of Service](https://www.anthropic.com/legal/commercial-terms) and [Privacy Policy](https://www.anthropic.com/legal/privacy).
+**v1.0.0** - 2025-12-16
