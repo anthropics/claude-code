@@ -2,6 +2,7 @@
 
 ## 2.0.71
 
+- Added `blockedMarketplaces` to enterprise managed settings, allowing administrators to prevent specific plugin marketplaces from being installed
 - Added /config toggle to enable/disable prompt suggestions
 - Added `/settings` as an alias for the `/config` command
 - Fixed @ file reference suggestions incorrectly triggering when cursor is in the middle of a path
