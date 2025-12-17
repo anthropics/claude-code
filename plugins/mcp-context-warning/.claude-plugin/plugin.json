@@ -1,0 +1,9 @@
+{
+  "name": "mcp-context-warning",
+  "version": "1.0.0",
+  "description": "Warns users when MCP servers are consuming significant context (>20k tokens), helping prevent unexpected context exhaustion",
+  "author": {
+    "name": "Anthropic",
+    "email": "support@anthropic.com"
+  }
+}

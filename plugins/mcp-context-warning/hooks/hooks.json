@@ -1,0 +1,17 @@
+{
+  "description": "Warns users when MCP servers consume significant context (>20k tokens)",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/check_mcp_context.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
