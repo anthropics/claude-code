@@ -295,7 +295,7 @@ Reference scripts at: ${CLAUDE_PLUGIN_ROOT}/scripts/helper.py
 
 **In executed scripts**:
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 # ${CLAUDE_PLUGIN_ROOT} available as environment variable
 source "${CLAUDE_PLUGIN_ROOT}/lib/common.sh"
 ```
