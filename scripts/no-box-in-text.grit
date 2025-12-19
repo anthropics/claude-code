@@ -1,0 +1,22 @@
+// Biome GritQL Plugin: Prevent <Box> from being nested inside <Text>
+// This catches the Ink error: "<Box> can't be nested inside <Text> component"
+
+language js;
+
+// Match Text elements that contain Box children (direct nesting)
+`<Text$_>$children</Text>` where {
+    $children <: contains `<Box$_>$_</Box>`,
+    register_diagnostic(
+        span = $children,
+        message = "<Box> can't be nested inside <Text> component. Use <Box> as a sibling or wrap <Text> inside <Box> instead."
+    )
+}
+
+// Also match self-closing Box inside Text
+`<Text$_>$children</Text>` where {
+    $children <: contains `<Box$_ />`,
+    register_diagnostic(
+        span = $children,
+        message = "<Box> can't be nested inside <Text> component. Use <Box> as a sibling or wrap <Text> inside <Box> instead."
+    )
+}
