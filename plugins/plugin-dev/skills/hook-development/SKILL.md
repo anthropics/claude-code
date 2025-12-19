@@ -11,6 +11,7 @@ version: 0.1.0
 Hooks are event-driven automation scripts that execute in response to Claude Code events. Use hooks to validate operations, enforce policies, add context, and integrate external tools into workflows.
 
 **Key capabilities:**
+
 - Validate tool calls before execution (PreToolUse)
 - React to tool results (PostToolUse)
 - Enforce completion standards (Stop, SubagentStop)
@@ -34,6 +35,7 @@ Use LLM-driven decision making for context-aware validation:
 **Supported events:** Stop, SubagentStop, UserPromptSubmit, PreToolUse
 
 **Benefits:**
+
 - Context-aware decisions based on natural language reasoning
 - Flexible evaluation logic without bash scripting
 - Better edge case handling
@@ -52,6 +54,7 @@ Execute bash commands for deterministic checks:
 ```
 
 **Use for:**
+
 - Fast deterministic validations
 - File system operations
 - External tool integrations
@@ -75,11 +78,13 @@ Execute bash commands for deterministic checks:
 ```
 
 **Key points:**
+
 - `description` field is optional
 - `hooks` field is required wrapper containing actual hook events
 - This is the **plugin-specific format**
 
 **Example:**
+
 ```json
 {
   "description": "Validation hooks for code quality",
@@ -112,6 +117,7 @@ Execute bash commands for deterministic checks:
 ```
 
 **Key points:**
+
 - No wrapper - events directly at top level
 - No description field
 - This is the **settings format**
@@ -125,6 +131,7 @@ Execute bash commands for deterministic checks:
 Execute before any tool runs. Use to approve, deny, or modify tool calls.
 
 **Example (prompt-based):**
+
 ```json
 {
   "PreToolUse": [
@@ -142,6 +149,7 @@ Execute before any tool runs. Use to approve, deny, or modify tool calls.
 ```
 
 **Output for PreToolUse:**
+
 ```json
 {
   "hookSpecificOutput": {
@@ -157,6 +165,7 @@ Execute before any tool runs. Use to approve, deny, or modify tool calls.
 Execute after tool completes. Use to react to results, provide feedback, or log.
 
 **Example:**
+
 ```json
 {
   "PostToolUse": [
@@ -174,6 +183,7 @@ Execute after tool completes. Use to react to results, provide feedback, or log.
 ```
 
 **Output behavior:**
+
 - Exit 0: stdout shown in transcript
 - Exit 2: stderr fed back to Claude
 - systemMessage included in context
@@ -183,6 +193,7 @@ Execute after tool completes. Use to react to results, provide feedback, or log.
 Execute when main agent considers stopping. Use to validate completeness.
 
 **Example:**
+
 ```json
 {
   "Stop": [
@@ -200,6 +211,7 @@ Execute when main agent considers stopping. Use to validate completeness.
 ```
 
 **Decision output:**
+
 ```json
 {
   "decision": "approve|block",
@@ -219,6 +231,7 @@ Similar to Stop hook, but for subagents.
 Execute when user submits a prompt. Use to add context, validate, or block prompts.
 
 **Example:**
+
 ```json
 {
   "UserPromptSubmit": [
@@ -240,6 +253,7 @@ Execute when user submits a prompt. Use to add context, validate, or block promp
 Execute when Claude Code session begins. Use to load context and set environment.
 
 **Example:**
+
 ```json
 {
   "SessionStart": [
@@ -257,6 +271,7 @@ Execute when Claude Code session begins. Use to load context and set environment
 ```
 
 **Special capability:** Persist environment variables using `$CLAUDE_ENV_FILE`:
+
 ```bash
 echo "export PROJECT_TYPE=nodejs" >> "$CLAUDE_ENV_FILE"
 ```
@@ -339,69 +354,59 @@ Available in all command hooks:
 
 ## Plugin Hook Configuration
 
-In plugins, define hooks in `hooks/hooks.json`:
+In plugins, define hooks in `hooks/hooks.json` using the **plugin wrapper format** described in [Hook Configuration Formats](#hook-configuration-formats):
 
 ```json
 {
-  "PreToolUse": [
-    {
-      "matcher": "Write|Edit",
-      "hooks": [
-        {
-          "type": "prompt",
-          "prompt": "Validate file write safety"
-        }
-      ]
-    }
-  ],
-  "Stop": [
-    {
-      "matcher": "*",
-      "hooks": [
-        {
-          "type": "prompt",
-          "prompt": "Verify task completion"
-        }
-      ]
-    }
-  ],
-  "SessionStart": [
-    {
-      "matcher": "*",
-      "hooks": [
-        {
-          "type": "command",
-          "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/load-context.sh",
-          "timeout": 10
-        }
-      ]
-    }
-  ]
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [{ "type": "prompt", "prompt": "Validate file write safety" }]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "*",
+        "hooks": [{ "type": "prompt", "prompt": "Verify task completion" }]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [{ "type": "command", "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/load-context.sh", "timeout": 10 }]
+      }
+    ]
+  }
 }
 ```
 
-Plugin hooks merge with user's hooks and run in parallel.
+**Note:** Plugin hooks use the `{"hooks": {...}}` wrapper format, not the direct settings format. Plugin hooks merge with user's hooks and run in parallel.
 
 ## Matchers
 
 ### Tool Name Matching
 
 **Exact match:**
+
 ```json
 "matcher": "Write"
 ```
 
 **Multiple tools:**
+
 ```json
 "matcher": "Read|Write|Edit"
 ```
 
 **Wildcard (all tools):**
+
 ```json
 "matcher": "*"
 ```
 
 **Regex patterns:**
+
 ```json
 "matcher": "mcp__.*__delete.*"  // All MCP delete tools
 ```
@@ -512,6 +517,7 @@ All matching hooks run **in parallel**:
 ```
 
 **Design implications:**
+
 - Hooks don't see each other's output
 - Non-deterministic ordering
 - Design for independence
@@ -528,6 +534,7 @@ All matching hooks run **in parallel**:
 Create hooks that activate conditionally by checking for a flag file or configuration:
 
 **Pattern: Flag file activation**
+
 ```bash
 #!/bin/bash
 # Only active when flag file exists
@@ -544,6 +551,7 @@ input=$(cat)
 ```
 
 **Pattern: Configuration-based activation**
+
 ```bash
 #!/bin/bash
 # Check configuration for activation
@@ -562,6 +570,7 @@ input=$(cat)
 ```
 
 **Use cases:**
+
 - Enable strict validation only when needed
 - Temporary debugging hooks
 - Project-specific hook behavior
@@ -576,12 +585,14 @@ input=$(cat)
 **Important:** Hooks are loaded when Claude Code session starts. Changes to hook configuration require restarting Claude Code.
 
 **Cannot hot-swap hooks:**
+
 - Editing `hooks/hooks.json` won't affect current session
 - Adding new hook scripts won't be recognized
 - Changing hook commands/prompts won't update
 - Must restart Claude Code: exit and run `claude` again
 
 **To test hook changes:**
+
 1. Edit hook configuration or scripts
 2. Exit Claude Code session
 3. Restart: `claude` or `cc`
@@ -591,6 +602,7 @@ input=$(cat)
 ### Hook Validation at Startup
 
 Hooks are validated when Claude Code starts:
+
 - Invalid JSON in hooks.json causes loading failure
 - Missing scripts cause warnings
 - Syntax errors reported in debug mode
@@ -646,6 +658,7 @@ echo "$output" | jq .
 ### Best Practices
 
 **DO:**
+
 - ✅ Use prompt-based hooks for complex logic
 - ✅ Use ${CLAUDE_PLUGIN_ROOT} for portability
 - ✅ Validate all inputs in command hooks
@@ -655,6 +668,7 @@ echo "$output" | jq .
 - ✅ Test hooks thoroughly
 
 **DON'T:**
+
 - ❌ Use hardcoded paths
 - ❌ Trust user input without validation
 - ❌ Create long-running hooks
@@ -690,7 +704,7 @@ Development tools in `scripts/`:
 
 ### External Resources
 
-- **Official Docs**: https://docs.claude.com/en/docs/claude-code/hooks
+- **Official Docs**: <https://docs.claude.com/en/docs/claude-code/hooks>
 - **Examples**: See security-guidance plugin in marketplace
 - **Testing**: Use `claude --debug` for detailed logs
 - **Validation**: Use `jq` to validate hook JSON output
