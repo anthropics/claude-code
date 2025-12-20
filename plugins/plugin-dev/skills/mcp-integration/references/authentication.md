@@ -264,6 +264,139 @@ EOF
 - Time-based authentication
 - Dynamic tenant/workspace selection
 
+### TTL Configuration
+
+By default, dynamically generated API keys are cached for 5 minutes. Configure the TTL with:
+
+```bash
+export CLAUDE_CODE_API_KEY_HELPER_TTL_MS=300000  # 5 minutes (default)
+```
+
+### Writing Robust Helper Scripts
+
+Helper scripts can cause issues if they hang or fail repeatedly. Follow these best practices to prevent infinite retry loops and connection hangs:
+
+**1. Always set timeouts on network operations:**
+```bash
+#!/bin/bash
+# get-token.sh - Robust token fetcher
+
+# Set a timeout for the entire script
+TIMEOUT_SECONDS=10
+
+# Use timeout for network calls
+TOKEN=$(timeout ${TIMEOUT_SECONDS}s curl -s --max-time ${TIMEOUT_SECONDS} \
+  "https://auth.example.com/token" 2>/dev/null)
+
+if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
+  # Exit with error - don't output invalid JSON
+  echo "Failed to fetch token" >&2
+  exit 1
+fi
+
+echo "{\"Authorization\": \"Bearer $TOKEN\"}"
+```
+
+**2. Handle VPN/network dependency failures:**
+```bash
+#!/bin/bash
+# get-headers.sh - VPN-aware token fetcher
+
+# Quick connectivity check before attempting auth
+if ! timeout 2s ping -c 1 vpn-dependent-service.internal >/dev/null 2>&1; then
+  echo "VPN not connected or service unreachable" >&2
+  exit 1
+fi
+
+# Proceed with token fetch (with timeout)
+TOKEN=$(timeout 10s get-token-from-vpn-service)
+
+if [ $? -ne 0 ] || [ -z "$TOKEN" ]; then
+  echo "Token fetch failed" >&2
+  exit 1
+fi
+
+echo "{\"Authorization\": \"Bearer $TOKEN\"}"
+```
+
+**3. Cache tokens locally to reduce network calls:**
+```bash
+#!/bin/bash
+# get-headers-cached.sh - Token fetcher with local caching
+
+CACHE_FILE="${HOME}/.cache/my-api-token"
+CACHE_MAX_AGE=240  # seconds (refresh before 5min TTL)
+
+# Check cache validity
+if [ -f "$CACHE_FILE" ]; then
+  CACHE_AGE=$(($(date +%s) - $(stat -c %Y "$CACHE_FILE" 2>/dev/null || stat -f %m "$CACHE_FILE")))
+  if [ "$CACHE_AGE" -lt "$CACHE_MAX_AGE" ]; then
+    cat "$CACHE_FILE"
+    exit 0
+  fi
+fi
+
+# Fetch new token with timeout
+TOKEN=$(timeout 10s fetch-new-token 2>/dev/null)
+
+if [ -z "$TOKEN" ]; then
+  # If fetch fails, try to use expired cache as fallback
+  if [ -f "$CACHE_FILE" ]; then
+    echo "Warning: Using expired cached token" >&2
+    cat "$CACHE_FILE"
+    exit 0
+  fi
+  echo "Failed to fetch token and no cache available" >&2
+  exit 1
+fi
+
+# Update cache
+mkdir -p "$(dirname "$CACHE_FILE")"
+echo "{\"Authorization\": \"Bearer $TOKEN\"}" > "$CACHE_FILE"
+cat "$CACHE_FILE"
+```
+
+**4. Fail fast with clear error messages:**
+```bash
+#!/bin/bash
+set -e  # Exit on any error
+
+# Check prerequisites before attempting network calls
+if [ -z "$API_SECRET" ]; then
+  echo "API_SECRET environment variable not set" >&2
+  exit 1
+fi
+
+# Use short timeouts to fail fast
+TOKEN=$(timeout 5s curl -sf --max-time 5 \
+  -H "X-Secret: $API_SECRET" \
+  "https://auth.example.com/token") || {
+  echo "Token request failed or timed out" >&2
+  exit 1
+}
+
+echo "{\"Authorization\": \"Bearer $TOKEN\"}"
+```
+
+### Troubleshooting Helper Scripts
+
+**Infinite retry loop / hanging:**
+- Add timeouts to all network operations
+- Use `set -e` to exit on errors
+- Check VPN/network connectivity before making requests
+- Ensure script outputs valid JSON or exits with error code
+
+**Script takes too long:**
+- Use `timeout` command wrapper
+- Set `--max-time` on curl requests
+- Consider caching tokens locally
+- Reduce TTL if tokens refresh too slowly
+
+**VPN-dependent helpers failing:**
+- Add connectivity check at start of script
+- Implement graceful degradation with cached tokens
+- Log clear error messages to stderr
+
 ## Security Best Practices
 
 ### DO
