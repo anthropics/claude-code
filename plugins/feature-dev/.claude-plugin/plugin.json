@@ -5,5 +5,6 @@
   "author": {
     "name": "Sid Bidasaria",
     "email": "sbidasaria@anthropic.com"
-  }
+  },
+  "agents": "./agents"
 }

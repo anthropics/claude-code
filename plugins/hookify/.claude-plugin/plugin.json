@@ -5,5 +5,8 @@
   "author": {
     "name": "Daisy Hollman",
     "email": "daisy@anthropic.com"
-  }
+  },
+  "hooks": "./hooks/hooks.json",
+  "agents": "./agents",
+  "skills": "./skills"
 }
