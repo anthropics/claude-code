@@ -123,6 +123,134 @@ Only use exec() if you absolutely need shell features and the input is guarantee
         "substrings": ["os.system", "from os import system"],
         "reminder": "⚠️ Security Warning: This code appears to use os.system. This should only be used with static arguments and never with arguments that could be user-controlled.",
     },
+    {
+        "ruleName": "hardcoded_api_keys",
+        "substrings": [
+            'API_KEY = "',
+            "API_KEY = '",
+            'SECRET = "',
+            "SECRET = '",
+            'TOKEN = "',
+            "TOKEN = '",
+            'AZURE_API_KEY = "',
+            "AZURE_API_KEY = '",
+            'OPENAI_API_KEY = "',
+            "OPENAI_API_KEY = '",
+            'AWS_SECRET_ACCESS_KEY = "',
+            "AWS_SECRET_ACCESS_KEY = '",
+            'DEEPGRAM_API_KEY = "',
+            "DEEPGRAM_API_KEY = '",
+            "sk-ant-",  # Anthropic API keys
+            "sk-proj-",  # OpenAI project keys
+            "ghp_",  # GitHub personal access tokens
+            "gho_",  # GitHub OAuth tokens
+            "Bearer eyJ",  # JWT tokens
+        ],
+        "reminder": """🚨 **CRITICAL: Hardcoded API Key or Secret Detected!**
+
+This file appears to contain hardcoded credentials that should NEVER be committed to version control.
+
+**Immediate Actions Required:**
+
+1. **DO NOT COMMIT THIS FILE** - The commit will be blocked for your protection
+
+2. **Move credentials to environment variables:**
+   ```python
+   import os
+   API_KEY = os.getenv("API_KEY")
+   ```
+
+   Or for shell scripts:
+   ```bash
+   export API_KEY="your-key-here"  # In .env file
+   ```
+
+3. **Create .env file and add to .gitignore:**
+   ```bash
+   echo "API_KEY=your-actual-key" > .env
+   echo ".env" >> .gitignore
+   echo ".env.local" >> .gitignore
+   ```
+
+4. **If already committed:**
+   - Rotate the exposed credential immediately
+   - Remove from git history: `git filter-repo --invert-paths --path <file>`
+   - Check for unauthorized usage in service logs
+
+**Why This Matters:**
+
+Exposed credentials can lead to:
+- ❌ Unauthorized API usage ($1000s in fraudulent charges)
+- ❌ Data breaches and account compromise
+- ❌ Employment consequences (documented cases)
+- ❌ Legal liability under data protection laws
+
+**Reference:**
+- GitHub Issue #2142 (Gmail, Maps, Firecrawl keys exposed)
+- GitHub Issue #12524 (Azure OpenAI key → $30K fraud + job loss)
+
+This warning exists because hardcoded credentials have caused real-world harm to developers.""",
+    },
+    {
+        "ruleName": "azure_connection_strings",
+        "substrings": [
+            "DefaultEndpointsProtocol=https;AccountName=",
+            "AccountKey=",
+            "SharedAccessSignature=",
+        ],
+        "reminder": """🚨 **CRITICAL: Azure Connection String Detected!**
+
+This file contains an Azure Storage connection string with production credentials.
+
+**DO NOT COMMIT THIS FILE**
+
+Azure connection strings contain:
+- Storage account names
+- Account keys (88-character base64 strings)
+- Shared Access Signatures
+
+These provide full access to your Azure storage and must be protected.
+
+**Correct approach:**
+```python
+import os
+connection_string = os.getenv("AZURE_STORAGE_CONNECTION_STRING")
+```
+
+Then store in .env (gitignored):
+```
+AZURE_STORAGE_CONNECTION_STRING="DefaultEndpointsProtocol=https;..."
+```
+
+**If exposed:**
+1. Rotate the storage account key immediately in Azure Portal
+2. Review Azure billing for unauthorized usage
+3. Check access logs for suspicious activity""",
+    },
+    {
+        "ruleName": "database_credentials",
+        "substrings": [
+            "postgres://",
+            "postgresql://",
+            "mysql://",
+            "mongodb://",
+            "redis://",
+        ],
+        "reminder": """⚠️ Security Warning: Database connection string detected!
+
+Database URLs often contain credentials in the format:
+`protocol://username:password@host:port/database`
+
+**Best practices:**
+1. Use environment variables for connection strings
+2. Never commit credentials to version control
+3. Use connection pooling services or secret managers
+4. Ensure .env files are in .gitignore
+
+If this is example/documentation:
+- Use placeholder values: `postgres://user:password@localhost/db`
+- Add a comment: `# Example only - use env vars in production`""",
+    },
 ]
 
 

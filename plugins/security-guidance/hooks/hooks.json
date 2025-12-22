@@ -1,5 +1,5 @@
 {
-  "description": "Security reminder hook that warns about potential security issues when editing files",
+  "description": "Security reminder hook that warns about potential security issues when editing files and blocks git commits with secrets",
   "hooks": {
     "PreToolUse": [
       {
@@ -10,6 +10,16 @@
           }
         ],
         "matcher": "Edit|Write|MultiEdit"
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/git_pre_commit_hook.py",
+            "timeout": 30
+          }
+        ],
+        "matcher": "Bash"
       }
     ]
   }
