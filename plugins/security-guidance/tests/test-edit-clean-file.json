@@ -1,0 +1,12 @@
+{
+  "session_id": "test-session-edit-clean",
+  "transcript_path": "/tmp/transcript.txt",
+  "cwd": "/tmp/test-project",
+  "permission_mode": "ask",
+  "hook_event_name": "PreToolUse",
+  "tool_name": "Write",
+  "tool_input": {
+    "file_path": "/tmp/test-config.py",
+    "content": "import os\n\n# Configuration\nAZURE_API_KEY = os.getenv('AZURE_API_KEY')\nOPENAI_API_KEY = os.getenv('OPENAI_API_KEY')\n"
+  }
+}

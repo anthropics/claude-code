@@ -1,0 +1,13 @@
+{
+  "session_id": "test-session-edit-azure-conn",
+  "transcript_path": "/tmp/transcript.txt",
+  "cwd": "/tmp/test-project",
+  "permission_mode": "ask",
+  "hook_event_name": "PreToolUse",
+  "tool_name": "Edit",
+  "tool_input": {
+    "file_path": "/tmp/test-storage.py",
+    "old_string": "connection_string = None",
+    "new_string": "connection_string = \"DefaultEndpointsProtocol=https;AccountName=myaccount;AccountKey=abcd1234567890/xyz==\""
+  }
+}

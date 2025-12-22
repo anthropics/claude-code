@@ -151,8 +151,8 @@ def main():
     if not ("git commit" in command or "git add" in command.lower()):
         sys.exit(0)
 
-    # Determine repository directory from working directory
-    cwd = os.getcwd()
+    # Determine repository directory from input data (or fallback to os.getcwd())
+    cwd = input_data.get("cwd", os.getcwd())
 
     # If git commit detected, scan staged files
     if "git commit" in command:

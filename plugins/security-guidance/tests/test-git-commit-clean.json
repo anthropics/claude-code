@@ -1,0 +1,11 @@
+{
+  "session_id": "test-session-git-clean",
+  "transcript_path": "/tmp/transcript.txt",
+  "cwd": "/tmp/test-git-repo-clean",
+  "permission_mode": "ask",
+  "hook_event_name": "PreToolUse",
+  "tool_name": "Bash",
+  "tool_input": {
+    "command": "git commit -m 'Add safe configuration'"
+  }
+}
