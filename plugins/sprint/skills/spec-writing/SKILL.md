@@ -1,7 +1,11 @@
 ---
-name: Spec Writing
+name: spec-writing
 description: This skill should be used when the user asks about "writing specs", "specs.md format", "how to write specifications", "sprint requirements", "testing configuration", "scope definition", or needs guidance on creating effective sprint specifications for agentic development.
 version: 1.0.0
+author: Damien Laine <damien.laine@gmail.com>
+license: MIT
+allowed-tools:
+  - Read
 ---
 
 # Spec Writing

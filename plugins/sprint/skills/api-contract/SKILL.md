@@ -1,7 +1,11 @@
 ---
-name: API Contract Design
+name: api-contract
 description: This skill should be used when the user asks about "API contract", "api-contract.md", "shared interface", "TypeScript interfaces", "request response schemas", "endpoint design", or needs guidance on designing contracts that coordinate backend and frontend agents.
 version: 1.0.0
+author: Damien Laine <damien.laine@gmail.com>
+license: MIT
+allowed-tools:
+  - Read
 ---
 
 # API Contract Design
