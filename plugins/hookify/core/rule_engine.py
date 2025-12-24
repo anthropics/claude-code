@@ -73,7 +73,8 @@ class RuleEngine:
                 return {
                     "hookSpecificOutput": {
                         "hookEventName": hook_event,
-                        "permissionDecision": "deny"
+                        "permissionDecision": "deny",
+                        "permissionDecisionReason": combined_message
                     },
                     "systemMessage": combined_message
                 }
@@ -86,8 +87,13 @@ class RuleEngine:
         # If only warnings, show them but allow operation
         if warning_rules:
             messages = [f"**[{r.name}]**\n{r.message}" for r in warning_rules]
+            combined_message = "\n\n".join(messages)
             return {
-                "systemMessage": "\n\n".join(messages)
+                "hookSpecificOutput": {
+                    "hookEventName": hook_event,
+                    "additionalContext": combined_message
+                },
+                "systemMessage": combined_message
             }
 
         # No matches - allow operation

@@ -91,8 +91,10 @@ This command could delete important files. Please:
 ```
 
 **Action field:**
-- `warn`: Shows warning but allows operation (default)
-- `block`: Prevents operation from executing (PreToolUse) or stops session (Stop events)
+- `warn`: Shows warning but allows operation (default). Claude receives the message via `additionalContext` for `PostToolUse` and `UserPromptSubmit` events.
+- `block`: Prevents operation from executing. Claude receives the reason via `permissionDecisionReason`.
+
+> **Note:** Due to Claude Code platform limitations, `warn` rules for `PreToolUse` events (bash, file) cannot pass messages to Claude before the operation. The warning is shown to the user but Claude only sees it after the tool executes (via `PostToolUse`). For pre-execution education, consider using `block` rules instead.
 
 ### Advanced Rule (Multiple Conditions)
 
