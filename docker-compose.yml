@@ -1,0 +1,88 @@
+version: '3.8'
+
+# 🐳 Docker Compose - Sistema Eucalipto v2.0
+# Serviço completo com persistência de dados
+
+services:
+  eucalipto:
+    # Build da imagem
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    # Nome do container
+    container_name: eucalipto-system
+
+    # Portas (host:container)
+    ports:
+      - "${APP_PORT:-3000}:3000"
+
+    # Variáveis de ambiente
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+      - PORT=3000
+      - GOOGLE_SHEETS_ID=${GOOGLE_SHEETS_ID}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+
+    # Volumes para persistência de dados
+    volumes:
+      # Dados locais persistentes
+      - ./data:/app/data
+      - ./data.json:/app/data.json
+      # Logs
+      - ./logs:/app/logs
+      # Node modules (cache)
+      - /app/node_modules
+
+    # Restart automático
+    restart: unless-stopped
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+    # Limite de recursos (opcional)
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+
+    # Logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # 📦 Nginx Reverse Proxy (opcional, para SSL/HTTPS)
+  nginx:
+    image: nginx:alpine
+    container_name: eucalipto-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./certs:/etc/nginx/certs:ro
+      - ./html:/usr/share/nginx/html:ro
+    depends_on:
+      - eucalipto
+    restart: unless-stopped
+    profiles:
+      - with-nginx
+
+volumes:
+  app-data:
+    driver: local
+
+networks:
+  default:
+    name: eucalipto-network
