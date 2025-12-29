@@ -44,6 +44,12 @@ export * from './cli/commandParser.js';
 // Git
 export * from './git/gitUtils.js';
 
+// Conversation
+export * from './conversation/conversationManager.js';
+
+// Settings
+export * from './settings/userSettings.js';
+
 /**
  * Application version
  */
