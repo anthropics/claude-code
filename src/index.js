@@ -50,6 +50,12 @@ export * from './conversation/conversationManager.js';
 // Settings
 export * from './settings/userSettings.js';
 
+// UI
+export * from './ui/terminal.js';
+
+// Network
+export * from './network/httpClient.js';
+
 /**
  * Application version
  */
