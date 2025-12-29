@@ -5,7 +5,7 @@
  */
 
 import { dirname, join } from 'path';
-import { getConfigDirectory } from '../config/environment.js';
+import { getConfigDirectory, parseBooleanTruthy } from '../config/environment.js';
 import { getFileSystemAdapter } from './fileSystem.js';
 
 /**
