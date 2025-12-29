@@ -56,7 +56,7 @@ When you use Claude Code, we collect feedback, which includes usage data (such a
 
 ### How we use your data
 
-See our [data usage policies](https://docs.anthropic.com/en/docs/claude-code/data-usage).
+See our [data usage policies](https://code.claude.com/docs/en/data-usage).
 
 ### Privacy safeguards
 
