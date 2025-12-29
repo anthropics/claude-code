@@ -52,9 +52,7 @@ Note: Still review Claude generated PR's.
 
 6. Filter out any issues that were not validated in step 5. This step will give us our list of high signal issues for our review.
 
-7. If issues were found, skip to step 8 to post inline comments directly.
-
-   If NO issues were found, post a summary comment using `gh pr comment` (if `--comment` argument is provided) with the following structure:
+7. Post a summary comment using `gh pr comment` (if `--comment` argument is provided) with the following structure:
 
    ```
    ## Code review
@@ -63,7 +61,8 @@ Note: Still review Claude generated PR's.
    [2-3 sentence summary of what the PR does, based on the summary from step 3]
 
    ### Review
-   No issues found.
+   [If no issues: "No issues found."]
+   [If issues found: "Found N issue(s). See inline comments below."]
 
    **Checked for:**
    - CLAUDE.md compliance [list which CLAUDE.md files were checked, or "no CLAUDE.md files found" if none exist]
@@ -73,7 +72,7 @@ Note: Still review Claude generated PR's.
    **Files reviewed:** [list the files that were changed in the PR]
    ```
 
-8. Post inline comments for each issue using `mcp__github_inline_comment__create_inline_comment`:
+8. If issues were found, post inline comments for each issue using `mcp__github_inline_comment__create_inline_comment`:
    - `path`: the file path
    - `line` (and `startLine` for ranges): select the buggy lines so the user sees them
    - `body`: Brief description of the issue (no "Bug:" prefix). For small fixes (up to 5 lines changed), include a committable suggestion:
@@ -107,7 +106,7 @@ Notes:
 - Use gh CLI to interact with GitHub (e.g., fetch pull requests, create comments). Do not use web fetch.
 - Create a todo list before starting.
 - You must cite and link each issue in inline comments (e.g., if referring to a CLAUDE.md, include a link to it).
-- If no issues are found, post a comment using the format specified in step 7.
+- Always post a summary comment using the format specified in step 7.
 
 - When linking to code in inline comments, follow the following format precisely, otherwise the Markdown preview won't render correctly: https://github.com/anthropics/claude-code/blob/c21d3c10bc8e898b7ac1a2d745bdc9bc4e423afe/package.json#L10-L15
   - Requires full git sha
