@@ -38,6 +38,12 @@ export * from './streaming/streamEvents.js';
 // Errors
 export * from './errors/errorTypes.js';
 
+// CLI
+export * from './cli/commandParser.js';
+
+// Git
+export * from './git/gitUtils.js';
+
 /**
  * Application version
  */
