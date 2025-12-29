@@ -54,8 +54,24 @@ Note: Still review Claude generated PR's.
 
 7. If issues were found, skip to step 8 to post inline comments directly.
 
-   If NO issues were found, post a summary comment using `gh pr comment` (if `--comment` argument is provided):
-   "No issues found. Checked for bugs and CLAUDE.md compliance."
+   If NO issues were found, post a summary comment using `gh pr comment` (if `--comment` argument is provided) with the following structure:
+
+   ```
+   ## Code review
+
+   ### Summary
+   [2-3 sentence summary of what the PR does, based on the summary from step 3]
+
+   ### Review
+   No issues found.
+
+   **Checked for:**
+   - CLAUDE.md compliance [list which CLAUDE.md files were checked, or "no CLAUDE.md files found" if none exist]
+   - Bugs and logic errors in the changed code
+   - Security issues
+
+   **Files reviewed:** [list the files that were changed in the PR]
+   ```
 
 8. Post inline comments for each issue using `mcp__github_inline_comment__create_inline_comment`:
    - `path`: the file path
@@ -91,15 +107,7 @@ Notes:
 - Use gh CLI to interact with GitHub (e.g., fetch pull requests, create comments). Do not use web fetch.
 - Create a todo list before starting.
 - You must cite and link each issue in inline comments (e.g., if referring to a CLAUDE.md, include a link to it).
-- If no issues are found, post a comment with the following format:
-
----
-
-## Code review
-
-No issues found. Checked for bugs and CLAUDE.md compliance.
-
----
+- If no issues are found, post a comment using the format specified in step 7.
 
 - When linking to code in inline comments, follow the following format precisely, otherwise the Markdown preview won't render correctly: https://github.com/anthropics/claude-code/blob/c21d3c10bc8e898b7ac1a2d745bdc9bc4e423afe/package.json#L10-L15
   - Requires full git sha
