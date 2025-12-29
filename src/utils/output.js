@@ -27,7 +27,7 @@ function writeToStderr(text) {
     }
 }
 
-module.exports = {
+export {
     writeToStdout,
     writeToStderr,
     CHUNK_SIZE
