@@ -32,6 +32,12 @@ export * from './permissions/permissionTypes.js';
 // Messages
 export * from './messages/messageTypes.js';
 
+// Streaming
+export * from './streaming/streamEvents.js';
+
+// Errors
+export * from './errors/errorTypes.js';
+
 /**
  * Application version
  */
