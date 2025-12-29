@@ -26,6 +26,12 @@ export * from './api/client.js';
 // Tools
 export * from './tools/toolInterface.js';
 
+// Permissions
+export * from './permissions/permissionTypes.js';
+
+// Messages
+export * from './messages/messageTypes.js';
+
 /**
  * Application version
  */
