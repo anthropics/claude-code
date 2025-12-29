@@ -16,10 +16,15 @@ export * from './config/validators.js';
 export * from './utils/fileSystem.js';
 export * from './utils/memoize.js';
 export * from './utils/logging.js';
+export * from './utils/formatting.js';
 export { writeToStdout, writeToStderr } from './utils/output.js';
 
 // API
 export * from './api/models.js';
+export * from './api/client.js';
+
+// Tools
+export * from './tools/toolInterface.js';
 
 /**
  * Application version
