@@ -68,8 +68,6 @@ Note: Still review Claude generated PR's.
    - CLAUDE.md compliance [list which CLAUDE.md files were checked, or "no CLAUDE.md files found" if none exist]
    - Bugs and logic errors in the changed code
    - Security issues
-
-   **Files reviewed:** [list the files that were changed in the PR]
    ```
 
 8. If issues were found, post inline comments for each issue using `mcp__github_inline_comment__create_inline_comment`:
