@@ -1,0 +1,2 @@
+# Ignore session state files (created at runtime)
+*.md
