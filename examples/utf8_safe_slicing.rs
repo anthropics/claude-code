@@ -94,7 +94,7 @@ mod tests {
     fn test_safe_slice_korean() {
         let text = "안녕하세요";
 
-        // Each Korean char is 3 bytes
+        // Each Korean char will occupy 3 bytes
         assert_eq!(safe_slice(text, 3), "안");
         assert_eq!(safe_slice(text, 4), "안"); // Adjusts down to byte 3
         assert_eq!(safe_slice(text, 6), "안녕");
