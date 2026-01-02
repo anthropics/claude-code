@@ -1,0 +1,11 @@
+{
+  "name": "email-privacy",
+  "version": "0.1.0",
+  "description": "Toggle to hide email address from displaying in Claude Code CLI",
+  "author": {
+    "name": "Anthropic",
+    "email": "support@anthropic.com"
+  },
+  "keywords": ["privacy", "email", "toggle", "settings"],
+  "claudeCodeMinVersion": "2.0.0"
+}

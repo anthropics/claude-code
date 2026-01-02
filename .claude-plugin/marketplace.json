@@ -48,6 +48,17 @@
       "category": "productivity"
     },
     {
+      "name": "email-privacy",
+      "description": "Toggle to hide email address from displaying in Claude Code CLI for privacy",
+      "version": "0.1.0",
+      "author": {
+        "name": "Anthropic",
+        "email": "support@anthropic.com"
+      },
+      "source": "./plugins/email-privacy",
+      "category": "privacy"
+    },
+    {
       "name": "explanatory-output-style",
       "description": "Adds educational insights about implementation choices and codebase patterns (mimics the deprecated Explanatory output style)",
       "version": "1.0.0",
