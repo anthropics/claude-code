@@ -22,23 +22,29 @@ Performs automated code review on a pull request using multiple specialized agen
    - **Agent #4**: Analyze git blame/history for context-based issues
 5. Scores each issue 0-100 for confidence level
 6. Filters out issues below 80 confidence threshold
-7. Posts review comment with high-confidence issues only
+7. Outputs review (to terminal by default, or as PR comment with `--comment` flag)
 
 **Usage:**
 ```bash
-/code-review
+/code-review [--comment]
 ```
+
+**Options:**
+- `--comment`: Post the review as a comment on the pull request (default: outputs to terminal only)
 
 **Example workflow:**
 ```bash
-# On a PR branch, run:
+# On a PR branch, run locally (outputs to terminal):
 /code-review
+
+# Post review as PR comment:
+/code-review --comment
 
 # Claude will:
 # - Launch 4 review agents in parallel
 # - Score each issue for confidence
-# - Post comment with issues ≥80 confidence
-# - Skip posting if no high-confidence issues found
+# - Output issues ≥80 confidence (to terminal or PR depending on flag)
+# - Skip if no high-confidence issues found
 ```
 
 **Features:**
@@ -114,17 +120,23 @@ This plugin is included in the Claude Code repository. The command is automatica
 ### Standard PR review workflow:
 ```bash
 # Create PR with changes
+# Run local review (outputs to terminal)
 /code-review
 
 # Review the automated feedback
 # Make any necessary fixes
+
+# Optionally post as PR comment
+/code-review --comment
+
 # Merge when ready
 ```
 
 ### As part of CI/CD:
 ```bash
 # Trigger on PR creation or update
-# Automatically posts review comments
+# Use --comment flag to post review comments
+/code-review --comment
 # Skip if review already exists
 ```
 

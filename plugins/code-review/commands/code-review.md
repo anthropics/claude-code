@@ -1,5 +1,5 @@
 ---
-allowed-tools: Bash(gh issue view:*), Bash(gh search:*), Bash(gh issue list:*), Bash(gh pr comment:*), Bash(gh pr diff:*), Bash(gh pr view:*), Bash(gh pr list:*)
+allowed-tools: Bash(gh issue view:*), Bash(gh search:*), Bash(gh issue list:*), Bash(gh pr comment:*), Bash(gh pr diff:*), Bash(gh pr view:*), Bash(gh pr list:*), mcp__github_inline_comment__create_inline_comment
 description: Code review a pull request
 ---
 
@@ -11,7 +11,7 @@ To do this, follow these steps precisely:
    - The pull request is closed
    - The pull request is a draft
    - The pull request does not need code review (e.g. automated PR, trivial change that is obviously correct)
-   - You have already submitted a code review on this pull request
+   - Claude has already commented on this PR (check `gh pr view <PR> --comments` for comments left by claude)
 
    If any condition is true, stop and do not proceed.
 
@@ -52,12 +52,30 @@ Note: Still review Claude generated PR's.
 
 6. Filter out any issues that were not validated in step 5. This step will give us our list of high signal issues for our review.
 
-7. Finally, comment on the pull request.
-   When writing your comment, follow these guidelines:
-   a. Keep your output brief
-   b. Avoid emojis
-   c. Link and cite relevant code, files, and URLs for each issue
-   d. When citing CLAUDE.md violations, you MUST quote the exact text from CLAUDE.md that is being violated (e.g., CLAUDE.md says: "Use snake_case for variable names")
+7. If issues were found, skip to step 8 to post inline comments directly.
+
+   If NO issues were found, post a summary comment using `gh pr comment` (if `--comment` argument is provided):
+   "No issues found. Checked for bugs and CLAUDE.md compliance."
+
+8. Post inline comments for each issue using `mcp__github_inline_comment__create_inline_comment`:
+   - `path`: the file path
+   - `line` (and `startLine` for ranges): select the buggy lines so the user sees them
+   - `body`: Brief description of the issue (no "Bug:" prefix). For small fixes (up to 5 lines changed), include a committable suggestion:
+     ```suggestion
+     corrected code here
+     ```
+
+     **Suggestions must be COMPLETE.** If a fix requires additional changes elsewhere (e.g., renaming a variable requires updating all usages), do NOT use a suggestion block. The author should be able to click "Commit suggestion" and have a working fix - no followup work required.
+
+     For larger fixes (6+ lines, structural changes, or changes spanning multiple locations), do NOT use suggestion blocks. Instead:
+     1. Describe what the issue is
+     2. Explain the suggested fix at a high level
+     3. Include a copyable prompt for Claude Code that the user can use to fix the issue, formatted as:
+        ```
+        Fix [file:line]: [brief description of issue and suggested fix]
+        ```
+
+   **IMPORTANT: Only post ONE comment per unique issue. Do not post duplicate comments.**
 
 Use this list when evaluating issues in Steps 4 and 5 (these are false positives, do NOT flag):
 
@@ -72,47 +90,18 @@ Notes:
 
 - Use gh CLI to interact with GitHub (e.g., fetch pull requests, create comments). Do not use web fetch.
 - Create a todo list before starting.
-- You must cite and link each issue (e.g., if referring to a CLAUDE.md, include a link to it).
-- For your final comment, follow the following format precisely (assuming for this example that you found 3 issues):
+- You must cite and link each issue in inline comments (e.g., if referring to a CLAUDE.md, include a link to it).
+- If no issues are found, post a comment with the following format:
 
 ---
 
 ## Code review
 
-Found 3 issues:
-
-1. <brief description of bug> (CLAUDE.md says: "<exact quote from CLAUDE.md>")
-
-<link to file and line with full sha1 + line range for context, eg. https://github.com/anthropics/claude-code/blob/1d54823877c4de72b2316a64032a54afc404e619/README.md#L13-L17>
-
-2. <brief description of bug> (some/other/CLAUDE.md says: "<exact quote from CLAUDE.md>")
-
-<link to file and line with full sha1 + line range for context>
-
-3. <brief description of bug> (bug due to <file and code snippet>)
-
-<link to file and line with full sha1 + line range for context>
-
-🤖 Generated with [Claude Code](https://claude.ai/code)
-
-
-<sub>- If this code review was useful, please react with 👍. Otherwise, react with 👎.</sub>
-
----
-
-- Or, if you found no issues:
-
----
-
-## Auto code review
-
 No issues found. Checked for bugs and CLAUDE.md compliance.
 
-🤖 Generated with [Claude Code](https://claude.ai/code)
-
 ---
 
-- When linking to code, follow the following format precisely, otherwise the Markdown preview won't render correctly: https://github.com/anthropics/claude-code/blob/c21d3c10bc8e898b7ac1a2d745bdc9bc4e423afe/package.json#L10-L15
+- When linking to code in inline comments, follow the following format precisely, otherwise the Markdown preview won't render correctly: https://github.com/anthropics/claude-code/blob/c21d3c10bc8e898b7ac1a2d745bdc9bc4e423afe/package.json#L10-L15
   - Requires full git sha
   - You must provide the full sha. Commands like `https://github.com/owner/repo/blob/$(git rev-parse HEAD)/foo/bar` will not work, since your comment will be directly rendered in Markdown.
   - Repo name must match the repo you're code reviewing
