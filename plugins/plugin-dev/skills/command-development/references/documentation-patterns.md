@@ -673,11 +673,11 @@ enable_feature: true
 
 ## Contributing
 
-Contributions welcome! See [CONTRIBUTING.md](CONTRIBUTING.md).
+Contributions welcome! Open an issue or pull request on [GitHub](https://github.com/anthropics/claude-code).
 
 ## License
 
-MIT License - See [LICENSE](LICENSE).
+MIT License - See [LICENSE.md](../../../../../LICENSE.md).
 
 ## Support
 
