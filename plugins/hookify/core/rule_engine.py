@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Rule evaluation engine for hookify plugin."""
 
+import os
 import re
 import sys
 from functools import lru_cache
@@ -8,6 +9,13 @@ from typing import List, Dict, Any, Optional
 
 # Import from local module
 from hookify.core.config_loader import Rule, Condition
+
+# Maximum transcript size to load into memory (10MB default)
+# For larger files, only the tail is read to prevent OOM
+MAX_TRANSCRIPT_SIZE_BYTES = 10 * 1024 * 1024  # 10MB
+
+# Size threshold for warning about large transcripts
+TRANSCRIPT_WARNING_SIZE_BYTES = 5 * 1024 * 1024  # 5MB
 
 
 # Cache compiled regexes (max 128 patterns)
@@ -22,6 +30,58 @@ def compile_regex(pattern: str) -> re.Pattern:
         Compiled regex pattern
     """
     return re.compile(pattern, re.IGNORECASE)
+
+
+def read_transcript_safely(transcript_path: str) -> str:
+    """Read transcript file with size limits to prevent OOM.
+
+    For large transcripts (>10MB), only reads the tail of the file
+    to prevent memory exhaustion. This preserves the most recent
+    conversation context which is typically what rules care about.
+
+    Args:
+        transcript_path: Path to the transcript file
+
+    Returns:
+        Transcript content as string, possibly truncated for large files
+    """
+    try:
+        file_size = os.path.getsize(transcript_path)
+
+        # Warn about large transcripts
+        if file_size > TRANSCRIPT_WARNING_SIZE_BYTES:
+            size_mb = file_size / (1024 * 1024)
+            print(f"Warning: Large transcript ({size_mb:.1f}MB): {transcript_path}", file=sys.stderr)
+
+        # For files within limit, read normally
+        if file_size <= MAX_TRANSCRIPT_SIZE_BYTES:
+            with open(transcript_path, 'r') as f:
+                return f.read()
+
+        # For large files, read only the tail to prevent OOM
+        size_mb = file_size / (1024 * 1024)
+        limit_mb = MAX_TRANSCRIPT_SIZE_BYTES / (1024 * 1024)
+        print(f"Warning: Transcript too large ({size_mb:.1f}MB), reading last {limit_mb:.0f}MB only", file=sys.stderr)
+
+        with open(transcript_path, 'r') as f:
+            # Seek to position near end, leaving room for MAX_TRANSCRIPT_SIZE_BYTES
+            f.seek(file_size - MAX_TRANSCRIPT_SIZE_BYTES)
+            # Skip partial line at seek position
+            f.readline()
+            return f.read()
+
+    except FileNotFoundError:
+        print(f"Warning: Transcript file not found: {transcript_path}", file=sys.stderr)
+        return ''
+    except PermissionError:
+        print(f"Warning: Permission denied reading transcript: {transcript_path}", file=sys.stderr)
+        return ''
+    except (IOError, OSError) as e:
+        print(f"Warning: Error reading transcript {transcript_path}: {e}", file=sys.stderr)
+        return ''
+    except UnicodeDecodeError as e:
+        print(f"Warning: Encoding error in transcript {transcript_path}: {e}", file=sys.stderr)
+        return ''
 
 
 class RuleEngine:
@@ -205,24 +265,10 @@ class RuleEngine:
             if field == 'reason':
                 return input_data.get('reason', '')
             elif field == 'transcript':
-                # Read transcript file if path provided
+                # Read transcript file with size limits to prevent OOM
                 transcript_path = input_data.get('transcript_path')
                 if transcript_path:
-                    try:
-                        with open(transcript_path, 'r') as f:
-                            return f.read()
-                    except FileNotFoundError:
-                        print(f"Warning: Transcript file not found: {transcript_path}", file=sys.stderr)
-                        return ''
-                    except PermissionError:
-                        print(f"Warning: Permission denied reading transcript: {transcript_path}", file=sys.stderr)
-                        return ''
-                    except (IOError, OSError) as e:
-                        print(f"Warning: Error reading transcript {transcript_path}: {e}", file=sys.stderr)
-                        return ''
-                    except UnicodeDecodeError as e:
-                        print(f"Warning: Encoding error in transcript {transcript_path}: {e}", file=sys.stderr)
-                        return ''
+                    return read_transcript_safely(transcript_path)
             elif field == 'user_prompt':
                 # For UserPromptSubmit events
                 return input_data.get('user_prompt', '')
