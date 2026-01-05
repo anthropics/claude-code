@@ -1,0 +1,218 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║                                                                            ║
+║              📋 CHECKLIST DE IMPLANTAÇÃO - GOOGLE SHEETS                  ║
+║                 Sistema Eucalipto v2.0 - 2025-12-16                       ║
+║                                                                            ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+═══════════════════════════════════════════════════════════════════════════════
+                         FASE 1: PREPARAÇÃO (5 minutos)
+═══════════════════════════════════════════════════════════════════════════════
+
+Documentação:
+   ☐ Leu COMECE_AQUI_GOOGLE_SHEETS.md
+   ☐ Entendeu os 5 passos
+   ☐ Entendeu o timeline
+
+Requisitos:
+   ☐ Tem acesso a https://console.cloud.google.com
+   ☐ Tem acesso a https://docs.google.com/spreadsheets/d/1r1KgMS5xPI8itdpJf_gGQEfV23Cu32hz/
+   ☐ Terminal/Bash disponível
+   ☐ Editor de texto (nano, vim, notepad, VSCode)
+
+Informações Coletadas:
+   ☐ Google Sheets ID: 1r1KgMS5xPI8itdpJf_gGQEfV23Cu32hz (já fornecido)
+   ☐ Espaço vazio para API Key: ____________________________________
+   ☐ Entendido que vai gerar a API Key no Google Cloud
+
+═══════════════════════════════════════════════════════════════════════════════
+                   FASE 2: GOOGLE CLOUD (5 minutos)
+═══════════════════════════════════════════════════════════════════════════════
+
+Google Cloud Console:
+   ☐ Abriu https://console.cloud.google.com
+   ☐ Fez login com sua conta Google
+   ☐ Criou novo projeto chamado "Eucalipto-System"
+   ☐ Aguardou 1-2 minutos pela criação
+
+Ativação de APIs:
+   ☐ Acessou: APIs e serviços → Biblioteca
+   ☐ Procurou: "Google Sheets API"
+   ☐ Clicou em "ATIVAR"
+   ☐ Esperou confirmação
+
+Geração de Credenciais:
+   ☐ Acessou: APIs e serviços → Credenciais
+   ☐ Clicou em "+ CRIAR CREDENCIAIS"
+   ☐ Selecionou "Chave de API"
+   ☐ Copiou a chave gerada
+   ☐ Salvou em local seguro: ____________________________________
+   ☐ Notou: A chave começa com "AIzaSy"
+
+═══════════════════════════════════════════════════════════════════════════════
+                        FASE 3: CONFIGURAÇÃO (5 minutos)
+═══════════════════════════════════════════════════════════════════════════════
+
+Preparação do Arquivo .env:
+   ☐ Abriu terminal/bash
+   ☐ Navegou para: cd /home/user/claude-code
+   ☐ Executou: cp .env.example .env
+   ☐ Confirmou que .env foi criado
+
+Preenchimento do .env:
+   ☐ Abriu .env com editor (nano .env)
+   ☐ Preencheu GOOGLE_API_KEY com a chave gerada
+   ☐ Confirmou que GOOGLE_SHEETS_ID está correto
+   ☐ Preencheu PORT=3000
+   ☐ Preencheu NODE_ENV=production
+   ☐ Salvou arquivo (.env)
+   ☐ Nunca commitou .env no Git ✓
+
+═══════════════════════════════════════════════════════════════════════════════
+                     FASE 4: INSTALAÇÃO (5 minutos)
+═══════════════════════════════════════════════════════════════════════════════
+
+Instalação de Dependências:
+   ☐ Garantiu que está em: /home/user/claude-code
+   ☐ Executou: npm install
+   ☐ Aguardou conclusão (pode levar alguns minutos)
+   ☐ Não teve erros críticos
+
+Inicialização do Sistema:
+   ☐ Executou: npm start
+   ☐ Viu mensagem: "✅ Servidor rodando em http://localhost:3000"
+   ☐ Servidor está funcionando (não feche o terminal)
+
+═══════════════════════════════════════════════════════════════════════════════
+                      FASE 5: VALIDAÇÃO (2 minutos)
+═══════════════════════════════════════════════════════════════════════════════
+
+Script de Teste (em outro terminal):
+   ☐ Abriu novo terminal/bash
+   ☐ Navegou para: cd /home/user/claude-code
+   ☐ Executou: node testar-google-sheets.js
+   ☐ Viu teste 1: ✅ GOOGLE_API_KEY configurada
+   ☐ Viu teste 2: ✅ GOOGLE_SHEETS_ID configurada
+   ☐ Viu teste 3: ✅ Conectado à Google Sheets com sucesso!
+   ☐ Viu teste 4: ✅ Dados encontrados na aba 'Produtos'
+   ☐ Viu resultado final: ✅ TUDO FUNCIONANDO!
+
+═══════════════════════════════════════════════════════════════════════════════
+                         FASE 6: USO (1 minuto)
+═══════════════════════════════════════════════════════════════════════════════
+
+Acesso ao Sistema:
+   ☐ Abriu navegador (Chrome, Firefox, Safari, Edge)
+   ☐ Digitou: http://localhost:3000
+   ☐ Sistema Eucalipto v2.0 carregou
+   ☐ Viu interface com 10 abas
+
+Sincronização de Dados:
+   ☐ Clicou na aba: 📑 GOOGLE SHEETS
+   ☐ Clicou no botão: 📥 CARREGAR DE SHEETS
+   ☐ Aguardou 2-3 segundos
+   ☐ Viu produtos carregarem
+   ☐ Clicou em: 📦 PRODUTOS
+   ☐ Confirmou que produtos aparecem
+
+═══════════════════════════════════════════════════════════════════════════════
+                      FASE 7: OPERAÇÃO (Contínuo)
+═══════════════════════════════════════════════════════════════════════════════
+
+Testes Básicos:
+   ☐ Aceitou que sistema está funcionando
+   ☐ Explorou as 10 abas do sistema
+   ☐ Testou criar novo produto
+   ☐ Testou registrar nova venda
+   ☐ Testou criar orçamento
+
+Sincronização Contínua:
+   ☐ Entendeu que pode sincronizar quando quiser
+   ☐ Clicou: 📤 EXPORTAR PARA SHEETS (para enviar dados)
+   ☐ Clicou: 📥 CARREGAR DE SHEETS (para receber dados)
+   ☐ Verificou histórico de sincronizações
+
+Backup:
+   ☐ Sabe que dados são salvos em data.json
+   ☐ Entendeu que Google Sheets é backup automático
+   ☐ Pode exportar JSON/CSV quando necessário
+
+═══════════════════════════════════════════════════════════════════════════════
+                      CHECKLIST FINAL - STATUS
+═══════════════════════════════════════════════════════════════════════════════
+
+Quantidade de tarefas concluídas: _______ / 55
+
+Se todas estiverem marcadas (✓):
+   ✅ SISTEMA 100% FUNCIONAL
+   ✅ GOOGLE SHEETS INTEGRADA
+   ✅ PRONTO PARA USO EM PRODUÇÃO
+
+Se algumas estiverem faltando:
+   📖 Consulte IMPLANTACAO_GOOGLE_SHEETS.md para problemas específicos
+   🧪 Execute: node testar-google-sheets.js para diagnóstico
+   📞 Verifique seção Troubleshooting em COMECE_AQUI_GOOGLE_SHEETS.md
+
+═══════════════════════════════════════════════════════════════════════════════
+                      PRÓXIMAS AÇÕES RECOMENDADAS
+═══════════════════════════════════════════════════════════════════════════════
+
+1. 📊 Adicione seus dados reais:
+   └─ Produtos existentes
+   └─ Clientes existentes
+   └─ Vendas passadas
+
+2. 🔄 Configure sincronização regular:
+   └─ Semanal: Faça backup
+   └─ Diária: Sincronize dados importantes
+
+3. 🚀 Prepare para produção:
+   └─ Configure HTTPS (SSL)
+   └─ Hospede em servidor online
+   └─ Implemente autenticação de usuários
+
+4. 📈 Expanda o sistema:
+   └─ Adicione novos módulos
+   └─ Customize campos conforme necessário
+   └─ Integre com outras ferramentas
+
+═══════════════════════════════════════════════════════════════════════════════
+                      DÚVIDAS FREQUENTES (FAQ)
+═══════════════════════════════════════════════════════════════════════════════
+
+P: Onde encontro minha API Key?
+R: Gerada no Google Cloud Console → Credenciais → Chaves de API
+
+P: Posso compartilhar minha API Key?
+R: NÃO! É secreto. Guarde seguro e nunca commit no Git.
+
+P: Como saiba se tudo está certo?
+R: Execute: node testar-google-sheets.js
+
+P: Posso usar a planilha enquanto sistema está rodando?
+R: SIM! Os dados não ficam "trancados". Apenas sincronize quando mudar.
+
+P: Preciso ficar sincronizando manualmente?
+R: NÃO! Pode configurar automático no cron (veja documentação).
+
+P: O que acontece se cair a internet?
+R: Sistema continua funcionando offline com localStorage.
+   Quando volta internet, sincronize manualmente.
+
+═══════════════════════════════════════════════════════════════════════════════
+
+✅ PARABÉNS! Você tem um sistema profissional funcionando! 🎉
+
+Data de Conclusão: ___________________
+Assinado por: ___________________
+Nota Final: 🌟🌟🌟🌟🌟
+
+═══════════════════════════════════════════════════════════════════════════════
+
+Para mais informações:
+   • Leia: COMECE_AQUI_GOOGLE_SHEETS.md (quick start)
+   • Leia: IMPLANTACAO_GOOGLE_SHEETS.md (detalhado)
+   • Teste: node testar-google-sheets.js (validação)
+   • Acesse: http://localhost:3000 (sistema)
+
+═══════════════════════════════════════════════════════════════════════════════
