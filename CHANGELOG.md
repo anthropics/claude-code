@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Fixed bash permission rules with unbalanced quotes being saved to settings, causing settings to fail validation on load
+
 ## 2.0.74
 
 - Added LSP (Language Server Protocol) tool for code intelligence features like go-to-definition, find references, and hover documentation
