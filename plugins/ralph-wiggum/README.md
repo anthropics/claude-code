@@ -177,3 +177,42 @@ Keep trying until success. The loop handles retry logic automatically.
 ## For Help
 
 Run `/help` in Claude Code for detailed command reference and examples.
+
+## Cross-Platform Support
+
+Ralph Wiggum now supports both Unix/macOS and Windows platforms.
+
+### Platform-Specific Scripts
+
+| Platform | Stop Hook | Setup Script |
+|----------|-----------|--------------|
+| Unix/macOS | `stop-hook.sh` (bash) | `setup-ralph-loop.sh` |
+| Windows | `stop-hook.ps1` (PowerShell) | `setup-ralph-loop.ps1` |
+
+### Windows Requirements
+
+- Windows 10/11 with PowerShell 5.1+ (built-in)
+- Claude Code installed and configured
+
+### Windows Usage
+
+The commands work identically on Windows:
+
+```powershell
+# Start a Ralph loop
+/ralph-wiggum:ralph-loop "Build a REST API" -MaxIterations 20 -CompletionPromise "DONE"
+
+# Cancel the loop
+/ralph-wiggum:cancel-ralph
+```
+
+**Note:** On Windows, parameter names use PowerShell conventions (`-MaxIterations` instead of `--max-iterations`), but both formats should work.
+
+### Implementation Notes
+
+The Windows port uses native PowerShell equivalents:
+- `ConvertFrom-Json`/`ConvertTo-Json` instead of `jq`
+- PowerShell regex operators instead of `sed`/`awk`/`perl`
+- `[Console]::In.ReadToEnd()` for stdin handling
+
+The `hooks.json` configuration automatically selects the appropriate script based on the detected platform.
