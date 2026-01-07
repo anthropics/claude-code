@@ -1,26 +1,22 @@
 ---
 description: "Cancel active Ralph Wiggum loop"
-allowed-tools: ["Bash"]
+allowed-tools: ["Bash(${CLAUDE_PLUGIN_ROOT}/state/*:*)"]
 hide-from-slash-command-tool: "true"
 ---
 
 # Cancel Ralph
 
-```!
-if [[ -f .claude/ralph-loop.local.md ]]; then
-  ITERATION=$(grep '^iteration:' .claude/ralph-loop.local.md | sed 's/iteration: *//')
-  echo "FOUND_LOOP=true"
-  echo "ITERATION=$ITERATION"
-else
-  echo "FOUND_LOOP=false"
-fi
-```
+To cancel the Ralph loop:
 
-Check the output above:
+1. Check if a state file exists for this session using Bash:
+   ```bash
+   RALPH_STATE_FILE="${CLAUDE_PLUGIN_ROOT}/state/${CLAUDE_SESSION_ID}.md"
+   test -f "$RALPH_STATE_FILE" && echo "EXISTS" || echo "NOT_FOUND"
+   ```
 
-1. **If FOUND_LOOP=false**:
-   - Say "No active Ralph loop found."
+2. **If NOT_FOUND**: Say "No active Ralph loop found for this session."
 
-2. **If FOUND_LOOP=true**:
-   - Use Bash: `rm .claude/ralph-loop.local.md`
-   - Report: "Cancelled Ralph loop (was at iteration N)" where N is the ITERATION value from above.
+3. **If EXISTS**:
+   - Read the state file to get the current iteration number from the `iteration:` field
+   - Remove the file using Bash: `rm "$RALPH_STATE_FILE"`
+   - Report: "Cancelled Ralph loop (was at iteration N)" where N is the iteration value
