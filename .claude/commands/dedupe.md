@@ -1,5 +1,5 @@
 ---
-allowed-tools: Bash(gh issue view:*), Bash(gh search:*), Bash(gh issue list:*), Bash(gh api:*), Bash(gh issue comment:*)
+allowed-tools: Bash(gh issue view:*), Bash(gh search:*), Bash(gh issue list:*), Bash(gh issue comment:*)
 description: Find duplicate GitHub issues
 ---
 
