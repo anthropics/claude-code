@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.1.0 (2026-01-07)
+## 2.1.0
 
 - Added automatic skill hot-reload - skills created or modified in `~/.claude/skills` or `.claude/skills` are now immediately available without restarting the session
 - Added support for running skills and slash commands in a forked sub-agent context using `context: fork` in skill frontmatter
