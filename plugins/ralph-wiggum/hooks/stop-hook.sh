@@ -9,16 +9,23 @@ set -euo pipefail
 # Read hook input from stdin (advanced stop hook API)
 HOOK_INPUT=$(cat)
 
-# Check if ralph-loop is active
-RALPH_STATE_FILE=".claude/ralph-loop.local.md"
+# Check if ralph-loop is active (find state files matching pattern)
+shopt -s nullglob  # Prevent literal *.md if no matches
+LOOP_FILES=(.claude/ralph-loop-*.local.md)
+shopt -u nullglob
 
-if [[ ! -f "$RALPH_STATE_FILE" ]]; then
-  # No active loop - allow exit
+if [[ ${#LOOP_FILES[@]} -eq 0 ]]; then
+  # No active loops - allow exit
   exit 0
 fi
 
+# Use the first active loop file found
+# (Each Claude session should have at most one active loop)
+RALPH_STATE_FILE="${LOOP_FILES[0]}"
+
 # Parse markdown frontmatter (YAML between ---) and extract values
 FRONTMATTER=$(sed -n '/^---$/,/^---$/{ /^---$/d; p; }' "$RALPH_STATE_FILE")
+SESSION_ID=$(echo "$FRONTMATTER" | grep '^session_id:' | sed 's/session_id: *//')
 ITERATION=$(echo "$FRONTMATTER" | grep '^iteration:' | sed 's/iteration: *//')
 MAX_ITERATIONS=$(echo "$FRONTMATTER" | grep '^max_iterations:' | sed 's/max_iterations: *//')
 # Extract completion_promise and strip surrounding quotes if present
@@ -49,7 +56,11 @@ fi
 
 # Check if max iterations reached
 if [[ $MAX_ITERATIONS -gt 0 ]] && [[ $ITERATION -ge $MAX_ITERATIONS ]]; then
-  echo "🛑 Ralph loop: Max iterations ($MAX_ITERATIONS) reached."
+  if [[ -n "$SESSION_ID" ]]; then
+    echo "🛑 Ralph loop [$SESSION_ID]: Max iterations ($MAX_ITERATIONS) reached."
+  else
+    echo "🛑 Ralph loop: Max iterations ($MAX_ITERATIONS) reached."
+  fi
   rm "$RALPH_STATE_FILE"
   exit 0
 fi
@@ -121,7 +132,11 @@ if [[ "$COMPLETION_PROMISE" != "null" ]] && [[ -n "$COMPLETION_PROMISE" ]]; then
   # Use = for literal string comparison (not pattern matching)
   # == in [[ ]] does glob pattern matching which breaks with *, ?, [ characters
   if [[ -n "$PROMISE_TEXT" ]] && [[ "$PROMISE_TEXT" = "$COMPLETION_PROMISE" ]]; then
-    echo "✅ Ralph loop: Detected <promise>$COMPLETION_PROMISE</promise>"
+    if [[ -n "$SESSION_ID" ]]; then
+      echo "✅ Ralph loop [$SESSION_ID]: Detected <promise>$COMPLETION_PROMISE</promise>"
+    else
+      echo "✅ Ralph loop: Detected <promise>$COMPLETION_PROMISE</promise>"
+    fi
     rm "$RALPH_STATE_FILE"
     exit 0
   fi
@@ -156,10 +171,15 @@ sed "s/^iteration: .*/iteration: $NEXT_ITERATION/" "$RALPH_STATE_FILE" > "$TEMP_
 mv "$TEMP_FILE" "$RALPH_STATE_FILE"
 
 # Build system message with iteration count and completion promise info
+SESSION_INFO=""
+if [[ -n "$SESSION_ID" ]]; then
+  SESSION_INFO=" [$SESSION_ID]"
+fi
+
 if [[ "$COMPLETION_PROMISE" != "null" ]] && [[ -n "$COMPLETION_PROMISE" ]]; then
-  SYSTEM_MSG="🔄 Ralph iteration $NEXT_ITERATION | To stop: output <promise>$COMPLETION_PROMISE</promise> (ONLY when statement is TRUE - do not lie to exit!)"
+  SYSTEM_MSG="🔄 Ralph iteration $NEXT_ITERATION$SESSION_INFO | To stop: output <promise>$COMPLETION_PROMISE</promise> (ONLY when statement is TRUE - do not lie to exit!)"
 else
-  SYSTEM_MSG="🔄 Ralph iteration $NEXT_ITERATION | No completion promise set - loop runs infinitely"
+  SYSTEM_MSG="🔄 Ralph iteration $NEXT_ITERATION$SESSION_INFO | No completion promise set - loop runs infinitely"
 fi
 
 # Output JSON to block the stop and feed prompt back

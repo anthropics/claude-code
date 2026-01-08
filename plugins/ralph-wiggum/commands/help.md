@@ -37,16 +37,23 @@ Start a Ralph loop in your current session.
 
 **Usage:**
 ```
-/ralph-loop "Refactor the cache layer" --max-iterations 20
-/ralph-loop "Add tests" --completion-promise "TESTS COMPLETE"
+/ralph-loop --id my-task "Refactor the cache layer" --max-iterations 20
+/ralph-loop --id tests "Add tests" --completion-promise "TESTS COMPLETE"
+```
+
+Or set the session ID via environment variable before starting Claude:
+```bash
+export RALPH_SESSION_ID=my-session
+claude
 ```
 
 **Options:**
+- `--id <name>` - Session ID for the loop (required, or set RALPH_SESSION_ID env var)
 - `--max-iterations <n>` - Max iterations before auto-stop
 - `--completion-promise <text>` - Promise phrase to signal completion
 
 **How it works:**
-1. Creates `.claude/.ralph-loop.local.md` state file
+1. Creates `.claude/ralph-loop-<id>.local.md` state file
 2. You work on the task
 3. When you try to exit, stop hook intercepts
 4. Same prompt fed back
@@ -55,18 +62,19 @@ Start a Ralph loop in your current session.
 
 ---
 
-### /cancel-ralph
+### /cancel-ralph [--id <name>]
 
 Cancel an active Ralph loop (removes the loop state file).
 
 **Usage:**
 ```
-/cancel-ralph
+/cancel-ralph                 # List all active loops
+/cancel-ralph --id my-task    # Cancel specific loop
 ```
 
 **How it works:**
-- Checks for active loop state file
-- Removes `.claude/.ralph-loop.local.md`
+- Without `--id`: Lists all active loop state files
+- With `--id`: Removes `.claude/ralph-loop-<id>.local.md`
 - Reports cancellation with iteration count
 
 ---
@@ -96,7 +104,7 @@ The "loop" doesn't mean Claude talks to itself. It means:
 ### Interactive Bug Fix
 
 ```
-/ralph-loop "Fix the token refresh logic in auth.ts. Output <promise>FIXED</promise> when all tests pass." --completion-promise "FIXED" --max-iterations 10
+/ralph-loop --id auth-fix "Fix the token refresh logic in auth.ts. Output <promise>FIXED</promise> when all tests pass." --completion-promise "FIXED" --max-iterations 10
 ```
 
 You'll see Ralph:

@@ -9,6 +9,8 @@ set -euo pipefail
 PROMPT_PARTS=()
 MAX_ITERATIONS=0
 COMPLETION_PROMISE="null"
+# Initialize SESSION_ID from environment variable (can be overridden by --id)
+SESSION_ID="${RALPH_SESSION_ID:-}"
 
 # Parse options and positional arguments
 while [[ $# -gt 0 ]]; do
@@ -24,6 +26,7 @@ ARGUMENTS:
   PROMPT...    Initial prompt to start the loop (can be multiple words without quotes)
 
 OPTIONS:
+  --id <name>                    Session ID for state file (or set RALPH_SESSION_ID env var)
   --max-iterations <n>           Maximum iterations before auto-stop (default: unlimited)
   --completion-promise '<text>'  Promise phrase (USE QUOTES for multi-word)
   -h, --help                     Show this help message
@@ -40,23 +43,42 @@ DESCRIPTION:
   - Learning how Ralph works
 
 EXAMPLES:
-  /ralph-loop Build a todo API --completion-promise 'DONE' --max-iterations 20
-  /ralph-loop --max-iterations 10 Fix the auth bug
-  /ralph-loop Refactor cache layer  (runs forever)
-  /ralph-loop --completion-promise 'TASK COMPLETE' Create a REST API
+  /ralph-loop --id api-build Build a todo API --completion-promise 'DONE' --max-iterations 20
+  /ralph-loop --id bugfix --max-iterations 10 Fix the auth bug
+  /ralph-loop --id refactor Refactor cache layer  (runs forever)
+
+  Or set RALPH_SESSION_ID before starting Claude:
+    export RALPH_SESSION_ID=my-session
+    claude
 
 STOPPING:
   Only by reaching --max-iterations or detecting --completion-promise
   No manual stop - Ralph runs infinitely by default!
 
 MONITORING:
-  # View current iteration:
-  grep '^iteration:' .claude/ralph-loop.local.md
+  # List active loops:
+  ls .claude/ralph-loop-*.local.md
+
+  # View current iteration (replace <id> with your session ID):
+  grep '^iteration:' .claude/ralph-loop-<id>.local.md
 
   # View full state:
-  head -10 .claude/ralph-loop.local.md
+  head -10 .claude/ralph-loop-<id>.local.md
 HELP_EOF
       exit 0
+      ;;
+    --id)
+      if [[ -z "${2:-}" ]]; then
+        echo "❌ Error: --id requires a name argument" >&2
+        echo "" >&2
+        echo "   Example: --id my-task" >&2
+        echo "" >&2
+        echo "   Or set environment variable before starting Claude:" >&2
+        echo "     export RALPH_SESSION_ID=my-session" >&2
+        exit 1
+      fi
+      SESSION_ID="$2"
+      shift 2
       ;;
     --max-iterations)
       if [[ -z "${2:-}" ]]; then
@@ -119,11 +141,50 @@ if [[ -z "$PROMPT" ]]; then
   echo "   Ralph needs a task description to work on." >&2
   echo "" >&2
   echo "   Examples:" >&2
-  echo "     /ralph-loop Build a REST API for todos" >&2
-  echo "     /ralph-loop Fix the auth bug --max-iterations 20" >&2
-  echo "     /ralph-loop --completion-promise 'DONE' Refactor code" >&2
+  echo "     /ralph-loop --id my-task Build a REST API for todos" >&2
+  echo "     /ralph-loop --id bugfix Fix the auth bug --max-iterations 20" >&2
+  echo "     /ralph-loop --id refactor --completion-promise 'DONE' Refactor code" >&2
   echo "" >&2
   echo "   For all options: /ralph-loop --help" >&2
+  exit 1
+fi
+
+# Validate SESSION_ID is provided (either via env var or --id flag)
+if [[ -z "$SESSION_ID" ]]; then
+  echo "❌ Error: No session ID provided" >&2
+  echo "" >&2
+  echo "   Set via environment variable before starting Claude Code:" >&2
+  echo "     export RALPH_SESSION_ID=my-session" >&2
+  echo "     claude" >&2
+  echo "" >&2
+  echo "   Or specify inline with --id:" >&2
+  echo "     /ralph-loop --id my-task Build something" >&2
+  echo "" >&2
+  echo "   For all options: /ralph-loop --help" >&2
+  exit 1
+fi
+
+# Validate SESSION_ID format (alphanumeric, hyphens, underscores only)
+if [[ ! "$SESSION_ID" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+  echo "❌ Error: Session ID must contain only letters, numbers, hyphens, underscores" >&2
+  echo "" >&2
+  echo "   You provided: $SESSION_ID" >&2
+  echo "" >&2
+  echo "   Valid examples: my-task, bugfix_1, session123" >&2
+  exit 1
+fi
+
+# Define state file path with SESSION_ID
+RALPH_STATE_FILE=".claude/ralph-loop-${SESSION_ID}.local.md"
+
+# Check if this SESSION_ID is already in use
+if [[ -f "$RALPH_STATE_FILE" ]]; then
+  echo "❌ Error: Session ID '$SESSION_ID' is already in use" >&2
+  echo "" >&2
+  echo "   Cancel it first: /cancel-ralph --id $SESSION_ID" >&2
+  echo "" >&2
+  echo "   Or use a different ID:" >&2
+  echo "     /ralph-loop --id different-id ..." >&2
   exit 1
 fi
 
@@ -137,9 +198,10 @@ else
   COMPLETION_PROMISE_YAML="null"
 fi
 
-cat > .claude/ralph-loop.local.md <<EOF
+cat > "$RALPH_STATE_FILE" <<EOF
 ---
 active: true
+session_id: $SESSION_ID
 iteration: 1
 max_iterations: $MAX_ITERATIONS
 completion_promise: $COMPLETION_PROMISE_YAML
@@ -151,8 +213,9 @@ EOF
 
 # Output setup message
 cat <<EOF
-🔄 Ralph loop activated in this session!
+🔄 Ralph loop activated: $SESSION_ID
 
+Session ID: $SESSION_ID
 Iteration: 1
 Max iterations: $(if [[ $MAX_ITERATIONS -gt 0 ]]; then echo $MAX_ITERATIONS; else echo "unlimited"; fi)
 Completion promise: $(if [[ "$COMPLETION_PROMISE" != "null" ]]; then echo "${COMPLETION_PROMISE//\"/} (ONLY output when TRUE - do not lie!)"; else echo "none (runs forever)"; fi)
@@ -161,7 +224,8 @@ The stop hook is now active. When you try to exit, the SAME PROMPT will be
 fed back to you. You'll see your previous work in files, creating a
 self-referential loop where you iteratively improve on the same task.
 
-To monitor: head -10 .claude/ralph-loop.local.md
+To cancel this loop: /cancel-ralph --id $SESSION_ID
+To monitor: head -10 $RALPH_STATE_FILE
 
 ⚠️  WARNING: This loop cannot be stopped manually! It will run infinitely
     unless you set --max-iterations or --completion-promise.
