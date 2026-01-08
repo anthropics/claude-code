@@ -180,10 +180,46 @@ def save_state(session_id, shown_warnings):
         pass  # Fail silently if we can't save state
 
 
+def resolve_symlink_path(file_path):
+    """Resolve symlinks in file path to get canonical path.
+
+    Security fix for CVE-2025-59829: Deny rules could be bypassed by creating
+    a symlink to a restricted file. This method resolves the symlink to its
+    target path so that security patterns are checked against the actual file.
+
+    Args:
+        file_path: The file path that may contain symlinks
+
+    Returns:
+        The canonical path with symlinks resolved, or original path if
+        resolution fails (e.g., file doesn't exist yet)
+    """
+    if not file_path:
+        return file_path
+
+    try:
+        # Expand user home directory first
+        expanded_path = os.path.expanduser(file_path)
+
+        # Use realpath to resolve all symlinks and get canonical path
+        # This handles nested symlinks and relative path components
+        resolved = os.path.realpath(expanded_path)
+
+        return resolved
+    except (OSError, ValueError):
+        # If resolution fails (e.g., permission denied, invalid path),
+        # return the original path to avoid blocking legitimate operations
+        return file_path
+
+
 def check_patterns(file_path, content):
     """Check if file path or content matches any security patterns."""
+    # Security fix: resolve symlinks before checking patterns
+    # CVE-2025-59829: Security patterns could be bypassed via symlinks
+    resolved_path = resolve_symlink_path(file_path)
+
     # Normalize path by removing leading slashes
-    normalized_path = file_path.lstrip("/")
+    normalized_path = resolved_path.lstrip("/")
 
     for pattern in SECURITY_PATTERNS:
         # Check path-based patterns
@@ -241,7 +277,7 @@ def main():
     tool_input = input_data.get("tool_input", {})
 
     # Check if this is a relevant tool
-    if tool_name not in ["Edit", "Write", "MultiEdit"]:
+    if tool_name not in ["Edit", "Write", "MultiEdit", "Read"]:
         sys.exit(0)  # Allow non-file tools to proceed
 
     # Extract file path from tool_input

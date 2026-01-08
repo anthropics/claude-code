@@ -45,7 +45,9 @@ def main():
         event = None
         if tool_name == 'Bash':
             event = 'bash'
-        elif tool_name in ['Edit', 'Write', 'MultiEdit']:
+        elif tool_name in ['Edit', 'Write', 'MultiEdit', 'Read']:
+            # Include Read tool in file events to check symlink bypass
+            # Security fix for CVE-2025-59829
             event = 'file'
 
         # Load rules

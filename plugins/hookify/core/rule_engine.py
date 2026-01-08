@@ -141,6 +141,39 @@ class RuleEngine:
         patterns = matcher.split('|')
         return tool_name in patterns
 
+    def _resolve_symlink_path(self, file_path: str) -> str:
+        """Resolve symlinks in file path to get canonical path.
+
+        Security fix for CVE-2025-59829: Deny rules could be bypassed by creating
+        a symlink to a restricted file. This method resolves the symlink to its
+        target path so that deny rules are checked against the actual file.
+
+        Args:
+            file_path: The file path that may contain symlinks
+
+        Returns:
+            The canonical path with symlinks resolved, or original path if
+            resolution fails (e.g., file doesn't exist yet)
+        """
+        import os
+
+        if not file_path:
+            return file_path
+
+        try:
+            # Expand user home directory first
+            expanded_path = os.path.expanduser(file_path)
+
+            # Use realpath to resolve all symlinks and get canonical path
+            # This handles nested symlinks and relative path components
+            resolved = os.path.realpath(expanded_path)
+
+            return resolved
+        except (OSError, ValueError):
+            # If resolution fails (e.g., permission denied, invalid path),
+            # return the original path to avoid blocking legitimate operations
+            return file_path
+
     def _check_condition(self, condition: Condition, tool_name: str,
                         tool_input: Dict[str, Any], input_data: Dict[str, Any] = None) -> bool:
         """Check if a single condition matches.
@@ -196,6 +229,10 @@ class RuleEngine:
         if field in tool_input:
             value = tool_input[field]
             if isinstance(value, str):
+                # Security fix: resolve symlinks for file_path fields to prevent bypass
+                # CVE-2025-59829: Deny rules could be bypassed via symlinks
+                if field == 'file_path':
+                    value = self._resolve_symlink_path(value)
                 return value
             return str(value)
 
@@ -241,11 +278,18 @@ class RuleEngine:
             elif field == 'old_text' or field == 'old_string':
                 return tool_input.get('old_string', '')
             elif field == 'file_path':
-                return tool_input.get('file_path', '')
+                # Security fix: resolve symlinks to prevent deny rule bypass
+                return self._resolve_symlink_path(tool_input.get('file_path', ''))
+
+        elif tool_name == 'Read':
+            # Security fix for CVE-2025-59829: Read tool symlink bypass
+            if field == 'file_path':
+                return self._resolve_symlink_path(tool_input.get('file_path', ''))
 
         elif tool_name == 'MultiEdit':
             if field == 'file_path':
-                return tool_input.get('file_path', '')
+                # Security fix: resolve symlinks to prevent deny rule bypass
+                return self._resolve_symlink_path(tool_input.get('file_path', ''))
             elif field in ['new_text', 'content']:
                 # Concatenate all edits
                 edits = tool_input.get('edits', [])

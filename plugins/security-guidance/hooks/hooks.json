@@ -1,7 +1,16 @@
 {
-  "description": "Security reminder hook that warns about potential security issues when editing files",
+  "description": "Security hooks for file access validation and security pattern warnings",
   "hooks": {
     "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/symlink_deny_hook.py"
+          }
+        ],
+        "matcher": "Edit|Write|MultiEdit|Read"
+      },
       {
         "hooks": [
           {
@@ -9,7 +18,7 @@
             "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/security_reminder_hook.py"
           }
         ],
-        "matcher": "Edit|Write|MultiEdit"
+        "matcher": "Edit|Write|MultiEdit|Read"
       }
     ]
   }
