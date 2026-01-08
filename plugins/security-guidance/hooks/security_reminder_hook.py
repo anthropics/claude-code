@@ -199,18 +199,60 @@ def check_patterns(file_path, content):
     return None, None
 
 
-def extract_content_from_input(tool_name, tool_input):
-    """Extract content to check from tool input based on tool type."""
-    if tool_name == "Write":
-        return tool_input.get("content", "")
-    elif tool_name == "Edit":
-        return tool_input.get("new_string", "")
-    elif tool_name == "MultiEdit":
-        edits = tool_input.get("edits", [])
-        if edits:
-            return " ".join(edit.get("new_string", "") for edit in edits)
+def _safe_serialize_with_limit(obj, max_size=1024*1024):
+    """Safely serialize an object with a maximum size limit to prevent DoS.
+    
+    Returns serialized string up to max_size, or empty string if serialization
+    would exceed the limit or fails.
+    """
+    try:
+        # Attempt to serialize with a reasonable depth limit
+        serialized = json.dumps(obj, default=str)
+        # If serialization exceeds limit, don't return it
+        if len(serialized) > max_size:
+            return ""
+        return serialized
+    except (TypeError, ValueError):
+        # If serialization fails, return empty to be safe
         return ""
 
+
+def extract_content_from_input(tool_name, tool_input):
+    """Extract content to check from tool input based on tool type.
+    
+    Enforces size limits to prevent DoS attacks via excessive memory consumption.
+    Malicious actors cannot cause memory exhaustion through large payloads.
+    """
+    # Maximum allowed size for content (1 MB)
+    MAX_CONTENT_SIZE = 1024 * 1024
+    
+    if tool_name == "Write":
+        content = tool_input.get("content", "")
+        if isinstance(content, str) and len(content) > MAX_CONTENT_SIZE:
+            return content[:MAX_CONTENT_SIZE]
+        return content
+    elif tool_name == "Edit":
+        content = tool_input.get("new_string", "")
+        if isinstance(content, str) and len(content) > MAX_CONTENT_SIZE:
+            return content[:MAX_CONTENT_SIZE]
+        return content
+    elif tool_name == "MultiEdit":
+        edits = tool_input.get("edits", [])
+        if edits and isinstance(edits, list):
+            combined_parts = []
+            for edit in edits:
+                if isinstance(edit, dict):
+                    new_str = edit.get("new_string", "")
+                    if isinstance(new_str, str):
+                        combined_parts.append(new_str)
+            combined = " ".join(combined_parts)
+            if len(combined) > MAX_CONTENT_SIZE:
+                return combined[:MAX_CONTENT_SIZE]
+            return combined
+        return ""
+    
+    # For unknown tool types, do not attempt serialization
+    # to prevent DoS from malicious tool_input structures
     return ""
 
 
@@ -227,9 +269,14 @@ def main():
     if random.random() < 0.1:
         cleanup_old_state_files()
 
-    # Read input from stdin
+    # Read input from stdin with size limit to prevent DoS attacks
+    MAX_INPUT_SIZE = 10 * 1024 * 1024  # 10 MB limit for entire input
     try:
-        raw_input = sys.stdin.read()
+        raw_input = sys.stdin.read(MAX_INPUT_SIZE)
+        # Check if input exceeds max size
+        if len(raw_input) >= MAX_INPUT_SIZE:
+            debug_log("Input size exceeds maximum allowed size")
+            sys.exit(0)  # Allow tool to proceed if input is too large
         input_data = json.loads(raw_input)
     except json.JSONDecodeError as e:
         debug_log(f"JSON decode error: {e}")
