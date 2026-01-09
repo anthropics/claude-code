@@ -119,6 +119,9 @@ def get_user_login(comment: Dict) -> str:
     if not user:
         return 'deleted'
     return user.get('login', 'unknown')
+
+
+def count_reactions(reactions: Dict) -> int:
     """Count total reactions from a reactions dict"""
     if not reactions:
         return 0
