@@ -1,0 +1,9 @@
+{
+  "name": "commit-commands",
+  "version": "1.0.0",
+  "description": "Git workflow automation with commands for committing, pushing, and creating pull requests",
+  "author": {
+    "name": "Anthropic",
+    "email": "support@anthropic.com"
+  }
+}
