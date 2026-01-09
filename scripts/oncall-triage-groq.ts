@@ -15,6 +15,9 @@ interface GitHubIssue {
   updated_at: string;
   comments: number;
   user: { id: number; login: string };
+  pull_request?: {
+    url: string;
+  };
   reactions: {
     total_count: number;
     '+1': number;
