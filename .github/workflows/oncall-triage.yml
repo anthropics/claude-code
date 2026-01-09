@@ -21,100 +21,149 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Create oncall triage prompt
-        run: |
-          mkdir -p /tmp/claude-prompts
-          cat > /tmp/claude-prompts/oncall-triage-prompt.txt << 'EOF'
-          You're an oncall triage assistant for GitHub issues. Your task is to identify critical issues that require immediate oncall attention.
-
-          Important: Don't post any comments or messages to the issues. Your only action should be to apply the "oncall" label to qualifying issues.
-
-          Repository: ${{ github.repository }}
-
-          Task overview:
-          1. Fetch all open issues updated in the last 3 days:
-             - Use mcp__github__list_issues with:
-               - state="open"
-               - first=5 (fetch only 5 issues per page)
-               - orderBy="UPDATED_AT"
-               - direction="DESC"
-             - This will give you the most recently updated issues first
-             - For each page of results, check the updatedAt timestamp of each issue
-             - Add issues updated within the last 3 days (72 hours) to your TODO list as you go
-             - Keep paginating using the 'after' parameter until you encounter issues older than 3 days
-             - Once you hit issues older than 3 days, you can stop fetching (no need to fetch all open issues)
-
-          2. Build your TODO list incrementally as you fetch:
-             - As you fetch each page, immediately add qualifying issues to your TODO list
-             - One TODO item per issue number (e.g., "Evaluate issue #123")
-             - This allows you to start processing while still fetching more pages
-
-          3. For each issue in your TODO list:
-             - Use mcp__github__get_issue to read the issue details (title, body, labels)
-             - Use mcp__github__get_issue_comments to read all comments
-             - Evaluate whether this issue needs the oncall label:
-               a) Is it a bug? (has "bug" label or describes bug behavior)
-               b) Does it have at least 50 engagements? (count comments + reactions)
-               c) Is it truly blocking? Read and understand the full content to determine:
-                  - Does this prevent core functionality from working?
-                  - Can users work around it?
-                  - Consider severity indicators: "crash", "stuck", "frozen", "hang", "unresponsive", "cannot use", "blocked", "broken"
-                  - Be conservative - only flag issues that truly prevent users from getting work done
-
-          4. For issues that meet all criteria and do not already have the "oncall" label:
-             - Use mcp__github__update_issue to add the "oncall" label
-             - Do not post any comments
-             - Do not remove any existing labels
-             - Do not remove the "oncall" label from issues that already have it
-
-          Important guidelines:
-          - Use the TODO list to track your progress through ALL candidate issues
-          - Process issues efficiently - don't read every single issue upfront, work through your TODO list systematically
-          - Be conservative in your assessment - only flag truly critical blocking issues
-          - Do not post any comments to issues
-          - Your only action should be to add the "oncall" label using mcp__github__update_issue
-          - Mark each issue as complete in your TODO list as you process it
-
-          7. After processing all issues in your TODO list, provide a summary of your actions:
-             - Total number of issues processed (candidate issues evaluated)
-             - Number of issues that received the "oncall" label
-             - For each issue that got the label: list issue number, title, and brief reason why it qualified
-             - Close calls: List any issues that almost qualified but didn't quite meet the criteria (e.g., borderline blocking, had workarounds)
-             - If no issues qualified, state that clearly
-             - Format the summary clearly for easy reading
-          EOF
-
-      - name: Setup GitHub MCP Server
-        run: |
-          mkdir -p /tmp/mcp-config
-          cat > /tmp/mcp-config/mcp-servers.json << 'EOF'
-          {
-            "mcpServers": {
-              "github": {
-                "command": "docker",
-                "args": [
-                  "run",
-                  "-i",
-                  "--rm",
-                  "-e",
-                  "GITHUB_PERSONAL_ACCESS_TOKEN",
-                  "ghcr.io/github/github-mcp-server:sha-7aced2b"
-                ],
-                "env": {
-                  "GITHUB_PERSONAL_ACCESS_TOKEN": "${{ secrets.GITHUB_TOKEN }}"
-                }
-              }
-            }
-          }
-          EOF
-
-      - name: Run Claude Code for Oncall Triage
-        uses: anthropics/claude-code-base-action@beta
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          prompt_file: /tmp/claude-prompts/oncall-triage-prompt.txt
-          allowed_tools: "mcp__github__list_issues,mcp__github__get_issue,mcp__github__get_issue_comments,mcp__github__update_issue"
-          timeout_minutes: "10"
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          mcp_config: /tmp/mcp-config/mcp-servers.json
-          claude_env: |
-            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install groq PyGithub
+
+      - name: Run Groqcloud Oncall Triage
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          python3 << 'PYTHON_SCRIPT'
+          import os
+          import json
+          from datetime import datetime, timedelta, timezone
+          from groq import Groq
+          from github import Github
+
+          # Initialize clients
+          groq_client = Groq(api_key=os.environ['GROQ_API_KEY'])
+          gh = Github(os.environ['GITHUB_TOKEN'])
+          repo = gh.get_repo(os.environ['GITHUB_REPOSITORY'])
+
+          # Fetch open issues updated in the last 3 days
+          three_days_ago = datetime.now(timezone.utc) - timedelta(days=3)
+          recent_issues = []
+
+          print(f"Fetching open issues updated since {three_days_ago.isoformat()}")
+          
+          for issue in repo.get_issues(state='open', sort='updated', direction='desc'):
+              if issue.updated_at < three_days_ago:
+                  break
+              if not issue.pull_request:  # Skip pull requests
+                  recent_issues.append(issue)
+
+          print(f"Found {len(recent_issues)} open issues updated in the last 3 days")
+
+          # Process each issue
+          labeled_issues = []
+          evaluated_count = 0
+
+          for issue in recent_issues:
+              evaluated_count += 1
+              print(f"\nEvaluating issue #{issue.number}: {issue.title}")
+              
+              # Check if already has oncall label
+              label_names = [label.name for label in issue.labels]
+              if 'oncall' in label_names:
+                  print(f"  Already has 'oncall' label, skipping")
+                  continue
+
+              # Check if it's a bug
+              is_bug = 'bug' in label_names or 'bug' in issue.title.lower() or 'bug' in (issue.body or '').lower()
+              
+              # Count engagements (comments + reactions)
+              comments_count = issue.comments
+              reactions_count = sum([
+                  issue.get_reactions().totalCount if hasattr(issue, 'get_reactions') else 0
+              ])
+              total_engagements = comments_count + reactions_count
+              
+              print(f"  Is bug: {is_bug}, Engagements: {total_engagements}")
+              
+              # Skip if not a bug or insufficient engagements
+              if not is_bug or total_engagements < 50:
+                  print(f"  Does not meet criteria (bug: {is_bug}, engagements: {total_engagements})")
+                  continue
+
+              # Get issue details for AI analysis
+              issue_content = f"""
+              Title: {issue.title}
+              Body: {issue.body or 'No description'}
+              
+              Comments:
+              """
+              
+              comments = issue.get_comments()
+              for i, comment in enumerate(list(comments)[:10]):  # Limit to first 10 comments
+                  issue_content += f"\n- {comment.body[:200]}"  # Limit comment length
+
+              # Use groqcloud to determine if truly blocking
+              prompt = f"""You are an oncall triage assistant. Analyze this GitHub issue and determine if it's truly blocking.
+
+              Issue #{issue.number}:
+              {issue_content}
+
+              Criteria for blocking:
+              - Does this prevent core functionality from working?
+              - Can users work around it?
+              - Look for severity indicators: "crash", "stuck", "frozen", "hang", "unresponsive", "cannot use", "blocked", "broken"
+              - Be conservative - only flag issues that truly prevent users from getting work done
+
+              Respond with ONLY "YES" if this is truly blocking, or "NO" if it is not blocking or has workarounds.
+              """
+
+              try:
+                  response = groq_client.chat.completions.create(
+                      messages=[
+                          {"role": "system", "content": "You are a technical issue triage expert. Respond only with YES or NO."},
+                          {"role": "user", "content": prompt}
+                      ],
+                      model="llama-3.3-70b-versatile",
+                      temperature=0.3,
+                      max_tokens=10
+                  )
+                  
+                  decision = response.choices[0].message.content.strip().upper()
+                  print(f"  AI Decision: {decision}")
+                  
+                  if decision == "YES":
+                      # Add oncall label
+                      issue.add_to_labels('oncall')
+                      labeled_issues.append({
+                          'number': issue.number,
+                          'title': issue.title,
+                          'reason': f"Bug with {total_engagements} engagements, AI determined it's blocking"
+                      })
+                      print(f"  ✓ Added 'oncall' label to issue #{issue.number}")
+                  else:
+                      print(f"  Not blocking according to AI analysis")
+                      
+              except Exception as e:
+                  print(f"  Error analyzing issue: {str(e)}")
+                  continue
+
+          # Print summary
+          print("\n" + "="*60)
+          print("ONCALL TRIAGE SUMMARY")
+          print("="*60)
+          print(f"Total issues evaluated: {evaluated_count}")
+          print(f"Issues labeled with 'oncall': {len(labeled_issues)}")
+          
+          if labeled_issues:
+              print("\nIssues that received the 'oncall' label:")
+              for item in labeled_issues:
+                  print(f"  - Issue #{item['number']}: {item['title']}")
+                  print(f"    Reason: {item['reason']}")
+          else:
+              print("\nNo issues qualified for the 'oncall' label.")
+          
+          print("="*60)
+          PYTHON_SCRIPT
