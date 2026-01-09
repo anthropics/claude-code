@@ -71,7 +71,7 @@ async function githubRequest<T>(
       const errorBody = await response.text();
       const errorMsg = `GitHub API request failed: ${response.status} ${response.statusText}\nEndpoint: ${endpoint}\nBody: ${errorBody}`;
 
-      if (attempt < retries && (response.status >= 500 || response.status === 429)) {
+      if (attempt < retries && response.status >= 500) {
         const delay = Math.pow(2, attempt) * 1000;
         console.warn(`[WARNING] Request failed, retrying in ${delay}ms...`);
         await sleep(delay);
