@@ -24,8 +24,8 @@ jobs:
     steps:
       - name: Submit package using wingetcreate
         run: |
-          # Get installer info from release event
           $wingetPackageId = "Anthropic.ClaudeCode"
+          # Get version info from release event
           $packageVersion = (${{ toJSON(github.event.release.tag_name) }}).Trim('v')
           $installerUrl = "https://storage.googleapis.com/claude-code-dist-86c565f3-f756-42ad-8dfa-d59b1c096819/claude-code-releases/$packageVersion/win32-x64/claude.exe"
           # Update package using wingetcreate
