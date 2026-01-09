@@ -8,6 +8,7 @@ import os
 import sys
 import json
 import time
+import re
 from datetime import datetime, timedelta
 from typing import List, Dict, Any
 import requests
@@ -156,11 +157,22 @@ def call_groq_api(messages: List[Dict[str, str]]) -> str:
         "max_tokens": 2000,
     }
     
-    response = requests.post(GROQ_API_URL, headers=headers, json=payload)
-    response.raise_for_status()
-    
-    result = response.json()
-    return result["choices"][0]["message"]["content"]
+    try:
+        response = requests.post(GROQ_API_URL, headers=headers, json=payload)
+        response.raise_for_status()
+        result = response.json()
+        return result["choices"][0]["message"]["content"]
+    except requests.exceptions.HTTPError as e:
+        if e.response.status_code == 429:
+            print(f"Groq API rate limit exceeded: {e}")
+        elif e.response.status_code == 401:
+            print(f"Groq API authentication failed: {e}")
+        else:
+            print(f"Groq API error: {e}")
+        raise
+    except KeyError as e:
+        print(f"Unexpected Groq API response format: {e}")
+        raise
 
 
 def analyze_issue_with_groq(issue: Dict, comments: List[Dict]) -> Dict[str, Any]:
@@ -273,9 +285,8 @@ def main():
         title_lower = issue["title"].lower()
         body_lower = (issue["body"] or "").lower()
         
-        # Look for bug-related terms (as whole words)
-        import re
-        bug_pattern = r'\b(bug|defect|error|issue)\b'
+        # Look for bug-related terms (as whole words) - excluding 'issue' as it's too generic
+        bug_pattern = r'\b(bug|defect|error)\b'
         has_bug_mention = has_bug_label or bool(re.search(bug_pattern, title_lower)) or bool(re.search(bug_pattern, body_lower))
         
         if not has_bug_mention:
