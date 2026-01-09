@@ -32,7 +32,11 @@ if not GITHUB_REPOSITORY:
     sys.exit(1)
 
 # Parse repository owner and name
-owner, repo = GITHUB_REPOSITORY.split("/")
+try:
+    owner, repo = GITHUB_REPOSITORY.split("/")
+except ValueError:
+    print(f"Error: GITHUB_REPOSITORY must be in 'owner/repo' format, got: {GITHUB_REPOSITORY}")
+    sys.exit(1)
 
 
 def github_api_request(endpoint: str, method: str = "GET", data: Dict = None) -> Any:
@@ -44,17 +48,26 @@ def github_api_request(endpoint: str, method: str = "GET", data: Dict = None) ->
         "X-GitHub-Api-Version": "2022-11-28"
     }
     
-    if method == "GET":
-        response = requests.get(url, headers=headers)
-    elif method == "POST":
-        response = requests.post(url, headers=headers, json=data)
-    elif method == "PATCH":
-        response = requests.patch(url, headers=headers, json=data)
-    else:
-        raise ValueError(f"Unsupported method: {method}")
-    
-    response.raise_for_status()
-    return response.json()
+    try:
+        if method == "GET":
+            response = requests.get(url, headers=headers)
+        elif method == "POST":
+            response = requests.post(url, headers=headers, json=data)
+        elif method == "PATCH":
+            response = requests.patch(url, headers=headers, json=data)
+        else:
+            raise ValueError(f"Unsupported method: {method}")
+        
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.HTTPError as e:
+        if e.response.status_code == 403:
+            print(f"GitHub API rate limit exceeded or forbidden: {e}")
+        elif e.response.status_code == 404:
+            print(f"GitHub API resource not found: {e}")
+        else:
+            print(f"GitHub API error: {e}")
+        raise
 
 
 def get_recent_issues(days: int = 3, max_pages: int = 10) -> List[Dict]:
@@ -99,34 +112,32 @@ def get_issue_comments(issue_number: int) -> List[Dict]:
     return github_api_request(endpoint)
 
 
+def count_reactions(reactions: Dict) -> int:
+    """Count total reactions from a reactions dict"""
+    if not reactions:
+        return 0
+    return sum([
+        reactions.get("+1", 0),
+        reactions.get("-1", 0),
+        reactions.get("laugh", 0),
+        reactions.get("hooray", 0),
+        reactions.get("confused", 0),
+        reactions.get("heart", 0),
+        reactions.get("rocket", 0),
+        reactions.get("eyes", 0)
+    ])
+
+
 def count_engagements(issue: Dict, comments: List[Dict]) -> int:
     """Count total engagements (comments + reactions)"""
     total = len(comments)
     
     # Count reactions on the issue
-    if "reactions" in issue:
-        reactions = issue["reactions"]
-        total += reactions.get("+1", 0)
-        total += reactions.get("-1", 0)
-        total += reactions.get("laugh", 0)
-        total += reactions.get("hooray", 0)
-        total += reactions.get("confused", 0)
-        total += reactions.get("heart", 0)
-        total += reactions.get("rocket", 0)
-        total += reactions.get("eyes", 0)
+    total += count_reactions(issue.get("reactions"))
     
     # Count reactions on comments
     for comment in comments:
-        if "reactions" in comment:
-            reactions = comment["reactions"]
-            total += reactions.get("+1", 0)
-            total += reactions.get("-1", 0)
-            total += reactions.get("laugh", 0)
-            total += reactions.get("hooray", 0)
-            total += reactions.get("confused", 0)
-            total += reactions.get("heart", 0)
-            total += reactions.get("rocket", 0)
-            total += reactions.get("eyes", 0)
+        total += count_reactions(comment.get("reactions"))
     
     return total
 
@@ -168,7 +179,10 @@ Comments ({len(comments)} total):
     
     # Add recent comments (last 5)
     for comment in comments[-5:]:
-        issue_text += f"\n- {comment['user']['login']}: {comment['body'][:200]}..."
+        user_login = comment.get('user', {}).get('login', 'unknown') if comment.get('user') else 'deleted'
+        body = comment.get('body', '')
+        if body:
+            issue_text += f"\n- {user_login}: {body[:200]}..."
     
     # Create prompt for Groq
     prompt = f"""You are an oncall triage assistant. Analyze this GitHub issue and determine if it needs immediate oncall attention.
@@ -254,10 +268,17 @@ def main():
             print(f"  Already has oncall label, skipping")
             continue
         
-        # Check if it's a bug
-        is_bug = "bug" in labels or "bug" in issue["title"].lower() or (issue["body"] and "bug" in issue["body"].lower())
+        # Check if it's a bug - check exact label match and case-insensitive title/body
+        has_bug_label = any(label.lower() == "bug" for label in labels)
+        title_lower = issue["title"].lower()
+        body_lower = (issue["body"] or "").lower()
         
-        if not is_bug:
+        # Look for bug-related terms (as whole words)
+        import re
+        bug_pattern = r'\b(bug|defect|error|issue)\b'
+        has_bug_mention = has_bug_label or bool(re.search(bug_pattern, title_lower)) or bool(re.search(bug_pattern, body_lower))
+        
+        if not has_bug_mention:
             print(f"  Not a bug, skipping")
             continue
         
