@@ -113,7 +113,12 @@ def get_issue_comments(issue_number: int) -> List[Dict]:
     return github_api_request(endpoint)
 
 
-def count_reactions(reactions: Dict) -> int:
+def get_user_login(comment: Dict) -> str:
+    """Safely extract user login from comment, handling deleted users"""
+    user = comment.get('user')
+    if not user:
+        return 'deleted'
+    return user.get('login', 'unknown')
     """Count total reactions from a reactions dict"""
     if not reactions:
         return 0
@@ -191,7 +196,7 @@ Comments ({len(comments)} total):
     
     # Add recent comments (last 5)
     for comment in comments[-5:]:
-        user_login = comment.get('user', {}).get('login', 'unknown') if comment.get('user') else 'deleted'
+        user_login = get_user_login(comment)
         body = comment.get('body', '')
         if body:
             issue_text += f"\n- {user_login}: {body[:200]}..."
@@ -285,8 +290,9 @@ def main():
         title_lower = issue["title"].lower()
         body_lower = (issue["body"] or "").lower()
         
-        # Look for bug-related terms (as whole words) - excluding 'issue' as it's too generic
-        bug_pattern = r'\b(bug|defect|error)\b'
+        # Look for bug-related terms (as whole words)
+        # Including common indicators: bug, defect, error, crash, failure
+        bug_pattern = r'\b(bug|defect|error|crash|failure)\b'
         has_bug_mention = has_bug_label or bool(re.search(bug_pattern, title_lower)) or bool(re.search(bug_pattern, body_lower))
         
         if not has_bug_mention:
