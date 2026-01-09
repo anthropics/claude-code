@@ -1,0 +1,86 @@
+{
+  "SessionStart": [
+    {
+      "description": "Install and verify code quality tools",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "./hooks/scripts/setup-tools.sh",
+          "timeout": 120
+        }
+      ]
+    }
+  ],
+  "PostToolUse": [
+    {
+      "matcher": "Edit|Write",
+      "description": "Validate edited files with language-specific linters",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "python3 ./hooks/scripts/validate-file.py",
+          "timeout": 60
+        }
+      ]
+    },
+    {
+      "matcher": "Bash",
+      "description": "Validate git operations and check for conflicts",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "./hooks/scripts/post-git-check.sh",
+          "timeout": 30
+        }
+      ]
+    }
+  ],
+  "PreToolUse": [
+    {
+      "matcher": "Bash",
+      "description": "Validate git commands for safety",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "./hooks/scripts/validate-git-command.sh",
+          "timeout": 10
+        }
+      ]
+    },
+    {
+      "matcher": "mcp__github__|mcp__gitlab__|mcp__bitbucket__",
+      "description": "Audit VCS API calls",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "./hooks/scripts/audit-vcs-call.sh",
+          "timeout": 5
+        }
+      ]
+    }
+  ],
+  "UserPromptSubmit": [
+    {
+      "description": "Inject repository context for quality checks",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "./hooks/scripts/inject-repo-context.sh",
+          "timeout": 15
+        }
+      ]
+    }
+  ],
+  "Stop": [
+    {
+      "description": "Generate quality report summary",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "./hooks/scripts/generate-report.sh",
+          "timeout": 30
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "name": "repo-quality-suite",
+  "version": "1.0.0",
+  "description": "Comprehensive repository code quality validation across GitHub/GitLab/Bitbucket with language-specific linting, PR validation, and automated code review",
+  "author": {
+    "name": "Claude Code Plugin Dev",
+    "email": "plugins@claude.code"
+  },
+  "homepage": "https://github.com/anthropics/claude-code-plugins/repo-quality-suite",
+  "repository": "https://github.com/anthropics/claude-code-plugins",
+  "license": "MIT",
+  "keywords": [
+    "code-quality",
+    "linting",
+    "validation",
+    "github",
+    "gitlab",
+    "bitbucket",
+    "python",
+    "rust",
+    "javascript",
+    "typescript",
+    "pr-review",
+    "git",
+    "ci-cd"
+  ],
+  "engines": {
+    "claude-code": ">=1.0.0"
+  },
+  "dependencies": {
+    "cli": [
+      "git",
+      "gh",
+      "jq"
+    ],
+    "optional": {
+      "python": ["python3", "ruff", "mypy", "pydantic"],
+      "rust": ["cargo", "rustc", "clippy"],
+      "javascript": ["node", "npm", "jshint", "eslint"],
+      "docs": ["doxygen", "moxygen"]
+    }
+  },
+  "commands": "./.claude/commands/",
+  "hooks": "./hooks/hooks.json",
+  "mcpServers": "./.mcp.json",
+  "skills": "./skills/"
+}

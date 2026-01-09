@@ -1,0 +1,41 @@
+{
+  "mcpServers": {
+    "github": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/",
+      "description": "GitHub API integration for PR/issue management"
+    },
+    "gitlab": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-gitlab"],
+      "env": {
+        "GITLAB_TOKEN": "${GITLAB_TOKEN}",
+        "GITLAB_URL": "${GITLAB_URL:-https://gitlab.com}"
+      },
+      "description": "GitLab API integration for self-hosted and cloud instances"
+    },
+    "bitbucket": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@anthropic/mcp-server-bitbucket"],
+      "env": {
+        "BITBUCKET_USERNAME": "${BITBUCKET_USERNAME}",
+        "BITBUCKET_APP_PASSWORD": "${BITBUCKET_APP_PASSWORD}",
+        "BITBUCKET_WORKSPACE": "${BITBUCKET_WORKSPACE}",
+        "BITBUCKET_URL": "${BITBUCKET_URL:-https://api.bitbucket.org/2.0}"
+      },
+      "description": "Bitbucket API integration for cloud and server instances"
+    },
+    "repo-quality": {
+      "type": "stdio",
+      "command": "python3",
+      "args": ["${CLAUDE_PROJECT_DIR}/plugins/repo-quality-suite/mcp-servers/quality-server.py"],
+      "env": {
+        "ENABLED_LINTERS": "${ENABLED_LINTERS:-python,javascript,rust}",
+        "STRICT_MODE": "${STRICT_MODE:-false}"
+      },
+      "description": "Custom quality validation MCP server"
+    }
+  }
+}

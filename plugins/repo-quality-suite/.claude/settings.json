@@ -1,0 +1,101 @@
+{
+  "permissions": {
+    "allow": [
+      "Read",
+      "Glob",
+      "Grep",
+      "Bash(git:*)",
+      "Bash(gh:*)",
+      "Bash(glab:*)",
+      "Bash(jq:*)",
+      "Bash(python3 -m compileall:*)",
+      "Bash(python3 -m py_compile:*)",
+      "Bash(ruff:*)",
+      "Bash(mypy:*)",
+      "Bash(pylint:*)",
+      "Bash(pydantic:*)",
+      "Bash(cargo check:*)",
+      "Bash(cargo clippy:*)",
+      "Bash(cargo fix:*)",
+      "Bash(cargo fmt:*)",
+      "Bash(rustfmt:*)",
+      "Bash(npm run lint:*)",
+      "Bash(npx eslint:*)",
+      "Bash(npx jshint:*)",
+      "Bash(npx prettier:*)",
+      "Bash(npx tsc:*)",
+      "Bash(doxygen:*)",
+      "Bash(moxygen:*)",
+      "Bash(aspell:*)",
+      "Bash(codespell:*)",
+      "mcp__github__*",
+      "mcp__gitlab__*",
+      "mcp__bitbucket__*",
+      "mcp__repo-quality__*",
+      "Skill(/validate-repo:*)",
+      "Skill(/pr-check:*)",
+      "Skill(/lint-all:*)",
+      "Skill(/doc-check:*)"
+    ],
+    "deny": [
+      "Bash(rm -rf:*)",
+      "Bash(sudo:*)",
+      "Bash(git push --force:*)",
+      "Bash(git reset --hard:*)",
+      "Write(/.env*)",
+      "Write(/**/secrets*)",
+      "Write(/**/.git/*)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/plugins/repo-quality-suite/hooks/scripts/setup-tools.sh",
+            "timeout": 120
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/plugins/repo-quality-suite/hooks/scripts/validate-file.py",
+            "timeout": 60
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/plugins/repo-quality-suite/hooks/scripts/validate-git-command.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  },
+  "excludeFromScanning": [
+    "node_modules/",
+    ".git/",
+    "__pycache__/",
+    "*.pyc",
+    "target/",
+    "dist/",
+    "build/",
+    "*.min.js",
+    "*.min.css",
+    "vendor/",
+    ".venv/",
+    "venv/"
+  ]
+}
