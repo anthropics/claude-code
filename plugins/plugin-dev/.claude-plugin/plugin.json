@@ -1,0 +1,9 @@
+{
+  "name": "plugin-dev",
+  "version": "1.0.0",
+  "description": "Comprehensive toolkit for developing Claude Code plugins with expert guidance on hooks, MCP integration, plugin structure, and marketplace publishing",
+  "author": {
+    "name": "Anthropic",
+    "email": "support@anthropic.com"
+  }
+}

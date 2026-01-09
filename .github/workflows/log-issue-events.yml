@@ -19,22 +19,29 @@ jobs:
           AUTHOR: ${{ github.event.issue.user.login }}
           CREATED_AT: ${{ github.event.issue.created_at }}
         run: |
-          # All values are now safely passed via environment variables
-          # No direct templating in the shell script to prevent injection attacks
-          
+          # Use jq to safely construct JSON, properly escaping all special characters
+          JSON_PAYLOAD=$(jq -n \
+            --arg issue_num "$ISSUE_NUMBER" \
+            --arg repo "$REPO" \
+            --arg title "$ISSUE_TITLE" \
+            --arg author "$AUTHOR" \
+            --arg created "$CREATED_AT" \
+            --arg time "$(date +%s)000" \
+            '{
+              events: [{
+                eventName: "github_issue_created",
+                metadata: {
+                  issue_number: $issue_num,
+                  repository: $repo,
+                  title: $title,
+                  author: $author,
+                  created_at: $created
+                },
+                time: ($time | tonumber)
+              }]
+            }')
+
           curl -X POST "https://events.statsigapi.net/v1/log_event" \
             -H "Content-Type: application/json" \
             -H "statsig-api-key: $STATSIG_API_KEY" \
-            -d '{
-              "events": [{
-                "eventName": "github_issue_created",
-                "metadata": {
-                  "issue_number": "'"$ISSUE_NUMBER"'",
-                  "repository": "'"$REPO"'",
-                  "title": "'"$(echo "$ISSUE_TITLE" | sed "s/\"/\\\\\"/g")"'",
-                  "author": "'"$AUTHOR"'",
-                  "created_at": "'"$CREATED_AT"'"
-                },
-                "time": '"$(date +%s)000"'
-              }]
-            }'
+            -d "$JSON_PAYLOAD"
