@@ -134,7 +134,7 @@ async function getRecentlyUpdatedIssues(
     let foundOldIssue = false;
     for (const issue of pageIssues) {
       // Skip pull requests
-      if ('pull_request' in issue) continue;
+      if (issue.pull_request) continue;
       
       const updatedAt = new Date(issue.updated_at);
       if (updatedAt < cutoffDate) {
