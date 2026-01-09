@@ -1,0 +1,36 @@
+name: Submit release to the WinGet community repository
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  publish-winget:
+    name: Submit to WinGet repository
+    permissions:
+      contents: read
+
+    # winget-create is only supported on Windows
+    runs-on: windows-latest
+
+    # Only submit stable releases for now. We will update the workflow later to handle preview releases.
+    if: ${{ !github.event.release.prerelease }}
+
+    # winget-create will read the following environment variable to access the GitHub token needed for submitting a PR
+    # See https://aka.ms/winget-create-token
+    env:
+      WINGET_CREATE_GITHUB_TOKEN: ${{ secrets.WINGET_CREATE_GITHUB_TOKEN }}
+
+    steps:
+      - name: Submit package using wingetcreate
+        run: |
+          # Get installer info from release event
+          $wingetPackageId = "Anthropic.ClaudeCode"
+          $packageVersion = (${{ toJSON(github.event.release.tag_name) }}).Trim('v')
+          $installerUrl = "https://storage.googleapis.com/claude-code-dist-86c565f3-f756-42ad-8dfa-d59b1c096819/claude-code-releases/$packageVersion/win32-x64/claude.exe"
+          # Update package using wingetcreate
+          curl.exe -JLO https://aka.ms/wingetcreate/latest
+          .\wingetcreate.exe update $wingetPackageId `
+            --version $packageVersion `
+            --urls $installerUrl `
+            --submit
