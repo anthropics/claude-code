@@ -46,13 +46,17 @@ async function githubRequest<T>(endpoint: string, token: string, method: string 
   return response.json();
 }
 
+function isValidDuplicateIssueNumber(num: number, currentIssueNumber: number): boolean {
+  // Must be positive, less than current issue (can't be duplicate of future issue), and reasonable
+  return num > 0 && num < currentIssueNumber && num < 1000000;
+}
+
 function extractDuplicateIssueNumber(commentBody: string, currentIssueNumber: number): number | null {
   // Try to match #123 format first
   let match = commentBody.match(/#(\d+)/);
   if (match) {
     const num = parseInt(match[1], 10);
-    // Validate: must be positive, less than current issue, and reasonable
-    if (num > 0 && num < currentIssueNumber && num < 1000000) {
+    if (isValidDuplicateIssueNumber(num, currentIssueNumber)) {
       return num;
     }
   }
@@ -61,8 +65,7 @@ function extractDuplicateIssueNumber(commentBody: string, currentIssueNumber: nu
   match = commentBody.match(/github\.com\/[^\/]+\/[^\/]+\/issues\/(\d+)/);
   if (match) {
     const num = parseInt(match[1], 10);
-    // Validate: must be positive, less than current issue, and reasonable
-    if (num > 0 && num < currentIssueNumber && num < 1000000) {
+    if (isValidDuplicateIssueNumber(num, currentIssueNumber)) {
       return num;
     }
   }
