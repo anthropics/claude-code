@@ -10,7 +10,7 @@ description: Commit and push directly to trunk with linear history (supports wor
 - Current branch: !`git branch --show-current`
 - Worktree list: !`git worktree list`
 
-Note: Default branch is typically `master` or `main`. Check the worktree list - the main repo's branch is the default.
+Note: Default branch is typically `trunk`, `master` or `main`. Check the worktree list - the main repo's branch is the default.
 
 ## Your task
 
