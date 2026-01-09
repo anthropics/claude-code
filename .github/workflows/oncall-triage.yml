@@ -40,8 +40,9 @@ jobs:
           import os
           import json
           from datetime import datetime, timedelta, timezone
+          from itertools import islice
           from groq import Groq
-          from github import Github
+          from github import Github, GithubException
 
           # Initialize clients
           groq_client = Groq(api_key=os.environ['GROQ_API_KEY'])
@@ -81,9 +82,10 @@ jobs:
               
               # Count engagements (comments + reactions)
               comments_count = issue.comments
-              reactions_count = sum([
-                  issue.get_reactions().totalCount if hasattr(issue, 'get_reactions') else 0
-              ])
+              try:
+                  reactions_count = issue.get_reactions().totalCount
+              except (AttributeError, GithubException):
+                  reactions_count = 0
               total_engagements = comments_count + reactions_count
               
               print(f"  Is bug: {is_bug}, Engagements: {total_engagements}")
@@ -102,7 +104,7 @@ jobs:
               """
               
               comments = issue.get_comments()
-              for i, comment in enumerate(list(comments)[:10]):  # Limit to first 10 comments
+              for comment in islice(comments, 10):  # Limit to first 10 comments
                   issue_content += f"\n- {comment.body[:200]}"  # Limit comment length
 
               # Use groqcloud to determine if truly blocking
@@ -135,19 +137,25 @@ jobs:
                   print(f"  AI Decision: {decision}")
                   
                   if decision == "YES":
-                      # Add oncall label
-                      issue.add_to_labels('oncall')
-                      labeled_issues.append({
-                          'number': issue.number,
-                          'title': issue.title,
-                          'reason': f"Bug with {total_engagements} engagements, AI determined it's blocking"
-                      })
-                      print(f"  ✓ Added 'oncall' label to issue #{issue.number}")
+                      try:
+                          # Add oncall label
+                          issue.add_to_labels('oncall')
+                          labeled_issues.append({
+                              'number': issue.number,
+                              'title': issue.title,
+                              'reason': f"Bug with {total_engagements} engagements, AI determined it's blocking"
+                          })
+                          print(f"  ✓ Added 'oncall' label to issue #{issue.number}")
+                      except GithubException as gh_err:
+                          print(f"  Error adding label to issue #{issue.number}: {gh_err}")
                   else:
                       print(f"  Not blocking according to AI analysis")
                       
-              except Exception as e:
-                  print(f"  Error analyzing issue: {str(e)}")
+              except GithubException as gh_err:
+                  print(f"  GitHub API error for issue #{issue.number}: {gh_err}")
+                  continue
+              except Exception as api_err:
+                  print(f"  Groq API error analyzing issue #{issue.number}: {api_err}")
                   continue
 
           # Print summary
