@@ -23,25 +23,68 @@ interface GitHubComment {
   user: { type: string; id: number };
 }
 
-async function githubRequest<T>(endpoint: string, token: string, method: string = 'GET', body?: any): Promise<T> {
-  const response = await fetch(`https://api.github.com${endpoint}`, {
-    method,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: "application/vnd.github.v3+json",
-      "User-Agent": "backfill-duplicate-comments-script",
-      ...(body && { "Content-Type": "application/json" }),
-    },
-    ...(body && { body: JSON.stringify(body) }),
-  });
+async function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
-  if (!response.ok) {
-    throw new Error(
-      `GitHub API request failed: ${response.status} ${response.statusText}`
-    );
+async function githubRequest<T>(
+  endpoint: string,
+  token: string,
+  method: string = 'GET',
+  body?: any,
+  retries: number = 3
+): Promise<T> {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const response = await fetch(`https://api.github.com${endpoint}`, {
+      method,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+        "User-Agent": "backfill-duplicate-comments-script",
+        ...(body && { "Content-Type": "application/json" }),
+      },
+      ...(body && { body: JSON.stringify(body) }),
+    });
+
+    // Check rate limit
+    const remaining = response.headers.get('X-RateLimit-Remaining');
+    const resetTime = response.headers.get('X-RateLimit-Reset');
+
+    if (remaining && parseInt(remaining) < 100) {
+      console.warn(`[WARNING] Rate limit low: ${remaining} requests remaining`);
+    }
+
+    // Handle rate limiting
+    if (response.status === 429 || (response.status === 403 && remaining === '0')) {
+      const resetDate = resetTime ? new Date(parseInt(resetTime) * 1000) : new Date(Date.now() + 60000);
+      const waitMs = Math.max(0, resetDate.getTime() - Date.now()) + 1000;
+      console.warn(`[WARNING] Rate limited. Waiting ${Math.ceil(waitMs/1000)}s...`);
+      if (attempt < retries) {
+        await sleep(waitMs);
+        continue;
+      }
+    }
+
+    // Handle errors with retry
+    if (!response.ok) {
+      const errorBody = await response.text();
+      const errorMsg = `GitHub API request failed: ${response.status} ${response.statusText}\nEndpoint: ${endpoint}\nBody: ${errorBody}`;
+
+      if (attempt < retries && (response.status >= 500 || response.status === 429)) {
+        const delay = Math.pow(2, attempt) * 1000;
+        console.warn(`[WARNING] Request failed, retrying in ${delay}ms...`);
+        await sleep(delay);
+        continue;
+      }
+
+      throw new Error(errorMsg);
+    }
+
+    return response.json();
   }
 
-  return response.json();
+  throw new Error(`Failed after ${retries} retries`);
 }
 
 async function triggerDedupeWorkflow(

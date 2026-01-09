@@ -6,11 +6,16 @@ declare global {
   };
 }
 
+interface GitHubLabel {
+  name: string;
+}
+
 interface GitHubIssue {
   number: number;
   title: string;
   user: { id: number };
   created_at: string;
+  labels?: GitHubLabel[];
 }
 
 interface GitHubComment {
@@ -25,25 +30,68 @@ interface GitHubReaction {
   content: string;
 }
 
-async function githubRequest<T>(endpoint: string, token: string, method: string = 'GET', body?: any): Promise<T> {
-  const response = await fetch(`https://api.github.com${endpoint}`, {
-    method,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: "application/vnd.github.v3+json",
-      "User-Agent": "auto-close-duplicates-script",
-      ...(body && { "Content-Type": "application/json" }),
-    },
-    ...(body && { body: JSON.stringify(body) }),
-  });
+async function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
-  if (!response.ok) {
-    throw new Error(
-      `GitHub API request failed: ${response.status} ${response.statusText}`
-    );
+async function githubRequest<T>(
+  endpoint: string,
+  token: string,
+  method: string = 'GET',
+  body?: any,
+  retries: number = 3
+): Promise<T> {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const response = await fetch(`https://api.github.com${endpoint}`, {
+      method,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+        "User-Agent": "auto-close-duplicates-script",
+        ...(body && { "Content-Type": "application/json" }),
+      },
+      ...(body && { body: JSON.stringify(body) }),
+    });
+
+    // Check rate limit
+    const remaining = response.headers.get('X-RateLimit-Remaining');
+    const resetTime = response.headers.get('X-RateLimit-Reset');
+
+    if (remaining && parseInt(remaining) < 100) {
+      console.warn(`[WARNING] Rate limit low: ${remaining} requests remaining`);
+    }
+
+    // Handle rate limiting
+    if (response.status === 429 || (response.status === 403 && remaining === '0')) {
+      const resetDate = resetTime ? new Date(parseInt(resetTime) * 1000) : new Date(Date.now() + 60000);
+      const waitMs = Math.max(0, resetDate.getTime() - Date.now()) + 1000;
+      console.warn(`[WARNING] Rate limited. Waiting ${Math.ceil(waitMs/1000)}s...`);
+      if (attempt < retries) {
+        await sleep(waitMs);
+        continue;
+      }
+    }
+
+    // Handle errors with retry
+    if (!response.ok) {
+      const errorBody = await response.text();
+      const errorMsg = `GitHub API request failed: ${response.status} ${response.statusText}\nEndpoint: ${endpoint}\nBody: ${errorBody}`;
+
+      if (attempt < retries && (response.status >= 500 || response.status === 429)) {
+        const delay = Math.pow(2, attempt) * 1000;
+        console.warn(`[WARNING] Request failed, retrying in ${delay}ms...`);
+        await sleep(delay);
+        continue;
+      }
+
+      throw new Error(errorMsg);
+    }
+
+    return response.json();
   }
 
-  return response.json();
+  throw new Error(`Failed after ${retries} retries`);
 }
 
 function extractDuplicateIssueNumber(commentBody: string): number | null {
@@ -68,16 +116,22 @@ async function closeIssueAsDuplicate(
   repo: string,
   issueNumber: number,
   duplicateOfNumber: number,
+  existingLabels: string[],
   token: string
 ): Promise<void> {
+  // Preserve existing labels and add 'duplicate' if not present
+  const updatedLabels = existingLabels.includes('duplicate')
+    ? existingLabels
+    : [...existingLabels, 'duplicate'];
+
   await githubRequest(
     `/repos/${owner}/${repo}/issues/${issueNumber}`,
     token,
     'PATCH',
     {
       state: 'closed',
-      state_reason: 'duplicate',
-      labels: ['duplicate']
+      state_reason: 'not_planned',
+      labels: updatedLabels
     }
   );
 
@@ -93,7 +147,6 @@ If this is incorrect, please re-open this issue or create a new one.
 🤖 Generated with [Claude Code](https://claude.ai/code)`
     }
   );
-
 }
 
 async function autoCloseDuplicates(): Promise<void> {
@@ -250,12 +303,13 @@ async function autoCloseDuplicates(): Promise<void> {
 
     candidateCount++;
     const issueUrl = `https://github.com/${owner}/${repo}/issues/${issue.number}`;
-    
+    const existingLabels = issue.labels?.map(l => l.name) || [];
+
     try {
       console.log(
         `[INFO] Auto-closing issue #${issue.number} as duplicate of #${duplicateIssueNumber}: ${issueUrl}`
       );
-      await closeIssueAsDuplicate(owner, repo, issue.number, duplicateIssueNumber, token);
+      await closeIssueAsDuplicate(owner, repo, issue.number, duplicateIssueNumber, existingLabels, token);
       console.log(
         `[SUCCESS] Successfully closed issue #${issue.number} as duplicate of #${duplicateIssueNumber}`
       );
