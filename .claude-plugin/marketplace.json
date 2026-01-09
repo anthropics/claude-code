@@ -1,11 +1,11 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
-  "name": "claude-code-plugins",
+  "name": "jiusi-pys-plugins",
   "version": "1.0.0",
-  "description": "Bundled plugins for Claude Code including Agent SDK development tools, PR review toolkit, and commit workflows",
+  "description": "Fork of Claude Code plugins - includes Agent SDK development tools, PR review toolkit, commit workflows, and custom plugins",
   "owner": {
-    "name": "Anthropic",
-    "email": "support@anthropic.com"
+    "name": "Jiusi-pys",
+    "email": "jiusi0519@gmail.com"
   },
   "plugins": [
     {
