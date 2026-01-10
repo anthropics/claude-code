@@ -35,12 +35,50 @@ if ! jq empty "$HOOKS_FILE" 2>/dev/null; then
 fi
 echo "✅ Valid JSON"
 
-# Check 2: Root structure
+# Check 2: Detect format (plugin wrapper vs direct)
+echo ""
+echo "Detecting hook format..."
+
+# Plugin wrapper format has a "hooks" key containing the actual events
+# Direct format has events at the root level
+if jq -e '.hooks' "$HOOKS_FILE" > /dev/null 2>&1; then
+  HOOKS_ROOT=".hooks"
+  IS_WRAPPER=true
+  echo "✅ Detected plugin wrapper format"
+
+  # Validate description field if present
+  if jq -e '.description' "$HOOKS_FILE" > /dev/null 2>&1; then
+    desc_type=$(jq -r '.description | type' "$HOOKS_FILE")
+    if [ "$desc_type" != "string" ]; then
+      echo "⚠️  'description' field should be a string"
+    fi
+  fi
+else
+  HOOKS_ROOT="."
+  IS_WRAPPER=false
+  echo "✅ Detected direct/settings format"
+fi
+
+# Helper function to build jq path
+# Usage: build_path "event" or build_path "event" "[0]" ".hooks"
+build_path() {
+  local event="$1"
+  shift
+  local suffix="${*:-}"
+
+  if [ "$IS_WRAPPER" = true ]; then
+    echo ".hooks.\"$event\"$suffix"
+  else
+    echo ".\"$event\"$suffix"
+  fi
+}
+
+# Check 3: Root structure
 echo ""
 echo "Checking root structure..."
 VALID_EVENTS=("PreToolUse" "PostToolUse" "UserPromptSubmit" "Stop" "SubagentStop" "SessionStart" "SessionEnd" "PreCompact" "Notification")
 
-for event in $(jq -r 'keys[]' "$HOOKS_FILE"); do
+for event in $(jq -r "$HOOKS_ROOT | keys[]" "$HOOKS_FILE"); do
   found=false
   for valid_event in "${VALID_EVENTS[@]}"; do
     if [ "$event" = "$valid_event" ]; then
@@ -55,19 +93,19 @@ for event in $(jq -r 'keys[]' "$HOOKS_FILE"); do
 done
 echo "✅ Root structure valid"
 
-# Check 3: Validate each hook
+# Check 4: Validate each hook
 echo ""
 echo "Validating individual hooks..."
 
 error_count=0
 warning_count=0
 
-for event in $(jq -r 'keys[]' "$HOOKS_FILE"); do
-  hook_count=$(jq -r ".\"$event\" | length" "$HOOKS_FILE")
+for event in $(jq -r "$HOOKS_ROOT | keys[]" "$HOOKS_FILE"); do
+  hook_count=$(jq -r "$(build_path "$event") | length" "$HOOKS_FILE")
 
   for ((i=0; i<hook_count; i++)); do
     # Check matcher exists
-    matcher=$(jq -r ".\"$event\"[$i].matcher // empty" "$HOOKS_FILE")
+    matcher=$(jq -r "$(build_path "$event" "[$i].matcher") // empty" "$HOOKS_FILE")
     if [ -z "$matcher" ]; then
       echo "❌ $event[$i]: Missing 'matcher' field"
       ((error_count++))
@@ -75,7 +113,7 @@ for event in $(jq -r 'keys[]' "$HOOKS_FILE"); do
     fi
 
     # Check hooks array exists
-    hooks=$(jq -r ".\"$event\"[$i].hooks // empty" "$HOOKS_FILE")
+    hooks=$(jq -r "$(build_path "$event" "[$i].hooks") // empty" "$HOOKS_FILE")
     if [ -z "$hooks" ] || [ "$hooks" = "null" ]; then
       echo "❌ $event[$i]: Missing 'hooks' array"
       ((error_count++))
@@ -83,10 +121,10 @@ for event in $(jq -r 'keys[]' "$HOOKS_FILE"); do
     fi
 
     # Validate each hook in the array
-    hook_array_count=$(jq -r ".\"$event\"[$i].hooks | length" "$HOOKS_FILE")
+    hook_array_count=$(jq -r "$(build_path "$event" "[$i].hooks") | length" "$HOOKS_FILE")
 
     for ((j=0; j<hook_array_count; j++)); do
-      hook_type=$(jq -r ".\"$event\"[$i].hooks[$j].type // empty" "$HOOKS_FILE")
+      hook_type=$(jq -r "$(build_path "$event" "[$i].hooks[$j].type") // empty" "$HOOKS_FILE")
 
       if [ -z "$hook_type" ]; then
         echo "❌ $event[$i].hooks[$j]: Missing 'type' field"
@@ -102,7 +140,7 @@ for event in $(jq -r 'keys[]' "$HOOKS_FILE"); do
 
       # Check type-specific fields
       if [ "$hook_type" = "command" ]; then
-        command=$(jq -r ".\"$event\"[$i].hooks[$j].command // empty" "$HOOKS_FILE")
+        command=$(jq -r "$(build_path "$event" "[$i].hooks[$j].command") // empty" "$HOOKS_FILE")
         if [ -z "$command" ]; then
           echo "❌ $event[$i].hooks[$j]: Command hooks must have 'command' field"
           ((error_count++))
@@ -114,7 +152,7 @@ for event in $(jq -r 'keys[]' "$HOOKS_FILE"); do
           fi
         fi
       elif [ "$hook_type" = "prompt" ]; then
-        prompt=$(jq -r ".\"$event\"[$i].hooks[$j].prompt // empty" "$HOOKS_FILE")
+        prompt=$(jq -r "$(build_path "$event" "[$i].hooks[$j].prompt") // empty" "$HOOKS_FILE")
         if [ -z "$prompt" ]; then
           echo "❌ $event[$i].hooks[$j]: Prompt hooks must have 'prompt' field"
           ((error_count++))
@@ -128,7 +166,7 @@ for event in $(jq -r 'keys[]' "$HOOKS_FILE"); do
       fi
 
       # Check timeout
-      timeout=$(jq -r ".\"$event\"[$i].hooks[$j].timeout // empty" "$HOOKS_FILE")
+      timeout=$(jq -r "$(build_path "$event" "[$i].hooks[$j].timeout") // empty" "$HOOKS_FILE")
       if [ -n "$timeout" ] && [ "$timeout" != "null" ]; then
         if ! [[ "$timeout" =~ ^[0-9]+$ ]]; then
           echo "❌ $event[$i].hooks[$j]: Timeout must be a number"
