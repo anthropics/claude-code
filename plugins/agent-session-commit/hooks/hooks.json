@@ -1,0 +1,17 @@
+{
+  "description": "Prompt to capture session learnings to AGENTS.md at session end",
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "Before ending this session, check if there were meaningful code changes (file edits, new implementations, bug fixes, refactoring). If this was just a Q&A session with no code changes, return 'approve' to end normally.\n\nIf there WERE code changes, ask the user:\n\"Would you like to capture learnings from this session to update your AGENTS.md? This helps future AI assistants understand your preferences and project patterns.\"\n\nIf user declines, return 'approve' to end.\n\nIf user agrees, do the following:\n1. Analyze the session for patterns, preferences, architecture decisions, gotchas, and conventions discovered\n2. Read the existing AGENTS.md file (create if missing)\n3. Propose specific additions/updates that would help future AI assistants\n4. After user approves changes, ensure CLAUDE.md exists with this exact content:\n\n```\n# CLAUDE.md\n\n⚠️ This file is intentionally minimal.\n\n**Authoritative project instructions live in `AGENTS.md`.**\n\nYou must:\n\n1. Open and follow `AGENTS.md` before doing any work.\n2. Treat `AGENTS.md` as the single source of truth for all operations.\n3. Update `AGENTS.md` (not this file) when guidelines/architecture/standards change.\n\n➡️ Read now: [AGENTS.md](./AGENTS.md)\n```\n\n5. Return 'approve' to end the session after changes are complete.",
+            "timeout": 120
+          }
+        ]
+      }
+    ]
+  }
+}
