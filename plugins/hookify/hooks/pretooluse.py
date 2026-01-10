@@ -9,6 +9,25 @@ import os
 import sys
 import json
 
+# FAST PATH: Skip irrelevant tools immediately before any imports
+# This avoids expensive module loading for tools we don't check
+def get_tool_name_fast():
+    """Read stdin to get tool_name."""
+    try:
+        data = json.load(sys.stdin)
+        return data.get('tool_name', ''), data
+    except:
+        return '', {}
+
+tool_name, input_data = get_tool_name_fast()
+
+# Skip tools that don't need checking (read-only tools)
+SKIP_TOOLS = {'Read', 'Glob', 'Grep', 'WebFetch', 'WebSearch', 'Task', 'TodoRead',
+              'AskUser', 'TodoWrite', 'ListDir'}
+if tool_name in SKIP_TOOLS or tool_name.startswith('mcp__'):
+    sys.exit(0)
+
+# Only now do expensive imports
 # CRITICAL: Add plugin root to Python path for imports
 # We need to add the parent of the plugin directory so Python can find "hookify" package
 PLUGIN_ROOT = os.environ.get('CLAUDE_PLUGIN_ROOT')
@@ -34,19 +53,21 @@ except ImportError as e:
 
 def main():
     """Main entry point for PreToolUse hook."""
+    global input_data, tool_name
+
+    if not input_data:
+        sys.exit(0)
+
     try:
-        # Read input from stdin
-        input_data = json.load(sys.stdin)
-
         # Determine event type for filtering
-        # For PreToolUse, we use tool_name to determine "bash" vs "file" event
-        tool_name = input_data.get('tool_name', '')
-
         event = None
         if tool_name == 'Bash':
             event = 'bash'
         elif tool_name in ['Edit', 'Write', 'MultiEdit']:
             event = 'file'
+        else:
+            # Unknown tool type - skip
+            sys.exit(0)
 
         # Load rules
         rules = load_rules(event=event)

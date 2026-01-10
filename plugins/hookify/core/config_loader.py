@@ -7,9 +7,14 @@ Loads and parses .claude/hookify.*.local.md files.
 import os
 import sys
 import glob
-import re
+import json
+import hashlib
 from typing import List, Optional, Dict, Any
 from dataclasses import dataclass, field
+
+# Cache directory and file
+CACHE_DIR = os.path.join('.claude', '.hookify-cache')
+CACHE_FILE = os.path.join(CACHE_DIR, 'rules.json')
 
 
 @dataclass
@@ -195,6 +200,94 @@ def extract_frontmatter(content: str) -> tuple[Dict[str, Any], str]:
     return frontmatter, message
 
 
+def get_files_hash(files: List[str]) -> str:
+    """Get a hash of file paths and their modification times for cache invalidation."""
+    hash_input = []
+    for f in sorted(files):
+        try:
+            mtime = os.path.getmtime(f)
+            hash_input.append(f"{f}:{mtime}")
+        except OSError:
+            hash_input.append(f"{f}:0")
+    return hashlib.md5('|'.join(hash_input).encode()).hexdigest()
+
+
+def load_cached_rules(event: Optional[str] = None) -> Optional[List[Rule]]:
+    """Try to load rules from cache."""
+    try:
+        if not os.path.exists(CACHE_FILE):
+            return None
+
+        # Get current files
+        pattern = os.path.join('.claude', 'hookify.*.local.md')
+        files = glob.glob(pattern)
+        current_hash = get_files_hash(files)
+
+        with open(CACHE_FILE, 'r') as f:
+            cache = json.load(f)
+
+        # Check cache validity
+        if cache.get('hash') != current_hash:
+            return None
+
+        # Reconstruct rules from cache
+        rules = []
+        for rule_data in cache.get('rules', []):
+            # Filter by event if specified
+            if event and rule_data['event'] != 'all' and rule_data['event'] != event:
+                continue
+
+            conditions = [Condition(**c) for c in rule_data.get('conditions', [])]
+            rule = Rule(
+                name=rule_data['name'],
+                enabled=rule_data['enabled'],
+                event=rule_data['event'],
+                pattern=rule_data.get('pattern'),
+                conditions=conditions,
+                action=rule_data.get('action', 'warn'),
+                tool_matcher=rule_data.get('tool_matcher'),
+                message=rule_data.get('message', '')
+            )
+            if rule.enabled:
+                rules.append(rule)
+
+        return rules
+    except Exception:
+        return None
+
+
+def save_rules_cache(rules: List[Rule], files_hash: str) -> None:
+    """Save rules to cache file."""
+    try:
+        os.makedirs(CACHE_DIR, exist_ok=True)
+
+        cache_data = {
+            'hash': files_hash,
+            'rules': []
+        }
+
+        for rule in rules:
+            rule_dict = {
+                'name': rule.name,
+                'enabled': rule.enabled,
+                'event': rule.event,
+                'pattern': rule.pattern,
+                'action': rule.action,
+                'tool_matcher': rule.tool_matcher,
+                'message': rule.message,
+                'conditions': [
+                    {'field': c.field, 'operator': c.operator, 'pattern': c.pattern}
+                    for c in rule.conditions
+                ]
+            }
+            cache_data['rules'].append(rule_dict)
+
+        with open(CACHE_FILE, 'w') as f:
+            json.dump(cache_data, f)
+    except Exception:
+        pass  # Caching failures are non-fatal
+
+
 def load_rules(event: Optional[str] = None) -> List[Rule]:
     """Load all hookify rules from .claude directory.
 
@@ -204,17 +297,26 @@ def load_rules(event: Optional[str] = None) -> List[Rule]:
     Returns:
         List of enabled Rule objects matching the event.
     """
-    rules = []
+    # Try cache first
+    cached = load_cached_rules(event)
+    if cached is not None:
+        return cached
+
+    all_rules = []
+    filtered_rules = []
 
     # Find all hookify.*.local.md files
     pattern = os.path.join('.claude', 'hookify.*.local.md')
     files = glob.glob(pattern)
+    files_hash = get_files_hash(files)
 
     for file_path in files:
         try:
             rule = load_rule_file(file_path)
             if not rule:
                 continue
+
+            all_rules.append(rule)
 
             # Filter by event if specified
             if event:
@@ -223,7 +325,7 @@ def load_rules(event: Optional[str] = None) -> List[Rule]:
 
             # Only include enabled rules
             if rule.enabled:
-                rules.append(rule)
+                filtered_rules.append(rule)
 
         except (IOError, OSError, PermissionError) as e:
             # File I/O errors - log and continue
@@ -238,7 +340,10 @@ def load_rules(event: Optional[str] = None) -> List[Rule]:
             print(f"Warning: Unexpected error loading {file_path} ({type(e).__name__}): {e}", file=sys.stderr)
             continue
 
-    return rules
+    # Save all rules to cache (filtering happens on read)
+    save_rules_cache(all_rules, files_hash)
+
+    return filtered_rules
 
 
 def load_rule_file(file_path: str) -> Optional[Rule]:
@@ -286,7 +391,7 @@ event: bash
 pattern: "rm -rf"
 ---
 
-⚠️ Dangerous command detected!
+Dangerous command detected!
 """
 
     fm, msg = extract_frontmatter(test_content)
