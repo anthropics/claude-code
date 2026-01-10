@@ -8,6 +8,7 @@ This plugin helps you build a knowledge base that works across AI coding assista
 
 - **Prompting at session end** to capture valuable learnings
 - **Updating AGENTS.md** with patterns, preferences, and project insights
+- **Initializing AGENTS.md** if it doesn't exist (like `/init` but for AGENTS.md)
 - **Keeping CLAUDE.md minimal** as a pointer to the authoritative AGENTS.md
 
 ## Why AGENTS.md?
@@ -20,14 +21,15 @@ This plugin helps you build a knowledge base that works across AI coding assista
 
 ### Stop Hook (Automatic)
 
-When ending a session that involved code changes, you'll be asked:
+When Claude finishes a task, you'll be asked:
 
 > "Would you like to capture learnings from this session to update your AGENTS.md?"
 
 If you agree, Claude will:
-1. Analyze the session for patterns, preferences, decisions
-2. Propose specific additions to AGENTS.md
-3. Ensure CLAUDE.md exists with pointer content
+1. Check if AGENTS.md exists (create if missing)
+2. Analyze the session for patterns, preferences, decisions
+3. Propose specific additions to AGENTS.md
+4. Ensure CLAUDE.md exists with pointer content
 
 ### `/session-commit` Command (Manual)
 
@@ -36,6 +38,8 @@ Trigger the capture process anytime during a session:
 ```
 /session-commit
 ```
+
+Use this when you want to save learnings mid-session or before exiting.
 
 ## What Gets Captured
 
@@ -46,6 +50,14 @@ Trigger the capture process anytime during a session:
 - **Debugging insights**: What to check when things break
 - **Workflow preferences**: How you like to work
 
+## Important: Ctrl+C Behavior
+
+**Note:** The Stop hook triggers when Claude decides a task is complete, NOT on Ctrl+C.
+
+- Hard interrupts (Ctrl+C) may bypass the hook entirely
+- For guaranteed capture, use `/session-commit` before exiting
+- The Stop hook works for normal "task complete" endings
+
 ## Installation
 
 The plugin is included in the Claude Code plugins repository. Enable it in your Claude Code settings.
@@ -54,4 +66,4 @@ The plugin is included in the Claude Code plugins repository. Enable it in your 
 
 No configuration required. The plugin works out of the box.
 
-To disable the end-of-session prompt temporarily, simply decline when asked.
+To skip the end-of-session prompt, simply decline when asked.

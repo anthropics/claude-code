@@ -6,6 +6,8 @@ allowed-tools:
   - Edit
   - Glob
   - Grep
+  - Bash
+  - LS
 ---
 
 # Session Commit
@@ -14,30 +16,48 @@ Analyze the current conversation to extract valuable learnings and update the pr
 
 ## Instructions
 
-1. **Analyze the session** for:
-   - Coding patterns and preferences discovered
-   - Architecture decisions made
-   - Gotchas or pitfalls encountered
-   - Project conventions established
-   - Debugging insights
-   - Workflow preferences
+### Step 1: Check for AGENTS.md
 
-2. **Read existing AGENTS.md** (or note if missing):
-   - Check for `AGENTS.md` in the project root
-   - Understand current structure and content
-   - Identify where new learnings fit
+First, check if `AGENTS.md` exists in the project root.
 
-3. **Propose additions**:
-   - Present specific additions/updates to the user
-   - Group by category (patterns, conventions, architecture, etc.)
-   - Be concise - capture the essence, not verbose explanations
-   - Format as actionable guidance for future AI assistants
+**If AGENTS.md is missing**, initialize it:
+1. Analyze the project structure (package.json, pyproject.toml, Cargo.toml, etc.)
+2. Create `AGENTS.md` with:
+   - Project name and brief description
+   - Key directories and their purposes
+   - Tech stack and dependencies
+   - Any patterns you've observed during this session
+   - Development workflow (build, test, lint commands)
 
-4. **Apply changes** after user approval:
-   - Update AGENTS.md with the approved content
-   - Create AGENTS.md if it doesn't exist
+**If AGENTS.md exists**, read it to understand current content.
 
-5. **Ensure CLAUDE.md exists** with minimal pointer content:
+### Step 2: Analyze Session Learnings
+
+Review the conversation for:
+- Coding patterns and preferences discovered
+- Architecture decisions made
+- Gotchas or pitfalls encountered
+- Project conventions established
+- Debugging insights
+- Workflow preferences
+
+### Step 3: Propose Updates
+
+Present specific additions/updates to the user:
+- Group by category (patterns, conventions, architecture, etc.)
+- Be concise - capture actionable guidance, not verbose explanations
+- Format as bullet points
+- Focus on learnings that help ANY AI assistant, not just Claude
+
+### Step 4: Apply Changes
+
+After user approval:
+- Update AGENTS.md with the approved content
+- Merge with existing content appropriately
+
+### Step 5: Ensure CLAUDE.md Exists
+
+Check if `CLAUDE.md` exists. If missing or different, create/update it with:
 
 ```markdown
 # CLAUDE.md
@@ -57,7 +77,7 @@ You must:
 
 ## Tips
 
-- Focus on learnings that would help ANY AI assistant, not just Claude
-- Prefer bullet points over paragraphs
+- If no meaningful learnings in this session, say so - don't force updates
+- Prefer bullet points over paragraphs in AGENTS.md
 - Include specific file paths when referencing project structure
 - Avoid duplicating information already in AGENTS.md
