@@ -1,7 +1,7 @@
 ---
 name: Codex Integration
 description: Use this skill when the user mentions "Codex", "OpenAI Codex", wants to "ask Codex", "query Codex", requests AI assistance from OpenAI, or wants alternative AI perspectives on coding questions. Auto-activate for Codex-related queries.
-version: 1.2.0
+version: 1.3.0
 ---
 
 # Codex Integration Skill
@@ -39,16 +39,35 @@ The `codex-session` agent is responsible for:
 
 ## Available Commands
 
+### Core Commands
+
 | Command | Purpose |
 |---------|---------|
 | `/codex <query>` | Query Codex (routes through sub-agent) |
-| `/codex:status` | Show status, auth, config, and sessions |
+| `/codex:exec <query>` | Non-interactive query (no session) |
+| `/codex:review [file]` | Request code review from Codex |
+| `/codex:compare <query>` | Compare Claude vs Codex responses |
+
+### Session Management
+
+| Command | Purpose |
+|---------|---------|
+| `/codex:resume [id]` | Resume previous session |
+| `/codex:session list` | List sessions |
+| `/codex:session clear` | Clear session history |
+| `/codex:apply [id]` | Apply changes from session |
+
+### Configuration
+
+| Command | Purpose |
+|---------|---------|
 | `/codex:config` | Configure authentication method |
+| `/codex:status` | Show status, auth, config, sessions |
 | `/codex:model` | Select default model (interactive) |
 | `/codex:models` | List available models |
 | `/codex:permission` | Set approval mode (interactive) |
-| `/codex:session` | Manage session history |
 | `/codex:clear` | Clear credentials |
+| `/codex:help` | Show help and all commands |
 
 ## MCP Tools (for sub-agent use)
 
@@ -94,7 +113,7 @@ Use `/codex:config` to configure authentication. The command uses AskUserQuestio
 | `auto-edit` | Codex can edit files automatically |
 | `full-auto` | Codex has full control |
 
-## Configuration
+## Config Files
 
 - **Project config**: `.claude/codex_config.json` (model, permission, sessions)
 - **Global auth**: `~/.claude/auth.json` (OAuth tokens or API key)
