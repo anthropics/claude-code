@@ -42,9 +42,11 @@ The `codex-session` agent is responsible for:
 | Command | Purpose |
 |---------|---------|
 | `/codex <query>` | Query Codex (routes through sub-agent) |
-| `/codex:config` | Configure authentication |
-| `/codex:model` | Select default model |
-| `/codex:permission` | Set approval mode |
+| `/codex:status` | Show status, auth, config, and sessions |
+| `/codex:config` | Configure authentication method |
+| `/codex:model` | Select default model (interactive) |
+| `/codex:models` | List available models |
+| `/codex:permission` | Set approval mode (interactive) |
 | `/codex:session` | Manage session history |
 | `/codex:clear` | Clear credentials |
 
