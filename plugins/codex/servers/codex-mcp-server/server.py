@@ -342,7 +342,7 @@ class MCPServer:
             "account_id": info.get("account_id"),
             "expires_in_seconds": info.get("expires_in_seconds"),
             "has_refresh_token": info.get("has_refresh_token", False),
-            "message": f"Logged in. Token {'expired' if info['is_expired'] else f'expires in {info[\"expires_in_seconds\"]} seconds'}."
+            "message": f"Logged in. Token {'expired' if info['is_expired'] else 'expires in ' + str(info.get('expires_in_seconds', 0)) + ' seconds'}."
         }
 
     def _tool_login(self) -> str:
