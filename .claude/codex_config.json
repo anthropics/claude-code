@@ -1,0 +1,109 @@
+{
+  "model": "gpt-5.2",
+  "approval_mode": "suggest",
+  "sessions": [
+    {
+      "id": "51319332",
+      "prompt": "test",
+      "timestamp": "2026-01-12T04:56:02.712149",
+      "messages": []
+    },
+    {
+      "id": "1c70b8a9",
+      "prompt": "test",
+      "timestamp": "2026-01-12T04:55:58.953323",
+      "messages": []
+    },
+    {
+      "id": "575fb0e6",
+      "prompt": "test",
+      "timestamp": "2026-01-12T04:47:37.366189",
+      "messages": []
+    },
+    {
+      "id": "559092cd",
+      "prompt": "test",
+      "timestamp": "2026-01-12T04:46:23.844318",
+      "messages": []
+    },
+    {
+      "id": "ab7f1e86",
+      "prompt": "test",
+      "timestamp": "2026-01-12T04:46:11.684356",
+      "messages": []
+    },
+    {
+      "id": "838689ba",
+      "prompt": "test",
+      "timestamp": "2026-01-12T04:45:21.713292",
+      "messages": []
+    },
+    {
+      "id": "e49ccac5",
+      "prompt": "test",
+      "timestamp": "2026-01-12T04:45:04.838742",
+      "messages": []
+    },
+    {
+      "id": "29ba1e8d",
+      "prompt": "test",
+      "timestamp": "2026-01-12T04:41:55.070732",
+      "messages": []
+    },
+    {
+      "id": "0e2d7ad1",
+      "prompt": "test",
+      "timestamp": "2026-01-12T04:37:40.687073",
+      "messages": []
+    },
+    {
+      "id": "48caa484",
+      "prompt": "test",
+      "timestamp": "2026-01-12T04:36:52.347106",
+      "messages": []
+    },
+    {
+      "id": "80a939c3",
+      "prompt": "Explain REST API design",
+      "timestamp": "2026-01-12T04:33:13.943246",
+      "messages": []
+    },
+    {
+      "id": "971cc897",
+      "prompt": "explain REST API design",
+      "timestamp": "2026-01-12T04:32:15.187215",
+      "messages": []
+    },
+    {
+      "id": "940dc2ae",
+      "prompt": "explain the design of REST API",
+      "timestamp": "2026-01-12T04:16:40.390474",
+      "messages": []
+    },
+    {
+      "id": "91da2309",
+      "prompt": "explain the REST API design",
+      "timestamp": "2026-01-12T04:15:48.949988",
+      "messages": []
+    },
+    {
+      "id": "eee81947",
+      "prompt": "explain the REST API design",
+      "timestamp": "2026-01-12T04:14:54.612127",
+      "messages": []
+    },
+    {
+      "id": "1538ddbb",
+      "prompt": "explain the REST API design",
+      "timestamp": "2026-01-12T04:14:48.671168",
+      "messages": []
+    },
+    {
+      "id": "c90567a2",
+      "prompt": "explain the REST API design",
+      "timestamp": "2026-01-12T04:14:41.212313",
+      "messages": []
+    }
+  ],
+  "reasoning_effort": "medium"
+}

@@ -1,0 +1,66 @@
+{
+  "sources": [
+    {
+      "source_id": "src_codex_ts",
+      "canonical_url": "file:///Users/jiusi/Documents/opencode/packages/opencode/src/plugin/codex.ts",
+      "source_type": "codebase_file",
+      "metadata": {
+        "file_path": "packages/opencode/src/plugin/codex.ts",
+        "language": "typescript",
+        "size_bytes": 17500
+      },
+      "quality_tier": "A"
+    },
+    {
+      "source_id": "src_auth_index",
+      "canonical_url": "file:///Users/jiusi/Documents/opencode/packages/opencode/src/auth/index.ts",
+      "source_type": "codebase_file",
+      "metadata": {
+        "file_path": "packages/opencode/src/auth/index.ts",
+        "language": "typescript",
+        "size_bytes": 2100
+      },
+      "quality_tier": "A"
+    },
+    {
+      "source_id": "src_hook_dev_skill",
+      "canonical_url": "file:///Users/jiusi/Documents/claude-code/plugins/plugin-dev/skills/hook-development/SKILL.md",
+      "source_type": "documentation",
+      "metadata": {
+        "file_path": "plugins/plugin-dev/skills/hook-development/SKILL.md",
+        "language": "markdown"
+      },
+      "quality_tier": "A"
+    },
+    {
+      "source_id": "src_mcp_skill",
+      "canonical_url": "file:///Users/jiusi/Documents/claude-code/plugins/plugin-dev/skills/mcp-integration/SKILL.md",
+      "source_type": "documentation",
+      "metadata": {
+        "file_path": "plugins/plugin-dev/skills/mcp-integration/SKILL.md",
+        "language": "markdown"
+      },
+      "quality_tier": "A"
+    },
+    {
+      "source_id": "src_mcp_auth_ref",
+      "canonical_url": "file:///Users/jiusi/Documents/claude-code/plugins/plugin-dev/skills/mcp-integration/references/authentication.md",
+      "source_type": "documentation",
+      "metadata": {
+        "file_path": "plugins/plugin-dev/skills/mcp-integration/references/authentication.md",
+        "language": "markdown"
+      },
+      "quality_tier": "A"
+    },
+    {
+      "source_id": "src_openai_auth_quick_ref",
+      "canonical_url": "file:///Users/jiusi/Documents/opencode/docs/OpenAI认证实现快速参考.md",
+      "source_type": "documentation",
+      "metadata": {
+        "file_path": "docs/OpenAI认证实现快速参考.md",
+        "language": "markdown"
+      },
+      "quality_tier": "A"
+    }
+  ]
+}
