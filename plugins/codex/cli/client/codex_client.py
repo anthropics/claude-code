@@ -172,13 +172,14 @@ class CodexClient:
         # Build input array
         input_items = []
 
-        # Add system prompt as first message if provided
-        # The system prompt is included in the input array, not as separate "instructions" field
-        if system_prompt:
-            input_items.append({
-                "role": "developer",
-                "content": system_prompt
-            })
+        # Add system prompt as first message (required by API)
+        # Use provided system prompt or default instructions
+        # The system prompt is included in the input array with developer role
+        system_message = system_prompt or self.DEFAULT_INSTRUCTIONS
+        input_items.append({
+            "role": "developer",
+            "content": system_message
+        })
 
         # Add previous messages if provided
         if messages:
