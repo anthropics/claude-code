@@ -31,7 +31,12 @@ else:
         """Unlock file on Unix."""
         fcntl.flock(f.fileno(), fcntl.LOCK_UN)
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Import config
+import sys as _sys
+import os as _os
+_cli_dir = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
+if _cli_dir not in _sys.path:
+    _sys.path.insert(0, _cli_dir)
 from config import AUTH_FILE_PATH, TOKEN_KEY, AUTH_METHOD_OAUTH, AUTH_METHOD_API_KEY
 
 # Storage keys
@@ -66,6 +71,7 @@ class TokenStorage:
         # Load existing data
         existing = self._load_all() or {}
         existing[self.token_key] = tokens
+        existing[AUTH_METHOD_KEY] = AUTH_METHOD_OAUTH
 
         # Write atomically (temp file + rename)
         # Use restrictive umask on Unix to ensure temp file is created securely

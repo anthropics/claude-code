@@ -1,21 +1,25 @@
-# Codex Plugin
+# Codex Plugin v2.0
 
-OpenAI Codex integration for Claude Code with model selection, permission control, and session management.
+OpenAI Codex integration for Claude Code with CLI-based architecture, model selection, and session management.
 
-> 📦 **Part of:** [Jiusi-pys/claude-code](https://github.com/Jiusi-pys/claude-code)
->
-> 📘 **For detailed deployment instructions**, see [DEPLOYMENT.md](./DEPLOYMENT.md)
+> **Part of:** [Jiusi-pys/claude-code](https://github.com/Jiusi-pys/claude-code)
+
+## What's New in v2.0
+
+- **CLI-based architecture** - No more MCP server, simpler and more reliable
+- **Reasoning effort control** - Control how much Codex "thinks" before responding
+- **Improved session management** - Persistent sessions with context
+- **Simplified commands** - Cleaner command interface
 
 ## Features
 
-- 🔐 OpenAI API key authentication for stable, reliable access
-- 🎯 Model selection with persistent defaults
-- 🔧 Permission/approval mode configuration
-- 📜 Session continuity - follow-up questions maintain context
-- 💾 Secure token storage (0600 permissions)
-- 🔄 Automatic token refresh
-- ⚡ Simple, clean response output
-- 🤖 Sub-agent for intelligent session management
+- OpenAI API key authentication (recommended)
+- ChatGPT OAuth authentication (Plus/Pro/Team/Enterprise)
+- Model selection with persistent defaults
+- Reasoning effort levels (none/minimal/low/medium/high/xhigh)
+- Session continuity for follow-up questions
+- Secure token storage (0600 permissions)
+- Automatic token refresh
 
 ## Quick Start
 
@@ -25,7 +29,7 @@ OpenAI Codex integration for Claude Code with model selection, permission contro
 /codex:login
 ```
 
-Opens browser for OpenAI OAuth login.
+Choose API Key (recommended) or ChatGPT OAuth.
 
 ### 2. Query Codex
 
@@ -33,26 +37,42 @@ Opens browser for OpenAI OAuth login.
 /codex how do I implement binary search?
 ```
 
-Response shows just the answer - no extra metadata.
-
 ### 3. Configure
 
 ```
-/codex:model gpt-5.2          # Set default model
-/codex:permission auto-edit   # Set approval mode
-/codex:session                # View session history
+/codex:model             # Select default model
+/codex:reasoning         # Set reasoning effort
+/codex:status            # Check status
 ```
 
 ## Commands
 
+### Core
+
 | Command | Purpose |
 |---------|---------|
-| `/codex <query>` | Query Codex - shows only the answer |
+| `/codex <query>` | Query Codex |
+| `/codex:review [file]` | Request code review |
+| `/codex:compare <query>` | Compare Claude vs Codex |
+
+### Session Management
+
+| Command | Purpose |
+|---------|---------|
+| `/codex:session list` | List sessions |
+| `/codex:session clear` | Clear session history |
+
+### Configuration
+
+| Command | Purpose |
+|---------|---------|
 | `/codex:login` | Log in to Codex |
 | `/codex:logout` | Log out from Codex |
-| `/codex:model [name]` | View/set default model |
-| `/codex:permission [mode]` | View/set approval mode |
-| `/codex:session [list\|clear]` | Manage session history |
+| `/codex:status` | Show status and config |
+| `/codex:model` | Select default model |
+| `/codex:models` | List available models |
+| `/codex:reasoning` | Set reasoning effort |
+| `/codex:help` | Show help |
 
 ## Models
 
@@ -63,19 +83,22 @@ Response shows just the answer - no extra metadata.
 | `gpt-5.1-codex-max` | Complex tasks |
 | `gpt-5.1-codex-mini` | Quick responses |
 
-## Approval Modes
+## Reasoning Effort Levels
 
-| Mode | Description |
-|------|-------------|
-| `suggest` | Codex suggests, user confirms (default) |
-| `auto-edit` | Codex can edit files automatically |
-| `full-auto` | Codex has full control |
+| Level | Description |
+|-------|-------------|
+| `none` | No extended thinking |
+| `minimal` | Very light thinking |
+| `low` | Quick responses |
+| `medium` | Balanced (default) |
+| `high` | Thorough analysis |
+| `xhigh` | Maximum thinking |
 
 ## Authentication Methods
 
 ### API Key (Recommended)
 
-Use an OpenAI API key for stable, reliable access via the official Chat Completions API:
+Use an OpenAI API key for stable, reliable access:
 
 1. Get your API key from https://platform.openai.com/api/keys
 2. Run `/codex:login`
@@ -84,55 +107,50 @@ Use an OpenAI API key for stable, reliable access via the official Chat Completi
 
 ### ChatGPT Subscription (OAuth)
 
-OAuth authentication via ChatGPT subscription is supported but has limited reliability due to API compatibility issues. If you encounter "Instructions are not valid" errors, switch to API key authentication.
+OAuth authentication via ChatGPT subscription is supported for Plus/Pro/Team/Enterprise users.
 
-## Session Continuity
+## Architecture
 
-Codex sessions maintain conversation context across multiple queries. This allows for follow-up questions without losing context.
-
-**How it works:**
-- Each query returns a `session_id` with the response
-- Pass the same `session_id` to continue the conversation
-- The `codex-session` sub-agent automatically manages this
-
-**Example:**
 ```
-User: How do I implement binary search?
-→ Codex explains binary search (session: abc123)
-
-User: Can you make it recursive?
-→ Uses session abc123, Codex knows you mean binary search
-
-User: Unrelated - what is REST?
-→ New session starts (different topic)
+User Request
+    ↓
+Commands (/codex, /codex:login, etc.)
+    ↓
+CLI Tool (cli/codex_cli.py) ← Executes via Bash
+    ↓
+OpenAI API
 ```
 
-## Sub-Agents
+## CLI Tool
 
-| Agent | Description |
-|-------|-------------|
-| `codex-session` | Manages session continuity, decides when to continue vs start new |
+The plugin uses a Python CLI tool located at `cli/codex_cli.py`:
 
-## MCP Tools
+```bash
+python3 cli/codex_cli.py <command> [options]
+```
 
-| Tool | Description |
-|------|-------------|
-| `codex_query` | Send query to Codex (with optional session_id for continuation) |
-| `codex_status` | Check auth status |
-| `codex_login` | Start OAuth flow |
-| `codex_clear` | Clear credentials |
-| `codex_models` | List models |
-| `codex_get_config` | Get current config |
-| `codex_set_config` | Set config values |
-| `codex_list_sessions` | List sessions |
-| `codex_clear_sessions` | Clear session history |
+### CLI Commands
+
+| Command | Purpose |
+|---------|---------|
+| `query <prompt>` | Send query to Codex |
+| `status` | Check auth status |
+| `login` | Start OAuth flow |
+| `set-api-key <key>` | Set API key |
+| `logout` | Clear credentials |
+| `models [--fetch]` | List models |
+| `set-model <model>` | Set default model |
+| `set-reasoning <level>` | Set reasoning effort |
+| `get-config` | Get configuration |
+| `sessions` | List sessions |
+| `clear-sessions` | Clear sessions |
 
 ## Configuration Files
 
 | File | Purpose |
 |------|---------|
-| `~/.claude/auth.json` | OAuth tokens (global) |
-| `.claude/codex_config.json` | Project preferences (model, permission, sessions) |
+| `~/.claude/auth.json` | OAuth tokens / API key (global) |
+| `.claude/codex_config.json` | Project preferences (model, reasoning, sessions) |
 
 ## License
 
@@ -140,23 +158,25 @@ Part of Claude Code. See LICENSE in root repository.
 
 ## Changelog
 
+### v2.0.0
+
+- **CLI-based architecture** - Removed MCP server, using CLI tool instead
+- **Reasoning effort control** - New `/codex:reasoning` command
+- **Simplified commands** - Removed deprecated commands
+- **Improved reliability** - Direct API calls via CLI
+
 ### v1.2.0
 
-- 🔄 Session continuity - follow-up questions maintain context
-- 🤖 `codex-session` sub-agent for intelligent session management
-- 📁 Project-specific configuration (`.claude/codex_config.json`)
-- 🎨 Selection UI for model and permission commands
+- Session continuity
+- `codex-session` sub-agent
+- Selection UI for model and permission
 
 ### v1.1.0
 
-- ✨ Model selection command
-- 🔧 Permission configuration
-- 📜 Session history tracking
-- 🎯 Simplified response output
-- 📝 Renamed from `codex-oauth` to `codex`
+- Model selection
+- Permission configuration
+- Session history
 
 ### v1.0.0
 
-- 🔐 OAuth 2.0 + PKCE authentication
-- 📡 MCP server with 5 tools
-- 💻 Cross-platform support
+- Initial release with OAuth 2.0 + PKCE

@@ -1,19 +1,24 @@
 ---
 description: Log out from OpenAI Codex
-allowed-tools: [
-  "mcp__codex__codex_clear",
-  "mcp__codex__codex_status",
-  "AskUserQuestion"
-]
+allowed-tools: Bash, AskUserQuestion
 ---
 
 ## Your task
 
 Clear stored Codex credentials (OAuth tokens and API keys).
 
+### CLI Path
+```
+${CLAUDE_PLUGIN_ROOT}/cli/codex_cli.py
+```
+
 ### Step 1: Check Current Status
 
-Call `codex_status` to show current authentication state before clearing.
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/cli/codex_cli.py" status
+```
+
+Show current authentication state before clearing.
 
 ### Step 2: Confirm with User
 
@@ -37,13 +42,20 @@ Use **AskUserQuestion** to confirm the action:
 
 **If "Yes, clear credentials":**
 
-1. Call `codex_clear` to remove all stored credentials
-2. Call `codex_status` to verify credentials are cleared
-3. Confirm: "Credentials cleared. Run `/codex:login` to re-authenticate."
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/cli/codex_cli.py" logout
+```
+
+Then verify:
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/cli/codex_cli.py" status
+```
+
+Confirm: "Credentials cleared. Run `/codex:login` to re-authenticate."
 
 **If "Cancel":**
 
-- Confirm: "Credentials unchanged."
+Confirm: "Credentials unchanged."
 
 ### When to Use
 

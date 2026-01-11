@@ -1,1 +1,0 @@
-"""Codex MCP Server package."""

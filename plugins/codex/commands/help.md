@@ -26,16 +26,14 @@ Query OpenAI Codex for alternative AI perspectives, code generation, and reviews
 | Command | Description |
 |---------|-------------|
 | /codex <query> | Send query to Codex |
-| /codex:exec <query> | Non-interactive query (no session) |
 | /codex:review [file] | Request code review |
+| /codex:compare | Compare Claude vs Codex responses |
 
 ### Session Management
 | Command | Description |
 |---------|-------------|
-| /codex:resume [id] | Resume previous session |
 | /codex:session list | List sessions |
 | /codex:session clear | Clear session history |
-| /codex:apply [id] | Apply changes from session |
 
 ### Configuration
 | Command | Description |
@@ -45,12 +43,12 @@ Query OpenAI Codex for alternative AI perspectives, code generation, and reviews
 | /codex:status | Show current status |
 | /codex:model | Select default model |
 | /codex:models | List available models |
-| /codex:permission | Set approval mode |
+| /codex:reasoning | Set reasoning effort level |
 
 ## Authentication Methods
 
+- **API Key (Recommended)**: Direct OpenAI API key (sk-...)
 - **ChatGPT Subscription**: OAuth login for Plus/Pro/Team/Enterprise
-- **API Key**: Direct OpenAI API key (sk-...)
 
 ## Models
 
@@ -59,7 +57,11 @@ Query OpenAI Codex for alternative AI perspectives, code generation, and reviews
 - gpt-5.1-codex-max
 - gpt-5.1-codex-mini
 
-## More Info
+## Reasoning Effort Levels
+
+- none, minimal, low, medium (default), high, xhigh
+
+## Storage
 
 - Project config: .claude/codex_config.json
 - Global auth: ~/.claude/auth.json

@@ -8,10 +8,12 @@ import sys
 import os
 from typing import Dict, Any, Optional, Iterator
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+_cli_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _cli_dir not in sys.path:
+    sys.path.insert(0, _cli_dir)
 from config import CODEX_API_URL, CODEX_MODELS_URL, OPENAI_API_URL, DEBUG, AUTH_METHOD_OAUTH, AUTH_METHOD_API_KEY, CLIENT_VERSION
-from infrastructure.http_client import HttpClient, HttpClientError
-from services.token_manager import TokenManager, TokenError
+from client.http_client import HttpClient, HttpClientError
+from auth.token_manager import TokenManager, TokenError
 
 
 def _debug(msg: str, data: Optional[Dict] = None):

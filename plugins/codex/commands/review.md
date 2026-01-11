@@ -1,23 +1,25 @@
 ---
 description: Request Codex code review
 argument-hint: [file or description]
-allowed-tools: [
-  "mcp__codex__codex_query",
-  "mcp__codex__codex_status",
-  "Read",
-  "Glob",
-  "Bash",
-  "AskUserQuestion"
-]
+allowed-tools: Bash, Read, Glob, AskUserQuestion
 ---
 
 ## Your task
 
-Request a code review from OpenAI Codex.
+Request a code review from OpenAI Codex using the CLI.
+
+### CLI Path
+```
+${CLAUDE_PLUGIN_ROOT}/cli/codex_cli.py
+```
 
 ### Step 1: Check Authentication
 
-Call `codex_status` to verify authentication. If not authenticated, tell user to run `/codex:login` first.
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/cli/codex_cli.py" status
+```
+
+If not authenticated, tell user to run `/codex:login` first.
 
 ### Step 2: Determine What to Review
 
@@ -31,7 +33,7 @@ Call `codex_status` to verify authentication. If not authenticated, tell user to
 
 **If no argument provided:**
 
-1. Check for staged git changes with `Bash`: `git diff --cached --name-only`
+1. Check for staged git changes: `git diff --cached --name-only`
 2. Use **AskUserQuestion** to let user choose:
 
 ```json
@@ -42,8 +44,7 @@ Call `codex_status` to verify authentication. If not authenticated, tell user to
     "options": [
       {"label": "Staged Changes", "description": "Review files staged for commit"},
       {"label": "Recent Changes", "description": "Review uncommitted changes (git diff)"},
-      {"label": "Specific File", "description": "I'll specify a file path"},
-      {"label": "Current File", "description": "Review the file I'm working on"}
+      {"label": "Specific File", "description": "I'll specify a file path"}
     ],
     "multiSelect": false
   }]
@@ -54,28 +55,19 @@ Call `codex_status` to verify authentication. If not authenticated, tell user to
 
 - "Staged Changes" → `git diff --cached`
 - "Recent Changes" → `git diff`
-- "Specific File" → Ask user for path (via "Other" option input)
-- "Current File" → Use IDE context if available
+- "Specific File" → Ask user for path
 
 ### Step 3: Build and Execute Review
 
-Call `codex_query` with code content and this system prompt:
+Build a review prompt with the code content and system instruction:
 
-```
-You are an expert code reviewer. Analyze the provided code for:
-
-1. **Bugs & Logic Errors** - Identify potential bugs, edge cases, and logic issues
-2. **Security Vulnerabilities** - Check for common security issues (injection, XSS, etc.)
-3. **Performance Issues** - Spot inefficiencies and performance bottlenecks
-4. **Code Quality** - Evaluate readability, maintainability, and best practices
-5. **Suggestions** - Provide actionable improvement suggestions
-
-Format your review with clear sections and prioritize issues by severity (Critical/High/Medium/Low).
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/cli/codex_cli.py" query "Review this code for bugs, security issues, performance problems, and code quality:\n\n{code_content}" --system "You are an expert code reviewer. Analyze for bugs, security issues, performance, and code quality. Prioritize by severity." --save-session
 ```
 
 ### Step 4: Present Review
 
-Display findings in structured format:
+Parse JSON response and display findings in structured format:
 
 ```markdown
 ## Code Review: {filename}

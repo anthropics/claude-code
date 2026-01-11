@@ -1,16 +1,38 @@
 ---
 description: List available Codex models
-allowed-tools: [
-  "mcp__codex__codex_models"
-]
+allowed-tools: Bash
 ---
 
 ## Your task
 
-List all available OpenAI Codex models.
+List all available OpenAI Codex models using the CLI.
 
-1. Call `codex_models` to get the list of models and current default
-2. Display the models with the current default marked
+### CLI Path
+```
+${CLAUDE_PLUGIN_ROOT}/cli/codex_cli.py
+```
+
+### Execution
+
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/cli/codex_cli.py" models --fetch
+```
+
+### JSON Response Format
+
+```json
+{
+  "success": true,
+  "models": [
+    {"id": "gpt-5.2-codex", "display_name": "GPT-5.2 Codex"},
+    {"id": "gpt-5.2", "display_name": "GPT-5.2"},
+    {"id": "gpt-5.1-codex-max", "display_name": "GPT-5.1 Codex Max"},
+    {"id": "gpt-5.1-codex-mini", "display_name": "GPT-5.1 Codex Mini"}
+  ],
+  "current_model": "gpt-5.2-codex",
+  "source": "api"
+}
+```
 
 ### Display Format
 
@@ -19,12 +41,12 @@ List all available OpenAI Codex models.
 
 | Model | Description |
 |-------|-------------|
-| gpt-5.2-codex | Default, balanced performance |
+| gpt-5.2-codex (current) | Default, balanced performance |
 | gpt-5.2 | General purpose |
 | gpt-5.1-codex-max | Best for complex tasks |
 | gpt-5.1-codex-mini | Fastest, for quick responses |
 
-Current default: {default_model}
+Current default: {current_model}
 ```
 
 ### Note

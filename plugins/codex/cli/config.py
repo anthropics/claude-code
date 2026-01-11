@@ -1,4 +1,4 @@
-"""Configuration constants for OpenAI Codex OAuth integration.
+"""Configuration constants for OpenAI Codex CLI.
 
 Based on OpenCode's implementation:
 - OAuth endpoint: https://auth.openai.com
@@ -43,6 +43,7 @@ TOKEN_KEY = "openai_codex"
 USER_CONFIG_PATH = os.path.join(os.getcwd(), ".claude", "codex_config.json")
 DEFAULT_MODEL = "gpt-5.2-codex"
 DEFAULT_APPROVAL_MODE = "suggest"
+DEFAULT_REASONING_EFFORT = "medium"
 
 # Available models
 AVAILABLE_MODELS = [
@@ -51,6 +52,9 @@ AVAILABLE_MODELS = [
     "gpt-5.1-codex-max",
     "gpt-5.1-codex-mini"
 ]
+
+# Reasoning effort levels
+REASONING_EFFORTS = ["none", "minimal", "low", "medium", "high", "xhigh"]
 
 # Approval modes
 APPROVAL_MODES = [

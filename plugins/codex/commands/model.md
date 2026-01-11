@@ -1,36 +1,32 @@
 ---
 description: Select Codex model and reasoning effort
-allowed-tools: [
-  "mcp__codex__codex_list_models",
-  "mcp__codex__codex_set_config",
-  "AskUserQuestion"
-]
+allowed-tools: Bash, AskUserQuestion
 ---
 
 ## Your task
 
 Select the default Codex model and reasoning effort using interactive selection UI.
 
+### CLI Path
+```
+${CLAUDE_PLUGIN_ROOT}/cli/codex_cli.py
+```
+
 ### Step 1: Fetch Available Models (MUST DO FIRST)
 
-Call `codex_list_models` to get:
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/cli/codex_cli.py" models --fetch
+```
 
+This returns:
 - List of available models with their details
-- Supported reasoning efforts for each model
 - Current model setting
 
 ### Step 2: Present Model Selection UI
 
 Use **AskUserQuestion** to let user select a model:
 
-Build options from the models returned by `codex_list_models`:
-
-- Use `display_name` as the label
-- Use `description` for the description
-- Mark current model with "(current)" suffix
-- Only show models where `visibility` is "list"
-
-Example:
+Build options from the models returned:
 
 ```json
 {
@@ -50,17 +46,15 @@ Example:
 
 ### Step 3: Present Reasoning Effort Selection
 
-After model is selected, look up that model's `supported_reasoning_efforts` from the data in Step 1.
-
 Use **AskUserQuestion** to let user select reasoning effort:
 
 ```json
 {
   "questions": [{
-    "question": "Select reasoning effort for this model",
+    "question": "Select reasoning effort level",
     "header": "Thinking",
     "options": [
-      {"label": "Medium (default)", "description": "Balanced thinking time"},
+      {"label": "Medium (Recommended)", "description": "Balanced thinking time"},
       {"label": "Low", "description": "Quick responses, less thinking"},
       {"label": "High", "description": "More thorough analysis"},
       {"label": "XHigh", "description": "Maximum thinking, best for complex problems"}
@@ -70,20 +64,25 @@ Use **AskUserQuestion** to let user select reasoning effort:
 }
 ```
 
-**Important:**
-
-- Only show reasoning efforts that are in the model's `supported_reasoning_efforts`
-- Use the `description` from each reasoning effort preset
-- Mark the model's `default_reasoning_effort` with "(default)" suffix
-
 ### Step 4: Apply Selection
 
-1. Extract the model ID from selection
-2. Extract the reasoning effort from selection (remove "(default)" if present)
-3. Call `codex_set_config` with:
-   - key: "model"
-   - value: selected model ID
-4. Call `codex_set_config` with:
-   - key: "reasoning_effort"
-   - value: selected reasoning effort (lowercase)
-5. Confirm: "Model set to: {model} with {reasoning_effort} reasoning"
+1. Set model:
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/cli/codex_cli.py" set-model "<model-id>"
+```
+
+2. Set reasoning effort:
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/cli/codex_cli.py" set-reasoning "<effort>"
+```
+
+3. Confirm: "Model set to: {model} with {reasoning_effort} reasoning"
+
+### Available Reasoning Efforts
+
+- `none` - No extended thinking
+- `minimal` - Very light thinking
+- `low` - Quick responses
+- `medium` - Balanced (default)
+- `high` - Thorough analysis
+- `xhigh` - Maximum thinking

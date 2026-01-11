@@ -1,7 +1,7 @@
 ---
 name: Codex Integration
 description: Use this skill when the user mentions "Codex", "OpenAI Codex", wants to "ask Codex", "query Codex", requests AI assistance from OpenAI, or wants alternative AI perspectives on coding questions. Auto-activate for Codex-related queries.
-version: 1.3.0
+version: 2.0.0
 ---
 
 # Codex Integration Skill
@@ -16,26 +16,26 @@ This skill provides guidelines for integrating OpenAI Codex into Claude Code wor
 - User wants alternative AI perspectives
 - User mentions GPT-5.2 or related OpenAI models
 
-## Architecture
+## Architecture (v2.0 - CLI-based)
 
 ```
 User Request
     ↓
 Commands (/codex, /codex:login, etc.)
     ↓
-Sub-agent (codex-session) ← Controls, decides, confirms
+CLI Tool (codex_cli.py) ← Executes operations
     ↓
-MCP Server (codex) ← Executes API calls
+OpenAI API ← Codex responses
 ```
 
-## Sub-Agent: codex-session
+## CLI Tool
 
-The `codex-session` agent is responsible for:
+Location: `${CLAUDE_PLUGIN_ROOT}/cli/codex_cli.py`
 
-1. **Session Management**: Decides when to continue existing sessions vs start new ones
-2. **Permission Control**: Confirms permission levels before operations
-3. **Safety Confirmations**: Uses AskUserQuestion for user confirmations
-4. **Query Routing**: Calls MCP tools with appropriate session context
+Invoke via Bash:
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/cli/codex_cli.py" <command> [options]
+```
 
 ## Available Commands
 
@@ -43,8 +43,7 @@ The `codex-session` agent is responsible for:
 
 | Command | Purpose |
 |---------|---------|
-| `/codex <query>` | Query Codex (routes through sub-agent) |
-| `/codex:exec <query>` | Non-interactive query (no session) |
+| `/codex <query>` | Query Codex |
 | `/codex:review [file]` | Request code review from Codex |
 | `/codex:compare <query>` | Compare Claude vs Codex responses |
 
@@ -52,10 +51,8 @@ The `codex-session` agent is responsible for:
 
 | Command | Purpose |
 |---------|---------|
-| `/codex:resume [id]` | Resume previous session |
 | `/codex:session list` | List sessions |
 | `/codex:session clear` | Clear session history |
-| `/codex:apply [id]` | Apply changes from session |
 
 ### Configuration
 
@@ -63,33 +60,36 @@ The `codex-session` agent is responsible for:
 |---------|---------|
 | `/codex:login` | Log in to Codex |
 | `/codex:logout` | Log out from Codex |
-| `/codex:status` | Show status, auth, config, sessions |
-| `/codex:model` | Select default model (interactive) |
+| `/codex:status` | Show status, auth, config |
+| `/codex:model` | Select default model |
 | `/codex:models` | List available models |
-| `/codex:permission` | Set approval mode (interactive) |
-| `/codex:help` | Show help and all commands |
+| `/codex:reasoning` | Set reasoning effort level |
+| `/codex:help` | Show help |
 
-## MCP Tools (for sub-agent use)
+## CLI Commands Reference
 
-| Tool | Purpose |
-|------|---------|
-| `codex_query` | Execute query with session context |
-| `codex_status` | Check auth status |
-| `codex_login` | Start OAuth flow (ChatGPT subscription) |
-| `codex_set_api_key` | Set API key (usage-based billing) |
-| `codex_get_config` | Read configuration |
-| `codex_set_config` | Update configuration |
-| `codex_list_sessions` | List recent sessions |
-| `codex_clear_sessions` | Clear session history |
+| CLI Command | Purpose |
+|-------------|---------|
+| `query <prompt>` | Send query to Codex |
+| `status` | Check auth status |
+| `login` | Start OAuth flow |
+| `set-api-key <key>` | Set API key |
+| `logout` | Clear credentials |
+| `models [--fetch]` | List models |
+| `set-model <model>` | Set default model |
+| `set-reasoning <level>` | Set reasoning effort |
+| `get-config` | Get configuration |
+| `sessions` | List sessions |
+| `clear-sessions` | Clear sessions |
 
 ## Authentication Methods
 
 | Method    | Description                      | Use Case                         |
 |-----------|----------------------------------|----------------------------------|
+| `api_key` | OpenAI API key (sk-...)          | Recommended, usage-based billing |
 | `oauth`   | ChatGPT subscription via browser | Plus, Pro, Team, Enterprise      |
-| `api_key` | OpenAI API key (sk-...)          | Usage-based billing              |
 
-Use `/codex:login` to configure authentication. The command uses AskUserQuestion to let users choose their preferred method.
+Use `/codex:login` to configure authentication.
 
 ## Session Continuity Guidelines
 
@@ -105,15 +105,18 @@ Use `/codex:login` to configure authentication. The command uses AskUserQuestion
 - User explicitly requests "new session"
 - Different project context
 
-## Permission Levels
+## Reasoning Effort Levels
 
-| Mode | Behavior |
-|------|----------|
-| `suggest` | Codex suggests, user confirms (default) |
-| `auto-edit` | Codex can edit files automatically |
-| `full-auto` | Codex has full control |
+| Level | Description |
+|-------|-------------|
+| `none` | No extended thinking |
+| `minimal` | Very light thinking |
+| `low` | Quick responses |
+| `medium` | Balanced (default) |
+| `high` | Thorough analysis |
+| `xhigh` | Maximum thinking |
 
 ## Config Files
 
-- **Project config**: `.claude/codex_config.json` (model, permission, sessions)
+- **Project config**: `.claude/codex_config.json` (model, reasoning, sessions)
 - **Global auth**: `~/.claude/auth.json` (OAuth tokens or API key)

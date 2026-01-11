@@ -10,10 +10,12 @@ from typing import Dict, Any, Optional
 
 import sys
 import os
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+_cli_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _cli_dir not in sys.path:
+    sys.path.insert(0, _cli_dir)
 from config import TOKEN_REFRESH_BUFFER, AUTH_METHOD_OAUTH, AUTH_METHOD_API_KEY
-from infrastructure.token_storage import TokenStorage
-from services.oauth_flow import OAuthFlow, OAuthError
+from auth.token_storage import TokenStorage
+from auth.oauth_flow import OAuthFlow, OAuthError
 
 
 class TokenError(Exception):
@@ -48,7 +50,7 @@ class TokenManager:
 
         if not tokens:
             raise TokenError(
-                "Not authenticated. Please run /codex-config to authenticate."
+                "Not authenticated. Please run /codex:login to authenticate."
             )
 
         access_token = tokens.get("access_token")
@@ -272,7 +274,7 @@ class TokenManager:
             # Clear cache since we can't refresh
             self._cached_tokens = None
             raise TokenError(
-                "No refresh token available. Please re-authenticate with /codex-config"
+                "No refresh token available. Please re-authenticate with /codex:login"
             )
 
         try:

@@ -1,22 +1,32 @@
 ---
 description: Compare Claude and Codex responses
 argument-hint: <question>
-allowed-tools: [
-  "mcp__codex__codex_query",
-  "mcp__codex__codex_status"
-]
+allowed-tools: Bash
 ---
 
 ## Your task
 
 Get responses from both Claude (yourself) and OpenAI Codex for the same question, then present a comparison.
 
+### CLI Path
+```
+${CLAUDE_PLUGIN_ROOT}/cli/codex_cli.py
+```
+
 ### Process
 
-1. Check Codex authentication with `codex_status`
+1. Check Codex authentication:
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/cli/codex_cli.py" status
+```
+
 2. Note the user's question
 3. Generate YOUR (Claude's) response to the question first
-4. Call `codex_query` with the same question
+4. Get Codex's response:
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/cli/codex_cli.py" query "<user's question>" --save-session
+```
+
 5. Present both responses side by side with analysis
 
 ### Output Format

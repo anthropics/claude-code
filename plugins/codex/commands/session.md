@@ -1,16 +1,17 @@
 ---
 description: Manage Codex sessions
 argument-hint: [action]
-allowed-tools: [
-  "mcp__codex__codex_list_sessions",
-  "mcp__codex__codex_clear_sessions",
-  "AskUserQuestion"
-]
+allowed-tools: Bash, AskUserQuestion
 ---
 
 ## Your task
 
-Manage Codex session history using interactive selection UI.
+Manage Codex session history using the CLI.
+
+### CLI Path
+```
+${CLAUDE_PLUGIN_ROOT}/cli/codex_cli.py
+```
 
 ### Step 1: Determine Action
 
@@ -40,8 +41,11 @@ Use **AskUserQuestion** to let user choose:
 
 **For "List Sessions":**
 
-1. Call `codex_list_sessions` to get recent sessions
-2. Display sessions in a clear format:
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/cli/codex_cli.py" sessions
+```
+
+Display sessions in a clear format:
 
 ```
 ## Recent Codex Sessions
@@ -70,5 +74,9 @@ Use **AskUserQuestion** to let user choose:
 }
 ```
 
-2. If confirmed, call `codex_clear_sessions`
+2. If confirmed:
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/cli/codex_cli.py" clear-sessions
+```
+
 3. Confirm: "All session history cleared."

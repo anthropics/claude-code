@@ -1,20 +1,25 @@
 ---
 description: Send a query to OpenAI Codex
 argument-hint: your question
-allowed-tools: [
-  "mcp__codex__codex_query",
-  "mcp__codex__codex_status",
-  "mcp__codex__codex_list_sessions"
-]
+allowed-tools: Bash
 ---
 
 ## Your task
 
-Send the user's query directly to OpenAI Codex.
+Send the user's query directly to OpenAI Codex using the CLI.
+
+### CLI Path
+```
+${CLAUDE_PLUGIN_ROOT}/cli/codex_cli.py
+```
 
 ### Step 1: Check Authentication
 
-Call `codex_status` to verify authentication. If not authenticated, tell user to run `/codex:login` first.
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/cli/codex_cli.py" status
+```
+
+If not authenticated (check `auth.authenticated` in JSON response), tell user to run `/codex:login` first.
 
 ### Step 2: Check for Session Continuity
 
@@ -25,7 +30,10 @@ Analyze the query to determine if it's a follow-up:
 - User says "also", "continue", "what about..."
 - Same topic as recent session
 
-If continuing, call `codex_list_sessions` to find the relevant session_id.
+If continuing, get sessions:
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/cli/codex_cli.py" sessions
+```
 
 **Start new session if:**
 - Standalone question
@@ -34,23 +42,29 @@ If continuing, call `codex_list_sessions` to find the relevant session_id.
 
 ### Step 3: Execute Query
 
-Call `codex_query` with:
-- prompt: user's question
-- session_id: from Step 2 (or omit for new session)
+**For new session:**
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/cli/codex_cli.py" query "<user_prompt>" --save-session
+```
+
+**For existing session:**
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/cli/codex_cli.py" query "<user_prompt>" --session "<session_id>"
+```
 
 ### Step 4: Return Response
 
-Display the Codex response directly. Include session info at the end:
+Parse the JSON response and display:
 
 ```
-{Codex response}
+{response}
 
 ---
-Session: {session_id} | Use `/codex:resume {session_id}` to continue
+Session: {session_id} | Model: {model}
 ```
 
 ### Important
 
 - **DO NOT ask permission questions** for simple queries
 - Just execute the query and return the response
-- Only use `/codex:permission` if user wants to change approval mode
+- The CLI outputs JSON - parse and display nicely

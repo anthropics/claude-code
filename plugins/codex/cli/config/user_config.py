@@ -10,13 +10,17 @@ from typing import Dict, Any, Optional, List
 from datetime import datetime
 
 import sys
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+_cli_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _cli_dir not in sys.path:
+    sys.path.insert(0, _cli_dir)
 from config import (
     USER_CONFIG_PATH,
     DEFAULT_MODEL,
     DEFAULT_APPROVAL_MODE,
+    DEFAULT_REASONING_EFFORT,
     AVAILABLE_MODELS,
-    APPROVAL_MODES
+    APPROVAL_MODES,
+    REASONING_EFFORTS
 )
 
 
@@ -69,7 +73,7 @@ class UserConfig:
         return {
             "model": DEFAULT_MODEL,
             "approval_mode": DEFAULT_APPROVAL_MODE,
-            "reasoning_effort": "medium",
+            "reasoning_effort": DEFAULT_REASONING_EFFORT,
             "sessions": []
         }
 
@@ -103,12 +107,10 @@ class UserConfig:
         return AVAILABLE_MODELS.copy()
 
     # Reasoning effort management
-    REASONING_EFFORTS = ["none", "minimal", "low", "medium", "high", "xhigh"]
-
     def get_reasoning_effort(self) -> str:
         """Get current default reasoning effort."""
         config = self._load()
-        return config.get("reasoning_effort", "medium")
+        return config.get("reasoning_effort", DEFAULT_REASONING_EFFORT)
 
     def set_reasoning_effort(self, effort: str) -> None:
         """Set default reasoning effort.
@@ -120,10 +122,10 @@ class UserConfig:
             UserConfigError: If effort is not valid
         """
         effort_lower = effort.lower()
-        if effort_lower not in self.REASONING_EFFORTS:
+        if effort_lower not in REASONING_EFFORTS:
             raise UserConfigError(
                 f"Invalid reasoning effort: {effort}. "
-                f"Available: {', '.join(self.REASONING_EFFORTS)}"
+                f"Available: {', '.join(REASONING_EFFORTS)}"
             )
 
         config = self._load()
@@ -251,7 +253,7 @@ class UserConfig:
         return {
             "model": config.get("model", DEFAULT_MODEL),
             "approval_mode": config.get("approval_mode", DEFAULT_APPROVAL_MODE),
-            "reasoning_effort": config.get("reasoning_effort", "medium"),
+            "reasoning_effort": config.get("reasoning_effort", DEFAULT_REASONING_EFFORT),
             "session_count": len(config.get("sessions", []))
         }
 

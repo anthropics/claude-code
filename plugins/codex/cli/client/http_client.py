@@ -12,7 +12,9 @@ import ssl
 
 import sys
 import os
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+_cli_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _cli_dir not in sys.path:
+    sys.path.insert(0, _cli_dir)
 from config import REQUEST_TIMEOUT, MAX_RETRIES, DEBUG
 
 

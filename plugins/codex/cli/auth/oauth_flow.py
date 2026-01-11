@@ -13,12 +13,13 @@ import threading
 import webbrowser
 import urllib.parse
 import time
-import base64
 from typing import Dict, Any, Optional, Tuple
 
 import sys
 import os
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+_cli_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _cli_dir not in sys.path:
+    sys.path.insert(0, _cli_dir)
 from config import (
     OAUTH_ENDPOINT,
     CLIENT_ID,
@@ -28,9 +29,9 @@ from config import (
     OAUTH_SCOPES,
     OAUTH_TIMEOUT,
 )
-from infrastructure.pkce_generator import PKCEGenerator
-from infrastructure.http_client import HttpClient, HttpClientError
-from infrastructure.token_storage import TokenStorage
+from auth.pkce_generator import PKCEGenerator
+from client.http_client import HttpClient, HttpClientError
+from auth.token_storage import TokenStorage
 
 
 class OAuthError(Exception):

@@ -1,21 +1,22 @@
 ---
 description: Log in to OpenAI Codex
-allowed-tools: [
-  "mcp__codex__codex_status",
-  "mcp__codex__codex_login",
-  "mcp__codex__codex_set_api_key",
-  "mcp__codex__codex_clear",
-  "AskUserQuestion"
-]
+allowed-tools: Bash, AskUserQuestion
 ---
 
 ## Your task
 
-Configure OpenAI Codex authentication.
+Configure OpenAI Codex authentication using the CLI.
+
+### CLI Path
+```
+${CLAUDE_PLUGIN_ROOT}/cli/codex_cli.py
+```
 
 ### Step 1: Check Current Status (MUST DO FIRST)
 
-Call `codex_status` to check current authentication state.
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/cli/codex_cli.py" status
+```
 
 ### Step 2: Handle Based on Status
 
@@ -55,8 +56,8 @@ Use **AskUserQuestion** to let user choose:
     "question": "How would you like to authenticate with OpenAI Codex?",
     "header": "Auth",
     "options": [
-      {"label": "API Key (Recommended)", "description": "Enter your OpenAI API key (sk-...) for stable Chat Completions API"},
-      {"label": "ChatGPT Subscription", "description": "Sign in with Plus/Pro/Team/Enterprise via browser OAuth (limited support)"}
+      {"label": "API Key (Recommended)", "description": "Enter your OpenAI API key (sk-...) for stable authentication"},
+      {"label": "ChatGPT Subscription", "description": "Sign in with Plus/Pro/Team/Enterprise via browser OAuth"}
     ],
     "multiSelect": false
   }]
@@ -67,16 +68,40 @@ Use **AskUserQuestion** to let user choose:
 
 **If "API Key":**
 
-1. If switching, call `codex_clear` first
+1. If switching, clear first:
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/cli/codex_cli.py" logout
+```
+
 2. Ask user to provide their API key (or use "Other" input if provided)
-3. Call `codex_set_api_key` with the key
-4. Call `codex_status` to verify success
+
+3. Set the API key:
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/cli/codex_cli.py" set-api-key "sk-..."
+```
+
+4. Verify:
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/cli/codex_cli.py" status
+```
+
 5. Confirm: "API key configured successfully!"
 
 **If "ChatGPT Subscription":**
 
-1. If switching, call `codex_clear` first
-2. Call `codex_login` to start OAuth browser flow
-3. Call `codex_status` to verify success
+1. If switching, clear first:
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/cli/codex_cli.py" logout
+```
+
+2. Start OAuth:
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/cli/codex_cli.py" login
+```
+
+3. Verify:
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/cli/codex_cli.py" status
+```
+
 4. Confirm: "Authenticated with ChatGPT subscription!"
-5. Note: The ChatGPT Responses API has limited support. If you encounter issues, please switch to API key authentication.

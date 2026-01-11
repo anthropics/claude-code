@@ -10,8 +10,8 @@
   "plugins": [
     {
       "name": "codex",
-      "description": "OpenAI Codex integration with session continuity, model selection, permission control, and intelligent sub-agent management",
-      "version": "1.2.0",
+      "description": "OpenAI Codex integration with CLI-based architecture, session continuity, model selection, and reasoning effort control",
+      "version": "2.0.0",
       "author": {
         "name": "Jiusi-pys",
         "email": "jiusi0519@gmail.com"
