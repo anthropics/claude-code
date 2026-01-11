@@ -8,38 +8,19 @@ allowed-tools: [
 ]
 ---
 
-# OpenAI Codex Query
+## Your task
 
-Execute these steps to send a query to OpenAI Codex:
+Send a query to OpenAI Codex. You MUST follow these steps exactly:
 
-## Step 1: Verify Authentication
+1. First, call the `codex_status` tool to check if you are authenticated
+2. If not authenticated, tell the user to run `/codex-oauth:codex-config` first and stop
+3. If authenticated, call the `codex_query` tool with the user's question as the prompt
+4. Display the response from Codex to the user
 
-Call the `codex_status` MCP tool to check if you are currently authenticated with OpenAI.
+Available Codex models (use default gpt-5.2-codex unless user specifies):
+- gpt-5.2-codex (default)
+- gpt-5.2
+- gpt-5.1-codex-max
+- gpt-5.1-codex-mini
 
-Interpret the result:
-- If authenticated: Proceed to Step 2
-- If not authenticated: Tell the user to run `/codex-oauth:codex-config` to set up authentication, then stop
-
-## Step 2: Send Query to Codex
-
-Call the `codex_query` MCP tool with:
-- `prompt`: The user's question/request
-- `model`: Use default (gpt-5.2-codex) unless user specifies otherwise
-- Optional: `system_prompt`, `temperature` if needed for specialized behavior
-
-Available models:
-- `gpt-5.2-codex` (default) - Best for general coding tasks
-- `gpt-5.2` - General purpose model
-- `gpt-5.1-codex-max` - Maximum capability
-- `gpt-5.1-codex-mini` - Faster, lighter model
-
-## Step 3: Present Response
-
-Display the Codex response clearly to the user.
-
-## Your Task
-
-1. Check authentication with `codex_status`
-2. If authenticated, send the user's query to Codex using `codex_query`
-3. Display the response
-4. If not authenticated, tell user to run `/codex-oauth:codex-config` first
+You have the capability to call multiple tools in a single response. Only perform the task steps above; do not send any other text.
