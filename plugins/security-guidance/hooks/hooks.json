@@ -1,5 +1,5 @@
 {
-  "description": "Security reminder hook that warns about potential security issues when editing files",
+  "description": "Security hooks for file editing warnings and secret scanning integration",
   "hooks": {
     "PreToolUse": [
       {
@@ -10,6 +10,15 @@
           }
         ],
         "matcher": "Edit|Write|MultiEdit"
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/secret_scanning_integration_hook.py"
+          }
+        ],
+        "matcher": "Bash"
       }
     ]
   }
