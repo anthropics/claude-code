@@ -1,59 +1,115 @@
 ---
-description: List available Codex models
-allowed-tools: []
+description: List available OpenAI Codex models
+allowed-tools: Bash
 ---
 
 ## Your task
 
-Display information about available Codex models.
+Query and display the actual list of available OpenAI Codex models.
 
-### Output
+### Step 1: Query Available Models
 
-```
-## Available Codex Models
-
-The OpenAI Codex CLI supports various models from OpenAI and other providers.
-
-### OpenAI Models
-
-| Model | Description |
-|-------|-------------|
-| o3 | OpenAI's advanced reasoning model |
-| gpt-4.1 | GPT-4.1 |
-| gpt-4o | GPT-4o (optimized) |
-| gpt-4o-mini | GPT-4o mini (faster, cheaper) |
-| gpt-4-turbo | GPT-4 Turbo |
-
-### Usage
+Call the Codex CLI to get the current list of available models:
 
 ```bash
-/codex --model <model-name> "your query"
+codex models 2>&1
 ```
 
-### Other Providers
+This will return a list of models available from OpenAI API based on your current authentication.
 
-Codex CLI supports multiple AI providers. Set the provider with `--provider`:
+### Step 2: Parse Model List
 
-- **openrouter**: Access various models via OpenRouter
-- **azure**: Azure OpenAI Service
-- **gemini**: Google Gemini models
-- **ollama**: Local Ollama models
-- **mistral**: Mistral AI models
-- **deepseek**: DeepSeek models
-- **xai**: xAI models (Grok)
-- **groq**: Groq models
+Process the output to extract model information. The CLI may return models in various formats:
 
-### Configuration
-
-Set default model in `~/.codex/config.toml`:
-
-```toml
-model = "o3"
-provider = "openai"
+```bash
+# Extract model IDs and descriptions
+codex models 2>&1 | grep -E "^(gpt-|o3|claude-)" | sort
 ```
 
-Or use environment variables:
-- OPENAI_API_KEY
-- <PROVIDER>_API_KEY
-- <PROVIDER>_BASE_URL
+### Step 3: Get Model Details
+
+For each model, you can query additional details:
+
+```bash
+# Example: Get model capabilities
+codex --model gpt-5.2 --help 2>&1
 ```
+
+### Step 4: Display Model List
+
+Format the output in a structured table:
+
+```
+## Available OpenAI Codex Models
+
+{dynamically_generated_from_codex_models_output}
+
+### Current Models (as of query):
+
+| Model ID | Description | Context | Capabilities |
+|----------|-------------|---------|--------------|
+| gpt-5.2 | Latest GPT-5.2 | 200K | Reasoning, Code, Multimodal |
+| o3 | OpenAI o3 | 128K | Advanced Reasoning |
+| gpt-4.1 | GPT-4.1 | 128K | Balanced Performance |
+| gpt-4o | GPT-4o | 128K | Optimized Speed |
+| gpt-4o-mini | GPT-4o Mini | 128K | Fast & Economical |
+| gpt-4-turbo | GPT-4 Turbo | 128K | Legacy Support |
+
+### Model Features
+
+**Reasoning Models** (o3, gpt-5.2):
+- Support `--reasoning-effort` flag
+- Effort levels: low, medium, high, max
+- Optimized for complex problem-solving
+
+**Multimodal Models** (gpt-4o, gpt-5.2):
+- Support `--image` flag for image inputs
+- Can analyze code + visual content
+
+**Fast Models** (gpt-4o-mini):
+- Lower latency
+- Cost-effective for simple queries
+- Good for rapid iteration
+
+### Usage Examples
+
+```bash
+# List all models with details
+codex models
+
+# Use a specific model
+/codex --model gpt-5.2 "your query"
+
+# Use with reasoning effort
+/codex --model o3 --reasoning-effort high "complex problem"
+
+# Configure default model
+/codex:model
+```
+
+### Provider Information
+
+Current provider: OpenAI
+API Endpoint: https://api.openai.com/v1
+
+To use models from other providers, use the `--provider` flag:
+- `--provider openrouter` - Access various models
+- `--provider azure` - Azure OpenAI Service
+- `--provider gemini` - Google Gemini models
+
+### Checking Model Availability
+
+Your available models depend on:
+- Authentication status (API key or ChatGPT subscription)
+- OpenAI API access level
+- Organization/account limits
+
+Run `/codex:status` to check your current configuration.
+```
+
+### Important Notes
+
+- Model availability changes as OpenAI releases new models
+- Some models require specific API access levels
+- Pricing varies by model (gpt-4o-mini is most economical)
+- Use `/codex:model` to configure your default model interactively

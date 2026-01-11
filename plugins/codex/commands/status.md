@@ -1,51 +1,133 @@
 ---
-description: Show Codex status and configuration
-allowed-tools: Bash
+description: Show Codex status, configuration, and usage
+allowed-tools: Bash, Read
 ---
 
 ## Your task
 
-Display OpenAI Codex CLI status and configuration.
+Display comprehensive OpenAI Codex CLI status including authentication, configuration, and usage statistics.
 
-### Steps
+### Step 1: Check Authentication Status
 
-1. Check API Key:
 ```bash
-[ -n "$OPENAI_API_KEY" ] && echo "OPENAI_API_KEY: ${OPENAI_API_KEY:0:10}...${OPENAI_API_KEY: -4}" || echo "OPENAI_API_KEY: not set"
+codex login status 2>&1
 ```
 
-2. Check Codex CLI availability:
+### Step 2: Check CLI Version and Location
+
 ```bash
-[ -f "/Users/jiusi/Documents/codex/codex-cli/bin/codex.js" ] && echo "Codex CLI: installed" || echo "Codex CLI: not found"
+codex --version 2>&1
+which codex 2>&1
 ```
 
-3. Show CLI version (if available):
+### Step 3: Get Current Configuration
+
+Read the configuration file if it exists:
+
 ```bash
-node /Users/jiusi/Documents/codex/codex-cli/bin/codex.js --version 2>/dev/null || echo "Version: unknown"
+if [ -f ~/.codex/config.toml ]; then
+  cat ~/.codex/config.toml
+else
+  echo "No config file found (using defaults)"
+fi
+```
+
+### Step 4: Query Usage Statistics
+
+Get usage information from Codex:
+
+```bash
+# Try to get usage stats from Codex CLI
+codex usage 2>&1
+```
+
+Or check if there's a usage log:
+
+```bash
+# Check for usage logs
+if [ -f ~/.codex/usage.json ]; then
+  cat ~/.codex/usage.json | jq '.'
+fi
+```
+
+Or query OpenAI API usage directly:
+
+```bash
+# Get current month's usage (if API key available)
+curl -s https://api.openai.com/v1/usage \
+  -H "Authorization: Bearer $OPENAI_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d "{\"date\": \"$(date +%Y-%m)\"}" 2>&1 | jq '.'
+```
+
+### Step 5: Check Session History
+
+Get recent session information:
+
+```bash
+# List recent Codex sessions
+ls -lt ~/.codex/threads/ 2>/dev/null | head -10
+```
+
+Count total sessions:
+
+```bash
+# Count total sessions
+TOTAL_SESSIONS=$(ls ~/.codex/threads/ 2>/dev/null | wc -l)
+echo "Total sessions: $TOTAL_SESSIONS"
 ```
 
 ### Display Format
+
+Present the information in this structured format:
 
 ```
 ## Codex Status
 
 ### Authentication
-- API Key: {set/not set} {masked key if set}
+- Status: ✓ Logged in with {method} / ✗ Not authenticated
+- Credentials: Stored in ~/.codex/auth.json
+- API Key: {masked} (if using API key)
 
-### CLI
-- Location: /Users/jiusi/Documents/codex/codex-cli
-- Status: {installed/not found}
+### CLI Installation
+- Version: codex-cli {version}
+- Location: {path}
+- Status: ✓ Installed and available
 
-### Configuration
-To configure Codex, use these options when running queries:
-- --model <model>: Specify model (o3, gpt-4.1, etc.)
-- --approval-mode <mode>: suggest (default), auto-edit, full-auto
-- --provider <name>: openai, openrouter, azure, etc.
+### Current Configuration
+- Model: {configured_model} (default: gpt-4o)
+- Reasoning Effort: {effort_level} (if configured)
+- Provider: {provider} (default: openai)
+- Approval Mode: {approval_mode} (default: suggest)
+- Config File: ~/.codex/config.toml
 
-### Setup
-If API key is not set:
-  export OPENAI_API_KEY="your-api-key"
+### Usage Statistics
+- Token Usage (Current Month):
+  - Prompt Tokens: {prompt_tokens}
+  - Completion Tokens: {completion_tokens}
+  - Total Tokens: {total_tokens}
+- Estimated Cost: ${cost}
+- Total Sessions: {session_count}
+- Active Sessions: {active_count}
 
-Or add to .env file in your project:
-  OPENAI_API_KEY=your-api-key
+### Session Management
+- Session Registry: ~/.codex/claude-sessions.json
+- Thread Storage: ~/.codex/threads/
+- Recent Sessions: {list_recent_3}
+
+### Available Commands
+- /codex - Send queries to Codex
+- /codex:model - Select model and reasoning effort
+- /codex:sessions - Manage conversation sessions
+- /codex:login - Configure authentication
+- /codex:logout - Remove authentication
+- /codex:compare - Compare Claude and Codex responses
+- /codex:review - Request code reviews
 ```
+
+### Important Notes
+
+- Usage statistics require active OpenAI API access
+- Token counts and costs are estimates based on API responses
+- Session data persists across Claude Code restarts
+- Run `/codex:login` if authentication is needed
