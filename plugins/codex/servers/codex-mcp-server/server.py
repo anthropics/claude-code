@@ -107,8 +107,12 @@ class MCPServer:
                         },
                         "model": {
                             "type": "string",
-                            "description": "Model to use (default: gpt-5.2-codex)",
-                            "enum": CodexClient.ALLOWED_MODELS
+                            "description": "Model to use (default: gpt-5.2-codex)"
+                        },
+                        "reasoning_effort": {
+                            "type": "string",
+                            "description": "Reasoning effort level (none/minimal/low/medium/high/xhigh). Controls how much the model thinks before responding.",
+                            "enum": ["none", "minimal", "low", "medium", "high", "xhigh"]
                         },
                         "system_prompt": {
                             "type": "string",
@@ -162,7 +166,15 @@ class MCPServer:
             },
             {
                 "name": "codex_models",
-                "description": "List available Codex models.",
+                "description": "List available Codex models (static fallback list).",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {}
+                }
+            },
+            {
+                "name": "codex_list_models",
+                "description": "Fetch available models dynamically from Codex API. Returns full model info including supported reasoning efforts for each model. Use this instead of codex_models for accurate, up-to-date model information.",
                 "inputSchema": {
                     "type": "object",
                     "properties": {}
@@ -178,14 +190,14 @@ class MCPServer:
             },
             {
                 "name": "codex_set_config",
-                "description": "Set Codex configuration values like default model or approval mode.",
+                "description": "Set Codex configuration values like default model, reasoning effort, or approval mode.",
                 "inputSchema": {
                     "type": "object",
                     "properties": {
                         "key": {
                             "type": "string",
                             "description": "Config key to set",
-                            "enum": ["model", "approval_mode"]
+                            "enum": ["model", "reasoning_effort", "approval_mode"]
                         },
                         "value": {
                             "type": "string",
@@ -244,6 +256,8 @@ class MCPServer:
                 result = self._tool_clear()
             elif tool_name == "codex_models":
                 result = self._tool_models()
+            elif tool_name == "codex_list_models":
+                result = self._tool_list_models()
             elif tool_name == "codex_get_config":
                 result = self._tool_get_config()
             elif tool_name == "codex_set_config":
@@ -294,10 +308,11 @@ class MCPServer:
         if not prompt:
             raise ValueError("prompt is required")
 
-        # Use user's default model if not specified
+        # Use user's defaults if not specified
         model = arguments.get("model") or self.user_config.get_model()
         system_prompt = arguments.get("system_prompt")
         temperature = arguments.get("temperature", 0.7)
+        reasoning_effort = arguments.get("reasoning_effort") or self.user_config.get_reasoning_effort()
 
         # Check if continuing an existing session
         session_id = arguments.get("session_id")
@@ -319,7 +334,8 @@ class MCPServer:
             model=model,
             system_prompt=system_prompt,
             temperature=temperature,
-            messages=previous_messages
+            messages=previous_messages,
+            reasoning_effort=reasoning_effort
         )
 
         # Update session with new messages
@@ -422,11 +438,17 @@ class MCPServer:
         return "All credentials cleared (OAuth tokens and API key). You will need to re-authenticate."
 
     def _tool_models(self) -> dict:
-        """Execute codex_models tool."""
+        """Execute codex_models tool (static fallback)."""
         return {
             "models": self.codex_client.get_models(),
             "default": self.user_config.get_model()
         }
+
+    def _tool_list_models(self) -> dict:
+        """Execute codex_list_models tool (dynamic API fetch)."""
+        result = self.codex_client.fetch_models_from_api()
+        result["current_model"] = self.user_config.get_model()
+        return result
 
     def _tool_get_config(self) -> dict:
         """Execute codex_get_config tool."""
@@ -434,8 +456,10 @@ class MCPServer:
         auth_info = self.token_manager.get_token_info()
         return {
             "model": config["model"],
+            "reasoning_effort": config.get("reasoning_effort", "medium"),
             "approval_mode": config["approval_mode"],
             "available_models": AVAILABLE_MODELS,
+            "available_reasoning_efforts": ["none", "minimal", "low", "medium", "high", "xhigh"],
             "available_approval_modes": APPROVAL_MODES,
             "available_auth_methods": AUTH_METHODS,
             "auth_method": auth_info.get("auth_method"),

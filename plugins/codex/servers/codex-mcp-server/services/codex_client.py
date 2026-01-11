@@ -9,7 +9,7 @@ import os
 from typing import Dict, Any, Optional, Iterator
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from config import CODEX_API_URL, OPENAI_API_URL, DEBUG, AUTH_METHOD_OAUTH, AUTH_METHOD_API_KEY
+from config import CODEX_API_URL, CODEX_MODELS_URL, OPENAI_API_URL, DEBUG, AUTH_METHOD_OAUTH, AUTH_METHOD_API_KEY, CLIENT_VERSION
 from infrastructure.http_client import HttpClient, HttpClientError
 from services.token_manager import TokenManager, TokenError
 
@@ -32,15 +32,22 @@ class CodexError(Exception):
 class CodexClient:
     """Client for OpenAI Codex API."""
 
-    # Allowed Codex models (from OpenCode implementation)
-    ALLOWED_MODELS = [
+    # Fallback models (used when API fetch fails)
+    FALLBACK_MODELS = [
         "gpt-5.1-codex-max",
         "gpt-5.1-codex-mini",
         "gpt-5.2",
         "gpt-5.2-codex"
     ]
 
+    # For backwards compatibility
+    ALLOWED_MODELS = FALLBACK_MODELS
+
     DEFAULT_MODEL = "gpt-5.2-codex"
+
+    # Valid reasoning effort levels
+    REASONING_EFFORTS = ["none", "minimal", "low", "medium", "high", "xhigh"]
+    DEFAULT_REASONING_EFFORT = "medium"
 
     def __init__(self, token_manager: TokenManager, http_client: HttpClient):
         """Initialize Codex client.
@@ -62,7 +69,8 @@ class CodexClient:
         system_prompt: Optional[str] = None,
         temperature: float = 0.7,
         max_tokens: Optional[int] = None,
-        messages: Optional[list] = None
+        messages: Optional[list] = None,
+        reasoning_effort: Optional[str] = None
     ) -> str:
         """Send query to Codex and return response.
 
@@ -73,6 +81,7 @@ class CodexClient:
             temperature: Sampling temperature (0-1)
             max_tokens: Maximum response tokens
             messages: Previous conversation messages for context
+            reasoning_effort: Reasoning effort level (none/minimal/low/medium/high/xhigh)
 
         Returns:
             Codex response text
@@ -81,10 +90,12 @@ class CodexClient:
             CodexError: On API error
         """
         model = model or self.DEFAULT_MODEL
-        if model not in self.ALLOWED_MODELS:
+
+        # Validate reasoning effort if provided
+        if reasoning_effort and reasoning_effort.lower() not in self.REASONING_EFFORTS:
             raise CodexError(
-                f"Invalid model: {model}. "
-                f"Allowed models: {', '.join(self.ALLOWED_MODELS)}"
+                f"Invalid reasoning effort: {reasoning_effort}. "
+                f"Valid values: {', '.join(self.REASONING_EFFORTS)}"
             )
 
         # Get API URL to determine request format
@@ -94,7 +105,7 @@ class CodexClient:
         if api_url == CODEX_API_URL:
             # ChatGPT Responses API format
             body = self._build_responses_api_request(
-                prompt, model, system_prompt, messages
+                prompt, model, system_prompt, messages, reasoning_effort
             )
         else:
             # Standard OpenAI Chat Completions API format
@@ -142,13 +153,15 @@ class CodexClient:
         prompt: str,
         model: str,
         system_prompt: Optional[str],
-        messages: Optional[list]
+        messages: Optional[list],
+        reasoning_effort: Optional[str] = None
     ) -> Dict[str, Any]:
         """Build request body for ChatGPT Responses API format.
 
         Responses API uses:
         - instructions: system prompt (required)
         - input: array of message items
+        - reasoning: optional reasoning configuration
         """
         instructions = system_prompt or self.DEFAULT_INSTRUCTIONS
 
@@ -171,13 +184,21 @@ class CodexClient:
             "content": [{"type": "input_text", "text": prompt}]
         })
 
-        return {
+        body: Dict[str, Any] = {
             "model": model,
             "instructions": instructions,
             "input": input_items,
             "stream": False,
             "store": False
         }
+
+        # Add reasoning configuration if specified
+        if reasoning_effort:
+            body["reasoning"] = {
+                "effort": reasoning_effort.lower()
+            }
+
+        return body
 
     def _build_chat_api_request(
         self,
@@ -351,12 +372,82 @@ class CodexClient:
             raise CodexError(f"Codex streaming error: {e}")
 
     def get_models(self) -> list:
-        """Get list of available Codex models.
+        """Get list of available Codex models (static fallback list).
 
         Returns:
             List of model names
         """
-        return self.ALLOWED_MODELS.copy()
+        return self.FALLBACK_MODELS.copy()
+
+    def fetch_models_from_api(self) -> Dict[str, Any]:
+        """Fetch available models dynamically from the Codex API.
+
+        Returns:
+            Dictionary with models array containing full model info including
+            supported reasoning efforts.
+
+        Raises:
+            CodexError: On API error
+        """
+        try:
+            headers = self._get_headers()
+        except CodexError as e:
+            _debug(f"Failed to get headers for models API: {e}")
+            raise
+
+        # Build URL with client version
+        url = f"{CODEX_MODELS_URL}?client_version={CLIENT_VERSION}"
+
+        _debug("Fetching models from API", {"url": url})
+
+        try:
+            response = self.http_client.get(url, headers=headers)
+
+            if not isinstance(response, dict):
+                _debug(f"Unexpected models response type: {type(response)}")
+                raise CodexError(f"Unexpected response format: {type(response)}")
+
+            models = response.get("models", [])
+            _debug(f"Fetched {len(models)} models from API")
+
+            # Transform to simplified format with reasoning info
+            result = []
+            for model in models:
+                model_info = {
+                    "id": model.get("slug"),
+                    "display_name": model.get("display_name"),
+                    "description": model.get("description"),
+                    "default_reasoning_effort": model.get("default_reasoning_level", "medium"),
+                    "supported_reasoning_efforts": model.get("supported_reasoning_levels", []),
+                    "visibility": model.get("visibility", "list"),
+                    "priority": model.get("priority", 0),
+                    "supported_in_api": model.get("supported_in_api", False)
+                }
+                result.append(model_info)
+
+            # Sort by priority (higher priority first)
+            result.sort(key=lambda x: x.get("priority", 0), reverse=True)
+
+            return {
+                "models": result,
+                "source": "api"
+            }
+
+        except HttpClientError as e:
+            _debug(f"HTTP client error fetching models: {e}")
+            # Fall back to static list
+            return {
+                "models": [{"id": m, "display_name": m} for m in self.FALLBACK_MODELS],
+                "source": "fallback",
+                "error": str(e)
+            }
+        except Exception as e:
+            _debug(f"Unexpected error fetching models: {e}")
+            return {
+                "models": [{"id": m, "display_name": m} for m in self.FALLBACK_MODELS],
+                "source": "fallback",
+                "error": str(e)
+            }
 
     def health_check(self) -> Dict[str, Any]:
         """Check Codex API health and authentication status.

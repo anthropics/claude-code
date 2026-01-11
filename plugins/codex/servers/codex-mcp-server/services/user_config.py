@@ -69,6 +69,7 @@ class UserConfig:
         return {
             "model": DEFAULT_MODEL,
             "approval_mode": DEFAULT_APPROVAL_MODE,
+            "reasoning_effort": "medium",
             "sessions": []
         }
 
@@ -100,6 +101,34 @@ class UserConfig:
     def get_available_models(self) -> List[str]:
         """Get list of available models."""
         return AVAILABLE_MODELS.copy()
+
+    # Reasoning effort management
+    REASONING_EFFORTS = ["none", "minimal", "low", "medium", "high", "xhigh"]
+
+    def get_reasoning_effort(self) -> str:
+        """Get current default reasoning effort."""
+        config = self._load()
+        return config.get("reasoning_effort", "medium")
+
+    def set_reasoning_effort(self, effort: str) -> None:
+        """Set default reasoning effort.
+
+        Args:
+            effort: Reasoning effort level
+
+        Raises:
+            UserConfigError: If effort is not valid
+        """
+        effort_lower = effort.lower()
+        if effort_lower not in self.REASONING_EFFORTS:
+            raise UserConfigError(
+                f"Invalid reasoning effort: {effort}. "
+                f"Available: {', '.join(self.REASONING_EFFORTS)}"
+            )
+
+        config = self._load()
+        config["reasoning_effort"] = effort_lower
+        self._save()
 
     # Approval mode management
     def get_approval_mode(self) -> str:
@@ -222,6 +251,7 @@ class UserConfig:
         return {
             "model": config.get("model", DEFAULT_MODEL),
             "approval_mode": config.get("approval_mode", DEFAULT_APPROVAL_MODE),
+            "reasoning_effort": config.get("reasoning_effort", "medium"),
             "session_count": len(config.get("sessions", []))
         }
 
@@ -239,5 +269,7 @@ class UserConfig:
             self.set_model(value)
         elif key == "approval_mode":
             self.set_approval_mode(value)
+        elif key == "reasoning_effort":
+            self.set_reasoning_effort(value)
         else:
             raise UserConfigError(f"Unknown config key: {key}")

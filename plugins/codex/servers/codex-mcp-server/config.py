@@ -23,8 +23,12 @@ PKCE_METHOD = "S256"
 # API Configuration
 # OAuth endpoint (ChatGPT subscription: Plus/Pro/Team/Enterprise)
 CODEX_API_URL = "https://chatgpt.com/backend-api/codex/responses"
+CODEX_MODELS_URL = "https://chatgpt.com/backend-api/codex/models"
 # OpenAI API endpoint (API key: usage-based billing)
 OPENAI_API_URL = "https://api.openai.com/v1/chat/completions"
+
+# Client version for models API
+CLIENT_VERSION = "1.0.0"
 
 # Authentication methods
 AUTH_METHOD_OAUTH = "oauth"      # ChatGPT subscription (Plus/Pro/Team/Enterprise)
