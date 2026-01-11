@@ -1,0 +1,9 @@
+{
+  "codex": {
+    "command": "python3",
+    "args": ["${CLAUDE_PLUGIN_ROOT}/servers/codex-mcp-server/server.py"],
+    "env": {
+      "CODEX_DEBUG": "${CODEX_DEBUG:-0}"
+    }
+  }
+}
