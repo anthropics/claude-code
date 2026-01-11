@@ -166,6 +166,7 @@ class CodexClient:
         instructions = system_prompt or self.DEFAULT_INSTRUCTIONS
 
         # Build input array
+        # Each item must have "type": "message" (tagged enum format)
         input_items = []
 
         # Add previous messages if provided
@@ -174,12 +175,14 @@ class CodexClient:
                 role = msg.get("role", "user")
                 content = msg.get("content", "")
                 input_items.append({
+                    "type": "message",
                     "role": role,
                     "content": [{"type": "input_text", "text": content}]
                 })
 
         # Add current user prompt
         input_items.append({
+            "type": "message",
             "role": "user",
             "content": [{"type": "input_text", "text": prompt}]
         })
