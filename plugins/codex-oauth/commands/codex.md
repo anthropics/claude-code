@@ -2,9 +2,9 @@
 description: Send a query to OpenAI Codex
 argument-hint: your question
 allowed-tools: [
-  "mcp__plugin_codex_oauth_codex__codex_query",
-  "mcp__plugin_codex_oauth_codex__codex_status",
-  "mcp__plugin_codex_oauth_codex__codex_login"
+  "codex_query",
+  "codex_status",
+  "codex_login"
 ]
 ---
 

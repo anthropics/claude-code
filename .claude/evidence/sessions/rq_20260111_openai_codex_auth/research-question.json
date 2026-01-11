@@ -1,0 +1,27 @@
+{
+  "rq_id": "rq_20260111_openai_codex_auth",
+  "title": "Integrate OpenAI Codex OAuth authentication into Claude Code as a plugin",
+  "description": "Implement OpenAI Codex authentication (OAuth with PKCE) as a Claude Code plugin to enable using OpenAI Codex models within Claude Code, mimicking the opencode project's implementation",
+  "scope": {
+    "domain_constraints": [
+      "plugins/",
+      ".claude/",
+      "/Users/jiusi/Documents/opencode/packages/opencode/src/plugin/codex.ts",
+      "/Users/jiusi/Documents/opencode/packages/opencode/src/auth/",
+      "/Users/jiusi/Documents/opencode/packages/opencode/src/provider/"
+    ],
+    "exclude_patterns": [
+      "node_modules",
+      "dist",
+      "*.test.ts",
+      ".git"
+    ]
+  },
+  "budgets": {
+    "max_sources": 40,
+    "max_claims": 20,
+    "max_agent_steps": 80
+  },
+  "status": "in_progress",
+  "created_at": "2026-01-11T00:00:00Z"
+}

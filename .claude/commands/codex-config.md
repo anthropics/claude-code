@@ -1,9 +1,9 @@
 ---
 description: Configure OpenAI Codex authentication
 allowed-tools: [
-  "mcp__plugin_codex_oauth_codex__codex_status",
-  "mcp__plugin_codex_oauth_codex__codex_login",
-  "mcp__plugin_codex_oauth_codex__codex_models"
+  "codex_status",
+  "codex_login",
+  "codex_models"
 ]
 ---
 

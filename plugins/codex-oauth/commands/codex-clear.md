@@ -1,8 +1,8 @@
 ---
 description: Clear stored Codex credentials
 allowed-tools: [
-  "mcp__plugin_codex_oauth_codex__codex_clear",
-  "mcp__plugin_codex_oauth_codex__codex_status"
+  "codex_clear",
+  "codex_status"
 ]
 ---
 
