@@ -23,13 +23,13 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run Claude Code slash command
-        uses: anthropics/claude-code-base-action@beta
+        uses: anthropics/claude-code-base-action@v1
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           prompt: "/dedupe ${{ github.repository }}/issues/${{ github.event.issue.number || inputs.issue_number }}"
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           claude_args: "--model claude-sonnet-4-5-20250929"
-          claude_env: |
-            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Log duplicate comment event to Statsig
         if: always()

@@ -109,12 +109,13 @@ jobs:
           EOF
 
       - name: Run Claude Code for Oncall Triage
-        uses: anthropics/claude-code-base-action@beta
+        timeout-minutes: 10
+        uses: anthropics/claude-code-base-action@v1
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           prompt_file: /tmp/claude-prompts/oncall-triage-prompt.txt
-          allowed_tools: "mcp__github__list_issues,mcp__github__get_issue,mcp__github__get_issue_comments,mcp__github__update_issue"
-          timeout_minutes: "10"
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          mcp_config: /tmp/mcp-config/mcp-servers.json
-          claude_env: |
-            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          claude_args: |
+            --mcp-config /tmp/mcp-config/mcp-servers.json
+            --allowedTools "mcp__github__list_issues,mcp__github__get_issue,mcp__github__get_issue_comments,mcp__github__update_issue"

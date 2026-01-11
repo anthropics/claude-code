@@ -95,13 +95,14 @@ jobs:
           EOF
 
       - name: Run Claude Code for Issue Triage
-        uses: anthropics/claude-code-base-action@beta
+        timeout-minutes: 5
+        uses: anthropics/claude-code-base-action@v1
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           prompt_file: /tmp/claude-prompts/triage-prompt.txt
-          allowed_tools: "Bash(gh label list),mcp__github__get_issue,mcp__github__get_issue_comments,mcp__github__update_issue,mcp__github__search_issues,mcp__github__list_issues"
-          timeout_minutes: "5"
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          mcp_config: /tmp/mcp-config/mcp-servers.json
-          claude_args: "--model claude-sonnet-4-5-20250929"
-          claude_env: |
-            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          claude_args: |
+            --model claude-sonnet-4-5-20250929
+            --mcp-config /tmp/mcp-config/mcp-servers.json
+            --allowedTools "Bash(gh label list),mcp__github__get_issue,mcp__github__get_issue_comments,mcp__github__update_issue,mcp__github__search_issues,mcp__github__list_issues"
