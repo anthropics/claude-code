@@ -46,19 +46,30 @@ async function githubRequest<T>(endpoint: string, token: string, method: string 
   return response.json();
 }
 
-function extractDuplicateIssueNumber(commentBody: string): number | null {
+function isValidDuplicateIssueNumber(num: number, currentIssueNumber: number): boolean {
+  // Must be positive, less than current issue (can't be duplicate of future issue), and reasonable
+  return num > 0 && num < currentIssueNumber && num < 1000000;
+}
+
+function extractDuplicateIssueNumber(commentBody: string, currentIssueNumber: number): number | null {
   // Try to match #123 format first
   let match = commentBody.match(/#(\d+)/);
   if (match) {
-    return parseInt(match[1], 10);
+    const num = parseInt(match[1], 10);
+    if (isValidDuplicateIssueNumber(num, currentIssueNumber)) {
+      return num;
+    }
   }
-  
+
   // Try to match GitHub issue URL format: https://github.com/owner/repo/issues/123
   match = commentBody.match(/github\.com\/[^\/]+\/[^\/]+\/issues\/(\d+)/);
   if (match) {
-    return parseInt(match[1], 10);
+    const num = parseInt(match[1], 10);
+    if (isValidDuplicateIssueNumber(num, currentIssueNumber)) {
+      return num;
+    }
   }
-  
+
   return null;
 }
 
@@ -240,7 +251,7 @@ async function autoCloseDuplicates(): Promise<void> {
       continue;
     }
 
-    const duplicateIssueNumber = extractDuplicateIssueNumber(lastDupeComment.body);
+    const duplicateIssueNumber = extractDuplicateIssueNumber(lastDupeComment.body, issue.number);
     if (!duplicateIssueNumber) {
       console.log(
         `[DEBUG] Issue #${issue.number} - could not extract duplicate issue number from comment, skipping`
