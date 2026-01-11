@@ -4,6 +4,7 @@ allowed-tools: [
   "mcp__codex__codex_status",
   "mcp__codex__codex_login",
   "mcp__codex__codex_set_api_key",
+  "mcp__codex__codex_clear",
   "AskUserQuestion"
 ]
 ---
@@ -12,40 +13,69 @@ allowed-tools: [
 
 Configure OpenAI Codex authentication.
 
-**CRITICAL: Your FIRST action MUST be to use AskUserQuestion to ask the user which authentication method they prefer. Do NOT call any other tool first.**
+### Step 1: Check Current Status (MUST DO FIRST)
 
-### Step 1: Ask User for Authentication Method (MANDATORY FIRST STEP)
+Call `codex_status` to check current authentication state.
 
-Use AskUserQuestion IMMEDIATELY with these exact options:
+### Step 2: Handle Based on Status
 
+**If already authenticated:**
+
+Use **AskUserQuestion** to show status and ask what to do:
+
+```json
+{
+  "questions": [{
+    "question": "You're already authenticated. What would you like to do?",
+    "header": "Config",
+    "options": [
+      {"label": "Keep Current", "description": "Keep current authentication"},
+      {"label": "Switch Method", "description": "Change authentication method"},
+      {"label": "Re-authenticate", "description": "Log out and authenticate again"}
+    ],
+    "multiSelect": false
+  }]
+}
 ```
-Question: "How would you like to authenticate with OpenAI Codex?"
-Header: "Auth"
-Options:
-1. "ChatGPT Subscription (Recommended)" - "Sign in with Plus/Pro/Team/Enterprise via browser OAuth"
-2. "API Key" - "Enter your OpenAI API key (sk-...) for usage-based billing"
+
+- If "Keep Current" → Show status and finish
+- If "Switch Method" or "Re-authenticate" → Continue to Step 3
+
+**If not authenticated:**
+
+Continue directly to Step 3.
+
+### Step 3: Select Authentication Method
+
+Use **AskUserQuestion** to let user choose:
+
+```json
+{
+  "questions": [{
+    "question": "How would you like to authenticate with OpenAI Codex?",
+    "header": "Auth",
+    "options": [
+      {"label": "ChatGPT Subscription (Recommended)", "description": "Sign in with Plus/Pro/Team/Enterprise via browser OAuth"},
+      {"label": "API Key", "description": "Enter your OpenAI API key (sk-...) for usage-based billing"}
+    ],
+    "multiSelect": false
+  }]
+}
 ```
 
-Wait for the user's selection before proceeding.
+### Step 4: Execute Authentication
 
-### Step 2: Execute Based on User Selection
+**If "ChatGPT Subscription":**
 
-**If user chose "ChatGPT Subscription":**
-1. Call `codex_login` to start OAuth browser flow
-2. User will authenticate in browser
+1. If switching, call `codex_clear` first
+2. Call `codex_login` to start OAuth browser flow
 3. Call `codex_status` to verify success
+4. Confirm: "Authenticated with ChatGPT subscription!"
 
-**If user chose "API Key":**
-1. Ask user to provide their API key (starts with "sk-")
-2. Call `codex_set_api_key` with the provided key
-3. Call `codex_status` to verify success
+**If "API Key":**
 
-**If user chose "Other" and provided custom input:**
-- If it looks like an API key (starts with "sk-"), use `codex_set_api_key`
-- Otherwise, clarify what they want
-
-### Important
-
-- ChatGPT Subscription uses OAuth and works with Plus/Pro/Team/Enterprise plans
-- API Key uses direct OpenAI API with usage-based billing
-- Both methods are valid - user preference determines which to use
+1. If switching, call `codex_clear` first
+2. Ask user to provide their API key (or use "Other" input if provided)
+3. Call `codex_set_api_key` with the key
+4. Call `codex_status` to verify success
+5. Confirm: "API key configured successfully!"

@@ -5,7 +5,9 @@ allowed-tools: [
   "mcp__codex__codex_query",
   "mcp__codex__codex_status",
   "Read",
-  "Glob"
+  "Glob",
+  "Bash",
+  "AskUserQuestion"
 ]
 ---
 
@@ -13,20 +15,51 @@ allowed-tools: [
 
 Request a code review from OpenAI Codex.
 
-### Process
+### Step 1: Check Authentication
 
-1. Check authentication with `codex_status`
-2. Determine what to review:
-   - If a file path is provided, read that file
-   - If a description is provided, find relevant files
-   - If no argument, review staged git changes or ask user
-3. Build a review prompt with the code content
-4. Call `codex_query` with a code review system prompt
-5. Present the review findings
+Call `codex_status` to verify authentication. If not authenticated, tell user to run `/codex:config` first.
 
-### System Prompt for Review
+### Step 2: Determine What to Review
 
-Use this system prompt when calling `codex_query`:
+**If file path provided:**
+
+- Read that file directly with `Read` tool
+
+**If description provided:**
+
+- Use `Glob` to find relevant files based on description
+
+**If no argument provided:**
+
+1. Check for staged git changes with `Bash`: `git diff --cached --name-only`
+2. Use **AskUserQuestion** to let user choose:
+
+```json
+{
+  "questions": [{
+    "question": "What would you like Codex to review?",
+    "header": "Review",
+    "options": [
+      {"label": "Staged Changes", "description": "Review files staged for commit"},
+      {"label": "Recent Changes", "description": "Review uncommitted changes (git diff)"},
+      {"label": "Specific File", "description": "I'll specify a file path"},
+      {"label": "Current File", "description": "Review the file I'm working on"}
+    ],
+    "multiSelect": false
+  }]
+}
+```
+
+**Handle selection:**
+
+- "Staged Changes" → `git diff --cached`
+- "Recent Changes" → `git diff`
+- "Specific File" → Ask user for path (via "Other" option input)
+- "Current File" → Use IDE context if available
+
+### Step 3: Build and Execute Review
+
+Call `codex_query` with code content and this system prompt:
 
 ```
 You are an expert code reviewer. Analyze the provided code for:
@@ -40,11 +73,11 @@ You are an expert code reviewer. Analyze the provided code for:
 Format your review with clear sections and prioritize issues by severity (Critical/High/Medium/Low).
 ```
 
-### Review Output Format
+### Step 4: Present Review
 
-Present findings in a structured format:
+Display findings in structured format:
 
-```
+```markdown
 ## Code Review: {filename}
 
 ### Critical Issues
@@ -58,12 +91,4 @@ Present findings in a structured format:
 
 ### Summary
 Overall assessment and recommended actions.
-```
-
-### Examples
-
-```
-/codex:review src/auth.ts
-/codex:review "the new payment processing code"
-/codex:review  # Reviews staged changes
 ```
