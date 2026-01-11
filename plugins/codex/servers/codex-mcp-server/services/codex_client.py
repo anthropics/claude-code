@@ -211,8 +211,6 @@ class CodexClient:
         body: Dict[str, Any] = {
             "model": model,
             "input": input_items,
-            "stream": False,
-            "store": False
         }
 
         # Add reasoning configuration if specified
