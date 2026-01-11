@@ -10,8 +10,8 @@
   "plugins": [
     {
       "name": "codex",
-      "description": "OpenAI Codex integration with CLI-based architecture, session continuity, model selection, and reasoning effort control",
-      "version": "2.0.0",
+      "description": "OpenAI Codex CLI integration with multi-provider support, approval modes, and multimodal queries",
+      "version": "2.1.0",
       "author": {
         "name": "Jiusi-pys",
         "email": "jiusi0519@gmail.com"

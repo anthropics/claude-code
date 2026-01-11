@@ -1,9 +1,9 @@
 {
   "name": "codex",
-  "version": "2.0.0",
-  "description": "OpenAI Codex integration for Claude Code with CLI-based architecture, session continuity, model selection, and reasoning effort control",
+  "version": "2.1.0",
+  "description": "OpenAI Codex CLI integration for Claude Code with multi-provider support and approval modes",
   "author": {
     "name": "Claude Code Community"
   },
-  "keywords": ["codex", "openai", "ai-assistant", "session-management", "model-selection", "cli"]
+  "keywords": ["codex", "openai", "ai-assistant", "cli", "multi-provider"]
 }

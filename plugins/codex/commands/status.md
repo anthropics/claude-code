@@ -1,73 +1,51 @@
 ---
-description: Show Codex status, authentication, and sessions
+description: Show Codex status and configuration
 allowed-tools: Bash
 ---
 
 ## Your task
 
-Display comprehensive Codex status information using the CLI.
-
-### CLI Path
-```
-${CLAUDE_PLUGIN_ROOT}/cli/codex_cli.py
-```
+Display OpenAI Codex CLI status and configuration.
 
 ### Steps
 
-1. Get status:
+1. Check API Key:
 ```bash
-python3 "${CLAUDE_PLUGIN_ROOT}/cli/codex_cli.py" status
+[ -n "$OPENAI_API_KEY" ] && echo "OPENAI_API_KEY: ${OPENAI_API_KEY:0:10}...${OPENAI_API_KEY: -4}" || echo "OPENAI_API_KEY: not set"
 ```
 
-2. Get sessions:
+2. Check Codex CLI availability:
 ```bash
-python3 "${CLAUDE_PLUGIN_ROOT}/cli/codex_cli.py" sessions
+[ -f "/Users/jiusi/Documents/codex/codex-cli/bin/codex.js" ] && echo "Codex CLI: installed" || echo "Codex CLI: not found"
 ```
 
-### JSON Response Format
-
-```json
-{
-  "success": true,
-  "auth": {
-    "authenticated": true,
-    "auth_method": "api_key",
-    "api_key_masked": "sk-proj-...1234",
-    "message": "Using API key: sk-proj-...1234"
-  },
-  "config": {
-    "model": "gpt-5.2-codex",
-    "approval_mode": "suggest",
-    "reasoning_effort": "medium",
-    "session_count": 5
-  }
-}
+3. Show CLI version (if available):
+```bash
+node /Users/jiusi/Documents/codex/codex-cli/bin/codex.js --version 2>/dev/null || echo "Version: unknown"
 ```
 
 ### Display Format
 
-Present information in a clear, organized format:
-
 ```
-## Authentication
-- Status: {authenticated/not authenticated}
-- Method: {oauth/api_key/none}
-- Credentials: {masked key or account info}
+## Codex Status
 
-## Configuration
-- Model: {current model}
-- Reasoning Effort: {effort level}
-- Approval Mode: {current mode}
+### Authentication
+- API Key: {set/not set} {masked key if set}
 
-## Sessions
-- Active sessions: {count}
-- Recent:
-  - {session_id}: {prompt preview} ({timestamp})
-  ...
+### CLI
+- Location: /Users/jiusi/Documents/codex/codex-cli
+- Status: {installed/not found}
+
+### Configuration
+To configure Codex, use these options when running queries:
+- --model <model>: Specify model (o3, gpt-4.1, etc.)
+- --approval-mode <mode>: suggest (default), auto-edit, full-auto
+- --provider <name>: openai, openrouter, azure, etc.
+
+### Setup
+If API key is not set:
+  export OPENAI_API_KEY="your-api-key"
+
+Or add to .env file in your project:
+  OPENAI_API_KEY=your-api-key
 ```
-
-### Notes
-
-- If not authenticated, suggest running `/codex:login`
-- If no sessions, indicate "No active sessions"
-- For API key, show masked key (sk-***...xxx)

@@ -12,57 +12,75 @@ Display help information for the Codex plugin.
 ```
 # OpenAI Codex Plugin for Claude Code
 
-Query OpenAI Codex for alternative AI perspectives, code generation, and reviews.
+Query OpenAI Codex CLI for AI-powered coding assistance.
 
 ## Quick Start
 
-1. Log in: /codex:login
-2. Check status: /codex:status
-3. Start querying: /codex "your question"
+1. Set API key: `export OPENAI_API_KEY=your-key`
+2. Check status: `/codex:status`
+3. Start querying: `/codex "your question"`
 
 ## Commands
 
-### Core
 | Command | Description |
 |---------|-------------|
-| /codex <query> | Send query to Codex |
-| /codex:review [file] | Request code review |
-| /codex:compare | Compare Claude vs Codex responses |
+| `/codex <query>` | Send query to Codex |
+| `/codex:status` | Show status and configuration |
+| `/codex:model` | Model selection info |
+| `/codex:models` | List available models |
+| `/codex:review [file]` | Request code review |
+| `/codex:compare <query>` | Compare Claude vs Codex |
+| `/codex:help` | Show this help |
 
-### Session Management
-| Command | Description |
-|---------|-------------|
-| /codex:session list | List sessions |
-| /codex:session clear | Clear session history |
+## CLI Options
 
-### Configuration
-| Command | Description |
-|---------|-------------|
-| /codex:login | Log in to Codex |
-| /codex:logout | Log out from Codex |
-| /codex:status | Show current status |
-| /codex:model | Select default model |
-| /codex:models | List available models |
-| /codex:reasoning | Set reasoning effort level |
+When using `/codex`, you can pass these options:
 
-## Authentication Methods
+| Option | Description |
+|--------|-------------|
+| `--model <model>` | Specify model (o3, gpt-4.1, etc.) |
+| `--approval-mode <mode>` | suggest, auto-edit, full-auto |
+| `--provider <name>` | AI provider (openai, openrouter, etc.) |
+| `--image <path>` | Include image (multimodal) |
 
-- **API Key (Recommended)**: Direct OpenAI API key (sk-...)
-- **ChatGPT Subscription**: OAuth login for Plus/Pro/Team/Enterprise
+## Approval Modes
 
-## Models
+| Mode | Description |
+|------|-------------|
+| suggest | Reads files, asks before changes (safest) |
+| auto-edit | Can edit files, asks before shell commands |
+| full-auto | Full autonomy, sandboxed (network disabled) |
 
-- gpt-5.2-codex (default)
-- gpt-5.2
-- gpt-5.1-codex-max
-- gpt-5.1-codex-mini
+## Examples
 
-## Reasoning Effort Levels
+```bash
+# Simple query
+/codex "explain REST API design"
 
-- none, minimal, low, medium (default), high, xhigh
+# With specific model
+/codex --model o3 "solve this algorithm"
 
-## Storage
+# Code review
+/codex:review src/main.py
 
-- Project config: .claude/codex_config.json
-- Global auth: ~/.claude/auth.json
+# Compare responses
+/codex:compare "best way to implement caching"
+```
+
+## Authentication
+
+Set your OpenAI API key:
+```bash
+export OPENAI_API_KEY="your-api-key"
+```
+
+Or add to `.env` file in your project.
+
+## Codex CLI Location
+
+/Users/jiusi/Documents/codex/codex-cli
+
+## More Info
+
+See: https://github.com/openai/codex
 ```

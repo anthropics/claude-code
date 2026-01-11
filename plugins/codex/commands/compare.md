@@ -8,26 +8,28 @@ allowed-tools: Bash
 
 Get responses from both Claude (yourself) and OpenAI Codex for the same question, then present a comparison.
 
-### CLI Path
+### Codex CLI Path
 ```
-${CLAUDE_PLUGIN_ROOT}/cli/codex_cli.py
+/Users/jiusi/Documents/codex/codex-cli/bin/codex.js
 ```
 
 ### Process
 
-1. Check Codex authentication:
+1. Check Codex API key:
 ```bash
-python3 "${CLAUDE_PLUGIN_ROOT}/cli/codex_cli.py" status
+[ -n "$OPENAI_API_KEY" ] && echo "OK" || echo "Please set OPENAI_API_KEY"
 ```
 
 2. Note the user's question
+
 3. Generate YOUR (Claude's) response to the question first
+
 4. Get Codex's response:
 ```bash
-python3 "${CLAUDE_PLUGIN_ROOT}/cli/codex_cli.py" query "<user's question>" --save-session
+node /Users/jiusi/Documents/codex/codex-cli/bin/codex.js --quiet "<user's question>"
 ```
 
-5. Present both responses side by side with analysis
+5. Present both responses with comparison analysis
 
 ### Output Format
 
@@ -56,7 +58,7 @@ python3 "${CLAUDE_PLUGIN_ROOT}/cli/codex_cli.py" query "<user's question>" --sav
 - [Key differences in approach or answer]
 
 ### Recommendation
-[Which response might be more suitable for the user's specific case, or how to combine insights from both]
+[Which response might be more suitable for the user's specific case]
 ```
 
 ### Use Cases
@@ -65,15 +67,3 @@ python3 "${CLAUDE_PLUGIN_ROOT}/cli/codex_cli.py" query "<user's question>" --sav
 - Comparing different approaches to a problem
 - Understanding different AI perspectives
 - Validating complex technical answers
-
-### Example
-
-```
-/codex:compare "What's the best way to implement rate limiting in Node.js?"
-```
-
-### Notes
-
-- Both responses are generated independently
-- Useful for critical decisions where multiple perspectives help
-- The comparison analysis is provided by Claude (you)

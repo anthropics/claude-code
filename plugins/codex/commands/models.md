@@ -1,54 +1,59 @@
 ---
 description: List available Codex models
-allowed-tools: Bash
+allowed-tools: []
 ---
 
 ## Your task
 
-List all available OpenAI Codex models using the CLI.
+Display information about available Codex models.
 
-### CLI Path
-```
-${CLAUDE_PLUGIN_ROOT}/cli/codex_cli.py
-```
-
-### Execution
-
-```bash
-python3 "${CLAUDE_PLUGIN_ROOT}/cli/codex_cli.py" models --fetch
-```
-
-### JSON Response Format
-
-```json
-{
-  "success": true,
-  "models": [
-    {"id": "gpt-5.2-codex", "display_name": "GPT-5.2 Codex"},
-    {"id": "gpt-5.2", "display_name": "GPT-5.2"},
-    {"id": "gpt-5.1-codex-max", "display_name": "GPT-5.1 Codex Max"},
-    {"id": "gpt-5.1-codex-mini", "display_name": "GPT-5.1 Codex Mini"}
-  ],
-  "current_model": "gpt-5.2-codex",
-  "source": "api"
-}
-```
-
-### Display Format
+### Output
 
 ```
 ## Available Codex Models
 
+The OpenAI Codex CLI supports various models from OpenAI and other providers.
+
+### OpenAI Models
+
 | Model | Description |
 |-------|-------------|
-| gpt-5.2-codex (current) | Default, balanced performance |
-| gpt-5.2 | General purpose |
-| gpt-5.1-codex-max | Best for complex tasks |
-| gpt-5.1-codex-mini | Fastest, for quick responses |
+| o3 | OpenAI's advanced reasoning model |
+| gpt-4.1 | GPT-4.1 |
+| gpt-4o | GPT-4o (optimized) |
+| gpt-4o-mini | GPT-4o mini (faster, cheaper) |
+| gpt-4-turbo | GPT-4 Turbo |
 
-Current default: {current_model}
+### Usage
+
+```bash
+/codex --model <model-name> "your query"
 ```
 
-### Note
+### Other Providers
 
-Use `/codex:model` to change the default model.
+Codex CLI supports multiple AI providers. Set the provider with `--provider`:
+
+- **openrouter**: Access various models via OpenRouter
+- **azure**: Azure OpenAI Service
+- **gemini**: Google Gemini models
+- **ollama**: Local Ollama models
+- **mistral**: Mistral AI models
+- **deepseek**: DeepSeek models
+- **xai**: xAI models (Grok)
+- **groq**: Groq models
+
+### Configuration
+
+Set default model in `~/.codex/config.toml`:
+
+```toml
+model = "o3"
+provider = "openai"
+```
+
+Or use environment variables:
+- OPENAI_API_KEY
+- <PROVIDER>_API_KEY
+- <PROVIDER>_BASE_URL
+```

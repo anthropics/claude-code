@@ -1,182 +1,150 @@
-# Codex Plugin v2.0
+# Codex Plugin v2.1
 
-OpenAI Codex integration for Claude Code with CLI-based architecture, model selection, and session management.
+OpenAI Codex CLI integration for Claude Code.
 
 > **Part of:** [Jiusi-pys/claude-code](https://github.com/Jiusi-pys/claude-code)
 
-## What's New in v2.0
+## What's New in v2.1
 
-- **CLI-based architecture** - No more MCP server, simpler and more reliable
-- **Reasoning effort control** - Control how much Codex "thinks" before responding
-- **Improved session management** - Persistent sessions with context
-- **Simplified commands** - Cleaner command interface
+- **External CLI integration** - Uses the official OpenAI Codex CLI
+- **Simplified architecture** - No custom Python CLI, direct CLI invocation
+- **Multi-provider support** - OpenAI, OpenRouter, Azure, Gemini, Ollama, etc.
+- **Multimodal queries** - Support for image inputs
 
-## Features
+## Prerequisites
 
-- OpenAI API key authentication (recommended)
-- ChatGPT OAuth authentication (Plus/Pro/Team/Enterprise)
-- Model selection with persistent defaults
-- Reasoning effort levels (none/minimal/low/medium/high/xhigh)
-- Session continuity for follow-up questions
-- Secure token storage (0600 permissions)
-- Automatic token refresh
+1. **OpenAI Codex CLI** installed at `/Users/jiusi/Documents/codex/codex-cli`
+2. **OpenAI API Key** set as environment variable
 
 ## Quick Start
 
-### 1. Log in
+### 1. Set API Key
 
-```
-/codex:login
-```
-
-Choose API Key (recommended) or ChatGPT OAuth.
-
-### 2. Query Codex
-
-```
-/codex how do I implement binary search?
+```bash
+export OPENAI_API_KEY="your-api-key"
 ```
 
-### 3. Configure
+### 2. Check Status
 
 ```
-/codex:model             # Select default model
-/codex:reasoning         # Set reasoning effort
-/codex:status            # Check status
+/codex:status
+```
+
+### 3. Query Codex
+
+```
+/codex "your question here"
 ```
 
 ## Commands
 
-### Core
-
-| Command | Purpose |
-|---------|---------|
-| `/codex <query>` | Query Codex |
+| Command | Description |
+|---------|-------------|
+| `/codex <query>` | Send query to Codex |
+| `/codex:status` | Show status and configuration |
+| `/codex:model` | Model selection info |
+| `/codex:models` | List available models |
 | `/codex:review [file]` | Request code review |
 | `/codex:compare <query>` | Compare Claude vs Codex |
-
-### Session Management
-
-| Command | Purpose |
-|---------|---------|
-| `/codex:session list` | List sessions |
-| `/codex:session clear` | Clear session history |
-
-### Configuration
-
-| Command | Purpose |
-|---------|---------|
-| `/codex:login` | Log in to Codex |
-| `/codex:logout` | Log out from Codex |
-| `/codex:status` | Show status and config |
-| `/codex:model` | Select default model |
-| `/codex:models` | List available models |
-| `/codex:reasoning` | Set reasoning effort |
 | `/codex:help` | Show help |
+
+## CLI Options
+
+Pass these options with `/codex`:
+
+| Option | Description |
+|--------|-------------|
+| `--model <model>` | Specify model (o3, gpt-4.1, etc.) |
+| `--approval-mode <mode>` | suggest, auto-edit, full-auto |
+| `--provider <name>` | AI provider |
+| `--image <path>` | Include image (multimodal) |
+| `--quiet` | Non-interactive mode |
+
+## Approval Modes
+
+| Mode | Description |
+|------|-------------|
+| `suggest` | Reads files, asks before any changes (safest, default) |
+| `auto-edit` | Can edit files, asks before shell commands |
+| `full-auto` | Full autonomy, sandboxed (network disabled) |
 
 ## Models
 
-| Model | Description |
-|-------|-------------|
-| `gpt-5.2-codex` | Default, balanced |
-| `gpt-5.2` | General purpose |
-| `gpt-5.1-codex-max` | Complex tasks |
-| `gpt-5.1-codex-mini` | Quick responses |
+Common OpenAI models:
+- `o3` - Advanced reasoning model
+- `gpt-4.1` - GPT-4.1
+- `gpt-4o` - GPT-4o (optimized)
+- `gpt-4o-mini` - GPT-4o mini (faster)
 
-## Reasoning Effort Levels
+## Providers
 
-| Level | Description |
-|-------|-------------|
-| `none` | No extended thinking |
-| `minimal` | Very light thinking |
-| `low` | Quick responses |
-| `medium` | Balanced (default) |
-| `high` | Thorough analysis |
-| `xhigh` | Maximum thinking |
+Codex CLI supports multiple AI providers:
+- openai (default)
+- openrouter
+- azure
+- gemini
+- ollama
+- mistral
+- deepseek
+- xai
+- groq
 
-## Authentication Methods
+## Examples
 
-### API Key (Recommended)
+```bash
+# Simple query
+/codex "explain REST API design"
 
-Use an OpenAI API key for stable, reliable access:
+# With specific model
+/codex --model o3 "solve this algorithm"
 
-1. Get your API key from https://platform.openai.com/api/keys
-2. Run `/codex:login`
-3. Select "API Key" option
-4. Paste your key when prompted
+# Full auto mode
+/codex --approval-mode full-auto "refactor this function"
 
-### ChatGPT Subscription (OAuth)
+# Code review
+/codex:review src/main.py
 
-OAuth authentication via ChatGPT subscription is supported for Plus/Pro/Team/Enterprise users.
+# Compare AI responses
+/codex:compare "best caching strategy"
+```
 
 ## Architecture
 
 ```
 User Request
     ↓
-Commands (/codex, /codex:login, etc.)
+Plugin Commands (/codex, /codex:review, etc.)
     ↓
-CLI Tool (cli/codex_cli.py) ← Executes via Bash
+OpenAI Codex CLI (/Users/jiusi/Documents/codex/codex-cli)
     ↓
 OpenAI API
 ```
 
-## CLI Tool
+## Codex CLI Location
 
-The plugin uses a Python CLI tool located at `cli/codex_cli.py`:
-
-```bash
-python3 cli/codex_cli.py <command> [options]
+```
+/Users/jiusi/Documents/codex/codex-cli/bin/codex.js
 ```
 
-### CLI Commands
+## More Information
 
-| Command | Purpose |
-|---------|---------|
-| `query <prompt>` | Send query to Codex |
-| `status` | Check auth status |
-| `login` | Start OAuth flow |
-| `set-api-key <key>` | Set API key |
-| `logout` | Clear credentials |
-| `models [--fetch]` | List models |
-| `set-model <model>` | Set default model |
-| `set-reasoning <level>` | Set reasoning effort |
-| `get-config` | Get configuration |
-| `sessions` | List sessions |
-| `clear-sessions` | Clear sessions |
-
-## Configuration Files
-
-| File | Purpose |
-|------|---------|
-| `~/.claude/auth.json` | OAuth tokens / API key (global) |
-| `.claude/codex_config.json` | Project preferences (model, reasoning, sessions) |
-
-## License
-
-Part of Claude Code. See LICENSE in root repository.
+- [OpenAI Codex Repository](https://github.com/openai/codex)
+- [Codex CLI Documentation](https://github.com/openai/codex/tree/main/codex-cli)
 
 ## Changelog
 
+### v2.1.0
+
+- Use external OpenAI Codex CLI instead of custom Python CLI
+- Removed: Python CLI, OAuth login, session management, reasoning effort
+- Added: Multi-provider support, multimodal queries, approval modes
+- Simplified command structure
+
 ### v2.0.0
 
-- **CLI-based architecture** - Removed MCP server, using CLI tool instead
-- **Reasoning effort control** - New `/codex:reasoning` command
-- **Simplified commands** - Removed deprecated commands
-- **Improved reliability** - Direct API calls via CLI
+- CLI-based architecture (Python)
+- Removed MCP server
 
-### v1.2.0
+### v1.x
 
-- Session continuity
-- `codex-session` sub-agent
-- Selection UI for model and permission
-
-### v1.1.0
-
-- Model selection
-- Permission configuration
-- Session history
-
-### v1.0.0
-
-- Initial release with OAuth 2.0 + PKCE
+- MCP server with OAuth authentication

@@ -1,86 +1,59 @@
 ---
 description: Request Codex code review
 argument-hint: [file or description]
-allowed-tools: Bash, Read, Glob, AskUserQuestion
+allowed-tools: Bash, Read, Glob
 ---
 
 ## Your task
 
-Request a code review from OpenAI Codex using the CLI.
+Request a code review from OpenAI Codex.
 
-### CLI Path
+### Codex CLI Path
 ```
-${CLAUDE_PLUGIN_ROOT}/cli/codex_cli.py
-```
-
-### Step 1: Check Authentication
-
-```bash
-python3 "${CLAUDE_PLUGIN_ROOT}/cli/codex_cli.py" status
+/Users/jiusi/Documents/codex/codex-cli/bin/codex.js
 ```
 
-If not authenticated, tell user to run `/codex:login` first.
-
-### Step 2: Determine What to Review
+### Step 1: Determine What to Review
 
 **If file path provided:**
-
 - Read that file directly with `Read` tool
 
 **If description provided:**
+- Use `Glob` to find relevant files
 
-- Use `Glob` to find relevant files based on description
+**If no argument:**
+- Check for staged git changes: `git diff --cached --name-only`
+- Or recent changes: `git diff --name-only`
 
-**If no argument provided:**
-
-1. Check for staged git changes: `git diff --cached --name-only`
-2. Use **AskUserQuestion** to let user choose:
-
-```json
-{
-  "questions": [{
-    "question": "What would you like Codex to review?",
-    "header": "Review",
-    "options": [
-      {"label": "Staged Changes", "description": "Review files staged for commit"},
-      {"label": "Recent Changes", "description": "Review uncommitted changes (git diff)"},
-      {"label": "Specific File", "description": "I'll specify a file path"}
-    ],
-    "multiSelect": false
-  }]
-}
-```
-
-**Handle selection:**
-
-- "Staged Changes" → `git diff --cached`
-- "Recent Changes" → `git diff`
-- "Specific File" → Ask user for path
-
-### Step 3: Build and Execute Review
-
-Build a review prompt with the code content and system instruction:
+### Step 2: Check API Key
 
 ```bash
-python3 "${CLAUDE_PLUGIN_ROOT}/cli/codex_cli.py" query "Review this code for bugs, security issues, performance problems, and code quality:\n\n{code_content}" --system "You are an expert code reviewer. Analyze for bugs, security issues, performance, and code quality. Prioritize by severity." --save-session
+[ -n "$OPENAI_API_KEY" ] && echo "OK" || echo "Please set OPENAI_API_KEY"
+```
+
+### Step 3: Execute Review
+
+Send the code to Codex for review:
+
+```bash
+node /Users/jiusi/Documents/codex/codex-cli/bin/codex.js --quiet "Review this code for bugs, security issues, and improvements:
+
+<code>
+{file_content}
+</code>"
 ```
 
 ### Step 4: Present Review
 
-Parse JSON response and display findings in structured format:
+Display Codex's code review to the user.
 
-```markdown
+### Output Format
+
+```
 ## Code Review: {filename}
 
-### Critical Issues
-- [Issue description and line reference]
+{Codex review response}
 
-### High Priority
-- [Issue description]
-
-### Suggestions
-- [Improvement suggestions]
-
-### Summary
-Overall assessment and recommended actions.
+---
+Reviewed by: OpenAI Codex
 ```

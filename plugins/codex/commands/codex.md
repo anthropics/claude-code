@@ -6,65 +6,49 @@ allowed-tools: Bash
 
 ## Your task
 
-Send the user's query directly to OpenAI Codex using the CLI.
+Send the user's query to OpenAI Codex CLI.
 
-### CLI Path
+### Codex CLI Path
 ```
-${CLAUDE_PLUGIN_ROOT}/cli/codex_cli.py
+/Users/jiusi/Documents/codex/codex-cli/bin/codex.js
 ```
 
-### Step 1: Check Authentication
+### Step 1: Check API Key
 
 ```bash
-python3 "${CLAUDE_PLUGIN_ROOT}/cli/codex_cli.py" status
+[ -n "$OPENAI_API_KEY" ] && echo "API key is set" || echo "API key not set"
 ```
 
-If not authenticated (check `auth.authenticated` in JSON response), tell user to run `/codex:login` first.
+If not set, tell user: "Please set OPENAI_API_KEY environment variable: `export OPENAI_API_KEY=your-key`"
 
-### Step 2: Check for Session Continuity
+### Step 2: Execute Query
 
-Analyze the query to determine if it's a follow-up:
+Run the Codex CLI with the user's query:
 
-**Continue existing session if:**
-- Query references "it", "that", "the code", etc.
-- User says "also", "continue", "what about..."
-- Same topic as recent session
-
-If continuing, get sessions:
 ```bash
-python3 "${CLAUDE_PLUGIN_ROOT}/cli/codex_cli.py" sessions
+node /Users/jiusi/Documents/codex/codex-cli/bin/codex.js --quiet "<user_prompt>"
 ```
 
-**Start new session if:**
-- Standalone question
-- Different topic
-- User explicitly says "new question"
-
-### Step 3: Execute Query
-
-**For new session:**
+**With specific model:**
 ```bash
-python3 "${CLAUDE_PLUGIN_ROOT}/cli/codex_cli.py" query "<user_prompt>" --save-session
+node /Users/jiusi/Documents/codex/codex-cli/bin/codex.js --model <model> --quiet "<user_prompt>"
 ```
 
-**For existing session:**
-```bash
-python3 "${CLAUDE_PLUGIN_ROOT}/cli/codex_cli.py" query "<user_prompt>" --session "<session_id>"
-```
+### Step 3: Return Response
 
-### Step 4: Return Response
+Display the Codex response to the user.
 
-Parse the JSON response and display:
+### Options
 
-```
-{response}
-
----
-Session: {session_id} | Model: {model}
-```
+| Option | Description |
+|--------|-------------|
+| `--model <model>` | Specify model (e.g., o3, gpt-4.1) |
+| `--approval-mode <mode>` | suggest, auto-edit, full-auto |
+| `--image <path>` | Include image (multimodal) |
+| `--quiet` | Non-interactive mode |
 
 ### Important
 
 - **DO NOT ask permission questions** for simple queries
-- Just execute the query and return the response
-- The CLI outputs JSON - parse and display nicely
+- Just execute and return the response
+- Use `--quiet` for non-interactive mode

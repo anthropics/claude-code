@@ -1,12 +1,12 @@
 ---
 name: Codex Integration
 description: Use this skill when the user mentions "Codex", "OpenAI Codex", wants to "ask Codex", "query Codex", requests AI assistance from OpenAI, or wants alternative AI perspectives on coding questions. Auto-activate for Codex-related queries.
-version: 2.0.0
+version: 2.1.0
 ---
 
 # Codex Integration Skill
 
-This skill provides guidelines for integrating OpenAI Codex into Claude Code workflows.
+This skill provides guidelines for integrating OpenAI Codex CLI into Claude Code workflows.
 
 ## When to Activate
 
@@ -14,109 +14,83 @@ This skill provides guidelines for integrating OpenAI Codex into Claude Code wor
 - User wants to "ask Codex" something
 - User requests code generation or explanation from Codex
 - User wants alternative AI perspectives
-- User mentions GPT-5.2 or related OpenAI models
+- User mentions o3, GPT-4.1, or related OpenAI models
 
-## Architecture (v2.0 - CLI-based)
+## Architecture (v2.1 - External CLI)
 
 ```
 User Request
     ↓
-Commands (/codex, /codex:login, etc.)
+Commands (/codex, /codex:review, etc.)
     ↓
-CLI Tool (codex_cli.py) ← Executes operations
+OpenAI Codex CLI (/Users/jiusi/Documents/codex/codex-cli)
     ↓
-OpenAI API ← Codex responses
+OpenAI API
 ```
 
-## CLI Tool
+## Codex CLI
 
-Location: `${CLAUDE_PLUGIN_ROOT}/cli/codex_cli.py`
+**Location:** `/Users/jiusi/Documents/codex/codex-cli/bin/codex.js`
 
-Invoke via Bash:
+**Invoke:**
 ```bash
-python3 "${CLAUDE_PLUGIN_ROOT}/cli/codex_cli.py" <command> [options]
+node /Users/jiusi/Documents/codex/codex-cli/bin/codex.js [options] [prompt]
 ```
 
 ## Available Commands
 
-### Core Commands
-
 | Command | Purpose |
 |---------|---------|
 | `/codex <query>` | Query Codex |
-| `/codex:review [file]` | Request code review from Codex |
-| `/codex:compare <query>` | Compare Claude vs Codex responses |
-
-### Session Management
-
-| Command | Purpose |
-|---------|---------|
-| `/codex:session list` | List sessions |
-| `/codex:session clear` | Clear session history |
-
-### Configuration
-
-| Command | Purpose |
-|---------|---------|
-| `/codex:login` | Log in to Codex |
-| `/codex:logout` | Log out from Codex |
-| `/codex:status` | Show status, auth, config |
-| `/codex:model` | Select default model |
+| `/codex:status` | Show status and configuration |
+| `/codex:model` | Model selection info |
 | `/codex:models` | List available models |
-| `/codex:reasoning` | Set reasoning effort level |
+| `/codex:review [file]` | Request code review |
+| `/codex:compare <query>` | Compare Claude vs Codex |
 | `/codex:help` | Show help |
 
-## CLI Commands Reference
+## CLI Options
 
-| CLI Command | Purpose |
-|-------------|---------|
-| `query <prompt>` | Send query to Codex |
-| `status` | Check auth status |
-| `login` | Start OAuth flow |
-| `set-api-key <key>` | Set API key |
-| `logout` | Clear credentials |
-| `models [--fetch]` | List models |
-| `set-model <model>` | Set default model |
-| `set-reasoning <level>` | Set reasoning effort |
-| `get-config` | Get configuration |
-| `sessions` | List sessions |
-| `clear-sessions` | Clear sessions |
+| Option | Description |
+|--------|-------------|
+| `--model <model>` | Specify model (o3, gpt-4.1, etc.) |
+| `--approval-mode <mode>` | suggest, auto-edit, full-auto |
+| `--provider <name>` | AI provider (openai, openrouter, etc.) |
+| `--image <path>` | Include image (multimodal) |
+| `--quiet` | Non-interactive mode |
 
-## Authentication Methods
+## Approval Modes
 
-| Method    | Description                      | Use Case                         |
-|-----------|----------------------------------|----------------------------------|
-| `api_key` | OpenAI API key (sk-...)          | Recommended, usage-based billing |
-| `oauth`   | ChatGPT subscription via browser | Plus, Pro, Team, Enterprise      |
+| Mode | Description |
+|------|-------------|
+| `suggest` | Reads files, asks before any changes (default, safest) |
+| `auto-edit` | Can edit files, asks before shell commands |
+| `full-auto` | Full autonomy, sandboxed (network disabled) |
 
-Use `/codex:login` to configure authentication.
+## Authentication
 
-## Session Continuity Guidelines
+Requires `OPENAI_API_KEY` environment variable:
+```bash
+export OPENAI_API_KEY="your-api-key"
+```
 
-**Continue existing session when:**
+## Providers
 
-- Follow-up questions referencing previous context
-- Same code file or feature being discussed
-- User says "continue", "also", "what about..."
+Codex CLI supports multiple AI providers:
+- openai (default)
+- openrouter
+- azure
+- gemini
+- ollama
+- mistral
+- deepseek
+- xai
+- groq
 
-**Start new session when:**
+## Models
 
-- Completely unrelated topic
-- User explicitly requests "new session"
-- Different project context
-
-## Reasoning Effort Levels
-
-| Level | Description |
-|-------|-------------|
-| `none` | No extended thinking |
-| `minimal` | Very light thinking |
-| `low` | Quick responses |
-| `medium` | Balanced (default) |
-| `high` | Thorough analysis |
-| `xhigh` | Maximum thinking |
-
-## Config Files
-
-- **Project config**: `.claude/codex_config.json` (model, reasoning, sessions)
-- **Global auth**: `~/.claude/auth.json` (OAuth tokens or API key)
+Common OpenAI models:
+- `o3` - Advanced reasoning
+- `gpt-4.1` - GPT-4.1
+- `gpt-4o` - GPT-4o (optimized)
+- `gpt-4o-mini` - GPT-4o mini (faster)
