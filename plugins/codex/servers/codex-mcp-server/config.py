@@ -27,6 +27,26 @@ CODEX_API_URL = "https://chatgpt.com/backend-api/codex/responses"
 AUTH_FILE_PATH = os.path.expanduser("~/.claude/auth.json")
 TOKEN_KEY = "openai_codex"
 
+# User Config Storage
+USER_CONFIG_PATH = os.path.expanduser("~/.claude/codex_config.json")
+DEFAULT_MODEL = "gpt-5.2-codex"
+DEFAULT_APPROVAL_MODE = "suggest"
+
+# Available models
+AVAILABLE_MODELS = [
+    "gpt-5.2-codex",
+    "gpt-5.2",
+    "gpt-5.1-codex-max",
+    "gpt-5.1-codex-mini"
+]
+
+# Approval modes
+APPROVAL_MODES = [
+    "suggest",      # Codex suggests, user confirms (default)
+    "auto-edit",    # Codex can edit files automatically
+    "full-auto"     # Codex has full control
+]
+
 # Timeouts & Retries
 REQUEST_TIMEOUT = 30
 OAUTH_TIMEOUT = 300  # 5 minutes for OAuth flow

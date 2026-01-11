@@ -7,21 +7,27 @@ Implements Model Context Protocol (MCP) to expose Codex as tools:
 - codex_login: Start OAuth authentication flow
 - codex_clear: Clear stored credentials
 - codex_models: List available models
+- codex_get_config: Get current config
+- codex_set_config: Set config values
+- codex_list_sessions: List recent sessions
+- codex_resume_session: Resume a session
 """
 
 import json
 import sys
 import os
+import uuid
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from config import DEBUG
+from config import DEBUG, AVAILABLE_MODELS, APPROVAL_MODES
 from infrastructure.token_storage import TokenStorage
 from infrastructure.http_client import HttpClient
 from services.oauth_flow import OAuthFlow, OAuthError
 from services.token_manager import TokenManager, TokenError
 from services.codex_client import CodexClient, CodexError
+from services.user_config import UserConfig, UserConfigError
 
 
 class MCPServer:
@@ -34,6 +40,7 @@ class MCPServer:
         self.oauth_flow = OAuthFlow(self.storage, self.http_client)
         self.token_manager = TokenManager(self.storage, self.oauth_flow)
         self.codex_client = CodexClient(self.token_manager, self.http_client)
+        self.user_config = UserConfig()
 
     def handle_request(self, request: dict) -> dict:
         """Handle MCP request.
@@ -75,8 +82,8 @@ class MCPServer:
                     "tools": {}
                 },
                 "serverInfo": {
-                    "name": "codex-oauth",
-                    "version": "1.0.0"
+                    "name": "codex",
+                    "version": "1.1.0"
                 }
             }
         }
@@ -142,6 +149,54 @@ class MCPServer:
                     "type": "object",
                     "properties": {}
                 }
+            },
+            {
+                "name": "codex_get_config",
+                "description": "Get current Codex configuration including default model and approval mode.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {}
+                }
+            },
+            {
+                "name": "codex_set_config",
+                "description": "Set Codex configuration values like default model or approval mode.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "key": {
+                            "type": "string",
+                            "description": "Config key to set",
+                            "enum": ["model", "approval_mode"]
+                        },
+                        "value": {
+                            "type": "string",
+                            "description": "Value to set"
+                        }
+                    },
+                    "required": ["key", "value"]
+                }
+            },
+            {
+                "name": "codex_list_sessions",
+                "description": "List recent Codex sessions.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "limit": {
+                            "type": "integer",
+                            "description": "Maximum number of sessions to return (default: 10)"
+                        }
+                    }
+                }
+            },
+            {
+                "name": "codex_clear_sessions",
+                "description": "Clear all Codex session history.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {}
+                }
             }
         ]
 
@@ -169,6 +224,14 @@ class MCPServer:
                 result = self._tool_clear()
             elif tool_name == "codex_models":
                 result = self._tool_models()
+            elif tool_name == "codex_get_config":
+                result = self._tool_get_config()
+            elif tool_name == "codex_set_config":
+                result = self._tool_set_config(arguments)
+            elif tool_name == "codex_list_sessions":
+                result = self._tool_list_sessions(arguments)
+            elif tool_name == "codex_clear_sessions":
+                result = self._tool_clear_sessions()
             else:
                 return self._error_response(
                     request_id,
@@ -211,16 +274,29 @@ class MCPServer:
         if not prompt:
             raise ValueError("prompt is required")
 
-        model = arguments.get("model")
+        # Use user's default model if not specified
+        model = arguments.get("model") or self.user_config.get_model()
         system_prompt = arguments.get("system_prompt")
         temperature = arguments.get("temperature", 0.7)
 
-        return self.codex_client.query(
+        # Track session
+        session_id = str(uuid.uuid4())[:8]
+        self.user_config.add_session(session_id, prompt)
+
+        response = self.codex_client.query(
             prompt=prompt,
             model=model,
             system_prompt=system_prompt,
             temperature=temperature
         )
+
+        # Update session with response
+        self.user_config.update_session(session_id, [
+            {"role": "user", "content": prompt},
+            {"role": "assistant", "content": response[:200]}  # Truncate for storage
+        ])
+
+        return response
 
     def _tool_status(self) -> dict:
         """Execute codex_status tool."""
@@ -265,8 +341,47 @@ class MCPServer:
         """Execute codex_models tool."""
         return {
             "models": self.codex_client.get_models(),
-            "default": CodexClient.DEFAULT_MODEL
+            "default": self.user_config.get_model()
         }
+
+    def _tool_get_config(self) -> dict:
+        """Execute codex_get_config tool."""
+        config = self.user_config.get_config()
+        return {
+            "model": config["model"],
+            "approval_mode": config["approval_mode"],
+            "available_models": AVAILABLE_MODELS,
+            "available_approval_modes": APPROVAL_MODES,
+            "session_count": config["session_count"]
+        }
+
+    def _tool_set_config(self, arguments: dict) -> str:
+        """Execute codex_set_config tool."""
+        key = arguments.get("key")
+        value = arguments.get("value")
+
+        if not key or not value:
+            raise ValueError("Both 'key' and 'value' are required")
+
+        try:
+            self.user_config.set_config(key, value)
+            return f"Config updated: {key} = {value}"
+        except UserConfigError as e:
+            raise ValueError(str(e))
+
+    def _tool_list_sessions(self, arguments: dict) -> dict:
+        """Execute codex_list_sessions tool."""
+        limit = arguments.get("limit", 10)
+        sessions = self.user_config.get_sessions(limit)
+        return {
+            "sessions": sessions,
+            "count": len(sessions)
+        }
+
+    def _tool_clear_sessions(self) -> str:
+        """Execute codex_clear_sessions tool."""
+        self.user_config.clear_sessions()
+        return "Session history cleared."
 
     def _error_response(self, request_id: int, code: int, message: str) -> dict:
         """Create error response."""

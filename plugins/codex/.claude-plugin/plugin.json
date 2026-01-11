@@ -1,0 +1,9 @@
+{
+  "name": "codex",
+  "version": "1.1.0",
+  "description": "OpenAI Codex integration for Claude Code with model selection, permission control, and session management",
+  "author": {
+    "name": "Claude Code Community"
+  },
+  "keywords": ["codex", "openai", "ai-assistant", "model-selection"]
+}

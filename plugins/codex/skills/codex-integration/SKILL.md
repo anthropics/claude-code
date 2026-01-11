@@ -33,7 +33,7 @@ Seamlessly integrate OpenAI Codex queries into Claude Code workflows.
 
 ### Before Querying
 1. Check authentication status with `codex_status`
-2. If not authenticated, guide user to `/codex-config`
+2. If not authenticated, guide user to `/codex:config`
 3. Don't attempt queries without valid authentication
 
 ### Effective Queries
@@ -47,7 +47,7 @@ Seamlessly integrate OpenAI Codex queries into Claude Code workflows.
 
 ### Error Handling
 1. Handle authentication errors gracefully
-2. Suggest `/codex-config` for auth issues
+2. Suggest `/codex:config` for auth issues
 3. Provide helpful error messages
 
 ## Usage Examples

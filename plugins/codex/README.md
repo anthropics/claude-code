@@ -1,0 +1,112 @@
+# Codex Plugin
+
+OpenAI Codex integration for Claude Code with model selection, permission control, and session management.
+
+> 📦 **Part of:** [Jiusi-pys/claude-code](https://github.com/Jiusi-pys/claude-code)
+>
+> 📘 **For detailed deployment instructions**, see [DEPLOYMENT.md](./DEPLOYMENT.md)
+
+## Features
+
+- 🔐 Secure OAuth 2.0 + PKCE authentication
+- 🎯 Model selection with persistent defaults
+- 🔧 Permission/approval mode configuration
+- 📜 Session history tracking
+- 💾 Secure token storage (0600 permissions)
+- 🔄 Automatic token refresh
+- ⚡ Simple, clean response output
+
+## Quick Start
+
+### 1. Authenticate
+
+```
+/codex:config
+```
+
+Opens browser for OpenAI OAuth login.
+
+### 2. Query Codex
+
+```
+/codex how do I implement binary search?
+```
+
+Response shows just the answer - no extra metadata.
+
+### 3. Configure
+
+```
+/codex:model gpt-5.2          # Set default model
+/codex:permission auto-edit   # Set approval mode
+/codex:session                # View session history
+```
+
+## Commands
+
+| Command | Purpose |
+|---------|---------|
+| `/codex <query>` | Query Codex - shows only the answer |
+| `/codex:config` | Authenticate or check status |
+| `/codex:model [name]` | View/set default model |
+| `/codex:permission [mode]` | View/set approval mode |
+| `/codex:session [list\|clear]` | Manage session history |
+| `/codex:clear` | Clear credentials |
+
+## Models
+
+| Model | Description |
+|-------|-------------|
+| `gpt-5.2-codex` | Default, balanced |
+| `gpt-5.2` | General purpose |
+| `gpt-5.1-codex-max` | Complex tasks |
+| `gpt-5.1-codex-mini` | Quick responses |
+
+## Approval Modes
+
+| Mode | Description |
+|------|-------------|
+| `suggest` | Codex suggests, user confirms (default) |
+| `auto-edit` | Codex can edit files automatically |
+| `full-auto` | Codex has full control |
+
+## MCP Tools
+
+| Tool | Description |
+|------|-------------|
+| `codex_query` | Send query to Codex |
+| `codex_status` | Check auth status |
+| `codex_login` | Start OAuth flow |
+| `codex_clear` | Clear credentials |
+| `codex_models` | List models |
+| `codex_get_config` | Get current config |
+| `codex_set_config` | Set config values |
+| `codex_list_sessions` | List sessions |
+| `codex_clear_sessions` | Clear session history |
+
+## Configuration Files
+
+| File | Purpose |
+|------|---------|
+| `~/.claude/auth.json` | OAuth tokens |
+| `~/.claude/codex_config.json` | User preferences |
+
+## License
+
+Part of Claude Code. See LICENSE in root repository.
+
+## Changelog
+
+### v1.1.0
+
+- ✨ Model selection command
+- 🔧 Permission configuration
+- 📜 Session history tracking
+- 🎯 Simplified response output
+- 📝 Renamed from `codex-oauth` to `codex`
+
+### v1.0.0
+
+- 🔐 OAuth 2.0 + PKCE authentication
+- 📡 MCP server with 5 tools
+- 💻 Cross-platform support

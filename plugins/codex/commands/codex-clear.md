@@ -15,7 +15,7 @@ Remove stored OAuth tokens and require re-authentication.
 1. Ask user to confirm they want to clear credentials
 2. If confirmed, use `codex_clear` to remove stored tokens
 3. Verify with `codex_status` that credentials are cleared
-4. Inform user they'll need to run `/codex-config` to re-authenticate
+4. Inform user they'll need to run `/codex:config` to re-authenticate
 
 ## When to Use
 

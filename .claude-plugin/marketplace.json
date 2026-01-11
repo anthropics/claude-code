@@ -26,14 +26,14 @@
       "category": "development"
     },
     {
-      "name": "codex-oauth",
-      "description": "OpenAI Codex integration with secure OAuth 2.0 + PKCE authentication. Query Codex models with commands, auto-activation skills, and MCP tools for AI-powered code assistance.",
-      "version": "1.0.0",
+      "name": "codex",
+      "description": "OpenAI Codex integration with model selection, permission control, and session management. Query Codex models with simple commands.",
+      "version": "1.1.0",
       "author": {
         "name": "Jiusi-pys",
         "email": "jiusi0519@gmail.com"
       },
-      "source": "./plugins/codex-oauth",
+      "source": "./plugins/codex",
       "category": "development"
     },
     {
