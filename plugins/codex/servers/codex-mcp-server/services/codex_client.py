@@ -184,30 +184,26 @@ class CodexClient:
                 role = msg.get("role", "user")
                 content = msg.get("content", "")
                 if role == "assistant":
-                    # Assistant messages use output_text
+                    # Assistant messages use output_text (NO type wrapper)
                     input_items.append({
-                        "type": "message",
                         "role": "assistant",
                         "content": [{"type": "output_text", "text": content}]
                     })
                 elif role == "system":
-                    # System messages use developer role with string content
+                    # System messages use developer role with string content (NO type wrapper)
                     input_items.append({
-                        "type": "message",
                         "role": "developer",
                         "content": content
                     })
                 else:
-                    # User messages use input_text
+                    # User messages use input_text (NO type wrapper)
                     input_items.append({
-                        "type": "message",
                         "role": "user",
                         "content": [{"type": "input_text", "text": content}]
                     })
 
-        # Add current user prompt
+        # Add current user prompt (NO type wrapper)
         input_items.append({
-            "type": "message",
             "role": "user",
             "content": [{"type": "input_text", "text": prompt}]
         })
