@@ -1,9 +1,9 @@
 {
   "name": "codex",
-  "version": "2.1.0",
-  "description": "OpenAI Codex CLI integration for Claude Code with multi-provider support and approval modes",
+  "version": "2.2.0",
+  "description": "OpenAI Codex CLI integration with intelligent session management, routing, approval handling, and JSON parsing for seamless multi-turn tasks",
   "author": {
     "name": "Claude Code Community"
   },
-  "keywords": ["codex", "openai", "ai-assistant", "cli", "multi-provider"]
+  "keywords": ["codex", "openai", "ai-assistant", "cli", "multi-provider", "session-management", "approval-handling"]
 }
