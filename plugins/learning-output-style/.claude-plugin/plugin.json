@@ -5,5 +5,15 @@
   "author": {
     "name": "Boris Cherny",
     "email": "boris@anthropic.com"
+  },
+  "components": {
+    "agents": [],
+    "commands": [],
+    "skills": [],
+    "hooks": ["SessionStart"],
+    "mcpServers": []
+  },
+  "metadata": {
+    "tags": ["output-style", "learning", "interactive", "educational"]
   }
 }
