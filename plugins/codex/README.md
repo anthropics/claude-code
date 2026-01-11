@@ -88,8 +88,8 @@ Response shows just the answer - no extra metadata.
 
 | File | Purpose |
 |------|---------|
-| `~/.claude/auth.json` | OAuth tokens |
-| `~/.claude/codex_config.json` | User preferences |
+| `~/.claude/auth.json` | OAuth tokens (global) |
+| `.claude/codex_config.json` | Project preferences (model, permission, sessions) |
 
 ## License
 

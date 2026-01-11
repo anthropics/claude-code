@@ -27,8 +27,8 @@ CODEX_API_URL = "https://chatgpt.com/backend-api/codex/responses"
 AUTH_FILE_PATH = os.path.expanduser("~/.claude/auth.json")
 TOKEN_KEY = "openai_codex"
 
-# User Config Storage
-USER_CONFIG_PATH = os.path.expanduser("~/.claude/codex_config.json")
+# User Config Storage (project-specific)
+USER_CONFIG_PATH = os.path.join(os.getcwd(), ".claude", "codex_config.json")
 DEFAULT_MODEL = "gpt-5.2-codex"
 DEFAULT_APPROVAL_MODE = "suggest"
 
