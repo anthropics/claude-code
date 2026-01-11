@@ -6,7 +6,7 @@ version: 1.2.0
 
 # Codex Integration Skill
 
-Seamlessly integrate OpenAI Codex queries into Claude Code workflows with intelligent session management.
+This skill provides guidelines for integrating OpenAI Codex into Claude Code workflows.
 
 ## When to Activate
 
@@ -16,113 +16,73 @@ Seamlessly integrate OpenAI Codex queries into Claude Code workflows with intell
 - User wants alternative AI perspectives
 - User mentions GPT-5.2 or related OpenAI models
 
-## Session Management
-
-Codex maintains conversation context through sessions. Each session preserves the conversation history.
-
-### Session Continuity
-
-- **Continue existing session**: For follow-up questions, pass the `session_id` to maintain context
-- **New session**: For unrelated topics, omit `session_id` to start fresh
-- **Session initialization**: For new sessions, confirm purpose and permission level with user
-
-### New Session Protocol
-
-When starting a new Codex session, use **AskUserQuestion** to confirm:
-
-1. **Session purpose**: Code Generation, Code Review, Debugging, or Learning
-2. **Permission level**: Suggest (default), Auto-Edit, or Full-Auto
-
-## Available MCP Tools
-
-### Query Tools
-
-- `codex_query` - Send query to Codex with session continuity
-  - Parameters: prompt (required), session_id (optional), model, system_prompt, temperature
-  - Returns: response, session_id, message_count
-
-### Session Management
-
-- `codex_list_sessions` - List recent sessions with topics
-- `codex_get_config` - Get current model and approval mode
-- `codex_set_config` - Update configuration
-
-### Authentication
-
-- `codex_status` - Check authentication status
-- `codex_login` - Start OAuth authentication flow
-- `codex_clear` - Clear stored credentials
-- `codex_models` - List available models
-
-## Best Practices
-
-### Session Strategy
-
-1. Check `codex_list_sessions` before querying
-2. Identify if user's question relates to existing session
-3. Use matching `session_id` for continuations
-4. For new sessions, gather context via AskUserQuestion
-5. Track session_id in responses for future reference
-
-### Effective Queries
-
-1. Provide clear, specific prompts
-2. Include relevant context in the prompt
-3. Use system_prompt for specialized behavior
-4. Choose appropriate model:
-   - `gpt-5.2-codex` - Default, balanced
-   - `gpt-5.1-codex-max` - Complex tasks
-   - `gpt-5.1-codex-mini` - Quick responses
-
-### Safety Considerations
-
-1. Confirm permission level for new sessions
-2. Track permission escalation requests
-3. Provide clear session metadata in responses
-4. Never bypass user confirmation for new sessions
-
-## Sub-Agents
-
-Use the `codex-session` agent for complex multi-turn Codex interactions that require intelligent session management.
-
-## Usage Examples
-
-### New Session with Confirmation
+## Architecture
 
 ```
-1. codex_status → authenticated
-2. codex_list_sessions → no matching session
-3. AskUserQuestion → purpose: "Code Generation", permission: "Suggest"
-4. codex_query(prompt="...", session_id=null)
-5. Response includes new session_id for continuations
+User Request
+    ↓
+Commands (/codex, /codex:config, etc.)
+    ↓
+Sub-agent (codex-session) ← Controls, decides, confirms
+    ↓
+MCP Server (codex) ← Executes API calls
 ```
 
-### Continuing a Session
+## Sub-Agent: codex-session
 
-```
-1. codex_list_sessions → find session "abc123" about binary search
-2. codex_query(prompt="make it recursive", session_id="abc123")
-3. Codex understands context from previous messages
-```
+The `codex-session` agent is responsible for:
 
-### Response Format
+1. **Session Management**: Decides when to continue existing sessions vs start new ones
+2. **Permission Control**: Confirms permission levels before operations
+3. **Safety Confirmations**: Uses AskUserQuestion for user confirmations
+4. **Query Routing**: Calls MCP tools with appropriate session context
 
-```
-{Codex response content}
+## Available Commands
 
----
-Session: abc123 | Messages: 4
-```
+| Command | Purpose |
+|---------|---------|
+| `/codex <query>` | Query Codex (routes through sub-agent) |
+| `/codex:config` | Configure authentication |
+| `/codex:model` | Select default model |
+| `/codex:permission` | Set approval mode |
+| `/codex:session` | Manage session history |
+| `/codex:clear` | Clear credentials |
+
+## MCP Tools (for sub-agent use)
+
+| Tool | Purpose |
+|------|---------|
+| `codex_query` | Execute query with session context |
+| `codex_status` | Check auth status |
+| `codex_login` | Start OAuth flow |
+| `codex_get_config` | Read configuration |
+| `codex_set_config` | Update configuration |
+| `codex_list_sessions` | List recent sessions |
+| `codex_clear_sessions` | Clear session history |
+
+## Session Continuity Guidelines
+
+**Continue existing session when:**
+
+- Follow-up questions referencing previous context
+- Same code file or feature being discussed
+- User says "continue", "also", "what about..."
+
+**Start new session when:**
+
+- Completely unrelated topic
+- User explicitly requests "new session"
+- Different project context
+
+## Permission Levels
+
+| Mode | Behavior |
+|------|----------|
+| `suggest` | Codex suggests, user confirms (default) |
+| `auto-edit` | Codex can edit files automatically |
+| `full-auto` | Codex has full control |
 
 ## Configuration
 
-- **Project config**: `.claude/codex_config.json` stores model, permission, and session history
-- **Global auth**: `~/.claude/auth.json` stores OAuth tokens (shared across projects)
-
-## Security Notes
-
-- Tokens stored securely (0600 permissions)
-- OAuth with PKCE for secure authentication
-- Never expose tokens in logs or output
-- Refresh tokens automatically managed
-- Permission levels enforced per-session
+- **Project config**: `.claude/codex_config.json` (model, permission, sessions)
+- **Global auth**: `~/.claude/auth.json` (OAuth tokens)
