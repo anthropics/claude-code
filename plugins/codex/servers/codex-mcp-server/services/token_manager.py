@@ -109,10 +109,23 @@ class TokenManager:
     def get_api_key(self) -> Optional[str]:
         """Get stored API key.
 
+        First checks for directly stored API key, then checks for
+        API key obtained through OAuth token exchange.
+
         Returns:
             API key string or None
         """
-        return self.storage.load_api_key()
+        # Check for directly stored API key
+        api_key = self.storage.load_api_key()
+        if api_key:
+            return api_key
+
+        # Check for API key from OAuth token exchange
+        tokens = self._get_tokens()
+        if tokens and "openai_api_key" in tokens:
+            return tokens["openai_api_key"]
+
+        return None
 
     def get_auth_method(self) -> Optional[str]:
         """Get current authentication method.
@@ -128,20 +141,17 @@ class TokenManager:
         Returns:
             True if authenticated, False otherwise
         """
-        auth_method = self.get_auth_method()
-        if auth_method == AUTH_METHOD_API_KEY:
-            api_key = self.storage.load_api_key()
-            return api_key is not None and api_key.startswith("sk-")
-        elif auth_method == AUTH_METHOD_OAUTH:
-            tokens = self._get_tokens()
-            return tokens is not None and "access_token" in tokens
-        else:
-            # Check both
-            tokens = self._get_tokens()
-            if tokens and "access_token" in tokens:
-                return True
-            api_key = self.storage.load_api_key()
-            return api_key is not None and api_key.startswith("sk-")
+        # Check for any API key (direct or from OAuth token exchange)
+        api_key = self.get_api_key()
+        if api_key:
+            return True
+
+        # Check for OAuth tokens
+        tokens = self._get_tokens()
+        if tokens and "access_token" in tokens:
+            return True
+
+        return False
 
     def clear_all(self) -> None:
         """Clear all stored credentials (OAuth and API key)."""
@@ -154,22 +164,18 @@ class TokenManager:
         Returns:
             Dictionary with authentication status details
         """
-        auth_method = self.get_auth_method()
+        # Check for direct API key first
+        direct_api_key = self.storage.load_api_key()
+        if direct_api_key:
+            masked = direct_api_key[:7] + "..." + direct_api_key[-4:] if len(direct_api_key) > 15 else "sk-***"
+            return {
+                "authenticated": True,
+                "auth_method": AUTH_METHOD_API_KEY,
+                "api_key_masked": masked,
+                "message": f"Using API key: {masked}"
+            }
 
-        # API Key authentication
-        if auth_method == AUTH_METHOD_API_KEY:
-            api_key = self.storage.load_api_key()
-            if api_key:
-                # Mask API key for display
-                masked = api_key[:7] + "..." + api_key[-4:] if len(api_key) > 15 else "sk-***"
-                return {
-                    "authenticated": True,
-                    "auth_method": AUTH_METHOD_API_KEY,
-                    "api_key_masked": masked,
-                    "message": f"Using API key: {masked}"
-                }
-
-        # OAuth authentication
+        # Check OAuth tokens
         tokens = self._get_tokens()
 
         if not tokens:
@@ -179,6 +185,20 @@ class TokenManager:
                 "message": "Not authenticated"
             }
 
+        # Check if OAuth provided an API key via token exchange
+        oauth_api_key = tokens.get("openai_api_key")
+        if oauth_api_key:
+            masked = oauth_api_key[:7] + "..." + oauth_api_key[-4:] if len(oauth_api_key) > 15 else "***"
+            return {
+                "authenticated": True,
+                "auth_method": AUTH_METHOD_OAUTH,
+                "has_api_key": True,
+                "api_key_masked": masked,
+                "account_id": self.get_account_id(),
+                "message": f"Authenticated via ChatGPT subscription (API key: {masked})"
+            }
+
+        # OAuth without token exchange - use access_token directly
         expires_at = tokens.get("expires_at", 0)
         now = int(time.time())
         expires_in = max(0, expires_at - now)
@@ -186,6 +206,7 @@ class TokenManager:
         return {
             "authenticated": True,
             "auth_method": AUTH_METHOD_OAUTH,
+            "has_api_key": False,
             "expires_in_seconds": expires_in,
             "expires_at": expires_at,
             "has_refresh_token": "refresh_token" in tokens,

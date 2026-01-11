@@ -300,12 +300,18 @@ class CodexClient:
     def _get_api_url(self) -> str:
         """Get API URL based on authentication method.
 
+        If we have an API key (direct or from OAuth token exchange),
+        use the standard OpenAI API endpoint. Otherwise, use ChatGPT backend.
+
         Returns:
             API URL string
         """
-        auth_method = self.token_manager.get_auth_method()
-        if auth_method == AUTH_METHOD_API_KEY:
+        # Check for API key (includes OAuth-exchanged key)
+        api_key = self.token_manager.get_api_key()
+        if api_key:
             return OPENAI_API_URL
+
+        # Fall back to ChatGPT backend for OAuth without token exchange
         return CODEX_API_URL
 
     def _get_headers(self) -> Dict[str, str]:
@@ -317,20 +323,16 @@ class CodexClient:
         Raises:
             CodexError: If authentication fails
         """
-        auth_method = self.token_manager.get_auth_method()
-
-        # API Key authentication
-        if auth_method == AUTH_METHOD_API_KEY:
-            api_key = self.token_manager.get_api_key()
-            if not api_key:
-                raise CodexError("API key not found. Run /codex:config to set up authentication.")
+        # Check for API key (includes OAuth-exchanged key)
+        api_key = self.token_manager.get_api_key()
+        if api_key:
             _debug("Using API key authentication")
             return {
                 "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json"
             }
 
-        # OAuth authentication (default)
+        # OAuth authentication without token exchange (use access_token directly)
         try:
             access_token = self.token_manager.get_valid_token()
         except TokenError as e:
@@ -342,7 +344,7 @@ class CodexClient:
             "Content-Type": "application/json",
         }
 
-        # Add account ID if available (only for OAuth/ChatGPT)
+        # Add account ID if available (only for ChatGPT backend)
         account_id = self.token_manager.get_account_id()
         if account_id:
             headers["ChatGPT-Account-Id"] = account_id

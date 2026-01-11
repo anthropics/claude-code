@@ -349,7 +349,7 @@ class MCPServer:
                 "message": "Not logged in. Use codex_login (OAuth) or codex_set_api_key (API key) to authenticate."
             }
 
-        # API Key authentication
+        # Direct API Key authentication
         if auth_method == AUTH_METHOD_API_KEY:
             return {
                 "status": "authenticated",
@@ -358,7 +358,19 @@ class MCPServer:
                 "message": info.get("message", "Authenticated with API key")
             }
 
-        # OAuth authentication
+        # OAuth authentication (with or without token-exchanged API key)
+        if info.get("has_api_key"):
+            # OAuth with token exchange - got an API key
+            return {
+                "status": "authenticated",
+                "auth_method": AUTH_METHOD_OAUTH,
+                "has_api_key": True,
+                "api_key_masked": info.get("api_key_masked"),
+                "account_id": info.get("account_id"),
+                "message": info.get("message", "Authenticated via ChatGPT subscription")
+            }
+
+        # OAuth without token exchange - using access_token directly
         status = "authenticated"
         if info.get("is_expired"):
             status = "expired"
@@ -374,6 +386,7 @@ class MCPServer:
         return {
             "status": status,
             "auth_method": AUTH_METHOD_OAUTH,
+            "has_api_key": False,
             "authenticated": info["authenticated"],
             "account_id": info.get("account_id"),
             "expires_in_seconds": info.get("expires_in_seconds"),

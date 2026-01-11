@@ -210,11 +210,15 @@ class OAuthFlow:
         self._server_thread: Optional[threading.Thread] = None
         self._result: Optional[OAuthResult] = None
 
-    def start_auth_flow(self) -> Dict[str, Any]:
+    def start_auth_flow(self, exchange_for_api_key: bool = True) -> Dict[str, Any]:
         """Start complete OAuth flow.
 
+        Args:
+            exchange_for_api_key: If True, exchange tokens for an API key
+                                  that works with standard OpenAI API endpoints.
+
         Returns:
-            Token dictionary with access_token, refresh_token, etc.
+            Token dictionary with access_token, refresh_token, and optionally api_key.
 
         Raises:
             OAuthError: On authentication failure
@@ -246,6 +250,15 @@ class OAuthFlow:
 
             # Exchange code for tokens
             tokens = self.exchange_code(code, verifier)
+
+            # Optionally exchange for API key
+            if exchange_for_api_key and "id_token" in tokens:
+                try:
+                    api_key = self.exchange_tokens_for_api_key(tokens["id_token"])
+                    tokens["openai_api_key"] = api_key
+                except OAuthError:
+                    # Token exchange failed, continue with OAuth tokens only
+                    pass
 
             # Save tokens
             self.storage.save_tokens(tokens)
@@ -342,10 +355,47 @@ class OAuthFlow:
             "code_challenge": challenge,
             "code_challenge_method": "S256",
             "id_token_add_organizations": "true",
+            "codex_cli_simplified_flow": "true",
             "state": state,
-            "originator": "claude-code",
         })
         return f"{OAUTH_ENDPOINT}/oauth/authorize?{params}"
+
+    def exchange_tokens_for_api_key(self, id_token: str) -> str:
+        """Exchange OAuth tokens for an OpenAI API key.
+
+        Uses the token exchange grant type to obtain an API key that works
+        with standard OpenAI API endpoints.
+
+        Args:
+            id_token: The id_token from OAuth authentication
+
+        Returns:
+            OpenAI API key string
+
+        Raises:
+            OAuthError: On exchange failure
+        """
+        try:
+            response = self.http_client.post(
+                f"{OAUTH_ENDPOINT}/oauth/token",
+                form_data={
+                    "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
+                    "client_id": CLIENT_ID,
+                    "subject_token_type": "urn:ietf:params:oauth:token-type:id_token",
+                    "subject_token": id_token,
+                    "requested_token_type": "openai-api-key",
+                }
+            )
+
+            # The response should contain the API key
+            api_key = response.get("access_token") or response.get("api_key")
+            if not api_key:
+                raise OAuthError("No API key in token exchange response")
+
+            return api_key
+
+        except HttpClientError as e:
+            raise OAuthError(f"Token exchange for API key failed: {e}")
 
     def _start_callback_server(self):
         """Start local HTTP server for OAuth callback."""
