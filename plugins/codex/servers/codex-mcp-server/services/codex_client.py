@@ -159,20 +159,24 @@ class CodexClient:
         """Build request body for ChatGPT Responses API format.
 
         Responses API uses:
-        - instructions: system prompt (required)
-        - input: array of message items (NO type wrapper, just role + content)
+        - input: array of message items (role + content format)
         - reasoning: optional reasoning configuration
 
-        Input format (per opencode reference):
+        Input format:
         - User: {"role": "user", "content": [{"type": "input_text", "text": "..."}]}
         - Assistant: {"role": "assistant", "content": [{"type": "output_text", "text": "..."}]}
         - System: {"role": "developer", "content": "..."} (string, not array)
         """
-        instructions = system_prompt or self.DEFAULT_INSTRUCTIONS
-
         # Build input array
-        # Each item wrapped in "type": "message" (tagged enum format required by API)
         input_items = []
+
+        # Add system prompt as first message if provided
+        # The system prompt is included in the input array, not as separate "instructions" field
+        if system_prompt:
+            input_items.append({
+                "role": "developer",
+                "content": system_prompt
+            })
 
         # Add previous messages if provided
         if messages:
@@ -210,7 +214,6 @@ class CodexClient:
 
         body: Dict[str, Any] = {
             "model": model,
-            "instructions": instructions,
             "input": input_items,
             "stream": False,
             "store": False
