@@ -44,6 +44,49 @@ Creates a git commit with an automatically generated commit message based on sta
 - Avoids committing files with secrets (.env, credentials.json)
 - Includes Claude Code attribution in commit message
 
+### `/commit-push`
+
+Commits and pushes changes to the remote repository without creating a pull request.
+
+**What it does:**
+1. Analyzes current git status
+2. Reviews both staged and unstaged changes
+3. Examines recent commit messages to match your repository's style
+4. Drafts an appropriate commit message
+5. Stages relevant files
+6. Creates the commit
+7. Pushes to the remote repository
+
+**Usage:**
+```bash
+/commit-push
+```
+
+**Example workflow:**
+```bash
+# Make some changes to your code
+# Then simply run:
+/commit-push
+
+# Claude will:
+# - Review your changes
+# - Stage the files
+# - Create a commit with an appropriate message
+# - Push to the remote repository
+```
+
+**Features:**
+- All features of `/commit` plus automatic push
+- Does not create a new branch (stays on current branch)
+- Does not create a pull request
+- Ideal for collaborative branches or when you want to push without PR
+
+**When to use:**
+- Working on a shared branch with collaborators
+- Want to trigger CI/CD without creating a PR
+- Planning to create PR later after multiple commits
+- Pushing to your own feature branch for backup
+
 ### `/commit-push-pr`
 
 Complete workflow command that commits, pushes, and creates a pull request in one step.
@@ -137,6 +180,12 @@ This plugin is included in the Claude Code repository. The commands are automati
 - Trust the automated message, but verify it's accurate
 - Use for routine commits during development
 
+### Using `/commit-push`
+- Use when you want to commit and push without creating a PR
+- Ideal for collaborative branches where multiple people push
+- Good for triggering CI/CD pipelines without PR overhead
+- Use when you plan to create a PR later after multiple commits
+
 ### Using `/commit-push-pr`
 - Use when you're ready to create a PR
 - Ensure all your changes are complete and tested
@@ -159,6 +208,13 @@ This plugin is included in the Claude Code repository. The commands are automati
 # Continue development
 ```
 
+### Commit and push workflow:
+```bash
+# Write code
+/commit-push
+# Changes are committed and pushed, but no PR yet
+```
+
 ### Feature branch workflow:
 ```bash
 # Develop feature across multiple commits
@@ -167,6 +223,18 @@ This plugin is included in the Claude Code repository. The commands are automati
 /commit  # Second commit
 # Ready to create PR
 /commit-push-pr
+```
+
+### Collaborative branch workflow:
+```bash
+# Working on shared branch with teammates
+/commit-push  # Push your changes
+# Teammate pushes their changes
+git pull
+# Continue development
+/commit-push  # Push more changes
+# When feature is complete
+/commit-push-pr  # Create the PR
 ```
 
 ### Maintenance workflow:
