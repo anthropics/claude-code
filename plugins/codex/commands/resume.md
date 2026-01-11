@@ -13,43 +13,56 @@ allowed-tools: [
 
 Resume a previous Codex conversation session.
 
-### Behavior Based on Arguments
+### Step 1: Determine Which Session
 
-**No argument provided:**
-1. Call `codex_list_sessions` to get recent sessions
-2. Use **AskUserQuestion** to let user pick a session:
-   - Header: "Session"
-   - Question: "Which session would you like to resume?"
-   - Options: Show session ID + first prompt preview for each
-3. Resume the selected session
+**If `--last` argument:**
 
-**`--last` argument:**
 1. Call `codex_list_sessions` with limit=1
 2. Resume the most recent session automatically
 
-**Session ID provided:**
-1. Resume the specified session directly
+**If session_id provided:**
 
-### Resume Process
+- Use that session directly
 
-Once session is selected:
-1. Inform user: "Resuming session {session_id}..."
-2. Ask user for their follow-up question
-3. Call `codex_query` with the session_id and user's prompt
-4. Return the response
+**If no argument:**
 
-### Display Format
+1. Call `codex_list_sessions` to get recent sessions (MUST DO FIRST)
+2. Use **AskUserQuestion** to let user select:
 
-When listing sessions for selection:
+```json
+{
+  "questions": [{
+    "question": "Which session would you like to resume?",
+    "header": "Session",
+    "options": [
+      {"label": "abc123 - How do I implement auth...", "description": "4 messages, 2 hours ago"},
+      {"label": "def456 - Review this function...", "description": "2 messages, yesterday"},
+      {"label": "ghi789 - Explain the architecture...", "description": "6 messages, 2 days ago"}
+    ],
+    "multiSelect": false
+  }]
+}
 ```
-Recent Sessions:
-1. abc123 - "How do I implement auth..." (2 hours ago)
-2. def456 - "Review this function..." (yesterday)
-3. ghi789 - "Explain the architecture..." (2 days ago)
-```
+
+**Important:** Build options dynamically from `codex_list_sessions` results.
+
+### Step 2: Resume Session
+
+1. Extract session_id from user's selection
+2. Inform user: "Resuming session {session_id}..."
+3. Show brief context of what was discussed
+
+### Step 3: Get Follow-up Query
+
+Wait for user's follow-up question, then call `codex_query` with:
+
+- session_id: the selected session
+- prompt: user's question
+
+Return the Codex response.
 
 ### Notes
 
-- Sessions preserve conversation context
+- Sessions preserve full conversation context
 - Useful for continuing complex multi-turn discussions
 - Session data stored in `.claude/codex_config.json`

@@ -9,17 +9,42 @@ allowed-tools: [
 
 ## Your task
 
-Select the default Codex model using interactive UI.
+Select the default Codex model using interactive selection UI.
 
-1. Call `codex_get_config` to get the current model setting
-2. Use **AskUserQuestion** to present model options:
-   - Header: "Model"
-   - Question: "Select Codex model"
-   - Options (mark current model with "(current)"):
-     - `gpt-5.2-codex` - Default, balanced
-     - `gpt-5.2` - General purpose
-     - `gpt-5.1-codex-max` - Complex tasks
-     - `gpt-5.1-codex-mini` - Quick responses
-   - multiSelect: false
-3. Call `codex_set_config` with key="model" and value=selected model name (remove "(current)" suffix if present)
-4. Confirm: "Model set to: {model}"
+### Step 1: Query Current Config (MUST DO FIRST)
+
+Call `codex_get_config` to get:
+- Current model setting
+- List of available models (`available_models` field)
+
+### Step 2: Present Selection UI
+
+Use **AskUserQuestion** with the data from Step 1:
+
+```json
+{
+  "questions": [{
+    "question": "Select Codex model",
+    "header": "Model",
+    "options": [
+      {"label": "gpt-5.2-codex (current)", "description": "Default, balanced performance"},
+      {"label": "gpt-5.2", "description": "General purpose"},
+      {"label": "gpt-5.1-codex-max", "description": "Best for complex tasks"},
+      {"label": "gpt-5.1-codex-mini", "description": "Fastest, for quick responses"}
+    ],
+    "multiSelect": false
+  }]
+}
+```
+
+**Important:**
+- Mark the current model with "(current)" suffix
+- Use the `available_models` from config for the actual options
+
+### Step 3: Apply Selection
+
+1. Extract the model name from selection (remove "(current)" if present)
+2. Call `codex_set_config` with:
+   - key: "model"
+   - value: selected model name
+3. Confirm: "Model set to: {model}"

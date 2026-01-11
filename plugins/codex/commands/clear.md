@@ -2,22 +2,50 @@
 description: Clear stored Codex credentials
 allowed-tools: [
   "mcp__codex__codex_clear",
-  "mcp__codex__codex_status"
+  "mcp__codex__codex_status",
+  "AskUserQuestion"
 ]
 ---
 
-# Clear Codex Credentials
+## Your task
 
-Remove stored OAuth tokens and API keys, requiring re-authentication.
+Clear stored Codex credentials (OAuth tokens and API keys).
 
-## Process
+### Step 1: Check Current Status
 
-1. Ask user to confirm they want to clear credentials
-2. If confirmed, use `codex_clear` to remove stored tokens and API key
-3. Verify with `codex_status` that credentials are cleared
-4. Inform user they'll need to run `/codex:config` to re-authenticate
+Call `codex_status` to show current authentication state before clearing.
 
-## When to Use
+### Step 2: Confirm with User
+
+Use **AskUserQuestion** to confirm the action:
+
+```json
+{
+  "questions": [{
+    "question": "Clear all Codex credentials? You will need to re-authenticate.",
+    "header": "Confirm",
+    "options": [
+      {"label": "Yes, clear credentials", "description": "Remove OAuth tokens and API key"},
+      {"label": "Cancel", "description": "Keep current credentials"}
+    ],
+    "multiSelect": false
+  }]
+}
+```
+
+### Step 3: Execute Based on Selection
+
+**If "Yes, clear credentials":**
+
+1. Call `codex_clear` to remove all stored credentials
+2. Call `codex_status` to verify credentials are cleared
+3. Confirm: "Credentials cleared. Run `/codex:config` to re-authenticate."
+
+**If "Cancel":**
+
+- Confirm: "Credentials unchanged."
+
+### When to Use
 
 - Switching to a different OpenAI account
 - Switching between OAuth and API key authentication

@@ -1,21 +1,74 @@
 ---
 description: Manage Codex sessions
-argument-hint: list|clear (optional)
+argument-hint: [action]
 allowed-tools: [
   "mcp__codex__codex_list_sessions",
-  "mcp__codex__codex_clear_sessions"
+  "mcp__codex__codex_clear_sessions",
+  "AskUserQuestion"
 ]
 ---
 
 ## Your task
 
-Manage Codex session history.
+Manage Codex session history using interactive selection UI.
 
-If no argument or "list":
+### Step 1: Determine Action
+
+**If argument provided** ("list" or "clear"):
+
+- Execute that action directly
+
+**If no argument:**
+
+Use **AskUserQuestion** to let user choose:
+
+```json
+{
+  "questions": [{
+    "question": "What would you like to do with Codex sessions?",
+    "header": "Action",
+    "options": [
+      {"label": "List Sessions", "description": "View recent session history with prompts and timestamps"},
+      {"label": "Clear All Sessions", "description": "Delete all session history (cannot be undone)"}
+    ],
+    "multiSelect": false
+  }]
+}
+```
+
+### Step 2: Execute Action
+
+**For "List Sessions":**
+
 1. Call `codex_list_sessions` to get recent sessions
-2. Display sessions with their prompts and timestamps
+2. Display sessions in a clear format:
 
-If "clear":
-1. Ask user to confirm
-2. Call `codex_clear_sessions` to clear history
-3. Confirm cleared
+```
+## Recent Codex Sessions
+
+| ID | First Prompt | Messages | Last Active |
+|----|--------------|----------|-------------|
+| abc123 | "How do I implement..." | 4 | 2 hours ago |
+| def456 | "Review this code..." | 2 | yesterday |
+```
+
+**For "Clear All Sessions":**
+
+1. Use **AskUserQuestion** for confirmation:
+
+```json
+{
+  "questions": [{
+    "question": "Are you sure you want to clear all session history?",
+    "header": "Confirm",
+    "options": [
+      {"label": "Yes, clear all", "description": "Delete all sessions permanently"},
+      {"label": "Cancel", "description": "Keep sessions"}
+    ],
+    "multiSelect": false
+  }]
+}
+```
+
+2. If confirmed, call `codex_clear_sessions`
+3. Confirm: "All session history cleared."

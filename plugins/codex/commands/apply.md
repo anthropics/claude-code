@@ -16,64 +16,91 @@ allowed-tools: [
 
 Apply code changes from a Codex session response to the codebase.
 
-### Process
+### Step 1: Select Session
 
-1. Get the session to apply from:
-   - If session_id provided, use that session
-   - Otherwise, use `codex_list_sessions` and pick the most recent
-2. Ask Codex to regenerate the changes in a structured format
-3. Parse the suggested changes
-4. Show changes to user for confirmation
-5. Apply approved changes using Edit/Write tools
+**If session_id argument provided:**
 
-### Structured Change Request
+- Use that session directly
 
-When asking Codex to provide changes, use this prompt:
+**If no argument:**
+
+1. Call `codex_list_sessions` to get recent sessions
+2. Use **AskUserQuestion** to let user select:
+
+```json
+{
+  "questions": [{
+    "question": "Which session's changes would you like to apply?",
+    "header": "Session",
+    "options": [
+      {"label": "abc123 - How do I implement...", "description": "4 messages, 2 hours ago"},
+      {"label": "def456 - Review this code...", "description": "2 messages, yesterday"},
+      {"label": "ghi789 - Explain the arch...", "description": "6 messages, 2 days ago"}
+    ],
+    "multiSelect": false
+  }]
+}
+```
+
+### Step 2: Get Changes from Codex
+
+Call `codex_query` with the selected session_id and this prompt:
 
 ```
 Based on our previous conversation, provide the code changes in this exact format:
 
 FILE: path/to/file.ts
 ACTION: modify|create|delete
-```diff
---- a/path/to/file.ts
-+++ b/path/to/file.ts
-@@ -line,count +line,count @@
- context line
--removed line
-+added line
- context line
-```
+[diff content]
 
 List all files that need changes.
 ```
 
-### User Confirmation
+### Step 3: Confirm Application
 
-Before applying, show the user:
+Use **AskUserQuestion** for apply options:
+
+```json
+{
+  "questions": [{
+    "question": "How would you like to apply these changes?",
+    "header": "Apply",
+    "options": [
+      {"label": "Apply All", "description": "Apply all changes at once"},
+      {"label": "Review Each", "description": "Confirm each file individually"},
+      {"label": "Cancel", "description": "Don't apply any changes"}
+    ],
+    "multiSelect": false
+  }]
+}
 ```
-## Proposed Changes
 
-### Modify: src/auth.ts
-- Line 42: Update validation logic
-- Line 56-60: Add error handling
+### Step 4: Execute Based on Selection
 
-### Create: src/utils/helpers.ts
-- New utility functions
+**If "Apply All":**
 
-Apply these changes? [Yes/No/Review each]
+- Apply all changes using Edit/Write tools
+- Report: "Applied changes to N files."
+
+**If "Review Each":**
+
+- For each file, use **AskUserQuestion**:
+
+```json
+{
+  "questions": [{
+    "question": "Apply changes to src/auth.ts?",
+    "header": "File",
+    "options": [
+      {"label": "Apply", "description": "Apply this change"},
+      {"label": "Skip", "description": "Skip this file"},
+      {"label": "Cancel All", "description": "Stop applying changes"}
+    ],
+    "multiSelect": false
+  }]
+}
 ```
 
-### Apply Options
+**If "Cancel":**
 
-Use **AskUserQuestion** to let user choose:
-- **Apply All** - Apply all changes at once
-- **Review Each** - Confirm each file individually
-- **Cancel** - Don't apply any changes
-
-### Notes
-
-- Always show diffs before applying
-- Use Edit tool for modifications
-- Use Write tool for new files
-- Create backup or suggest git commit before major changes
+- Confirm: "No changes applied."
