@@ -2,7 +2,7 @@
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "jiusi-pys-plugins",
   "version": "1.0.0",
-  "description": "Fork of Claude Code plugins - includes Agent SDK development tools, PR review toolkit, commit workflows, and custom plugins",
+  "description": "Fork of Claude Code plugins - includes Agent SDK development tools, PR review toolkit, commit workflows, OpenAI Codex integration, and custom plugins",
   "owner": {
     "name": "Jiusi-pys",
     "email": "jiusi0519@gmail.com"
@@ -23,6 +23,17 @@
         "email": "whu@anthropic.com"
       },
       "source": "./plugins/claude-opus-4-5-migration",
+      "category": "development"
+    },
+    {
+      "name": "codex-oauth",
+      "description": "OpenAI Codex integration with secure OAuth 2.0 + PKCE authentication. Query Codex models with commands, auto-activation skills, and MCP tools for AI-powered code assistance.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Jiusi-pys",
+        "email": "jiusi0519@gmail.com"
+      },
+      "source": "./plugins/codex-oauth",
       "category": "development"
     },
     {
