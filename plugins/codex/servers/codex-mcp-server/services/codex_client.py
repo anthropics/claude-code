@@ -170,7 +170,8 @@ class CodexClient:
         """
         instructions = system_prompt or self.DEFAULT_INSTRUCTIONS
 
-        # Build input array - NO "type": "message" wrapper!
+        # Build input array
+        # Each item wrapped in "type": "message" (tagged enum format required by API)
         input_items = []
 
         # Add previous messages if provided
@@ -181,24 +182,28 @@ class CodexClient:
                 if role == "assistant":
                     # Assistant messages use output_text
                     input_items.append({
+                        "type": "message",
                         "role": "assistant",
                         "content": [{"type": "output_text", "text": content}]
                     })
                 elif role == "system":
                     # System messages use developer role with string content
                     input_items.append({
+                        "type": "message",
                         "role": "developer",
                         "content": content
                     })
                 else:
                     # User messages use input_text
                     input_items.append({
+                        "type": "message",
                         "role": "user",
                         "content": [{"type": "input_text", "text": content}]
                     })
 
         # Add current user prompt
         input_items.append({
+            "type": "message",
             "role": "user",
             "content": [{"type": "input_text", "text": prompt}]
         })
