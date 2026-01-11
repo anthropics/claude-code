@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Example SessionStart hook for loading project context
 # This script detects project type and sets environment variables
 
