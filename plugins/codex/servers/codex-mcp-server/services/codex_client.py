@@ -52,6 +52,9 @@ class CodexClient:
         self.token_manager = token_manager
         self.http_client = http_client
 
+    # Default system instructions for Codex
+    DEFAULT_INSTRUCTIONS = "You are a helpful AI coding assistant. Provide clear, concise, and accurate responses."
+
     def query(
         self,
         prompt: str,
@@ -66,7 +69,7 @@ class CodexClient:
         Args:
             prompt: User prompt/question
             model: Model to use (default: gpt-5.2-codex)
-            system_prompt: Optional system prompt
+            system_prompt: Optional system prompt (used as instructions)
             temperature: Sampling temperature (0-1)
             max_tokens: Maximum response tokens
             messages: Previous conversation messages for context
@@ -84,26 +87,20 @@ class CodexClient:
                 f"Allowed models: {', '.join(self.ALLOWED_MODELS)}"
             )
 
-        # Build messages with conversation history
-        all_messages = []
-        if system_prompt:
-            all_messages.append({"role": "system", "content": system_prompt})
+        # Get API URL to determine request format
+        api_url = self._get_api_url()
 
-        # Add previous messages if provided
-        if messages:
-            all_messages.extend(messages)
-
-        # Add current user prompt
-        all_messages.append({"role": "user", "content": prompt})
-
-        # Build request body
-        body: Dict[str, Any] = {
-            "model": model,
-            "messages": all_messages,
-            "temperature": temperature,
-        }
-        if max_tokens:
-            body["max_tokens"] = max_tokens
+        # Use different request format based on API endpoint
+        if api_url == CODEX_API_URL:
+            # ChatGPT Responses API format
+            body = self._build_responses_api_request(
+                prompt, model, system_prompt, messages
+            )
+        else:
+            # Standard OpenAI Chat Completions API format
+            body = self._build_chat_api_request(
+                prompt, model, system_prompt, temperature, max_tokens, messages
+            )
 
         # Get headers with authentication
         try:
@@ -112,7 +109,6 @@ class CodexClient:
             _debug(f"Failed to get headers: {e}")
             raise
 
-        api_url = self._get_api_url()
         _debug("Sending query to Codex", {"model": model, "prompt_length": len(prompt), "api_url": api_url})
         _debug("Request headers", {"keys": list(headers.keys())})
         _debug("Request body", body)
@@ -126,37 +122,11 @@ class CodexClient:
 
             _debug("Raw response received", {"response_type": type(response).__name__, "keys": list(response.keys()) if isinstance(response, dict) else "N/A"})
 
-            # Extract response text - handle various response formats
-            if not isinstance(response, dict):
-                _debug(f"Unexpected response type: {type(response)}")
-                raise CodexError(f"Unexpected response format: {type(response)}")
-
-            # Try standard OpenAI format
-            choices = response.get("choices", [])
-            if not choices:
-                _debug("No choices in response", response)
-                raise CodexError(f"No response from Codex. Response: {json.dumps(response)[:200]}")
-
-            choice = choices[0]
-
-            # Try message format (non-streaming)
-            if "message" in choice:
-                message = choice.get("message", {})
-                content = message.get("content", "")
-                if content:
-                    _debug(f"Extracted content from message: {len(content)} chars")
-                    return content
-
-            # Try delta format (streaming) - shouldn't happen in non-streaming response
-            if "delta" in choice:
-                delta = choice.get("delta", {})
-                content = delta.get("content", "")
-                if content:
-                    _debug(f"Extracted content from delta: {len(content)} chars")
-                    return content
-
-            _debug("Could not extract content from choice", choice)
-            raise CodexError(f"Could not extract response content from choice: {json.dumps(choice)[:200]}")
+            # Extract response based on API type
+            if api_url == CODEX_API_URL:
+                return self._parse_responses_api_response(response)
+            else:
+                return self._parse_chat_api_response(response)
 
         except HttpClientError as e:
             _debug(f"HTTP client error: {e}")
@@ -166,6 +136,140 @@ class CodexClient:
         except Exception as e:
             _debug(f"Unexpected error: {type(e).__name__}: {e}")
             raise CodexError(f"Unexpected error: {e}")
+
+    def _build_responses_api_request(
+        self,
+        prompt: str,
+        model: str,
+        system_prompt: Optional[str],
+        messages: Optional[list]
+    ) -> Dict[str, Any]:
+        """Build request body for ChatGPT Responses API format.
+
+        Responses API uses:
+        - instructions: system prompt (required)
+        - input: array of message items
+        """
+        instructions = system_prompt or self.DEFAULT_INSTRUCTIONS
+
+        # Build input array
+        input_items = []
+
+        # Add previous messages if provided
+        if messages:
+            for msg in messages:
+                role = msg.get("role", "user")
+                content = msg.get("content", "")
+                input_items.append({
+                    "role": role,
+                    "content": [{"type": "input_text", "text": content}]
+                })
+
+        # Add current user prompt
+        input_items.append({
+            "role": "user",
+            "content": [{"type": "input_text", "text": prompt}]
+        })
+
+        return {
+            "model": model,
+            "instructions": instructions,
+            "input": input_items,
+            "stream": False,
+            "store": False
+        }
+
+    def _build_chat_api_request(
+        self,
+        prompt: str,
+        model: str,
+        system_prompt: Optional[str],
+        temperature: float,
+        max_tokens: Optional[int],
+        messages: Optional[list]
+    ) -> Dict[str, Any]:
+        """Build request body for standard OpenAI Chat Completions API format."""
+        all_messages = []
+
+        if system_prompt:
+            all_messages.append({"role": "system", "content": system_prompt})
+
+        if messages:
+            all_messages.extend(messages)
+
+        all_messages.append({"role": "user", "content": prompt})
+
+        body: Dict[str, Any] = {
+            "model": model,
+            "messages": all_messages,
+            "temperature": temperature,
+        }
+        if max_tokens:
+            body["max_tokens"] = max_tokens
+
+        return body
+
+    def _parse_responses_api_response(self, response: Any) -> str:
+        """Parse response from ChatGPT Responses API format."""
+        if not isinstance(response, dict):
+            _debug(f"Unexpected response type: {type(response)}")
+            raise CodexError(f"Unexpected response format: {type(response)}")
+
+        # Responses API returns output array
+        output = response.get("output", [])
+        if not output:
+            _debug("No output in response", response)
+            raise CodexError(f"No response from Codex. Response: {json.dumps(response)[:200]}")
+
+        # Extract text from output items
+        text_parts = []
+        for item in output:
+            if item.get("type") == "message":
+                content = item.get("content", [])
+                for part in content:
+                    if part.get("type") == "output_text":
+                        text_parts.append(part.get("text", ""))
+
+        if text_parts:
+            result = "".join(text_parts)
+            _debug(f"Extracted content from output: {len(result)} chars")
+            return result
+
+        _debug("Could not extract content from output", output)
+        raise CodexError(f"Could not extract response content: {json.dumps(output)[:200]}")
+
+    def _parse_chat_api_response(self, response: Any) -> str:
+        """Parse response from standard OpenAI Chat Completions API format."""
+        if not isinstance(response, dict):
+            _debug(f"Unexpected response type: {type(response)}")
+            raise CodexError(f"Unexpected response format: {type(response)}")
+
+        # Try standard OpenAI format
+        choices = response.get("choices", [])
+        if not choices:
+            _debug("No choices in response", response)
+            raise CodexError(f"No response from Codex. Response: {json.dumps(response)[:200]}")
+
+        choice = choices[0]
+
+        # Try message format (non-streaming)
+        if "message" in choice:
+            message = choice.get("message", {})
+            content = message.get("content", "")
+            if content:
+                _debug(f"Extracted content from message: {len(content)} chars")
+                return content
+
+        # Try delta format (streaming) - shouldn't happen in non-streaming response
+        if "delta" in choice:
+            delta = choice.get("delta", {})
+            content = delta.get("content", "")
+            if content:
+                _debug(f"Extracted content from delta: {len(content)} chars")
+                return content
+
+        _debug("Could not extract content from choice", choice)
+        raise CodexError(f"Could not extract response content from choice: {json.dumps(choice)[:200]}")
 
     def query_stream(
         self,
