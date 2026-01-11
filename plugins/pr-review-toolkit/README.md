@@ -283,7 +283,7 @@ You can request multiple agents to run in parallel or sequentially:
 ## Integration with Workflow
 
 This plugin works great with:
-- **build-validator**: Run build/tests before review
+- **commit-commands**: Commit and create PRs after review
 - **Project-specific agents**: Combine with your custom agents
 
 **Recommended workflow:**
@@ -298,7 +298,7 @@ This plugin works great with:
 
 Found issues or have suggestions? These agents are maintained in:
 - User agents: `~/.claude/agents/`
-- Project agents: `.claude/agents/` in claude-cli-internal
+- Project agents: `.claude/agents/` in your project root
 
 ## License
 
