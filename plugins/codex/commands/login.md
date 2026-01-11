@@ -55,8 +55,8 @@ Use **AskUserQuestion** to let user choose:
     "question": "How would you like to authenticate with OpenAI Codex?",
     "header": "Auth",
     "options": [
-      {"label": "ChatGPT Subscription (Recommended)", "description": "Sign in with Plus/Pro/Team/Enterprise via browser OAuth"},
-      {"label": "API Key", "description": "Enter your OpenAI API key (sk-...) for usage-based billing"}
+      {"label": "API Key (Recommended)", "description": "Enter your OpenAI API key (sk-...) for stable Chat Completions API"},
+      {"label": "ChatGPT Subscription", "description": "Sign in with Plus/Pro/Team/Enterprise via browser OAuth (limited support)"}
     ],
     "multiSelect": false
   }]
@@ -65,13 +65,6 @@ Use **AskUserQuestion** to let user choose:
 
 ### Step 4: Execute Authentication
 
-**If "ChatGPT Subscription":**
-
-1. If switching, call `codex_clear` first
-2. Call `codex_login` to start OAuth browser flow
-3. Call `codex_status` to verify success
-4. Confirm: "Authenticated with ChatGPT subscription!"
-
 **If "API Key":**
 
 1. If switching, call `codex_clear` first
@@ -79,3 +72,11 @@ Use **AskUserQuestion** to let user choose:
 3. Call `codex_set_api_key` with the key
 4. Call `codex_status` to verify success
 5. Confirm: "API key configured successfully!"
+
+**If "ChatGPT Subscription":**
+
+1. If switching, call `codex_clear` first
+2. Call `codex_login` to start OAuth browser flow
+3. Call `codex_status` to verify success
+4. Confirm: "Authenticated with ChatGPT subscription!"
+5. Note: The ChatGPT Responses API has limited support. If you encounter issues, please switch to API key authentication.
