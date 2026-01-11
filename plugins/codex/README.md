@@ -8,7 +8,7 @@ OpenAI Codex integration for Claude Code with model selection, permission contro
 
 ## Features
 
-- 🔐 Secure OAuth 2.0 + PKCE authentication
+- 🔐 OpenAI API key authentication for stable, reliable access
 - 🎯 Model selection with persistent defaults
 - 🔧 Permission/approval mode configuration
 - 📜 Session continuity - follow-up questions maintain context
@@ -70,6 +70,21 @@ Response shows just the answer - no extra metadata.
 | `suggest` | Codex suggests, user confirms (default) |
 | `auto-edit` | Codex can edit files automatically |
 | `full-auto` | Codex has full control |
+
+## Authentication Methods
+
+### API Key (Recommended)
+
+Use an OpenAI API key for stable, reliable access via the official Chat Completions API:
+
+1. Get your API key from https://platform.openai.com/api/keys
+2. Run `/codex:login`
+3. Select "API Key" option
+4. Paste your key when prompted
+
+### ChatGPT Subscription (OAuth)
+
+OAuth authentication via ChatGPT subscription is supported but has limited reliability due to API compatibility issues. If you encounter "Instructions are not valid" errors, switch to API key authentication.
 
 ## Session Continuity
 
