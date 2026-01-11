@@ -1,8 +1,8 @@
 ---
 description: Clear stored Codex credentials
 allowed-tools: [
-  "codex_clear",
-  "codex_status"
+  "mcp__codex__codex_clear",
+  "mcp__codex__codex_status"
 ]
 ---
 

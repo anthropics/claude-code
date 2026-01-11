@@ -2,8 +2,8 @@
 description: Manage Codex sessions
 argument-hint: list|clear (optional)
 allowed-tools: [
-  "codex_list_sessions",
-  "codex_clear_sessions"
+  "mcp__codex__codex_list_sessions",
+  "mcp__codex__codex_clear_sessions"
 ]
 ---
 

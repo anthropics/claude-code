@@ -2,10 +2,10 @@
 description: Send a query to OpenAI Codex
 argument-hint: your question
 allowed-tools: [
-  "codex_query",
-  "codex_status",
-  "codex_list_sessions",
-  "codex_get_config",
+  "mcp__codex__codex_query",
+  "mcp__codex__codex_status",
+  "mcp__codex__codex_list_sessions",
+  "mcp__codex__codex_get_config",
   "AskUserQuestion"
 ]
 ---

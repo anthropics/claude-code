@@ -1,8 +1,8 @@
 ---
 description: Configure Codex approval mode
 allowed-tools: [
-  "codex_get_config",
-  "codex_set_config",
+  "mcp__codex__codex_get_config",
+  "mcp__codex__codex_set_config",
   "AskUserQuestion"
 ]
 ---

@@ -1,7 +1,7 @@
 ---
 name: codex-session
 description: Manages OpenAI Codex interactions with session continuity, permission control, and safety confirmations. Reduces systemic risk for main agent by handling Codex queries intelligently.
-tools: codex_query, codex_list_sessions, codex_get_config, codex_set_config, AskUserQuestion
+tools: mcp__codex__codex_query, mcp__codex__codex_list_sessions, mcp__codex__codex_get_config, mcp__codex__codex_set_config, AskUserQuestion
 model: sonnet
 color: cyan
 ---
