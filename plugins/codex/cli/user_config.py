@@ -9,19 +9,23 @@ import os
 from typing import Dict, Any, Optional, List
 from datetime import datetime
 
-import sys
-_cli_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if _cli_dir not in sys.path:
-    sys.path.insert(0, _cli_dir)
-from config import (
-    USER_CONFIG_PATH,
-    DEFAULT_MODEL,
-    DEFAULT_APPROVAL_MODE,
-    DEFAULT_REASONING_EFFORT,
-    AVAILABLE_MODELS,
-    APPROVAL_MODES,
-    REASONING_EFFORTS
-)
+# Import configuration values - avoid circular import by importing at function definition time
+# since this module is imported by config/__init__.py
+def _get_config_values():
+    import importlib.util
+    _spec = importlib.util.spec_from_file_location("cli_config", os.path.join(os.path.dirname(__file__), 'config.py'))
+    _conf = importlib.util.module_from_spec(_spec)
+    _spec.loader.exec_module(_conf)
+    return _conf
+
+_config = _get_config_values()
+USER_CONFIG_PATH = _config.USER_CONFIG_PATH
+DEFAULT_MODEL = _config.DEFAULT_MODEL
+DEFAULT_APPROVAL_MODE = _config.DEFAULT_APPROVAL_MODE
+DEFAULT_REASONING_EFFORT = _config.DEFAULT_REASONING_EFFORT
+AVAILABLE_MODELS = _config.AVAILABLE_MODELS
+APPROVAL_MODES = _config.APPROVAL_MODES
+REASONING_EFFORTS = _config.REASONING_EFFORTS
 
 
 class UserConfigError(Exception):

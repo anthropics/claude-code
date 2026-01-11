@@ -38,7 +38,7 @@ from auth.token_manager import TokenManager, TokenError
 from auth.oauth_flow import OAuthFlow, OAuthError
 from client.http_client import HttpClient
 from client.codex_client import CodexClient, CodexError
-from config.user_config import UserConfig, UserConfigError
+from user_config import UserConfig, UserConfigError
 
 
 def create_services():
