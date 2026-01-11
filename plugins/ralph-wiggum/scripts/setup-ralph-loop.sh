@@ -60,7 +60,7 @@ HELP_EOF
       ;;
     -m|--max-iterations)
       if [[ -z "${2:-}" ]]; then
-        echo "❌ Error: --max-iterations requires a number argument" >&2
+        echo "❌ Error: -m/--max-iterations requires a number argument" >&2
         echo "" >&2
         echo "   Valid examples:" >&2
         echo "     -m 10" >&2
@@ -71,7 +71,7 @@ HELP_EOF
         exit 1
       fi
       if ! [[ "$2" =~ ^[0-9]+$ ]]; then
-        echo "❌ Error: --max-iterations must be a positive integer or 0, got: $2" >&2
+        echo "❌ Error: -m/--max-iterations must be a positive integer or 0, got: $2" >&2
         echo "" >&2
         echo "   Valid examples:" >&2
         echo "     -m 10" >&2
@@ -86,7 +86,7 @@ HELP_EOF
       ;;
     -p|--completion-promise)
       if [[ -z "${2:-}" ]]; then
-        echo "❌ Error: --completion-promise requires a text argument" >&2
+        echo "❌ Error: -p/--completion-promise requires a text argument" >&2
         echo "" >&2
         echo "   Valid examples:" >&2
         echo "     -p 'DONE'" >&2
