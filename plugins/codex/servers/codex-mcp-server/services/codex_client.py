@@ -160,13 +160,17 @@ class CodexClient:
 
         Responses API uses:
         - instructions: system prompt (required)
-        - input: array of message items
+        - input: array of message items (NO type wrapper, just role + content)
         - reasoning: optional reasoning configuration
+
+        Input format (per opencode reference):
+        - User: {"role": "user", "content": [{"type": "input_text", "text": "..."}]}
+        - Assistant: {"role": "assistant", "content": [{"type": "output_text", "text": "..."}]}
+        - System: {"role": "developer", "content": "..."} (string, not array)
         """
         instructions = system_prompt or self.DEFAULT_INSTRUCTIONS
 
-        # Build input array
-        # Each item must have "type": "message" (tagged enum format)
+        # Build input array - NO "type": "message" wrapper!
         input_items = []
 
         # Add previous messages if provided
@@ -174,15 +178,27 @@ class CodexClient:
             for msg in messages:
                 role = msg.get("role", "user")
                 content = msg.get("content", "")
-                input_items.append({
-                    "type": "message",
-                    "role": role,
-                    "content": [{"type": "input_text", "text": content}]
-                })
+                if role == "assistant":
+                    # Assistant messages use output_text
+                    input_items.append({
+                        "role": "assistant",
+                        "content": [{"type": "output_text", "text": content}]
+                    })
+                elif role == "system":
+                    # System messages use developer role with string content
+                    input_items.append({
+                        "role": "developer",
+                        "content": content
+                    })
+                else:
+                    # User messages use input_text
+                    input_items.append({
+                        "role": "user",
+                        "content": [{"type": "input_text", "text": content}]
+                    })
 
         # Add current user prompt
         input_items.append({
-            "type": "message",
             "role": "user",
             "content": [{"type": "input_text", "text": prompt}]
         })

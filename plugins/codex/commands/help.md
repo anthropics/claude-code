@@ -16,7 +16,7 @@ Query OpenAI Codex for alternative AI perspectives, code generation, and reviews
 
 ## Quick Start
 
-1. Configure authentication: /codex:config
+1. Log in: /codex:login
 2. Check status: /codex:status
 3. Start querying: /codex "your question"
 
@@ -40,12 +40,12 @@ Query OpenAI Codex for alternative AI perspectives, code generation, and reviews
 ### Configuration
 | Command | Description |
 |---------|-------------|
-| /codex:config | Configure authentication |
+| /codex:login | Log in to Codex |
+| /codex:logout | Log out from Codex |
 | /codex:status | Show current status |
 | /codex:model | Select default model |
 | /codex:models | List available models |
 | /codex:permission | Set approval mode |
-| /codex:clear | Clear credentials |
 
 ## Authentication Methods
 

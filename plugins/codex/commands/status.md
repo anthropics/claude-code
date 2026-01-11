@@ -40,7 +40,7 @@ Present information in a clear, organized format:
 
 ### Notes
 
-- If not authenticated, suggest running `/codex:config`
+- If not authenticated, suggest running `/codex:login`
 - If no sessions, indicate "No active sessions"
 - For OAuth, show token expiry if available
 - For API key, show masked key (sk-***...xxx)

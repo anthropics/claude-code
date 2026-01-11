@@ -17,7 +17,7 @@ Request a code review from OpenAI Codex.
 
 ### Step 1: Check Authentication
 
-Call `codex_status` to verify authentication. If not authenticated, tell user to run `/codex:config` first.
+Call `codex_status` to verify authentication. If not authenticated, tell user to run `/codex:login` first.
 
 ### Step 2: Determine What to Review
 

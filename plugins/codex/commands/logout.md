@@ -1,5 +1,5 @@
 ---
-description: Clear stored Codex credentials
+description: Log out from OpenAI Codex
 allowed-tools: [
   "mcp__codex__codex_clear",
   "mcp__codex__codex_status",
@@ -39,7 +39,7 @@ Use **AskUserQuestion** to confirm the action:
 
 1. Call `codex_clear` to remove all stored credentials
 2. Call `codex_status` to verify credentials are cleared
-3. Confirm: "Credentials cleared. Run `/codex:config` to re-authenticate."
+3. Confirm: "Credentials cleared. Run `/codex:login` to re-authenticate."
 
 **If "Cancel":**
 

@@ -23,7 +23,7 @@ You are the Codex Session Manager. Your job is to execute Codex queries efficien
 
 ### Step 1: Check Authentication
 
-Call `codex_status`. If not authenticated, return: "Please run `/codex:config` to authenticate first."
+Call `codex_status`. If not authenticated, return: "Please run `/codex:login` to authenticate first."
 
 ### Step 2: Determine Session
 

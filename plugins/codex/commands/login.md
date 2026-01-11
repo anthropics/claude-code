@@ -1,5 +1,5 @@
 ---
-description: Configure OpenAI Codex authentication
+description: Log in to OpenAI Codex
 allowed-tools: [
   "mcp__codex__codex_status",
   "mcp__codex__codex_login",

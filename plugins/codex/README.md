@@ -19,10 +19,10 @@ OpenAI Codex integration for Claude Code with model selection, permission contro
 
 ## Quick Start
 
-### 1. Authenticate
+### 1. Log in
 
 ```
-/codex:config
+/codex:login
 ```
 
 Opens browser for OpenAI OAuth login.
@@ -48,11 +48,11 @@ Response shows just the answer - no extra metadata.
 | Command | Purpose |
 |---------|---------|
 | `/codex <query>` | Query Codex - shows only the answer |
-| `/codex:config` | Authenticate or check status |
+| `/codex:login` | Log in to Codex |
+| `/codex:logout` | Log out from Codex |
 | `/codex:model [name]` | View/set default model |
 | `/codex:permission [mode]` | View/set approval mode |
 | `/codex:session [list\|clear]` | Manage session history |
-| `/codex:clear` | Clear credentials |
 
 ## Models
 

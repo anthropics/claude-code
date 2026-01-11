@@ -21,7 +21,7 @@ This skill provides guidelines for integrating OpenAI Codex into Claude Code wor
 ```
 User Request
     ↓
-Commands (/codex, /codex:config, etc.)
+Commands (/codex, /codex:login, etc.)
     ↓
 Sub-agent (codex-session) ← Controls, decides, confirms
     ↓
@@ -61,12 +61,12 @@ The `codex-session` agent is responsible for:
 
 | Command | Purpose |
 |---------|---------|
-| `/codex:config` | Configure authentication method |
+| `/codex:login` | Log in to Codex |
+| `/codex:logout` | Log out from Codex |
 | `/codex:status` | Show status, auth, config, sessions |
 | `/codex:model` | Select default model (interactive) |
 | `/codex:models` | List available models |
 | `/codex:permission` | Set approval mode (interactive) |
-| `/codex:clear` | Clear credentials |
 | `/codex:help` | Show help and all commands |
 
 ## MCP Tools (for sub-agent use)
@@ -89,7 +89,7 @@ The `codex-session` agent is responsible for:
 | `oauth`   | ChatGPT subscription via browser | Plus, Pro, Team, Enterprise      |
 | `api_key` | OpenAI API key (sk-...)          | Usage-based billing              |
 
-Use `/codex:config` to configure authentication. The command uses AskUserQuestion to let users choose their preferred method.
+Use `/codex:login` to configure authentication. The command uses AskUserQuestion to let users choose their preferred method.
 
 ## Session Continuity Guidelines
 
