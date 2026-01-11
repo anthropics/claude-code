@@ -4,14 +4,24 @@ Handles API requests to OpenAI Codex endpoint with authentication.
 """
 
 import json
-from typing import Dict, Any, Optional, Iterator
-
 import sys
 import os
+from typing import Dict, Any, Optional, Iterator
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from config import CODEX_API_URL
+from config import CODEX_API_URL, DEBUG
 from infrastructure.http_client import HttpClient, HttpClientError
 from services.token_manager import TokenManager, TokenError
+
+
+def _debug(msg: str, data: Optional[Dict] = None):
+    """Log debug message if DEBUG is enabled."""
+    if DEBUG:
+        if data:
+            sys.stderr.write(f"[CODEX] {msg}: {json.dumps(data)}\n")
+        else:
+            sys.stderr.write(f"[CODEX] {msg}\n")
+        sys.stderr.flush()
 
 
 class CodexError(Exception):
@@ -88,7 +98,15 @@ class CodexClient:
             body["max_tokens"] = max_tokens
 
         # Get headers with authentication
-        headers = self._get_headers()
+        try:
+            headers = self._get_headers()
+        except CodexError as e:
+            _debug(f"Failed to get headers: {e}")
+            raise
+
+        _debug("Sending query to Codex", {"model": model, "prompt_length": len(prompt)})
+        _debug("Request headers", {"keys": list(headers.keys())})
+        _debug("Request body", body)
 
         try:
             response = self.http_client.post(
@@ -97,18 +115,48 @@ class CodexClient:
                 data=body
             )
 
-            # Extract response text
+            _debug("Raw response received", {"response_type": type(response).__name__, "keys": list(response.keys()) if isinstance(response, dict) else "N/A"})
+
+            # Extract response text - handle various response formats
+            if not isinstance(response, dict):
+                _debug(f"Unexpected response type: {type(response)}")
+                raise CodexError(f"Unexpected response format: {type(response)}")
+
+            # Try standard OpenAI format
             choices = response.get("choices", [])
             if not choices:
-                raise CodexError("No response from Codex")
+                _debug("No choices in response", response)
+                raise CodexError(f"No response from Codex. Response: {json.dumps(response)[:200]}")
 
-            message = choices[0].get("message", {})
-            content = message.get("content", "")
+            choice = choices[0]
 
-            return content
+            # Try message format (non-streaming)
+            if "message" in choice:
+                message = choice.get("message", {})
+                content = message.get("content", "")
+                if content:
+                    _debug(f"Extracted content from message: {len(content)} chars")
+                    return content
+
+            # Try delta format (streaming) - shouldn't happen in non-streaming response
+            if "delta" in choice:
+                delta = choice.get("delta", {})
+                content = delta.get("content", "")
+                if content:
+                    _debug(f"Extracted content from delta: {len(content)} chars")
+                    return content
+
+            _debug("Could not extract content from choice", choice)
+            raise CodexError(f"Could not extract response content from choice: {json.dumps(choice)[:200]}")
 
         except HttpClientError as e:
+            _debug(f"HTTP client error: {e}")
             raise CodexError(f"Codex API error: {e}")
+        except CodexError:
+            raise
+        except Exception as e:
+            _debug(f"Unexpected error: {type(e).__name__}: {e}")
+            raise CodexError(f"Unexpected error: {e}")
 
     def query_stream(
         self,
@@ -244,10 +292,11 @@ class CodexClient:
         try:
             access_token = self.token_manager.get_valid_token()
         except TokenError as e:
+            _debug(f"Token error: {e}")
             raise CodexError(f"Authentication required: {e}")
 
         headers = {
-            "Authorization": f"Bearer {access_token}",
+            "Authorization": f"Bearer {access_token[:20]}..." if access_token else "",
             "Content-Type": "application/json",
         }
 
@@ -255,5 +304,13 @@ class CodexClient:
         account_id = self.token_manager.get_account_id()
         if account_id:
             headers["ChatGPT-Account-Id"] = account_id
+            _debug("Using account ID for request", {"account_id": account_id})
+        else:
+            _debug("No account ID available")
 
-        return headers
+        # Return actual headers (not debug version)
+        return {
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json",
+            **({"ChatGPT-Account-Id": account_id} if account_id else {})
+        }

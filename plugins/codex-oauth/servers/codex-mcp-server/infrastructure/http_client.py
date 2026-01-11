@@ -13,7 +13,17 @@ import ssl
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from config import REQUEST_TIMEOUT, MAX_RETRIES
+from config import REQUEST_TIMEOUT, MAX_RETRIES, DEBUG
+
+
+def _debug(msg: str, data: Optional[Dict] = None):
+    """Log debug message if DEBUG is enabled."""
+    if DEBUG:
+        if data:
+            sys.stderr.write(f"[HTTP] {msg}: {json.dumps(data)}\n")
+        else:
+            sys.stderr.write(f"[HTTP] {msg}\n")
+        sys.stderr.flush()
 
 
 class HttpClientError(Exception):
@@ -78,17 +88,27 @@ class HttpClient:
             method=method
         )
 
+        _debug(f"Making {method} request", {"url": url})
+
         last_error = None
         for attempt in range(retries + 1):
             try:
+                _debug(f"Request attempt {attempt + 1}/{retries + 1}")
                 with urllib.request.urlopen(
                     req,
                     timeout=self.timeout,
                     context=self.ssl_context
                 ) as response:
                     response_body = response.read().decode("utf-8")
+                    _debug(f"Response status: {response.status}")
+                    _debug(f"Response body length: {len(response_body)}")
                     if response_body:
-                        return json.loads(response_body)
+                        try:
+                            return json.loads(response_body)
+                        except json.JSONDecodeError as je:
+                            _debug(f"JSON parse error: {je}")
+                            _debug(f"Response text: {response_body[:200]}")
+                            raise HttpClientError(f"Invalid JSON response: {je}")
                     return {}
             except urllib.error.HTTPError as e:
                 # Read error response body
@@ -97,6 +117,8 @@ class HttpClient:
                     error_body = e.read().decode("utf-8")
                 except Exception:
                     pass
+
+                _debug(f"HTTP error: {e.code}", {"reason": e.reason, "body": error_body[:200]})
 
                 # Don't retry on client errors (4xx)
                 if 400 <= e.code < 500:
@@ -108,11 +130,19 @@ class HttpClient:
                     f"HTTP {e.code}: {e.reason}. {error_body}"
                 )
             except urllib.error.URLError as e:
+                _debug(f"URL error: {e.reason}")
                 last_error = HttpClientError(f"Network error: {e.reason}")
+            except HttpClientError as e:
+                raise
             except Exception as e:
+                _debug(f"Unexpected error: {type(e).__name__}: {e}")
                 last_error = HttpClientError(f"Request failed: {e}")
 
-        raise last_error
+        if last_error:
+            _debug(f"Request failed after {retries + 1} attempts")
+            raise last_error
+
+        raise HttpClientError("Request failed for unknown reason")
 
     def get(self, url: str, headers: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
         """Make GET request.
