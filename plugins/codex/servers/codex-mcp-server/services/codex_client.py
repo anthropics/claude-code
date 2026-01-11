@@ -58,7 +58,8 @@ class CodexClient:
         model: Optional[str] = None,
         system_prompt: Optional[str] = None,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None
+        max_tokens: Optional[int] = None,
+        messages: Optional[list] = None
     ) -> str:
         """Send query to Codex and return response.
 
@@ -68,6 +69,7 @@ class CodexClient:
             system_prompt: Optional system prompt
             temperature: Sampling temperature (0-1)
             max_tokens: Maximum response tokens
+            messages: Previous conversation messages for context
 
         Returns:
             Codex response text
@@ -82,16 +84,22 @@ class CodexClient:
                 f"Allowed models: {', '.join(self.ALLOWED_MODELS)}"
             )
 
-        # Build messages
-        messages = []
+        # Build messages with conversation history
+        all_messages = []
         if system_prompt:
-            messages.append({"role": "system", "content": system_prompt})
-        messages.append({"role": "user", "content": prompt})
+            all_messages.append({"role": "system", "content": system_prompt})
+
+        # Add previous messages if provided
+        if messages:
+            all_messages.extend(messages)
+
+        # Add current user prompt
+        all_messages.append({"role": "user", "content": prompt})
 
         # Build request body
         body: Dict[str, Any] = {
             "model": model,
-            "messages": messages,
+            "messages": all_messages,
             "temperature": temperature,
         }
         if max_tokens:

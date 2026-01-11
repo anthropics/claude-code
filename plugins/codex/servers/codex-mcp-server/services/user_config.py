@@ -187,13 +187,21 @@ class UserConfig:
 
         Args:
             session_id: Session identifier
-            messages: Updated messages list
+            messages: Updated messages list (full content preserved)
         """
         config = self._load()
         sessions = config.get("sessions", [])
         for session in sessions:
             if session.get("id") == session_id:
-                session["messages"] = messages[-10:]  # Keep last 10 messages
+                # Keep last 20 messages to maintain context
+                session["messages"] = messages[-20:]
+                # Update prompt summary for display
+                if messages:
+                    last_user_msg = next(
+                        (m["content"] for m in reversed(messages) if m["role"] == "user"),
+                        session.get("prompt", "")
+                    )
+                    session["prompt"] = last_user_msg[:100]
                 break
         self._save()
 

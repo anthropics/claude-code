@@ -83,7 +83,7 @@ class MCPServer:
                 },
                 "serverInfo": {
                     "name": "codex",
-                    "version": "1.1.0"
+                    "version": "1.2.0"
                 }
             }
         }
@@ -93,13 +93,17 @@ class MCPServer:
         tools = [
             {
                 "name": "codex_query",
-                "description": "Send a query to OpenAI Codex and get a response. Use this for AI-powered assistance, code generation, and explanations.",
+                "description": "Send a query to OpenAI Codex and get a response. Use this for AI-powered assistance, code generation, and explanations. Use session_id to continue an existing conversation.",
                 "inputSchema": {
                     "type": "object",
                     "properties": {
                         "prompt": {
                             "type": "string",
                             "description": "The question or request to send to Codex"
+                        },
+                        "session_id": {
+                            "type": "string",
+                            "description": "Session ID to continue an existing conversation. If not provided, starts a new session."
                         },
                         "model": {
                             "type": "string",
@@ -268,7 +272,7 @@ class MCPServer:
                 }
             }
 
-    def _tool_query(self, arguments: dict) -> str:
+    def _tool_query(self, arguments: dict) -> dict:
         """Execute codex_query tool."""
         prompt = arguments.get("prompt")
         if not prompt:
@@ -279,24 +283,42 @@ class MCPServer:
         system_prompt = arguments.get("system_prompt")
         temperature = arguments.get("temperature", 0.7)
 
-        # Track session
-        session_id = str(uuid.uuid4())[:8]
-        self.user_config.add_session(session_id, prompt)
+        # Check if continuing an existing session
+        session_id = arguments.get("session_id")
+        previous_messages = []
 
+        if session_id:
+            # Load existing session messages
+            session = self.user_config.get_session(session_id)
+            if session:
+                previous_messages = session.get("messages", [])
+        else:
+            # Create new session
+            session_id = str(uuid.uuid4())[:8]
+            self.user_config.add_session(session_id, prompt)
+
+        # Query Codex with conversation history
         response = self.codex_client.query(
             prompt=prompt,
             model=model,
             system_prompt=system_prompt,
-            temperature=temperature
+            temperature=temperature,
+            messages=previous_messages
         )
 
-        # Update session with response
-        self.user_config.update_session(session_id, [
+        # Update session with new messages
+        new_messages = previous_messages + [
             {"role": "user", "content": prompt},
-            {"role": "assistant", "content": response[:200]}  # Truncate for storage
-        ])
+            {"role": "assistant", "content": response}
+        ]
+        self.user_config.update_session(session_id, new_messages)
 
-        return response
+        # Return response with session_id for continuation
+        return {
+            "response": response,
+            "session_id": session_id,
+            "message_count": len(new_messages)
+        }
 
     def _tool_status(self) -> dict:
         """Execute codex_status tool."""

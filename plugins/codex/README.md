@@ -11,10 +11,11 @@ OpenAI Codex integration for Claude Code with model selection, permission contro
 - 🔐 Secure OAuth 2.0 + PKCE authentication
 - 🎯 Model selection with persistent defaults
 - 🔧 Permission/approval mode configuration
-- 📜 Session history tracking
+- 📜 Session continuity - follow-up questions maintain context
 - 💾 Secure token storage (0600 permissions)
 - 🔄 Automatic token refresh
 - ⚡ Simple, clean response output
+- 🤖 Sub-agent for intelligent session management
 
 ## Quick Start
 
@@ -70,11 +71,38 @@ Response shows just the answer - no extra metadata.
 | `auto-edit` | Codex can edit files automatically |
 | `full-auto` | Codex has full control |
 
+## Session Continuity
+
+Codex sessions maintain conversation context across multiple queries. This allows for follow-up questions without losing context.
+
+**How it works:**
+- Each query returns a `session_id` with the response
+- Pass the same `session_id` to continue the conversation
+- The `codex-session` sub-agent automatically manages this
+
+**Example:**
+```
+User: How do I implement binary search?
+→ Codex explains binary search (session: abc123)
+
+User: Can you make it recursive?
+→ Uses session abc123, Codex knows you mean binary search
+
+User: Unrelated - what is REST?
+→ New session starts (different topic)
+```
+
+## Sub-Agents
+
+| Agent | Description |
+|-------|-------------|
+| `codex-session` | Manages session continuity, decides when to continue vs start new |
+
 ## MCP Tools
 
 | Tool | Description |
 |------|-------------|
-| `codex_query` | Send query to Codex |
+| `codex_query` | Send query to Codex (with optional session_id for continuation) |
 | `codex_status` | Check auth status |
 | `codex_login` | Start OAuth flow |
 | `codex_clear` | Clear credentials |
@@ -96,6 +124,13 @@ Response shows just the answer - no extra metadata.
 Part of Claude Code. See LICENSE in root repository.
 
 ## Changelog
+
+### v1.2.0
+
+- 🔄 Session continuity - follow-up questions maintain context
+- 🤖 `codex-session` sub-agent for intelligent session management
+- 📁 Project-specific configuration (`.claude/codex_config.json`)
+- 🎨 Selection UI for model and permission commands
 
 ### v1.1.0
 
