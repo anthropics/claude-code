@@ -3,8 +3,10 @@
     "type": "stdio",
     "command": "python3",
     "args": ["servers/codex-mcp-server/server.py"],
+    "cwd": "${PLUGIN_DIR}",
     "env": {
-      "CODEX_DEBUG": "${CODEX_DEBUG:-0}"
+      "CODEX_DEBUG": "${CODEX_DEBUG:-0}",
+      "PYTHONPATH": "${PLUGIN_DIR}/servers/codex-mcp-server"
     }
   }
 }
