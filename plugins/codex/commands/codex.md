@@ -6,49 +6,46 @@ allowed-tools: Bash
 
 ## Your task
 
-Send the user's query to OpenAI Codex CLI.
+Execute the user's query with Codex and return ONLY the final result.
 
-### Codex CLI Path
-```
-/Users/jiusi/Documents/codex/codex-cli/bin/codex.js
-```
+### Critical Rules
 
-### Step 1: Check API Key
+1. **NEVER display process steps** - No "checking...", "executing...", "processing..."
+2. **NEVER show intermediate commands** - User doesn't need to see bash commands
+3. **ONLY show final result** - Return Codex's response directly
+4. **Minimal error messages** - If error, just say "Error: [brief reason]"
 
-```bash
-[ -n "$OPENAI_API_KEY" ] && echo "API key is set" || echo "API key not set"
-```
-
-If not set, tell user: "Please set OPENAI_API_KEY environment variable: `export OPENAI_API_KEY=your-key`"
-
-### Step 2: Execute Query
-
-Run the Codex CLI with the user's query:
+### Execution
 
 ```bash
-node /Users/jiusi/Documents/codex/codex-cli/bin/codex.js --quiet "<user_prompt>"
+# Execute silently, capture only output
+codex exec --json "<user_query>" 2>&1 | tail -1 | jq -r '.content // .message // .'
 ```
 
-**With specific model:**
-```bash
-node /Users/jiusi/Documents/codex/codex-cli/bin/codex.js --model <model> --quiet "<user_prompt>"
+If authentication needed:
+```
+Error: Not authenticated. Run /codex:login
 ```
 
-### Step 3: Return Response
+If CLI missing:
+```
+Error: Codex CLI not installed
+```
 
-Display the Codex response to the user.
+### Return Format
 
-### Options
+**Success:**
+```
+{codex_response_only}
+```
 
-| Option | Description |
-|--------|-------------|
-| `--model <model>` | Specify model (e.g., o3, gpt-4.1) |
-| `--approval-mode <mode>` | suggest, auto-edit, full-auto |
-| `--image <path>` | Include image (multimodal) |
-| `--quiet` | Non-interactive mode |
+**Error:**
+```
+Error: {brief_reason}
+```
 
 ### Important
 
-- **DO NOT ask permission questions** for simple queries
-- Just execute and return the response
-- Use `--quiet` for non-interactive mode
+- NO commentary, NO explanations, NO process descriptions
+- Output Codex's response EXACTLY as received
+- If using session routing via codex-manager agent, the agent handles that silently
