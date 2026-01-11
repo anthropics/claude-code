@@ -2,23 +2,55 @@
 description: Send a query to OpenAI Codex
 argument-hint: your question
 allowed-tools: [
-  "Task"
+  "mcp__codex__codex_query",
+  "mcp__codex__codex_status",
+  "mcp__codex__codex_list_sessions"
 ]
 ---
 
 ## Your task
 
-Route the user's Codex query through the `codex-session` sub-agent for intelligent session management.
+Send the user's query directly to OpenAI Codex.
 
-**Use the Task tool** to spawn the `codex-session` agent with:
-- subagent_type: "codex:codex-session"
-- prompt: The user's question/request
+### Step 1: Check Authentication
 
-The sub-agent will handle:
-1. Authentication verification
-2. Session continuity (new vs existing)
-3. Permission confirmation for new sessions
-4. Query execution via MCP
-5. Response formatting
+Call `codex_status` to verify authentication. If not authenticated, tell user to run `/codex:config` first.
 
-Simply pass the user's request to the sub-agent and return its response.
+### Step 2: Check for Session Continuity
+
+Analyze the query to determine if it's a follow-up:
+
+**Continue existing session if:**
+- Query references "it", "that", "the code", etc.
+- User says "also", "continue", "what about..."
+- Same topic as recent session
+
+If continuing, call `codex_list_sessions` to find the relevant session_id.
+
+**Start new session if:**
+- Standalone question
+- Different topic
+- User explicitly says "new question"
+
+### Step 3: Execute Query
+
+Call `codex_query` with:
+- prompt: user's question
+- session_id: from Step 2 (or omit for new session)
+
+### Step 4: Return Response
+
+Display the Codex response directly. Include session info at the end:
+
+```
+{Codex response}
+
+---
+Session: {session_id} | Use `/codex:resume {session_id}` to continue
+```
+
+### Important
+
+- **DO NOT ask permission questions** for simple queries
+- Just execute the query and return the response
+- Only use `/codex:permission` if user wants to change approval mode
