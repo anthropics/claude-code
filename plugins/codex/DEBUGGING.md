@@ -9,22 +9,22 @@ The Codex plugin uses a Python-based MCP (Model Context Protocol) server. The co
 ```json
 {
   "codex": {
-    "type": "stdio",
     "command": "python3",
-    "args": ["servers/codex-mcp-server/server.py"],
-    "cwd": "${PLUGIN_DIR}",
+    "args": ["${CLAUDE_PLUGIN_ROOT}/servers/codex-mcp-server/server.py"],
     "env": {
       "CODEX_DEBUG": "${CODEX_DEBUG:-0}",
-      "PYTHONPATH": "${PLUGIN_DIR}/servers/codex-mcp-server"
+      "PYTHONPATH": "${CLAUDE_PLUGIN_ROOT}/servers/codex-mcp-server"
     }
   }
 }
 ```
 
 **Key settings:**
-- `type: "stdio"` - Uses standard input/output for communication
-- `cwd: "${PLUGIN_DIR}"` - Runs server from plugin directory
+
+- `${CLAUDE_PLUGIN_ROOT}` - Variable for plugin-relative paths (resolved by Claude Code)
 - `PYTHONPATH` - Enables Python module imports
+
+**Important:** After changing MCP config, restart Claude Code to apply changes.
 
 If the MCP server shows status "✘ failed", check:
 1. Python3 is installed: `python3 --version`
