@@ -1,27 +1,25 @@
 ---
 description: Select Codex model
-argument-hint: model name (optional)
 allowed-tools: [
   "codex_get_config",
   "codex_set_config",
-  "codex_models"
+  "AskUserQuestion"
 ]
 ---
 
 ## Your task
 
-Manage the default Codex model.
+Select the default Codex model using interactive UI.
 
-If no argument provided:
-1. Call `codex_get_config` to get current config
-2. Show current default model and list available models
-
-If model name provided:
-1. Call `codex_set_config` with key="model" and value=the model name
-2. Confirm the change
-
-Available models:
-- gpt-5.2-codex (default)
-- gpt-5.2
-- gpt-5.1-codex-max
-- gpt-5.1-codex-mini
+1. Call `codex_get_config` to get the current model setting
+2. Use **AskUserQuestion** to present model options:
+   - Header: "Model"
+   - Question: "Select Codex model"
+   - Options (mark current model with "(current)"):
+     - `gpt-5.2-codex` - Default, balanced
+     - `gpt-5.2` - General purpose
+     - `gpt-5.1-codex-max` - Complex tasks
+     - `gpt-5.1-codex-mini` - Quick responses
+   - multiSelect: false
+3. Call `codex_set_config` with key="model" and value=selected model name (remove "(current)" suffix if present)
+4. Confirm: "Model set to: {model}"
