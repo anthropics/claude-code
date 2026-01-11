@@ -2,6 +2,35 @@
 
 This guide helps troubleshoot issues with the OpenAI Codex OAuth integration plugin.
 
+## MCP Server Configuration
+
+The Codex plugin uses a Python-based MCP (Model Context Protocol) server. The configuration is in `.mcp.json`:
+
+```json
+{
+  "codex": {
+    "type": "stdio",
+    "command": "python3",
+    "args": ["servers/codex-mcp-server/server.py"],
+    "cwd": "${PLUGIN_DIR}",
+    "env": {
+      "CODEX_DEBUG": "${CODEX_DEBUG:-0}",
+      "PYTHONPATH": "${PLUGIN_DIR}/servers/codex-mcp-server"
+    }
+  }
+}
+```
+
+**Key settings:**
+- `type: "stdio"` - Uses standard input/output for communication
+- `cwd: "${PLUGIN_DIR}"` - Runs server from plugin directory
+- `PYTHONPATH` - Enables Python module imports
+
+If the MCP server shows status "✘ failed", check:
+1. Python3 is installed: `python3 --version`
+2. Server starts correctly: `python3 servers/codex-mcp-server/server.py` (from plugin dir)
+3. Debug output: `CODEX_DEBUG=1 python3 servers/codex-mcp-server/server.py`
+
 ## Enable Debug Mode
 
 To see detailed debug logs for troubleshooting:
