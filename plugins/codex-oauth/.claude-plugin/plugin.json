@@ -1,6 +1,6 @@
 {
   "name": "codex-oauth",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "OpenAI Codex integration with OAuth authentication for Claude Code",
   "author": {
     "name": "Claude Code Community"

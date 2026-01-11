@@ -9,33 +9,34 @@ allowed-tools: [
 
 # OpenAI Codex Configuration
 
-Check authentication status and guide setup if needed.
+Execute these steps to configure OpenAI Codex authentication:
 
-## Process
+## Step 1: Check Authentication Status
 
-1. Use `codex_status` to check current authentication status
-2. If not authenticated:
-   - Explain what OAuth authentication means
-   - Use `codex_login` to start the authentication flow
-   - The user's browser will open for OpenAI login
-   - After successful login, confirm authentication
-3. If authenticated:
-   - Show current status (token expiry, account ID)
-   - Offer option to re-authenticate if needed
-4. Optionally show available models using `codex_models`
+Call the `codex_status` MCP tool (from the codex-oauth plugin's codex server) to check if you are currently authenticated with OpenAI.
 
-## Authentication Flow
+Interpret the result:
+- If status is `authenticated`: Display the authentication details (token expiry, account ID)
+- If status is `not_authenticated`: Proceed to Step 2
 
-The plugin uses OAuth 2.0 with PKCE for secure authentication:
+## Step 2: Authenticate (if needed)
 
-1. Browser opens to OpenAI's authorization page
-2. User logs in with their OpenAI/ChatGPT account
-3. Authorization callback returns to localhost:1455
-4. Tokens are stored securely in ~/.claude/auth.json (0600 permissions)
-5. Access tokens auto-refresh before expiry
+If not authenticated, call the `codex_login` MCP tool to initiate the OAuth 2.0 authentication flow:
+- A browser window will automatically open
+- User will see OpenAI's authorization page
+- User logs in with their OpenAI/ChatGPT account
+- Browser redirects back to localhost:1455 with authorization code
+- Tokens are securely stored in ~/.claude/auth.json (0600 permissions)
+- Tokens auto-refresh before expiry
 
-## Requirements
+## Step 3: Display Available Models
 
-- ChatGPT Pro or Plus subscription for Codex access
-- Web browser for OAuth login
-- Port 1455 available for OAuth callback
+Call the `codex_models` MCP tool to list available Codex models and show the default model.
+
+## Summary
+
+Your job is to:
+1. Call `codex_status` and show the result
+2. If not authenticated, call `codex_login` to start OAuth
+3. Call `codex_models` to show available models
+4. Report success or any errors that occurred
