@@ -9,7 +9,7 @@ import os
 from typing import Dict, Any, Optional, Iterator
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from config import CODEX_API_URL, DEBUG
+from config import CODEX_API_URL, OPENAI_API_URL, DEBUG, AUTH_METHOD_OAUTH, AUTH_METHOD_API_KEY
 from infrastructure.http_client import HttpClient, HttpClientError
 from services.token_manager import TokenManager, TokenError
 
@@ -112,13 +112,14 @@ class CodexClient:
             _debug(f"Failed to get headers: {e}")
             raise
 
-        _debug("Sending query to Codex", {"model": model, "prompt_length": len(prompt)})
+        api_url = self._get_api_url()
+        _debug("Sending query to Codex", {"model": model, "prompt_length": len(prompt), "api_url": api_url})
         _debug("Request headers", {"keys": list(headers.keys())})
         _debug("Request body", body)
 
         try:
             response = self.http_client.post(
-                CODEX_API_URL,
+                api_url,
                 headers=headers,
                 data=body
             )
@@ -214,10 +215,11 @@ class CodexClient:
 
         # Get headers with authentication
         headers = self._get_headers()
+        api_url = self._get_api_url()
 
         try:
             for line in self.http_client.stream_post(
-                CODEX_API_URL,
+                api_url,
                 headers=headers,
                 data=body
             ):
@@ -258,8 +260,10 @@ class CodexClient:
         Returns:
             Health status dictionary
         """
+        auth_method = self.token_manager.get_auth_method()
         result = {
             "authenticated": False,
+            "auth_method": auth_method,
             "token_valid": False,
             "api_reachable": False,
             "error": None
@@ -273,9 +277,14 @@ class CodexClient:
                 result["error"] = "Not authenticated"
                 return result
 
-            # Try to get a valid token (triggers refresh if needed)
-            self.token_manager.get_valid_token()
-            result["token_valid"] = True
+            # Verify credentials based on method
+            if auth_method == AUTH_METHOD_API_KEY:
+                api_key = self.token_manager.get_api_key()
+                result["token_valid"] = api_key is not None and api_key.startswith("sk-")
+            else:
+                # OAuth: Try to get a valid token (triggers refresh if needed)
+                self.token_manager.get_valid_token()
+                result["token_valid"] = True
 
             # We could do a simple API test here, but skip to avoid
             # unnecessary API calls. Token validity is sufficient.
@@ -288,6 +297,17 @@ class CodexClient:
 
         return result
 
+    def _get_api_url(self) -> str:
+        """Get API URL based on authentication method.
+
+        Returns:
+            API URL string
+        """
+        auth_method = self.token_manager.get_auth_method()
+        if auth_method == AUTH_METHOD_API_KEY:
+            return OPENAI_API_URL
+        return CODEX_API_URL
+
     def _get_headers(self) -> Dict[str, str]:
         """Get request headers with authentication.
 
@@ -297,6 +317,20 @@ class CodexClient:
         Raises:
             CodexError: If authentication fails
         """
+        auth_method = self.token_manager.get_auth_method()
+
+        # API Key authentication
+        if auth_method == AUTH_METHOD_API_KEY:
+            api_key = self.token_manager.get_api_key()
+            if not api_key:
+                raise CodexError("API key not found. Run /codex:config to set up authentication.")
+            _debug("Using API key authentication")
+            return {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            }
+
+        # OAuth authentication (default)
         try:
             access_token = self.token_manager.get_valid_token()
         except TokenError as e:
@@ -308,7 +342,7 @@ class CodexClient:
             "Content-Type": "application/json",
         }
 
-        # Add account ID if available
+        # Add account ID if available (only for OAuth/ChatGPT)
         account_id = self.token_manager.get_account_id()
         if account_id:
             headers["ChatGPT-Account-Id"] = account_id

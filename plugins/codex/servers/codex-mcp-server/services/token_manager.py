@@ -11,7 +11,7 @@ from typing import Dict, Any, Optional
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from config import TOKEN_REFRESH_BUFFER
+from config import TOKEN_REFRESH_BUFFER, AUTH_METHOD_OAUTH, AUTH_METHOD_API_KEY
 from infrastructure.token_storage import TokenStorage
 from services.oauth_flow import OAuthFlow, OAuthError
 
@@ -86,26 +86,96 @@ class TokenManager:
 
         return None
 
+    def clear_tokens(self) -> None:
+        """Clear all stored tokens."""
+        self.storage.delete_tokens()
+        self._cached_tokens = None
+
+    # API Key methods
+    def set_api_key(self, api_key: str) -> None:
+        """Set API key for authentication.
+
+        Args:
+            api_key: OpenAI API key (sk-...)
+
+        Raises:
+            TokenError: If API key is invalid format
+        """
+        if not api_key or not api_key.startswith("sk-"):
+            raise TokenError("Invalid API key format. Must start with 'sk-'")
+        self.storage.save_api_key(api_key)
+        self._cached_tokens = None
+
+    def get_api_key(self) -> Optional[str]:
+        """Get stored API key.
+
+        Returns:
+            API key string or None
+        """
+        return self.storage.load_api_key()
+
+    def get_auth_method(self) -> Optional[str]:
+        """Get current authentication method.
+
+        Returns:
+            'oauth' or 'api_key' or None
+        """
+        return self.storage.get_auth_method()
+
     def is_authenticated(self) -> bool:
-        """Check if valid credentials exist.
+        """Check if valid credentials exist (OAuth or API key).
 
         Returns:
             True if authenticated, False otherwise
         """
-        tokens = self._get_tokens()
-        return tokens is not None and "access_token" in tokens
+        auth_method = self.get_auth_method()
+        if auth_method == AUTH_METHOD_API_KEY:
+            api_key = self.storage.load_api_key()
+            return api_key is not None and api_key.startswith("sk-")
+        elif auth_method == AUTH_METHOD_OAUTH:
+            tokens = self._get_tokens()
+            return tokens is not None and "access_token" in tokens
+        else:
+            # Check both
+            tokens = self._get_tokens()
+            if tokens and "access_token" in tokens:
+                return True
+            api_key = self.storage.load_api_key()
+            return api_key is not None and api_key.startswith("sk-")
+
+    def clear_all(self) -> None:
+        """Clear all stored credentials (OAuth and API key)."""
+        self.storage.clear_all()
+        self._cached_tokens = None
 
     def get_token_info(self) -> Dict[str, Any]:
-        """Get token status information.
+        """Get token/auth status information.
 
         Returns:
             Dictionary with authentication status details
         """
+        auth_method = self.get_auth_method()
+
+        # API Key authentication
+        if auth_method == AUTH_METHOD_API_KEY:
+            api_key = self.storage.load_api_key()
+            if api_key:
+                # Mask API key for display
+                masked = api_key[:7] + "..." + api_key[-4:] if len(api_key) > 15 else "sk-***"
+                return {
+                    "authenticated": True,
+                    "auth_method": AUTH_METHOD_API_KEY,
+                    "api_key_masked": masked,
+                    "message": f"Using API key: {masked}"
+                }
+
+        # OAuth authentication
         tokens = self._get_tokens()
 
         if not tokens:
             return {
                 "authenticated": False,
+                "auth_method": None,
                 "message": "Not authenticated"
             }
 
@@ -115,6 +185,7 @@ class TokenManager:
 
         return {
             "authenticated": True,
+            "auth_method": AUTH_METHOD_OAUTH,
             "expires_in_seconds": expires_in,
             "expires_at": expires_at,
             "has_refresh_token": "refresh_token" in tokens,
@@ -122,11 +193,6 @@ class TokenManager:
             "is_expired": expires_in <= 0,
             "needs_refresh": expires_in < TOKEN_REFRESH_BUFFER
         }
-
-    def clear_tokens(self) -> None:
-        """Clear all stored tokens."""
-        self.storage.delete_tokens()
-        self._cached_tokens = None
 
     def force_refresh(self) -> Dict[str, Any]:
         """Force refresh of access token.

@@ -21,7 +21,7 @@ import uuid
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from config import DEBUG, AVAILABLE_MODELS, APPROVAL_MODES
+from config import DEBUG, AVAILABLE_MODELS, APPROVAL_MODES, AUTH_METHOD_OAUTH, AUTH_METHOD_API_KEY, AUTH_METHODS
 from infrastructure.token_storage import TokenStorage
 from infrastructure.http_client import HttpClient
 from services.oauth_flow import OAuthFlow, OAuthError
@@ -132,15 +132,29 @@ class MCPServer:
             },
             {
                 "name": "codex_login",
-                "description": "Start OAuth authentication flow for OpenAI Codex. Opens browser for login.",
+                "description": "Start OAuth authentication for ChatGPT subscription (Plus/Pro/Team/Enterprise). Opens browser for login.",
                 "inputSchema": {
                     "type": "object",
                     "properties": {}
                 }
             },
             {
+                "name": "codex_set_api_key",
+                "description": "Set OpenAI API key for authentication (usage-based billing). Use this instead of OAuth if you have an API key.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "api_key": {
+                            "type": "string",
+                            "description": "OpenAI API key (starts with 'sk-')"
+                        }
+                    },
+                    "required": ["api_key"]
+                }
+            },
+            {
                 "name": "codex_clear",
-                "description": "Clear stored Codex OAuth credentials. You will need to re-authenticate.",
+                "description": "Clear all stored Codex credentials (OAuth tokens and API key). You will need to re-authenticate.",
                 "inputSchema": {
                     "type": "object",
                     "properties": {}
@@ -224,6 +238,8 @@ class MCPServer:
                 result = self._tool_status()
             elif tool_name == "codex_login":
                 result = self._tool_login()
+            elif tool_name == "codex_set_api_key":
+                result = self._tool_set_api_key(arguments)
             elif tool_name == "codex_clear":
                 result = self._tool_clear()
             elif tool_name == "codex_models":
@@ -323,41 +339,74 @@ class MCPServer:
     def _tool_status(self) -> dict:
         """Execute codex_status tool."""
         info = self.token_manager.get_token_info()
+        auth_method = info.get("auth_method")
 
         if not info["authenticated"]:
             return {
                 "status": "not_authenticated",
-                "message": "Not logged in. Run codex_login to authenticate."
+                "auth_method": None,
+                "available_methods": AUTH_METHODS,
+                "message": "Not logged in. Use codex_login (OAuth) or codex_set_api_key (API key) to authenticate."
             }
 
+        # API Key authentication
+        if auth_method == AUTH_METHOD_API_KEY:
+            return {
+                "status": "authenticated",
+                "auth_method": AUTH_METHOD_API_KEY,
+                "api_key_masked": info.get("api_key_masked"),
+                "message": info.get("message", "Authenticated with API key")
+            }
+
+        # OAuth authentication
         status = "authenticated"
-        if info["is_expired"]:
+        if info.get("is_expired"):
             status = "expired"
-        elif info["needs_refresh"]:
+        elif info.get("needs_refresh"):
             status = "needs_refresh"
+
+        message = "Authenticated with ChatGPT subscription"
+        if info.get("is_expired"):
+            message = "Token expired - will refresh automatically"
+        elif info.get("expires_in_seconds"):
+            message = f"Token expires in {info.get('expires_in_seconds', 0)} seconds"
 
         return {
             "status": status,
+            "auth_method": AUTH_METHOD_OAUTH,
             "authenticated": info["authenticated"],
             "account_id": info.get("account_id"),
             "expires_in_seconds": info.get("expires_in_seconds"),
             "has_refresh_token": info.get("has_refresh_token", False),
-            "message": f"Logged in. Token {'expired' if info['is_expired'] else 'expires in ' + str(info.get('expires_in_seconds', 0)) + ' seconds'}."
+            "message": message
         }
 
     def _tool_login(self) -> str:
-        """Execute codex_login tool."""
+        """Execute codex_login tool (OAuth for ChatGPT subscription)."""
         try:
             self.oauth_flow.start_auth_flow()
             info = self.token_manager.get_token_info()
-            return f"Successfully authenticated! Account: {info.get('account_id', 'N/A')}"
+            return f"Successfully authenticated with ChatGPT subscription! Account: {info.get('account_id', 'N/A')}"
         except OAuthError as e:
-            return f"Authentication failed: {e}"
+            return f"OAuth authentication failed: {e}"
+
+    def _tool_set_api_key(self, arguments: dict) -> str:
+        """Execute codex_set_api_key tool."""
+        api_key = arguments.get("api_key")
+        if not api_key:
+            raise ValueError("api_key is required")
+
+        try:
+            self.token_manager.set_api_key(api_key)
+            masked = api_key[:7] + "..." + api_key[-4:] if len(api_key) > 15 else "sk-***"
+            return f"API key set successfully: {masked}"
+        except TokenError as e:
+            raise ValueError(str(e))
 
     def _tool_clear(self) -> str:
         """Execute codex_clear tool."""
-        self.token_manager.clear_tokens()
-        return "Credentials cleared. You will need to re-authenticate with codex_login."
+        self.token_manager.clear_all()
+        return "All credentials cleared (OAuth tokens and API key). You will need to re-authenticate."
 
     def _tool_models(self) -> dict:
         """Execute codex_models tool."""
@@ -369,11 +418,15 @@ class MCPServer:
     def _tool_get_config(self) -> dict:
         """Execute codex_get_config tool."""
         config = self.user_config.get_config()
+        auth_info = self.token_manager.get_token_info()
         return {
             "model": config["model"],
             "approval_mode": config["approval_mode"],
             "available_models": AVAILABLE_MODELS,
             "available_approval_modes": APPROVAL_MODES,
+            "available_auth_methods": AUTH_METHODS,
+            "auth_method": auth_info.get("auth_method"),
+            "authenticated": auth_info.get("authenticated", False),
             "session_count": config["session_count"]
         }
 

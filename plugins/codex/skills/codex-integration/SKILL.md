@@ -54,11 +54,21 @@ The `codex-session` agent is responsible for:
 |------|---------|
 | `codex_query` | Execute query with session context |
 | `codex_status` | Check auth status |
-| `codex_login` | Start OAuth flow |
+| `codex_login` | Start OAuth flow (ChatGPT subscription) |
+| `codex_set_api_key` | Set API key (usage-based billing) |
 | `codex_get_config` | Read configuration |
 | `codex_set_config` | Update configuration |
 | `codex_list_sessions` | List recent sessions |
 | `codex_clear_sessions` | Clear session history |
+
+## Authentication Methods
+
+| Method    | Description                      | Use Case                         |
+|-----------|----------------------------------|----------------------------------|
+| `oauth`   | ChatGPT subscription via browser | Plus, Pro, Team, Enterprise      |
+| `api_key` | OpenAI API key (sk-...)          | Usage-based billing              |
+
+Use `/codex:config` to configure authentication. The command uses AskUserQuestion to let users choose their preferred method.
 
 ## Session Continuity Guidelines
 
@@ -85,4 +95,4 @@ The `codex-session` agent is responsible for:
 ## Configuration
 
 - **Project config**: `.claude/codex_config.json` (model, permission, sessions)
-- **Global auth**: `~/.claude/auth.json` (OAuth tokens)
+- **Global auth**: `~/.claude/auth.json` (OAuth tokens or API key)

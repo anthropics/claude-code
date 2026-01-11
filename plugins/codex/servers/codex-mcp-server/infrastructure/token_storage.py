@@ -32,7 +32,11 @@ else:
         fcntl.flock(f.fileno(), fcntl.LOCK_UN)
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from config import AUTH_FILE_PATH, TOKEN_KEY
+from config import AUTH_FILE_PATH, TOKEN_KEY, AUTH_METHOD_OAUTH, AUTH_METHOD_API_KEY
+
+# Storage keys
+API_KEY_STORAGE_KEY = "openai_api_key"
+AUTH_METHOD_KEY = "auth_method"
 
 
 class TokenStorage:
@@ -112,6 +116,115 @@ class TokenStorage:
         if existing and self.token_key in existing:
             del existing[self.token_key]
             self._save_all(existing)
+
+    # API Key methods
+    def save_api_key(self, api_key: str) -> None:
+        """Save API key with auth method marker.
+
+        Args:
+            api_key: OpenAI API key (sk-...)
+        """
+        existing = self._load_all() or {}
+        existing[API_KEY_STORAGE_KEY] = api_key
+        existing[AUTH_METHOD_KEY] = AUTH_METHOD_API_KEY
+        # Remove OAuth tokens if switching to API key
+        if self.token_key in existing:
+            del existing[self.token_key]
+        self._save_all_secure(existing)
+
+    def load_api_key(self) -> Optional[str]:
+        """Load API key from storage.
+
+        Returns:
+            API key string or None if not found
+        """
+        all_data = self._load_all()
+        if all_data is None:
+            return None
+        return all_data.get(API_KEY_STORAGE_KEY)
+
+    def delete_api_key(self) -> None:
+        """Remove stored API key."""
+        existing = self._load_all()
+        if existing and API_KEY_STORAGE_KEY in existing:
+            del existing[API_KEY_STORAGE_KEY]
+            if existing.get(AUTH_METHOD_KEY) == AUTH_METHOD_API_KEY:
+                del existing[AUTH_METHOD_KEY]
+            self._save_all(existing)
+
+    def get_auth_method(self) -> Optional[str]:
+        """Get current authentication method.
+
+        Returns:
+            'oauth' or 'api_key' or None if not set
+        """
+        all_data = self._load_all()
+        if all_data is None:
+            return None
+        # Infer from stored data if not explicitly set
+        if AUTH_METHOD_KEY in all_data:
+            return all_data[AUTH_METHOD_KEY]
+        if API_KEY_STORAGE_KEY in all_data:
+            return AUTH_METHOD_API_KEY
+        if self.token_key in all_data:
+            return AUTH_METHOD_OAUTH
+        return None
+
+    def set_auth_method(self, method: str) -> None:
+        """Set authentication method.
+
+        Args:
+            method: 'oauth' or 'api_key'
+        """
+        existing = self._load_all() or {}
+        existing[AUTH_METHOD_KEY] = method
+        self._save_all(existing)
+
+    def clear_all(self) -> None:
+        """Clear all stored credentials (tokens and API key)."""
+        existing = self._load_all()
+        if existing:
+            if self.token_key in existing:
+                del existing[self.token_key]
+            if API_KEY_STORAGE_KEY in existing:
+                del existing[API_KEY_STORAGE_KEY]
+            if AUTH_METHOD_KEY in existing:
+                del existing[AUTH_METHOD_KEY]
+            self._save_all(existing)
+
+    def _save_all_secure(self, data: Dict[str, Any]) -> None:
+        """Save all auth data atomically with 0600 permissions.
+
+        Args:
+            data: Full auth dictionary to save
+        """
+        # Ensure directory exists with secure permissions
+        self.auth_file.parent.mkdir(parents=True, exist_ok=True)
+        if sys.platform != "win32":
+            os.chmod(self.auth_file.parent, 0o700)
+
+        dir_path = self.auth_file.parent
+        old_umask = None
+        if sys.platform != "win32":
+            old_umask = os.umask(0o077)
+
+        try:
+            fd, temp_path = tempfile.mkstemp(dir=str(dir_path), suffix=".tmp")
+            try:
+                if sys.platform != "win32":
+                    os.fchmod(fd, 0o600)
+                with os.fdopen(fd, "w") as f:
+                    json.dump(data, f, indent=2)
+                os.rename(temp_path, self.auth_file)
+                if sys.platform != "win32":
+                    os.chmod(self.auth_file, 0o600)
+            except Exception:
+                if os.path.exists(temp_path):
+                    os.unlink(temp_path)
+                raise
+        finally:
+            if old_umask is not None:
+                os.umask(old_umask)
 
     def validate_permissions(self) -> bool:
         """Check if auth file has secure permissions (0600).

@@ -21,7 +21,15 @@ PKCE_VERIFIER_LENGTH = 43
 PKCE_METHOD = "S256"
 
 # API Configuration
+# OAuth endpoint (ChatGPT subscription: Plus/Pro/Team/Enterprise)
 CODEX_API_URL = "https://chatgpt.com/backend-api/codex/responses"
+# OpenAI API endpoint (API key: usage-based billing)
+OPENAI_API_URL = "https://api.openai.com/v1/chat/completions"
+
+# Authentication methods
+AUTH_METHOD_OAUTH = "oauth"      # ChatGPT subscription (Plus/Pro/Team/Enterprise)
+AUTH_METHOD_API_KEY = "api_key"  # OpenAI API key (usage-based billing)
+AUTH_METHODS = [AUTH_METHOD_OAUTH, AUTH_METHOD_API_KEY]
 
 # Token Storage
 AUTH_FILE_PATH = os.path.expanduser("~/.claude/auth.json")

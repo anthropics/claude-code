@@ -3,21 +3,56 @@ description: Configure OpenAI Codex authentication
 allowed-tools: [
   "mcp__codex__codex_status",
   "mcp__codex__codex_login",
-  "mcp__codex__codex_models"
+  "mcp__codex__codex_set_api_key",
+  "mcp__codex__codex_models",
+  "AskUserQuestion"
 ]
 ---
 
 ## Your task
 
-Configure OpenAI Codex authentication. You MUST follow these steps exactly:
+Configure OpenAI Codex authentication. **You MUST use AskUserQuestion to let the user choose their authentication method BEFORE calling any login tools.**
 
-1. First, call the `codex_status` tool to check authentication status
-2. If the result shows "not_authenticated":
-   - Explain what OAuth authentication means
-   - Call the `codex_login` tool to start the authentication flow
-   - A browser will open for OpenAI login
-   - The user should complete the login in their browser
-3. After authentication (or if already authenticated), call `codex_models` to list available models
-4. Display the final status and available models to the user
+### Step 1: Check Current Status
 
-You have the capability to call multiple tools in a single response. Do not send any text besides these instructions and the tool calls needed to complete this task.
+First, call `codex_status` to check if already authenticated.
+
+### Step 2: If Not Authenticated - MUST Ask User First
+
+If status shows "not_authenticated", you **MUST** immediately use AskUserQuestion with this EXACT format:
+
+```json
+{
+  "questions": [{
+    "question": "How would you like to authenticate with OpenAI?",
+    "header": "Auth",
+    "options": [
+      {"label": "ChatGPT Subscription (Recommended)", "description": "Sign in with Plus/Pro/Team/Enterprise via browser OAuth"},
+      {"label": "API Key", "description": "Enter your OpenAI API key (sk-...) for usage-based billing"}
+    ],
+    "multiSelect": false
+  }]
+}
+```
+
+**IMPORTANT: Do NOT call codex_login until the user has made their selection!**
+
+### Step 3: Execute Based on User Choice
+
+**If user selected "ChatGPT Subscription":**
+
+- Call `codex_login` to start OAuth flow
+- Browser will open for OpenAI login
+
+**If user selected "API Key" or "Other" with an API key:**
+
+- If the user provided their key in "Other", call `codex_set_api_key` with that key
+- Otherwise, tell the user to provide their API key (starts with "sk-") and call `codex_set_api_key`
+
+### Step 4: Verify
+
+Call `codex_status` again to confirm authentication succeeded.
+
+---
+
+**Remember: The selection UI MUST appear before any authentication action.**
