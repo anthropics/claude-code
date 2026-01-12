@@ -90,8 +90,12 @@ if [ ! -f ~/.codex/claude-sessions.json ]; then
       # Get last modification time
       LAST_USED=$(date -r "$SESSION_FILE" -u +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || stat -f "%Sm" -t "%Y-%m-%dT%H:%M:%SZ" "$SESSION_FILE" 2>/dev/null)
 
-      # Extract task summary from first user message
-      TASK_SUMMARY=$(head -20 "$SESSION_FILE" | grep '"type":"user_message"' | head -1 | jq -r '.content // .text' 2>/dev/null | head -c 100 || echo "Codex session")
+      # Extract task summary from first user message (correct JSONL format)
+      TASK_SUMMARY=$(grep -m1 '"role":"user"' "$SESSION_FILE" | jq -r '.payload.content[0].text // .payload.content[0].input_text // empty' 2>/dev/null | head -c 80 || echo "Codex session")
+
+      if [ -z "$TASK_SUMMARY" ] || [ "$TASK_SUMMARY" = "null" ]; then
+        TASK_SUMMARY="Codex session"
+      fi
 
       # Extract keywords (words 4+ chars)
       KEYWORDS=$(echo "$TASK_SUMMARY" | tr '[:upper:]' '[:lower:]' | grep -oE '\b[a-z]{4,}\b' | head -5 | jq -R . | jq -s .)

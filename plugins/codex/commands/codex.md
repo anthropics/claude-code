@@ -32,6 +32,27 @@ fi
 ```bash
 if [ ! -f ~/.codex/claude-sessions.json ]; then
   echo '{"version":"1.0.0","sessions":[]}' > ~/.codex/claude-sessions.json
+
+  # Auto-build from existing Codex CLI sessions (last 10)
+  if [ -d ~/.codex/sessions ]; then
+    for SESSION_FILE in $(find ~/.codex/sessions -name "rollout-*.jsonl" 2>/dev/null | sort -r | head -10); do
+      BASENAME=$(basename "$SESSION_FILE")
+      SESSION_ID=$(echo "$BASENAME" | sed -E 's/rollout-[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}-[0-9]{2}-[0-9]{2}-(.+)\.jsonl/\1/')
+      LAST_USED=$(date -r "$SESSION_FILE" -u +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || echo "2026-01-01T00:00:00Z")
+
+      # Extract first user message from JSONL
+      TASK_SUMMARY=$(grep -m1 '"role":"user"' "$SESSION_FILE" | jq -r '.payload.content[0].text // .payload.content[0].input_text // empty' 2>/dev/null | head -c 80 || echo "Codex session")
+      [ -z "$TASK_SUMMARY" ] || [ "$TASK_SUMMARY" = "null" ] && TASK_SUMMARY="Codex session"
+
+      KEYWORDS=$(echo "$TASK_SUMMARY" | tr '[:upper:]' '[:lower:]' | grep -oE '\b[a-z]{4,}\b' | head -5 | jq -R . | jq -s . 2>/dev/null || echo '[]')
+
+      rm -f ~/.codex/claude-sessions.json.tmp
+      jq --arg id "$SESSION_ID" --arg task "$TASK_SUMMARY" --argjson kw "$KEYWORDS" --arg ts "$LAST_USED" \
+        '.sessions += [{"id": $id, "task_summary": $task, "keywords": $kw, "last_used": $ts, "status": "active"}]' \
+        ~/.codex/claude-sessions.json > ~/.codex/claude-sessions.json.tmp 2>/dev/null && \
+        mv ~/.codex/claude-sessions.json.tmp ~/.codex/claude-sessions.json
+    done
+  fi
 fi
 ```
 
