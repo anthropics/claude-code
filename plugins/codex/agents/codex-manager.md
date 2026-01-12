@@ -70,9 +70,49 @@ If not authenticated, instruct user: "Please run /codex:login first"
 
 ### Step 2: Initialize Registry (if needed)
 
+If registry doesn't exist, build it from existing Codex CLI sessions:
+
 ```bash
 if [ ! -f ~/.codex/claude-sessions.json ]; then
+  # Create initial structure
   echo '{"version":"1.0.0","sessions":[]}' > ~/.codex/claude-sessions.json
+
+  # Check if there are existing Codex CLI sessions to import
+  if [ -d ~/.codex/sessions ]; then
+    # Find recent sessions (last 20)
+    SESSIONS=$(find ~/.codex/sessions -name "rollout-*.jsonl" 2>/dev/null | sort -r | head -20)
+
+    for SESSION_FILE in $SESSIONS; do
+      # Extract session ID from filename
+      BASENAME=$(basename "$SESSION_FILE")
+      SESSION_ID=$(echo "$BASENAME" | sed -E 's/rollout-[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}-[0-9]{2}-[0-9]{2}-(.+)\.jsonl/\1/')
+
+      # Get last modification time
+      LAST_USED=$(date -r "$SESSION_FILE" -u +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || stat -f "%Sm" -t "%Y-%m-%dT%H:%M:%SZ" "$SESSION_FILE" 2>/dev/null)
+
+      # Extract task summary from first user message
+      TASK_SUMMARY=$(head -20 "$SESSION_FILE" | grep '"type":"user_message"' | head -1 | jq -r '.content // .text' 2>/dev/null | head -c 100 || echo "Codex session")
+
+      # Extract keywords (words 4+ chars)
+      KEYWORDS=$(echo "$TASK_SUMMARY" | tr '[:upper:]' '[:lower:]' | grep -oE '\b[a-z]{4,}\b' | head -5 | jq -R . | jq -s .)
+
+      # Add to registry
+      rm -f ~/.codex/claude-sessions.json.tmp
+      jq --arg id "$SESSION_ID" \
+         --arg task "$TASK_SUMMARY" \
+         --argjson kw "$KEYWORDS" \
+         --arg ts "$LAST_USED" \
+         '.sessions += [{
+           "id": $id,
+           "task_summary": $task,
+           "keywords": $kw,
+           "last_used": $ts,
+           "status": "active"
+         }]' \
+         ~/.codex/claude-sessions.json > ~/.codex/claude-sessions.json.tmp && \
+         mv ~/.codex/claude-sessions.json.tmp ~/.codex/claude-sessions.json
+    done
+  fi
 fi
 ```
 
