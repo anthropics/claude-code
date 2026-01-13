@@ -96,7 +96,7 @@ jobs:
 
       - name: Run Claude Code for Issue Triage
         timeout-minutes: 5
-        uses: anthropics/claude-code-base-action@v1
+        uses: anthropics/claude-code-base-action@beta
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
