@@ -1,14 +1,13 @@
 {
-  "description": "Prompt to capture session learnings to AGENTS.md at session end",
+  "description": "Occasional tip about /session-commit at session end",
   "hooks": {
     "Stop": [
       {
         "matcher": "*",
         "hooks": [
           {
-            "type": "prompt",
-            "prompt": "Before ending this session, ask the user:\n\n\"Would you like to capture learnings from this session to update your AGENTS.md?\"\n\nIf user declines, return 'approve' to end normally.\n\nIf user agrees:\n\n1. Check if AGENTS.md exists in the project root\n   - If missing: Create a new AGENTS.md with a basic structure (project name, key directories, any patterns you observed)\n   - If exists: Read it to understand current content\n\n2. Analyze the session for:\n   - Coding patterns and preferences\n   - Architecture decisions made\n   - Gotchas or pitfalls encountered\n   - Project conventions established\n   - Workflow preferences\n\n3. Propose specific additions/updates to AGENTS.md\n   - Group by category\n   - Be concise - actionable guidance, not verbose explanations\n\n4. After user approves, apply the changes\n\n5. Ensure CLAUDE.md exists with this exact content:\n\n```\n# CLAUDE.md\n\n⚠️ This file is intentionally minimal.\n\n**Authoritative project instructions live in `AGENTS.md`.**\n\nYou must:\n\n1. Open and follow `AGENTS.md` before doing any work.\n2. Treat `AGENTS.md` as the single source of truth for all operations.\n3. Update `AGENTS.md` (not this file) when guidelines/architecture/standards change.\n\n➡️ Read now: [AGENTS.md](./AGENTS.md)\n```\n\n6. Return 'approve' to end the session.",
-            "timeout": 120
+            "type": "command",
+            "command": "bash -c '[ $((RANDOM % 5)) -eq 0 ] && echo \"💡 Tip: Run /session-commit to capture session learnings to AGENTS.md\" >&2; exit 0'"
           }
         ]
       }
