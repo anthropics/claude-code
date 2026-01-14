@@ -125,7 +125,7 @@ This plugin is included in the Claude Code repository. The hook is automatically
 
 **Manual testing:**
 ```bash
-cc --plugin-dir /path/to/security-guidance
+claude --plugin-dir /path/to/security-guidance
 ```
 
 ## Requirements
@@ -212,7 +212,3 @@ For path-based patterns:
     "reminder": "Warning message"
 }
 ```
-
-## License
-
-MIT License
