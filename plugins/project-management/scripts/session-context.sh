@@ -4,7 +4,7 @@
 
 set -e
 
-# Check if we are in a Git repository
+# Check if we're in a Git repository
 if ! git rev-parse --git-dir > /dev/null 2>&1; then
     echo '{"hookSpecificOutput": {"hookEventName": "SessionStart", "additionalContext": "Not in a Git repository. Git workflow commands will not be available."}}'
     exit 0
@@ -75,33 +75,40 @@ CONTEXT="## Git Context
 **Open Issues**: ${OPEN_ISSUES}
 
 **Commands Available**:
-- /pm-status - View project status
-- /pm-branch - Branch operations
-- /pm-sync - Sync with main branch
-- /pm-commit - Semantic commit
-- /pm-pr - PR operations
-- /pm-gh - GitHub CLI operations
-- /pm-cleanup - Clean merged branches
-- /pm-rebase - Interactive rebase"
+- \`/pm-status\` - View project status
+- \`/pm-branch\` - Branch operations
+- \`/pm-sync\` - Sync with main branch
+- \`/pm-commit\` - Semantic commit
+- \`/pm-pr\` - PR operations
+- \`/pm-gh\` - GitHub CLI operations
+- \`/pm-cleanup\` - Clean merged branches
+- \`/pm-rebase\` - Interactive rebase"
 
 # Add warnings if needed
 if [ "$CONFLICTS" -gt 0 ]; then
     CONTEXT="${CONTEXT}
 
-Warning: There are unresolved merge conflicts. Resolve before continuing."
+⚠️ **Warning**: There are unresolved merge conflicts. Resolve before continuing."
 fi
 
 if [ "$BEHIND" -gt 5 ]; then
     CONTEXT="${CONTEXT}
 
-Warning: Branch is ${BEHIND} commits behind origin. Consider syncing with /pm-sync."
+⚠️ **Warning**: Branch is ${BEHIND} commits behind origin. Consider syncing with \`/pm-sync\`."
 fi
 
 if [ "$GH_AVAILABLE" = "true" ] && [ "$GH_AUTH" = "false" ]; then
     CONTEXT="${CONTEXT}
 
-Warning: GitHub CLI not authenticated. Run gh auth login for full GitHub integration."
+⚠️ **Warning**: GitHub CLI not authenticated. Run \`gh auth login\` for full GitHub integration."
 fi
 
 # Output JSON
-printf '{"hookSpecificOutput": {"hookEventName": "SessionStart", "additionalContext": %s}}' "$(echo "$CONTEXT" | jq -Rs .)"
+cat << EOF
+{
+  "hookSpecificOutput": {
+    "hookEventName": "SessionStart",
+    "additionalContext": $(echo "$CONTEXT" | jq -Rs .)
+  }
+}
+EOF

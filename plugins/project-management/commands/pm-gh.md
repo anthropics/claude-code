@@ -94,3 +94,36 @@ When creating PR, use these keywords in body:
 - `Fixes #123` - Auto-closes issue on merge
 - `Closes #123` - Same as Fixes
 - `Refs #123` - Links without closing
+
+## Output Formatting
+
+For programmatic output:
+```bash
+gh issue list --json number,title,state
+gh pr list --json number,title,mergeable
+```
+
+## Arguments
+
+- `$1`: Category (issue, pr, run, release)
+- `$2`: Action (list, create, view, etc.)
+- `$3+`: Additional arguments
+
+## Error Handling
+
+If `gh` not installed:
+```bash
+# macOS
+brew install gh
+
+# Ubuntu/Debian
+apt install gh
+
+# Other
+https://cli.github.com/
+```
+
+If not authenticated:
+```bash
+gh auth login
+```

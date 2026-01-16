@@ -42,7 +42,7 @@ argument-hint: [--amend] | [message]
 
 ### Rules
 
-1. Subject line <= 50 characters
+1. Subject line ≤ 50 characters
 2. Use imperative mood: "add" not "added" or "adds"
 3. No period at end of subject
 4. Body wraps at 72 characters

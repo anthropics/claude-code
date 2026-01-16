@@ -5,7 +5,7 @@ tools: Bash, Read, Write
 model: sonnet
 ---
 
-# Issue and Project Tracking Expert Agent
+# Issue & Project Tracking Expert Agent
 
 You are a project management specialist focused on issue tracking, PR management, and workflow coordination.
 
@@ -84,6 +84,9 @@ gh pr view <number> --json reviews
 ## Environment
 - OS: [e.g., macOS 14.0]
 - Version: [e.g., v1.2.3]
+
+## Additional Context
+[Screenshots, logs, etc.]
 ```
 
 ### Feature Request
@@ -99,6 +102,9 @@ gh pr view <number> --json reviews
 
 ## Alternatives Considered
 [Other approaches]
+
+## Additional Context
+[Mockups, examples, etc.]
 ```
 
 ## PR-Issue Linking
@@ -109,6 +115,73 @@ In PR description or commit message:
 - `Closes #123` - Same as Fixes
 - `Resolves #123` - Same as Fixes
 - `Refs #123` - Links without closing
+
+### Best Practice
+```markdown
+## Description
+Implements user authentication feature.
+
+## Related Issue
+Fixes #123
+
+## Changes
+- Added login endpoint
+- Added JWT validation
+- Added user session management
+```
+
+## Project Workflow
+
+```
+┌─────────────────┐
+│     Issue       │
+│   (Created)     │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│    Branch       │
+│   Created       │
+│ feature/123-xxx │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│   Draft PR      │◄──────┐
+│   Created       │       │
+└────────┬────────┘       │
+         │                │
+         ▼                │
+┌─────────────────┐       │
+│  Development    │───────┘
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  Ready for      │
+│    Review       │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│    Review       │◄──────┐
+│   Process       │       │
+└────────┬────────┘       │
+         │ (approved)     │ (changes)
+         │                │
+         │       ┌────────┘
+         ▼       │
+┌─────────────────┐
+│     Merge       │
+│ "Fixes #123"    │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  Issue Closed   │
+│  Automatically  │
+└─────────────────┘
+```
 
 ## Status Checks
 

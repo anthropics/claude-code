@@ -18,7 +18,7 @@ argument-hint: create <issue-number> <description> | switch <branch-name> | dele
 Based on the command `$1`:
 
 **If `create`**:
-1. Ensure we are on main/master branch and it is up-to-date
+1. Ensure we're on main/master branch and it's up-to-date
 2. Create branch with naming convention: `feature/$2-$3` or `fix/$2-$3` or `hotfix/$2-$3`
 3. Push branch to origin with upstream tracking: `git push -u origin <branch-name>`
 

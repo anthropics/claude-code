@@ -83,7 +83,7 @@ Examples:
 
 ### Force Push
 ```bash
-# SAFE - prevents overwriting others work
+# SAFE - prevents overwriting others' work
 git push --force-with-lease
 
 # DANGEROUS - avoid

@@ -62,6 +62,52 @@ gh pr view --json title,state,reviews,checks,mergeable
    - Close PR
    - Create new Issue
 
+## PR Lifecycle
+
+```
+                    ┌─────────────────┐
+                    │  Create Branch  │
+                    └────────┬────────┘
+                             │
+                             ▼
+                    ┌─────────────────┐
+                    │   First Push    │
+                    │  git push -u    │
+                    └────────┬────────┘
+                             │
+                             ▼
+                    ┌─────────────────┐
+                    │   Draft PR      │◄──────┐
+                    └────────┬────────┘       │
+                             │                │
+                             ▼                │
+                    ┌─────────────────┐       │
+              ┌─────│   Development   │───────┘
+              │     └────────┬────────┘  (iterate)
+              │              │
+              │              ▼
+              │     ┌─────────────────┐
+              │     │  Ready Review   │
+              │     └────────┬────────┘
+              │              │
+              │              ▼
+              │     ┌─────────────────┐
+              └────►│    Review       │◄──────┐
+                    └────────┬────────┘       │
+                             │                │
+                    (approved)│    (changes)  │
+                             │        └───────┘
+                             ▼
+                    ┌─────────────────┐
+                    │     Merge       │
+                    └────────┬────────┘
+                             │
+                             ▼
+                    ┌─────────────────┐
+                    │  Delete Branch  │
+                    └─────────────────┘
+```
+
 ## Best Practices
 
 1. **Title**: Include Issue number, be concise

@@ -1,16 +1,8 @@
-# Project Management Plugin
+# Claude Code Project Management Plugin
 
-A comprehensive Git/GitHub project management plugin for Claude Code with workflow automation, PR management, and issue tracking.
+Comprehensive Git/GitHub project management plugin with workflow automation, PR management, and issue tracking for Claude Code.
 
 ## Features
-
-- **Git Workflow Automation**: Rebase-based workflow with safety checks
-- **Branch Management**: Conventional naming and lifecycle management
-- **PR Operations**: Draft-first workflow with review handling
-- **GitHub CLI Integration**: Full gh command support
-- **Safety Hooks**: Prevent dangerous operations on protected branches
-
-## Components
 
 ### Slash Commands (User-Invoked)
 
@@ -43,34 +35,42 @@ A comprehensive Git/GitHub project management plugin for Claude Code with workfl
 | `pr-management` | PR creation and review process |
 | `gh-cli` | GitHub CLI command reference |
 
-## Workflow Philosophy
+### Hooks (Automatic)
 
-> **Git is a ledger, not a scratch pad; PRs are campaigns, not guerrilla warfare.**
+| Event | Action |
+|-------|--------|
+| `SessionStart` | Load Git context |
+| `PostToolUse[Write\|Edit]` | Check for uncommitted changes |
+| `PreToolUse[Bash]` | Validate Git commands |
+| `Stop` | Verify Git state before ending |
 
-### Core Principles
+## Installation
 
-1. **Rebase over Merge**: Maintain linear history
-2. **Atomic Commits**: One logical change per commit
-3. **Conventional Commits**: Semantic commit messages
-4. **Draft PRs First**: Start as draft, mark ready when complete
-5. **Branch Hygiene**: Delete merged branches promptly
+```bash
+# Clone or download the plugin
+git clone <repository-url> ~/.claude/plugins/project-management
 
-### Protected Branch Safety
-
-The plugin blocks force pushes to protected branches:
-- `main`
-- `master`
-- `develop`
-- `production`
-- `staging`
+# Or install via Claude Code
+/plugin install <marketplace-url>/project-management
+```
 
 ## Usage
 
-### Start New Feature
+### Start a New Feature
 
 ```
-/pm-branch create 123 add-user-login
+/pm-branch create 123 user-login
 ```
+
+Creates branch `feature/123-user-login` and sets up upstream.
+
+### Check Status
+
+```
+/pm-status
+```
+
+Shows current branch, uncommitted changes, and sync status.
 
 ### Sync with Main
 
@@ -78,11 +78,15 @@ The plugin blocks force pushes to protected branches:
 /pm-sync
 ```
 
-### Commit Changes
+Fetches and rebases onto main branch.
+
+### Create Semantic Commit
 
 ```
 /pm-commit
 ```
+
+Analyzes changes and creates conventional commit.
 
 ### Manage PR
 
@@ -106,10 +110,73 @@ The plugin blocks force pushes to protected branches:
 /pm-cleanup
 ```
 
+## Workflow Philosophy
+
+> **Git 是记账本，不是草稿纸；PR 是战役，不是游击战。**
+
+### Core Principles
+
+1. **Rebase over Merge**: Maintains linear history
+2. **Atomic Commits**: Each commit is complete and working
+3. **Draft PR First**: Start with draft, then ready for review
+4. **Clean Up**: Delete branches after merge
+
+### Conventional Commits
+
+```
+<type>(<scope>): <subject> (#<issue>)
+
+Types: feat, fix, docs, style, refactor, perf, test, chore, ci
+```
+
+## Directory Structure
+
+```
+project-management/
+├── .claude-plugin/
+│   └── plugin.json          # Plugin manifest
+├── commands/                 # Slash commands
+│   ├── pm-status.md
+│   ├── pm-branch.md
+│   ├── pm-sync.md
+│   ├── pm-commit.md
+│   ├── pm-pr.md
+│   ├── pm-gh.md
+│   ├── pm-cleanup.md
+│   └── pm-rebase.md
+├── agents/                   # Subagents
+│   ├── git-workflow-agent.md
+│   ├── pr-reviewer-agent.md
+│   ├── issue-tracker-agent.md
+│   └── gh-cli-agent.md
+├── skills/                   # Agent Skills
+│   ├── git-workflow/
+│   │   ├── SKILL.md
+│   │   └── COMMANDS.md
+│   ├── branch-strategy/
+│   │   └── SKILL.md
+│   ├── pr-management/
+│   │   └── SKILL.md
+│   └── gh-cli/
+│       ├── SKILL.md
+│       └── COMMANDS.md
+├── hooks/
+│   └── hooks.json           # Hook configuration
+├── scripts/                 # Hook scripts
+│   ├── session-context.sh
+│   ├── check-uncommitted.sh
+│   ├── validate-git-command.sh
+│   └── validate-gh-command.sh
+├── README.md
+├── CHANGELOG.md
+└── LICENSE
+```
+
 ## Requirements
 
-- Git
-- GitHub CLI (`gh`) - recommended for full functionality
+- Git >= 2.38
+- GitHub CLI (`gh`) for PR operations
+- Claude Code >= 1.0
 
 ## License
 

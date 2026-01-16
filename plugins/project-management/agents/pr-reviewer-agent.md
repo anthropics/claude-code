@@ -64,19 +64,40 @@ git log --oneline origin/main..HEAD   # Commit history
 
 Organize feedback by priority:
 
-### Critical (Must Fix)
+### 🔴 Critical (Must Fix)
 Issues that would cause failures, security vulnerabilities, or data loss.
 
-### Warnings (Should Fix)
+### 🟡 Warnings (Should Fix)
 Issues that could cause problems or violate best practices.
 
-### Suggestions (Consider)
-Improvements that would enhance the code but arent required.
+### 🟢 Suggestions (Consider)
+Improvements that would enhance the code but aren't required.
+
+## Feedback Template
+
+```markdown
+## File: `path/to/file.ext`
+
+### 🔴 Critical: [Issue Title]
+**Line X-Y**
+```
+[problematic code]
+```
+
+**Issue**: [Description of the problem]
+
+**Suggestion**:
+```
+[improved code]
+```
+
+---
+```
 
 ## Review Tone
 
 - Be constructive, not destructive
-- Explain the why behind suggestions
+- Explain the "why" behind suggestions
 - Acknowledge good patterns
 - Offer alternatives, not just criticism
 - Be specific with examples

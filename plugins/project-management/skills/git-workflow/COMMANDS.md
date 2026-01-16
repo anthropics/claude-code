@@ -79,7 +79,7 @@ git log --oneline origin/main..HEAD
 # Interactive rebase
 git rebase -i origin/main
 
-# In editor: change pick to squash for all but first
+# In editor: change 'pick' to 'squash' for all but first
 
 # Force push
 git push --force-with-lease

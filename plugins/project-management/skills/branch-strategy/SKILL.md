@@ -35,9 +35,59 @@ This skill provides guidance on branch naming, organization, and lifecycle manag
 4. **Concise**: Keep description short but meaningful
 5. **No special chars**: Avoid `/`, `\`, spaces, `..`
 
+## Branch Lifecycle
+
+```
+┌──────────────┐
+│ main/master  │ ← Protected, always deployable
+└──────┬───────┘
+       │
+       │ checkout -b
+       ▼
+┌──────────────┐
+│   Feature    │ ← Development happens here
+│   Branch     │
+└──────┬───────┘
+       │
+       │ push -u origin
+       ▼
+┌──────────────┐
+│  Draft PR    │ ← Collaboration begins
+└──────┬───────┘
+       │
+       │ development cycles
+       ▼
+┌──────────────┐
+│   Ready      │ ← Ready for review
+│   Review     │
+└──────┬───────┘
+       │
+       │ approved
+       ▼
+┌──────────────┐
+│   Merge      │ ← Squash/Rebase merge
+└──────┬───────┘
+       │
+       │ cleanup
+       ▼
+┌──────────────┐
+│  Deleted     │ ← Local + remote
+└──────────────┘
+```
+
 ## Branching Strategies
 
 ### Trunk-Based Development (Recommended for small teams)
+
+```
+main ─────●─────●─────●─────●─────●───────
+          │     │     │     │     │
+          │     │     │     │     └─ hotfix/789
+          │     │     │     └─ feature/456
+          │     │     └─ feature/123
+          │     └─ (merged)
+          └─ (merged)
+```
 
 **Characteristics:**
 - Short-lived feature branches (< 1 day ideal)
@@ -47,6 +97,16 @@ This skill provides guidance on branch naming, organization, and lifecycle manag
 
 ### Git Flow (For release cycles)
 
+```
+main     ─────●───────────────●───────────
+              │               │
+release   ────┴───●───●───────┴───────────
+                  │   │
+develop ─●───●───●┴───┴───●───●───●───────
+         │       │         │   │
+feature  └───────┘         └───┘
+```
+
 **Branches:**
 - `main`: Production releases
 - `develop`: Integration branch
@@ -55,6 +115,13 @@ This skill provides guidance on branch naming, organization, and lifecycle manag
 - `hotfix/*`: Production fixes
 
 ### GitHub Flow (Simple, CI/CD focused)
+
+```
+main ─────●─────●─────●─────●─────●───────
+          │           │           │
+feature ──┴───────────┴───────────┴───────
+          (PR)        (PR)        (PR)
+```
 
 **Rules:**
 - `main` is always deployable

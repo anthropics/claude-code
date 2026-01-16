@@ -50,17 +50,17 @@ If user wants to abort: `git rebase --abort`
 - Cleaner commit graph
 - Easier to review and bisect
 
-**Prohibited**:
+**禁止操作 (Prohibited)**:
 ```bash
-git merge main   # Unless team explicitly allows
+git merge main   # 除非团队明确允许
 ```
 
-**Safe Force Push**:
+**安全强推 (Safe Force Push)**:
 After rebase, if needed:
 ```bash
 git push --force-with-lease
 ```
-`--force-with-lease` prevents overwriting others commits.
+`--force-with-lease` prevents overwriting others' commits.
 
 ## Post-Sync Verification
 

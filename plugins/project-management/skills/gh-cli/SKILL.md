@@ -103,4 +103,44 @@ gh issue list --json number,title | jq '.[0]'
 gh pr list --json title --jq '.[].title'
 ```
 
+## Common Patterns
+
+### Create Issue from Template
+```bash
+gh issue create \
+  --title "Bug: Description" \
+  --body "## Steps to Reproduce
+1. Step 1
+2. Step 2
+
+## Expected Behavior
+
+## Actual Behavior
+" \
+  --label bug
+```
+
+### Create PR with Template
+```bash
+gh pr create \
+  --title "feat: add feature" \
+  --body "## Description
+Implements X feature.
+
+## Related Issue
+Fixes #123
+
+## Testing
+- [ ] Unit tests
+- [ ] Integration tests
+" \
+  --draft
+```
+
+### Auto-Merge PR
+```bash
+# Enable auto-merge (will merge when checks pass)
+gh pr merge --auto --squash --delete-branch
+```
+
 ## For detailed command reference, see [COMMANDS.md](COMMANDS.md).

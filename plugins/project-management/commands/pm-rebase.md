@@ -67,8 +67,8 @@ git push --force-with-lease
 
 **Why `--force-with-lease`**:
 - Safer than `--force`
-- Fails if remote has new commits you dont have
-- Prevents accidentally overwriting others work
+- Fails if remote has new commits you don't have
+- Prevents accidentally overwriting others' work
 
 ## Conflict Resolution
 
@@ -95,3 +95,13 @@ git rebase --continue
 ```bash
 git rebase --abort
 ```
+
+## Best Practices
+
+1. **Squash before merge**: Clean history for main branch
+2. **Never rebase public branches**: Only rebase your own feature branches
+3. **Communicate**: Tell team before force-pushing shared branches
+4. **Backup**: Create backup branch before complex rebases
+   ```bash
+   git branch backup-$(git branch --show-current)
+   ```

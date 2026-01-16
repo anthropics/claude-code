@@ -14,37 +14,40 @@ if [ -z "$COMMAND" ]; then
     exit 0
 fi
 
-# Check if it is a git command
+# Check if it's a git command
 if [[ ! "$COMMAND" =~ ^git[[:space:]] ]]; then
     exit 0
 fi
 
-# Protected branches
-PROTECTED_BRANCHES="main master develop production staging"
+# Dangerous patterns to warn about
+DANGEROUS_PATTERNS=(
+    "git push --force[^-]"
+    "git push -f[^o]"
+    "git reset --hard"
+    "git clean -fd"
+    "git checkout -- \."
+    "git branch -D"
+)
+
+# Check for dangerous patterns
+for pattern in "${DANGEROUS_PATTERNS[@]}"; do
+    if [[ "$COMMAND" =~ $pattern ]]; then
+        echo "Warning: Potentially dangerous Git operation detected: $COMMAND" >&2
+        echo "Consider using safer alternatives:" >&2
+        echo "  - Use 'git push --force-with-lease' instead of '--force'" >&2
+        echo "  - Use 'git reset --soft' to preserve changes" >&2
+        echo "  - Use 'git branch -d' (lowercase) for safe branch deletion" >&2
+        # Don't block, just warn (exit 0)
+        exit 0
+    fi
+done
 
 # Check for force push to protected branches
-if [[ "$COMMAND" =~ git[[:space:]]push.*--force[[:space:]] ]] || [[ "$COMMAND" =~ git[[:space:]]push.*-f[[:space:]] ]]; then
-    for branch in $PROTECTED_BRANCHES; do
-        if [[ "$COMMAND" =~ $branch ]]; then
-            echo "BLOCKED: Force push to protected branch '$branch' is not allowed" >&2
-            echo "Use --force-with-lease for safer force pushing on feature branches" >&2
-            exit 2
-        fi
-    done
-    
-    # Warn about force push but allow if not to protected branch
-    if [[ ! "$COMMAND" =~ --force-with-lease ]]; then
-        echo "Warning: Consider using --force-with-lease instead of --force" >&2
-    fi
-fi
-
-# Warn about dangerous operations
-if [[ "$COMMAND" =~ git[[:space:]]reset[[:space:]]--hard ]]; then
-    echo "Warning: git reset --hard will discard all uncommitted changes" >&2
-fi
-
-if [[ "$COMMAND" =~ git[[:space:]]clean[[:space:]].*-fd ]]; then
-    echo "Warning: git clean -fd will permanently delete untracked files" >&2
+PROTECTED_BRANCHES="main|master|develop|production|staging"
+if [[ "$COMMAND" =~ git[[:space:]]push.*--force && "$COMMAND" =~ ($PROTECTED_BRANCHES) ]]; then
+    echo "BLOCKED: Force push to protected branch detected" >&2
+    echo "Protected branches: main, master, develop, production, staging" >&2
+    exit 2  # Block the operation
 fi
 
 exit 0
