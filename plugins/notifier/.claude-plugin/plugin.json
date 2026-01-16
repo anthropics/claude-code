@@ -1,0 +1,11 @@
+{
+  "name": "notifier",
+  "description": "Get notified when Claude Code completes tasks, requests permissions, or waits for input. Supports macOS, Linux, and Windows (Native/WSL2).",
+  "version": "2.0.0",
+  "author": {
+    "name": "Joo-Seung Koo",
+    "email": "dev.jooseung@gmail.com"
+  },
+  "repository": "https://github.com/js-koo/claude-code-notifier",
+  "keywords": ["notifications", "productivity", "cross-platform"]
+}
