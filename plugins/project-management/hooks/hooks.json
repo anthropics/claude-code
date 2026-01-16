@@ -1,0 +1,57 @@
+{
+  "description": "Project management hooks for Git/GitHub workflow automation",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/session-context.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/check-uncommitted.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/validate-git-command.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/validate-gh-command.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "Evaluate if the session should end. Check the input for: 1) Are there uncommitted changes that should be committed? 2) Was a branch created but not pushed? 3) Are there unresolved merge conflicts? 4) Is there a draft PR that should be marked ready? Input: $ARGUMENTS. If any critical git/github state issues exist, respond with {\"decision\": \"block\", \"reason\": \"[specific issue and recommended action]\"}. Otherwise respond with {\"decision\": \"approve\", \"reason\": \"Git state is clean\"}.",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}

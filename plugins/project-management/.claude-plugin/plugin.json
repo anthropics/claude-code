@@ -1,0 +1,21 @@
+{
+  "name": "project-management",
+  "version": "1.0.0",
+  "description": "Comprehensive Git/GitHub project management plugin with workflow automation, PR management, and issue tracking",
+  "author": {
+    "name": "Claude Code PM",
+    "url": "https://github.com/claude-code-pm"
+  },
+  "repository": "https://github.com/claude-code-pm/project-management-plugin",
+  "license": "MIT",
+  "keywords": [
+    "git",
+    "github",
+    "project-management",
+    "workflow",
+    "pr",
+    "issue-tracking",
+    "branch-management"
+  ],
+  "hooks": "./hooks/hooks.json"
+}
