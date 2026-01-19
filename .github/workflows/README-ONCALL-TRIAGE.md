@@ -14,21 +14,32 @@ This workflow automatically identifies and labels critical blocking issues that 
 
 ### Triggers (Currently Disabled)
 The following triggers are commented out:
-- **Push to test branch**: `add-oncall-triage-workflow` (was temporary for testing - consider using main branch in production)
+- **Push to test branch**: `add-oncall-triage-workflow` (was temporary for testing only)
 - **Scheduled runs**: Every 6 hours via cron
+
+**Note**: This workflow analyzes issues, not code, so it doesn't need to run on specific branches. When re-enabling, you may want to remove the push trigger entirely and only use the schedule trigger.
 
 ### Active Triggers
 - **Manual trigger only**: `workflow_dispatch` - Can be triggered manually from GitHub Actions UI
 
 ## How to Re-enable Automatic Runs
 
-When API credits are available, you can re-enable automatic triggers by uncommenting the following lines in `oncall-triage.yml`:
+When API credits are available, you can re-enable automatic triggers. Since this workflow analyzes issues (not code), the schedule trigger is typically most useful:
+
+```yaml
+on:
+  schedule:
+    - cron: '0 */6 * * *'  # Every 6 hours
+  workflow_dispatch: # Manual trigger
+```
+
+Or, if you need a push trigger for testing purposes:
 
 ```yaml
 on:
   push:
     branches:
-      - add-oncall-triage-workflow  # For testing
+      - your-test-branch-name  # Replace with your preferred test branch
   schedule:
     - cron: '0 */6 * * *'  # Every 6 hours
   workflow_dispatch: # Manual trigger
