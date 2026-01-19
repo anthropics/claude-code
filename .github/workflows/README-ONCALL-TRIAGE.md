@@ -1,7 +1,7 @@
 # Oncall Issue Triage Workflow
 
 ## Overview
-This workflow automatically identifies and labels critical blocking issues that require oncall attention.
+This workflow identifies and labels critical blocking issues that require oncall attention using Claude AI analysis.
 
 ## Requirements
 - **Anthropic API Key**: This workflow requires a valid `ANTHROPIC_API_KEY` secret with sufficient credits
