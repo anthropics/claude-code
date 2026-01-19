@@ -14,7 +14,7 @@ This workflow automatically identifies and labels critical blocking issues that 
 
 ### Triggers (Currently Disabled)
 The following triggers are commented out:
-- **Push to test branch**: `add-oncall-triage-workflow` (temporary testing only)
+- **Push to test branch**: `add-oncall-triage-workflow` (was temporary for testing - consider using main branch in production)
 - **Scheduled runs**: Every 6 hours via cron
 
 ### Active Triggers
