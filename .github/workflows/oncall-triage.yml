@@ -1,13 +1,15 @@
 name: Oncall Issue Triage
 description: Automatically identify and label critical blocking issues requiring oncall attention
+# Note: This workflow requires valid Anthropic API credits (ANTHROPIC_API_KEY secret)
+# Automatic triggers are disabled to prevent failures when credits are low
 on:
-  push:
-    branches:
-      - add-oncall-triage-workflow  # Temporary: for testing only
-  schedule:
-    # Run every 6 hours
-    - cron: '0 */6 * * *'
-  workflow_dispatch: # Allow manual trigger
+  # push:
+  #   branches:
+  #     - add-oncall-triage-workflow  # Temporary: for testing only
+  # schedule:
+  #   # Run every 6 hours
+  #   - cron: '0 */6 * * *'
+  workflow_dispatch: # Manual trigger only - requires API credits
 
 jobs:
   oncall-triage:
