@@ -21,7 +21,7 @@ def main():
 
     # Daemon commands
     daemon_parser = subparsers.add_parser("daemon", help="Daemon management")
-    daemon_parser.add_argument("action", choices=["start", "stop", "status", "restart"],
+    daemon_parser.add_argument("action", choices=["start", "stop", "status", "restart", "run"],
                                help="Action to perform")
     daemon_parser.add_argument("--background", "-b", action="store_true",
                                help="Run in background")
@@ -87,6 +87,10 @@ def handle_daemon(args):
         stop_daemon()
         time.sleep(0.5)
         start_daemon(background=args.background, quiet=args.quiet)
+
+    elif args.action == "run":
+        # Run in foreground (used by background launcher)
+        start_daemon(background=False, quiet=args.quiet)
 
     elif args.action == "status":
         status = daemon_status()
