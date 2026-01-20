@@ -6,12 +6,13 @@ import signal
 import threading
 import time
 import logging
+import subprocess
 from pathlib import Path
 from typing import Set, Optional
 
 from pynput import keyboard
 
-from .config import Config, DEFAULT_PID_FILE, DEFAULT_LOG_FILE, ensure_config_dir
+from .config import Config, DEFAULT_PID_FILE, DEFAULT_LOG_FILE, ensure_config_dir, get_plugin_root
 from .recorder import AudioRecorder, MicrophoneError
 from .transcriber import Transcriber
 from .keyboard import TextInjector
@@ -264,21 +265,24 @@ def start_daemon(background: bool = False, quiet: bool = False) -> None:
     config = Config.load()
 
     if background:
-        # Fork to background
-        pid = os.fork()
-        if pid > 0:
-            # Parent process
-            print(f"Daemon started in background (PID: {pid})")
-            return
-
-        # Child process - daemonize
-        os.setsid()
-
-        # Redirect stdout/stderr to log file
+        # Avoid os.fork on macOS due to CoreFoundation issues in child process.
+        # Spawn a new process instead.
         ensure_config_dir()
-        log_file = open(DEFAULT_LOG_FILE, 'a')
-        os.dup2(log_file.fileno(), sys.stdout.fileno())
-        os.dup2(log_file.fileno(), sys.stderr.fileno())
+        log_file = open(DEFAULT_LOG_FILE, "a")
+        plugin_root = get_plugin_root()
+        exec_path = plugin_root / "scripts" / "exec.py"
+        cmd = [sys.executable, str(exec_path), "daemon", "run"]
+        if quiet:
+            cmd.append("--quiet")
+
+        process = subprocess.Popen(
+            cmd,
+            stdout=log_file,
+            stderr=log_file,
+            start_new_session=True,
+        )
+        print(f"Daemon started in background (PID: {process.pid})")
+        return
 
     write_pid_file()
 
