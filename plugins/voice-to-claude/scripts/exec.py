@@ -60,7 +60,7 @@ def main():
 def handle_daemon(args):
     """Handle daemon commands."""
     from voice_to_claude.daemon import (
-        start_daemon, stop_daemon, daemon_status, is_daemon_running
+        start_daemon, stop_daemon, daemon_status
     )
     from voice_to_claude.config import Config
     import time
@@ -73,11 +73,7 @@ def handle_daemon(args):
                 print("Setup not complete. Run /voice-to-claude:setup first.")
             sys.exit(1)
 
-        if is_daemon_running():
-            if not args.quiet:
-                print("Daemon is already running.")
-            sys.exit(0)
-
+        # start_daemon already checks if daemon is running
         start_daemon(background=args.background, quiet=args.quiet)
 
     elif args.action == "stop":
