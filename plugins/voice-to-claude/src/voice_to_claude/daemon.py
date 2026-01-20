@@ -265,23 +265,46 @@ def start_daemon(background: bool = False, quiet: bool = False) -> None:
     config = Config.load()
 
     if background:
-        # Avoid os.fork on macOS due to CoreFoundation issues in child process.
-        # Spawn a new process instead.
+        # On macOS, avoid os.fork due to CoreFoundation issues in child process.
+        # On Linux, fork works fine but we use subprocess for consistency.
         ensure_config_dir()
-        log_file = open(DEFAULT_LOG_FILE, "a")
+
         plugin_root = get_plugin_root()
         exec_path = plugin_root / "scripts" / "exec.py"
         cmd = [sys.executable, str(exec_path), "daemon", "run"]
         if quiet:
             cmd.append("--quiet")
 
-        process = subprocess.Popen(
-            cmd,
-            stdout=log_file,
-            stderr=log_file,
-            start_new_session=True,
-        )
-        print(f"Daemon started in background (PID: {process.pid})")
+        try:
+            with open(DEFAULT_LOG_FILE, "a") as log_file:
+                process = subprocess.Popen(
+                    cmd,
+                    stdout=log_file,
+                    stderr=log_file,
+                    start_new_session=True,
+                )
+                launcher_pid = process.pid
+
+            # Wait briefly for daemon to start and write PID file
+            for _ in range(10):  # Wait up to 1 second
+                time.sleep(0.1)
+                daemon_pid = read_pid_file()
+                if daemon_pid is not None:
+                    print(f"Daemon started in background (PID: {daemon_pid})")
+                    return
+
+            # If we get here, daemon didn't write PID file
+            # Check if the subprocess exited early
+            exit_code = process.poll()
+            if exit_code is not None:
+                print(f"Error: Daemon process exited with code {exit_code}. Check {DEFAULT_LOG_FILE}")
+                sys.exit(1)
+            else:
+                print(f"Warning: Daemon may have failed to start. Check {DEFAULT_LOG_FILE}")
+
+        except (subprocess.SubprocessError, OSError) as e:
+            print(f"Failed to start daemon: {e}")
+            sys.exit(1)
         return
 
     write_pid_file()
