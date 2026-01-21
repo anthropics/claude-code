@@ -22,7 +22,7 @@ import argparse
 from datetime import datetime, timedelta, timezone
 from itertools import islice
 from groq import Groq
-from github import Github, GithubException
+from github import Github, GithubException, Auth
 
 
 def main():
@@ -52,7 +52,8 @@ def main():
 
     # Initialize clients
     groq_client = Groq(api_key=os.environ['GROQ_API_KEY'])
-    gh = Github(os.environ['GITHUB_TOKEN'])
+    auth = Auth.Token(os.environ['GITHUB_TOKEN'])
+    gh = Github(auth=auth)
     repo = gh.get_repo(os.environ['GITHUB_REPOSITORY'])
 
     # Fetch open issues updated in the last 3 days
