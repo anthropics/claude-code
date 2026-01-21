@@ -1,0 +1,10 @@
+name: "ESPECIALISTA-IA: On-Call Triage"
+on:
+  issues:
+    types: [opened, labeled]
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "✅ OK"
