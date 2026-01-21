@@ -3,7 +3,7 @@ description: Automatically identify and label critical blocking issues requiring
 on:
   push:
     branches:
-      - add-oncall-triage-workflow  # Temporary: for testing only
+      - copilot/update-oncall-triage-workflow  # Temporary: for testing only
   schedule:
     # Run every 6 hours
     - cron: '0 */6 * * *'
@@ -42,11 +42,12 @@ jobs:
           from datetime import datetime, timedelta, timezone
           from itertools import islice
           from groq import Groq
-          from github import Github, GithubException
+          from github import Github, GithubException, Auth
 
           # Initialize clients
           groq_client = Groq(api_key=os.environ['GROQ_API_KEY'])
-          gh = Github(os.environ['GITHUB_TOKEN'])
+          auth = Auth.Token(os.environ['GITHUB_TOKEN'])
+          gh = Github(auth=auth)
           repo = gh.get_repo(os.environ['GITHUB_REPOSITORY'])
 
           # Fetch open issues updated in the last 3 days
