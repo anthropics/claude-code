@@ -1,0 +1,195 @@
+#!/usr/bin/env python3
+"""
+Standalone test script for oncall triage workflow.
+
+This script allows you to test the oncall triage logic locally without running 
+the full GitHub Actions workflow.
+
+Usage:
+    export GROQ_API_KEY="your-api-key"
+    export GITHUB_TOKEN="your-github-token"
+    export GITHUB_REPOSITORY="ensideanderson-nova/claude-code"
+    
+    python3 scripts/test_oncall_triage.py [--dry-run]
+
+Options:
+    --dry-run    Don't actually add labels, just show what would be labeled
+"""
+
+import os
+import sys
+import argparse
+from datetime import datetime, timedelta, timezone
+from itertools import islice
+from groq import Groq
+from github import Github, GithubException, Auth
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Test oncall triage workflow locally")
+    parser.add_argument('--dry-run', action='store_true', 
+                       help="Don't add labels, just show what would be labeled")
+    args = parser.parse_args()
+
+    # Check for required environment variables
+    required_vars = ['GROQ_API_KEY', 'GITHUB_TOKEN', 'GITHUB_REPOSITORY']
+    missing = [var for var in required_vars if not os.environ.get(var)]
+    
+    if missing:
+        print(f"Error: Missing required environment variables: {', '.join(missing)}")
+        print("\nUsage:")
+        print("  export GROQ_API_KEY='your-api-key'")
+        print("  export GITHUB_TOKEN='your-github-token'")
+        print("  export GITHUB_REPOSITORY='ensideanderson-nova/claude-code'")
+        print(f"\n  python3 {sys.argv[0]} [--dry-run]")
+        sys.exit(1)
+
+    if args.dry_run:
+        print("=" * 60)
+        print("DRY RUN MODE - No labels will be added")
+        print("=" * 60)
+        print()
+
+    # Initialize clients
+    groq_client = Groq(api_key=os.environ['GROQ_API_KEY'])
+    auth = Auth.Token(os.environ['GITHUB_TOKEN'])
+    gh = Github(auth=auth)
+    repo = gh.get_repo(os.environ['GITHUB_REPOSITORY'])
+
+    # Fetch open issues updated in the last 3 days
+    three_days_ago = datetime.now(timezone.utc) - timedelta(days=3)
+    recent_issues = []
+
+    print(f"Fetching open issues updated since {three_days_ago.isoformat()}")
+    
+    for issue in repo.get_issues(state='open', sort='updated', direction='desc'):
+        if issue.updated_at < three_days_ago:
+            break
+        if not issue.pull_request:  # Skip pull requests
+            recent_issues.append(issue)
+
+    print(f"Found {len(recent_issues)} open issues updated in the last 3 days")
+
+    # Process each issue
+    labeled_issues = []
+    evaluated_count = 0
+
+    for issue in recent_issues:
+        evaluated_count += 1
+        print(f"\nEvaluating issue #{issue.number}: {issue.title}")
+        
+        # Check if already has oncall label
+        label_names = [label.name for label in issue.labels]
+        if 'oncall' in label_names:
+            print(f"  Already has 'oncall' label, skipping")
+            continue
+
+        # Check if it's a bug
+        is_bug = 'bug' in label_names or 'bug' in issue.title.lower() or 'bug' in (issue.body or '').lower()
+        
+        # Count engagements (comments + reactions)
+        comments_count = issue.comments
+        try:
+            reactions_count = issue.get_reactions().totalCount
+        except (AttributeError, GithubException):
+            reactions_count = 0
+        total_engagements = comments_count + reactions_count
+        
+        print(f"  Is bug: {is_bug}, Engagements: {total_engagements}")
+        
+        # Skip if not a bug or insufficient engagements
+        if not is_bug or total_engagements < 50:
+            print(f"  Does not meet criteria (bug: {is_bug}, engagements: {total_engagements})")
+            continue
+
+        # Get issue details for AI analysis
+        issue_content = f"""
+        Title: {issue.title}
+        Body: {issue.body or 'No description'}
+        
+        Comments:
+        """
+        
+        comments = issue.get_comments()
+        for comment in islice(comments, 10):  # Limit to first 10 comments
+            issue_content += f"\n- {comment.body[:200]}"  # Limit comment length
+
+        # Use groqcloud to determine if truly blocking
+        prompt = f"""You are an oncall triage assistant. Analyze this GitHub issue and determine if it's truly blocking.
+
+        Issue #{issue.number}:
+        {issue_content}
+
+        Criteria for blocking:
+        - Does this prevent core functionality from working?
+        - Can users work around it?
+        - Look for severity indicators: "crash", "stuck", "frozen", "hang", "unresponsive", "cannot use", "blocked", "broken"
+        - Be conservative - only flag issues that truly prevent users from getting work done
+
+        Respond with ONLY "YES" if this is truly blocking, or "NO" if it is not blocking or has workarounds.
+        """
+
+        try:
+            response = groq_client.chat.completions.create(
+                messages=[
+                    {"role": "system", "content": "You are a technical issue triage expert. Respond only with YES or NO."},
+                    {"role": "user", "content": prompt}
+                ],
+                model="llama-3.3-70b-versatile",
+                temperature=0.3,
+                max_tokens=10
+            )
+            
+            decision = response.choices[0].message.content.strip().upper()
+            print(f"  AI Decision: {decision}")
+            
+            if decision == "YES":
+                if args.dry_run:
+                    print(f"  [DRY RUN] Would add 'oncall' label to issue #{issue.number}")
+                    labeled_issues.append({
+                        'number': issue.number,
+                        'title': issue.title,
+                        'reason': f"Bug with {total_engagements} engagements, AI determined it's blocking"
+                    })
+                else:
+                    try:
+                        # Add oncall label
+                        issue.add_to_labels('oncall')
+                        labeled_issues.append({
+                            'number': issue.number,
+                            'title': issue.title,
+                            'reason': f"Bug with {total_engagements} engagements, AI determined it's blocking"
+                        })
+                        print(f"  ✓ Added 'oncall' label to issue #{issue.number}")
+                    except GithubException as gh_err:
+                        print(f"  Error adding label to issue #{issue.number}: {gh_err}")
+            else:
+                print(f"  Not blocking according to AI analysis")
+                
+        except GithubException as gh_err:
+            print(f"  GitHub API error for issue #{issue.number}: {gh_err}")
+            continue
+        except Exception as api_err:
+            print(f"  Groq API error analyzing issue #{issue.number}: {api_err}")
+            continue
+
+    # Print summary
+    print("\n" + "="*60)
+    print("ONCALL TRIAGE SUMMARY")
+    print("="*60)
+    print(f"Total issues evaluated: {evaluated_count}")
+    print(f"Issues labeled with 'oncall': {len(labeled_issues)}")
+    
+    if labeled_issues:
+        print("\nIssues that received the 'oncall' label:")
+        for item in labeled_issues:
+            print(f"  - Issue #{item['number']}: {item['title']}")
+            print(f"    Reason: {item['reason']}")
+    else:
+        print("\nNo issues qualified for the 'oncall' label.")
+    
+    print("="*60)
+
+
+if __name__ == '__main__':
+    main()
