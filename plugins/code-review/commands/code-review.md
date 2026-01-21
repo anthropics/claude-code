@@ -5,6 +5,10 @@ description: Code review a pull request
 
 Provide a code review for the given pull request.
 
+**Agent assumptions (applies to all agents and subagents):**
+- All tools are functional and will work without error. Do not test tools or make exploratory calls. Make sure this is clear to every subagent that is launched.
+- Only call a tool if it is required to complete the task. Every tool call should have a clear purpose.
+
 To do this, follow these steps precisely:
 
 1. Launch a haiku agent to check if any of the following are true:
@@ -34,15 +38,15 @@ Note: Still review Claude generated PR's.
    Agent 4: Opus bug agent (parallel subagent with agent 3)
    Look for problems that exist in the introduced code. This could be security issues, incorrect logic, etc. Only look for issues that fall within the changed code.
 
-   **CRITICAL: We only want HIGH SIGNAL issues.** This means:
-   - Objective bugs that will cause incorrect behavior at runtime
+   **CRITICAL: We only want HIGH SIGNAL issues.** Flag issues where:
+   - The code will fail to compile or parse (syntax errors, type errors, missing imports, unresolved references)
+   - The code will definitely produce wrong results regardless of inputs (clear logic errors)
    - Clear, unambiguous CLAUDE.md violations where you can quote the exact rule being broken
 
-   We do NOT want:
-   - Subjective concerns or "suggestions"
-   - Style preferences not explicitly required by CLAUDE.md
-   - Potential issues that "might" be problems
-   - Anything requiring interpretation or judgment calls
+   Do NOT flag:
+   - Code style or quality concerns
+   - Potential issues that depend on specific inputs or state
+   - Subjective suggestions or improvements
 
    If you are not certain an issue is real, do not flag it. False positives erode trust and waste reviewer time.
 
@@ -57,23 +61,13 @@ Note: Still review Claude generated PR's.
    If NO issues were found, post a summary comment using `gh pr comment` (if `--comment` argument is provided):
    "No issues found. Checked for bugs and CLAUDE.md compliance."
 
-8. Post inline comments for each issue using `mcp__github_inline_comment__create_inline_comment`:
-   - `path`: the file path
-   - `line` (and `startLine` for ranges): select the buggy lines so the user sees them
-   - `body`: Brief description of the issue (no "Bug:" prefix). For small fixes (up to 5 lines changed), include a committable suggestion:
-     ```suggestion
-     corrected code here
-     ```
+8. Create a list of all comments that you plan on leaving. This is only for you to make sure you are comfortable with the comments. Do not post this list anywhere.
 
-     **Suggestions must be COMPLETE.** If a fix requires additional changes elsewhere (e.g., renaming a variable requires updating all usages), do NOT use a suggestion block. The author should be able to click "Commit suggestion" and have a working fix - no followup work required.
-
-     For larger fixes (6+ lines, structural changes, or changes spanning multiple locations), do NOT use suggestion blocks. Instead:
-     1. Describe what the issue is
-     2. Explain the suggested fix at a high level
-     3. Include a copyable prompt for Claude Code that the user can use to fix the issue, formatted as:
-        ```
-        Fix [file:line]: [brief description of issue and suggested fix]
-        ```
+9. Post inline comments for each issue using `mcp__github_inline_comment__create_inline_comment`. For each comment:
+   - Provide a brief description of the issue
+   - For small, self-contained fixes, include a committable suggestion block
+   - For larger fixes (6+ lines, structural changes, or changes spanning multiple locations), describe the issue and suggested fix without a suggestion block
+   - Never post a committable suggestion UNLESS committing the suggestion fixes the issue entirely. If follow up steps are required, do not leave a committable suggestion.
 
    **IMPORTANT: Only post ONE comment per unique issue. Do not post duplicate comments.**
 
