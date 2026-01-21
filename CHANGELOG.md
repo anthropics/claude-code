@@ -1,5 +1,270 @@
 # Changelog
 
+## 2.1.14
+
+- Added history-based autocomplete in bash mode (`!`) - type a partial command and press Tab to complete from your bash command history
+- Added search to installed plugins list - type to filter by name or description
+- Added support for pinning plugins to specific git commit SHAs, allowing marketplace entries to install exact versions
+- Fixed a regression where the context window blocking limit was calculated too aggressively, blocking users at ~65% context usage instead of the intended ~98%
+- Fixed memory issues that could cause crashes when running parallel subagents
+- Fixed memory leak in long-running sessions where stream resources were not cleaned up after shell commands completed
+- Fixed `@` symbol incorrectly triggering file autocomplete suggestions in bash mode
+- Fixed `@`-mention menu folder click behavior to navigate into directories instead of selecting them
+- Fixed `/feedback` command generating invalid GitHub issue URLs when description is very long
+- Fixed `/context` command to show the same token count and percentage as the status line in verbose mode
+- Fixed an issue where `/config`, `/context`, `/model`, and `/todos` command overlays could close unexpectedly
+- Fixed slash command autocomplete selecting wrong command when typing similar commands (e.g., `/context` vs `/compact`)
+- Fixed inconsistent back navigation in plugin marketplace when only one marketplace is configured
+- Fixed iTerm2 progress bar not clearing properly on exit, preventing lingering indicators and bell sounds
+- Improved backspace to delete pasted text as a single token instead of one character at a time
+- [VSCode] Added `/usage` command to display current plan usage
+
+## 2.1.12
+
+- Fixed message rendering bug
+
+## 2.1.11
+
+- Fixed excessive MCP connection requests for HTTP/SSE transports
+
+## 2.1.10
+
+- Added new `Setup` hook event that can be triggered via `--init`, `--init-only`, or `--maintenance` CLI flags for repository setup and maintenance operations
+- Added keyboard shortcut 'c' to copy OAuth URL when browser doesn't open automatically during login
+- Fixed a crash when running bash commands containing heredocs with JavaScript template literals like `${index + 1}`
+- Improved startup to capture keystrokes typed before the REPL is fully ready
+- Improved file suggestions to show as removable attachments instead of inserting text when accepted
+- [VSCode] Added install count display to plugin listings
+- [VSCode] Added trust warning when installing plugins
+
+## 2.1.9
+
+- Added `auto:N` syntax for configuring the MCP tool search auto-enable threshold, where N is the context window percentage (0-100)
+- Added `plansDirectory` setting to customize where plan files are stored
+- Added external editor support (Ctrl+G) in AskUserQuestion "Other" input field
+- Added session URL attribution to commits and PRs created from web sessions
+- Added support for `PreToolUse` hooks to return `additionalContext` to the model
+- Added `${CLAUDE_SESSION_ID}` string substitution for skills to access the current session ID
+- Fixed long sessions with parallel tool calls failing with an API error about orphan tool_result blocks
+- Fixed MCP server reconnection hanging when cached connection promise never resolves
+- Fixed Ctrl+Z suspend not working in terminals using Kitty keyboard protocol (Ghostty, iTerm2, kitty, WezTerm)
+
+## 2.1.7
+
+- Added `showTurnDuration` setting to hide turn duration messages (e.g., "Cooked for 1m 6s")
+- Added ability to provide feedback when accepting permission prompts
+- Added inline display of agent's final response in task notifications, making it easier to see results without reading the full transcript file
+- Fixed security vulnerability where wildcard permission rules could match compound commands containing shell operators
+- Fixed false "file modified" errors on Windows when cloud sync tools, antivirus scanners, or Git touch file timestamps without changing content
+- Fixed orphaned tool_result errors when sibling tools fail during streaming execution
+- Fixed context window blocking limit being calculated using the full context window instead of the effective context window (which reserves space for max output tokens)
+- Fixed spinner briefly flashing when running local slash commands like `/model` or `/theme`
+- Fixed terminal title animation jitter by using fixed-width braille characters
+- Fixed plugins with git submodules not being fully initialized when installed
+- Fixed bash commands failing on Windows when temp directory paths contained characters like `t` or `n` that were misinterpreted as escape sequences
+- Improved typing responsiveness by reducing memory allocation overhead in terminal rendering
+- Enabled MCP tool search auto mode by default for all users. When MCP tool descriptions exceed 10% of the context window, they are automatically deferred and discovered via the MCPSearch tool instead of being loaded upfront. This reduces context usage for users with many MCP tools configured. Users can disable this by adding `MCPSearch` to `disallowedTools` in their settings.
+- Changed OAuth and API Console URLs from console.anthropic.com to platform.claude.com
+- [VSCode] Fixed `claudeProcessWrapper` setting passing the wrapper path instead of the Claude binary path
+
+## 2.1.6
+
+- Added search functionality to `/config` command for quickly filtering settings
+- Added Updates section to `/doctor` showing auto-update channel and available npm versions (stable/latest)
+- Added date range filtering to `/stats` command - press `r` to cycle between Last 7 days, Last 30 days, and All time
+- Added automatic discovery of skills from nested `.claude/skills` directories when working with files in subdirectories
+- Added `context_window.used_percentage` and `context_window.remaining_percentage` fields to status line input for easier context window display
+- Added an error display when the editor fails during Ctrl+G
+- Fixed permission bypass via shell line continuation that could allow blocked commands to execute
+- Fixed false "File has been unexpectedly modified" errors when file watchers touch files without changing content
+- Fixed text styling (bold, colors) getting progressively misaligned in multi-line responses
+- Fixed the feedback panel closing unexpectedly when typing 'n' in the description field
+- Fixed rate limit warning appearing at low usage after weekly reset (now requires 70% usage)
+- Fixed rate limit options menu incorrectly auto-opening when resuming a previous session
+- Fixed numpad keys outputting escape sequences instead of characters in Kitty keyboard protocol terminals
+- Fixed Option+Return not inserting newlines in Kitty keyboard protocol terminals
+- Fixed corrupted config backup files accumulating in the home directory (now only one backup is created per config file)
+- Fixed `mcp list` and `mcp get` commands leaving orphaned MCP server processes
+- Fixed visual artifacts in ink2 mode when nodes become hidden via `display:none`
+- Improved the external CLAUDE.md imports approval dialog to show which files are being imported and from where
+- Improved the `/tasks` dialog to go directly to task details when there's only one background task running
+- Improved @ autocomplete with icons for different suggestion types and single-line formatting
+- Updated "Help improve Claude" setting fetch to refresh OAuth and retry when it fails due to a stale OAuth token
+- Changed task notification display to cap at 3 lines with overflow summary when multiple background tasks complete simultaneously
+- Changed terminal title to "Claude Code" on startup for better window identification
+- Removed ability to @-mention MCP servers to enable/disable - use `/mcp enable <name>` instead
+- [VSCode] Fixed usage indicator not updating after manual compact
+
+## 2.1.5
+
+- Added `CLAUDE_CODE_TMPDIR` environment variable to override the temp directory used for internal temp files, useful for environments with custom temp directory requirements
+
+## 2.1.4
+
+- Added `CLAUDE_CODE_DISABLE_BACKGROUND_TASKS` environment variable to disable all background task functionality including auto-backgrounding and the Ctrl+B shortcut
+- Fixed "Help improve Claude" setting fetch to refresh OAuth and retry when it fails due to a stale OAuth token
+
+## 2.1.3
+
+- Merged slash commands and skills, simplifying the mental model with no change in behavior
+- Added release channel (`stable` or `latest`) toggle to `/config`
+- Added detection and warnings for unreachable permission rules, with warnings in `/doctor` and after saving rules that include the source of each rule and actionable fix guidance
+- Fixed plan files persisting across `/clear` commands, now ensuring a fresh plan file is used after clearing a conversation
+- Fixed false skill duplicate detection on filesystems with large inodes (e.g., ExFAT) by using 64-bit precision for inode values
+- Fixed mismatch between background task count in status bar and items shown in tasks dialog
+- Fixed sub-agents using the wrong model during conversation compaction
+- Fixed web search in sub-agents using incorrect model
+- Fixed trust dialog acceptance when running from the home directory not enabling trust-requiring features like hooks during the session
+- Improved terminal rendering stability by preventing uncontrolled writes from corrupting cursor state
+- Improved slash command suggestion readability by truncating long descriptions to 2 lines
+- Changed tool hook execution timeout from 60 seconds to 10 minutes
+- [VSCode] Added clickable destination selector for permission requests, allowing you to choose where settings are saved (this project, all projects, shared with team, or session only)
+
+## 2.1.2
+
+- Added source path metadata to images dragged onto the terminal, helping Claude understand where images originated
+- Added clickable hyperlinks for file paths in tool output in terminals that support OSC 8 (like iTerm)
+- Added support for Windows Package Manager (winget) installations with automatic detection and update instructions
+- Added Shift+Tab keyboard shortcut in plan mode to quickly select "auto-accept edits" option
+- Added `FORCE_AUTOUPDATE_PLUGINS` environment variable to allow plugin autoupdate even when the main auto-updater is disabled
+- Added `agent_type` to SessionStart hook input, populated if `--agent` is specified
+- Fixed a command injection vulnerability in bash command processing where malformed input could execute arbitrary commands
+- Fixed a memory leak where tree-sitter parse trees were not being freed, causing WASM memory to grow unbounded over long sessions
+- Fixed binary files (images, PDFs, etc.) being accidentally included in memory when using `@include` directives in CLAUDE.md files
+- Fixed updates incorrectly claiming another installation is in progress
+- Fixed crash when socket files exist in watched directories (defense-in-depth for EOPNOTSUPP errors)
+- Fixed remote session URL and teleport being broken when using `/tasks` command
+- Fixed MCP tool names being exposed in analytics events by sanitizing user-specific server configurations
+- Improved Option-as-Meta hint on macOS to show terminal-specific instructions for native CSIu terminals like iTerm2, Kitty, and WezTerm
+- Improved error message when pasting images over SSH to suggest using `scp` instead of the unhelpful clipboard shortcut hint
+- Improved permission explainer to not flag routine dev workflows (git fetch/rebase, npm install, tests, PRs) as medium risk
+- Changed large bash command outputs to be saved to disk instead of truncated, allowing Claude to read the full content
+- Changed large tool outputs to be persisted to disk instead of truncated, providing full output access via file references
+- Changed `/plugins` installed tab to unify plugins and MCPs with scope-based grouping
+- Deprecated Windows managed settings path `C:\ProgramData\ClaudeCode\managed-settings.json` - administrators should migrate to `C:\Program Files\ClaudeCode\managed-settings.json`
+- [SDK] Changed minimum zod peer dependency to ^4.0.0
+- [VSCode] Fixed usage display not updating after manual compact
+
+## 2.1.0
+
+- Added automatic skill hot-reload - skills created or modified in `~/.claude/skills` or `.claude/skills` are now immediately available without restarting the session
+- Added support for running skills and slash commands in a forked sub-agent context using `context: fork` in skill frontmatter
+- Added support for `agent` field in skills to specify agent type for execution
+- Added `language` setting to configure Claude's response language (e.g., language: "japanese")
+- Changed Shift+Enter to work out of the box in iTerm2, WezTerm, Ghostty, and Kitty without modifying terminal configs
+- Added `respectGitignore` support in `settings.json` for per-project control over @-mention file picker behavior
+- Added `IS_DEMO` environment variable to hide email and organization from the UI, useful for streaming or recording sessions
+- Fixed security issue where sensitive data (OAuth tokens, API keys, passwords) could be exposed in debug logs
+- Fixed files and skills not being properly discovered when resuming sessions with `-c` or `--resume`
+- Fixed pasted content being lost when replaying prompts from history using up arrow or Ctrl+R search
+- Fixed Esc key with queued prompts to only move them to input without canceling the running task
+- Reduced permission prompts for complex bash commands
+- Fixed command search to prioritize exact and prefix matches on command names over fuzzy matches in descriptions
+- Fixed PreToolUse hooks to allow `updatedInput` when returning `ask` permission decision, enabling hooks to act as middleware while still requesting user consent
+- Fixed plugin path resolution for file-based marketplace sources
+- Fixed LSP tool being incorrectly enabled when no LSP servers were configured
+- Fixed background tasks failing with "git repository not found" error for repositories with dots in their names
+- Fixed Claude in Chrome support for WSL environments
+- Fixed Windows native installer silently failing when executable creation fails
+- Improved CLI help output to display options and subcommands in alphabetical order for easier navigation
+- Added wildcard pattern matching for Bash tool permissions using `*` at any position in rules (e.g., `Bash(npm *)`, `Bash(* install)`, `Bash(git * main)`)
+- Added unified Ctrl+B backgrounding for both bash commands and agents - pressing Ctrl+B now backgrounds all running foreground tasks simultaneously
+- Added support for MCP `list_changed` notifications, allowing MCP servers to dynamically update their available tools, prompts, and resources without requiring reconnection
+- Added `/teleport` and `/remote-env` slash commands for claude.ai subscribers, allowing them to resume and configure remote sessions
+- Added support for disabling specific agents using `Task(AgentName)` syntax in settings.json permissions or the `--disallowedTools` CLI flag
+- Added hooks support to agent frontmatter, allowing agents to define PreToolUse, PostToolUse, and Stop hooks scoped to the agent's lifecycle
+- Added hooks support for skill and slash command frontmatter
+- Added new Vim motions: `;` and `,` to repeat f/F/t/T motions, `y` operator for yank with `yy`/`Y`, `p`/`P` for paste, text objects (`iw`, `aw`, `iW`, `aW`, `i"`, `a"`, `i'`, `a'`, `i(`, `a(`, `i[`, `a[`, `i{`, `a{`), `>>` and `<<` for indent/dedent, and `J` to join lines
+- Added `/plan` command shortcut to enable plan mode directly from the prompt
+- Added slash command autocomplete support when `/` appears anywhere in input, not just at the beginning
+- Added `--tools` flag support in interactive mode to restrict which built-in tools Claude can use during interactive sessions
+- Added `CLAUDE_CODE_FILE_READ_MAX_OUTPUT_TOKENS` environment variable to override the default file read token limit
+- Added support for `once: true` config for hooks
+- Added support for YAML-style lists in frontmatter `allowed-tools` field for cleaner skill declarations
+- Added support for prompt and agent hook types from plugins (previously only command hooks were supported)
+- Added Cmd+V support for image paste in iTerm2 (maps to Ctrl+V)
+- Added left/right arrow key navigation for cycling through tabs in dialogs
+- Added real-time thinking block display in Ctrl+O transcript mode
+- Added filepath to full output in background bash task details dialog
+- Added Skills as a separate category in the context visualization
+- Fixed OAuth token refresh not triggering when server reports token expired but local expiration check disagrees
+- Fixed session persistence getting stuck after transient server errors by recovering from 409 conflicts when the entry was actually stored
+- Fixed session resume failures caused by orphaned tool results during concurrent tool execution
+- Fixed a race condition where stale OAuth tokens could be read from the keychain cache during concurrent token refresh attempts
+- Fixed AWS Bedrock subagents not inheriting EU/APAC cross-region inference model configuration, causing 403 errors when IAM permissions are scoped to specific regions
+- Fixed API context overflow when background tasks produce large output by truncating to 30K chars with file path reference
+- Fixed a hang when reading FIFO files by skipping symlink resolution for special file types
+- Fixed terminal keyboard mode not being reset on exit in Ghostty, iTerm2, Kitty, and WezTerm
+- Fixed Alt+B and Alt+F (word navigation) not working in iTerm2, Ghostty, Kitty, and WezTerm
+- Fixed `${CLAUDE_PLUGIN_ROOT}` not being substituted in plugin `allowed-tools` frontmatter, which caused tools to incorrectly require approval
+- Fixed files created by the Write tool using hardcoded 0o600 permissions instead of respecting the system umask
+- Fixed commands with `$()` command substitution failing with parse errors
+- Fixed multi-line bash commands with backslash continuations being incorrectly split and flagged for permissions
+- Fixed bash command prefix extraction to correctly identify subcommands after global options (e.g., `git -C /path log` now correctly matches `Bash(git log:*)` rules)
+- Fixed slash commands passed as CLI arguments (e.g., `claude /context`) not being executed properly
+- Fixed pressing Enter after Tab-completing a slash command selecting a different command instead of submitting the completed one
+- Fixed slash command argument hint flickering and inconsistent display when typing commands with arguments
+- Fixed Claude sometimes redundantly invoking the Skill tool when running slash commands directly
+- Fixed skill token estimates in `/context` to accurately reflect frontmatter-only loading
+- Fixed subagents sometimes not inheriting the parent's model by default
+- Fixed model picker showing incorrect selection for Bedrock/Vertex users using `--model haiku`
+- Fixed duplicate Bash commands appearing in permission request option labels
+- Fixed noisy output when background tasks complete - now shows clean completion message instead of raw output
+- Fixed background task completion notifications to appear proactively with bullet point
+- Fixed forked slash commands showing "AbortError" instead of "Interrupted" message when cancelled
+- Fixed cursor disappearing after dismissing permission dialogs
+- Fixed `/hooks` menu selecting wrong hook type when scrolling to a different option
+- Fixed images in queued prompts showing as "[object Object]" when pressing Esc to cancel
+- Fixed images being silently dropped when queueing messages while backgrounding a task
+- Fixed large pasted images failing with "Image was too large" error
+- Fixed extra blank lines in multiline prompts containing CJK characters (Japanese, Chinese, Korean)
+- Fixed ultrathink keyword highlighting being applied to wrong characters when user prompt text wraps to multiple lines
+- Fixed collapsed "Reading X files…" indicator incorrectly switching to past tense when thinking blocks appear mid-stream
+- Fixed Bash read commands (like `ls` and `cat`) not being counted in collapsed read/search groups, causing groups to incorrectly show "Read 0 files"
+- Fixed spinner token counter to properly accumulate tokens from subagents during execution
+- Fixed memory leak in git diff parsing where sliced strings retained large parent strings
+- Fixed race condition where LSP tool could return "no server available" during startup
+- Fixed feedback submission hanging indefinitely when network requests timeout
+- Fixed search mode in plugin discovery and log selector views exiting when pressing up arrow
+- Fixed hook success message showing trailing colon when hook has no output
+- Multiple optimizations to improve startup performance
+- Improved terminal rendering performance when using native installer or Bun, especially for text with emoji, ANSI codes, and Unicode characters
+- Improved performance when reading Jupyter notebooks with many cells
+- Improved reliability for piped input like `cat refactor.md | claude`
+- Improved reliability for AskQuestion tool
+- Improved sed in-place edit commands to render as file edits with diff preview
+- Improved Claude to automatically continue when response is cut off due to output token limit, instead of showing an error message
+- Improved compaction reliability
+- Improved subagents (Task tool) to continue working after permission denial, allowing them to try alternative approaches
+- Improved skills to show progress while executing, displaying tool uses as they happen
+- Improved skills from `/skills/` directories to be visible in the slash command menu by default (opt-out with `user-invocable: false` in frontmatter)
+- Improved skill suggestions to prioritize recently and frequently used skills
+- Improved spinner feedback when waiting for the first response token
+- Improved token count display in spinner to include tokens from background agents
+- Improved incremental output for async agents to give the main thread more control and visibility
+- Improved permission prompt UX with Tab hint moved to footer, cleaner Yes/No input labels with contextual placeholders
+- Improved the Claude in Chrome notification with shortened help text and persistent display until dismissed
+- Improved macOS screenshot paste reliability with TIFF format support
+- Improved `/stats` output
+- Updated Atlassian MCP integration to use a more reliable default configuration (streamable HTTP)
+- Changed "Interrupted" message color from red to grey for a less alarming appearance
+- Removed permission prompt when entering plan mode - users can now enter plan mode without approval
+- Removed underline styling from image reference links
+- [SDK] Changed minimum zod peer dependency to ^4.0.0
+- [VSCode] Added currently selected model name to the context menu
+- [VSCode] Added descriptive labels on auto-accept permission button (e.g., "Yes, allow npm for this project" instead of "Yes, and don't ask again")
+- [VSCode] Fixed paragraph breaks not rendering in markdown content
+- [VSCode] Fixed scrolling in the extension inadvertently scrolling the parent iframe
+- [Windows] Fixed issue with improper rendering
+
+## 2.0.76
+
+- Fixed issue with macOS code-sign warning when using Claude in Chrome integration
+
+## 2.0.75
+
+- Minor bugfixes
+
 ## 2.0.74
 
 - Added LSP (Language Server Protocol) tool for code intelligence features like go-to-definition, find references, and hover documentation
