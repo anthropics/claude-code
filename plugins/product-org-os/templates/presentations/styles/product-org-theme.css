@@ -1,0 +1,226 @@
+/* Product Org Presentation Theme */
+
+:root {
+    --primary-color: #2c5aa0;
+    --secondary-color: #1a365d;
+    --accent-color: #38b2ac;
+    --success-color: #28a745;
+    --warning-color: #ffc107;
+    --danger-color: #dc3545;
+    --light-bg: #f5f7fa;
+    --text-color: #333;
+    --muted-color: #666;
+}
+
+/* Base Typography */
+.reveal {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+    color: var(--text-color);
+}
+
+.reveal h1, .reveal h2, .reveal h3 {
+    font-weight: 600;
+    letter-spacing: -0.02em;
+}
+
+.reveal h1 {
+    color: var(--secondary-color);
+}
+
+.reveal h2 {
+    color: var(--primary-color);
+}
+
+/* Slide Backgrounds */
+.reveal .slides section {
+    background: white;
+}
+
+.reveal .slides section.title-slide {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+    color: white;
+}
+
+.reveal .slides section.title-slide h1,
+.reveal .slides section.title-slide h2 {
+    color: white;
+}
+
+/* Metric Cards */
+.metrics-grid {
+    display: grid;
+    gap: 20px;
+    margin: 20px 0;
+}
+
+.metric-card {
+    background: var(--light-bg);
+    border-radius: 12px;
+    padding: 24px;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.metric-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+}
+
+.metric-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    line-height: 1.2;
+}
+
+.metric-label {
+    font-size: 0.9rem;
+    color: var(--muted-color);
+    margin-top: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.metric-trend {
+    font-size: 0.85rem;
+    margin-top: 4px;
+}
+
+.metric-trend.up { color: var(--success-color); }
+.metric-trend.down { color: var(--danger-color); }
+.metric-trend.flat { color: var(--muted-color); }
+
+/* Tables */
+.reveal table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 0.9rem;
+}
+
+.reveal thead th {
+    background: var(--primary-color);
+    color: white;
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 600;
+}
+
+.reveal tbody td {
+    padding: 12px 16px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.reveal tbody tr:hover {
+    background: var(--light-bg);
+}
+
+/* Status Indicators */
+.status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.status-green {
+    background: #d4edda;
+    color: #155724;
+}
+
+.status-yellow {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.status-red {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+/* Lists */
+.reveal ul, .reveal ol {
+    text-align: left;
+    margin-left: 1.5em;
+}
+
+.reveal li {
+    margin-bottom: 0.6em;
+    line-height: 1.5;
+}
+
+.reveal li::marker {
+    color: var(--primary-color);
+}
+
+/* Callout Boxes */
+.callout {
+    padding: 16px 20px;
+    border-radius: 8px;
+    margin: 16px 0;
+    text-align: left;
+}
+
+.callout-info {
+    background: #e3f2fd;
+    border-left: 4px solid var(--primary-color);
+}
+
+.callout-success {
+    background: #d4edda;
+    border-left: 4px solid var(--success-color);
+}
+
+.callout-warning {
+    background: #fff3cd;
+    border-left: 4px solid var(--warning-color);
+}
+
+.callout-danger {
+    background: #f8d7da;
+    border-left: 4px solid var(--danger-color);
+}
+
+/* Two Column Layout */
+.two-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    text-align: left;
+}
+
+/* Print Styles */
+@media print {
+    .reveal .slides section {
+        page-break-after: always;
+    }
+
+    .reveal .controls,
+    .reveal .progress {
+        display: none;
+    }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+    .reveal {
+        background: #1a202c;
+        color: #e2e8f0;
+    }
+
+    .reveal .slides section {
+        background: #2d3748;
+    }
+
+    .metric-card {
+        background: #4a5568;
+    }
+
+    .reveal tbody td {
+        border-color: #4a5568;
+    }
+}

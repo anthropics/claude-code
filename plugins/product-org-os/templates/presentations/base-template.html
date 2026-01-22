@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{title}}</title>
+
+    <!-- Reveal.js Core -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4/dist/reveal.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4/dist/theme/white.css">
+
+    <style>
+        /* Product Org Theme */
+        :root {
+            --primary-color: #2c5aa0;
+            --secondary-color: #1a365d;
+            --accent-color: #38b2ac;
+            --success-color: #28a745;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+        }
+
+        /* Responsive Typography */
+        .reveal h1 {
+            font-size: clamp(1.5rem, 5vw, 2.5rem);
+            color: var(--secondary-color);
+        }
+        .reveal h2 {
+            font-size: clamp(1.2rem, 4vw, 2rem);
+            color: var(--primary-color);
+        }
+        .reveal h3 {
+            font-size: clamp(1rem, 3vw, 1.5rem);
+            color: var(--secondary-color);
+        }
+        .reveal p, .reveal li {
+            font-size: clamp(0.9rem, 2.5vw, 1.2rem);
+        }
+
+        /* Mobile-Friendly Tables */
+        .reveal table {
+            font-size: clamp(0.7rem, 2vw, 1rem);
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .reveal th {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 8px;
+        }
+        .reveal td {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+        .reveal tr:nth-child(even) {
+            background-color: #f5f7fa;
+        }
+
+        /* Responsive Layout */
+        @media screen and (max-width: 768px) {
+            .reveal .slides section {
+                padding: 10px;
+            }
+            .reveal table {
+                display: block;
+                overflow-x: auto;
+            }
+            .reveal .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media screen and (min-width: 769px) {
+            .reveal .slides section {
+                padding: 40px;
+            }
+            .reveal .metrics-grid {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 20px;
+            }
+        }
+
+        /* Metric Cards */
+        .metric-card {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .metric-value {
+            font-size: clamp(2rem, 6vw, 3rem);
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+        .metric-label {
+            font-size: clamp(0.8rem, 2vw, 1rem);
+            color: #666;
+            margin-top: 8px;
+        }
+
+        /* Status Indicators */
+        .status-green { color: var(--success-color); }
+        .status-yellow { color: var(--warning-color); }
+        .status-red { color: var(--danger-color); }
+
+        /* Touch-Friendly Navigation */
+        @media (pointer: coarse) {
+            .reveal .controls {
+                transform: scale(1.5);
+            }
+        }
+
+        /* Lists */
+        .reveal ul, .reveal ol {
+            margin-left: 1em;
+        }
+        .reveal li {
+            margin-bottom: 0.5em;
+        }
+
+        /* Footer */
+        .slide-footer {
+            position: absolute;
+            bottom: 10px;
+            left: 20px;
+            font-size: 0.7rem;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <div class="reveal">
+        <div class="slides">
+
+            <!-- Title Slide -->
+            <section>
+                <h1>{{title}}</h1>
+                <p>{{subtitle}}</p>
+                <p class="meta" style="color: #666; font-size: 0.9rem;">
+                    {{date}} | {{owner}}
+                </p>
+            </section>
+
+            <!-- Content slides generated from document -->
+            {{content_slides}}
+
+            <!-- Summary Slide -->
+            <section>
+                <h2>Summary & Next Steps</h2>
+                {{summary}}
+            </section>
+
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4/dist/reveal.js"></script>
+    <script>
+        Reveal.initialize({
+            // Responsive settings
+            width: '100%',
+            height: '100%',
+            margin: 0.1,
+            minScale: 0.2,
+            maxScale: 2.0,
+
+            // Touch/mobile support
+            touch: true,
+
+            // Navigation
+            controls: true,
+            progress: true,
+            hash: true,
+
+            // Presentation features
+            transition: 'slide',
+            backgroundTransition: 'fade'
+        });
+    </script>
+</body>
+</html>
