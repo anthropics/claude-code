@@ -33,120 +33,162 @@ param(
     [string]$Backend
 )
 
+# Set error handling
+$ErrorActionPreference = 'Stop'
+
 # Notify script start
 Write-Host "--- DevContainer Startup & Connection Script ---"
-Write-Host "Using backend: $($Backend)"
+Write-Host "Using backend: $Backend"
 
 # --- Prerequisite Check ---
 Write-Host "Checking for required commands..."
-try {
-    if (-not (Get-Command $Backend -ErrorAction SilentlyContinue)) {
-        throw "Required command '$($Backend)' not found."
-    }
-    Write-Host "- $($Backend) command found."
-    if (-not (Get-Command devcontainer -ErrorAction SilentlyContinue)) {
-        throw "Required command 'devcontainer' not found."
-    }
-    Write-Host "- devcontainer command found."
-}
-catch {
-    Write-Error "A required command is not installed or not in your PATH. $($_.Exception.Message)"
-    Write-Error "Please ensure both '$Backend' and 'devcontainer' are installed and accessible in your system's PATH."
+
+if (-not (Get-Command $Backend -ErrorAction SilentlyContinue)) {
+    Write-Error "Required command '$Backend' not found."
+    Write-Error "Please ensure '$Backend' is installed and accessible in your system's PATH."
     exit 1
 }
+Write-Host "- $Backend command found."
 
+if (-not (Get-Command devcontainer -ErrorAction SilentlyContinue)) {
+    Write-Error "Required command 'devcontainer' not found."
+    Write-Error "Please ensure 'devcontainer' CLI is installed and accessible in your system's PATH."
+    exit 1
+}
+Write-Host "- devcontainer command found."
+
+# --- Validate .devcontainer directory exists ---
+if (-not (Test-Path ".devcontainer")) {
+    Write-Error "No .devcontainer directory found in current folder."
+    Write-Error "Please ensure you're running this from the project root."
+    exit 1
+}
+Write-Host "- .devcontainer directory found."
 
 # --- Backend-Specific Initialization ---
 if ($Backend -eq 'podman') {
     Write-Host "--- Podman Backend Initialization ---"
 
-    # --- Step 1a: Initialize Podman machine ---
-    Write-Host "Initializing Podman machine 'claudeVM'..."
-    try {
-        & podman machine init claudeVM
-        Write-Host "Podman machine 'claudeVM' initialized or already exists."
-    } catch {
-        Write-Error "Failed to initialize Podman machine: $($_.Exception.Message)"
-        exit 1 # Exit script on error
+    # --- Step 1a: Check if Podman machine exists, initialize if not ---
+    Write-Host "Checking for Podman machine 'claudeVM'..."
+    $existingMachines = & podman machine list --format '{{.Name}}' 2>$null
+    $machineExists = $existingMachines -contains 'claudeVM'
+    
+    if (-not $machineExists) {
+        Write-Host "Initializing Podman machine 'claudeVM'..."
+        & podman machine init claudeVM 2>&1 | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            Write-Error "Failed to initialize Podman machine 'claudeVM'."
+            exit 1
+        }
+        Write-Host "Podman machine 'claudeVM' initialized."
+    } else {
+        Write-Host "Podman machine 'claudeVM' already exists."
     }
 
-    # --- Step 1b: Start Podman machine ---
-    Write-Host "Starting Podman machine 'claudeVM'..."
-    try {
-        & podman machine start claudeVM -q
-        Write-Host "Podman machine started or already running."
-    } catch {
-        Write-Error "Failed to start Podman machine: $($_.Exception.Message)"
-        exit 1
+    # --- Step 1b: Start Podman machine if not running ---
+    Write-Host "Checking Podman machine state..."
+    $machineInfo = & podman machine inspect claudeVM 2>$null | ConvertFrom-Json
+    $machineState = if ($machineInfo) { $machineInfo.State } else { $null }
+    
+    if ($machineState -ne 'running') {
+        Write-Host "Starting Podman machine 'claudeVM'..."
+        & podman machine start -q claudeVM 2>&1 | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            Write-Error "Failed to start Podman machine 'claudeVM'."
+            exit 1
+        }
+        Write-Host "Podman machine 'claudeVM' started."
+    } else {
+        Write-Host "Podman machine 'claudeVM' is already running."
     }
 
     # --- Step 2: Set default connection ---
     Write-Host "Setting default Podman connection to 'claudeVM'..."
-    try {
-        & podman system connection default claudeVM
+    & podman system connection default claudeVM 2>&1 | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        Write-Warning "Failed to set default Podman connection (may be already set)."
+    } else {
         Write-Host "Default connection set."
-    } catch {
-        Write-Warning "Failed to set default Podman connection (may be already set or machine issue): $($_.Exception.Message)"
     }
 
 } elseif ($Backend -eq 'docker') {
     Write-Host "--- Docker Backend Initialization ---"
 
     # --- Step 1 & 2: Check Docker Desktop ---
-    Write-Host "Checking if Docker Desktop is running and docker command is available..."
-    try {
-        docker info | Out-Null
-        Write-Host "Docker Desktop (daemon) is running."
-    } catch {
-        Write-Error "Docker Desktop is not running or docker command not found."
+    Write-Host "Checking if Docker Desktop is running..."
+    & docker info 2>&1 | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "Docker Desktop is not running or docker command not functional."
         Write-Error "Please ensure Docker Desktop is running."
         exit 1
     }
+    Write-Host "Docker Desktop (daemon) is running."
 }
 
 # --- Step 3: Bring up DevContainer ---
 Write-Host "Bringing up DevContainer in the current folder..."
-try {
-    $arguments = @('up', '--workspace-folder', '.')
-    if ($Backend -eq 'podman') {
-        $arguments += '--docker-path', 'podman'
-    }
-    & devcontainer @arguments
-    Write-Host "DevContainer startup process completed."
-} catch {
-    Write-Error "Failed to bring up DevContainer: $($_.Exception.Message)"
+
+$arguments = @('up', '--workspace-folder', '.')
+if ($Backend -eq 'podman') {
+    $arguments += @('--docker-path', 'podman')
+}
+
+& devcontainer @arguments 2>&1 | ForEach-Object { Write-Host $_ }
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "Failed to bring up DevContainer."
     exit 1
 }
+Write-Host "DevContainer startup process completed."
 
 # --- Step 4: Get DevContainer ID ---
 Write-Host "Finding the DevContainer ID..."
 $currentFolder = (Get-Location).Path
 
-try {
-    $containerId = (& $Backend ps --filter "label=devcontainer.local_folder=$currentFolder" --format '{{.ID}}').Trim()
-} catch {
-    $displayCommand = "$Backend ps --filter `"label=devcontainer.local_folder=$currentFolder`" --format '{{.ID}}'"
-    Write-Error "Failed to get container ID (Command: $displayCommand): $($_.Exception.Message)"
+# Use a variable for the filter to handle paths with spaces correctly
+$filterLabel = "label=devcontainer.local_folder=$currentFolder"
+$containerOutput = & $Backend ps --filter $filterLabel --format '{{.ID}}' 2>&1
+
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "Failed to query container list."
+    Write-Error "Command output: $containerOutput"
     exit 1
+}
+
+$containerId = ($containerOutput | Select-Object -First 1)
+if ($containerId) {
+    $containerId = $containerId.Trim()
 }
 
 if (-not $containerId) {
     Write-Error "Could not find DevContainer ID for the current folder ('$currentFolder')."
     Write-Error "Please check if 'devcontainer up' was successful and the container is running."
+    Write-Host "Debug: Running containers with devcontainer labels:"
+    & $Backend ps --filter "label=devcontainer.local_folder" --format 'ID={{.ID}} Labels={{.Labels}}'
     exit 1
 }
 Write-Host "Found container ID: $containerId"
 
 # --- Step 5 & 6: Execute command and enter interactive shell inside container ---
-Write-Host "Executing 'claude' command and then starting zsh session inside container $($containerId)..."
-try {
+Write-Host "Executing 'claude' command and then starting zsh session inside container $containerId..."
+
+# Check if running in interactive mode
+if ([Environment]::UserInteractive -and $Host.UI.RawUI.KeyAvailable -ne $null) {
     & $Backend exec -it $containerId zsh -c 'claude; exec zsh'
-    Write-Host "Interactive session ended."
-} catch {
-    $displayCommand = "$Backend exec -it $containerId zsh -c 'claude; exec zsh'"
-    Write-Error "Failed to execute command inside container (Command: $displayCommand): $($_.Exception.Message)"
+    $execExitCode = $LASTEXITCODE
+} else {
+    Write-Warning "Non-interactive environment detected. Running without -it flags."
+    & $Backend exec $containerId zsh -c 'claude'
+    $execExitCode = $LASTEXITCODE
+}
+
+if ($execExitCode -ne 0) {
+    Write-Error "Command inside container exited with code: $execExitCode"
     exit 1
 }
 
+Write-Host "Interactive session ended."
+
 # Notify script completion
 Write-Host "--- Script completed ---"
+
