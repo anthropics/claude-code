@@ -192,8 +192,8 @@ class SessionManager:
                 str(output_data).encode()
             ).hexdigest()[:16]
 
-        # Record in audit trail
-        audit_id = self.ledger.record_audit(
+        # Record in audit trail (returns chain info)
+        audit_record = self.ledger.record_audit(
             session_id=session_id,
             action_type="tool_use",
             tool_name=tool_name,
@@ -207,7 +207,10 @@ class SessionManager:
         atp_remaining = self.ledger.consume_atp(session_id, atp_cost)
 
         return {
-            "audit_id": audit_id,
+            "audit_id": audit_record["audit_id"],
+            "sequence": audit_record["sequence"],
+            "record_hash": audit_record["record_hash"],
+            "previous_hash": audit_record["previous_hash"],
             "tool_name": tool_name,
             "target": target,
             "status": status,
@@ -264,6 +267,21 @@ class SessionManager:
         if not self._current_session:
             return None
         return self._current_session.get("session_number")
+
+    def verify_witnessing_chain(self) -> tuple:
+        """
+        Verify the audit trail witnessing chain for current session.
+
+        Each record witnesses (hashes) the previous, creating an unforgeable
+        sequence. This is the chain of witnessing - proof of ordered actions.
+
+        Returns:
+            (is_valid: bool, error_message: Optional[str])
+        """
+        if not self._current_session:
+            return (False, "No active session")
+
+        return self.ledger.verify_audit_chain(self._current_session["session_id"])
 
     # --- Convenience methods for common patterns ---
 
