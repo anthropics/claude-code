@@ -38,6 +38,9 @@ import hashlib
 from datetime import datetime, timezone
 from pathlib import Path
 
+# Import heartbeat tracker
+from heartbeat import get_session_heartbeat
+
 WEB4_DIR = Path.home() / ".web4"
 SESSION_DIR = WEB4_DIR / "sessions"
 R6_LOG_DIR = WEB4_DIR / "r6"
@@ -185,14 +188,29 @@ def main():
     # Log for audit
     log_r6(r6)
 
+    # Record heartbeat for timing coherence tracking
+    heartbeat = get_session_heartbeat(session_id)
+    hb_entry = heartbeat.record(tool_name, session["action_count"])
+    timing_coherence = heartbeat.timing_coherence()
+
+    # Attach heartbeat info to R6 request
+    r6["heartbeat"] = {
+        "sequence": hb_entry["sequence"],
+        "status": hb_entry["status"],
+        "delta_seconds": hb_entry["delta_seconds"],
+        "timing_coherence": timing_coherence
+    }
+
     # Update session
     session["pending_r6"] = r6
     session["action_count"] += 1
+    session["timing_coherence"] = timing_coherence
     save_session(session)
 
     # Show R6 status if verbose
     if session["preferences"]["audit_level"] == "verbose":
-        print(f"[R6] {r6['request']['category']}:{r6['request']['target'][:30]}", file=sys.stderr)
+        coherence_indicator = "●" if timing_coherence >= 0.8 else "◐" if timing_coherence >= 0.5 else "○"
+        print(f"[R6] {r6['request']['category']}:{r6['request']['target'][:30]} {coherence_indicator}{timing_coherence:.2f}", file=sys.stderr)
 
     # Always allow - this is observational, not enforcement
     sys.exit(0)

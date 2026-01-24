@@ -40,11 +40,15 @@ The plugin creates `~/.web4/` on first session:
 
 ```bash
 ~/.web4/
+├── ledger.db          # SQLite database (unified storage)
 ├── preferences.json   # Your settings
-├── sessions/          # Session state files
-├── audit/             # Audit records
+├── sessions/          # Session state files (legacy)
+├── audit/             # Audit records (legacy)
 └── r6/                # R6 workflow logs
 ```
+
+The SQLite ledger uses WAL mode for concurrent access, allowing multiple
+parallel sessions (e.g., Synchronism, Chemistry, Gnosis) to write simultaneously.
 
 ## What It Does
 
@@ -100,6 +104,29 @@ web4:session:a1b2c3d4
 
 This is **not** hardware-bound (no TPM/Secure Enclave). Trust interpretation is up to the relying party. For hardware-bound identity, see [Hardbound](https://github.com/dp-web4/hardbound).
 
+### Heartbeat Tracking
+
+Every tool call records a timing heartbeat:
+
+```json
+{
+  "sequence": 47,
+  "timestamp": "2026-01-24T06:30:00Z",
+  "status": "on_time",
+  "delta_seconds": 45.2,
+  "tool_name": "Edit",
+  "entry_hash": "a1b2c3d4..."
+}
+```
+
+**Timing status:**
+- `on_time` - Normal interval (30-90 seconds)
+- `early` - Faster than expected
+- `late` - Slower than expected
+- `gap` - Long pause (>3 minutes)
+
+**Timing coherence** score (0.0-1.0) indicates session regularity. Irregular patterns may indicate interruptions or context switches.
+
 ## Commands
 
 | Command | Description |
@@ -130,14 +157,24 @@ Create `~/.web4/preferences.json`:
 
 ```
 ~/.web4/
+├── ledger.db            # SQLite database (primary storage)
+│   ├── identities       # Soft LCT tokens
+│   ├── sessions         # Session tracking, ATP accounting
+│   ├── session_sequence # Atomic session numbering per project
+│   ├── heartbeats       # Timing coherence records
+│   ├── audit_trail      # Tool use records
+│   └── work_products    # Files, commits registered
 ├── preferences.json     # User preferences
-├── sessions/            # Session state
-│   └── {session_id}.json
-├── audit/               # Audit records
-│   └── {session_id}.jsonl
+├── sessions/            # Session state (legacy JSON)
+├── audit/               # Audit records (legacy JSONL)
 └── r6/                  # R6 request logs
-    └── {date}.jsonl
 ```
+
+The SQLite ledger provides:
+- **Unified storage** - All data in one file
+- **Concurrent access** - WAL mode for parallel sessions
+- **Atomic operations** - No duplicate session numbers
+- **Cross-table queries** - Join heartbeat + audit data
 
 ## Why R6?
 
@@ -151,15 +188,40 @@ The R6 framework provides:
 
 R6 is observational by default - it records, doesn't block. This makes it safe to deploy without disrupting workflows.
 
+## Governance Module
+
+The plugin includes a Python governance module (`governance/`):
+
+```python
+from governance import Ledger, SoftLCT, SessionManager
+
+# Start a session with automatic numbering
+sm = SessionManager()
+session = sm.start_session(project='my-project', atp_budget=100)
+print(f"Session #{session['session_number']}")
+
+# Record actions
+sm.record_action('Edit', target='src/main.py', status='success')
+
+# Register work products
+sm.register_work_product('file', path='output.md')
+
+# Get session summary
+print(sm.get_session_summary())
+```
+
+**ATP Accounting**: Each session has an action budget (default 100). Actions consume ATP, enabling cost tracking.
+
 ## Web4 Ecosystem
 
 This plugin implements a subset of the [Web4 trust infrastructure](https://github.com/dp-web4/web4):
 
 | Concept | This Plugin | Full Web4 |
 |---------|-------------|-----------|
-| Identity | Software token | LCT (hardware-bound) |
+| Identity | Software token (Soft LCT) | LCT (hardware-bound) |
 | Workflow | R6 framework | R6 + Policy enforcement |
-| Audit | Hash-linked chain | Distributed ledger |
+| Audit | SQLite ledger | Distributed ledger |
+| Timing | Heartbeat coherence | Grounding lifecycle |
 | Trust | (Relying party decides) | T3 Trust Tensor |
 
 For enterprise features (hardware binding, team governance, policy enforcement), see [Hardbound](https://github.com/dp-web4/hardbound).

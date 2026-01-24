@@ -25,6 +25,9 @@ import hashlib
 from datetime import datetime, timezone
 from pathlib import Path
 
+# Import heartbeat tracker
+from heartbeat import get_session_heartbeat
+
 # Web4 state directory
 WEB4_DIR = Path.home() / ".web4"
 SESSION_DIR = WEB4_DIR / "sessions"
@@ -87,6 +90,10 @@ def initialize_session(session_id):
     session_file = SESSION_DIR / f"{session_id}.json"
     with open(session_file, "w") as f:
         json.dump(session, f, indent=2)
+
+    # Initialize heartbeat tracker and record session start
+    heartbeat = get_session_heartbeat(session_id)
+    heartbeat.record("session_start", 0)
 
     return session
 
