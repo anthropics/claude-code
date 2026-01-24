@@ -10,22 +10,25 @@ This is a software-only implementation of Web4 governance concepts:
 - Soft LCT (software-bound identity, no TPM)
 - Local SQLite ledger (session tracking, work products, ATP)
 - R6 workflow (request → result with audit trail)
+- Entity trust with witnessing (MCP servers, agents, references)
 - Role trust accumulation (T3/V3 tensors per agent)
-- Persistent references (learned context per role)
+- Persistent references with self-curation (learned context per role)
 - Agent lifecycle governance (spawn, complete, capability modulation)
 
 For hardware-bound identity and enterprise features, contact dp@metalinxx.io.
 
-Note: This module can be used alongside the existing heartbeat tracking.
-The hooks currently use heartbeat; this module provides additional
-ledger-based coordination for session numbering and work tracking.
-
 Usage:
-    from governance import AgentGovernance
+    from governance import AgentGovernance, EntityTrustStore
 
+    # Agent governance
     gov = AgentGovernance()
     ctx = gov.on_agent_spawn(session_id, "code-reviewer")
     result = gov.on_agent_complete(session_id, "code-reviewer", success=True)
+
+    # Entity trust (MCP servers, etc.)
+    store = EntityTrustStore()
+    mcp_trust = store.get("mcp:filesystem")
+    store.witness("session:abc", "mcp:filesystem", success=True)
 """
 
 from .ledger import Ledger
@@ -34,6 +37,7 @@ from .session_manager import SessionManager
 from .role_trust import RoleTrust, RoleTrustStore
 from .references import Reference, ReferenceStore
 from .agent_governance import AgentGovernance
+from .entity_trust import EntityTrust, EntityTrustStore, get_mcp_trust, update_mcp_trust
 
 __all__ = [
     'Ledger',
@@ -43,5 +47,9 @@ __all__ = [
     'RoleTrustStore',
     'Reference',
     'ReferenceStore',
-    'AgentGovernance'
+    'AgentGovernance',
+    'EntityTrust',
+    'EntityTrustStore',
+    'get_mcp_trust',
+    'update_mcp_trust',
 ]
