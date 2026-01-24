@@ -145,6 +145,17 @@
       },
       "source": "./plugins/security-guidance",
       "category": "security"
+    },
+    {
+      "name": "speakeasy",
+      "description": "SDK generation and OpenAPI tooling skills powered by the Speakeasy CLI. Includes validation, overlay creation, spec merging, and AI-powered suggestions for operation IDs.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Speakeasy",
+        "email": "support@speakeasy.com"
+      },
+      "source": "speakeasy-api/agent-skills",
+      "category": "development"
     }
   ]
 }
