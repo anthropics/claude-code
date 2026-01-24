@@ -37,6 +37,14 @@ import hashlib
 from datetime import datetime, timezone
 from pathlib import Path
 
+# Import agent governance
+sys.path.insert(0, str(Path(__file__).parent.parent))
+try:
+    from governance import AgentGovernance
+    GOVERNANCE_AVAILABLE = True
+except ImportError:
+    GOVERNANCE_AVAILABLE = False
+
 WEB4_DIR = Path.home() / ".web4"
 SESSION_DIR = WEB4_DIR / "sessions"
 AUDIT_DIR = WEB4_DIR / "audit"
@@ -155,6 +163,28 @@ def main():
 
     # Create audit record
     record = create_audit_record(session, r6_request, tool_output, tool_error)
+
+    # Handle agent completion (Task tool = agent delegation)
+    if r6_request["request"]["tool"] == "Task" and GOVERNANCE_AVAILABLE:
+        agent_name = session.get("active_agent")
+        if agent_name:
+            try:
+                gov = AgentGovernance()
+                success = tool_error is None
+                trust_update = gov.on_agent_complete(session_id, agent_name, success)
+
+                # Add trust update to audit record
+                record["agent_completion"] = {
+                    "agent_name": agent_name,
+                    "success": success,
+                    "trust_updated": trust_update.get("trust_updated", {})
+                }
+
+                # Clear active agent
+                session["active_agent"] = None
+
+            except Exception as e:
+                record["agent_completion"] = {"error": str(e)}
 
     # Store audit record
     store_audit_record(session, record)

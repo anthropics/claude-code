@@ -41,6 +41,14 @@ from pathlib import Path
 # Import heartbeat tracker
 from heartbeat import get_session_heartbeat
 
+# Import agent governance
+sys.path.insert(0, str(Path(__file__).parent.parent))
+try:
+    from governance import AgentGovernance
+    GOVERNANCE_AVAILABLE = True
+except ImportError:
+    GOVERNANCE_AVAILABLE = False
+
 WEB4_DIR = Path.home() / ".web4"
 SESSION_DIR = WEB4_DIR / "sessions"
 R6_LOG_DIR = WEB4_DIR / "r6"
@@ -184,6 +192,30 @@ def main():
 
     # Create R6 request
     r6 = create_r6_request(session, tool_name, tool_input)
+
+    # Handle agent spawn (Task tool = agent delegation)
+    agent_context = None
+    if tool_name == "Task" and GOVERNANCE_AVAILABLE:
+        agent_name = tool_input.get("subagent_type", tool_input.get("description", "unknown"))
+        try:
+            gov = AgentGovernance()
+            agent_context = gov.on_agent_spawn(session_id, agent_name)
+
+            # Add agent context to R6 request
+            r6["agent"] = {
+                "name": agent_name,
+                "trust_level": agent_context.get("trust", {}).get("trust_level", "unknown"),
+                "t3_average": agent_context.get("trust", {}).get("t3_average", 0.5),
+                "references_loaded": agent_context.get("references_loaded", 0),
+                "capabilities": agent_context.get("capabilities", {})
+            }
+
+            # Track active agent in session
+            session["active_agent"] = agent_name
+
+        except Exception as e:
+            # Don't fail the hook on governance errors
+            r6["agent"] = {"name": agent_name, "error": str(e)}
 
     # Log for audit
     log_r6(r6)
