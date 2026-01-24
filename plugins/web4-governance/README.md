@@ -1,6 +1,6 @@
 # Web4 Governance Plugin for Claude Code
 
-Lightweight AI governance with R6 workflow formalism and audit trails.
+Lightweight AI governance with R6 workflow formalism, agent trust accumulation, and audit trails.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -9,10 +9,21 @@ Lightweight AI governance with R6 workflow formalism and audit trails.
 This plugin adds structured governance to Claude Code sessions:
 
 - **R6 Workflow** - Every tool call follows a formal intent→action→result flow
+- **Agent Trust** - T3/V3 tensors accumulate per agent role based on outcomes
+- **Persistent References** - Agents learn patterns that persist across sessions
+- **Heartbeat Coherence** - Timing-based session health tracking
 - **Audit Trail** - Verifiable chain of actions with provenance
-- **Session Identity** - Software-bound tokens for session tracking
 
 No external dependencies. No network calls. Just structured, auditable AI actions.
+
+## What's New in v0.2
+
+- **Agent Governance** - Claude Code agents map to Web4 role entities
+- **Trust Tensors** - Each agent accumulates trust independently (T3/V3)
+- **Reference Store** - Learned patterns persist across sessions
+- **Capability Modulation** - Higher trust = more permissions
+- **SQLite Ledger** - Unified storage with WAL mode for concurrent access
+- **Heartbeat Ledger** - Timing coherence tracking
 
 ## Installation
 
@@ -40,21 +51,91 @@ The plugin creates `~/.web4/` on first session:
 
 ```bash
 ~/.web4/
-├── ledger.db          # SQLite database (unified storage)
-├── preferences.json   # Your settings
-├── sessions/          # Session state files (legacy)
-├── audit/             # Audit records (legacy)
-└── r6/                # R6 workflow logs
+├── ledger.db                 # SQLite database (unified storage)
+├── preferences.json          # Your settings
+├── sessions/                 # Session state files
+├── audit/                    # Audit records (JSONL)
+├── r6/                       # R6 workflow logs
+├── heartbeat/                # Timing coherence ledgers
+└── governance/
+    ├── roles/                # Per-agent trust tensors
+    ├── references/           # Persistent learned context
+    └── sessions/             # Governed session state
 ```
 
 The SQLite ledger uses WAL mode for concurrent access, allowing multiple
 parallel sessions to write simultaneously without conflicts.
 
-## What It Does
+## Agent Governance
 
-### Every Tool Call Gets an R6 Record
+### How It Works
 
-The R6 framework captures structured intent:
+```
+Agent Spawn (Task tool)     Agent Complete
+        │                          │
+        ▼                          ▼
+┌───────────────┐          ┌───────────────┐
+│ on_agent_spawn│          │on_agent_complete
+│ - Load trust  │          │ - Update trust │
+│ - Load refs   │          │ - Record outcome
+│ - Check caps  │          └───────────────┘
+└───────────────┘
+        │
+        ▼
+┌───────────────────────────────────────┐
+│           Agent Runs                   │
+│  (with prior context injected)        │
+└───────────────────────────────────────┘
+```
+
+### Trust Accumulation
+
+Each agent role (e.g., `code-reviewer`, `test-generator`) accumulates trust independently:
+
+**T3 Trust Tensor (6 dimensions):**
+| Dimension | What It Measures |
+|-----------|------------------|
+| competence | Can they do it? |
+| reliability | Will they do it consistently? |
+| consistency | Same quality over time? |
+| witnesses | Corroborated by others? |
+| lineage | Track record length |
+| alignment | Values match context? |
+
+**Trust Updates:**
+- Success: +5% (diminishing returns near 1.0)
+- Failure: -10% (asymmetric - trust is hard to earn, easy to lose)
+
+### Persistent References
+
+Agents accumulate learned patterns:
+
+```python
+# After code review
+gov.extract_reference(
+    role_id="code-reviewer",
+    content="Pattern: Always check null before array access",
+    source="review of auth.py",
+    ref_type="pattern"
+)
+```
+
+On next invocation, the agent receives prior context automatically.
+
+### Capability Derivation
+
+Trust level determines capabilities:
+
+| Trust Level | can_write | can_execute | can_delegate | max_atp |
+|-------------|-----------|-------------|--------------|---------|
+| < 0.3       | ❌        | ❌          | ❌           | 37      |
+| 0.3-0.4     | ✅        | ❌          | ❌           | 46      |
+| 0.4-0.6     | ✅        | ✅          | ❌           | 64      |
+| 0.6+        | ✅        | ✅          | ✅           | 82+     |
+
+## R6 Workflow
+
+Every tool call gets an R6 record:
 
 ```
 R6 = Rules + Role + Request + Reference + Resource → Result
@@ -63,46 +144,22 @@ R6 = Rules + Role + Request + Reference + Resource → Result
 | Component | What It Captures |
 |-----------|------------------|
 | **Rules** | Preferences and constraints |
-| **Role** | Session identity, action index |
+| **Role** | Session identity, action index, active agent |
 | **Request** | Tool name, category, target |
 | **Reference** | Chain position, previous R6 |
-| **Resource** | (Optional) Estimated cost |
-| **Result** | Status, output hash |
+| **Resource** | ATP cost |
+| **Result** | Status, output hash, trust update |
 
-### Audit Trail with Provenance
+## Heartbeat Coherence
 
-Each action creates an audit record linked to its R6 request:
+The plugin tracks timing between tool calls:
 
-```json
-{
-  "record_id": "audit:f8e9a1b2",
-  "r6_request_id": "r6:f8e9a1b2",
-  "tool": "Edit",
-  "category": "file_write",
-  "target": "src/main.rs",
-  "result": {
-    "status": "success",
-    "output_hash": "a1b2c3d4..."
-  },
-  "provenance": {
-    "session_id": "abc123",
-    "action_index": 47,
-    "prev_record_hash": "..."
-  }
-}
-```
+- **on_time**: Within expected interval (good)
+- **early**: Faster than expected (slight penalty)
+- **late**: Slower but acceptable
+- **gap**: Long pause detected
 
-Records form a hash-linked chain, enabling verification.
-
-### Session Identity
-
-Sessions get a software-bound token:
-
-```
-web4:session:a1b2c3d4
-```
-
-This is **not** hardware-bound (no TPM/Secure Enclave). Trust interpretation is up to the relying party. For hardware-bound identity, see [Hardbound](https://github.com/dp-web4/hardbound).
+Coherence score (0.0-1.0) indicates session health and can modulate trust application.
 
 ### Heartbeat Tracking
 
@@ -151,7 +208,43 @@ Create `~/.web4/preferences.json`:
 **audit_level**:
 - `minimal` - Just record, no output
 - `standard` - Session start message
-- `verbose` - Show each R6 request
+- `verbose` - Show each R6 request with coherence indicator
+
+## Testing
+
+```bash
+# Test heartbeat system
+python3 test_heartbeat.py
+
+# Test agent governance flow
+python3 test_agent_flow.py
+```
+
+## Governance Module
+
+The plugin includes a Python governance module (`governance/`):
+
+```python
+from governance import Ledger, SoftLCT, SessionManager, AgentGovernance
+
+# Start a session with automatic numbering
+sm = SessionManager()
+session = sm.start_session(project='my-project', atp_budget=100)
+print(f"Session #{session['session_number']}")
+
+# Record actions
+sm.record_action('Edit', target='src/main.py', status='success')
+
+# Agent governance
+gov = AgentGovernance()
+ctx = gov.on_agent_spawn(session_id, "code-reviewer")
+result = gov.on_agent_complete(session_id, "code-reviewer", success=True)
+
+# Get session summary
+print(sm.get_session_summary())
+```
+
+**ATP Accounting**: Each session has an action budget (default 100). Actions consume ATP, enabling cost tracking.
 
 ## Files
 
@@ -165,9 +258,13 @@ Create `~/.web4/preferences.json`:
 │   ├── audit_trail      # Tool use records
 │   └── work_products    # Files, commits registered
 ├── preferences.json     # User preferences
-├── sessions/            # Session state (legacy JSON)
-├── audit/               # Audit records (legacy JSONL)
-└── r6/                  # R6 request logs
+├── sessions/            # Session state (JSON)
+├── audit/               # Audit records (JSONL)
+├── r6/                  # R6 request logs
+├── heartbeat/           # Timing coherence ledgers
+└── governance/
+    ├── roles/           # Trust tensors per agent
+    └── references/      # Learned context per agent
 ```
 
 The SQLite ledger provides:
@@ -176,55 +273,20 @@ The SQLite ledger provides:
 - **Atomic operations** - No duplicate session numbers
 - **Cross-table queries** - Join heartbeat + audit data
 
-## Why R6?
-
-The R6 framework provides:
-
-1. **Structured Intent** - Every action has documented purpose
-2. **Audit Foundation** - Machine-readable action history
-3. **Context Preservation** - Reference links maintain history
-4. **Trust Basis** - Verifiable record for trust evaluation
-5. **Policy Hook** - Rules component enables future enforcement
-
-R6 is observational by default - it records, doesn't block. This makes it safe to deploy without disrupting workflows.
-
-## Governance Module
-
-The plugin includes a Python governance module (`governance/`):
-
-```python
-from governance import Ledger, SoftLCT, SessionManager
-
-# Start a session with automatic numbering
-sm = SessionManager()
-session = sm.start_session(project='my-project', atp_budget=100)
-print(f"Session #{session['session_number']}")
-
-# Record actions
-sm.record_action('Edit', target='src/main.py', status='success')
-
-# Register work products
-sm.register_work_product('file', path='output.md')
-
-# Get session summary
-print(sm.get_session_summary())
-```
-
-**ATP Accounting**: Each session has an action budget (default 100). Actions consume ATP, enabling cost tracking.
-
 ## Web4 Ecosystem
 
-This plugin implements a subset of the [Web4 trust infrastructure](https://github.com/dp-web4/web4):
+This plugin implements Web4 governance concepts:
 
 | Concept | This Plugin | Full Web4 |
 |---------|-------------|-----------|
-| Identity | Software token (Soft LCT) | LCT (hardware-bound) |
+| Identity | Soft LCT (software) | LCT (hardware-bound) |
 | Workflow | R6 framework | R6 + Policy enforcement |
-| Audit | SQLite ledger | Distributed ledger |
+| Audit | SQLite + hash-linked chain | Distributed ledger |
 | Timing | Heartbeat coherence | Grounding lifecycle |
-| Trust | (Relying party decides) | T3 Trust Tensor |
+| Trust | T3/V3 tensors per role | Full tensor calculus |
+| Agent | Role trust + references | MRH + Witnessing |
 
-For enterprise features (hardware binding, team governance, policy enforcement), see [Hardbound](https://github.com/dp-web4/hardbound).
+For enterprise features (hardware binding, TPM attestation, cross-machine verification), contact dp@metalinxx.io.
 
 ## Contributing
 
@@ -233,8 +295,9 @@ Contributions welcome! This plugin is MIT licensed.
 Areas for contribution:
 - Additional audit visualizations
 - R6 analytics and insights
-- Integration with external audit systems
-- Performance optimizations
+- Trust visualization
+- Reference search improvements
+- Cross-session analytics
 
 ## License
 
@@ -244,4 +307,5 @@ MIT License - see [LICENSE](LICENSE)
 
 - [Web4 Specification](https://github.com/dp-web4/web4)
 - [R6 Framework Spec](https://github.com/dp-web4/web4/blob/main/web4-standard/core-spec/r6-framework.md)
-- [Hardbound (Enterprise)](https://github.com/dp-web4/hardbound)
+- [Trust Tensors Spec](https://github.com/dp-web4/web4/blob/main/web4-standard/core-spec/t3-v3-tensors.md)
+- Enterprise inquiries: dp@metalinxx.io

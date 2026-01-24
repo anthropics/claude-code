@@ -28,6 +28,14 @@ from pathlib import Path
 # Import heartbeat tracker
 from heartbeat import get_session_heartbeat
 
+# Import agent governance
+sys.path.insert(0, str(Path(__file__).parent.parent))
+try:
+    from governance import AgentGovernance, RoleTrustStore
+    GOVERNANCE_AVAILABLE = True
+except ImportError:
+    GOVERNANCE_AVAILABLE = False
+
 # Web4 state directory
 WEB4_DIR = Path.home() / ".web4"
 SESSION_DIR = WEB4_DIR / "sessions"
@@ -84,7 +92,11 @@ def initialize_session(session_id):
         "started_at": datetime.now(timezone.utc).isoformat() + "Z",
         "action_count": 0,
         "r6_requests": [],
-        "audit_chain": []
+        "audit_chain": [],
+        # Agent governance tracking
+        "active_agent": None,
+        "agents_used": [],
+        "governance_available": GOVERNANCE_AVAILABLE
     }
 
     session_file = SESSION_DIR / f"{session_id}.json"
@@ -114,7 +126,8 @@ def main():
     # Show status if preference enabled
     if session["preferences"]["show_r6_status"]:
         token_short = session["token"]["token_id"].split(":")[-1]
-        print(f"[Web4] Session {token_short} (software-bound)", file=sys.stderr)
+        gov_status = "+" if GOVERNANCE_AVAILABLE else "-"
+        print(f"[Web4] Session {token_short} (software-bound) [gov{gov_status}]", file=sys.stderr)
 
     sys.exit(0)
 
