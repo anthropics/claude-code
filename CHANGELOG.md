@@ -5,6 +5,7 @@
 - Added env var `CLAUDE_CODE_ENABLE_TASKS`, set to `false` to keep the old system temporarily
 - Added shorthand `$0`, `$1`, etc. for accessing individual arguments in custom commands
 - Fixed crashes on processors without AVX instruction support
+- Fixed subscription intent not being preserved through OAuth authentication flow, causing users who selected the Pro plan to land on the regular interface instead of completing the upgrade after sign-in
 - Fixed dangling Claude Code processes when terminal is closed by catching EIO errors from `process.exit()` and using SIGKILL as fallback
 - Fixed `/rename` and `/tag` not updating the correct session when resuming from a different directory (e.g., git worktrees)
 - Fixed resuming sessions by custom title not working when run from a different directory
