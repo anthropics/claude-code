@@ -102,6 +102,9 @@ def create_audit_record(session, r6_request, tool_output, tool_error):
             "output_hash": result_hash,
         },
 
+        # Heartbeat timing (from R6 request)
+        "heartbeat": r6_request.get("heartbeat", {}),
+
         # Provenance chain
         "provenance": {
             "session_id": session["session_id"],
