@@ -102,10 +102,11 @@ class Ledger:
                     FOREIGN KEY (session_id) REFERENCES sessions(session_id)
                 );
 
-                -- Audit trail
+                -- Audit trail (with witnessing chain)
                 CREATE TABLE IF NOT EXISTS audit_trail (
                     audit_id TEXT PRIMARY KEY,
                     session_id TEXT NOT NULL,
+                    sequence INTEGER NOT NULL,
                     action_type TEXT NOT NULL,
                     tool_name TEXT,
                     target TEXT,
@@ -114,6 +115,8 @@ class Ledger:
                     status TEXT,
                     timestamp TEXT NOT NULL,
                     r6_data TEXT,
+                    previous_hash TEXT,
+                    record_hash TEXT NOT NULL,
                     FOREIGN KEY (session_id) REFERENCES sessions(session_id)
                 );
 
@@ -334,32 +337,111 @@ class Ledger:
             ).fetchall()
             return [dict(row) for row in rows]
 
-    # --- Audit Trail ---
+    # --- Audit Trail (with witnessing chain) ---
 
     def record_audit(self, session_id: str, action_type: str, tool_name: Optional[str] = None,
                      target: Optional[str] = None, input_hash: Optional[str] = None,
                      output_hash: Optional[str] = None, status: str = "success",
-                     r6_data: Optional[Dict] = None) -> str:
-        """Record an audit entry."""
-        now = datetime.now(timezone.utc).isoformat() + "Z"
-        audit_id = f"audit:{hashlib.sha256(f'{session_id}:{now}'.encode()).hexdigest()[:12]}"
+                     r6_data: Optional[Dict] = None) -> Dict:
+        """
+        Record an audit entry with hash-linked witnessing chain.
 
-        with sqlite3.connect(self.db_path) as conn:
+        Each record witnesses the previous, creating an unforgeable sequence.
+        Breaking the chain would require recomputing all subsequent hashes.
+
+        Returns:
+            Dict with audit_id, sequence, and record_hash
+        """
+        now = datetime.now(timezone.utc).isoformat() + "Z"
+
+        with sqlite3.connect(self.db_path, timeout=30.0) as conn:
+            conn.execute("PRAGMA busy_timeout = 30000")
+
+            # Get previous record for chain linking
+            prev = conn.execute("""
+                SELECT sequence, record_hash FROM audit_trail
+                WHERE session_id = ?
+                ORDER BY sequence DESC LIMIT 1
+            """, (session_id,)).fetchone()
+
+            if prev:
+                sequence = prev[0] + 1
+                previous_hash = prev[1]
+            else:
+                sequence = 1
+                previous_hash = ""  # Genesis record
+
+            # Compute record hash (includes previous_hash for chain)
+            hash_input = f"{session_id}:{sequence}:{now}:{tool_name}:{target}:{input_hash}:{output_hash}:{previous_hash}"
+            record_hash = hashlib.sha256(hash_input.encode()).hexdigest()[:32]
+
+            audit_id = f"audit:{record_hash[:12]}"
+
             conn.execute("""
                 INSERT INTO audit_trail
-                (audit_id, session_id, action_type, tool_name, target, input_hash, output_hash, status, timestamp, r6_data)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (audit_id, session_id, action_type, tool_name, target, input_hash,
-                  output_hash, status, now, json.dumps(r6_data) if r6_data else None))
+                (audit_id, session_id, sequence, action_type, tool_name, target,
+                 input_hash, output_hash, status, timestamp, r6_data, previous_hash, record_hash)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (audit_id, session_id, sequence, action_type, tool_name, target,
+                  input_hash, output_hash, status, now,
+                  json.dumps(r6_data) if r6_data else None,
+                  previous_hash, record_hash))
 
-        return audit_id
+        return {
+            "audit_id": audit_id,
+            "sequence": sequence,
+            "record_hash": record_hash,
+            "previous_hash": previous_hash
+        }
+
+    def get_last_audit_record(self, session_id: str) -> Optional[Dict]:
+        """Get the most recent audit record for chain verification."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            row = conn.execute("""
+                SELECT * FROM audit_trail
+                WHERE session_id = ?
+                ORDER BY sequence DESC LIMIT 1
+            """, (session_id,)).fetchone()
+            return dict(row) if row else None
+
+    def verify_audit_chain(self, session_id: str) -> tuple:
+        """
+        Verify the audit trail hash chain integrity.
+
+        Returns:
+            (is_valid: bool, error_message: Optional[str])
+        """
+        records = self.get_session_audit_trail(session_id)
+
+        if not records:
+            return (True, None)
+
+        for i, record in enumerate(records):
+            if i == 0:
+                # Genesis record should have empty previous_hash
+                if record.get('previous_hash'):
+                    return (False, f"Genesis record has non-empty previous_hash")
+                continue
+
+            prev = records[i - 1]
+
+            # Check sequence continuity
+            if record['sequence'] != prev['sequence'] + 1:
+                return (False, f"Sequence gap at {i}: {prev['sequence']} -> {record['sequence']}")
+
+            # Check hash chain
+            if record['previous_hash'] != prev['record_hash']:
+                return (False, f"Hash chain broken at sequence {record['sequence']}")
+
+        return (True, None)
 
     def get_session_audit_trail(self, session_id: str) -> List[Dict]:
-        """Get audit trail for a session."""
+        """Get audit trail for a session, ordered by sequence (witnessing order)."""
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             rows = conn.execute(
-                "SELECT * FROM audit_trail WHERE session_id = ? ORDER BY timestamp",
+                "SELECT * FROM audit_trail WHERE session_id = ? ORDER BY sequence ASC",
                 (session_id,)
             ).fetchall()
             return [dict(row) for row in rows]
