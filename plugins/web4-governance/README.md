@@ -48,7 +48,7 @@ The plugin creates `~/.web4/` on first session:
 ```
 
 The SQLite ledger uses WAL mode for concurrent access, allowing multiple
-parallel sessions (e.g., Synchronism, Chemistry, Gnosis) to write simultaneously.
+parallel sessions to write simultaneously without conflicts.
 
 ## What It Does
 

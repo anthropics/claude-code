@@ -105,11 +105,10 @@ class SessionManager:
 
         # Default paths based on project
         if path is None:
-            # Try common locations
+            # Try common locations relative to current working directory
             candidates = [
                 Path.cwd() / "Research",
                 Path.cwd(),
-                Path.home() / "ai-workspace" / project / "Research",
             ]
             for candidate in candidates:
                 if candidate.exists():
