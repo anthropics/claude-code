@@ -76,6 +76,9 @@ class AgentGovernance:
         # Track active role per session
         self._active_roles: Dict[str, str] = {}
 
+        # Track references used per session (for witnessing on complete)
+        self._session_refs: Dict[str, List[str]] = {}
+
     def get_role_context(self, role_id: str) -> dict:
         """
         Get full context for a role (agent).
@@ -86,7 +89,7 @@ class AgentGovernance:
         trust = self.role_trust.get(role_id)
         refs = self.references.get_for_role(role_id, limit=30)
         capabilities = self.role_trust.derive_capabilities(role_id)
-        context_str = self.references.get_context_for_role(role_id)
+        context_str, used_ref_ids = self.references.get_context_for_role(role_id)
 
         return {
             "role_id": role_id,
@@ -97,7 +100,8 @@ class AgentGovernance:
             "capabilities": capabilities,
             "reference_count": len(refs),
             "references": [r.to_dict() for r in refs[:10]],  # Sample
-            "context_summary": context_str[:500] if context_str else None
+            "context_summary": context_str[:500] if context_str else None,
+            "context_refs_used": len(used_ref_ids)
         }
 
     def on_agent_spawn(self, session_id: str, agent_name: str) -> dict:
@@ -106,6 +110,8 @@ class AgentGovernance:
 
         Records the agent activation in the ledger and returns
         role context including trust and references.
+
+        References used are tracked for witnessing on completion.
 
         Args:
             session_id: Current session ID
@@ -122,6 +128,14 @@ class AgentGovernance:
         refs = self.references.get_for_role(agent_name, limit=20)
         capabilities = self.role_trust.derive_capabilities(agent_name)
 
+        # Get context with self-curation (returns used ref IDs)
+        context_str, used_ref_ids = self.references.get_context_for_role(
+            agent_name, max_tokens=1000
+        )
+
+        # Track which refs were used (for witnessing on complete)
+        self._session_refs[session_id] = used_ref_ids
+
         # Record in ledger
         self.ledger.record_audit(
             session_id=session_id,
@@ -129,7 +143,7 @@ class AgentGovernance:
             tool_name=agent_name,
             target=f"t3={trust.t3_average():.2f}",
             input_hash=None,
-            output_hash=None,
+            output_hash=f"refs={len(used_ref_ids)}",
             status="success"
         )
 
@@ -145,7 +159,8 @@ class AgentGovernance:
             },
             "capabilities": capabilities,
             "references_loaded": len(refs),
-            "context": self.references.get_context_for_role(agent_name, max_tokens=1000)
+            "references_used": len(used_ref_ids),
+            "context": context_str
         }
 
     def on_agent_complete(
@@ -158,7 +173,13 @@ class AgentGovernance:
         """
         Called when an agent completes its work.
 
-        Updates trust based on outcome and records completion.
+        Updates trust based on outcome, witnesses used references,
+        and records completion.
+
+        Reference witnessing enables self-curation:
+        - References used in successful tasks gain trust
+        - References used in failed tasks lose trust
+        - Over time, helpful references rise, unhelpful ones fade
 
         Args:
             session_id: Current session ID
@@ -167,10 +188,26 @@ class AgentGovernance:
             magnitude: Update magnitude (0.0-1.0)
 
         Returns:
-            Updated trust information
+            Updated trust information including reference witnessing
         """
-        # Update trust
+        # Update agent trust
         trust = self.role_trust.update(agent_name, success, magnitude)
+
+        # Witness references that were used (self-curation)
+        refs_witnessed = 0
+        if session_id in self._session_refs:
+            used_refs = self._session_refs[session_id]
+            if used_refs:
+                updated_refs = self.references.witness_references(
+                    role_id=agent_name,
+                    ref_ids=used_refs,
+                    success=success,
+                    magnitude=magnitude * 0.5  # Refs update more slowly
+                )
+                refs_witnessed = len(updated_refs)
+
+            # Clear tracked refs
+            del self._session_refs[session_id]
 
         # Clear active role
         if session_id in self._active_roles:
@@ -182,7 +219,7 @@ class AgentGovernance:
             action_type="agent_complete",
             tool_name=agent_name,
             target=f"success={success}",
-            input_hash=None,
+            input_hash=f"refs_witnessed={refs_witnessed}",
             output_hash=f"t3={trust.t3_average():.3f}",
             status="success" if success else "failure"
         )
@@ -197,7 +234,8 @@ class AgentGovernance:
                 "trust_level": trust.trust_level(),
                 "reliability": trust.reliability,
                 "competence": trust.competence
-            }
+            },
+            "references_witnessed": refs_witnessed
         }
 
     def on_tool_use(
