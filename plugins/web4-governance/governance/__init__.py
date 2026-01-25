@@ -39,6 +39,16 @@ from .references import Reference, ReferenceStore
 from .agent_governance import AgentGovernance
 from .entity_trust import EntityTrust, EntityTrustStore, get_mcp_trust, update_mcp_trust
 
+# Trust backend (Rust or Python fallback)
+from .trust_backend import (
+    get_backend_info,
+    verify_backend,
+    RUST_BACKEND,
+    TrustStore,
+    T3Tensor,
+    V3Tensor,
+)
+
 __all__ = [
     'Ledger',
     'SoftLCT',
@@ -52,4 +62,11 @@ __all__ = [
     'EntityTrustStore',
     'get_mcp_trust',
     'update_mcp_trust',
+    # Trust backend
+    'get_backend_info',
+    'verify_backend',
+    'RUST_BACKEND',
+    'TrustStore',
+    'T3Tensor',
+    'V3Tensor',
 ]

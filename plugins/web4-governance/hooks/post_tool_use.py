@@ -40,10 +40,11 @@ from pathlib import Path
 # Import agent governance
 sys.path.insert(0, str(Path(__file__).parent.parent))
 try:
-    from governance import AgentGovernance
+    from governance import AgentGovernance, EntityTrustStore
     GOVERNANCE_AVAILABLE = True
 except ImportError:
     GOVERNANCE_AVAILABLE = False
+    EntityTrustStore = None
 
 WEB4_DIR = Path.home() / ".web4"
 SESSION_DIR = WEB4_DIR / "sessions"
@@ -185,6 +186,37 @@ def main():
 
             except Exception as e:
                 record["agent_completion"] = {"error": str(e)}
+
+    # Handle MCP tool completion - witness the MCP server
+    pending_mcp = session.get("pending_mcp")
+    if pending_mcp and GOVERNANCE_AVAILABLE and EntityTrustStore:
+        try:
+            store = EntityTrustStore()
+            success = tool_error is None
+
+            # Session witnesses the MCP server
+            session_entity = f"session:{session_id}"
+            mcp_entity = pending_mcp["entity_id"]
+
+            witness_trust, target_trust = store.witness(
+                session_entity, mcp_entity, success, magnitude=0.1
+            )
+
+            # Add MCP witnessing to audit record
+            record["mcp_witnessed"] = {
+                "server": pending_mcp["server"],
+                "tool": pending_mcp["tool"],
+                "success": success,
+                "t3_after": round(target_trust.t3_average(), 3),
+                "trust_level": target_trust.trust_level(),
+                "action_count": target_trust.action_count
+            }
+
+            # Clear pending MCP
+            session["pending_mcp"] = None
+
+        except Exception as e:
+            record["mcp_witnessed"] = {"error": str(e)}
 
     # Store audit record
     store_audit_record(session, record)
