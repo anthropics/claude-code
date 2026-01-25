@@ -44,23 +44,79 @@ from heartbeat import get_session_heartbeat
 # Import agent governance
 sys.path.insert(0, str(Path(__file__).parent.parent))
 try:
-    from governance import AgentGovernance
+    from governance import AgentGovernance, EntityTrustStore
     GOVERNANCE_AVAILABLE = True
 except ImportError:
     GOVERNANCE_AVAILABLE = False
+    EntityTrustStore = None
 
 WEB4_DIR = Path.home() / ".web4"
 SESSION_DIR = WEB4_DIR / "sessions"
 R6_LOG_DIR = WEB4_DIR / "r6"
 
 
-def load_session(session_id):
-    """Load session state."""
+def create_session_token():
+    """Create a software-bound session token (mirrors session_start.py)."""
+    seed = f"{os.uname().nodename}:{os.getuid()}:{datetime.now(timezone.utc).isoformat()}"
+    token_hash = hashlib.sha256(seed.encode()).hexdigest()[:12]
+    return {
+        "token_id": f"web4:session:{token_hash}",
+        "binding": "software",
+        "created_at": datetime.now(timezone.utc).isoformat() + "Z",
+        "machine_hint": hashlib.sha256(os.uname().nodename.encode()).hexdigest()[:8]
+    }
+
+
+def load_or_create_session(session_id):
+    """
+    Load session state, or create one if missing (lazy initialization).
+
+    This handles context compaction continuations where SessionStart
+    doesn't fire but PreToolUse does.
+    """
+    SESSION_DIR.mkdir(parents=True, exist_ok=True)
     session_file = SESSION_DIR / f"{session_id}.json"
-    if not session_file.exists():
-        return None
-    with open(session_file) as f:
-        return json.load(f)
+
+    if session_file.exists():
+        with open(session_file) as f:
+            return json.load(f)
+
+    # Lazy initialization for continued/recovered sessions
+    session = {
+        "session_id": session_id,
+        "token": create_session_token(),
+        "preferences": {
+            "audit_level": "standard",
+            "show_r6_status": True,
+            "action_budget": None,
+        },
+        "started_at": datetime.now(timezone.utc).isoformat() + "Z",
+        "recovered_at": datetime.now(timezone.utc).isoformat() + "Z",  # Mark as recovered
+        "action_count": 0,
+        "r6_requests": [],
+        "audit_chain": [],
+        "active_agent": None,
+        "agents_used": [],
+        "governance_available": GOVERNANCE_AVAILABLE
+    }
+
+    # Save immediately
+    with open(session_file, "w") as f:
+        json.dump(session, f, indent=2)
+
+    # Initialize heartbeat for recovered session
+    heartbeat = get_session_heartbeat(session_id)
+    heartbeat.record("session_recovered", 0)
+
+    # Log recovery
+    print(f"[Web4] Session recovered: {session['token']['token_id'].split(':')[-1]} (lazy init)", file=sys.stderr)
+
+    return session
+
+
+def load_session(session_id):
+    """Load session state (wrapper for compatibility)."""
+    return load_or_create_session(session_id)
 
 
 def save_session(session):
@@ -70,8 +126,54 @@ def save_session(session):
         json.dump(session, f, indent=2)
 
 
+def detect_mcp_tool(tool_name: str) -> tuple:
+    """
+    Detect if a tool is from an MCP server.
+
+    MCP tools typically follow patterns:
+    - mcp__servername__toolname (double underscore)
+    - mcp_servername_toolname (single underscore)
+    - servername.toolname (dot notation)
+    - web4.io/namespace/tool (URI style)
+
+    Returns: (is_mcp, server_name, tool_name) or (False, None, None)
+    """
+    # Pattern 1: mcp__server__tool
+    if tool_name.startswith("mcp__"):
+        parts = tool_name.split("__")
+        if len(parts) >= 3:
+            return True, parts[1], "__".join(parts[2:])
+
+    # Pattern 2: mcp_server_tool (but not native tools)
+    if tool_name.startswith("mcp_"):
+        parts = tool_name[4:].split("_", 1)
+        if len(parts) >= 2:
+            return True, parts[0], parts[1]
+
+    # Pattern 3: web4.io/... or other.io/...
+    if ".io/" in tool_name:
+        parts = tool_name.split("/")
+        if len(parts) >= 2:
+            server = parts[0].replace(".io", "")
+            tool = "/".join(parts[1:])
+            return True, server, tool
+
+    # Pattern 4: server.tool (dot notation, but not file extensions)
+    if "." in tool_name and not tool_name.endswith((".py", ".js", ".ts", ".json")):
+        parts = tool_name.split(".", 1)
+        if len(parts) == 2 and parts[0].isalnum():
+            return True, parts[0], parts[1]
+
+    return False, None, None
+
+
 def classify_action(tool_name):
     """Classify tool into action category."""
+    # Check for MCP tool first
+    is_mcp, server, _ = detect_mcp_tool(tool_name)
+    if is_mcp:
+        return "mcp"
+
     categories = {
         "file_read": ["Read", "Glob", "Grep"],
         "file_write": ["Write", "Edit", "NotebookEdit"],
@@ -216,6 +318,34 @@ def main():
         except Exception as e:
             # Don't fail the hook on governance errors
             r6["agent"] = {"name": agent_name, "error": str(e)}
+
+    # Handle MCP tool calls - track for witnessing
+    is_mcp, mcp_server, mcp_tool = detect_mcp_tool(tool_name)
+    if is_mcp and GOVERNANCE_AVAILABLE and EntityTrustStore:
+        try:
+            store = EntityTrustStore()
+            mcp_entity_id = f"mcp:{mcp_server}"
+            mcp_trust = store.get(mcp_entity_id)
+
+            # Add MCP context to R6 request
+            r6["mcp"] = {
+                "server": mcp_server,
+                "tool": mcp_tool,
+                "entity_id": mcp_entity_id,
+                "t3_average": mcp_trust.t3_average(),
+                "trust_level": mcp_trust.trust_level(),
+                "action_count": mcp_trust.action_count
+            }
+
+            # Track pending MCP call in session for witnessing on complete
+            session["pending_mcp"] = {
+                "server": mcp_server,
+                "entity_id": mcp_entity_id,
+                "tool": mcp_tool
+            }
+
+        except Exception as e:
+            r6["mcp"] = {"server": mcp_server, "error": str(e)}
 
     # Log for audit
     log_r6(r6)
