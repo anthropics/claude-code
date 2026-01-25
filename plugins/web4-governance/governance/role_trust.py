@@ -133,6 +133,79 @@ class RoleTrust:
         else:
             return "minimal"
 
+    def apply_decay(self, days_inactive: float, decay_rate: float = 0.01) -> bool:
+        """
+        Apply trust decay based on inactivity.
+
+        Trust decays slowly over time if not used. This prevents
+        stale trust from persisting indefinitely.
+
+        Decay affects:
+        - reliability (most affected - "will they still do it?")
+        - consistency (affected - "same quality after gap?")
+        - temporal (V3 - time-based value)
+
+        Decay is asymptotic to 0.3 (never fully decays to 0).
+
+        Args:
+            days_inactive: Days since last action
+            decay_rate: Decay rate per day (default 1% per day)
+
+        Returns:
+            True if decay was applied, False if no decay needed
+        """
+        if days_inactive <= 0:
+            return False
+
+        # Calculate decay factor (exponential decay)
+        # After 30 days: ~74% remaining, 60 days: ~55%, 90 days: ~41%
+        decay_factor = (1 - decay_rate) ** days_inactive
+
+        # Apply decay with floor at 0.3 (minimum trust)
+        floor = 0.3
+
+        def decay_value(current: float) -> float:
+            decayed = floor + (current - floor) * decay_factor
+            return max(floor, decayed)
+
+        # Decay T3 dimensions (reliability most affected)
+        old_reliability = self.reliability
+        self.reliability = decay_value(self.reliability)
+        self.consistency = decay_value(self.consistency * 0.98)  # Slightly less decay
+        # competence decays slower (skills don't fade as fast)
+        self.competence = decay_value(self.competence * 0.995)
+
+        # Decay V3 temporal (time-based value)
+        self.temporal = decay_value(self.temporal)
+        # Energy decays (effort fades)
+        self.energy = decay_value(self.energy * 0.99)
+
+        # Return whether meaningful decay occurred
+        return abs(old_reliability - self.reliability) > 0.001
+
+    def days_since_last_action(self) -> float:
+        """Calculate days since last action."""
+        if not self.last_action:
+            if self.created_at:
+                # Use creation time if never acted
+                try:
+                    created = datetime.fromisoformat(
+                        self.created_at.replace("Z", "+00:00")
+                    )
+                    return (datetime.now(timezone.utc) - created).days
+                except (ValueError, TypeError):
+                    return 0
+            return 0
+
+        try:
+            last = datetime.fromisoformat(
+                self.last_action.replace("Z", "+00:00")
+            )
+            delta = datetime.now(timezone.utc) - last
+            return delta.total_seconds() / 86400  # Convert to days
+        except (ValueError, TypeError):
+            return 0
+
     def to_dict(self) -> dict:
         return asdict(self)
 
@@ -243,3 +316,67 @@ class RoleTrustStore:
             "action_count": trust.action_count,
             "success_rate": trust.success_count / max(1, trust.action_count)
         }
+
+    def apply_decay_all(self, decay_rate: float = 0.01) -> Dict[str, dict]:
+        """
+        Apply trust decay to all roles based on inactivity.
+
+        Should be called periodically (e.g., at session start) to
+        ensure trust reflects recency.
+
+        Args:
+            decay_rate: Decay rate per day (default 1% per day)
+
+        Returns:
+            Dict of {role_id: {"decayed": bool, "days_inactive": float, "t3_before": float, "t3_after": float}}
+        """
+        results = {}
+
+        for role_id in self.list_roles():
+            trust = self.get(role_id)
+            days_inactive = trust.days_since_last_action()
+
+            if days_inactive > 1:  # Only decay if > 1 day inactive
+                t3_before = trust.t3_average()
+                decayed = trust.apply_decay(days_inactive, decay_rate)
+
+                if decayed:
+                    self.save(trust)
+                    results[role_id] = {
+                        "decayed": True,
+                        "days_inactive": round(days_inactive, 1),
+                        "t3_before": round(t3_before, 3),
+                        "t3_after": round(trust.t3_average(), 3)
+                    }
+
+                    # Record in ledger if available
+                    if self.ledger:
+                        try:
+                            self.ledger.record_audit(
+                                session_id="trust_decay",
+                                action_type="decay",
+                                tool_name=role_id,
+                                target=f"days={days_inactive:.1f}",
+                                input_hash=f"t3={t3_before:.3f}",
+                                output_hash=f"t3={trust.t3_average():.3f}",
+                                status="success"
+                            )
+                        except Exception:
+                            pass
+
+        return results
+
+    def get_with_decay(self, role_id: str, decay_rate: float = 0.01) -> RoleTrust:
+        """
+        Get trust for role, applying decay if needed.
+
+        Convenience method that applies decay before returning trust.
+        """
+        trust = self.get(role_id)
+        days_inactive = trust.days_since_last_action()
+
+        if days_inactive > 1:
+            if trust.apply_decay(days_inactive, decay_rate):
+                self.save(trust)
+
+        return trust

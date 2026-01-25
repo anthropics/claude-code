@@ -176,6 +176,57 @@ class EntityTrust:
         else:
             return "minimal"
 
+    def apply_decay(self, days_inactive: float, decay_rate: float = 0.01) -> bool:
+        """
+        Apply trust decay based on inactivity.
+
+        Trust decays slowly over time if not used.
+
+        Args:
+            days_inactive: Days since last action
+            decay_rate: Decay rate per day
+
+        Returns:
+            True if decay was applied
+        """
+        if days_inactive <= 0:
+            return False
+
+        decay_factor = (1 - decay_rate) ** days_inactive
+        floor = 0.3
+
+        def decay_value(current: float) -> float:
+            return max(floor, floor + (current - floor) * decay_factor)
+
+        old_reliability = self.reliability
+        self.reliability = decay_value(self.reliability)
+        self.consistency = decay_value(self.consistency * 0.98)
+        self.temporal = decay_value(self.temporal)
+
+        return abs(old_reliability - self.reliability) > 0.001
+
+    def days_since_last_action(self) -> float:
+        """Calculate days since last action."""
+        if not self.last_action:
+            if self.created_at:
+                try:
+                    created = datetime.fromisoformat(
+                        self.created_at.replace("Z", "+00:00")
+                    )
+                    return (datetime.now(timezone.utc) - created).days
+                except (ValueError, TypeError):
+                    return 0
+            return 0
+
+        try:
+            last = datetime.fromisoformat(
+                self.last_action.replace("Z", "+00:00")
+            )
+            delta = datetime.now(timezone.utc) - last
+            return delta.total_seconds() / 86400
+        except (ValueError, TypeError):
+            return 0
+
     def to_dict(self) -> dict:
         return asdict(self)
 
@@ -315,6 +366,56 @@ class EntityTrustStore:
                 })
 
         return chain
+
+    def apply_decay_all(self, decay_rate: float = 0.01) -> Dict[str, dict]:
+        """
+        Apply trust decay to all entities based on inactivity.
+
+        Should be called periodically (e.g., at session start) to
+        ensure trust reflects recency.
+
+        Args:
+            decay_rate: Decay rate per day (default 1% per day)
+
+        Returns:
+            Dict of {entity_id: {decayed, days_inactive, t3_before, t3_after}}
+        """
+        results = {}
+
+        for entity_id in self.list_entities():
+            trust = self.get(entity_id)
+            days_inactive = trust.days_since_last_action()
+
+            if days_inactive > 1:  # Only decay if > 1 day inactive
+                t3_before = trust.t3_average()
+                decayed = trust.apply_decay(days_inactive, decay_rate)
+
+                if decayed:
+                    self.save(trust)
+                    results[entity_id] = {
+                        "decayed": True,
+                        "days_inactive": round(days_inactive, 1),
+                        "t3_before": round(t3_before, 3),
+                        "t3_after": round(trust.t3_average(), 3),
+                        "entity_type": trust.entity_type
+                    }
+
+        return results
+
+    def get_with_decay(self, entity_id: str, decay_rate: float = 0.01) -> EntityTrust:
+        """
+        Get trust for entity, applying decay if needed.
+
+        Convenience method that applies decay before returning trust.
+        """
+        trust = self.get(entity_id)
+        days_inactive = trust.days_since_last_action()
+
+        if days_inactive > 1:
+            if trust.apply_decay(days_inactive, decay_rate):
+                self.save(trust)
+
+        return trust
 
 
 # Convenience functions for common entity types

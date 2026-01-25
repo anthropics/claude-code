@@ -42,6 +42,7 @@ from .soft_lct import SoftLCT
 from .session_manager import SessionManager
 from .role_trust import RoleTrust, RoleTrustStore
 from .references import Reference, ReferenceStore
+from .entity_trust import EntityTrustStore
 
 
 class AgentGovernance:
@@ -78,6 +79,17 @@ class AgentGovernance:
 
         # Track references used per session (for witnessing on complete)
         self._session_refs: Dict[str, List[str]] = {}
+
+        # Track work attribution per session (which agent did what)
+        # Format: {session_id: [(agent_name, work_type, work_id), ...]}
+        self._work_attribution: Dict[str, List[tuple]] = {}
+
+        # Track recent agents per session (for inter-agent witnessing)
+        # Format: {session_id: [agent_name, ...]} (most recent first)
+        self._recent_agents: Dict[str, List[str]] = {}
+
+        # Entity trust store for inter-agent witnessing
+        self.entity_trust = EntityTrustStore()
 
     def get_role_context(self, role_id: str) -> dict:
         """
@@ -168,24 +180,31 @@ class AgentGovernance:
         session_id: str,
         agent_name: str,
         success: bool,
-        magnitude: float = 0.1
+        magnitude: float = 0.1,
+        validates_previous: bool = True
     ) -> dict:
         """
         Called when an agent completes its work.
 
         Updates trust based on outcome, witnesses used references,
-        and records completion.
+        and performs inter-agent witnessing.
 
         Reference witnessing enables self-curation:
         - References used in successful tasks gain trust
         - References used in failed tasks lose trust
         - Over time, helpful references rise, unhelpful ones fade
 
+        Inter-agent witnessing:
+        - When agent B completes successfully after agent A
+        - B's success validates A's work
+        - B witnesses A (A gains trust through validation)
+
         Args:
             session_id: Current session ID
             agent_name: Agent/role identifier
             success: Whether agent completed successfully
             magnitude: Update magnitude (0.0-1.0)
+            validates_previous: Whether to witness previous agent
 
         Returns:
             Updated trust information including reference witnessing
@@ -209,6 +228,33 @@ class AgentGovernance:
             # Clear tracked refs
             del self._session_refs[session_id]
 
+        # Inter-agent witnessing
+        # If this agent succeeded, it validates the previous agent's work
+        agents_witnessed = []
+        if success and validates_previous and session_id in self._recent_agents:
+            recent = self._recent_agents[session_id]
+            for prev_agent in recent[:2]:  # Witness up to 2 previous agents
+                if prev_agent != agent_name:
+                    try:
+                        witness_result = self.witness_agent(
+                            session_id=session_id,
+                            witness_agent=agent_name,
+                            target_agent=prev_agent,
+                            success=True,  # Successful completion = positive witness
+                            magnitude=magnitude * 0.3  # Inter-agent witnessing is gentler
+                        )
+                        agents_witnessed.append(witness_result)
+                    except Exception:
+                        pass  # Don't fail on witnessing errors
+
+        # Track this agent in recent agents
+        if session_id not in self._recent_agents:
+            self._recent_agents[session_id] = []
+        if agent_name not in self._recent_agents[session_id]:
+            self._recent_agents[session_id].insert(0, agent_name)
+            # Keep only last 5 agents
+            self._recent_agents[session_id] = self._recent_agents[session_id][:5]
+
         # Clear active role
         if session_id in self._active_roles:
             del self._active_roles[session_id]
@@ -219,7 +265,7 @@ class AgentGovernance:
             action_type="agent_complete",
             tool_name=agent_name,
             target=f"success={success}",
-            input_hash=f"refs_witnessed={refs_witnessed}",
+            input_hash=f"refs={refs_witnessed},agents={len(agents_witnessed)}",
             output_hash=f"t3={trust.t3_average():.3f}",
             status="success" if success else "failure"
         )
@@ -235,7 +281,8 @@ class AgentGovernance:
                 "reliability": trust.reliability,
                 "competence": trust.competence
             },
-            "references_witnessed": refs_witnessed
+            "references_witnessed": refs_witnessed,
+            "agents_witnessed": agents_witnessed
         }
 
     def on_tool_use(
@@ -400,6 +447,84 @@ class AgentGovernance:
         """Get currently active role for a session."""
         return self._active_roles.get(session_id)
 
+    def witness_agent(
+        self,
+        session_id: str,
+        witness_agent: str,
+        target_agent: str,
+        success: bool,
+        magnitude: float = 0.1
+    ) -> dict:
+        """
+        Record inter-agent witnessing.
+
+        When one agent's work validates another's, the witnessing agent
+        can attest to the target agent's quality.
+
+        Example:
+        - code-reviewer reviews code
+        - test-runner runs tests, they pass
+        - test-runner witnesses code-reviewer (tests validate the review)
+
+        Args:
+            session_id: Current session
+            witness_agent: Agent doing the witnessing (e.g., test-runner)
+            target_agent: Agent being witnessed (e.g., code-reviewer)
+            success: Whether the witnessed work was validated
+            magnitude: Update magnitude
+
+        Returns:
+            Witnessing result with updated trust
+        """
+        witness_id = f"role:{witness_agent}"
+        target_id = f"role:{target_agent}"
+
+        # Record the witnessing in entity trust
+        witness_trust, target_trust = self.entity_trust.witness(
+            witness_id, target_id, success, magnitude
+        )
+
+        # Also update the role trust store (T3 witnesses dimension)
+        target_role = self.role_trust.get(target_agent)
+        if success:
+            # Being validated increases witnesses dimension
+            delta = magnitude * 0.05 * (1 - target_role.witnesses)
+        else:
+            delta = -magnitude * 0.08 * target_role.witnesses
+        target_role.witnesses = max(0, min(1, target_role.witnesses + delta))
+        self.role_trust.save(target_role)
+
+        # Record in ledger
+        self.ledger.record_audit(
+            session_id=session_id,
+            action_type="agent_witness",
+            tool_name=f"{witness_agent}->{target_agent}",
+            target=f"success={success}",
+            input_hash=None,
+            output_hash=f"t3={target_trust.t3_average():.3f}",
+            status="success"
+        )
+
+        return {
+            "witness": witness_agent,
+            "target": target_agent,
+            "success": success,
+            "target_trust": {
+                "t3_average": target_trust.t3_average(),
+                "witnesses_dim": round(target_role.witnesses, 3),
+                "trust_level": target_role.trust_level()
+            }
+        }
+
+    def get_witnessing_chain(self, agent_name: str) -> dict:
+        """
+        Get the witnessing chain for an agent.
+
+        Shows which agents have witnessed this one and vice versa.
+        """
+        entity_id = f"role:{agent_name}"
+        return self.entity_trust.get_witnessing_chain(entity_id)
+
     def get_all_roles(self) -> List[dict]:
         """Get summary of all known roles."""
         roles = []
@@ -425,3 +550,161 @@ class AgentGovernance:
             if pruned > 0:
                 results[role_id] = pruned
         return results
+
+    def auto_extract_references(
+        self,
+        session_id: str,
+        role_id: str,
+        content: str,
+        source: str = "auto-extracted",
+        min_confidence: float = 0.4
+    ) -> List[dict]:
+        """
+        Automatically extract references from task output.
+
+        Analyzes content for extractable patterns, facts, and learnings.
+        Called after successful task completion to capture knowledge.
+
+        Extraction patterns:
+        - "Pattern: ..." or "Always ..." → pattern reference
+        - "Note: ..." or "Important: ..." → fact reference
+        - "The ... uses/contains/is ..." → fact reference
+        - "Prefer ... over ..." or "Use ... instead of ..." → preference
+        - Code patterns (function signatures, imports) → pattern reference
+
+        Args:
+            session_id: Current session
+            role_id: Role to attribute references to
+            content: Content to analyze
+            source: Source attribution
+            min_confidence: Minimum confidence to extract (0.0-1.0)
+
+        Returns:
+            List of extracted references
+        """
+        import re
+
+        extracted = []
+
+        # Pattern indicators (high confidence)
+        pattern_markers = [
+            (r'[Pp]attern:\s*(.+?)(?:\n|$)', 'pattern', 0.8),
+            (r'[Aa]lways\s+(.+?)(?:\.|$)', 'pattern', 0.7),
+            (r'[Nn]ever\s+(.+?)(?:\.|$)', 'pattern', 0.7),
+            (r'[Bb]est practice:\s*(.+?)(?:\n|$)', 'pattern', 0.8),
+        ]
+
+        # Fact indicators (medium confidence)
+        fact_markers = [
+            (r'[Nn]ote:\s*(.+?)(?:\n|$)', 'fact', 0.6),
+            (r'[Ii]mportant:\s*(.+?)(?:\n|$)', 'fact', 0.7),
+            (r'[Tt]he (\w+) (?:uses|contains|is|has) (.+?)(?:\.|$)', 'fact', 0.5),
+            (r'[Ff]ound that (.+?)(?:\.|$)', 'fact', 0.6),
+        ]
+
+        # Preference indicators (medium confidence)
+        pref_markers = [
+            (r'[Pp]refer (.+?) over (.+?)(?:\.|$)', 'preference', 0.6),
+            (r'[Uu]se (.+?) instead of (.+?)(?:\.|$)', 'preference', 0.6),
+            (r'[Rr]ecommend(?:ed|s)? (.+?)(?:\.|$)', 'preference', 0.5),
+        ]
+
+        # Summary indicators (lower confidence, longer content)
+        summary_markers = [
+            (r'[Ss]ummary:\s*(.+?)(?:\n\n|$)', 'summary', 0.5),
+            (r'[Oo]verview:\s*(.+?)(?:\n\n|$)', 'summary', 0.5),
+        ]
+
+        all_markers = pattern_markers + fact_markers + pref_markers + summary_markers
+
+        for regex, ref_type, base_confidence in all_markers:
+            if base_confidence < min_confidence:
+                continue
+
+            matches = re.findall(regex, content, re.MULTILINE | re.DOTALL)
+            for match in matches:
+                # Handle tuple matches (multiple groups)
+                if isinstance(match, tuple):
+                    text = " ".join(m.strip() for m in match if m)
+                else:
+                    text = match.strip()
+
+                # Skip very short or very long extractions
+                if len(text) < 10 or len(text) > 500:
+                    continue
+
+                # Adjust confidence based on content quality
+                confidence = base_confidence
+                if len(text) > 100:
+                    confidence *= 0.9  # Longer = slightly less certain
+                if any(word in text.lower() for word in ['might', 'maybe', 'possibly']):
+                    confidence *= 0.8  # Uncertainty markers reduce confidence
+
+                if confidence >= min_confidence:
+                    ref = self.references.add(
+                        role_id=role_id,
+                        content=text,
+                        source=source,
+                        ref_type=ref_type,
+                        confidence=confidence,
+                        tags=["auto-extracted"]
+                    )
+                    extracted.append({
+                        "ref_id": ref.ref_id,
+                        "ref_type": ref_type,
+                        "content": text[:100],
+                        "confidence": confidence
+                    })
+
+        # Record extraction in ledger
+        if extracted:
+            self.ledger.record_audit(
+                session_id=session_id,
+                action_type="auto_extract",
+                tool_name=role_id,
+                target=f"extracted={len(extracted)}",
+                input_hash=None,
+                output_hash=None,
+                status="success"
+            )
+
+        return extracted
+
+    def on_task_output(
+        self,
+        session_id: str,
+        role_id: str,
+        output: str,
+        success: bool
+    ) -> dict:
+        """
+        Process task output for reference extraction.
+
+        Called when a task completes with output that might contain
+        learnings worth persisting.
+
+        Args:
+            session_id: Current session
+            role_id: Agent role
+            output: Task output content
+            success: Whether task succeeded
+
+        Returns:
+            Extraction results
+        """
+        if not success or not output or len(output) < 50:
+            return {"extracted": 0, "reason": "No extractable content"}
+
+        # Only extract from successful tasks
+        extracted = self.auto_extract_references(
+            session_id=session_id,
+            role_id=role_id,
+            content=output,
+            source=f"task-output:{session_id}",
+            min_confidence=0.5  # Higher threshold for auto-extraction
+        )
+
+        return {
+            "extracted": len(extracted),
+            "references": extracted
+        }
