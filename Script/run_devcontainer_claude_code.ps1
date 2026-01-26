@@ -189,8 +189,17 @@ Write-Host "Found container ID: $containerId"
 # --- Step 5 & 6: Execute command and enter interactive shell inside container ---
 Write-Host "Executing 'claude' command and then starting zsh session inside container $containerId..."
 
-# Check if running in interactive mode
-if ([Environment]::UserInteractive -and $Host.UI.RawUI.KeyAvailable -ne $null) {
+# Check if running in interactive mode using a safer console detection
+$interactiveConsole = $false
+try {
+    if ([Environment]::UserInteractive -and -not [Console]::IsInputRedirected -and ($Host.Name -ne 'ServerRemoteHost') -and ($Host.Name -ne 'ServerHost')) {
+        $interactiveConsole = $true
+    }
+} catch {
+    $interactiveConsole = $false
+}
+
+if ($interactiveConsole) {
     & $Backend exec -it $containerId zsh -c 'claude; exec zsh'
     $execExitCode = $LASTEXITCODE
 } else {
