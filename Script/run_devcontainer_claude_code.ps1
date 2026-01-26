@@ -88,7 +88,24 @@ if ($Backend -eq 'podman') {
 
     # --- Step 1b: Start Podman machine if not running ---
     Write-Host "Checking Podman machine state..."
-    $machineInfo = & podman machine inspect claudeVM 2>$null | ConvertFrom-Json
+    $machineInfoJson = & podman machine inspect claudeVM 2>$null
+    $inspectExitCode = $LASTEXITCODE
+    $machineInfo = $null
+    if ($inspectExitCode -ne 0) {
+        Write-Error "Failed to inspect Podman machine 'claudeVM'. Exit code: $inspectExitCode"
+        exit 1
+    }
+    if (-not [string]::IsNullOrWhiteSpace($machineInfoJson)) {
+        try {
+            $machineInfo = $machineInfoJson | ConvertFrom-Json
+        } catch {
+            Write-Error "Failed to parse 'podman machine inspect claudeVM' output as JSON: $_"
+            exit 1
+        }
+    } else {
+        Write-Error "Received empty output from 'podman machine inspect claudeVM'."
+        exit 1
+    }
     $machineState = if ($machineInfo) { $machineInfo.State } else { $null }
     
     if ($machineState -ne 'running') {
