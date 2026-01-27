@@ -5,5 +5,15 @@
   "author": {
     "name": "Daisy",
     "email": "daisy@anthropic.com"
+  },
+  "components": {
+    "agents": ["code-reviewer", "code-simplifier", "comment-analyzer", "pr-test-analyzer", "silent-failure-hunter", "type-design-analyzer"],
+    "commands": ["review-pr"],
+    "skills": [],
+    "hooks": [],
+    "mcpServers": []
+  },
+  "metadata": {
+    "tags": ["code-review", "pull-request", "testing", "quality"]
   }
 }
