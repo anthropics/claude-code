@@ -38,6 +38,20 @@ from .role_trust import RoleTrust, RoleTrustStore
 from .references import Reference, ReferenceStore
 from .agent_governance import AgentGovernance
 from .entity_trust import EntityTrust, EntityTrustStore, get_mcp_trust, update_mcp_trust
+from .presets import (
+    PolicyConfig,
+    PolicyRule,
+    PolicyMatch,
+    RateLimitSpec,
+    PresetDefinition,
+    get_preset,
+    list_presets,
+    resolve_preset,
+    is_preset_name,
+    policy_config_to_dict,
+)
+from .rate_limiter import RateLimiter, RateLimitResult
+from .reporter import AuditReporter, AuditReport
 
 # Trust backend (Rust or Python fallback)
 from .trust_backend import (
@@ -69,4 +83,21 @@ __all__ = [
     'TrustStore',
     'T3Tensor',
     'V3Tensor',
+    # Tier 1.5: Presets
+    'PolicyConfig',
+    'PolicyRule',
+    'PolicyMatch',
+    'RateLimitSpec',
+    'PresetDefinition',
+    'get_preset',
+    'list_presets',
+    'resolve_preset',
+    'is_preset_name',
+    'policy_config_to_dict',
+    # Tier 1.5: Rate Limiter
+    'RateLimiter',
+    'RateLimitResult',
+    # Tier 1.5: Reporter
+    'AuditReporter',
+    'AuditReport',
 ]
