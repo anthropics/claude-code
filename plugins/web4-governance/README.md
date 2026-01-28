@@ -110,6 +110,48 @@ Report sections:
 - **Errors** — Count by tool, top error messages
 - **Timeline** — Actions per minute
 
+### Policy Entity (NEW)
+
+Policy is a first-class participant in the trust network — not just configuration, but "society's law" with identity, witnessing, and hash-tracking:
+
+```python
+from governance import PolicyEntity, PolicyRegistry
+
+# Register a policy (creates hash-identified entity)
+registry = PolicyRegistry()
+entity = registry.register_policy("my-policy", preset="safety")
+
+# Entity ID follows: policy:<name>:<version>:<hash>
+print(entity.entity_id)  # policy:my-policy:20260128...:a1b2c3d4...
+
+# Evaluate a tool call against policy
+result = entity.evaluate("Bash", "command", "rm -rf /")
+print(result.decision)  # "deny"
+print(result.reason)    # "Destructive command blocked by safety preset"
+
+# Session witnesses operating under policy
+registry.witness_session(entity.entity_id, session_id)
+
+# Policy witnesses decisions
+registry.witness_decision(entity.entity_id, session_id, "Read", "allow", success=True)
+```
+
+**Why Policy as Entity?**
+
+- **Immutable**: Once registered, the policy can't change (new version = new entity)
+- **Hash-tracked**: Content hash in entity ID ensures integrity
+- **Witnessable**: Sessions witness policy, policy witnesses decisions
+- **Auditable**: R6 records reference `policy_entity_id` in rules field
+- **Trust-integrated**: T3/V3 tensors track policy usage patterns
+
+**Hook Integration**:
+
+The PreToolUse hook automatically:
+1. Loads policy entity from session state
+2. Evaluates tool calls against policy rules
+3. Blocks denied actions (if `enforce=true`)
+4. Witnesses decisions in the trust network
+
 ## Installation
 
 ### Option 1: Plugin Marketplace (Recommended)

@@ -40,11 +40,12 @@ from pathlib import Path
 # Import agent governance
 sys.path.insert(0, str(Path(__file__).parent.parent))
 try:
-    from governance import AgentGovernance, EntityTrustStore
+    from governance import AgentGovernance, EntityTrustStore, PolicyRegistry
     GOVERNANCE_AVAILABLE = True
 except ImportError:
     GOVERNANCE_AVAILABLE = False
     EntityTrustStore = None
+    PolicyRegistry = None
 
 WEB4_DIR = Path.home() / ".web4"
 SESSION_DIR = WEB4_DIR / "sessions"
@@ -217,6 +218,36 @@ def main():
 
         except Exception as e:
             record["mcp_witnessed"] = {"error": str(e)}
+
+    # Handle policy witnessing - policy witnesses the allowed decision outcome
+    policy_entity_id = session.get("policy_entity_id")
+    policy_eval = r6_request.get("policy")
+    if policy_entity_id and GOVERNANCE_AVAILABLE and PolicyRegistry:
+        try:
+            registry = PolicyRegistry()
+            tool_name = r6_request["request"]["tool"]
+            success = tool_error is None
+            decision = policy_eval.get("decision", "allow") if policy_eval else "allow"
+
+            # Policy witnesses this decision's outcome
+            registry.witness_decision(
+                policy_entity_id,
+                session["session_id"],
+                tool_name,
+                decision,
+                success=success,
+            )
+
+            # Add policy witnessing to audit record
+            record["policy_witnessed"] = {
+                "policy_entity_id": policy_entity_id,
+                "decision": decision,
+                "success": success,
+                "rule_id": policy_eval.get("rule_id") if policy_eval else None,
+            }
+
+        except Exception as e:
+            record["policy_witnessed"] = {"error": str(e)}
 
     # Store audit record
     store_audit_record(session, record)
