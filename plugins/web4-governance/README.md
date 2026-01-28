@@ -25,6 +25,91 @@ No external dependencies. No network calls. Just structured, auditable AI action
 - **SQLite Ledger** - Unified storage with WAL mode for concurrent access
 - **Heartbeat Ledger** - Timing coherence tracking
 
+## Tier 1.5 Features (NEW)
+
+Four new features harmonized with the [moltbot implementation](https://github.com/dp-web4/moltbot):
+
+### Policy Presets
+
+Built-in rule sets for common governance postures:
+
+```python
+from governance import resolve_preset, list_presets
+
+# List available presets
+for p in list_presets():
+    print(f"{p.name}: {p.description}")
+
+# Use a preset with overrides
+config = resolve_preset("safety", enforce=False)
+```
+
+| Preset | Default | Enforce | Description |
+|--------|---------|---------|-------------|
+| `permissive` | allow | false | Pure observation, no rules |
+| `safety` | allow | true | Deny destructive bash, deny secrets, warn on network |
+| `strict` | deny | true | Only allow Read, Glob, Grep, TodoWrite |
+| `audit-only` | allow | false | Same as safety but dry-run mode |
+
+### Rate Limiting
+
+Sliding window counters for policy enforcement:
+
+```python
+from governance import RateLimiter
+
+limiter = RateLimiter()
+
+# Check if under limit (5 actions per 60 seconds)
+result = limiter.check("ratelimit:bash:tool", max_count=5, window_ms=60000)
+if result.allowed:
+    # Proceed and record
+    limiter.record("ratelimit:bash:tool")
+```
+
+### Audit Query
+
+Filter audit records by tool, category, status, target, and time:
+
+```python
+# Query with filters
+results = ledger.query_audit(
+    session_id="sess1",
+    tool="Bash",
+    status="error",
+    since="1h",  # or ISO date: "2026-01-27T10:00:00Z"
+    limit=50
+)
+
+# Get aggregated stats
+stats = ledger.get_audit_stats(session_id="sess1")
+# Returns: {total, tool_counts, status_counts, category_counts}
+```
+
+### Audit Reporter
+
+Generate aggregated reports from audit data:
+
+```python
+from governance import AuditReporter
+
+records = ledger.query_audit(session_id="sess1")
+reporter = AuditReporter(records)
+
+# Text output
+print(reporter.format_text())
+
+# JSON-serializable dict
+data = reporter.to_dict()
+```
+
+Report sections:
+- **Tool Stats** — Invocations, success rate, avg duration per tool
+- **Category Breakdown** — Counts and percentages per category
+- **Policy Stats** — Allow/deny distribution, block rate
+- **Errors** — Count by tool, top error messages
+- **Timeline** — Actions per minute
+
 ## Installation
 
 ### Option 1: Plugin Marketplace (Recommended)
@@ -218,6 +303,18 @@ python3 test_heartbeat.py
 
 # Test agent governance flow
 python3 test_agent_flow.py
+
+# Test entity trust and witnessing
+python3 test_entity_trust.py
+
+# Test Tier 1.5 features (presets, rate limiting, audit query, reporter)
+python3 -m pytest test_tier1_5.py -v
+```
+
+Run all tests:
+```bash
+python3 -m pytest test_*.py -v
+# 50 tests passing
 ```
 
 ## Governance Module
