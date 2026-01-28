@@ -31,10 +31,11 @@ from heartbeat import get_session_heartbeat
 # Import agent governance
 sys.path.insert(0, str(Path(__file__).parent.parent))
 try:
-    from governance import AgentGovernance, RoleTrustStore
+    from governance import AgentGovernance, RoleTrustStore, PolicyRegistry, resolve_preset, is_preset_name
     GOVERNANCE_AVAILABLE = True
 except ImportError:
     GOVERNANCE_AVAILABLE = False
+    PolicyRegistry = None
 
 # Web4 state directory
 WEB4_DIR = Path.home() / ".web4"
@@ -75,7 +76,47 @@ def load_preferences():
         "audit_level": "standard",  # minimal, standard, verbose
         "show_r6_status": True,
         "action_budget": None,  # No limit by default
+        "policy_preset": "safety",  # Default policy preset (permissive, safety, strict, audit-only)
     }
+
+
+def register_policy_entity(session_id: str, prefs: dict):
+    """
+    Register policy as a first-class entity in the trust network.
+
+    Policy is society's law - immutable once registered, hash-tracked in the chain.
+    Creates bidirectional witnessing: session witnesses operating under policy.
+
+    Returns:
+        Tuple of (policy_entity_id, policy_entity) or (None, None) if unavailable
+    """
+    if not GOVERNANCE_AVAILABLE or PolicyRegistry is None:
+        return None, None
+
+    preset_name = prefs.get("policy_preset", "safety")
+
+    # Validate preset name
+    if not is_preset_name(preset_name):
+        # Fall back to safety if invalid preset specified
+        preset_name = "safety"
+
+    try:
+        registry = PolicyRegistry()
+
+        # Register policy (creates hash-identified entity, persists to disk)
+        policy_entity = registry.register_policy(
+            name=preset_name,
+            preset=preset_name,
+        )
+
+        # Session witnesses operating under this policy
+        registry.witness_session(policy_entity.entity_id, session_id)
+
+        return policy_entity.entity_id, policy_entity.to_dict()
+    except Exception as e:
+        # Policy registration failed - continue without policy entity
+        print(f"[Web4] Policy registration failed: {e}", file=sys.stderr)
+        return None, None
 
 
 def initialize_session(session_id):
@@ -84,6 +125,9 @@ def initialize_session(session_id):
 
     token = create_session_token()
     prefs = load_preferences()
+
+    # Register policy as first-class entity (hash-tracked, witnessable)
+    policy_entity_id, policy_entity_dict = register_policy_entity(session_id, prefs)
 
     session = {
         "session_id": session_id,
@@ -96,7 +140,10 @@ def initialize_session(session_id):
         # Agent governance tracking
         "active_agent": None,
         "agents_used": [],
-        "governance_available": GOVERNANCE_AVAILABLE
+        "governance_available": GOVERNANCE_AVAILABLE,
+        # Policy entity (society's law - hash-tracked in chain)
+        "policy_entity_id": policy_entity_id,
+        "policy_entity": policy_entity_dict,
     }
 
     session_file = SESSION_DIR / f"{session_id}.json"
@@ -127,7 +174,13 @@ def main():
     if session["preferences"]["show_r6_status"]:
         token_short = session["token"]["token_id"].split(":")[-1]
         gov_status = "+" if GOVERNANCE_AVAILABLE else "-"
-        print(f"[Web4] Session {token_short} (software-bound) [gov{gov_status}]", file=sys.stderr)
+        policy_status = ""
+        if session.get("policy_entity_id"):
+            # Extract preset name from entity_id (policy:<name>:<version>:<hash>)
+            policy_parts = session["policy_entity_id"].split(":")
+            if len(policy_parts) >= 2:
+                policy_status = f" [policy:{policy_parts[1]}]"
+        print(f"[Web4] Session {token_short} (software-bound) [gov{gov_status}]{policy_status}", file=sys.stderr)
 
     sys.exit(0)
 

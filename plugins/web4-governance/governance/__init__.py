@@ -52,6 +52,7 @@ from .presets import (
 )
 from .rate_limiter import RateLimiter, RateLimitResult
 from .reporter import AuditReporter, AuditReport
+from .policy_entity import PolicyEntity, PolicyRegistry, PolicyEvaluation
 
 # Trust backend (Rust or Python fallback)
 from .trust_backend import (
@@ -100,4 +101,8 @@ __all__ = [
     # Tier 1.5: Reporter
     'AuditReporter',
     'AuditReport',
+    # Tier 1.5: Policy Entity
+    'PolicyEntity',
+    'PolicyRegistry',
+    'PolicyEvaluation',
 ]

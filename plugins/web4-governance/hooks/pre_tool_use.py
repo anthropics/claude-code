@@ -44,11 +44,74 @@ from heartbeat import get_session_heartbeat
 # Import agent governance
 sys.path.insert(0, str(Path(__file__).parent.parent))
 try:
-    from governance import AgentGovernance, EntityTrustStore
+    from governance import (
+        AgentGovernance,
+        EntityTrustStore,
+        PolicyRegistry,
+        PolicyEntity,
+        resolve_preset,
+        is_preset_name,
+        RateLimiter,
+    )
     GOVERNANCE_AVAILABLE = True
 except ImportError:
     GOVERNANCE_AVAILABLE = False
     EntityTrustStore = None
+    PolicyRegistry = None
+    PolicyEntity = None
+    RateLimiter = None
+
+# Session-level rate limiter (memory-only, resets on restart)
+_rate_limiter = None
+
+
+def get_rate_limiter():
+    """Get or create session rate limiter."""
+    global _rate_limiter
+    if _rate_limiter is None and RateLimiter is not None:
+        _rate_limiter = RateLimiter()
+    return _rate_limiter
+
+
+def evaluate_policy(session, tool_name: str, category: str, target: str):
+    """
+    Evaluate tool call against policy entity.
+
+    Returns:
+        Tuple of (decision, evaluation_dict) where decision is "allow", "deny", or "warn"
+        Returns ("allow", None) if no policy or policy unavailable.
+    """
+    if not GOVERNANCE_AVAILABLE or PolicyRegistry is None:
+        return "allow", None
+
+    policy_entity_id = session.get("policy_entity_id")
+    if not policy_entity_id:
+        return "allow", None
+
+    try:
+        registry = PolicyRegistry()
+        policy_entity = registry.get_policy(policy_entity_id)
+        if not policy_entity:
+            return "allow", None
+
+        # Evaluate with rate limiter
+        rate_limiter = get_rate_limiter()
+        evaluation = policy_entity.evaluate(tool_name, category, target, rate_limiter)
+
+        eval_dict = {
+            "decision": evaluation.decision,
+            "rule_id": evaluation.rule_id,
+            "rule_name": evaluation.rule_name,
+            "reason": evaluation.reason,
+            "enforced": evaluation.enforced,
+            "constraints": evaluation.constraints,
+        }
+
+        return evaluation.decision, eval_dict
+
+    except Exception as e:
+        # Policy evaluation failed - default to allow
+        return "allow", {"error": str(e)}
 
 WEB4_DIR = Path.home() / ".web4"
 SESSION_DIR = WEB4_DIR / "sessions"
@@ -67,6 +130,29 @@ def create_session_token():
     }
 
 
+def register_policy_for_session(session_id: str, prefs: dict):
+    """
+    Register policy entity for a session (used in lazy init).
+
+    Returns (policy_entity_id, policy_entity_dict) or (None, None).
+    """
+    if not GOVERNANCE_AVAILABLE or PolicyRegistry is None:
+        return None, None
+
+    preset_name = prefs.get("policy_preset", "safety")
+    if not is_preset_name(preset_name):
+        preset_name = "safety"
+
+    try:
+        registry = PolicyRegistry()
+        policy_entity = registry.register_policy(name=preset_name, preset=preset_name)
+        registry.witness_session(policy_entity.entity_id, session_id)
+        return policy_entity.entity_id, policy_entity.to_dict()
+    except Exception as e:
+        print(f"[Web4] Policy registration failed: {e}", file=sys.stderr)
+        return None, None
+
+
 def load_or_create_session(session_id):
     """
     Load session state, or create one if missing (lazy initialization).
@@ -82,14 +168,20 @@ def load_or_create_session(session_id):
             return json.load(f)
 
     # Lazy initialization for continued/recovered sessions
+    prefs = {
+        "audit_level": "standard",
+        "show_r6_status": True,
+        "action_budget": None,
+        "policy_preset": "safety",
+    }
+
+    # Register policy as first-class entity (hash-tracked)
+    policy_entity_id, policy_entity_dict = register_policy_for_session(session_id, prefs)
+
     session = {
         "session_id": session_id,
         "token": create_session_token(),
-        "preferences": {
-            "audit_level": "standard",
-            "show_r6_status": True,
-            "action_budget": None,
-        },
+        "preferences": prefs,
         "started_at": datetime.now(timezone.utc).isoformat() + "Z",
         "recovered_at": datetime.now(timezone.utc).isoformat() + "Z",  # Mark as recovered
         "action_count": 0,
@@ -97,7 +189,10 @@ def load_or_create_session(session_id):
         "audit_chain": [],
         "active_agent": None,
         "agents_used": [],
-        "governance_available": GOVERNANCE_AVAILABLE
+        "governance_available": GOVERNANCE_AVAILABLE,
+        # Policy entity (society's law)
+        "policy_entity_id": policy_entity_id,
+        "policy_entity": policy_entity_dict,
     }
 
     # Save immediately
@@ -109,7 +204,8 @@ def load_or_create_session(session_id):
     heartbeat.record("session_recovered", 0)
 
     # Log recovery
-    print(f"[Web4] Session recovered: {session['token']['token_id'].split(':')[-1]} (lazy init)", file=sys.stderr)
+    policy_name = policy_entity_id.split(":")[1] if policy_entity_id else "none"
+    print(f"[Web4] Session recovered: {session['token']['token_id'].split(':')[-1]} [policy:{policy_name}]", file=sys.stderr)
 
     return session
 
@@ -221,10 +317,11 @@ def create_r6_request(session, tool_name, tool_input):
         "id": f"r6:{r6_id}",
         "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
 
-        # R1: Rules - constraints (extensible by user preferences)
+        # R1: Rules - constraints (policy entity is society's law)
         "rules": {
             "audit_level": session["preferences"]["audit_level"],
-            "budget_remaining": session["preferences"].get("action_budget")
+            "budget_remaining": session["preferences"].get("action_budget"),
+            "policy_entity_id": session.get("policy_entity_id"),
         },
 
         # R2: Role - who's asking
@@ -294,6 +391,91 @@ def main():
 
     # Create R6 request
     r6 = create_r6_request(session, tool_name, tool_input)
+
+    # Evaluate policy - society's law
+    category = r6["request"]["category"]
+    target = r6["request"]["target"]
+    decision, policy_eval = evaluate_policy(session, tool_name, category, target)
+
+    # Add policy evaluation to R6 record
+    if policy_eval:
+        r6["policy"] = policy_eval
+
+    # Handle policy decision
+    if decision == "deny" and policy_eval and policy_eval.get("enforced", True):
+        # Policy blocks this action
+        r6["result"] = {
+            "status": "blocked",
+            "reason": policy_eval.get("reason", "Blocked by policy"),
+            "rule_id": policy_eval.get("rule_id"),
+        }
+        log_r6(r6)
+
+        # Witness the policy decision (policy witnesses a deny)
+        if GOVERNANCE_AVAILABLE and PolicyRegistry:
+            try:
+                registry = PolicyRegistry()
+                policy_entity_id = session.get("policy_entity_id")
+                if policy_entity_id:
+                    registry.witness_decision(
+                        policy_entity_id, session["session_id"], tool_name, "deny", success=False
+                    )
+            except Exception:
+                pass  # Don't fail hook on witnessing error
+
+        # Output block message
+        print(f"[Web4/Policy] BLOCKED: {policy_eval.get('reason', 'Blocked by policy')}", file=sys.stderr)
+
+        # Exit with non-zero to signal Claude Code to block the tool
+        # Note: Claude Code hooks expect specific exit codes or JSON output
+        # Exit 0 = allow, non-zero = deny (or output {"decision": "deny"})
+        print(json.dumps({"decision": "deny", "reason": policy_eval.get("reason")}))
+        sys.exit(0)  # Exit 0 but with deny decision in stdout
+
+    elif decision == "warn":
+        # Log warning but allow
+        reason = policy_eval.get("reason", "Warning from policy") if policy_eval else "Warning"
+        print(f"[Web4/Policy] WARNING: {reason}", file=sys.stderr)
+
+    # Check trust-based capabilities if an agent is active
+    active_agent = session.get("active_agent")
+    if active_agent and GOVERNANCE_AVAILABLE and tool_name != "Task":
+        try:
+            gov = AgentGovernance()
+            cap_check = gov.on_tool_use(
+                session_id=session_id,
+                role_id=active_agent,
+                tool_name=tool_name,
+                tool_input=tool_input,
+                atp_cost=1
+            )
+
+            if not cap_check.get("allowed", True):
+                # Agent lacks trust for this tool
+                r6["capability"] = {
+                    "blocked": True,
+                    "agent": active_agent,
+                    "required": cap_check.get("required"),
+                    "trust_level": cap_check.get("trust_level"),
+                    "error": cap_check.get("error"),
+                }
+                r6["result"] = {
+                    "status": "blocked",
+                    "reason": cap_check.get("error", "Insufficient trust"),
+                }
+                log_r6(r6)
+
+                print(f"[Web4/Trust] BLOCKED: {cap_check.get('error')} (agent: {active_agent})", file=sys.stderr)
+                print(json.dumps({"decision": "deny", "reason": cap_check.get("error")}))
+                sys.exit(0)
+
+            r6["capability"] = {
+                "allowed": True,
+                "agent": active_agent,
+                "trust_level": cap_check.get("trust_level", "unknown"),
+            }
+        except Exception as e:
+            r6["capability"] = {"error": str(e)}
 
     # Handle agent spawn (Task tool = agent delegation)
     agent_context = None
@@ -372,9 +554,17 @@ def main():
     # Show R6 status if verbose
     if session["preferences"]["audit_level"] == "verbose":
         coherence_indicator = "●" if timing_coherence >= 0.8 else "◐" if timing_coherence >= 0.5 else "○"
-        print(f"[R6] {r6['request']['category']}:{r6['request']['target'][:30]} {coherence_indicator}{timing_coherence:.2f}", file=sys.stderr)
+        policy_indicator = f"[{decision}]" if policy_eval else ""
+        print(f"[R6] {r6['request']['category']}:{r6['request']['target'][:30]} {coherence_indicator}{timing_coherence:.2f} {policy_indicator}", file=sys.stderr)
 
-    # Always allow - this is observational, not enforcement
+    # Record rate limit usage for allowed actions
+    if decision == "allow" and policy_eval and policy_eval.get("rule_id"):
+        rate_limiter = get_rate_limiter()
+        if rate_limiter:
+            key = f"ratelimit:{policy_eval['rule_id']}:{tool_name}"
+            rate_limiter.record(key)
+
+    # Allow tool to proceed
     sys.exit(0)
 
 
