@@ -559,3 +559,179 @@ class Ledger:
                 GROUP BY status
             """, (session_id,)).fetchall()
             return {row[0]: row[1] for row in rows}
+
+    # --- Audit Query & Filtering ---
+
+    def query_audit(
+        self,
+        session_id: Optional[str] = None,
+        tool: Optional[str] = None,
+        category: Optional[str] = None,
+        status: Optional[str] = None,
+        target_pattern: Optional[str] = None,
+        since: Optional[str] = None,
+        limit: int = 50,
+    ) -> List[Dict]:
+        """
+        Query and filter audit records.
+
+        Args:
+            session_id: Filter by session (optional, queries all if not set)
+            tool: Filter by tool name
+            category: Filter by category (from r6_data)
+            status: Filter by status (success, error, blocked)
+            target_pattern: Glob pattern for target filtering
+            since: ISO date or relative duration (1h, 30m, 2d)
+            limit: Max results (default 50)
+
+        Returns:
+            List of matching audit records
+        """
+        conditions = []
+        params: List[Any] = []
+
+        if session_id:
+            conditions.append("session_id = ?")
+            params.append(session_id)
+
+        if tool:
+            conditions.append("tool_name = ?")
+            params.append(tool)
+
+        if status:
+            conditions.append("status = ?")
+            params.append(status)
+
+        if since:
+            since_dt = self._parse_since(since)
+            if since_dt:
+                conditions.append("timestamp >= ?")
+                params.append(since_dt.isoformat() + "Z")
+
+        where_clause = " AND ".join(conditions) if conditions else "1=1"
+
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute(f"""
+                SELECT * FROM audit_trail
+                WHERE {where_clause}
+                ORDER BY timestamp DESC
+                LIMIT ?
+            """, (*params, limit * 10)).fetchall()  # Fetch extra for post-filtering
+
+        results = [dict(row) for row in rows]
+
+        # Post-filter by category (from r6_data)
+        if category:
+            filtered = []
+            for r in results:
+                if r.get("r6_data"):
+                    try:
+                        r6 = json.loads(r["r6_data"])
+                        if r6.get("request", {}).get("category") == category:
+                            filtered.append(r)
+                    except (json.JSONDecodeError, TypeError):
+                        pass
+            results = filtered
+
+        # Post-filter by target pattern (glob)
+        if target_pattern:
+            import fnmatch
+            filtered = []
+            for r in results:
+                target = r.get("target")
+                if target and fnmatch.fnmatch(target, target_pattern):
+                    filtered.append(r)
+            results = filtered
+
+        return results[:limit]
+
+    def _parse_since(self, since: str) -> Optional[datetime]:
+        """
+        Parse a 'since' value: ISO date string or relative duration.
+
+        Args:
+            since: ISO date or relative (e.g., "1h", "30m", "2d")
+
+        Returns:
+            datetime or None if unparseable
+        """
+        import re
+
+        # Try relative duration first
+        match = re.match(r"^(\d+)\s*(s|m|h|d)$", since)
+        if match:
+            amount = int(match.group(1))
+            unit = match.group(2)
+            multipliers = {"s": 1, "m": 60, "h": 3600, "d": 86400}
+            seconds = amount * multipliers[unit]
+            return datetime.now(timezone.utc) - __import__("datetime").timedelta(seconds=seconds)
+
+        # Try ISO date
+        try:
+            # Handle both with and without Z suffix
+            if since.endswith("Z"):
+                since = since[:-1] + "+00:00"
+            return datetime.fromisoformat(since)
+        except ValueError:
+            return None
+
+    def get_audit_stats(self, session_id: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Get aggregated audit statistics.
+
+        Args:
+            session_id: Optional session to scope stats to
+
+        Returns:
+            Dict with tool_counts, category_counts, status_counts, total
+        """
+        condition = "WHERE session_id = ?" if session_id else ""
+        params = (session_id,) if session_id else ()
+
+        with sqlite3.connect(self.db_path) as conn:
+            # Tool counts
+            tool_rows = conn.execute(f"""
+                SELECT tool_name, COUNT(*) as count
+                FROM audit_trail {condition}
+                GROUP BY tool_name
+                ORDER BY count DESC
+            """, params).fetchall()
+            tool_counts = {row[0]: row[1] for row in tool_rows if row[0]}
+
+            # Status counts
+            status_rows = conn.execute(f"""
+                SELECT status, COUNT(*) as count
+                FROM audit_trail {condition}
+                GROUP BY status
+            """, params).fetchall()
+            status_counts = {row[0]: row[1] for row in status_rows if row[0]}
+
+            # Total
+            total_row = conn.execute(f"""
+                SELECT COUNT(*) FROM audit_trail {condition}
+            """, params).fetchone()
+            total = total_row[0] if total_row else 0
+
+        # Category counts require parsing r6_data
+        category_counts: Dict[str, int] = {}
+        with sqlite3.connect(self.db_path) as conn:
+            rows = conn.execute(f"""
+                SELECT r6_data FROM audit_trail {condition}
+            """, params).fetchall()
+            for row in rows:
+                if row[0]:
+                    try:
+                        r6 = json.loads(row[0])
+                        cat = r6.get("request", {}).get("category")
+                        if cat:
+                            category_counts[cat] = category_counts.get(cat, 0) + 1
+                    except (json.JSONDecodeError, TypeError):
+                        pass
+
+        return {
+            "total": total,
+            "tool_counts": tool_counts,
+            "status_counts": status_counts,
+            "category_counts": category_counts,
+        }
