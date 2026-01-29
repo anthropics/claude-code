@@ -46,6 +46,33 @@ async function githubRequest<T>(endpoint: string, token: string, method: string 
   return response.json();
 }
 
+function withPaginationParams(endpoint: string, perPage: number, page: number): string {
+  const joiner = endpoint.includes("?") ? "&" : "?";
+  return `${endpoint}${joiner}per_page=${perPage}&page=${page}`;
+}
+
+async function* githubPaginate<T>(
+  endpoint: string,
+  token: string,
+  perPage: number = 100,
+  maxPages: number = 50
+): AsyncGenerator<T[], void, void> {
+  for (let page = 1; page <= maxPages; page++) {
+    const pageItems: T[] = await githubRequest(withPaginationParams(endpoint, perPage, page), token);
+    if (pageItems.length === 0) return;
+    yield pageItems;
+    if (pageItems.length < perPage) return;
+  }
+}
+
+function isDuplicateDetectionComment(comment: GitHubComment): boolean {
+  return (
+    comment.user.type === "Bot" &&
+    comment.body.includes("Found") &&
+    comment.body.includes("possible duplicate")
+  );
+}
+
 function extractDuplicateIssueNumber(commentBody: string): number | null {
   // Try to match #123 format first
   let match = commentBody.match(/#(\d+)/);
@@ -60,6 +87,45 @@ function extractDuplicateIssueNumber(commentBody: string): number | null {
   }
   
   return null;
+}
+
+async function getIssueCommentStats(
+  owner: string,
+  repo: string,
+  issueNumber: number,
+  token: string
+): Promise<{
+  commentCount: number;
+  dupeCommentCount: number;
+  lastCommentDate: Date | null;
+  lastDupeComment: GitHubComment | null;
+  lastDupeCommentDate: Date | null;
+}> {
+  let commentCount = 0;
+  let dupeCommentCount = 0;
+  let lastCommentDate: Date | null = null;
+  let lastDupeComment: GitHubComment | null = null;
+  let lastDupeCommentDate: Date | null = null;
+
+  const endpoint = `/repos/${owner}/${repo}/issues/${issueNumber}/comments`;
+  for await (const pageComments of githubPaginate<GitHubComment>(endpoint, token)) {
+    for (const comment of pageComments) {
+      commentCount++;
+
+      const createdAt = new Date(comment.created_at);
+      if (!lastCommentDate || createdAt > lastCommentDate) lastCommentDate = createdAt;
+
+      if (isDuplicateDetectionComment(comment)) {
+        dupeCommentCount++;
+        if (!lastDupeCommentDate || createdAt > lastDupeCommentDate) {
+          lastDupeCommentDate = createdAt;
+          lastDupeComment = comment;
+        }
+      }
+    }
+  }
+
+  return { commentCount, dupeCommentCount, lastCommentDate, lastDupeComment, lastDupeCommentDate };
 }
 
 
@@ -150,39 +216,35 @@ async function autoCloseDuplicates(): Promise<void> {
     processedCount++;
     console.log(
       `[DEBUG] Processing issue #${issue.number} (${processedCount}/${issues.length}): ${issue.title}`
-    );
+	    );
 
-    console.log(`[DEBUG] Fetching comments for issue #${issue.number}...`);
-    const comments: GitHubComment[] = await githubRequest(
-      `/repos/${owner}/${repo}/issues/${issue.number}/comments`,
-      token
-    );
-    console.log(
-      `[DEBUG] Issue #${issue.number} has ${comments.length} comments`
-    );
+	    console.log(`[DEBUG] Fetching comments for issue #${issue.number}...`);
+	    const {
+	      commentCount,
+	      dupeCommentCount,
+	      lastCommentDate,
+	      lastDupeComment,
+	      lastDupeCommentDate
+	    } = await getIssueCommentStats(owner, repo, issue.number, token);
+	    console.log(
+	      `[DEBUG] Issue #${issue.number} has ${commentCount} comments`
+	    );
 
-    const dupeComments = comments.filter(
-      (comment) =>
-        comment.body.includes("Found") &&
-        comment.body.includes("possible duplicate") &&
-        comment.user.type === "Bot"
-    );
-    console.log(
-      `[DEBUG] Issue #${issue.number} has ${dupeComments.length} duplicate detection comments`
-    );
+	    console.log(
+	      `[DEBUG] Issue #${issue.number} has ${dupeCommentCount} duplicate detection comments`
+	    );
 
-    if (dupeComments.length === 0) {
-      console.log(
-        `[DEBUG] Issue #${issue.number} - no duplicate comments found, skipping`
-      );
-      continue;
-    }
+	    if (dupeCommentCount === 0 || !lastDupeComment || !lastDupeCommentDate) {
+	      console.log(
+	        `[DEBUG] Issue #${issue.number} - no duplicate comments found, skipping`
+	      );
+	      continue;
+	    }
 
-    const lastDupeComment = dupeComments[dupeComments.length - 1];
-    const dupeCommentDate = new Date(lastDupeComment.created_at);
-    console.log(
-      `[DEBUG] Issue #${
-        issue.number
+	    const dupeCommentDate = lastDupeCommentDate;
+	    console.log(
+	      `[DEBUG] Issue #${
+	        issue.number
       } - most recent duplicate comment from: ${dupeCommentDate.toISOString()}`
     );
 
@@ -197,33 +259,35 @@ async function autoCloseDuplicates(): Promise<void> {
         issue.number
       } - duplicate comment is old enough (${Math.floor(
         (Date.now() - dupeCommentDate.getTime()) / (1000 * 60 * 60 * 24)
-      )} days)`
-    );
+	      )} days)`
+	    );
 
-    const commentsAfterDupe = comments.filter(
-      (comment) => new Date(comment.created_at) > dupeCommentDate
-    );
-    console.log(
-      `[DEBUG] Issue #${issue.number} - ${commentsAfterDupe.length} comments after duplicate detection`
-    );
+	    const hasCommentsAfterDupe =
+	      !!lastCommentDate && lastCommentDate > dupeCommentDate;
+	    console.log(
+	      `[DEBUG] Issue #${issue.number} - ${hasCommentsAfterDupe ? "has" : "no"} comments after duplicate detection`
+	    );
 
-    if (commentsAfterDupe.length > 0) {
-      console.log(
-        `[DEBUG] Issue #${issue.number} - has activity after duplicate comment, skipping`
-      );
+	    if (hasCommentsAfterDupe) {
+	      console.log(
+	        `[DEBUG] Issue #${issue.number} - has activity after duplicate comment, skipping`
+	      );
       continue;
     }
 
-    console.log(
-      `[DEBUG] Issue #${issue.number} - checking reactions on duplicate comment...`
-    );
-    const reactions: GitHubReaction[] = await githubRequest(
-      `/repos/${owner}/${repo}/issues/comments/${lastDupeComment.id}/reactions`,
-      token
-    );
-    console.log(
-      `[DEBUG] Issue #${issue.number} - duplicate comment has ${reactions.length} reactions`
-    );
+	    console.log(
+	      `[DEBUG] Issue #${issue.number} - checking reactions on duplicate comment...`
+	    );
+	    const reactions: GitHubReaction[] = [];
+	    for await (const pageReactions of githubPaginate<GitHubReaction>(
+	      `/repos/${owner}/${repo}/issues/comments/${lastDupeComment.id}/reactions`,
+	      token
+	    )) {
+	      reactions.push(...pageReactions);
+	    }
+	    console.log(
+	      `[DEBUG] Issue #${issue.number} - duplicate comment has ${reactions.length} reactions`
+	    );
 
     const authorThumbsDown = reactions.some(
       (reaction) =>

@@ -44,6 +44,53 @@ async function githubRequest<T>(endpoint: string, token: string, method: string 
   return response.json();
 }
 
+function withPaginationParams(endpoint: string, perPage: number, page: number): string {
+  const joiner = endpoint.includes("?") ? "&" : "?";
+  return `${endpoint}${joiner}per_page=${perPage}&page=${page}`;
+}
+
+async function* githubPaginate<T>(
+  endpoint: string,
+  token: string,
+  perPage: number = 100,
+  maxPages: number = 50
+): AsyncGenerator<T[], void, void> {
+  for (let page = 1; page <= maxPages; page++) {
+    const pageItems: T[] = await githubRequest(withPaginationParams(endpoint, perPage, page), token);
+    if (pageItems.length === 0) return;
+    yield pageItems;
+    if (pageItems.length < perPage) return;
+  }
+}
+
+function isDuplicateDetectionComment(comment: GitHubComment): boolean {
+  return (
+    comment.user.type === "Bot" &&
+    comment.body.includes("Found") &&
+    comment.body.includes("possible duplicate")
+  );
+}
+
+async function getIssueCommentStats(
+  owner: string,
+  repo: string,
+  issueNumber: number,
+  token: string
+): Promise<{ commentCount: number; dupeCommentCount: number }> {
+  let commentCount = 0;
+  let dupeCommentCount = 0;
+
+  const endpoint = `/repos/${owner}/${repo}/issues/${issueNumber}/comments`;
+  for await (const pageComments of githubPaginate<GitHubComment>(endpoint, token)) {
+    for (const comment of pageComments) {
+      commentCount++;
+      if (isDuplicateDetectionComment(comment)) dupeCommentCount++;
+    }
+  }
+
+  return { commentCount, dupeCommentCount };
+}
+
 async function triggerDedupeWorkflow(
   owner: string,
   repo: string,
@@ -146,34 +193,23 @@ Environment Variables:
     processedCount++;
     console.log(
       `[DEBUG] Processing issue #${issue.number} (${processedCount}/${allIssues.length}): ${issue.title}`
-    );
+	    );
 
-    console.log(`[DEBUG] Fetching comments for issue #${issue.number}...`);
-    const comments: GitHubComment[] = await githubRequest(
-      `/repos/${owner}/${repo}/issues/${issue.number}/comments`,
-      token
-    );
-    console.log(
-      `[DEBUG] Issue #${issue.number} has ${comments.length} comments`
-    );
+	    console.log(`[DEBUG] Fetching comments for issue #${issue.number}...`);
+	    const { commentCount, dupeCommentCount } = await getIssueCommentStats(owner, repo, issue.number, token);
+	    console.log(
+	      `[DEBUG] Issue #${issue.number} has ${commentCount} comments`
+	    );
 
-    // Look for existing duplicate detection comments (from the dedupe bot)
-    const dupeDetectionComments = comments.filter(
-      (comment) =>
-        comment.body.includes("Found") &&
-        comment.body.includes("possible duplicate") &&
-        comment.user.type === "Bot"
-    );
+	    console.log(
+	      `[DEBUG] Issue #${issue.number} has ${dupeCommentCount} duplicate detection comments`
+	    );
 
-    console.log(
-      `[DEBUG] Issue #${issue.number} has ${dupeDetectionComments.length} duplicate detection comments`
-    );
-
-    // Skip if there's already a duplicate detection comment
-    if (dupeDetectionComments.length > 0) {
-      console.log(
-        `[DEBUG] Issue #${issue.number} already has duplicate detection comment, skipping`
-      );
+	    // Skip if there's already a duplicate detection comment
+	    if (dupeCommentCount > 0) {
+	      console.log(
+	        `[DEBUG] Issue #${issue.number} already has duplicate detection comment, skipping`
+	      );
       continue;
     }
 
