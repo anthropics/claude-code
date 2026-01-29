@@ -3,6 +3,7 @@
 
 import re
 import sys
+import fnmatch
 from functools import lru_cache
 from typing import List, Dict, Any, Optional
 
@@ -12,16 +13,18 @@ from hookify.core.config_loader import Rule, Condition
 
 # Cache compiled regexes (max 128 patterns)
 @lru_cache(maxsize=128)
-def compile_regex(pattern: str) -> re.Pattern:
+def compile_regex(pattern: str, case_sensitive: bool = False) -> re.Pattern:
     """Compile regex pattern with caching.
 
     Args:
         pattern: Regex pattern string
+        case_sensitive: Whether to respect case
 
     Returns:
         Compiled regex pattern
     """
-    return re.compile(pattern, re.IGNORECASE)
+    flags = 0 if case_sensitive else re.IGNORECASE
+    return re.compile(pattern, flags)
 
 
 class RuleEngine:
@@ -162,9 +165,19 @@ class RuleEngine:
         # Apply operator
         operator = condition.operator
         pattern = condition.pattern
+        case_sensitive = condition.case_sensitive
+
+        # Handle case sensitivity for string operations
+        if not case_sensitive and operator != 'regex_match' and operator != 'glob_match':
+            # For case-insensitive string ops, lower both (except regex/glob which handle it internally)
+            if field_value:
+                field_value = field_value.lower()
+            pattern = pattern.lower()
 
         if operator == 'regex_match':
-            return self._regex_match(pattern, field_value)
+            return self._regex_match(pattern, field_value, case_sensitive)
+        elif operator == 'glob_match':
+            return self._glob_match(pattern, field_value, case_sensitive)
         elif operator == 'contains':
             return pattern in field_value
         elif operator == 'equals':
@@ -253,24 +266,43 @@ class RuleEngine:
 
         return None
 
-    def _regex_match(self, pattern: str, text: str) -> bool:
+    def _regex_match(self, pattern: str, text: str, case_sensitive: bool = False) -> bool:
         """Check if pattern matches text using regex.
 
         Args:
             pattern: Regex pattern
             text: Text to match against
+            case_sensitive: Whether to respect case
 
         Returns:
             True if pattern matches
         """
         try:
             # Use cached compiled regex (LRU cache with max 128 patterns)
-            regex = compile_regex(pattern)
+            regex = compile_regex(pattern, case_sensitive)
             return bool(regex.search(text))
 
         except re.error as e:
             print(f"Invalid regex pattern '{pattern}': {e}", file=sys.stderr)
             return False
+
+    def _glob_match(self, pattern: str, text: str, case_sensitive: bool = False) -> bool:
+        """Check if pattern matches text using glob (fnmatch).
+
+        Args:
+            pattern: Glob pattern (*.txt, file?.js)
+            text: Text to match against
+            case_sensitive: Whether to respect case
+
+        Returns:
+            True if pattern matches
+        """
+        # fnmatch.fnmatchcase is always case-sensitive
+        # If we want case-insensitive, we simulate it by lowercasing both
+        if case_sensitive:
+            return fnmatch.fnmatchcase(text, pattern)
+        else:
+            return fnmatch.fnmatchcase(text.lower(), pattern.lower())
 
 
 # For testing
