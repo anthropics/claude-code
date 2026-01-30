@@ -1,0 +1,13 @@
+{
+  "name": "verify-claims",
+  "version": "1.0.0",
+  "description": "Verifies Claude's claims about file creation, test results, lint status, and build success before allowing task completion",
+  "author": {
+    "name": "augmnt",
+    "url": "https://augmnt.sh"
+  },
+  "license": "MIT",
+  "homepage": "https://augmnt.sh",
+  "repository": "https://github.com/anthropics/claude-code/tree/main/plugins/verify-claims",
+  "keywords": ["verification", "testing", "hooks", "quality-assurance", "fact-checking"]
+}

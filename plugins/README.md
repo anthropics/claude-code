@@ -25,6 +25,7 @@ Learn more in the [official plugins documentation](https://docs.claude.com/en/do
 | [pr-review-toolkit](./pr-review-toolkit/) | Comprehensive PR review agents specializing in comments, tests, error handling, type design, code quality, and code simplification | **Command:** `/pr-review-toolkit:review-pr` - Run with optional review aspects (comments, tests, errors, types, code, simplify, all)<br>**Agents:** `comment-analyzer`, `pr-test-analyzer`, `silent-failure-hunter`, `type-design-analyzer`, `code-reviewer`, `code-simplifier` |
 | [ralph-wiggum](./ralph-wiggum/) | Interactive self-referential AI loops for iterative development. Claude works on the same task repeatedly until completion | **Commands:** `/ralph-loop`, `/cancel-ralph` - Start/stop autonomous iteration loops<br>**Hook:** Stop - Intercepts exit attempts to continue iteration |
 | [security-guidance](./security-guidance/) | Security reminder hook that warns about potential security issues when editing files | **Hook:** PreToolUse - Monitors 9 security patterns including command injection, XSS, eval usage, dangerous HTML, pickle deserialization, and os.system calls |
+| [verify-claims](./verify-claims/) | Automatically verifies Claude's claims about file creation, test results, lint status, and build success before task completion | **Command:** `/verify-claims:verify` - Manual verification trigger<br>**Hooks:** Stop (claim verification), PostToolUse (state tracking)<br>**Verifiers:** file_created, tests_pass, lint_clean, build_success, bug_fixed |
 
 ## Installation
 
