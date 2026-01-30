@@ -1,0 +1,17 @@
+{
+  "$schema": "https://code.claude.com/schemas/settings.json",
+  "description": "Configuration optimized for smaller terminals and reduced visual motion",
+
+  "disableAnimations": true,
+
+  "outputStyle": "Concise",
+
+  "statusLine": {
+    "type": "command",
+    "command": "echo '$(basename $PWD) | $(git branch --show-current 2>/dev/null || echo \"no git\")'"
+  },
+
+  "companyAnnouncements": [
+    "Animations disabled for optimal terminal performance"
+  ]
+}
