@@ -30,11 +30,32 @@ Invoke `/relevant-learnings [topic]` when:
 
 ### 1. Parse the Query
 
-Accept a topic, situation, or question:
+Accept a topic, situation, or question with optional flags:
 - `/relevant-learnings pricing strategy`
 - `/relevant-learnings launching to enterprise`
-- `/relevant-learnings team scaling challenges`
-- `/relevant-learnings customer churn`
+- `/relevant-learnings team scaling challenges --include-demo`
+- `/relevant-learnings customer churn --demo-only`
+
+**Flags**:
+- `--include-demo` - Include demo learnings (marked with `[DEMO]`)
+- `--demo-only` - Show only demo learnings (for testing/learning)
+
+### 1b. Check for Production Data (Demo Filtering)
+
+**Before searching**, determine if production learnings exist:
+
+1. Check `context/learnings/index.md` for non-demo entries
+2. Apply demo filtering rule:
+   | Production Data? | Flag | Behavior |
+   |-----------------|------|----------|
+   | No | (any) | Include demo with `[DEMO]` markers |
+   | Yes | (none) | **Exclude demo data**, show excluded count |
+   | Yes | `--include-demo` | Include demo with `[DEMO]` markers |
+   | (any) | `--demo-only` | Only demo data |
+
+3. Demo data is identified by:
+   - ID contains "DEMO" (e.g., `L-DEMO-001`)
+   - Source document contains "DEMO"
 
 ### 2. Search Learnings Index
 

@@ -30,18 +30,65 @@ Invoke `/context-recall [topic]` when:
 
 ### 1. Parse the Query
 
-Accept a topic or keyword from the user, with optional product filter:
-- `/context-recall pricing` → Search for pricing-related context (all products)
+Accept a topic or keyword from the user, with optional filters:
+- `/context-recall pricing` → Search for pricing-related context
 - `/context-recall enterprise` → Search for enterprise-related context
-- `/context-recall api` → Search for API-related context
-- `/context-recall pricing product:AXIA` → Search for pricing context filtered to AXIA
-- `/context-recall onboarding product:SKYMOD` → Search filtered to SKYMOD
+- `/context-recall pricing product:AXIA` → Search filtered to AXIA product
+- `/context-recall pricing --include-demo` → Include demo data even if production data exists
+- `/context-recall pricing --demo-only` → Show only demo data
 
-**Product Filter**: If `product:[name]` is specified, filter results to that product only. If omitted, search across all products.
+**Filters**:
+- `product:[name]` - Filter to specific product
+- `--include-demo` - Include demo data (marked with `[DEMO]`)
+- `--demo-only` - Show only demo data (for testing/learning)
 
-### 2. Search All Context Sources
+### 1b. Check for Production Data (Demo Filtering)
 
-Search across all context indexes:
+**Before searching**, determine if production data exists:
+
+1. Check main context folders (NOT `context/demo/`):
+   - `context/decisions/` - Any non-demo decision files?
+   - `context/bets/` - Any non-demo bet files?
+   - `context/feedback/index.md` - Any non-demo entries?
+
+2. Apply demo filtering rule:
+   | Production Data? | Flag | Behavior |
+   |-----------------|------|----------|
+   | No | (any) | Include demo with `[DEMO]` markers |
+   | Yes | (none) | **Exclude demo data**, show excluded count |
+   | Yes | `--include-demo` | Include demo with `[DEMO]` markers |
+   | (any) | `--demo-only` | Only demo data |
+
+3. Demo data is identified by:
+   - Path contains `context/demo/`
+   - ID contains "DEMO" (e.g., `DR-DEMO-001`)
+   - JSON entry has `demo: true`
+
+### 2. Search JSON Index First (Fast Path)
+
+**Primary search method**: Use `context/index.json` for fast topic-based retrieval.
+
+```json
+// Read context/index.json
+{
+  "topicIndex": {
+    "pricing": ["DR-2026-001", "DOC-2026-015"],
+    "api": ["DR-2026-003", "DOC-2026-008"]
+  }
+}
+```
+
+1. Check `topicIndex` for exact topic match
+2. Check `typeIndex` if user specifies a type (e.g., "prd", "decision")
+3. Check `phaseIndex` if user specifies a phase
+4. Retrieve matching `entries` by ID
+5. Get file paths from entries for full document access
+
+**If JSON index doesn't exist or has no matches**, fall back to markdown index search.
+
+### 3. Search Markdown Indexes (Fallback)
+
+If JSON index has no matches, search across markdown indexes:
 
 #### Decisions (`context/decisions/index.md`)
 - Search titles and tags
@@ -77,7 +124,7 @@ For highly relevant matches:
 
 ### 4. Synthesize Results
 
-Present findings in order of relevance:
+Present findings in order of relevance. **Apply demo data formatting**:
 
 ```markdown
 ## Context Recall: [Topic]
@@ -86,6 +133,7 @@ Present findings in order of relevance:
 | ID | Title | Status | Key Rationale |
 |----|-------|--------|---------------|
 | DR-2026-001 | [Title] | Accepted | [Why this was decided] |
+| `[DEMO]` DR-DEMO-001 | Demo Title | Demo | Demo rationale |
 
 **Constraints from these decisions:**
 - [Constraint 1]
@@ -117,7 +165,18 @@ Present findings in order of relevance:
 Based on past context:
 - [Recommendation 1]
 - [Recommendation 2]
+
+---
+*[If demo excluded]: X demo results excluded. Use `--include-demo` to show.*
+*[If demo included]: Results include demo data marked with `[DEMO]`.*
+
+💬 Related conversations may exist. Use `/interaction-recall [topic]` to search past interactions.
 ```
+
+**Demo Display Rules**:
+- Demo entries: Prefix ID with `[DEMO]` marker
+- If demo excluded: Show count at bottom with flag hint
+- If demo included: Note that demo data is present
 
 ### 5. Flag Conflicts or Risks
 

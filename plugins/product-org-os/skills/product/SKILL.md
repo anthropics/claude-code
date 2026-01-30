@@ -266,12 +266,35 @@ Task #3: @product-operations with their assignment
 
 ### After Collecting Responses
 
-Once all agents respond:
-1. **Present each response** attributed to the agent
-2. **Show alignment** - what agents agree on
-3. **Show tension** - where agents disagree (if any)
-4. **Synthesize** - combine into cohesive recommendation
-5. **Assign owner** - who's accountable for next steps
+**PRESENTATION FORMAT — NON-NEGOTIABLE** (see `rules/agent-spawn-protocol.md` Section 10)
+
+Once all agents respond, you MUST present each agent's response as them speaking:
+
+```markdown
+**{emoji} {Display Name}:**
+
+"{Agent's response in first person, exactly as they wrote it}"
+```
+
+**WRONG (report style):**
+```
+### From @pm
+- Created PRD
+- Defined 14 user stories
+```
+
+**RIGHT (agent speaking):**
+```
+**📝 Product Manager:**
+
+"I've completed the PRD with all technology choices documented. The 14 user stories cover the full scope. Want me to walk through the architecture rationale?"
+```
+
+Then, AFTER showing all individual perspectives:
+1. **Show alignment** - what agents agree on
+2. **Show tension** - where agents disagree (if any)
+3. **Synthesize** - combine into cohesive recommendation
+4. **Assign owner** - who's accountable for next steps
 
 ### Why This Matters
 
@@ -545,15 +568,27 @@ After all agents complete:
 
 ## Results
 
-### From @agent-a
-[Deliverable or summary]
+**{emoji} {Agent A Display Name}:**
 
-### From @agent-b
-[Deliverable or summary]
+"I've completed [deliverable]. Here's what I found... [First person response from agent]"
 
-## Summary
+---
 
-[Overall synthesis of results]
+**{emoji} {Agent B Display Name}:**
+
+"My analysis shows... [First person response from agent]"
+
+---
+
+## Alignment
+[What agents agree on]
+
+## Tension
+[Where they disagree, if any]
+
+## Synthesis
+
+[Overall synthesis AFTER showing individual voices]
 
 ---
 

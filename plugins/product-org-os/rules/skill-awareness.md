@@ -9,7 +9,7 @@ Master catalog of all skills available in the V2V Product Org Plugin. All agents
 
 ## Skill Categories
 
-### Context Layer Skills (7)
+### Context Layer Skills (10)
 | Skill | Purpose |
 |-------|---------|
 | `/context-save` | Save decision, bet, or learning to context registry |
@@ -19,6 +19,9 @@ Master catalog of all skills available in the V2V Product Org Plugin. All agents
 | `/handoff` | Capture context for agent-to-agent delegation |
 | `/feedback-capture` | Capture and analyze product feedback |
 | `/feedback-recall` | Query past feedback by topic, source, or theme |
+| `/interaction-recall` | Query past conversation history by topic, agent, or date |
+| `/roi-report` | View ROI dashboard and time savings |
+| `/index-folder` | Index folder contents to JSON for fast retrieval |
 
 ### Principle Validator Skills (5)
 | Skill | Principle | Purpose |
@@ -110,11 +113,14 @@ Master catalog of all skills available in the V2V Product Org Plugin. All agents
 | `/maturity-check` | Assess organizational maturity for a dimension |
 | `/pm-level-check` | Assess PM competency level |
 
-### Utility Skills (2)
+### Utility Skills (5)
 | Skill | Purpose |
 |-------|---------|
 | `/setup` | Initialize the Product Org plugin |
 | `/present` | Convert a deliverable document to HTML presentation |
+| `/clear-demo` | Remove demo content for production |
+| `/reset-demo` | Restore demo content for testing |
+| `/tour` | Interactive 5-step walkthrough of Product Org OS |
 
 ---
 
@@ -143,10 +149,10 @@ All skills that produce documents support Create/Update/Find:
 - Learning skills: outcome-review, retrospective, qbr-deck
 - Validator skills: ownership-map, customer-value-trace, collaboration-check, scale-check
 
-### Skills WITHOUT Document Intelligence (13)
+### Skills WITHOUT Document Intelligence (14)
 
 These are context/retrieval skills that operate differently:
-- Context layer: context-save, context-recall, portfolio-status, relevant-learnings, handoff, feedback-capture, feedback-recall
+- Context layer: context-save, context-recall, portfolio-status, relevant-learnings, handoff, feedback-capture, feedback-recall, interaction-recall
 - Assessment: maturity-check, pm-level-check
 - Utility: setup, present
 - Validator: phase-check
@@ -174,7 +180,7 @@ These are context/retrieval skills that operate differently:
 `/outcome-review`, `/retrospective`, `/decision-quality-audit`, `/relevant-learnings`, `/context-save`, `/feedback-capture`
 
 ### Cross-Phase
-`/context-recall`, `/feedback-recall`, `/portfolio-status`, `/portfolio-tradeoff`, `/handoff`, `/setup`, `/present`, `/qbr-deck`, `/maturity-check`, `/pm-level-check`, `/phase-check`, `/ownership-map`, `/customer-value-trace`, `/collaboration-check`, `/scale-check`
+`/context-recall`, `/feedback-recall`, `/interaction-recall`, `/portfolio-status`, `/portfolio-tradeoff`, `/handoff`, `/setup`, `/present`, `/qbr-deck`, `/maturity-check`, `/pm-level-check`, `/phase-check`, `/ownership-map`, `/customer-value-trace`, `/collaboration-check`, `/scale-check`
 
 ---
 
@@ -193,7 +199,7 @@ These are context/retrieval skills that operate differently:
 
 ### By Validation Need
 
-**Before decisions**: `/context-recall`, `/feedback-recall`, `/customer-value-trace`
+**Before decisions**: `/context-recall`, `/feedback-recall`, `/interaction-recall`, `/customer-value-trace`
 **Before commitments**: `/commitment-check`, `/ownership-map`, `/phase-check`
 **After outcomes**: `/outcome-review`, `/scale-check`, `/context-save`
 
@@ -203,7 +209,7 @@ These are context/retrieval skills that operate differently:
 
 | Category | Count |
 |----------|-------|
-| Context Layer | 7 |
+| Context Layer | 10 |
 | Principle Validators | 5 |
 | Decisions | 5 |
 | Strategy | 5 |
@@ -215,8 +221,8 @@ These are context/retrieval skills that operate differently:
 | Operational | 6 |
 | Learning & Review | 3 |
 | Assessment | 2 |
-| Utility | 2 |
-| **TOTAL** | **55** |
+| Utility | 5 |
+| **TOTAL** | **61** |
 
 ---
 
@@ -325,16 +331,7 @@ When the user mentions an `@agent` or `@gateway`, **immediately invoke without a
 
 ### Domain-Based Auto-Routing
 
-Even without explicit @ mentions, route automatically when the question clearly belongs to a specific domain:
-
-| Question Domain | Route To |
-|-----------------|----------|
-| PRD scope, requirements strategy, feature prioritization | `@pm` or `/product` |
-| Product vision, portfolio decisions, org structure | `@vp-product` or `@cpo` |
-| GTM strategy, positioning, competitive response | `@pmm-dir` |
-| Launch readiness, process optimization | `@prod-ops` |
-| Customer outcomes, value realization | `@value-realization` |
-| Multi-stakeholder decisions, portfolio tradeoffs | `@plt` |
+Even without explicit @ mentions, route automatically when the question clearly belongs to a specific domain. See `rules/agent-spawn-protocol.md` **Section 6 (Domain Routing Table)** for the full domain-to-agent mapping with primary and backup agents.
 
 ### Recognition Patterns
 
@@ -445,104 +442,27 @@ Agents represent functional roles in the product org. When a user asks `@pm` for
 
 ## Technical Implementation: Agent Spawning
 
-When spawning an agent via `@agent` syntax, use the Task tool with `general-purpose` subagent type.
+**See `rules/agent-spawn-protocol.md` for the canonical spawning protocol.** That rule defines:
 
-### Task Tool Pattern
+- **Agent Identity Registry** (Section 1) — emoji + display name for every agent
+- **Mandatory Prompt Injection Template** (Section 2) — what every Task prompt MUST start with
+- **ROI Aggregation** (Section 3) — per-agent and multi-agent ROI display
+- **Spawning Decision Tree** (Section 4) — when and how to spawn
+- **Sub-Agent Instructions** (Section 5) — nested spawning rules
+- **Domain Routing Table** (Section 6) — domain-to-agent mapping
+- **Self-Check Checklist** (Section 7) — mandatory pre-spawn verification
+- **Complete Example** (Section 9) — full Task tool call for @pm
 
-```
-Task tool call:
-  subagent_type: "general-purpose"
-  description: "PM agent creating PRD"
-  prompt: |
-    [Agent persona from skills/{agent}/SKILL.md]
+### Summary
 
-    ## Your Task
-    [User's request]
+When spawning via `@agent` syntax:
+1. Use Task tool with `subagent_type: "general-purpose"`
+2. **Prepend the Agent Identity & Response Protocol** from `agent-spawn-protocol.md` Section 2
+3. Load agent persona from `skills/{agent-name}/SKILL.md`
+4. Include user's request and any `@file.md` context
+5. Set `allowed_tools: ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "WebSearch", "Skill"]`
 
-    ## Context
-    [Any @file.md contents referenced]
-  allowed_tools: ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "WebSearch", "Skill"]
-```
-
-### Agent Prompt Construction
-
-When spawning an agent, construct the prompt by:
-
-1. **Load agent persona** from `skills/{agent-name}/SKILL.md`
-   - Include role description, responsibilities, collaboration patterns
-   - Include the skills they should use
-
-2. **Add the user's request** as the task
-
-3. **Include any `@file.md` context** referenced in the request
-   - Read the file contents
-   - Include relevant sections in the prompt
-
-4. **Add return instructions**
-   - Agent should produce deliverables
-   - Respond conversationally, as a colleague would (see Agent Response Style)
-   - No formal headers or third-person summaries
-
-### Example: Spawning PM Agent
-
-When user types: `@pm create a PRD for authentication @research.md`
-
-```
-Task tool:
-  subagent_type: "general-purpose"
-  description: "PM creating authentication PRD"
-  prompt: |
-    You are a **Product Manager**, responsible for defining and delivering product features.
-
-    ## Your Responsibilities
-    - Product Delivery Planning
-    - Product Requirements
-    - Feature definitions
-    - User stories with acceptance criteria
-
-    ## Skills Available
-    Use these skills via the Skill tool:
-    - /prd - Create Product Requirements Document
-    - /feature-spec - Create feature specification
-    - /user-story - Write user stories
-    - /context-recall - Check for related decisions
-    - /feedback-recall - Check customer feedback
-
-    ## Your Task
-    Create a PRD for authentication
-
-    ## Context
-    [Contents of research.md inserted here]
-
-    ## Instructions
-    1. Use /context-recall to check for related decisions
-    2. Create the PRD using /prd skill
-    3. Respond conversationally as a colleague - no formal headers or "The agent found..." wrappers
-```
-
-### Parallel Agent Spawning
-
-Gateways (`@product`, `@plt`) spawn multiple agents in parallel:
-
-```
-// Spawn multiple agents simultaneously
-Task tool call #1:
-  subagent_type: "general-purpose"
-  description: "VP Product strategic perspective"
-  prompt: [VP Product persona + request]
-
-Task tool call #2:
-  subagent_type: "general-purpose"
-  description: "PM delivery perspective"
-  prompt: [PM persona + request]
-
-Task tool call #3:
-  subagent_type: "general-purpose"
-  description: "PMM market perspective"
-  prompt: [PMM persona + request]
-```
-
-Results are collected and synthesized by the gateway **following Meeting Mode rules**.
+For parallel spawning (gateways), spawn multiple Task tool calls in a single message, then present results following Meeting Mode rules.
 
 ---
 
@@ -598,6 +518,61 @@ Before sending ANY multi-agent response:
 - [ ] Does synthesis come AFTER individual perspectives?
 
 **If ANY answer is NO, STOP and rewrite.**
+
+---
+
+## Post-Completion Requirements (MANDATORY)
+
+After ANY skill or agent completes its primary task, display time-savings following `rules/roi-display.md`.
+
+**SCOPE**: ROI comparisons reflect PRODUCT WORK (strategy, decisions, requirements, GTM, analysis, documentation) - NOT coding or development effort.
+
+### ROI Display Format
+
+```
+⏱️ ~[X] min saved (vs. [brief manual equivalent])
+```
+
+### Calculation Steps
+
+1. **Look up base time** in `reference/roi-baselines.md`
+2. **Assess complexity**:
+   - Simple (0.5×): Short prompt, single topic, straightforward
+   - Standard (1.0×): Typical request, moderate detail (default)
+   - Complex (1.5×): Multiple topics, significant context, stakeholder considerations
+   - Enterprise (2.0×): Strategic, cross-functional, multi-phase
+3. **Calculate**: Base Time × Complexity Factor = Minutes Saved
+4. **Display**: Single line after task completion
+
+### Examples
+
+| Task | Base | Complexity | Display |
+|------|------|------------|---------|
+| `/prd` for simple feature | 240 min | Simple (0.5×) | `⏱️ ~2 hrs saved (vs. manual PRD writing + stakeholder reviews)` |
+| `/decision-record` standard | 60 min | Standard (1.0×) | `⏱️ ~60 min saved (vs. documenting decision + aligning stakeholders)` |
+| `@plt` portfolio tradeoff | 300 min | Enterprise (2.0×) | `⏱️ ~10 hrs saved (vs. scheduling + running cross-functional alignment meeting)` |
+
+### When to Show
+
+**MUST Display**:
+- After completing any `/skill` invocation that produces a deliverable
+- After completing any `@agent` task
+- After `@plt` or `@product` gateway completions
+
+**MAY Skip**:
+- Context retrieval: `/context-recall`, `/feedback-recall`, `/interaction-recall`, `/relevant-learnings`, `/portfolio-status`
+- Pure lookups: `/phase-check` when no analysis
+- System operations: `/setup`, `/clear-demo`, `/reset-demo`
+- Failed/cancelled operations
+
+### Self-Check
+
+Before completing ANY response that involved skill/agent work:
+- [ ] Did I show the time-savings line?
+- [ ] Is the estimate based on the baseline + complexity?
+- [ ] Does the manual equivalent describe what was actually automated?
+
+**If you produced a deliverable and didn't show ROI, add it now.**
 
 ---
 

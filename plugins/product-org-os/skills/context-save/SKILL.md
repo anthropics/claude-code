@@ -103,7 +103,36 @@ For decisions and bets, also save the full record:
 - Create year folder if needed: `context/[type]/[YYYY]/`
 - Save full document as `[ID].md`
 
-### 5. Confirm Save
+### 5. Update JSON Index
+
+**Also update `context/index.json` for fast retrieval:**
+
+1. Read `context/index.json`
+2. Add entry to the `entries` array:
+   ```json
+   {
+     "id": "DR-2026-001",
+     "title": "API Versioning Strategy",
+     "type": "decision",
+     "path": "context/decisions/2026/DR-2026-001.md",
+     "topics": ["api", "versioning", "compatibility"],
+     "phase": "phase2",
+     "created": "2026-01-25",
+     "lastAccessed": "2026-01-25"
+   }
+   ```
+3. Update `topicIndex` - add ID to each topic array
+4. Update `typeIndex` - add ID to the type array (decision, bet, learning)
+5. Update `phaseIndex` - add ID to the appropriate phase array
+6. Update `lastUpdated` timestamp
+7. Write updated JSON
+
+**Topic extraction:**
+- Use tags from the document
+- Extract key terms from title
+- Include product name if multi-product org
+
+### 6. Confirm Save
 
 Report what was saved:
 ```
@@ -111,6 +140,7 @@ Saved to context registry:
 - Decision DR-2026-001 added to decisions/index.md
 - 3 assumptions extracted to assumptions/registry.md
 - Full record saved to decisions/2026/DR-2026-001.md
+- JSON index updated (topics: api, versioning, compatibility)
 ```
 
 ## Instructions

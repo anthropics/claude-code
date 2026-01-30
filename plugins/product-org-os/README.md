@@ -4,7 +4,7 @@
 
 > Intent → Decisions → Commitments → Execution → Outcomes → Learning
 
-13 agents • 56 skills • 11 strategic documents • Context layer
+13 agents • 61 skills • 11 strategic documents • Context layer • Demo environment
 
 [**View the Interactive Presentation →**](https://yohayetsion.github.io/product-org-os)
 
@@ -99,8 +99,8 @@ Combine agents and skills naturally.
 ### 13 Role-Based Agents
 CPO, VP Product, Director PM, Director PMM, Product Manager, PMM, BizOps, BizDev, Competitive Intelligence, Product Operations, Value Realization, UX Lead, Product Leadership Team
 
-### 56 Production Skills
-PRDs, roadmaps, business cases, GTM strategies, pricing models, launch plans, QBR decks, competitive analyses, decision records, and more
+### 62 Production Skills
+PRDs, roadmaps, business cases, GTM strategies, pricing models, launch plans, QBR decks, competitive analyses, decision records, ROI tracking, and more
 
 ### Context Layer
 Organizational memory that persists across sessions:
@@ -109,7 +109,23 @@ Organizational memory that persists across sessions:
 - **Feedback**: Customer and market signals linked to decisions
 - **Learnings**: Accumulated wisdom from retrospectives and outcomes
 
+- **Interaction History**: Full conversation logging across sessions — query with `/interaction-recall [topic]`
+
 Query anytime with `/context-recall [topic]`
+
+### Demo Environment
+Ships with pre-populated sample data so you can explore immediately:
+- 3 decision records, 2 strategic bets, 7 feedback entries, 1 PRD
+- Run `/tour` for a 5-step interactive walkthrough
+- **Auto-filtering**: Demo data hides automatically once you add your own content
+- Demo coexists safely—use `--include-demo` flag to see it alongside production data
+- `/clear-demo` removes demo entirely when ready
+
+### ROI Tracking
+See time savings after every skill completion:
+- Automatic display of estimated time saved
+- Session totals and historical tracking
+- View dashboard with `/roi-report`
 
 ### V2V Framework
 Six phases from strategic intent to learning loop, with skills mapped to each phase

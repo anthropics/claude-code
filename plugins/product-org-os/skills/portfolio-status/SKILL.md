@@ -26,13 +26,36 @@ Invoke `/portfolio-status` when:
 - Reviewing upcoming re-decision checkpoints
 - PLT needs an overview of current strategic state
 
-**Product Filter**: For multi-product organizations, use `/portfolio-status product:AXIA` to view portfolio for a specific product. Omit the filter to see all products.
+**Filters**:
+- `product:[name]` - Filter to specific product (e.g., `/portfolio-status product:AXIA`)
+- `--include-demo` - Include demo bets (marked with `[DEMO]`)
+- `--demo-only` - Show only demo bets (for testing/learning)
 
 ## Process
 
 ### 1. Read Portfolio State
 
 Read `context/portfolio/active-bets.md` to get current portfolio.
+
+### 1b. Check for Production Data (Demo Filtering)
+
+**Before displaying**, determine if production bets exist:
+
+1. Check for non-demo bets:
+   - Any bet ID that does NOT contain "DEMO"
+   - Any bet NOT in `context/demo/` path
+
+2. Apply demo filtering rule:
+   | Production Data? | Flag | Behavior |
+   |-----------------|------|----------|
+   | No | (any) | Include demo with `[DEMO]` markers |
+   | Yes | (none) | **Exclude demo bets**, show excluded count |
+   | Yes | `--include-demo` | Include demo with `[DEMO]` markers |
+   | (any) | `--demo-only` | Only demo bets |
+
+3. Demo data is identified by:
+   - ID contains "DEMO" (e.g., `SB-DEMO-001`)
+   - Path contains `context/demo/`
 
 ### 2. Read Related Context
 

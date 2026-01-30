@@ -1,0 +1,25 @@
+{
+  "version": "1.0",
+  "lastUpdated": "2026-01-25",
+  "description": "Master index for Product Org OS context layer. Auto-updated when documents are saved.",
+  "entries": [],
+  "topicIndex": {},
+  "typeIndex": {
+    "prd": [],
+    "decision": [],
+    "bet": [],
+    "roadmap": [],
+    "gtm": [],
+    "analysis": [],
+    "feedback": [],
+    "learning": []
+  },
+  "phaseIndex": {
+    "phase1": [],
+    "phase2": [],
+    "phase3": [],
+    "phase4": [],
+    "phase5": [],
+    "phase6": []
+  }
+}

@@ -41,7 +41,7 @@ When a skill completes and writes a document to the filesystem:
 
 **Exclusions** (do NOT auto-register):
 - Assessments/checks: `/maturity-check`, `/pm-level-check`, `/phase-check`, `/commitment-check`, `/ownership-map`, `/customer-value-trace`, `/collaboration-check`, `/scale-check`
-- Context operations: `/context-save`, `/context-recall`, `/portfolio-status`, `/handoff`, `/feedback-capture`, `/feedback-recall`
+- Context operations: `/context-save`, `/context-recall`, `/portfolio-status`, `/handoff`, `/feedback-capture`, `/feedback-recall`, `/interaction-recall`
 - Utility: `/setup`, `/present`
 
 ### After Creating Decisions or Bets
@@ -157,6 +157,46 @@ Use principle validators at these key points:
 | Committing resources | `/scale-check` |
 | Phase transitions | `/phase-check` |
 
+### After Agent/Gateway/Skill Interactions (Interaction Logging)
+
+After every loggable interaction (agent spawns, gateway invocations, skill deliverables), log to the interaction history. See `rules/interaction-logging.md` for the complete logging protocol.
+
+**Quick reference** — the parent session must:
+1. Read `context/interactions/index.json` to get `nextId`
+2. Generate entry ID (`IX-YYYY-NNNNN`)
+3. Append markdown entry to `context/interactions/YYYY/YYYY-MM-DD.md`
+4. Update `index.json` (entries array + topic/agent/date indexes)
+5. Update `context/interactions/current-session.md`
+
+**Exclusions** (do NOT log):
+- Context retrieval: `/context-recall`, `/feedback-recall`, `/relevant-learnings`, `/portfolio-status`, `/interaction-recall`
+- Assessments/checks: `/maturity-check`, `/pm-level-check`, `/phase-check`
+- System operations: `/setup`, `/clear-demo`, `/reset-demo`
+- Simple greetings, meta-questions, failed operations
+
+### After Completing ANY Skill or Agent Task (MANDATORY)
+
+**Display ROI inline after every skill/agent completion.** This is non-negotiable per `rules/roi-display.md`.
+
+**SCOPE**: ROI reflects PRODUCT WORK (strategy, decisions, requirements, GTM, analysis, documentation) - NOT coding/development effort.
+
+1. **Calculate time saved**:
+   - Look up base time in `reference/roi-baselines.md`
+   - Apply complexity factor (Simple: 0.5×, Standard: 1.0×, Complex: 1.5×, Enterprise: 2.0×)
+
+2. **Display single line**:
+   ```
+   ⏱️ ~[X] min saved (vs. [brief manual equivalent])
+   ```
+
+3. **Skip ONLY for**:
+   - Context retrieval: `/context-recall`, `/feedback-recall`, `/relevant-learnings`, `/portfolio-status`
+   - Pure assessments: `/phase-check` (no deliverable)
+   - System operations: `/setup`, `/clear-demo`, `/reset-demo`
+   - Failed operations
+
+**This makes ROI visible on every interaction - the primary Free → Pro conversion driver.**
+
 ## Context File Locations
 
 | Content Type | Index Location | Full Records |
@@ -171,6 +211,7 @@ Use principle validators at these key points:
 | Feedback | `context/feedback/index.md` | `context/feedback/[YYYY]/` |
 | Themes | `context/feedback/themes.md` | (in file) |
 | Principles | `context/principles/scorecard.md` | (in file) |
+| Interactions | `context/interactions/index.json` | `context/interactions/[YYYY]/` |
 
 ## Multi-Product Organizations
 
@@ -248,6 +289,7 @@ This feature is **fully optional**. Organizations with a single product can igno
 - **Learnings**: `L-[NNN]` (sequential, e.g., L-042)
 - **Feedback**: `FB-[YYYY]-[NNN]` (e.g., FB-2026-001)
 - **Themes**: `TH-[NNN]` (sequential, e.g., TH-005)
+- **Interactions**: `IX-[YYYY]-[NNNNN]` (e.g., IX-2026-00042)
 
 ## Quality Standards
 

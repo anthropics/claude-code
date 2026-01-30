@@ -1,8 +1,3 @@
----
-globs:
-  - "**/*"
----
-
 # Meeting Mode (MANDATORY)
 
 This rule governs how multi-agent responses are presented to users. **Violations of this rule undermine the entire value proposition of the Product Org OS.**
@@ -45,7 +40,7 @@ The VP Product expressed concern about...
 
 **RIGHT:**
 ```
-### 📈 VP Product:
+**📈 VP Product:**
 "I'm concerned about..."
 ```
 
@@ -59,10 +54,10 @@ Based on cross-functional input, we recommend...
 
 **RIGHT:**
 ```
-### 📈 VP Product:
+**📈 VP Product:**
 "From a strategic perspective..."
 
-### 📋 Director PM:
+**📋 Director PM:**
 "On the delivery side..."
 
 ---
@@ -79,10 +74,10 @@ The leadership team believes we should prioritize feature X because of market ti
 
 **RIGHT:**
 ```
-### 📣 Director PMM:
+### Director PMM:
 "Market timing is critical - we need to launch before Q3."
 
-### 📋 Director PM:
+### Director PM:
 "We have the resources if we delay the API project."
 
 ---
@@ -106,10 +101,10 @@ When presenting responses from spawned agents, you MUST follow this structure:
 
 ### Step 2: Show Each Agent's Response WITH ATTRIBUTION
 ```markdown
-### [Emoji] [Role Name]:
+### [Role Name]:
 "[Direct quote or first-person response from the agent]"
 
-### [Emoji] [Role Name]:
+### [Role Name]:
 "[Direct quote or first-person response from the agent]"
 
 ---
@@ -163,7 +158,7 @@ The entire point of the Product Org OS is simulating a real product organization
 
 When agents respond, they MUST:
 
-1. **Start with their emoji and role name as a header**: `### 📝 Product Manager:`
+1. **Start with their role name in bold**: `**📝 Product Manager:**`
 2. **Speak in first person**: "I see...", "My concern is...", "I recommend..."
 3. **Be conversational**: Like a colleague in a meeting, not a formal report
 4. **Stay in character**: Maintain their role's perspective and priorities
@@ -171,7 +166,7 @@ When agents respond, they MUST:
 **Example of correct agent response:**
 
 ```markdown
-### 📣 Director of Product Marketing:
+**📣 Director of Product Marketing:**
 
 "Looking at this from a market perspective, I have two concerns. First, our positioning against Competitor X is weak if we don't include the integration feature. Second, the timing puts us right in their launch window - we'd be announcing into their news cycle.
 
@@ -182,6 +177,23 @@ My recommendation: either accelerate to beat them by 3 weeks, or delay to let th
 
 ## Enforcement
 
+### Scope: ALL Agent Responses
+
+This rule applies to **every** agent response presented to a user, regardless of invocation method:
+
+| Invocation | Rule Applies? | Who Enforces |
+|------------|---------------|--------------|
+| `@pm` (single agent) | YES | Parent session presenting the response |
+| `@product` (gateway) | YES | Gateway presenting collected responses |
+| `@plt` (PLT gateway) | YES | PLT presenting all perspectives |
+| Agent spawns sub-agent | YES | Parent agent presenting sub-agent input |
+
+### Enforcement Mechanism
+
+See `rules/agent-spawn-protocol.md` **Section 10: Parent Session Presentation Requirements** for the binding rules on how to present agent output.
+
+The key insight: **Spawned agents already follow the rules** (via the injection template). The violation happens when the **parent session** converts their first-person responses into third-person summaries or report-style output.
+
 ### For PLT Sessions
 The `/product-leadership-team` skill MUST spawn separate agents and present their responses individually. Role-playing multiple perspectives yourself is prohibited for FULL PLT sessions.
 
@@ -190,6 +202,15 @@ When a user invokes a single agent (e.g., `@pm`), that agent's response should b
 
 ### For Parallel Agent Patterns
 All agents spawned in parallel must have their responses shown individually before any synthesis.
+
+### For Gateway Execution (`@product`)
+
+When `/product` gateway executes a plan and collects deliverables:
+
+1. **Each agent's completion MUST be presented as them speaking** — not as a status report
+2. **"Agent delivered X" is WRONG** — Agent should say "I've completed X, here's what I found..."
+3. **Tables of deliverables are supplementary** — They don't replace agent voices
+4. **Progress updates can be brief** — But completion messages must show the agent's voice
 
 ---
 

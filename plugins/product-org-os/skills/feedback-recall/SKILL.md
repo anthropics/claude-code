@@ -31,7 +31,7 @@ Invoke `/feedback-recall [query]` when:
 
 ### 1. Parse the Query
 
-Accept various query types, with optional product filter:
+Accept various query types, with optional filters:
 - **Topic**: `/feedback-recall onboarding` → feedback about onboarding
 - **Feature**: `/feedback-recall API integration` → feedback about API
 - **Segment**: `/feedback-recall enterprise` → feedback from enterprise customers
@@ -39,9 +39,32 @@ Accept various query types, with optional product filter:
 - **Sentiment**: `/feedback-recall negative pricing` → negative pricing feedback
 - **Theme**: `/feedback-recall TH-005` → feedback linked to a specific theme
 - **Product**: `/feedback-recall onboarding product:AXIA` → filtered to AXIA product
-- **Product only**: `/feedback-recall product:SKYMOD` → all feedback for SKYMOD
+- **Demo**: `/feedback-recall onboarding --include-demo` → include demo data
 
-**Product Filter**: If `product:[name]` is specified, filter results to that product only. If omitted, search across all products.
+**Filters**:
+- `product:[name]` - Filter to specific product
+- `--include-demo` - Include demo data (marked with `[DEMO]`)
+- `--demo-only` - Show only demo data (for testing/learning)
+
+### 1b. Check for Production Data (Demo Filtering)
+
+**Before searching**, determine if production data exists:
+
+1. Check main context folders (NOT `context/demo/`):
+   - `context/feedback/index.md` - Any non-demo entries?
+   - Any files in `context/feedback/[YYYY]/` that aren't demo?
+
+2. Apply demo filtering rule:
+   | Production Data? | Flag | Behavior |
+   |-----------------|------|----------|
+   | No | (any) | Include demo with `[DEMO]` markers |
+   | Yes | (none) | **Exclude demo data**, show excluded count |
+   | Yes | `--include-demo` | Include demo with `[DEMO]` markers |
+   | (any) | `--demo-only` | Only demo data |
+
+3. Demo data is identified by:
+   - Path contains `context/demo/`
+   - ID contains "DEMO" (e.g., `FB-DEMO-001`)
 
 ### 2. Search Feedback Registry
 
