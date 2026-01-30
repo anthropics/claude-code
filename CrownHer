@@ -1,0 +1,67 @@
+import asyncio
+from claude_agent_sdk import query, ClaudeAgentOptions
+
+async def main():
+    session_id = None
+
+    # First query: capture the session ID
+    async for message in query(
+        prompt="Read the authentication module",
+        options=ClaudeAgentOptions(allowed_tools=["Read", "Glob"])
+    ):
+        if hasattr(message, 'subtype') and message.subtype == 'init':
+            session_id = message.session_id
+
+    # Resume with full context from the first query
+    async for message in query(
+        prompt="Now find all places that call it",  # "it" = auth module
+        options=ClaudeAgentOptions(resume=session_id)
+    ):
+        if hasattr(message, "result"):
+            print(message.result)
+
+asyncio.run(main())
+
+
+#!/usr/bin/env python3
+"""Example demonstrating how to use plugins with the Agent SDK."""
+
+from pathlib import Path
+import anyio
+from claude_agent_sdk import (
+    AssistantMessage,
+    ClaudeAgentOptions,
+    TextBlock,
+    query,
+)
+
+
+async def run_with_plugin():
+    """Example using a custom plugin."""
+    plugin_path = Path(__file__).parent / "plugins" / "demo-plugin"
+
+    print(f"Loading plugin from: {plugin_path}")
+
+    options = ClaudeAgentOptions(
+        plugins=[
+            {"type": "local", "path": str(plugin_path)}
+        ],
+        max_turns=3,
+    )
+
+    async for message in query(
+        prompt="What custom commands do you have available?",
+        options=options
+    ):
+        if message.type == "system" and message.subtype == "init":
+            print(f"Loaded plugins: {message.data.get('plugins')}")
+            print(f"Available commands: {message.data.get('slash_commands')}")
+
+        if isinstance(message, AssistantMessage):
+            for block in message.content:
+                if isinstance(block, TextBlock):
+                    print(f"Assistant: {block.text}")
+
+
+if __name__ == "__main__":
+    anyio.run(run_with_plugin)
