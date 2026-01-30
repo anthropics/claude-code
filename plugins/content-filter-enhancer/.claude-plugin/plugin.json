@@ -1,0 +1,153 @@
+{
+  "name": "Content Filter Enhancer",
+  "version": "1.0.0",
+  "description": "Fixes overly aggressive content filtering that blocks legitimate DevOps work and SMTP configuration (Issue #9908)",
+  "author": "Claude Code Community",
+  "category": "security",
+  "keywords": ["content-filter", "devops", "smtp", "configuration", "false-positive", "whitelist"],
+  "repository": "https://github.com/anthropics/claude-code",
+  "main": "src/index.ts",
+  "issues": [
+    {
+      "id": "9908",
+      "title": "Content filter blocking legitimate SMTP configuration",
+      "url": "https://github.com/anthropics/claude-code/issues/9908",
+      "priority": "high",
+      "status": "fixed"
+    }
+  ],
+  "features": [
+    "Context-aware filtering that recognizes DevOps workflows",
+    "Google App Password whitelist (specific fix for Issue #9908)",
+    "Configuration file pattern recognition",
+    "User-created file whitelisting",
+    "Graduated filtering based on user intent",
+    "Custom pattern management",
+    "False positive detection and prevention",
+    "SMTP/email configuration support",
+    "Docker and Kubernetes configuration support",
+    "Environment variable and configuration file support"
+  ],
+  "compatibility": {
+    "platforms": ["linux", "macos", "windows"],
+    "models": ["all"],
+    "workspaces": ["all"]
+  },
+  "configuration": {
+    "enableDevOpsWhitelist": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable whitelist for DevOps and configuration patterns"
+    },
+    "enableConfigFileWhitelist": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable whitelist for configuration file contexts"
+    },
+    "enableUserFileWhitelist": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable whitelist for user-created files"
+    },
+    "strictMode": {
+      "type": "boolean",
+      "default": false,
+      "description": "Enable stricter filtering (may increase false positives)"
+    },
+    "logLevel": {
+      "type": "string",
+      "enum": ["DEBUG", "INFO", "WARN", "ERROR"],
+      "default": "INFO",
+      "description": "Logging level for content filter"
+    }
+  },
+  "commands": [
+    {
+      "name": "filter:test",
+      "description": "Test content against enhanced filters",
+      "options": {
+        "content": {
+          "type": "string",
+          "required": true,
+          "description": "Content to test"
+        },
+        "files": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Associated file paths for context"
+        }
+      }
+    },
+    {
+      "name": "filter:stats",
+      "description": "Show filtering statistics and accuracy"
+    },
+    {
+      "name": "filter:patterns",
+      "description": "Manage custom whitelist/blacklist patterns",
+      "subcommands": [
+        "add-whitelist",
+        "add-blacklist",
+        "remove",
+        "list"
+      ]
+    },
+    {
+      "name": "filter:toggle",
+      "description": "Toggle specific filtering features",
+      "options": {
+        "feature": {
+          "type": "string",
+          "enum": ["devops", "config-files", "user-files", "strict-mode"],
+          "required": true
+        },
+        "enabled": {
+          "type": "boolean",
+          "required": true
+        }
+      }
+    },
+    {
+      "name": "filter:diagnostics",
+      "description": "Get detailed filtering diagnostics"
+    }
+  ],
+  "whitelisted_patterns": {
+    "google_app_passwords": "Recognizes Google App Password format (xxxx xxxx xxxx xxxx)",
+    "smtp_configuration": "SMTP server configurations and email settings",
+    "environment_variables": "Standard environment variable formats (KEY=value)",
+    "docker_configuration": "Dockerfile and docker-compose configurations",
+    "kubernetes_manifests": "Kubernetes YAML configurations",
+    "config_files": ".env, .config, .ini, and similar configuration files",
+    "server_configurations": "Nginx, Apache, and other server configs",
+    "database_connections": "Safe database connection string formats",
+    "api_configurations": "API keys in legitimate configuration contexts",
+    "ssh_keys": "SSH public keys in configuration files"
+  },
+  "use_cases": [
+    {
+      "title": "SMTP Email Setup",
+      "description": "Configure Gmail SMTP with App Passwords without blocking",
+      "files": [".env", "mail-config.js"],
+      "example": "SMTP_PASSWORD=abcd efgh ijkl mnop"
+    },
+    {
+      "title": "Docker Configuration",
+      "description": "Work with Dockerfiles and environment variables",
+      "files": ["Dockerfile", ".env", "docker-compose.yml"],
+      "example": "ENV DATABASE_URL=postgresql://user:pass@localhost:5432/db"
+    },
+    {
+      "title": "Kubernetes Deployment",
+      "description": "Configure Kubernetes secrets and configs",
+      "files": ["k8s-config.yaml", "secrets.yaml"],
+      "example": "apiVersion: v1\nkind: Secret\ndata:\n  token: base64encodedtoken"
+    },
+    {
+      "title": "CI/CD Pipeline",
+      "description": "Set up deployment credentials and API keys",
+      "files": [".github/workflows/deploy.yml", ".env.production"],
+      "example": "API_KEY=sk-1234567890abcdef"
+    }
+  ]
+}
