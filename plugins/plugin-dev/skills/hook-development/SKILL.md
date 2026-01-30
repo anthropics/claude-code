@@ -145,7 +145,9 @@ Execute before any tool runs. Use to approve, deny, or modify tool calls.
 ```json
 {
   "hookSpecificOutput": {
+    "hookEventName": "PreToolUse",
     "permissionDecision": "allow|deny|ask",
+    "permissionDecisionReason": "Explanation for decision",
     "updatedInput": {"field": "modified_value"}
   },
   "systemMessage": "Explanation for Claude"
