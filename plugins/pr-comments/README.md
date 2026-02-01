@@ -9,9 +9,9 @@ GitHub's REST API doesn't expose the "resolved" status of review threads (the "R
 ## Usage
 
 ```bash
-/pr-comments:pr-comments              # Show all comments
-/pr-comments:pr-comments unresolved   # Show only unresolved threads
-/pr-comments:pr-comments resolved     # Show only resolved threads
+/pr-comments:show              # Show all comments
+/pr-comments:show unresolved   # Show only unresolved threads
+/pr-comments:show resolved     # Show only resolved threads
 ```
 
 ## Features
