@@ -60,8 +60,28 @@ from .trust_backend import (
     verify_backend,
     RUST_BACKEND,
     TrustStore,
+    T3Tensor as BackendT3Tensor,  # Legacy backend tensor
+    V3Tensor as BackendV3Tensor,  # Legacy backend tensor
+)
+
+# Canonical T3/V3 Tensors (fractal structure per Web4 spec)
+from .tensors import (
+    # Base 3D tensors
+    T3Base,
+    V3Base,
+    # Full fractal tensors with subdimensions
     T3Tensor,
     V3Tensor,
+    # Subdimension classes
+    TalentSubdims,
+    TrainingSubdims,
+    TemperamentSubdims,
+    ValuationSubdims,
+    VeracitySubdims,
+    ValiditySubdims,
+    # Migration helpers
+    migrate_legacy_t3,
+    migrate_legacy_v3,
 )
 
 __all__ = [
@@ -77,13 +97,26 @@ __all__ = [
     'EntityTrustStore',
     'get_mcp_trust',
     'update_mcp_trust',
-    # Trust backend
+    # Trust backend (legacy)
     'get_backend_info',
     'verify_backend',
     'RUST_BACKEND',
     'TrustStore',
+    'BackendT3Tensor',
+    'BackendV3Tensor',
+    # Canonical T3/V3 Tensors (fractal per Web4 spec)
+    'T3Base',
+    'V3Base',
     'T3Tensor',
     'V3Tensor',
+    'TalentSubdims',
+    'TrainingSubdims',
+    'TemperamentSubdims',
+    'ValuationSubdims',
+    'VeracitySubdims',
+    'ValiditySubdims',
+    'migrate_legacy_t3',
+    'migrate_legacy_v3',
     # Tier 1.5: Presets
     'PolicyConfig',
     'PolicyRule',
