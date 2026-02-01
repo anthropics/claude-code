@@ -1,0 +1,8 @@
+{
+  "name": "pair-ai",
+  "description": "Two AIs debate while coding - one implements, one critiques, resulting in better code through collaborative discussion",
+  "version": "1.0.0",
+  "author": {
+    "name": "dukbong"
+  }
+}
