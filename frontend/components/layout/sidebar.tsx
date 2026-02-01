@@ -27,8 +27,7 @@ const navItems = [
 ];
 
 const bottomItems = [
-  { href: "/settings", label: "Settings", icon: Settings },
-  { href: "/settings/billing", label: "Billing", icon: CreditCard },
+  { href: "/settings", label: "Settings & Billing", icon: Settings },
 ];
 
 export function Sidebar() {

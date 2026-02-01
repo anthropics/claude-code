@@ -165,15 +165,19 @@ export interface Subscription {
   status: string;
   current_period_start: string | null;
   current_period_end: string | null;
-  generations_used: number;
-  scheduled_posts_used: number;
-  generations_remaining: number;
   limits: {
     generations_per_month: number;
+    transcription_minutes_per_month: number;
     brands: number;
     scheduled_posts: number;
     team_seats: number;
     price_monthly: number;
+  };
+  current_usage: {
+    generations: number;
+    transcription_minutes: number;
+    brands: number;
+    scheduled_posts: number;
   };
   cancel_at_period_end: boolean;
   created_at: string;
