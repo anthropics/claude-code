@@ -1,0 +1,16 @@
+{
+  "$schema": "https://claude.ai/code/settings-schema.json",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/plugins/pdf-guard/hooks/pretooluse.py"
+          }
+        ]
+      }
+    ]
+  }
+}
