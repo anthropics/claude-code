@@ -1,0 +1,47 @@
+# Core Django
+Django>=5.0,<6.0
+djangorestframework>=3.15
+django-environ>=0.11
+
+# Database
+psycopg[binary]>=3.1
+
+# Background Jobs
+celery>=5.4
+redis>=5.0
+
+# HTTP Client
+requests>=2.32
+httpx>=0.27
+
+# Security & Auth
+cryptography>=42.0
+djangorestframework-simplejwt>=5.3
+django-cors-headers>=4.3
+
+# Rate Limiting
+django-ratelimit>=4.1
+
+# API Documentation
+drf-spectacular>=0.27
+
+# Payments
+stripe>=8.0
+
+# AI/ML
+openai>=1.12
+
+# File Storage
+boto3>=1.34
+django-storages>=1.14
+
+# Production
+gunicorn>=21.0
+whitenoise>=6.6
+
+# Monitoring
+sentry-sdk>=1.40
+
+# Development
+python-dotenv>=1.0
+ipython>=8.0
