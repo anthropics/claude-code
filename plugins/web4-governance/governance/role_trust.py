@@ -7,14 +7,26 @@
 Role-specific trust accumulation.
 
 Maps Claude Code agents to Web4 role entities with:
-- T3 Trust Tensor (6 dimensions per role)
-- V3 Value Tensor (6 dimensions per role)
+- T3 Trust Tensor (fractal 3D: Talent/Training/Temperament)
+- V3 Value Tensor (fractal 3D: Valuation/Veracity/Validity)
 - Action history and success rates
 - Trust-based capability modulation
 
 Key concept: Trust is NEVER global. Each role (agent) accumulates
 its own trust independently. A highly trusted code-reviewer may
 have low trust as a test-generator (and vice versa).
+
+## Fractal Tensor Structure
+
+T3 (base 3D) with subdimensions:
+    Talent     → (competence, alignment)
+    Training   → (lineage, witnesses)
+    Temperament → (reliability, consistency)
+
+V3 (base 3D) with subdimensions:
+    Valuation  → (reputation, contribution)
+    Veracity   → (stewardship, energy)
+    Validity   → (network, temporal)
 """
 
 import json
@@ -25,6 +37,10 @@ from typing import Dict, List, Optional
 from dataclasses import dataclass, field, asdict
 
 from .ledger import Ledger
+from .tensors import (
+    T3Tensor, V3Tensor,
+    migrate_legacy_t3, migrate_legacy_v3,
+)
 
 
 # Storage location
@@ -36,39 +52,28 @@ class RoleTrust:
     """
     Trust tensors for a specific role (agent type).
 
-    T3 Trust Tensor:
-    - competence: Can they do it? (skill/ability)
-    - reliability: Will they do it consistently?
-    - consistency: Same quality over time?
-    - witnesses: Corroborated by others?
-    - lineage: Track record / history length?
-    - alignment: Values match context?
+    Uses fractal T3/V3 tensor structure per Web4 spec:
 
-    V3 Value Tensor:
-    - energy: Effort/resources invested
-    - contribution: Value added to ecosystem
-    - stewardship: Care for shared resources
-    - network: Connections / reach
-    - reputation: External perception
-    - temporal: Time-based value accumulation
+    T3 Trust Tensor (base 3D, each with 2 subdimensions):
+        - Talent     → (competence, alignment)
+        - Training   → (lineage, witnesses)
+        - Temperament → (reliability, consistency)
+
+    V3 Value Tensor (base 3D, each with 2 subdimensions):
+        - Valuation  → (reputation, contribution)
+        - Veracity   → (stewardship, energy)
+        - Validity   → (network, temporal)
+
+    Trust is ROLE-CONTEXTUAL: an entity's T3/V3 exists only within
+    a role context.
     """
     role_id: str
 
-    # T3 Trust Tensor (6 dimensions)
-    competence: float = 0.5
-    reliability: float = 0.5
-    consistency: float = 0.5
-    witnesses: float = 0.5
-    lineage: float = 0.5
-    alignment: float = 0.5
+    # Fractal T3 Trust Tensor
+    t3: T3Tensor = field(default_factory=T3Tensor)
 
-    # V3 Value Tensor (6 dimensions)
-    energy: float = 0.5
-    contribution: float = 0.5
-    stewardship: float = 0.5
-    network: float = 0.5
-    reputation: float = 0.5
-    temporal: float = 0.5
+    # Fractal V3 Value Tensor
+    v3: V3Tensor = field(default_factory=V3Tensor)
 
     # Metadata
     action_count: int = 0
@@ -76,62 +81,173 @@ class RoleTrust:
     last_action: Optional[str] = None
     created_at: Optional[str] = None
 
+    # =========================================================================
+    # Backward-compatible property accessors for subdimensions
+    # =========================================================================
+
+    @property
+    def competence(self) -> float:
+        return self.t3.competence
+
+    @competence.setter
+    def competence(self, value: float):
+        self.t3.talent_sub.competence = value
+
+    @property
+    def alignment(self) -> float:
+        return self.t3.alignment
+
+    @alignment.setter
+    def alignment(self, value: float):
+        self.t3.talent_sub.alignment = value
+
+    @property
+    def lineage(self) -> float:
+        return self.t3.lineage
+
+    @lineage.setter
+    def lineage(self, value: float):
+        self.t3.training_sub.lineage = value
+
+    @property
+    def witnesses(self) -> float:
+        return self.t3.witnesses
+
+    @witnesses.setter
+    def witnesses(self, value: float):
+        self.t3.training_sub.witnesses = value
+
+    @property
+    def reliability(self) -> float:
+        return self.t3.reliability
+
+    @reliability.setter
+    def reliability(self, value: float):
+        self.t3.temperament_sub.reliability = value
+
+    @property
+    def consistency(self) -> float:
+        return self.t3.consistency
+
+    @consistency.setter
+    def consistency(self, value: float):
+        self.t3.temperament_sub.consistency = value
+
+    # V3 subdimension accessors
+    @property
+    def reputation(self) -> float:
+        return self.v3.reputation
+
+    @reputation.setter
+    def reputation(self, value: float):
+        self.v3.valuation_sub.reputation = value
+
+    @property
+    def contribution(self) -> float:
+        return self.v3.contribution
+
+    @contribution.setter
+    def contribution(self, value: float):
+        self.v3.valuation_sub.contribution = value
+
+    @property
+    def stewardship(self) -> float:
+        return self.v3.stewardship
+
+    @stewardship.setter
+    def stewardship(self, value: float):
+        self.v3.veracity_sub.stewardship = value
+
+    @property
+    def energy(self) -> float:
+        return self.v3.energy
+
+    @energy.setter
+    def energy(self, value: float):
+        self.v3.veracity_sub.energy = value
+
+    @property
+    def network(self) -> float:
+        return self.v3.network
+
+    @network.setter
+    def network(self, value: float):
+        self.v3.validity_sub.network = value
+
+    @property
+    def temporal(self) -> float:
+        return self.v3.temporal
+
+    @temporal.setter
+    def temporal(self, value: float):
+        self.v3.validity_sub.temporal = value
+
+    # =========================================================================
+    # Tensor aggregate methods
+    # =========================================================================
+
+    def t3_composite(self) -> float:
+        """
+        Weighted composite T3 trust score per Web4 spec.
+
+        Formula: talent * 0.3 + training * 0.4 + temperament * 0.3
+        """
+        return self.t3.composite()
+
     def t3_average(self) -> float:
-        """Average T3 trust score."""
+        """
+        @deprecated Use t3_composite() for spec-compliant scoring.
+        Average of all 6 subdimensions for backward compatibility.
+        """
         return (self.competence + self.reliability + self.consistency +
                 self.witnesses + self.lineage + self.alignment) / 6
 
+    def v3_composite(self) -> float:
+        """Composite V3 value score."""
+        return self.v3.composite()
+
     def v3_average(self) -> float:
-        """Average V3 value score."""
+        """
+        @deprecated Use v3_composite() for spec-compliant scoring.
+        Average of all 6 subdimensions for backward compatibility.
+        """
         return (self.energy + self.contribution + self.stewardship +
                 self.network + self.reputation + self.temporal) / 6
 
-    def update_from_outcome(self, success: bool, magnitude: float = 0.1):
+    def update_from_outcome(self, success: bool, is_novel: bool = False):
         """
-        Update trust based on action outcome.
+        Update trust based on action outcome per Web4 spec.
 
-        Success increases trust slowly (asymptotic to 1.0).
-        Failure decreases trust faster (trust is hard to earn, easy to lose).
+        | Outcome         | Talent Impact | Training Impact | Temperament Impact |
+        |-----------------|---------------|-----------------|-------------------|
+        | Novel Success   | +0.02 to +0.05| +0.01 to +0.02  | +0.01             |
+        | Standard Success| 0             | +0.005 to +0.01 | +0.005            |
+        | Failure         | -0.02         | -0.01           | -0.02             |
         """
         self.action_count += 1
         if success:
             self.success_count += 1
 
-        # Calculate delta (asymmetric: failures hit harder)
+        # Use the spec-compliant T3Tensor update
+        self.t3.update_from_outcome(success, is_novel)
+
+        # Update V3 contribution and energy based on outcome
+        clamp = lambda v: max(0.0, min(1.0, v))
         if success:
-            delta = magnitude * 0.05 * (1 - self.reliability)  # Diminishing returns
+            self.v3.valuation_sub.contribution = clamp(self.contribution + 0.01)
+            self.v3.veracity_sub.energy = clamp(self.energy + 0.01)
         else:
-            delta = -magnitude * 0.10 * self.reliability  # Bigger fall from height
-
-        # Update T3 dimensions
-        self.reliability = max(0, min(1, self.reliability + delta))
-        self.consistency = max(0, min(1, self.consistency + delta * 0.5))
-        self.competence = max(0, min(1, self.competence + delta * 0.3))
-
-        # Update lineage based on action history
-        if self.action_count > 0:
-            success_rate = self.success_count / self.action_count
-            # Lineage builds slowly with consistent success
-            self.lineage = 0.2 + 0.8 * (success_rate ** 0.5) * min(1.0, self.action_count / 100)
-
-        # Update V3 energy (effort spent)
-        self.energy = min(1.0, self.energy + 0.01)  # Small increase per action
+            self.v3.valuation_sub.contribution = clamp(self.contribution - 0.005)
 
         self.last_action = datetime.now(timezone.utc).isoformat()
 
     def trust_level(self) -> str:
-        """Categorical trust level."""
-        t3 = self.t3_average()
-        if t3 >= 0.8:
-            return "high"
-        elif t3 >= 0.6:
-            return "medium-high"
-        elif t3 >= 0.4:
-            return "medium"
-        elif t3 >= 0.2:
-            return "low"
-        else:
-            return "minimal"
+        """
+        Categorical trust level based on T3 composite score.
+
+        Uses weighted composite per Web4 spec, not simple average.
+        """
+        return self.t3.level()
 
     def apply_decay(self, days_inactive: float, decay_rate: float = 0.01) -> bool:
         """
@@ -140,10 +256,8 @@ class RoleTrust:
         Trust decays slowly over time if not used. This prevents
         stale trust from persisting indefinitely.
 
-        Decay affects:
-        - reliability (most affected - "will they still do it?")
-        - consistency (affected - "same quality after gap?")
-        - temporal (V3 - time-based value)
+        Decay primarily affects Temperament (reliability, consistency)
+        and V3 temporal/energy dimensions.
 
         Decay is asymptotic to 0.3 (never fully decays to 0).
 
@@ -168,17 +282,20 @@ class RoleTrust:
             decayed = floor + (current - floor) * decay_factor
             return max(floor, decayed)
 
-        # Decay T3 dimensions (reliability most affected)
         old_reliability = self.reliability
-        self.reliability = decay_value(self.reliability)
-        self.consistency = decay_value(self.consistency * 0.98)  # Slightly less decay
-        # competence decays slower (skills don't fade as fast)
-        self.competence = decay_value(self.competence * 0.995)
 
-        # Decay V3 temporal (time-based value)
-        self.temporal = decay_value(self.temporal)
-        # Energy decays (effort fades)
-        self.energy = decay_value(self.energy * 0.99)
+        # Decay Temperament subdimensions (reliability most affected)
+        self.t3.temperament_sub.reliability = decay_value(self.reliability)
+        self.t3.temperament_sub.consistency = decay_value(self.consistency * 0.98)
+
+        # Talent.competence decays slower (skills don't fade as fast)
+        self.t3.talent_sub.competence = decay_value(self.competence * 0.995)
+
+        # Decay V3 Validity.temporal (time-based value)
+        self.v3.validity_sub.temporal = decay_value(self.temporal)
+
+        # Decay V3 Veracity.energy (effort fades)
+        self.v3.veracity_sub.energy = decay_value(self.energy * 0.99)
 
         # Return whether meaningful decay occurred
         return abs(old_reliability - self.reliability) > 0.001
@@ -207,11 +324,100 @@ class RoleTrust:
             return 0
 
     def to_dict(self) -> dict:
-        return asdict(self)
+        """
+        Serialize to dict.
+
+        Includes both fractal structure (t3/v3) and flattened subdimensions
+        for backward compatibility.
+        """
+        return {
+            "role_id": self.role_id,
+            # Fractal T3 tensor
+            "t3": self.t3.to_dict(),
+            # Fractal V3 tensor (simplified)
+            "v3": {
+                "valuation": self.v3.valuation,
+                "veracity": self.v3.veracity,
+                "validity": self.v3.validity,
+                "reputation": self.reputation,
+                "contribution": self.contribution,
+                "stewardship": self.stewardship,
+                "energy": self.energy,
+                "network": self.network,
+                "temporal": self.temporal,
+                "composite": self.v3.composite(),
+            },
+            # Legacy 6D flattened view (backward compatibility)
+            "competence": self.competence,
+            "reliability": self.reliability,
+            "consistency": self.consistency,
+            "witnesses": self.witnesses,
+            "lineage": self.lineage,
+            "alignment": self.alignment,
+            "energy": self.energy,
+            "contribution": self.contribution,
+            "stewardship": self.stewardship,
+            "network": self.network,
+            "reputation": self.reputation,
+            "temporal": self.temporal,
+            # Metadata
+            "action_count": self.action_count,
+            "success_count": self.success_count,
+            "last_action": self.last_action,
+            "created_at": self.created_at,
+        }
 
     @classmethod
     def from_dict(cls, data: dict) -> 'RoleTrust':
-        return cls(**data)
+        """
+        Deserialize from dict.
+
+        Handles both new fractal format and legacy 6D flat format.
+        """
+        role = cls(
+            role_id=data.get("role_id", ""),
+            action_count=data.get("action_count", 0),
+            success_count=data.get("success_count", 0),
+            last_action=data.get("last_action"),
+            created_at=data.get("created_at"),
+        )
+
+        # Check if data has new fractal t3 structure
+        if "t3" in data and isinstance(data["t3"], dict):
+            role.t3 = T3Tensor.from_dict(data["t3"])
+        else:
+            # Migrate from legacy 6D flat format
+            role.t3 = migrate_legacy_t3({
+                "competence": data.get("competence", 0.5),
+                "reliability": data.get("reliability", 0.5),
+                "consistency": data.get("consistency", 0.5),
+                "witnesses": data.get("witnesses", 0.5),
+                "lineage": data.get("lineage", 0.5),
+                "alignment": data.get("alignment", 0.5),
+            })
+
+        # Check if data has new fractal v3 structure
+        if "v3" in data and isinstance(data["v3"], dict):
+            role.v3 = migrate_legacy_v3({
+                "reputation": data["v3"].get("reputation", 0.5),
+                "contribution": data["v3"].get("contribution", 0.5),
+                "stewardship": data["v3"].get("stewardship", 0.5),
+                "energy": data["v3"].get("energy", 0.5),
+                "network": data["v3"].get("network", 0.5),
+                "temporal": data["v3"].get("temporal", 0.5),
+            })
+        else:
+            # Migrate from legacy 6D flat format
+            role.v3 = migrate_legacy_v3({
+                "reputation": data.get("reputation", 0.5),
+                "contribution": data.get("contribution", 0.5),
+                "stewardship": data.get("stewardship", 0.5),
+                "energy": data.get("energy", 0.5),
+                "network": data.get("network", 0.5),
+                "temporal": data.get("temporal", 0.5),
+            })
+
+        return role
 
 
 class RoleTrustStore:
@@ -300,19 +506,21 @@ class RoleTrustStore:
         Derive capabilities from trust level.
 
         Higher trust = more permissions.
+        Uses spec-compliant T3 composite score.
         """
         trust = self.get(role_id)
-        t3_avg = trust.t3_average()
+        t3_composite = trust.t3_composite()
 
         return {
             "can_read": True,  # Always allowed
-            "can_write": t3_avg >= 0.3,
-            "can_execute": t3_avg >= 0.4,
-            "can_network": t3_avg >= 0.5,
-            "can_delegate": t3_avg >= 0.6,
-            "max_atp_per_action": int(10 + 90 * t3_avg),
+            "can_write": t3_composite >= 0.3,
+            "can_execute": t3_composite >= 0.4,
+            "can_network": t3_composite >= 0.5,
+            "can_delegate": t3_composite >= 0.6,
+            "max_atp_per_action": int(10 + 90 * t3_composite),
             "trust_level": trust.trust_level(),
-            "t3_average": round(t3_avg, 3),
+            "t3_composite": round(t3_composite, 3),
+            "t3_average": round(trust.t3_average(), 3),  # Legacy compatibility
             "action_count": trust.action_count,
             "success_rate": trust.success_count / max(1, trust.action_count)
         }
