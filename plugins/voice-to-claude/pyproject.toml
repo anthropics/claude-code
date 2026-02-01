@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "voice-to-claude"
+version = "0.1.0"
+description = "High-quality voice dictation for Claude Code using whisper.cpp with Metal GPU acceleration"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+authors = [
+    {name = "Enes Basbug", email = "enesbasbugeng@gmail.com"}
+]
+keywords = ["speech-to-text", "stt", "voice", "dictation", "whisper", "claude", "metal", "gpu"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: MacOS",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Multimedia :: Sound/Audio :: Speech",
+]
+
+dependencies = [
+    "sounddevice>=0.4.6",
+    "numpy>=1.24.0",
+    "scipy>=1.10.0",
+    "pynput>=1.7.6",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "black>=23.0.0",
+    "ruff>=0.0.200",
+]
+
+[project.urls]
+Homepage = "https://github.com/enesbasbug/voice-to-claude"
+Repository = "https://github.com/enesbasbug/voice-to-claude"
+Issues = "https://github.com/enesbasbug/voice-to-claude/issues"
+
+[project.scripts]
+voice-to-claude = "voice_to_claude.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
