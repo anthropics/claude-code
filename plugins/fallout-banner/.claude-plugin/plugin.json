@@ -1,0 +1,8 @@
+{
+  "name": "fallout-banner",
+  "version": "1.0.0",
+  "description": "Displays a Fallout-themed ASCII art banner when Claude Code starts",
+  "author": {
+    "name": "Claude Code User"
+  }
+}
