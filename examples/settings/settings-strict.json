@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "disableBypassPermissionsMode": "disable",
+    "ask": [
+      "Bash"
+    ],
+    "deny": [
+      "WebSearch",
+      "WebFetch"
+    ]
+  },
+  "allowManagedPermissionRulesOnly": true,
+  "allowManagedHooksOnly": true,
+  "strictKnownMarketplaces": [],
+  "sandbox": {
+    "autoAllowBashIfSandboxed": false,
+    "excludedCommands": [],
+    "network": {
+      "allowUnixSockets": [],
+      "allowLocalBinding": false,
+      "httpProxyPort": null,
+      "socksProxyPort": null
+    },
+    "enableWeakerNestedSandbox": false
+  }
+}

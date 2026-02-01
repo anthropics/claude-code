@@ -1,0 +1,16 @@
+{
+  "allowManagedPermissionRulesOnly": true,
+  "sandbox": {
+    "enabled": true,
+    "autoAllowBashIfSandboxed": false,
+    "allowUnsandboxedCommands": false,
+    "excludedCommands": [],
+    "network": {
+      "allowUnixSockets": [],
+      "allowLocalBinding": false,
+      "httpProxyPort": null,
+      "socksProxyPort": null
+    },
+    "enableWeakerNestedSandbox": false
+  }
+}
