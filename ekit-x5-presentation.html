@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Е-КИТ x X5: Презентация в 2 листах</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700;900&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root {
+            --primary: #f43f5e;
+            --secondary: #fb923c;
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
+            --accent-green: #10b981;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background-color: #334155;
+            display: flex;
+            flex-direction: column;
+            gap: 50px;
+            align-items: center;
+            padding: 50px 0;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .slide {
+            width: 1280px;
+            height: 800px; /* Чуть выше стандартного для большей вместимости */
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            position: relative;
+            overflow: hidden;
+            display: grid;
+            grid-template-rows: auto 1fr auto;
+            padding: 50px 70px;
+            box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.6);
+        }
+
+        /* Decorative BG */
+        .slide::before {
+            content: '';
+            position: absolute;
+            top: -150px;
+            right: -150px;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(244, 63, 94, 0.1) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        /* Header Styles */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 25px;
+            margin-bottom: 30px;
+        }
+
+        .partner-logos {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .logo-box {
+            background: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            color: #000;
+            font-weight: 900;
+            font-size: 20px;
+            text-transform: uppercase;
+        }
+
+        /* Layout Grid */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            align-items: start;
+        }
+
+        /* Components */
+        .hero-title {
+            font-family: 'Poppins', sans-serif;
+            font-size: 56px;
+            line-height: 1.1;
+            margin-bottom: 20px;
+            background: linear-gradient(90deg, #fff, var(--text-dim));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .badge {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 14px;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, var(--bg-card), #0f172a);
+            padding: 35px;
+            border-radius: 24px;
+            border: 1px solid rgba(255,255,255,0.05);
+            display: flex;
+            align-items: center;
+            gap: 30px;
+        }
+
+        .big-number {
+            font-size: 90px;
+            font-weight: 900;
+            color: var(--primary);
+            line-height: 1;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .feature-box {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .icon-circle {
+            width: 60px;
+            height: 60px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: var(--secondary);
+            flex-shrink: 0;
+        }
+
+        .benefit-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .benefit-item {
+            background: rgba(255,255,255,0.03);
+            padding: 20px;
+            border-radius: 16px;
+            border-left: 4px solid var(--secondary);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--bg-card);
+            border-radius: 12px;
+            overflow: hidden;
+            font-size: 14px;
+        }
+
+        th, td { padding: 12px 20px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        th { background: rgba(255,255,255,0.1); color: var(--secondary); font-weight: 700; }
+
+        .timeline {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+            background: rgba(255,255,255,0.03);
+            padding: 25px;
+            border-radius: 20px;
+        }
+
+        .step { text-align: center; width: 23%; }
+        .step-num {
+            width: 30px; height: 30px; background: var(--primary);
+            border-radius: 50%; margin: 0 auto 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 900; font-size: 14px;
+        }
+
+        .footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 25px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            color: var(--text-dim);
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .cta-button {
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 12px 30px;
+            border-radius: 10px;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        b { color: var(--text-main); }
+    </style>
+</head>
+<body>
+
+<!-- ЛИСТ 1: МАСШТАБ И НОВОЕ ПОЗИЦИОНИРОВАНИЕ -->
+<div class="slide">
+    <div class="header">
+        <div class="partner-logos">
+            <div class="logo-box">Е-КИТ</div>
+            <span style="font-size: 24px;">&times;</span>
+            <div class="logo-box" style="color: var(--primary);">X5 Retail</div>
+        </div>
+        <div style="text-align: right">
+            <div class="badge">Стратегический альянс 2024</div>
+            <p style="font-size: 14px; font-weight: 700;">Лист 01: Масштаб и Доступность</p>
+        </div>
+    </div>
+
+    <div class="main-grid">
+        <!-- Слева: Заголовок и главная новость -->
+        <div class="content-left">
+            <h1 class="hero-title">Теперь отправить посылку может <span style="color: var(--primary); -webkit-text-fill-color: var(--primary);">каждый</span></h1>
+            <p style="font-size: 22px; color: var(--text-main); margin-bottom: 40px; font-weight: 300;">
+                Революционное изменение: профессиональная логистика ТК КИТ, ранее доступная только бизнесу, теперь открыта для всех желающих через инфраструктуру магазинов «у дома».
+            </p>
+
+            <div class="stat-card">
+                <div class="big-number">35к</div>
+                <div>
+                    <h3 style="font-size: 24px; margin-bottom: 5px;">Точек выдачи</h3>
+                    <p style="font-size: 16px;">Самая широкая сеть в РФ: <b>Пятёрочка</b> и <b>Перекрёсток</b> теперь работают на вашу доставку.</p>
+                </div>
+            </div>
+
+            <div style="margin-top: 40px; display: flex; gap: 30px;">
+                <div style="flex: 1; border-left: 4px solid var(--accent-green); padding-left: 20px;">
+                    <h4 style="color: var(--accent-green); margin-bottom: 10px;">Для физлиц</h4>
+                    <p style="font-size: 15px;">Отправка личных вещей, подарков и документов без договора и лишней бюрократии.</p>
+                </div>
+                <div style="flex: 1; border-left: 4px solid var(--secondary); padding-left: 20px;">
+                    <h4 style="color: var(--secondary); margin-bottom: 10px;">Для бизнеса</h4>
+                    <p style="font-size: 15px;">Удобная точка приема заказов для селлеров и малого бизнеса в шаговой доступности.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Справа: Изображение и почему это важно -->
+        <div class="content-right">
+            <div style="border-radius: 30px; overflow: hidden; height: 350px; margin-bottom: 30px; border: 1px solid rgba(255,255,255,0.1);">
+                <img src="http://googleusercontent.com/image_collection/image_retrieval/4317343528282158805" alt="Доставка X5" style="width:100%; height:100%; object-fit:cover;">
+            </div>
+
+            <h3 style="margin-bottom: 20px; font-family: 'Poppins';">Синергия Лидеров</h3>
+            <ul style="list-style: none; space-y: 15px;">
+                <li style="margin-bottom: 15px; display: flex; gap: 15px; font-size: 17px;">
+                    <i class="fa-solid fa-check-double" style="color: var(--accent-green); margin-top: 5px;"></i>
+                    <span><b>Магистральная скорость:</b> Используем отлаженные маршруты ТК КИТ.</span>
+                </li>
+                <li style="margin-bottom: 15px; display: flex; gap: 15px; font-size: 17px;">
+                    <i class="fa-solid fa-check-double" style="color: var(--accent-green); margin-top: 5px;"></i>
+                    <span><b>Надежное хранение:</b> Посылки под охраной в зонах выдачи X5.</span>
+                </li>
+                <li style="margin-bottom: 15px; display: flex; gap: 15px; font-size: 17px;">
+                    <i class="fa-solid fa-check-double" style="color: var(--accent-green); margin-top: 5px;"></i>
+                    <span><b>Прозрачность:</b> Статус посылки обновляется в режиме реального времени.</span>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="footer">
+        <div>ТК КИТ — ЛИДЕР LTL-ПЕРЕВОЗОК ПО РОССИИ И ЕАЭС</div>
+        <div>WWW.E-KIT.RU | 2024</div>
+    </div>
+</div>
+
+<!-- ЛИСТ 2: ТАРИФЫ, ВЫГОДЫ И ГЕОГРАФИЯ -->
+<div class="slide">
+    <div class="header">
+        <div class="partner-logos">
+            <div class="logo-box" style="background: none; border: 1px solid white; color: white;">Е-КИТ</div>
+            <span style="font-size: 20px;">×</span>
+            <div class="logo-box" style="color: var(--secondary);">X5 Service</div>
+        </div>
+        <div style="text-align: right">
+            <div class="badge" style="background: var(--secondary);">Сервис и Запуск</div>
+            <p style="font-size: 14px; font-weight: 700;">Лист 02: Инструменты и Развитие</p>
+        </div>
+    </div>
+
+    <div class="main-grid">
+        <!-- Слева: Выгоды и Тарифы -->
+        <div>
+            <h2 style="font-size: 36px; margin-bottom: 30px; font-family: 'Poppins';">Удобство в каждой детали</h2>
+
+            <div class="benefit-grid">
+                <div class="benefit-item">
+                    <i class="fa-solid fa-credit-card" style="font-size: 24px; color: var(--primary); margin-bottom: 10px; display: block;"></i>
+                    <b>Оплата при получении</b>
+                    <p style="font-size: 13px; margin-top: 5px;">На кассе магазина или в терминале постамата.</p>
+                </div>
+                <div class="benefit-item">
+                    <i class="fa-solid fa-box-open" style="font-size: 24px; color: var(--primary); margin-bottom: 10px; display: block;"></i>
+                    <b>Тариф «Посылочка»</b>
+                    <p style="font-size: 13px; margin-top: 5px;">Фиксированная цена для малых и средних отправлений.</p>
+                </div>
+                <div class="benefit-item">
+                    <i class="fa-solid fa-shop" style="font-size: 24px; color: var(--primary); margin-bottom: 10px; display: block;"></i>
+                    <b>Магазин у дома</b>
+                    <p style="font-size: 13px; margin-top: 5px;">Забирайте заказ по пути, без очередей в спец. офисах.</p>
+                </div>
+                <div class="benefit-item">
+                    <i class="fa-solid fa-clock" style="font-size: 24px; color: var(--primary); margin-bottom: 10px; display: block;"></i>
+                    <b>График 24/7</b>
+                    <p style="font-size: 13px; margin-top: 5px;">Многие магазины сети работают круглосуточно.</p>
+                </div>
+            </div>
+
+            <h3 style="margin: 30px 0 15px; font-size: 20px;">Сравнение форматов</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Характеристика</th>
+                        <th>Традиционный офис</th>
+                        <th>Магазин X5 (Е-КИТ)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>Доступность</td><td>Промзоны/ТЦ</td><td><b>В каждом квартале</b></td></tr>
+                    <tr><td>Ожидание</td><td>Живая очередь</td><td><b>Быстрая выдача на кассе</b></td></tr>
+                    <tr><td>Совмещение</td><td>Только логистика</td><td><b>Посылка + Покупки</b></td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Справа: Развитие и CTA -->
+        <div>
+            <div style="background: rgba(244, 63, 94, 0.05); padding: 30px; border-radius: 24px; border: 1px solid var(--primary);">
+                <h3 style="color: var(--primary); margin-bottom: 15px;"><i class="fa-solid fa-rocket"></i> Старт: Екатеринбург</h3>
+                <p style="font-size: 15px;">Мы начинаем запуск со столицы Урала. Это пилотная зона для отработки идеального клиентского пути.</p>
+
+                <div class="timeline">
+                    <div class="step">
+                        <div class="step-num">1</div>
+                        <div style="font-size: 11px; font-weight: 700;">УРАЛ<br>(Тест)</div>
+                    </div>
+                    <div class="step">
+                        <div class="step-num" style="opacity: 0.5;">2</div>
+                        <div style="font-size: 11px; font-weight: 400; color: var(--text-dim);">ЦЕНТР<br>(МСК/СПБ)</div>
+                    </div>
+                    <div class="step">
+                        <div class="step-num" style="opacity: 0.5;">3</div>
+                        <div style="font-size: 11px; font-weight: 400; color: var(--text-dim);">ВСЯ РФ<br>(Федеральный)</div>
+                    </div>
+                    <div class="step">
+                        <div class="step-num" style="opacity: 0.5;">4</div>
+                        <div style="font-size: 11px; font-weight: 400; color: var(--text-dim);">ЕАЭС<br>(Сеть)</div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top: 40px; text-align: center;">
+                <h4 style="margin-bottom: 20px;">Готовы отправить прямо сейчас?</h4>
+                <div style="display: flex; gap: 15px; justify-content: center;">
+                    <div class="cta-button">
+                        <i class="fa-solid fa-globe"></i> e-kit.ru
+                    </div>
+                    <div class="cta-button" style="background: #fff; color: #000;">
+                        <i class="fa-solid fa-headset"></i> Сотрудник ОПРСК
+                    </div>
+                </div>
+                <p style="margin-top: 20px; font-size: 13px; color: var(--text-dim);">* Рассчитайте стоимость доставки за 30 секунд на нашем сайте</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <div style="display: flex; gap: 20px;">
+            <span><i class="fa-brands fa-vk"></i> tkkitorg</span>
+            <span><i class="fa-brands fa-telegram"></i> kit_logistics</span>
+        </div>
+        <div>КОНФИДЕНЦИАЛЬНО | СТРАТЕГИЯ 2024-2025</div>
+    </div>
+</div>
+
+</body>
+</html>
