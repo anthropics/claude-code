@@ -468,25 +468,24 @@ def main():
         else:
             content = str(tool_result) if tool_result else ''
 
-        # Skip if content is too small or empty
-        if len(content) < 20:
-            print(json.dumps({}))
-            sys.exit(0)
-
-        # Get file path for context
+        # Get file path for context (do this early for sensitive file check)
         file_path = get_file_path_from_input(tool_name, tool_input)
 
-        # Scan for secrets
-        detections = scan_for_secrets(content)
+        detections = []
 
-        # Also warn if reading known sensitive files even without pattern match
-        if not detections and file_path and is_sensitive_file(file_path):
+        # Check for sensitive file access first (regardless of content length)
+        if file_path and is_sensitive_file(file_path):
             detections.append({
                 "name": "Sensitive File Access",
                 "severity": "medium",
-                "description": f"Reading potentially sensitive file: {file_path}",
+                "description": f"Accessing potentially sensitive file: {file_path}",
                 "count": 1,
             })
+
+        # Scan content for secrets if it's long enough to contain them
+        if len(content) >= 20:
+            content_detections = scan_for_secrets(content)
+            detections.extend(content_detections)
 
         if detections:
             # Log the detection
