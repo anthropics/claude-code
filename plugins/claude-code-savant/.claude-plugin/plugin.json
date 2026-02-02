@@ -1,0 +1,22 @@
+{
+  "name": "claude-code-savant",
+  "version": "1.0.0",
+  "description": "Code analysis with distinctive personas - Shakespeare for narrative flow diagrams, Einstein for first principles complexity analysis",
+  "author": {
+    "name": "rlaope"
+  },
+  "license": "MIT",
+  "keywords": [
+    "code-analysis",
+    "personas",
+    "shakespeare",
+    "einstein",
+    "stevejobs",
+    "socrates",
+    "router",
+    "flowchart",
+    "complexity",
+    "vision",
+    "debugging"
+  ]
+}

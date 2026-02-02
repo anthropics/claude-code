@@ -1,0 +1,20 @@
+{
+  "name": "claude-code-savant",
+  "owner": {
+    "name": "rlaope"
+  },
+  "metadata": {
+    "description": "Expert explanations with Smart Router, multi-language support, and 4 distinctive personas - Einstein, Shakespeare, Steve Jobs, Socrates"
+  },
+  "plugins": [
+    {
+      "name": "claude-code-savant",
+      "source": "./",
+      "description": "Smart Router + 4 personas (Einstein, Shakespeare, Steve Jobs, Socrates) with multi-language support (EN/KR/JP/CH)",
+      "version": "1.2.0",
+      "author": {
+        "name": "rlaope"
+      }
+    }
+  ]
+}
