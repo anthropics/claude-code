@@ -2,31 +2,8 @@
   "name": "audit-trail",
   "version": "1.0.0",
   "description": "Comprehensive audit logging for Claude Code tool usage. Logs all tool calls with timestamps, inputs, and results to JSONL files for debugging, compliance, and security review.",
-  "author": "Steven Elliott",
-  "homepage": "https://github.com/stevenelliottjr/claude-code",
-  "keywords": ["audit", "logging", "compliance", "security", "debugging", "HIPAA", "SOC2"],
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": ".*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 $CLAUDE_PLUGIN_ROOT/hooks/pretooluse.py"
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": ".*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 $CLAUDE_PLUGIN_ROOT/hooks/posttooluse.py"
-          }
-        ]
-      }
-    ]
+  "author": {
+    "name": "Steven Elliott",
+    "email": "elliotts@uswa.net"
   }
 }
