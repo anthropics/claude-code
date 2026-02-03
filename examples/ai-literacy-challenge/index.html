@@ -1,0 +1,1765 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DR.DE.SOUZ.AI - AI Literacy Challenge</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a0033 0%, #000428 100%);
+            color: #fff;
+            min-height: 100vh;
+            padding: 0;
+            position: relative;
+            overflow-x: hidden;
+            touch-action: manipulation;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image:
+                radial-gradient(circle at 20% 50%, rgba(0, 217, 255, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(255, 0, 255, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 40% 20%, rgba(255, 215, 0, 0.1) 0%, transparent 50%);
+            animation: bgPulse 8s ease-in-out infinite;
+            z-index: -1;
+        }
+
+        @keyframes bgPulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.6; }
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            padding: 30px 20px;
+            background: linear-gradient(135deg, rgba(0, 217, 255, 0.2), rgba(255, 0, 255, 0.2));
+            border-radius: 30px;
+            margin-bottom: 30px;
+            border: 4px solid;
+            border-image: linear-gradient(90deg, #00D9FF, #FF00FF, #FFD700) 1;
+            box-shadow: 0 10px 50px rgba(0, 217, 255, 0.4), 0 0 100px rgba(255, 0, 255, 0.3);
+            animation: headerGlow 2s ease-in-out infinite;
+        }
+
+        @keyframes headerGlow {
+            0%, 100% { box-shadow: 0 10px 50px rgba(0, 217, 255, 0.4), 0 0 100px rgba(255, 0, 255, 0.3); }
+            50% { box-shadow: 0 10px 60px rgba(0, 217, 255, 0.6), 0 0 120px rgba(255, 0, 255, 0.5); }
+        }
+
+        .logo-text {
+            font-size: clamp(32px, 8vw, 52px);
+            font-weight: 900;
+            background: linear-gradient(90deg, #00D9FF 0%, #FF00FF 50%, #FFD700 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+            animation: textShine 3s ease-in-out infinite;
+        }
+
+        @keyframes textShine {
+            0%, 100% { filter: brightness(1); }
+            50% { filter: brightness(1.5); }
+        }
+
+        .subtitle {
+            font-size: clamp(18px, 4vw, 26px);
+            background: linear-gradient(90deg, #FFD700, #FF00FF);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: bold;
+        }
+
+        /* Level Selection Screen */
+        .level-select {
+            display: none;
+        }
+
+        .level-select.active {
+            display: block;
+        }
+
+        .level-grid {
+            display: grid;
+            gap: 25px;
+            margin-top: 30px;
+        }
+
+        .level-card {
+            background: linear-gradient(135deg, rgba(0, 217, 255, 0.2), rgba(255, 0, 255, 0.2));
+            border-radius: 25px;
+            padding: 35px;
+            border: 4px solid #00D9FF;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .level-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .level-card:hover::before {
+            left: 100%;
+        }
+
+        .level-card.beginner {
+            border-color: #00ff00;
+            box-shadow: 0 10px 40px rgba(0, 255, 0, 0.3);
+        }
+
+        .level-card.intermediate {
+            border-color: #FFD700;
+            box-shadow: 0 10px 40px rgba(255, 215, 0, 0.3);
+        }
+
+        .level-card.expert {
+            border-color: #FF0000;
+            box-shadow: 0 10px 40px rgba(255, 0, 0, 0.3);
+        }
+
+        .level-card.locked {
+            opacity: 0.5;
+            cursor: not-allowed;
+            filter: grayscale(1);
+        }
+
+        .level-card:not(.locked):hover {
+            transform: translateY(-10px) scale(1.02);
+            box-shadow: 0 20px 60px rgba(0, 217, 255, 0.6);
+        }
+
+        .level-icon {
+            font-size: 60px;
+            margin-bottom: 20px;
+        }
+
+        .level-title {
+            font-size: clamp(24px, 6vw, 32px);
+            font-weight: 900;
+            margin-bottom: 15px;
+            background: linear-gradient(90deg, #FFD700, #FF00FF);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .level-description {
+            color: #00D9FF;
+            font-size: clamp(14px, 3vw, 16px);
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .level-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .level-stat {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .level-stat-value {
+            font-size: clamp(18px, 4vw, 24px);
+            font-weight: 900;
+            color: #FFD700;
+        }
+
+        .level-stat-label {
+            font-size: 12px;
+            color: #00D9FF;
+        }
+
+        .lock-icon {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 40px;
+        }
+
+        /* Welcome Screen */
+        .welcome-screen {
+            background: linear-gradient(135deg, rgba(255, 0, 255, 0.3), rgba(0, 217, 255, 0.3));
+            border-radius: 30px;
+            padding: 50px 30px;
+            border: 5px solid;
+            border-image: linear-gradient(45deg, #FFD700, #FF00FF, #00D9FF) 1;
+            text-align: center;
+            box-shadow: 0 15px 60px rgba(255, 215, 0, 0.5), inset 0 0 50px rgba(255, 255, 255, 0.1);
+            animation: welcomePulse 2s ease-in-out infinite;
+        }
+
+        @keyframes welcomePulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+
+        .welcome-screen h2 {
+            font-size: clamp(28px, 7vw, 42px);
+            background: linear-gradient(90deg, #FFD700, #FF00FF);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 20px;
+            font-weight: 900;
+            animation: bounce 1s ease-in-out infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .player-count {
+            font-size: clamp(20px, 5vw, 28px);
+            color: #FFD700;
+            margin: 25px 0;
+            font-weight: bold;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+            animation: glow 2s ease-in-out infinite;
+        }
+
+        @keyframes glow {
+            0%, 100% { text-shadow: 0 0 20px rgba(255, 215, 0, 0.8); }
+            50% { text-shadow: 0 0 35px rgba(255, 215, 0, 1); }
+        }
+
+        .start-btn {
+            background: linear-gradient(135deg, #FFD700 0%, #FF00FF 50%, #00D9FF 100%);
+            color: #000;
+            border: none;
+            padding: 25px 60px;
+            border-radius: 50px;
+            font-size: clamp(20px, 5vw, 28px);
+            font-weight: 900;
+            cursor: pointer;
+            margin-top: 30px;
+            min-height: 70px;
+            min-width: 220px;
+            box-shadow: 0 10px 40px rgba(255, 215, 0, 0.6), 0 0 50px rgba(255, 0, 255, 0.4);
+            transition: all 0.3s ease;
+            animation: buttonPulse 1.5s ease-in-out infinite;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        @keyframes buttonPulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 10px 40px rgba(255, 215, 0, 0.6); }
+            50% { transform: scale(1.05); box-shadow: 0 15px 50px rgba(255, 215, 0, 0.9); }
+        }
+
+        .start-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Quiz Screen */
+        .quiz-screen {
+            display: none;
+        }
+
+        .quiz-screen.active {
+            display: block;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .level-badge {
+            background: linear-gradient(135deg, #00ff00, #FFD700);
+            color: #000;
+            padding: 10px 25px;
+            border-radius: 20px;
+            font-weight: 900;
+            font-size: clamp(14px, 3vw, 16px);
+            margin-bottom: 20px;
+            display: inline-block;
+            box-shadow: 0 5px 20px rgba(0, 255, 0, 0.4);
+        }
+
+        .level-badge.intermediate {
+            background: linear-gradient(135deg, #FFD700, #FF00FF);
+        }
+
+        .level-badge.expert {
+            background: linear-gradient(135deg, #FF0000, #FF00FF);
+        }
+
+        .score-panel {
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.6), rgba(0, 217, 255, 0.2));
+            border-radius: 25px;
+            padding: 20px;
+            margin-bottom: 25px;
+            border: 4px solid #FFD700;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(255, 215, 0, 0.4);
+        }
+
+        .score-item {
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(0, 217, 255, 0.2));
+            padding: 15px;
+            border-radius: 20px;
+            border: 3px solid #00D9FF;
+            box-shadow: 0 5px 15px rgba(0, 217, 255, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .score-item:hover {
+            transform: scale(1.05);
+        }
+
+        .score-label {
+            font-size: 13px;
+            color: #00D9FF;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .score-value {
+            font-size: clamp(24px, 6vw, 32px);
+            background: linear-gradient(90deg, #FFD700, #FF00FF);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 900;
+            animation: scoreGlow 1s ease-in-out infinite;
+        }
+
+        @keyframes scoreGlow {
+            0%, 100% { filter: brightness(1); }
+            50% { filter: brightness(1.3); }
+        }
+
+        .streak {
+            color: #FF4500;
+            text-shadow: 0 0 20px #FF4500;
+        }
+
+        /* Video Section */
+        .video-section {
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.8), rgba(255, 0, 255, 0.3));
+            border: 5px solid;
+            border-image: linear-gradient(45deg, #00D9FF, #FF00FF, #FFD700) 1;
+            border-radius: 25px;
+            padding: 25px;
+            margin-bottom: 30px;
+            text-align: center;
+            box-shadow: 0 15px 50px rgba(255, 0, 255, 0.5);
+            animation: videoPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes videoPulse {
+            0%, 100% { box-shadow: 0 15px 50px rgba(255, 0, 255, 0.5); }
+            50% { box-shadow: 0 20px 60px rgba(255, 0, 255, 0.7); }
+        }
+
+        .video-title {
+            font-size: clamp(18px, 4vw, 24px);
+            background: linear-gradient(90deg, #FFD700, #00D9FF);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+
+        .video-placeholder {
+            background: rgba(0, 0, 0, 0.7);
+            padding: 100px 20px;
+            border-radius: 20px;
+            font-size: clamp(18px, 4vw, 22px);
+            background: linear-gradient(135deg, rgba(0, 217, 255, 0.1), rgba(255, 0, 255, 0.1));
+            border: 3px dashed #00D9FF;
+        }
+
+        video {
+            width: 100%;
+            max-height: 400px;
+            border-radius: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .skip-video {
+            background: linear-gradient(135deg, #FF00FF, #FF1493);
+            border: 3px solid #FFD700;
+            color: #fff;
+            padding: 15px 35px;
+            border-radius: 30px;
+            cursor: pointer;
+            min-height: 55px;
+            margin-top: 15px;
+            font-weight: bold;
+            font-size: 16px;
+            box-shadow: 0 8px 25px rgba(255, 0, 255, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        .skip-video:active {
+            transform: scale(0.95);
+        }
+
+        /* Question Card */
+        .question-card {
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.8), rgba(0, 217, 255, 0.2));
+            border-radius: 30px;
+            padding: 35px;
+            border: 5px solid;
+            border-image: linear-gradient(90deg, #00D9FF, #FF00FF, #FFD700) 1;
+            margin-bottom: 30px;
+            box-shadow: 0 15px 60px rgba(0, 217, 255, 0.4), inset 0 0 30px rgba(255, 255, 255, 0.1);
+        }
+
+        .question-number {
+            color: #FFD700;
+            font-size: clamp(16px, 3vw, 20px);
+            margin-bottom: 20px;
+            font-weight: bold;
+            text-shadow: 0 0 15px rgba(255, 215, 0, 0.8);
+        }
+
+        .question-text {
+            color: #fff;
+            font-size: clamp(20px, 5vw, 28px);
+            margin-bottom: 30px;
+            line-height: 1.5;
+            font-weight: bold;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .options-container {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .option-btn {
+            background: linear-gradient(135deg, rgba(0, 217, 255, 0.3), rgba(255, 0, 255, 0.2));
+            border: 4px solid #00D9FF;
+            color: #fff;
+            padding: 25px;
+            border-radius: 20px;
+            cursor: pointer;
+            min-height: 80px;
+            font-size: clamp(16px, 4vw, 20px);
+            text-align: left;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            font-weight: bold;
+            box-shadow: 0 8px 25px rgba(0, 217, 255, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .option-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.5s;
+        }
+
+        .option-btn:hover:not(:disabled)::before {
+            left: 100%;
+        }
+
+        .option-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        .option-btn:active:not(:disabled) {
+            transform: scale(0.97);
+        }
+
+        .option-btn.correct {
+            background: linear-gradient(135deg, #00ff00, #00cc00);
+            border-color: #FFD700;
+            animation: correctBounce 0.6s ease-out;
+            box-shadow: 0 0 50px rgba(0, 255, 0, 0.8), 0 0 100px rgba(255, 215, 0, 0.6);
+        }
+
+        @keyframes correctBounce {
+            0% { transform: scale(1); }
+            25% { transform: scale(1.1) rotate(2deg); }
+            50% { transform: scale(1.05) rotate(-2deg); }
+            75% { transform: scale(1.08) rotate(1deg); }
+            100% { transform: scale(1); }
+        }
+
+        .option-btn.incorrect {
+            background: linear-gradient(135deg, #ff0000, #cc0000);
+            border-color: #ff0000;
+            animation: shake 0.5s;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-10px); }
+            20%, 40%, 60%, 80% { transform: translateX(10px); }
+        }
+
+        .option-emoji {
+            font-size: 40px;
+            min-width: 50px;
+            animation: emojiSpin 0.5s ease-out;
+        }
+
+        @keyframes emojiSpin {
+            from { transform: rotate(0deg) scale(0.5); }
+            to { transform: rotate(360deg) scale(1); }
+        }
+
+        /* Feedback Box */
+        .feedback-box {
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(0, 217, 255, 0.3));
+            border-radius: 20px;
+            padding: 25px;
+            margin-top: 25px;
+            display: none;
+            font-size: clamp(16px, 4vw, 20px);
+            font-weight: bold;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .feedback-box.active {
+            display: block;
+            animation: feedbackPop 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        @keyframes feedbackPop {
+            0% { transform: scale(0.5) rotate(-5deg); opacity: 0; }
+            50% { transform: scale(1.1) rotate(2deg); }
+            100% { transform: scale(1) rotate(0); opacity: 1; }
+        }
+
+        .feedback-box.correct {
+            border: 5px solid #00ff00;
+            background: linear-gradient(135deg, rgba(0, 255, 0, 0.2), rgba(255, 215, 0, 0.2));
+            color: #fff;
+            box-shadow: 0 0 50px rgba(0, 255, 0, 0.6);
+        }
+
+        .feedback-box.incorrect {
+            border: 5px solid #FF00FF;
+            background: linear-gradient(135deg, rgba(255, 0, 255, 0.2), rgba(255, 0, 0, 0.2));
+            color: #fff;
+            box-shadow: 0 0 50px rgba(255, 0, 255, 0.6);
+        }
+
+        .score-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            font-size: 60px;
+            font-weight: 900;
+            color: #FFD700;
+            text-shadow: 0 0 30px #FFD700, 0 0 60px #FF00FF;
+            z-index: 10000;
+            pointer-events: none;
+            animation: scorePopAnimation 1s ease-out forwards;
+        }
+
+        @keyframes scorePopAnimation {
+            0% { transform: translate(-50%, -50%) scale(0) rotate(-10deg); opacity: 0; }
+            50% { transform: translate(-50%, -50%) scale(1.5) rotate(5deg); opacity: 1; }
+            100% { transform: translate(-50%, -100%) scale(1) rotate(0); opacity: 0; }
+        }
+
+        .next-btn {
+            background: linear-gradient(135deg, #FFD700 0%, #FF00FF 50%, #00D9FF 100%);
+            color: #000;
+            border: none;
+            padding: 22px 50px;
+            border-radius: 50px;
+            font-size: clamp(18px, 4vw, 24px);
+            font-weight: 900;
+            cursor: pointer;
+            margin-top: 25px;
+            min-height: 70px;
+            width: 100%;
+            display: none;
+            box-shadow: 0 10px 40px rgba(255, 215, 0, 0.6);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .next-btn.active {
+            display: block;
+            animation: buttonBounce 0.5s ease-out;
+        }
+
+        @keyframes buttonBounce {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        /* Results Screen */
+        .results-screen {
+            display: none;
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.3), rgba(255, 0, 255, 0.3));
+            border-radius: 30px;
+            padding: 40px 30px;
+            border: 5px solid #FFD700;
+            text-align: center;
+            box-shadow: 0 20px 80px rgba(255, 215, 0, 0.6);
+        }
+
+        .results-screen.active {
+            display: block;
+            animation: resultsEntrance 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        @keyframes resultsEntrance {
+            0% { transform: scale(0.5) rotate(-10deg); opacity: 0; }
+            100% { transform: scale(1) rotate(0); opacity: 1; }
+        }
+
+        .results-title {
+            font-size: clamp(32px, 8vw, 48px);
+            background: linear-gradient(90deg, #FFD700, #FF00FF, #00D9FF);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 30px;
+            font-weight: 900;
+            animation: titleShake 0.8s ease-in-out infinite;
+        }
+
+        @keyframes titleShake {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-2deg); }
+            75% { transform: rotate(2deg); }
+        }
+
+        .worldwide-rank {
+            background: linear-gradient(135deg, #FFD700, #FF00FF, #00D9FF);
+            padding: 40px;
+            border-radius: 30px;
+            margin: 30px 0;
+            box-shadow: 0 15px 60px rgba(255, 215, 0, 0.8), 0 0 100px rgba(255, 0, 255, 0.6);
+            animation: rankPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes rankPulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 15px 60px rgba(255, 215, 0, 0.8); }
+            50% { transform: scale(1.03); box-shadow: 0 20px 80px rgba(255, 215, 0, 1); }
+        }
+
+        .rank-position {
+            font-size: clamp(60px, 15vw, 90px);
+            font-weight: 900;
+            color: #000;
+            margin-bottom: 10px;
+            text-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+            animation: rankBounce 1s ease-in-out infinite;
+        }
+
+        @keyframes rankBounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .rank-label {
+            font-size: clamp(20px, 5vw, 28px);
+            color: #000;
+            font-weight: 900;
+        }
+
+        .rank-badge {
+            font-size: clamp(40px, 10vw, 60px);
+            margin-top: 15px;
+            animation: badgeSpin 2s linear infinite;
+        }
+
+        @keyframes badgeSpin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, rgba(0, 217, 255, 0.3), rgba(255, 0, 255, 0.2));
+            padding: 25px;
+            border-radius: 25px;
+            border: 4px solid #00D9FF;
+            box-shadow: 0 10px 30px rgba(0, 217, 255, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0, 217, 255, 0.6);
+        }
+
+        .stat-value {
+            font-size: clamp(32px, 8vw, 44px);
+            background: linear-gradient(90deg, #FFD700, #FF00FF);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 900;
+        }
+
+        .stat-label {
+            font-size: clamp(14px, 3vw, 18px);
+            color: #00D9FF;
+            margin-top: 8px;
+            font-weight: bold;
+        }
+
+        .leaderboard {
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.8), rgba(255, 0, 255, 0.2));
+            border-radius: 25px;
+            padding: 30px;
+            margin-top: 30px;
+            border: 4px solid #FF00FF;
+            box-shadow: 0 10px 40px rgba(255, 0, 255, 0.4);
+        }
+
+        .leaderboard-title {
+            font-size: clamp(24px, 6vw, 32px);
+            background: linear-gradient(90deg, #FFD700, #FF00FF);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 25px;
+            text-align: center;
+            font-weight: 900;
+        }
+
+        .leaderboard-item {
+            background: linear-gradient(135deg, rgba(0, 217, 255, 0.1), rgba(255, 0, 255, 0.1));
+            padding: 18px;
+            border-radius: 15px;
+            margin-bottom: 12px;
+            border: 3px solid #00D9FF;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0, 217, 255, 0.2);
+        }
+
+        .leaderboard-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 8px 25px rgba(0, 217, 255, 0.4);
+        }
+
+        .leaderboard-item.you {
+            border-color: #FFD700;
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.3), rgba(255, 0, 255, 0.2));
+            box-shadow: 0 10px 40px rgba(255, 215, 0, 0.5);
+            animation: youPulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes youPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+
+        .player-rank {
+            font-size: clamp(22px, 5vw, 28px);
+            font-weight: 900;
+            background: linear-gradient(90deg, #FFD700, #FF00FF);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            min-width: 45px;
+        }
+
+        .player-name {
+            flex: 1;
+            color: #00D9FF;
+            font-size: clamp(15px, 3vw, 18px);
+            font-weight: bold;
+        }
+
+        .player-score {
+            color: #FFD700;
+            font-size: clamp(18px, 4vw, 24px);
+            font-weight: 900;
+            text-shadow: 0 0 15px rgba(255, 215, 0, 0.8);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            flex: 1;
+            min-width: 150px;
+            padding: 22px 40px;
+            border-radius: 50px;
+            font-size: clamp(16px, 3vw, 20px);
+            font-weight: 900;
+            cursor: pointer;
+            min-height: 70px;
+            border: none;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #FFD700, #FF00FF);
+            color: #000;
+            box-shadow: 0 10px 40px rgba(255, 215, 0, 0.5);
+        }
+
+        .btn-primary:hover {
+            box-shadow: 0 15px 50px rgba(255, 215, 0, 0.7);
+            transform: translateY(-3px);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.8), rgba(0, 217, 255, 0.3));
+            border: 3px solid #FFD700;
+            color: #FFD700;
+            box-shadow: 0 10px 40px rgba(0, 217, 255, 0.3);
+        }
+
+        .btn-secondary:hover {
+            box-shadow: 0 15px 50px rgba(0, 217, 255, 0.5);
+            transform: translateY(-3px);
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+        }
+
+        #confettiCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        input {
+            width: 100%;
+            max-width: 450px;
+            padding: 18px 25px;
+            border-radius: 15px;
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.7), rgba(0, 217, 255, 0.2));
+            color: #00D9FF;
+            border: 3px solid #00D9FF;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: clamp(16px, 4vw, 20px);
+            margin: 25px 0;
+            min-height: 60px;
+            font-weight: bold;
+            box-shadow: 0 8px 25px rgba(0, 217, 255, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #FFD700;
+            box-shadow: 0 10px 40px rgba(255, 215, 0, 0.5);
+            transform: scale(1.02);
+        }
+
+        input::placeholder {
+            color: rgba(0, 217, 255, 0.5);
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 15px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="confettiCanvas"></canvas>
+
+    <div class="container">
+        <div class="header">
+            <div class="logo-text">DR.DE.SOUZ.AI</div>
+            <div class="subtitle">🎓 AI Literacy Challenge</div>
+        </div>
+
+        <!-- Welcome Screen -->
+        <div class="welcome-screen" id="welcomeScreen">
+            <h2>🌍 Desafio AI Literacy</h2>
+            <p style="color: #FFD700; font-size: clamp(16px, 4vw, 20px); margin: 20px 0; line-height: 1.6; font-weight: bold;">
+                Aprenda IA em 3 níveis progressivos! 🚀
+            </p>
+            <div class="player-count">
+                🌟 <span id="totalPlayers">0</span> jogadores mundialmente
+            </div>
+            <div style="margin: 30px 0; font-size: clamp(14px, 3vw, 18px);">
+                <p style="color: #00ff00; font-weight: bold; margin: 10px 0;">🟢 Nível 1: Fundação (Literacy)</p>
+                <p style="color: #FFD700; font-weight: bold; margin: 10px 0;">🟡 Nível 2: Competência (Skills)</p>
+                <p style="color: #ff0000; font-weight: bold; margin: 10px 0;">🔴 Nível 3: Maestria (Science)</p>
+            </div>
+            <input type="text" id="playerName" placeholder="✨ Digite seu nome">
+            <button class="start-btn" onclick="enterLevels()">🚀 Começar!</button>
+        </div>
+
+        <!-- Level Selection Screen -->
+        <div class="level-select" id="levelSelect">
+            <div class="level-grid">
+                <!-- Level 1: Foundation -->
+                <div class="level-card beginner" onclick="startLevel(1)">
+                    <div class="level-icon">🟢</div>
+                    <div class="level-title">Nível 1: Fundação</div>
+                    <div class="level-description">
+                        Entenda o básico: O que é IA? GenAI vs Predictive AI. Neural Networks e conceitos fundamentais.
+                    </div>
+                    <div class="level-stats">
+                        <div class="level-stat">
+                            <div class="level-stat-value">5</div>
+                            <div class="level-stat-label">Questões</div>
+                        </div>
+                        <div class="level-stat">
+                            <div class="level-stat-value">5min</div>
+                            <div class="level-stat-label">Duração</div>
+                        </div>
+                        <div class="level-stat">
+                            <div class="level-stat-value" id="level1Score">-</div>
+                            <div class="level-stat-label">Pontos</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Level 2: Competency -->
+                <div class="level-card intermediate locked" id="level2Card" onclick="startLevel(2)">
+                    <div class="lock-icon">🔒</div>
+                    <div class="level-icon">🟡</div>
+                    <div class="level-title">Nível 2: Competência</div>
+                    <div class="level-description">
+                        Aprenda a interagir: Prompt Science, Hallucination, Tokens, RAG e Context Window.
+                    </div>
+                    <div class="level-stats">
+                        <div class="level-stat">
+                            <div class="level-stat-value">5</div>
+                            <div class="level-stat-label">Questões</div>
+                        </div>
+                        <div class="level-stat">
+                            <div class="level-stat-value">5min</div>
+                            <div class="level-stat-label">Duração</div>
+                        </div>
+                        <div class="level-stat">
+                            <div class="level-stat-value" id="level2Score">-</div>
+                            <div class="level-stat-label">Pontos</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Level 3: Mastery -->
+                <div class="level-card expert locked" id="level3Card" onclick="startLevel(3)">
+                    <div class="lock-icon">🔒</div>
+                    <div class="level-icon">🔴</div>
+                    <div class="level-title">Nível 3: Maestria</div>
+                    <div class="level-description">
+                        Domine a ciência: Chain of Thought, Temperature, Epistemic Agency, 2 Sigma Problem.
+                    </div>
+                    <div class="level-stats">
+                        <div class="level-stat">
+                            <div class="level-stat-value">5</div>
+                            <div class="level-stat-label">Questões</div>
+                        </div>
+                        <div class="level-stat">
+                            <div class="level-stat-value">5min</div>
+                            <div class="level-stat-label">Duração</div>
+                        </div>
+                        <div class="level-stat">
+                            <div class="level-stat-value" id="level3Score">-</div>
+                            <div class="level-stat-label">Pontos</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn btn-secondary" style="margin-top: 30px; width: 100%;" onclick="backToWelcome()">← Voltar</button>
+        </div>
+
+        <!-- Quiz Screen -->
+        <div class="quiz-screen" id="quizScreen">
+            <div class="level-badge" id="currentLevelBadge">🟢 Nível 1: Fundação</div>
+
+            <div class="score-panel">
+                <div class="score-item">
+                    <div class="score-label">💰 Pontos</div>
+                    <div class="score-value" id="scoreDisplay">0</div>
+                </div>
+                <div class="score-item">
+                    <div class="score-label">🔥 Sequência</div>
+                    <div class="score-value streak" id="streakDisplay">0</div>
+                </div>
+                <div class="score-item">
+                    <div class="score-label">⏱️ Tempo</div>
+                    <div class="score-value" id="timerDisplay">0s</div>
+                </div>
+            </div>
+
+            <div class="video-section" id="videoSection">
+                <div class="video-title">📹 Assista ao conceito (8s)</div>
+                <div class="video-placeholder" id="videoPlaceholder">
+                    🎬 <span id="videoTopic"></span>
+                    <br><br>
+                    <small style="color: #FF00FF;">📺 Substitua com vídeos do Gemini V3</small>
+                </div>
+                <button class="skip-video" onclick="skipVideo()">⏭️ Pular vídeo</button>
+            </div>
+
+            <div class="question-card">
+                <div class="question-number" id="questionNumber">Pergunta 1 de 5</div>
+                <div class="question-text" id="questionText"></div>
+                <div class="options-container" id="optionsContainer"></div>
+                <div class="feedback-box" id="feedbackBox"></div>
+                <button class="next-btn" id="nextBtn" onclick="nextQuestion()">
+                    Próxima →
+                </button>
+            </div>
+        </div>
+
+        <!-- Results Screen -->
+        <div class="results-screen" id="resultsScreen">
+            <div class="results-title">🎉 Nível Completo!</div>
+
+            <div class="worldwide-rank">
+                <div class="rank-position">#<span id="worldRank">1</span></div>
+                <div class="rank-label">de <span id="totalPlayersResult">0</span> jogadores</div>
+                <div class="rank-badge" id="rankBadge">🥇</div>
+                <div id="rankMessage" style="color: #000; font-weight: 900; margin-top: 15px; font-size: clamp(18px, 4vw, 24px);"></div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="finalScore">0</div>
+                    <div class="stat-label">🏆 Pontuação</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="finalStreak">0</div>
+                    <div class="stat-label">🔥 Maior Combo</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="finalTime">0s</div>
+                    <div class="stat-label">⏱️ Tempo Total</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="correctAnswers">0/5</div>
+                    <div class="stat-label">✅ Acertos</div>
+                </div>
+            </div>
+
+            <div class="leaderboard">
+                <div class="leaderboard-title">🏆 Top 50 Mundial - <span id="leaderboardLevel">Nível 1</span></div>
+                <div id="leaderboardList"></div>
+                <div style="text-align: center; color: #00D9FF; margin-top: 20px; font-size: clamp(13px, 3vw, 16px); font-weight: bold;">
+                    <span id="morePlayersText"></span>
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn btn-primary" onclick="shareResults()">📤 Compartilhar</button>
+                <button class="btn btn-secondary" onclick="nextLevelOrRestart()" id="nextLevelBtn">🎯 Próximo Nível</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // LEVEL-BASED QUESTIONS with Academic Vocabulary
+        const levels = {
+            1: [ // 🟢 FOUNDATION (Literacy)
+                {
+                    videoTopic: "A Ciência do Artificial",
+                    videoUrl: "level1-video1.mp4",
+                    question: "Como a IA é definida cientificamente?",
+                    options: [
+                        { text: "Ciência do Artificial - engenharia de artefatos inteligentes", emoji: "🔬", correct: true },
+                        { text: "Magia tecnológica sem explicação", emoji: "🎩", correct: false },
+                        { text: "Apenas robôs físicos", emoji: "🤖", correct: false },
+                        { text: "Software comum de computador", emoji: "💻", correct: false }
+                    ],
+                    explanation: "✅ CORRETO! IA é a 'Ciência do Artificial' - uma disciplina de engenharia que projeta sistemas com comportamento inteligente!",
+                    wrongExplanation: "❌ Pense em IA como ciência de engenharia, não magia!"
+                },
+                {
+                    videoTopic: "Oráculo vs Artista",
+                    videoUrl: "level1-video2.mp4",
+                    question: "Qual é a diferença fundamental entre IA Preditiva e IA Generativa?",
+                    options: [
+                        { text: "Preditiva prevê (Oracle), Generativa cria (Artist)", emoji: "🎨", correct: true },
+                        { text: "São a mesma coisa", emoji: "🤷", correct: false },
+                        { text: "Generativa é mais antiga", emoji: "📜", correct: false },
+                        { text: "Preditiva usa mais energia", emoji: "⚡", correct: false }
+                    ],
+                    explanation: "✅ PERFEITO! IA Preditiva = Oráculo (busca resposta correta). IA Generativa = Artista (cria conteúdo novo)!",
+                    wrongExplanation: "❌ Pense: Prever vs Criar!"
+                },
+                {
+                    videoTopic: "Large Language Models",
+                    videoUrl: "level1-video3.mp4",
+                    question: "O que um LLM (Large Language Model) realmente modela?",
+                    options: [
+                        { text: "A verdade absoluta", emoji: "✅", correct: false },
+                        { text: "A probabilidade da linguagem", emoji: "🎲", correct: true },
+                        { text: "Emoções humanas", emoji: "❤️", correct: false },
+                        { text: "Regras gramaticais fixas", emoji: "📖", correct: false }
+                    ],
+                    explanation: "✅ EXCELENTE! LLMs modelam probabilidades de sequências linguísticas, não verdade!",
+                    wrongExplanation: "❌ LLMs são probabilísticos, não determinísticos!"
+                },
+                {
+                    videoTopic: "Redes Neurais",
+                    videoUrl: "level1-video4.mp4",
+                    question: "Como as Neural Networks aprendem?",
+                    options: [
+                        { text: "Memorizam tudo perfeitamente", emoji: "🧠", correct: false },
+                        { text: "Camadas de 'neurônios' reconhecem padrões", emoji: "🕸️", correct: true },
+                        { text: "Copiam o código de programadores", emoji: "💻", correct: false },
+                        { text: "Usam magia estatística", emoji: "✨", correct: false }
+                    ],
+                    explanation: "✅ CORRETO! Redes neurais usam camadas de neurônios artificiais que aprendem padrões hierárquicos!",
+                    wrongExplanation: "❌ Pense em camadas que detectam: bordas → formas → conceitos!"
+                },
+                {
+                    videoTopic: "Algoritmos de IA",
+                    videoUrl: "level1-video5.mp4",
+                    question: "O que é um Algoritmo em GenAI?",
+                    options: [
+                        { text: "Um robô físico", emoji: "🤖", correct: false },
+                        { text: "A 'receita' que processa dados", emoji: "📋", correct: true },
+                        { text: "Um banco de dados", emoji: "🗄️", correct: false },
+                        { text: "Uma linguagem de programação", emoji: "💻", correct: false }
+                    ],
+                    explanation: "✅ PERFEITO! Algoritmo é o conjunto de regras/instruções que a IA usa para aprender!",
+                    wrongExplanation: "❌ Pense na 'receita' de processamento!"
+                }
+            ],
+            2: [ // 🟡 COMPETENCY (Skills)
+                {
+                    videoTopic: "Ciência de Prompts",
+                    videoUrl: "level2-video1.mp4",
+                    question: "Como a Prompt Science define um prompt?",
+                    options: [
+                        { text: "Pergunta aleatória para IA", emoji: "🤷", correct: false },
+                        { text: "Configuração de Variáveis Independentes", emoji: "🎯", correct: true },
+                        { text: "Comando mágico", emoji: "✨", correct: false },
+                        { text: "Texto qualquer", emoji: "📝", correct: false }
+                    ],
+                    explanation: "✅ EXCELENTE! Prompt = Configuração científica de variáveis (Tarefa + Contexto + Persona)!",
+                    wrongExplanation: "❌ Prompts são experimentos científicos, não adivinhação!"
+                },
+                {
+                    videoTopic: "Alucinação (Ruído Epistêmico)",
+                    videoUrl: "level2-video2.mp4",
+                    question: "O que é 'Hallucination' em IA?",
+                    options: [
+                        { text: "IA mentindo propositalmente", emoji: "🤥", correct: false },
+                        { text: "Ruído epistêmico - padrão plausível sem ancoragem factual", emoji: "⚠️", correct: true },
+                        { text: "IA tendo sonhos", emoji: "💭", correct: false },
+                        { text: "Erro de programação", emoji: "🐛", correct: false }
+                    ],
+                    explanation: "✅ CORRETO! Hallucination = completar padrão probabilístico sem verdade factual!",
+                    wrongExplanation: "❌ Não é mentira - é padrão sem ancoragem!"
+                },
+                {
+                    videoTopic: "Tokens",
+                    videoUrl: "level2-video3.mp4",
+                    question: "O que é um Token em IA?",
+                    options: [
+                        { text: "Uma palavra completa", emoji: "📝", correct: false },
+                        { text: "Unidade fundamental (~0.75 palavras)", emoji: "🔤", correct: true },
+                        { text: "Uma frase inteira", emoji: "📄", correct: false },
+                        { text: "Um caractere individual", emoji: "A", correct: false }
+                    ],
+                    explanation: "✅ PERFEITO! Token = unidade básica de processamento (~0.75 palavras). Custos e limites são medidos em tokens!",
+                    wrongExplanation: "❌ Tokens são menores que palavras!"
+                },
+                {
+                    videoTopic: "Context Window",
+                    videoUrl: "level2-video4.mp4",
+                    question: "O que é a Context Window?",
+                    options: [
+                        { text: "A janela do navegador", emoji: "🪟", correct: false },
+                        { text: "Memória de curto prazo da IA", emoji: "🧠", correct: true },
+                        { text: "Velocidade de processamento", emoji: "⚡", correct: false },
+                        { text: "Tamanho da tela", emoji: "📱", correct: false }
+                    ],
+                    explanation: "✅ EXCELENTE! Context Window = memória de curto prazo. Além do limite, a IA 'esquece' o início!",
+                    wrongExplanation: "❌ Pense na memória RAM da conversa!"
+                },
+                {
+                    videoTopic: "RAG (Retrieval Augmented Generation)",
+                    videoUrl: "level2-video5.mp4",
+                    question: "O que é RAG?",
+                    options: [
+                        { text: "Um tipo de música", emoji: "🎵", correct: false },
+                        { text: "Método de ancorar IA em documentos específicos", emoji: "📚", correct: true },
+                        { text: "Rede social para IA", emoji: "💬", correct: false },
+                        { text: "Algoritmo de criptografia", emoji: "🔒", correct: false }
+                    ],
+                    explanation: "✅ CORRETO! RAG = forçar IA a ler documento antes de responder, reduzindo hallucinations!",
+                    wrongExplanation: "❌ RAG ancora a IA em fontes reais!"
+                }
+            ],
+            3: [ // 🔴 MASTERY (Science & Pedagogy)
+                {
+                    videoTopic: "Chain of Thought (CoT)",
+                    videoUrl: "level3-video1.mp4",
+                    question: "O que é Chain of Thought?",
+                    options: [
+                        { text: "Corrente física", emoji: "⛓️", correct: false },
+                        { text: "Técnica: IA mostra raciocínio passo-a-passo", emoji: "🧠", correct: true },
+                        { text: "Tipo de blockchain", emoji: "🔗", correct: false },
+                        { text: "Método de criptografia", emoji: "🔐", correct: false }
+                    ],
+                    explanation: "✅ PERFEITO! CoT = forçar IA a 'mostrar o trabalho' antes da resposta final. Aumenta precisão!",
+                    wrongExplanation: "❌ CoT é raciocínio explícito passo-a-passo!"
+                },
+                {
+                    videoTopic: "Temperature (Hiperparâmetro)",
+                    videoUrl: "level3-video2.mp4",
+                    question: "O que Temperature controla?",
+                    options: [
+                        { text: "Temperatura do processador", emoji: "🌡️", correct: false },
+                        { text: "Randomness: Baixo=Factual, Alto=Criativo", emoji: "🎲", correct: true },
+                        { text: "Velocidade de resposta", emoji: "⚡", correct: false },
+                        { text: "Tamanho da resposta", emoji: "📏", correct: false }
+                    ],
+                    explanation: "✅ EXCELENTE! Temperature 0.2=determinístico, 0.8=criativo. É o 'controle de criatividade'!",
+                    wrongExplanation: "❌ Temperature controla aleatoriedade, não calor!"
+                },
+                {
+                    videoTopic: "Agência Epistêmica",
+                    videoUrl: "level3-video3.mp4",
+                    question: "O que é Epistemic Agency?",
+                    options: [
+                        { text: "Agência de viagens", emoji: "✈️", correct: false },
+                        { text: "Responsabilidade humana de verificar verdade", emoji: "⚖️", correct: true },
+                        { text: "Tipo de IA", emoji: "🤖", correct: false },
+                        { text: "Software de segurança", emoji: "🔒", correct: false }
+                    ],
+                    explanation: "✅ CORRETO! Humano = Magistrado da Verdade. Nunca delegar julgamento final à máquina!",
+                    wrongExplanation: "❌ Você é o juiz final da verdade!"
+                },
+                {
+                    videoTopic: "O Problema 2 Sigma",
+                    videoUrl: "level3-video4.mp4",
+                    question: "O que é o Problema 2 Sigma?",
+                    options: [
+                        { text: "Equação matemática", emoji: "➗", correct: false },
+                        { text: "Tutoria 1-on-1 é vastamente superior à sala de aula", emoji: "🎯", correct: true },
+                        { text: "Tipo de vírus", emoji: "🦠", correct: false },
+                        { text: "Problema de internet", emoji: "📡", correct: false }
+                    ],
+                    explanation: "✅ PERFEITO! 2 Sigma = tutoria individual é 2 desvios-padrão melhor. IA pode escalar isso!",
+                    wrongExplanation: "❌ É sobre personalização educacional!"
+                },
+                {
+                    videoTopic: "Método Sanduíche",
+                    videoUrl: "level3-video5.mp4",
+                    question: "O que é o Método Sanduíche?",
+                    options: [
+                        { text: "Receita culinária", emoji: "🥪", correct: false },
+                        { text: "Humano guia → IA processa → Humano verifica", emoji: "👨‍🏫", correct: true },
+                        { text: "Técnica de programação", emoji: "💻", correct: false },
+                        { text: "Tipo de backup", emoji: "💾", correct: false }
+                    ],
+                    explanation: "✅ EXCELENTE! Workflow: Orientação humana (pão) + Processamento IA (recheio) + Validação humana (pão)!",
+                    wrongExplanation: "❌ É um workflow de colaboração humano-IA!"
+                }
+            ]
+        };
+
+        // Game State
+        let currentLevel = 1;
+        let currentQuestion = 0;
+        let score = 0;
+        let streak = 0;
+        let maxStreak = 0;
+        let correctCount = 0;
+        let startTime = 0;
+        let timerInterval = null;
+        let playerName = "";
+        let videoWatched = false;
+        let levelScores = {1: 0, 2: 0, 3: 0};
+        let levelsCompleted = {1: false, 2: false, 3: false};
+
+        async function init() {
+            await loadLeaderboard();
+            updatePlayerCount();
+            loadProgress();
+        }
+
+        function loadProgress() {
+            const saved = localStorage.getItem('aiLiteracyProgress');
+            if (saved) {
+                const data = JSON.parse(saved);
+                levelsCompleted = data.levelsCompleted || {1: false, 2: false, 3: false};
+                levelScores = data.levelScores || {1: 0, 2: 0, 3: 0};
+                updateLevelCards();
+            }
+        }
+
+        function saveProgress() {
+            localStorage.setItem('aiLiteracyProgress', JSON.stringify({
+                levelsCompleted,
+                levelScores
+            }));
+        }
+
+        function updateLevelCards() {
+            // Update scores
+            document.getElementById('level1Score').textContent = levelScores[1] || '-';
+            document.getElementById('level2Score').textContent = levelScores[2] || '-';
+            document.getElementById('level3Score').textContent = levelScores[3] || '-';
+
+            // Unlock levels
+            if (levelsCompleted[1]) {
+                document.getElementById('level2Card').classList.remove('locked');
+            }
+            if (levelsCompleted[2]) {
+                document.getElementById('level3Card').classList.remove('locked');
+            }
+        }
+
+        async function loadLeaderboard() {
+            try {
+                const keys = await window.storage.list('player:level', true);
+                const players = [];
+
+                if (keys && keys.keys) {
+                    for (const key of keys.keys) {
+                        const data = await window.storage.get(key, true);
+                        if (data && data.value) {
+                            players.push(JSON.parse(data.value));
+                        }
+                    }
+                }
+
+                players.sort((a, b) => b.score - a.score);
+                window.allPlayers = players;
+            } catch (error) {
+                console.log('Leaderboard loading...');
+                window.allPlayers = [];
+            }
+        }
+
+        function updatePlayerCount() {
+            const count = window.allPlayers ? window.allPlayers.length : 0;
+            document.getElementById('totalPlayers').textContent = count;
+        }
+
+        function enterLevels() {
+            playerName = document.getElementById('playerName').value.trim();
+            if (!playerName) {
+                alert('✨ Por favor, digite seu nome!');
+                return;
+            }
+
+            document.getElementById('welcomeScreen').style.display = 'none';
+            document.getElementById('levelSelect').classList.add('active');
+        }
+
+        function backToWelcome() {
+            document.getElementById('levelSelect').classList.remove('active');
+            document.getElementById('welcomeScreen').style.display = 'block';
+        }
+
+        function startLevel(level) {
+            const card = document.getElementById(`level${level}Card`);
+            if (card && card.classList.contains('locked')) {
+                alert('🔒 Complete o nível anterior primeiro!');
+                return;
+            }
+
+            currentLevel = level;
+            document.getElementById('levelSelect').classList.remove('active');
+            document.getElementById('quizScreen').classList.add('active');
+
+            // Update badge
+            const badges = {
+                1: '🟢 Nível 1: Fundação',
+                2: '🟡 Nível 2: Competência',
+                3: '🔴 Nível 3: Maestria'
+            };
+            const badgeEl = document.getElementById('currentLevelBadge');
+            badgeEl.textContent = badges[level];
+            badgeEl.className = 'level-badge';
+            if (level === 2) badgeEl.classList.add('intermediate');
+            if (level === 3) badgeEl.classList.add('expert');
+
+            currentQuestion = 0;
+            score = 0;
+            streak = 0;
+            maxStreak = 0;
+            correctCount = 0;
+            startTime = Date.now();
+
+            startTimer();
+            showQuestion();
+        }
+
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                document.getElementById('timerDisplay').textContent = elapsed + 's';
+            }, 1000);
+        }
+
+        function showQuestion() {
+            const questions = levels[currentLevel];
+            const q = questions[currentQuestion];
+            videoWatched = false;
+
+            document.getElementById('questionNumber').textContent = `Pergunta ${currentQuestion + 1} de 5`;
+            document.getElementById('questionText').textContent = q.question;
+            document.getElementById('videoTopic').textContent = q.videoTopic;
+            document.getElementById('feedbackBox').classList.remove('active');
+            document.getElementById('nextBtn').classList.remove('active');
+
+            document.getElementById('videoSection').style.display = 'block';
+
+            const optionsContainer = document.getElementById('optionsContainer');
+            optionsContainer.innerHTML = '';
+
+            q.options.forEach((option, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.disabled = true;
+                btn.innerHTML = `
+                    <span class="option-emoji">${option.emoji}</span>
+                    <span>${option.text}</span>
+                `;
+                btn.onclick = () => selectAnswer(index);
+                optionsContainer.appendChild(btn);
+            });
+        }
+
+        function skipVideo() {
+            videoWatched = true;
+            document.getElementById('videoSection').style.display = 'none';
+
+            const options = document.querySelectorAll('.option-btn');
+            options.forEach(btn => btn.disabled = false);
+        }
+
+        function selectAnswer(index) {
+            const questions = levels[currentLevel];
+            const q = questions[currentQuestion];
+            const options = document.querySelectorAll('.option-btn');
+            const selectedBtn = options[index];
+            const isCorrect = q.options[index].correct;
+
+            options.forEach(btn => btn.disabled = true);
+
+            if (isCorrect) {
+                selectedBtn.classList.add('correct');
+                streak++;
+                maxStreak = Math.max(maxStreak, streak);
+                correctCount++;
+
+                const points = 20 + (streak > 1 ? (streak - 1) * 5 : 0);
+                score += points;
+
+                showScorePopup(`+${points}`);
+
+                document.getElementById('scoreDisplay').textContent = score;
+                document.getElementById('streakDisplay').textContent = streak;
+
+                const feedbackBox = document.getElementById('feedbackBox');
+                feedbackBox.className = 'feedback-box correct active';
+                feedbackBox.innerHTML = `
+                    <div style="font-size: clamp(20px, 5vw, 26px); margin-bottom: 15px;">
+                        ${q.explanation}
+                    </div>
+                    <div style="font-size: clamp(18px, 4vw, 22px); color: #FFD700;">
+                        💰 +${points} pontos ${streak > 1 ? '🔥 (+' + ((streak-1)*5) + ' COMBO!)' : ''}
+                    </div>
+                `;
+
+                triggerConfetti(100);
+                screenShake();
+            } else {
+                selectedBtn.classList.add('incorrect');
+                streak = 0;
+                document.getElementById('streakDisplay').textContent = '0';
+
+                options.forEach((btn, i) => {
+                    if (q.options[i].correct) {
+                        btn.classList.add('correct');
+                    }
+                });
+
+                const feedbackBox = document.getElementById('feedbackBox');
+                feedbackBox.className = 'feedback-box incorrect active';
+                feedbackBox.innerHTML = `
+                    <div style="font-size: clamp(20px, 5vw, 26px);">
+                        ${q.wrongExplanation}
+                    </div>
+                `;
+            }
+
+            document.getElementById('nextBtn').classList.add('active');
+        }
+
+        function showScorePopup(text) {
+            const popup = document.createElement('div');
+            popup.className = 'score-popup';
+            popup.textContent = text;
+            document.body.appendChild(popup);
+            setTimeout(() => popup.remove(), 1000);
+        }
+
+        function screenShake() {
+            document.body.style.animation = 'shake 0.3s';
+            setTimeout(() => document.body.style.animation = '', 300);
+        }
+
+        function nextQuestion() {
+            currentQuestion++;
+            const questions = levels[currentLevel];
+            if (currentQuestion < questions.length) {
+                showQuestion();
+            } else {
+                showResults();
+            }
+        }
+
+        async function showResults() {
+            clearInterval(timerInterval);
+            const finalTime = Math.floor((Date.now() - startTime) / 1000);
+
+            document.getElementById('quizScreen').classList.remove('active');
+            document.getElementById('resultsScreen').classList.add('active');
+
+            // Save level completion
+            levelsCompleted[currentLevel] = true;
+            levelScores[currentLevel] = Math.max(levelScores[currentLevel] || 0, score);
+            saveProgress();
+            updateLevelCards();
+
+            const playerData = {
+                name: playerName,
+                level: currentLevel,
+                score: score,
+                streak: maxStreak,
+                time: finalTime,
+                correct: correctCount,
+                timestamp: Date.now()
+            };
+
+            try {
+                await window.storage.set(`player:level${currentLevel}:${Date.now()}-${playerName}`, JSON.stringify(playerData), true);
+                await loadLeaderboard();
+            } catch (error) {
+                console.error('Leaderboard save error:', error);
+            }
+
+            document.getElementById('finalScore').textContent = score;
+            document.getElementById('finalStreak').textContent = maxStreak;
+            document.getElementById('finalTime').textContent = finalTime + 's';
+            document.getElementById('correctAnswers').textContent = correctCount + '/5';
+
+            const levelPlayers = (window.allPlayers || []).filter(p => p.level === currentLevel);
+            const rank = levelPlayers.filter(p => p.score > score).length + 1;
+            const total = levelPlayers.length;
+
+            document.getElementById('worldRank').textContent = rank;
+            document.getElementById('totalPlayersResult').textContent = total;
+
+            let badge = '💪';
+            let message = 'Continue melhorando!';
+
+            if (rank === 1) {
+                badge = '🥇';
+                message = 'CAMPEÃO MUNDIAL!';
+            } else if (rank === 2) {
+                badge = '🥈';
+                message = 'VICE-CAMPEÃO!';
+            } else if (rank === 3) {
+                badge = '🥉';
+                message = '3º LUGAR MUNDIAL!';
+            } else if (rank <= 10) {
+                badge = '⭐';
+                message = 'TOP 10 MUNDIAL!';
+            } else if (rank <= 100) {
+                badge = '🌟';
+                message = 'TOP 100!';
+            }
+
+            document.getElementById('rankBadge').textContent = badge;
+            document.getElementById('rankMessage').textContent = message;
+
+            document.getElementById('leaderboardLevel').textContent = `Nível ${currentLevel}`;
+            displayLeaderboard();
+
+            // Update button
+            const nextBtn = document.getElementById('nextLevelBtn');
+            if (currentLevel < 3) {
+                nextBtn.textContent = '🎯 Próximo Nível';
+                nextBtn.onclick = nextLevelOrRestart;
+            } else {
+                nextBtn.textContent = '🔄 Escolher Nível';
+                nextBtn.onclick = () => {
+                    document.getElementById('resultsScreen').classList.remove('active');
+                    document.getElementById('levelSelect').classList.add('active');
+                };
+            }
+
+            triggerMegaConfetti();
+        }
+
+        function displayLeaderboard() {
+            const list = document.getElementById('leaderboardList');
+            const levelPlayers = (window.allPlayers || []).filter(p => p.level === currentLevel);
+            const top50 = levelPlayers.slice(0, 50);
+
+            list.innerHTML = top50.map((player, index) => {
+                const isCurrentPlayer = player.name === playerName && Math.abs(player.timestamp - Date.now()) < 5000;
+                return `
+                    <div class="leaderboard-item ${isCurrentPlayer ? 'you' : ''}">
+                        <div class="player-rank">#${index + 1}</div>
+                        <div class="player-name">
+                            ${player.name} ${isCurrentPlayer ? '(VOCÊ!)' : ''}
+                            <br>
+                            <small style="opacity: 0.8;">🔥${player.streak} | ⏱️${player.time}s</small>
+                        </div>
+                        <div class="player-score">${player.score}</div>
+                    </div>
+                `;
+            }).join('');
+
+            if (levelPlayers.length > 50) {
+                document.getElementById('morePlayersText').textContent =
+                    `... e mais ${levelPlayers.length - 50} jogadores`;
+            }
+        }
+
+        function shareResults() {
+            const rank = document.getElementById('worldRank').textContent;
+            const total = document.getElementById('totalPlayersResult').textContent;
+            const levelNames = {1: 'Fundação', 2: 'Competência', 3: 'Maestria'};
+            const text = `🎓 Completei Nível ${currentLevel} (${levelNames[currentLevel]}) - AI Literacy!
+
+🏆 Pontuação: ${score}
+🌍 Rank: #${rank} de ${total}
+🔥 Sequência: ${maxStreak}
+⏱️ Tempo: ${document.getElementById('finalTime').textContent}
+
+#AILiteracy #DrDeSouzAI`;
+
+            if (navigator.share) {
+                navigator.share({ title: 'AI Literacy Challenge', text: text });
+            } else {
+                navigator.clipboard.writeText(text);
+                alert('📋 Resultado copiado!');
+            }
+        }
+
+        function nextLevelOrRestart() {
+            if (currentLevel < 3) {
+                document.getElementById('resultsScreen').classList.remove('active');
+                document.getElementById('levelSelect').classList.add('active');
+            } else {
+                document.getElementById('resultsScreen').classList.remove('active');
+                document.getElementById('welcomeScreen').style.display = 'block';
+            }
+        }
+
+        function triggerConfetti(count = 50) {
+            const canvas = document.getElementById('confettiCanvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            const particles = [];
+            const colors = ['#00D9FF', '#FF00FF', '#FFD700', '#00ff00'];
+
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x: Math.random() * canvas.width,
+                    y: -10,
+                    size: Math.random() * 8 + 5,
+                    speedY: Math.random() * 5 + 3,
+                    speedX: Math.random() * 4 - 2,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    rotation: Math.random() * 360,
+                    rotationSpeed: Math.random() * 10 - 5
+                });
+            }
+
+            function animate() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                particles.forEach((p, i) => {
+                    ctx.save();
+                    ctx.translate(p.x, p.y);
+                    ctx.rotate(p.rotation * Math.PI / 180);
+                    ctx.fillStyle = p.color;
+                    ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size);
+                    ctx.restore();
+                    p.y += p.speedY;
+                    p.x += p.speedX;
+                    p.rotation += p.rotationSpeed;
+                    if (p.y > canvas.height) particles.splice(i, 1);
+                });
+                if (particles.length > 0) requestAnimationFrame(animate);
+            }
+            animate();
+        }
+
+        function triggerMegaConfetti() {
+            triggerConfetti(300);
+        }
+
+        init();
+    </script>
+</body>
+</html>
