@@ -1,0 +1,8 @@
+{
+  "name": "cjk-ime-helper",
+  "version": "1.0.0",
+  "description": "Workarounds and utilities for CJK (Chinese, Japanese, Korean) IME input issues in Claude Code terminal",
+  "author": {
+    "name": "minislively"
+  }
+}

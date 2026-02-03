@@ -1,0 +1,16 @@
+{
+  "description": "Detects CJK locale and provides IME input guidance at session start",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/cjk_session_hook.py"
+          }
+        ],
+        "matcher": ""
+      }
+    ]
+  }
+}
