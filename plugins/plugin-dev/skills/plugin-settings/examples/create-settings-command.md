@@ -1,6 +1,6 @@
 ---
 description: "Create plugin settings file with user preferences"
-allowed-tools: ["Write", "AskUserQuestion"]
+allowed-tools: Write, AskUserQuestion
 ---
 
 # Create Plugin Settings

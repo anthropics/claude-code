@@ -205,17 +205,14 @@ Pre-allow specific MCP tools in command frontmatter:
 
 ```markdown
 ---
-allowed-tools: [
-  "mcp__plugin_asana_asana__asana_create_task",
-  "mcp__plugin_asana_asana__asana_search_tasks"
-]
+allowed-tools: mcp__plugin_asana_asana__asana_create_task, mcp__plugin_asana_asana__asana_search_tasks
 ---
 ```
 
 **Wildcard (use sparingly):**
 ```markdown
 ---
-allowed-tools: ["mcp__plugin_asana_asana__*"]
+allowed-tools: mcp__plugin_asana_asana__*
 ---
 ```
 
@@ -294,7 +291,7 @@ Commands use MCP tools with user interaction:
 ```markdown
 # Command: create-item.md
 ---
-allowed-tools: ["mcp__plugin_name_server__create_item"]
+allowed-tools: mcp__plugin_name_server__create_item
 ---
 
 Steps:
@@ -367,12 +364,9 @@ Always use secure connections:
 Pre-allow only necessary MCP tools:
 
 ```markdown
-✅ allowed-tools: [
-  "mcp__plugin_api_server__read_data",
-  "mcp__plugin_api_server__create_item"
-]
+✅ allowed-tools: mcp__plugin_api_server__read_data, mcp__plugin_api_server__create_item
 
-❌ allowed-tools: ["mcp__plugin_api_server__*"]
+❌ allowed-tools: mcp__plugin_api_server__*
 ```
 
 ## Error Handling
