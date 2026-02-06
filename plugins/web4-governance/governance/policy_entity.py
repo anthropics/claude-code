@@ -96,6 +96,7 @@ class PolicyEntity:
         category: str,
         target: Optional[str] = None,
         rate_limiter: Optional[Any] = None,
+        full_command: Optional[str] = None,
     ) -> PolicyEvaluation:
         """
         Evaluate a tool call against this policy.
@@ -105,12 +106,13 @@ class PolicyEntity:
             category: Tool category (e.g., "command", "file_write")
             target: Target of the operation (file path, command, URL)
             rate_limiter: Optional RateLimiter for rate-based rules
+            full_command: For Bash tools, the full command string (enables command_patterns matching)
 
         Returns:
             PolicyEvaluation with decision and context
         """
         for rule in self._sorted_rules:
-            if self._matches_rule(tool_name, category, target, rule.match):
+            if self._matches_rule(tool_name, category, target, rule.match, full_command):
                 # Check rate limit if specified
                 if rule.match.rate_limit and rate_limiter:
                     key = self._rate_limit_key(rule, tool_name, category)
@@ -156,6 +158,7 @@ class PolicyEntity:
         category: str,
         target: Optional[str],
         match: PolicyMatch,
+        full_command: Optional[str] = None,
     ) -> bool:
         """Check if a tool call matches a rule's criteria (AND logic)."""
         # Tool match
@@ -183,6 +186,33 @@ class PolicyEntity:
                         break
             if not matched:
                 return False
+
+        # Full command pattern match (for Bash commands)
+        if match.command_patterns:
+            if full_command is None:
+                return False
+            matched = False
+            for pattern in match.command_patterns:
+                if match.command_patterns_are_regex:
+                    if re.search(pattern, full_command):
+                        matched = True
+                        break
+                else:
+                    if pattern in full_command:
+                        matched = True
+                        break
+            if not matched:
+                return False
+
+        # Negative match: command must NOT contain these patterns
+        # (for rules like "git push without PAT")
+        if match.command_must_not_contain:
+            if full_command is None:
+                return False
+            # If ANY of the patterns are found, rule does NOT match
+            for pattern in match.command_must_not_contain:
+                if pattern in full_command:
+                    return False  # Found exclusion pattern, rule doesn't apply
 
         return True
 

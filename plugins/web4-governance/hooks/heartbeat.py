@@ -27,6 +27,7 @@ from typing import Optional, List, Dict, Tuple
 # Add parent directory to path for governance import
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from governance import Ledger
+from governance.presence import get_tracker
 
 
 # Configuration
@@ -128,6 +129,14 @@ class SessionHeartbeat:
             previous_hash=previous_hash,
             entry_hash=entry_hash
         )
+
+        # Record presence heartbeat for session entity
+        # This enables "silence as signal" detection
+        try:
+            tracker = get_tracker()
+            tracker.heartbeat(f"session:{self.session_id}")
+        except Exception:
+            pass  # Don't fail heartbeat if presence tracking fails
 
         self._last_entry = entry
         return entry

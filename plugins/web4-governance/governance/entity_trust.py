@@ -346,6 +346,45 @@ class EntityTrust:
 
         return abs(old_reliability - self.reliability) > 0.001
 
+    def apply_silence_penalty(self, severity: str = "overdue") -> bool:
+        """
+        Apply trust penalty for unexpected silence (absence when expected).
+
+        Silence is a signal: entities that go quiet when expected to be active
+        should see trust impact. This implements "the dog that didn't bark".
+
+        Severity levels:
+        - "expected": Minor - entity should check in soon (no penalty yet)
+        - "overdue": Moderate - past grace period, warrants attention
+        - "missing": Significant - well past expected, may indicate problem
+
+        Args:
+            severity: One of "expected", "overdue", "missing"
+
+        Returns:
+            True if penalty was applied
+        """
+        if severity == "expected":
+            # No penalty yet, just tracking
+            return False
+
+        elif severity == "overdue":
+            # Moderate impact on reliability and consistency
+            penalty = 0.02
+            self.reliability = max(0.1, self.reliability - penalty)
+            self.consistency = max(0.1, self.consistency - penalty * 0.5)
+            return True
+
+        elif severity == "missing":
+            # Significant impact - entity may be unreliable
+            penalty = 0.05
+            self.reliability = max(0.1, self.reliability - penalty)
+            self.consistency = max(0.1, self.consistency - penalty)
+            self.temporal = max(0.1, self.temporal - penalty * 0.5)
+            return True
+
+        return False
+
     def days_since_last_action(self) -> float:
         """Calculate days since last action."""
         if not self.last_action:

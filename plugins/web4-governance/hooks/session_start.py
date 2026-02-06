@@ -172,15 +172,9 @@ def main():
 
     # Show status if preference enabled
     if session["preferences"]["show_r6_status"]:
-        token_short = session["token"]["token_id"].split(":")[-1]
-        gov_status = "+" if GOVERNANCE_AVAILABLE else "-"
-        policy_status = ""
-        if session.get("policy_entity_id"):
-            # Extract preset name from entity_id (policy:<name>:<version>:<hash>)
-            policy_parts = session["policy_entity_id"].split(":")
-            if len(policy_parts) >= 2:
-                policy_status = f" [policy:{policy_parts[1]}]"
-        print(f"[Web4] Session {token_short} (software-bound) [gov{gov_status}]{policy_status}", file=sys.stderr)
+        # Session info logging removed - stderr output causes Claude Code "hook error" warnings
+        # Session data is still tracked in state files
+        pass
 
     sys.exit(0)
 
