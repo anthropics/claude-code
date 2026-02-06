@@ -85,19 +85,80 @@ SAFETY_RULES = [
         reason="Destructive command blocked by safety preset",
         match=PolicyMatch(
             tools=["Bash"],
-            target_patterns=[r"rm\s+-rf", r"mkfs\."],
+            # Block: rm with ANY flags, mkfs.* (filesystem format)
+            # Rationale: rm -f bypasses prompts, rm -r is recursive, all flags are risky for agents
+            target_patterns=[r"rm\s+-", r"mkfs\."],
+            target_patterns_are_regex=True,
+        ),
+    ),
+    PolicyRule(
+        id="warn-file-delete",
+        name="Warn on file deletion",
+        priority=2,
+        decision="warn",
+        reason="File deletion flagged - use with caution",
+        match=PolicyMatch(
+            tools=["Bash"],
+            # Warn on plain rm (no flags) - less dangerous but still destructive
+            # Matches "rm file" or "rm ./path" but not "rm -rf" (caught by deny rule above)
+            target_patterns=[r"rm\s+[^-]"],
             target_patterns_are_regex=True,
         ),
     ),
     PolicyRule(
         id="deny-secret-files",
-        name="Block reading secret files",
-        priority=5,
+        name="Block reading secret/credential files",
+        priority=3,
         decision="deny",
-        reason="Secret file access denied by safety preset",
+        reason="Credential/secret file access denied by safety preset",
         match=PolicyMatch(
-            categories=["file_read"],
-            target_patterns=["**/.env", "**/.env.*", "**/credentials.*", "**/*secret*"],
+            categories=["file_read", "credential_access"],
+            target_patterns=[
+                # Environment and general secrets
+                "**/.env",
+                "**/.env.*",
+                "**/credentials.*",
+                "**/*secret*",
+                "**/token*.json",
+                "**/auth*.json",
+                "**/*apikey*",
+                # Cloud provider credentials
+                "**/.aws/credentials",
+                "**/.aws/config",
+                # SSH keys
+                "**/.ssh/id_*",
+                "**/.ssh/config",
+                # Package manager auth
+                "**/.npmrc",
+                "**/.pypirc",
+                # Database/service credentials
+                "**/.netrc",
+                "**/.pgpass",
+                "**/.my.cnf",
+                # Container/orchestration credentials
+                "**/.docker/config.json",
+                "**/.kube/config",
+                # Encryption keys
+                "**/.gnupg/*",
+                "**/.gpg/*",
+            ],
+        ),
+    ),
+    PolicyRule(
+        id="warn-memory-write",
+        name="Warn on agent memory file modifications",
+        priority=4,
+        decision="warn",
+        reason="Memory file modification flagged - potential memory poisoning",
+        match=PolicyMatch(
+            categories=["file_write"],
+            target_patterns=[
+                "**/MEMORY.md",
+                "**/memory.md",
+                "**/memory/**/*.md",
+                "**/.web4/**/memory*",
+                "**/.claude/**/memory*",
+            ],
         ),
     ),
     PolicyRule(

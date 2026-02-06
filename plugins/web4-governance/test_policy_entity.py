@@ -137,7 +137,8 @@ class TestPolicyEvaluation:
         registry = PolicyRegistry(temp_storage)
         entity = registry.register_policy("safety", preset="safety")
 
-        result = entity.evaluate("Bash", "command", "rm -rf /")
+        # Test with realistic folder path, not root
+        result = entity.evaluate("Bash", "command", "rm -rf ./temp_build")
 
         assert result.decision == "deny"
         assert result.rule_id == "deny-destructive-commands"
@@ -189,7 +190,8 @@ class TestPolicyEvaluation:
         registry = PolicyRegistry(temp_storage)
         entity = registry.register_policy("safety", preset="safety")
 
-        result = entity.evaluate("Bash", "command", "rm -rf /")
+        # Test with realistic folder path, not root
+        result = entity.evaluate("Bash", "command", "rm -rf ./node_modules")
 
         assert f"policy:{entity.entity_id}" in result.constraints
         assert "decision:deny" in result.constraints

@@ -223,7 +223,7 @@ class TestAuditQuery:
                            r6_data={"request": {"category": "file_read"}})
         ledger.record_audit("sess1", "tool_use", "Bash", "ls -la", status="success",
                            r6_data={"request": {"category": "command"}})
-        ledger.record_audit("sess1", "tool_use", "Bash", "rm -rf /", status="error",
+        ledger.record_audit("sess1", "tool_use", "Bash", "rm -rf ./cache", status="error",
                            r6_data={"request": {"category": "command"}, "result": {"error_message": "blocked"}})
         ledger.record_audit("sess1", "tool_use", "WebFetch", "https://example.com", status="blocked",
                            r6_data={"request": {"category": "network"}})

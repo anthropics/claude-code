@@ -47,9 +47,15 @@ config = resolve_preset("safety", enforce=False)
 | Preset | Default | Enforce | Description |
 |--------|---------|---------|-------------|
 | `permissive` | allow | false | Pure observation, no rules |
-| `safety` | allow | true | Deny destructive bash, deny secrets, warn on network |
+| `safety` | allow | true | Block `rm -`/secrets, warn on file delete/memory/network |
 | `strict` | deny | true | Only allow Read, Glob, Grep, TodoWrite |
 | `audit-only` | allow | false | Same as safety but dry-run mode |
+
+For detailed information on what each preset blocks, warns, and allows, see **[PRESETS.md](./PRESETS.md)**.
+
+**Safety preset highlights:**
+- **Denies**: `rm` with any flags (not just `-rf`), `mkfs.*`, 24 credential file patterns
+- **Warns**: Plain `rm`, memory file writes, network access
 
 ### Rate Limiting
 
@@ -125,7 +131,7 @@ entity = registry.register_policy("my-policy", preset="safety")
 print(entity.entity_id)  # policy:my-policy:20260128...:a1b2c3d4...
 
 # Evaluate a tool call against policy
-result = entity.evaluate("Bash", "command", "rm -rf /")
+result = entity.evaluate("Bash", "command", "rm -rf ./temp_build")
 print(result.decision)  # "deny"
 print(result.reason)    # "Destructive command blocked by safety preset"
 
