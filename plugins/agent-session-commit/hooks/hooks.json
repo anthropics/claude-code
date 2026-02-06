@@ -1,0 +1,16 @@
+{
+  "description": "Occasional tip about /session-commit at session end",
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c '[ $((RANDOM % 5)) -eq 0 ] && echo \"💡 Tip: Run /session-commit to capture session learnings to AGENTS.md\" >&2; exit 0'"
+          }
+        ]
+      }
+    ]
+  }
+}
