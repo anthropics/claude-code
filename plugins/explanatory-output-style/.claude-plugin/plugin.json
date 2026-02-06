@@ -5,5 +5,15 @@
   "author": {
     "name": "Dickson Tsai",
     "email": "dickson@anthropic.com"
+  },
+  "components": {
+    "agents": [],
+    "commands": [],
+    "skills": [],
+    "hooks": ["SessionStart"],
+    "mcpServers": []
+  },
+  "metadata": {
+    "tags": ["output-style", "educational", "learning"]
   }
 }

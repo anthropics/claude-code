@@ -5,5 +5,15 @@
   "author": {
     "name": "Prithvi Rajasekaran, Alexander Bricken",
     "email": "prithvi@anthropic.com, alexander@anthropic.com"
+  },
+  "components": {
+    "agents": [],
+    "commands": [],
+    "skills": ["frontend-design"],
+    "hooks": [],
+    "mcpServers": []
+  },
+  "metadata": {
+    "tags": ["frontend", "ui", "ux", "design", "css"]
   }
 }

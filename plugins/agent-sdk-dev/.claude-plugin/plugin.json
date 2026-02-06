@@ -5,5 +5,15 @@
   "author": {
     "name": "Ashwin Bhat",
     "email": "ashwin@anthropic.com"
+  },
+  "components": {
+    "agents": ["agent-sdk-verifier-py", "agent-sdk-verifier-ts"],
+    "commands": ["new-sdk-app"],
+    "skills": [],
+    "hooks": [],
+    "mcpServers": []
+  },
+  "metadata": {
+    "tags": ["sdk", "development", "python", "typescript"]
   }
 }

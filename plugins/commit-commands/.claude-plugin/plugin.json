@@ -5,6 +5,15 @@
   "author": {
     "name": "Anthropic",
     "email": "support@anthropic.com"
+  },
+  "components": {
+    "agents": [],
+    "commands": ["commit", "commit-push-pr", "clean_gone"],
+    "skills": [],
+    "hooks": [],
+    "mcpServers": []
+  },
+  "metadata": {
+    "tags": ["git", "workflow", "commit", "pull-request"]
   }
 }
-
