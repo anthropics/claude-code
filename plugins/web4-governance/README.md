@@ -299,6 +299,68 @@ overnight = TimeWindow(allowed_hours=(22, 6))  # 22:00 to 06:00
 - Allow maintenance windows during off-peak times
 - Enforce compliance with operational schedules
 
+## Tier 4 Features (NEW)
+
+Real-time monitoring endpoint for external clients:
+
+### Event Stream
+
+JSONL-based event stream that external tools can consume for monitoring, alerting, and analytics.
+
+**Stream Location**: `~/.web4/events.jsonl`
+
+```python
+from governance import EventStream, EventType, Severity
+
+# Initialize stream
+stream = EventStream("~/.web4")
+
+# Emit events
+stream.emit(
+    event_type=EventType.POLICY_DECISION,
+    severity=Severity.ALERT,
+    session_id="sess-123",
+    tool="Bash",
+    target="rm -rf /tmp/test",
+    decision="deny",
+    reason="Destructive command blocked"
+)
+
+# Convenience methods
+stream.policy_decision(
+    session_id="sess-123",
+    tool="Read",
+    target="/app/.env",
+    decision="deny",
+    reason="Credential file access denied"
+)
+```
+
+**Consuming the stream:**
+```bash
+# Real-time tail
+tail -f ~/.web4/events.jsonl | jq .
+
+# Filter alerts only
+tail -f ~/.web4/events.jsonl | jq -c 'select(.severity == "alert")'
+
+# Filter by event type
+grep '"type":"policy_decision"' ~/.web4/events.jsonl | jq .
+```
+
+**Event Types:**
+- `session_start`, `session_end` - Session lifecycle
+- `tool_call`, `tool_result` - Tool execution
+- `policy_decision`, `policy_violation` - Policy enforcement
+- `rate_limit_exceeded` - Rate limiting
+- `trust_update` - Trust changes
+- `agent_spawn`, `agent_complete` - Agent lifecycle
+- `audit_alert` - High-priority audit events
+
+**Severity Levels:** `debug`, `info`, `warn`, `alert`, `error`
+
+For complete API documentation, see **[EVENT_STREAM_API.md](./EVENT_STREAM_API.md)**.
+
 ## Installation
 
 ### Option 1: Plugin Marketplace (Recommended)

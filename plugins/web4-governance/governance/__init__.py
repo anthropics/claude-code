@@ -77,6 +77,14 @@ from .matchers import (
     validate_regex_pattern,
 )
 from .presets import TimeWindow
+from .event_stream import (
+    EventStream,
+    Event,
+    EventType,
+    Severity,
+    get_default_stream,
+    emit,
+)
 
 # Trust backend (Rust or Python fallback)
 from .trust_backend import (
@@ -185,4 +193,11 @@ __all__ = [
     'matches_target',
     'validate_regex_pattern',
     'TimeWindow',
+    # Tier 4: Event Stream
+    'EventStream',
+    'Event',
+    'EventType',
+    'Severity',
+    'get_default_stream',
+    'emit',
 ]
