@@ -207,12 +207,25 @@ class PolicyEntity:
         }
 
 
+@dataclass
+class WitnessRecord:
+    """Record of a witnessing relationship (persisted to JSONL)."""
+    type: str  # "session_witness" or "decision_witness"
+    entity: str
+    witness: str
+    timestamp: str
+    tool: Optional[str] = None  # For decision witnesses
+    decision: Optional[str] = None  # For decision witnesses
+
+
 class PolicyRegistry:
     """
     Registry of policy entities with hash-tracking and witnessing.
 
     Policies are registered once and become immutable. Changing a policy
     creates a new entity with a new hash.
+
+    Witnessing relationships are persisted to JSONL for durability across restarts.
     """
 
     def __init__(self, storage_path: Optional[Path] = None):
@@ -233,6 +246,88 @@ class PolicyRegistry:
 
         # In-memory cache of loaded policies
         self._cache: Dict[str, PolicyEntity] = {}
+
+        # Witnessing records: entity -> set of witnesses
+        self._witnessed_by: Dict[str, set] = {}
+
+        # Witnessing records: entity -> set of entities witnessed
+        self._has_witnessed: Dict[str, set] = {}
+
+        # Load existing witness records
+        self._load_witness_records()
+
+    @property
+    def _witness_file_path(self) -> Path:
+        """Path to the witnesses JSONL file."""
+        return self.storage_path / "witnesses.jsonl"
+
+    def _load_witness_records(self) -> None:
+        """Load existing witness records from disk."""
+        if not self._witness_file_path.exists():
+            return
+
+        try:
+            content = self._witness_file_path.read_text().strip()
+            if not content:
+                return
+
+            for line in content.split("\n"):
+                if not line.strip():
+                    continue
+                try:
+                    data = json.loads(line)
+                    record = WitnessRecord(**data)
+                    self._apply_witness_record(record)
+                except (json.JSONDecodeError, TypeError):
+                    # Skip malformed lines
+                    pass
+        except Exception:
+            # File doesn't exist or can't be read, start fresh
+            pass
+
+    def _apply_witness_record(self, record: WitnessRecord) -> None:
+        """Apply a witness record to in-memory state."""
+        # Entity is witnessed by witness
+        if record.entity not in self._witnessed_by:
+            self._witnessed_by[record.entity] = set()
+        self._witnessed_by[record.entity].add(record.witness)
+
+        # Witness has witnessed entity
+        if record.witness not in self._has_witnessed:
+            self._has_witnessed[record.witness] = set()
+        self._has_witnessed[record.witness].add(record.entity)
+
+    def _persist_witness_record(self, record: WitnessRecord) -> None:
+        """Persist a witness record to disk."""
+        try:
+            # Ensure directory exists
+            self.storage_path.mkdir(parents=True, exist_ok=True)
+
+            # Append to JSONL file
+            record_dict = {
+                "type": record.type,
+                "entity": record.entity,
+                "witness": record.witness,
+                "timestamp": record.timestamp,
+            }
+            if record.tool:
+                record_dict["tool"] = record.tool
+            if record.decision:
+                record_dict["decision"] = record.decision
+
+            with open(self._witness_file_path, "a") as f:
+                f.write(json.dumps(record_dict) + "\n")
+        except Exception:
+            # Persistence failure is non-fatal
+            pass
+
+    def get_witnessed_by(self, entity_id: str) -> List[str]:
+        """Get list of entities that have witnessed this entity."""
+        return list(self._witnessed_by.get(entity_id, set()))
+
+    def get_has_witnessed(self, entity_id: str) -> List[str]:
+        """Get list of entities that this entity has witnessed."""
+        return list(self._has_witnessed.get(entity_id, set()))
 
     def register_policy(
         self,
@@ -376,9 +471,22 @@ class PolicyRegistry:
         Creates bidirectional witnessing:
         - Session witnesses the policy (I operate under these rules)
         - Policy witnesses the session (this session uses me)
+
+        Persists to JSONL for durability.
         """
         session_entity = f"session:{session_id}"
         self._trust_store.witness(session_entity, policy_entity_id, success=True)
+
+        # Create and persist witness record
+        now = datetime.now(timezone.utc).isoformat() + "Z"
+        record = WitnessRecord(
+            type="session_witness",
+            entity=policy_entity_id,
+            witness=session_entity,
+            timestamp=now,
+        )
+        self._apply_witness_record(record)
+        self._persist_witness_record(record)
 
     def witness_decision(
         self,
@@ -393,10 +501,25 @@ class PolicyRegistry:
 
         The policy witnesses the tool use, and the outcome (success/failure)
         affects trust in both directions.
+
+        Persists to JSONL for durability.
         """
         session_entity = f"session:{session_id}"
         # Policy witnesses the decision
         self._trust_store.witness(policy_entity_id, session_entity, success=success)
+
+        # Create and persist witness record
+        now = datetime.now(timezone.utc).isoformat() + "Z"
+        record = WitnessRecord(
+            type="decision_witness",
+            entity=session_entity,
+            witness=policy_entity_id,
+            timestamp=now,
+            tool=tool_name,
+            decision=decision,
+        )
+        self._apply_witness_record(record)
+        self._persist_witness_record(record)
 
     def get_policy_trust(self, policy_entity_id: str) -> EntityTrust:
         """Get trust tensors for a policy entity."""

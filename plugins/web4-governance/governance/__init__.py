@@ -51,8 +51,16 @@ from .presets import (
     policy_config_to_dict,
 )
 from .rate_limiter import RateLimiter, RateLimitResult
+from .persistent_rate_limiter import PersistentRateLimiter
 from .reporter import AuditReporter, AuditReport
-from .policy_entity import PolicyEntity, PolicyRegistry, PolicyEvaluation
+from .policy_entity import PolicyEntity, PolicyRegistry, PolicyEvaluation, WitnessRecord
+from .signing import (
+    SigningKeyPair,
+    generate_signing_keypair,
+    sign_data,
+    verify_signature,
+    key_id_from_public_key,
+)
 
 # Trust backend (Rust or Python fallback)
 from .trust_backend import (
@@ -131,6 +139,8 @@ __all__ = [
     # Tier 1.5: Rate Limiter
     'RateLimiter',
     'RateLimitResult',
+    # Tier 2: Persistent Rate Limiter
+    'PersistentRateLimiter',
     # Tier 1.5: Reporter
     'AuditReporter',
     'AuditReport',
@@ -138,4 +148,11 @@ __all__ = [
     'PolicyEntity',
     'PolicyRegistry',
     'PolicyEvaluation',
+    'WitnessRecord',
+    # Tier 2: Ed25519 Signing
+    'SigningKeyPair',
+    'generate_signing_keypair',
+    'sign_data',
+    'verify_signature',
+    'key_id_from_public_key',
 ]

@@ -158,6 +158,70 @@ The PreToolUse hook automatically:
 3. Blocks denied actions (if `enforce=true`)
 4. Witnesses decisions in the trust network
 
+## Tier 2 Features (NEW)
+
+Three new features for enhanced security and durability:
+
+### Ed25519 Cryptographic Signing
+
+Sign audit records with Ed25519 for non-repudiation:
+
+```python
+from governance import generate_signing_keypair, sign_data, verify_signature
+
+# Generate keypair for a session
+keypair = generate_signing_keypair()
+print(f"Key ID: {keypair['key_id']}")
+
+# Sign audit record
+import json
+record = {"tool": "Bash", "target": "ls", "status": "success"}
+data = json.dumps(record)
+signature = sign_data(data, keypair['private_key_hex'])
+
+# Verify signature
+is_valid = verify_signature(data, signature, keypair['public_key_hex'])
+print(f"Valid: {is_valid}")  # True
+```
+
+### Persistent Rate Limiting
+
+SQLite-backed rate limits that survive process restarts:
+
+```python
+from governance import PersistentRateLimiter
+
+# Initialize with storage path
+limiter = PersistentRateLimiter("~/.web4")
+
+# Check rate limit (5 actions per minute)
+result = limiter.check("ratelimit:bash:tool", max_count=5, window_ms=60000)
+if result.allowed:
+    # Action permitted
+    limiter.record("ratelimit:bash:tool")
+
+# Check if persistence is active
+print(f"Persistent: {limiter.persistent}")  # True if SQLite available
+```
+
+### Witness Persistence
+
+Policy witnessing relationships now persist to JSONL:
+
+```python
+from governance import PolicyRegistry
+
+registry = PolicyRegistry("~/.web4")
+
+# Witness records are automatically persisted to ~/.web4/witnesses.jsonl
+registry.witness_session(entity.entity_id, session_id)
+registry.witness_decision(entity.entity_id, session_id, "Read", "allow", success=True)
+
+# Query witnesses
+witnesses = registry.get_witnessed_by(entity.entity_id)
+witnessed = registry.get_has_witnessed(f"session:{session_id}")
+```
+
 ## Installation
 
 ### Option 1: Plugin Marketplace (Recommended)
