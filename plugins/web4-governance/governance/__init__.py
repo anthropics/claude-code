@@ -61,6 +61,22 @@ from .signing import (
     verify_signature,
     key_id_from_public_key,
 )
+from .target_extraction import (
+    extract_target,
+    extract_targets,
+    is_credential_target,
+    is_memory_target,
+    classify_tool,
+    classify_tool_with_target,
+    TOOL_CATEGORIES,
+)
+from .matchers import (
+    matches_time_window,
+    glob_to_regex,
+    matches_target,
+    validate_regex_pattern,
+)
+from .presets import TimeWindow
 
 # Trust backend (Rust or Python fallback)
 from .trust_backend import (
@@ -155,4 +171,18 @@ __all__ = [
     'sign_data',
     'verify_signature',
     'key_id_from_public_key',
+    # Tier 3: Multi-target Extraction
+    'extract_target',
+    'extract_targets',
+    'is_credential_target',
+    'is_memory_target',
+    'classify_tool',
+    'classify_tool_with_target',
+    'TOOL_CATEGORIES',
+    # Tier 3: Pattern Matchers
+    'matches_time_window',
+    'glob_to_regex',
+    'matches_target',
+    'validate_regex_pattern',
+    'TimeWindow',
 ]

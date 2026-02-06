@@ -222,6 +222,83 @@ witnesses = registry.get_witnessed_by(entity.entity_id)
 witnessed = registry.get_has_witnessed(f"session:{session_id}")
 ```
 
+## Tier 3 Features (NEW)
+
+Advanced pattern matching, multi-target extraction, and temporal constraints:
+
+### Multi-Target Extraction
+
+Extract all file paths and targets from tool parameters:
+
+```python
+from governance import extract_targets, extract_target, is_credential_target
+
+# Extract primary target
+target = extract_target("Bash", {"command": "cat /etc/passwd"})
+# Returns: "cat /etc/passwd"
+
+# Extract all targets from multi-file operations
+targets = extract_targets("Bash", {"command": "rm -rf /tmp/a /tmp/b ~/cache"})
+# Returns: ["/tmp/a", "/tmp/b", "~/cache"]
+
+# Check if target is a credential file
+if is_credential_target("/home/user/.aws/credentials"):
+    print("Credential file detected!")
+
+# Classify tool with target context
+from governance import classify_tool_with_target
+category = classify_tool_with_target("Read", "/app/.env")
+# Returns: "credential_access" (upgraded from "file_read")
+```
+
+### Pattern Matching
+
+Glob and regex pattern matching for policy rules:
+
+```python
+from governance import matches_target, glob_to_regex, validate_regex_pattern
+
+# Glob pattern matching
+if matches_target("/path/to/.env.local", ["**/.env*"], use_regex=False):
+    print("Matches credential pattern!")
+
+# Regex pattern matching
+if matches_target("rm -rf /", [r"rm\s+-"], use_regex=True):
+    print("Destructive command detected!")
+
+# Validate regex patterns for ReDoS vulnerabilities
+valid, reason = validate_regex_pattern(r"(a+)+$")
+if not valid:
+    print(f"Unsafe pattern: {reason}")
+```
+
+### Temporal Constraints (TimeWindow)
+
+Time-based policy rules that only apply during specific windows:
+
+```python
+from governance import TimeWindow, matches_time_window
+
+# Define business hours (9am-5pm, Monday-Friday, US Eastern)
+window = TimeWindow(
+    allowed_hours=(9, 17),
+    allowed_days=[1, 2, 3, 4, 5],  # 0=Sun, 1=Mon, ... 6=Sat
+    timezone="America/New_York"
+)
+
+# Check if current time is within the window
+if matches_time_window(window):
+    print("Within business hours")
+
+# Overnight windows are supported (e.g., 10pm-6am)
+overnight = TimeWindow(allowed_hours=(22, 6))  # 22:00 to 06:00
+```
+
+**Use Cases:**
+- Restrict dangerous operations to business hours only
+- Allow maintenance windows during off-peak times
+- Enforce compliance with operational schedules
+
 ## Installation
 
 ### Option 1: Plugin Marketplace (Recommended)

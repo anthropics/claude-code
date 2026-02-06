@@ -38,6 +38,20 @@ class RateLimitSpec:
 
 
 @dataclass
+class TimeWindow:
+    """
+    Temporal constraints for policy rules.
+    Rule only matches during specified time windows.
+    """
+    # Allowed hours [start, end] in 24h format. E.g., [9, 17] = 9am-5pm
+    allowed_hours: Optional[tuple] = None
+    # Allowed days of week. 0=Sunday, 1=Monday, ... 6=Saturday
+    allowed_days: Optional[List[int]] = None
+    # Timezone for time calculations. Defaults to system timezone.
+    timezone: Optional[str] = None
+
+
+@dataclass
 class PolicyMatch:
     """Match criteria for a policy rule."""
     tools: Optional[List[str]] = None
@@ -45,6 +59,7 @@ class PolicyMatch:
     target_patterns: Optional[List[str]] = None
     target_patterns_are_regex: bool = False
     rate_limit: Optional[RateLimitSpec] = None
+    time_window: Optional[TimeWindow] = None
 
 
 @dataclass
@@ -289,6 +304,29 @@ def resolve_preset(
 
 def policy_config_to_dict(config: PolicyConfig) -> Dict[str, Any]:
     """Convert PolicyConfig to JSON-serializable dict."""
+    def match_to_dict(match: PolicyMatch) -> Dict[str, Any]:
+        result = {
+            "tools": match.tools,
+            "categories": match.categories,
+            "target_patterns": match.target_patterns,
+            "target_patterns_are_regex": match.target_patterns_are_regex,
+            "rate_limit": (
+                {"max_count": match.rate_limit.max_count, "window_ms": match.rate_limit.window_ms}
+                if match.rate_limit
+                else None
+            ),
+            "time_window": (
+                {
+                    "allowed_hours": list(match.time_window.allowed_hours) if match.time_window.allowed_hours else None,
+                    "allowed_days": match.time_window.allowed_days,
+                    "timezone": match.time_window.timezone,
+                }
+                if match.time_window
+                else None
+            ),
+        }
+        return result
+
     return {
         "default_policy": config.default_policy,
         "enforce": config.enforce,
@@ -300,17 +338,7 @@ def policy_config_to_dict(config: PolicyConfig) -> Dict[str, Any]:
                 "priority": r.priority,
                 "decision": r.decision,
                 "reason": r.reason,
-                "match": {
-                    "tools": r.match.tools,
-                    "categories": r.match.categories,
-                    "target_patterns": r.match.target_patterns,
-                    "target_patterns_are_regex": r.match.target_patterns_are_regex,
-                    "rate_limit": (
-                        {"max_count": r.match.rate_limit.max_count, "window_ms": r.match.rate_limit.window_ms}
-                        if r.match.rate_limit
-                        else None
-                    ),
-                },
+                "match": match_to_dict(r.match),
             }
             for r in config.rules
         ],
