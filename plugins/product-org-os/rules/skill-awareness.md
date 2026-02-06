@@ -266,6 +266,7 @@ These are context/retrieval skills that operate differently:
 | `@director-product-management` | `@pm-dir` | 📋 | Roadmap governance, team coordination, requirements strategy |
 | `@director-product-marketing` | `@pmm-dir` | 📣 | GTM strategy, positioning, competitive intelligence, launch |
 | `@product-marketing-manager` | `@pmm` | 🎯 | Campaigns, collateral, customer research, sales enablement |
+| `@product-mentor` | `@mentor` | 🎓 | Career coaching, professional development, stakeholder navigation, OS optimization |
 | `@bizops` | - | 🧮 | Business cases, financial analysis, KPI tracking, data analysis |
 | `@bizdev` | - | 🤝 | Partnership strategy, market expansion, deal structuring |
 | `@competitive-intelligence` | `@ci` | 🔭 | Competitor analysis, market research, win/loss analysis |
@@ -279,6 +280,52 @@ These are context/retrieval skills that operate differently:
 |---------|-------|-------|----------|
 | `@product` | - | 🏛️ | Routes to relevant owners, collects plans, orchestrates execution |
 | `@product-leadership-team` | `@plt` | 👥 | Meeting Mode with multiple leadership perspectives |
+| `@design` | - | 🎨 | Routes to design specialists, coordinates design reviews |
+| `@architecture` | - | 🏗️ | Routes to architecture specialists, coordinates technical reviews |
+| `@marketing` | - | 📢 | Routes to marketing specialists, coordinates campaigns |
+
+### Extension Team Agents (spawn via Task tool, same as OS agents)
+
+**Design Team (6 agents)**
+
+| Agent | Emoji | Domain |
+|-------|-------|--------|
+| `@design-dir` | 🎨 | Design leadership, design system governance, team coordination |
+| `@ui-designer` | 🖼️ | UI components, design systems, interface patterns |
+| `@visual-designer` | 🎭 | Visual design, branding, aesthetics, imagery |
+| `@interaction-designer` | 👆 | Interaction patterns, micro-interactions, motion specs |
+| `@user-researcher` | 👤 | User research, interviews, usability testing |
+| `@motion-designer` | 🎬 | Animation, transitions, motion design |
+
+**Architecture Team (6 agents)**
+
+| Agent | Emoji | Domain |
+|-------|-------|--------|
+| `@chief-architect` | 🏗️ | Technical strategy, architecture governance, system design |
+| `@api-architect` | 🔌 | API design, integrations, contracts, versioning |
+| `@data-architect` | 📊 | Data modeling, database design, schemas |
+| `@security-architect` | 🔐 | Security review, auth, compliance, threat modeling |
+| `@cloud-architect` | ☁️ | Cloud infrastructure, deployment, scaling |
+| `@ai-architect` | 🤖 | AI/ML architecture, model integration, LLM patterns |
+
+**Marketing Team (14 agents)**
+
+| Agent | Emoji | Domain |
+|-------|-------|--------|
+| `@marketing-dir` | 📢 | Marketing leadership, strategy, team coordination |
+| `@content-strategist` | ✍️ | Content strategy, editorial calendar, messaging |
+| `@copywriter` | ✏️ | Copy, messaging, landing pages, emails |
+| `@seo-specialist` | 🔍 | SEO, keywords, organic search, technical SEO |
+| `@cro-specialist` | 📈 | Conversion optimization, A/B tests, funnels |
+| `@paid-media-manager` | 💰 | Paid ads, campaigns, media buying |
+| `@email-marketer` | 📧 | Email campaigns, sequences, automation |
+| `@social-media-manager` | 📱 | Social media, community, engagement |
+| `@growth-marketer` | 🚀 | Growth strategy, acquisition, retention |
+| `@market-researcher` | 🔬 | Market research, sizing, analysis |
+| `@video-producer` | 🎥 | Video content, production, editing |
+| `@pr-comms-specialist` | 📣 | PR, communications, press, announcements |
+| `@presentation-designer` | 📑 | Presentations, decks, visual storytelling |
+| `@infographic-designer` | 📊 | Infographics, data visualization |
 
 ---
 
@@ -292,8 +339,12 @@ When the user mentions an `@agent` or `@gateway`, **immediately invoke without a
 |---------------|------|--------|
 | `@product` | Skill | Invoke `/product` gateway skill (routes to owners, orchestrates) |
 | `@plt` or `@product-leadership-team` | Skill | Invoke `/product-leadership-team` skill (Meeting Mode) |
+| `@design` | Skill | Invoke `/design` gateway skill (routes to design specialists) |
+| `@architecture` | Skill | Invoke `/architecture` gateway skill (routes to architects) |
+| `@marketing` | Skill | Invoke `/marketing` gateway skill (routes to marketing specialists) |
 | `@pm` or `@product-manager` | Task | Spawn `product-manager` agent |
-| `@vp-product`, `@cpo`, `@pm-dir`, etc. | Task | Spawn the named individual agent |
+| `@vp-product`, `@cpo`, `@pm-dir`, etc. | Task | Spawn the named OS agent |
+| `@ui-designer`, `@security-architect`, etc. | Task | Spawn the named Extension Team agent |
 | `/[skill-name]` | Skill | Invoke that skill inline |
 
 ### Invocation Examples
@@ -318,6 +369,16 @@ When the user mentions an `@agent` or `@gateway`, **immediately invoke without a
 ```
 → Skill tool invokes PRD template inline
 
+```
+@security-architect review the auth implementation
+```
+→ Task tool spawns Security Architect agent
+
+```
+@design @mockups.png review these dashboard designs
+```
+→ Skill tool invokes Design gateway → Routes to relevant design specialists
+
 **Do NOT:**
 - Ask "would you like me to route this?"
 - Respond directly when an @ mention is present
@@ -336,8 +397,9 @@ Even without explicit @ mentions, route automatically when the question clearly 
 ### Recognition Patterns
 
 Recognize these as routing signals:
-- Agent names with `@` prefix: `@pm`, `@product-manager`, `@vp-product`
-- Gateway names with `@` prefix: `@product`, `@plt`
+- OS agent names with `@` prefix: `@pm`, `@product-manager`, `@vp-product`
+- Extension Team agent names with `@` prefix: `@ui-designer`, `@security-architect`, `@copywriter`
+- Gateway names with `@` prefix: `@product`, `@plt`, `@design`, `@architecture`, `@marketing`
 - Skill invocations with `/` prefix: `/prd`, `/decision-record`
 - File context with `@` prefix: `@strategy.md`, `@research.md`
 

@@ -1,50 +1,62 @@
-# ROI Display (MANDATORY)
+# ROI Display (SELECTIVE)
 
-This rule governs how time-savings are displayed after skill and agent completions.
-
----
-
-## The Principle
-
-Every skill and agent invocation saves time compared to **manual product management work**. Making this visible helps users understand the leverage they're getting from the Product Org OS.
-
-**CRITICAL**: The Product Org OS helps with PRODUCT WORK - strategy, decisions, requirements, GTM, analysis, documentation, etc. ROI comparisons should ALWAYS reference the manual PM/product equivalent, NEVER software development or coding effort.
+This rule governs when and how time-savings are displayed. **ROI is for deliverables only, not every interaction.**
 
 ---
 
-## Display Requirements
+## Core Rule: Deliverables Only
 
-### Compact Single-Line Format (DEFAULT)
+**Show ROI when you produce a tangible deliverable:**
+- Document created or significantly updated
+- Analysis with actionable recommendations
+- Multi-agent synthesis with recommendations
 
-Display ROI on a single line after skill or agent completion, including the actual elapsed time:
+**Skip ROI for everything else:**
+- Simple Q&A and explanations
+- Context lookups and recalls
+- Quick answers to questions
+- Reading files or providing information
+- System operations
+
+---
+
+## The Quick Test
+
+Before adding an ROI line, ask: **"Did I create or deliver something the user would save as a file?"**
+
+- **YES** → Show ROI
+- **NO** → Skip ROI
+
+---
+
+## Format (When Showing)
 
 ```markdown
 ⏱️ ~[X] hrs/min saved in [Y]s (vs. [brief manual equivalent])
 ```
 
-**Examples (Product Work):**
+**Examples:**
 - `⏱️ ~4 hrs saved in 52s (vs. manual PRD writing + stakeholder reviews)`
-- `⏱️ ~2 hrs saved in 38s (vs. conducting competitive analysis manually)`
+- `⏱️ ~2 hrs saved in 38s (vs. conducting competitive analysis)`
 - `⏱️ ~90 min saved in 25s (vs. documenting decision + aligning stakeholders)`
-- `⏱️ ~45 min saved in 12s (vs. gathering context from past decisions)`
 
-**Why include elapsed time?** It makes the leverage concrete: "I waited 52 seconds and saved 4 hours of product work."
+**Always reference product work**, never coding or development.
 
-**NEVER frame as:**
-- "vs. coding this feature" (wrong - we don't code)
-- "vs. implementing manually" (wrong - we don't implement)
-- "vs. building this" (wrong - we don't build software)
+---
 
-### When to Show
-- After agent spawning (Task tool) produces planning, insights, or deliverables
-- After skill execution that creates or updates documents
-- After PLT or gateway sessions that produce recommendations
+## Trigger Checklist
 
-### When NOT to Show
-- Simple lookups or context retrieval (`/context-recall`, `/feedback-recall`)
-- Failed operations
-- System operations (setup, indexing)
-- Pure read operations with no synthesis
+| Trigger | Show ROI? |
+|---------|-----------|
+| Created PRD, spec, analysis doc | ✅ YES |
+| Agent produced recommendations | ✅ YES |
+| PLT/gateway session with synthesis | ✅ YES |
+| Answered a question | ❌ NO |
+| Looked up context/feedback | ❌ NO |
+| Read files for the user | ❌ NO |
+| Explained something | ❌ NO |
+| Failed/cancelled operation | ❌ NO |
+| System operation (setup, index) | ❌ NO |
 
 ---
 
@@ -159,34 +171,8 @@ This enables `/roi-report` to show 30/90 day summaries.
 
 ---
 
-## Enforcement
-
-### MUST Display
-- After completing any `/skill` invocation
-- After completing any `@agent` task
-- After `@plt` or `@product` gateway completions
-
-### MAY Skip
-- Context retrieval skills (`/context-recall`, `/feedback-recall`, `/relevant-learnings`)
-- Pure assessment skills with no deliverable (`/phase-check`)
-- When user explicitly requests no ROI display
-
-### NEVER Display
-- During streaming/progress output
-- For failed/cancelled operations
-- For system operations (setup, indexing)
-
----
-
-## Accuracy Notes
-
-1. **Conservative estimates**: Better to underestimate than overclaim
-2. **Complexity is approximate**: Use judgment, not precise rules
-3. **Value varies**: Experienced users may be faster at manual equivalents
-4. **Focus on trend**: Individual estimates matter less than cumulative pattern
-
----
-
 ## Operating Principle
 
-> "What gets measured gets managed. Tracking time savings makes the value of AI-assisted product work visible and improvable."
+> "ROI tracking demonstrates value for meaningful work. Don't clutter simple interactions with metrics."
+
+**For detailed ROI aggregation in multi-agent scenarios, see `agent-spawn-protocol.md` Section 3.**
