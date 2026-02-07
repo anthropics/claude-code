@@ -25,16 +25,16 @@ import tempfile
 from datetime import datetime
 
 
-# --- Konfiguracja ---
+# --- Configuration ---
 
 STATE_FILE_PREFIX = "destructive_guard_state_"
-# Log w katalogu uzytkownika, nie w /tmp (ochrona przed symlink attacks)
+# Log in user directory, not /tmp (prevents symlink attacks, CWE-377)
 CLAUDE_DIR = os.path.expanduser("~/.claude")
 DEBUG_LOG_FILE = os.path.join(CLAUDE_DIR, "destructive-guard-log.txt")
 
 
 def debug_log(message):
-    """Zapis logu debugowego z timestampem do katalogu uzytkownika."""
+    """Write a debug log entry with timestamp to user directory."""
     try:
         os.makedirs(CLAUDE_DIR, mode=0o700, exist_ok=True)
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
@@ -48,20 +48,20 @@ def debug_log(message):
 
 
 def _sanitize_session_id(session_id):
-    """Walidacja session_id - zapobieganie path traversal (CWE-22)."""
+    """Validate session_id to prevent path traversal (CWE-22)."""
     if not session_id or not re.match(r"^[a-zA-Z0-9_.-]+$", session_id):
         return "default_safe"
     return session_id
 
 
 def get_state_file(session_id):
-    """Sciezka do pliku stanu sesji (z sanityzacja)."""
+    """Return path to session state file (with sanitization)."""
     safe_id = _sanitize_session_id(session_id)
     return os.path.join(CLAUDE_DIR, f"{STATE_FILE_PREFIX}{safe_id}.json")
 
 
 def cleanup_old_state_files():
-    """Usuwa pliki stanu starsze niz 30 dni."""
+    """Remove state files older than 30 days."""
     try:
         if not os.path.exists(CLAUDE_DIR):
             return
@@ -80,7 +80,7 @@ def cleanup_old_state_files():
 
 
 def load_state(session_id):
-    """Wczytaj zbior juz wyswietlonych ostrzezen."""
+    """Load the set of already shown warnings."""
     state_file = get_state_file(session_id)
     if os.path.exists(state_file):
         try:
@@ -92,7 +92,7 @@ def load_state(session_id):
 
 
 def save_state(session_id, shown_warnings):
-    """Atomowy zapis stanu (tempfile + os.replace, POSIX atomic)."""
+    """Atomic state save (tempfile + os.replace, POSIX atomic)."""
     state_file = get_state_file(session_id)
     try:
         os.makedirs(os.path.dirname(state_file), mode=0o700, exist_ok=True)
@@ -104,7 +104,7 @@ def save_state(session_id, shown_warnings):
                 json.dump(list(shown_warnings), f)
             os.replace(tmp_path, state_file)
         except Exception:
-            # Sprzatanie pliku tymczasowego w razie bledu
+            # Clean up temporary file on error
             try:
                 os.unlink(tmp_path)
             except OSError:
@@ -113,38 +113,38 @@ def save_state(session_id, shown_warnings):
         pass
 
 
-# --- Parsery komend Bash ---
+# --- Bash command parsers ---
 
 
 def _split_commands(command):
-    """Rozdziela polecenie na czesci po &&, ;, | (uproszczony split).
+    """Split command into parts by &&, ;, | (simplified split).
 
-    Nie obsluguje zagniezdzenych cudzyslow -- to ograniczenie blocklist approach.
+    Does not handle nested quotes -- this is a limitation of the blocklist approach.
     """
     parts = re.split(r"\s*(?:&&|;|\|)\s*", command)
     return [p.strip() for p in parts if p.strip()]
 
 
 def _normalize_path(path):
-    """Normalizacja sciezki -- lapie warianty /./  //  /../.. itp."""
+    """Path normalization -- catches variants like /./  //  /../.. etc."""
     cleaned = path
-    # Usun podwojne slashe
+    # Remove double slashes
     while "//" in cleaned:
         cleaned = cleaned.replace("//", "/")
-    # Usun /./ sekwencje
+    # Remove /./ sequences
     while "/./" in cleaned:
         cleaned = cleaned.replace("/./", "/")
-    # Jesli zawiera parent traversal (..) -- podejrzane
+    # If it contains parent traversal (..) -- suspicious
     if "/.." in cleaned or cleaned.startswith(".."):
         return "/"
     return cleaned.rstrip("/") or "/"
 
 
 def _parse_rm_flags_and_targets(args_str):
-    """Parsuje flagi i targety z argumentow rm.
+    """Parse flags and targets from rm arguments.
 
-    Obsluguje: -rf, -r -f, -rfv, --recursive --force, itp.
-    Zwraca (flags: set, targets: list).
+    Handles: -rf, -r -f, -rfv, --recursive --force, etc.
+    Returns (flags: set, targets: list).
     """
     tokens = args_str.split()
     flags = set()
@@ -173,7 +173,7 @@ def _parse_rm_flags_and_targets(args_str):
     return flags, targets
 
 
-# Sciezki niebezpieczne dla rm -rf
+# Dangerous paths for rm -rf
 _DANGEROUS_RM_TARGETS = {
     "/", "/*",
     "~", "~/", "~/*",
@@ -184,7 +184,7 @@ _DANGEROUS_RM_TARGETS = {
     "*",
 }
 
-# Sciezki systemowe -- rowniez niebezpieczne dla rm -rf
+# System paths -- also dangerous for rm -rf
 _DANGEROUS_SYSTEM_PATHS = {
     "/etc", "/usr", "/var", "/home", "/opt", "/boot",
     "/bin", "/sbin", "/lib", "/lib64", "/srv", "/root",
@@ -193,10 +193,10 @@ _DANGEROUS_SYSTEM_PATHS = {
 
 
 def check_rm_dangerous(command):
-    """Sprawdza czy komenda rm jest niebezpieczna.
+    """Check if the rm command is dangerous.
 
-    Blokuje: rm -rf /, ~, ., .., *, /etc, /usr, /var, /home, zmienne, subshells
-    Przepuszcza: rm -rf node_modules, rm -rf /tmp/build, rm file.txt
+    Blocks: rm -rf /, ~, ., .., *, /etc, /usr, /var, /home, variables, subshells
+    Allows: rm -rf node_modules, rm -rf /tmp/build, rm file.txt
     """
     for part in _split_commands(command):
         tokens = part.split()
@@ -210,7 +210,7 @@ def check_rm_dangerous(command):
         if not (has_recursive and has_force):
             continue
 
-        # Sprawdz backticki w calym args_str (split rozbija je na wiele tokenow)
+        # Check backticks in entire args_str (split breaks them into multiple tokens)
         if "`" in args_str:
             return (
                 "BLOCKED: 'rm -rf' with backtick command substitution is not allowed. "
@@ -218,24 +218,24 @@ def check_rm_dangerous(command):
             )
 
         for target in targets:
-            # Sprawdz command substitution / variable expansion
+            # Check command substitution / variable expansion
             if re.search(r"\$\(.*\)|`.*`", target):
                 return (
                     "BLOCKED: 'rm -rf' with command substitution is not allowed. "
                     "Specify the target path directly so it can be validated."
                 )
             if re.search(r"\$\{?\w+\}?", target) and target not in _DANGEROUS_RM_TARGETS:
-                # Zmienna ktora nie jest na liscie znanych -- podejrzane
+                # Variable not on the known list -- suspicious
                 return (
                     f"BLOCKED: 'rm -rf' with variable expansion ({target}) is not allowed. "
                     "Specify the target path directly so it can be validated."
                 )
 
-            # Normalizacja sciezki
+            # Path normalization
             normalized = _normalize_path(target)
             raw_stripped = target.rstrip("/") or "/"
 
-            # Sprawdz literalne niebezpieczne targety
+            # Check literal dangerous targets
             if (target in _DANGEROUS_RM_TARGETS
                     or raw_stripped in _DANGEROUS_RM_TARGETS
                     or normalized in _DANGEROUS_RM_TARGETS):
@@ -245,13 +245,13 @@ def check_rm_dangerous(command):
                     "If you need to remove specific files, use a more targeted command."
                 )
 
-            # Sprawdz sciezki systemowe
+            # Check system paths
             if normalized in _DANGEROUS_SYSTEM_PATHS or raw_stripped in _DANGEROUS_SYSTEM_PATHS:
                 return (
                     f"BLOCKED: 'rm -rf {target}' targets a critical system directory. "
                     "Removing system directories causes irreversible damage."
                 )
-            # Sprawdz czy target z /* jest sciezka systemowa
+            # Check if target with /* is a system path
             if target.endswith("/*"):
                 base = target[:-2].rstrip("/") or "/"
                 if base in _DANGEROUS_SYSTEM_PATHS:
@@ -266,9 +266,9 @@ def check_rm_dangerous(command):
 
 
 def check_indirect_execution(command):
-    """Blokuje posrednie wykonanie komend (eval, sh -c, pipe do shell, base64).
+    """Block indirect command execution (eval, sh -c, pipe to shell, base64).
 
-    Zapobiega obejsciu guardu przez zawijanie komend w eval/sh/bash.
+    Prevents bypassing the guard by wrapping commands in eval/sh/bash.
     """
     for part in _split_commands(command):
         tokens = part.split()
@@ -277,7 +277,7 @@ def check_indirect_execution(command):
 
         cmd = tokens[0]
 
-        # eval z argumentami
+        # eval with arguments
         if cmd == "eval" and len(tokens) > 1:
             return (
                 "BLOCKED: 'eval' executes arbitrary strings as commands, bypassing safety checks. "
@@ -291,14 +291,14 @@ def check_indirect_execution(command):
                 "bypassing safety checks. Run the command directly instead."
             )
 
-    # Pipe do shell: ... | sh, ... | bash, ... | zsh
+    # Pipe to shell: ... | sh, ... | bash, ... | zsh
     if re.search(r"\|\s*(?:sh|bash|zsh)\s*$", command):
         return (
             "BLOCKED: Piping output to a shell interpreter bypasses safety checks. "
             "Run the command directly instead."
         )
 
-    # base64 decode piped do shell
+    # base64 decode piped to shell
     if re.search(r"base64\s+.*\|\s*(?:sh|bash|zsh)", command):
         return (
             "BLOCKED: Decoding and piping to shell is a common obfuscation technique. "
@@ -312,10 +312,10 @@ def check_indirect_execution(command):
 
 
 def check_alternative_deletion(command):
-    """Blokuje alternatywne narzedzia usuwania na sciezkach systemowych.
+    """Block alternative deletion tools on dangerous paths.
 
-    Blokuje: find / -delete, find ~ -delete, shred na sciezkach systemowych
-    Przepuszcza: find ./src -name '*.pyc' -delete (specyficzna sciezka)
+    Blocks: find / -delete, find ~ -delete
+    Allows: find ./src -name '*.pyc' -delete (specific path)
     """
     for part in _split_commands(command):
         tokens = part.split()
@@ -343,13 +343,13 @@ def check_alternative_deletion(command):
 
 
 _DOCKER_DANGEROUS_PATTERNS = [
-    # docker rm/stop/kill z subshell $(docker ps ...)
+    # docker rm/stop/kill with subshell $(docker ps ...)
     (
         r"docker\s+(?:rm|stop|kill)\s+.*\$\(docker\s+ps",
         "BLOCKED: Mass Docker container removal/stop/kill via subshell. "
         "Remove containers individually by name instead.",
     ),
-    # docker rm/stop/kill z backticks `docker ps ...`
+    # docker rm/stop/kill with backticks `docker ps ...`
     (
         r"docker\s+(?:rm|stop|kill)\s+.*`docker\s+ps",
         "BLOCKED: Mass Docker container removal/stop/kill via subshell. "
@@ -373,7 +373,7 @@ _DOCKER_DANGEROUS_PATTERNS = [
         "BLOCKED: 'docker container prune' removes all stopped containers. "
         "Remove specific containers by name instead.",
     ),
-    # docker image prune -a (usun WSZYSTKIE nieuzywane obrazy)
+    # docker image prune -a (removes ALL unused images)
     (
         r"docker\s+image\s+prune\s+(?:.*\s)?-a",
         "BLOCKED: 'docker image prune -a' removes all unused images. "
@@ -411,12 +411,12 @@ _DOCKER_DANGEROUS_PATTERNS = [
 
 
 def check_docker_dangerous(command):
-    """Sprawdza czy komenda docker jest niebezpieczna.
+    """Check if the docker command is dangerous.
 
-    Blokuje: docker system/volume/container/network/builder prune,
-             docker rm/stop/kill z subshell, docker compose down -v
-    Przepuszcza: docker rm my-container, docker stop my-container,
-                 docker image prune (bez -a)
+    Blocks: docker system/volume/container/network/builder prune,
+            docker rm/stop/kill with subshell, docker compose down -v
+    Allows: docker rm my-container, docker stop my-container,
+            docker image prune (without -a)
     """
     for part in _split_commands(command):
         for pattern, message in _DOCKER_DANGEROUS_PATTERNS:
@@ -429,13 +429,13 @@ def check_docker_dangerous(command):
 
 
 def check_git_dangerous(command):
-    """Sprawdza czy komenda git jest niebezpieczna.
+    """Check if the git command is dangerous.
 
-    Blokuje: git clean -fd/-fx/-fdx (bez dry-run), git checkout -- .,
-             git reset --hard (bez targetu), git push --force,
-             git branch -D, git stash drop/clear
-    Przepuszcza: git clean -n, git reset --hard abc1234, git push,
-                 git branch -d, git stash
+    Blocks: git clean -fd/-fx/-fdx (without dry-run), git checkout -- .,
+            git reset --hard (without target), git push --force,
+            git branch -D, git stash clear
+    Allows: git clean -n, git reset --hard abc1234, git push,
+            git branch -d, git stash
     """
     for part in _split_commands(command):
         tokens = part.split()
@@ -446,7 +446,7 @@ def check_git_dangerous(command):
 
         subcommand = tokens[1]
 
-        # git clean (bez dry-run, z force + dirs/ignored)
+        # git clean (without dry-run, with force + dirs/ignored)
         if subcommand == "clean":
             args_str = " ".join(tokens[2:])
             has_dry_run = bool(re.search(r"(?:^|\s)-[a-zA-Z]*n", args_str)) or \
@@ -476,7 +476,7 @@ def check_git_dangerous(command):
                     "Use 'git stash' to save changes, or checkout specific files."
                 )
 
-        # git reset --hard (bez explicit targetu)
+        # git reset --hard (without explicit target)
         if subcommand == "reset":
             rest_tokens = tokens[2:]
             if "--hard" in rest_tokens:
@@ -492,7 +492,7 @@ def check_git_dangerous(command):
                         "or use 'git stash' first."
                     )
 
-        # git push --force / -f (nadpisuje historie remote)
+        # git push --force / -f (overwrites remote history)
         if subcommand == "push":
             rest_tokens = tokens[2:]
             if "--force" in rest_tokens or "-f" in rest_tokens:
@@ -500,7 +500,7 @@ def check_git_dangerous(command):
                     "BLOCKED: 'git push --force' overwrites remote history and can cause data loss "
                     "for other collaborators. Use 'git push --force-with-lease' for safer force push."
                 )
-            # Sprawdz sklejone flagi np. -uf
+            # Check combined flags e.g. -uf
             for token in rest_tokens:
                 if token.startswith("-") and not token.startswith("--") and "f" in token[1:]:
                     return (
@@ -517,7 +517,7 @@ def check_git_dangerous(command):
                     "Use 'git branch -d' which will warn if the branch is not fully merged."
                 )
 
-        # git stash drop / clear (utrata zapisanych zmian)
+        # git stash drop / clear (loss of saved changes)
         if subcommand == "stash":
             if len(tokens) >= 3:
                 stash_action = tokens[2]
@@ -527,21 +527,21 @@ def check_git_dangerous(command):
                         "Use 'git stash drop' to remove specific stash entries."
                     )
                 if stash_action == "drop" and len(tokens) == 3:
-                    # 'git stash drop' bez argumentu -- dropuje ostatni stash
-                    # Przepuszczamy, bo to pojedynczy stash, nie catastrophic
+                    # 'git stash drop' without argument -- drops the latest stash
+                    # Allowed because it's a single stash, not catastrophic
                     pass
 
     return None
 
 
-# --- Ochrona plikow konfiguracyjnych ---
-# Decyzja projektowa: edycje chronionych plikow sa ostrzegane (exit 0 + systemMessage),
-# a NIE blokowane (exit 2). Uzytkownik moze celowo chciec zmodyfikowac CLAUDE.md
-# lub settings - blokowanie utrudnialoby uzywanie agenta. Ostrzezenie informuje
-# agenta o wrazliwosci pliku. Destrukcyjne komendy Bash sa blokowane (exit 2),
-# bo sa nieodwracalne.
+# --- Configuration file protection ---
+# Design decision: edits to protected files trigger a warning (exit 0 + systemMessage),
+# but are NOT blocked (exit 2). The user may intentionally want to modify CLAUDE.md
+# or settings -- blocking would hinder agent usage. The warning informs the agent
+# about the file's sensitivity. Destructive Bash commands are blocked (exit 2)
+# because they are irreversible.
 
-# Nazwy chronionych plikow (do regex matching)
+# Names of protected files (for regex matching)
 _PROTECTED_FILE_NAMES = [
     "CLAUDE.md",
     ".claude/settings.json",
@@ -578,9 +578,9 @@ _PROTECTED_FILE_PATTERNS = [
 
 
 def check_file_protection(file_path):
-    """Sprawdza czy plik jest chroniony (CLAUDE.md, settings, hooks.json).
+    """Check if a file is protected (CLAUDE.md, settings, hooks.json).
 
-    Zwraca (warning_key, message) lub (None, None).
+    Returns (warning_key, message) or (None, None).
     """
     if not file_path:
         return None, None
@@ -591,12 +591,12 @@ def check_file_protection(file_path):
 
 
 def check_bash_file_modification(command):
-    """Sprawdza czy komenda Bash modyfikuje chronione pliki.
+    """Check if a Bash command modifies protected files.
 
-    Lapie: echo > CLAUDE.md, sed -i CLAUDE.md, mv/cp/tee/truncate/dd
-    Nie blokuje -- wyswietla warning (return message string lub None).
+    Catches: echo > CLAUDE.md, sed -i CLAUDE.md, mv/cp/tee/truncate/dd
+    Does not block -- returns a warning message string or None.
     """
-    # Wzorce modyfikacji plikow w Bash
+    # File modification patterns in Bash
     _BASH_FILE_MOD_PATTERNS = [
         r"(?:>|>>)\s*\S*{name}",          # echo "x" > CLAUDE.md, >> append
         r"tee\s+(?:-a\s+)?\S*{name}",     # tee CLAUDE.md, tee -a CLAUDE.md
@@ -608,12 +608,12 @@ def check_bash_file_modification(command):
     ]
 
     for name in _PROTECTED_FILE_NAMES:
-        # Escape regex special chars w nazwie pliku
+        # Escape regex special chars in filename
         escaped_name = re.escape(name)
         for pattern_template in _BASH_FILE_MOD_PATTERNS:
             pattern = pattern_template.format(name=escaped_name)
             if re.search(pattern, command):
-                # Znajdz odpowiedni warning message
+                # Find the appropriate warning message
                 for _, _, msg in _PROTECTED_FILE_PATTERNS:
                     if name.split("/")[-1] in msg or name in msg:
                         return msg
@@ -625,14 +625,14 @@ def check_bash_file_modification(command):
     return None
 
 
-# --- Glowna logika ---
+# --- Main logic ---
 
 
 def handle_bash(tool_input):
-    """Obsluga narzedzia Bash - sprawdza komende pod katem destrukcyjnych operacji.
+    """Bash tool handler -- checks the command for destructive operations.
 
-    Zwraca (block_message, warn_message) -- block_message powoduje exit 2,
-    warn_message powoduje systemMessage (exit 0).
+    Returns (block_message, warn_message) -- block_message causes exit 2,
+    warn_message causes systemMessage (exit 0).
     """
     command = tool_input.get("command", "")
     if not command:
@@ -643,27 +643,27 @@ def handle_bash(tool_input):
     if result:
         return result, None
 
-    # 2. rm -rf na niebezpiecznych sciezkach
+    # 2. rm -rf on dangerous paths
     result = check_rm_dangerous(command)
     if result:
         return result, None
 
-    # 3. Alternatywne narzedzia usuwania (find -delete)
+    # 3. Alternative deletion tools (find -delete)
     result = check_alternative_deletion(command)
     if result:
         return result, None
 
-    # 4. Docker destrukcyjne komendy
+    # 4. Docker destructive commands
     result = check_docker_dangerous(command)
     if result:
         return result, None
 
-    # 5. Git destrukcyjne komendy
+    # 5. Git destructive commands
     result = check_git_dangerous(command)
     if result:
         return result, None
 
-    # 6. Modyfikacja chronionych plikow przez Bash (warning, nie block)
+    # 6. Protected file modification via Bash (warning, not block)
     warn = check_bash_file_modification(command)
     if warn:
         return None, warn
@@ -672,10 +672,10 @@ def handle_bash(tool_input):
 
 
 def handle_file_edit(tool_name, tool_input, session_id):
-    """Obsluga narzedzi Write/Edit/MultiEdit - ostrzezenie przy edycji chronionych plikow.
+    """Write/Edit/MultiEdit tool handler -- warns when editing protected files.
 
-    Zwraca (should_warn: bool, message: str).
-    Warning jest wyswietlany tylko raz na sesje per plik.
+    Returns (should_warn: bool, message: str).
+    The warning is displayed only once per session per file.
     """
     file_path = tool_input.get("file_path", "")
     if not file_path:
@@ -696,15 +696,15 @@ def handle_file_edit(tool_name, tool_input, session_id):
 
 
 def main():
-    # Sprawdz env var wylaczajacy guard
+    # Check env var that disables the guard
     if os.environ.get("ENABLE_DESTRUCTIVE_GUARD", "1") == "0":
         sys.exit(0)
 
-    # Periodyczny cleanup starych plikow stanu (10% szans)
+    # Periodic cleanup of old state files (10% chance)
     if random.random() < 0.1:
         cleanup_old_state_files()
 
-    # Wczytaj dane wejsciowe z stdin
+    # Read input data from stdin
     try:
         raw_input_data = sys.stdin.read()
         input_data = json.loads(raw_input_data)
@@ -716,15 +716,15 @@ def main():
     tool_name = input_data.get("tool_name", "")
     tool_input = input_data.get("tool_input", {})
 
-    # Obsluga Bash
+    # Bash handling
     if tool_name == "Bash":
         block_message, warn_message = handle_bash(tool_input)
         if block_message:
             print(block_message, file=sys.stderr)
             sys.exit(2)
         if warn_message:
-            # Warning o modyfikacji chronionego pliku przez Bash
-            # Raz na sesje per warning
+            # Protected file modification warning via Bash
+            # Once per session per warning
             shown_warnings = load_state(session_id)
             warn_key = f"bash-{warn_message[:50]}"
             if warn_key not in shown_warnings:
@@ -734,7 +734,7 @@ def main():
                 print(warning_output)
         sys.exit(0)
 
-    # Obsluga Write/Edit/MultiEdit
+    # Write/Edit/MultiEdit handling
     if tool_name in ("Write", "Edit", "MultiEdit"):
         should_warn, message = handle_file_edit(tool_name, tool_input, session_id)
         if should_warn:
@@ -743,7 +743,7 @@ def main():
             sys.exit(0)
         sys.exit(0)
 
-    # Inne narzedzia -- przepusc
+    # Other tools -- allow
     sys.exit(0)
 
 
