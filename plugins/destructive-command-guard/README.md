@@ -24,9 +24,14 @@ Or add to your project's `.claude/settings.json`:
 
 | Category | Blocked patterns | Why |
 |----------|-----------------|-----|
-| Mass deletion | `rm -rf /`, `rm -rf ~`, `rm -rf $HOME`, `rm -rf .`, `rm -rf ..`, `rm -rf *` | Irreversible deletion of root, home, or working directory |
-| Docker mass removal | `docker rm -f $(docker ps -aq)`, `docker system prune`, `docker volume prune`, `docker compose down -v` | Removes all containers, volumes, or system data |
-| Git destructive | `git clean -fdx`, `git checkout -- .`, `git reset --hard` (no target) | Loss of uncommitted changes and untracked files |
+| Mass deletion | `rm -rf /`, `~`, `.`, `..`, `*`, `$HOME` | Irreversible deletion of root, home, or cwd |
+| System paths | `rm -rf /etc`, `/usr`, `/var`, `/home`, `/boot`, `/opt`, `/bin`, `/sbin`, `/lib`, `/Users`, `/Applications`, `/System`, `/Library` | Critical system directories |
+| Variable expansion | `rm -rf $(pwd)`, `rm -rf $DIR` | Unvalidatable dynamic targets |
+| Path traversal | `rm -rf /./`, `rm -rf //`, `rm -rf /../..` | Normalized to dangerous paths |
+| Docker mass ops | `docker system prune`, `docker volume prune`, `docker container prune`, `docker network prune`, `docker builder prune`, `docker image prune -a`, `docker rm -f $(docker ps -aq)`, `docker compose down -v` | Mass removal of containers, volumes, images, networks |
+| Git destructive | `git clean -fdx` (without `-n`), `git checkout -- .`, `git reset --hard` (no target), `git push --force`, `git branch -D`, `git stash clear` | Loss of uncommitted changes, remote history, branches |
+| Indirect execution | `eval "..."`, `sh -c "..."`, `bash -c "..."`, `... \| sh`, `base64 ... \| bash` | Bypasses all other checks |
+| Alternative deletion | `find / -delete`, `find ~ -delete` | Equivalent to mass `rm` |
 
 ### Allowed commands (not blocked)
 
@@ -36,12 +41,18 @@ Or add to your project's `.claude/settings.json`:
 | `rm -rf /tmp/build` | Targets a temporary path |
 | `rm file.txt` | No recursive force flags |
 | `docker rm my-container` | Targets a specific container |
-| `docker stop my-container` | Targets a specific container |
-| `git clean -n` | Dry-run mode (preview only) |
-| `git clean -ndx` | Dry-run mode (preview only) |
+| `docker image prune` (without `-a`) | Only removes dangling images |
+| `git clean -n` / `git clean -ndx` | Dry-run mode (preview only) |
 | `git reset --hard abc1234` | Has an explicit commit target |
+| `git push` | Normal push (no force) |
+| `git push --force-with-lease` | Safe force push with protection |
+| `git branch -d` | Safe delete (warns if unmerged) |
+| `git stash drop stash@{0}` | Removes a single specific stash |
+| `find ./src -name '*.pyc' -delete` | Scoped to a specific directory |
 
 ### Protected file warnings (systemMessage, once per session)
+
+Warnings are triggered both by Write/Edit/MultiEdit tools AND by Bash commands that modify these files (e.g., `echo > CLAUDE.md`, `sed -i`, `mv`, `cp`, `tee`, `truncate`, `dd`).
 
 | File pattern | Why it's protected |
 |-------------|-------------------|
@@ -66,13 +77,20 @@ export ENABLE_DESTRUCTIVE_GUARD=0
 
 Warning state is stored in `~/.claude/destructive_guard_state_{session_id}.json`. Old state files (>30 days) are cleaned up automatically.
 
-## How it works
+## Security model
 
-The hook intercepts `PreToolUse` events for `Bash`, `Write`, `Edit`, and `MultiEdit` tools:
+This plugin is a **blocklist-based first line of defense** against accidental destructive commands. It is **not a sandbox** and has known limitations:
 
-1. **Bash commands**: Parses the command, splits multi-command chains (`&&`, `;`, `|`), and checks each part against destructive patterns. Blocked commands return exit code 2 with an error message on stderr.
+- Cannot catch all possible command obfuscation (e.g., multi-stage variable assignment, aliasing)
+- Shell grammar is context-sensitive and cannot be fully parsed with regex
+- Protects against common agent mistakes, not targeted adversarial attacks
 
-2. **File edits**: Checks the target file path against protected patterns. If matched, outputs a one-time warning as a `systemMessage` JSON on stdout (exit code 0).
+**Hardening applied:**
+- Session ID sanitization (path traversal prevention, CWE-22)
+- Debug logs stored in `~/.claude/` instead of `/tmp` (symlink attack prevention, CWE-377)
+- Atomic state file writes via `tempfile` + `os.replace` (race condition mitigation)
+- Indirect execution detection (eval, sh -c, pipe-to-shell, base64 decode)
+- Path normalization (catches `//`, `/./`, `/../..` variants)
 
 ## Dependencies
 
