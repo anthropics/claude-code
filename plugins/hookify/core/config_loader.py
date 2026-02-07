@@ -4,6 +4,8 @@
 Loads and parses .claude/hookify.*.local.md files.
 """
 
+from __future__ import annotations
+
 import os
 import sys
 import glob
@@ -207,7 +209,10 @@ def load_rules(event: Optional[str] = None) -> List[Rule]:
     rules = []
 
     # Find all hookify.*.local.md files
-    pattern = os.path.join('.claude', 'hookify.*.local.md')
+    # Use CLAUDE_PROJECT_DIR (set by Claude Code) so rules are found
+    # regardless of the current working directory.
+    project_dir = os.environ.get('CLAUDE_PROJECT_DIR', os.getcwd())
+    pattern = os.path.join(project_dir, '.claude', 'hookify.*.local.md')
     files = glob.glob(pattern)
 
     for file_path in files:
