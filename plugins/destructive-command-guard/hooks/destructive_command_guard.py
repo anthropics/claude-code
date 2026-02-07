@@ -117,11 +117,11 @@ def save_state(session_id, shown_warnings):
 
 
 def _split_commands(command):
-    """Split command into parts by &&, ;, | (simplified split).
+    """Split command into parts by &&, ||, ;, |, and newlines (simplified split).
 
     Does not handle nested quotes -- this is a limitation of the blocklist approach.
     """
-    parts = re.split(r"\s*(?:&&|;|\|)\s*", command)
+    parts = re.split(r"\s*(?:&&|\|\||;|\|)\s*|[\r\n]+", command)
     return [p.strip() for p in parts if p.strip()]
 
 
@@ -314,25 +314,51 @@ def check_indirect_execution(command):
 def check_alternative_deletion(command):
     """Block alternative deletion tools on dangerous paths.
 
-    Blocks: find / -delete, find ~ -delete
+    Blocks: find / -delete, find ~ -delete, find / -exec rm, xargs rm on dangerous paths
     Allows: find ./src -name '*.pyc' -delete (specific path)
     """
     for part in _split_commands(command):
         tokens = part.split()
-        if not tokens:
+        if not tokens or tokens[0] != "find" or len(tokens) < 2:
             continue
 
-        # find <path> ... -delete
-        if tokens[0] == "find" and "-delete" in tokens:
-            if len(tokens) >= 2:
+        target = tokens[1]
+        normalized = _normalize_path(target)
+        all_dangerous = _DANGEROUS_RM_TARGETS | _DANGEROUS_SYSTEM_PATHS | {
+            "$HOME", "${HOME}", "~"
+        }
+        is_dangerous_path = normalized in all_dangerous or target in all_dangerous
+
+        if not is_dangerous_path:
+            continue
+
+        # find <dangerous_path> ... -delete
+        if "-delete" in tokens:
+            return (
+                f"BLOCKED: 'find {target} -delete' would cause irreversible data loss. "
+                "Use a more specific path."
+            )
+
+        # find <dangerous_path> ... -exec rm / -execdir rm
+        if "-exec" in tokens or "-execdir" in tokens:
+            rest = " ".join(tokens)
+            if re.search(r"-exec(?:dir)?\s+rm\b", rest):
+                return (
+                    f"BLOCKED: 'find {target} -exec rm' would cause irreversible data loss. "
+                    "Use a more specific path."
+                )
+
+    # xargs rm on dangerous paths (e.g., find / | xargs rm -rf)
+    if re.search(r"xargs\s+rm\b", command):
+        for part in _split_commands(command):
+            tokens = part.split()
+            if tokens and tokens[0] == "find" and len(tokens) >= 2:
                 target = tokens[1]
                 normalized = _normalize_path(target)
-                all_dangerous = _DANGEROUS_RM_TARGETS | _DANGEROUS_SYSTEM_PATHS | {
-                    "$HOME", "${HOME}", "~"
-                }
+                all_dangerous = _DANGEROUS_RM_TARGETS | _DANGEROUS_SYSTEM_PATHS
                 if normalized in all_dangerous or target in all_dangerous:
                     return (
-                        f"BLOCKED: 'find {target} -delete' would cause irreversible data loss. "
+                        f"BLOCKED: 'find {target} | xargs rm' would cause irreversible data loss. "
                         "Use a more specific path."
                     )
 

@@ -31,7 +31,7 @@ Or add to your project's `.claude/settings.json`:
 | Docker mass ops | `docker system prune`, `docker volume prune`, `docker container prune`, `docker network prune`, `docker builder prune`, `docker image prune -a`, `docker rm -f $(docker ps -aq)`, `docker volume rm $(docker volume ls -q)`, `docker compose down -v` | Mass removal of containers, volumes, images, networks |
 | Git destructive | `git clean -fdx` (without `-n`), `git checkout -- .`, `git reset --hard` (no target), `git push --force`, `git branch -D`, `git stash clear`, `git stash drop` (no ref) | Loss of uncommitted changes, remote history, branches, stashes |
 | Indirect execution | `eval "..."`, `sh -c "..."`, `bash -c "..."`, `... \| sh`, `base64 ... \| bash` | Bypasses all other checks |
-| Alternative deletion | `find / -delete`, `find ~ -delete` | Equivalent to mass `rm` |
+| Alternative deletion | `find / -delete`, `find ~ -delete`, `find / -exec rm`, `find / \| xargs rm` | Equivalent to mass `rm` |
 
 ### Allowed commands (not blocked)
 
