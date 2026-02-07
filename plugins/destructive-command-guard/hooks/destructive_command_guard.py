@@ -396,6 +396,18 @@ _DOCKER_DANGEROUS_PATTERNS = [
         "BLOCKED: 'docker builder prune' removes all build cache. "
         "Use targeted cleanup instead.",
     ),
+    # docker volume rm with mass subshell $(docker volume ls ...)
+    (
+        r"docker\s+volume\s+rm\s+.*\$\(docker\s+volume\s+ls",
+        "BLOCKED: Mass Docker volume removal via subshell. "
+        "Remove volumes individually by name instead.",
+    ),
+    # docker volume rm with backticks `docker volume ls ...`
+    (
+        r"docker\s+volume\s+rm\s+.*`docker\s+volume\s+ls",
+        "BLOCKED: Mass Docker volume removal via subshell. "
+        "Remove volumes individually by name instead.",
+    ),
     # docker compose down -v / --volumes
     (
         r"docker[\s-]compose\s+down\s+(?:.*\s)?-v\b",
@@ -526,10 +538,14 @@ def check_git_dangerous(command):
                         "BLOCKED: 'git stash clear' permanently deletes all stashed changes. "
                         "Use 'git stash drop' to remove specific stash entries."
                     )
-                if stash_action == "drop" and len(tokens) == 3:
-                    # 'git stash drop' without argument -- drops the latest stash
-                    # Allowed because it's a single stash, not catastrophic
-                    pass
+                if stash_action == "drop":
+                    has_specific_ref = len(tokens) > 3
+                    if not has_specific_ref:
+                        return (
+                            "BLOCKED: 'git stash drop' without a specific stash ref drops "
+                            "the latest stash entry permanently. "
+                            "Specify which stash to drop (e.g., 'git stash drop stash@{2}')."
+                        )
 
     return None
 

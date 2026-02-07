@@ -28,8 +28,8 @@ Or add to your project's `.claude/settings.json`:
 | System paths | `rm -rf /etc`, `/usr`, `/var`, `/home`, `/boot`, `/opt`, `/bin`, `/sbin`, `/lib`, `/Users`, `/Applications`, `/System`, `/Library` | Critical system directories |
 | Variable expansion | `rm -rf $(pwd)`, `rm -rf $DIR` | Unvalidatable dynamic targets |
 | Path traversal | `rm -rf /./`, `rm -rf //`, `rm -rf /../..` | Normalized to dangerous paths |
-| Docker mass ops | `docker system prune`, `docker volume prune`, `docker container prune`, `docker network prune`, `docker builder prune`, `docker image prune -a`, `docker rm -f $(docker ps -aq)`, `docker compose down -v` | Mass removal of containers, volumes, images, networks |
-| Git destructive | `git clean -fdx` (without `-n`), `git checkout -- .`, `git reset --hard` (no target), `git push --force`, `git branch -D`, `git stash clear` | Loss of uncommitted changes, remote history, branches |
+| Docker mass ops | `docker system prune`, `docker volume prune`, `docker container prune`, `docker network prune`, `docker builder prune`, `docker image prune -a`, `docker rm -f $(docker ps -aq)`, `docker volume rm $(docker volume ls -q)`, `docker compose down -v` | Mass removal of containers, volumes, images, networks |
+| Git destructive | `git clean -fdx` (without `-n`), `git checkout -- .`, `git reset --hard` (no target), `git push --force`, `git branch -D`, `git stash clear`, `git stash drop` (no ref) | Loss of uncommitted changes, remote history, branches, stashes |
 | Indirect execution | `eval "..."`, `sh -c "..."`, `bash -c "..."`, `... \| sh`, `base64 ... \| bash` | Bypasses all other checks |
 | Alternative deletion | `find / -delete`, `find ~ -delete` | Equivalent to mass `rm` |
 
@@ -41,6 +41,7 @@ Or add to your project's `.claude/settings.json`:
 | `rm -rf /tmp/build` | Targets a temporary path |
 | `rm file.txt` | No recursive force flags |
 | `docker rm my-container` | Targets a specific container |
+| `docker volume rm my-data-vol` | Targets a specific named volume |
 | `docker image prune` (without `-a`) | Only removes dangling images |
 | `git clean -n` / `git clean -ndx` | Dry-run mode (preview only) |
 | `git reset --hard abc1234` | Has an explicit commit target |
