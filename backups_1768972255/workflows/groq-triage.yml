@@ -1,0 +1,31 @@
+name: "Groq Triage FREE"
+on:
+  issues:
+    types: [opened]
+  workflow_dispatch:
+jobs:
+  classify:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+    - uses: actions/checkout@v4
+    - name: Classify with Groq
+      env:
+        GROQ_API_KEY: \${{ secrets.GROQ_API_KEY }}
+      run: |
+        ISSUE_NUM=\${{ github.event.issue.number }}
+        TITLE=\$(gh issue view \$ISSUE_NUM --json title --jq .title)
+        echo "Classifying: \$TITLE"
+        
+        LABEL=\$(curl -s -X POST https://api.groq.com/openai/v1/chat/completions \
+          -H "Authorization: Bearer \$GROQ_API_KEY" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "model": "llama3.1-70b-versatile",
+            "messages": [{"role": "user", "content": "Classify GitHub issue: "\$TITLE". Return ONLY: bug, feature, docs, question"}],
+            "max_tokens": 10
+          }' | jq -r '.choices[0].message.content // "bug"')
+        
+        gh issue edit \$ISSUE_NUM --add-label "\$LABEL"
+        echo "✅ Added label: \$LABEL"

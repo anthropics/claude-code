@@ -1,0 +1,157 @@
+name: "Manage Stale Issues"
+
+on:
+  schedule:
+    # 2am Pacific = 9am UTC (10am UTC during DST)
+    - cron: "0 10 * * *"
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+concurrency:
+  group: stale-issue-manager
+
+jobs:
+  manage-stale-issues:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Manage stale issues
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const oneMonthAgo = new Date();
+            oneMonthAgo.setDate(oneMonthAgo.getDate() - 30);
+
+            const twoMonthsAgo = new Date();
+            twoMonthsAgo.setDate(twoMonthsAgo.getDate() - 60);
+
+            const warningComment = `This issue has been inactive for 30 days. If the issue is still occurring, please comment to let us know. Otherwise, this issue will be automatically closed in 30 days for housekeeping purposes.`;
+
+            const closingComment = `This issue has been automatically closed due to 60 days of inactivity. If you're still experiencing this issue, please open a new issue with updated information.`;
+
+            let page = 1;
+            let hasMore = true;
+            let totalWarned = 0;
+            let totalClosed = 0;
+            let totalLabeled = 0;
+
+            while (hasMore) {
+              // Get open issues sorted by last updated (oldest first)
+              const { data: issues } = await github.rest.issues.listForRepo({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                state: 'open',
+                sort: 'updated',
+                direction: 'asc',
+                per_page: 100,
+                page: page
+              });
+              
+              if (issues.length === 0) {
+                hasMore = false;
+                break;
+              }
+              
+              for (const issue of issues) {
+                // Skip if already locked
+                if (issue.locked) continue;
+                
+                // Skip pull requests
+                if (issue.pull_request) continue;
+                
+                // Check if updated more recently than 30 days ago
+                const updatedAt = new Date(issue.updated_at);
+                if (updatedAt > oneMonthAgo) {
+                  // Since issues are sorted by updated_at ascending, 
+                  // once we hit a recent issue, all remaining will be recent too
+                  hasMore = false;
+                  break;
+                }
+                
+                // Check if issue has autoclose label
+                const hasAutocloseLabel = issue.labels.some(label => 
+                  typeof label === 'object' && label.name === 'autoclose'
+                );
+                
+                try {
+                  // Get comments to check for existing warning
+                  const { data: comments } = await github.rest.issues.listComments({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: issue.number,
+                    per_page: 100
+                  });
+                  
+                  // Find the last comment from github-actions bot
+                  const botComments = comments.filter(comment => 
+                    comment.user && comment.user.login === 'github-actions[bot]' &&
+                    comment.body && comment.body.includes('inactive for 30 days')
+                  );
+                  
+                  const lastBotComment = botComments[botComments.length - 1];
+                  
+                  if (lastBotComment) {
+                    // Check if the bot comment is older than 30 days (total 60 days of inactivity)
+                    const botCommentDate = new Date(lastBotComment.created_at);
+                    if (botCommentDate < oneMonthAgo) {
+                      // Close the issue - it's been stale for 60+ days
+                      console.log(`Closing issue #${issue.number} (stale for 60+ days): ${issue.title}`);
+                      
+                      // Post closing comment
+                      await github.rest.issues.createComment({
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        issue_number: issue.number,
+                        body: closingComment
+                      });
+                      
+                      // Close the issue
+                      await github.rest.issues.update({
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        issue_number: issue.number,
+                        state: 'closed',
+                        state_reason: 'not_planned'
+                      });
+                      
+                      totalClosed++;
+                    }
+                    // If bot comment exists but is recent, issue already has warning
+                  } else if (updatedAt < oneMonthAgo) {
+                    // No bot warning yet, issue is 30+ days old
+                    console.log(`Warning issue #${issue.number} (stale for 30+ days): ${issue.title}`);
+                    
+                    // Post warning comment
+                    await github.rest.issues.createComment({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      issue_number: issue.number,
+                      body: warningComment
+                    });
+                    
+                    totalWarned++;
+                    
+                    // Add autoclose label if not present
+                    if (!hasAutocloseLabel) {
+                      await github.rest.issues.addLabels({
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        issue_number: issue.number,
+                        labels: ['autoclose']
+                      });
+                      totalLabeled++;
+                    }
+                  }
+                } catch (error) {
+                  console.error(`Failed to process issue #${issue.number}: ${error.message}`);
+                }
+              }
+              
+              page++;
+            }
+
+            console.log(`Summary:`);
+            console.log(`- Issues warned (30 days stale): ${totalWarned}`);
+            console.log(`- Issues labeled with autoclose: ${totalLabeled}`);
+            console.log(`- Issues closed (60 days stale): ${totalClosed}`);
