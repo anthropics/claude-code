@@ -1,0 +1,1593 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Custos de Produção - Enside Madeiras</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Arial, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f5f9fc 0%, #e8f5e9 100%);
+            color: #333;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #2c5c34;
+        }
+
+        h1 {
+            color: #2c5c34;
+            margin: 0;
+            font-size: 2em;
+        }
+
+        .logo-area {
+            text-align: right;
+            color: #5a7d5e;
+        }
+
+        .logo-area .brand {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #2c5c34;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #5a7d5e;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #e0f0e3;
+        }
+
+        .tab {
+            padding: 12px 24px;
+            background-color: #f0f9f2;
+            border: none;
+            border-radius: 8px 8px 0 0;
+            cursor: pointer;
+            font-size: 1em;
+            color: #5a7d5e;
+            transition: all 0.3s;
+        }
+
+        .tab.active {
+            background-color: #2c5c34;
+            color: white;
+            transform: translateY(2px);
+        }
+
+        .tab:hover:not(.active) {
+            background-color: #e0f0e3;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .info-box {
+            background-color: #f0f9f2;
+            border-left: 4px solid #4caf50;
+            padding: 15px;
+            margin-bottom: 25px;
+            border-radius: 0 5px 5px 0;
+        }
+
+        .warning-box {
+            background-color: #fff8e1;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin-bottom: 25px;
+            border-radius: 0 5px 5px 0;
+        }
+
+        .section-title {
+            background: linear-gradient(135deg, #2c5c34 0%, #3d7a47 100%);
+            color: white;
+            padding: 12px 15px;
+            border-radius: 5px;
+            margin-top: 25px;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        th {
+            background-color: #e0f0e3;
+            color: #2c5c34;
+            text-align: left;
+            padding: 12px 15px;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+
+        td {
+            padding: 10px 15px;
+            border-bottom: 1px solid #eaeaea;
+        }
+
+        tr:hover:not(.total-row) {
+            background-color: #f9fdfa;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 0.95em;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #4caf50;
+            box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+        }
+
+        .total-row {
+            background-color: #e8f5e9;
+            font-weight: bold;
+            font-size: 1.05em;
+        }
+
+        .grand-total {
+            background: linear-gradient(135deg, #2c5c34 0%, #1e4024 100%);
+            color: white;
+            font-size: 1.4em;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            margin: 30px 0;
+            box-shadow: 0 4px 15px rgba(44, 92, 52, 0.3);
+        }
+
+        .calculations {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .calc-box {
+            background: linear-gradient(135deg, #f8fdf9 0%, #ffffff 100%);
+            padding: 20px;
+            border-radius: 8px;
+            border: 2px solid #ddeedf;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .calc-box:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .calc-title {
+            font-weight: 600;
+            color: #2c5c34;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+            border-bottom: 2px solid #e0f0e3;
+            padding-bottom: 8px;
+        }
+
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            padding: 8px;
+            background-color: rgba(224, 240, 227, 0.3);
+            border-radius: 4px;
+        }
+
+        .metric-value {
+            font-weight: bold;
+            color: #2c5c34;
+        }
+
+        .notes {
+            background-color: #fff8e1;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin-top: 30px;
+            border-radius: 0 5px 5px 0;
+            font-size: 0.95em;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+
+        button {
+            background: linear-gradient(135deg, #2c5c34 0%, #3d7a47 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s;
+            box-shadow: 0 2px 8px rgba(44, 92, 52, 0.3);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(44, 92, 52, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #666 0%, #555 100%);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #f44336 0%, #da190b 100%);
+        }
+
+        .config-panel {
+            background-color: #f8fdf9;
+            padding: 20px;
+            border-radius: 8px;
+            border: 2px solid #e0f0e3;
+            margin-bottom: 30px;
+        }
+
+        .config-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .config-item label {
+            display: block;
+            font-weight: 600;
+            color: #2c5c34;
+            margin-bottom: 5px;
+        }
+
+        .comparison-table {
+            margin-top: 20px;
+        }
+
+        .comparison-table td {
+            text-align: center;
+        }
+
+        .comparison-table th {
+            text-align: center;
+        }
+
+        .better {
+            color: #4caf50;
+            font-weight: bold;
+        }
+
+        .worse {
+            color: #f44336;
+            font-weight: bold;
+        }
+
+        .chart-container {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #f8fdf9;
+            border-radius: 8px;
+        }
+
+        @media print {
+            body {
+                background: white;
+            }
+
+            .button-group, .tabs {
+                display: none;
+            }
+
+            .container {
+                box-shadow: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
+            .header {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            h1 {
+                font-size: 1.5em;
+            }
+
+            .tabs {
+                flex-direction: column;
+            }
+
+            .tab {
+                border-radius: 6px;
+            }
+
+            th, td {
+                padding: 8px 10px;
+                font-size: 0.9em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>Sistema de Custos de Produção</h1>
+                <div class="subtitle">Toras de Eucalipto - Região de Paraibuna (SP/MG)</div>
+            </div>
+            <div class="logo-area">
+                <div class="brand">ENSIDE MADEIRAS</div>
+                <div>Enside Group</div>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('custos')">📊 Custos Detalhados</button>
+            <button class="tab" onclick="switchTab('analise')">📈 Análise e Margens</button>
+            <button class="tab" onclick="switchTab('comparativo')">🔍 Comparativo Regional</button>
+            <button class="tab" onclick="switchTab('cenarios')">🎯 Cenários</button>
+        </div>
+
+        <!-- ABA 1: CUSTOS DETALHADOS -->
+        <div id="tab-custos" class="tab-content active">
+            <div class="info-box">
+                <strong>📌 Instruções:</strong> Esta planilha calcula todos os custos da produção de toras até o carregamento no caminhão. Edite os valores e todos os cálculos serão atualizados automaticamente. Use o botão "Salvar Configuração" para preservar seus dados.
+            </div>
+
+            <div class="config-panel">
+                <div class="config-row">
+                    <div class="config-item">
+                        <label>Volume Total (m³):</label>
+                        <input type="number" id="total-volume" value="100" min="1">
+                    </div>
+                    <div class="config-item">
+                        <label>Região:</label>
+                        <select id="region">
+                            <option value="paraibuna">Paraibuna (SP/MG)</option>
+                            <option value="parana">Paraná</option>
+                            <option value="santa-catarina">Santa Catarina</option>
+                            <option value="custom">Personalizada</option>
+                        </select>
+                    </div>
+                    <div class="config-item">
+                        <label>Data de Referência:</label>
+                        <input type="date" id="reference-date">
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-title">
+                <span>1️⃣ CUSTOS DE PLANEJAMENTO E PREPARAÇÃO</span>
+                <span id="planning-percent-header">26.0%</span>
+            </div>
+            <table id="planning-costs">
+                <thead>
+                    <tr>
+                        <th width="45%">Item / Descrição</th>
+                        <th width="15%">Unidade</th>
+                        <th width="15%">Quantidade</th>
+                        <th width="15%">Valor Unit. (R$)</th>
+                        <th width="15%">Total (R$)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><input type="text" value="Licenciamento ambiental (CETESB/IEF)" class="editable"></td>
+                        <td><input type="text" value="Projeto" class="editable"></td>
+                        <td><input type="number" value="1" class="editable qty"></td>
+                        <td><input type="number" value="1500" class="editable unit-price"></td>
+                        <td class="total-item">1500.00</td>
+                    </tr>
+                    <tr>
+                        <td><input type="text" value="Inventário florestal (engenheiro/técnico)" class="editable"></td>
+                        <td><input type="text" value="Dia" class="editable"></td>
+                        <td><input type="number" value="2" class="editable qty"></td>
+                        <td><input type="number" value="350" class="editable unit-price"></td>
+                        <td class="total-item">700.00</td>
+                    </tr>
+                    <tr>
+                        <td><input type="text" value="Planejamento de corte e estradas" class="editable"></td>
+                        <td><input type="text" value="Projeto" class="editable"></td>
+                        <td><input type="number" value="1" class="editable qty"></td>
+                        <td><input type="number" value="800" class="editable unit-price"></td>
+                        <td class="total-item">800.00</td>
+                    </tr>
+                    <tr class="total-row">
+                        <td colspan="4"><strong>TOTAL PLANEJAMENTO</strong></td>
+                        <td id="total-planning">3000.00</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="section-title">
+                <span>2️⃣ CUSTOS DE CORTE E PROCESSAMENTO</span>
+                <span id="cutting-percent-header">32.9%</span>
+            </div>
+            <table id="cutting-costs">
+                <thead>
+                    <tr>
+                        <th width="45%">Item / Descrição</th>
+                        <th width="15%">Unidade</th>
+                        <th width="15%">Quantidade</th>
+                        <th width="15%">Valor Unit. (R$)</th>
+                        <th width="15%">Total (R$)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><input type="text" value="Equipe de corte (motosserrista + ajudantes)" class="editable"></td>
+                        <td>
+                            <select class="editable unit-type">
+                                <option value="m3">m³</option>
+                                <option value="day">Dia</option>
+                            </select>
+                        </td>
+                        <td><input type="number" value="100" class="editable qty"></td>
+                        <td><input type="number" value="25" class="editable unit-price"></td>
+                        <td class="total-item">2500.00</td>
+                    </tr>
+                    <tr>
+                        <td><input type="text" value="Combustível e lubrificantes para motosserras" class="editable"></td>
+                        <td><input type="text" value="Litro" class="editable"></td>
+                        <td><input type="number" value="80" class="editable qty"></td>
+                        <td><input type="number" value="6.5" class="editable unit-price"></td>
+                        <td class="total-item">520.00</td>
+                    </tr>
+                    <tr>
+                        <td><input type="text" value="Manutenção de equipamentos (correntes, afiação)" class="editable"></td>
+                        <td><input type="text" value="Lote" class="editable"></td>
+                        <td><input type="number" value="1" class="editable qty"></td>
+                        <td><input type="number" value="300" class="editable unit-price"></td>
+                        <td class="total-item">300.00</td>
+                    </tr>
+                    <tr>
+                        <td><input type="text" value="EPIs (luvas, capacetes, protetores auriculares)" class="editable"></td>
+                        <td><input type="text" value="Conjunto" class="editable"></td>
+                        <td><input type="number" value="4" class="editable qty"></td>
+                        <td><input type="number" value="120" class="editable unit-price"></td>
+                        <td class="total-item">480.00</td>
+                    </tr>
+                    <tr class="total-row">
+                        <td colspan="4"><strong>TOTAL CORTE E PROCESSAMENTO</strong></td>
+                        <td id="total-cutting">3800.00</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="section-title">
+                <span>3️⃣ CUSTOS DE TRANSPORTE INTERNO (ARRASTE)</span>
+                <span id="transport-percent-header">28.1%</span>
+            </div>
+            <table id="transport-costs">
+                <thead>
+                    <tr>
+                        <th width="45%">Item / Descrição</th>
+                        <th width="15%">Unidade</th>
+                        <th width="15%">Quantidade</th>
+                        <th width="15%">Valor Unit. (R$)</th>
+                        <th width="15%">Total (R$)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><input type="text" value="Tratorista com skidder/trator de arraste" class="editable"></td>
+                        <td>
+                            <select class="editable unit-type">
+                                <option value="m3">m³</option>
+                                <option value="day">Dia</option>
+                                <option value="hour">Hora</option>
+                            </select>
+                        </td>
+                        <td><input type="number" value="100" class="editable qty"></td>
+                        <td><input type="number" value="15" class="editable unit-price"></td>
+                        <td class="total-item">1500.00</td>
+                    </tr>
+                    <tr>
+                        <td><input type="text" value="Combustível para trator (diesel)" class="editable"></td>
+                        <td><input type="text" value="Litro" class="editable"></td>
+                        <td><input type="number" value="200" class="editable qty"></td>
+                        <td><input type="number" value="6.2" class="editable unit-price"></td>
+                        <td class="total-item">1240.00</td>
+                    </tr>
+                    <tr>
+                        <td><input type="text" value="Manutenção do equipamento de arraste" class="editable"></td>
+                        <td><input type="text" value="Lote" class="editable"></td>
+                        <td><input type="number" value="1" class="editable qty"></td>
+                        <td><input type="number" value="500" class="editable unit-price"></td>
+                        <td class="total-item">500.00</td>
+                    </tr>
+                    <tr class="total-row">
+                        <td colspan="4"><strong>TOTAL TRANSPORTE INTERNO</strong></td>
+                        <td id="total-transport">3240.00</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="section-title">
+                <span>4️⃣ CUSTOS DE CARREGAMENTO E FINALIZAÇÃO</span>
+                <span id="loading-percent-header">13.0%</span>
+            </div>
+            <table id="loading-costs">
+                <thead>
+                    <tr>
+                        <th width="45%">Item / Descrição</th>
+                        <th width="15%">Unidade</th>
+                        <th width="15%">Quantidade</th>
+                        <th width="15%">Valor Unit. (R$)</th>
+                        <th width="15%">Total (R$)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><input type="text" value="Operador de pá-carregadeira" class="editable"></td>
+                        <td>
+                            <select class="editable unit-type">
+                                <option value="m3">m³</option>
+                                <option value="day">Dia</option>
+                            </select>
+                        </td>
+                        <td><input type="number" value="100" class="editable qty"></td>
+                        <td><input type="number" value="8" class="editable unit-price"></td>
+                        <td class="total-item">800.00</td>
+                    </tr>
+                    <tr>
+                        <td><input type="text" value="Combustível para carregadeira" class="editable"></td>
+                        <td><input type="text" value="Litro" class="editable"></td>
+                        <td><input type="number" value="80" class="editable qty"></td>
+                        <td><input type="number" value="6.2" class="editable unit-price"></td>
+                        <td class="total-item">496.00</td>
+                    </tr>
+                    <tr>
+                        <td><input type="text" value="Amarração e sinalização da carga" class="editable"></td>
+                        <td><input type="text" value="Carga" class="editable"></td>
+                        <td><input type="number" value="4" class="editable qty"></td>
+                        <td><input type="number" value="50" class="editable unit-price"></td>
+                        <td class="total-item">200.00</td>
+                    </tr>
+                    <tr class="total-row">
+                        <td colspan="4"><strong>TOTAL CARREGAMENTO</strong></td>
+                        <td id="total-loading">1496.00</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="grand-total">
+                CUSTO TOTAL ATÉ CARREGADO NO CAMINHÃO: R$ <span id="final-total">11536.00</span>
+            </div>
+
+            <div class="calculations">
+                <div class="calc-box">
+                    <div class="calc-title">💰 CUSTO POR METRO CÚBICO</div>
+                    <div class="metric">
+                        <span>Custo por m³:</span>
+                        <span class="metric-value">R$ <span id="cost-per-m3">115.36</span></span>
+                    </div>
+                    <div class="metric">
+                        <span>Volume processado:</span>
+                        <span class="metric-value"><span id="display-volume">100</span> m³</span>
+                    </div>
+                    <p style="font-size: 0.9em; color: #666; margin-top: 10px;">
+                        <em>Custo de produção por m³ até carregamento no caminhão.</em>
+                    </p>
+                </div>
+
+                <div class="calc-box">
+                    <div class="calc-title">📊 DISTRIBUIÇÃO DOS CUSTOS</div>
+                    <div class="metric">
+                        <span>🔵 Planejamento:</span>
+                        <span class="metric-value" id="planning-percent">26.0%</span>
+                    </div>
+                    <div class="metric">
+                        <span>🟢 Corte:</span>
+                        <span class="metric-value" id="cutting-percent">32.9%</span>
+                    </div>
+                    <div class="metric">
+                        <span>🟡 Transporte interno:</span>
+                        <span class="metric-value" id="transport-percent">28.1%</span>
+                    </div>
+                    <div class="metric">
+                        <span>🟠 Carregamento:</span>
+                        <span class="metric-value" id="loading-percent">13.0%</span>
+                    </div>
+                </div>
+
+                <div class="calc-box">
+                    <div class="calc-title">⚡ ECONOMIA DE ESCALA</div>
+                    <div class="metric">
+                        <span>50 m³:</span>
+                        <span class="metric-value">R$ <span id="scale-50">145.72</span>/m³</span>
+                    </div>
+                    <div class="metric">
+                        <span>100 m³:</span>
+                        <span class="metric-value">R$ <span id="scale-100">115.36</span>/m³</span>
+                    </div>
+                    <div class="metric">
+                        <span>200 m³:</span>
+                        <span class="metric-value">R$ <span id="scale-200">100.18</span>/m³</span>
+                    </div>
+                    <div class="metric">
+                        <span>500 m³:</span>
+                        <span class="metric-value">R$ <span id="scale-500">91.27</span>/m³</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button onclick="updateCalculations()">🔄 Atualizar Cálculos</button>
+                <button onclick="saveConfiguration()" class="btn-success">💾 Salvar Configuração</button>
+                <button onclick="loadConfiguration()" class="btn-secondary">📂 Carregar Última Config.</button>
+                <button onclick="exportToGoogleSheets()" class="btn-success">📊 Exportar para Google Sheets</button>
+                <button onclick="generatePDF()" class="btn-secondary">📄 Gerar PDF</button>
+                <button onclick="resetToDefaults()" class="btn-danger">↩️ Restaurar Padrões</button>
+            </div>
+        </div>
+
+        <!-- ABA 2: ANÁLISE E MARGENS -->
+        <div id="tab-analise" class="tab-content">
+            <div class="info-box">
+                <strong>📈 Análise Financeira:</strong> Configure suas margens e custos indiretos para calcular o preço final de venda.
+            </div>
+
+            <div class="config-panel">
+                <h3 style="color: #2c5c34; margin-top: 0;">⚙️ Configuração de Margens e Custos Indiretos</h3>
+                <div class="config-row">
+                    <div class="config-item">
+                        <label>Custos Administrativos (%):</label>
+                        <input type="number" id="admin-percent" value="8" min="0" max="100" step="0.5">
+                    </div>
+                    <div class="config-item">
+                        <label>Impostos (%):</label>
+                        <input type="number" id="tax-percent" value="13.33" min="0" max="100" step="0.1">
+                    </div>
+                    <div class="config-item">
+                        <label>Margem de Lucro Desejada (%):</label>
+                        <input type="number" id="profit-margin" value="30" min="0" max="100" step="1">
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-title">💵 FORMAÇÃO DE PREÇO DE VENDA</div>
+
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th width="40%">Componente</th>
+                        <th width="20%">Valor por m³</th>
+                        <th width="20%">% do Total</th>
+                        <th width="20%">Valor Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Custo de Produção (base)</strong></td>
+                        <td>R$ <span id="price-production-m3">115.36</span></td>
+                        <td><span id="price-production-percent">63.1%</span></td>
+                        <td>R$ <span id="price-production-total">11536.00</span></td>
+                    </tr>
+                    <tr>
+                        <td>+ Custos Administrativos</td>
+                        <td>R$ <span id="price-admin-m3">9.23</span></td>
+                        <td><span id="price-admin-percent">5.0%</span></td>
+                        <td>R$ <span id="price-admin-total">922.88</span></td>
+                    </tr>
+                    <tr>
+                        <td>+ Impostos</td>
+                        <td>R$ <span id="price-tax-m3">15.38</span></td>
+                        <td><span id="price-tax-percent">8.4%</span></td>
+                        <td>R$ <span id="price-tax-total">1537.75</span></td>
+                    </tr>
+                    <tr>
+                        <td>+ Margem de Lucro</td>
+                        <td>R$ <span id="price-profit-m3">34.61</span></td>
+                        <td><span id="price-profit-percent">18.9%</span></td>
+                        <td>R$ <span id="price-profit-total">3460.80</span></td>
+                    </tr>
+                    <tr class="total-row">
+                        <td><strong>PREÇO DE VENDA SUGERIDO</strong></td>
+                        <td><strong>R$ <span id="price-final-m3">182.93</span></strong></td>
+                        <td><strong>100%</strong></td>
+                        <td><strong>R$ <span id="price-final-total">18292.80</span></strong></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="calculations">
+                <div class="calc-box">
+                    <div class="calc-title">💡 INDICADORES-CHAVE</div>
+                    <div class="metric">
+                        <span>Markup:</span>
+                        <span class="metric-value"><span id="markup">1.59</span>x</span>
+                    </div>
+                    <div class="metric">
+                        <span>Lucro Líquido (total):</span>
+                        <span class="metric-value">R$ <span id="net-profit">3460.80</span></span>
+                    </div>
+                    <div class="metric">
+                        <span>Lucro por m³:</span>
+                        <span class="metric-value">R$ <span id="profit-per-m3">34.61</span></span>
+                    </div>
+                    <div class="metric">
+                        <span>Break-even (m³):</span>
+                        <span class="metric-value"><span id="breakeven">63</span> m³</span>
+                    </div>
+                </div>
+
+                <div class="calc-box">
+                    <div class="calc-title">🎯 SIMULADOR RÁPIDO</div>
+                    <p>
+                        <label>Volume de venda (m³):</label>
+                        <input type="number" id="sim-volume" value="100" min="1" style="width: 100px;">
+                    </p>
+                    <div class="metric">
+                        <span>Receita Total:</span>
+                        <span class="metric-value">R$ <span id="sim-revenue">18292.80</span></span>
+                    </div>
+                    <div class="metric">
+                        <span>Custo Total:</span>
+                        <span class="metric-value">R$ <span id="sim-cost">14832.00</span></span>
+                    </div>
+                    <div class="metric">
+                        <span>Lucro Líquido:</span>
+                        <span class="metric-value better">R$ <span id="sim-profit">3460.80</span></span>
+                    </div>
+                </div>
+
+                <div class="calc-box">
+                    <div class="calc-title">📉 ANÁLISE DE SENSIBILIDADE</div>
+                    <p style="font-size: 0.9em; color: #666;">
+                        Impacto de variações de custo no preço final:
+                    </p>
+                    <div class="metric">
+                        <span>+10% custos:</span>
+                        <span class="metric-value worse">R$ <span id="sens-plus10">201.22</span>/m³</span>
+                    </div>
+                    <div class="metric">
+                        <span>-10% custos:</span>
+                        <span class="metric-value better">R$ <span id="sens-minus10">164.64</span>/m³</span>
+                    </div>
+                    <div class="metric">
+                        <span>+5% margem:</span>
+                        <span class="metric-value">R$ <span id="sens-margin-plus">192.08</span>/m³</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button onclick="updatePriceAnalysis()">🔄 Atualizar Análise</button>
+                <button onclick="savePriceConfig()" class="btn-success">💾 Salvar Config. de Preços</button>
+            </div>
+        </div>
+
+        <!-- ABA 3: COMPARATIVO REGIONAL -->
+        <div id="tab-comparativo" class="tab-content">
+            <div class="info-box">
+                <strong>🗺️ Comparativo Regional:</strong> Compare custos entre diferentes regiões de produção.
+            </div>
+
+            <div class="section-title">📍 ANÁLISE COMPARATIVA POR REGIÃO</div>
+
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>Região</th>
+                        <th>Custo/m³</th>
+                        <th>Produtividade</th>
+                        <th>Qualidade Média</th>
+                        <th>Vantagem</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Paraibuna (SP/MG)</strong> ⭐</td>
+                        <td class="better">R$ 115.36</td>
+                        <td>Alta</td>
+                        <td>Superior</td>
+                        <td class="better">Região atual</td>
+                    </tr>
+                    <tr>
+                        <td>Norte do Paraná</td>
+                        <td>R$ 108.20</td>
+                        <td>Muito Alta</td>
+                        <td>Superior</td>
+                        <td class="better">-6.2% custo</td>
+                    </tr>
+                    <tr>
+                        <td>Santa Catarina (Oeste)</td>
+                        <td>R$ 122.45</td>
+                        <td>Média</td>
+                        <td>Boa</td>
+                        <td class="worse">+6.1% custo</td>
+                    </tr>
+                    <tr>
+                        <td>São Paulo (Interior)</td>
+                        <td>R$ 129.80</td>
+                        <td>Alta</td>
+                        <td>Superior</td>
+                        <td class="worse">+12.5% custo</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="calculations">
+                <div class="calc-box">
+                    <div class="calc-title">🏆 MELHOR CUSTO-BENEFÍCIO</div>
+                    <p><strong>Região Recomendada:</strong> Norte do Paraná</p>
+                    <div class="metric">
+                        <span>Economia potencial:</span>
+                        <span class="metric-value better">R$ 7.16/m³</span>
+                    </div>
+                    <div class="metric">
+                        <span>Em 500 m³:</span>
+                        <span class="metric-value better">R$ 3.580,00</span>
+                    </div>
+                    <p style="font-size: 0.9em; color: #666; margin-top: 10px;">
+                        Considera produtividade alta e qualidade superior.
+                    </p>
+                </div>
+
+                <div class="calc-box">
+                    <div class="calc-title">📊 FATORES REGIONAIS</div>
+                    <p><strong>Paraibuna (SP/MG):</strong></p>
+                    <ul style="font-size: 0.9em;">
+                        <li>✅ Boa infraestrutura logística</li>
+                        <li>✅ Proximidade mercado consumidor</li>
+                        <li>⚠️ Mão de obra mais cara</li>
+                        <li>✅ Qualidade da madeira</li>
+                    </ul>
+                </div>
+
+                <div class="calc-box">
+                    <div class="calc-title">🚚 IMPACTO NO FRETE</div>
+                    <p style="font-size: 0.9em; color: #666;">
+                        Distância média até São Paulo:
+                    </p>
+                    <div class="metric">
+                        <span>Paraibuna:</span>
+                        <span class="metric-value">~150 km</span>
+                    </div>
+                    <div class="metric">
+                        <span>Norte PR:</span>
+                        <span class="metric-value">~600 km</span>
+                    </div>
+                    <div class="metric">
+                        <span>Diferença frete:</span>
+                        <span class="metric-value worse">+R$ 45/m³</span>
+                    </div>
+                    <p style="font-size: 0.85em; color: #f44336; margin-top: 10px;">
+                        ⚠️ Economia no custo anulada pelo frete para SP
+                    </p>
+                </div>
+            </div>
+
+            <div class="warning-box">
+                <strong>💡 Recomendação Estratégica:</strong>
+                <p>Embora o Norte do Paraná tenha custos de produção menores, para clientes em São Paulo a localização de Paraibuna oferece vantagem logística significativa. Considere expandir para Paraná apenas para atender mercados do Sul ou exportação via Paranaguá.</p>
+            </div>
+        </div>
+
+        <!-- ABA 4: CENÁRIOS -->
+        <div id="tab-cenarios" class="tab-content">
+            <div class="info-box">
+                <strong>🎯 Análise de Cenários:</strong> Compare diferentes situações (otimista, realista, pessimista) para planejamento estratégico.
+            </div>
+
+            <div class="section-title">📊 SIMULAÇÃO DE CENÁRIOS</div>
+
+            <div class="config-panel">
+                <h3 style="color: #2c5c34; margin-top: 0;">⚙️ Ajustar Parâmetros dos Cenários</h3>
+                <div class="config-row">
+                    <div class="config-item">
+                        <label>Variação Otimista (%):</label>
+                        <input type="number" id="scenario-optimistic" value="-15" max="0" step="1">
+                    </div>
+                    <div class="config-item">
+                        <label>Variação Realista (%):</label>
+                        <input type="number" id="scenario-realistic" value="0" step="1">
+                    </div>
+                    <div class="config-item">
+                        <label>Variação Pessimista (%):</label>
+                        <input type="number" id="scenario-pessimistic" value="20" min="0" step="1">
+                    </div>
+                </div>
+            </div>
+
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th width="25%">Cenário</th>
+                        <th width="15%">Custo/m³</th>
+                        <th width="15%">Preço Venda/m³</th>
+                        <th width="15%">Margem %</th>
+                        <th width="15%">Lucro (100m³)</th>
+                        <th width="15%">Viabilidade</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="background-color: #e8f5e9;">
+                        <td><strong>😊 OTIMISTA</strong><br><small>Eficiência máxima</small></td>
+                        <td class="better">R$ <span id="scenario-opt-cost">98.06</span></td>
+                        <td class="better">R$ <span id="scenario-opt-price">154.99</span></td>
+                        <td class="better"><span id="scenario-opt-margin">36.7%</span></td>
+                        <td class="better">R$ <span id="scenario-opt-profit">5693.00</span></td>
+                        <td class="better">Alta</td>
+                    </tr>
+                    <tr style="background-color: #fff8e1;">
+                        <td><strong>😐 REALISTA</strong><br><small>Condições normais</small></td>
+                        <td>R$ <span id="scenario-real-cost">115.36</span></td>
+                        <td>R$ <span id="scenario-real-price">182.93</span></td>
+                        <td><span id="scenario-real-margin">30.0%</span></td>
+                        <td>R$ <span id="scenario-real-profit">3460.80</span></td>
+                        <td>Média</td>
+                    </tr>
+                    <tr style="background-color: #ffebee;">
+                        <td><strong>😟 PESSIMISTA</strong><br><small>Custos elevados</small></td>
+                        <td class="worse">R$ <span id="scenario-pess-cost">138.43</span></td>
+                        <td class="worse">R$ <span id="scenario-pess-price">219.52</span></td>
+                        <td class="worse"><span id="scenario-pess-margin">22.0%</span></td>
+                        <td class="worse">R$ <span id="scenario-pess-profit">1754.88</span></td>
+                        <td class="worse">Baixa</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="calculations">
+                <div class="calc-box">
+                    <div class="calc-title">🎲 FATORES DE RISCO</div>
+                    <p><strong>Cenário Otimista:</strong></p>
+                    <ul style="font-size: 0.9em;">
+                        <li>✅ Alta produtividade equipe</li>
+                        <li>✅ Equipamentos novos</li>
+                        <li>✅ Clima favorável</li>
+                        <li>✅ Volume grande (escala)</li>
+                    </ul>
+                </div>
+
+                <div class="calc-box">
+                    <div class="calc-title">⚖️ CENÁRIO REALISTA</div>
+                    <p><strong>Mais provável:</strong></p>
+                    <ul style="font-size: 0.9em;">
+                        <li>➡️ Produtividade média</li>
+                        <li>➡️ Manutenção normal</li>
+                        <li>➡️ Algumas intercorrências</li>
+                        <li>➡️ Volume médio (100m³)</li>
+                    </ul>
+                </div>
+
+                <div class="calc-box">
+                    <div class="calc-title">⚠️ CENÁRIO PESSIMISTA</div>
+                    <p><strong>Riscos elevados:</strong></p>
+                    <ul style="font-size: 0.9em;">
+                        <li>❌ Quebras de equipamento</li>
+                        <li>❌ Clima adverso (chuvas)</li>
+                        <li>❌ Rotatividade equipe</li>
+                        <li>❌ Aumentos de insumos</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="section-title">🎯 ANÁLISE DE VIABILIDADE</div>
+
+            <div class="calculations">
+                <div class="calc-box">
+                    <div class="calc-title">💰 PREÇO MÍNIMO VIÁVEL</div>
+                    <p style="font-size: 0.9em; color: #666;">
+                        Preço mínimo para cobrir custos + 10% margem:
+                    </p>
+                    <div class="metric">
+                        <span>Cenário Otimista:</span>
+                        <span class="metric-value better">R$ <span id="min-price-opt">107.87</span>/m³</span>
+                    </div>
+                    <div class="metric">
+                        <span>Cenário Realista:</span>
+                        <span class="metric-value">R$ <span id="min-price-real">126.90</span>/m³</span>
+                    </div>
+                    <div class="metric">
+                        <span>Cenário Pessimista:</span>
+                        <span class="metric-value worse">R$ <span id="min-price-pess">152.27</span>/m³</span>
+                    </div>
+                </div>
+
+                <div class="calc-box">
+                    <div class="calc-title">📈 VOLUME BREAK-EVEN</div>
+                    <p style="font-size: 0.9em; color: #666;">
+                        Volume mínimo para viabilidade em cada cenário:
+                    </p>
+                    <div class="metric">
+                        <span>Otimista:</span>
+                        <span class="metric-value better"><span id="vol-breakeven-opt">51</span> m³</span>
+                    </div>
+                    <div class="metric">
+                        <span>Realista:</span>
+                        <span class="metric-value"><span id="vol-breakeven-real">63</span> m³</span>
+                    </div>
+                    <div class="metric">
+                        <span>Pessimista:</span>
+                        <span class="metric-value worse"><span id="vol-breakeven-pess">78</span> m³</span>
+                    </div>
+                </div>
+
+                <div class="calc-box">
+                    <div class="calc-title">🎯 RECOMENDAÇÃO</div>
+                    <p style="font-size: 0.95em; line-height: 1.8;">
+                        <strong style="color: #2c5c34;">Estratégia Recomendada:</strong><br>
+                        • Volume mínimo: <strong>80 m³</strong><br>
+                        • Preço sugerido: <strong>R$ 182.93/m³</strong><br>
+                        • Margem de segurança: <strong>20%</strong><br>
+                        • Prazo para break-even: <strong>1 operação</strong>
+                    </p>
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button onclick="updateScenarios()">🔄 Atualizar Cenários</button>
+                <button onclick="exportScenarioReport()" class="btn-success">📊 Exportar Relatório</button>
+            </div>
+        </div>
+
+        <div class="notes">
+            <strong>📝 Observações Importantes:</strong>
+            <ul>
+                <li>✅ Valores referenciais para a região especificada - ajuste conforme sua realidade</li>
+                <li>📊 Economia de escala: quanto maior o volume, menor o custo por m³</li>
+                <li>🚫 Não incluídos: transporte rodoviário final, armazenagem prolongada</li>
+                <li>⚖️ Para orçamentos precisos, consulte fornecedores e prestadores locais</li>
+                <li>🌳 Lembre-se do licenciamento ambiental obrigatório (CETESB/IEF)</li>
+                <li>💾 Use "Salvar Configuração" para preservar seus dados entre sessões</li>
+                <li>📤 Exporte para Google Sheets para compartilhar com sua equipe</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // ====================================
+        // SISTEMA DE ARMAZENAMENTO
+        // ====================================
+
+        function saveConfiguration() {
+            const config = {
+                volume: document.getElementById('total-volume').value,
+                region: document.getElementById('region').value,
+                referenceDate: document.getElementById('reference-date').value,
+                timestamp: new Date().toISOString(),
+                tables: {}
+            };
+
+            // Salvar dados de cada tabela
+            ['planning-costs', 'cutting-costs', 'transport-costs', 'loading-costs'].forEach(tableId => {
+                const table = document.getElementById(tableId);
+                const rows = table.querySelectorAll('tbody tr:not(.total-row)');
+                config.tables[tableId] = [];
+
+                rows.forEach(row => {
+                    const rowData = {
+                        description: row.querySelector('input[type="text"]')?.value || '',
+                        unit: row.querySelectorAll('input[type="text"]')[1]?.value || '',
+                        qty: row.querySelector('.qty')?.value || '',
+                        unitPrice: row.querySelector('.unit-price')?.value || ''
+                    };
+                    config.tables[tableId].push(rowData);
+                });
+            });
+
+            localStorage.setItem('ensideCostConfig', JSON.stringify(config));
+            alert('✅ Configuração salva com sucesso!\nData: ' + new Date().toLocaleString('pt-BR'));
+        }
+
+        function loadConfiguration() {
+            const saved = localStorage.getItem('ensideCostConfig');
+            if (!saved) {
+                alert('❌ Nenhuma configuração salva encontrada.');
+                return;
+            }
+
+            const config = JSON.parse(saved);
+
+            // Restaurar configurações gerais
+            document.getElementById('total-volume').value = config.volume;
+            document.getElementById('region').value = config.region;
+            if (config.referenceDate) {
+                document.getElementById('reference-date').value = config.referenceDate;
+            }
+
+            // Restaurar dados das tabelas
+            Object.keys(config.tables).forEach(tableId => {
+                const table = document.getElementById(tableId);
+                const rows = table.querySelectorAll('tbody tr:not(.total-row)');
+                const savedRows = config.tables[tableId];
+
+                rows.forEach((row, index) => {
+                    if (savedRows[index]) {
+                        const data = savedRows[index];
+                        const inputs = row.querySelectorAll('input');
+                        if (inputs[0]) inputs[0].value = data.description;
+                        if (inputs[1]) inputs[1].value = data.unit;
+                        if (inputs[2]) inputs[2].value = data.qty;
+                        if (inputs[3]) inputs[3].value = data.unitPrice;
+                    }
+                });
+            });
+
+            updateCalculations();
+            alert('✅ Configuração carregada com sucesso!\nSalva em: ' + new Date(config.timestamp).toLocaleString('pt-BR'));
+        }
+
+        function savePriceConfig() {
+            const priceConfig = {
+                adminPercent: document.getElementById('admin-percent').value,
+                taxPercent: document.getElementById('tax-percent').value,
+                profitMargin: document.getElementById('profit-margin').value,
+                timestamp: new Date().toISOString()
+            };
+
+            localStorage.setItem('ensidePriceConfig', JSON.stringify(priceConfig));
+            alert('✅ Configuração de preços salva!');
+        }
+
+        // ====================================
+        // CÁLCULOS PRINCIPAIS
+        // ====================================
+
+        function calculateRowTotals() {
+            document.querySelectorAll('table').forEach(table => {
+                const rows = table.querySelectorAll('tbody tr:not(.total-row)');
+
+                rows.forEach(row => {
+                    const qtyInput = row.querySelector('.qty');
+                    const unitPriceInput = row.querySelector('.unit-price');
+                    const totalCell = row.querySelector('.total-item');
+
+                    if (qtyInput && unitPriceInput && totalCell) {
+                        const qty = parseFloat(qtyInput.value) || 0;
+                        const unitPrice = parseFloat(unitPriceInput.value) || 0;
+                        const total = qty * unitPrice;
+                        totalCell.textContent = total.toFixed(2);
+                    }
+                });
+            });
+
+            // Calcular totais por seção
+            const planningTotal = calculateSectionTotal('planning-costs');
+            const cuttingTotal = calculateSectionTotal('cutting-costs');
+            const transportTotal = calculateSectionTotal('transport-costs');
+            const loadingTotal = calculateSectionTotal('loading-costs');
+
+            document.getElementById('total-planning').textContent = planningTotal.toFixed(2);
+            document.getElementById('total-cutting').textContent = cuttingTotal.toFixed(2);
+            document.getElementById('total-transport').textContent = transportTotal.toFixed(2);
+            document.getElementById('total-loading').textContent = loadingTotal.toFixed(2);
+
+            const finalTotal = planningTotal + cuttingTotal + transportTotal + loadingTotal;
+            document.getElementById('final-total').textContent = finalTotal.toFixed(2);
+
+            updateAdditionalCalculations(finalTotal, planningTotal, cuttingTotal, transportTotal, loadingTotal);
+
+            return { finalTotal, planningTotal, cuttingTotal, transportTotal, loadingTotal };
+        }
+
+        function calculateSectionTotal(tableId) {
+            const table = document.getElementById(tableId);
+            const rows = table.querySelectorAll('tbody tr:not(.total-row)');
+            let total = 0;
+
+            rows.forEach(row => {
+                const totalCell = row.querySelector('.total-item');
+                if (totalCell) {
+                    total += parseFloat(totalCell.textContent) || 0;
+                }
+            });
+
+            return total;
+        }
+
+        function updateAdditionalCalculations(finalTotal, planningTotal, cuttingTotal, transportTotal, loadingTotal) {
+            const totalVolume = parseFloat(document.getElementById('total-volume').value) || 1;
+            const costPerM3 = finalTotal / totalVolume;
+
+            document.getElementById('cost-per-m3').textContent = costPerM3.toFixed(2);
+            document.getElementById('display-volume').textContent = totalVolume;
+
+            // Percentuais
+            const planningPercent = (planningTotal / finalTotal) * 100;
+            const cuttingPercent = (cuttingTotal / finalTotal) * 100;
+            const transportPercent = (transportTotal / finalTotal) * 100;
+            const loadingPercent = (loadingTotal / finalTotal) * 100;
+
+            document.getElementById('planning-percent').textContent = planningPercent.toFixed(1) + '%';
+            document.getElementById('cutting-percent').textContent = cuttingPercent.toFixed(1) + '%';
+            document.getElementById('transport-percent').textContent = transportPercent.toFixed(1) + '%';
+            document.getElementById('loading-percent').textContent = loadingPercent.toFixed(1) + '%';
+
+            // Headers das seções
+            document.getElementById('planning-percent-header').textContent = planningPercent.toFixed(1) + '%';
+            document.getElementById('cutting-percent-header').textContent = cuttingPercent.toFixed(1) + '%';
+            document.getElementById('transport-percent-header').textContent = transportPercent.toFixed(1) + '%';
+            document.getElementById('loading-percent-header').textContent = loadingPercent.toFixed(1) + '%';
+
+            // Economia de escala
+            calculateScaleEconomy(planningTotal, cuttingTotal, transportTotal, loadingTotal);
+        }
+
+        function calculateScaleEconomy(planningTotal, cuttingTotal, transportTotal, loadingTotal) {
+            const variableCosts = cuttingTotal + transportTotal + loadingTotal;
+            const fixedCosts = planningTotal;
+
+            [50, 100, 200, 500].forEach(volume => {
+                const totalCost = fixedCosts + (variableCosts * (volume / 100));
+                const costPerM3 = totalCost / volume;
+                document.getElementById('scale-' + volume).textContent = costPerM3.toFixed(2);
+            });
+        }
+
+        function updateCalculations() {
+            const totals = calculateRowTotals();
+            updatePriceAnalysis();
+            updateScenarios();
+        }
+
+        // ====================================
+        // ANÁLISE DE PREÇOS
+        // ====================================
+
+        function updatePriceAnalysis() {
+            const finalTotal = parseFloat(document.getElementById('final-total').textContent);
+            const totalVolume = parseFloat(document.getElementById('total-volume').value) || 100;
+            const costPerM3 = finalTotal / totalVolume;
+
+            const adminPercent = parseFloat(document.getElementById('admin-percent').value) || 8;
+            const taxPercent = parseFloat(document.getElementById('tax-percent').value) || 13.33;
+            const profitMargin = parseFloat(document.getElementById('profit-margin').value) || 30;
+
+            // Custos adicionais
+            const adminCostM3 = costPerM3 * (adminPercent / 100);
+            const taxCostM3 = costPerM3 * (taxPercent / 100);
+            const subtotal = costPerM3 + adminCostM3 + taxCostM3;
+            const profitM3 = subtotal * (profitMargin / 100);
+            const finalPriceM3 = subtotal + profitM3;
+
+            // Valores totais
+            const adminTotal = adminCostM3 * totalVolume;
+            const taxTotal = taxCostM3 * totalVolume;
+            const profitTotal = profitM3 * totalVolume;
+            const finalPriceTotal = finalPriceM3 * totalVolume;
+
+            // Percentuais sobre preço final
+            const productionPercent = (costPerM3 / finalPriceM3) * 100;
+            const adminPercentFinal = (adminCostM3 / finalPriceM3) * 100;
+            const taxPercentFinal = (taxCostM3 / finalPriceM3) * 100;
+            const profitPercentFinal = (profitM3 / finalPriceM3) * 100;
+
+            // Atualizar interface
+            document.getElementById('price-production-m3').textContent = costPerM3.toFixed(2);
+            document.getElementById('price-production-percent').textContent = productionPercent.toFixed(1) + '%';
+            document.getElementById('price-production-total').textContent = finalTotal.toFixed(2);
+
+            document.getElementById('price-admin-m3').textContent = adminCostM3.toFixed(2);
+            document.getElementById('price-admin-percent').textContent = adminPercentFinal.toFixed(1) + '%';
+            document.getElementById('price-admin-total').textContent = adminTotal.toFixed(2);
+
+            document.getElementById('price-tax-m3').textContent = taxCostM3.toFixed(2);
+            document.getElementById('price-tax-percent').textContent = taxPercentFinal.toFixed(1) + '%';
+            document.getElementById('price-tax-total').textContent = taxTotal.toFixed(2);
+
+            document.getElementById('price-profit-m3').textContent = profitM3.toFixed(2);
+            document.getElementById('price-profit-percent').textContent = profitPercentFinal.toFixed(1) + '%';
+            document.getElementById('price-profit-total').textContent = profitTotal.toFixed(2);
+
+            document.getElementById('price-final-m3').textContent = finalPriceM3.toFixed(2);
+            document.getElementById('price-final-total').textContent = finalPriceTotal.toFixed(2);
+
+            // Indicadores
+            const markup = finalPriceM3 / costPerM3;
+            document.getElementById('markup').textContent = markup.toFixed(2);
+            document.getElementById('net-profit').textContent = profitTotal.toFixed(2);
+            document.getElementById('profit-per-m3').textContent = profitM3.toFixed(2);
+
+            const breakeven = Math.ceil(finalTotal / profitM3);
+            document.getElementById('breakeven').textContent = breakeven;
+
+            // Simulador
+            updateSimulator(costPerM3, finalPriceM3, adminCostM3, taxCostM3, profitM3);
+
+            // Sensibilidade
+            updateSensitivity(costPerM3, adminCostM3, taxCostM3, profitMargin);
+        }
+
+        function updateSimulator(costPerM3, finalPriceM3, adminCostM3, taxCostM3, profitM3) {
+            const simVolume = parseFloat(document.getElementById('sim-volume').value) || 100;
+
+            const simRevenue = finalPriceM3 * simVolume;
+            const simCost = (costPerM3 + adminCostM3 + taxCostM3) * simVolume;
+            const simProfit = profitM3 * simVolume;
+
+            document.getElementById('sim-revenue').textContent = simRevenue.toFixed(2);
+            document.getElementById('sim-cost').textContent = simCost.toFixed(2);
+            document.getElementById('sim-profit').textContent = simProfit.toFixed(2);
+        }
+
+        function updateSensitivity(costPerM3, adminCostM3, taxCostM3, profitMargin) {
+            const baseCost = costPerM3;
+
+            // +10% custos
+            const costPlus10 = baseCost * 1.1;
+            const pricePlus10 = (costPlus10 + adminCostM3 + taxCostM3) * (1 + profitMargin / 100);
+            document.getElementById('sens-plus10').textContent = pricePlus10.toFixed(2);
+
+            // -10% custos
+            const costMinus10 = baseCost * 0.9;
+            const priceMinus10 = (costMinus10 + adminCostM3 + taxCostM3) * (1 + profitMargin / 100);
+            document.getElementById('sens-minus10').textContent = priceMinus10.toFixed(2);
+
+            // +5% margem
+            const priceMarginPlus = (baseCost + adminCostM3 + taxCostM3) * (1 + (profitMargin + 5) / 100);
+            document.getElementById('sens-margin-plus').textContent = priceMarginPlus.toFixed(2);
+        }
+
+        // ====================================
+        // CENÁRIOS
+        // ====================================
+
+        function updateScenarios() {
+            const baseCost = parseFloat(document.getElementById('cost-per-m3').textContent);
+            const basePrice = parseFloat(document.getElementById('price-final-m3').textContent);
+
+            const optVar = parseFloat(document.getElementById('scenario-optimistic').value) / 100;
+            const realVar = parseFloat(document.getElementById('scenario-realistic').value) / 100;
+            const pessVar = parseFloat(document.getElementById('scenario-pessimistic').value) / 100;
+
+            const volume = parseFloat(document.getElementById('total-volume').value) || 100;
+
+            // Cenário Otimista
+            const optCost = baseCost * (1 + optVar);
+            const optPrice = basePrice * (1 + optVar);
+            const optMargin = ((optPrice - optCost) / optPrice) * 100;
+            const optProfit = (optPrice - optCost) * volume;
+
+            document.getElementById('scenario-opt-cost').textContent = optCost.toFixed(2);
+            document.getElementById('scenario-opt-price').textContent = optPrice.toFixed(2);
+            document.getElementById('scenario-opt-margin').textContent = optMargin.toFixed(1) + '%';
+            document.getElementById('scenario-opt-profit').textContent = optProfit.toFixed(2);
+
+            // Cenário Realista
+            const realCost = baseCost * (1 + realVar);
+            const realPrice = basePrice * (1 + realVar);
+            const realMargin = ((realPrice - realCost) / realPrice) * 100;
+            const realProfit = (realPrice - realCost) * volume;
+
+            document.getElementById('scenario-real-cost').textContent = realCost.toFixed(2);
+            document.getElementById('scenario-real-price').textContent = realPrice.toFixed(2);
+            document.getElementById('scenario-real-margin').textContent = realMargin.toFixed(1) + '%';
+            document.getElementById('scenario-real-profit').textContent = realProfit.toFixed(2);
+
+            // Cenário Pessimista
+            const pessCost = baseCost * (1 + pessVar);
+            const pessPrice = basePrice * (1 + pessVar * 0.8); // Preço não sobe proporcionalmente
+            const pessMargin = ((pessPrice - pessCost) / pessPrice) * 100;
+            const pessProfit = (pessPrice - pessCost) * volume;
+
+            document.getElementById('scenario-pess-cost').textContent = pessCost.toFixed(2);
+            document.getElementById('scenario-pess-price').textContent = pessPrice.toFixed(2);
+            document.getElementById('scenario-pess-margin').textContent = pessMargin.toFixed(1) + '%';
+            document.getElementById('scenario-pess-profit').textContent = pessProfit.toFixed(2);
+
+            // Preços mínimos viáveis
+            document.getElementById('min-price-opt').textContent = (optCost * 1.1).toFixed(2);
+            document.getElementById('min-price-real').textContent = (realCost * 1.1).toFixed(2);
+            document.getElementById('min-price-pess').textContent = (pessCost * 1.1).toFixed(2);
+
+            // Break-even por cenário
+            const fixedCosts = parseFloat(document.getElementById('total-planning').textContent);
+            document.getElementById('vol-breakeven-opt').textContent = Math.ceil(fixedCosts / (optPrice - optCost));
+            document.getElementById('vol-breakeven-real').textContent = Math.ceil(fixedCosts / (realPrice - realCost));
+            document.getElementById('vol-breakeven-pess').textContent = Math.ceil(fixedCosts / (pessPrice - pessCost));
+        }
+
+        // ====================================
+        // NAVEGAÇÃO ENTRE ABAS
+        // ====================================
+
+        function switchTab(tabName) {
+            // Remover classe active de todas as tabs
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+
+            // Adicionar classe active na tab clicada
+            event.target.classList.add('active');
+            document.getElementById('tab-' + tabName).classList.add('active');
+
+            // Atualizar cálculos da aba
+            if (tabName === 'analise') {
+                updatePriceAnalysis();
+            } else if (tabName === 'cenarios') {
+                updateScenarios();
+            }
+        }
+
+        // ====================================
+        // EXPORTAÇÃO
+        // ====================================
+
+        function exportToGoogleSheets() {
+            alert('🚧 Função em desenvolvimento!\n\nEm breve você poderá exportar diretamente para Google Sheets.');
+            // TODO: Implementar integração com Google Sheets API
+        }
+
+        function generatePDF() {
+            window.print();
+        }
+
+        function exportScenarioReport() {
+            alert('📊 Gerando relatório de cenários...\n\nEm breve disponível para download!');
+            // TODO: Implementar geração de relatório
+        }
+
+        // ====================================
+        // RESTAURAR PADRÕES
+        // ====================================
+
+        function resetToDefaults() {
+            if (!confirm('⚠️ Tem certeza que deseja restaurar todos os valores padrão?\n\nEsta ação não pode ser desfeita.')) {
+                return;
+            }
+
+            // Restaurar valores padrão de cada tabela
+            const defaults = {
+                'planning-costs': [
+                    [1, 1500],
+                    [2, 350],
+                    [1, 800]
+                ],
+                'cutting-costs': [
+                    [100, 25],
+                    [80, 6.5],
+                    [1, 300],
+                    [4, 120]
+                ],
+                'transport-costs': [
+                    [100, 15],
+                    [200, 6.2],
+                    [1, 500]
+                ],
+                'loading-costs': [
+                    [100, 8],
+                    [80, 6.2],
+                    [4, 50]
+                ]
+            };
+
+            Object.keys(defaults).forEach(tableId => {
+                const table = document.getElementById(tableId);
+                const rows = table.querySelectorAll('tbody tr:not(.total-row)');
+
+                rows.forEach((row, index) => {
+                    if (defaults[tableId][index]) {
+                        const [qty, price] = defaults[tableId][index];
+                        row.querySelector('.qty').value = qty;
+                        row.querySelector('.unit-price').value = price;
+                    }
+                });
+            });
+
+            // Restaurar configurações
+            document.getElementById('total-volume').value = 100;
+            document.getElementById('admin-percent').value = 8;
+            document.getElementById('tax-percent').value = 13.33;
+            document.getElementById('profit-margin').value = 30;
+            document.getElementById('sim-volume').value = 100;
+            document.getElementById('scenario-optimistic').value = -15;
+            document.getElementById('scenario-realistic').value = 0;
+            document.getElementById('scenario-pessimistic').value = 20;
+
+            updateCalculations();
+            alert('✅ Valores padrão restaurados com sucesso!');
+        }
+
+        // ====================================
+        // INICIALIZAÇÃO
+        // ====================================
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Data de referência padrão
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('reference-date').value = today;
+
+            // Calcular totais iniciais
+            updateCalculations();
+
+            // Adicionar listeners para inputs editáveis
+            document.querySelectorAll('.editable').forEach(input => {
+                input.addEventListener('input', updateCalculations);
+                input.addEventListener('change', updateCalculations);
+            });
+
+            // Listeners para configurações
+            ['total-volume', 'admin-percent', 'tax-percent', 'profit-margin',
+             'sim-volume', 'scenario-optimistic', 'scenario-realistic', 'scenario-pessimistic'].forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.addEventListener('input', updateCalculations);
+                }
+            });
+
+            // Tentar carregar configuração salva
+            const saved = localStorage.getItem('ensideCostConfig');
+            if (saved) {
+                console.log('✅ Configuração anterior encontrada. Use "Carregar Última Config." para restaurá-la.');
+            }
+
+            // Carregar config de preços se existir
+            const savedPrice = localStorage.getItem('ensidePriceConfig');
+            if (savedPrice) {
+                const config = JSON.parse(savedPrice);
+                document.getElementById('admin-percent').value = config.adminPercent;
+                document.getElementById('tax-percent').value = config.taxPercent;
+                document.getElementById('profit-margin').value = config.profitMargin;
+                updatePriceAnalysis();
+            }
+        });
+    </script>
+</body>
+</html>

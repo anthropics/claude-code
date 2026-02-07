@@ -1,0 +1,4 @@
+especialista_ia:
+  nome: "ESPECIALISTA-IA"
+  versao: "1.0.0"
+  provider: "groqcloud"
