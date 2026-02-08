@@ -60,68 +60,71 @@ jobs:
                 // Skip pull requests
                 if (issue.pull_request) continue;
                 
-                // Check if updated more recently than 30 days ago
-                const updatedAt = new Date(issue.updated_at);
-                if (updatedAt > oneMonthAgo) {
-                  // Since issues are sorted by updated_at ascending, 
-                  // once we hit a recent issue, all remaining will be recent too
-                  hasMore = false;
-                  break;
-                }
-                
                 // Check if issue has autoclose label
                 const hasAutocloseLabel = issue.labels.some(label => 
                   typeof label === 'object' && label.name === 'autoclose'
                 );
                 
                 try {
-                  // Get comments to check for existing warning
-                  const { data: comments } = await github.rest.issues.listComments({
-                    owner: context.repo.owner,
-                    repo: context.repo.repo,
-                    issue_number: issue.number,
-                    per_page: 100
-                  });
-                  
-                  // Find the last comment from github-actions bot
-                  const botComments = comments.filter(comment => 
-                    comment.user && comment.user.login === 'github-actions[bot]' &&
-                    comment.body && comment.body.includes('inactive for 30 days')
-                  );
-                  
-                  const lastBotComment = botComments[botComments.length - 1];
-                  
-                  if (lastBotComment) {
-                    // Check if the bot comment is older than 30 days (total 60 days of inactivity)
-                    const botCommentDate = new Date(lastBotComment.created_at);
-                    if (botCommentDate < oneMonthAgo) {
-                      // Close the issue - it's been stale for 60+ days
-                      console.log(`Closing issue #${issue.number} (stale for 60+ days): ${issue.title}`);
-                      
-                      // Post closing comment
-                      await github.rest.issues.createComment({
-                        owner: context.repo.owner,
-                        repo: context.repo.repo,
-                        issue_number: issue.number,
-                        body: closingComment
-                      });
-                      
-                      // Close the issue
-                      await github.rest.issues.update({
-                        owner: context.repo.owner,
-                        repo: context.repo.repo,
-                        issue_number: issue.number,
-                        state: 'closed',
-                        state_reason: 'not_planned'
-                      });
-                      
-                      totalClosed++;
+                  let lastHumanCommentAt = new Date(issue.created_at);
+                  let lastWarningCommentAt = null;
+
+                  if (issue.comments > 0) {
+                    // Get comments to check for human activity and existing warning
+                    const { data: comments } = await github.rest.issues.listComments({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      issue_number: issue.number,
+                      per_page: 100
+                    });
+
+                    for (const comment of comments) {
+                      if (!comment.user || !comment.user.login) continue;
+
+                      if (comment.user.login === 'github-actions[bot]' &&
+                          comment.body && comment.body.includes('inactive for 30 days')) {
+                        const warningDate = new Date(comment.created_at);
+                        if (!lastWarningCommentAt || warningDate > lastWarningCommentAt) {
+                          lastWarningCommentAt = warningDate;
+                        }
+                      } else if (comment.user.login !== 'github-actions[bot]') {
+                        const commentDate = new Date(comment.created_at);
+                        if (commentDate > lastHumanCommentAt) {
+                          lastHumanCommentAt = commentDate;
+                        }
+                      }
                     }
-                    // If bot comment exists but is recent, issue already has warning
-                  } else if (updatedAt < oneMonthAgo) {
-                    // No bot warning yet, issue is 30+ days old
-                    console.log(`Warning issue #${issue.number} (stale for 30+ days): ${issue.title}`);
-                    
+                  }
+
+                  const warningIsCurrent = lastWarningCommentAt &&
+                    lastWarningCommentAt > lastHumanCommentAt;
+
+                  if (lastHumanCommentAt < twoMonthsAgo) {
+                    // Close the issue - it's been inactive for 60+ days
+                    console.log(`Closing issue #${issue.number} (inactive for 60+ days): ${issue.title}`);
+
+                    // Post closing comment
+                    await github.rest.issues.createComment({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      issue_number: issue.number,
+                      body: closingComment
+                    });
+
+                    // Close the issue
+                    await github.rest.issues.update({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      issue_number: issue.number,
+                      state: 'closed',
+                      state_reason: 'not_planned'
+                    });
+
+                    totalClosed++;
+                  } else if (lastHumanCommentAt < oneMonthAgo && !warningIsCurrent) {
+                    // No current warning yet, issue is 30+ days inactive
+                    console.log(`Warning issue #${issue.number} (inactive for 30+ days): ${issue.title}`);
+
                     // Post warning comment
                     await github.rest.issues.createComment({
                       owner: context.repo.owner,
@@ -129,9 +132,9 @@ jobs:
                       issue_number: issue.number,
                       body: warningComment
                     });
-                    
+
                     totalWarned++;
-                    
+
                     // Add autoclose label if not present
                     if (!hasAutocloseLabel) {
                       await github.rest.issues.addLabels({
