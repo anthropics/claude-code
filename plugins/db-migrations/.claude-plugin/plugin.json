@@ -1,0 +1,23 @@
+{
+  "name": "db-migrations",
+  "version": "1.0.0",
+  "description": "Database migration toolkit with schema analysis, migration generation, review agents, and safety validation for PostgreSQL, MySQL, SQLite, and SQL Server",
+  "author": {
+    "name": "Rajesh Kumar",
+    "email": "kakumanurajeshkumar@gmail.com"
+  },
+  "keywords": [
+    "database",
+    "migrations",
+    "schema",
+    "sql",
+    "postgresql",
+    "mysql",
+    "sqlite",
+    "prisma",
+    "drizzle",
+    "typeorm",
+    "knex"
+  ],
+  "license": "MIT"
+}
