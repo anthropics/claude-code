@@ -317,7 +317,15 @@ Guide the user through creating a complete, high-quality Claude Code plugin from
    - For settings: Provide configuration templates
 
 2. **Add marketplace entry** (if publishing):
-   - Show user how to add to marketplace.json
+   - Show user how to add to marketplace.json:
+     ```json
+     {
+       "name": "plugin-name",
+       "description": "Brief plugin description",
+       "source": "./plugins/plugin-name",
+       "category": "development"
+     }
+     ```
    - Help draft marketplace description
    - Suggest category and tags
 
