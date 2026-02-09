@@ -655,10 +655,10 @@ def check_bash_file_modification(command):
         for pattern_template in _BASH_FILE_MOD_PATTERNS:
             pattern = pattern_template.format(name=escaped_name)
             if re.search(pattern, command):
-                # Find the appropriate warning message
-                for _, _, msg in _PROTECTED_FILE_PATTERNS:
-                    if name.split("/")[-1] in msg or name in msg:
-                        return msg
+                # Use check_file_protection for consistent message lookup
+                _, message = check_file_protection(name)
+                if message:
+                    return message
                 return (
                     f"You are about to modify {name} via Bash command. "
                     "Ensure this change is intentional and reviewed."
