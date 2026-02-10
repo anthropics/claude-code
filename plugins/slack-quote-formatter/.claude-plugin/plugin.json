@@ -1,0 +1,18 @@
+{
+  "name": "slack-quote-formatter",
+  "version": "1.0.0",
+  "description": "Enhances visual display of Slack forwarded and quoted messages with distinctive formatting",
+  "author": {
+    "name": "Anthropic",
+    "email": "support@anthropic.com"
+  },
+  "license": "MIT",
+  "keywords": [
+    "slack",
+    "formatting",
+    "quotes",
+    "messages",
+    "visual"
+  ],
+  "hooks": "./hooks/hooks.json"
+}
