@@ -34,7 +34,7 @@ test -f .claude/commands/my-command.md && echo "Found" || echo "Missing"
 **Automated validation script:**
 
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 # validate-command.sh
 
 COMMAND_FILE="$1"
@@ -80,7 +80,7 @@ echo "✓ Command file structure valid"
 **Validation script:**
 
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 # validate-frontmatter.sh
 
 COMMAND_FILE="$1"
@@ -175,7 +175,7 @@ tail -f ~/.claude/debug-logs/latest
 **Test script:**
 
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 # test-command-arguments.sh
 
 COMMAND="$1"
@@ -345,7 +345,7 @@ EOF
 Create a test suite script:
 
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 # test-commands.sh - Command test suite
 
 TEST_DIR=".claude/commands"
@@ -390,7 +390,7 @@ exit $FAILED_TESTS
 Validate commands before committing:
 
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 # .git/hooks/pre-commit
 
 echo "Validating commands..."
@@ -501,7 +501,7 @@ jobs:
 ### Response Time Testing
 
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 # test-command-performance.sh
 
 COMMAND="$1"
