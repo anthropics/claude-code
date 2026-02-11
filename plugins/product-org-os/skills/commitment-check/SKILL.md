@@ -2,6 +2,7 @@
 name: commitment-check
 description: Create or update a commitment validation before crossing the "point of no return"
 argument-hint: [commitment or initiative name] or [update path/to/check.md]
+user-invocable: true
 ---
 
 ## Document Intelligence

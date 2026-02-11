@@ -2,6 +2,7 @@
 name: present
 description: Convert a deliverable document to an HTML presentation
 argument-hint: [document-path]
+user-invocable: true
 ---
 
 Convert a document into an **HTML Presentation** using reveal.js.

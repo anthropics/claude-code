@@ -2,6 +2,7 @@
 name: collaboration-check
 description: Create or update a RACI and stakeholder consultation validation
 argument-hint: [decision or initiative] or [update path/to/check.md]
+user-invocable: true
 ---
 
 ## Document Intelligence

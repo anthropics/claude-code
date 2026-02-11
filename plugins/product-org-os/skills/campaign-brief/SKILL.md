@@ -2,6 +2,7 @@
 name: campaign-brief
 description: Create or update a marketing campaign brief
 argument-hint: [campaign name or objective] or [update path/to/campaign.md]
+user-invocable: true
 ---
 
 ## Document Intelligence

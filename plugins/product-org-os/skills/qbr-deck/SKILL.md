@@ -2,6 +2,7 @@
 name: qbr-deck
 description: Create or update a Quarterly Business Review presentation
 argument-hint: [quarter, e.g., Q1 2025] or [update path/to/qbr.md]
+user-invocable: true
 ---
 
 ## Document Intelligence

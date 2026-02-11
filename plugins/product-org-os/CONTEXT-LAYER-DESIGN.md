@@ -600,3 +600,62 @@ The context files are designed to stay manageable:
 - **Assumption registry**: Grows slowly, can be archived annually
 
 Recommendation: Annual archive of validated/invalidated items to `context/archive/[YYYY]/`
+
+---
+
+## v3 Enhancements
+
+### Structured JSON Indexes (v3.0)
+
+The context index (`context/index.json`) is expanded from a flat entry list to multi-dimensional indexes:
+
+| Index | Purpose | Used By |
+|-------|---------|---------|
+| `topicIndex` | Keyword-based lookup | `/context-recall`, auto-context |
+| `productIndex` | Multi-product filtering | All context skills with `product:` filter |
+| `phaseIndex` | V2V phase-based queries | `/portfolio-status`, `/phase-check` |
+| `statusIndex` | Status-based filtering (bets, assumptions) | `/portfolio-status` |
+| `sourceIndex` | Feedback source tracking | `/feedback-recall` |
+| `sentimentIndex` | Feedback sentiment analysis | `/feedback-recall` |
+
+### Auto-Context Injection
+
+Defined in `rules/auto-context.md`. Before agents produce deliverables, the system automatically queries the index for relevant context and injects it into the agent's working context. This eliminates the manual "remember to run `/context-recall` first" step.
+
+### Cross-Reference Graph
+
+Defined in `rules/context-graph.md`. Context entries link to each other:
+- Decisions ↔ Bets (decision made in context of bet)
+- Bets ↔ Assumptions (bet depends on assumption)
+- Feedback ↔ Decisions (feedback informs decision)
+- Learnings ↔ Decisions (learning from decision outcome)
+- Documents ↔ Decisions/Bets (document supports or records)
+
+The graph enables `/context-recall` to follow links one level deep, surfacing related context that keyword search alone would miss.
+
+### Architecture
+
+```
+┌──────────────────────────────────────────────────┐
+│  context/index.json (v3.0)                       │
+│                                                   │
+│  ┌─────────────┐  ┌──────────────┐               │
+│  │ Topic Index  │  │ Product Index│               │
+│  │ (keywords)   │  │ (per-product)│               │
+│  └──────┬──────┘  └──────┬───────┘               │
+│         │                │                        │
+│  ┌──────▼──────────────▼───────┐                 │
+│  │     Entry Records            │                 │
+│  │  (decisions, bets, feedback, │                 │
+│  │   learnings, documents)      │                 │
+│  └──────────────┬───────────────┘                 │
+│                 │                                  │
+│  ┌──────────────▼───────────────┐                 │
+│  │   Cross-Reference Graph      │                 │
+│  │  (bidirectional links)       │                 │
+│  └──────────────────────────────┘                 │
+└──────────────────────────────────────────────────┘
+         │                    │
+    Auto-Context         Graph Traversal
+    Injection            in /context-recall
+```

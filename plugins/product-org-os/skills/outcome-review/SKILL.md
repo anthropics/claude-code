@@ -2,6 +2,7 @@
 name: outcome-review
 description: Create or update an outcome review for learning
 argument-hint: [initiative or launch name] or [update path/to/review.md]
+user-invocable: true
 ---
 
 ## Document Intelligence

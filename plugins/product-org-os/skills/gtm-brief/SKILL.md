@@ -2,6 +2,7 @@
 name: gtm-brief
 description: Create or update a go-to-market brief
 argument-hint: [product/feature name] or [update path/to/gtm-brief.md]
+user-invocable: true
 ---
 
 ## Document Intelligence

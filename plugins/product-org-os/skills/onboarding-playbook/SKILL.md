@@ -2,6 +2,7 @@
 name: onboarding-playbook
 description: Create or update a customer onboarding playbook
 argument-hint: [product or customer segment] or [update path/to/playbook.md]
+user-invocable: true
 ---
 
 ## Document Intelligence

@@ -2,6 +2,7 @@
 name: context-save
 description: Save decision, bet, or learning to the context registry
 argument-hint: [decision-record | strategic-bet | learning]
+user-invocable: true
 ---
 
 Save a **decision record**, **strategic bet**, or **learning** to the persistent context registry.
@@ -163,3 +164,14 @@ Saved to context registry:
 - **Learnings**: `L-[NNN]` (e.g., L-042) - sequential across all learnings
 
 Check existing indexes to determine next available number.
+
+## Cross-Reference Extraction (v3)
+
+After saving a new entry to the context registry:
+
+1. **Scan for ID references**: Look for patterns matching existing IDs (DR-*, SB-*, FB-*, A-*, L-*, DOC-*) in the entry content
+2. **Create bidirectional links**: Update `crossReferences` in `context/index.json`
+3. **Update topic indexes**: Add entry keywords to `topicIndex`, `productIndex`, and `phaseIndex` as appropriate
+4. **Log what was linked**: Include cross-reference summary in the save confirmation
+
+See `rules/context-graph.md` for the full cross-reference specification.

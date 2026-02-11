@@ -2,6 +2,7 @@
 name: context-recall
 description: Query past decisions, bets, learnings, and documents by topic
 argument-hint: [topic or keyword]
+user-invocable: true
 ---
 
 Recall relevant **past context** before making new decisions or starting strategic work.
@@ -216,3 +217,13 @@ User: /context-recall roadmap product:AXIA
 Agent: Searches all context indexes filtered to AXIA product only.
        Returns AXIA-specific roadmap documents, decisions, and bets.
 ```
+
+## Enhanced Recall (v3)
+
+When querying the context registry:
+
+1. **Check auto-context**: See if `rules/auto-context.md` triggers apply
+2. **Search topic indexes**: Use `topicIndex`, `productIndex`, `phaseIndex` from `context/index.json`
+3. **Follow cross-references**: For each direct match, include linked items one level deep (see `rules/context-graph.md`)
+4. **Attribute links**: Show why related items appear: `[via: DR-2026-003]`
+5. **Limit expansion**: Max 3 cross-referenced items per direct match

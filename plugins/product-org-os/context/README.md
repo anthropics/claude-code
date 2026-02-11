@@ -126,6 +126,17 @@ When any skill produces a strategic document and writes it to the filesystem, th
 
 **This happens silently** - no prompting required. You can always query what documents exist using `/context-recall [topic]` or by reading `context/documents/index.md`.
 
+## v3 Features
+
+### Auto-Context Injection
+When agents create deliverables, relevant context is automatically injected based on topic matching. No manual `/context-recall` needed for common patterns. See `rules/auto-context.md`.
+
+### Cross-Reference Graph
+Context entries link to each other. When you recall a decision, you also see related bets, feedback, and learnings. See `rules/context-graph.md`.
+
+### Structured Indexes
+The context index (`index.json`) supports multi-dimensional queries: by topic, product, V2V phase, status, source, and sentiment. This enables faster and more precise context retrieval.
+
 ## Maintenance
 
 - Index files contain summaries only (stay small)

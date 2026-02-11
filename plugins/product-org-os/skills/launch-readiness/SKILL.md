@@ -2,6 +2,7 @@
 name: launch-readiness
 description: Create or update a launch readiness assessment
 argument-hint: [product/feature name] or [update path/to/readiness.md]
+user-invocable: true
 ---
 
 ## Document Intelligence

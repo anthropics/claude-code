@@ -2,6 +2,7 @@
 name: roadmap-item
 description: Create or update a specific roadmap item
 argument-hint: [item name] or [update path/to/item.md]
+user-invocable: true
 ---
 
 ## Document Intelligence

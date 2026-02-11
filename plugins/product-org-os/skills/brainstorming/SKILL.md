@@ -1,6 +1,7 @@
 ---
 name: brainstorming
 description: You MUST use this before any creative work - creating features, building components, designing systems, or solving complex problems. Guides collaborative design exploration before implementation begins.
+user-invocable: true
 ---
 
 # Brainstorming

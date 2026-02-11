@@ -2,6 +2,7 @@
 name: retrospective
 description: Create or update a structured retrospective
 argument-hint: [project, launch, or quarter] or [update path/to/retro.md]
+user-invocable: true
 ---
 
 ## Document Intelligence

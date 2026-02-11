@@ -7,6 +7,18 @@ globs:
 
 The Context Layer provides organizational memory across sessions and agents. Follow these rules to maintain context integrity.
 
+## v3 Context Enhancements
+
+The context layer in v3 includes three major enhancements:
+
+1. **Auto-Context Injection** (`rules/auto-context.md`): Automatically injects relevant context before agents produce deliverables, eliminating the need for manual `/context-recall` in common patterns.
+
+2. **Cross-Reference Graph** (`rules/context-graph.md`): Connects context entries to each other (decisions ↔ bets ↔ assumptions ↔ feedback ↔ learnings), enabling graph traversal in queries.
+
+3. **Structured JSON Indexes** (`context/index.json` v3.0): Expanded from flat entries to multi-dimensional indexes (topic, product, phase, status, sentiment, source) for faster and more precise queries.
+
+These enhancements work together: auto-context uses the structured indexes to find relevant items, and cross-references enable graph traversal to surface connected context.
+
 ## Core Behaviors
 
 ### Auto-Registration of Strategic Documents (MANDATORY)

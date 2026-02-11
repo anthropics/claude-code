@@ -2,6 +2,7 @@
 name: handoff
 description: Capture context for agent-to-agent delegation
 argument-hint: [@receiving-agent] [task description]
+user-invocable: true
 ---
 
 Capture and transfer **session context** when delegating work from one agent to another.

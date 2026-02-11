@@ -2,6 +2,7 @@
 name: product-roadmap
 description: Create or update a product roadmap document
 argument-hint: [timeframe or product area] or [update path/to/roadmap.md]
+user-invocable: true
 ---
 
 ## Document Intelligence

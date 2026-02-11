@@ -2,6 +2,7 @@
 name: competitive-landscape
 description: Create or update a competitive landscape analysis
 argument-hint: [market or product area] or [update path/to/competitive.md]
+user-invocable: true
 ---
 
 ## Document Intelligence

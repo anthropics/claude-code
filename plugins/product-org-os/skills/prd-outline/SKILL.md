@@ -2,6 +2,7 @@
 name: prd-outline
 description: Create or update a PRD outline
 argument-hint: [product/feature name] or [update path/to/outline.md]
+user-invocable: true
 ---
 
 ## Document Intelligence

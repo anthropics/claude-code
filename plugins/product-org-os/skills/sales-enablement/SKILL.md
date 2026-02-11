@@ -2,6 +2,7 @@
 name: sales-enablement
 description: Create or update a sales enablement package
 argument-hint: [product or feature name] or [update path/to/enablement.md]
+user-invocable: true
 ---
 
 ## Document Intelligence

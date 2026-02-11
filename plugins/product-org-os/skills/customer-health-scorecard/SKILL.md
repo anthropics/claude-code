@@ -2,6 +2,7 @@
 name: customer-health-scorecard
 description: Create or update a customer health scorecard
 argument-hint: [customer name or segment] or [update path/to/scorecard.md]
+user-invocable: true
 ---
 
 ## Document Intelligence

@@ -3,6 +3,7 @@ name: pmm
 description: Product Marketing Manager (shortcut for /product-marketing-manager) - assign campaigns, collateral, customer research, and sales enablement tasks
 model: sonnet
 alias: product-marketing-manager
+user-invocable: true
 ---
 
 **This is a shortcut for `/product-marketing-manager`.**

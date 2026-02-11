@@ -2,10 +2,11 @@
 name: reset-demo
 description: Restore demo content for testing or demonstration purposes
 model: haiku
-tools:
+allowed-tools:
   - Read
   - Write
   - Bash
+user-invocable: true
 ---
 
 # Reset Demo Content

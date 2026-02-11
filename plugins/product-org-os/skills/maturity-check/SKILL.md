@@ -2,6 +2,7 @@
 name: maturity-check
 description: Assess organizational maturity for a dimension
 argument-hint: [dimension or area]
+user-invocable: true
 ---
 
 Assess **Organizational Maturity** for a specific dimension.

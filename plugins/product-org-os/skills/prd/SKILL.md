@@ -2,6 +2,7 @@
 name: prd
 description: Create or update a Product Requirements Document
 argument-hint: [product/feature name] or [update path/to/prd.md]
+user-invocable: true
 ---
 
 ## Document Intelligence

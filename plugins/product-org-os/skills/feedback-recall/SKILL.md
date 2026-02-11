@@ -2,6 +2,7 @@
 name: feedback-recall
 description: Query past feedback by topic, source, or theme
 argument-hint: [topic, feature, or customer segment]
+user-invocable: true
 ---
 
 Search and synthesize **past feedback** to inform current work.
@@ -229,6 +230,15 @@ This could indicate:
 - Support ticket analysis
 - Survey or research study
 ```
+
+## Graph-Enhanced Recall (v3)
+
+When querying feedback:
+
+1. **Search feedback indexes**: Use `sourceIndex`, `sentimentIndex`, `topicIndex` from `context/index.json`
+2. **Follow cross-references**: Show decisions and bets that feedback links to
+3. **Show theme connections**: If feedback is part of a theme, show the theme and other related feedback
+4. **Filter by product**: In multi-product orgs, use `productIndex` for scoped queries
 
 ## Integration with Other Skills
 

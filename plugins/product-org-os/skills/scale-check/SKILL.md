@@ -2,6 +2,7 @@
 name: scale-check
 description: Create or update a scalability assessment at 2x, 10x, 100x
 argument-hint: [process, system, or initiative] or [update path/to/check.md]
+user-invocable: true
 ---
 
 ## Document Intelligence

@@ -2,6 +2,7 @@
 name: pricing-strategy
 description: Create or update a pricing strategy document
 argument-hint: [product or feature name] or [update path/to/pricing.md]
+user-invocable: true
 ---
 
 ## Document Intelligence

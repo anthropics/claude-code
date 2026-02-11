@@ -2,6 +2,7 @@
 name: decision-record
 description: Create or update a structured decision record
 argument-hint: [decision topic] or [update DR-2026-001]
+user-invocable: true
 ---
 
 ## Document Intelligence

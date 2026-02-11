@@ -2,6 +2,7 @@
 name: gtm-strategy
 description: Create or update a go-to-market strategy
 argument-hint: [product or feature name] or [update path/to/gtm.md]
+user-invocable: true
 ---
 
 ## Document Intelligence

@@ -1,6 +1,8 @@
-# Product Organization Plugin for Claude Code
+# Product Organization Plugin
 
 This plugin provides AI-powered product organization capabilities based on the **Vision to Value (V2V) System** framework.
+
+> For Claude Code and Agent Skills-compatible tools (Cursor, Copilot, Gemini CLI, Windsurf)
 
 ## Quick Start
 
@@ -498,12 +500,14 @@ User: Here's feedback from Acme Corp: "Your API rate limits are killing us."
 
 | Component | Count |
 |-----------|-------|
-| Skills | 56 |
+| Skills | 61 |
 | Agents | 13 |
-| Gateway | 1 (`/product`) |
+| Gateways | 2 (`@product`, `@plt`) |
+| Knowledge Packs | 9 |
+| Integration Templates | 6 |
+| Delegation Patterns | 4 |
 | Principle Validators | 5 |
-| Context Files | 10 |
-| ID Types | 6 |
+| Context Indexes | 7 (topic, product, phase, status, source, sentiment, cross-ref) |
 
 ---
 
@@ -667,4 +671,101 @@ Spawn in parallel: @product-manager, @product-marketing-manager, @product-operat
 Spawn in parallel: @competitive-intelligence, @bizops, @director-product-management, @director-product-marketing
 ```
 
-All 13 agents have access to all 56 skills and can invoke any skill based on their role's needs.
+All 13 agents have access to all 61 skills and can invoke any skill based on their role's needs.
+
+---
+
+## MCP Integration Framework
+
+Agents auto-detect available MCP tools at runtime and use them when relevant:
+
+| Tool Category | Example MCP Servers | Agent Use Case |
+|--------------|---------------------|----------------|
+| Project Management | Jira, Linear, Asana | Create issues from user stories, track roadmap delivery |
+| Communication | Slack, Teams | Post launch updates, notify stakeholders |
+| Documents | Notion, Confluence | Publish PRDs and specs to team wiki |
+| Analytics | Amplitude, Mixpanel | Pull metrics for outcome reviews |
+| Repository | GitHub, GitLab | Link specs to issues, track PRs |
+
+**Graceful fallback**: When MCP tools aren't available, agents produce text output with manual action notes. No setup required — integrations enhance but never block.
+
+Setup templates: `integrations/` folder with guides for each tool.
+
+See `rules/mcp-integration.md` for the full framework.
+
+---
+
+## Domain Knowledge Packs
+
+Professional PM frameworks organized in a three-layer architecture:
+
+| Layer | Location | Purpose |
+|-------|----------|---------|
+| V2V Process | `rules/` | WHEN and HOW to work (6 phases, 8 principles) |
+| Domain Knowledge | `reference/knowledge/` | WHAT frameworks to apply |
+| Agent Persona | `skills/*/SKILL.md` | WHO you are (R&R, perspective) |
+
+### Available Packs
+
+| Pack | Key Frameworks |
+|------|---------------|
+| Prioritization | RICE, ICE, MoSCoW, Kano, Weighted Scoring |
+| Pricing Frameworks | Value-based, Freemium, Usage-based, Van Westendorp |
+| Discovery Methods | JTBD, Lean Startup, Continuous Discovery, OSTs |
+| Metrics Frameworks | HEART, North Star, AARRR, OKRs |
+| Competitive Frameworks | Porter's Five Forces, SWOT, Battlecards, Win/Loss |
+| GTM Playbooks | PLG, SLG, Channel-led, Launch Tiers |
+| Stakeholder Management | Influence Mapping, RACI, Executive Communication |
+| User Research | Interviews, Surveys, Usability Testing, A/B Testing |
+| Financial Modeling | TAM/SAM/SOM, Unit Economics, LTV/CAC |
+
+Agents reference these automatically when relevant to their task.
+
+---
+
+## Agent Delegation Patterns
+
+Four structured patterns for agent-to-agent collaboration:
+
+| Pattern | Trigger | Ownership |
+|---------|---------|-----------|
+| **Consultation** | Need a data point | Stays with requester |
+| **Delegation** | Need specialist deliverable | Transfers to specialist |
+| **Review** | Need quality validation | Stays with author |
+| **Structured Debate** | Genuine tradeoff | Senior agent decides |
+
+See `rules/delegation-protocol.md` for full protocol with examples.
+
+---
+
+## Enhanced Context Layer (v3)
+
+### Auto-Context Injection
+Before agents produce deliverables, relevant context is automatically injected based on topic matching. No manual `/context-recall` needed for common patterns.
+
+### Cross-Reference Graph
+Context entries link to each other: decisions ↔ bets ↔ assumptions ↔ feedback ↔ learnings. When you recall a decision, you also see related bets and feedback.
+
+### Structured Indexes
+The context index supports multi-dimensional queries: by topic, product, V2V phase, status, source, and sentiment.
+
+See `rules/auto-context.md` and `rules/context-graph.md`.
+
+---
+
+## Cross-Platform Compatibility
+
+This plugin follows the **Agent Skills** open standard:
+
+| Feature | Claude Code | Cursor | Copilot | Gemini CLI |
+|---------|-------------|--------|---------|------------|
+| Skills (`/prd`, `/decision-record`) | Full support | Via Agent Skills | Via Agent Skills | Via Agent Skills |
+| Agents (`@pm`, `@vp-product`) | Full support (Task tool) | Partial | Partial | Partial |
+| Gateways (`@product`, `@plt`) | Full support (Skill tool) | Limited | Limited | Limited |
+| MCP integrations | Full support | Full support | Expanding | Expanding |
+| Context layer | Full support | Full support | Full support | Full support |
+
+**Progressive enhancement**: The plugin works at multiple levels:
+- **Base** (all platforms): SKILL.md personas, markdown rules, context layer
+- **Enhanced** (Claude Code + Cursor): MCP integrations, Task tool for agents
+- **Full** (Claude Code): Skill tool for gateways, full Meeting Mode

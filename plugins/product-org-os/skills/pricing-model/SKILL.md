@@ -2,6 +2,7 @@
 name: pricing-model
 description: Create or update a pricing model
 argument-hint: [product name] or [update path/to/pricing-model.md]
+user-invocable: true
 ---
 
 ## Document Intelligence

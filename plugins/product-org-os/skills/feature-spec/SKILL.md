@@ -2,6 +2,7 @@
 name: feature-spec
 description: Create or update a feature specification
 argument-hint: [feature name] or [update path/to/spec.md]
+user-invocable: true
 ---
 
 ## Document Intelligence

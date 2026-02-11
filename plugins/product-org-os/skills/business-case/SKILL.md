@@ -2,6 +2,7 @@
 name: business-case
 description: Create or update a comprehensive business case
 argument-hint: [initiative or investment name] or [update path/to/business-case.md]
+user-invocable: true
 ---
 
 ## Document Intelligence

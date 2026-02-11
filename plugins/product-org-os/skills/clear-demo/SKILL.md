@@ -2,10 +2,11 @@
 name: clear-demo
 description: (Optional) Remove demo content for a clean context folder
 model: haiku
-tools:
+allowed-tools:
   - Read
   - Bash
   - Glob
+user-invocable: true
 ---
 
 # Clear Demo Content (Optional)

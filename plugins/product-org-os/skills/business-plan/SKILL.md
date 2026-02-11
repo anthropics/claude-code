@@ -2,6 +2,7 @@
 name: business-plan
 description: Create or update a business plan
 argument-hint: [product or business area] or [update path/to/business-plan.md]
+user-invocable: true
 ---
 
 ## Document Intelligence

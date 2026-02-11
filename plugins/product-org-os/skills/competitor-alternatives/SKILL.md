@@ -1,6 +1,7 @@
 ---
 name: competitor-alternatives
 description: When the user wants to create competitor comparison or alternative pages for SEO and sales enablement. Also use when the user mentions 'vs page,' 'comparison page,' 'alternative to,' or 'competitive landing page.'
+user-invocable: true
 ---
 
 # Competitor & Alternative Pages

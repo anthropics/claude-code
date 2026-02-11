@@ -2,6 +2,7 @@
 name: strategic-bet
 description: Create or update a strategic bet with explicit assumptions
 argument-hint: [bet name or area] or [update SB-2026-001]
+user-invocable: true
 ---
 
 ## Document Intelligence

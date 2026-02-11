@@ -3,6 +3,7 @@ name: pmm-dir
 description: Director of Product Marketing (shortcut for /director-product-marketing) - assign GTM strategy, positioning, competitive intelligence, and launch tasks
 model: sonnet
 alias: director-product-marketing
+user-invocable: true
 ---
 
 **This is a shortcut for `/director-product-marketing`.**

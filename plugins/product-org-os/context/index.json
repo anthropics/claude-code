@@ -1,25 +1,44 @@
 {
-  "version": "1.0",
-  "lastUpdated": "2026-01-25",
-  "description": "Master index for Product Org OS context layer. Auto-updated when documents are saved.",
-  "entries": [],
-  "topicIndex": {},
-  "typeIndex": {
-    "prd": [],
-    "decision": [],
-    "bet": [],
-    "roadmap": [],
-    "gtm": [],
-    "analysis": [],
-    "feedback": [],
-    "learning": []
+  "version": "3.0",
+  "lastUpdated": "",
+  "decisions": {
+    "entries": [],
+    "topicIndex": {},
+    "productIndex": {},
+    "phaseIndex": {}
   },
-  "phaseIndex": {
-    "phase1": [],
-    "phase2": [],
-    "phase3": [],
-    "phase4": [],
-    "phase5": [],
-    "phase6": []
+  "bets": {
+    "entries": [],
+    "topicIndex": {},
+    "statusIndex": {}
+  },
+  "feedback": {
+    "entries": [],
+    "sourceIndex": {},
+    "sentimentIndex": {},
+    "topicIndex": {}
+  },
+  "documents": {
+    "entries": [],
+    "typeIndex": {},
+    "phaseIndex": {}
+  },
+  "learnings": {
+    "entries": [],
+    "topicIndex": {}
+  },
+  "assumptions": {
+    "entries": [],
+    "statusIndex": {},
+    "betIndex": {}
+  },
+  "crossReferences": {
+    "decisionToBet": {},
+    "betToAssumption": {},
+    "feedbackToDecision": {},
+    "learningToDecision": {},
+    "documentToDecision": {},
+    "documentToBet": {},
+    "feedbackToTheme": {}
   }
 }

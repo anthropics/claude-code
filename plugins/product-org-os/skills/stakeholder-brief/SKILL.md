@@ -2,6 +2,7 @@
 name: stakeholder-brief
 description: Create or update a stakeholder communication brief
 argument-hint: [topic or update] or [update path/to/brief.md]
+user-invocable: true
 ---
 
 ## Document Intelligence

@@ -3,9 +3,10 @@ name: tour
 description: Interactive walkthrough of Product Org OS - learn how agents, gateways, skills, and context work together
 argument-hint: (no arguments needed)
 model: haiku
-tools:
+allowed-tools:
   - Read
   - Glob
+user-invocable: true
 ---
 
 # Product Org OS Tour

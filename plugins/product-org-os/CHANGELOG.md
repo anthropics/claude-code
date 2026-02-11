@@ -5,6 +5,66 @@ All notable changes to Product Org OS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0] - 2026-02-10
+
+### Added
+- **Product Mentor agent** (`@mentor` / `@product-mentor`) — Career coaching, PM skill assessment, stakeholder navigation, OS usage optimization
+
+- **MCP Integration Framework** — agents auto-detect and use connected tools
+  - `rules/mcp-integration.md` — core integration rule with detection pattern and graceful fallback
+  - `integrations/` folder with 6 setup templates (Jira, Linear, Slack, Notion, GitHub, Analytics)
+  - Integration Awareness section added to 8 agent SKILL.md files
+  - Tool integration line added to agent spawn protocol (Section 2)
+
+- **9 Domain Knowledge Packs** in `reference/knowledge/`
+  - Prioritization, Pricing Frameworks, Discovery Methods, Metrics Frameworks
+  - Competitive Frameworks, GTM Playbooks, Stakeholder Management
+  - User Research, Financial Modeling
+  - Three-layer architecture: V2V Process → Domain Knowledge → Agent Persona
+  - Knowledge Sources section added to 12 agent SKILL.md files
+  - Knowledge pack catalog added to `rules/skill-awareness.md`
+
+- **Enhanced Context Layer**
+  - `rules/auto-context.md` — automatic context injection before deliverable creation
+  - `rules/context-graph.md` — cross-reference graph connecting decisions, bets, feedback, learnings
+  - `context/index.json` upgraded to v3.0 schema with structured indexes
+  - Enhanced 6 context skill SKILL.md files with graph traversal and auto-linking
+  - Updated `rules/context-management.md`, `CONTEXT-LAYER-DESIGN.md`, `context/README.md`
+
+- **4 Agent Delegation Patterns**
+  - `rules/delegation-protocol.md` — Consultation, Delegation, Review, Structured Debate
+  - Updated `rules/agent-spawn-protocol.md` Section 5 with pattern selection
+  - Updated `rules/parallel-execution.md` with delegation-enhanced patterns
+
+- **Claude Agent SDK Design** (Project SaaS)
+  - `sdk-bridge-design.md` — OS-to-SDK architecture mapping
+  - `api-contract.md` — REST + WebSocket API specifications
+  - `data-model.md` — PostgreSQL schema for cloud context layer
+  - `agent-runtime.md` — CLI vs. cloud execution model
+  - `migration-guide.md` — CLI to cloud migration path
+
+### Changed
+- **Conversational-First Response Model** — all 13 agents keep responses to 2-4 paragraphs, create documents for detailed analysis. Prevents parent session compression from losing agent voice. Enforced via agent spawn protocol Section 2.
+- **Meeting Mode Enforcement** — Claude Code is invisible infrastructure when Product Org is active. Agent responses are the complete output with zero preamble/postamble. Synthesis attributed to named senior agent, never unnamed. `rules/meeting-mode.md` defines format and self-check.
+- **No Fabricated Numbers Rule** — agents never invent financial projections, timeline estimates, or implementation costs. Use frameworks, placeholders (`[TBD]`), and calculation structures instead. `rules/no-estimates.md` expanded with detailed examples and redirect patterns.
+
+- **Agent Skills Standard Alignment** — all SKILL.md files updated
+  - `tools:` → `allowed-tools:` in all frontmatter (63 files)
+  - `user-invocable: true/false` added to all SKILL.md files
+  - `plugin.json` updated to v3.0.0 with `"standard": "agent-skills"`
+  - Cross-platform compatibility with Cursor, Copilot, Gemini CLI
+
+- **Documentation Overhaul**
+  - README.md rewritten with v3 features, cross-platform support
+  - PRODUCT-ORG-CLAUDE.md updated with 5 new sections (MCP, Knowledge, Delegation, Context, Cross-Platform)
+  - Plugin statistics updated (5 gateways, 9 knowledge packs, 6 integration templates, 4 delegation patterns)
+  - Cross-platform language audit throughout
+
+- **Setup Command** (`/setup`) updated for v3
+  - Pre-flight audit expanded from 28 to 32 items (added v3 rules)
+  - `context/index.json` template upgraded to v3.0 schema
+  - Tour language updated for cross-platform
+
 ## [2.4.1] - 2026-01-25
 
 ### Added

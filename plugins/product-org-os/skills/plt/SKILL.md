@@ -3,6 +3,7 @@ name: plt
 description: Product Leadership Team (shortcut for /product-leadership-team) - assign portfolio tradeoffs, cross-functional decisions, strategic alignment, and outcome reviews
 model: sonnet
 alias: product-leadership-team
+user-invocable: true
 ---
 
 **This is a shortcut for `/product-leadership-team`.**

@@ -2,6 +2,7 @@
 name: launch-plan
 description: Create or update a product launch plan
 argument-hint: [product or feature name] or [update path/to/launch-plan.md]
+user-invocable: true
 ---
 
 ## Document Intelligence

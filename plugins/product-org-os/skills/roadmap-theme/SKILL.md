@@ -2,6 +2,7 @@
 name: roadmap-theme
 description: Create or update a roadmap theme with initiatives
 argument-hint: [theme name] or [update path/to/theme.md]
+user-invocable: true
 ---
 
 ## Document Intelligence

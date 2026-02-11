@@ -1,6 +1,7 @@
 ---
 name: writing-plans
 description: Use when you have a spec or requirements for a multi-step task, before touching any code. Creates comprehensive implementation plans for engineers unfamiliar with the codebase.
+user-invocable: true
 ---
 
 # Writing Plans

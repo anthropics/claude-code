@@ -3,6 +3,7 @@ name: pm
 description: Product Manager (shortcut for /product-manager) - assign feature specs, user stories, delivery planning, and requirements tasks
 model: sonnet
 alias: product-manager
+user-invocable: true
 ---
 
 **This is a shortcut for `/product-manager`.**

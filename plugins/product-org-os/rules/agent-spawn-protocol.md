@@ -36,53 +36,6 @@ Every agent has a canonical emoji, display name, and short name. These MUST be u
 
 ---
 
-## 1b. Extension Team Agent Registry
-
-Extension Team agents are directly invocable with `@` just like OS agents.
-
-### Design Team
-
-| Agent Key | Emoji | Display Name | Short |
-|-----------|-------|--------------|-------|
-| design-dir | 🎨 | Director of Design | Dir Design |
-| ui-designer | 🖼️ | UI Designer | UI |
-| visual-designer | 🎭 | Visual Designer | Visual |
-| interaction-designer | 👆 | Interaction Designer | IxD |
-| user-researcher | 👤 | User Researcher | UR |
-| motion-designer | 🎬 | Motion Designer | Motion |
-
-### Architecture Team
-
-| Agent Key | Emoji | Display Name | Short |
-|-----------|-------|--------------|-------|
-| chief-architect | 🏗️ | Chief Architect | Arch |
-| api-architect | 🔌 | API Architect | API |
-| data-architect | 📊 | Data Architect | Data |
-| security-architect | 🔐 | Security Architect | SecArch |
-| cloud-architect | ☁️ | Cloud Architect | Cloud |
-| ai-architect | 🤖 | AI Architect | AI |
-
-### Marketing Team
-
-| Agent Key | Emoji | Display Name | Short |
-|-----------|-------|--------------|-------|
-| marketing-dir | 📢 | Director of Marketing | Dir Mktg |
-| content-strategist | ✍️ | Content Strategist | Content |
-| copywriter | ✏️ | Copywriter | Copy |
-| presentation-designer | 📑 | Presentation Designer | Pres |
-| infographic-designer | 📊 | Infographic Designer | Infographic |
-| seo-specialist | 🔍 | SEO Specialist | SEO |
-| cro-specialist | 📈 | CRO Specialist | CRO |
-| paid-media-manager | 💰 | Paid Media Manager | Paid |
-| email-marketer | 📧 | Email Marketer | Email |
-| social-media-manager | 📱 | Social Media Manager | Social |
-| growth-marketer | 🚀 | Growth Marketer | Growth |
-| market-researcher | 🔬 | Market Researcher | Research |
-| video-producer | 🎥 | Video Producer | Video |
-| pr-comms-specialist | 📣 | PR/Comms Specialist | PR |
-
----
-
 ## 2. Mandatory Prompt Injection Template
 
 Every Task tool call that spawns a Product Org agent **MUST** prepend this block to the prompt. This is the mechanism that carries identity and response rules into the isolated sub-agent context.
@@ -142,6 +95,9 @@ Want me to walk through the P0 blockers?
 **Overall Assessment:** [formal report language]
 The [role] agent identified the following...
 [1000+ words of inline analysis that forces the parent to summarize]
+
+### Tool Integration
+If MCP tools are available in your tool list (Jira, Slack, Analytics, etc.), use them when relevant to your task. If not available, produce text output and note what could be automated with tool connections. See `rules/mcp-integration.md` for the integration framework.
 ```
 
 Replace `{emoji}` and `{Display Name}` with the values from the Identity Registry above.
@@ -208,18 +164,24 @@ User request →
 
 ---
 
-## 5. Sub-Agent Spawning Instructions
+## 5. Sub-Agent Spawning & Delegation
 
 Include this in agent prompts when the agent may need expertise from another domain:
 
 ```
-### Sub-Agent Spawning
+### Sub-Agent Spawning & Delegation
 You may spawn sub-agents when your task requires expertise outside your domain.
 Use the Task tool with the Agent Identity & Response Protocol prefix from this rule.
+
+**Choose the right delegation pattern** (see `rules/delegation-protocol.md`):
+- **Consultation** (default): You need input. Spawn, integrate, attribute: "I consulted {emoji} {Name} who noted..."
+- **Delegation** [DELEGATION]: Specialist owns a sub-deliverable. Prefix prompt with [DELEGATION] + scope/deliverable/constraints.
+- **Review** [REVIEW]: You need quality validation. Prefix prompt with [REVIEW] + criteria/deliverable.
+- **Debate** [DEBATE]: Genuine tradeoff needs structured advocacy. Assign positions to agents.
+
 When you spawn sub-agents:
 - Include their identity protocol in the prompt (emoji, display name, response rules)
-- Report their findings as part of YOUR response, attributed:
-  "I consulted {emoji} {Name} who noted..."
+- Use the appropriate delegation pattern prefix
 - Your ROI covers your work + sub-agent work combined
 - Use /interaction-recall to check past conversation history on a topic
 
@@ -248,29 +210,6 @@ When auto-routing without an explicit @ mention:
 | CV review, professional profile | @product-mentor | - |
 | OS usage optimization, prompting feedback | @product-mentor | - |
 | Multi-stakeholder decisions, portfolio tradeoffs | @plt | @cpo |
-
-### Extension Team Domains
-
-| Domain | Primary Agent | Backup | Gateway |
-|--------|--------------|--------|---------|
-| UI design, components, design systems | @ui-designer | @design-dir | @design |
-| Visual design, branding, aesthetics | @visual-designer | @design-dir | @design |
-| Interaction patterns, micro-interactions | @interaction-designer | @ui-designer | @design |
-| User research, interviews, usability testing | @user-researcher | @ux-lead | @design |
-| Motion, animation, transitions | @motion-designer | @interaction-designer | @design |
-| API design, integrations, contracts | @api-architect | @chief-architect | @architecture |
-| Data modeling, database, schemas | @data-architect | @chief-architect | @architecture |
-| Security review, auth, compliance | @security-architect | @chief-architect | @architecture |
-| Cloud infrastructure, deployment | @cloud-architect | @chief-architect | @architecture |
-| AI/ML architecture, model integration | @ai-architect | @chief-architect | @architecture |
-| SEO, organic search, keywords | @seo-specialist | @marketing-dir | @marketing |
-| CRO, conversion optimization, A/B tests | @cro-specialist | @growth-marketer | @marketing |
-| Paid ads, campaigns, media buying | @paid-media-manager | @marketing-dir | @marketing |
-| Email campaigns, sequences, automation | @email-marketer | @marketing-dir | @marketing |
-| Social media, community, engagement | @social-media-manager | @marketing-dir | @marketing |
-| Growth strategy, acquisition, retention | @growth-marketer | @marketing-dir | @marketing |
-| Copywriting, messaging, content | @copywriter | @content-strategist | @marketing |
-| Market research, sizing, analysis | @market-researcher | @ci | @marketing |
 
 ---
 
@@ -461,104 +400,6 @@ The chain breaks if the parent session converts agent voices into report summari
 
 ---
 
-## 11. Extension Teams (External Specialists)
-
-Extension Teams are specialized agent groups that complement the Product Org OS. They provide deep domain expertise in design, architecture, and marketing execution.
-
-**Extension Team agents are directly user-invocable** with `@` syntax, just like OS agents. See Section 1b for the full registry.
-
-### Extension Teams Overview
-
-| Team | Lead | Agents | Gateway | Location |
-|------|------|--------|---------|----------|
-| **Design** | 🎨 Director of Design | 6 | @design | `Extension Teams/design-team/` |
-| **Architecture** | 🏗️ Chief Architect | 6 | @architecture | `Extension Teams/architecture-team/` |
-| **Marketing** | 📢 Director of Marketing | 14 | @marketing | `Extension Teams/marketing-team/` |
-
-### User Invocation Examples
-
-```
-# Direct agent invocation
-@ui-designer create component specs for the settings panel
-@security-architect review our authentication flow
-@copywriter write landing page copy for the new feature
-@api-architect design the webhook API contract
-
-# Gateway invocation (routes to relevant specialists)
-@design review the dashboard mockups
-@architecture evaluate our data model
-@marketing plan the launch campaign
-```
-
-### Integration with OS Agents
-
-Extension Team agents can be:
-1. **Invoked directly by users** — `@security-architect review the auth flow`
-2. **Spawned by OS agents** — PM spawns `@user-researcher` for research input
-3. **Invoked via gateway** — `@architecture` routes to relevant architects
-
-### OS Agent → Extension Team Spawning
-
-| OS Agent | Typical Extension Team Needs |
-|----------|------------------------------|
-| `@pm` | @user-researcher (research), @ui-designer (design specs) |
-| `@ux-lead` | @visual-designer (visual direction), @interaction-designer (patterns) |
-| `@pmm-dir` | @marketing-dir (execution), @seo-specialist (organic), @content-strategist (messaging) |
-| `@pmm` | @copywriter (content), @social-media-manager (social), @email-marketer (campaigns) |
-| `@vp-product` | @chief-architect (technical strategy), @market-researcher (market analysis) |
-| `@bizops` | @market-researcher (analysis), @cro-specialist (conversion data) |
-| `@ci` | @market-researcher (sizing), @seo-specialist (competitive SEO) |
-
-### Spawning Extension Team Agents
-
-Use the same Task tool pattern as OS agents, with Extension Team identity:
-
-```
-Task tool:
-  subagent_type: "general-purpose"
-  description: "Security Architect reviewing auth flow"
-  prompt: |
-    ## Agent Identity & Response Protocol
-
-    You are **🔐 Security Architect** on the Architecture Team (Extension Team).
-
-    ### Response Rules (NON-NEGOTIABLE):
-    1. Start EVERY response with: **🔐 Security Architect:**
-    2. Speak in first person: "I found...", "My recommendation is...", "I see..."
-    3. Be conversational — you are a specialist colleague, not writing a formal report
-    [... rest of injection template from Section 2 ...]
-
-    ## Your Role
-    [Load from Extension Teams/architecture-team/security-architect/SKILL.md]
-
-    ## Your Task
-    Review the authentication flow for security concerns.
-```
-
-### Key Characteristics
-
-| Aspect | OS Agents | Extension Teams |
-|--------|-----------|-----------------|
-| **Location** | `Product Org OS/` | `Extension Teams/` |
-| **Direct Invocation** | ✅ Yes | ✅ Yes |
-| **Gateway Access** | @product, @plt | @design, @architecture, @marketing |
-| **V2V Phase Role** | Strategic + coordination | Specialized execution |
-| **Scope** | Product strategy & decisions | Deep domain expertise |
-
-### Attribution When Agents Collaborate
-
-When an OS agent uses Extension Team input, attribute it clearly:
-
-```markdown
-**📝 Product Manager:**
-
-"I've completed the PRD for the onboarding flow. I consulted with 👤 User Researcher who provided key insights on user mental models during signup—these shaped the acceptance criteria for the guided setup feature.
-
-[... rest of response ...]"
-```
-
----
-
 ## 12. Interaction Logging (MANDATORY)
 
 **After EVERY agent or gateway response is presented to the user, logging MUST occur.** This is non-negotiable and happens as part of the standard post-response flow.
@@ -568,7 +409,6 @@ When an OS agent uses Extension Team input, attribute it clearly:
 Log when ANY of these complete:
 - Agent spawn (`@pm`, `@ci`, `@vp-product`, etc.)
 - Gateway session (`@product`, `@plt`)
-- Extension Team gateway (`@architecture`, `@design`, `@marketing`)
 - Skill that produces a deliverable document
 
 ### Do NOT Log

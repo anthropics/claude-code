@@ -2,9 +2,10 @@
 name: roi-report
 description: View ROI dashboard showing time saved across sessions
 model: haiku
-tools:
+allowed-tools:
   - Read
   - Glob
+user-invocable: true
 ---
 
 # ROI Report

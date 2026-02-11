@@ -3,9 +3,10 @@ name: demo
 description: Alias for /tour - Interactive walkthrough of Product Org OS
 argument-hint: (no arguments needed)
 model: haiku
-tools:
+allowed-tools:
   - Read
   - Glob
+user-invocable: true
 ---
 
 # Demo (Alias for Tour)

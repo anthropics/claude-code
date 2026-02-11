@@ -2,6 +2,7 @@
 name: feedback-capture
 description: Capture and analyze product feedback with full metadata
 argument-hint: [paste feedback or describe source]
+user-invocable: true
 ---
 
 Capture, document, and analyze **product feedback** with complete metadata and structured analysis.
@@ -237,3 +238,13 @@ After saving, check if this feedback:
 - Matches an existing theme → Update theme with new data point
 - Shares topics with 2+ other entries → Suggest new emerging theme
 - Represents a significant new pattern → Flag for theme consideration
+
+## Auto-Linking (v3)
+
+After capturing feedback:
+
+1. **Check for ID mentions**: If feedback references decisions (DR-*), bets (SB-*), or assumptions (A-*), create cross-reference links in `context/index.json`
+2. **Match against themes**: Check if feedback content matches existing themes in `context/feedback/themes.md`. If so, link to theme and increment theme strength
+3. **Update indexes**: Add to `sourceIndex`, `sentimentIndex`, and `topicIndex` in `context/index.json`
+
+See `rules/context-graph.md` for the full linking specification.

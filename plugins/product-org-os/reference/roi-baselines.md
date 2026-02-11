@@ -147,6 +147,7 @@ Agent time savings depend heavily on task complexity. Base times represent typic
 | `@pm-dir` | 90 | Cross-team coordination, requirements governance |
 | `@pmm-dir` | 90 | GTM strategy, positioning, competitive response |
 | `@pmm` | 60 | Campaign execution, collateral, research synthesis |
+| `@product-mentor` | 45 | Career coaching, stakeholder navigation, CV review, OS optimization |
 | `@bizops` | 90 | Business cases, financial analysis, KPI tracking |
 | `@bizdev` | 90 | Partnership strategy, deal structuring |
 | `@ci` | 60 | Competitive analysis, market research |

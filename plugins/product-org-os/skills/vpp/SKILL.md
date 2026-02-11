@@ -3,6 +3,7 @@ name: vpp
 description: VP of Product (shortcut for /vp-product) - assign product vision, roadmap accountability, and pricing strategy tasks
 model: sonnet
 alias: vp-product
+user-invocable: true
 ---
 
 **This is a shortcut for `/vp-product`.**

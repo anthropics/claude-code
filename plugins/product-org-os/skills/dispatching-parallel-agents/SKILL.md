@@ -1,6 +1,7 @@
 ---
 name: dispatching-parallel-agents
 description: Use when facing 2+ independent tasks that can be worked on without shared state or sequential dependencies. Deploys multiple agents simultaneously for parallel execution.
+user-invocable: true
 ---
 
 # Dispatching Parallel Agents

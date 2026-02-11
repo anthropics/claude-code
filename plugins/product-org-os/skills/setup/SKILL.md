@@ -2,6 +2,7 @@
 name: setup
 description: Initialize the Product Org plugin - creates context folders and index files
 argument-hint: (no arguments needed)
+user-invocable: true
 ---
 
 Initialize the **Product Org Plugin** for first-time use. This creates the context folder structure and all necessary index files in your current working directory.
@@ -18,9 +19,14 @@ Initialize the **Product Org Plugin** for first-time use. This creates the conte
 ```
 .claude/
 └── rules/
-    └── agent-spawn-protocol.md   # Agent response & spawning protocol
+    ├── agent-spawn-protocol.md   # Agent response & spawning protocol
+    ├── mcp-integration.md        # MCP tool detection and graceful fallback
+    ├── auto-context.md           # Auto-context injection before deliverables
+    ├── context-graph.md          # Cross-reference graph for context entries
+    └── delegation-protocol.md    # 4 agent delegation patterns
 context/
 ├── README.md               # How to use the context layer
+├── index.json              # Master index with structured indexes (v3.0)
 ├── decisions/
 │   └── index.md            # Decision registry
 ├── bets/
@@ -38,6 +44,10 @@ context/
 │   └── themes.md           # Recurring patterns
 ├── documents/
 │   └── registry.md         # Document registry for all strategic docs
+├── roi/
+│   ├── session-log.md      # Per-session ROI tracking
+│   └── history/
+│       └── README.md       # Monthly ROI aggregation
 └── interactions/
     ├── index.json          # Interaction metadata & indexes
     └── current-session.md  # Rolling session summary
@@ -57,7 +67,7 @@ Before creating or modifying anything, scan the workspace and build an inventory
 
 | Category | Check | Items |
 |----------|-------|-------|
-| **Rules** | `.claude/rules/agent-spawn-protocol.md` | 1 file |
+| **Rules** | `.claude/rules/agent-spawn-protocol.md`, `.claude/rules/mcp-integration.md`, `.claude/rules/auto-context.md`, `.claude/rules/context-graph.md`, `.claude/rules/delegation-protocol.md` | 5 files |
 | **Directories** | `context/`, `context/decisions/`, `context/bets/`, `context/assumptions/`, `context/portfolio/`, `context/learnings/`, `context/handoffs/`, `context/feedback/`, `context/documents/`, `context/roi/`, `context/roi/history/`, `context/interactions/` | 12 dirs |
 | **Index files** | `context/README.md`, `context/decisions/index.md`, `context/bets/index.md`, `context/assumptions/registry.md`, `context/portfolio/active-bets.md`, `context/learnings/index.md`, `context/handoffs/current-session.md`, `context/feedback/index.md`, `context/feedback/themes.md`, `context/documents/registry.md` | 10 files |
 | **ROI files** | `context/roi/session-log.md`, `context/roi/history/README.md` | 2 files |
@@ -68,20 +78,20 @@ Before creating or modifying anything, scan the workspace and build an inventory
 
 ```
 Pre-flight audit:
-  Rules:       [0/1] or [1/1]
+  Rules:       [0/5] or [X/5]
   Directories: [X/12]
   Index files: [X/10]
   ROI files:   [X/2]
   Interaction: [X/2]
   JSON index:  [0/1] or [1/1]
   ─────────────────────────────
-  Total:       [X/28] already exist
+  Total:       [X/32] already exist
 ```
 
 **Decision logic:**
-- If **28/28** exist → Skip to Step 6 (welcome) and report "Already fully initialized"
-- If **0/28** exist → Fresh install, run all steps
-- If **1-27/28** exist → Partial setup, create only what's missing (never overwrite)
+- If **32/32** exist → Skip to Step 6 (welcome) and report "Already fully initialized"
+- If **0/32** exist → Fresh install, run all steps
+- If **1-31/32** exist → Partial setup, create only what's missing (never overwrite)
 
 Display the audit result to the user before proceeding.
 
@@ -446,6 +456,14 @@ This rule file ensures spawned agents follow the Product Org response protocol (
 
 The file content is the canonical `agent-spawn-protocol.md` from the plugin's `rules/` folder. Copy it verbatim.
 
+### 3c. Create v3 Rule Files
+
+Create these rule files in `.claude/rules/` if they don't already exist:
+- `.claude/rules/mcp-integration.md` — Copy from plugin's `rules/mcp-integration.md`
+- `.claude/rules/auto-context.md` — Copy from plugin's `rules/auto-context.md`
+- `.claude/rules/context-graph.md` — Copy from plugin's `rules/context-graph.md`
+- `.claude/rules/delegation-protocol.md` — Copy from plugin's `rules/delegation-protocol.md`
+
 ### 4. Create ROI Tracking Structure
 
 Create ROI tracking folders and files:
@@ -484,12 +502,48 @@ Create `context/index.json` for fast topic-based retrieval:
 
 ```json
 {
-  "version": "1.0",
+  "version": "3.0",
   "lastUpdated": "[current date]",
-  "entries": [],
-  "topicIndex": {},
-  "typeIndex": {},
-  "phaseIndex": {}
+  "decisions": {
+    "entries": [],
+    "topicIndex": {},
+    "productIndex": {},
+    "phaseIndex": {}
+  },
+  "bets": {
+    "entries": [],
+    "topicIndex": {},
+    "statusIndex": {}
+  },
+  "feedback": {
+    "entries": [],
+    "sourceIndex": {},
+    "sentimentIndex": {},
+    "topicIndex": {}
+  },
+  "documents": {
+    "entries": [],
+    "typeIndex": {},
+    "phaseIndex": {}
+  },
+  "learnings": {
+    "entries": [],
+    "topicIndex": {}
+  },
+  "assumptions": {
+    "entries": [],
+    "statusIndex": {},
+    "betIndex": {}
+  },
+  "crossReferences": {
+    "decisionToBet": {},
+    "betToAssumption": {},
+    "feedbackToDecision": {},
+    "learningToDecision": {},
+    "documentToDecision": {},
+    "documentToBet": {},
+    "feedbackToTheme": {}
+  }
 }
 ```
 
@@ -500,7 +554,7 @@ Display welcome message with exploration guidance:
 ```markdown
 # Welcome to Product Org OS!
 
-Your AI-powered product organization is ready.
+Your AI-powered product organization is ready. Works with Claude Code, Cursor, Copilot, and other Agent Skills-compatible tools.
 
 ---
 
@@ -574,6 +628,10 @@ Product Org Plugin initialized successfully!
 
 Context structure:
 [✓/·] .claude/rules/agent-spawn-protocol.md
+[✓/·] .claude/rules/mcp-integration.md
+[✓/·] .claude/rules/auto-context.md
+[✓/·] .claude/rules/context-graph.md
+[✓/·] .claude/rules/delegation-protocol.md
 [✓/·] context/README.md
 [✓/·] context/decisions/index.md
 [✓/·] context/bets/index.md
@@ -596,7 +654,7 @@ Created: X new | Skipped: Y existing
 If everything already existed, show:
 ```
 Product Org Plugin — already fully initialized.
-All 28 items present. No changes made.
+All 32 items present. No changes made.
 ```
 
 ### 8. Interactive Onboarding Choice (MANDATORY)
@@ -724,6 +782,13 @@ The context layer stores decisions, feedback, and learnings—organizational mem
 ```
 
 This shows how past decisions on pricing are retrieved.
+
+### New in v3
+| Feature | Description |
+|---------|-------------|
+| MCP Integrations | Agents auto-detect Jira, Slack, Analytics tools |
+| Knowledge Packs | 9 PM framework references in `reference/knowledge/` |
+| Cross-References | Context entries link to each other automatically |
 ```
 
 *Wait for user to run the command, then show completion...*
@@ -796,8 +861,8 @@ Full documentation: `reference/v2v-skill-map.md`
 
 ## Instructions
 
-1. **Run pre-flight audit** (Step 0) — scan all 28 items and display status
-2. If fully initialized (28/28), report status and skip to onboarding choice
+1. **Run pre-flight audit** (Step 0) — scan all 32 items and display status
+2. If fully initialized (32/32), report status and skip to onboarding choice
 3. Ask user to confirm their working directory is correct
 4. Create **only missing** folders using `mkdir -p` (Bash tool)
 5. Create **only missing** files using Write tool — NEVER overwrite existing files

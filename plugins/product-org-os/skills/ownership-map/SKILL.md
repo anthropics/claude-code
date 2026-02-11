@@ -2,6 +2,7 @@
 name: ownership-map
 description: Create or update an accountability map across V2V phases
 argument-hint: [initiative or deliverable] or [update path/to/map.md]
+user-invocable: true
 ---
 
 ## Document Intelligence

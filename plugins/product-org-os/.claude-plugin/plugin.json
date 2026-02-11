@@ -1,7 +1,8 @@
 {
   "name": "product-org",
-  "version": "2.4.1",
-  "description": "Product Organization plugin with 61 skills, 13 agents, /product gateway, demo environment, ROI tracking, V2V phase tracking, principle validators, and parallel execution based on Vision to Value framework",
+  "version": "3.0.0",
+  "description": "AI product organization plugin with 61 skills, 13 agents, 5 gateways, 9 knowledge packs, and MCP integrations. Cross-platform via Agent Skills standard.",
+  "standard": "agent-skills",
   "author": {
     "name": "Yohay Etsion",
     "url": "https://github.com/yohayetsion"
@@ -9,6 +10,6 @@
   "homepage": "https://github.com/yohayetsion/product-org-os",
   "repository": "https://github.com/yohayetsion/product-org-os",
   "license": "MIT",
-  "keywords": ["product-management", "product-org", "vision-to-value", "v2v"],
+  "keywords": ["product-management", "product-org", "vision-to-value", "v2v", "agent-skills", "cross-platform", "mcp"],
   "skills": "./skills/"
 }

@@ -2,6 +2,7 @@
 name: decision-charter
 description: Create or update a Decision Interface Charter for recurring decisions
 argument-hint: [decision type] or [update path/to/charter.md]
+user-invocable: true
 ---
 
 ## Document Intelligence

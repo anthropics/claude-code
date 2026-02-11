@@ -2,6 +2,7 @@
 name: interaction-recall
 description: Query past conversation history by topic, agent, or date
 argument-hint: [topic or keyword] [agent:name] [date:YYYY-MM] [product:name] [type:agent|gateway|skill]
+user-invocable: true
 ---
 
 Query **past interactions** — agent conversations, gateway sessions, and skill invocations — to understand what was discussed, who contributed, and what conclusions were reached.

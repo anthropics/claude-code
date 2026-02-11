@@ -2,6 +2,7 @@
 name: competitive-analysis
 description: Create or update a competitive analysis
 argument-hint: [competitor name or market] or [update path/to/analysis.md]
+user-invocable: true
 ---
 
 ## Document Intelligence

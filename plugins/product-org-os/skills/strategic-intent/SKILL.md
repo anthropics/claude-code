@@ -2,6 +2,7 @@
 name: strategic-intent
 description: Create or update strategic intent documentation
 argument-hint: [initiative or planning period] or [update path/to/intent.md]
+user-invocable: true
 ---
 
 ## Document Intelligence

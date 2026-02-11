@@ -2,6 +2,7 @@
 name: market-segment
 description: Create or update a market segment definition
 argument-hint: [segment name] or [update path/to/segment.md]
+user-invocable: true
 ---
 
 ## Document Intelligence

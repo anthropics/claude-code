@@ -2,6 +2,7 @@
 name: portfolio-status
 description: View current state of all active strategic bets
 argument-hint:
+user-invocable: true
 ---
 
 View the **current state** of the strategic portfolio — all active bets, their health, and upcoming checkpoints.
@@ -165,3 +166,12 @@ Present the status report in a clear, scannable format. Offer to:
 - Drill into any specific bet
 - Create a presentation version with `/present`
 - Update the portfolio with new information
+
+## Structured Index Queries (v3)
+
+When reporting portfolio status:
+
+1. **Use status index**: Pull active bets from `bets.statusIndex` in `context/index.json`
+2. **Phase-based filtering**: Use `phaseIndex` to show bets by their current V2V phase
+3. **Cross-reference enrichment**: For each active bet, show linked assumptions and their validation status
+4. **Product filtering**: In multi-product orgs, support `product:` filter using `productIndex`

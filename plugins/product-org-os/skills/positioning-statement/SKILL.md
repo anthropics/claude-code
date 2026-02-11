@@ -2,6 +2,7 @@
 name: positioning-statement
 description: Create or update a positioning statement
 argument-hint: [product name] or [update path/to/positioning.md]
+user-invocable: true
 ---
 
 ## Document Intelligence

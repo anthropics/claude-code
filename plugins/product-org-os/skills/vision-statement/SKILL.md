@@ -2,6 +2,7 @@
 name: vision-statement
 description: Create or update a product vision statement
 argument-hint: [product name] or [update path/to/vision.md]
+user-invocable: true
 ---
 
 ## Document Intelligence

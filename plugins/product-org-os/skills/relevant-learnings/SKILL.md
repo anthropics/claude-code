@@ -2,6 +2,7 @@
 name: relevant-learnings
 description: Find past learnings applicable to current work
 argument-hint: [topic or situation]
+user-invocable: true
 ---
 
 Search the **learnings index** for wisdom from past experiences that applies to current work.
@@ -162,3 +163,12 @@ Learnings are categorized as:
 - **Process & Operations** — How we work
 
 Use category context to improve recommendations.
+
+## Cross-Reference Following (v3)
+
+When finding relevant learnings:
+
+1. **Search learning topic index**: Match keywords against `topicIndex` in `context/index.json`
+2. **Follow decision links**: Learnings linked to decisions get higher relevance when the current task relates to those decisions
+3. **Show origin**: For each learning, show the decision or outcome review it came from via cross-references
+4. **Phase awareness**: Use `phaseIndex` to prioritize learnings from the same V2V phase as the current work

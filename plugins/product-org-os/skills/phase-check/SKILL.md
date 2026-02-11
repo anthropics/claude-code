@@ -2,6 +2,7 @@
 name: phase-check
 description: Assess which V2V phase an initiative is in
 argument-hint: [initiative name]
+user-invocable: true
 ---
 
 Assess which **V2V phase** an initiative is currently in and identify what's needed to progress.

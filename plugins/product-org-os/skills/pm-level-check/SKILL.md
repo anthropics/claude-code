@@ -2,6 +2,7 @@
 name: pm-level-check
 description: Assess PM competency level
 argument-hint: [PM name or self-assessment]
+user-invocable: true
 ---
 
 Assess **PM Competency Level** against the PM Career Blueprint.

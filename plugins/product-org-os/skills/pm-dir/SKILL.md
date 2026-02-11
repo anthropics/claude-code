@@ -3,6 +3,7 @@ name: pm-dir
 description: Director of Product Management (shortcut for /director-product-management) - assign roadmap, requirements governance, and team coordination tasks
 model: sonnet
 alias: director-product-management
+user-invocable: true
 ---
 
 **This is a shortcut for `/director-product-management`.**

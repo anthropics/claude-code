@@ -2,11 +2,12 @@
 name: index-folder
 description: Index a folder's contents into the context system for fast retrieval
 model: haiku
-tools:
+allowed-tools:
   - Read
   - Write
   - Edit
   - Glob
+user-invocable: true
 ---
 
 # Index Folder

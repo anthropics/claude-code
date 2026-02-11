@@ -2,6 +2,7 @@
 name: market-analysis
 description: Create or update a market analysis
 argument-hint: [market or segment name] or [update path/to/market-analysis.md]
+user-invocable: true
 ---
 
 ## Document Intelligence

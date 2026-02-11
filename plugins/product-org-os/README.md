@@ -4,7 +4,7 @@
 
 > Intent → Decisions → Commitments → Execution → Outcomes → Learning
 
-13 agents • 61 skills • 11 strategic documents • Context layer • Demo environment
+13 agents • 61 skills • 5 gateways • 9 knowledge packs • MCP integrations • Context layer
 
 [**View the Interactive Presentation →**](https://yohayetsion.github.io/product-org-os)
 
@@ -13,7 +13,7 @@
 ## Quick Start
 
 ```bash
-# Install in Claude Code
+# Install in Claude Code (primary platform)
 claude plugins install github:yohayetsion/product-org-os
 
 # Initialize in your project
@@ -22,6 +22,8 @@ claude plugins install github:yohayetsion/product-org-os
 # Start using
 @product Launch freemium tier for SMBs. Context: @pricing-research.md
 ```
+
+> **Cross-platform**: Also compatible with Cursor, GitHub Copilot, Gemini CLI, and other [Agent Skills](https://github.com/anthropics/agent-skills)-standard tools.
 
 ---
 
@@ -74,6 +76,7 @@ Spawn autonomous agents to handle tasks. Each agent reasons independently and re
 | `@pmm` | `@product-marketing-manager` | Campaigns, enablement |
 | `@ci` | `@competitive-intelligence` | Market analysis |
 | `@prod-ops` | `@product-operations` | Launch, process |
+| `@mentor` | `@product-mentor` | Career coaching, PM development |
 
 ### Use Skills Directly (`/skill`)
 Create, update, or find specific deliverables inline.
@@ -97,10 +100,16 @@ Combine agents and skills naturally.
 ## What's Included
 
 ### 13 Role-Based Agents
-CPO, VP Product, Director PM, Director PMM, Product Manager, PMM, BizOps, BizDev, Competitive Intelligence, Product Operations, Value Realization, UX Lead, Product Leadership Team
+CPO, VP Product, Director PM, Director PMM, Product Manager, PMM, Product Mentor, BizOps, BizDev, Competitive Intelligence, Product Operations, Value Realization, UX Lead
 
-### 62 Production Skills
+### 5 Gateways
+Product, Product Leadership Team, Design, Architecture, Marketing — route to relevant agents automatically
+
+### 61 Skills
 PRDs, roadmaps, business cases, GTM strategies, pricing models, launch plans, QBR decks, competitive analyses, decision records, ROI tracking, and more
+
+### 9 Knowledge Packs
+Prioritization, Pricing, Discovery, Metrics, Competitive, GTM, Stakeholder Management, User Research, Financial Modeling
 
 ### Context Layer
 Organizational memory that persists across sessions:
@@ -108,7 +117,7 @@ Organizational memory that persists across sessions:
 - **Decisions & Bets**: Strategic choices with assumptions and re-decision triggers
 - **Feedback**: Customer and market signals linked to decisions
 - **Learnings**: Accumulated wisdom from retrospectives and outcomes
-
+- **Cross-reference graph**: Decisions, bets, feedback, and learnings linked automatically
 - **Interaction History**: Full conversation logging across sessions — query with `/interaction-recall [topic]`
 
 Query anytime with `/context-recall [topic]`
@@ -129,6 +138,25 @@ See time savings after every skill completion:
 
 ### V2V Framework
 Six phases from strategic intent to learning loop, with skills mapped to each phase
+
+---
+
+## What's New in v3
+
+### MCP Integrations
+Agents auto-detect connected tools (Jira, Slack, Analytics) and use them when available. No MCP? They fall back gracefully to text output with manual action notes. Setup templates in `integrations/`.
+
+### 9 Domain Knowledge Packs
+Professional PM frameworks that agents reference when producing deliverables. Covers prioritization (RICE, Kano, MoSCoW), pricing (value-based, freemium, Van Westendorp), competitive analysis (Porter's, SWOT, battlecards), and 6 more domains. See `reference/knowledge/`.
+
+### Enhanced Context Layer
+Auto-context injection eliminates manual `/context-recall` for common patterns. Cross-reference graph connects decisions, bets, feedback, and learnings. Structured JSON indexes for fast multi-dimensional queries.
+
+### Agent Delegation Patterns
+Four structured collaboration patterns: Consultation (quick input), Delegation (transfer ownership), Review (quality validation), and Structured Debate (opposing perspectives for decision-making).
+
+### Cross-Platform via Agent Skills Standard
+Plugin uses `allowed-tools:` and `user-invocable:` frontmatter per the Agent Skills open standard. Works in Claude Code, Cursor, Copilot, Gemini CLI, and expanding.
 
 ---
 
@@ -158,3 +186,5 @@ MIT
 **Free & Open Source.** World-class product capabilities shouldn't be locked behind enterprise software.
 
 Based on the Vision to Value Executive Manifesto by Yohay Etsion.
+
+> Works with Claude Code, Cursor, Copilot, Gemini CLI, and other Agent Skills-compatible tools.

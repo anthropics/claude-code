@@ -2,6 +2,7 @@
 name: user-story
 description: Create or update a user story with acceptance criteria
 argument-hint: [story description] or [update path/to/story.md]
+user-invocable: true
 ---
 
 ## Document Intelligence
