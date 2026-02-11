@@ -10,17 +10,17 @@ import sys
 import json
 
 # CRITICAL: Add plugin root to Python path for imports
+# We import directly from 'core' (not 'hookify.core') because when plugins are
+# cached, the directory structure becomes hookify/<version>/core/ instead of
+# hookify/core/, breaking package-style imports. Since PLUGIN_ROOT points to
+# the versioned directory and is added to sys.path, direct imports work.
 PLUGIN_ROOT = os.environ.get('CLAUDE_PLUGIN_ROOT')
-if PLUGIN_ROOT:
-    parent_dir = os.path.dirname(PLUGIN_ROOT)
-    if parent_dir not in sys.path:
-        sys.path.insert(0, parent_dir)
-    if PLUGIN_ROOT not in sys.path:
-        sys.path.insert(0, PLUGIN_ROOT)
+if PLUGIN_ROOT and PLUGIN_ROOT not in sys.path:
+    sys.path.insert(0, PLUGIN_ROOT)
 
 try:
-    from hookify.core.config_loader import load_rules
-    from hookify.core.rule_engine import RuleEngine
+    from core.config_loader import load_rules
+    from core.rule_engine import RuleEngine
 except ImportError as e:
     error_msg = {"systemMessage": f"Hookify import error: {e}"}
     print(json.dumps(error_msg), file=sys.stdout)
