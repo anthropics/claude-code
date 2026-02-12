@@ -1,0 +1,49 @@
+{
+  "name": "Directory Operations Fix",
+  "version": "1.0.0",
+  "description": "Fixes critical directory operation crashes (Issue #9855) with robust error handling and model-specific compatibility",
+  "author": "Claude Code Community",
+  "category": "stability",
+  "keywords": ["directory", "stability", "crash-fix", "bedrock", "haiku"],
+  "repository": "https://github.com/anthropics/claude-code",
+  "main": "src/index.ts",
+  "issues": [
+    {
+      "id": "9855",
+      "title": "Claude code crashes when referencing directories",
+      "url": "https://github.com/anthropics/claude-code/issues/9855",
+      "priority": "critical",
+      "status": "fixed"
+    }
+  ],
+  "features": [
+    "Robust directory listing with error handling",
+    "Model-specific response parsing (Bedrock Haiku support)",
+    "Automatic retry mechanism with exponential backoff",
+    "Comprehensive logging for debugging",
+    "Fallback responses to prevent crashes"
+  ],
+  "compatibility": {
+    "models": ["claude-3-5-sonnet", "claude-3-haiku", "bedrock-haiku-4.5"],
+    "platforms": ["linux", "macos", "windows"],
+    "providers": ["anthropic", "aws-bedrock"]
+  },
+  "configuration": {
+    "retryAttempts": {
+      "type": "number",
+      "default": 3,
+      "description": "Number of retry attempts for failed directory operations"
+    },
+    "retryDelay": {
+      "type": "number",
+      "default": 1000,
+      "description": "Base delay (ms) between retry attempts"
+    },
+    "logLevel": {
+      "type": "string",
+      "enum": ["DEBUG", "INFO", "WARN", "ERROR"],
+      "default": "INFO",
+      "description": "Logging level for directory operations"
+    }
+  }
+}
