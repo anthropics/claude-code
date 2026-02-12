@@ -100,5 +100,5 @@ jobs:
             - It's okay to not add any labels if none are clearly applicable
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           claude_args: |
-            --model claude-sonnet-4-5-20250929
+            --model claude-opus-4-6
             --allowedTools "Bash(gh issue view:*),Bash(gh issue edit:*),Bash(gh search issues:*)"
