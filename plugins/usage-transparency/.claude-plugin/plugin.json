@@ -1,0 +1,42 @@
+{
+  "name": "Usage Transparency",
+  "version": "1.0.0",
+  "description": "Fixes lack of transparency about usage limits and policy changes (Issue #9862)",
+  "author": "Claude Code Community",
+  "category": "monitoring",
+  "keywords": ["usage", "limits", "transparency", "policy", "monitoring", "alerts"],
+  "repository": "https://github.com/anthropics/claude-code",
+  "main": "src/index.ts",
+  "issues": [
+    {
+      "id": "9862",
+      "title": "Usage limit decrease without telling developers",
+      "url": "https://github.com/anthropics/claude-code/issues/9862",
+      "priority": "medium-high",
+      "status": "fixed"
+    }
+  ],
+  "features": [
+    "Real-time usage limit display",
+    "Policy change notifications and changelog",
+    "Usage projection and depletion estimates",
+    "Graduated warnings (80%, 95% thresholds)",
+    "Historical policy change tracking",
+    "Developer-focused communication",
+    "Usage analytics and trends"
+  ],
+  "commands": [
+    {
+      "name": "usage:status",
+      "description": "Show current usage status and limits"
+    },
+    {
+      "name": "usage:policy-changes",
+      "description": "Show recent policy changes"
+    },
+    {
+      "name": "usage:alerts",
+      "description": "View usage alerts and notifications"
+    }
+  ]
+}
