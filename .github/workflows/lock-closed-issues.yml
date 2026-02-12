@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Lock closed issues after 7 days of inactivity
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const sevenDaysAgo = new Date();
