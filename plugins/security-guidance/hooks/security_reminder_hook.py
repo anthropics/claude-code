@@ -8,10 +8,11 @@ import json
 import os
 import random
 import sys
+import tempfile
 from datetime import datetime
 
-# Debug log file
-DEBUG_LOG_FILE = "/tmp/security-warnings-log.txt"
+# Debug log file (cross-platform temp directory)
+DEBUG_LOG_FILE = os.path.join(tempfile.gettempdir(), "security-warnings-log.txt")
 
 
 def debug_log(message):
