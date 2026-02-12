@@ -869,7 +869,7 @@
 
 ## 2.0.20
 
-- Added support for Claude Skills
+- Added support for Claude Skills. Skills are a new feature that provide specialized capabilities and domain knowledge to Claude. The internal "Skill" tool also handles slash command invocation (previously done by the "SlashCommand" tool) - this is an internal change to how Claude invokes your slash commands, not a replacement of slash commands. Slash commands continue to work exactly the same way for users.
 
 ## 2.0.19
 
