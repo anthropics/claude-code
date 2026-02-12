@@ -14,6 +14,7 @@
 - Fixed Opus 4.6 launch announcement showing for Bedrock/Vertex/Foundry users
 - Improved error message for many-image dimension limit errors with /compact suggestion
 - Fixed structured-outputs beta header being sent unconditionally on Vertex/Bedrock
+- Fixed spurious warnings for non-agent markdown files in `.claude/agents/` directory
 - Improved terminal rendering performance
 - Fixed fatal errors being swallowed instead of displayed
 - Fixed process hanging after session close
