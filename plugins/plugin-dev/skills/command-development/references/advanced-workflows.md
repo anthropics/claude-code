@@ -22,10 +22,10 @@ allowed-tools: Bash(gh:*), Read, Grep
 # PR Review Workflow for #$1
 
 ## Step 1: Fetch PR Details
-!`gh pr view $1 --json title,body,author,files`
+`gh pr view $1 --json title,body,author,files`
 
 ## Step 2: Review Files
-Files changed: !`gh pr diff $1 --name-only`
+Files changed: `gh pr diff $1 --name-only`
 
 For each file:
 - Check code quality
@@ -33,7 +33,7 @@ For each file:
 - Review documentation
 
 ## Step 3: Run Checks
-Test status: !`gh pr checks $1`
+Test status: `gh pr checks $1`
 
 Verify:
 - All tests passing
@@ -75,8 +75,8 @@ allowed-tools: Write, Bash(git:*)
 
 Creating deployment tracking file...
 
-Current branch: !`git branch --show-current`
-Latest commit: !`git log -1 --format=%H`
+Current branch: `git branch --show-current`
+Latest commit: `git log -1 --format=%H`
 
 Deployment state saved to `.claude/deployment-state.local.md`:
 
@@ -112,7 +112,7 @@ allowed-tools: Read, Bash(npm:*)
 
 Reading deployment state from `.claude/deployment-state.local.md`...
 
-Running tests: !`npm test`
+Running tests: `npm test`
 
 Updating state to 'tested'...
 
@@ -140,8 +140,8 @@ allowed-tools: Bash(git:*), Bash(npm:*), Read
 
 ## Pre-flight Checks
 
-Branch: !`git branch --show-current`
-Status: !`git status --short`
+Branch: `git branch --show-current`
+Status: `git status --short`
 
 **Checking conditions:**
 
@@ -151,7 +151,7 @@ Status: !`git status --short`
    - If hotfix: Fast-track process
 
 2. Tests:
-   !`npm test`
+   `npm test`
    - If tests fail: STOP - fix tests first
    - If tests pass: Continue
 
@@ -528,7 +528,7 @@ description: Resilient deployment workflow
 Running steps with error handling...
 
 ## Step 1: Tests
-!`npm test`
+`npm test`
 
 if [ $? -ne 0 ]; then
   ERROR: Tests failed
@@ -557,17 +557,17 @@ description: Deployment with rollback
 # Deploy with Rollback
 
 Saving current state for rollback...
-Previous version: !`current-version.sh`
+Previous version: `current-version.sh`
 
 Deploying new version...
 
-!`deploy.sh`
+`deploy.sh`
 
 if [ $? -ne 0 ]; then
   DEPLOYMENT FAILED
 
   Initiating automatic rollback...
-  !`rollback.sh`
+  `rollback.sh`
 
   Rolled back to previous version.
   Check logs for failure details.
@@ -586,15 +586,15 @@ description: Workflow with checkpoints
 # Multi-Stage Deployment
 
 ## Checkpoint 1: Validation
-!`validate.sh`
+`validate.sh`
 echo "checkpoint:validation" >> .claude/deployment-checkpoints.log
 
 ## Checkpoint 2: Build
-!`build.sh`
+`build.sh`
 echo "checkpoint:build" >> .claude/deployment-checkpoints.log
 
 ## Checkpoint 3: Deploy
-!`deploy.sh`
+`deploy.sh`
 echo "checkpoint:deploy" >> .claude/deployment-checkpoints.log
 
 If any step fails, resume with:
@@ -653,10 +653,10 @@ Creating workflow state...
 ---
 workflow: deployment
 environment: $1
-branch: !`git branch --show-current`
-commit: !`git rev-parse HEAD`
+branch: `git branch --show-current`
+commit: `git rev-parse HEAD`
 stage: initialized
-timestamp: !`date -u +%Y-%m-%dT%H:%M:%SZ`
+timestamp: `date -u +%Y-%m-%dT%H:%M:%SZ`
 ---
 \`\`\`
 
@@ -697,7 +697,7 @@ Reading state: @.claude/deployment-state.local.md
 
 Executing deployment to [environment]...
 
-!`deploy.sh [environment]`
+`deploy.sh [environment]`
 
 Deployment complete.
 Updating state to 'completed'...
