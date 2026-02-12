@@ -12,6 +12,7 @@
 - Added `speed` attribute to OTel events and trace spans for fast mode visibility
 - Fixed /resume showing interrupt messages as session titles
 - Fixed Opus 4.6 launch announcement showing for Bedrock/Vertex/Foundry users
+- Improved error message for many-image dimension limit errors with /compact suggestion
 - Improved terminal rendering performance
 - Fixed fatal errors being swallowed instead of displayed
 - Fixed process hanging after session close
