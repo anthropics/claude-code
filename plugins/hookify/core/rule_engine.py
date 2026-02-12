@@ -247,9 +247,13 @@ class RuleEngine:
             if field == 'file_path':
                 return tool_input.get('file_path', '')
             elif field in ['new_text', 'content']:
-                # Concatenate all edits
+                # Concatenate all edits, handling malformed entries gracefully
                 edits = tool_input.get('edits', [])
-                return ' '.join(e.get('new_string', '') for e in edits)
+                parts = []
+                for e in edits:
+                    if isinstance(e, dict):
+                        parts.append(e.get('new_string', ''))
+                return ' '.join(parts)
 
         return None
 
