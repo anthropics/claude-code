@@ -10,6 +10,7 @@
 - Fixed plugin browse showing misleading "Space to Toggle" hint for already-installed plugins
 - Fixed hook blocking errors (exit code 2) not showing stderr to the user
 - Added `speed` attribute to OTel events and trace spans for fast mode visibility
+- Fixed /resume showing interrupt messages as session titles
 - Improved terminal rendering performance
 - Fixed fatal errors being swallowed instead of displayed
 - Fixed process hanging after session close
