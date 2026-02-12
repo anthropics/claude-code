@@ -24,9 +24,9 @@ ARGUMENTS:
   PROMPT...    Initial prompt to start the loop (can be multiple words without quotes)
 
 OPTIONS:
-  --max-iterations <n>           Maximum iterations before auto-stop (default: unlimited)
-  --completion-promise '<text>'  Promise phrase (USE QUOTES for multi-word)
-  -h, --help                     Show this help message
+  -m, --max-iterations <n>           Maximum iterations before auto-stop (default: unlimited)
+  -p, --completion-promise '<text>'  Promise phrase (USE QUOTES for multi-word)
+  -h, --help                         Show this help message
 
 DESCRIPTION:
   Starts a Ralph Wiggum loop in your CURRENT session. The stop hook prevents
@@ -40,10 +40,10 @@ DESCRIPTION:
   - Learning how Ralph works
 
 EXAMPLES:
-  /ralph-loop Build a todo API --completion-promise 'DONE' --max-iterations 20
-  /ralph-loop --max-iterations 10 Fix the auth bug
+  /ralph-loop Build a todo API -p 'DONE' -m 20
+  /ralph-loop -m 10 Fix the auth bug
   /ralph-loop Refactor cache layer  (runs forever)
-  /ralph-loop --completion-promise 'TASK COMPLETE' Create a REST API
+  /ralph-loop -p 'TASK COMPLETE' Create a REST API
 
 STOPPING:
   Only by reaching --max-iterations or detecting --completion-promise
@@ -58,25 +58,25 @@ MONITORING:
 HELP_EOF
       exit 0
       ;;
-    --max-iterations)
+    -m|--max-iterations)
       if [[ -z "${2:-}" ]]; then
-        echo "❌ Error: --max-iterations requires a number argument" >&2
+        echo "❌ Error: -m/--max-iterations requires a number argument" >&2
         echo "" >&2
         echo "   Valid examples:" >&2
-        echo "     --max-iterations 10" >&2
+        echo "     -m 10" >&2
         echo "     --max-iterations 50" >&2
-        echo "     --max-iterations 0  (unlimited)" >&2
+        echo "     -m 0  (unlimited)" >&2
         echo "" >&2
-        echo "   You provided: --max-iterations (with no number)" >&2
+        echo "   You provided: -m/--max-iterations (with no number)" >&2
         exit 1
       fi
       if ! [[ "$2" =~ ^[0-9]+$ ]]; then
-        echo "❌ Error: --max-iterations must be a positive integer or 0, got: $2" >&2
+        echo "❌ Error: -m/--max-iterations must be a positive integer or 0, got: $2" >&2
         echo "" >&2
         echo "   Valid examples:" >&2
-        echo "     --max-iterations 10" >&2
+        echo "     -m 10" >&2
         echo "     --max-iterations 50" >&2
-        echo "     --max-iterations 0  (unlimited)" >&2
+        echo "     -m 0  (unlimited)" >&2
         echo "" >&2
         echo "   Invalid: decimals (10.5), negative numbers (-5), text" >&2
         exit 1
@@ -84,16 +84,16 @@ HELP_EOF
       MAX_ITERATIONS="$2"
       shift 2
       ;;
-    --completion-promise)
+    -p|--completion-promise)
       if [[ -z "${2:-}" ]]; then
-        echo "❌ Error: --completion-promise requires a text argument" >&2
+        echo "❌ Error: -p/--completion-promise requires a text argument" >&2
         echo "" >&2
         echo "   Valid examples:" >&2
-        echo "     --completion-promise 'DONE'" >&2
+        echo "     -p 'DONE'" >&2
         echo "     --completion-promise 'TASK COMPLETE'" >&2
-        echo "     --completion-promise 'All tests passing'" >&2
+        echo "     -p 'All tests passing'" >&2
         echo "" >&2
-        echo "   You provided: --completion-promise (with no text)" >&2
+        echo "   You provided: -p/--completion-promise (with no text)" >&2
         echo "" >&2
         echo "   Note: Multi-word promises must be quoted!" >&2
         exit 1
@@ -120,8 +120,8 @@ if [[ -z "$PROMPT" ]]; then
   echo "" >&2
   echo "   Examples:" >&2
   echo "     /ralph-loop Build a REST API for todos" >&2
-  echo "     /ralph-loop Fix the auth bug --max-iterations 20" >&2
-  echo "     /ralph-loop --completion-promise 'DONE' Refactor code" >&2
+  echo "     /ralph-loop Fix the auth bug -m 20" >&2
+  echo "     /ralph-loop -p 'DONE' Refactor code" >&2
   echo "" >&2
   echo "   For all options: /ralph-loop --help" >&2
   exit 1
