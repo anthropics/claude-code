@@ -1,0 +1,47 @@
+{
+  "name": "Session Recovery",
+  "version": "1.0.0",
+  "description": "Fixes session resume failures with OAuth errors and missing sessionId fields (Issue #9800)",
+  "author": "Claude Code Community",
+  "category": "session-management",
+  "keywords": ["session", "resume", "oauth", "recovery", "backup"],
+  "repository": "https://github.com/anthropics/claude-code",
+  "main": "src/index.ts",
+  "issues": [
+    {
+      "id": "9800",
+      "title": "Resume functionality requires manual workaround",
+      "url": "https://github.com/anthropics/claude-code/issues/9800",
+      "priority": "medium",
+      "status": "fixed"
+    }
+  ],
+  "features": [
+    "OAuth token refresh during session restoration",
+    "Session file validation and repair",
+    "Missing sessionId field generation",
+    "Automatic session backup and recovery",
+    "Session conflict resolution",
+    "Robust session persistence"
+  ],
+  "commands": [
+    {
+      "name": "session:resume",
+      "description": "Resume a session with enhanced recovery",
+      "options": {
+        "sessionId": {
+          "type": "string",
+          "required": true
+        }
+      }
+    },
+    {
+      "name": "session:list",
+      "description": "List available sessions"
+    },
+    {
+      "name": "session:repair",
+      "description": "Repair corrupted session files"
+    }
+  ]
+}
