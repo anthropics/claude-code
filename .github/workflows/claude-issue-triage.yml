@@ -1,13 +1,20 @@
 name: Claude Issue Triage
-description: Automatically triage GitHub issues using Claude Code
 on:
   issues:
     types: [opened]
+  issue_comment:
+    types: [created]
 
 jobs:
   triage-issue:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    if: >-
+      github.event_name == 'issues' ||
+      (github.event_name == 'issue_comment' && !github.event.issue.pull_request && github.event.comment.user.type != 'Bot')
+    concurrency:
+      group: issue-triage-${{ github.event.issue.number }}
+      cancel-in-progress: true
     permissions:
       contents: read
       issues: write
@@ -16,30 +23,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Setup GitHub MCP Server
-        run: |
-          mkdir -p /tmp/mcp-config
-          cat > /tmp/mcp-config/mcp-servers.json << 'EOF'
-          {
-            "mcpServers": {
-              "github": {
-                "command": "docker",
-                "args": [
-                  "run",
-                  "-i",
-                  "--rm",
-                  "-e",
-                  "GITHUB_PERSONAL_ACCESS_TOKEN",
-                  "ghcr.io/github/github-mcp-server:sha-7aced2b"
-                ],
-                "env": {
-                  "GITHUB_PERSONAL_ACCESS_TOKEN": "${{ secrets.GITHUB_TOKEN }}"
-                }
-              }
-            }
-          }
-          EOF
 
       - name: Run Claude Code for Issue Triage
         timeout-minutes: 5
@@ -50,56 +33,72 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           allowed_non_write_users: "*"
           prompt: |
-            You're an issue triage assistant for GitHub issues. Your task is to analyze the issue and select appropriate labels from the provided list.
+            You're an issue triage assistant. Analyze the issue and manage labels.
 
-            IMPORTANT: Don't post any comments or messages to the issue. Your only action should be to apply labels.
+            IMPORTANT: Don't post any comments or messages to the issue. Your only actions are adding or removing labels.
 
-            Issue Information:
+            Context:
             - REPO: ${{ github.repository }}
             - ISSUE_NUMBER: ${{ github.event.issue.number }}
+            - EVENT: ${{ github.event_name }}
 
-            TASK OVERVIEW:
+            ALLOWED LABELS — you may ONLY use labels from this list. Never invent new labels.
 
-            1. First, fetch the list of labels available in this repository by running: `gh label list`. Run exactly this command with nothing else.
+            Type: bug, enhancement, question, documentation, duplicate, invalid
+            Lifecycle: needs-repro, needs-info
+            Platform: platform:linux, platform:macos, platform:windows, platform:wsl, platform:ios, platform:android, platform:vscode, platform:intellij, platform:web, platform:aws-bedrock
+            API: api:bedrock, api:vertex
 
-            2. Next, use the GitHub tools to get context about the issue:
-               - You have access to these tools:
-                 - mcp__github__get_issue: Use this to retrieve the current issue's details including title, description, and existing labels
-                 - mcp__github__get_issue_comments: Use this to read any discussion or additional context provided in the comments
-                 - mcp__github__update_issue: Use this to apply labels to the issue (do not use this for commenting)
-                 - mcp__github__search_issues: Use this to find similar issues that might provide context for proper categorization and to identify potential duplicate issues
-                 - mcp__github__list_issues: Use this to understand patterns in how other issues are labeled
-               - Start by using mcp__github__get_issue to get the issue details
+            TOOLS:
+            - `gh issue view NUMBER`: Read the issue title, body, and labels
+            - `gh issue view NUMBER --comments`: Read the conversation
+            - `gh search issues QUERY`: Find similar or duplicate issues
+            - `gh issue edit NUMBER --add-label` / `--remove-label`: Add or remove labels
 
-            3. Analyze the issue content, considering:
-               - The issue title and description
-               - The type of issue (bug report, feature request, question, etc.)
-               - Technical areas mentioned
-               - Severity or priority indicators
-               - User impact
-               - Components affected
+            TASK:
 
-            4. Select appropriate labels from the available labels list provided above:
-               - Choose labels that accurately reflect the issue's nature
-               - Be specific but comprehensive
-               - Select priority labels if you can determine urgency (high-priority, med-priority, or low-priority)
-               - Consider platform labels (android, ios) if applicable
-               - If you find similar issues using mcp__github__search_issues, consider using a "duplicate" label if appropriate. Only do so if the issue is a duplicate of another OPEN issue.
+            1. Run `gh issue view ${{ github.event.issue.number }}` to read the issue details.
+            2. Run `gh issue view ${{ github.event.issue.number }} --comments` to read the conversation.
 
-            5. Apply the selected labels:
-               - Use mcp__github__update_issue to apply your selected labels
-               - DO NOT post any comments explaining your decision
-               - DO NOT communicate directly with users
-               - If no labels are clearly applicable, do not apply any labels
+            **If EVENT is "issues" (new issue):**
 
-            IMPORTANT GUIDELINES:
-            - Be thorough in your analysis
-            - Only select labels from the provided list above
+            3. First, check if this issue is actually about Claude Code (the CLI/IDE tool). Issues about the Claude API, claude.ai, the Claude app, Anthropic billing, or other Anthropic products should be labeled `invalid`. If invalid, apply only that label and stop.
+
+            4. Analyze and apply category labels:
+               - Type (bug, enhancement, question, etc.)
+               - Technical areas and platform
+               - Check for duplicates with `gh search issues`. Only mark as duplicate of OPEN issues.
+
+            5. Evaluate lifecycle labels:
+               - `needs-repro` (bugs only, 7 days): Bug reports without clear steps to reproduce. A good repro has specific, followable steps that someone else could use to see the same issue.
+                 Do NOT apply if the user already provided error messages, logs, file paths, or a description of what they did. Don't require a specific format — narrative descriptions count.
+                 For model behavior issues (e.g. "Claude does X when it should do Y"), don't require traditional repro steps — examples and patterns are sufficient.
+               - `needs-info` (bugs only, 7 days): The issue needs something from the community before it can progress — e.g. error messages, versions, environment details, or answers to follow-up questions. Don't apply to questions or enhancements.
+                 Do NOT apply if the user already provided version, environment, and error details. If the issue just needs engineering investigation, that's not `needs-info`.
+
+               Issues with these labels are automatically closed after the timeout if there's no response.
+               The goal is to avoid issues lingering without a clear next step.
+
+            6. Apply all selected labels:
+               `gh issue edit ${{ github.event.issue.number }} --add-label "label1" --add-label "label2"`
+
+            **If EVENT is "issue_comment" (comment on existing issue):**
+
+            3. Evaluate lifecycle labels based on the full conversation:
+               - If the issue has `needs-repro` or `needs-info` and the missing information has now been provided, remove the label:
+                 `gh issue edit ${{ github.event.issue.number }} --remove-label "needs-repro"`
+               - If the issue doesn't have lifecycle labels but clearly needs them (e.g., a maintainer asked for repro steps or more details), add the appropriate label.
+               - Comments like "+1", "me too", "same here", or emoji reactions are NOT the missing information. Only remove labels when substantive details are actually provided.
+               - Do NOT add or remove category labels (bug, enhancement, etc.) on comment events.
+
+            GUIDELINES:
+            - ONLY use labels from the ALLOWED LABELS list above — never create or guess label names
             - DO NOT post any comments to the issue
-            - Your ONLY action should be to apply labels using mcp__github__update_issue
+            - Be conservative with lifecycle labels — only apply when clearly warranted
+            - Only apply lifecycle labels (`needs-repro`, `needs-info`) to bugs — never to questions or enhancements
+            - When in doubt, don't apply a lifecycle label — false positives are worse than missing labels
             - It's okay to not add any labels if none are clearly applicable
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           claude_args: |
-            --model claude-sonnet-4-5-20250929
-            --mcp-config /tmp/mcp-config/mcp-servers.json
-            --allowedTools "Bash(gh label list),mcp__github__get_issue,mcp__github__get_issue_comments,mcp__github__update_issue,mcp__github__search_issues,mcp__github__list_issues"
+            --model claude-opus-4-6
+            --allowedTools "Bash(gh issue view:*),Bash(gh issue edit:*),Bash(gh search issues:*)"
