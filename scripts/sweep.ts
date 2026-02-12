@@ -4,20 +4,19 @@
 
 const NEW_ISSUE = "https://github.com/anthropics/claude-code/issues/new/choose";
 const DRY_RUN = process.argv.includes("--dry-run");
+const STALE_DAYS = 14;
+const STALE_UPVOTE_THRESHOLD = 10;
+
+const CLOSE_MESSAGE = (reason: string) =>
+  `Closing for now — ${reason}. Please [open a new issue](${NEW_ISSUE}) if this is still relevant.`;
 
 const lifecycle = [
-  { label: "needs-repro", days: 7 },
-  { label: "needs-info",  days: 7 },
-  { label: "needs-votes", days: 30 },
-  { label: "stale",       days: 30 },
+  { label: "invalid",     days: 3,  reason: "this doesn't appear to be about Claude Code" },
+  { label: "needs-repro", days: 7,  reason: "we still need reproduction steps to investigate" },
+  { label: "needs-info",  days: 7,  reason: "we still need a bit more information to move forward" },
+  { label: "stale",       days: 14, reason: "inactive for too long" },
+  { label: "autoclose",   days: 14, reason: "inactive for too long" },
 ];
-
-const closeMessages: Record<string, string> = {
-  "needs-repro": `Closing — we weren't able to get the reproduction steps needed to investigate.\n\nIf this is still a problem, please [open a new issue](${NEW_ISSUE}) with steps to reproduce.`,
-  "needs-info": `Closing — we didn't receive the information needed to move forward.\n\nIf this is still a problem, please [open a new issue](${NEW_ISSUE}) with the requested details.`,
-  "needs-votes": `Closing this feature request — it didn't get enough community support to prioritize.\n\nIf you'd still like to see this, please [open a new feature request](${NEW_ISSUE}) with more context about the use case.`,
-  stale: `Closing due to inactivity.\n\nIf this is still a problem, please [open a new issue](${NEW_ISSUE}) with up-to-date information.`,
-};
 
 // --
 
@@ -51,17 +50,59 @@ async function githubRequest<T>(
 
 // --
 
-async function main() {
-  const owner = process.env.GITHUB_REPOSITORY_OWNER;
-  const repo = process.env.GITHUB_REPOSITORY_NAME;
-  if (!owner || !repo)
-    throw new Error("GITHUB_REPOSITORY_OWNER and GITHUB_REPOSITORY_NAME required");
+async function markStale(owner: string, repo: string) {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - STALE_DAYS);
 
-  if (DRY_RUN) console.log("DRY RUN — no issues will be closed\n");
+  let labeled = 0;
 
+  console.log(`\n=== marking stale (${STALE_DAYS}d inactive) ===`);
+
+  for (let page = 1; page <= 10; page++) {
+    const issues = await githubRequest<any[]>(
+      `/repos/${owner}/${repo}/issues?state=open&sort=updated&direction=asc&per_page=100&page=${page}`
+    );
+    if (issues.length === 0) break;
+
+    for (const issue of issues) {
+      if (issue.pull_request) continue;
+      if (issue.locked) continue;
+      if (issue.assignees?.length > 0) continue;
+
+      const updatedAt = new Date(issue.updated_at);
+      if (updatedAt > cutoff) return labeled;
+
+      const alreadyStale = issue.labels?.some(
+        (l: any) => l.name === "stale" || l.name === "autoclose"
+      );
+      if (alreadyStale) continue;
+
+      const isEnhancement = issue.labels?.some(
+        (l: any) => l.name === "enhancement"
+      );
+      const thumbsUp = issue.reactions?.["+1"] ?? 0;
+      if (isEnhancement && thumbsUp >= STALE_UPVOTE_THRESHOLD) continue;
+
+      const base = `/repos/${owner}/${repo}/issues/${issue.number}`;
+
+      if (DRY_RUN) {
+        const age = Math.floor((Date.now() - updatedAt.getTime()) / 86400000);
+        console.log(`#${issue.number}: would label stale (${age}d inactive) — ${issue.title}`);
+      } else {
+        await githubRequest(`${base}/labels`, "POST", { labels: ["stale"] });
+        console.log(`#${issue.number}: labeled stale — ${issue.title}`);
+      }
+      labeled++;
+    }
+  }
+
+  return labeled;
+}
+
+async function closeExpired(owner: string, repo: string) {
   let closed = 0;
 
-  for (const { label, days } of lifecycle) {
+  for (const { label, days, reason } of lifecycle) {
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - days);
     console.log(`\n=== ${label} (${days}d timeout) ===`);
@@ -89,7 +130,7 @@ async function main() {
           const age = Math.floor((Date.now() - labeledAt.getTime()) / 86400000);
           console.log(`#${issue.number}: would close (${label}, ${age}d old) — ${issue.title}`);
         } else {
-          await githubRequest(`${base}/comments`, "POST", { body: closeMessages[label] });
+          await githubRequest(`${base}/comments`, "POST", { body: CLOSE_MESSAGE(reason) });
           await githubRequest(base, "PATCH", { state: "closed", state_reason: "not_planned" });
           console.log(`#${issue.number}: closed (${label})`);
         }
@@ -98,7 +139,23 @@ async function main() {
     }
   }
 
-  console.log(`\nDone: ${closed} ${DRY_RUN ? "would be closed" : "closed"}`);
+  return closed;
+}
+
+// --
+
+async function main() {
+  const owner = process.env.GITHUB_REPOSITORY_OWNER;
+  const repo = process.env.GITHUB_REPOSITORY_NAME;
+  if (!owner || !repo)
+    throw new Error("GITHUB_REPOSITORY_OWNER and GITHUB_REPOSITORY_NAME required");
+
+  if (DRY_RUN) console.log("DRY RUN — no changes will be made\n");
+
+  const labeled = await markStale(owner, repo);
+  const closed = await closeExpired(owner, repo);
+
+  console.log(`\nDone: ${labeled} ${DRY_RUN ? "would be labeled" : "labeled"} stale, ${closed} ${DRY_RUN ? "would be closed" : "closed"}`);
 }
 
 main().catch(console.error);
