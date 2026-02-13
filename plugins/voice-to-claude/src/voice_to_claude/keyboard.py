@@ -1,10 +1,12 @@
-"""Text injection functionality for Claude Code."""
+"""Text injection functionality for Claude Code with cross-platform support."""
 
 import subprocess
 import time
 from typing import Optional
 
 from pynput.keyboard import Controller, Key
+
+from .utils import find_clipboard_command, get_paste_key
 
 
 class TextInjector:
@@ -55,9 +57,13 @@ class TextInjector:
     def _inject_clipboard(self, text: str) -> bool:
         """Copy text to clipboard and paste."""
         try:
-            # Copy to clipboard using pbcopy
+            clip_cmd = find_clipboard_command()
+            if clip_cmd is None:
+                print("No clipboard command found (install xclip or xsel on Linux)")
+                return False
+
             process = subprocess.Popen(
-                ['pbcopy'],
+                clip_cmd,
                 stdin=subprocess.PIPE,
                 env={'LANG': 'en_US.UTF-8'}
             )
@@ -69,11 +75,12 @@ class TextInjector:
             # Small delay then paste
             time.sleep(0.05)
 
-            # Simulate Cmd+V
-            self.keyboard.press(Key.cmd)
+            # Use platform-appropriate paste shortcut
+            paste_key = get_paste_key()
+            self.keyboard.press(paste_key)
             self.keyboard.press('v')
             self.keyboard.release('v')
-            self.keyboard.release(Key.cmd)
+            self.keyboard.release(paste_key)
 
             return True
         except Exception as e:
@@ -84,8 +91,12 @@ class TextInjector:
     def copy_to_clipboard(text: str) -> bool:
         """Just copy text to clipboard without pasting."""
         try:
+            clip_cmd = find_clipboard_command()
+            if clip_cmd is None:
+                return False
+
             process = subprocess.Popen(
-                ['pbcopy'],
+                clip_cmd,
                 stdin=subprocess.PIPE,
                 env={'LANG': 'en_US.UTF-8'}
             )

@@ -11,6 +11,7 @@ build/
 venv/
 ENV/
 env/
+.pytest_cache/
 
 # IDE
 .vscode/

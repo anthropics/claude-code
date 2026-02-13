@@ -1,6 +1,6 @@
 # Voice-to-Claude
 
-High-quality voice dictation for Claude Code using whisper.cpp with Metal GPU acceleration.
+High-quality voice dictation for Claude Code using whisper.cpp with local on-device processing.
 
 [![License](https://img.shields.io/github/license/enesbasbug/voice-to-claude)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/enesbasbug/voice-to-claude)](https://github.com/enesbasbug/voice-to-claude/stargazers)
@@ -27,7 +27,8 @@ High-quality voice dictation for Claude Code using whisper.cpp with Metal GPU ac
 **That's it!** Hold **Ctrl+Alt** (or **Ctrl+Option** on macOS) to record, release to transcribe.
 
 > **Note**: 
-> - First-time setup takes ~3-5 minutes (builds whisper.cpp with Metal support)
+> - First-time setup takes ~3-5 minutes (builds whisper.cpp)
+> - Uses Metal GPU acceleration on macOS, CPU on Linux
 > - Downloads the base Whisper model (~142MB)
 > - Works with Python 3.10, 3.11, or 3.12 (auto-detected)
 > - Creates a local virtual environment (`.venv`) in the plugin directory to isolate dependencies
@@ -38,15 +39,16 @@ High-quality voice dictation for Claude Code using whisper.cpp with Metal GPU ac
 
 ## What is Voice-to-Claude?
 
-Voice-to-Claude gives you high-quality voice input directly into Claude Code using whisper.cpp with Metal GPU acceleration.
+Voice-to-Claude gives you high-quality voice input directly into Claude Code using whisper.cpp with local on-device processing.
 
 | What You Get | Why It Matters |
 |--------------|----------------|
 | **Local processing** | All audio processed on-device using whisper.cpp |
-| **Metal GPU acceleration** | Fast transcription on Apple Silicon |
+| **GPU acceleration** | Metal on macOS (Apple Silicon), CPU on Linux |
 | **Multiple models** | Choose quality/speed tradeoff (tiny to large-v3) |
 | **Push-to-talk** | Hold hotkey to record, release to transcribe |
 | **Privacy first** | No audio or text sent to external services |
+| **Cross-platform** | Works on macOS and Linux |
 
 ### How It Works
 
@@ -64,9 +66,9 @@ Text inserted into Claude Code input
 
 **Key details:**
 - Uses whisper.cpp (GGML) for high-quality transcription
-- Metal acceleration for fast GPU inference on macOS
+- Metal acceleration for fast GPU inference on macOS, CPU on Linux
 - Keyboard injection or clipboard fallback
-- Native system sounds for audio feedback
+- Native system sounds for audio feedback (macOS and Linux)
 
 ---
 
@@ -102,18 +104,31 @@ Settings stored in `~/.config/voice-to-claude/config.json`.
 
 ## Requirements
 
-- **macOS** (Apple Silicon recommended for Metal acceleration)
+- **macOS** or **Linux**
 - **Python 3.10+**
-- **cmake** and **Xcode Command Line Tools** (for building whisper.cpp)
+- **cmake** and build tools (for building whisper.cpp)
 - **~200MB-3GB disk space** depending on model
 
 ### Prerequisites
 
+**macOS:**
 ```bash
-# Install build tools (if not already installed)
 brew install cmake
 xcode-select --install
 ```
+
+**Linux (Debian/Ubuntu):**
+```bash
+sudo apt install cmake build-essential python3-dev portaudio19-dev xclip
+```
+
+**Linux (Fedora):**
+```bash
+sudo dnf install cmake gcc-c++ python3-devel portaudio-devel xclip
+```
+
+> **Note:** `portaudio19-dev` is required for microphone access via `sounddevice`.  
+> `xclip` is needed for clipboard mode. You can also use `xsel` or `wl-copy` (Wayland).
 
 ---
 
@@ -133,9 +148,10 @@ xcode-select --install
 
 | Issue | Solution |
 |-------|----------|
-| No audio input | Check microphone permissions in System Settings > Privacy & Security > Microphone |
-| Keyboard injection not working | Grant Accessibility permissions in System Settings > Privacy & Security > Accessibility |
-| Build failed | Ensure cmake and Xcode tools are installed: `brew install cmake && xcode-select --install` |
+| No audio input | **macOS:** Check System Settings > Privacy & Security > Microphone. **Linux:** Ensure `portaudio19-dev` is installed and microphone is accessible |
+| Keyboard injection not working | **macOS:** Grant Accessibility permissions in System Settings > Privacy & Security > Accessibility. **Linux:** May need to run with `sudo` or add user to `input` group |
+| Build failed | **macOS:** `brew install cmake && xcode-select --install`. **Linux:** `sudo apt install cmake build-essential` |
+| Clipboard not working (Linux) | Install `xclip`, `xsel`, or `wl-copy` (Wayland) |
 | Model not loading | Run `/voice-to-claude:setup` to download. Check disk space |
 | Hotkey not triggering | Check for conflicts with other apps. Try `/voice-to-claude:config` to change hotkey |
 

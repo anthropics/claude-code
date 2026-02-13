@@ -1,5 +1,6 @@
 """Whisper.cpp transcription functionality."""
 
+import shutil
 import subprocess
 import time
 from pathlib import Path
@@ -132,10 +133,10 @@ class Transcriber:
             if loc.exists():
                 return loc
 
-        # Check if it's in PATH
-        result = subprocess.run(["which", "whisper-cli"], capture_output=True, text=True)
-        if result.returncode == 0:
-            return Path(result.stdout.strip())
+        # Check if it's in PATH (cross-platform)
+        found = shutil.which("whisper-cli")
+        if found:
+            return Path(found)
 
         return None
 

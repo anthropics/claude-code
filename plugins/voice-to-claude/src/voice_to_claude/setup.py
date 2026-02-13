@@ -1,11 +1,13 @@
 """
 Main setup module for voice-to-claude.
 Builds whisper.cpp, downloads model, configures daemon.
+Supports macOS (Metal GPU) and Linux (CPU).
 """
 
 import argparse
 import json
 import os
+import platform
 import subprocess
 import sys
 from pathlib import Path
@@ -71,9 +73,17 @@ def build_whisper():
             print(f"  Error cloning whisper.cpp: {err}")
             return False
 
-    print("  Building with Metal support (this may take a few minutes)...")
+    # Use Metal acceleration on macOS, standard CPU build on Linux
+    system = platform.system()
+    if system == "Darwin":
+        cmake_cmd = "cmake -B build -DGGML_METAL=ON"
+        print("  Building with Metal GPU support (this may take a few minutes)...")
+    else:
+        cmake_cmd = "cmake -B build"
+        print("  Building whisper.cpp (this may take a few minutes)...")
+
     success, _, err = run_command(
-        "cmake -B build -DGGML_METAL=ON",
+        cmake_cmd,
         cwd=WHISPER_DIR
     )
     if not success:
@@ -164,9 +174,14 @@ def run_setup(skip_build=False, skip_model=False):
         else:
             if not build_whisper():
                 print("\n  ✗ Failed to build whisper.cpp")
-                print("  Make sure you have cmake and Xcode tools installed:")
-                print("    brew install cmake")
-                print("    xcode-select --install")
+                system = platform.system()
+                if system == "Darwin":
+                    print("  Make sure you have cmake and Xcode tools installed:")
+                    print("    brew install cmake")
+                    print("    xcode-select --install")
+                else:
+                    print("  Make sure you have build tools installed:")
+                    print("    sudo apt install cmake build-essential")
                 sys.exit(1)
 
     # Step 2: Download model
