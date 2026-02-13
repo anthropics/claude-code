@@ -22,6 +22,8 @@ The process is defined in `000-claude-filter-changelog-feature-to-html-prompt.md
 | `{NNN}-{feature}.insights.jsonl` | Structured extraction data (intermediate artifact, source of truth) |
 | `{NNN}-{feature}.html` | Interactive HTML visualization (derived from JSONL) |
 | `CLAUDE.md` | This file — self-healing knowledge base |
+| `BRANCH_CREATE_TEMPLATE.md` | Checklist + context for starting a new extraction branch |
+| `.github/PULL_REQUEST_TEMPLATE/deterministic-object-usage.md` | PR template with conventional commit checklist |
 
 Numbers are zero-padded to 3 digits and assigned sequentially. The next available number is **002**.
 
@@ -81,11 +83,13 @@ The five categories (`agent`, `tool`, `hook`, `param`, `event`) with their color
 
 ### When creating a new extraction
 
-1. Increment the number (next: 002)
-2. Follow the process in `000-claude-filter-changelog-feature-to-html-prompt.md` exactly
-3. Write the `.insights.jsonl` FIRST, then generate `.html` from it
-4. Update the "Current Extractions" table in this CLAUDE.md
-5. If you discover a new insight about the process, add it to the "Insights" section above
+1. Read `BRANCH_CREATE_TEMPLATE.md` — fill in parameters, follow the phased task sequence
+2. Increment the number (next: 002)
+3. Follow the process in `000-claude-filter-changelog-feature-to-html-prompt.md` exactly
+4. Write the `.insights.jsonl` FIRST, then generate `.html` from it
+5. Update the "Current Extractions" table in this CLAUDE.md
+6. If you discover a new insight about the process, add it to the "Insights" section above
+7. Open PR using `.github/PULL_REQUEST_TEMPLATE/deterministic-object-usage.md` — the checklist mirrors the branch template
 
 ### When updating an existing extraction
 
