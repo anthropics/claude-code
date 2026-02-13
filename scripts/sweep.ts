@@ -115,6 +115,7 @@ async function closeExpired(owner: string, repo: string) {
 
       for (const issue of issues) {
         if (issue.pull_request) continue;
+        if (issue.locked) continue;
         const base = `/repos/${owner}/${repo}/issues/${issue.number}`;
 
         const events = await githubRequest<any[]>(`${base}/events?per_page=100`);
@@ -144,20 +145,14 @@ async function closeExpired(owner: string, repo: string) {
 
 // --
 
-async function main() {
-  const owner = process.env.GITHUB_REPOSITORY_OWNER;
-  const repo = process.env.GITHUB_REPOSITORY_NAME;
-  if (!owner || !repo)
-    throw new Error("GITHUB_REPOSITORY_OWNER and GITHUB_REPOSITORY_NAME required");
+const owner = process.env.GITHUB_REPOSITORY_OWNER;
+const repo = process.env.GITHUB_REPOSITORY_NAME;
+if (!owner || !repo)
+  throw new Error("GITHUB_REPOSITORY_OWNER and GITHUB_REPOSITORY_NAME required");
 
-  if (DRY_RUN) console.log("DRY RUN — no changes will be made\n");
+if (DRY_RUN) console.log("DRY RUN — no changes will be made\n");
 
-  const labeled = await markStale(owner, repo);
-  const closed = await closeExpired(owner, repo);
+const labeled = await markStale(owner, repo);
+const closed = await closeExpired(owner, repo);
 
-  console.log(`\nDone: ${labeled} ${DRY_RUN ? "would be labeled" : "labeled"} stale, ${closed} ${DRY_RUN ? "would be closed" : "closed"}`);
-}
-
-main().catch(console.error);
-
-export {};
+console.log(`\nDone: ${labeled} ${DRY_RUN ? "would be labeled" : "labeled"} stale, ${closed} ${DRY_RUN ? "would be closed" : "closed"}`);
