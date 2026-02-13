@@ -1,0 +1,1163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Code Agent Memory - Feature Timeline &amp; Object Graph</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #21262d;
+    --border: #30363d;
+    --text: #c9d1d9;
+    --text-muted: #8b949e;
+    --accent: #58a6ff;
+    --accent2: #bc8cff;
+    --green: #3fb950;
+    --orange: #d29922;
+    --red: #f85149;
+    --pink: #f778ba;
+    --cyan: #39d2c0;
+    --timeline-line: #30363d;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', 'JetBrains Mono', monospace;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+  /* Header */
+  .header {
+    background: linear-gradient(135deg, #0d1117 0%, #161b22 50%, #1a1e2e 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 2rem;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .header::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: radial-gradient(ellipse at 50% 0%, rgba(88,166,255,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .header h1 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 0.5rem;
+    letter-spacing: -0.02em;
+  }
+  .header .subtitle {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+  }
+  .header .meta-row {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    margin-top: 1rem;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+  .header .meta-row span {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .dot-green { background: var(--green); }
+  .dot-orange { background: var(--orange); }
+  .dot-accent { background: var(--accent); }
+  .dot-pink { background: var(--pink); }
+
+  /* Navigation */
+  .nav-bar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0.75rem 2rem;
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .nav-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.75rem;
+    font-family: inherit;
+    transition: all 0.15s;
+  }
+  .nav-btn:hover { border-color: var(--accent); color: var(--text); }
+  .nav-btn.active { background: var(--accent); color: #0d1117; border-color: var(--accent); font-weight: 600; }
+  .nav-btn.filter-landmark { border-left: 3px solid var(--pink); }
+  .nav-btn.filter-major { border-left: 3px solid var(--accent); }
+  .nav-btn.filter-enhancement { border-left: 3px solid var(--green); }
+  .nav-btn.filter-bugfix { border-left: 3px solid var(--orange); }
+
+  /* Layout */
+  .main { display: flex; min-height: calc(100vh - 160px); }
+  .timeline-panel {
+    flex: 1;
+    padding: 2rem;
+    max-width: 780px;
+    overflow-y: auto;
+  }
+  .detail-panel {
+    width: 380px;
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    padding: 1.5rem;
+    position: sticky;
+    top: 52px;
+    height: calc(100vh - 52px);
+    overflow-y: auto;
+    transition: opacity 0.2s;
+  }
+  .detail-panel.empty { opacity: 0.4; }
+  .detail-panel h3 {
+    color: var(--accent);
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .detail-section {
+    margin-bottom: 1.2rem;
+  }
+  .detail-section h4 {
+    color: var(--text-muted);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 0.4rem;
+  }
+  .detail-section p, .detail-section li {
+    font-size: 0.8rem;
+    color: var(--text);
+  }
+  .detail-section ul { list-style: none; padding: 0; }
+  .detail-section li {
+    padding: 0.2rem 0;
+    padding-left: 1rem;
+    position: relative;
+  }
+  .detail-section li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    transform: translateY(-50%);
+  }
+  .tag {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    margin: 0.1rem;
+  }
+  .tag-object { background: rgba(88,166,255,0.15); color: var(--accent); }
+  .tag-param { background: rgba(188,140,255,0.15); color: var(--accent2); }
+  .tag-tool { background: rgba(63,185,80,0.15); color: var(--green); }
+
+  /* Timeline */
+  .timeline {
+    position: relative;
+    padding-left: 3rem;
+  }
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 14px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--timeline-line);
+  }
+
+  /* Era Markers */
+  .era-marker {
+    position: relative;
+    margin: 2rem 0 1.5rem 0;
+    padding: 0.6rem 1rem;
+    background: linear-gradient(90deg, rgba(88,166,255,0.1), transparent);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 6px 6px 0;
+  }
+  .era-marker h2 {
+    font-size: 0.85rem;
+    color: var(--accent);
+    font-weight: 700;
+  }
+  .era-marker .era-desc {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-top: 0.2rem;
+  }
+  .era-marker::before {
+    content: '';
+    position: absolute;
+    left: -3rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 3px solid var(--bg);
+    z-index: 2;
+    margin-left: -1px;
+  }
+
+  /* Timeline Entry */
+  .tl-entry {
+    position: relative;
+    margin-bottom: 1rem;
+    cursor: pointer;
+    transition: transform 0.15s;
+  }
+  .tl-entry:hover { transform: translateX(4px); }
+  .tl-entry.selected .tl-card { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 4px 12px rgba(88,166,255,0.1); }
+  .tl-entry.hidden { display: none; }
+
+  .tl-node {
+    position: absolute;
+    left: -3rem;
+    top: 0.8rem;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid var(--bg);
+    z-index: 2;
+    margin-left: 2px;
+  }
+  .tl-node.landmark { background: var(--pink); width: 16px; height: 16px; margin-left: 0; margin-top: -2px; }
+  .tl-node.major { background: var(--accent); }
+  .tl-node.enhancement { background: var(--green); }
+  .tl-node.bugfix { background: var(--orange); }
+  .tl-node.deprecation { background: var(--red); }
+  .tl-node.optimization { background: var(--cyan); }
+  .tl-node.infrastructure { background: var(--text-muted); }
+
+  .tl-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.8rem 1rem;
+    transition: all 0.15s;
+  }
+  .tl-card:hover { border-color: var(--surface2); background: var(--surface2); }
+  .tl-card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 0.3rem;
+  }
+  .tl-version {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--accent);
+    background: rgba(88,166,255,0.1);
+    padding: 0.1rem 0.5rem;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+  .tl-significance {
+    font-size: 0.6rem;
+    font-weight: 600;
+    padding: 0.1rem 0.4rem;
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .sig-landmark { background: rgba(247,120,186,0.2); color: var(--pink); }
+  .sig-major { background: rgba(88,166,255,0.15); color: var(--accent); }
+  .sig-enhancement { background: rgba(63,185,80,0.15); color: var(--green); }
+  .sig-bugfix { background: rgba(210,153,34,0.15); color: var(--orange); }
+  .sig-deprecation { background: rgba(248,81,73,0.15); color: var(--red); }
+  .sig-optimization { background: rgba(57,210,192,0.15); color: var(--cyan); }
+  .sig-infrastructure { background: rgba(139,148,158,0.15); color: var(--text-muted); }
+
+  .tl-feature {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .tl-desc {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 0.3rem;
+    line-height: 1.5;
+  }
+  .tl-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    margin-top: 0.5rem;
+  }
+
+  /* Object Graph */
+  .graph-container {
+    padding: 2rem;
+    display: none;
+  }
+  .graph-container.visible { display: block; }
+  .graph-container h2 {
+    color: var(--accent);
+    font-size: 1rem;
+    margin-bottom: 1rem;
+  }
+  #object-graph {
+    width: 100%;
+    min-height: 600px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+
+  /* Summary Stats */
+  .stats-bar {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem 2rem;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  .stat-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.5rem 1rem;
+    min-width: 120px;
+  }
+  .stat-card .stat-val {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--accent);
+  }
+  .stat-card .stat-label {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  /* View Toggle */
+  .view-toggle {
+    display: flex;
+    gap: 0;
+    margin-left: auto;
+  }
+  .view-toggle .nav-btn:first-child { border-radius: 6px 0 0 6px; }
+  .view-toggle .nav-btn:last-child { border-radius: 0 6px 6px 0; }
+
+  /* Object Interaction Diagram */
+  .interaction-diagram {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+  }
+  .interaction-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.3rem 0;
+    font-size: 0.72rem;
+  }
+  .interaction-arrow {
+    color: var(--accent);
+    font-weight: bold;
+  }
+  .interaction-obj {
+    background: rgba(88,166,255,0.1);
+    color: var(--accent);
+    padding: 0.15rem 0.5rem;
+    border-radius: 3px;
+    font-weight: 600;
+    font-size: 0.68rem;
+  }
+
+  /* SVG Object Graph */
+  .svg-graph {
+    width: 100%;
+    overflow-x: auto;
+  }
+  .svg-graph svg {
+    display: block;
+    margin: 0 auto;
+  }
+  .graph-node {
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  .graph-node:hover { opacity: 0.85; }
+  .graph-edge { stroke: var(--border); stroke-width: 1.5; fill: none; }
+  .graph-edge.active { stroke: var(--accent); stroke-width: 2; }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .main { flex-direction: column; }
+    .detail-panel { width: 100%; position: static; height: auto; border-left: none; border-top: 1px solid var(--border); }
+    .timeline-panel { max-width: 100%; }
+  }
+
+  /* Animate in */
+  .tl-entry {
+    opacity: 0;
+    transform: translateY(10px);
+    animation: fadeSlideIn 0.3s forwards;
+  }
+  @keyframes fadeSlideIn {
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .tl-entry:nth-child(1) { animation-delay: 0.02s; }
+  .tl-entry:nth-child(2) { animation-delay: 0.04s; }
+  .tl-entry:nth-child(3) { animation-delay: 0.06s; }
+  .tl-entry:nth-child(4) { animation-delay: 0.08s; }
+  .tl-entry:nth-child(5) { animation-delay: 0.10s; }
+  .tl-entry:nth-child(6) { animation-delay: 0.12s; }
+  .tl-entry:nth-child(7) { animation-delay: 0.14s; }
+  .tl-entry:nth-child(8) { animation-delay: 0.16s; }
+  .tl-entry:nth-child(9) { animation-delay: 0.18s; }
+  .tl-entry:nth-child(10) { animation-delay: 0.20s; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+  /* Legend in graph view */
+  .legend {
+    display: flex;
+    gap: 1.2rem;
+    flex-wrap: wrap;
+    padding: 0.8rem 0;
+    font-size: 0.7rem;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: var(--text-muted);
+  }
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Claude Code: Agent Memory Feature Timeline</h1>
+  <p class="subtitle">Object usage, parameter evolution, and interaction graph across semver releases</p>
+  <div class="meta-row">
+    <span><span class="dot dot-green"></span> Source: CHANGELOG.md (main branch)</span>
+    <span><span class="dot dot-accent"></span> Range: v0.2.54 &ndash; v2.1.33</span>
+    <span><span class="dot dot-pink"></span> Feature: Agent Memory System</span>
+  </div>
+</div>
+
+<div class="stats-bar" id="stats-bar">
+  <div class="stat-card"><div class="stat-val" id="stat-total">0</div><div class="stat-label">Total Entries</div></div>
+  <div class="stat-card"><div class="stat-val" id="stat-landmarks">0</div><div class="stat-label">Landmarks</div></div>
+  <div class="stat-card"><div class="stat-val" id="stat-objects">0</div><div class="stat-label">Unique Objects</div></div>
+  <div class="stat-card"><div class="stat-val" id="stat-versions">0</div><div class="stat-label">Versions Touched</div></div>
+</div>
+
+<div class="nav-bar" id="nav-bar">
+  <button class="nav-btn active" data-filter="all">All</button>
+  <button class="nav-btn filter-landmark" data-filter="landmark_feature">Landmark</button>
+  <button class="nav-btn filter-major" data-filter="major_feature,major_enhancement">Major</button>
+  <button class="nav-btn filter-enhancement" data-filter="enhancement">Enhancement</button>
+  <button class="nav-btn filter-bugfix" data-filter="bugfix">Bugfix</button>
+  <button class="nav-btn" data-filter="optimization">Optimization</button>
+  <button class="nav-btn" data-filter="deprecation,change">Deprecation/Change</button>
+  <button class="nav-btn" data-filter="infrastructure,migration">Infrastructure</button>
+  <div class="view-toggle">
+    <button class="nav-btn active" data-view="timeline">Timeline</button>
+    <button class="nav-btn" data-view="graph">Object Graph</button>
+  </div>
+</div>
+
+<div class="main">
+  <div class="timeline-panel" id="timeline-panel">
+    <div class="timeline" id="timeline"></div>
+  </div>
+  <div class="detail-panel empty" id="detail-panel">
+    <h3 id="detail-title">Select an entry</h3>
+    <div id="detail-content">
+      <p style="font-size:0.8rem;color:var(--text-muted);">Click any timeline entry to see full details including objects, parameters, tools, and interactions.</p>
+    </div>
+  </div>
+</div>
+
+<div class="graph-container" id="graph-container">
+  <h2>Object Interaction Graph</h2>
+  <p style="font-size:0.75rem;color:var(--text-muted);margin-bottom:1rem;">
+    How memory-related objects connect and interact across versions. Node size reflects frequency of appearance.
+  </p>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div> Core Object</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div> Tool</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--accent2)"></div> Parameter</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--pink)"></div> Scope/Config</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--orange)"></div> UI Element</div>
+  </div>
+  <div class="svg-graph" id="svg-graph"></div>
+</div>
+
+<script>
+// ─── DATA ──────────────────────────────────────────────────────────────────────
+const entries = [
+  {
+    version: "0.2.54", semver: "0.2.54",
+    category: "feature_introduction", feature: "Memory # Shortcut",
+    description: "Quickly add to Memory by starting your message with '#'. Press ctrl+r to see full output for long tool results.",
+    objects: ["Memory", "# prefix input"],
+    params: ["# prefix"],
+    tools: ["Memory (implicit write)"],
+    interactions: ["User -> Memory via # shortcut"],
+    significance: "major_feature",
+    notes: "First public-facing memory feature. Users prefix messages with # to write to CLAUDE.md memory files. This was the genesis of the memory system."
+  },
+  {
+    version: "0.2.66", semver: "0.2.66",
+    category: "bugfix", feature: "Memory Paste Trigger Fix",
+    description: "Fixed issue where pasting could trigger memory or bash mode unexpectedly.",
+    objects: ["Memory", "Bash mode", "Input parser"],
+    params: [],
+    tools: ["Memory input parser"],
+    interactions: ["User input -> mode detection -> Memory/Bash"],
+    significance: "bugfix",
+    notes: "Pasting text accidentally triggered memory mode, revealing the # prefix was parsed from input content."
+  },
+  {
+    version: "0.2.67", semver: "0.2.67",
+    category: "infrastructure", feature: ".claude/settings.json",
+    description: "Shared project permission rules can be saved in .claude/settings.json",
+    objects: [".claude/settings.json", "Permission rules"],
+    params: ["permission rules"],
+    tools: ["Settings"],
+    interactions: ["Project -> .claude/settings.json -> permissions"],
+    significance: "infrastructure",
+    notes: "Laid groundwork for .claude/ directory as a project-level configuration and memory store."
+  },
+  {
+    version: "0.2.107", semver: "0.2.107",
+    category: "enhancement", feature: "CLAUDE.md Imports",
+    description: "CLAUDE.md files can now import other files. Add @path/to/file.md to ./CLAUDE.md to load additional files on launch.",
+    objects: ["CLAUDE.md", "@import directive"],
+    params: ["@path/to/file.md"],
+    tools: ["CLAUDE.md loader"],
+    interactions: ["CLAUDE.md -> @imported files -> context window"],
+    significance: "major_enhancement",
+    notes: "CLAUDE.md becomes composable. Memory files can reference other files, creating a graph of project knowledge."
+  },
+  {
+    version: "1.0.7", semver: "1.0.7",
+    category: "migration", feature: "Settings Migration",
+    description: "Migrated allowedTools and ignorePatterns from .claude.json to settings.json. Deprecated claude config commands.",
+    objects: [".claude.json", "settings.json", "allowedTools", "ignorePatterns"],
+    params: ["allowedTools", "ignorePatterns"],
+    tools: ["Settings", "Config CLI"],
+    interactions: [".claude.json -> settings.json (migration)"],
+    significance: "infrastructure",
+    notes: "Memory and config consolidation from .claude.json to settings.json structure."
+  },
+  {
+    version: "1.0.60", semver: "1.0.60",
+    category: "feature_introduction", feature: "Custom Subagents",
+    description: "You can now create custom subagents for specialized tasks! Run /agents to get started.",
+    objects: ["Agents", "/agents command", "Subagents"],
+    params: [],
+    tools: ["/agents"],
+    interactions: ["User -> /agents -> custom agent creation"],
+    significance: "major_feature",
+    notes: "Foundation for agent memory. Custom agents can be configured with specific behaviors and tools, creating the substrate for agent-specific memory."
+  },
+  {
+    version: "1.0.62", semver: "1.0.62",
+    category: "enhancement", feature: "Agent @-mention",
+    description: "Added @-mention support with typeahead for custom agents. @<your-custom-agent> to invoke it.",
+    objects: ["Agents", "@-mention", "Typeahead"],
+    params: ["@agent-name"],
+    tools: ["Agent invocation"],
+    interactions: ["User -> @agent -> agent execution"],
+    significance: "enhancement",
+    notes: "Agents become directly invocable via @-mentions."
+  },
+  {
+    version: "1.0.64", semver: "1.0.64",
+    category: "enhancement", feature: "Agent Model Customization",
+    description: "Agents: Added model customization support - you can now specify which model an agent should use.",
+    objects: ["Agents", "model field"],
+    params: ["model"],
+    tools: ["Agent configuration"],
+    interactions: ["Agent definition -> model selection"],
+    significance: "enhancement",
+    notes: "Agents gain a model parameter, allowing different agents to use different AI models."
+  },
+  {
+    version: "1.0.68", semver: "1.0.68",
+    category: "enhancement", feature: "/doctor + CLAUDE.md",
+    description: "Enhanced /doctor command with CLAUDE.md and MCP tool context for self-serve debugging.",
+    objects: ["CLAUDE.md", "/doctor"],
+    params: [],
+    tools: ["/doctor"],
+    interactions: ["/doctor -> CLAUDE.md inspection -> diagnostics"],
+    significance: "enhancement",
+    notes: "/doctor now understands CLAUDE.md memory files and can help debug context issues."
+  },
+  {
+    version: "1.0.84", semver: "1.0.84",
+    category: "enhancement", feature: "~/.claude/* @-mention",
+    description: "@-mention: Add ~/.claude/* files to suggestions for easier agent, output style, and slash command editing.",
+    objects: ["~/.claude/*", "@-mention suggestions"],
+    params: [],
+    tools: ["@-mention"],
+    interactions: ["User -> @~/.claude/* -> direct file editing"],
+    significance: "enhancement",
+    notes: "Users can now @-mention files in the ~/.claude directory, making memory file editing more accessible."
+  },
+  {
+    version: "1.0.94", semver: "1.0.94",
+    category: "major_feature", feature: "/memory Command Editing",
+    description: "/memory command now allows direct editing of all imported memory files.",
+    objects: ["/memory command", "CLAUDE.md", "Imported memory files"],
+    params: [],
+    tools: ["/memory"],
+    interactions: ["User -> /memory -> edit all memory files"],
+    significance: "major_enhancement",
+    notes: "The /memory command evolves from simple viewing to full editing capability across all imported memory files."
+  },
+  {
+    version: "2.0.55", semver: "2.0.55",
+    category: "bugfix", feature: "Memory Location Selector Fix",
+    description: "Fixed keyboard navigation becoming unresponsive when holding down arrow keys in memory location selector.",
+    objects: ["Memory location selector", "Keyboard navigation"],
+    params: ["user scope", "project scope", "local scope"],
+    tools: ["Memory UI"],
+    interactions: ["User -> memory location selector -> scope selection"],
+    significance: "bugfix",
+    notes: "The memory location selector is a UI for choosing where to store memories. Reveals the three-scope model (user, project, local) existed in the UI."
+  },
+  {
+    version: "2.0.59", semver: "2.0.59",
+    category: "feature_introduction", feature: "--agent CLI + Agent Setting",
+    description: "Added --agent CLI flag to override the agent setting. Added agent setting to configure main thread with agent's system prompt, tool restrictions, and model.",
+    objects: ["--agent flag", "agent setting", "system prompt", "tool restrictions", "model"],
+    params: ["--agent", "agent (settings.json)"],
+    tools: ["CLI", "Settings"],
+    interactions: ["CLI --agent -> session agent config", "settings.json agent -> main thread override"],
+    significance: "major_feature",
+    notes: "Agents become a first-class configuration concept. The main thread itself can be configured as a specific agent."
+  },
+  {
+    version: "2.0.64", semver: "2.0.64",
+    category: "major_feature", feature: ".claude/rules/ Directory",
+    description: "Added support for .claude/rules/. See https://code.claude.com/docs/en/memory for details.",
+    objects: [".claude/rules/", "Memory system"],
+    params: [],
+    tools: ["Memory system", "Rules loader"],
+    interactions: [".claude/rules/ files -> context injection on session start"],
+    significance: "landmark_feature",
+    notes: "Introduction of .claude/rules/ directory as a dedicated memory/rules structure. The docs URL (code.claude.com/docs/en/memory) confirms this is the memory system's evolution. Rules are always-loaded memory."
+  },
+  {
+    version: "2.0.67", semver: "2.0.67",
+    category: "enhancement", feature: "CLAUDE.md @-ref Parsing Fix",
+    description: "Fixed consecutive @~/ file references in CLAUDE.md being incorrectly parsed due to markdown strikethrough interference.",
+    objects: ["CLAUDE.md", "@~/ references"],
+    params: ["@~/ paths"],
+    tools: ["CLAUDE.md parser"],
+    interactions: ["CLAUDE.md -> @~/ references -> file resolution"],
+    significance: "bugfix",
+    notes: "Fix for the composable memory system where @~/ references in CLAUDE.md were being parsed as markdown strikethrough."
+  },
+  {
+    version: "2.0.70", semver: "2.0.70",
+    category: "change", feature: "# Shortcut Removed",
+    description: "Removed # shortcut for quick memory entry (tell Claude to edit your CLAUDE.md instead).",
+    objects: ["# shortcut (removed)", "CLAUDE.md"],
+    params: [],
+    tools: ["CLAUDE.md editing"],
+    interactions: ["User -> tells Claude -> Claude edits CLAUDE.md"],
+    significance: "deprecation",
+    notes: "The original # memory shortcut from v0.2.54 is removed. Memory entry now goes through Claude editing CLAUDE.md directly, showing a shift to agent-mediated memory."
+  },
+  {
+    version: "2.0.70", semver: "2.0.70b",
+    category: "optimization", feature: "3x Memory Improvement",
+    description: "Improved memory usage by 3x for large conversations.",
+    objects: ["Conversation memory", "Context window"],
+    params: [],
+    tools: ["Memory management"],
+    interactions: ["Internal memory optimization pipeline"],
+    significance: "optimization",
+    notes: "3x memory usage improvement for large conversations."
+  },
+  {
+    version: "2.1.0", semver: "2.1.0",
+    category: "enhancement", feature: "Skill Hot-Reload",
+    description: "Skills created or modified in ~/.claude/skills or .claude/skills are now immediately available without restarting the session.",
+    objects: ["~/.claude/skills", ".claude/skills", "Skill hot-reload"],
+    params: [],
+    tools: ["Skill discovery", "File watcher"],
+    interactions: ["File change in .claude/skills/ -> automatic skill reload"],
+    significance: "enhancement",
+    notes: "Skills (which can be thought of as executable memory/instructions) now hot-reload, tightening the feedback loop."
+  },
+  {
+    version: "2.1.2", semver: "2.1.2",
+    category: "bugfix", feature: "Binary Include Fix",
+    description: "Fixed binary files (images, PDFs, etc.) being accidentally included in memory when using @include directives in CLAUDE.md files.",
+    objects: ["CLAUDE.md", "@include directive", "Binary file filter"],
+    params: ["@include"],
+    tools: ["CLAUDE.md loader"],
+    interactions: ["CLAUDE.md @include -> binary file detection -> filter"],
+    significance: "bugfix",
+    notes: "The @include system in CLAUDE.md was accidentally pulling binary files into the memory context."
+  },
+  {
+    version: "2.1.6", semver: "2.1.6",
+    category: "enhancement", feature: "Import Approval Dialog",
+    description: "Improved the external CLAUDE.md imports approval dialog to show which files are being imported and from where.",
+    objects: ["CLAUDE.md", "Import approval dialog", "External imports"],
+    params: [],
+    tools: ["CLAUDE.md import UI"],
+    interactions: ["External CLAUDE.md import -> approval dialog -> user decision"],
+    significance: "enhancement",
+    notes: "Better transparency into what memory files are being imported and their sources. Security boundary for memory."
+  },
+  {
+    version: "2.1.20", semver: "2.1.20",
+    category: "enhancement", feature: "CLAUDE.md from --add-dir",
+    description: "Added support for loading CLAUDE.md files from additional directories specified via --add-dir flag.",
+    objects: ["CLAUDE.md", "--add-dir flag", "CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD"],
+    params: ["--add-dir", "CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD=1"],
+    tools: ["CLAUDE.md loader"],
+    interactions: ["--add-dir paths -> CLAUDE.md discovery -> context"],
+    significance: "enhancement",
+    notes: "CLAUDE.md memory files can now be loaded from additional directories beyond the project root."
+  },
+  {
+    version: "2.1.30", semver: "2.1.30",
+    category: "optimization", feature: "68% Resume Memory Reduction",
+    description: "Improved memory usage for --resume (68% reduction for users with many sessions).",
+    objects: ["--resume", "Session index", "Stat-based loading"],
+    params: ["--resume"],
+    tools: ["Session management"],
+    interactions: ["Session resume -> lightweight stat-based loading -> progressive enrichment"],
+    significance: "optimization",
+    notes: "68% memory reduction for session resume. Replaced full session index with lightweight stat-based loading."
+  },
+  {
+    version: "2.1.32", semver: "2.1.32",
+    category: "major_feature", feature: "Automatic Memory",
+    description: "Claude now automatically records and recalls memories as it works.",
+    objects: ["Automatic memory", "Memory recording", "Memory recall", "CLAUDE.md"],
+    params: [],
+    tools: ["Memory (automatic)", "CLAUDE.md writer"],
+    interactions: ["Claude working -> automatic memory recording -> CLAUDE.md", "Session start -> automatic memory recall -> context"],
+    significance: "landmark_feature",
+    notes: "LANDMARK: Claude gains automatic memory. No longer requires manual # prefix or explicit /memory commands. Claude proactively records and recalls memories during work sessions. This is the culmination of the memory journey from manual # shortcuts to fully autonomous memory management."
+  },
+  {
+    version: "2.1.33", semver: "2.1.33",
+    category: "major_feature", feature: "Agent Memory Frontmatter",
+    description: "Added memory frontmatter field support for agents, enabling persistent memory with user, project, or local scope.",
+    objects: ["Agent memory", "memory frontmatter", "user scope", "project scope", "local scope", "Agent definition"],
+    params: ["memory: user", "memory: project", "memory: local"],
+    tools: ["Agent configuration", "Memory persistence"],
+    interactions: [
+      "Agent frontmatter -> memory: scope declaration",
+      "Agent execution -> memory read/write",
+      "user scope -> ~/.claude/memory/ (cross-project)",
+      "project scope -> .claude/memory/ (per-project)",
+      "local scope -> .claude/local/memory/ (machine-local)"
+    ],
+    significance: "landmark_feature",
+    notes: "LANDMARK: Agents gain persistent memory via frontmatter field. Three scopes: user (global across projects), project (per-project), local (machine-local only). This is the agent memory feature fully realized."
+  },
+  {
+    version: "2.1.33", semver: "2.1.33b",
+    category: "enhancement", feature: "Agent Tool Restrictions (Task)",
+    description: "Added support for restricting which sub-agents can be spawned via Task(agent_type) syntax in agent tools frontmatter.",
+    objects: ["Agent tools frontmatter", "Task(agent_type)", "Sub-agent restrictions"],
+    params: ["tools: Task(agent_type)"],
+    tools: ["Agent configuration"],
+    interactions: ["Parent agent -> Task(agent_type) -> restricted sub-agent spawning"],
+    significance: "enhancement",
+    notes: "Agents can control which sub-agents they spawn, creating a hierarchy of agent interactions with scoped memory."
+  },
+  {
+    version: "2.1.33", semver: "2.1.33c",
+    category: "feature_introduction", feature: "Multi-Agent Hook Events",
+    description: "Added TeammateIdle and TaskCompleted hook events for multi-agent workflows.",
+    objects: ["TeammateIdle hook", "TaskCompleted hook", "Agent teams"],
+    params: ["TeammateIdle", "TaskCompleted"],
+    tools: ["Hooks"],
+    interactions: ["Agent teams -> TeammateIdle event", "Agent teams -> TaskCompleted event"],
+    significance: "major_feature",
+    notes: "Hook events for multi-agent collaboration. Agents can react to teammate state changes."
+  }
+];
+
+// ─── ERA DEFINITIONS ───────────────────────────────────────────────────────────
+const eras = [
+  { beforeVersion: "0.2.54", title: "Era 1: Manual Memory (0.2.x)", desc: "User-driven memory via # shortcut and CLAUDE.md editing" },
+  { beforeVersion: "1.0.7", title: "Era 2: Composable Memory (0.2.107+)", desc: "CLAUDE.md imports, settings migration, configuration consolidation" },
+  { beforeVersion: "1.0.60", title: "Era 3: Settings & Infrastructure (1.0.x)", desc: "Config migration, performance optimization, foundation building" },
+  { beforeVersion: "2.0.55", title: "Era 4: Agent Foundation (1.0.60 - 2.0.x)", desc: "Custom agents, model selection, /memory editing, agent as first-class concept" },
+  { beforeVersion: "2.0.64", title: "Era 5: Memory Scopes (2.0.55+)", desc: "Memory location selector, agent settings, scope model emergence" },
+  { beforeVersion: "2.1.32", title: "Era 6: Rules & Refinement (2.0.64 - 2.1.x)", desc: ".claude/rules/, # shortcut removal, import improvements, shift to agent-mediated memory" },
+  { beforeVersion: "2.1.32_end", title: "Era 7: Autonomous Agent Memory (2.1.32+)", desc: "Automatic memory, agent memory frontmatter, persistent scoped memory, multi-agent hooks" }
+];
+
+// ─── RENDER ────────────────────────────────────────────────────────────────────
+const timeline = document.getElementById('timeline');
+const detailPanel = document.getElementById('detail-panel');
+const detailTitle = document.getElementById('detail-title');
+const detailContent = document.getElementById('detail-content');
+
+function sigClass(sig) {
+  if (sig.includes('landmark')) return 'landmark';
+  if (sig.includes('major')) return 'major';
+  if (sig === 'enhancement') return 'enhancement';
+  if (sig === 'bugfix') return 'bugfix';
+  if (sig === 'deprecation' || sig === 'change') return 'deprecation';
+  if (sig === 'optimization') return 'optimization';
+  return 'infrastructure';
+}
+
+function renderTimeline() {
+  timeline.innerHTML = '';
+  let eraIdx = 0;
+
+  entries.forEach((e, i) => {
+    // Check if we should insert an era marker
+    while (eraIdx < eras.length && eras[eraIdx].beforeVersion === e.semver) {
+      const eraDiv = document.createElement('div');
+      eraDiv.className = 'era-marker';
+      eraDiv.innerHTML = `<h2>${eras[eraIdx].title}</h2><div class="era-desc">${eras[eraIdx].desc}</div>`;
+      timeline.appendChild(eraDiv);
+      eraIdx++;
+    }
+
+    const cls = sigClass(e.significance);
+    const div = document.createElement('div');
+    div.className = `tl-entry`;
+    div.dataset.index = i;
+    div.dataset.significance = e.significance;
+    div.style.animationDelay = `${Math.min(i * 0.03, 0.6)}s`;
+
+    div.innerHTML = `
+      <div class="tl-node ${cls}"></div>
+      <div class="tl-card">
+        <div class="tl-card-header">
+          <span class="tl-version">v${e.version}</span>
+          <span class="tl-significance sig-${cls}">${e.significance.replace(/_/g, ' ')}</span>
+        </div>
+        <div class="tl-feature">${e.feature}</div>
+        <div class="tl-desc">${e.description}</div>
+        <div class="tl-tags">
+          ${e.objects.slice(0, 3).map(o => `<span class="tag tag-object">${o}</span>`).join('')}
+          ${e.params.slice(0, 2).map(p => `<span class="tag tag-param">${p}</span>`).join('')}
+          ${e.tools.slice(0, 2).map(t => `<span class="tag tag-tool">${t}</span>`).join('')}
+        </div>
+      </div>`;
+
+    div.addEventListener('click', () => selectEntry(i, div));
+    timeline.appendChild(div);
+  });
+
+  // Final era if needed
+  while (eraIdx < eras.length) {
+    const eraDiv = document.createElement('div');
+    eraDiv.className = 'era-marker';
+    eraDiv.innerHTML = `<h2>${eras[eraIdx].title}</h2><div class="era-desc">${eras[eraIdx].desc}</div>`;
+    timeline.appendChild(eraDiv);
+    eraIdx++;
+  }
+}
+
+function selectEntry(idx, el) {
+  document.querySelectorAll('.tl-entry').forEach(e => e.classList.remove('selected'));
+  el.classList.add('selected');
+  detailPanel.classList.remove('empty');
+
+  const e = entries[idx];
+  const cls = sigClass(e.significance);
+  detailTitle.innerHTML = `<span class="tl-version">v${e.version}</span> ${e.feature}`;
+
+  let html = `
+    <div class="detail-section">
+      <h4>Description</h4>
+      <p>${e.description}</p>
+    </div>
+    <div class="detail-section">
+      <h4>Significance</h4>
+      <p><span class="tl-significance sig-${cls}" style="font-size:0.75rem">${e.significance.replace(/_/g, ' ')}</span></p>
+    </div>
+    <div class="detail-section">
+      <h4>Objects</h4>
+      <div style="display:flex;flex-wrap:wrap;gap:0.3rem;">
+        ${e.objects.map(o => `<span class="tag tag-object">${o}</span>`).join('')}
+      </div>
+    </div>`;
+
+  if (e.params.length > 0) {
+    html += `<div class="detail-section">
+      <h4>Parameters</h4>
+      <div style="display:flex;flex-wrap:wrap;gap:0.3rem;">
+        ${e.params.map(p => `<span class="tag tag-param">${p}</span>`).join('')}
+      </div>
+    </div>`;
+  }
+
+  if (e.tools.length > 0) {
+    html += `<div class="detail-section">
+      <h4>Tools</h4>
+      <div style="display:flex;flex-wrap:wrap;gap:0.3rem;">
+        ${e.tools.map(t => `<span class="tag tag-tool">${t}</span>`).join('')}
+      </div>
+    </div>`;
+  }
+
+  if (e.interactions.length > 0) {
+    html += `<div class="detail-section">
+      <h4>Interactions</h4>
+      <div class="interaction-diagram">
+        ${e.interactions.map(inter => {
+          const parts = inter.split(' -> ');
+          return `<div class="interaction-row">${parts.map((p, i) =>
+            `<span class="interaction-obj">${p}</span>${i < parts.length - 1 ? '<span class="interaction-arrow">&rarr;</span>' : ''}`
+          ).join('')}</div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }
+
+  if (e.notes) {
+    html += `<div class="detail-section">
+      <h4>Analysis Notes</h4>
+      <p style="color:var(--text-muted);font-style:italic;">${e.notes}</p>
+    </div>`;
+  }
+
+  detailContent.innerHTML = html;
+}
+
+// ─── FILTERS ───────────────────────────────────────────────────────────────────
+document.querySelectorAll('.nav-btn[data-filter]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.nav-btn[data-filter]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const filter = btn.dataset.filter;
+    const filterValues = filter.split(',');
+
+    document.querySelectorAll('.tl-entry').forEach(el => {
+      const sig = el.dataset.significance;
+      if (filter === 'all' || filterValues.includes(sig)) {
+        el.classList.remove('hidden');
+      } else {
+        el.classList.add('hidden');
+      }
+    });
+  });
+});
+
+// ─── VIEW TOGGLE ───────────────────────────────────────────────────────────────
+document.querySelectorAll('.nav-btn[data-view]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.nav-btn[data-view]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const view = btn.dataset.view;
+    document.getElementById('timeline-panel').style.display = view === 'timeline' ? 'block' : 'none';
+    document.getElementById('detail-panel').style.display = view === 'timeline' ? 'block' : 'none';
+    document.getElementById('graph-container').className = view === 'graph' ? 'graph-container visible' : 'graph-container';
+    if (view === 'graph') renderGraph();
+  });
+});
+
+// ─── STATS ─────────────────────────────────────────────────────────────────────
+function updateStats() {
+  document.getElementById('stat-total').textContent = entries.length;
+  document.getElementById('stat-landmarks').textContent = entries.filter(e => e.significance.includes('landmark')).length;
+  const allObjects = new Set();
+  entries.forEach(e => e.objects.forEach(o => allObjects.add(o)));
+  document.getElementById('stat-objects').textContent = allObjects.size;
+  const versions = new Set(entries.map(e => e.version));
+  document.getElementById('stat-versions').textContent = versions.size;
+}
+
+// ─── OBJECT GRAPH (SVG) ───────────────────────────────────────────────────────
+function renderGraph() {
+  const container = document.getElementById('svg-graph');
+
+  // Collect all objects and their frequencies + connections
+  const objFreq = {};
+  const objConnections = {};
+  const objCategory = {};
+
+  const categoryMap = {
+    'Memory': 'core', 'CLAUDE.md': 'core', 'Automatic memory': 'core', 'Agent memory': 'core',
+    'Memory recording': 'core', 'Memory recall': 'core', '.claude/rules/': 'core', 'Memory system': 'core',
+    '/memory command': 'tool', '/memory': 'tool', '/doctor': 'tool', '/agents': 'tool', '/agents command': 'tool',
+    'CLAUDE.md loader': 'tool', 'CLAUDE.md parser': 'tool', 'Agent configuration': 'tool', 'Memory (automatic)': 'tool',
+    'Agent invocation': 'tool', 'Settings': 'tool', 'Memory UI': 'tool', 'Memory management': 'tool',
+    'Skill discovery': 'tool', 'Hooks': 'tool', 'CLAUDE.md writer': 'tool', 'Rules loader': 'tool',
+    'Memory persistence': 'tool', 'CLI': 'tool', 'File watcher': 'tool', 'Session management': 'tool',
+    'Memory (implicit write)': 'tool', 'Memory input parser': 'tool', 'CLAUDE.md import UI': 'tool',
+    '# prefix': 'param', '# prefix input': 'param', '@path/to/file.md': 'param', '@include': 'param',
+    '@include directive': 'param', '--add-dir': 'param', '--add-dir flag': 'param', '--agent': 'param',
+    '--agent flag': 'param', '--resume': 'param', 'model': 'param', 'model field': 'param',
+    'memory: user': 'param', 'memory: project': 'param', 'memory: local': 'param', 'memory frontmatter': 'param',
+    'allowedTools': 'param', 'ignorePatterns': 'param', 'permission rules': 'param',
+    'user scope': 'scope', 'project scope': 'scope', 'local scope': 'scope', '.claude/settings.json': 'scope',
+    '.claude.json': 'scope', 'settings.json': 'scope', '.claude/skills': 'scope', '~/.claude/skills': 'scope',
+    '.claude/skills/': 'scope', '~/.claude/*': 'scope', 'Agent definition': 'scope', 'Agents': 'scope',
+    'Subagents': 'scope', 'Agent teams': 'scope',
+    'Memory location selector': 'ui', 'Import approval dialog': 'ui', 'Typeahead': 'ui',
+    '@-mention': 'ui', '@-mention suggestions': 'ui', 'Keyboard navigation': 'ui',
+    'Input parser': 'ui', 'Bash mode': 'ui',
+  };
+
+  entries.forEach(e => {
+    const allItems = [...e.objects, ...e.tools];
+    allItems.forEach(o => {
+      objFreq[o] = (objFreq[o] || 0) + 1;
+      if (!objCategory[o]) objCategory[o] = categoryMap[o] || 'core';
+      if (!objConnections[o]) objConnections[o] = new Set();
+    });
+    // Connect objects that appear in the same entry
+    for (let i = 0; i < allItems.length; i++) {
+      for (let j = i + 1; j < allItems.length; j++) {
+        objConnections[allItems[i]].add(allItems[j]);
+        objConnections[allItems[j]].add(allItems[i]);
+      }
+    }
+  });
+
+  // Filter to top objects by frequency
+  const sortedObjs = Object.keys(objFreq).sort((a, b) => objFreq[b] - objFreq[a]).slice(0, 35);
+  const objSet = new Set(sortedObjs);
+
+  // Layout: force-directed-ish with category clustering
+  const W = 900, H = 650;
+  const catCenters = {
+    core: { x: W * 0.5, y: H * 0.3 },
+    tool: { x: W * 0.25, y: H * 0.6 },
+    param: { x: W * 0.75, y: H * 0.6 },
+    scope: { x: W * 0.75, y: H * 0.25 },
+    ui: { x: W * 0.25, y: H * 0.25 }
+  };
+  const catColors = {
+    core: '#58a6ff', tool: '#3fb950', param: '#bc8cff', scope: '#f778ba', ui: '#d29922'
+  };
+
+  // Position nodes
+  const nodes = {};
+  const catCounts = {};
+  sortedObjs.forEach(o => {
+    const cat = objCategory[o] || 'core';
+    catCounts[cat] = (catCounts[cat] || 0) + 1;
+  });
+  const catIdx = {};
+  sortedObjs.forEach(o => {
+    const cat = objCategory[o] || 'core';
+    if (!catIdx[cat]) catIdx[cat] = 0;
+    const center = catCenters[cat] || catCenters.core;
+    const count = catCounts[cat] || 1;
+    const angle = (catIdx[cat] / count) * Math.PI * 2 + (Math.random() * 0.3);
+    const radius = 60 + Math.random() * 80;
+    nodes[o] = {
+      x: center.x + Math.cos(angle) * radius,
+      y: center.y + Math.sin(angle) * radius,
+      r: Math.max(8, Math.min(30, 6 + objFreq[o] * 4)),
+      cat,
+      freq: objFreq[o],
+      label: o
+    };
+    catIdx[cat]++;
+  });
+
+  // Build edges
+  const edges = [];
+  const edgeSet = new Set();
+  sortedObjs.forEach(o => {
+    (objConnections[o] || new Set()).forEach(t => {
+      if (objSet.has(t)) {
+        const key = [o, t].sort().join('|||');
+        if (!edgeSet.has(key)) {
+          edgeSet.add(key);
+          edges.push({ from: o, to: t });
+        }
+      }
+    });
+  });
+
+  // Render SVG
+  let svg = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
+  svg += `<defs>
+    <filter id="glow"><feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+      <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>`;
+
+  // Edges
+  edges.forEach(e => {
+    const f = nodes[e.from], t = nodes[e.to];
+    if (f && t) {
+      svg += `<line x1="${f.x}" y1="${f.y}" x2="${t.x}" y2="${t.y}" stroke="#30363d" stroke-width="0.8" opacity="0.4"/>`;
+    }
+  });
+
+  // Nodes
+  sortedObjs.forEach(o => {
+    const n = nodes[o];
+    const col = catColors[n.cat] || '#58a6ff';
+    svg += `<g class="graph-node">
+      <circle cx="${n.x}" cy="${n.y}" r="${n.r}" fill="${col}" opacity="0.25" stroke="${col}" stroke-width="1.5"/>
+      <circle cx="${n.x}" cy="${n.y}" r="${n.r * 0.5}" fill="${col}" opacity="0.6"/>
+      <text x="${n.x}" y="${n.y + n.r + 14}" text-anchor="middle" fill="#c9d1d9" font-size="${Math.max(8, Math.min(11, 7 + n.freq))}px" font-family="monospace">${n.label.length > 20 ? n.label.slice(0, 18) + '..' : n.label}</text>
+    </g>`;
+  });
+
+  // Category labels
+  Object.entries(catCenters).forEach(([cat, pos]) => {
+    const labels = { core: 'Core Objects', tool: 'Tools', param: 'Parameters', scope: 'Scopes/Config', ui: 'UI Elements' };
+    svg += `<text x="${pos.x}" y="${pos.y - 110}" text-anchor="middle" fill="${catColors[cat]}" font-size="11px" font-weight="bold" font-family="monospace" opacity="0.6">${labels[cat]}</text>`;
+  });
+
+  svg += `</svg>`;
+  container.innerHTML = svg;
+}
+
+// ─── INIT ──────────────────────────────────────────────────────────────────────
+renderTimeline();
+updateStats();
+</script>
+</body>
+</html>
