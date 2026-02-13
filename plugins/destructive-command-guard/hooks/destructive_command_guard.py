@@ -546,6 +546,33 @@ def check_git_dangerous(command):
                         "for other collaborators. Use 'git push --force-with-lease' instead."
                     )
 
+        # git restore . / --staged . / --worktree . (discard uncommitted changes)
+        if subcommand == "restore":
+            rest_tokens = tokens[2:]
+            # Collect all non-flag arguments (targets)
+            targets = [t for t in rest_tokens if not t.startswith("-")]
+            broad_targets = {".", "./", "./*", ":/"}
+            has_broad_target = any(t in broad_targets for t in targets)
+            if has_broad_target:
+                has_staged = "--staged" in rest_tokens or "-S" in rest_tokens
+                has_worktree = "--worktree" in rest_tokens or "-W" in rest_tokens
+                if has_staged and has_worktree:
+                    return (
+                        "BLOCKED: 'git restore --staged --worktree .' discards all staged "
+                        "and unstaged changes. Use 'git stash' to save changes, "
+                        "or restore specific files."
+                    )
+                if has_staged:
+                    return (
+                        "BLOCKED: 'git restore --staged .' unstages all changes. "
+                        "Use 'git restore --staged <file>' to unstage specific files."
+                    )
+                # Default: --worktree (or no flag, which implies --worktree)
+                return (
+                    "BLOCKED: 'git restore .' discards all uncommitted changes in the working tree. "
+                    "Use 'git stash' to save changes, or restore specific files."
+                )
+
         # git branch -D (force delete)
         if subcommand == "branch":
             rest_tokens = tokens[2:]

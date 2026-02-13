@@ -29,7 +29,7 @@ Or add to your project's `.claude/settings.json`:
 | Variable expansion | `rm -rf $(pwd)`, `rm -rf $DIR` | Unvalidatable dynamic targets |
 | Path traversal | `rm -rf /./`, `rm -rf //`, `rm -rf /../..` | Normalized to dangerous paths |
 | Docker mass ops | `docker system prune`, `docker volume prune`, `docker container prune`, `docker network prune`, `docker builder prune`, `docker image prune -a`, `docker rm -f $(docker ps -aq)`, `docker volume rm $(docker volume ls -q)`, `docker compose down -v` | Mass removal of containers, volumes, images, networks |
-| Git destructive | `git clean -fdx` (without `-n`), `git checkout -- .`, `git reset --hard` (no target), `git push --force`, `git branch -D`, `git stash clear`, `git stash drop` (no ref) | Loss of uncommitted changes, remote history, branches, stashes |
+| Git destructive | `git clean -fdx` (without `-n`), `git checkout -- .`, `git restore .`, `git restore --staged .`, `git reset --hard` (no target), `git push --force`, `git branch -D`, `git stash clear`, `git stash drop` (no ref) | Loss of uncommitted changes, remote history, branches, stashes |
 | Indirect execution | `eval "..."`, `sh -c "..."`, `bash -c "..."`, `... \| sh`, `base64 ... \| bash` | Bypasses all other checks |
 | Alternative deletion | `find / -delete`, `find ~ -delete`, `find / -exec rm`, `find / \| xargs rm` | Equivalent to mass `rm` |
 
@@ -47,6 +47,7 @@ Or add to your project's `.claude/settings.json`:
 | `git reset --hard abc1234` | Has an explicit commit target |
 | `git push` | Normal push (no force) |
 | `git push --force-with-lease` | Safe force push with protection |
+| `git restore src/file.py` | Targets a specific file |
 | `git branch -d` | Safe delete (warns if unmerged) |
 | `git stash drop stash@{0}` | Removes a single specific stash |
 | `find ./src -name '*.pyc' -delete` | Scoped to a specific directory |
