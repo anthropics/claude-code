@@ -1,8 +1,13 @@
 ---
 name: strategy-communication
-description: Create or update a strategy communication package
+description: "Create strategy communication package for stakeholders. Use when user says 'communicate the strategy', 'strategy deck', 'share our direction', or needs to align stakeholders on strategy."
 argument-hint: [strategy or initiative name] or [update path/to/communication.md]
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: strategy
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 ## Document Intelligence

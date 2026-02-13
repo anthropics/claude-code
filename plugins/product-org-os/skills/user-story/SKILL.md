@@ -1,8 +1,13 @@
 ---
 name: user-story
-description: Create or update a user story with acceptance criteria
+description: "Write a user story with acceptance criteria. Use when user says 'write a user story', 'as a user I want', 'acceptance criteria', or needs story-level requirements."
 argument-hint: [story description] or [update path/to/story.md]
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: requirements
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 ## Document Intelligence

@@ -1,8 +1,13 @@
 ---
 name: feedback-recall
-description: Query past feedback by topic, source, or theme
+description: "Query past feedback by topic, source, or theme. Use when user says 'what feedback do we have on', 'find customer complaints about', or needs feedback history."
 argument-hint: [topic, feature, or customer segment]
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: context-layer
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 Search and synthesize **past feedback** to inform current work.

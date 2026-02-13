@@ -1,8 +1,13 @@
 ---
 name: interaction-recall
-description: Query past conversation history by topic, agent, or date
+description: "Query past conversation history by topic, agent, or date. Use when user says 'what did we discuss about', 'past conversations on', or needs session history."
 argument-hint: [topic or keyword] [agent:name] [date:YYYY-MM] [product:name] [type:agent|gateway|skill]
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: context-layer
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 Query **past interactions** — agent conversations, gateway sessions, and skill invocations — to understand what was discussed, who contributed, and what conclusions were reached.

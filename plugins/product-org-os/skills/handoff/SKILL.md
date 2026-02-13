@@ -1,8 +1,13 @@
 ---
 name: handoff
-description: Capture context for agent-to-agent delegation
+description: "Capture context for agent-to-agent delegation. Use when user says 'hand off to', 'create briefing', 'delegate this', or before passing work between agents."
 argument-hint: [@receiving-agent] [task description]
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: context-layer
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 Capture and transfer **session context** when delegating work from one agent to another.

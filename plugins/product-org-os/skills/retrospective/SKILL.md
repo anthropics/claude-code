@@ -1,8 +1,13 @@
 ---
 name: retrospective
-description: Create or update a structured retrospective
+description: "Conduct structured retrospective. Use when user says 'run a retro', 'retrospective', 'what went well', 'lessons learned', or needs team reflection."
 argument-hint: [project, launch, or quarter] or [update path/to/retro.md]
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: learning
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 ## Document Intelligence

@@ -1,8 +1,13 @@
 ---
 name: roadmap-item
-description: Create or update a specific roadmap item
+description: "Define a specific roadmap item with details and dependencies. Use when user says 'add to the roadmap', 'roadmap item', 'plan this initiative', or needs a single item detailed."
 argument-hint: [item name] or [update path/to/item.md]
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: roadmap
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 ## Document Intelligence

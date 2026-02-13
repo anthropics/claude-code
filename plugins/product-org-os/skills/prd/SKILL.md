@@ -1,8 +1,13 @@
 ---
 name: prd
-description: Create or update a Product Requirements Document
+description: "Create or update a Product Requirements Document. Use when user says 'write a PRD', 'product requirements', 'document the feature', or needs formal requirements."
 argument-hint: [product/feature name] or [update path/to/prd.md]
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: requirements
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 ## Document Intelligence

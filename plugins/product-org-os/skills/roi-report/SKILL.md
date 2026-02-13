@@ -1,11 +1,16 @@
 ---
 name: roi-report
-description: View ROI dashboard showing time saved across sessions
+description: "View ROI dashboard showing time saved across sessions. Use when user says 'show ROI', 'time saved', 'productivity report', or wants to see cumulative value."
 model: haiku
 allowed-tools:
   - Read
   - Glob
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: context-layer
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 # ROI Report

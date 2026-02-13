@@ -1,8 +1,13 @@
 ---
 name: campaign-brief
-description: Create or update a marketing campaign brief
+description: "Create marketing campaign brief. Use when user says 'campaign brief', 'plan a campaign', 'marketing brief', or needs campaign planning."
 argument-hint: [campaign name or objective] or [update path/to/campaign.md]
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: execution
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 ## Document Intelligence

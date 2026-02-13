@@ -1,12 +1,17 @@
 ---
 name: clear-demo
-description: (Optional) Remove demo content for a clean context folder
+description: "Remove demo content for a clean production context. Use when user says 'clear demo data', 'remove examples', or wants to start with clean context."
 model: haiku
 allowed-tools:
   - Read
   - Bash
   - Glob
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: utility
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 # Clear Demo Content (Optional)

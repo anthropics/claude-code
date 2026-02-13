@@ -1,9 +1,14 @@
 ---
 name: product
-description: Gateway to the Product Organization - routes requests to relevant owners silently and executes
+description: "Gateway to the Product Organization - routes requests to relevant owners silently and executes. Use when user says @product or asks the product org to handle something cross-functionally."
 argument-hint: [request or question for the product org]
 model: opus
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: gateway
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 The Product Gateway is a **distribution list** — a routing mechanism that determines which agents respond to a request. It has NO persona, NO voice, and NO identity. Only named agents speak.

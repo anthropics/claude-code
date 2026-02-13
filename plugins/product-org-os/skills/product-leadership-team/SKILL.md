@@ -1,6 +1,6 @@
 ---
 name: product-leadership-team
-description: Product Leadership Team (PLT) - assign portfolio tradeoffs, cross-functional decisions, strategic alignment, and outcome reviews
+description: "Product Leadership Team (PLT) - multi-stakeholder meeting mode for portfolio tradeoffs, cross-functional decisions, strategic alignment, and outcome reviews. Use when user says @plt, needs executive alignment, or faces a portfolio-level tradeoff."
 model: sonnet
 allowed-tools:
   - Read
@@ -79,6 +79,11 @@ skills:
   - setup
   - present
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: gateway
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 The PLT Gateway is a **distribution list** — a routing mechanism that determines which leadership agents respond to a request. It has NO collective persona, NO voice, and NO identity of its own. Only named leadership agents speak.

@@ -1,8 +1,13 @@
 ---
 name: maturity-check
-description: Assess organizational maturity for a dimension
+description: "Assess organizational maturity for a dimension. Use when user says 'maturity assessment', 'how mature are we', 'org maturity', or needs capability evaluation."
 argument-hint: [dimension or area]
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: assessment
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 Assess **Organizational Maturity** for a specific dimension.

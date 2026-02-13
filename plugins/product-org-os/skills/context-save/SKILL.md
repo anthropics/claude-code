@@ -1,8 +1,13 @@
 ---
 name: context-save
-description: Save decision, bet, or learning to the context registry
+description: "Save decision, bet, or learning to the context registry. Use when user says 'save this decision', 'record this learning', 'add to context', or after creating decisions and bets."
 argument-hint: [decision-record | strategic-bet | learning]
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: context-layer
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 Save a **decision record**, **strategic bet**, or **learning** to the persistent context registry.

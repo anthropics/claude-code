@@ -1,8 +1,13 @@
 ---
 name: onboarding-playbook
-description: Create or update a customer onboarding playbook
+description: "Create customer onboarding playbook. Use when user says 'onboarding playbook', 'customer onboarding', 'first-run experience', or needs onboarding design."
 argument-hint: [product or customer segment] or [update path/to/playbook.md]
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: customer-success
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 ## Document Intelligence

@@ -1,8 +1,13 @@
 ---
 name: collaboration-check
-description: Create or update a RACI and stakeholder consultation validation
+description: "Validate RACI and stakeholder consultation. Use when user says 'who was consulted', 'RACI check', 'stakeholder alignment', or needs collaboration validation."
 argument-hint: [decision or initiative] or [update path/to/check.md]
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: validation
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 ## Document Intelligence

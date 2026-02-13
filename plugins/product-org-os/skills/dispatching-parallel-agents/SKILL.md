@@ -1,7 +1,12 @@
 ---
 name: dispatching-parallel-agents
-description: Use when facing 2+ independent tasks that can be worked on without shared state or sequential dependencies. Deploys multiple agents simultaneously for parallel execution.
+description: "Deploy multiple agents simultaneously for parallel execution. Use when facing 2+ independent tasks, 'run in parallel', 'dispatch agents', or needs concurrent task processing without shared state."
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: developer-workflow
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 # Dispatching Parallel Agents

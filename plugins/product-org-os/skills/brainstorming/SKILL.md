@@ -1,7 +1,12 @@
 ---
 name: brainstorming
-description: You MUST use this before any creative work - creating features, building components, designing systems, or solving complex problems. Guides collaborative design exploration before implementation begins.
+description: "Collaborative design exploration before implementation. Use when user says 'brainstorm', 'explore ideas', 'design session', 'think through this', or needs creative problem-solving before building."
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: creative-process
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 # Brainstorming

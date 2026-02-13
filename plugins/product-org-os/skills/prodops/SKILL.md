@@ -1,9 +1,14 @@
 ---
 name: prodops
-description: Product Operations (shortcut for /product-operations) - assign process optimization, launch coordination, tooling, and cross-team facilitation tasks
+description: "Product Operations (shortcut for /product-operations) - assign process optimization, launch coordination, tooling, and cross-team facilitation tasks. Use when user says /prodops or needs operational process help."
 model: sonnet
 alias: product-operations
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: product-operations
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 **This is a shortcut for `/product-operations`.**

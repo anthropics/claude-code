@@ -1,8 +1,13 @@
 ---
 name: product-roadmap
-description: Create or update a product roadmap document
+description: "Create complete product roadmap document. Use when user says 'build a roadmap', 'product roadmap', 'what should we build next', or needs strategic planning of initiatives."
 argument-hint: [timeframe or product area] or [update path/to/roadmap.md]
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: roadmap
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 ## Document Intelligence

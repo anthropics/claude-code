@@ -1,12 +1,17 @@
 ---
 name: reset-demo
-description: Restore demo content for testing or demonstration purposes
+description: "Restore demo content for testing or demonstration. Use when user says 'reset demo', 'restore examples', or needs demo data for learning."
 model: haiku
 allowed-tools:
   - Read
   - Write
   - Bash
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: utility
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 # Reset Demo Content

@@ -1,8 +1,13 @@
 ---
 name: pricing-model
-description: Create or update a pricing model
+description: "Design a pricing model with tiers and packaging. Use when user says 'design pricing tiers', 'pricing model', 'package our offering', or needs pricing structure."
 argument-hint: [product name] or [update path/to/pricing-model.md]
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: business-planning
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 ## Document Intelligence

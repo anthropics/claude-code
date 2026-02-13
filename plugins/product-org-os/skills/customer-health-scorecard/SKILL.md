@@ -1,8 +1,13 @@
 ---
 name: customer-health-scorecard
-description: Create or update a customer health scorecard
+description: "Create customer health scorecard. Use when user says 'customer health', 'health score', 'account health', or needs customer status assessment."
 argument-hint: [customer name or segment] or [update path/to/scorecard.md]
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: customer-success
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 ## Document Intelligence

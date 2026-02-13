@@ -262,8 +262,4 @@ Additional V2V enforcement:
 This document formalizes the V2V Operating Principles. For detailed reference:
 - **Detailed Principles**: `reference/operating-principles.md`
 - **V2V Flow**: `rules/v2v-flow.md`
-- **Enforcement Rules**: `rules/principles-enforcement.md`
-
----
-
-*Last Updated: 2026-02-01*
+- **Enforcement Rules**: Merged into `rules/context-management.md`

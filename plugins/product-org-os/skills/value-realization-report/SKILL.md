@@ -1,8 +1,13 @@
 ---
 name: value-realization-report
-description: Create or update a value realization report
+description: "Create value realization report tracking customer outcomes. Use when user says 'value report', 'customer outcomes', 'are customers getting value', or needs outcome tracking."
 argument-hint: [customer, cohort, or product] or [update path/to/report.md]
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: customer-success
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 ## Document Intelligence

@@ -1,8 +1,13 @@
 ---
 name: decision-record
-description: Create or update a structured decision record
+description: "Create or update a structured decision record. Use when user says 'document this decision', 'create decision record', 'record the choice we made', or needs formal decision documentation."
 argument-hint: [decision topic] or [update DR-2026-001]
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: decisions
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 ## Document Intelligence

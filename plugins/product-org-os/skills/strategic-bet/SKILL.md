@@ -1,8 +1,13 @@
 ---
 name: strategic-bet
-description: Create or update a strategic bet with explicit assumptions
+description: "Formulate strategic bet with explicit assumptions. Use when user says 'place a bet on', 'strategic bet', 'we believe that', or needs to formalize a strategic hypothesis."
 argument-hint: [bet name or area] or [update SB-2026-001]
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: strategy
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 ## Document Intelligence

@@ -1,7 +1,12 @@
 ---
 name: launch-strategy
-description: When the user wants to plan a product launch, feature announcement, or release strategy. Also use when the user mentions 'launch,' 'Product Hunt,' 'feature release,' 'announcement,' 'go-to-market,' 'beta launch,' 'early access,' 'waitlist,' or 'product update.'
+description: "Plan a product launch, feature announcement, or release strategy. Use when user says 'launch strategy', 'Product Hunt', 'feature release', 'announcement', 'beta launch', 'early access', 'waitlist', or 'product update'."
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: go-to-market
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 # Launch Strategy

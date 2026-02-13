@@ -1,8 +1,13 @@
 ---
 name: escalation-rule
-description: Create or update escalation rules for a decision area
+description: "Define escalation rules for a decision area. Use when user says 'when to escalate', 'escalation path', 'create escalation rule', or needs to define escalation triggers."
 argument-hint: [decision area] or [update path/to/rule.md]
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: decisions
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 ## Document Intelligence

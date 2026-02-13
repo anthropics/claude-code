@@ -1,8 +1,13 @@
 ---
 name: gtm-brief
-description: Create or update a go-to-market brief
+description: "Create a go-to-market brief for a specific initiative. Use when user says 'GTM brief', 'launch brief', 'market entry plan', or needs a focused GTM document."
 argument-hint: [product/feature name] or [update path/to/gtm-brief.md]
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: go-to-market
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 ## Document Intelligence

@@ -1,8 +1,13 @@
 ---
 name: competitive-landscape
-description: Create or update a competitive landscape analysis
+description: "Create comprehensive competitive analysis report. Use when user says 'competitive landscape', 'market map', 'who are our competitors', or needs broad competitive understanding."
 argument-hint: [market or product area] or [update path/to/competitive.md]
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: market-analysis
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 ## Document Intelligence

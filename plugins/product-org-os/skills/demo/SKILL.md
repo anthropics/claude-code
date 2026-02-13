@@ -1,12 +1,17 @@
 ---
 name: demo
-description: Alias for /tour - Interactive walkthrough of Product Org OS
+description: "Alias for /tour - Interactive walkthrough of Product Org OS. Use when user says 'show me a demo' or 'demo the system'."
 argument-hint: (no arguments needed)
 model: haiku
 allowed-tools:
   - Read
   - Glob
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: utility
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 # Demo (Alias for Tour)

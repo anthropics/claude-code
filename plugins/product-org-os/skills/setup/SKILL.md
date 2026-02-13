@@ -1,8 +1,13 @@
 ---
 name: setup
-description: Initialize the Product Org plugin - creates context folders and index files
+description: "Initialize the Product Org plugin - creates context folders and index files. Use when user says 'set up the plugin', 'initialize', or is starting fresh with Product Org OS."
 argument-hint: (no arguments needed)
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: utility
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 Initialize the **Product Org Plugin** for first-time use. This creates the context folder structure and all necessary index files in your current working directory.

@@ -1,8 +1,13 @@
 ---
 name: qbr-deck
-description: Create or update a Quarterly Business Review presentation
+description: "Create Quarterly Business Review presentation. Use when user says 'QBR deck', 'quarterly review', 'business review', or needs quarterly performance summary."
 argument-hint: [quarter, e.g., Q1 2025] or [update path/to/qbr.md]
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: learning
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 ## Document Intelligence

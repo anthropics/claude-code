@@ -1,8 +1,13 @@
 ---
 name: portfolio-tradeoff
-description: Create or update a portfolio-level tradeoff decision
+description: "Structure portfolio-level tradeoff decisions. Use when user says 'prioritize between', 'portfolio tradeoff', 'which bet to fund', or faces competing investment choices."
 argument-hint: [tradeoff description] or [update path/to/tradeoff.md]
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: decisions
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 ## Document Intelligence

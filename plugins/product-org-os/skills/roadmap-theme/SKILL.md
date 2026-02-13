@@ -1,8 +1,13 @@
 ---
 name: roadmap-theme
-description: Create or update a roadmap theme with initiatives
+description: "Define a roadmap theme with initiatives and success metrics. Use when user says 'define a roadmap theme', 'group these initiatives', 'theme for Q3', or needs thematic roadmap organization."
 argument-hint: [theme name] or [update path/to/theme.md]
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: roadmap
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 ## Document Intelligence

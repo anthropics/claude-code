@@ -5,6 +5,23 @@ All notable changes to Product Org OS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.1] - 2026-02-13
+
+### Changed
+- **Agent Skills Standard Alignment** — All 93 SKILL.md files updated to align with Anthropic's Agent Skills open standard
+  - Enhanced `description:` fields with trigger phrases for improved auto-routing and skill discovery
+  - Added `user-invocable:` field to all agent skills (false for agents, true for template skills)
+  - Added `metadata:` block (author, version, category) to all skills for distribution readiness
+  - Added `compatibility:` field declaring Product Org OS v3+ dependency
+  - Zero functional changes — all existing behavior preserved
+
+### Scope
+- 13 OS agent SKILL.md files
+- 8 OS alias SKILL.md files
+- 2 OS gateway SKILL.md files
+- 61 OS template/workflow SKILL.md files
+- 9 misc SKILL.md files (marketing-growth, developer-workflow, creative-process)
+
 ## [3.0.0] - 2026-02-10
 
 ### Added

@@ -1,8 +1,13 @@
 ---
 name: business-case
-description: Create or update a comprehensive business case
+description: "Create comprehensive business case with ROI analysis. Use when user says 'build a business case', 'justify this investment', 'ROI analysis', or needs investment justification."
 argument-hint: [initiative or investment name] or [update path/to/business-case.md]
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: business-planning
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 ## Document Intelligence

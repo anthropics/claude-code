@@ -1,8 +1,13 @@
 ---
 name: scale-check
-description: Create or update a scalability assessment at 2x, 10x, 100x
+description: "Assess scalability at 2x, 10x, 100x. Use when user says 'will this scale', 'scalability check', 'what breaks at scale', or needs growth readiness assessment."
 argument-hint: [process, system, or initiative] or [update path/to/check.md]
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: validation
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 ## Document Intelligence

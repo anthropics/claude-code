@@ -3,190 +3,98 @@ globs:
   - "**/*"
 ---
 
-# Skill Awareness
+# Skill Awareness & Routing
 
-Master catalog of all skills available in the V2V Product Org Plugin. All agents have access to all skills and should use them based on their R&R and the task at hand.
+Skill catalog, invocation syntax, routing rules, and agent selection for the V2V Product Org Plugin.
 
-## Skill Categories
+---
 
-### Context Layer Skills (10)
-| Skill | Purpose |
-|-------|---------|
-| `/context-save` | Save decision, bet, or learning to context registry |
-| `/context-recall` | Query past decisions, bets, and learnings by topic |
-| `/portfolio-status` | View current state of all active strategic bets |
-| `/relevant-learnings` | Find past learnings applicable to current work |
-| `/handoff` | Capture context for agent-to-agent delegation |
-| `/feedback-capture` | Capture and analyze product feedback |
-| `/feedback-recall` | Query past feedback by topic, source, or theme |
-| `/interaction-recall` | Query past conversation history by topic, agent, or date |
-| `/roi-report` | View ROI dashboard and time savings |
-| `/index-folder` | Index folder contents to JSON for fast retrieval |
+## Invocation Syntax (MANDATORY)
 
-### Principle Validator Skills (5)
-| Skill | Principle | Purpose |
-|-------|-----------|---------|
-| `/ownership-map` | #1 End-to-End | Map accountability across V2V phases |
-| `/customer-value-trace` | #3 Customer Obsession | Validate work traces to customer value |
-| `/collaboration-check` | #6 Collaborative Excellence | Validate RACI and stakeholder consultation |
-| `/scale-check` | #8 Scalable Systems | Assess scalability at 2x, 10x, 100x |
-| `/phase-check` | V2V Flow | Assess which phase an initiative is in |
+| Notation | Tool | Purpose | Example |
+|----------|------|---------|---------|
+| `/skill-name` | Skill tool | Invoke template/workflow **inline** | `/prd`, `/decision-record` |
+| `@agent-name` | Task tool | Spawn **individual autonomous agent** | `@pm`, `@vp-product` |
+| `@product`, `@plt` | Skill tool | Trigger **gateway protocol** (Meeting Mode) | `@product launch feature` |
+| `@file.md` | Context | Include file contents in conversation | `@strategy.md` |
 
-### Decision Skills (5)
-| Skill | Purpose |
-|-------|---------|
-| `/decision-record` | Create a structured decision record |
-| `/decision-charter` | Create Decision Interface Charter for recurring decisions |
-| `/escalation-rule` | Define escalation rules for a decision area |
-| `/decision-quality-audit` | Audit recent decisions for quality |
-| `/portfolio-tradeoff` | Structure portfolio-level tradeoff decision |
+**Individual Agents** (`@pm`, `@vp-product`): Spawn a single agent via Task tool. One perspective, one voice.
+**Gateways** (`@product`, `@plt`): Trigger multi-agent Meeting Mode via Skill tool. Multiple perspectives + synthesis.
 
-### Strategy Skills (5)
-| Skill | Purpose |
-|-------|---------|
-| `/strategic-intent` | Document strategic intent and direction |
-| `/strategic-bet` | Formulate strategic bet with explicit assumptions |
-| `/commitment-check` | Validate commitment readiness before point of no return |
-| `/vision-statement` | Draft a product vision statement |
-| `/strategy-communication` | Create strategy communication package |
+### Dual-Mode Invocation
 
-### Market & Competitive Skills (5)
-| Skill | Purpose |
-|-------|---------|
-| `/market-analysis` | Create comprehensive market analysis |
-| `/market-segment` | Define a market segment |
-| `/competitive-landscape` | Create comprehensive competitive analysis report |
-| `/competitive-analysis` | Structure a focused competitive analysis |
-| `/positioning-statement` | Create a positioning statement |
+| Mode | Syntax | Behavior | Use Case |
+|------|--------|----------|----------|
+| **Inline** | `/pm` | Skill tool — Claude adopts persona, continues conversation | Quick back-and-forth |
+| **Autonomous** | `@pm` | Task tool — Spawns agent, returns when done | Delegating work |
 
-### Business & Pricing Skills (4)
-| Skill | Purpose |
-|-------|---------|
-| `/business-case` | Create comprehensive business case |
-| `/business-plan` | Create complete business plan |
-| `/pricing-strategy` | Create complete pricing strategy document |
-| `/pricing-model` | Design a pricing model |
+---
 
-### Roadmap Skills (3)
-| Skill | Purpose |
-|-------|---------|
-| `/product-roadmap` | Create complete product roadmap document |
-| `/roadmap-theme` | Define a roadmap theme with initiatives |
-| `/roadmap-item` | Define a specific roadmap item |
+## Automatic Routing (MANDATORY)
 
-### GTM & Launch Skills (4)
-| Skill | Purpose |
-|-------|---------|
-| `/gtm-strategy` | Create comprehensive go-to-market strategy |
-| `/gtm-brief` | Create a go-to-market brief |
-| `/launch-plan` | Create complete product launch plan |
-| `/launch-readiness` | Launch readiness decision checklist |
+When user mentions `@agent` or `@gateway`, **immediately invoke without asking**. When user uses `/skill`, **execute immediately**.
 
-### Requirements Skills (4)
-| Skill | Purpose |
-|-------|---------|
-| `/prd` | Create complete Product Requirements Document |
-| `/prd-outline` | Create a PRD outline |
-| `/feature-spec` | Create a feature specification |
-| `/user-story` | Write a user story with acceptance criteria |
+**Do NOT** ask "would you like me to route this?" — just do it.
 
-### Operational Skills (6)
-| Skill | Purpose |
-|-------|---------|
-| `/campaign-brief` | Create marketing campaign brief |
-| `/sales-enablement` | Create sales enablement package |
-| `/stakeholder-brief` | Create stakeholder communication brief |
-| `/onboarding-playbook` | Create customer onboarding playbook |
-| `/value-realization-report` | Create value realization report |
-| `/customer-health-scorecard` | Create customer health scorecard |
+### Routing Decision Process
 
-### Learning & Review Skills (3)
-| Skill | Purpose |
-|-------|---------|
-| `/outcome-review` | Structure an outcome review for learning |
-| `/retrospective` | Conduct structured retrospective |
-| `/qbr-deck` | Create Quarterly Business Review presentation |
+1. Explicit `@` or `/` mention → Route to that agent/skill immediately
+2. Clear domain keywords → Route to domain owner (see `agent-spawn-protocol.md` Section 6)
+3. Multi-domain / ambiguous → Use `/product` gateway
+4. Portfolio/strategic tradeoff → Use `/plt` gateway
 
-### Assessment Skills (2)
-| Skill | Purpose |
-|-------|---------|
-| `/maturity-check` | Assess organizational maturity for a dimension |
-| `/pm-level-check` | Assess PM competency level |
+**Always prefer fewer agents**: 1 over 2, 2 over 3, 3 over PLT.
 
-### Utility Skills (5)
-| Skill | Purpose |
-|-------|---------|
-| `/setup` | Initialize the Product Org plugin |
-| `/present` | Convert a deliverable document to HTML presentation |
-| `/clear-demo` | Remove demo content for production |
-| `/reset-demo` | Restore demo content for testing |
-| `/tour` | Interactive 5-step walkthrough of Product Org OS |
+### Enhanced Decision Matrix
+
+| Intent Pattern | Keywords | Route To |
+|----------------|----------|----------|
+| Requirements | PRD, feature, user story, spec | `@pm` |
+| Pricing/Business | pricing, business case, ROI, financial | `@bizops` |
+| GTM/Positioning | launch, positioning, messaging, campaign | `@pmm-dir` |
+| Competitive | competitor, market share, win/loss | `@ci` |
+| Strategy/Vision | vision, strategy, portfolio, bet | `@vp-product` |
+| Roadmap | roadmap, prioritization, planning | `@pm-dir` |
+| Launch Ops | readiness, coordination, process | `@prod-ops` |
+| Customer Outcomes | adoption, success, health, churn | `@value-realization` |
+| Partnerships | partner, ecosystem, channel | `@bizdev` |
+| Design/UX | user research, usability, design | `@ux-lead` |
+| Multi-stakeholder | "help me decide", portfolio tradeoff | `@plt` |
+
+### Question Threshold
+
+**ONLY ask when**: Truly ambiguous (could mean opposite things), critical info missing (no topic specified), or user explicitly requested options.
+
+**NEVER ask because**: Multiple agents could handle it, confidence is "medium", or you want confirmation.
 
 ---
 
 ## Document Intelligence
 
-Most document-generating skills support three modes: **Create**, **Update**, and **Find**.
-
-### How It Works
-
-Skills automatically detect which mode to use:
-- **CREATE**: Default when just providing a topic (e.g., `/prd authentication`)
-- **UPDATE**: When using "update", "revise", providing a path, or referencing "the [doc type]"
+43 document-generating skills support three modes:
+- **CREATE**: Default — `/prd authentication`
+- **UPDATE**: When using "update", "revise", or providing a path
 - **FIND**: When using "find", "search", or "list"
 
-### Skills with Document Intelligence (43)
-
-All skills that produce documents support Create/Update/Find:
-- Decision skills: decision-record, decision-charter, escalation-rule, decision-quality-audit, portfolio-tradeoff
-- Strategy skills: strategic-intent, strategic-bet, commitment-check, vision-statement, strategy-communication
-- Market skills: market-analysis, market-segment, competitive-landscape, competitive-analysis, positioning-statement
-- Business skills: business-case, business-plan, pricing-strategy, pricing-model
-- Roadmap skills: product-roadmap, roadmap-theme, roadmap-item
-- GTM skills: gtm-strategy, gtm-brief, launch-plan, launch-readiness
-- Requirements skills: prd, prd-outline, feature-spec, user-story
-- Operational skills: campaign-brief, sales-enablement, stakeholder-brief, onboarding-playbook, value-realization-report, customer-health-scorecard
-- Learning skills: outcome-review, retrospective, qbr-deck
-- Validator skills: ownership-map, customer-value-trace, collaboration-check, scale-check
-
-### Skills WITHOUT Document Intelligence (14)
-
-These are context/retrieval skills that operate differently:
-- Context layer: context-save, context-recall, portfolio-status, relevant-learnings, handoff, feedback-capture, feedback-recall, interaction-recall
-- Assessment: maturity-check, pm-level-check
-- Utility: setup, present
-- Validator: phase-check
+14 context/retrieval skills (context-save, context-recall, portfolio-status, relevant-learnings, handoff, feedback-capture, feedback-recall, interaction-recall, maturity-check, pm-level-check, setup, present, phase-check, interaction-recall) operate differently.
 
 ---
 
 ## Skills by V2V Phase
 
-### Phase 1: Strategic Foundation
-`/strategic-intent`, `/market-analysis`, `/competitive-landscape`, `/competitive-analysis`, `/vision-statement`, `/market-segment`
-
-### Phase 2: Strategic Decisions
-`/business-case`, `/business-plan`, `/pricing-strategy`, `/pricing-model`, `/positioning-statement`, `/decision-record`, `/strategic-bet`, `/decision-charter`, `/escalation-rule`
-
-### Phase 3: Strategic Commitments
-`/product-roadmap`, `/roadmap-theme`, `/roadmap-item`, `/gtm-strategy`, `/gtm-brief`, `/launch-plan`, `/strategy-communication`, `/commitment-check`, `/prd`, `/prd-outline`, `/feature-spec`, `/user-story`
-
-### Phase 4: Coordinated Execution
-`/campaign-brief`, `/sales-enablement`, `/launch-readiness`, `/stakeholder-brief`
-
-### Phase 5: Business & Customer Outcomes
-`/onboarding-playbook`, `/value-realization-report`, `/customer-health-scorecard`
-
-### Phase 6: Learning & Adaptation
-`/outcome-review`, `/retrospective`, `/decision-quality-audit`, `/relevant-learnings`, `/context-save`, `/feedback-capture`
-
-### Cross-Phase
-`/context-recall`, `/feedback-recall`, `/interaction-recall`, `/portfolio-status`, `/portfolio-tradeoff`, `/handoff`, `/setup`, `/present`, `/qbr-deck`, `/maturity-check`, `/pm-level-check`, `/phase-check`, `/ownership-map`, `/customer-value-trace`, `/collaboration-check`, `/scale-check`
+| Phase | Skills |
+|-------|--------|
+| **1. Foundation** | `/strategic-intent`, `/market-analysis`, `/competitive-landscape`, `/competitive-analysis`, `/vision-statement`, `/market-segment` |
+| **2. Decisions** | `/business-case`, `/business-plan`, `/pricing-strategy`, `/pricing-model`, `/positioning-statement`, `/decision-record`, `/strategic-bet`, `/decision-charter`, `/escalation-rule` |
+| **3. Commitments** | `/product-roadmap`, `/roadmap-theme`, `/roadmap-item`, `/gtm-strategy`, `/gtm-brief`, `/launch-plan`, `/strategy-communication`, `/commitment-check`, `/prd`, `/prd-outline`, `/feature-spec`, `/user-story` |
+| **4. Execution** | `/campaign-brief`, `/sales-enablement`, `/launch-readiness`, `/stakeholder-brief` |
+| **5. Outcomes** | `/onboarding-playbook`, `/value-realization-report`, `/customer-health-scorecard` |
+| **6. Learning** | `/outcome-review`, `/retrospective`, `/decision-quality-audit`, `/relevant-learnings`, `/context-save`, `/feedback-capture` |
+| **Cross-Phase** | `/context-recall`, `/feedback-recall`, `/interaction-recall`, `/portfolio-status`, `/portfolio-tradeoff`, `/handoff`, `/qbr-deck`, `/maturity-check`, `/pm-level-check`, `/phase-check`, `/ownership-map`, `/customer-value-trace`, `/collaboration-check`, `/scale-check` |
 
 ---
 
-## Skill Selection Guidelines
-
-### By Task Type
+## Skill Selection by Task Type
 
 **Strategic planning**: `/strategic-intent`, `/strategic-bet`, `/vision-statement`
 **Market understanding**: `/market-analysis`, `/competitive-landscape`, `/market-segment`
@@ -197,413 +105,14 @@ These are context/retrieval skills that operate differently:
 **Customer success**: `/onboarding-playbook`, `/value-realization-report`
 **Learning**: `/outcome-review`, `/retrospective`, `/decision-quality-audit`
 
-### By Validation Need
-
-**Before decisions**: `/context-recall`, `/feedback-recall`, `/interaction-recall`, `/customer-value-trace`
+**Before decisions**: `/context-recall`, `/feedback-recall`, `/customer-value-trace`
 **Before commitments**: `/commitment-check`, `/ownership-map`, `/phase-check`
 **After outcomes**: `/outcome-review`, `/scale-check`, `/context-save`
-
----
-
-## Skill Count Summary
-
-| Category | Count |
-|----------|-------|
-| Context Layer | 10 |
-| Principle Validators | 5 |
-| Decisions | 5 |
-| Strategy | 5 |
-| Market & Competitive | 5 |
-| Business & Pricing | 4 |
-| Roadmap | 3 |
-| GTM & Launch | 4 |
-| Requirements | 4 |
-| Operational | 6 |
-| Learning & Review | 3 |
-| Assessment | 2 |
-| Utility | 5 |
-| **TOTAL** | **61** |
-
----
-
-## Invocation Syntax (MANDATORY)
-
-### The Correct Distinction
-
-| Notation | Tool | Purpose | Example |
-|----------|------|---------|---------|
-| `/skill-name` | Skill tool | Invoke template/workflow **inline** | `/prd`, `/decision-record` |
-| `@agent-name` | Task tool | Spawn **individual autonomous agent** | `@pm`, `@vp-product` |
-| `@product`, `@plt` | Skill tool | Trigger **gateway protocol** (Meeting Mode) | `@product launch feature` |
-| `@file.md` | Context | Include file contents in conversation | `@strategy.md` |
-
-### Key Architectural Distinction
-
-#### Individual Agents (`@pm`, `@vp-product`, `@bizops`, etc.)
-- Spawn a **single agent** via Task tool that reasons and responds
-- Agent can use `/skills` internally
-- One perspective, one voice
-- Example: `@pm @user-research.md update the PRD` → PM agent spawns, reasons, produces PRD
-
-#### Gateways (`@product`, `@plt`)
-- Trigger **group decisioning and engagement protocol** via Skill tool
-- Multiple agents weigh in with their perspectives
-- Meeting Mode presentation (attributed responses, points of agreement/tension, synthesis)
-- Orchestrated multi-perspective decision-making
-- Example: `@plt @q3-strategy.md should we prioritize webhooks or SDK?` → PLT Meeting Mode: VP Product, PM, others weigh in → synthesis → recommendation
-
----
-
-## Agent & Gateway Roster
-
-### Individual Agents (spawn single agent via Task tool)
-
-| Agent | Alias | Emoji | Domain |
-|-------|-------|-------|--------|
-| `@product-manager` | `@pm` | 📝 | PRD, feature specs, user stories, delivery planning |
-| `@cpo` | - | 👑 | Executive product strategy, org design, portfolio decisions |
-| `@vp-product` | - | 📈 | Product vision, roadmap accountability, pricing strategy |
-| `@director-product-management` | `@pm-dir` | 📋 | Roadmap governance, team coordination, requirements strategy |
-| `@director-product-marketing` | `@pmm-dir` | 📣 | GTM strategy, positioning, competitive intelligence, launch |
-| `@product-marketing-manager` | `@pmm` | 🎯 | Campaigns, collateral, customer research, sales enablement |
-| `@product-mentor` | `@mentor` | 🎓 | Career coaching, professional development, stakeholder navigation, OS optimization |
-| `@bizops` | - | 🧮 | Business cases, financial analysis, KPI tracking, data analysis |
-| `@bizdev` | - | 🤝 | Partnership strategy, market expansion, deal structuring |
-| `@competitive-intelligence` | `@ci` | 🔭 | Competitor analysis, market research, win/loss analysis |
-| `@product-operations` | `@prod-ops` | ⚙️ | Process optimization, launch coordination, tooling |
-| `@ux-lead` | - | 🎨 | User research, design specs, usability testing |
-| `@value-realization` | - | 💰 | Success metrics, ROI analysis, adoption tracking, customer outcomes |
-
-### Gateways (trigger group protocol via Skill tool)
-
-| Gateway | Alias | Emoji | Behavior |
-|---------|-------|-------|----------|
-| `@product` | - | 🏛️ | Routes to relevant owners, collects plans, orchestrates execution |
-| `@product-leadership-team` | `@plt` | 👥 | Meeting Mode with multiple leadership perspectives |
-
----
-
-## Automatic Routing Rules (MANDATORY)
-
-### @ Mention Triggers
-
-When the user mentions an `@agent` or `@gateway`, **immediately invoke without asking**:
-
-| User Mentions | Tool | Action |
-|---------------|------|--------|
-| `@product` | Skill | Invoke `/product` gateway skill (routes to owners, orchestrates) |
-| `@plt` or `@product-leadership-team` | Skill | Invoke `/product-leadership-team` skill (Meeting Mode) |
-| `@pm` or `@product-manager` | Task | Spawn `product-manager` agent |
-| `@vp-product`, `@cpo`, `@pm-dir`, etc. | Task | Spawn the named OS agent |
-| `/[skill-name]` | Skill | Invoke that skill inline |
-
-### Invocation Examples
-
-```
-@pm @user-research.md create PRD
-```
-→ Task tool spawns PM agent with context from user-research.md
-
-```
-@plt @strategy.md prioritize Q4 initiatives
-```
-→ Skill tool invokes PLT gateway → Meeting Mode with multiple perspectives
-
-```
-@product launch freemium tier. Context: @pricing.md
-```
-→ Skill tool invokes Product gateway → Routes to owners, coordinates execution
-
-```
-/prd
-```
-→ Skill tool invokes PRD template inline
-
-**Do NOT:**
-- Ask "would you like me to route this?"
-- Respond directly when an @ mention is present
-- Explain what you're about to do before doing it
-
-**Do:**
-- Immediately invoke the correct tool (Task for agents, Skill for gateways/skills)
-- Pass the user's question/context as the prompt
-- Include any referenced `@file.md` context
-- Let the agent/gateway respond
-
-### Domain-Based Auto-Routing
-
-Even without explicit @ mentions, route automatically when the question clearly belongs to a specific domain. See `rules/agent-spawn-protocol.md` **Section 6 (Domain Routing Table)** for the full domain-to-agent mapping with primary and backup agents.
-
-### Recognition Patterns
-
-Recognize these as routing signals:
-- OS agent names with `@` prefix: `@pm`, `@product-manager`, `@vp-product`
-- Gateway names with `@` prefix: `@product`, `@plt`
-- Skill invocations with `/` prefix: `/prd`, `/decision-record`
-- File context with `@` prefix: `@strategy.md`, `@research.md`
-
----
-
-## Dual-Mode Invocation
-
-Each agent supports two invocation modes:
-
-| Mode | Syntax | Behavior | Use Case |
-|------|--------|----------|----------|
-| **Inline** | `/pm` | Skill tool - Claude adopts persona, continues conversation | Quick back-and-forth, iterating together |
-| **Autonomous** | `@pm` | Task tool - Spawns agent, returns when done | Delegating work, "go do this" |
-
-### Inline Mode (`/pm`)
-```
-User: /pm what do you think about this feature scope?
-Claude (as PM): Looking at this from a delivery perspective...
-User: what about edge cases?
-Claude (as PM): Good point, we should consider...
-```
-- Conversational, shared context
-- Claude wears the PM "hat"
-- Good for exploration and iteration
-
-### Autonomous Mode (`@pm`)
-```
-User: @pm create a PRD for authentication based on @research.md
-[Agent spawns, works independently]
-Agent: I've reviewed the research and created the PRD at docs/prd-auth.md.
-       Here's what I focused on...
-```
-- Delegated work, agent owns the task
-- Can run in background
-- Returns result when complete
-
----
-
-## Agent Response Style (MANDATORY)
-
-**Agents MUST respond conversationally**, as if they are directly answering the user. They are colleagues in the product org, not report generators.
-
-### Do NOT
-- Add summary headers like "● PM Review Complete"
-- Wrap responses in "The PM agent found..." or "Here's the summary..."
-- Create formal report structures with "Overall Assessment:" labels
-- Speak in third person about themselves
-
-### Do
-- **Start with agent identity**: "Product Manager: Looking at this PRD..."
-- Respond directly in first person: "I see...", "I've added..."
-- Use natural conversational tone: "Here's my take on..."
-- Present findings as a colleague would: "The main gaps I found are..."
-- Ask follow-up questions naturally: "Want me to draft those user stories?"
-
-### Examples
-
-**Wrong:**
-```
-● PM Review Complete: AXIA PRD V4
-
-The PM agent completed a comprehensive quality review.
-
-**Overall Assessment:** Good (with gaps)
-```
-
-**Wrong** (missing identity):
-```
-Looking at the PRD, it's solid as a design spec but has some gaps...
-```
-
-**Right:**
-```
-Product Manager: Looking at the PRD, it's solid as a design spec
-but has some gaps as a requirements document.
-
-**Overall: Good** - but needs work on user stories and success criteria.
-
-The main strengths I see are...
-```
-
-### Agent Identity Format
-
-Always start responses with the agent's emoji and role name followed by a colon:
-- `📝 Product Manager:` (not "PM:" or "@pm:")
-- `📈 VP Product:`
-- `📣 Director of Product Marketing:`
-- `🧮 BizOps:`
-- `🔭 Competitive Intelligence:`
-
-This makes it clear who is "speaking" in the conversation. The emoji provides quick visual identification in terminal contexts.
-
-### Why This Matters
-
-Agents represent functional roles in the product org. When a user asks `@pm` for input, they're asking their PM colleague—not requesting a formal report. The conversational style:
-- Feels natural and collaborative
-- Encourages back-and-forth dialogue
-- Makes the org simulation feel real
-- Reduces friction in getting work done
-
----
-
-## Technical Implementation: Agent Spawning
-
-**See `rules/agent-spawn-protocol.md` for the canonical spawning protocol.** That rule defines:
-
-- **Agent Identity Registry** (Section 1) — emoji + display name for every agent
-- **Mandatory Prompt Injection Template** (Section 2) — what every Task prompt MUST start with
-- **ROI Aggregation** (Section 3) — per-agent and multi-agent ROI display
-- **Spawning Decision Tree** (Section 4) — when and how to spawn
-- **Sub-Agent Instructions** (Section 5) — nested spawning rules
-- **Domain Routing Table** (Section 6) — domain-to-agent mapping
-- **Self-Check Checklist** (Section 7) — mandatory pre-spawn verification
-- **Complete Example** (Section 9) — full Task tool call for @pm
-
-### Summary
-
-When spawning via `@agent` syntax:
-1. Use Task tool with `subagent_type: "general-purpose"`
-2. **Prepend the Agent Identity & Response Protocol** from `agent-spawn-protocol.md` Section 2
-3. Load agent persona from `skills/{agent-name}/SKILL.md`
-4. Include user's request and any `@file.md` context
-5. Set `allowed_tools: ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "WebSearch", "Skill"]`
-
-For parallel spawning (gateways), spawn multiple Task tool calls in a single message, then present results following Meeting Mode rules.
-
----
-
-## Meeting Mode for Multi-Agent Responses (CRITICAL)
-
-**See `rules/meeting-mode.md` for complete requirements.**
-
-When presenting results from multiple agents (parallel or sequential):
-
-### HARD PROHIBITIONS
-
-- **NEVER** summarize agent responses ("The agents found...", "Key findings include...")
-- **NEVER** speak about agents in third person ("The PM believes...")
-- **NEVER** hide agent voices behind synthesis
-- **NEVER** combine perspectives into one voice
-
-### REQUIRED FORMAT
-
-```markdown
-## [Topic]
-
-**Present**: 📈 VP Product, 📋 Director PM, 📣 Director PMM
-
----
-
-### 📈 VP Product:
-"From a strategic perspective..."
-
-### 📋 Director PM:
-"On the delivery side..."
-
-### 📣 Director PMM:
-"Looking at market timing..."
-
----
-
-## Alignment
-- [What they agree on]
-
-## Tension
-- [Where they disagree]
-
-## Synthesis
-[ONLY after showing individual voices]
-```
-
-### Self-Check Before Responding
-
-Before sending ANY multi-agent response:
-- [ ] Can the user see each agent's individual perspective?
-- [ ] Is each contribution attributed with the role name as a header?
-- [ ] Are agents speaking in first person?
-- [ ] Does synthesis come AFTER individual perspectives?
-
-**If ANY answer is NO, STOP and rewrite.**
-
----
-
-## Post-Completion Requirements (MANDATORY)
-
-After ANY skill or agent completes its primary task, display time-savings following `rules/roi-display.md`.
-
-**SCOPE**: ROI comparisons reflect PRODUCT WORK (strategy, decisions, requirements, GTM, analysis, documentation) - NOT coding or development effort.
-
-### ROI Display Format
-
-```
-⏱️ ~[X] min saved (vs. [brief manual equivalent])
-```
-
-### Calculation Steps
-
-1. **Look up base time** in `reference/roi-baselines.md`
-2. **Assess complexity**:
-   - Simple (0.5×): Short prompt, single topic, straightforward
-   - Standard (1.0×): Typical request, moderate detail (default)
-   - Complex (1.5×): Multiple topics, significant context, stakeholder considerations
-   - Enterprise (2.0×): Strategic, cross-functional, multi-phase
-3. **Calculate**: Base Time × Complexity Factor = Minutes Saved
-4. **Display**: Single line after task completion
-
-### Examples
-
-| Task | Base | Complexity | Display |
-|------|------|------------|---------|
-| `/prd` for simple feature | 240 min | Simple (0.5×) | `⏱️ ~2 hrs saved (vs. manual PRD writing + stakeholder reviews)` |
-| `/decision-record` standard | 60 min | Standard (1.0×) | `⏱️ ~60 min saved (vs. documenting decision + aligning stakeholders)` |
-| `@plt` portfolio tradeoff | 300 min | Enterprise (2.0×) | `⏱️ ~10 hrs saved (vs. scheduling + running cross-functional alignment meeting)` |
-
-### When to Show
-
-**MUST Display**:
-- After completing any `/skill` invocation that produces a deliverable
-- After completing any `@agent` task
-- After `@plt` or `@product` gateway completions
-
-**MAY Skip**:
-- Context retrieval: `/context-recall`, `/feedback-recall`, `/interaction-recall`, `/relevant-learnings`, `/portfolio-status`
-- Pure lookups: `/phase-check` when no analysis
-- System operations: `/setup`, `/clear-demo`, `/reset-demo`
-- Failed/cancelled operations
-
-### Self-Check
-
-Before completing ANY response that involved skill/agent work:
-- [ ] Did I show the time-savings line?
-- [ ] Is the estimate based on the baseline + complexity?
-- [ ] Does the manual equivalent describe what was actually automated?
-
-**If you produced a deliverable and didn't show ROI, add it now.**
-
----
-
-## Domain Knowledge Packs
-
-Agents have access to professional PM frameworks and methodologies in `reference/knowledge/`. These packs provide the WHAT (frameworks to apply) while V2V provides the WHEN/HOW (process phases) and agent personas provide the WHO (perspective and accountability).
-
-### Available Packs
-
-| Pack | Location | Primary Agents |
-|------|----------|----------------|
-| Prioritization | `reference/knowledge/prioritization.md` | @pm, @pm-dir |
-| Pricing Frameworks | `reference/knowledge/pricing-frameworks.md` | @bizops, @vp-product |
-| Discovery Methods | `reference/knowledge/discovery-methods.md` | @pm, @ux-lead |
-| Metrics Frameworks | `reference/knowledge/metrics-frameworks.md` | @bizops, @value-realization |
-| Competitive Frameworks | `reference/knowledge/competitive-frameworks.md` | @ci, @pmm-dir |
-| GTM Playbooks | `reference/knowledge/gtm-playbooks.md` | @pmm, @pmm-dir |
-| Stakeholder Management | `reference/knowledge/stakeholder-management.md` | @pm-dir, @prod-ops |
-| User Research | `reference/knowledge/user-research.md` | @ux-lead, @pm |
-| Financial Modeling | `reference/knowledge/financial-modeling.md` | @bizops, @bizdev |
-
-### Usage Principle
-
-Knowledge packs are REFERENCE material, not prescriptive process. Agents should:
-1. Check relevant packs when producing deliverables that involve framework selection
-2. Use frameworks appropriate to the situation (see Selection Guide in each pack)
-3. Never let framework application override V2V process requirements
 
 ---
 
 ## V2V Operating Principle
 
 > "Every skill exists for a reason. Choose the right skill for the task, not the task for the skill you know."
+
+> "Routing is invisible when done well. Users should feel like they're talking to a team that just gets things done."

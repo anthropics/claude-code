@@ -1,8 +1,13 @@
 ---
 name: business-plan
-description: Create or update a business plan
+description: "Create complete business plan. Use when user says 'write a business plan', 'business model', 'go-to-market plan', or needs end-to-end business planning."
 argument-hint: [product or business area] or [update path/to/business-plan.md]
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: business-planning
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 ## Document Intelligence

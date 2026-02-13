@@ -1,7 +1,12 @@
 ---
 name: analytics-tracking
-description: When the user wants to set up, improve, or audit analytics tracking and measurement. Also use when the user mentions 'set up tracking,' 'GA4,' 'Google Analytics,' 'conversion tracking,' 'event tracking,' 'UTM parameters,' 'tag manager,' or 'tracking plan.'
+description: "Set up, improve, or audit analytics tracking and measurement. Use when user says 'set up tracking', 'GA4', 'Google Analytics', 'conversion tracking', 'event tracking', 'UTM parameters', 'tag manager', or 'tracking plan'."
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: marketing-growth
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 # Analytics Tracking

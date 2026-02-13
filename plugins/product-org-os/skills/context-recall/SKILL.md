@@ -1,8 +1,13 @@
 ---
 name: context-recall
-description: Query past decisions, bets, learnings, and documents by topic
+description: "Query past decisions, bets, learnings, and documents by topic. Use when user says 'what did we decide about', 'find past decisions', 'recall context on', or needs historical context."
 argument-hint: [topic or keyword]
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: context-layer
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 Recall relevant **past context** before making new decisions or starting strategic work.

@@ -1,8 +1,13 @@
 ---
 name: gtm-strategy
-description: Create or update a go-to-market strategy
+description: "Create comprehensive go-to-market strategy. Use when user says 'GTM strategy', 'go-to-market plan', 'how do we launch', or needs full GTM planning."
 argument-hint: [product or feature name] or [update path/to/gtm.md]
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: go-to-market
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 ## Document Intelligence

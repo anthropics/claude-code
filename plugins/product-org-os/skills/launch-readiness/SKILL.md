@@ -1,8 +1,13 @@
 ---
 name: launch-readiness
-description: Create or update a launch readiness assessment
+description: "Launch readiness decision checklist. Use when user says 'are we ready to launch', 'launch checklist', 'go/no-go for launch', or needs pre-launch validation."
 argument-hint: [product/feature name] or [update path/to/readiness.md]
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: go-to-market
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 ## Document Intelligence

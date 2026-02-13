@@ -1,8 +1,13 @@
 ---
 name: portfolio-status
-description: View current state of all active strategic bets
+description: "View current state of all active strategic bets. Use when user says 'show portfolio', 'bet status', 'active bets', or needs a portfolio overview."
 argument-hint:
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: context-layer
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 View the **current state** of the strategic portfolio — all active bets, their health, and upcoming checkpoints.

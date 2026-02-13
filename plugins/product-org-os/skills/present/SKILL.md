@@ -1,8 +1,13 @@
 ---
 name: present
-description: Convert a deliverable document to an HTML presentation
+description: "Convert a deliverable document to an HTML presentation. Use when user says 'make a presentation', 'create slides', 'convert to slides', or needs document as presentation."
 argument-hint: [document-path]
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: utility
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 Convert a document into an **HTML Presentation** using reveal.js.

@@ -1,8 +1,13 @@
 ---
 name: pm-level-check
-description: Assess PM competency level
+description: "Assess PM competency level against framework. Use when user says 'PM level check', 'assess my PM skills', 'competency assessment', or needs professional development input."
 argument-hint: [PM name or self-assessment]
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: assessment
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 Assess **PM Competency Level** against the PM Career Blueprint.

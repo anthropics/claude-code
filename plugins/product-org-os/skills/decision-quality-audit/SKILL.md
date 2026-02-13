@@ -1,8 +1,13 @@
 ---
 name: decision-quality-audit
-description: Create or update an audit of recent decisions for quality
+description: "Audit recent decisions for quality and process adherence. Use when user says 'review our decisions', 'decision quality check', 'audit decision process', or wants to improve decision-making."
 argument-hint: [team, time period, or decision type] or [update path/to/audit.md]
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: decisions
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 ## Document Intelligence

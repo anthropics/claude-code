@@ -1,8 +1,13 @@
 ---
 name: commitment-check
-description: Create or update a commitment validation before crossing the "point of no return"
+description: "Validate commitment readiness before point of no return. Use when user says 'are we ready to commit', 'commitment check', 'go/no-go', or before locking resources."
 argument-hint: [commitment or initiative name] or [update path/to/check.md]
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: strategy
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 ## Document Intelligence

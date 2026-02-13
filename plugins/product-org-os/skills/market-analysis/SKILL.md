@@ -1,8 +1,13 @@
 ---
 name: market-analysis
-description: Create or update a market analysis
+description: "Create comprehensive market analysis. Use when user says 'analyze the market', 'market sizing', 'TAM SAM SOM', 'market opportunity', or needs market understanding."
 argument-hint: [market or segment name] or [update path/to/market-analysis.md]
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: market-analysis
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 ## Document Intelligence

@@ -1,8 +1,13 @@
 ---
 name: sales-enablement
-description: Create or update a sales enablement package
+description: "Create sales enablement package. Use when user says 'sales enablement', 'arm the sales team', 'sales collateral', or needs sales support materials."
 argument-hint: [product or feature name] or [update path/to/enablement.md]
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: execution
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 ## Document Intelligence

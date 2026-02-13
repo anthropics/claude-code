@@ -1,7 +1,12 @@
 ---
 name: writing-plans
-description: Use when you have a spec or requirements for a multi-step task, before touching any code. Creates comprehensive implementation plans for engineers unfamiliar with the codebase.
+description: "Create comprehensive implementation plans from specs or requirements. Use when user says 'write a plan', 'implementation plan', 'create a plan before coding', or has multi-step tasks needing structured planning."
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: developer-workflow
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 # Writing Plans

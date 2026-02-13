@@ -1,8 +1,13 @@
 ---
 name: pricing-strategy
-description: Create or update a pricing strategy document
+description: "Create complete pricing strategy document. Use when user says 'pricing strategy', 'how should we price', 'monetization model', or needs pricing decisions."
 argument-hint: [product or feature name] or [update path/to/pricing.md]
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: business-planning
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 ## Document Intelligence

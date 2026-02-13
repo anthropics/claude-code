@@ -1,9 +1,14 @@
 ---
 name: pmm-dir
-description: Director of Product Marketing (shortcut for /director-product-marketing) - assign GTM strategy, positioning, competitive intelligence, and launch tasks
+description: "Director of Product Marketing (shortcut for /director-product-marketing) - assign GTM strategy, positioning, competitive intelligence, and launch tasks. Use when user says /pmm-dir or needs GTM strategy."
 model: sonnet
 alias: director-product-marketing
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: product-marketing
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 **This is a shortcut for `/director-product-marketing`.**

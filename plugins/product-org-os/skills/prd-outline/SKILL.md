@@ -1,8 +1,13 @@
 ---
 name: prd-outline
-description: Create or update a PRD outline
+description: "Create a PRD outline for initial scoping. Use when user says 'PRD outline', 'scope this feature', 'rough requirements', or needs lightweight requirements framing."
 argument-hint: [product/feature name] or [update path/to/outline.md]
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: requirements
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 ## Document Intelligence

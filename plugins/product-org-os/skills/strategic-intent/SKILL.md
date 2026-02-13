@@ -1,8 +1,13 @@
 ---
 name: strategic-intent
-description: Create or update strategic intent documentation
+description: "Document strategic intent and direction. Use when user says 'define our strategy', 'strategic direction', 'where are we heading', or needs to articulate strategic priorities."
 argument-hint: [initiative or planning period] or [update path/to/intent.md]
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: strategy
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 ## Document Intelligence

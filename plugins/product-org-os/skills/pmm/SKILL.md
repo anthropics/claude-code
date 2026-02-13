@@ -1,9 +1,14 @@
 ---
 name: pmm
-description: Product Marketing Manager (shortcut for /product-marketing-manager) - assign campaigns, collateral, customer research, and sales enablement tasks
+description: "Product Marketing Manager (shortcut for /product-marketing-manager) - assign campaigns, collateral, customer research, and sales enablement tasks. Use when user says /pmm or needs marketing collateral."
 model: sonnet
 alias: product-marketing-manager
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: product-marketing
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 **This is a shortcut for `/product-marketing-manager`.**

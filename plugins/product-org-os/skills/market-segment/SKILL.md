@@ -1,8 +1,13 @@
 ---
 name: market-segment
-description: Create or update a market segment definition
+description: "Define a target market segment with personas and needs. Use when user says 'define our segment', 'target audience', 'ideal customer profile', or needs segment definition."
 argument-hint: [segment name] or [update path/to/segment.md]
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: market-analysis
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 ## Document Intelligence

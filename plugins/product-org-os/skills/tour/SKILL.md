@@ -1,12 +1,17 @@
 ---
 name: tour
-description: Interactive walkthrough of Product Org OS - learn how agents, gateways, skills, and context work together
+description: "Interactive walkthrough of Product Org OS - learn how agents, gateways, skills, and context work together. Use when user says 'show me around', 'how does this work', 'give me a tour', or is new to Product Org OS."
 argument-hint: (no arguments needed)
 model: haiku
 allowed-tools:
   - Read
   - Glob
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: utility
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 # Product Org OS Tour

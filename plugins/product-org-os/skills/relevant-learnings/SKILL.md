@@ -1,8 +1,13 @@
 ---
 name: relevant-learnings
-description: Find past learnings applicable to current work
+description: "Find past learnings applicable to current work. Use when user says 'what did we learn about', 'past lessons on', or before starting work in a familiar area."
 argument-hint: [topic or situation]
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: context-layer
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 Search the **learnings index** for wisdom from past experiences that applies to current work.

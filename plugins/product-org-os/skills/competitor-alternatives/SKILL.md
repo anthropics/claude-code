@@ -1,7 +1,12 @@
 ---
 name: competitor-alternatives
-description: When the user wants to create competitor comparison or alternative pages for SEO and sales enablement. Also use when the user mentions 'vs page,' 'comparison page,' 'alternative to,' or 'competitive landing page.'
+description: "Create competitor comparison or alternative pages for SEO and sales enablement. Use when user says 'vs page', 'comparison page', 'alternative to', 'competitive landing page', or needs competitor positioning content."
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: market-analysis
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 # Competitor & Alternative Pages

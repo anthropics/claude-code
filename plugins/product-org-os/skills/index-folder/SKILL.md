@@ -1,6 +1,6 @@
 ---
 name: index-folder
-description: Index a folder's contents into the context system for fast retrieval
+description: "Index a folder's contents into the context system for fast retrieval. Use when user says 'index this folder', 'catalog these files', or needs folder contents indexed."
 model: haiku
 allowed-tools:
   - Read
@@ -8,6 +8,11 @@ allowed-tools:
   - Edit
   - Glob
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: context-layer
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 # Index Folder

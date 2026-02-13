@@ -1,8 +1,13 @@
 ---
 name: outcome-review
-description: Create or update an outcome review for learning
+description: "Structure an outcome review for organizational learning. Use when user says 'review outcomes', 'did it work', 'outcome review', or needs post-launch evaluation."
 argument-hint: [initiative or launch name] or [update path/to/review.md]
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: learning
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 ## Document Intelligence

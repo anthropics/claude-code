@@ -1,8 +1,13 @@
 ---
 name: feature-spec
-description: Create or update a feature specification
+description: "Create a detailed feature specification. Use when user says 'feature spec', 'specify this feature', 'detailed requirements', or needs implementation-ready specs."
 argument-hint: [feature name] or [update path/to/spec.md]
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: requirements
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 ## Document Intelligence

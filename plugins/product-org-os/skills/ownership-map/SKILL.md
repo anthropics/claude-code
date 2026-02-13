@@ -1,8 +1,13 @@
 ---
 name: ownership-map
-description: Create or update an accountability map across V2V phases
+description: "Map accountability chain across V2V phases. Use when user says 'who owns this', 'ownership map', 'accountability chain', or needs to clarify end-to-end ownership."
 argument-hint: [initiative or deliverable] or [update path/to/map.md]
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: validation
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 ## Document Intelligence

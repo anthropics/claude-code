@@ -1,8 +1,13 @@
 ---
 name: decision-charter
-description: Create or update a Decision Interface Charter for recurring decisions
+description: "Create a Decision Interface Charter for recurring decision types. Use when user says 'who decides what', 'decision rights', 'decision charter', or needs to clarify decision ownership."
 argument-hint: [decision type] or [update path/to/charter.md]
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: decisions
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 ## Document Intelligence

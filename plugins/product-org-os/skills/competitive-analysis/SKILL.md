@@ -1,8 +1,13 @@
 ---
 name: competitive-analysis
-description: Create or update a competitive analysis
+description: "Structure a focused competitive comparison. Use when user says 'compare us to competitors', 'competitive analysis', 'how do we stack up', or needs feature-level comparison."
 argument-hint: [competitor name or market] or [update path/to/analysis.md]
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: market-analysis
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 ## Document Intelligence

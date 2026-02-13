@@ -1,8 +1,13 @@
 ---
 name: phase-check
-description: Assess which V2V phase an initiative is in
+description: "Assess which V2V phase an initiative is in. Use when user says 'what phase are we in', 'phase check', 'V2V progress', or needs to understand initiative maturity."
 argument-hint: [initiative name]
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: assessment
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 Assess which **V2V phase** an initiative is currently in and identify what's needed to progress.

@@ -1,8 +1,13 @@
 ---
 name: positioning-statement
-description: Create or update a positioning statement
+description: "Create a positioning statement. Use when user says 'define our positioning', 'how should we position', 'positioning statement', or needs differentiation clarity."
 argument-hint: [product name] or [update path/to/positioning.md]
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: market-analysis
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 ## Document Intelligence

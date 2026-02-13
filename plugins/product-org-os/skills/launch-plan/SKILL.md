@@ -1,8 +1,13 @@
 ---
 name: launch-plan
-description: Create or update a product launch plan
+description: "Create complete product launch plan with timeline and owners. Use when user says 'launch plan', 'plan the launch', 'release plan', or needs launch coordination."
 argument-hint: [product or feature name] or [update path/to/launch-plan.md]
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: go-to-market
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 ## Document Intelligence

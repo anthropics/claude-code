@@ -1,8 +1,13 @@
 ---
 name: stakeholder-brief
-description: Create or update a stakeholder communication brief
+description: "Create stakeholder communication brief. Use when user says 'stakeholder update', 'brief the stakeholders', 'executive summary', or needs stakeholder communication."
 argument-hint: [topic or update] or [update path/to/brief.md]
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: execution
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 ## Document Intelligence

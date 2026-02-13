@@ -1,8 +1,13 @@
 ---
 name: customer-value-trace
-description: Create or update a trace validating work connects to customer value
+description: "Validate work traces to customer value. Use when user says 'does this help customers', 'customer value', 'trace to value', or needs customer impact validation."
 argument-hint: [decision, feature, or initiative] or [update path/to/trace.md]
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: validation
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 ## Document Intelligence

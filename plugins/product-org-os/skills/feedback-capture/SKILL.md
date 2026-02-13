@@ -1,8 +1,13 @@
 ---
 name: feedback-capture
-description: Capture and analyze product feedback with full metadata
+description: "Capture and analyze product feedback with full metadata. Use when user says 'log this feedback', 'capture customer input', 'record this complaint', or encounters user/market feedback."
 argument-hint: [paste feedback or describe source]
 user-invocable: true
+metadata:
+  author: Product Org OS
+  version: 3.0.0
+  category: context-layer
+compatibility: Requires Product Org OS v3+ context layer and rules
 ---
 
 Capture, document, and analyze **product feedback** with complete metadata and structured analysis.
