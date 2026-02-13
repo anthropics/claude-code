@@ -10,18 +10,40 @@ import random
 import sys
 from datetime import datetime
 
+# Import disk space utilities
+try:
+    from disk_space_utils import (
+        is_disk_space_error,
+        get_disk_space_warning,
+        check_available_disk_space,
+        safe_write_file,
+        safe_append_file,
+    )
+    DISK_UTILS_AVAILABLE = True
+except ImportError:
+    # Fallback if disk_space_utils not available
+    DISK_UTILS_AVAILABLE = False
+
 # Debug log file
 DEBUG_LOG_FILE = "/tmp/security-warnings-log.txt"
+
+# Track if we've already warned about disk space in this session
+_disk_space_warned = False
 
 
 def debug_log(message):
     """Append debug message to log file with timestamp."""
+    global _disk_space_warned
     try:
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
         with open(DEBUG_LOG_FILE, "a") as f:
             f.write(f"[{timestamp}] {message}\n")
     except Exception as e:
-        # Silently ignore logging errors to avoid disrupting the hook
+        # Check if this is a disk space error and warn the user
+        if DISK_UTILS_AVAILABLE and is_disk_space_error(e) and not _disk_space_warned:
+            _disk_space_warned = True
+            print(f"[Security Hook] {get_disk_space_warning()}", file=sys.stderr)
+        # Continue silently to avoid disrupting the hook
         pass
 
 
@@ -158,26 +180,44 @@ def cleanup_old_state_files():
 
 def load_state(session_id):
     """Load the state of shown warnings from file."""
+    global _disk_space_warned
     state_file = get_state_file(session_id)
     if os.path.exists(state_file):
         try:
             with open(state_file, "r") as f:
                 return set(json.load(f))
-        except (json.JSONDecodeError, IOError):
+        except json.JSONDecodeError:
+            debug_log(f"JSON decode error reading state file: {state_file}")
+            return set()
+        except Exception as e:
+            # Check for disk-related errors (corrupted filesystem, etc.)
+            if DISK_UTILS_AVAILABLE and is_disk_space_error(e):
+                if not _disk_space_warned:
+                    _disk_space_warned = True
+                    print(f"[Security Hook] {get_disk_space_warning()}", file=sys.stderr)
+            debug_log(f"Error loading state file: {e}")
             return set()
     return set()
 
 
 def save_state(session_id, shown_warnings):
     """Save the state of shown warnings to file."""
+    global _disk_space_warned
     state_file = get_state_file(session_id)
     try:
         os.makedirs(os.path.dirname(state_file), exist_ok=True)
         with open(state_file, "w") as f:
             json.dump(list(shown_warnings), f)
-    except IOError as e:
-        debug_log(f"Failed to save state file: {e}")
-        pass  # Fail silently if we can't save state
+    except Exception as e:
+        # Check for disk space errors and provide user-friendly warning
+        if DISK_UTILS_AVAILABLE and is_disk_space_error(e):
+            if not _disk_space_warned:
+                _disk_space_warned = True
+                print(f"[Security Hook] {get_disk_space_warning()}", file=sys.stderr)
+            debug_log(f"Disk space error saving state file: {e}")
+        else:
+            debug_log(f"Failed to save state file: {e}")
+        # Fail silently to not disrupt operation
 
 
 def check_patterns(file_path, content):
@@ -216,12 +256,21 @@ def extract_content_from_input(tool_name, tool_input):
 
 def main():
     """Main hook function."""
+    global _disk_space_warned
+
     # Check if security reminders are enabled
     security_reminder_enabled = os.environ.get("ENABLE_SECURITY_REMINDER", "1")
 
     # Only run if security reminders are enabled
     if security_reminder_enabled == "0":
         sys.exit(0)
+
+    # Check for low disk space and warn user (only once per session)
+    if DISK_UTILS_AVAILABLE and not _disk_space_warned:
+        has_space, warning = check_available_disk_space()
+        if not has_space:
+            _disk_space_warned = True
+            print(f"[Security Hook] {warning}", file=sys.stderr)
 
     # Periodically clean up old state files (10% chance per run)
     if random.random() < 0.1:
