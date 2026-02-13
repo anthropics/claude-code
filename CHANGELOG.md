@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.1.42
+
+- Fixed /resume showing interrupt messages as session titles
+- Fixed Opus 4.6 launch announcement showing for Bedrock/Vertex/Foundry users
+- Improved error message for many-image dimension limit errors with /compact suggestion
+
 ## 2.1.41
 
 - Added guard against launching Claude Code inside another Claude Code session
