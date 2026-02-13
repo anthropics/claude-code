@@ -2,7 +2,14 @@
 
 ## 2.1.41
 
-- Fixed AWS auth refresh hanging indefinitely by adding a 3-minute timeout
+- Added guard against launching Claude Code inside another Claude Code session
+- Fixed Agent Teams using wrong model identifier for Bedrock, Vertex, and Foundry customers
+- Fixed a crash when MCP tools return image content during streaming
+- Fixed /resume session previews showing raw XML tags instead of readable command names
+- Improved model error messages for Bedrock/Vertex/Foundry users with fallback suggestions
+- Fixed plugin browse showing misleading "Space to Toggle" hint for already-installed plugins
+- Fixed hook blocking errors (exit code 2) not showing stderr to the user
+- Added `speed` attribute to OTel events and trace spans for fast mode visibility
 - Added `claude auth login`, `claude auth status`, and `claude auth logout` CLI subcommands
 - Added Windows ARM64 (win32-arm64) native binary support
 - Improved `/rename` to auto-generate session name from conversation context when called without arguments
@@ -20,19 +27,6 @@
 
 ## 2.1.39
 
-- Added guard against launching Claude Code inside another Claude Code session
-- Fixed Agent Teams using wrong model identifier for Bedrock, Vertex, and Foundry customers
-- Fixed a crash when MCP tools return image content during streaming
-- Fixed /resume session previews showing raw XML tags instead of readable command names
-- Improved model error messages for Bedrock/Vertex/Foundry users with fallback suggestions
-- Fixed plugin browse showing misleading "Space to Toggle" hint for already-installed plugins
-- Fixed hook blocking errors (exit code 2) not showing stderr to the user
-- Added `speed` attribute to OTel events and trace spans for fast mode visibility
-- Fixed /resume showing interrupt messages as session titles
-- Fixed Opus 4.6 launch announcement showing for Bedrock/Vertex/Foundry users
-- Improved error message for many-image dimension limit errors with /compact suggestion
-- Fixed structured-outputs beta header being sent unconditionally on Vertex/Bedrock
-- Fixed spurious warnings for non-agent markdown files in `.claude/agents/` directory
 - Improved terminal rendering performance
 - Fixed fatal errors being swallowed instead of displayed
 - Fixed process hanging after session close
