@@ -1,0 +1,1596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Code - Agent Teams Feature Evolution</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface-2: #1c2333;
+    --border: #30363d;
+    --text: #e6edf3;
+    --text-muted: #8b949e;
+    --accent: #58a6ff;
+    --accent-2: #bc8cff;
+    --green: #3fb950;
+    --orange: #d29922;
+    --red: #f85149;
+    --pink: #f778ba;
+    --cyan: #39d2c0;
+    --yellow: #e3b341;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', 'JetBrains Mono', monospace;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+  /* Header */
+  .hero {
+    padding: 3rem 2rem 2rem;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, #0d1117 0%, #111a2e 100%);
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: radial-gradient(ellipse at 50% 0%, rgba(88,166,255,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .hero h1 { font-size: 1.8rem; font-weight: 700; color: var(--accent); margin-bottom: 0.5rem; }
+  .hero .subtitle { color: var(--text-muted); font-size: 0.9rem; max-width: 700px; margin: 0 auto; }
+  .hero .source-link { color: var(--accent-2); font-size: 0.75rem; margin-top: 0.75rem; display: block; text-decoration: none; }
+  .hero .source-link:hover { text-decoration: underline; }
+
+  /* Controls */
+  .controls {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    padding: 1rem 2rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .filter-btn {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 0.35rem 0.75rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.75rem;
+    transition: all 0.2s;
+  }
+  .filter-btn:hover { border-color: var(--accent); color: var(--text); }
+  .filter-btn.active { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 600; }
+
+  /* Layout */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    min-height: calc(100vh - 200px);
+  }
+  @media (max-width: 900px) {
+    .main-grid { grid-template-columns: 1fr; }
+    .sidebar { display: none; }
+  }
+
+  /* Sidebar - Object Registry */
+  .sidebar {
+    border-right: 1px solid var(--border);
+    padding: 1rem;
+    background: var(--surface);
+    overflow-y: auto;
+    max-height: calc(100vh - 160px);
+    position: sticky;
+    top: 52px;
+  }
+  .sidebar h3 { font-size: 0.75rem; color: var(--accent); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.75rem; }
+  .object-group { margin-bottom: 1.25rem; }
+  .object-group h4 {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 0.4rem;
+    padding-bottom: 0.25rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .obj-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.2rem 0;
+    font-size: 0.72rem;
+    cursor: pointer;
+    color: var(--text-muted);
+    transition: color 0.15s;
+  }
+  .obj-item:hover { color: var(--text); }
+  .obj-item .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .dot-agent { background: var(--accent); }
+  .dot-tool { background: var(--green); }
+  .dot-hook { background: var(--orange); }
+  .dot-param { background: var(--accent-2); }
+  .dot-event { background: var(--pink); }
+  .obj-item .ver {
+    margin-left: auto;
+    font-size: 0.6rem;
+    color: var(--text-muted);
+    opacity: 0.6;
+  }
+
+  /* Timeline */
+  .timeline-container {
+    padding: 2rem 1.5rem;
+    position: relative;
+  }
+  .timeline-container::before {
+    content: '';
+    position: absolute;
+    left: 2.75rem;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: linear-gradient(180deg, var(--accent) 0%, var(--accent-2) 50%, var(--green) 100%);
+    opacity: 0.3;
+  }
+
+  /* Era Dividers */
+  .era-divider {
+    position: relative;
+    padding: 1.5rem 0 1rem 4.5rem;
+  }
+  .era-divider h2 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--accent);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .era-divider .era-badge {
+    font-size: 0.65rem;
+    background: rgba(88,166,255,0.15);
+    border: 1px solid rgba(88,166,255,0.3);
+    padding: 0.15rem 0.5rem;
+    border-radius: 10px;
+    color: var(--accent);
+  }
+  .era-divider::before {
+    content: '';
+    position: absolute;
+    left: 2.25rem;
+    top: 50%;
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 3px solid var(--bg);
+    transform: translateY(-50%);
+  }
+
+  /* Release Cards */
+  .release {
+    position: relative;
+    margin-left: 4.5rem;
+    margin-bottom: 1.5rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    transition: border-color 0.2s, transform 0.15s;
+  }
+  .release:hover {
+    border-color: var(--accent);
+    transform: translateX(2px);
+  }
+  .release::before {
+    content: '';
+    position: absolute;
+    left: -2.05rem;
+    top: 1.1rem;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--text-muted);
+    border: 2px solid var(--bg);
+  }
+  .release.milestone::before { background: var(--green); width: 10px; height: 10px; left: -2.15rem; }
+  .release.breaking::before { background: var(--red); width: 10px; height: 10px; left: -2.15rem; }
+
+  .release-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    user-select: none;
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--border);
+  }
+  .release-header:hover { background: #1f2a3d; }
+  .release-version {
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--text);
+    min-width: 70px;
+  }
+  .release-title {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    flex: 1;
+  }
+  .release-tags { display: flex; gap: 0.3rem; flex-wrap: wrap; }
+  .tag {
+    font-size: 0.6rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  .tag-added { background: rgba(63,185,80,0.15); color: var(--green); }
+  .tag-changed { background: rgba(210,153,34,0.15); color: var(--orange); }
+  .tag-fixed { background: rgba(248,81,73,0.15); color: var(--red); }
+  .tag-removed { background: rgba(139,148,158,0.15); color: var(--text-muted); }
+  .tag-milestone { background: rgba(88,166,255,0.15); color: var(--accent); }
+  .tag-breaking { background: rgba(248,81,73,0.25); color: var(--red); }
+
+  .expand-icon {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    transition: transform 0.2s;
+  }
+  .release.open .expand-icon { transform: rotate(90deg); }
+
+  .release-body {
+    display: none;
+    padding: 1rem;
+  }
+  .release.open .release-body { display: block; }
+
+  .change-entry {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid rgba(48,54,61,0.5);
+    display: flex;
+    gap: 0.5rem;
+    align-items: flex-start;
+  }
+  .change-entry:last-child { border-bottom: none; }
+  .change-type-indicator {
+    width: 3px;
+    min-height: 1.2rem;
+    border-radius: 2px;
+    flex-shrink: 0;
+    margin-top: 0.2rem;
+  }
+  .cti-added { background: var(--green); }
+  .cti-changed { background: var(--orange); }
+  .cti-fixed { background: var(--red); }
+  .cti-removed { background: var(--text-muted); }
+
+  .change-content { flex: 1; }
+  .change-text { font-size: 0.78rem; color: var(--text); }
+  .change-text code {
+    background: rgba(88,166,255,0.1);
+    color: var(--accent);
+    padding: 0.1rem 0.3rem;
+    border-radius: 3px;
+    font-size: 0.72rem;
+  }
+  .change-objects {
+    display: flex;
+    gap: 0.3rem;
+    flex-wrap: wrap;
+    margin-top: 0.35rem;
+  }
+  .obj-badge {
+    font-size: 0.6rem;
+    padding: 0.1rem 0.35rem;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .obj-badge:hover { opacity: 0.8; }
+  .obj-badge-agent { background: rgba(88,166,255,0.15); color: var(--accent); border: 1px solid rgba(88,166,255,0.3); }
+  .obj-badge-tool { background: rgba(63,185,80,0.15); color: var(--green); border: 1px solid rgba(63,185,80,0.3); }
+  .obj-badge-hook { background: rgba(210,153,34,0.15); color: var(--orange); border: 1px solid rgba(210,153,34,0.3); }
+  .obj-badge-param { background: rgba(188,140,255,0.15); color: var(--accent-2); border: 1px solid rgba(188,140,255,0.3); }
+  .obj-badge-event { background: rgba(247,120,186,0.15); color: var(--pink); border: 1px solid rgba(247,120,186,0.3); }
+
+  /* Interaction Diagram */
+  .interaction-section {
+    margin-top: 0.75rem;
+    padding: 0.75rem;
+    background: rgba(13,17,23,0.6);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+  }
+  .interaction-title {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 0.5rem;
+  }
+  .interaction-diagram {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    font-size: 0.72rem;
+  }
+  .diagram-node {
+    padding: 0.3rem 0.6rem;
+    border-radius: 5px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .diagram-node.agent-node { background: rgba(88,166,255,0.15); color: var(--accent); border: 1px solid rgba(88,166,255,0.3); }
+  .diagram-node.tool-node { background: rgba(63,185,80,0.15); color: var(--green); border: 1px solid rgba(63,185,80,0.3); }
+  .diagram-node.hook-node { background: rgba(210,153,34,0.15); color: var(--orange); border: 1px solid rgba(210,153,34,0.3); }
+  .diagram-arrow { color: var(--text-muted); font-size: 0.9rem; }
+  .diagram-label { font-size: 0.6rem; color: var(--text-muted); font-style: italic; }
+
+  /* Architecture View */
+  .arch-section {
+    padding: 2rem;
+    border-top: 1px solid var(--border);
+    background: linear-gradient(180deg, var(--bg) 0%, #0f1520 100%);
+  }
+  .arch-section h2 {
+    font-size: 1.1rem;
+    color: var(--accent);
+    margin-bottom: 1.5rem;
+    text-align: center;
+  }
+  .arch-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  .arch-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem;
+  }
+  .arch-card h3 {
+    font-size: 0.8rem;
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .arch-card h3 .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .arch-card ul {
+    list-style: none;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+  }
+  .arch-card li {
+    padding: 0.2rem 0;
+    padding-left: 0.8rem;
+    position: relative;
+  }
+  .arch-card li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.55rem;
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    background: var(--text-muted);
+    opacity: 0.5;
+  }
+  .arch-card li code {
+    color: var(--accent);
+    background: rgba(88,166,255,0.08);
+    padding: 0.05rem 0.25rem;
+    border-radius: 2px;
+  }
+
+  /* Footer */
+  footer {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-muted);
+    font-size: 0.7rem;
+    border-top: 1px solid var(--border);
+  }
+  footer a { color: var(--accent); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+
+  /* Animations */
+  .release { animation: slideIn 0.3s ease-out; }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(8px) translateX(0); }
+    to { opacity: 1; transform: translateY(0) translateX(0); }
+  }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>Agent Teams Feature Evolution</h1>
+  <p class="subtitle">
+    A filtered, visual timeline of how multi-agent collaboration emerged and evolved
+    in Claude Code &mdash; from the first Task tool to full agent teams.
+  </p>
+  <a class="source-link" href="https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md" target="_blank" rel="noopener">
+    Source: anthropics/claude-code CHANGELOG.md
+  </a>
+</div>
+
+<div class="controls" id="controls">
+  <button class="filter-btn active" data-filter="all">All</button>
+  <button class="filter-btn" data-filter="agent">Agents</button>
+  <button class="filter-btn" data-filter="tool">Tools</button>
+  <button class="filter-btn" data-filter="hook">Hooks</button>
+  <button class="filter-btn" data-filter="param">Params</button>
+  <button class="filter-btn" data-filter="milestone">Milestones</button>
+  <button class="filter-btn" data-filter="breaking">Breaking</button>
+</div>
+
+<div class="main-grid">
+
+  <!-- Sidebar: Object Registry -->
+  <aside class="sidebar">
+    <h3>Object Registry</h3>
+
+    <div class="object-group">
+      <h4>Agent Types</h4>
+      <div class="obj-item" data-highlight="explore-agent"><span class="dot dot-agent"></span> Explore Agent <span class="ver">2.0.17</span></div>
+      <div class="obj-item" data-highlight="plan-agent"><span class="dot dot-agent"></span> Plan Agent <span class="ver">2.0.28</span></div>
+      <div class="obj-item" data-highlight="custom-agent"><span class="dot dot-agent"></span> Custom Agents <span class="ver">1.0.60</span></div>
+      <div class="obj-item" data-highlight="background-agent"><span class="dot dot-agent"></span> Background Agents <span class="ver">2.0.60</span></div>
+      <div class="obj-item" data-highlight="agent-teams"><span class="dot dot-agent"></span> Agent Teams <span class="ver">2.1.32</span></div>
+    </div>
+
+    <div class="object-group">
+      <h4>Core Tools</h4>
+      <div class="obj-item" data-highlight="task-tool"><span class="dot dot-tool"></span> Task Tool <span class="ver">0.2.74</span></div>
+      <div class="obj-item" data-highlight="task-output-tool"><span class="dot dot-tool"></span> TaskOutputTool <span class="ver">2.0.74</span></div>
+      <div class="obj-item" data-highlight="agents-cmd"><span class="dot dot-tool"></span> /agents command <span class="ver">1.0.60</span></div>
+    </div>
+
+    <div class="object-group">
+      <h4>Hooks &amp; Events</h4>
+      <div class="obj-item" data-highlight="session-start"><span class="dot dot-hook"></span> SessionStart <span class="ver">1.0.62</span></div>
+      <div class="obj-item" data-highlight="subagent-start"><span class="dot dot-hook"></span> SubagentStart <span class="ver">2.0.43</span></div>
+      <div class="obj-item" data-highlight="subagent-stop"><span class="dot dot-hook"></span> SubagentStop <span class="ver">2.0.43</span></div>
+      <div class="obj-item" data-highlight="permission-request"><span class="dot dot-hook"></span> PermissionRequest <span class="ver">2.0.45</span></div>
+      <div class="obj-item" data-highlight="teammate-idle"><span class="dot dot-event"></span> TeammateIdle <span class="ver">2.1.33</span></div>
+      <div class="obj-item" data-highlight="task-completed"><span class="dot dot-event"></span> TaskCompleted <span class="ver">2.1.33</span></div>
+    </div>
+
+    <div class="object-group">
+      <h4>Configuration Params</h4>
+      <div class="obj-item" data-highlight="disallowed-tools"><span class="dot dot-param"></span> disallowedTools <span class="ver">2.0.30</span></div>
+      <div class="obj-item" data-highlight="permission-mode"><span class="dot dot-param"></span> permissionMode <span class="ver">2.0.43</span></div>
+      <div class="obj-item" data-highlight="agent-setting"><span class="dot dot-param"></span> --agent / agent <span class="ver">2.0.59</span></div>
+      <div class="obj-item" data-highlight="skills-frontmatter"><span class="dot dot-param"></span> skills frontmatter <span class="ver">2.0.43</span></div>
+      <div class="obj-item" data-highlight="memory-frontmatter"><span class="dot dot-param"></span> memory frontmatter <span class="ver">2.1.33</span></div>
+      <div class="obj-item" data-highlight="task-agent-type"><span class="dot dot-param"></span> Task(agent_type) <span class="ver">2.1.33</span></div>
+      <div class="obj-item" data-highlight="agent-teams-env"><span class="dot dot-param"></span> AGENT_TEAMS env var <span class="ver">2.1.32</span></div>
+    </div>
+  </aside>
+
+  <!-- Timeline -->
+  <div class="timeline-container" id="timeline">
+
+    <!-- ==================== ERA 0: Foundations ==================== -->
+    <div class="era-divider">
+      <h2>Foundations <span class="era-badge">0.2.x</span></h2>
+    </div>
+
+    <div class="release" data-categories="tool milestone" data-objects="task-tool">
+      <div class="release-header" onclick="toggleRelease(this)">
+        <span class="release-version">0.2.74</span>
+        <span class="release-title">Task tool gains write &amp; bash capabilities</span>
+        <div class="release-tags">
+          <span class="tag tag-added">Added</span>
+          <span class="tag tag-milestone">Foundation</span>
+        </div>
+        <span class="expand-icon">&#9654;</span>
+      </div>
+      <div class="release-body">
+        <div class="change-entry">
+          <div class="change-type-indicator cti-added"></div>
+          <div class="change-content">
+            <div class="change-text">Task tool can now perform writes and run bash commands</div>
+            <div class="change-objects">
+              <span class="obj-badge obj-badge-tool">Task Tool</span>
+            </div>
+          </div>
+        </div>
+        <div class="interaction-section">
+          <div class="interaction-title">Architecture at this point</div>
+          <div class="interaction-diagram">
+            <span class="diagram-node agent-node">Main Agent</span>
+            <span class="diagram-arrow">&rarr;</span>
+            <span class="diagram-node tool-node">Task Tool</span>
+            <span class="diagram-arrow">&rarr;</span>
+            <span class="diagram-node tool-node">Bash / Write</span>
+          </div>
+          <p style="font-size:0.65rem;color:var(--text-muted);margin-top:0.4rem;">
+            The Task tool is the primitive that will eventually power all multi-agent patterns.
+            At this stage it's a single-level delegation mechanism for file and shell operations.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== ERA 1: SDK & Custom Agents ==================== -->
+    <div class="era-divider">
+      <h2>Custom Agents Era <span class="era-badge">1.0.x</span></h2>
+    </div>
+
+    <div class="release milestone" data-categories="agent tool param milestone" data-objects="custom-agent agents-cmd">
+      <div class="release-header" onclick="toggleRelease(this)">
+        <span class="release-version">1.0.23</span>
+        <span class="release-title">TypeScript &amp; Python SDKs released</span>
+        <div class="release-tags">
+          <span class="tag tag-added">Added</span>
+          <span class="tag tag-milestone">Milestone</span>
+        </div>
+        <span class="expand-icon">&#9654;</span>
+      </div>
+      <div class="release-body">
+        <div class="change-entry">
+          <div class="change-type-indicator cti-added"></div>
+          <div class="change-content">
+            <div class="change-text">Released TypeScript SDK: <code>import @anthropic-ai/claude-code</code></div>
+          </div>
+        </div>
+        <div class="change-entry">
+          <div class="change-type-indicator cti-added"></div>
+          <div class="change-content">
+            <div class="change-text">Released Python SDK: <code>pip install claude-code-sdk</code></div>
+          </div>
+        </div>
+        <div class="interaction-section">
+          <div class="interaction-title">Significance</div>
+          <p style="font-size:0.65rem;color:var(--text-muted);">
+            SDKs enable programmatic agent creation outside the CLI, laying groundwork for custom agent definitions and external orchestration.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="release milestone" data-categories="agent tool milestone" data-objects="custom-agent agents-cmd">
+      <div class="release-header" onclick="toggleRelease(this)">
+        <span class="release-version">1.0.60</span>
+        <span class="release-title">Custom subagents launched</span>
+        <div class="release-tags">
+          <span class="tag tag-added">Added</span>
+          <span class="tag tag-milestone">Milestone</span>
+        </div>
+        <span class="expand-icon">&#9654;</span>
+      </div>
+      <div class="release-body">
+        <div class="change-entry">
+          <div class="change-type-indicator cti-added"></div>
+          <div class="change-content">
+            <div class="change-text">You can now create custom subagents for specialized tasks! Run <code>/agents</code> to get started</div>
+            <div class="change-objects">
+              <span class="obj-badge obj-badge-agent">Custom Agents</span>
+              <span class="obj-badge obj-badge-tool">/agents</span>
+            </div>
+          </div>
+        </div>
+        <div class="interaction-section">
+          <div class="interaction-title">New interaction pattern</div>
+          <div class="interaction-diagram">
+            <span class="diagram-node agent-node">Main Agent</span>
+            <span class="diagram-arrow">&rarr;</span>
+            <span class="diagram-node tool-node">Task Tool</span>
+            <span class="diagram-arrow">&rarr;</span>
+            <span class="diagram-node agent-node">Custom Agent</span>
+          </div>
+          <p style="font-size:0.65rem;color:var(--text-muted);margin-top:0.4rem;">
+            Users can now define agent markdown files with system prompts and tool restrictions.
+            The <code>/agents</code> command provides a UI for creating and managing them.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="release" data-categories="hook" data-objects="session-start">
+      <div class="release-header" onclick="toggleRelease(this)">
+        <span class="release-version">1.0.62</span>
+        <span class="release-title">SessionStart hook introduced</span>
+        <div class="release-tags">
+          <span class="tag tag-added">Added</span>
+        </div>
+        <span class="expand-icon">&#9654;</span>
+      </div>
+      <div class="release-body">
+        <div class="change-entry">
+          <div class="change-type-indicator cti-added"></div>
+          <div class="change-content">
+            <div class="change-text">Hooks: Added <code>SessionStart</code> hook for new session initialization</div>
+            <div class="change-objects">
+              <span class="obj-badge obj-badge-hook">SessionStart</span>
+            </div>
+          </div>
+        </div>
+        <div class="change-entry">
+          <div class="change-type-indicator cti-added"></div>
+          <div class="change-content">
+            <div class="change-text">Added @-mention support with typeahead for custom agents</div>
+            <div class="change-objects">
+              <span class="obj-badge obj-badge-agent">Custom Agents</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="release" data-categories="agent param" data-objects="custom-agent">
+      <div class="release-header" onclick="toggleRelease(this)">
+        <span class="release-version">1.0.64</span>
+        <span class="release-title">Agent model customization</span>
+        <div class="release-tags">
+          <span class="tag tag-added">Added</span>
+          <span class="tag tag-fixed">Fixed</span>
+        </div>
+        <span class="expand-icon">&#9654;</span>
+      </div>
+      <div class="release-body">
+        <div class="change-entry">
+          <div class="change-type-indicator cti-added"></div>
+          <div class="change-content">
+            <div class="change-text">Agents: Added model customization support &mdash; specify which model an agent should use</div>
+            <div class="change-objects">
+              <span class="obj-badge obj-badge-agent">Custom Agents</span>
+              <span class="obj-badge obj-badge-param">model</span>
+            </div>
+          </div>
+        </div>
+        <div class="change-entry">
+          <div class="change-type-indicator cti-fixed"></div>
+          <div class="change-content">
+            <div class="change-text">Agents: Fixed unintended access to the recursive agent tool</div>
+            <div class="change-objects">
+              <span class="obj-badge obj-badge-agent">Custom Agents</span>
+              <span class="obj-badge obj-badge-tool">Task Tool</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="release" data-categories="agent" data-objects="custom-agent">
+      <div class="release-header" onclick="toggleRelease(this)">
+        <span class="release-version">1.0.81</span>
+        <span class="release-title">Agent loading bugfix</span>
+        <div class="release-tags">
+          <span class="tag tag-fixed">Fixed</span>
+        </div>
+        <span class="expand-icon">&#9654;</span>
+      </div>
+      <div class="release-body">
+        <div class="change-entry">
+          <div class="change-type-indicator cti-fixed"></div>
+          <div class="change-content">
+            <div class="change-text">Agents: Fix custom agent loading when agent files are unparsable</div>
+            <div class="change-objects">
+              <span class="obj-badge obj-badge-agent">Custom Agents</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== ERA 2: Agent SDK ==================== -->
+    <div class="era-divider">
+      <h2>Agent SDK Era <span class="era-badge">2.0.x</span></h2>
+    </div>
+
+    <div class="release breaking" data-categories="agent breaking milestone" data-objects="custom-agent">
+      <div class="release-header" onclick="toggleRelease(this)">
+        <span class="release-version">2.0.0</span>
+        <span class="release-title">Claude Code SDK &rarr; Claude Agent SDK</span>
+        <div class="release-tags">
+          <span class="tag tag-breaking">Breaking</span>
+          <span class="tag tag-milestone">Milestone</span>
+        </div>
+        <span class="expand-icon">&#9654;</span>
+      </div>
+      <div class="release-body">
+        <div class="change-entry">
+          <div class="change-type-indicator cti-changed"></div>
+          <div class="change-content">
+            <div class="change-text">SDK: The Claude Code SDK is now the <strong>Claude Agent SDK</strong></div>
+            <div class="change-objects">
+              <span class="obj-badge obj-badge-agent">Agent SDK</span>
+            </div>
+          </div>
+        </div>
+        <div class="change-entry">
+          <div class="change-type-indicator cti-added"></div>
+          <div class="change-content">
+            <div class="change-text">Add subagents dynamically with <code>--agents</code> flag</div>
+            <div class="change-objects">
+              <span class="obj-badge obj-badge-param">--agents</span>
+              <span class="obj-badge obj-badge-agent">Custom Agents</span>
+            </div>
+          </div>
+        </div>
+        <div class="interaction-section">
+          <div class="interaction-title">Breaking change significance</div>
+          <p style="font-size:0.65rem;color:var(--text-muted);">
+            The rename from "Code SDK" to "Agent SDK" signals Anthropic's strategic shift toward
+            agent-first architecture. The SDK now explicitly supports multi-agent orchestration patterns.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="release milestone" data-categories="agent milestone" data-objects="explore-agent">
+      <div class="release-header" onclick="toggleRelease(this)">
+        <span class="release-version">2.0.17</span>
+        <span class="release-title">Explore subagent &amp; Haiku model routing</span>
+        <div class="release-tags">
+          <span class="tag tag-added">Added</span>
+          <span class="tag tag-milestone">Milestone</span>
+        </div>
+        <span class="expand-icon">&#9654;</span>
+      </div>
+      <div class="release-body">
+        <div class="change-entry">
+          <div class="change-type-indicator cti-added"></div>
+          <div class="change-content">
+            <div class="change-text">Introducing the <strong>Explore subagent</strong>. Powered by Haiku it'll search through your codebase efficiently</div>
+            <div class="change-objects">
+              <span class="obj-badge obj-badge-agent">Explore Agent</span>
+              <span class="obj-badge obj-badge-param">model: haiku</span>
+            </div>
+          </div>
+        </div>
+        <div class="change-entry">
+          <div class="change-type-indicator cti-added"></div>
+          <div class="change-content">
+            <div class="change-text">Haiku 4.5 automatically uses Sonnet in plan mode, Haiku for execution (SonnetPlan by default)</div>
+            <div class="change-objects">
+              <span class="obj-badge obj-badge-agent">Plan Agent</span>
+              <span class="obj-badge obj-badge-param">model routing</span>
+            </div>
+          </div>
+        </div>
+        <div class="interaction-section">
+          <div class="interaction-title">First built-in specialized agent</div>
+          <div class="interaction-diagram">
+            <span class="diagram-node agent-node">Main Agent</span>
+            <span class="diagram-arrow">&rarr;</span>
+            <span class="diagram-node tool-node">Task(Explore)</span>
+            <span class="diagram-arrow">&rarr;</span>
+            <span class="diagram-node agent-node">Explore (Haiku)</span>
+            <span class="diagram-arrow">&rarr;</span>
+            <span class="diagram-node tool-node">Glob / Grep / Read</span>
+          </div>
+          <p style="font-size:0.65rem;color:var(--text-muted);margin-top:0.4rem;">
+            First built-in specialized agent type with automatic model selection.
+            Establishes the pattern of purpose-built agents using cheaper, faster models.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="release milestone" data-categories="agent milestone" data-objects="plan-agent">
+      <div class="release-header" onclick="toggleRelease(this)">
+        <span class="release-version">2.0.28</span>
+        <span class="release-title">Plan subagent &amp; dynamic model selection</span>
+        <div class="release-tags">
+          <span class="tag tag-added">Added</span>
+          <span class="tag tag-milestone">Milestone</span>
+        </div>
+        <span class="expand-icon">&#9654;</span>
+      </div>
+      <div class="release-body">
+        <div class="change-entry">
+          <div class="change-type-indicator cti-added"></div>
+          <div class="change-content">
+            <div class="change-text">Plan mode: introduced new <strong>Plan subagent</strong></div>
+            <div class="change-objects">
+              <span class="obj-badge obj-badge-agent">Plan Agent</span>
+            </div>
+          </div>
+        </div>
+        <div class="change-entry">
+          <div class="change-type-indicator cti-added"></div>
+          <div class="change-content">
+            <div class="change-text">Subagents: claude can now choose to <strong>resume subagents</strong></div>
+            <div class="change-objects">
+              <span class="obj-badge obj-badge-tool">Task Tool</span>
+              <span class="obj-badge obj-badge-param">resume</span>
+            </div>
+          </div>
+        </div>
+        <div class="change-entry">
+          <div class="change-type-indicator cti-added"></div>
+          <div class="change-content">
+            <div class="change-text">Subagents: claude can <strong>dynamically choose the model</strong> used by its subagents</div>
+            <div class="change-objects">
+              <span class="obj-badge obj-badge-param">dynamic model</span>
+            </div>
+          </div>
+        </div>
+        <div class="interaction-section">
+          <div class="interaction-title">Agent-to-agent interaction deepens</div>
+          <div class="interaction-diagram">
+            <span class="diagram-node agent-node">Main Agent</span>
+            <span class="diagram-arrow">&rarr;</span>
+            <span class="diagram-node tool-node">Task(Plan)</span>
+            <span class="diagram-arrow">&rarr;</span>
+            <span class="diagram-node agent-node">Plan Agent</span>
+          </div>
+          <br>
+          <div class="interaction-diagram">
+            <span class="diagram-node agent-node">Main Agent</span>
+            <span class="diagram-arrow">&rarr;</span>
+            <span class="diagram-node tool-node">Task(resume: id)</span>
+            <span class="diagram-arrow">&rarr;</span>
+            <span class="diagram-node agent-node">Resumed Agent</span>
+          </div>
+          <p style="font-size:0.65rem;color:var(--text-muted);margin-top:0.4rem;">
+            Agents gain persistence (resume) and the main agent becomes an orchestrator that
+            can dynamically select which model a subagent runs on.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="release" data-categories="param" data-objects="disallowed-tools">
+      <div class="release-header" onclick="toggleRelease(this)">
+        <span class="release-version">2.0.30</span>
+        <span class="release-title">disallowedTools for agents</span>
+        <div class="release-tags">
+          <span class="tag tag-added">Added</span>
+        </div>
+        <span class="expand-icon">&#9654;</span>
+      </div>
+      <div class="release-body">
+        <div class="change-entry">
+          <div class="change-type-indicator cti-added"></div>
+          <div class="change-content">
+            <div class="change-text">Added <code>disallowedTools</code> field to custom agent definitions for explicit tool blocking</div>
+            <div class="change-objects">
+              <span class="obj-badge obj-badge-param">disallowedTools</span>
+              <span class="obj-badge obj-badge-agent">Custom Agents</span>
+            </div>
+          </div>
+        </div>
+        <div class="interaction-section">
+          <div class="interaction-title">Security model</div>
+          <p style="font-size:0.65rem;color:var(--text-muted);">
+            Enables scoping agent capabilities by explicitly blocking dangerous tools.
+            For example, a "read-only" agent could have Bash and Write in its disallowedTools.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="release" data-categories="hook param" data-objects="subagent-start subagent-stop permission-mode skills-frontmatter">
+      <div class="release-header" onclick="toggleRelease(this)">
+        <span class="release-version">2.0.43</span>
+        <span class="release-title">SubagentStart/Stop hooks, permissionMode, skills</span>
+        <div class="release-tags">
+          <span class="tag tag-added">Added</span>
+        </div>
+        <span class="expand-icon">&#9654;</span>
+      </div>
+      <div class="release-body">
+        <div class="change-entry">
+          <div class="change-type-indicator cti-added"></div>
+          <div class="change-content">
+            <div class="change-text">Added <code>SubagentStart</code> hook event</div>
+            <div class="change-objects">
+              <span class="obj-badge obj-badge-hook">SubagentStart</span>
+            </div>
+          </div>
+        </div>
+        <div class="change-entry">
+          <div class="change-type-indicator cti-added"></div>
+          <div class="change-content">
+            <div class="change-text">Hooks: Split Stop hook triggering into <code>Stop</code> and <code>SubagentStop</code></div>
+            <div class="change-objects">
+              <span class="obj-badge obj-badge-hook">SubagentStop</span>
+            </div>
+          </div>
+        </div>
+        <div class="change-entry">
+          <div class="change-type-indicator cti-added"></div>
+          <div class="change-content">
+            <div class="change-text">Added <code>permissionMode</code> field for custom agents</div>
+            <div class="change-objects">
+              <span class="obj-badge obj-badge-param">permissionMode</span>
+              <span class="obj-badge obj-badge-agent">Custom Agents</span>
+            </div>
+          </div>
+        </div>
+        <div class="change-entry">
+          <div class="change-type-indicator cti-added"></div>
+          <div class="change-content">
+            <div class="change-text">Added <code>skills</code> frontmatter field to declare skills to auto-load for subagents</div>
+            <div class="change-objects">
+              <span class="obj-badge obj-badge-param">skills</span>
+              <span class="obj-badge obj-badge-agent">Custom Agents</span>
+            </div>
+          </div>
+        </div>
+        <div class="interaction-section">
+          <div class="interaction-title">Agent lifecycle hooks</div>
+          <div class="interaction-diagram">
+            <span class="diagram-node hook-node">SubagentStart</span>
+            <span class="diagram-arrow">&rarr;</span>
+            <span class="diagram-node agent-node">Agent Running</span>
+            <span class="diagram-arrow">&rarr;</span>
+            <span class="diagram-node hook-node">SubagentStop</span>
+          </div>
+          <p style="font-size:0.65rem;color:var(--text-muted);margin-top:0.4rem;">
+            External systems can now observe and react to agent lifecycle events.
+            <code>permissionMode</code> controls how the agent handles permission requests (e.g., auto-accept in CI).
+            <code>skills</code> allows agents to inherit capabilities from skill definitions.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="release" data-categories="hook" data-objects="subagent-stop">
+      <div class="release-header" onclick="toggleRelease(this)">
+        <span class="release-version">2.0.42</span>
+        <span class="release-title">SubagentStop gains agent_id and transcript</span>
+        <div class="release-tags">
+          <span class="tag tag-added">Added</span>
+        </div>
+        <span class="expand-icon">&#9654;</span>
+      </div>
+      <div class="release-body">
+        <div class="change-entry">
+          <div class="change-type-indicator cti-added"></div>
+          <div class="change-content">
+            <div class="change-text">Added <code>agent_id</code> and <code>agent_transcript_path</code> fields to SubagentStop hooks</div>
+            <div class="change-objects">
+              <span class="obj-badge obj-badge-hook">SubagentStop</span>
+              <span class="obj-badge obj-badge-param">agent_id</span>
+              <span class="obj-badge obj-badge-param">agent_transcript_path</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="release" data-categories="hook" data-objects="permission-request">
+      <div class="release-header" onclick="toggleRelease(this)">
+        <span class="release-version">2.0.45</span>
+        <span class="release-title">PermissionRequest hook</span>
+        <div class="release-tags">
+          <span class="tag tag-added">Added</span>
+        </div>
+        <span class="expand-icon">&#9654;</span>
+      </div>
+      <div class="release-body">
+        <div class="change-entry">
+          <div class="change-type-indicator cti-added"></div>
+          <div class="change-content">
+            <div class="change-text">Added <code>PermissionRequest</code> hook to automatically approve or deny tool permission requests with custom logic</div>
+            <div class="change-objects">
+              <span class="obj-badge obj-badge-hook">PermissionRequest</span>
+            </div>
+          </div>
+        </div>
+        <div class="interaction-section">
+          <div class="interaction-title">Automated permission control</div>
+          <div class="interaction-diagram">
+            <span class="diagram-node agent-node">Agent</span>
+            <span class="diagram-arrow">&rarr; requests permission &rarr;</span>
+            <span class="diagram-node hook-node">PermissionRequest Hook</span>
+            <span class="diagram-arrow">&rarr; approve/deny &rarr;</span>
+            <span class="diagram-node tool-node">Tool Execution</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="release" data-categories="agent param" data-objects="agent-setting">
+      <div class="release-header" onclick="toggleRelease(this)">
+        <span class="release-version">2.0.59</span>
+        <span class="release-title">--agent CLI flag &amp; agent setting</span>
+        <div class="release-tags">
+          <span class="tag tag-added">Added</span>
+        </div>
+        <span class="expand-icon">&#9654;</span>
+      </div>
+      <div class="release-body">
+        <div class="change-entry">
+          <div class="change-type-indicator cti-added"></div>
+          <div class="change-content">
+            <div class="change-text">Added <code>--agent</code> CLI flag to override the agent setting for the current session</div>
+            <div class="change-objects">
+              <span class="obj-badge obj-badge-param">--agent</span>
+            </div>
+          </div>
+        </div>
+        <div class="change-entry">
+          <div class="change-type-indicator cti-added"></div>
+          <div class="change-content">
+            <div class="change-text">Added <code>agent</code> setting to configure main thread with a specific agent's system prompt, tool restrictions, and model</div>
+            <div class="change-objects">
+              <span class="obj-badge obj-badge-param">agent setting</span>
+              <span class="obj-badge obj-badge-agent">Custom Agents</span>
+            </div>
+          </div>
+        </div>
+        <div class="interaction-section">
+          <div class="interaction-title">Agent-as-persona</div>
+          <p style="font-size:0.65rem;color:var(--text-muted);">
+            The main session itself can now be configured as an agent, enabling full-session agent personas.
+            <code>claude --agent security-reviewer</code> starts the entire session scoped to that agent's definition.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="release milestone" data-categories="agent milestone" data-objects="background-agent">
+      <div class="release-header" onclick="toggleRelease(this)">
+        <span class="release-version">2.0.60</span>
+        <span class="release-title">Background agents introduced</span>
+        <div class="release-tags">
+          <span class="tag tag-added">Added</span>
+          <span class="tag tag-milestone">Milestone</span>
+        </div>
+        <span class="expand-icon">&#9654;</span>
+      </div>
+      <div class="release-body">
+        <div class="change-entry">
+          <div class="change-type-indicator cti-added"></div>
+          <div class="change-content">
+            <div class="change-text">Added <strong>background agent support</strong>. Agents run in the background while you work</div>
+            <div class="change-objects">
+              <span class="obj-badge obj-badge-agent">Background Agents</span>
+            </div>
+          </div>
+        </div>
+        <div class="interaction-section">
+          <div class="interaction-title">Async agent pattern</div>
+          <div class="interaction-diagram">
+            <span class="diagram-node agent-node">Main Agent</span>
+            <span class="diagram-arrow">&rarr; spawns &rarr;</span>
+            <span class="diagram-node agent-node">Background Agent</span>
+            <span class="diagram-label">(runs in parallel)</span>
+          </div>
+          <br>
+          <div class="interaction-diagram">
+            <span class="diagram-node agent-node">Background Agent</span>
+            <span class="diagram-arrow">&rarr; completes &rarr;</span>
+            <span class="diagram-node agent-node">Main Agent</span>
+            <span class="diagram-label">(notified)</span>
+          </div>
+          <p style="font-size:0.65rem;color:var(--text-muted);margin-top:0.4rem;">
+            First true concurrent multi-agent pattern. The user can continue working while
+            a background agent handles a long-running task asynchronously.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="release" data-categories="agent" data-objects="background-agent">
+      <div class="release-header" onclick="toggleRelease(this)">
+        <span class="release-version">2.0.64</span>
+        <span class="release-title">Background agents can wake main agent</span>
+        <div class="release-tags">
+          <span class="tag tag-added">Added</span>
+        </div>
+        <span class="expand-icon">&#9654;</span>
+      </div>
+      <div class="release-body">
+        <div class="change-entry">
+          <div class="change-type-indicator cti-added"></div>
+          <div class="change-content">
+            <div class="change-text">Agents can send asynchronous messages to wake up the main agent</div>
+            <div class="change-objects">
+              <span class="obj-badge obj-badge-agent">Background Agents</span>
+              <span class="obj-badge obj-badge-event">async message</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="release" data-categories="tool breaking" data-objects="task-output-tool">
+      <div class="release-header" onclick="toggleRelease(this)">
+        <span class="release-version">2.0.74</span>
+        <span class="release-title">AgentOutputTool &rarr; unified TaskOutputTool</span>
+        <div class="release-tags">
+          <span class="tag tag-changed">Changed</span>
+          <span class="tag tag-removed">Removed</span>
+        </div>
+        <span class="expand-icon">&#9654;</span>
+      </div>
+      <div class="release-body">
+        <div class="change-entry">
+          <div class="change-type-indicator cti-removed"></div>
+          <div class="change-content">
+            <div class="change-text">Unshipped <code>AgentOutputTool</code> and <code>BashOutputTool</code>, in favor of a new unified <code>TaskOutputTool</code></div>
+            <div class="change-objects">
+              <span class="obj-badge obj-badge-tool">TaskOutputTool</span>
+              <span class="obj-badge obj-badge-tool" style="text-decoration:line-through;opacity:0.5;">AgentOutputTool</span>
+              <span class="obj-badge obj-badge-tool" style="text-decoration:line-through;opacity:0.5;">BashOutputTool</span>
+            </div>
+          </div>
+        </div>
+        <div class="interaction-section">
+          <div class="interaction-title">Tool consolidation</div>
+          <div class="interaction-diagram">
+            <span class="diagram-node agent-node">Main Agent</span>
+            <span class="diagram-arrow">&rarr;</span>
+            <span class="diagram-node tool-node">TaskOutputTool</span>
+            <span class="diagram-arrow">&rarr;</span>
+            <span class="diagram-label">(reads output from any background task/agent)</span>
+          </div>
+          <p style="font-size:0.65rem;color:var(--text-muted);margin-top:0.4rem;">
+            Two separate output tools were unified into one. <code>TaskOutputTool</code> provides
+            a single interface to retrieve results from both background agents and background bash commands.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== ERA 3: Task Management ==================== -->
+    <div class="era-divider">
+      <h2>Orchestration Era <span class="era-badge">2.1.x</span></h2>
+    </div>
+
+    <div class="release" data-categories="agent" data-objects="background-agent">
+      <div class="release-header" onclick="toggleRelease(this)">
+        <span class="release-version">2.1.0</span>
+        <span class="release-title">Ctrl+B backgrounding for agents</span>
+        <div class="release-tags">
+          <span class="tag tag-added">Added</span>
+        </div>
+        <span class="expand-icon">&#9654;</span>
+      </div>
+      <div class="release-body">
+        <div class="change-entry">
+          <div class="change-type-indicator cti-added"></div>
+          <div class="change-content">
+            <div class="change-text">Added unified <code>Ctrl+B</code> backgrounding for both bash commands and agents</div>
+            <div class="change-objects">
+              <span class="obj-badge obj-badge-agent">Background Agents</span>
+              <span class="obj-badge obj-badge-tool">Bash</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="release milestone" data-categories="tool agent milestone" data-objects="task-tool background-agent">
+      <div class="release-header" onclick="toggleRelease(this)">
+        <span class="release-version">2.1.16</span>
+        <span class="release-title">Task management system &amp; dependency tracking</span>
+        <div class="release-tags">
+          <span class="tag tag-added">Added</span>
+          <span class="tag tag-fixed">Fixed</span>
+          <span class="tag tag-milestone">Milestone</span>
+        </div>
+        <span class="expand-icon">&#9654;</span>
+      </div>
+      <div class="release-body">
+        <div class="change-entry">
+          <div class="change-type-indicator cti-added"></div>
+          <div class="change-content">
+            <div class="change-text">Added new <strong>task management system</strong>, including new capabilities like dependency tracking</div>
+            <div class="change-objects">
+              <span class="obj-badge obj-badge-tool">Task Tool</span>
+              <span class="obj-badge obj-badge-param">dependencies</span>
+            </div>
+          </div>
+        </div>
+        <div class="change-entry">
+          <div class="change-type-indicator cti-fixed"></div>
+          <div class="change-content">
+            <div class="change-text">Fixed out-of-memory crashes when resuming sessions with heavy subagent usage</div>
+            <div class="change-objects">
+              <span class="obj-badge obj-badge-agent">Custom Agents</span>
+            </div>
+          </div>
+        </div>
+        <div class="interaction-section">
+          <div class="interaction-title">Task dependency graph</div>
+          <div class="interaction-diagram">
+            <span class="diagram-node tool-node">Task A</span>
+            <span class="diagram-arrow">&rarr; depends on &rarr;</span>
+            <span class="diagram-node tool-node">Task B</span>
+            <span class="diagram-arrow">&rarr; depends on &rarr;</span>
+            <span class="diagram-node tool-node">Task C</span>
+          </div>
+          <p style="font-size:0.65rem;color:var(--text-muted);margin-top:0.4rem;">
+            Tasks can now declare dependencies on other tasks, enabling DAG-style execution
+            of multi-agent workflows. This is a prerequisite for the full Agent Teams feature.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="release" data-categories="agent" data-objects="custom-agent">
+      <div class="release-header" onclick="toggleRelease(this)">
+        <span class="release-version">2.1.19</span>
+        <span class="release-title">Agent list model display fix</span>
+        <div class="release-tags">
+          <span class="tag tag-fixed">Fixed</span>
+        </div>
+        <span class="expand-icon">&#9654;</span>
+      </div>
+      <div class="release-body">
+        <div class="change-entry">
+          <div class="change-type-indicator cti-fixed"></div>
+          <div class="change-content">
+            <div class="change-text">Agents: Fixed agent list displaying "Sonnet (default)" instead of "Inherit (default)" for agents without explicit model setting</div>
+            <div class="change-objects">
+              <span class="obj-badge obj-badge-agent">Custom Agents</span>
+              <span class="obj-badge obj-badge-param">model</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="release" data-categories="tool" data-objects="task-tool">
+      <div class="release-header" onclick="toggleRelease(this)">
+        <span class="release-version">2.1.30</span>
+        <span class="release-title">Task tool metrics: tokens, duration, tool uses</span>
+        <div class="release-tags">
+          <span class="tag tag-added">Added</span>
+        </div>
+        <span class="expand-icon">&#9654;</span>
+      </div>
+      <div class="release-body">
+        <div class="change-entry">
+          <div class="change-type-indicator cti-added"></div>
+          <div class="change-content">
+            <div class="change-text">Added token count, tool uses, and duration metrics to Task tool results</div>
+            <div class="change-objects">
+              <span class="obj-badge obj-badge-tool">Task Tool</span>
+              <span class="obj-badge obj-badge-param">token_count</span>
+              <span class="obj-badge obj-badge-param">tool_uses</span>
+              <span class="obj-badge obj-badge-param">duration</span>
+            </div>
+          </div>
+        </div>
+        <div class="interaction-section">
+          <div class="interaction-title">Observability</div>
+          <p style="font-size:0.65rem;color:var(--text-muted);">
+            The orchestrating agent can now see how much each subagent consumed, enabling
+            cost-aware decisions and performance monitoring across the team.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="release milestone" data-categories="agent param milestone" data-objects="agent-teams agent-teams-env" id="agent-teams-release">
+      <div class="release-header" onclick="toggleRelease(this)">
+        <span class="release-version">2.1.32</span>
+        <span class="release-title">Agent Teams (Research Preview)</span>
+        <div class="release-tags">
+          <span class="tag tag-added">Added</span>
+          <span class="tag tag-milestone">Milestone</span>
+        </div>
+        <span class="expand-icon">&#9654;</span>
+      </div>
+      <div class="release-body">
+        <div class="change-entry">
+          <div class="change-type-indicator cti-added"></div>
+          <div class="change-content">
+            <div class="change-text">Added <strong>research preview agent teams feature</strong> for multi-agent collaboration (requires setting <code>CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1</code>)</div>
+            <div class="change-objects">
+              <span class="obj-badge obj-badge-agent">Agent Teams</span>
+              <span class="obj-badge obj-badge-param">CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS</span>
+            </div>
+          </div>
+        </div>
+        <div class="change-entry">
+          <div class="change-type-indicator cti-added"></div>
+          <div class="change-content">
+            <div class="change-text">Claude Opus 4.6 is now available!</div>
+            <div class="change-objects">
+              <span class="obj-badge obj-badge-param">claude-opus-4-6</span>
+            </div>
+          </div>
+        </div>
+        <div class="change-entry">
+          <div class="change-type-indicator cti-added"></div>
+          <div class="change-content">
+            <div class="change-text">Claude now automatically records and recalls memories as it works</div>
+            <div class="change-objects">
+              <span class="obj-badge obj-badge-param">memory</span>
+            </div>
+          </div>
+        </div>
+        <div class="interaction-section">
+          <div class="interaction-title">Agent Teams architecture</div>
+          <div class="interaction-diagram">
+            <span class="diagram-node agent-node">Orchestrator</span>
+            <span class="diagram-arrow">&rarr;</span>
+            <span class="diagram-node agent-node">Teammate A</span>
+          </div>
+          <br>
+          <div class="interaction-diagram">
+            <span class="diagram-node agent-node">Orchestrator</span>
+            <span class="diagram-arrow">&rarr;</span>
+            <span class="diagram-node agent-node">Teammate B</span>
+          </div>
+          <br>
+          <div class="interaction-diagram">
+            <span class="diagram-node agent-node">Teammate A</span>
+            <span class="diagram-arrow">&harr; coordinate &harr;</span>
+            <span class="diagram-node agent-node">Teammate B</span>
+          </div>
+          <p style="font-size:0.65rem;color:var(--text-muted);margin-top:0.4rem;">
+            <strong>The culmination of the multi-agent journey.</strong> Multiple agents can now work
+            together as a team, with inter-agent communication and coordination. Marked as
+            "token-intensive" and gated behind an environment variable for the research preview.
+            Released alongside Opus 4.6 and automatic memory.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="release" data-categories="hook param agent" data-objects="teammate-idle task-completed task-agent-type memory-frontmatter session-start">
+      <div class="release-header" onclick="toggleRelease(this)">
+        <span class="release-version">2.1.33</span>
+        <span class="release-title">TeammateIdle, TaskCompleted, Task(agent_type), memory</span>
+        <div class="release-tags">
+          <span class="tag tag-added">Added</span>
+        </div>
+        <span class="expand-icon">&#9654;</span>
+      </div>
+      <div class="release-body">
+        <div class="change-entry">
+          <div class="change-type-indicator cti-added"></div>
+          <div class="change-content">
+            <div class="change-text">Added <code>TeammateIdle</code> and <code>TaskCompleted</code> hook events for multi-agent workflows</div>
+            <div class="change-objects">
+              <span class="obj-badge obj-badge-event">TeammateIdle</span>
+              <span class="obj-badge obj-badge-event">TaskCompleted</span>
+              <span class="obj-badge obj-badge-agent">Agent Teams</span>
+            </div>
+          </div>
+        </div>
+        <div class="change-entry">
+          <div class="change-type-indicator cti-added"></div>
+          <div class="change-content">
+            <div class="change-text">Added support for restricting which sub-agents can be spawned via <code>Task(agent_type)</code> syntax in agent <code>tools</code> frontmatter</div>
+            <div class="change-objects">
+              <span class="obj-badge obj-badge-param">Task(agent_type)</span>
+              <span class="obj-badge obj-badge-tool">Task Tool</span>
+              <span class="obj-badge obj-badge-agent">Custom Agents</span>
+            </div>
+          </div>
+        </div>
+        <div class="change-entry">
+          <div class="change-type-indicator cti-added"></div>
+          <div class="change-content">
+            <div class="change-text">Added <code>memory</code> frontmatter field support for agents, enabling persistent memory with scopes (user, project, local)</div>
+            <div class="change-objects">
+              <span class="obj-badge obj-badge-param">memory</span>
+              <span class="obj-badge obj-badge-agent">Custom Agents</span>
+            </div>
+          </div>
+        </div>
+        <div class="change-entry">
+          <div class="change-type-indicator cti-added"></div>
+          <div class="change-content">
+            <div class="change-text">Added <code>agent_type</code> to SessionStart hook input, populated if <code>--agent</code> is specified</div>
+            <div class="change-objects">
+              <span class="obj-badge obj-badge-hook">SessionStart</span>
+              <span class="obj-badge obj-badge-param">agent_type</span>
+            </div>
+          </div>
+        </div>
+        <div class="interaction-section">
+          <div class="interaction-title">Full agent teams lifecycle</div>
+          <div class="interaction-diagram">
+            <span class="diagram-node hook-node">SessionStart</span>
+            <span class="diagram-arrow">&rarr;</span>
+            <span class="diagram-node agent-node">Orchestrator</span>
+            <span class="diagram-arrow">&rarr; Task(reviewer) &rarr;</span>
+            <span class="diagram-node agent-node">Reviewer Agent</span>
+          </div>
+          <br>
+          <div class="interaction-diagram">
+            <span class="diagram-node agent-node">Reviewer</span>
+            <span class="diagram-arrow">&rarr; completes &rarr;</span>
+            <span class="diagram-node hook-node">TaskCompleted</span>
+            <span class="diagram-arrow">&rarr;</span>
+            <span class="diagram-node hook-node">TeammateIdle</span>
+          </div>
+          <p style="font-size:0.65rem;color:var(--text-muted);margin-top:0.4rem;">
+            <code>Task(agent_type)</code> restricts which agents can be spawned &mdash; a security boundary.
+            <code>TeammateIdle</code> fires when a teammate finishes and is available for new work.
+            <code>TaskCompleted</code> signals task completion. The <code>memory</code> field gives agents
+            persistent context across sessions with configurable scopes.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="release" data-categories="agent" data-objects="agent-teams">
+      <div class="release-header" onclick="toggleRelease(this)">
+        <span class="release-version">2.1.39</span>
+        <span class="release-title">Agent Teams model fix for Bedrock/Vertex/Foundry</span>
+        <div class="release-tags">
+          <span class="tag tag-fixed">Fixed</span>
+        </div>
+        <span class="expand-icon">&#9654;</span>
+      </div>
+      <div class="release-body">
+        <div class="change-entry">
+          <div class="change-type-indicator cti-fixed"></div>
+          <div class="change-content">
+            <div class="change-text">Fixed Agent Teams using wrong model identifier for Bedrock, Vertex, and Foundry customers</div>
+            <div class="change-objects">
+              <span class="obj-badge obj-badge-agent">Agent Teams</span>
+              <span class="obj-badge obj-badge-param">model routing</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /timeline-container -->
+</div><!-- /main-grid -->
+
+<!-- Architecture Summary -->
+<div class="arch-section">
+  <h2>Current Agent Teams Object Model (as of 2.1.41)</h2>
+  <div class="arch-grid">
+
+    <div class="arch-card">
+      <h3><span class="dot dot-agent"></span> Agent Types</h3>
+      <ul>
+        <li><strong>Explore Agent</strong> &mdash; Haiku-powered codebase search <code>subagent_type=Explore</code></li>
+        <li><strong>Plan Agent</strong> &mdash; Architecture planning with thinking <code>subagent_type=Plan</code></li>
+        <li><strong>Custom Agents</strong> &mdash; User-defined via markdown frontmatter files in <code>.claude/agents/</code></li>
+        <li><strong>Background Agents</strong> &mdash; Async execution via <code>run_in_background: true</code></li>
+        <li><strong>Agent Teams</strong> &mdash; Multi-agent collaboration (research preview, requires <code>CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1</code>)</li>
+      </ul>
+    </div>
+
+    <div class="arch-card">
+      <h3><span class="dot dot-tool"></span> Core Tools</h3>
+      <ul>
+        <li><code>Task</code> &mdash; Primary tool for spawning subagents. Params: <code>prompt</code>, <code>subagent_type</code>, <code>model</code>, <code>max_turns</code>, <code>resume</code>, <code>run_in_background</code>, <code>description</code></li>
+        <li><code>TaskOutputTool</code> &mdash; Unified tool to read output from background tasks/agents (replaced AgentOutputTool + BashOutputTool)</li>
+        <li><code>/agents</code> &mdash; CLI command for creating/managing custom agent definitions</li>
+      </ul>
+    </div>
+
+    <div class="arch-card">
+      <h3><span class="dot dot-hook"></span> Hooks &amp; Events</h3>
+      <ul>
+        <li><code>SessionStart</code> &mdash; Session init. Fields: <code>agent_type</code> (since 2.1.33)</li>
+        <li><code>SubagentStart</code> &mdash; Fires when a subagent is launched</li>
+        <li><code>SubagentStop</code> &mdash; Fires on completion. Fields: <code>agent_id</code>, <code>agent_transcript_path</code></li>
+        <li><code>PermissionRequest</code> &mdash; Intercept tool permission requests for auto-approve/deny</li>
+        <li><code>TeammateIdle</code> &mdash; Agent Teams: teammate finished and available (2.1.33+)</li>
+        <li><code>TaskCompleted</code> &mdash; Agent Teams: a delegated task is done (2.1.33+)</li>
+      </ul>
+    </div>
+
+    <div class="arch-card">
+      <h3><span class="dot dot-param"></span> Agent Frontmatter Params</h3>
+      <ul>
+        <li><code>model</code> &mdash; Which model the agent uses (since 1.0.64)</li>
+        <li><code>tools</code> &mdash; Allowed tools list; supports <code>Task(agent_type)</code> syntax (2.1.33)</li>
+        <li><code>disallowedTools</code> &mdash; Explicit tool blocklist (2.0.30)</li>
+        <li><code>permissionMode</code> &mdash; How permission requests are handled (2.0.43)</li>
+        <li><code>skills</code> &mdash; Auto-load skills for subagents (2.0.43)</li>
+        <li><code>memory</code> &mdash; Persistent memory scopes: user, project, local (2.1.33)</li>
+      </ul>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  Generated from <a href="https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md">anthropics/claude-code CHANGELOG.md</a>
+  &middot; Filter methodology: <a href="000-claude-filter-changelog-feature-to-html-prompt.md">000-claude-filter-changelog-feature-to-html-prompt.md</a>
+</footer>
+
+<script>
+// Toggle release card open/closed
+function toggleRelease(header) {
+  header.parentElement.classList.toggle('open');
+}
+
+// Filter buttons
+document.getElementById('controls').addEventListener('click', function(e) {
+  const btn = e.target.closest('.filter-btn');
+  if (!btn) return;
+
+  // Update active state
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+
+  const filter = btn.dataset.filter;
+  const releases = document.querySelectorAll('.release');
+
+  releases.forEach(rel => {
+    if (filter === 'all') {
+      rel.classList.remove('hidden');
+    } else {
+      const cats = rel.dataset.categories || '';
+      if (cats.includes(filter)) {
+        rel.classList.remove('hidden');
+      } else {
+        rel.classList.add('hidden');
+      }
+    }
+  });
+});
+
+// Sidebar highlight interaction
+document.querySelectorAll('.obj-item').forEach(item => {
+  item.addEventListener('click', function() {
+    const target = this.dataset.highlight;
+    const releases = document.querySelectorAll('.release');
+
+    // Reset filter buttons
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector('[data-filter="all"]').classList.add('active');
+
+    // Show all first
+    releases.forEach(r => r.classList.remove('hidden'));
+
+    // Find and highlight matching releases
+    let found = false;
+    releases.forEach(rel => {
+      const objects = rel.dataset.objects || '';
+      if (objects.includes(target)) {
+        rel.classList.add('open');
+        if (!found) {
+          rel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          found = true;
+        }
+        // Flash effect
+        rel.style.borderColor = 'var(--accent)';
+        rel.style.boxShadow = '0 0 12px rgba(88,166,255,0.2)';
+        setTimeout(() => {
+          rel.style.borderColor = '';
+          rel.style.boxShadow = '';
+        }, 2000);
+      }
+    });
+  });
+});
+
+// Auto-open the Agent Teams milestone
+document.addEventListener('DOMContentLoaded', function() {
+  const agentTeams = document.getElementById('agent-teams-release');
+  if (agentTeams) agentTeams.classList.add('open');
+});
+</script>
+
+</body>
+</html>
