@@ -123,6 +123,62 @@ Only use exec() if you absolutely need shell features and the input is guarantee
         "substrings": ["os.system", "from os import system"],
         "reminder": "⚠️ Security Warning: This code appears to use os.system. This should only be used with static arguments and never with arguments that could be user-controlled.",
     },
+    {
+        "ruleName": "subprocess_shell_injection",
+        "substrings": ["shell=True"],
+        "reminder": """⚠️ Security Warning: Using subprocess with shell=True can lead to command injection vulnerabilities.
+
+Instead of:
+  subprocess.run(f"command {user_input}", shell=True)
+
+Use:
+  subprocess.run(["command", user_input])
+
+Only use shell=True if you explicitly need shell features (pipes, wildcards) and the input is guaranteed to be safe.""",
+    },
+    {
+        "ruleName": "yaml_unsafe_load",
+        "substrings": ["yaml.load(", "yaml.unsafe_load("],
+        "reminder": """⚠️ Security Warning: yaml.load() without SafeLoader can execute arbitrary Python code from YAML input.
+
+Instead of:
+  yaml.load(data)
+
+Use:
+  yaml.safe_load(data)
+
+Or explicitly specify SafeLoader:
+  yaml.load(data, Loader=yaml.SafeLoader)""",
+    },
+    {
+        "ruleName": "tls_verification_disabled",
+        "substrings": ["verify=False"],
+        "reminder": """⚠️ Security Warning: Disabling TLS certificate verification (verify=False) makes the connection vulnerable to man-in-the-middle attacks.
+
+Instead of:
+  requests.get(url, verify=False)
+
+Use:
+  requests.get(url)  # verify=True is the default
+
+If you need a custom CA bundle:
+  requests.get(url, verify='/path/to/ca-bundle.crt')
+
+Only disable verification for local development with self-signed certs, never in production.""",
+    },
+    {
+        "ruleName": "tempfile_insecure",
+        "substrings": ["tempfile.mktemp("],
+        "reminder": """⚠️ Security Warning: tempfile.mktemp() is vulnerable to race condition attacks (symlink attacks).
+
+Instead of:
+  tempfile.mktemp()
+
+Use:
+  tempfile.mkstemp()   # for files (returns fd + path)
+  tempfile.NamedTemporaryFile()  # for file objects
+  tempfile.mkdtemp()   # for directories""",
+    },
 ]
 
 
