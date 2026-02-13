@@ -9,18 +9,33 @@
       "ZSH_IN_DOCKER_VERSION": "1.2.0"
     }
   },
-  "runArgs": [
-    "--cap-add=NET_ADMIN",
-    "--cap-add=NET_RAW"
-  ],
+  "runArgs": ["--cap-add=NET_ADMIN", "--cap-add=NET_RAW"],
   "customizations": {
     "vscode": {
       "extensions": [
         "anthropic.claude-code",
         "dbaeumer.vscode-eslint",
         "esbenp.prettier-vscode",
-        "eamodio.gitlens"
+        "eamodio.gitlens",
+        // my extensions:: //
+        "dbaeumer.vscode-eslint",
+        "github.vscode-github-actions",
+        "github.vscode-pull-request-github",
+        "ms-azuretools.vscode-containers",
+        "ms-kubernetes-tools.vscode-kubernetes-tools",
+        "ms-python.black-formatter",
+        "ms-python.debugpy",
+        "ms-python.flake8",
+        "ms-python.pylint",
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-python.vscode-python-envs",
+        "ms-vscode-remote.remote-containers",
+        "njpwerner.autodocstring",
+        "redhat.vscode-yaml",
+        "vscode-icons-team.vscode-icons"
       ],
+      
       "settings": {
         "editor.formatOnSave": true,
         "editor.defaultFormatter": "esbenp.prettier-vscode",
@@ -43,7 +58,8 @@
   "remoteUser": "node",
   "mounts": [
     "source=claude-code-bashhistory-${devcontainerId},target=/commandhistory,type=volume",
-    "source=claude-code-config-${devcontainerId},target=/home/node/.claude,type=volume"
+    "source=claude-code-config-${devcontainerId},target=/home/node/.claude,type=volume",
+    "source=${localWorkspaceFolder}/../blob,target=/workspace/blob,type=bind,consistency=cached"
   ],
   "containerEnv": {
     "NODE_OPTIONS": "--max-old-space-size=4096",
@@ -52,6 +68,6 @@
   },
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=delegated",
   "workspaceFolder": "/workspace",
-  "postStartCommand": "sudo /usr/local/bin/init-firewall.sh",
+  "postStartCommand": "sudo /usr/local/bin/init-firewall.sh && pip install -r blob/requirements.txt",
   "waitFor": "postStartCommand"
 }

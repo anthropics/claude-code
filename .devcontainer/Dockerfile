@@ -1,9 +1,21 @@
-FROM node:20
+FROM python:3.14-slim
 
 ARG TZ
 ENV TZ="$TZ"
 
 ARG CLAUDE_CODE_VERSION=latest
+
+# Install Node.js 20
+RUN apt-get update && apt-get install -y --no-install-recommends \
+  curl \
+  ca-certificates \
+  gnupg \
+  && mkdir -p /etc/apt/keyrings \
+  && curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg \
+  && echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_20.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list \
+  && apt-get update \
+  && apt-get install -y --no-install-recommends nodejs \
+  && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install basic development tools and iptables/ipset
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -25,11 +37,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   jq \
   nano \
   vim \
+  wget \
   && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Ensure default node user has access to /usr/local/share
-RUN mkdir -p /usr/local/share/npm-global && \
-  chown -R node:node /usr/local/share
+# Create node user and ensure it has access to /usr/local/share
+RUN groupadd --gid 1000 node \
+  && useradd --uid 1000 --gid node --shell /bin/bash --create-home node \
+  && mkdir -p /usr/local/share/npm-global \
+  && chown -R node:node /usr/local/share
 
 ARG USERNAME=node
 

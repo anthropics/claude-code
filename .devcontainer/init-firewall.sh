@@ -72,6 +72,8 @@ for domain in \
     "statsig.com" \
     "marketplace.visualstudio.com" \
     "vscode.blob.core.windows.net" \
+    "pypi.org" \
+    "files.pythonhosted.org" \
     "update.code.visualstudio.com"; do
     echo "Resolving $domain..."
     ips=$(dig +noall +answer A "$domain" | awk '$4 == "A" {print $5}')
@@ -86,7 +88,7 @@ for domain in \
             exit 1
         fi
         echo "Adding $ip for $domain"
-        ipset add allowed-domains "$ip"
+        ipset add allowed-domains "$ip" -exist
     done < <(echo "$ips")
 done
 
