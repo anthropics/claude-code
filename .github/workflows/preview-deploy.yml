@@ -1,0 +1,140 @@
+# Neon + Vercel Preview Deployment
+#
+# Creates a Neon database branch and triggers a Vercel preview deployment
+# for every pull request. The Neon branch provides an isolated database
+# environment that mirrors production data, paired with Vercel's preview URL.
+#
+# Required secrets:
+#   NEON_API_KEY          - Neon API key (from Neon console → Account → API Keys)
+#   VERCEL_TOKEN          - Vercel personal access token
+#   VERCEL_ORG_ID         - Vercel team/org ID (from .vercel/project.json)
+#   VERCEL_PROJECT_ID     - Vercel project ID (from .vercel/project.json)
+#
+# Required variables:
+#   NEON_PROJECT_ID       - Neon project ID (from Neon console → Settings)
+#
+# Outputs:
+#   Neon branch name, database URL, and Vercel preview URL are posted as a
+#   PR comment with connection details.
+
+name: Preview Deploy (Neon + Vercel)
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+  deployments: write
+
+concurrency:
+  group: preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  preview-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── Neon: Create database branch ──────────────────────────────────
+      - name: Create Neon branch
+        id: neon-branch
+        uses: neondatabase/create-branch-action@v5
+        with:
+          project_id: ${{ vars.NEON_PROJECT_ID }}
+          branch_name: preview/pr-${{ github.event.pull_request.number }}
+          api_key: ${{ secrets.NEON_API_KEY }}
+          # Parent defaults to the project's primary branch (main/production)
+
+      # ── Vercel: Install CLI ───────────────────────────────────────────
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      # ── Vercel: Pull environment & inject Neon DATABASE_URL ──────────
+      - name: Pull Vercel environment
+        run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      # ── Vercel: Build with Neon preview database ─────────────────────
+      - name: Build project
+        run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          DATABASE_URL: ${{ steps.neon-branch.outputs.db_url_with_pooler }}
+
+      # ── Vercel: Deploy prebuilt output ───────────────────────────────
+      - name: Deploy to Vercel
+        id: vercel-deploy
+        run: |
+          url=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})
+          echo "preview_url=$url" >> "$GITHUB_OUTPUT"
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      # ── Comment on PR with connection details ────────────────────────
+      - name: Comment preview details on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const neonHost = `${{ steps.neon-branch.outputs.db_url_with_pooler }}`;
+            const previewUrl = `${{ steps.vercel-deploy.outputs.preview_url }}`;
+            const branchName = `preview/pr-${{ github.event.pull_request.number }}`;
+            const branchId = `${{ steps.neon-branch.outputs.branch_id }}`;
+
+            // Mask the full connection string — only show the branch name
+            const body = [
+              `## Preview Deployment`,
+              ``,
+              `| Resource | Value |`,
+              `|----------|-------|`,
+              `| **Vercel Preview** | ${previewUrl} |`,
+              `| **Neon Branch** | \`${branchName}\` |`,
+              `| **Neon Branch ID** | \`${branchId}\` |`,
+              `| **PR** | #${{ github.event.pull_request.number }} |`,
+              ``,
+              `### Database`,
+              `The preview deployment connects to an isolated Neon database branch ` +
+              `forked from production. Changes to this branch do not affect production data.`,
+              ``,
+              `> **Note**: The \`DATABASE_URL\` is injected at build time. ` +
+              `To connect manually, use the Neon console or CLI.`,
+              ``,
+              `---`,
+              `*Deployed by [Preview Deploy workflow](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})*`,
+            ].join('\n');
+
+            // Find existing comment to update (avoid spam)
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: ${{ github.event.pull_request.number }},
+            });
+
+            const marker = '## Preview Deployment';
+            const existing = comments.find(c =>
+              c.user?.login === 'github-actions[bot]' && c.body?.startsWith(marker)
+            );
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: ${{ github.event.pull_request.number }},
+                body,
+              });
+            }

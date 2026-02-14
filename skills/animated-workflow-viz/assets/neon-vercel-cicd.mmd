@@ -1,0 +1,61 @@
+graph TD
+    subgraph trigger[Git Events]
+        event_branch_create[Branch Created]
+        event_pr_open[PR Opened]
+        event_pr_push[PR Push]
+        event_pr_close[PR Closed/Merged]
+    end
+
+    subgraph neon_create[Neon Branch Sync]
+        tool_sanitize_name[Sanitize Branch Name]
+        tool_create_neon[Create Neon Branch]
+        tool_schema_copy[Fork Production Data]
+    end
+
+    subgraph preview[Preview Deploy]
+        tool_checkout[Checkout Code]
+        tool_neon_preview[Create Preview Branch]
+        tool_vercel_pull[Vercel Pull Env]
+        tool_vercel_build[Vercel Build]
+        tool_vercel_deploy[Vercel Deploy]
+        agent_pr_comment[Post PR Comment]
+    end
+
+    subgraph schema[Schema Diff]
+        tool_diff_branches[Compare Neon Branches]
+        agent_diff_comment[Post Schema Diff]
+    end
+
+    subgraph cleanup[Preview Cleanup]
+        tool_delete_neon[Delete Neon Branch]
+        agent_cleanup_comment[Post Cleanup Status]
+    end
+
+    subgraph production[Production]
+        event_merge[Merge to Main]
+        tool_vercel_prod[Vercel Production Deploy]
+        tool_neon_reset[Reset Staging Branch]
+    end
+
+    event_branch_create --> tool_sanitize_name
+    tool_sanitize_name --> tool_create_neon
+    tool_create_neon --> tool_schema_copy
+
+    event_pr_open --> tool_checkout
+    event_pr_push --> tool_checkout
+    tool_checkout --> tool_neon_preview
+    tool_neon_preview --> tool_vercel_pull
+    tool_vercel_pull --> tool_vercel_build
+    tool_vercel_build --> tool_vercel_deploy
+    tool_vercel_deploy --> agent_pr_comment
+
+    event_pr_open --> tool_diff_branches
+    event_pr_push --> tool_diff_branches
+    tool_diff_branches --> agent_diff_comment
+
+    event_pr_close --> tool_delete_neon
+    tool_delete_neon --> agent_cleanup_comment
+
+    event_pr_close --> event_merge
+    event_merge --> tool_vercel_prod
+    event_merge --> tool_neon_reset

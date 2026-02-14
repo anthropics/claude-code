@@ -1,0 +1,139 @@
+# Neon Branch Sync + Schema Diff
+#
+# Automatically creates a Neon database branch when a new Git branch is
+# pushed (matching the claude/* naming convention), and posts a schema diff
+# when a PR is opened. This is the "branch creation template" automated —
+# every new branch gets an isolated database from the moment it's created,
+# not just when a PR is opened.
+#
+# Lifecycle:
+#   1. Branch push (create)  → Create Neon branch
+#   2. PR opened/sync        → Run schema diff, post comment
+#   3. PR closed             → Handled by preview-cleanup.yml
+#
+# Required secrets:
+#   NEON_API_KEY          - Neon API key
+#
+# Required variables:
+#   NEON_PROJECT_ID       - Neon project ID
+
+name: Branch Neon Sync
+
+on:
+  # Create Neon branch when Git branch is created
+  create:
+
+  # Schema diff when PR is opened or updated
+  pull_request:
+    types: [opened, synchronize]
+
+  # Allow manual trigger for any branch
+  workflow_dispatch:
+    inputs:
+      branch_name:
+        description: "Git branch name to create Neon branch for"
+        required: false
+        type: string
+      action:
+        description: "Action to perform"
+        required: true
+        type: choice
+        options:
+          - create
+          - reset
+        default: create
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  # ── Create Neon branch on Git branch creation ──────────────────────
+  create-neon-branch:
+    if: >-
+      (github.event_name == 'create' && github.event.ref_type == 'branch')
+      || (github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Determine branch name
+        id: branch
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            branch="${{ github.event.inputs.branch_name || github.ref_name }}"
+          else
+            branch="${{ github.event.ref }}"
+          fi
+          # Sanitize for Neon branch name (alphanumeric, hyphens, slashes)
+          neon_branch=$(echo "$branch" | sed 's/[^a-zA-Z0-9\/_-]/-/g')
+          echo "git_branch=$branch" >> "$GITHUB_OUTPUT"
+          echo "neon_branch=$neon_branch" >> "$GITHUB_OUTPUT"
+
+      - name: Create Neon branch
+        id: neon
+        uses: neondatabase/create-branch-action@v5
+        with:
+          project_id: ${{ vars.NEON_PROJECT_ID }}
+          branch_name: ${{ steps.branch.outputs.neon_branch }}
+          api_key: ${{ secrets.NEON_API_KEY }}
+
+      - name: Log branch creation
+        run: |
+          echo "## Neon Branch Created" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Property | Value |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|----------|-------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Git Branch** | \`${{ steps.branch.outputs.git_branch }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Neon Branch** | \`${{ steps.branch.outputs.neon_branch }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Branch ID** | \`${{ steps.neon.outputs.branch_id }}\` |" >> "$GITHUB_STEP_SUMMARY"
+
+  # ── Reset Neon branch (manual trigger) ─────────────────────────────
+  reset-neon-branch:
+    if: >-
+      github.event_name == 'workflow_dispatch'
+      && github.event.inputs.action == 'reset'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Determine branch name
+        id: branch
+        run: |
+          branch="${{ github.event.inputs.branch_name || github.ref_name }}"
+          neon_branch=$(echo "$branch" | sed 's/[^a-zA-Z0-9\/_-]/-/g')
+          echo "neon_branch=$neon_branch" >> "$GITHUB_OUTPUT"
+
+      - name: Reset Neon branch to parent
+        uses: neondatabase/reset-branch-action@v1
+        with:
+          project_id: ${{ vars.NEON_PROJECT_ID }}
+          branch: ${{ steps.branch.outputs.neon_branch }}
+          api_key: ${{ secrets.NEON_API_KEY }}
+
+      - name: Log branch reset
+        run: |
+          echo "## Neon Branch Reset" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Branch \`${{ steps.branch.outputs.neon_branch }}\` reset to parent state." >> "$GITHUB_STEP_SUMMARY"
+
+  # ── Schema diff on PR ──────────────────────────────────────────────
+  schema-diff:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Determine Neon branch names
+        id: branches
+        run: |
+          head_branch=$(echo "${{ github.head_ref }}" | sed 's/[^a-zA-Z0-9\/_-]/-/g')
+          base_branch=$(echo "${{ github.base_ref }}" | sed 's/[^a-zA-Z0-9\/_-]/-/g')
+          echo "head=$head_branch" >> "$GITHUB_OUTPUT"
+          echo "base=$base_branch" >> "$GITHUB_OUTPUT"
+
+      - name: Run Neon schema diff
+        uses: neondatabase/schema-diff-action@v1
+        with:
+          project_id: ${{ vars.NEON_PROJECT_ID }}
+          compare_branch: ${{ steps.branches.outputs.head }}
+          base_branch: ${{ steps.branches.outputs.base }}
+          api_key: ${{ secrets.NEON_API_KEY }}
+          # Posts diff as PR comment automatically

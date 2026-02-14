@@ -48,6 +48,7 @@ const ASSETS_DIR = join(__dirname, '..', 'assets');
 const TEMPLATES = {
   'branch-create':        'branch-create-workflow.mmd',
   'extraction-pipeline':  'extraction-pipeline.mmd',
+  'neon-vercel-cicd':     'neon-vercel-cicd.mmd',
 };
 
 // ─── Phase Definitions (for progress tracking) ─────────────────────────────
@@ -257,6 +258,7 @@ function renderHeader(templateName, theme, caps) {
   const titles = {
     'branch-create': 'Branch Creation Workflow',
     'extraction-pipeline': 'Extraction Pipeline',
+    'neon-vercel-cicd': 'Neon + Vercel CI/CD',
     'inline': 'Custom Diagram',
   };
 
@@ -298,6 +300,7 @@ ${c('TEMPLATES:', 'tool')}
   --template, -t <name>    Use a built-in template
                            ${c('branch-create', 'bright')}        8-phase extraction workflow
                            ${c('extraction-pipeline', 'bright')}  CHANGELOG -> JSONL -> HTML flow
+                           ${c('neon-vercel-cicd', 'bright')}     Neon + Vercel CI/CD pipeline
 
 ${c('CUSTOM INPUT:', 'tool')}
   --file, -f <path>        Render a custom .mmd file

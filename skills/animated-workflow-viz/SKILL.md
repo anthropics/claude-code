@@ -120,10 +120,11 @@ The 5-color category system from `deterministic-object-usage/` is preserved:
 
 ### Provided Templates
 
-| Template             | File                           | Description                    |
-|----------------------|--------------------------------|--------------------------------|
-| `branch-create`     | `branch-create-workflow.mmd`   | 8-phase branch creation flow   |
-| `extraction-pipeline`| `extraction-pipeline.mmd`     | CHANGELOG → JSONL → HTML flow  |
+| Template              | File                           | Description                    |
+|-----------------------|--------------------------------|--------------------------------|
+| `branch-create`      | `branch-create-workflow.mmd`   | 8-phase branch creation flow   |
+| `extraction-pipeline` | `extraction-pipeline.mmd`     | CHANGELOG → JSONL → HTML flow  |
+| `neon-vercel-cicd`   | `neon-vercel-cicd.mmd`         | Neon + Vercel CI/CD pipeline   |
 
 ### Creating Custom Templates
 

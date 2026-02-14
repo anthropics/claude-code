@@ -1,0 +1,64 @@
+# Neon Branch Cleanup
+#
+# Deletes the Neon database branch when a pull request is closed or merged.
+# This ensures ephemeral preview branches don't accumulate and consume
+# Neon project resources.
+#
+# Branch naming convention: preview/pr-{number} (matches preview-deploy.yml)
+#
+# Required secrets:
+#   NEON_API_KEY          - Neon API key
+#
+# Required variables:
+#   NEON_PROJECT_ID       - Neon project ID
+
+name: Preview Cleanup (Neon)
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: cleanup-${{ github.event.pull_request.number }}
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Delete Neon branch
+        uses: neondatabase/delete-branch-action@v3
+        with:
+          project_id: ${{ vars.NEON_PROJECT_ID }}
+          branch: preview/pr-${{ github.event.pull_request.number }}
+          api_key: ${{ secrets.NEON_API_KEY }}
+
+      - name: Comment cleanup status on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const merged = ${{ github.event.pull_request.merged }};
+            const action = merged ? 'merged' : 'closed';
+            const branchName = `preview/pr-${{ github.event.pull_request.number }}`;
+
+            const body = [
+              `### Preview Cleanup`,
+              ``,
+              `PR ${action} — Neon branch \`${branchName}\` has been deleted.`,
+              ``,
+              `| Resource | Status |`,
+              `|----------|--------|`,
+              `| **Neon Branch** | Deleted |`,
+              `| **Vercel Preview** | ${merged ? 'Promoted to production' : 'Expired'} |`,
+            ].join('\n');
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: ${{ github.event.pull_request.number }},
+              body,
+            });

@@ -145,6 +145,16 @@
       },
       "source": "./plugins/security-guidance",
       "category": "security"
+    },
+    {
+      "name": "neon-branching",
+      "description": "Neon database branch management for preview deployments. Creates isolated Neon branches per Git branch/PR, paired with Vercel preview deploys. Includes GitHub Actions workflows and MCP server integration.",
+      "version": "0.1.0",
+      "author": {
+        "name": "jadecli-experimental"
+      },
+      "source": "./plugins/neon-branching",
+      "category": "database"
     }
   ]
 }
