@@ -1,13 +1,16 @@
 name: Oncall Issue Triage
-description: Automatically identify and label critical blocking issues requiring oncall attention
+description: Automatically identify and label critical blocking issues requiring oncall attention using GroqCloud
+description: Identify and label critical blocking issues requiring oncall attention (manual trigger only)
+# Note: This workflow requires valid Anthropic API credits (ANTHROPIC_API_KEY secret)
+# Automatic triggers are disabled to prevent failures when credits are low
 on:
-  push:
-    branches:
-      - add-oncall-triage-workflow  # Temporary: for testing only
-  schedule:
-    # Run every 6 hours
-    - cron: '0 */6 * * *'
-  workflow_dispatch: # Allow manual trigger
+  # push:
+  #   branches:
+  #     - add-oncall-triage-workflow  # Temporary: for testing only
+  # schedule:
+  #   # Run every 6 hours
+  #   - cron: '0 */6 * * *'
+  workflow_dispatch: # Manual trigger only - requires API credits
 
 jobs:
   oncall-triage:
@@ -22,6 +25,35 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Run Oncall Triage with GroqCloud
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          bun run scripts/oncall-triage-groq.ts
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests
+
+      - name: Run GroqCloud Oncall Triage
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          python .github/scripts/oncall-triage-groq.py
       - name: Setup GitHub MCP Server
         run: |
           mkdir -p /tmp/mcp-config

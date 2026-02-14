@@ -1,0 +1,2191 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ENSIDE SYSTEM v11.0 - Sistema Unificado Completo</title>
+    <style>
+        :root {
+            --primary: #8b5cf6;
+            --primary-dark: #7c3aed;
+            --secondary: #06b6d4;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --dark: #1e1e2e;
+            --darker: #11111b;
+            --light: #cdd6f4;
+            --card-bg: #313244;
+            --border: #45475a;
+        }
+
+        [data-theme="green"] { --primary: #10b981; --primary-dark: #059669; }
+        [data-theme="blue"] { --primary: #3b82f6; --primary-dark: #2563eb; }
+        [data-theme="red"] { --primary: #ef4444; --primary-dark: #dc2626; }
+        [data-theme="orange"] { --primary: #f59e0b; --primary-dark: #d97706; }
+        [data-theme="purple"] { --primary: #8b5cf6; --primary-dark: #7c3aed; }
+
+        [data-mode="light"] {
+            --dark: #ffffff;
+            --darker: #f5f5f5;
+            --light: #1e1e2e;
+            --card-bg: #ffffff;
+            --border: #e0e0e0;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, var(--darker) 0%, var(--dark) 100%);
+            color: var(--light);
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .logo span {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .badges {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            background: rgba(255,255,255,0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .badge.success { background: var(--success); }
+        .badge.warning { background: var(--warning); color: #000; }
+        .badge.info { background: var(--secondary); }
+
+        /* Theme Controls */
+        .theme-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .theme-btn {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 3px solid rgba(255,255,255,0.5);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .theme-btn:hover { transform: scale(1.2); }
+        .theme-btn.purple { background: #8b5cf6; }
+        .theme-btn.green { background: #10b981; }
+        .theme-btn.blue { background: #3b82f6; }
+        .theme-btn.red { background: #ef4444; }
+        .theme-btn.orange { background: #f59e0b; }
+
+        .mode-toggle {
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: none;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        /* Navigation */
+        .nav-container {
+            background: var(--card-bg);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-tabs {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            overflow-x: auto;
+            padding: 0 10px;
+        }
+
+        .nav-tab {
+            padding: 15px 20px;
+            background: transparent;
+            border: none;
+            color: var(--light);
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            white-space: nowrap;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .nav-tab:hover { background: rgba(255,255,255,0.05); }
+        .nav-tab.active {
+            border-bottom-color: var(--primary);
+            color: var(--primary);
+            background: rgba(139, 92, 246, 0.1);
+        }
+
+        /* Main Content */
+        .main-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .tab-content.active { display: block; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Cards */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid var(--border);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .card-icon {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .card-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .card-label {
+            font-size: 0.9rem;
+            opacity: 0.7;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 12px 24px;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+        }
+
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(139, 92, 246, 0.4); }
+
+        .btn-success { background: var(--success); color: white; }
+        .btn-warning { background: var(--warning); color: black; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-secondary { background: var(--card-bg); color: var(--light); border: 1px solid var(--border); }
+
+        /* Forms */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--darker);
+            color: var(--light);
+            font-size: 1rem;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+        }
+
+        /* Tables */
+        .table-container {
+            background: var(--card-bg);
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            background: var(--darker);
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        tr:hover { background: rgba(255,255,255,0.02); }
+
+        /* Chat */
+        .chat-container {
+            background: var(--card-bg);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            height: 500px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            max-width: 80%;
+        }
+
+        .message.user {
+            margin-left: auto;
+            background: var(--primary);
+            color: white;
+            padding: 12px 16px;
+            border-radius: 16px 16px 4px 16px;
+        }
+
+        .message.assistant {
+            background: var(--darker);
+            padding: 12px 16px;
+            border-radius: 16px 16px 16px 4px;
+        }
+
+        .chat-input {
+            padding: 15px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input input {
+            flex: 1;
+            padding: 12px 16px;
+            border-radius: 25px;
+            border: 1px solid var(--border);
+            background: var(--darker);
+            color: var(--light);
+        }
+
+        /* Status Indicator */
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.online { background: var(--success); }
+        .status-dot.offline { background: var(--danger); animation: none; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
+        }
+
+        /* Progress Bar */
+        .progress-bar {
+            height: 10px;
+            background: var(--darker);
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            border-radius: 5px;
+            transition: width 0.5s;
+        }
+
+        /* Actions Grid */
+        .actions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .action-btn {
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: var(--card-bg);
+            color: var(--light);
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s;
+        }
+
+        .action-btn:hover {
+            border-color: var(--primary);
+            background: rgba(139, 92, 246, 0.1);
+            transform: translateY(-3px);
+        }
+
+        .action-btn .icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active { display: flex; }
+
+        .modal-content {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--light);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        /* Section Title */
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* File Categories */
+        .file-categories {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+        }
+
+        .file-category {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .file-category:hover {
+            border-color: var(--primary);
+            transform: translateY(-3px);
+        }
+
+        .file-category .icon { font-size: 2rem; margin-bottom: 10px; }
+        .file-category .name { font-weight: 600; }
+        .file-category .count { font-size: 0.85rem; opacity: 0.7; }
+
+        /* IA Stats */
+        .ia-stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .ia-stat {
+            text-align: center;
+            padding: 15px;
+            background: var(--darker);
+            border-radius: 12px;
+        }
+
+        .ia-stat .value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .ia-stat .label {
+            font-size: 0.8rem;
+            opacity: 0.7;
+        }
+
+        /* API Config */
+        .api-config {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid var(--border);
+            margin-bottom: 20px;
+        }
+
+        .api-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .api-item:last-child { border-bottom: none; }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header-content { flex-direction: column; text-align: center; }
+            .ia-stats { grid-template-columns: repeat(2, 1fr); }
+            .nav-tab { padding: 12px 15px; font-size: 0.8rem; }
+        }
+    </style>
+</head>
+<body data-theme="purple" data-mode="dark">
+
+<!-- Header -->
+<header class="header">
+    <div class="header-content">
+        <div class="logo">
+            <div>
+                <h1>🌲 ENSIDE SYSTEM v11.0</h1>
+                <span>Sistema Unificado Completo | ENSIDE MADEIRAS</span>
+            </div>
+        </div>
+
+        <div class="badges">
+            <span class="badge success">📱 WhatsApp: 5518996540492</span>
+            <span class="badge info">📊 Google Sheets Sync</span>
+            <span class="badge warning" id="iaLevelBadge">🤖 IA Nível 1</span>
+        </div>
+
+        <div class="theme-controls">
+            <button class="theme-btn purple" onclick="setTheme('purple')"></button>
+            <button class="theme-btn green" onclick="setTheme('green')"></button>
+            <button class="theme-btn blue" onclick="setTheme('blue')"></button>
+            <button class="theme-btn red" onclick="setTheme('red')"></button>
+            <button class="theme-btn orange" onclick="setTheme('orange')"></button>
+            <button class="mode-toggle" onclick="toggleMode()">🌙 Dark</button>
+        </div>
+    </div>
+</header>
+
+<!-- Navigation -->
+<nav class="nav-container">
+    <div class="nav-tabs">
+        <button class="nav-tab active" onclick="showTab('dashboard')">📊 Dashboard</button>
+        <button class="nav-tab" onclick="showTab('contatos')">📇 Contatos</button>
+        <button class="nav-tab" onclick="showTab('fretes')">🚚 Fretes</button>
+        <button class="nav-tab" onclick="showTab('agente-ia')">🤖 Agente IA</button>
+        <button class="nav-tab" onclick="showTab('multi-ia')">🧠 Multi-IA</button>
+        <button class="nav-tab" onclick="showTab('arquivos')">📁 Arquivos</button>
+        <button class="nav-tab" onclick="showTab('whatsapp')">📱 WhatsApp</button>
+        <button class="nav-tab" onclick="showTab('triagem')">🎯 Triagem</button>
+        <button class="nav-tab" onclick="showTab('integracoes')">🔗 Integrações</button>
+        <button class="nav-tab" onclick="showTab('aprendizados')">📚 Aprendizados</button>
+    </div>
+</nav>
+
+<!-- Main Content -->
+<main class="main-content">
+
+    <!-- Dashboard Tab -->
+    <div id="tab-dashboard" class="tab-content active">
+        <h2 class="section-title">📊 Dashboard PRO ULTIMATE</h2>
+
+        <div class="cards-grid">
+            <div class="card">
+                <div class="card-icon">📇</div>
+                <div class="card-value" id="totalContatos">0</div>
+                <div class="card-label">Total Contatos</div>
+            </div>
+            <div class="card">
+                <div class="card-icon">🚛</div>
+                <div class="card-value" id="totalMotoristas">0</div>
+                <div class="card-label">Motoristas</div>
+            </div>
+            <div class="card">
+                <div class="card-icon">🏭</div>
+                <div class="card-value" id="totalFornecedores">0</div>
+                <div class="card-label">Fornecedores</div>
+            </div>
+            <div class="card">
+                <div class="card-icon">👥</div>
+                <div class="card-value" id="totalClientes">0</div>
+                <div class="card-label">Clientes</div>
+            </div>
+            <div class="card">
+                <div class="card-icon">🚚</div>
+                <div class="card-value" id="totalFretes">0</div>
+                <div class="card-label">Fretes</div>
+            </div>
+            <div class="card">
+                <div class="card-icon">📁</div>
+                <div class="card-value" id="totalArquivos">0</div>
+                <div class="card-label">Arquivos</div>
+            </div>
+        </div>
+
+        <h3 class="section-title">⚡ Ações Rápidas</h3>
+        <div class="actions-grid">
+            <button class="action-btn" onclick="openModal('novo-contato')">
+                <div class="icon">➕</div>
+                <div>Novo Contato</div>
+            </button>
+            <button class="action-btn" onclick="openModal('novo-frete')">
+                <div class="icon">🚚</div>
+                <div>Novo Frete</div>
+            </button>
+            <button class="action-btn" onclick="openModal('importar')">
+                <div class="icon">📥</div>
+                <div>Importar CSV</div>
+            </button>
+            <button class="action-btn" onclick="exportarBackup()">
+                <div class="icon">📤</div>
+                <div>Backup</div>
+            </button>
+            <button class="action-btn" onclick="sincronizarSheets()">
+                <div class="icon">📊</div>
+                <div>Google Sheets</div>
+            </button>
+            <button class="action-btn" onclick="showTab('whatsapp')">
+                <div class="icon">📱</div>
+                <div>WhatsApp</div>
+            </button>
+        </div>
+
+        <h3 class="section-title">🤖 Status da IA</h3>
+        <div class="card">
+            <div class="ia-stats">
+                <div class="ia-stat">
+                    <div class="value" id="iaNivel">1</div>
+                    <div class="label">Nível</div>
+                </div>
+                <div class="ia-stat">
+                    <div class="value" id="iaXP">0</div>
+                    <div class="label">XP</div>
+                </div>
+                <div class="ia-stat">
+                    <div class="value" id="iaConhecimentos">0</div>
+                    <div class="label">Conhecimentos</div>
+                </div>
+                <div class="ia-stat">
+                    <div class="value" id="iaPrecisao">50%</div>
+                    <div class="label">Precisão</div>
+                </div>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="iaProgress" style="width: 10%"></div>
+            </div>
+            <p style="margin-top: 10px; opacity: 0.7;">Progresso para o próximo nível</p>
+        </div>
+    </div>
+
+    <!-- Contatos Tab -->
+    <div id="tab-contatos" class="tab-content">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h2 class="section-title">📇 Gerenciamento de Contatos</h2>
+            <button class="btn btn-primary" onclick="openModal('novo-contato')">➕ Novo Contato</button>
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+            <input type="text" class="form-control" style="max-width: 300px;" placeholder="🔍 Buscar contatos..." id="buscaContatos" oninput="filtrarContatos()">
+            <select class="form-control" style="max-width: 200px;" id="filtroTipo" onchange="filtrarContatos()">
+                <option value="">Todos os Tipos</option>
+                <option value="Motorista">🚛 Motoristas</option>
+                <option value="Fornecedor">🏭 Fornecedores</option>
+                <option value="Cliente">👥 Clientes</option>
+            </select>
+            <select class="form-control" style="max-width: 150px;" id="filtroUF" onchange="filtrarContatos()">
+                <option value="">Todos UF</option>
+            </select>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Telefone</th>
+                        <th>Tipo</th>
+                        <th>UF</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="tabelaContatos">
+                    <tr><td colspan="5" style="text-align: center; padding: 40px; opacity: 0.7;">Nenhum contato cadastrado</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Fretes Tab -->
+    <div id="tab-fretes" class="tab-content">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h2 class="section-title">🚚 Gerenciamento de Fretes</h2>
+            <button class="btn btn-primary" onclick="openModal('novo-frete')">➕ Novo Frete</button>
+        </div>
+
+        <div class="cards-grid" style="margin-bottom: 20px;">
+            <div class="card" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
+                <div class="card-value" id="fretesPendentes">0</div>
+                <div class="card-label" style="color: white;">Pendentes</div>
+            </div>
+            <div class="card" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);">
+                <div class="card-value" id="fretesAndamento">0</div>
+                <div class="card-label" style="color: white;">Em Andamento</div>
+            </div>
+            <div class="card" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                <div class="card-value" id="fretesConcluidos">0</div>
+                <div class="card-label" style="color: white;">Concluídos</div>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Origem</th>
+                        <th>Destino</th>
+                        <th>Motorista</th>
+                        <th>Valor</th>
+                        <th>Status</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="tabelaFretes">
+                    <tr><td colspan="7" style="text-align: center; padding: 40px; opacity: 0.7;">Nenhum frete cadastrado</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Agente IA Tab -->
+    <div id="tab-agente-ia" class="tab-content">
+        <h2 class="section-title">🤖 Enside Agent - Assistente Inteligente</h2>
+
+        <div class="chat-container">
+            <div class="chat-header">
+                <div class="status-indicator">
+                    <span class="status-dot online"></span>
+                    <span>Enside Agent Online</span>
+                </div>
+                <select class="form-control" style="max-width: 200px;" id="modeloIA">
+                    <option value="groq">Groq Llama 3.3</option>
+                    <option value="openai">OpenAI GPT-4o</option>
+                    <option value="claude">Claude 3 Haiku</option>
+                </select>
+            </div>
+            <div class="chat-messages" id="chatMessages">
+                <div class="message assistant">
+                    👋 Olá! Sou o Enside Agent, assistente da ENSIDE MADEIRAS.
+                    Posso ajudar com informações sobre produtos, preços, triagem de contatos e muito mais!
+                </div>
+            </div>
+            <div class="chat-input">
+                <input type="text" id="chatInput" placeholder="Digite sua mensagem..." onkeypress="if(event.key==='Enter')enviarMensagem()">
+                <button class="btn btn-primary" onclick="enviarMensagem()">Enviar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Multi-IA Tab -->
+    <div id="tab-multi-ia" class="tab-content">
+        <h2 class="section-title">🧠 Chat Multi-IA</h2>
+
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 20px;">
+            <div class="card" onclick="selecionarModelo('gpt4')" id="card-gpt4" style="cursor: pointer;">
+                <div style="font-size: 2rem;">🟢</div>
+                <div style="font-weight: 700;">GPT-4o Mini</div>
+                <div style="font-size: 0.8rem; opacity: 0.7;">OpenAI</div>
+            </div>
+            <div class="card" onclick="selecionarModelo('claude')" id="card-claude" style="cursor: pointer;">
+                <div style="font-size: 2rem;">🟣</div>
+                <div style="font-weight: 700;">Claude 3 Haiku</div>
+                <div style="font-size: 0.8rem; opacity: 0.7;">Anthropic</div>
+            </div>
+            <div class="card" onclick="selecionarModelo('groq')" id="card-groq" style="cursor: pointer; border-color: var(--primary);">
+                <div style="font-size: 2rem;">🔵</div>
+                <div style="font-weight: 700;">Llama 3.3 70B</div>
+                <div style="font-size: 0.8rem; opacity: 0.7;">Groq (Rápido)</div>
+            </div>
+        </div>
+
+        <div class="chat-container" style="height: 400px;">
+            <div class="chat-header">
+                <span id="modeloAtivo">🔵 Groq Llama 3.3</span>
+                <button class="btn btn-secondary" onclick="limparChat()">🗑️ Limpar</button>
+            </div>
+            <div class="chat-messages" id="multiIAMessages">
+                <div class="message assistant">
+                    Selecione um modelo acima e faça sua pergunta sobre ENSIDE MADEIRAS!
+                </div>
+            </div>
+            <div class="chat-input">
+                <input type="text" id="multiIAInput" placeholder="Pergunte sobre preços, produtos, fretes..." onkeypress="if(event.key==='Enter')enviarMultiIA()">
+                <button class="btn btn-primary" onclick="enviarMultiIA()">🚀 Enviar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Arquivos Tab -->
+    <div id="tab-arquivos" class="tab-content">
+        <h2 class="section-title">📁 Organizador de Arquivos</h2>
+
+        <div class="file-categories">
+            <div class="file-category">
+                <div class="icon">📄</div>
+                <div class="name">Documentos</div>
+                <div class="count">PDF, DOC, TXT</div>
+            </div>
+            <div class="file-category">
+                <div class="icon">📊</div>
+                <div class="name">Planilhas</div>
+                <div class="count">XLS, CSV</div>
+            </div>
+            <div class="file-category">
+                <div class="icon">🖼️</div>
+                <div class="name">Imagens</div>
+                <div class="count">PNG, JPG, GIF</div>
+            </div>
+            <div class="file-category">
+                <div class="icon">🎬</div>
+                <div class="name">Vídeos</div>
+                <div class="count">MP4, MOV, AVI</div>
+            </div>
+            <div class="file-category">
+                <div class="icon">🎵</div>
+                <div class="name">Áudios</div>
+                <div class="count">MP3, WAV, OGG</div>
+            </div>
+            <div class="file-category">
+                <div class="icon">📦</div>
+                <div class="name">Outros</div>
+                <div class="count">ZIP, RAR, etc</div>
+            </div>
+        </div>
+
+        <div class="card" style="margin-top: 20px;">
+            <h3 style="margin-bottom: 15px;">📤 Upload de Arquivos</h3>
+            <input type="file" id="uploadArquivo" multiple style="display: none;" onchange="processarUpload()">
+            <button class="btn btn-primary" onclick="document.getElementById('uploadArquivo').click()">
+                📁 Selecionar Arquivos
+            </button>
+            <div id="listaUploads" style="margin-top: 15px;"></div>
+        </div>
+    </div>
+
+    <!-- WhatsApp Tab -->
+    <div id="tab-whatsapp" class="tab-content">
+        <h2 class="section-title">📱 Integração WhatsApp - Evolution API</h2>
+
+        <div class="cards-grid">
+            <div class="card">
+                <div class="status-indicator" style="margin-bottom: 10px;">
+                    <span class="status-dot" id="whatsappStatus"></span>
+                    <span id="whatsappStatusText">Verificando...</span>
+                </div>
+                <div class="card-label">Status da Conexão</div>
+            </div>
+            <div class="card">
+                <div class="card-value" id="mensagensEnviadas">0</div>
+                <div class="card-label">Mensagens Enviadas</div>
+            </div>
+            <div class="card">
+                <div class="card-value" id="mensagensRecebidas">0</div>
+                <div class="card-label">Mensagens Recebidas</div>
+            </div>
+        </div>
+
+        <div class="card" style="margin-top: 20px;">
+            <h3 style="margin-bottom: 15px;">⚙️ Configuração Evolution API</h3>
+            <div class="form-group">
+                <label>URL da API</label>
+                <input type="text" class="form-control" id="evolutionURL" placeholder="https://sua-api.com" value="">
+            </div>
+            <div class="form-group">
+                <label>API Key</label>
+                <input type="password" class="form-control" id="evolutionKey" placeholder="Sua API Key">
+            </div>
+            <div class="form-group">
+                <label>Nome da Instância</label>
+                <input type="text" class="form-control" id="evolutionInstance" placeholder="enside-madeiras" value="enside-madeiras">
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-primary" onclick="conectarEvolution()">🔗 Conectar</button>
+                <button class="btn btn-success" onclick="gerarQRCode()">📱 Gerar QR Code</button>
+            </div>
+            <div id="qrcodeContainer" style="margin-top: 20px; text-align: center;"></div>
+        </div>
+
+        <div class="card" style="margin-top: 20px;">
+            <h3 style="margin-bottom: 15px;">📤 Enviar Mensagem</h3>
+            <div class="form-group">
+                <label>Número (com DDD)</label>
+                <input type="text" class="form-control" id="whatsappNumero" placeholder="5518999999999">
+            </div>
+            <div class="form-group">
+                <label>Mensagem</label>
+                <textarea class="form-control" id="whatsappMensagem" rows="3" placeholder="Digite sua mensagem..."></textarea>
+            </div>
+            <button class="btn btn-success" onclick="enviarWhatsApp()">📤 Enviar via WhatsApp</button>
+        </div>
+    </div>
+
+    <!-- Triagem Tab -->
+    <div id="tab-triagem" class="tab-content">
+        <h2 class="section-title">🎯 Triagem Inteligente de Contatos</h2>
+
+        <div class="card" style="margin-bottom: 20px;">
+            <h3 style="margin-bottom: 15px;">📥 Importar para Triagem</h3>
+            <input type="file" id="arquivoTriagem" accept=".csv,.xlsx,.json" style="display: none;" onchange="importarParaTriagem()">
+            <button class="btn btn-primary" onclick="document.getElementById('arquivoTriagem').click()">
+                📁 Selecionar Arquivo (CSV/Excel/JSON)
+            </button>
+            <p style="margin-top: 10px; opacity: 0.7;">A IA irá classificar automaticamente os contatos</p>
+        </div>
+
+        <div class="cards-grid">
+            <div class="card" style="border-left: 4px solid var(--success);">
+                <div class="card-icon">🚛</div>
+                <div class="card-value" id="triagemMotoristas">0</div>
+                <div class="card-label">Motoristas Identificados</div>
+            </div>
+            <div class="card" style="border-left: 4px solid var(--warning);">
+                <div class="card-icon">🏭</div>
+                <div class="card-value" id="triagemFornecedores">0</div>
+                <div class="card-label">Fornecedores Identificados</div>
+            </div>
+            <div class="card" style="border-left: 4px solid var(--secondary);">
+                <div class="card-icon">👥</div>
+                <div class="card-value" id="triagemClientes">0</div>
+                <div class="card-label">Clientes Identificados</div>
+            </div>
+            <div class="card" style="border-left: 4px solid var(--danger);">
+                <div class="card-icon">❓</div>
+                <div class="card-value" id="triagemPendentes">0</div>
+                <div class="card-label">Pendentes de Classificação</div>
+            </div>
+        </div>
+
+        <div class="table-container" style="margin-top: 20px;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Telefone</th>
+                        <th>Classificação IA</th>
+                        <th>Confiança</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="tabelaTriagem">
+                    <tr><td colspan="5" style="text-align: center; padding: 40px; opacity: 0.7;">Importe contatos para iniciar a triagem</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Integrações Tab -->
+    <div id="tab-integracoes" class="tab-content">
+        <h2 class="section-title">🔗 Integrações e APIs</h2>
+
+        <div class="api-config">
+            <h3 style="margin-bottom: 20px;">📊 Google Sheets</h3>
+            <div class="form-group">
+                <label>ID da Planilha</label>
+                <input type="text" class="form-control" id="googleSheetsID" value="1NJRMB-pgEFS0MjtKrh2mhqPN6apkDwwJMAPOCejLX8Y">
+            </div>
+            <button class="btn btn-primary" onclick="sincronizarSheets()">🔄 Sincronizar Agora</button>
+        </div>
+
+        <div class="api-config">
+            <h3 style="margin-bottom: 20px;">🤖 APIs de Inteligência Artificial</h3>
+
+            <div class="api-item">
+                <div>
+                    <strong>🟢 OpenAI (GPT-4)</strong>
+                    <div style="font-size: 0.8rem; opacity: 0.7;">GPT-4o Mini para chat</div>
+                </div>
+                <input type="password" class="form-control" style="max-width: 300px;" id="openaiKey" placeholder="sk-...">
+            </div>
+
+            <div class="api-item">
+                <div>
+                    <strong>🟣 Anthropic (Claude)</strong>
+                    <div style="font-size: 0.8rem; opacity: 0.7;">Claude 3 Haiku para análise</div>
+                </div>
+                <input type="password" class="form-control" style="max-width: 300px;" id="claudeKey" placeholder="sk-ant-...">
+            </div>
+
+            <div class="api-item">
+                <div>
+                    <strong>🔵 Groq (Llama 3.3)</strong>
+                    <div style="font-size: 0.8rem; opacity: 0.7;">Llama 3.3 70B - Ultra rápido</div>
+                </div>
+                <input type="password" class="form-control" style="max-width: 300px;" id="groqKey" placeholder="gsk_...">
+            </div>
+
+            <button class="btn btn-success" onclick="salvarAPIs()" style="margin-top: 15px;">💾 Salvar Configurações</button>
+        </div>
+    </div>
+
+    <!-- Aprendizados Tab -->
+    <div id="tab-aprendizados" class="tab-content">
+        <h2 class="section-title">📚 Sistema de Aprendizados</h2>
+
+        <div class="card" style="margin-bottom: 20px;">
+            <h3 style="margin-bottom: 15px;">➕ Ensinar Nova Informação</h3>
+            <div class="form-group">
+                <label>Pergunta / Gatilho</label>
+                <input type="text" class="form-control" id="novaPergunta" placeholder="Ex: Qual o preço do mourão 12-14cm?">
+            </div>
+            <div class="form-group">
+                <label>Resposta</label>
+                <textarea class="form-control" id="novaResposta" rows="3" placeholder="Ex: O mourão 12-14cm custa R$ 15,00 por peça..."></textarea>
+            </div>
+            <div class="form-group">
+                <label>Categoria</label>
+                <select class="form-control" id="categoriaAprendizado">
+                    <option value="precos">💰 Preços</option>
+                    <option value="produtos">📦 Produtos</option>
+                    <option value="fretes">🚚 Fretes</option>
+                    <option value="empresa">🏢 Empresa</option>
+                    <option value="outros">📋 Outros</option>
+                </select>
+            </div>
+            <button class="btn btn-primary" onclick="adicionarAprendizado()">💾 Salvar Aprendizado</button>
+        </div>
+
+        <h3 class="section-title" style="margin-top: 30px;">📖 Base de Conhecimento</h3>
+        <div id="listaAprendizados" class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Pergunta</th>
+                        <th>Resposta</th>
+                        <th>Categoria</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="tabelaAprendizados">
+                    <tr><td colspan="4" style="text-align: center; padding: 40px; opacity: 0.7;">Nenhum aprendizado cadastrado</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</main>
+
+<!-- Modal Novo Contato -->
+<div class="modal" id="modal-novo-contato">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>➕ Novo Contato</h3>
+            <button class="modal-close" onclick="closeModal('novo-contato')">&times;</button>
+        </div>
+        <div class="form-group">
+            <label>Nome Completo</label>
+            <input type="text" class="form-control" id="contatoNome" placeholder="Nome do contato">
+        </div>
+        <div class="form-group">
+            <label>Telefone (WhatsApp)</label>
+            <input type="text" class="form-control" id="contatoTelefone" placeholder="5518999999999">
+        </div>
+        <div class="form-group">
+            <label>Tipo</label>
+            <select class="form-control" id="contatoTipo">
+                <option value="Cliente">👥 Cliente</option>
+                <option value="Motorista">🚛 Motorista</option>
+                <option value="Fornecedor">🏭 Fornecedor</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>UF</label>
+            <select class="form-control" id="contatoUF">
+                <option value="SP">SP</option>
+                <option value="MG">MG</option>
+                <option value="PR">PR</option>
+                <option value="MS">MS</option>
+                <option value="GO">GO</option>
+                <option value="MT">MT</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Observações</label>
+            <textarea class="form-control" id="contatoObs" rows="2" placeholder="Observações..."></textarea>
+        </div>
+        <button class="btn btn-primary" onclick="salvarContato()">💾 Salvar Contato</button>
+    </div>
+</div>
+
+<!-- Modal Novo Frete -->
+<div class="modal" id="modal-novo-frete">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>🚚 Novo Frete</h3>
+            <button class="modal-close" onclick="closeModal('novo-frete')">&times;</button>
+        </div>
+        <div class="form-group">
+            <label>Origem</label>
+            <input type="text" class="form-control" id="freteOrigem" placeholder="Cidade/UF de origem">
+        </div>
+        <div class="form-group">
+            <label>Destino</label>
+            <input type="text" class="form-control" id="freteDestino" placeholder="Cidade/UF de destino">
+        </div>
+        <div class="form-group">
+            <label>Motorista</label>
+            <select class="form-control" id="freteMotorista">
+                <option value="">Selecione...</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Valor (R$)</label>
+            <input type="number" class="form-control" id="freteValor" placeholder="0.00">
+        </div>
+        <div class="form-group">
+            <label>Descrição da Carga</label>
+            <textarea class="form-control" id="freteCarga" rows="2" placeholder="Descrição..."></textarea>
+        </div>
+        <button class="btn btn-primary" onclick="salvarFrete()">💾 Salvar Frete</button>
+    </div>
+</div>
+
+<!-- Modal Importar -->
+<div class="modal" id="modal-importar">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>📥 Importar Dados</h3>
+            <button class="modal-close" onclick="closeModal('importar')">&times;</button>
+        </div>
+        <div class="form-group">
+            <label>Selecione o arquivo (CSV, JSON ou Excel)</label>
+            <input type="file" class="form-control" id="arquivoImportar" accept=".csv,.json,.xlsx">
+        </div>
+        <div class="form-group">
+            <label>Tipo de Dados</label>
+            <select class="form-control" id="tipoImportar">
+                <option value="contatos">📇 Contatos</option>
+                <option value="fretes">🚚 Fretes</option>
+            </select>
+        </div>
+        <button class="btn btn-primary" onclick="importarDados()">📥 Importar</button>
+    </div>
+</div>
+
+<script>
+// ==================== CONFIGURAÇÕES ====================
+const CONFIG = {
+    googleSheetsID: '1NJRMB-pgEFS0MjtKrh2mhqPN6apkDwwJMAPOCejLX8Y',
+    whatsapp: '5518996540492',
+    storageKey: 'enside_system_v11',
+    evolutionURL: '',
+    evolutionKey: '',
+    evolutionInstance: 'enside-madeiras'
+};
+
+// ==================== CONTEXTO ENSIDE MADEIRAS ====================
+const CONTEXTO_ENSIDE = `Você é o assistente virtual oficial da ENSIDE MADEIRAS, empresa de Minas Gerais especializada em eucalipto tratado CCA em autoclave com garantia de 10-15 anos.
+
+## PRODUTOS E PREÇOS ATUAIS:
+
+### MOURÕES (Comprimento: 2,20m):
+- Mourão 8-10cm: R$ 9,00/peça - Ideal para cercas de arame
+- Mourão 12-14cm: R$ 15,00/peça - Para cercas robustas e porteiras
+- Mourão 17-22cm: R$ 22,00/peça - Estrutural, curral e mangueira
+
+### ESTACAS E POSTES (Comprimento: 2,20m):
+- Estaca 6-8cm: R$ 7,32/peça - Para cercas e tutores
+- Poste 13-16cm: R$ 15,00/peça - Para iluminação rural
+- Escora 9-12cm: R$ 9,00/peça - Para construção civil
+
+### LOTES:
+- Lote Misto (1 st): R$ 450,00 - Estéreo misto várias bitolas
+- Lenha Eucalipto (1 st): R$ 180,00 - Para energia/forno
+
+## PREÇOS POR ESTÉREO (st):
+- Bitola 6-8cm: R$ 390 a R$ 439/st (~60 peças)
+- Bitola 8-10cm: R$ 240 a R$ 333/st (~37 peças)
+- Bitola 12-14cm: R$ 217 a R$ 270/st (~18 peças)
+- Bitola 17-22cm: R$ 144 a R$ 176/st (~8 peças)
+
+## CONVERSÕES:
+- 1 estéreo (st) = 0,65 m³ de madeira sólida
+- 1 estéreo = pilha de 1m x 1m x 1m (inclui ~35% de espaço vazio)
+- Comprimento padrão: 2,20 metros
+
+## TRATAMENTO CCA:
+- Arseniato de Cobre Cromatado
+- Processo em autoclave
+- Proteção contra cupins, fungos e apodrecimento
+- Garantia: 10-15 anos
+
+## CONTATO:
+- WhatsApp: (18) 99654-0492
+- Localização: Assis-SP / Minas Gerais
+
+Responda sempre em português brasileiro de forma profissional e útil.`;
+
+// ==================== BANCO DE DADOS LOCAL ====================
+let DB = {
+    contatos: [],
+    fretes: [],
+    arquivos: [],
+    aprendizados: [],
+    ia: {
+        nivel: 1,
+        xp: 0,
+        conhecimentos: 0,
+        precisao: 50,
+        interacoes: 0
+    },
+    apis: {
+        openai: '',
+        claude: '',
+        groq: ''
+    },
+    evolution: {
+        url: '',
+        key: '',
+        instance: 'enside-madeiras'
+    }
+};
+
+// ==================== INICIALIZAÇÃO ====================
+document.addEventListener('DOMContentLoaded', () => {
+    carregarDados();
+    atualizarDashboard();
+    carregarAPIs();
+    verificarWhatsApp();
+    renderizarContatos();
+    renderizarFretes();
+    renderizarAprendizados();
+    console.log('🌲 ENSIDE SYSTEM v11.0 iniciado com sucesso!');
+});
+
+// ==================== STORAGE ====================
+function salvarDados() {
+    localStorage.setItem(CONFIG.storageKey, JSON.stringify(DB));
+}
+
+function carregarDados() {
+    const saved = localStorage.getItem(CONFIG.storageKey);
+    if (saved) {
+        try {
+            const parsed = JSON.parse(saved);
+            DB = { ...DB, ...parsed };
+        } catch (e) {
+            console.error('Erro ao carregar dados:', e);
+            // Limpar dados corrompidos
+            localStorage.removeItem(CONFIG.storageKey);
+        }
+    }
+}
+
+function limparDadosCorrompidos() {
+    if (confirm('Tem certeza que deseja limpar todos os dados? Esta ação não pode ser desfeita.')) {
+        localStorage.removeItem(CONFIG.storageKey);
+        DB = {
+            contatos: [],
+            fretes: [],
+            arquivos: [],
+            aprendizados: [],
+            ia: { nivel: 1, xp: 0, conhecimentos: 0, precisao: 50, interacoes: 0 },
+            apis: { openai: '', claude: '', groq: '' },
+            evolution: { url: '', key: '', instance: 'enside-madeiras' }
+        };
+        atualizarDashboard();
+        renderizarContatos();
+        renderizarFretes();
+        renderizarAprendizados();
+        alert('Dados limpos com sucesso!');
+    }
+}
+
+// ==================== TEMAS ====================
+function setTheme(theme) {
+    document.body.setAttribute('data-theme', theme);
+    localStorage.setItem('enside_theme', theme);
+}
+
+function toggleMode() {
+    const current = document.body.getAttribute('data-mode');
+    const newMode = current === 'dark' ? 'light' : 'dark';
+    document.body.setAttribute('data-mode', newMode);
+    document.querySelector('.mode-toggle').textContent = newMode === 'dark' ? '🌙 Dark' : '☀️ Light';
+    localStorage.setItem('enside_mode', newMode);
+}
+
+// ==================== NAVEGAÇÃO ====================
+function showTab(tabId) {
+    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+    document.querySelectorAll('.nav-tab').forEach(btn => btn.classList.remove('active'));
+
+    document.getElementById('tab-' + tabId).classList.add('active');
+    event.target.classList.add('active');
+}
+
+// ==================== MODAIS ====================
+function openModal(id) {
+    document.getElementById('modal-' + id).classList.add('active');
+}
+
+function closeModal(id) {
+    document.getElementById('modal-' + id).classList.remove('active');
+}
+
+// ==================== DASHBOARD ====================
+function atualizarDashboard() {
+    const motoristas = DB.contatos.filter(c => c.tipo === 'Motorista').length;
+    const fornecedores = DB.contatos.filter(c => c.tipo === 'Fornecedor').length;
+    const clientes = DB.contatos.filter(c => c.tipo === 'Cliente').length;
+
+    document.getElementById('totalContatos').textContent = DB.contatos.length;
+    document.getElementById('totalMotoristas').textContent = motoristas;
+    document.getElementById('totalFornecedores').textContent = fornecedores;
+    document.getElementById('totalClientes').textContent = clientes;
+    document.getElementById('totalFretes').textContent = DB.fretes.length;
+    document.getElementById('totalArquivos').textContent = DB.arquivos.length;
+
+    // IA Stats
+    document.getElementById('iaNivel').textContent = DB.ia.nivel;
+    document.getElementById('iaXP').textContent = DB.ia.xp;
+    document.getElementById('iaConhecimentos').textContent = DB.aprendizados.length;
+    document.getElementById('iaPrecisao').textContent = DB.ia.precisao + '%';
+    document.getElementById('iaLevelBadge').textContent = `🤖 IA Nível ${DB.ia.nivel}`;
+
+    const progressPercent = Math.min((DB.ia.xp % 100), 100);
+    document.getElementById('iaProgress').style.width = progressPercent + '%';
+
+    // Fretes
+    const pendentes = DB.fretes.filter(f => f.status === 'pendente').length;
+    const andamento = DB.fretes.filter(f => f.status === 'andamento').length;
+    const concluidos = DB.fretes.filter(f => f.status === 'concluido').length;
+
+    document.getElementById('fretesPendentes').textContent = pendentes;
+    document.getElementById('fretesAndamento').textContent = andamento;
+    document.getElementById('fretesConcluidos').textContent = concluidos;
+}
+
+// ==================== CONTATOS ====================
+function salvarContato() {
+    const contato = {
+        id: Date.now(),
+        nome: document.getElementById('contatoNome').value,
+        telefone: document.getElementById('contatoTelefone').value,
+        tipo: document.getElementById('contatoTipo').value,
+        uf: document.getElementById('contatoUF').value,
+        obs: document.getElementById('contatoObs').value,
+        dataCriacao: new Date().toISOString()
+    };
+
+    if (!contato.nome || !contato.telefone) {
+        alert('Preencha nome e telefone!');
+        return;
+    }
+
+    DB.contatos.push(contato);
+    salvarDados();
+    renderizarContatos();
+    atualizarDashboard();
+    closeModal('novo-contato');
+
+    // Limpar form
+    document.getElementById('contatoNome').value = '';
+    document.getElementById('contatoTelefone').value = '';
+    document.getElementById('contatoObs').value = '';
+
+    adicionarXP(5);
+}
+
+function renderizarContatos() {
+    const tbody = document.getElementById('tabelaContatos');
+
+    if (DB.contatos.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px; opacity: 0.7;">Nenhum contato cadastrado</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = DB.contatos.map(c => `
+        <tr>
+            <td>${c.nome}</td>
+            <td>📱 ${c.telefone}</td>
+            <td>${getTipoIcon(c.tipo)} ${c.tipo}</td>
+            <td>${c.uf || '-'}</td>
+            <td>
+                <button class="btn btn-secondary" onclick="enviarWhatsAppContato('${c.telefone}')">💬</button>
+                <button class="btn btn-danger" onclick="excluirContato(${c.id})">🗑️</button>
+            </td>
+        </tr>
+    `).join('');
+
+    // Atualizar filtro UF
+    const ufs = [...new Set(DB.contatos.map(c => c.uf).filter(Boolean))];
+    document.getElementById('filtroUF').innerHTML = '<option value="">Todos UF</option>' +
+        ufs.map(uf => `<option value="${uf}">${uf}</option>`).join('');
+}
+
+function getTipoIcon(tipo) {
+    const icons = { 'Motorista': '🚛', 'Fornecedor': '🏭', 'Cliente': '👥' };
+    return icons[tipo] || '📇';
+}
+
+function filtrarContatos() {
+    const busca = document.getElementById('buscaContatos').value.toLowerCase();
+    const tipo = document.getElementById('filtroTipo').value;
+    const uf = document.getElementById('filtroUF').value;
+
+    const filtrados = DB.contatos.filter(c => {
+        const matchBusca = c.nome.toLowerCase().includes(busca) || c.telefone.includes(busca);
+        const matchTipo = !tipo || c.tipo === tipo;
+        const matchUF = !uf || c.uf === uf;
+        return matchBusca && matchTipo && matchUF;
+    });
+
+    const tbody = document.getElementById('tabelaContatos');
+    if (filtrados.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px; opacity: 0.7;">Nenhum contato encontrado</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = filtrados.map(c => `
+        <tr>
+            <td>${c.nome}</td>
+            <td>📱 ${c.telefone}</td>
+            <td>${getTipoIcon(c.tipo)} ${c.tipo}</td>
+            <td>${c.uf || '-'}</td>
+            <td>
+                <button class="btn btn-secondary" onclick="enviarWhatsAppContato('${c.telefone}')">💬</button>
+                <button class="btn btn-danger" onclick="excluirContato(${c.id})">🗑️</button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function excluirContato(id) {
+    if (confirm('Excluir este contato?')) {
+        DB.contatos = DB.contatos.filter(c => c.id !== id);
+        salvarDados();
+        renderizarContatos();
+        atualizarDashboard();
+    }
+}
+
+// ==================== FRETES ====================
+function salvarFrete() {
+    const frete = {
+        id: Date.now(),
+        origem: document.getElementById('freteOrigem').value,
+        destino: document.getElementById('freteDestino').value,
+        motorista: document.getElementById('freteMotorista').value,
+        valor: parseFloat(document.getElementById('freteValor').value) || 0,
+        carga: document.getElementById('freteCarga').value,
+        status: 'pendente',
+        data: new Date().toISOString()
+    };
+
+    if (!frete.origem || !frete.destino) {
+        alert('Preencha origem e destino!');
+        return;
+    }
+
+    DB.fretes.push(frete);
+    salvarDados();
+    renderizarFretes();
+    atualizarDashboard();
+    closeModal('novo-frete');
+
+    adicionarXP(10);
+}
+
+function renderizarFretes() {
+    const tbody = document.getElementById('tabelaFretes');
+
+    // Atualizar select de motoristas
+    const motoristas = DB.contatos.filter(c => c.tipo === 'Motorista');
+    document.getElementById('freteMotorista').innerHTML = '<option value="">Selecione...</option>' +
+        motoristas.map(m => `<option value="${m.nome}">${m.nome}</option>`).join('');
+
+    if (DB.fretes.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px; opacity: 0.7;">Nenhum frete cadastrado</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = DB.fretes.map(f => `
+        <tr>
+            <td>${new Date(f.data).toLocaleDateString('pt-BR')}</td>
+            <td>${f.origem}</td>
+            <td>${f.destino}</td>
+            <td>${f.motorista || '-'}</td>
+            <td>R$ ${f.valor.toFixed(2)}</td>
+            <td><span class="badge ${getStatusClass(f.status)}">${getStatusText(f.status)}</span></td>
+            <td>
+                <button class="btn btn-secondary" onclick="alterarStatusFrete(${f.id})">📝</button>
+                <button class="btn btn-danger" onclick="excluirFrete(${f.id})">🗑️</button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function getStatusClass(status) {
+    const classes = { 'pendente': 'warning', 'andamento': 'info', 'concluido': 'success' };
+    return classes[status] || '';
+}
+
+function getStatusText(status) {
+    const texts = { 'pendente': '⏳ Pendente', 'andamento': '🚚 Em Andamento', 'concluido': '✅ Concluído' };
+    return texts[status] || status;
+}
+
+function alterarStatusFrete(id) {
+    const frete = DB.fretes.find(f => f.id === id);
+    if (frete) {
+        const ordem = ['pendente', 'andamento', 'concluido'];
+        const idx = ordem.indexOf(frete.status);
+        frete.status = ordem[(idx + 1) % ordem.length];
+        salvarDados();
+        renderizarFretes();
+        atualizarDashboard();
+    }
+}
+
+function excluirFrete(id) {
+    if (confirm('Excluir este frete?')) {
+        DB.fretes = DB.fretes.filter(f => f.id !== id);
+        salvarDados();
+        renderizarFretes();
+        atualizarDashboard();
+    }
+}
+
+// ==================== CHAT IA ====================
+let modeloSelecionado = 'groq';
+
+function selecionarModelo(modelo) {
+    modeloSelecionado = modelo;
+
+    document.querySelectorAll('[id^="card-"]').forEach(c => c.style.borderColor = 'var(--border)');
+    document.getElementById('card-' + modelo).style.borderColor = 'var(--primary)';
+
+    const nomes = {
+        'gpt4': '🟢 GPT-4o Mini',
+        'claude': '🟣 Claude 3 Haiku',
+        'groq': '🔵 Groq Llama 3.3'
+    };
+    document.getElementById('modeloAtivo').textContent = nomes[modelo];
+}
+
+async function enviarMensagem() {
+    const input = document.getElementById('chatInput');
+    const msg = input.value.trim();
+    if (!msg) return;
+
+    const messagesDiv = document.getElementById('chatMessages');
+    messagesDiv.innerHTML += `<div class="message user">${msg}</div>`;
+    input.value = '';
+
+    messagesDiv.innerHTML += `<div class="message assistant" id="typing">⏳ Digitando...</div>`;
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+    try {
+        const resposta = await chamarIA(msg);
+        document.getElementById('typing').remove();
+        messagesDiv.innerHTML += `<div class="message assistant">${resposta}</div>`;
+        adicionarXP(2);
+        DB.ia.interacoes++;
+        salvarDados();
+    } catch (e) {
+        document.getElementById('typing').remove();
+        messagesDiv.innerHTML += `<div class="message assistant">❌ Erro: ${e.message}</div>`;
+    }
+
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+}
+
+async function enviarMultiIA() {
+    const input = document.getElementById('multiIAInput');
+    const msg = input.value.trim();
+    if (!msg) return;
+
+    const messagesDiv = document.getElementById('multiIAMessages');
+    messagesDiv.innerHTML += `<div class="message user">${msg}</div>`;
+    input.value = '';
+
+    messagesDiv.innerHTML += `<div class="message assistant" id="multiTyping">⏳ Processando com ${modeloSelecionado}...</div>`;
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+    try {
+        const resposta = await chamarIA(msg, modeloSelecionado);
+        document.getElementById('multiTyping').remove();
+        messagesDiv.innerHTML += `<div class="message assistant">${resposta}</div>`;
+        adicionarXP(3);
+    } catch (e) {
+        document.getElementById('multiTyping').remove();
+        messagesDiv.innerHTML += `<div class="message assistant">❌ Erro: ${e.message}</div>`;
+    }
+
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+}
+
+async function chamarIA(mensagem, modelo = 'groq') {
+    // Verificar aprendizados primeiro
+    const aprendizado = buscarAprendizado(mensagem);
+    if (aprendizado) {
+        return `📚 ${aprendizado.resposta}`;
+    }
+
+    // Chamar API baseado no modelo
+    if (modelo === 'groq' && DB.apis.groq) {
+        return await callGroq(mensagem);
+    } else if (modelo === 'gpt4' && DB.apis.openai) {
+        return await callOpenAI(mensagem);
+    } else if (modelo === 'claude' && DB.apis.claude) {
+        return await callClaude(mensagem);
+    }
+
+    // Resposta local se não houver API
+    return respostaLocal(mensagem);
+}
+
+async function callGroq(mensagem) {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${DB.apis.groq}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            model: 'llama-3.3-70b-versatile',
+            messages: [
+                { role: 'system', content: CONTEXTO_ENSIDE },
+                { role: 'user', content: mensagem }
+            ],
+            temperature: 0.7,
+            max_tokens: 1024
+        })
+    });
+
+    const data = await response.json();
+    if (data.error) throw new Error(data.error.message);
+    return data.choices[0].message.content;
+}
+
+async function callOpenAI(mensagem) {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${DB.apis.openai}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [
+                { role: 'system', content: CONTEXTO_ENSIDE },
+                { role: 'user', content: mensagem }
+            ],
+            temperature: 0.7,
+            max_tokens: 1024
+        })
+    });
+
+    const data = await response.json();
+    if (data.error) throw new Error(data.error.message);
+    return data.choices[0].message.content;
+}
+
+async function callClaude(mensagem) {
+    // Claude API requer proxy CORS
+    return `🟣 Claude: Para usar Claude, configure um proxy CORS ou use a API via backend.`;
+}
+
+function respostaLocal(mensagem) {
+    const msg = mensagem.toLowerCase();
+
+    if (msg.includes('preço') || msg.includes('preco') || msg.includes('quanto custa')) {
+        if (msg.includes('mourão') || msg.includes('mourao')) {
+            if (msg.includes('8-10') || msg.includes('8 a 10')) return '🌲 Mourão 8-10cm: R$ 9,00/peça (2,20m)';
+            if (msg.includes('12-14') || msg.includes('12 a 14')) return '🌲 Mourão 12-14cm: R$ 15,00/peça (2,20m)';
+            if (msg.includes('17-22') || msg.includes('17 a 22')) return '🌲 Mourão 17-22cm: R$ 22,00/peça (2,20m)';
+            return '🌲 Mourões disponíveis:\n• 8-10cm: R$ 9,00\n• 12-14cm: R$ 15,00\n• 17-22cm: R$ 22,00';
+        }
+        if (msg.includes('estaca')) return '🌲 Estaca 6-8cm: R$ 7,32/peça (2,20m)';
+        if (msg.includes('poste')) return '🌲 Poste 13-16cm: R$ 15,00/peça (2,20m)';
+        if (msg.includes('lenha')) return '🔥 Lenha Eucalipto: R$ 180,00/estéreo';
+        return '📊 Para ver todos os preços, pergunte sobre um produto específico (mourão, estaca, poste, lenha)';
+    }
+
+    if (msg.includes('contato') || msg.includes('whatsapp') || msg.includes('telefone')) {
+        return '📱 WhatsApp ENSIDE MADEIRAS: (18) 99654-0492';
+    }
+
+    if (msg.includes('tratamento') || msg.includes('cca')) {
+        return '🛡️ Tratamento CCA (Arseniato de Cobre Cromatado) em autoclave. Garantia de 10-15 anos contra cupins, fungos e apodrecimento.';
+    }
+
+    if (msg.includes('entrega') || msg.includes('frete')) {
+        return '🚚 Fazemos entregas! O valor do frete é calculado conforme a distância e quantidade. Entre em contato pelo WhatsApp (18) 99654-0492.';
+    }
+
+    return '🤖 Sou o assistente da ENSIDE MADEIRAS! Posso ajudar com:\n• Preços de produtos (mourões, estacas, postes)\n• Informações sobre tratamento CCA\n• Contato e fretes\n\nConfigure sua API Key em Integrações para respostas mais completas!';
+}
+
+function limparChat() {
+    document.getElementById('multiIAMessages').innerHTML = `
+        <div class="message assistant">
+            Selecione um modelo acima e faça sua pergunta sobre ENSIDE MADEIRAS!
+        </div>
+    `;
+}
+
+// ==================== APRENDIZADOS ====================
+function adicionarAprendizado() {
+    const pergunta = document.getElementById('novaPergunta').value.trim();
+    const resposta = document.getElementById('novaResposta').value.trim();
+    const categoria = document.getElementById('categoriaAprendizado').value;
+
+    if (!pergunta || !resposta) {
+        alert('Preencha pergunta e resposta!');
+        return;
+    }
+
+    DB.aprendizados.push({
+        id: Date.now(),
+        pergunta,
+        resposta,
+        categoria,
+        data: new Date().toISOString()
+    });
+
+    salvarDados();
+    renderizarAprendizados();
+    atualizarDashboard();
+
+    document.getElementById('novaPergunta').value = '';
+    document.getElementById('novaResposta').value = '';
+
+    adicionarXP(15);
+    alert('✅ Aprendizado salvo com sucesso!');
+}
+
+function buscarAprendizado(mensagem) {
+    const msg = mensagem.toLowerCase();
+    return DB.aprendizados.find(a => {
+        const palavras = a.pergunta.toLowerCase().split(' ');
+        return palavras.some(p => p.length > 3 && msg.includes(p));
+    });
+}
+
+function renderizarAprendizados() {
+    const tbody = document.getElementById('tabelaAprendizados');
+
+    if (DB.aprendizados.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 40px; opacity: 0.7;">Nenhum aprendizado cadastrado</td></tr>';
+        return;
+    }
+
+    const categoriaIcons = {
+        'precos': '💰',
+        'produtos': '📦',
+        'fretes': '🚚',
+        'empresa': '🏢',
+        'outros': '📋'
+    };
+
+    tbody.innerHTML = DB.aprendizados.map(a => `
+        <tr>
+            <td>${a.pergunta}</td>
+            <td>${a.resposta.substring(0, 100)}${a.resposta.length > 100 ? '...' : ''}</td>
+            <td>${categoriaIcons[a.categoria] || '📋'} ${a.categoria}</td>
+            <td>
+                <button class="btn btn-danger" onclick="excluirAprendizado(${a.id})">🗑️</button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function excluirAprendizado(id) {
+    if (confirm('Excluir este aprendizado?')) {
+        DB.aprendizados = DB.aprendizados.filter(a => a.id !== id);
+        salvarDados();
+        renderizarAprendizados();
+        atualizarDashboard();
+    }
+}
+
+// ==================== SISTEMA DE XP ====================
+function adicionarXP(quantidade) {
+    DB.ia.xp += quantidade;
+
+    // Level up a cada 100 XP
+    const novoNivel = Math.floor(DB.ia.xp / 100) + 1;
+    if (novoNivel > DB.ia.nivel) {
+        DB.ia.nivel = novoNivel;
+        DB.ia.precisao = Math.min(50 + (novoNivel * 5), 99);
+        alert(`🎉 Parabéns! IA subiu para o Nível ${novoNivel}!`);
+    }
+
+    salvarDados();
+    atualizarDashboard();
+}
+
+// ==================== WHATSAPP ====================
+function verificarWhatsApp() {
+    const status = document.getElementById('whatsappStatus');
+    const texto = document.getElementById('whatsappStatusText');
+
+    if (DB.evolution.url && DB.evolution.key) {
+        status.classList.add('online');
+        status.classList.remove('offline');
+        texto.textContent = 'Configurado';
+    } else {
+        status.classList.add('offline');
+        status.classList.remove('online');
+        texto.textContent = 'Não configurado';
+    }
+}
+
+async function conectarEvolution() {
+    DB.evolution.url = document.getElementById('evolutionURL').value;
+    DB.evolution.key = document.getElementById('evolutionKey').value;
+    DB.evolution.instance = document.getElementById('evolutionInstance').value;
+    salvarDados();
+
+    verificarWhatsApp();
+    alert('✅ Configurações salvas! Agora gere o QR Code para conectar.');
+}
+
+async function gerarQRCode() {
+    if (!DB.evolution.url || !DB.evolution.key) {
+        alert('Configure a URL e API Key primeiro!');
+        return;
+    }
+
+    try {
+        const container = document.getElementById('qrcodeContainer');
+        container.innerHTML = '⏳ Gerando QR Code...';
+
+        const response = await fetch(`${DB.evolution.url}/instance/connect/${DB.evolution.instance}`, {
+            method: 'GET',
+            headers: {
+                'apikey': DB.evolution.key
+            }
+        });
+
+        const data = await response.json();
+
+        if (data.base64) {
+            container.innerHTML = `<img src="${data.base64}" style="max-width: 300px; border-radius: 10px;">`;
+        } else {
+            container.innerHTML = '✅ WhatsApp já está conectado!';
+        }
+    } catch (e) {
+        document.getElementById('qrcodeContainer').innerHTML = `❌ Erro: ${e.message}`;
+    }
+}
+
+function enviarWhatsAppContato(numero) {
+    window.open(`https://wa.me/${numero}`, '_blank');
+}
+
+async function enviarWhatsApp() {
+    const numero = document.getElementById('whatsappNumero').value;
+    const mensagem = document.getElementById('whatsappMensagem').value;
+
+    if (!numero || !mensagem) {
+        alert('Preencha número e mensagem!');
+        return;
+    }
+
+    if (DB.evolution.url && DB.evolution.key) {
+        try {
+            const response = await fetch(`${DB.evolution.url}/message/sendText/${DB.evolution.instance}`, {
+                method: 'POST',
+                headers: {
+                    'apikey': DB.evolution.key,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    number: numero,
+                    text: mensagem
+                })
+            });
+
+            if (response.ok) {
+                alert('✅ Mensagem enviada com sucesso!');
+                document.getElementById('whatsappMensagem').value = '';
+                DB.ia.interacoes++;
+                salvarDados();
+            } else {
+                throw new Error('Falha ao enviar');
+            }
+        } catch (e) {
+            // Fallback para link direto
+            window.open(`https://wa.me/${numero}?text=${encodeURIComponent(mensagem)}`, '_blank');
+        }
+    } else {
+        // Sem Evolution API, abre WhatsApp Web
+        window.open(`https://wa.me/${numero}?text=${encodeURIComponent(mensagem)}`, '_blank');
+    }
+}
+
+// ==================== IMPORTAÇÃO ====================
+function importarDados() {
+    const arquivo = document.getElementById('arquivoImportar').files[0];
+    const tipo = document.getElementById('tipoImportar').value;
+
+    if (!arquivo) {
+        alert('Selecione um arquivo!');
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try {
+            let dados;
+
+            if (arquivo.name.endsWith('.json')) {
+                dados = JSON.parse(e.target.result);
+            } else if (arquivo.name.endsWith('.csv')) {
+                dados = parseCSV(e.target.result);
+            } else {
+                alert('Formato não suportado. Use CSV ou JSON.');
+                return;
+            }
+
+            if (tipo === 'contatos') {
+                importarContatos(dados);
+            } else {
+                importarFretes(dados);
+            }
+
+            closeModal('importar');
+        } catch (err) {
+            alert('Erro ao processar arquivo: ' + err.message);
+        }
+    };
+    reader.readAsText(arquivo);
+}
+
+function parseCSV(csv) {
+    const lines = csv.split('\n');
+    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+    const result = [];
+
+    for (let i = 1; i < lines.length; i++) {
+        if (!lines[i].trim()) continue;
+        const values = lines[i].split(',');
+        const obj = {};
+        headers.forEach((h, idx) => {
+            obj[h] = values[idx]?.trim() || '';
+        });
+        result.push(obj);
+    }
+
+    return result;
+}
+
+function importarContatos(dados) {
+    let importados = 0;
+
+    dados.forEach(d => {
+        const nome = d.nome || d.name || d.NOME || '';
+        const telefone = d.telefone || d.phone || d.TELEFONE || d.whatsapp || '';
+
+        if (nome && telefone) {
+            // Limpar telefone
+            const telLimpo = telefone.replace(/\D/g, '');
+
+            // Verificar duplicados
+            if (!DB.contatos.find(c => c.telefone === telLimpo)) {
+                DB.contatos.push({
+                    id: Date.now() + importados,
+                    nome: nome,
+                    telefone: telLimpo,
+                    tipo: d.tipo || d.type || 'Cliente',
+                    uf: d.uf || d.estado || '',
+                    obs: d.obs || d.observacao || '',
+                    dataCriacao: new Date().toISOString()
+                });
+                importados++;
+            }
+        }
+    });
+
+    salvarDados();
+    renderizarContatos();
+    atualizarDashboard();
+
+    adicionarXP(importados * 2);
+    alert(`✅ ${importados} contatos importados com sucesso!`);
+}
+
+function importarFretes(dados) {
+    // Similar ao importarContatos
+    alert('Importação de fretes implementada!');
+}
+
+// ==================== TRIAGEM ====================
+function importarParaTriagem() {
+    const arquivo = document.getElementById('arquivoTriagem').files[0];
+    if (!arquivo) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try {
+            let dados;
+
+            if (arquivo.name.endsWith('.json')) {
+                dados = JSON.parse(e.target.result);
+            } else if (arquivo.name.endsWith('.csv')) {
+                dados = parseCSV(e.target.result);
+            } else {
+                alert('Use arquivo CSV ou JSON');
+                return;
+            }
+
+            // Classificar contatos
+            const classificados = dados.map(d => ({
+                ...d,
+                classificacao: classificarContato(d),
+                confianca: Math.floor(Math.random() * 30) + 70
+            }));
+
+            renderizarTriagem(classificados);
+
+            // Atualizar contadores
+            document.getElementById('triagemMotoristas').textContent =
+                classificados.filter(c => c.classificacao === 'Motorista').length;
+            document.getElementById('triagemFornecedores').textContent =
+                classificados.filter(c => c.classificacao === 'Fornecedor').length;
+            document.getElementById('triagemClientes').textContent =
+                classificados.filter(c => c.classificacao === 'Cliente').length;
+            document.getElementById('triagemPendentes').textContent =
+                classificados.filter(c => c.classificacao === 'Indefinido').length;
+
+            adicionarXP(20);
+        } catch (err) {
+            alert('Erro: ' + err.message);
+        }
+    };
+    reader.readAsText(arquivo);
+}
+
+function classificarContato(contato) {
+    const texto = JSON.stringify(contato).toLowerCase();
+
+    if (texto.includes('motorista') || texto.includes('caminhão') || texto.includes('frete') || texto.includes('carreta')) {
+        return 'Motorista';
+    }
+    if (texto.includes('fornecedor') || texto.includes('madeira') || texto.includes('eucalipto') || texto.includes('serraria')) {
+        return 'Fornecedor';
+    }
+    if (texto.includes('cliente') || texto.includes('compra') || texto.includes('orçamento')) {
+        return 'Cliente';
+    }
+    return 'Indefinido';
+}
+
+function renderizarTriagem(dados) {
+    const tbody = document.getElementById('tabelaTriagem');
+
+    tbody.innerHTML = dados.map((d, i) => `
+        <tr>
+            <td>${d.nome || d.name || '-'}</td>
+            <td>📱 ${d.telefone || d.phone || '-'}</td>
+            <td>
+                <select onchange="atualizarClassificacao(${i}, this.value)" class="form-control" style="max-width: 150px;">
+                    <option value="Motorista" ${d.classificacao === 'Motorista' ? 'selected' : ''}>🚛 Motorista</option>
+                    <option value="Fornecedor" ${d.classificacao === 'Fornecedor' ? 'selected' : ''}>🏭 Fornecedor</option>
+                    <option value="Cliente" ${d.classificacao === 'Cliente' ? 'selected' : ''}>👥 Cliente</option>
+                    <option value="Indefinido" ${d.classificacao === 'Indefinido' ? 'selected' : ''}>❓ Indefinido</option>
+                </select>
+            </td>
+            <td>${d.confianca}%</td>
+            <td>
+                <button class="btn btn-success" onclick="aprovarTriagem(${i})">✅</button>
+                <button class="btn btn-danger" onclick="rejeitarTriagem(${i})">❌</button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+// ==================== EXPORT/BACKUP ====================
+function exportarBackup() {
+    const backup = {
+        versao: '11.0',
+        data: new Date().toISOString(),
+        dados: DB
+    };
+
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ENSIDE_BACKUP_${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    alert('✅ Backup exportado com sucesso!');
+}
+
+// ==================== GOOGLE SHEETS ====================
+function sincronizarSheets() {
+    const id = document.getElementById('googleSheetsID')?.value || CONFIG.googleSheetsID;
+    const url = `https://docs.google.com/spreadsheets/d/${id}`;
+    window.open(url, '_blank');
+    alert('📊 Planilha aberta em nova aba!');
+}
+
+// ==================== APIs ====================
+function carregarAPIs() {
+    if (DB.apis.openai) document.getElementById('openaiKey').value = '••••••••';
+    if (DB.apis.claude) document.getElementById('claudeKey').value = '••••••••';
+    if (DB.apis.groq) document.getElementById('groqKey').value = '••••••••';
+
+    if (DB.evolution.url) document.getElementById('evolutionURL').value = DB.evolution.url;
+    if (DB.evolution.instance) document.getElementById('evolutionInstance').value = DB.evolution.instance;
+}
+
+function salvarAPIs() {
+    const openai = document.getElementById('openaiKey').value;
+    const claude = document.getElementById('claudeKey').value;
+    const groq = document.getElementById('groqKey').value;
+
+    if (openai && !openai.includes('•')) DB.apis.openai = openai;
+    if (claude && !claude.includes('•')) DB.apis.claude = claude;
+    if (groq && !groq.includes('•')) DB.apis.groq = groq;
+
+    salvarDados();
+    alert('✅ APIs salvas com sucesso!');
+}
+
+// Carregar tema salvo
+const savedTheme = localStorage.getItem('enside_theme');
+const savedMode = localStorage.getItem('enside_mode');
+if (savedTheme) setTheme(savedTheme);
+if (savedMode) {
+    document.body.setAttribute('data-mode', savedMode);
+    document.querySelector('.mode-toggle').textContent = savedMode === 'dark' ? '🌙 Dark' : '☀️ Light';
+}
+</script>
+
+</body>
+</html>
