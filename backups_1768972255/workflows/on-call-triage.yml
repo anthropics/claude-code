@@ -1,0 +1,20 @@
+name: "ESPECIALISTA-IA: On-Call Triage"
+
+on:
+  issues:
+    types: [opened, labeled]
+  schedule:
+    - cron: '*/15 * * * *'
+
+env:
+  GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+
+jobs:
+  triage:
+    name: "Triagem Automática"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: "🤖 ESPECIALISTA-IA"
+        run: echo "✅ Workflow ativado!"
