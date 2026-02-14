@@ -3,7 +3,7 @@ type: meta
 status: working
 created: 2026-02-14
 last_touched: 2026-02-14
-links_in: 0
+links_in: 2
 links_out: 0
 origin: session
 ---
@@ -61,8 +61,9 @@ origin: session | reflection | contradiction
 
 1. **No orphans.** Every note must link to at least one other note. If it can't be linked, it either needs an atom created for its core concept, or it isn't worth keeping.
 2. **Use `[[wikilinks]]`** for all cross-references between vault notes.
-3. **If a link target doesn't exist**, use `[[TODO: concept-name]]` to mark it for future creation.
-4. **Contradiction is a feature.** When two notes disagree, write a third about why. Don't resolve by deletion.
+3. **If a link target doesn't exist**, use the intended path anyway (e.g., `[[atoms/hyrums-law]]`). Broken links are discovered by `/vault-maintain` and signal notes that should be created.
+4. **Always use directory-relative paths** from vault root: `[[positions/what-good-code-actually-is]]`, not `[[what-good-code-actually-is]]`.
+5. **Contradiction is a feature.** When two notes disagree, write a third about why. Don't resolve by deletion.
 
 ## Naming Conventions
 

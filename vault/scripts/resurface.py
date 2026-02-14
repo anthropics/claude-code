@@ -60,10 +60,13 @@ def parse_frontmatter(filepath):
                 frontmatter[key.strip()] = value.strip()
         else:
             stripped = line.strip()
-            if stripped and not stripped.startswith("#"):
-                body_lines.append(stripped)
-            elif stripped.startswith("## "):
-                body_lines.append(stripped)
+            # Skip empty lines, code fences, and top-level headings
+            if not stripped or stripped.startswith("```") or stripped == "---":
+                continue
+            # Include headers and content lines
+            if stripped.startswith("# ") and not stripped.startswith("## "):
+                continue  # Skip H1 (title, already in filename)
+            body_lines.append(stripped)
             if len(body_lines) >= 5:
                 break
 

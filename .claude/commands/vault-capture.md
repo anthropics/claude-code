@@ -86,7 +86,7 @@ Scan `vault/` for related notes:
 1. Use Glob to list all `vault/**/*.md` files
 2. Use Grep to search for keywords from the new note's topic across existing notes
 3. Add `[[wikilinks]]` in the body to related notes
-4. If a concept needs a note that doesn't exist yet, use `[[TODO: concept-name]]`
+4. If a concept needs a note that doesn't exist yet, link to the intended path anyway (e.g., `[[atoms/concept-name]]`). Broken links are discovered by `/vault-maintain`.
 5. Update the `links_out` count in frontmatter
 
 Every note must link to at least one other note. If it can't be linked to anything, either create an atom for its core concept or reconsider whether the note is worth keeping.
