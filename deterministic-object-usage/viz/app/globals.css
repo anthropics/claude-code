@@ -1,0 +1,79 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #0d1117;
+  --fg: #c9d1d9;
+  --accent: #6e40c9;
+  --muted: #484f58;
+  --surface: #161b22;
+  --border: #30363d;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  background-color: var(--bg);
+  color: var(--fg);
+  font-family: "Berkeley Mono", "JetBrains Mono", "Fira Code", "Cascadia Code",
+    monospace;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+/* Ghostty-inspired scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+}
+
+/* ASCII animation color classes */
+.b {
+  color: #58a6ff;
+}
+.g {
+  color: #3fb950;
+}
+.y {
+  color: #d29922;
+}
+.r {
+  color: #f85149;
+}
+.accent {
+  color: #6e40c9;
+}
+.muted {
+  color: #484f58;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
