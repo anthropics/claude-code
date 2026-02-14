@@ -436,7 +436,7 @@ Fast file pattern matching. Returns matching file paths sorted by modification t
 | Parameter | Type     | Required | Description                                  |
 | --------- | -------- | -------- | -------------------------------------------- |
 | `pattern` | `string` | Yes      | Glob pattern (e.g. `"**/*.ts"`)              |
-| `path`    | `string` | No       | Directory to search in (defaults to cwd). Do not enter `"undefined"` or `"null"` — simply omit the parameter. |
+| `path`    | `string` | No       | Directory to search in; if omitted, the current working directory is used. |
 
 - **Read-only:** Yes
 - **Concurrency-safe:** Yes
