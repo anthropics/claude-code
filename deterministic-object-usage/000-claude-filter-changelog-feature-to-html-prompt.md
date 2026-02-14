@@ -1,8 +1,33 @@
-# Deterministic Prompt: Filter a CHANGELOG by Feature → Interactive HTML Visualization
+# Deterministic Prompt: Filter a CHANGELOG by Feature → Animated Visualization
 
 > A reusable, step-by-step process for extracting any single feature domain from
 > a semver-formatted CHANGELOG.md and producing a self-contained interactive HTML
-> page that visualises that feature's lifecycle.
+> page with **Ghostty-style ASCII animation** and **beautiful-mermaid SVG diagrams**
+> that visualises that feature's lifecycle.
+
+## Toolchain
+
+| Tool | Role |
+|------|------|
+| [`@vercel/beautiful-mermaid`](https://github.com/vercel-labs/beautiful-mermaid) | Renders mermaid syntax → animated SVG (16 themes) + ASCII (Unicode box-drawing) |
+| [`generate.mjs`](generate.mjs) | Build pipeline: mermaid → beautiful-mermaid → Ghostty-style frames → HTML |
+| [Ghostty animation technique](https://ghostty.org) | Pre-rendered frames via `requestAnimationFrame`, character-density mapping |
+| [Agent Skills format](https://github.com/vercel-labs/agent-skills) | Skill structure (SKILL.md + YAML frontmatter) for reuse across 40+ AI agents |
+
+### Quick start
+
+```bash
+cd deterministic-object-usage
+npm install                           # installs @vercel/beautiful-mermaid
+node generate.mjs --output 003-claude-agent-tools.html
+```
+
+### Invoking as a Claude Code skill
+
+```
+/changelog-visual Agent Tools & Skills
+/changelog-visual IDE Integrations --output 004-ide-integrations.html
+```
 
 ---
 
@@ -119,61 +144,76 @@ For each edge, record:
 
 ---
 
-## 6. Generate HTML
+## 6. Generate Visualization
 
-Produce a **single self-contained HTML file** (no external dependencies) at:
+### 6a. Express diagrams as Mermaid syntax
 
+From the data gathered in steps 3–5, produce two mermaid diagrams:
+
+1. **Interaction graph** (`graph TD`) — one node per category, edges from step 5.
+   Two versions: rich (with HTML labels `<b>`, `<i>`) for SVG, plain for ASCII.
+2. **Timeline graph** (`graph LR`) — milestone versions as a left-to-right chain.
+
+Update the constants in `generate.mjs`:
+- `INTERACTION_GRAPH` / `INTERACTION_GRAPH_ASCII`
+- `TIMELINE_GRAPH` / `TIMELINE_GRAPH_ASCII`
+- `COLORS` — one entry per category with `{hex, label}`
+- `WORD_COLORS` — keywords/versions mapped to their category color
+
+### 6b. Run the build pipeline
+
+```bash
+cd {{OUTPUT_DIR}}
+npm install
+node generate.mjs --output {{OUTPUT_NUMBER}}-<slug>.html
 ```
-{{OUTPUT_DIR}}/{{OUTPUT_NUMBER}}-<slug>.html
-```
 
-The file must include:
+The pipeline executes:
 
-### 6.1 Hero / Header
-- Title: `{{FEATURE_DOMAIN}}`
-- Subtitle: "Interactive changelog visualization — filtered for {{FEATURE_DOMAIN}} features"
-- Link to source CHANGELOG
+1. **SVG rendering** — `renderMermaid(diagram, { ...THEMES["vercel-dark"], animate: true })`
+   produces animated SVGs with rank-by-rank reveal, edge-draw, and arrowhead motion.
+2. **ASCII rendering** — `renderMermaidAscii(diagram)` produces Unicode box-drawing art.
+3. **Frame generation** — two animation phases inspired by [Ghostty](https://ghostty.org):
+   - **Reveal phase**: characters materialise progressively (top→bottom, left→right)
+     with a "shimmer" effect where upcoming characters briefly show density glyphs.
+   - **Shimmer phase**: box-drawing characters cycle through the density ramp
+     (`· ~ o x + = * % $ @`) using a sinusoidal wave function.
+4. **Colorisation** — recognised keywords are wrapped in `<span style="color:...">`.
+5. **HTML assembly** — frames are embedded as JSON arrays, played by an
+   `AnimationManager` class using `requestAnimationFrame` with delta-time tracking.
 
-### 6.2 Filter Controls
-- One toggle button per category (styled with category color)
-- A text search box that filters entries by substring match
-- An "All" button that resets filters
+### 6c. Output structure
 
-### 6.3 Stats Bar
-- Total entry count and version count
-- Per-category entry counts with colored dots
+The generated HTML includes:
 
-### 6.4 Interaction Graph (SVG)
-- One node per category, colored by category
-- Edges with labels from step 5
-- Nodes are clickable → show object detail panel
-
-### 6.5 Timeline
-- Grouped by semver track (1.x, 2.0.x, 2.1.x, …)
-- Each version is a collapsible card showing:
-  - Version number + category badges
-  - Milestone dot (larger, colored) for versions that **released** a new object
-  - Expandable body with entry list (kind badge + description + param tags)
-  - Params table if new params were introduced in that version
-
-### 6.6 Object Detail Panel
-- Shown when clicking a graph node
-- Displays: first version, events, transports, params table with `since` column
-- Mini-timeline of all entries for that object
-
-### 6.7 Footer
-- Link to source CHANGELOG
-- Link to this prompt template file
+| Section | Content |
+|---------|---------|
+| **Hero** | Title, subtitle, source link |
+| **Mode tabs** | Toggle between ASCII Animation and SVG Diagrams |
+| **Legend** | Category color dots |
+| **Terminal 1** | Interaction graph — Ghostty-style terminal chrome (traffic lights, title bar) with animated ASCII + play/pause/replay/speed controls |
+| **Terminal 2** | Timeline — same treatment |
+| **SVG mode** | beautiful-mermaid animated SVGs (vercel-dark theme) |
+| **Footer** | Links to generate.mjs and CHANGELOG |
 
 ### Style Requirements
-- Dark theme (GitHub-dark palette)
+- Dark theme (`--bg: #0d1117`, terminal: `#0a0a0a`)
 - CSS custom properties for all category colors
-- Responsive, works on mobile
-- No external CSS/JS — everything inline
+- Responsive `clamp()` font sizing
+- Ghostty-inspired terminal chrome (traffic-light dots, border-radius)
+- No external CSS/JS — everything inline, works offline
+
+### Animation Requirements
+- Default 24 FPS via `requestAnimationFrame` with delta accumulator
+- Speed control: 0.5x / 1x / 2x / 4x
+- Auto-play on scroll into view (IntersectionObserver)
+- Pause on tab blur, resume on focus
+- Frame counter display
 
 ### Determinism rule
-> The HTML structure, CSS variable names, class names, and data shape must
-> follow this template exactly. Only the DATA contents change between runs.
+> The mermaid syntax is the single source of truth for both SVG and ASCII.
+> The HTML structure, CSS variable names, and animation engine are fixed.
+> Only the mermaid definitions, COLORS, and WORD_COLORS change between runs.
 
 ---
 
@@ -181,17 +221,19 @@ The file must include:
 
 Before committing, verify:
 
-- [ ] Every entry in the HTML maps to a real CHANGELOG line
-- [ ] No entries were missed (spot-check 5 random versions)
-- [ ] Category badges render with correct colors
-- [ ] Filter buttons show/hide cards correctly
-- [ ] Search box filters entries by substring
-- [ ] Graph nodes are clickable and show detail panels
-- [ ] Timeline cards expand/collapse
-- [ ] Milestone dots appear for "released" entries
-- [ ] Params tables display for versions that introduced new params
+- [ ] Mermaid syntax parses without errors in both SVG and ASCII modes
+- [ ] `node generate.mjs` completes without errors
+- [ ] ASCII animation plays with progressive reveal → shimmer loop
+- [ ] SVG diagrams render with correct theme and animation
+- [ ] Category keyword coloring is correct (spot-check 3 keywords)
+- [ ] Play/Pause/Replay/Speed controls work for both terminals
+- [ ] Frame counter increments correctly
+- [ ] Mode tabs switch between ASCII and SVG views
+- [ ] Auto-play triggers on scroll into view
+- [ ] Animation pauses on tab blur, resumes on focus
 - [ ] The page works offline (no external fetches)
 - [ ] The page renders correctly at 375px and 1440px widths
+- [ ] HTML file size is reasonable (<1MB for 50-60 frame animations)
 
 ---
 
@@ -199,13 +241,26 @@ Before committing, verify:
 
 To apply this process to a different feature domain:
 
-1. **Copy** this prompt template.
-2. **Replace** the placeholders in section 0:
-   - `{{FEATURE_DOMAIN}}` → e.g. "IDE Integrations"
-   - `{{FILTER_KEYWORDS}}` → e.g. "VS Code, IDE, extension, Neovim, JetBrains"
-   - `{{OUTPUT_NUMBER}}` → next available number
-3. **Run** steps 1–7 with the new values.
-4. **Commit** the new HTML file alongside this template.
+### Option A: Via Claude Code skill (recommended)
+
+```
+/changelog-visual <Feature Domain Name> --output <NNN>-<slug>.html
+```
+
+The skill will execute steps 1–7 automatically, updating `generate.mjs` with
+the new mermaid definitions and re-running the build.
+
+### Option B: Manual
+
+1. **Replace** the placeholders in section 0.
+2. **Run** steps 1–5 to gather data and build mermaid syntax.
+3. **Edit** `generate.mjs`:
+   - Update `INTERACTION_GRAPH` / `INTERACTION_GRAPH_ASCII`
+   - Update `TIMELINE_GRAPH` / `TIMELINE_GRAPH_ASCII`
+   - Update `COLORS` and `WORD_COLORS`
+4. **Run** `node generate.mjs --output <NNN>-<slug>.html`
+5. **Verify** with the quality checklist.
+6. **Commit** the new HTML file alongside this template.
 
 ### Examples of other feature domains
 

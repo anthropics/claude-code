@@ -1,0 +1,14 @@
+{
+  "name": "deterministic-object-usage",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "CHANGELOG feature domain → animated ASCII + SVG visualization pipeline",
+  "scripts": {
+    "generate": "node generate.mjs",
+    "generate:003": "node generate.mjs --domain 'Agent Tools & Skills' --output 003-claude-agent-tools.html"
+  },
+  "dependencies": {
+    "@vercel/beautiful-mermaid": "^0.1.5"
+  }
+}
