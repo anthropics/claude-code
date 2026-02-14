@@ -1,22 +1,14 @@
 #!/usr/bin/env bun
 
+import { lifecycle, STALE_UPVOTE_THRESHOLD } from "./issue-lifecycle.ts";
+
 // --
 
 const NEW_ISSUE = "https://github.com/anthropics/claude-code/issues/new/choose";
 const DRY_RUN = process.argv.includes("--dry-run");
-const STALE_DAYS = 14;
-const STALE_UPVOTE_THRESHOLD = 10;
 
 const CLOSE_MESSAGE = (reason: string) =>
   `Closing for now — ${reason}. Please [open a new issue](${NEW_ISSUE}) if this is still relevant.`;
-
-const lifecycle = [
-  { label: "invalid",     days: 3,  reason: "this doesn't appear to be about Claude Code" },
-  { label: "needs-repro", days: 7,  reason: "we still need reproduction steps to investigate" },
-  { label: "needs-info",  days: 7,  reason: "we still need a bit more information to move forward" },
-  { label: "stale",       days: 14, reason: "inactive for too long" },
-  { label: "autoclose",   days: 14, reason: "inactive for too long" },
-];
 
 // --
 
@@ -51,12 +43,13 @@ async function githubRequest<T>(
 // --
 
 async function markStale(owner: string, repo: string) {
+  const staleDays = lifecycle.find((l) => l.label === "stale")!.days;
   const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - STALE_DAYS);
+  cutoff.setDate(cutoff.getDate() - staleDays);
 
   let labeled = 0;
 
-  console.log(`\n=== marking stale (${STALE_DAYS}d inactive) ===`);
+  console.log(`\n=== marking stale (${staleDays}d inactive) ===`);
 
   for (let page = 1; page <= 10; page++) {
     const issues = await githubRequest<any[]>(
