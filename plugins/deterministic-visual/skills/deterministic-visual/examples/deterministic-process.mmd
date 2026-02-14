@@ -1,0 +1,21 @@
+graph TD
+    I1[/"Input: Source URL"/] --> S1["Step 1: Fetch & Parse"]
+    I2[/"Input: Keywords[]"/] --> S2["Step 2: Filter"]
+    I3[/"Input: Categories{}"/] --> S3["Step 3: Classify"]
+
+    S1 --> S2
+    S2 --> S3
+    S3 --> S4["Step 4: Build JSON"]
+    S4 --> S5{Render Mode}
+
+    S5 -->|ascii-animate| O1["Terminal Frames"]
+    S5 -->|ascii-static| O2["Single Frame"]
+    S5 -->|web-svg| O3["Next.js App"]
+
+    O1 --> V1["Ghostty-style 60fps"]
+    O2 --> V2["beautiful-mermaid ASCII"]
+    O3 --> V3["beautiful-mermaid SVG"]
+
+    V1 --> QC["Quality Check"]
+    V2 --> QC
+    V3 --> QC

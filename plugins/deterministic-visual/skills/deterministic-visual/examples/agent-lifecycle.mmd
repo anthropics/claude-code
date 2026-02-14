@@ -1,0 +1,21 @@
+sequenceDiagram
+    participant U as User Prompt
+    participant M as Main Agent
+    participant S as Skill System
+    participant H as Hooks
+    participant T as Tool Executor
+    participant A as Subagent
+
+    U->>M: Submit prompt
+    M->>S: Match skills by description
+    S-->>M: Load SKILL.md body
+    M->>H: PreToolUse event
+    H-->>M: approve or block
+    M->>T: Execute tool
+    T-->>M: Tool result
+    M->>A: Spawn subagent via Task
+    A->>H: SubagentStart event
+    A-->>M: Subagent result
+    M->>H: PostToolUse event
+    M->>H: Stop event
+    M-->>U: Final response

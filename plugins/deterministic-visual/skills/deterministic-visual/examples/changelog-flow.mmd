@@ -1,0 +1,10 @@
+graph TD
+    A[/"CHANGELOG.md"/] -->|fetch & parse| B["Structured Releases[]"]
+    B -->|filter by keywords| C["Matched Entries[]"]
+    C -->|classify| D["Categorized Changes[]"]
+    D -->|build JSON| E[("Feature Data")]
+    E -->|render| F{Output Mode}
+    F -->|terminal| G["ASCII Animation"]
+    F -->|browser| H["Next.js + SVG"]
+    G -->|Ghostty frames| I["60fps Terminal"]
+    H -->|beautiful-mermaid| J["Themed SVG"]

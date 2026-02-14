@@ -1,0 +1,21 @@
+graph LR
+    P["Plugin Package"] --> SK["Skills"]
+    P --> AG["Agents"]
+    P --> CM["Commands"]
+    P --> HK["Hooks"]
+    P --> MC["MCP Servers"]
+
+    SK --> SM["SKILL.md"]
+    SK --> SC["scripts/"]
+    SK --> RE["references/"]
+
+    AG --> AD["agent.md"]
+    CM --> CD["command.md"]
+    HK --> HS["hook.sh"]
+    MC --> MJ[".mcp.json"]
+
+    SM -->|auto-discover| CL["Claude Code"]
+    AD -->|auto-discover| CL
+    CD -->|slash command| CL
+    HS -->|lifecycle event| CL
+    MJ -->|tool server| CL
