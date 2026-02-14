@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Code — Agent Tools &amp; Skills Changelog Visualization</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --border: #30363d;
+    --text: #c9d1d9;
+    --text-muted: #8b949e;
+    --accent-hooks: #f0883e;
+    --accent-skills: #a371f7;
+    --accent-mcp: #58a6ff;
+    --accent-subagents: #3fb950;
+    --accent-task: #d2a8ff;
+    --accent-agent-tools: #ff7b72;
+    --accent-plugins: #f778ba;
+    --timeline-line: #30363d;
+    --card-hover: #1c2129;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+  }
+  a { color: var(--accent-mcp); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* ── Header ── */
+  .hero {
+    text-align: center;
+    padding: 3rem 1rem 2rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .hero h1 { font-size: 2rem; font-weight: 700; }
+  .hero p { color: var(--text-muted); margin-top: .4rem; font-size: .95rem; }
+  .hero .meta { margin-top: .8rem; font-size: .8rem; color: var(--text-muted); }
+
+  /* ── Controls ── */
+  .controls {
+    display: flex; flex-wrap: wrap; gap: .5rem;
+    justify-content: center;
+    padding: 1.2rem 1rem;
+    position: sticky; top: 0; z-index: 10;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+  }
+  .controls button {
+    padding: .35rem .8rem;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+    font-size: .82rem;
+    transition: all .15s;
+  }
+  .controls button:hover { background: var(--card-hover); }
+  .controls button.active { border-color: currentColor; font-weight: 600; }
+  .controls button[data-cat="hooks"]      { --c: var(--accent-hooks);      color: var(--c); }
+  .controls button[data-cat="skills"]     { --c: var(--accent-skills);     color: var(--c); }
+  .controls button[data-cat="mcp"]        { --c: var(--accent-mcp);        color: var(--c); }
+  .controls button[data-cat="subagents"]  { --c: var(--accent-subagents);  color: var(--c); }
+  .controls button[data-cat="task"]       { --c: var(--accent-task);       color: var(--c); }
+  .controls button[data-cat="agent-tools"]{ --c: var(--accent-agent-tools);color: var(--c); }
+  .controls button[data-cat="plugins"]    { --c: var(--accent-plugins);    color: var(--c); }
+  .controls button[data-cat="all"]        { color: var(--text); }
+
+  .search-box {
+    padding: .35rem .7rem;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-size: .82rem;
+    width: 220px;
+  }
+  .search-box::placeholder { color: var(--text-muted); }
+
+  /* ── Stats bar ── */
+  .stats-bar {
+    display: flex; flex-wrap: wrap; gap: 1rem;
+    justify-content: center;
+    padding: .8rem 1rem;
+    font-size: .8rem;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+  }
+  .stat-chip { display: flex; align-items: center; gap: .3rem; }
+  .stat-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+  /* ── Dependency / Interaction Graph ── */
+  .graph-section {
+    padding: 2rem 1rem;
+    border-bottom: 1px solid var(--border);
+    text-align: center;
+  }
+  .graph-section h2 { margin-bottom: 1rem; font-size: 1.1rem; }
+  .graph-container {
+    display: inline-block;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.5rem;
+  }
+  .graph-container svg { max-width: 100%; }
+
+  /* ── Timeline ── */
+  .timeline-wrap {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+    position: relative;
+  }
+  .timeline-wrap::before {
+    content: '';
+    position: absolute;
+    left: 28px;
+    top: 0; bottom: 0;
+    width: 2px;
+    background: var(--timeline-line);
+  }
+
+  /* ── Semver group ── */
+  .semver-group { margin-bottom: 2.5rem; }
+  .semver-label {
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin-left: 56px;
+    margin-bottom: .8rem;
+    color: var(--text);
+  }
+
+  /* ── Version card ── */
+  .version-card {
+    position: relative;
+    margin-left: 56px;
+    margin-bottom: 1rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    transition: background .15s;
+  }
+  .version-card:hover { background: var(--card-hover); }
+  .version-card.hidden { display: none; }
+
+  .version-dot {
+    position: absolute;
+    left: -36px;
+    top: 16px;
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    background: var(--surface);
+  }
+  .version-dot.milestone {
+    width: 16px; height: 16px;
+    left: -38px; top: 14px;
+    border-width: 3px;
+  }
+
+  .version-header {
+    display: flex; align-items: center; gap: .6rem;
+    padding: .7rem 1rem;
+    cursor: pointer;
+    user-select: none;
+  }
+  .version-header .ver { font-weight: 600; font-size: .95rem; }
+  .version-header .badge {
+    font-size: .7rem;
+    padding: .1rem .45rem;
+    border-radius: 4px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+  }
+  .badge-hooks      { background: rgba(240,136,62,.15); color: var(--accent-hooks); }
+  .badge-skills     { background: rgba(163,113,247,.15); color: var(--accent-skills); }
+  .badge-mcp        { background: rgba(88,166,255,.15); color: var(--accent-mcp); }
+  .badge-subagents  { background: rgba(63,185,80,.15); color: var(--accent-subagents); }
+  .badge-task       { background: rgba(210,168,255,.15); color: var(--accent-task); }
+  .badge-agent-tools{ background: rgba(255,123,114,.15); color: var(--accent-agent-tools); }
+  .badge-plugins    { background: rgba(247,120,186,.15); color: var(--accent-plugins); }
+
+  .version-header .arrow {
+    margin-left: auto;
+    font-size: .7rem;
+    color: var(--text-muted);
+    transition: transform .2s;
+  }
+  .version-card.open .arrow { transform: rotate(90deg); }
+
+  .version-body {
+    display: none;
+    padding: 0 1rem 1rem;
+  }
+  .version-card.open .version-body { display: block; }
+
+  .entry {
+    padding: .4rem 0;
+    font-size: .88rem;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: .5rem;
+    align-items: flex-start;
+  }
+  .entry:first-child { border-top: none; }
+  .entry .kind {
+    flex-shrink: 0;
+    font-size: .65rem;
+    padding: .1rem .35rem;
+    border-radius: 3px;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+  .kind-added    { background: rgba(63,185,80,.15); color: #3fb950; }
+  .kind-fixed    { background: rgba(88,166,255,.15); color: #58a6ff; }
+  .kind-changed  { background: rgba(210,168,255,.15); color: #d2a8ff; }
+  .kind-released { background: rgba(247,120,186,.2); color: #f778ba; }
+
+  .entry .desc { flex: 1; }
+  .entry .cat-tags { display: flex; gap: .25rem; flex-wrap: wrap; margin-top: .15rem; }
+  .cat-tag {
+    font-size: .6rem;
+    padding: .05rem .3rem;
+    border-radius: 3px;
+    opacity: .85;
+  }
+
+  /* ── Params table ── */
+  .params-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: .6rem;
+    font-size: .82rem;
+  }
+  .params-table th {
+    text-align: left;
+    padding: .3rem .5rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+  .params-table td {
+    padding: .3rem .5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* ── Footer ── */
+  footer {
+    text-align: center;
+    padding: 2rem 1rem;
+    color: var(--text-muted);
+    font-size: .78rem;
+    border-top: 1px solid var(--border);
+  }
+
+  /* ── Object detail panel ── */
+  .object-detail {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 1.5rem 1rem;
+    display: none;
+  }
+  .object-detail.active { display: block; }
+  .object-detail h3 { font-size: 1.05rem; margin-bottom: .8rem; }
+  .object-detail .obj-timeline { margin-left: 1rem; border-left: 2px solid var(--border); padding-left: 1rem; }
+  .object-detail .obj-event { margin-bottom: .8rem; }
+  .object-detail .obj-event .obj-ver { font-weight: 600; font-size: .85rem; }
+  .object-detail .obj-event .obj-desc { font-size: .85rem; color: var(--text-muted); }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>Claude Code Agent Tools &amp; Skills</h1>
+  <p>Interactive changelog visualization — filtered for agent ecosystem features</p>
+  <div class="meta">
+    Source: <a href="https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md" target="_blank">anthropics/claude-code CHANGELOG.md</a>
+    &middot; Versions 1.0.0 &ndash; 2.1.39
+  </div>
+</div>
+
+<div class="controls" id="controls">
+  <button data-cat="all" class="active" onclick="filterCat('all')">All</button>
+  <button data-cat="hooks" onclick="filterCat('hooks')">Hooks</button>
+  <button data-cat="skills" onclick="filterCat('skills')">Skills</button>
+  <button data-cat="mcp" onclick="filterCat('mcp')">MCP</button>
+  <button data-cat="subagents" onclick="filterCat('subagents')">Subagents</button>
+  <button data-cat="task" onclick="filterCat('task')">Task Tool</button>
+  <button data-cat="agent-tools" onclick="filterCat('agent-tools')">Agent Tools</button>
+  <button data-cat="plugins" onclick="filterCat('plugins')">Plugins</button>
+  <input class="search-box" type="text" placeholder="Search entries…" id="searchBox" oninput="applyFilters()">
+</div>
+
+<div class="stats-bar" id="statsBar"></div>
+
+<!-- Interaction / Dependency Graph -->
+<div class="graph-section">
+  <h2>Object Interactions &amp; Dependencies</h2>
+  <div class="graph-container">
+    <svg viewBox="0 0 760 420" width="760" height="420" xmlns="http://www.w3.org/2000/svg">
+      <!-- Nodes -->
+      <g id="graphNodes">
+        <!-- Hooks -->
+        <rect x="20" y="170" width="110" height="44" rx="8" fill="rgba(240,136,62,.12)" stroke="#f0883e" stroke-width="1.5"/>
+        <text x="75" y="197" text-anchor="middle" fill="#f0883e" font-size="13" font-weight="600">Hooks</text>
+
+        <!-- Skills -->
+        <rect x="200" y="30" width="110" height="44" rx="8" fill="rgba(163,113,247,.12)" stroke="#a371f7" stroke-width="1.5"/>
+        <text x="255" y="57" text-anchor="middle" fill="#a371f7" font-size="13" font-weight="600">Skills</text>
+
+        <!-- MCP -->
+        <rect x="200" y="310" width="110" height="44" rx="8" fill="rgba(88,166,255,.12)" stroke="#58a6ff" stroke-width="1.5"/>
+        <text x="255" y="337" text-anchor="middle" fill="#58a6ff" font-size="13" font-weight="600">MCP Servers</text>
+
+        <!-- Subagents -->
+        <rect x="420" y="100" width="120" height="44" rx="8" fill="rgba(63,185,80,.12)" stroke="#3fb950" stroke-width="1.5"/>
+        <text x="480" y="127" text-anchor="middle" fill="#3fb950" font-size="13" font-weight="600">Subagents</text>
+
+        <!-- Task Tool -->
+        <rect x="420" y="240" width="120" height="44" rx="8" fill="rgba(210,168,255,.12)" stroke="#d2a8ff" stroke-width="1.5"/>
+        <text x="480" y="267" text-anchor="middle" fill="#d2a8ff" font-size="13" font-weight="600">Task Tool</text>
+
+        <!-- Plugins -->
+        <rect x="630" y="30" width="110" height="44" rx="8" fill="rgba(247,120,186,.12)" stroke="#f778ba" stroke-width="1.5"/>
+        <text x="685" y="57" text-anchor="middle" fill="#f778ba" font-size="13" font-weight="600">Plugins</text>
+
+        <!-- Agent Tools -->
+        <rect x="630" y="310" width="110" height="44" rx="8" fill="rgba(255,123,114,.12)" stroke="#ff7b72" stroke-width="1.5"/>
+        <text x="685" y="337" text-anchor="middle" fill="#ff7b72" font-size="13" font-weight="600">Agent Tools</text>
+      </g>
+
+      <!-- Edges (interactions) -->
+      <defs>
+        <marker id="arrowG" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#8b949e"/></marker>
+      </defs>
+      <g id="graphEdges" stroke="#8b949e" stroke-width="1" fill="none" marker-end="url(#arrowG)">
+        <!-- Hooks <-> Skills (2.1.0: hooks in skill frontmatter) -->
+        <line x1="130" y1="180" x2="200" y2="62"/>
+        <!-- Hooks <-> Subagents (SubagentStart/Stop, TeammateIdle) -->
+        <line x1="130" y1="185" x2="420" y2="122"/>
+        <!-- Hooks <-> Plugins (2.0.12, 2.1.0: plugin hooks) -->
+        <path d="M 130 178 Q 380 10, 630 52"/>
+        <!-- Skills <-> Subagents (context:fork, agent field) -->
+        <line x1="310" y1="52" x2="420" y2="112"/>
+        <!-- Subagents <-> Task Tool (task management, background agents) -->
+        <line x1="480" y1="144" x2="480" y2="240"/>
+        <!-- MCP <-> Subagents (MCP tools available to subagents) -->
+        <line x1="310" y1="325" x2="420" y2="267"/>
+        <!-- MCP <-> Plugins (plugin MCP servers) -->
+        <path d="M 310 320 Q 500 380, 630 340"/>
+        <!-- Skills <-> Plugins (plugin skills, /skills menu) -->
+        <line x1="310" y1="40" x2="630" y2="45"/>
+        <!-- Agent Tools <-> Subagents (background agents, async) -->
+        <line x1="540" y1="130" x2="630" y2="320"/>
+        <!-- Task Tool <-> Agent Tools (task management + agent tools) -->
+        <line x1="540" y1="262" x2="630" y2="325"/>
+        <!-- Hooks <-> MCP (MCP config + hook events) -->
+        <line x1="100" y1="214" x2="200" y2="318"/>
+        <!-- Hooks <-> Task Tool (hooks in task lifecycle) -->
+        <path d="M 130 200 Q 280 270, 420 260"/>
+      </g>
+
+      <!-- Edge labels -->
+      <g font-size="9" fill="#8b949e">
+        <text x="148" y="115" transform="rotate(-32,148,115)">frontmatter hooks</text>
+        <text x="250" y="160" transform="rotate(-14,250,160)">SubagentStart/Stop</text>
+        <text x="340" y="28">plugin hooks</text>
+        <text x="355" y="72" transform="rotate(-14,355,72)">context:fork</text>
+        <text x="487" y="200" text-anchor="middle">manages</text>
+        <text x="345" y="305" transform="rotate(16,345,305)">tool access</text>
+        <text x="475" y="370">plugin MCPs</text>
+        <text x="450" y="36">plugin skills</text>
+        <text x="600" y="230" transform="rotate(55,600,230)">background</text>
+        <text x="590" y="303">task mgmt</text>
+        <text x="120" y="275" transform="rotate(55,120,275)">config</text>
+        <text x="260" y="238">lifecycle</text>
+      </g>
+    </svg>
+  </div>
+</div>
+
+<!-- Object detail panel (populated by clicking graph nodes, etc.) -->
+<div class="object-detail" id="objectDetail"></div>
+
+<!-- Timeline -->
+<div class="timeline-wrap" id="timeline"></div>
+
+<footer>
+  Generated from <a href="https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md" target="_blank">CHANGELOG.md</a>.
+  Methodology: <a href="000-claude-filter-changelog-feature-to-html-prompt.md">Deterministic prompt template</a>.
+</footer>
+
+<script>
+// ════════════════════════════════════════════════════════════════
+//  DATA: Every agent-ecosystem entry from the CHANGELOG, tagged
+// ════════════════════════════════════════════════════════════════
+const DATA = [
+  // ── 1.0.x ───────────────────────────────────────────────────
+  { ver:"1.0.0",  semver:"1.x", milestone:true, entries:[
+    {kind:"released", cats:["agent-tools"], desc:"Claude Code general availability"}
+  ]},
+  { ver:"1.0.4",  semver:"1.x", entries:[
+    {kind:"fixed", cats:["mcp"], desc:"MCP tool errors not being parsed correctly"}
+  ]},
+  { ver:"1.0.8",  semver:"1.x", entries:[
+    {kind:"fixed", cats:["mcp"], desc:"MCP_TIMEOUT and MCP_TOOL_TIMEOUT not being respected"}
+  ]},
+  { ver:"1.0.17", semver:"1.x", entries:[
+    {kind:"added", cats:["subagents"], desc:"Sub-tasks emit messages in -p mode with parent_tool_use_id"},
+    {kind:"changed", cats:["mcp"], desc:"MCP server list UI improvements"}
+  ]},
+  { ver:"1.0.18", semver:"1.x", entries:[
+    {kind:"added", cats:["mcp"], desc:"Detailed MCP server tools display (/mcp)"},
+    {kind:"added", cats:["mcp"], desc:"MCP authentication and permission improvements"},
+    {kind:"added", cats:["mcp"], desc:"Auto-reconnection for MCP SSE connections on disconnect"}
+  ]},
+  { ver:"1.0.21", semver:"1.x", entries:[
+    {kind:"fixed", cats:["mcp"], desc:"stdio MCP server processes lingering after quitting"}
+  ]},
+  { ver:"1.0.23", semver:"1.x", entries:[
+    {kind:"released", cats:["agent-tools"], desc:"TypeScript SDK (@anthropic-ai/claude-code) and Python SDK (claude-code-sdk) released"}
+  ]},
+  { ver:"1.0.27", semver:"1.x", entries:[
+    {kind:"added", cats:["mcp"], desc:"Streamable HTTP MCP servers supported"},
+    {kind:"added", cats:["mcp"], desc:"Remote MCP servers (SSE + HTTP) support OAuth"},
+    {kind:"added", cats:["mcp"], desc:"MCP resources can be @-mentioned"}
+  ]},
+  { ver:"1.0.30", semver:"1.x", entries:[
+    {kind:"added", cats:["agent-tools"], desc:"Custom slash commands: bash output, @-mention files, thinking keywords"}
+  ]},
+  { ver:"1.0.35", semver:"1.x", entries:[
+    {kind:"added", cats:["mcp"], desc:"Support for MCP OAuth Authorization Server discovery"}
+  ]},
+  { ver:"1.0.36", semver:"1.x", entries:[
+    {kind:"fixed", cats:["mcp"], desc:"stdio MCP servers not terminating properly on exit"}
+  ]},
+  { ver:"1.0.38", semver:"1.x", milestone:true, entries:[
+    {kind:"released", cats:["hooks"], desc:"Hooks released — PreToolUse, PostToolUse, Stop, Notification events", params:["matcher","type","command"]}
+  ]},
+  { ver:"1.0.41", semver:"1.x", entries:[
+    {kind:"added", cats:["hooks","subagents"], desc:"Split Stop hook into Stop and SubagentStop"},
+    {kind:"added", cats:["hooks"], desc:"Optional timeout configuration for each hook command", params:["timeout"]},
+    {kind:"added", cats:["hooks"], desc:"Added hook_event_name to hook input", params:["hook_event_name"]},
+    {kind:"fixed", cats:["mcp"], desc:"MCP tools displaying twice in tool list"}
+  ]},
+  { ver:"1.0.43", semver:"1.x", entries:[
+    {kind:"fixed", cats:["hooks"], desc:"EPIPE system error handling in hooks"}
+  ]},
+  { ver:"1.0.44", semver:"1.x", entries:[
+    {kind:"added", cats:["mcp"], desc:"MCP resource_link tool results supported"},
+    {kind:"added", cats:["mcp"], desc:"MCP tool annotations and titles display in /mcp view"}
+  ]},
+  { ver:"1.0.45", semver:"1.x", entries:[
+    {kind:"fixed", cats:["hooks"], desc:"Stop hooks: fixed transcript path after /clear, fixed triggering on loop end with tool call"}
+  ]},
+  { ver:"1.0.48", semver:"1.x", entries:[
+    {kind:"added", cats:["hooks"], desc:"PreCompact hook event added", params:["PreCompact"]},
+    {kind:"added", cats:["mcp"], desc:"Expanding variables support for MCP server configuration"}
+  ]},
+  { ver:"1.0.52", semver:"1.x", entries:[
+    {kind:"added", cats:["mcp"], desc:"Support for MCP server instructions"}
+  ]},
+  { ver:"1.0.54", semver:"1.x", entries:[
+    {kind:"added", cats:["hooks"], desc:"UserPromptSubmit hook event and CWD added to hook inputs", params:["UserPromptSubmit","cwd"]}
+  ]},
+  { ver:"1.0.58", semver:"1.x", entries:[
+    {kind:"added", cats:["hooks"], desc:"CLAUDE_PROJECT_DIR env var for hook commands", params:["CLAUDE_PROJECT_DIR"]},
+    {kind:"changed", cats:["mcp"], desc:"Improved MCP server health status in `claude mcp list`"}
+  ]},
+  { ver:"1.0.59", semver:"1.x", entries:[
+    {kind:"added", cats:["hooks"], desc:"PermissionDecision exposed to hooks (including 'ask')", params:["PermissionDecision"]},
+    {kind:"added", cats:["hooks"], desc:"UserPromptSubmit supports additionalContext in JSON output", params:["additionalContext"]}
+  ]},
+  { ver:"1.0.60", semver:"1.x", milestone:true, entries:[
+    {kind:"released", cats:["subagents"], desc:"Custom subagents released — /agents to get started"}
+  ]},
+  { ver:"1.0.62", semver:"1.x", entries:[
+    {kind:"added", cats:["subagents"], desc:"@-mention support with typeahead for custom agents"},
+    {kind:"added", cats:["hooks"], desc:"SessionStart hook for new session initialization", params:["SessionStart"]}
+  ]},
+  { ver:"1.0.64", semver:"1.x", entries:[
+    {kind:"fixed", cats:["subagents"], desc:"Unintended access to the recursive agent tool"},
+    {kind:"added", cats:["hooks"], desc:"systemMessage field in hook JSON output", params:["systemMessage"]}
+  ]},
+  { ver:"1.0.68", semver:"1.x", entries:[
+    {kind:"added", cats:["hooks"], desc:"disableAllHooks setting", params:["disableAllHooks"]}
+  ]},
+  { ver:"1.0.71", semver:"1.x", entries:[
+    {kind:"added", cats:["agent-tools"], desc:"Background commands (Ctrl+B) — run Bash in background"}
+  ]},
+  { ver:"1.0.72", semver:"1.x", entries:[
+    {kind:"added", cats:["hooks"], desc:"Ask permissions: configure tool confirmation via /permissions"}
+  ]},
+  { ver:"1.0.73", semver:"1.x", entries:[
+    {kind:"added", cats:["mcp"], desc:"Support multiple config files with --mcp-config file1 file2"},
+    {kind:"added", cats:["mcp"], desc:"Press Esc to cancel OAuth authentication flows"}
+  ]},
+
+  // ── 1.0.80–1.0.12x ─────────────────────────────────────────
+  { ver:"1.0.110", semver:"1.x", entries:[
+    {kind:"added", cats:["mcp"], desc:"OAuth tokens proactively refresh before expiration"}
+  ]},
+  { ver:"1.0.115", semver:"1.x", entries:[
+    {kind:"changed", cats:["hooks"], desc:"Show condensed output for post-tool hooks to reduce visual clutter"}
+  ]},
+  { ver:"1.0.119", semver:"1.x", entries:[
+    {kind:"added", cats:["mcp"], desc:"Support dynamic headers for MCP servers via headersHelper"}
+  ]},
+  { ver:"1.0.123", semver:"1.x", milestone:true, entries:[
+    {kind:"released", cats:["agent-tools"], desc:"SlashCommand tool — enables Claude to invoke slash commands programmatically"}
+  ]},
+
+  // ── 2.0.x ───────────────────────────────────────────────────
+  { ver:"2.0.0", semver:"2.0.x", milestone:true, entries:[
+    {kind:"released", cats:["agent-tools"], desc:"Major release: VS Code extension, /rewind, Claude Agent SDK rename"},
+    {kind:"fixed", cats:["hooks"], desc:"Reduced PostToolUse 'tool_use' ids without 'tool_result' errors"},
+    {kind:"added", cats:["subagents"], desc:"Add subagents dynamically with --agents flag", params:["--agents"]}
+  ]},
+  { ver:"2.0.10", semver:"2.0.x", entries:[
+    {kind:"added", cats:["hooks"], desc:"PreToolUse hooks can now modify tool inputs", params:["updatedInput"]}
+  ]},
+  { ver:"2.0.12", semver:"2.0.x", milestone:true, entries:[
+    {kind:"released", cats:["plugins","hooks","skills","mcp"], desc:"Plugin System: extend Claude Code with commands, agents, hooks, and MCP servers from marketplaces"},
+    {kind:"added", cats:["plugins"], desc:"/plugin install, enable/disable, marketplace commands"},
+    {kind:"added", cats:["plugins"], desc:"/plugin validate for validating plugin structure"}
+  ]},
+  { ver:"2.0.19", semver:"2.0.x", entries:[
+    {kind:"changed", cats:["agent-tools"], desc:"Auto-background long-running bash commands instead of killing them"}
+  ]},
+  { ver:"2.0.20", semver:"2.0.x", milestone:true, entries:[
+    {kind:"released", cats:["skills"], desc:"Claude Skills released — reusable capabilities defined in YAML frontmatter"}
+  ]},
+  { ver:"2.0.24", semver:"2.0.x", entries:[
+    {kind:"fixed", cats:["skills"], desc:"Project-level skills not loading with --setting-sources 'project'"}
+  ]},
+  { ver:"2.0.28", semver:"2.0.x", entries:[
+    {kind:"added", cats:["subagents"], desc:"Plan subagent introduced for architecture planning"},
+    {kind:"added", cats:["subagents"], desc:"Claude can now resume subagents"},
+    {kind:"added", cats:["subagents"], desc:"Claude can dynamically choose model for subagents"}
+  ]},
+  { ver:"2.0.30", semver:"2.0.x", entries:[
+    {kind:"added", cats:["subagents"], desc:"disallowedTools field for custom agent definitions", params:["disallowedTools"]},
+    {kind:"added", cats:["hooks"], desc:"Prompt-based stop hooks"},
+    {kind:"added", cats:["mcp"], desc:"SSE MCP servers on native build"},
+    {kind:"fixed", cats:["mcp","subagents"], desc:"MCP tools not being available to sub-agents"},
+    {kind:"fixed", cats:["hooks","plugins"], desc:"Hooks and plugins not executing with --dangerously-skip-permissions"}
+  ]},
+  { ver:"2.0.37", semver:"2.0.x", entries:[
+    {kind:"added", cats:["hooks"], desc:"Matcher values for Notification hook events", params:["Notification matcher"]}
+  ]},
+  { ver:"2.0.41", semver:"2.0.x", entries:[
+    {kind:"added", cats:["hooks"], desc:"model parameter for prompt-based stop hooks", params:["model"]},
+    {kind:"fixed", cats:["plugins","hooks"], desc:"Crash when plugin command hooks timeout"}
+  ]},
+  { ver:"2.0.42", semver:"2.0.x", entries:[
+    {kind:"added", cats:["hooks","subagents"], desc:"agent_id and agent_transcript_path in SubagentStop hooks", params:["agent_id","agent_transcript_path"]}
+  ]},
+  { ver:"2.0.43", semver:"2.0.x", entries:[
+    {kind:"added", cats:["subagents"], desc:"permissionMode field for custom agents", params:["permissionMode"]},
+    {kind:"added", cats:["hooks"], desc:"tool_use_id in PreToolUse/PostToolUse hook inputs", params:["tool_use_id"]},
+    {kind:"added", cats:["skills","subagents"], desc:"Skills frontmatter: declare skills to auto-load for subagents", params:["skills (frontmatter)"]},
+    {kind:"added", cats:["hooks","subagents"], desc:"SubagentStart hook event", params:["SubagentStart"]}
+  ]},
+  { ver:"2.0.45", semver:"2.0.x", entries:[
+    {kind:"added", cats:["hooks"], desc:"PermissionRequest hook to auto-approve or deny tool permissions", params:["PermissionRequest"]}
+  ]},
+  { ver:"2.0.54", semver:"2.0.x", entries:[
+    {kind:"changed", cats:["hooks"], desc:"PermissionRequest hooks can process 'always allow' suggestions"}
+  ]},
+  { ver:"2.0.59", semver:"2.0.x", entries:[
+    {kind:"added", cats:["subagents"], desc:"--agent CLI flag to override agent setting; agent setting for main thread", params:["--agent","agent setting"]}
+  ]},
+  { ver:"2.0.60", semver:"2.0.x", milestone:true, entries:[
+    {kind:"released", cats:["subagents","agent-tools"], desc:"Background agent support — agents run in background while you work"}
+  ]},
+  { ver:"2.0.64", semver:"2.0.x", entries:[
+    {kind:"added", cats:["subagents","agent-tools"], desc:"Agents and bash commands can run asynchronously, send wake-up messages"}
+  ]},
+  { ver:"2.0.70", semver:"2.0.x", entries:[
+    {kind:"added", cats:["mcp"], desc:"Wildcard syntax mcp__server__* for MCP tool permissions", params:["mcp__server__*"]}
+  ]},
+  { ver:"2.0.74", semver:"2.0.x", entries:[
+    {kind:"fixed", cats:["skills"], desc:"Skill allowed-tools not applied to tools invoked by the skill"},
+    {kind:"changed", cats:["skills"], desc:"/context visualization grouped skills and agents by source"}
+  ]},
+
+  // ── 2.1.x ───────────────────────────────────────────────────
+  { ver:"2.1.0", semver:"2.1.x", milestone:true, entries:[
+    {kind:"added", cats:["skills"], desc:"Automatic skill hot-reload from ~/.claude/skills and .claude/skills"},
+    {kind:"added", cats:["skills","subagents"], desc:"context: fork in skill frontmatter — run skill in forked sub-agent", params:["context: fork"]},
+    {kind:"added", cats:["skills","subagents"], desc:"agent field in skills to specify agent type for execution", params:["agent (frontmatter)"]},
+    {kind:"changed", cats:["hooks"], desc:"PreToolUse hooks allow updatedInput when returning 'ask' decision"},
+    {kind:"added", cats:["mcp"], desc:"MCP list_changed notifications — dynamic tool updates without reconnect"},
+    {kind:"added", cats:["hooks","subagents"], desc:"Hooks support in agent frontmatter (PreToolUse, PostToolUse, Stop)"},
+    {kind:"added", cats:["hooks","skills"], desc:"Hooks support for skill and slash command frontmatter"},
+    {kind:"added", cats:["hooks"], desc:"once: true config for hooks — run only once", params:["once"]},
+    {kind:"added", cats:["skills"], desc:"YAML-style lists in frontmatter allowed-tools"},
+    {kind:"added", cats:["hooks","plugins"], desc:"Prompt and agent hook types from plugins"},
+    {kind:"added", cats:["skills"], desc:"Skills as a separate category in context visualization"}
+  ]},
+  { ver:"2.1.2", semver:"2.1.x", entries:[
+    {kind:"added", cats:["hooks"], desc:"agent_type added to SessionStart hook input", params:["agent_type"]}
+  ]},
+  { ver:"2.1.3", semver:"2.1.x", entries:[
+    {kind:"changed", cats:["skills"], desc:"Merged slash commands and skills into unified concept"},
+    {kind:"changed", cats:["hooks"], desc:"Tool hook execution timeout changed from 60s to 10 minutes"}
+  ]},
+  { ver:"2.1.4", semver:"2.1.x", entries:[
+    {kind:"added", cats:["agent-tools"], desc:"CLAUDE_CODE_DISABLE_BACKGROUND_TASKS env var", params:["CLAUDE_CODE_DISABLE_BACKGROUND_TASKS"]}
+  ]},
+  { ver:"2.1.6", semver:"2.1.x", entries:[
+    {kind:"added", cats:["skills"], desc:"Automatic discovery of skills from nested .claude/skills directories"}
+  ]},
+  { ver:"2.1.7", semver:"2.1.x", entries:[
+    {kind:"added", cats:["subagents","task"], desc:"Inline display of agent's final response in task notifications"}
+  ]},
+  { ver:"2.1.9", semver:"2.1.x", entries:[
+    {kind:"added", cats:["mcp"], desc:"auto:N syntax for MCP tool search auto-enable threshold", params:["auto:N"]},
+    {kind:"added", cats:["hooks"], desc:"PreToolUse hooks can return additionalContext", params:["additionalContext"]},
+    {kind:"added", cats:["skills"], desc:"${CLAUDE_SESSION_ID} string substitution for skills", params:["${CLAUDE_SESSION_ID}"]}
+  ]},
+  { ver:"2.1.10", semver:"2.1.x", entries:[
+    {kind:"added", cats:["hooks"], desc:"Setup hook event — triggered via --init, --init-only, or --maintenance", params:["Setup"]}
+  ]},
+  { ver:"2.1.16", semver:"2.1.x", milestone:true, entries:[
+    {kind:"released", cats:["task"], desc:"New task management system with dependency tracking"}
+  ]},
+  { ver:"2.1.19", semver:"2.1.x", entries:[
+    {kind:"added", cats:["task"], desc:"TaskStop tool to display stopped command/task description", params:["TaskStop"]},
+    {kind:"changed", cats:["skills"], desc:"Skills without extra permissions/hooks allowed without approval"}
+  ]},
+  { ver:"2.1.20", semver:"2.1.x", entries:[
+    {kind:"changed", cats:["skills","mcp"], desc:"/commit-push-pr skill auto-posts PR URLs to Slack via MCP"},
+    {kind:"changed", cats:["task"], desc:"Task list dynamically adjusts visible items based on terminal height"}
+  ]},
+  { ver:"2.1.21", semver:"2.1.x", entries:[
+    {kind:"fixed", cats:["task"], desc:"Task IDs potentially being reused after deletion"}
+  ]},
+  { ver:"2.1.23", semver:"2.1.x", entries:[
+    {kind:"fixed", cats:["hooks"], desc:"Pending async hooks not being cancelled"}
+  ]},
+  { ver:"2.1.29", semver:"2.1.x", entries:[
+    {kind:"fixed", cats:["hooks"], desc:"Startup performance issues when resuming sessions with saved_hook_context"}
+  ]},
+  { ver:"2.1.30", semver:"2.1.x", entries:[
+    {kind:"added", cats:["mcp"], desc:"Pre-configured OAuth client credentials for MCP servers (e.g. Slack)"},
+    {kind:"added", cats:["task"], desc:"Token count, tool uses, and duration metrics in Task tool results", params:["token_count","tool_uses","duration"]},
+    {kind:"fixed", cats:["mcp","subagents"], desc:"Subagents not able to access SDK-provided MCP tools"}
+  ]},
+  { ver:"2.1.32", semver:"2.1.x", entries:[
+    {kind:"added", cats:["subagents"], desc:"Research preview: agent teams for multi-agent collaboration"},
+    {kind:"added", cats:["skills"], desc:"Skills from --add-dir .claude/skills/ loaded automatically"},
+    {kind:"changed", cats:["skills"], desc:"Skill character budget scales with context window (2% of context)"}
+  ]},
+  { ver:"2.1.33", semver:"2.1.x", entries:[
+    {kind:"added", cats:["hooks","subagents"], desc:"TeammateIdle and TaskCompleted hook events for multi-agent workflows", params:["TeammateIdle","TaskCompleted"]},
+    {kind:"added", cats:["subagents"], desc:"Restrict which sub-agents can spawn via Task(agent_type) syntax"},
+    {kind:"added", cats:["agent-tools","subagents"], desc:"memory frontmatter field for agents with persistent memory", params:["memory"]},
+    {kind:"added", cats:["skills","plugins"], desc:"Plugin name shown in skill descriptions and /skills menu"}
+  ]},
+  { ver:"2.1.38", semver:"2.1.x", entries:[
+    {kind:"changed", cats:["skills"], desc:"Blocked writes to .claude/skills directory in sandbox mode"}
+  ]},
+  { ver:"2.1.39", semver:"2.1.x", entries:[
+    {kind:"fixed", cats:["hooks"], desc:"Hook blocking errors not showing stderr"}
+  ]},
+];
+
+// ════════════════════════════════════════════════════════════════
+//  OBJECTS — key agent-ecosystem objects and their param history
+// ════════════════════════════════════════════════════════════════
+const OBJECTS = {
+  hooks: {
+    label: "Hooks", color: "var(--accent-hooks)",
+    firstVer: "1.0.38",
+    events: [
+      "PreToolUse","PostToolUse","Stop","SubagentStop","Notification",
+      "PreCompact","UserPromptSubmit","SessionStart","SessionEnd",
+      "SubagentStart","PermissionRequest","Setup","TeammateIdle","TaskCompleted"
+    ],
+    params: [
+      {name:"matcher", since:"1.0.38", desc:"Glob pattern to match tool names"},
+      {name:"type", since:"1.0.38", desc:"'command' or 'prompt'"},
+      {name:"command", since:"1.0.38", desc:"Shell command to execute"},
+      {name:"timeout", since:"1.0.41", desc:"Per-command timeout in ms"},
+      {name:"hook_event_name", since:"1.0.41", desc:"Name of the triggering event"},
+      {name:"cwd", since:"1.0.54", desc:"Current working directory"},
+      {name:"additionalContext", since:"1.0.59", desc:"Extra context in JSON output"},
+      {name:"systemMessage", since:"1.0.64", desc:"Warning/context message in JSON output"},
+      {name:"disableAllHooks", since:"1.0.68", desc:"Global hooks kill switch setting"},
+      {name:"updatedInput", since:"2.0.10", desc:"Modified tool inputs from PreToolUse"},
+      {name:"model", since:"2.0.41", desc:"Model for prompt-based stop hooks"},
+      {name:"tool_use_id", since:"2.0.43", desc:"Unique tool use ID in hook inputs"},
+      {name:"agent_id", since:"2.0.42", desc:"Agent ID in SubagentStop"},
+      {name:"agent_transcript_path", since:"2.0.42", desc:"Transcript path in SubagentStop"},
+      {name:"once", since:"2.1.0", desc:"Run hook only once then disable"},
+      {name:"agent_type", since:"2.1.2", desc:"Agent type in SessionStart input"},
+    ]
+  },
+  skills: {
+    label: "Skills", color: "var(--accent-skills)",
+    firstVer: "2.0.20",
+    frontmatter: [
+      {name:"allowed-tools", since:"2.0.20", desc:"Tools the skill can invoke"},
+      {name:"context", since:"2.1.0", desc:"'fork' to run in sub-agent context"},
+      {name:"agent", since:"2.1.0", desc:"Agent type for skill execution"},
+      {name:"skills", since:"2.0.43", desc:"Auto-load skills for subagents"},
+      {name:"hooks", since:"2.1.0", desc:"Scoped hooks in skill frontmatter"},
+      {name:"${CLAUDE_SESSION_ID}", since:"2.1.9", desc:"Session ID substitution variable"},
+      {name:"memory", since:"2.1.33", desc:"Persistent memory field for agents"},
+    ]
+  },
+  mcp: {
+    label: "MCP Servers", color: "var(--accent-mcp)",
+    firstVer: "1.0.4",
+    transports: ["stdio","SSE","Streamable HTTP"],
+    params: [
+      {name:"MCP_TIMEOUT", since:"1.0.8", desc:"Connection timeout"},
+      {name:"MCP_TOOL_TIMEOUT", since:"1.0.8", desc:"Per-tool timeout"},
+      {name:"headersHelper", since:"1.0.119", desc:"Dynamic headers configuration"},
+      {name:"mcp__server__*", since:"2.0.70", desc:"Wildcard tool permissions"},
+      {name:"auto:N", since:"2.1.9", desc:"Auto-enable threshold syntax"},
+    ]
+  },
+  subagents: {
+    label: "Subagents", color: "var(--accent-subagents)",
+    firstVer: "1.0.60",
+    params: [
+      {name:"parent_tool_use_id", since:"1.0.17", desc:"Links sub-task to parent"},
+      {name:"--agents", since:"2.0.0", desc:"Dynamically add subagents"},
+      {name:"disallowedTools", since:"2.0.30", desc:"Block tools in agent defs"},
+      {name:"permissionMode", since:"2.0.43", desc:"Agent permission mode"},
+      {name:"--agent", since:"2.0.59", desc:"Override agent setting"},
+      {name:"Task(agent_type)", since:"2.1.33", desc:"Restrict spawnable sub-agents"},
+    ]
+  },
+  task: {
+    label: "Task Tool", color: "var(--accent-task)",
+    firstVer: "2.1.16",
+    params: [
+      {name:"TaskStop", since:"2.1.19", desc:"Display stopped task description"},
+      {name:"token_count", since:"2.1.30", desc:"Token count in results"},
+      {name:"tool_uses", since:"2.1.30", desc:"Tool use count in results"},
+      {name:"duration", since:"2.1.30", desc:"Duration metric in results"},
+    ]
+  }
+};
+
+// ════════════════════════════════════════════════════════════════
+//  RENDER
+// ════════════════════════════════════════════════════════════════
+let activeCat = 'all';
+let searchQuery = '';
+
+function badgeHTML(cat) {
+  return `<span class="badge badge-${cat}">${cat}</span>`;
+}
+function kindHTML(k) {
+  return `<span class="kind kind-${k}">${k}</span>`;
+}
+
+function renderTimeline() {
+  const wrap = document.getElementById('timeline');
+  const groups = {};
+  DATA.forEach(v => {
+    if (!groups[v.semver]) groups[v.semver] = [];
+    groups[v.semver].push(v);
+  });
+
+  let html = '';
+  for (const [semver, versions] of Object.entries(groups)) {
+    html += `<div class="semver-group" data-semver="${semver}">`;
+    html += `<div class="semver-label">${semver}</div>`;
+    for (const v of versions) {
+      const cats = [...new Set(v.entries.flatMap(e => e.cats))];
+      const dotClass = v.milestone ? 'version-dot milestone' : 'version-dot';
+      const dotColor = v.milestone ? `border-color:${catColor(cats[0])};background:${catColor(cats[0])}` : '';
+      html += `<div class="version-card" data-cats="${cats.join(',')}" data-ver="${v.ver}">`;
+      html += `<div class="${dotClass}" style="${dotColor}"></div>`;
+      html += `<div class="version-header" onclick="toggleCard(this)">`;
+      html += `<span class="ver">${v.ver}</span>`;
+      cats.forEach(c => { html += badgeHTML(c); });
+      html += `<span class="arrow">&#9654;</span>`;
+      html += `</div>`;
+      html += `<div class="version-body">`;
+      for (const e of v.entries) {
+        html += `<div class="entry">`;
+        html += kindHTML(e.kind);
+        html += `<div><div class="desc">${e.desc}</div>`;
+        if (e.params && e.params.length) {
+          html += `<div class="cat-tags">`;
+          e.params.forEach(p => {
+            html += `<span class="cat-tag badge-agent-tools" title="Parameter / object">${p}</span>`;
+          });
+          html += `</div>`;
+        }
+        html += `</div></div>`;
+      }
+      // If this version has param details from OBJECTS, show table
+      const paramsForVer = getAllParamsForVersion(v.ver);
+      if (paramsForVer.length) {
+        html += `<table class="params-table"><tr><th>Param / Field</th><th>Object</th><th>Description</th></tr>`;
+        paramsForVer.forEach(p => {
+          html += `<tr><td><code>${p.name}</code></td><td>${p.obj}</td><td>${p.desc}</td></tr>`;
+        });
+        html += `</table>`;
+      }
+      html += `</div></div>`;
+    }
+    html += `</div>`;
+  }
+  wrap.innerHTML = html;
+}
+
+function getAllParamsForVersion(ver) {
+  const results = [];
+  for (const [key, obj] of Object.entries(OBJECTS)) {
+    const paramList = obj.params || obj.frontmatter || [];
+    paramList.forEach(p => {
+      if (p.since === ver) {
+        results.push({name: p.name, obj: obj.label, desc: p.desc});
+      }
+    });
+  }
+  return results;
+}
+
+function catColor(cat) {
+  const map = {
+    hooks:'var(--accent-hooks)', skills:'var(--accent-skills)',
+    mcp:'var(--accent-mcp)', subagents:'var(--accent-subagents)',
+    task:'var(--accent-task)', 'agent-tools':'var(--accent-agent-tools)',
+    plugins:'var(--accent-plugins)'
+  };
+  return map[cat] || 'var(--text)';
+}
+
+function toggleCard(el) {
+  el.parentElement.classList.toggle('open');
+}
+
+function filterCat(cat) {
+  activeCat = cat;
+  document.querySelectorAll('.controls button').forEach(b => {
+    b.classList.toggle('active', b.dataset.cat === cat);
+  });
+  applyFilters();
+}
+
+function applyFilters() {
+  searchQuery = document.getElementById('searchBox').value.toLowerCase();
+  document.querySelectorAll('.version-card').forEach(card => {
+    const cats = card.dataset.cats.split(',');
+    const matchesCat = activeCat === 'all' || cats.includes(activeCat);
+    const text = card.textContent.toLowerCase();
+    const matchesSearch = !searchQuery || text.includes(searchQuery);
+    card.classList.toggle('hidden', !(matchesCat && matchesSearch));
+  });
+  // Hide empty semver groups
+  document.querySelectorAll('.semver-group').forEach(g => {
+    const visible = g.querySelectorAll('.version-card:not(.hidden)').length;
+    g.style.display = visible ? '' : 'none';
+  });
+  updateStats();
+}
+
+function updateStats() {
+  const cats = ['hooks','skills','mcp','subagents','task','agent-tools','plugins'];
+  const counts = {};
+  cats.forEach(c => counts[c] = 0);
+  let total = 0;
+  DATA.forEach(v => {
+    v.entries.forEach(e => {
+      e.cats.forEach(c => { if (counts[c] !== undefined) counts[c]++; });
+      total++;
+    });
+  });
+  const bar = document.getElementById('statsBar');
+  let html = `<span class="stat-chip"><strong>${total}</strong>&nbsp;entries across&nbsp;<strong>${DATA.length}</strong>&nbsp;versions</span>`;
+  cats.forEach(c => {
+    html += `<span class="stat-chip"><span class="stat-dot" style="background:${catColor(c)}"></span>${c}: ${counts[c]}</span>`;
+  });
+  bar.innerHTML = html;
+}
+
+// ── Graph node click ──
+document.querySelectorAll('#graphNodes rect').forEach((rect, i) => {
+  rect.style.cursor = 'pointer';
+  rect.addEventListener('click', () => {
+    const keys = Object.keys(OBJECTS);
+    const catMap = ['hooks','skills','mcp','subagents','task','plugins','agent-tools'];
+    const cat = catMap[i];
+    if (cat && OBJECTS[cat]) showObjectDetail(cat);
+    else if (cat) filterCat(cat);
+  });
+});
+
+function showObjectDetail(key) {
+  const obj = OBJECTS[key];
+  if (!obj) return;
+  const panel = document.getElementById('objectDetail');
+  let html = `<h3 style="color:${obj.color}">${obj.label} — Object Detail</h3>`;
+  html += `<p style="color:var(--text-muted);font-size:.85rem;">First appeared: <strong>${obj.firstVer}</strong></p>`;
+
+  if (obj.events) {
+    html += `<p style="margin-top:.6rem;font-size:.85rem;"><strong>Hook Events:</strong> ${obj.events.map(e => `<code>${e}</code>`).join(', ')}</p>`;
+  }
+  if (obj.transports) {
+    html += `<p style="margin-top:.4rem;font-size:.85rem;"><strong>Transports:</strong> ${obj.transports.join(', ')}</p>`;
+  }
+
+  const paramList = obj.params || obj.frontmatter || [];
+  if (paramList.length) {
+    html += `<table class="params-table" style="margin-top:1rem;">
+      <tr><th>Field / Param</th><th>Since</th><th>Description</th></tr>`;
+    paramList.forEach(p => {
+      html += `<tr><td><code>${p.name}</code></td><td>${p.since}</td><td>${p.desc}</td></tr>`;
+    });
+    html += `</table>`;
+  }
+
+  // Timeline of changes for this object
+  html += `<div class="obj-timeline" style="margin-top:1.2rem;">`;
+  DATA.forEach(v => {
+    const relevant = v.entries.filter(e => e.cats.includes(key));
+    if (relevant.length) {
+      html += `<div class="obj-event"><span class="obj-ver">${v.ver}</span>`;
+      relevant.forEach(e => {
+        html += `<div class="obj-desc">${kindHTML(e.kind)} ${e.desc}</div>`;
+      });
+      html += `</div>`;
+    }
+  });
+  html += `</div>`;
+
+  panel.innerHTML = html;
+  panel.classList.add('active');
+  panel.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+// ── Init ──
+renderTimeline();
+updateStats();
+</script>
+</body>
+</html>
