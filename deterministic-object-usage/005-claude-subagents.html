@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Code Subagents — Feature Evolution by Release</title>
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface2: #21262d;
+  --border: #30363d;
+  --text: #c9d1d9;
+  --text-muted: #8b949e;
+  --accent: #58a6ff;
+  --green: #3fb950;
+  --orange: #d29922;
+  --red: #f85149;
+  --purple: #bc8cff;
+  --pink: #f778ba;
+  --cyan: #39d2c0;
+  --yellow: #e3b341;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'SF Mono','Cascadia Code','Fira Code',monospace;font-size:14px;line-height:1.6;overflow-x:hidden}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+
+/* ─── Header ─── */
+.hero{text-align:center;padding:48px 24px 32px;background:linear-gradient(180deg,#161b2280 0%,transparent 100%)}
+.hero h1{font-size:28px;color:#fff;margin-bottom:8px;letter-spacing:-0.5px}
+.hero h1 span{color:var(--accent)}
+.hero p{color:var(--text-muted);font-size:13px;max-width:640px;margin:0 auto}
+
+/* ─── Controls ─── */
+.controls{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;padding:16px 24px;position:sticky;top:0;z-index:100;background:var(--bg);border-bottom:1px solid var(--border)}
+.controls button{background:var(--surface);border:1px solid var(--border);color:var(--text-muted);padding:6px 14px;border-radius:6px;cursor:pointer;font-family:inherit;font-size:12px;transition:all .15s}
+.controls button:hover,.controls button.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.controls button.active{box-shadow:0 0 12px rgba(88,166,255,.3)}
+
+/* ─── Summary Cards ─── */
+.summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;padding:24px;max-width:1200px;margin:0 auto}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px;text-align:center}
+.stat-card .num{font-size:32px;font-weight:700;color:var(--accent)}
+.stat-card .label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-top:4px}
+
+/* ─── Architecture Diagram ─── */
+.arch-section{max-width:1200px;margin:32px auto;padding:0 24px}
+.arch-section h2{font-size:18px;color:#fff;margin-bottom:16px;padding-left:12px;border-left:3px solid var(--accent)}
+.arch-diagram{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:32px;overflow-x:auto}
+.arch-diagram svg{display:block;margin:0 auto}
+
+/* ─── Object Model ─── */
+.obj-model{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;max-width:1200px;margin:24px auto;padding:0 24px}
+.obj-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.obj-card-header{padding:12px 16px;font-weight:600;font-size:13px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)}
+.obj-card-header .dot{width:10px;height:10px;border-radius:50%}
+.obj-card-body{padding:12px 16px;font-size:12px}
+.obj-card-body table{width:100%;border-collapse:collapse}
+.obj-card-body td{padding:3px 0;vertical-align:top}
+.obj-card-body td:first-child{color:var(--text-muted);width:110px;white-space:nowrap}
+.obj-card-body td:last-child{color:var(--text)}
+.tag{display:inline-block;padding:1px 7px;border-radius:4px;font-size:10px;font-weight:500;margin:1px 2px}
+.tag-blue{background:#1f3a5f;color:var(--accent)}
+.tag-green{background:#1a3a2a;color:var(--green)}
+.tag-purple{background:#2d1f4e;color:var(--purple)}
+.tag-orange{background:#3d2a0f;color:var(--orange)}
+.tag-pink{background:#3d1f2e;color:var(--pink)}
+.tag-cyan{background:#1a3a3a;color:var(--cyan)}
+.tag-red{background:#3d1f1f;color:var(--red)}
+
+/* ─── Timeline ─── */
+.timeline{max-width:1000px;margin:40px auto;padding:0 24px 80px}
+.timeline h2{font-size:18px;color:#fff;margin-bottom:24px;padding-left:12px;border-left:3px solid var(--green)}
+.tl-track{position:relative;padding-left:32px}
+.tl-track::before{content:'';position:absolute;left:11px;top:0;bottom:0;width:2px;background:var(--border)}
+.tl-entry{position:relative;margin-bottom:24px}
+.tl-entry::before{content:'';position:absolute;left:-25px;top:6px;width:12px;height:12px;border-radius:50%;border:2px solid var(--border);background:var(--bg);z-index:1}
+.tl-entry.era-foundation::before{border-color:var(--text-muted);background:var(--text-muted)}
+.tl-entry.era-custom::before{border-color:var(--orange);background:var(--orange)}
+.tl-entry.era-enhanced::before{border-color:var(--accent);background:var(--accent)}
+.tl-entry.era-teams::before{border-color:var(--purple);background:var(--purple)}
+.tl-entry.major::before{width:16px;height:16px;left:-27px;top:4px}
+
+.tl-version{font-size:15px;font-weight:700;color:#fff;display:inline-block}
+.tl-era{font-size:10px;text-transform:uppercase;letter-spacing:1px;padding:2px 8px;border-radius:4px;margin-left:8px;vertical-align:middle}
+.era-foundation .tl-era{background:#2a2a2a;color:var(--text-muted)}
+.era-custom .tl-era{background:#3d2a0f;color:var(--orange)}
+.era-enhanced .tl-era{background:#1f3a5f;color:var(--accent)}
+.era-teams .tl-era{background:#2d1f4e;color:var(--purple)}
+
+.tl-items{margin-top:6px}
+.tl-item{display:flex;gap:8px;padding:4px 0;font-size:12px;align-items:flex-start}
+.tl-item .icon{flex-shrink:0;width:18px;text-align:center;font-size:13px}
+.tl-item.added .icon{color:var(--green)}
+.tl-item.changed .icon{color:var(--orange)}
+.tl-item.fixed .icon{color:var(--red)}
+.tl-item.breaking .icon{color:var(--pink)}
+.tl-item .desc{color:var(--text)}
+.tl-item .desc code{background:var(--surface2);padding:1px 5px;border-radius:3px;font-size:11px;color:var(--cyan)}
+
+/* ─── Interaction Diagram ─── */
+.interaction-section{max-width:1200px;margin:40px auto;padding:0 24px}
+.interaction-section h2{font-size:18px;color:#fff;margin-bottom:16px;padding-left:12px;border-left:3px solid var(--purple)}
+.seq-diagram{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;overflow-x:auto;font-size:12px}
+.seq-diagram svg{display:block;margin:0 auto}
+
+/* ─── Filter Visibility ─── */
+.tl-entry.hidden{display:none}
+
+/* ─── Scroll-to-top ─── */
+.scroll-top{position:fixed;bottom:24px;right:24px;width:40px;height:40px;background:var(--accent);color:#fff;border:none;border-radius:50%;cursor:pointer;font-size:18px;display:none;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,.4);z-index:200}
+.scroll-top.visible{display:flex}
+
+/* ─── Responsive ─── */
+@media(max-width:600px){
+  .hero h1{font-size:20px}
+  .controls{gap:4px;padding:10px 12px}
+  .controls button{padding:4px 10px;font-size:11px}
+  .summary{grid-template-columns:1fr 1fr}
+  .obj-model{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════ HERO ═══════════════════ -->
+<div class="hero">
+  <h1>Claude Code <span>Subagents</span> — Feature Evolution</h1>
+  <p>An interactive visual timeline of how subagents first appeared, their objects, parameters, tools, and interactions — filtered from the official CHANGELOG.md and organized by semver release.</p>
+</div>
+
+<!-- ═══════════════════ FILTER CONTROLS ═══════════════════ -->
+<div class="controls" id="controls">
+  <button class="active" data-filter="all">All Eras</button>
+  <button data-filter="foundation">0.x — Foundation</button>
+  <button data-filter="custom">1.0.x — Custom Agents</button>
+  <button data-filter="enhanced">2.0.x — Enhanced</button>
+  <button data-filter="teams">2.1.x — Agent Teams</button>
+  <button data-filter="added" data-type="change">Added</button>
+  <button data-filter="fixed" data-type="change">Fixed</button>
+  <button data-filter="changed" data-type="change">Changed</button>
+</div>
+
+<!-- ═══════════════════ SUMMARY STATS ═══════════════════ -->
+<div class="summary">
+  <div class="stat-card"><div class="num">42</div><div class="label">Releases with Subagent Changes</div></div>
+  <div class="stat-card"><div class="num" style="color:var(--green)">7</div><div class="label">Subagent Types</div></div>
+  <div class="stat-card"><div class="num" style="color:var(--purple)">12</div><div class="label">Tools per Agent (max)</div></div>
+  <div class="stat-card"><div class="num" style="color:var(--orange)">4</div><div class="label">Eras of Evolution</div></div>
+</div>
+
+<!-- ═══════════════════ ARCHITECTURE DIAGRAM ═══════════════════ -->
+<div class="arch-section">
+  <h2>System Architecture (Current — v2.1.39)</h2>
+  <div class="arch-diagram">
+    <svg viewBox="0 0 900 520" width="900" height="520" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arrowBlue" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#58a6ff"/></marker>
+        <marker id="arrowGreen" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#3fb950"/></marker>
+        <marker id="arrowPurple" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#bc8cff"/></marker>
+        <marker id="arrowOrange" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#d29922"/></marker>
+      </defs>
+
+      <!-- Main Agent -->
+      <rect x="340" y="20" width="220" height="60" rx="10" fill="#161b22" stroke="#58a6ff" stroke-width="2"/>
+      <text x="450" y="45" text-anchor="middle" fill="#fff" font-size="14" font-weight="bold" font-family="monospace">Main Agent Thread</text>
+      <text x="450" y="62" text-anchor="middle" fill="#8b949e" font-size="10" font-family="monospace">model: opus | sonnet | haiku</text>
+
+      <!-- Task Tool -->
+      <rect x="370" y="110" width="160" height="36" rx="6" fill="#1f3a5f" stroke="#58a6ff" stroke-width="1"/>
+      <text x="450" y="133" text-anchor="middle" fill="#58a6ff" font-size="12" font-weight="bold" font-family="monospace">Task Tool</text>
+      <line x1="450" y1="80" x2="450" y2="110" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#arrowBlue)"/>
+
+      <!-- Task Tool params -->
+      <text x="555" y="118" fill="#8b949e" font-size="9" font-family="monospace">prompt, description,</text>
+      <text x="555" y="130" fill="#8b949e" font-size="9" font-family="monospace">subagent_type, model,</text>
+      <text x="555" y="142" fill="#8b949e" font-size="9" font-family="monospace">resume, run_in_background</text>
+
+      <!-- Fan-out lines -->
+      <line x1="450" y1="146" x2="450" y2="175" stroke="#30363d" stroke-width="1.5"/>
+      <line x1="450" y1="175" x2="100" y2="175" stroke="#30363d" stroke-width="1"/>
+      <line x1="450" y1="175" x2="270" y2="175" stroke="#30363d" stroke-width="1"/>
+      <line x1="450" y1="175" x2="450" y2="175" stroke="#30363d" stroke-width="1"/>
+      <line x1="450" y1="175" x2="630" y2="175" stroke="#30363d" stroke-width="1"/>
+      <line x1="450" y1="175" x2="800" y2="175" stroke="#30363d" stroke-width="1"/>
+
+      <!-- Explore Agent -->
+      <line x1="100" y1="175" x2="100" y2="200" stroke="#30363d" stroke-width="1" marker-end="url(#arrowGreen)"/>
+      <rect x="20" y="200" width="160" height="80" rx="8" fill="#161b22" stroke="#3fb950" stroke-width="1.5"/>
+      <text x="100" y="222" text-anchor="middle" fill="#3fb950" font-size="12" font-weight="bold" font-family="monospace">Explore</text>
+      <text x="100" y="238" text-anchor="middle" fill="#8b949e" font-size="9" font-family="monospace">model: haiku</text>
+      <text x="100" y="254" text-anchor="middle" fill="#8b949e" font-size="9" font-family="monospace">tools: Read, Grep,</text>
+      <text x="100" y="266" text-anchor="middle" fill="#8b949e" font-size="9" font-family="monospace">Glob, Bash, WebFetch</text>
+
+      <!-- Plan Agent -->
+      <line x1="270" y1="175" x2="270" y2="200" stroke="#30363d" stroke-width="1" marker-end="url(#arrowPurple)"/>
+      <rect x="190" y="200" width="160" height="80" rx="8" fill="#161b22" stroke="#bc8cff" stroke-width="1.5"/>
+      <text x="270" y="222" text-anchor="middle" fill="#bc8cff" font-size="12" font-weight="bold" font-family="monospace">Plan</text>
+      <text x="270" y="238" text-anchor="middle" fill="#8b949e" font-size="9" font-family="monospace">model: sonnet (default)</text>
+      <text x="270" y="254" text-anchor="middle" fill="#8b949e" font-size="9" font-family="monospace">tools: Read, Grep,</text>
+      <text x="270" y="266" text-anchor="middle" fill="#8b949e" font-size="9" font-family="monospace">Glob, WebFetch, WebSearch</text>
+
+      <!-- Bash Agent -->
+      <line x1="450" y1="175" x2="450" y2="200" stroke="#30363d" stroke-width="1" marker-end="url(#arrowOrange)"/>
+      <rect x="370" y="200" width="160" height="80" rx="8" fill="#161b22" stroke="#d29922" stroke-width="1.5"/>
+      <text x="450" y="222" text-anchor="middle" fill="#d29922" font-size="12" font-weight="bold" font-family="monospace">Bash</text>
+      <text x="450" y="238" text-anchor="middle" fill="#8b949e" font-size="9" font-family="monospace">model: inherit</text>
+      <text x="450" y="254" text-anchor="middle" fill="#8b949e" font-size="9" font-family="monospace">tools: Bash</text>
+      <text x="450" y="266" text-anchor="middle" fill="#8b949e" font-size="9" font-family="monospace">execution specialist</text>
+
+      <!-- General-Purpose Agent -->
+      <line x1="630" y1="175" x2="630" y2="200" stroke="#30363d" stroke-width="1" marker-end="url(#arrowBlue)"/>
+      <rect x="550" y="200" width="160" height="80" rx="8" fill="#161b22" stroke="#58a6ff" stroke-width="1.5"/>
+      <text x="630" y="222" text-anchor="middle" fill="#58a6ff" font-size="12" font-weight="bold" font-family="monospace">General-Purpose</text>
+      <text x="630" y="238" text-anchor="middle" fill="#8b949e" font-size="9" font-family="monospace">model: inherit</text>
+      <text x="630" y="254" text-anchor="middle" fill="#8b949e" font-size="9" font-family="monospace">tools: all (default)</text>
+      <text x="630" y="266" text-anchor="middle" fill="#8b949e" font-size="9" font-family="monospace">multi-step tasks</text>
+
+      <!-- Custom / Plugin Agent -->
+      <line x1="800" y1="175" x2="800" y2="200" stroke="#30363d" stroke-width="1" marker-end="url(#arrowBlue)"/>
+      <rect x="720" y="200" width="160" height="80" rx="8" fill="#161b22" stroke="#f778ba" stroke-width="1.5"/>
+      <text x="800" y="222" text-anchor="middle" fill="#f778ba" font-size="12" font-weight="bold" font-family="monospace">Custom / Plugin</text>
+      <text x="800" y="238" text-anchor="middle" fill="#8b949e" font-size="9" font-family="monospace">model: configurable</text>
+      <text x="800" y="254" text-anchor="middle" fill="#8b949e" font-size="9" font-family="monospace">tools: configurable</text>
+      <text x="800" y="266" text-anchor="middle" fill="#8b949e" font-size="9" font-family="monospace">user-defined agents</text>
+
+      <!-- Agent Teams box -->
+      <rect x="20" y="320" width="860" height="80" rx="10" fill="none" stroke="#bc8cff" stroke-width="1.5" stroke-dasharray="6,3"/>
+      <text x="450" y="342" text-anchor="middle" fill="#bc8cff" font-size="12" font-weight="bold" font-family="monospace">Agent Teams (experimental — v2.1.32+)</text>
+      <text x="450" y="360" text-anchor="middle" fill="#8b949e" font-size="10" font-family="monospace">CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1</text>
+      <text x="450" y="378" text-anchor="middle" fill="#8b949e" font-size="10" font-family="monospace">Multiple agents collaborate | TeammateIdle &amp; TaskCompleted hooks | Persistent memory</text>
+      <text x="450" y="393" text-anchor="middle" fill="#8b949e" font-size="10" font-family="monospace">Task(agent_type) restrictions | Shared MCP tools | Cross-region inference</text>
+
+      <!-- Hooks layer -->
+      <rect x="20" y="420" width="860" height="80" rx="10" fill="#161b22" stroke="#39d2c0" stroke-width="1.5"/>
+      <text x="450" y="445" text-anchor="middle" fill="#39d2c0" font-size="12" font-weight="bold" font-family="monospace">Hook Events</text>
+      <text x="120" y="468" text-anchor="middle" fill="#8b949e" font-size="10" font-family="monospace">SubagentStart</text>
+      <text x="280" y="468" text-anchor="middle" fill="#8b949e" font-size="10" font-family="monospace">SubagentStop</text>
+      <text x="440" y="468" text-anchor="middle" fill="#8b949e" font-size="10" font-family="monospace">TaskCompleted</text>
+      <text x="600" y="468" text-anchor="middle" fill="#8b949e" font-size="10" font-family="monospace">TeammateIdle</text>
+      <text x="770" y="468" text-anchor="middle" fill="#8b949e" font-size="10" font-family="monospace">PermissionRequest</text>
+
+      <!-- Connections from agents to hooks -->
+      <line x1="100" y1="280" x2="100" y2="320" stroke="#3fb950" stroke-width="1" stroke-dasharray="4,2"/>
+      <line x1="270" y1="280" x2="270" y2="320" stroke="#bc8cff" stroke-width="1" stroke-dasharray="4,2"/>
+      <line x1="450" y1="280" x2="450" y2="320" stroke="#d29922" stroke-width="1" stroke-dasharray="4,2"/>
+      <line x1="630" y1="280" x2="630" y2="320" stroke="#58a6ff" stroke-width="1" stroke-dasharray="4,2"/>
+      <line x1="800" y1="280" x2="800" y2="320" stroke="#f778ba" stroke-width="1" stroke-dasharray="4,2"/>
+    </svg>
+  </div>
+</div>
+
+<!-- ═══════════════════ OBJECT MODEL ═══════════════════ -->
+<div class="arch-section"><h2>Object Model — Task Tool Parameters &amp; Agent Frontmatter</h2></div>
+<div class="obj-model">
+  <div class="obj-card">
+    <div class="obj-card-header"><div class="dot" style="background:var(--accent)"></div>Task Tool Parameters</div>
+    <div class="obj-card-body"><table>
+      <tr><td>subagent_type</td><td><span class="tag tag-blue">required</span> Name of agent to spawn</td></tr>
+      <tr><td>prompt</td><td><span class="tag tag-blue">required</span> Task instructions</td></tr>
+      <tr><td>description</td><td><span class="tag tag-blue">required</span> 3-5 word summary</td></tr>
+      <tr><td>model</td><td><span class="tag tag-green">optional</span> <code>inherit</code> <code>sonnet</code> <code>opus</code> <code>haiku</code></td></tr>
+      <tr><td>resume</td><td><span class="tag tag-green">optional</span> Agent ID to resume</td></tr>
+      <tr><td>run_in_background</td><td><span class="tag tag-green">optional</span> Boolean</td></tr>
+      <tr><td>max_turns</td><td><span class="tag tag-green">optional</span> Turn limit</td></tr>
+    </table></div>
+  </div>
+
+  <div class="obj-card">
+    <div class="obj-card-header"><div class="dot" style="background:var(--pink)"></div>Agent Frontmatter (YAML)</div>
+    <div class="obj-card-body"><table>
+      <tr><td>name</td><td><span class="tag tag-blue">required</span> 3-50 chars, lowercase, hyphens</td></tr>
+      <tr><td>description</td><td><span class="tag tag-blue">required</span> With <code>&lt;example&gt;</code> blocks</td></tr>
+      <tr><td>model</td><td><span class="tag tag-blue">required</span> inherit | sonnet | opus | haiku</td></tr>
+      <tr><td>color</td><td><span class="tag tag-blue">required</span> blue | cyan | green | yellow | magenta | red | pink</td></tr>
+      <tr><td>tools</td><td><span class="tag tag-green">optional</span> Array of tool names</td></tr>
+      <tr><td>memory</td><td><span class="tag tag-purple">v2.1.33</span> user | project | local</td></tr>
+      <tr><td>skills</td><td><span class="tag tag-orange">v2.0.43</span> Array of skill names</td></tr>
+      <tr><td>hooks</td><td><span class="tag tag-orange">v2.1.0</span> Pre/Post tool hooks</td></tr>
+      <tr><td>permissionMode</td><td><span class="tag tag-orange">v2.0.43</span> Permission setting</td></tr>
+      <tr><td>disallowedTools</td><td><span class="tag tag-orange">v2.0.30</span> Explicit tool blocking</td></tr>
+    </table></div>
+  </div>
+
+  <div class="obj-card">
+    <div class="obj-card-header"><div class="dot" style="background:var(--cyan)"></div>Available Tools</div>
+    <div class="obj-card-body">
+      <span class="tag tag-cyan">Read</span>
+      <span class="tag tag-cyan">Write</span>
+      <span class="tag tag-cyan">Edit</span>
+      <span class="tag tag-cyan">Grep</span>
+      <span class="tag tag-cyan">Glob</span>
+      <span class="tag tag-cyan">Bash</span>
+      <span class="tag tag-cyan">WebFetch</span>
+      <span class="tag tag-cyan">WebSearch</span>
+      <span class="tag tag-cyan">TodoWrite</span>
+      <span class="tag tag-cyan">NotebookEdit</span>
+      <span class="tag tag-cyan">Task</span>
+      <span class="tag tag-cyan">LS</span>
+      <span class="tag tag-cyan">KillShell</span>
+      <span class="tag tag-cyan">AskUserQuestion</span>
+      <span class="tag tag-cyan">MCPSearch</span>
+      <br><br>
+      <span style="color:var(--text-muted);font-size:11px">Agents inherit all tools by default. Use <code>tools</code> in frontmatter to restrict.</span>
+    </div>
+  </div>
+
+  <div class="obj-card">
+    <div class="obj-card-header"><div class="dot" style="background:var(--green)"></div>Hook Events (Subagent-related)</div>
+    <div class="obj-card-body"><table>
+      <tr><td>SubagentStart</td><td><span class="tag tag-orange">v2.0.43</span> Fires when agent spawned</td></tr>
+      <tr><td>SubagentStop</td><td><span class="tag tag-orange">v1.0.41</span> Split from Stop hook</td></tr>
+      <tr><td>TaskCompleted</td><td><span class="tag tag-purple">v2.1.33</span> Agent Teams event</td></tr>
+      <tr><td>TeammateIdle</td><td><span class="tag tag-purple">v2.1.33</span> Agent Teams event</td></tr>
+      <tr><td>PermissionRequest</td><td><span class="tag tag-orange">v2.0.45</span> Auto-approve/deny</td></tr>
+    </table></div>
+  </div>
+</div>
+
+<!-- ═══════════════════ INTERACTION DIAGRAM ═══════════════════ -->
+<div class="interaction-section">
+  <h2>Agent Interaction Patterns</h2>
+  <div class="seq-diagram">
+    <svg viewBox="0 0 880 440" width="880" height="440" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arrR" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#58a6ff"/></marker>
+        <marker id="arrL" markerWidth="8" markerHeight="6" refX="0" refY="3" orient="auto"><polygon points="8 0, 0 3, 8 6" fill="#3fb950"/></marker>
+        <marker id="arrRp" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#bc8cff"/></marker>
+      </defs>
+
+      <!-- Lifelines -->
+      <text x="100" y="18" text-anchor="middle" fill="#fff" font-size="12" font-weight="bold" font-family="monospace">User</text>
+      <line x1="100" y1="28" x2="100" y2="430" stroke="#30363d" stroke-width="1" stroke-dasharray="4,3"/>
+
+      <text x="300" y="18" text-anchor="middle" fill="#58a6ff" font-size="12" font-weight="bold" font-family="monospace">Main Agent</text>
+      <line x1="300" y1="28" x2="300" y2="430" stroke="#30363d" stroke-width="1" stroke-dasharray="4,3"/>
+
+      <text x="520" y="18" text-anchor="middle" fill="#3fb950" font-size="12" font-weight="bold" font-family="monospace">Subagent</text>
+      <line x1="520" y1="28" x2="520" y2="430" stroke="#30363d" stroke-width="1" stroke-dasharray="4,3"/>
+
+      <text x="740" y="18" text-anchor="middle" fill="#bc8cff" font-size="12" font-weight="bold" font-family="monospace">Child Agent</text>
+      <line x1="740" y1="28" x2="740" y2="430" stroke="#30363d" stroke-width="1" stroke-dasharray="4,3"/>
+
+      <!-- 1. User prompt -->
+      <line x1="105" y1="50" x2="292" y2="50" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#arrR)"/>
+      <text x="200" y="44" text-anchor="middle" fill="#8b949e" font-size="10" font-family="monospace">prompt</text>
+
+      <!-- 2. Main spawns subagent -->
+      <line x1="305" y1="80" x2="512" y2="80" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#arrR)"/>
+      <text x="408" y="74" text-anchor="middle" fill="#8b949e" font-size="10" font-family="monospace">Task(subagent_type, prompt)</text>
+
+      <!-- SubagentStart hook -->
+      <rect x="370" y="90" width="100" height="16" rx="3" fill="#1a3a3a"/>
+      <text x="420" y="101" text-anchor="middle" fill="#39d2c0" font-size="9" font-family="monospace">SubagentStart</text>
+
+      <!-- 3. Subagent works -->
+      <rect x="500" y="115" width="40" height="60" rx="4" fill="#1a3a2a" stroke="#3fb950" stroke-width="1"/>
+      <text x="520" y="148" text-anchor="middle" fill="#3fb950" font-size="9" font-family="monospace" writing-mode="tb">work</text>
+
+      <!-- 4. Subagent uses tools -->
+      <line x1="525" y1="130" x2="540" y2="130" stroke="#3fb950" stroke-width="1"/>
+      <text x="595" y="127" fill="#8b949e" font-size="9" font-family="monospace">Read, Grep, Bash...</text>
+      <text x="595" y="140" fill="#8b949e" font-size="9" font-family="monospace">(inherits parent tools)</text>
+
+      <!-- 5. Subagent spawns child -->
+      <line x1="525" y1="160" x2="732" y2="160" stroke="#bc8cff" stroke-width="1.5" marker-end="url(#arrRp)"/>
+      <text x="628" y="154" text-anchor="middle" fill="#8b949e" font-size="10" font-family="monospace">Task(child_type, prompt)</text>
+
+      <!-- Child works -->
+      <rect x="720" y="170" width="40" height="50" rx="4" fill="#2d1f4e" stroke="#bc8cff" stroke-width="1"/>
+      <text x="740" y="198" text-anchor="middle" fill="#bc8cff" font-size="9" font-family="monospace" writing-mode="tb">work</text>
+
+      <!-- Child returns -->
+      <line x1="732" y1="230" x2="525" y2="230" stroke="#3fb950" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrL)"/>
+      <text x="628" y="224" text-anchor="middle" fill="#8b949e" font-size="10" font-family="monospace">result + metrics</text>
+
+      <!-- 6. Subagent returns -->
+      <line x1="512" y1="265" x2="305" y2="265" stroke="#3fb950" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrL)"/>
+      <text x="408" y="259" text-anchor="middle" fill="#8b949e" font-size="10" font-family="monospace">result + token count + duration</text>
+
+      <!-- SubagentStop hook -->
+      <rect x="345" y="275" width="150" height="16" rx="3" fill="#1a3a3a"/>
+      <text x="420" y="286" text-anchor="middle" fill="#39d2c0" font-size="9" font-family="monospace">SubagentStop (agent_id, path)</text>
+
+      <!-- 7. Background pattern -->
+      <text x="200" y="315" text-anchor="middle" fill="#d29922" font-size="11" font-weight="bold" font-family="monospace">— Background Pattern (Ctrl+B) —</text>
+
+      <line x1="305" y1="330" x2="512" y2="330" stroke="#d29922" stroke-width="1.5" marker-end="url(#arrR)"/>
+      <text x="408" y="324" text-anchor="middle" fill="#8b949e" font-size="10" font-family="monospace">Task(run_in_background: true)</text>
+
+      <rect x="500" y="340" width="40" height="40" rx="4" fill="#3d2a0f" stroke="#d29922" stroke-width="1"/>
+      <text x="520" y="363" text-anchor="middle" fill="#d29922" font-size="9" font-family="monospace" writing-mode="tb">bg</text>
+
+      <!-- Main continues -->
+      <rect x="280" y="340" width="40" height="40" rx="4" fill="#1f3a5f" stroke="#58a6ff" stroke-width="1"/>
+      <text x="300" y="363" text-anchor="middle" fill="#58a6ff" font-size="9" font-family="monospace" writing-mode="tb">work</text>
+
+      <!-- BG completes async -->
+      <line x1="512" y1="390" x2="305" y2="390" stroke="#d29922" stroke-width="1.5" stroke-dasharray="4,3"/>
+      <text x="408" y="384" text-anchor="middle" fill="#8b949e" font-size="10" font-family="monospace">TaskCompleted notification</text>
+
+      <!-- Resume pattern -->
+      <text x="200" y="420" text-anchor="middle" fill="#bc8cff" font-size="11" font-weight="bold" font-family="monospace">— Resume Pattern (resume: agent_id) —</text>
+    </svg>
+  </div>
+</div>
+
+<!-- ═══════════════════ TIMELINE ═══════════════════ -->
+<div class="timeline">
+  <h2>Release-by-Release Subagent Changelog</h2>
+  <div class="tl-track" id="timeline">
+
+    <!-- ━━━━━ ERA: Foundation (0.x) ━━━━━ -->
+
+    <div class="tl-entry era-foundation" data-era="foundation">
+      <div><span class="tl-version">0.2.74</span><span class="tl-era">Foundation</span></div>
+      <div class="tl-items">
+        <div class="tl-item added"><span class="icon">+</span><span class="desc">Task tool can now perform writes and run bash commands — first expansion of subagent capabilities beyond read-only</span></div>
+      </div>
+    </div>
+
+    <!-- ━━━━━ ERA: Custom Agents (1.0.x) ━━━━━ -->
+
+    <div class="tl-entry era-custom" data-era="custom">
+      <div><span class="tl-version">1.0.17</span><span class="tl-era">Custom Agents</span></div>
+      <div class="tl-items">
+        <div class="tl-item added"><span class="icon">+</span><span class="desc">Emit messages from sub-tasks in <code>-p</code> mode (look for the <code>parent_tool_use_id</code> property)</span></div>
+      </div>
+    </div>
+
+    <div class="tl-entry era-custom" data-era="custom">
+      <div><span class="tl-version">1.0.41</span><span class="tl-era">Custom Agents</span></div>
+      <div class="tl-items">
+        <div class="tl-item added"><span class="icon">+</span><span class="desc">Split Stop hook into <code>Stop</code> and <code>SubagentStop</code> — first dedicated subagent lifecycle hook</span></div>
+      </div>
+    </div>
+
+    <div class="tl-entry era-custom major" data-era="custom">
+      <div><span class="tl-version">1.0.60</span><span class="tl-era">Custom Agents</span></div>
+      <div class="tl-items">
+        <div class="tl-item added"><span class="icon">+</span><span class="desc"><strong>Custom subagents released!</strong> Create custom subagents for specialized tasks. Run <code>/agents</code> to get started</span></div>
+      </div>
+    </div>
+
+    <div class="tl-entry era-custom" data-era="custom">
+      <div><span class="tl-version">1.0.62</span><span class="tl-era">Custom Agents</span></div>
+      <div class="tl-items">
+        <div class="tl-item added"><span class="icon">+</span><span class="desc"><code>@-mention</code> support with typeahead for custom agents — <code>@&lt;your-custom-agent&gt;</code> to invoke</span></div>
+      </div>
+    </div>
+
+    <div class="tl-entry era-custom" data-era="custom">
+      <div><span class="tl-version">1.0.64</span><span class="tl-era">Custom Agents</span></div>
+      <div class="tl-items">
+        <div class="tl-item added"><span class="icon">+</span><span class="desc">Agent model customization — specify which model an agent should use</span></div>
+        <div class="tl-item fixed"><span class="icon">~</span><span class="desc">Fixed unintended access to the recursive agent tool</span></div>
+      </div>
+    </div>
+
+    <div class="tl-entry era-custom" data-era="custom">
+      <div><span class="tl-version">1.0.70</span><span class="tl-era">Custom Agents</span></div>
+      <div class="tl-items">
+        <div class="tl-item fixed"><span class="icon">~</span><span class="desc">Windows: Fixed native file search, ripgrep, and subagent functionality</span></div>
+      </div>
+    </div>
+
+    <div class="tl-entry era-custom" data-era="custom">
+      <div><span class="tl-version">1.0.80</span><span class="tl-era">Custom Agents</span></div>
+      <div class="tl-items">
+        <div class="tl-item fixed"><span class="icon">~</span><span class="desc">Fix text contrast for custom subagent colors and spinner rendering</span></div>
+      </div>
+    </div>
+
+    <div class="tl-entry era-custom" data-era="custom">
+      <div><span class="tl-version">1.0.81</span><span class="tl-era">Custom Agents</span></div>
+      <div class="tl-items">
+        <div class="tl-item fixed"><span class="icon">~</span><span class="desc">Fix custom agent loading when agent files are unparsable</span></div>
+      </div>
+    </div>
+
+    <!-- ━━━━━ ERA: Enhanced Subagents (2.0.x) ━━━━━ -->
+
+    <div class="tl-entry era-enhanced major" data-era="enhanced">
+      <div><span class="tl-version">2.0.0</span><span class="tl-era">Enhanced</span></div>
+      <div class="tl-items">
+        <div class="tl-item added"><span class="icon">+</span><span class="desc">SDK is now the <strong>Claude Agent SDK</strong></span></div>
+        <div class="tl-item added"><span class="icon">+</span><span class="desc">Add subagents dynamically with <code>--agents</code> flag</span></div>
+      </div>
+    </div>
+
+    <div class="tl-entry era-enhanced" data-era="enhanced">
+      <div><span class="tl-version">2.0.12</span><span class="tl-era">Enhanced</span></div>
+      <div class="tl-items">
+        <div class="tl-item added"><span class="icon">+</span><span class="desc"><strong>Plugin System Released</strong> — extend Claude Code with custom commands, agents, hooks, and MCP servers from marketplaces</span></div>
+      </div>
+    </div>
+
+    <div class="tl-entry era-enhanced major" data-era="enhanced">
+      <div><span class="tl-version">2.0.17</span><span class="tl-era">Enhanced</span></div>
+      <div class="tl-items">
+        <div class="tl-item added"><span class="icon">+</span><span class="desc"><strong>Introducing the Explore subagent</strong> — powered by Haiku, searches through your codebase efficiently to save context</span></div>
+        <div class="tl-item added"><span class="icon">+</span><span class="desc">Haiku 4.5 automatically uses Sonnet in plan mode (SonnetPlan by default)</span></div>
+      </div>
+    </div>
+
+    <div class="tl-entry era-enhanced major" data-era="enhanced">
+      <div><span class="tl-version">2.0.28</span><span class="tl-era">Enhanced</span></div>
+      <div class="tl-items">
+        <div class="tl-item added"><span class="icon">+</span><span class="desc"><strong>Plan subagent introduced</strong> — dedicated agent for plan mode</span></div>
+        <div class="tl-item added"><span class="icon">+</span><span class="desc">Claude can now choose to <strong>resume subagents</strong></span></div>
+        <div class="tl-item added"><span class="icon">+</span><span class="desc">Claude can <strong>dynamically choose the model</strong> used by its subagents</span></div>
+        <div class="tl-item changed"><span class="icon">*</span><span class="desc">Discovery of custom subagents and output styles no longer respects <code>.gitignore</code></span></div>
+      </div>
+    </div>
+
+    <div class="tl-entry era-enhanced" data-era="enhanced">
+      <div><span class="tl-version">2.0.30</span><span class="tl-era">Enhanced</span></div>
+      <div class="tl-items">
+        <div class="tl-item added"><span class="icon">+</span><span class="desc"><code>disallowedTools</code> field added to custom agent definitions for explicit tool blocking</span></div>
+        <div class="tl-item fixed"><span class="icon">~</span><span class="desc">Fixed Explore agent creating unwanted .md investigation files during codebase exploration</span></div>
+        <div class="tl-item fixed"><span class="icon">~</span><span class="desc">Fixed MCP tools not being available to sub-agents</span></div>
+      </div>
+    </div>
+
+    <div class="tl-entry era-enhanced" data-era="enhanced">
+      <div><span class="tl-version">2.0.31</span><span class="tl-era">Enhanced</span></div>
+      <div class="tl-items">
+        <div class="tl-item fixed"><span class="icon">~</span><span class="desc">Fixed a bug with subagents and MCP servers related to <code>"Tool names must be unique"</code> error</span></div>
+      </div>
+    </div>
+
+    <div class="tl-entry era-enhanced" data-era="enhanced">
+      <div><span class="tl-version">2.0.42</span><span class="tl-era">Enhanced</span></div>
+      <div class="tl-items">
+        <div class="tl-item added"><span class="icon">+</span><span class="desc"><code>agent_id</code> and <code>agent_transcript_path</code> fields added to <code>SubagentStop</code> hooks</span></div>
+      </div>
+    </div>
+
+    <div class="tl-entry era-enhanced" data-era="enhanced">
+      <div><span class="tl-version">2.0.43</span><span class="tl-era">Enhanced</span></div>
+      <div class="tl-items">
+        <div class="tl-item added"><span class="icon">+</span><span class="desc"><code>permissionMode</code> field added for custom agents</span></div>
+        <div class="tl-item added"><span class="icon">+</span><span class="desc"><code>SubagentStart</code> hook event introduced</span></div>
+        <div class="tl-item added"><span class="icon">+</span><span class="desc">Skills frontmatter field to declare skills to auto-load for subagents</span></div>
+      </div>
+    </div>
+
+    <div class="tl-entry era-enhanced" data-era="enhanced">
+      <div><span class="tl-version">2.0.49</span><span class="tl-era">Enhanced</span></div>
+      <div class="tl-items">
+        <div class="tl-item fixed"><span class="icon">~</span><span class="desc">Fixed handling of subagent permissions</span></div>
+      </div>
+    </div>
+
+    <div class="tl-entry era-enhanced" data-era="enhanced">
+      <div><span class="tl-version">2.0.59</span><span class="tl-era">Enhanced</span></div>
+      <div class="tl-items">
+        <div class="tl-item added"><span class="icon">+</span><span class="desc"><code>--agent</code> CLI flag to override the agent setting for the current session</span></div>
+        <div class="tl-item added"><span class="icon">+</span><span class="desc"><code>agent</code> setting to configure main thread with a specific agent's system prompt, tool restrictions, and model</span></div>
+      </div>
+    </div>
+
+    <div class="tl-entry era-enhanced" data-era="enhanced">
+      <div><span class="tl-version">2.0.60</span><span class="tl-era">Enhanced</span></div>
+      <div class="tl-items">
+        <div class="tl-item added"><span class="icon">+</span><span class="desc"><strong>Background agent support</strong> — agents run in the background while you work</span></div>
+      </div>
+    </div>
+
+    <div class="tl-entry era-enhanced" data-era="enhanced">
+      <div><span class="tl-version">2.0.64</span><span class="tl-era">Enhanced</span></div>
+      <div class="tl-items">
+        <div class="tl-item added"><span class="icon">+</span><span class="desc">Agents and bash commands can run asynchronously and send wake-up messages to the main agent</span></div>
+        <div class="tl-item changed"><span class="icon">*</span><span class="desc">Unshipped <code>AgentOutputTool</code> and <code>BashOutputTool</code>, in favor of unified <code>TaskOutputTool</code></span></div>
+      </div>
+    </div>
+
+    <div class="tl-entry era-enhanced" data-era="enhanced">
+      <div><span class="tl-version">2.0.68</span><span class="tl-era">Enhanced</span></div>
+      <div class="tl-items">
+        <div class="tl-item fixed"><span class="icon">~</span><span class="desc">Fixed an issue where steering messages could be lost while a subagent is working</span></div>
+      </div>
+    </div>
+
+    <!-- ━━━━━ ERA: Agent Teams (2.1.x) ━━━━━ -->
+
+    <div class="tl-entry era-teams major" data-era="teams">
+      <div><span class="tl-version">2.1.0</span><span class="tl-era">Agent Teams</span></div>
+      <div class="tl-items">
+        <div class="tl-item added"><span class="icon">+</span><span class="desc">Unified <strong>Ctrl+B backgrounding</strong> for both bash commands and agents — backgrounds all running foreground tasks simultaneously</span></div>
+        <div class="tl-item added"><span class="icon">+</span><span class="desc">Support for <strong>disabling specific agents</strong> using <code>Task(AgentName)</code> syntax in settings.json permissions or <code>--disallowedTools</code></span></div>
+        <div class="tl-item added"><span class="icon">+</span><span class="desc"><strong>Hooks support</strong> added to agent frontmatter — agents can define PreToolUse, PostToolUse, and Stop hooks scoped to their lifecycle</span></div>
+        <div class="tl-item added"><span class="icon">+</span><span class="desc">Support for running skills in a <strong>forked sub-agent context</strong> using <code>context: fork</code> in skill frontmatter</span></div>
+        <div class="tl-item added"><span class="icon">+</span><span class="desc"><code>agent</code> field in skills to specify agent type for execution</span></div>
+        <div class="tl-item added"><span class="icon">+</span><span class="desc">Improved subagents (Task tool) to <strong>continue working after permission denial</strong>, allowing alternative approaches</span></div>
+        <div class="tl-item fixed"><span class="icon">~</span><span class="desc">Fixed subagents sometimes not inheriting the parent's model by default</span></div>
+        <div class="tl-item fixed"><span class="icon">~</span><span class="desc">Fixed AWS Bedrock subagents not inheriting EU/APAC cross-region inference model configuration (403 errors)</span></div>
+        <div class="tl-item fixed"><span class="icon">~</span><span class="desc">Fixed spinner token counter to properly accumulate tokens from subagents during execution</span></div>
+      </div>
+    </div>
+
+    <div class="tl-entry era-teams" data-era="teams">
+      <div><span class="tl-version">2.1.2</span><span class="tl-era">Agent Teams</span></div>
+      <div class="tl-items">
+        <div class="tl-item added"><span class="icon">+</span><span class="desc"><code>agent_type</code> added to <code>SessionStart</code> hook input, populated if <code>--agent</code> is specified</span></div>
+      </div>
+    </div>
+
+    <div class="tl-entry era-teams" data-era="teams">
+      <div><span class="tl-version">2.1.3</span><span class="tl-era">Agent Teams</span></div>
+      <div class="tl-items">
+        <div class="tl-item fixed"><span class="icon">~</span><span class="desc">Fixed sub-agents using the wrong model during conversation compaction</span></div>
+        <div class="tl-item fixed"><span class="icon">~</span><span class="desc">Fixed web search in sub-agents using incorrect model</span></div>
+      </div>
+    </div>
+
+    <div class="tl-entry era-teams" data-era="teams">
+      <div><span class="tl-version">2.1.7</span><span class="tl-era">Agent Teams</span></div>
+      <div class="tl-items">
+        <div class="tl-item added"><span class="icon">+</span><span class="desc">Inline display of agent's final response in task notifications — see results without reading the full transcript</span></div>
+      </div>
+    </div>
+
+    <div class="tl-entry era-teams" data-era="teams">
+      <div><span class="tl-version">2.1.14</span><span class="tl-era">Agent Teams</span></div>
+      <div class="tl-items">
+        <div class="tl-item fixed"><span class="icon">~</span><span class="desc">Fixed memory issues that could cause crashes when running parallel subagents</span></div>
+      </div>
+    </div>
+
+    <div class="tl-entry era-teams" data-era="teams">
+      <div><span class="tl-version">2.1.16</span><span class="tl-era">Agent Teams</span></div>
+      <div class="tl-items">
+        <div class="tl-item added"><span class="icon">+</span><span class="desc">New task management system with dependency tracking</span></div>
+        <div class="tl-item fixed"><span class="icon">~</span><span class="desc">Fixed out-of-memory crashes when resuming sessions with heavy subagent usage</span></div>
+      </div>
+    </div>
+
+    <div class="tl-entry era-teams" data-era="teams">
+      <div><span class="tl-version">2.1.19</span><span class="tl-era">Agent Teams</span></div>
+      <div class="tl-items">
+        <div class="tl-item added"><span class="icon">+</span><span class="desc"><code>CLAUDE_CODE_ENABLE_TASKS</code> env var — set to <code>false</code> to keep old system</span></div>
+        <div class="tl-item fixed"><span class="icon">~</span><span class="desc">Fixed agent list displaying "Sonnet (default)" instead of "Inherit (default)" for agents without explicit model</span></div>
+      </div>
+    </div>
+
+    <div class="tl-entry era-teams" data-era="teams">
+      <div><span class="tl-version">2.1.20</span><span class="tl-era">Agent Teams</span></div>
+      <div class="tl-items">
+        <div class="tl-item added"><span class="icon">+</span><span class="desc">Ability to <strong>delete tasks</strong> via the <code>TaskUpdate</code> tool</span></div>
+        <div class="tl-item changed"><span class="icon">*</span><span class="desc">Background agents now <strong>prompt for tool permissions before launching</strong></span></div>
+      </div>
+    </div>
+
+    <div class="tl-entry era-teams" data-era="teams">
+      <div><span class="tl-version">2.1.30</span><span class="tl-era">Agent Teams</span></div>
+      <div class="tl-items">
+        <div class="tl-item added"><span class="icon">+</span><span class="desc">Token count, tool uses, and duration metrics added to Task tool results</span></div>
+        <div class="tl-item changed"><span class="icon">*</span><span class="desc">Improved <code>TaskStop</code> tool to display the stopped command/task description instead of generic "Task stopped"</span></div>
+        <div class="tl-item fixed"><span class="icon">~</span><span class="desc">Fixed subagents not being able to access SDK-provided MCP tools (not synced to shared application state)</span></div>
+      </div>
+    </div>
+
+    <div class="tl-entry era-teams major" data-era="teams">
+      <div><span class="tl-version">2.1.32</span><span class="tl-era">Agent Teams</span></div>
+      <div class="tl-items">
+        <div class="tl-item added"><span class="icon">+</span><span class="desc"><strong>Agent Teams</strong> — research preview for multi-agent collaboration (requires <code>CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1</code>)</span></div>
+        <div class="tl-item added"><span class="icon">+</span><span class="desc">Claude Opus 4.6 now available as subagent model option</span></div>
+      </div>
+    </div>
+
+    <div class="tl-entry era-teams major" data-era="teams">
+      <div><span class="tl-version">2.1.33</span><span class="tl-era">Agent Teams</span></div>
+      <div class="tl-items">
+        <div class="tl-item added"><span class="icon">+</span><span class="desc"><code>TeammateIdle</code> and <code>TaskCompleted</code> hook events for multi-agent workflows</span></div>
+        <div class="tl-item added"><span class="icon">+</span><span class="desc"><code>Task(agent_type)</code> syntax for restricting which sub-agents can be spawned via agent "tools" frontmatter</span></div>
+        <div class="tl-item added"><span class="icon">+</span><span class="desc"><code>memory</code> frontmatter field for agents — persistent memory with <code>user</code>, <code>project</code>, or <code>local</code> scope</span></div>
+        <div class="tl-item fixed"><span class="icon">~</span><span class="desc">Fixed agent teammate sessions in tmux to send and receive messages</span></div>
+      </div>
+    </div>
+
+    <div class="tl-entry era-teams" data-era="teams">
+      <div><span class="tl-version">2.1.34</span><span class="tl-era">Agent Teams</span></div>
+      <div class="tl-items">
+        <div class="tl-item fixed"><span class="icon">~</span><span class="desc">Fixed a crash when agent teams setting changed between renders</span></div>
+      </div>
+    </div>
+
+    <div class="tl-entry era-teams" data-era="teams">
+      <div><span class="tl-version">2.1.39</span><span class="tl-era">Agent Teams</span></div>
+      <div class="tl-items">
+        <div class="tl-item fixed"><span class="icon">~</span><span class="desc">Fixed Agent Teams using wrong model identifier for Bedrock, Vertex, and Foundry customers</span></div>
+        <div class="tl-item fixed"><span class="icon">~</span><span class="desc">Fixed spurious warnings for non-agent markdown files in <code>.claude/agents/</code> directory</span></div>
+      </div>
+    </div>
+
+  </div><!-- /tl-track -->
+</div><!-- /timeline -->
+
+<!-- ═══════════════════ SCROLL TO TOP ═══════════════════ -->
+<button class="scroll-top" id="scrollTop" title="Scroll to top">&#8593;</button>
+
+<!-- ═══════════════════ SCRIPT ═══════════════════ -->
+<script>
+(function(){
+  // Era + change-type filters
+  const controls = document.getElementById('controls');
+  const entries = document.querySelectorAll('.tl-entry');
+  const scrollBtn = document.getElementById('scrollTop');
+
+  controls.addEventListener('click', function(e){
+    const btn = e.target.closest('button');
+    if(!btn) return;
+    const filter = btn.dataset.filter;
+    const isChangeType = btn.dataset.type === 'change';
+
+    // Toggle active state (exclusive within group)
+    controls.querySelectorAll('button').forEach(b => {
+      if(isChangeType && b.dataset.type === 'change') b.classList.remove('active');
+      else if(!isChangeType && b.dataset.type !== 'change') b.classList.remove('active');
+    });
+    btn.classList.add('active');
+
+    // Get current era filter
+    const activeEra = controls.querySelector('button.active:not([data-type="change"])');
+    const eraFilter = activeEra ? activeEra.dataset.filter : 'all';
+
+    // Get current change type filter
+    const activeChange = controls.querySelector('button.active[data-type="change"]');
+    const changeFilter = activeChange ? activeChange.dataset.filter : null;
+
+    entries.forEach(entry => {
+      let show = true;
+
+      // Era filter
+      if(eraFilter !== 'all'){
+        show = entry.dataset.era === eraFilter;
+      }
+
+      // Change type filter
+      if(show && changeFilter){
+        const items = entry.querySelectorAll('.tl-item');
+        let hasMatch = false;
+        items.forEach(item => {
+          if(item.classList.contains(changeFilter)){
+            hasMatch = true;
+            item.style.display = '';
+          } else {
+            item.style.display = 'none';
+          }
+        });
+        show = hasMatch;
+      } else {
+        // Show all items
+        entry.querySelectorAll('.tl-item').forEach(item => item.style.display = '');
+      }
+
+      entry.classList.toggle('hidden', !show);
+    });
+  });
+
+  // Scroll-to-top visibility
+  window.addEventListener('scroll', function(){
+    scrollBtn.classList.toggle('visible', window.scrollY > 400);
+  });
+  scrollBtn.addEventListener('click', function(){
+    window.scrollTo({top:0, behavior:'smooth'});
+  });
+})();
+</script>
+
+</body>
+</html>
