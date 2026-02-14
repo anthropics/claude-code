@@ -54,7 +54,6 @@ type: {type}
 status: working
 created: {today's date YYYY-MM-DD}
 last_touched: {today's date YYYY-MM-DD}
-links_in: 0
 links_out: 0
 origin: session
 ---
@@ -87,7 +86,7 @@ Scan `vault/` for related notes:
 2. Use Grep to search for keywords from the new note's topic across existing notes
 3. Add `[[wikilinks]]` in the body to related notes
 4. If a concept needs a note that doesn't exist yet, link to the intended path anyway (e.g., `[[atoms/concept-name]]`). Broken links are discovered by `/vault-maintain`.
-5. Update the `links_out` count in frontmatter
+5. Update the `links_out` count in frontmatter to match the actual number of `[[wikilinks]]` in the note
 
 Every note must link to at least one other note. If it can't be linked to anything, either create an atom for its core concept or reconsider whether the note is worth keeping.
 </step>

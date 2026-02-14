@@ -18,9 +18,9 @@ from pathlib import Path
 
 def find_vault_root():
     """Find the vault directory relative to the script or working directory."""
-    # Try relative to this script first
+    # Try sibling to script's parent (scripts/ and vault/ are siblings at repo root)
     script_dir = Path(__file__).resolve().parent
-    vault_from_script = script_dir.parent
+    vault_from_script = script_dir.parent / "vault"
     if (vault_from_script / "_meta" / "conventions.md").exists():
         return vault_from_script
 
@@ -96,11 +96,13 @@ def score_note(fm, now):
     if status == "unverified":
         score += 5
 
-    # Link density increases value
+    # Link density — count actual [[wikilinks]] in file content
     try:
-        links_out = int(fm.get("links_out", "0"))
+        with open(fm["_path"], "r", encoding="utf-8") as f:
+            content = f.read()
+        links_out = len(re.findall(r"\[\[", content))
         score += min(links_out, 5)
-    except ValueError:
+    except (OSError, KeyError):
         pass
 
     # Staleness: notes not touched in 30+ days get a boost for resurfacing
@@ -140,7 +142,7 @@ def main():
         parts = rel.parts
         if any(p.startswith(".") for p in parts):
             continue
-        if parts[0] == "scripts":
+        if parts[0] in ("scripts", "_meta"):
             continue
 
         fm = parse_frontmatter(md_file)

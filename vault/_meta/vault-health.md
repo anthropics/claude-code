@@ -3,7 +3,6 @@ type: meta
 status: working
 created: 2026-02-14
 last_touched: 2026-02-14
-links_in: 0
 links_out: 0
 origin: session
 ---
@@ -18,13 +17,13 @@ Updated by `/vault-maintain`. Metrics below are populated on each maintenance ru
 |------|-------|
 | Atoms | 0 |
 | Tensions | 0 |
-| Encounters | 0 |
+| Encounters | 1 |
 | Positions | 1 |
 | Questions | 1 |
 | Revisions | 0 |
 | Anti-library | 0 |
-| Falsifications | 0 |
-| **Total** | **2** |
+| Falsifications | 1 |
+| **Total** | **4** |
 
 ## Orphans (zero inbound links)
 

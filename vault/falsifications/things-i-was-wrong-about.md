@@ -3,7 +3,6 @@ type: falsification
 status: working
 created: 2026-02-14
 last_touched: 2026-02-14
-links_in: 1
 links_out: 1
 origin: session
 ---

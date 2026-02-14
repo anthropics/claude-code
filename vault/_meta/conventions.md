@@ -3,7 +3,6 @@ type: meta
 status: working
 created: 2026-02-14
 last_touched: 2026-02-14
-links_in: 2
 links_out: 0
 origin: session
 ---
@@ -51,11 +50,12 @@ type: atom | tension | encounter | position | question | revision | anti-library
 status: working | settled | unverified | falsified | dormant
 created: YYYY-MM-DD
 last_touched: YYYY-MM-DD
-links_in: 0
 links_out: 0
 origin: session | reflection | contradiction
 ---
 ```
+
+> **Note on link tracking:** `links_out` is maintained in frontmatter for programmatic tools (resurface hook, vault-maintain). Inbound link tracking is handled by Obsidian's native backlink system — do not track `links_in` manually.
 
 ## Linking Rules
 
