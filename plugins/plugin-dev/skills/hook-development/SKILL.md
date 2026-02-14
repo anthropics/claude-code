@@ -662,6 +662,69 @@ echo "$output" | jq .
 - ❌ Modify global state unpredictably
 - ❌ Log sensitive information
 
+## Cross-Platform Compatibility (Windows)
+
+### The Problem
+
+On Windows, when WSL (Windows Subsystem for Linux) is installed — which is extremely common due to Docker Desktop — the `bash` command resolves to WSL's `C:\Windows\System32\bash.exe` instead of Git Bash. Claude Code detects `.sh` extensions in hook commands and auto-prepends `bash`, which causes hooks to fail with:
+
+```
+WSL ERROR: CreateProcessCommon: execvpe(/bin/bash) failed: No such file or directory
+```
+
+This affects **all** command hooks that reference `.sh` scripts directly.
+
+### The Solution: Polyglot `.cmd` Wrappers
+
+Use a `.cmd` wrapper that works on both Windows (cmd.exe) and Unix/macOS (bash). The wrapper:
+- On **Windows**: explicitly invokes Git Bash at its standard installation path
+- On **Unix/macOS**: passes through to bash natively via the polyglot pattern
+
+### How to Use
+
+1. Create a `run-hook.cmd` file next to your `.sh` scripts (see `examples/cross-platform-hook.cmd`)
+
+2. Update your `hooks.json` to call the `.cmd` wrapper instead of the `.sh` script directly:
+
+**Before (breaks on Windows with WSL):**
+```json
+{
+  "type": "command",
+  "command": "${CLAUDE_PLUGIN_ROOT}/hooks/my-hook.sh"
+}
+```
+
+**After (works everywhere):**
+```json
+{
+  "type": "command",
+  "command": "${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd my-hook.sh"
+}
+```
+
+3. The wrapper passes the script name as an argument and resolves the path relative to itself.
+
+### How the Polyglot Works
+
+Lines starting with `:;` are valid labels in cmd.exe (ignored) and valid no-ops in bash (label syntax). This allows a single file to contain both bash and cmd.exe code paths:
+
+```
+:; # This line is ignored by cmd.exe, executed by bash
+:; exec bash "$SCRIPT_DIR/$1"   # bash exec's the target script
+:; exit $?                       # bash never reaches here
+
+@echo off
+REM cmd.exe starts executing here (skips :; lines)
+"C:\Program Files\Git\bin\bash.exe" "%HOOK_SCRIPT%"
+```
+
+### Best Practices
+
+- **Always use `.cmd` wrappers** for command hooks in plugins intended for cross-platform use
+- Keep the original `.sh` scripts unchanged — the wrapper delegates to them
+- The wrapper tries standard Git Bash locations and falls back to finding bash via `where git`
+- Test on both Windows (`cmd /c run-hook.cmd script.sh`) and Unix (`bash run-hook.cmd script.sh`)
+
 ## Additional Resources
 
 ### Reference Files
@@ -679,6 +742,7 @@ Working examples in `examples/`:
 - **`validate-write.sh`** - File write validation example
 - **`validate-bash.sh`** - Bash command validation example
 - **`load-context.sh`** - SessionStart context loading example
+- **`cross-platform-hook.cmd`** - Windows/Unix polyglot wrapper for cross-platform hooks
 
 ### Utility Scripts
 
