@@ -1,0 +1,51 @@
+# ─────────────────────────────────────────────────────────────────────
+# End-to-End Tests on Vercel Preview Deployments
+#
+# Triggered by Vercel's repository_dispatch events when a deployment
+# succeeds. Runs against the preview URL with the Neon branch database.
+#
+# Replaces the legacy deployment_status trigger pattern.
+# See: https://vercel.com/docs/deployments/git/vercel-for-github
+# ─────────────────────────────────────────────────────────────────────
+name: E2E Tests — Post-Deploy
+
+on:
+  repository_dispatch:
+    types:
+      - "vercel.deployment.success"
+
+jobs:
+  e2e:
+    # Only run for preview deployments (not production)
+    if: >
+      github.event.client_payload.environment == 'preview' ||
+      github.event.client_payload.environment == 'production'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Run E2E tests
+        run: npx playwright test
+        env:
+          BASE_URL: ${{ github.event.client_payload.url }}
+          DEPLOYMENT_ENV: ${{ github.event.client_payload.environment }}
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: playwright-report-${{ github.run_id }}
+          path: playwright-report/
+          retention-days: 14

@@ -1,0 +1,9 @@
+{
+  "name": "neon-vercel-branching",
+  "version": "1.0.0",
+  "description": "Automates Neon database-per-branch workflows with Vercel preview deployments. Creates/deletes Neon branches aligned to Git branches, injects DATABASE_URL into Vercel builds, and runs schema diffs on PRs.",
+  "author": {
+    "name": "Claude Code",
+    "email": "support@anthropic.com"
+  }
+}

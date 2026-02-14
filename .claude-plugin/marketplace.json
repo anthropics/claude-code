@@ -145,6 +145,13 @@
       },
       "source": "./plugins/security-guidance",
       "category": "security"
+    },
+    {
+      "name": "neon-vercel-branching",
+      "description": "Automates Neon database-per-branch workflows with Vercel preview deployments. Bundles the Neon MCP server for natural language database management and a neon-branching skill for create/delete/reset/diff/setup commands.",
+      "version": "1.0.0",
+      "source": "./plugins/neon-vercel-branching",
+      "category": "infrastructure"
     }
   ]
 }
