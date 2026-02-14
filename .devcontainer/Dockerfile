@@ -38,6 +38,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   nano \
   vim \
   wget \
+  openssh-client \
   && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Create node user and ensure it has access to /usr/local/share

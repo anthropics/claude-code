@@ -68,13 +68,5 @@
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=delegated",
   "workspaceFolder": "/workspace",
   "postStartCommand": "sudo /usr/local/bin/init-firewall.sh && pip install -r blob/requirements.txt",
-  "waitFor": "postStartCommand",
-  "features": {
-    "ghcr.io/devcontainers/features/git:1": {},
-    "ghcr.io/devcontainers/features/common-utils:1": {
-      "installZsh": "true",
-      "configureZshAsDefaultShell": "true",
-      "upgradePackages": "true"
-    }
-  }
+  "waitFor": "postStartCommand"
 }
