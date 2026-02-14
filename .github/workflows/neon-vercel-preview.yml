@@ -1,0 +1,117 @@
+name: "Preview: Neon Branch + Vercel Deploy"
+
+# Creates a Neon database branch and triggers a Vercel preview deployment
+# for every pull request. The Neon branch provides isolated data for the
+# preview, matching Vercel's per-PR deployment model.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  NEON_PROJECT_ID: ${{ vars.NEON_PROJECT_ID }}
+  VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── Neon: Create an ephemeral database branch for this PR ──
+      - name: Create Neon branch
+        id: neon
+        uses: neondatabase/create-branch-action@v5
+        with:
+          project_id: ${{ env.NEON_PROJECT_ID }}
+          branch_name: preview/pr-${{ github.event.pull_request.number }}
+          api_key: ${{ secrets.NEON_API_KEY }}
+          # Parent defaults to the project's primary branch (main/production)
+
+      # ── Vercel: Pull environment, build, and deploy preview ──
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Pull Vercel environment
+        run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+        working-directory: deterministic-object-usage/viz
+
+      - name: Build with Vercel
+        run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
+        working-directory: deterministic-object-usage/viz
+        env:
+          # Pass the Neon branch connection string so the preview uses isolated data
+          DATABASE_URL: ${{ steps.neon.outputs.db_url }}
+          DATABASE_URL_UNPOOLED: ${{ steps.neon.outputs.db_url_with_pooler }}
+
+      - name: Deploy to Vercel (preview)
+        id: deploy
+        run: |
+          url=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+        working-directory: deterministic-object-usage/viz
+
+      # ── Comment on PR with deployment + branch info ──
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const deployUrl = '${{ steps.deploy.outputs.url }}';
+            const neonBranch = 'preview/pr-${{ github.event.pull_request.number }}';
+            const neonHost = '${{ steps.neon.outputs.host }}';
+
+            const body = [
+              '## Preview Deployment',
+              '',
+              '| Resource | Details |',
+              '|----------|---------|',
+              `| **Vercel Preview** | [${deployUrl}](${deployUrl}) |`,
+              `| **Neon Branch** | \`${neonBranch}\` |`,
+              `| **Database Host** | \`${neonHost}\` |`,
+              '',
+              `Neon branch was created from the primary branch. `,
+              `This preview has its own isolated database — safe to run migrations and seed data.`,
+              '',
+              `> Commit: \`${context.sha.substring(0, 7)}\``,
+            ].join('\n');
+
+            // Find existing comment to update (avoid spam)
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c =>
+              c.user.type === 'Bot' && c.body.includes('## Preview Deployment')
+            );
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }

@@ -1,0 +1,40 @@
+name: "Schema Diff: Neon Branch vs Main"
+
+# Compares the database schema of the PR's Neon branch against the
+# primary branch and posts a diff summary as a PR comment. This gives
+# reviewers visibility into any migration or schema changes.
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    paths:
+      # Only run when migration files or schema-related code changes
+      - "deterministic-object-usage/viz/**"
+      - "**/migrations/**"
+      - "**/drizzle/**"
+      - "**/prisma/**"
+      - "**/*.sql"
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: schema-diff-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  NEON_PROJECT_ID: ${{ vars.NEON_PROJECT_ID }}
+
+jobs:
+  schema-diff:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Schema diff
+        uses: neondatabase/schema-diff-action@v1
+        with:
+          project_id: ${{ env.NEON_PROJECT_ID }}
+          compare_branch: preview/pr-${{ github.event.pull_request.number }}
+          api_key: ${{ secrets.NEON_API_KEY }}
+          # The action automatically posts a PR comment with the diff.
+          # If there are no schema changes, it posts a "no changes" message.

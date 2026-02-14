@@ -1,0 +1,29 @@
+name: "Cleanup: Delete Neon Branch on PR Close"
+
+# Deletes the ephemeral Neon database branch when a PR is closed
+# (merged or abandoned). This prevents accumulation of stale branches
+# and keeps the Neon project clean.
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cleanup-${{ github.event.pull_request.number }}
+
+env:
+  NEON_PROJECT_ID: ${{ vars.NEON_PROJECT_ID }}
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete Neon branch
+        uses: neondatabase/delete-branch-action@v3
+        with:
+          project_id: ${{ env.NEON_PROJECT_ID }}
+          branch: preview/pr-${{ github.event.pull_request.number }}
+          api_key: ${{ secrets.NEON_API_KEY }}

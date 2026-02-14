@@ -1,0 +1,53 @@
+name: "Production: Vercel Deploy"
+
+# Deploys the deterministic-viz app to production on Vercel when
+# changes are pushed to the main branch. Uses the primary Neon
+# database branch (no ephemeral branch needed for production).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "deterministic-object-usage/viz/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: true
+
+env:
+  VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Pull Vercel environment (production)
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+        working-directory: deterministic-object-usage/viz
+
+      - name: Build with Vercel
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+        working-directory: deterministic-object-usage/viz
+        env:
+          # Production uses the primary Neon branch connection string
+          # configured in Vercel environment variables
+          NODE_ENV: production
+
+      - name: Deploy to Vercel (production)
+        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+        working-directory: deterministic-object-usage/viz
