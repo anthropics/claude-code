@@ -1,0 +1,9 @@
+{
+  "name": "collab",
+  "version": "1.0.0",
+  "description": "Socratic mentoring mode where Claude guides developers through implementation without writing code",
+  "author": {
+    "name": "augmnt",
+    "url": "https://augmnt.sh"
+  }
+}
