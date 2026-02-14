@@ -1,0 +1,35 @@
+name: Bus Approach Notify
+
+on:
+  schedule:
+    # 平日 JST 7:00-8:59 に5分間隔で実行
+    # UTC: 日-木 22:00-23:59 (= JST 月-金 7:00-8:59)
+    - cron: "*/5 22-23 * * 0-4"
+  workflow_dispatch: {}
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: tobubus-notify/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: tobubus-notify
+
+      - name: Run bus approach check
+        run: npx tsx src/index.ts
+        working-directory: tobubus-notify
+        env:
+          NOTIFICATION_TYPE: line
+          LINE_CHANNEL_ACCESS_TOKEN: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
+          LINE_USER_ID: ${{ secrets.LINE_USER_ID }}
+          DEPARTURE_BUSSTOP_ID: ${{ vars.DEPARTURE_BUSSTOP_ID || '00310821' }}
+          ARRIVAL_BUSSTOP_ID: ${{ vars.ARRIVAL_BUSSTOP_ID || '00310511' }}
+          DELAY_THRESHOLD_MINUTES: ${{ vars.DELAY_THRESHOLD_MINUTES || '3' }}

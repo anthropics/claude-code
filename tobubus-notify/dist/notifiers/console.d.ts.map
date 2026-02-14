@@ -1,0 +1,1 @@
+{"version":3,"file":"console.d.ts","sourceRoot":"","sources":["../../src/notifiers/console.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,WAAW,EAAE,QAAQ,EAAE,MAAM,aAAa,CAAC;AAEzD,qBAAa,eAAgB,YAAW,QAAQ;IACxC,MAAM,CAAC,UAAU,EAAE,WAAW,EAAE,GAAG,OAAO,CAAC,IAAI,CAAC;CA+CvD"}

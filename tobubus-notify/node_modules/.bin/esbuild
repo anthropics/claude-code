@@ -1,0 +1,1 @@
+../esbuild/bin/esbuild
