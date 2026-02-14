@@ -2,6 +2,9 @@
 
 Use this template when starting a new feature extraction. It provides the full context and checklist that maps 1:1 to the PR template at `.github/PULL_REQUEST_TEMPLATE/deterministic-object-usage.md`.
 
+> **Target repo**: `jadecli-experimental/claude-code` (fork)
+> All pushes and PRs go to the fork — never to `anthropics/claude-code`.
+
 ---
 
 ## How to Use
@@ -9,7 +12,8 @@ Use this template when starting a new feature extraction. It provides the full c
 1. Fill in the **Execution Parameters** below
 2. Create your branch: `git checkout -b claude/{feature-kebab}-{session-id}`
 3. Work through the **Task Sequence** in order — each task maps to a conventional commit
-4. When opening the PR, use the `deterministic-object-usage` PR template — the checklist will already match your commits
+4. Push to the fork: `git push -u origin claude/{feature-kebab}-{session-id}`
+5. Open PR **on the fork**: `gh pr create --repo jadecli-experimental/claude-code` using the `deterministic-object-usage` PR template — the checklist will already match your commits
 
 ---
 
@@ -170,8 +174,8 @@ print(f"Lines: {len(lines)} | Types: {types} | Objects: {len(obj_ids)}")
 | # | Commit Type | Task | Output |
 |---|---|---|---|
 | 33 | `chore` | Stage all files, commit with descriptive message | Commit created |
-| 34 | `chore` | Push branch | Branch pushed to remote |
-| 35 | `chore` | Open PR using `deterministic-object-usage` template | PR created |
+| 34 | `chore` | Push to fork: `git push -u origin claude/{feature-kebab}-{session-id}` | Branch on `jadecli-experimental/claude-code` |
+| 35 | `chore` | Open PR on fork: `gh pr create --repo jadecli-experimental/claude-code` | PR created (NOT on `anthropics/claude-code`) |
 
 ---
 
@@ -216,7 +220,11 @@ git commit -m "docs: update CLAUDE.md with {FEATURE_NAME} extraction #{NNN}
 - Next available number: {NNN+1}
 - Recorded {N} new insights from this extraction"
 
-# Phase 8 — or combine phases into fewer commits as appropriate
+# Phase 8 — push to fork and open PR
+git push -u origin claude/{feature-kebab}-{session-id}
+gh pr create --repo jadecli-experimental/claude-code \
+  --template deterministic-object-usage.md
+# IMPORTANT: Always target jadecli-experimental/claude-code, never anthropics/claude-code
 ```
 
 ---

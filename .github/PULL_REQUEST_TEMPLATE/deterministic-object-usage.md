@@ -1,5 +1,6 @@
 ## Feature Extraction: `{FEATURE_NAME}`
 
+> **Repo**: `jadecli-experimental/claude-code` (fork — PRs target this repo, NOT `anthropics/claude-code`)
 > **Source**: `{CHANGELOG_URL}`
 > **Extraction #**: `{NNN}`
 > **Branch**: `claude/{feature-kebab}-{session-id}`
@@ -75,7 +76,8 @@ Complete each task in order. Each maps to a commit using the indicated conventio
 #### chore: Final Commit & PR
 
 - [ ] **chore: final commit** — All files staged and committed with descriptive message
-- [ ] **chore: push to branch** — `git push -u origin claude/{feature-kebab}-{session-id}`
+- [ ] **chore: push to fork** — `git push -u origin claude/{feature-kebab}-{session-id}` (pushes to `jadecli-experimental/claude-code`)
+- [ ] **chore: open PR on fork** — `gh pr create --repo jadecli-experimental/claude-code` (do NOT target `anthropics/claude-code`)
 
 ---
 
