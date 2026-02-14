@@ -1,0 +1,132 @@
+# Neon + Vercel Preview Branch Workflow
+#
+# Creates an isolated Neon database branch for each pull request,
+# then triggers a Vercel preview deployment with the branch's
+# connection string. This enables per-PR database isolation so
+# preview deployments work against their own copy of the data.
+#
+# Prerequisites (GitHub Secrets & Variables):
+#   Secrets:
+#     NEON_API_KEY          - Neon API key for branch management
+#     VERCEL_TOKEN          - Vercel API token for deployments
+#     VERCEL_ORG_ID         - Vercel organization/team ID
+#     VERCEL_PROJECT_ID     - Vercel project ID
+#   Variables:
+#     NEON_PROJECT_ID       - Neon project ID
+#
+# References:
+#   - https://neon.tech/docs/guides/branching-github-actions
+#   - https://vercel.com/docs/deployments/git/vercel-for-github
+
+name: Preview — Neon Branch + Vercel Deploy
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+  deployments: write
+
+jobs:
+  preview:
+    name: Create Neon Branch & Deploy Preview
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      # ── Checkout ────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── Neon: Create database branch ────────────────────────
+      - name: Create Neon branch for PR
+        id: neon-branch
+        uses: neondatabase/create-branch-action@v5
+        with:
+          project_id: ${{ vars.NEON_PROJECT_ID }}
+          branch_name: preview/pr-${{ github.event.pull_request.number }}
+          api_key: ${{ secrets.NEON_API_KEY }}
+          # Use the default (main) branch as parent
+          # Uncomment below to branch from a specific parent:
+          # parent: main
+
+      # ── Vercel: Install CLI ─────────────────────────────────
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      # ── Vercel: Pull environment ────────────────────────────
+      - name: Pull Vercel environment
+        run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      # ── Vercel: Build ───────────────────────────────────────
+      - name: Build project
+        run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          # Neon connection string injected into the build
+          DATABASE_URL: ${{ steps.neon-branch.outputs.db_url_with_pooler }}
+          DIRECT_DATABASE_URL: ${{ steps.neon-branch.outputs.db_url }}
+
+      # ── Vercel: Deploy preview ──────────────────────────────
+      - name: Deploy to Vercel (preview)
+        id: vercel-deploy
+        run: |
+          DEPLOY_URL=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})
+          echo "url=${DEPLOY_URL}" >> "$GITHUB_OUTPUT"
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      # ── Comment on PR ───────────────────────────────────────
+      - name: Comment deployment URLs on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const marker = '<!-- neon-vercel-preview -->';
+            const body = [
+              marker,
+              '## Preview Deployment',
+              '',
+              '| Resource | URL |',
+              '|----------|-----|',
+              `| **Vercel Preview** | ${{ steps.vercel-deploy.outputs.url }} |`,
+              `| **Neon Branch** | \`preview/pr-${{ github.event.pull_request.number }}\` |`,
+              `| **Branch ID** | \`${{ steps.neon-branch.outputs.branch_id }}\` |`,
+              '',
+              `> Database branched from \`main\` with pooled connection.`,
+              `> Commit: \`${context.sha.slice(0, 7)}\``,
+            ].join('\n');
+
+            // Update existing comment or create new one
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c => c.body.includes(marker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }

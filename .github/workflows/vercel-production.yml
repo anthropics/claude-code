@@ -1,0 +1,76 @@
+# Vercel Production Deployment Workflow
+#
+# Deploys to Vercel production when commits are pushed to main.
+# Uses the primary (main) Neon database branch for production.
+# The build runs inside GitHub Actions so source code is not
+# exposed to Vercel (prebuilt deployment).
+#
+# Prerequisites (GitHub Secrets & Variables):
+#   Secrets:
+#     NEON_API_KEY          - Neon API key (for connection string lookup)
+#     VERCEL_TOKEN          - Vercel API token for deployments
+#     VERCEL_ORG_ID         - Vercel organization/team ID
+#     VERCEL_PROJECT_ID     - Vercel project ID
+#     DATABASE_URL          - Production Neon pooled connection string
+#     DIRECT_DATABASE_URL   - Production Neon direct connection string
+#   Variables:
+#     NEON_PROJECT_ID       - Neon project ID
+
+name: Production — Vercel Deploy
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  deployments: write
+
+jobs:
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      # ── Checkout ────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── Vercel: Install CLI ─────────────────────────────────
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      # ── Vercel: Pull production environment ─────────────────
+      - name: Pull Vercel environment
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      # ── Vercel: Build for production ────────────────────────
+      - name: Build project (production)
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_DATABASE_URL: ${{ secrets.DIRECT_DATABASE_URL }}
+
+      # ── Vercel: Deploy to production ────────────────────────
+      - name: Deploy to Vercel (production)
+        id: vercel-deploy
+        run: |
+          DEPLOY_URL=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})
+          echo "url=${DEPLOY_URL}" >> "$GITHUB_OUTPUT"
+          echo "### Production Deployed" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**URL:** ${DEPLOY_URL}" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Commit:** \`${GITHUB_SHA::7}\`" >> "$GITHUB_STEP_SUMMARY"
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}

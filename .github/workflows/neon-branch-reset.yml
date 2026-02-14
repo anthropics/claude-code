@@ -1,0 +1,62 @@
+# Neon Branch Reset Workflow
+#
+# Resets a Neon database branch to the latest state of its parent
+# (main). Useful for refreshing a long-lived development or staging
+# branch with production data.
+#
+# This workflow is manually triggered and requires specifying which
+# branch to reset.
+#
+# Prerequisites (GitHub Secrets & Variables):
+#   Secrets:
+#     NEON_API_KEY          - Neon API key for branch management
+#   Variables:
+#     NEON_PROJECT_ID       - Neon project ID
+
+name: Reset — Neon Branch
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch_name:
+        description: 'Neon branch name to reset (e.g., preview/pr-42 or dev)'
+        required: true
+        type: string
+      confirm:
+        description: 'Type "reset" to confirm destructive operation'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  reset:
+    name: Reset Neon Branch
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: inputs.confirm == 'reset'
+
+    steps:
+      - name: Reset Neon branch to parent
+        uses: neondatabase/reset-branch-action@v1
+        with:
+          project_id: ${{ vars.NEON_PROJECT_ID }}
+          branch: ${{ inputs.branch_name }}
+          api_key: ${{ secrets.NEON_API_KEY }}
+
+      - name: Summary
+        run: |
+          echo "### Branch Reset Complete" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Branch \`${{ inputs.branch_name }}\` has been reset to the latest state of its parent." >> "$GITHUB_STEP_SUMMARY"
+
+  rejected:
+    name: Reset Rejected
+    runs-on: ubuntu-latest
+    if: inputs.confirm != 'reset'
+    steps:
+      - name: Confirmation failed
+        run: |
+          echo "::error::Reset aborted — confirmation input was '${{ inputs.confirm }}', expected 'reset'"
+          exit 1

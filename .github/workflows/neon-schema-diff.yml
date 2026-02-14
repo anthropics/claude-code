@@ -1,0 +1,66 @@
+# Neon Schema Diff Workflow
+#
+# Compares the database schema between the PR's Neon branch and
+# the main branch, then posts the diff as a PR comment. This
+# makes schema changes visible during code review.
+#
+# Runs after the preview workflow completes (needs the Neon branch
+# to exist first). Can also be triggered manually.
+#
+# Prerequisites (GitHub Secrets & Variables):
+#   Secrets:
+#     NEON_API_KEY          - Neon API key for branch management
+#   Variables:
+#     NEON_PROJECT_ID       - Neon project ID
+
+name: Schema Diff — Neon Branch vs Main
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      # Only run when migration or schema files change
+      - 'migrations/**'
+      - 'prisma/**'
+      - 'drizzle/**'
+      - 'db/**'
+      - 'schema/**'
+      - '**/schema.ts'
+      - '**/schema.sql'
+      - '**/migration*.sql'
+      - '**/migrate*.ts'
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'Pull request number'
+        required: true
+        type: number
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  schema-diff:
+    name: Compare Database Schemas
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Compute PR number
+        id: pr
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "number=${{ inputs.pr_number }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "number=${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run Neon schema diff
+        uses: neondatabase/schema-diff-action@v1
+        with:
+          project_id: ${{ vars.NEON_PROJECT_ID }}
+          compare_branch: preview/pr-${{ steps.pr.outputs.number }}
+          base_branch: main
+          api_key: ${{ secrets.NEON_API_KEY }}
+          # Posts diff as a PR comment automatically

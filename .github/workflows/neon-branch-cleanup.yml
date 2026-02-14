@@ -1,0 +1,34 @@
+# Neon Branch Cleanup Workflow
+#
+# Deletes the Neon database branch when a pull request is merged
+# or closed. This prevents accumulation of unused database branches
+# and keeps the Neon project tidy.
+#
+# Prerequisites (GitHub Secrets & Variables):
+#   Secrets:
+#     NEON_API_KEY          - Neon API key for branch management
+#   Variables:
+#     NEON_PROJECT_ID       - Neon project ID
+
+name: Cleanup — Delete Neon Branch
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: read
+
+jobs:
+  cleanup:
+    name: Delete Neon Branch
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Delete Neon branch for PR
+        uses: neondatabase/delete-branch-action@v3
+        with:
+          project_id: ${{ vars.NEON_PROJECT_ID }}
+          branch: preview/pr-${{ github.event.pull_request.number }}
+          api_key: ${{ secrets.NEON_API_KEY }}
