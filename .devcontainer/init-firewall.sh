@@ -108,6 +108,9 @@ iptables -A OUTPUT -d "$HOST_NETWORK" -j ACCEPT
 iptables -P INPUT DROP
 iptables -P FORWARD DROP
 iptables -P OUTPUT DROP
+ip6tables -P INPUT DROP
+ip6tables -P FORWARD DROP
+ip6tables -P OUTPUT DROP
 
 # First allow established connections for already approved traffic
 iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
