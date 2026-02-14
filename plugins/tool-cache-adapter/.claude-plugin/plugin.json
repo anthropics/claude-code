@@ -1,0 +1,8 @@
+{
+  "name": "tool-cache-adapter",
+  "version": "0.1.0",
+  "description": "Caching adapter for Claude Code agent tools. Intercepts tool calls via hooks and returns cached results when available, reducing redundant tool executions.",
+  "author": {
+    "name": "alex-jadecli"
+  }
+}
