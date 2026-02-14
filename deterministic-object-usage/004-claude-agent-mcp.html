@@ -1,0 +1,1123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Code Agent &amp; MCP Evolution</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --fg: #c9d1d9;
+    --accent: #58a6ff;
+    --accent2: #f78166;
+    --accent3: #7ee787;
+    --accent4: #d2a8ff;
+    --accent5: #ff7b72;
+    --accent6: #79c0ff;
+    --border: #30363d;
+    --surface: #161b22;
+    --surface2: #21262d;
+    --mcp-color: #58a6ff;
+    --agent-color: #7ee787;
+    --hook-color: #f78166;
+    --skill-color: #d2a8ff;
+    --sdk-color: #ff7b72;
+    --tool-color: #79c0ff;
+    --mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'SF Mono', Consolas, monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  /* ── ASCII banner ── */
+  #ascii-banner {
+    text-align: center;
+    padding: 24px 16px 0;
+    color: var(--accent);
+    font-size: 10px;
+    line-height: 1.2;
+    white-space: pre;
+    overflow: hidden;
+    opacity: 0;
+    animation: fadeIn 1s ease-out 0.2s forwards;
+  }
+  @keyframes fadeIn { to { opacity: 1; } }
+
+  /* ── Ghostty-style animated frame ── */
+  #ghostty-frame {
+    text-align: center;
+    padding: 8px 16px 16px;
+    font-size: 9px;
+    line-height: 1.15;
+    white-space: pre;
+    color: var(--accent3);
+    height: 120px;
+    overflow: hidden;
+    position: relative;
+  }
+  #ghostty-frame .frame { position: absolute; left: 50%; transform: translateX(-50%); transition: opacity 0.08s; }
+
+  /* ── Controls ── */
+  .controls {
+    display: flex;
+    gap: 8px;
+    padding: 8px 24px;
+    flex-wrap: wrap;
+    justify-content: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+  }
+  .controls button {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--fg);
+    padding: 6px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: var(--mono);
+    font-size: 11px;
+    transition: all 0.15s;
+  }
+  .controls button:hover { border-color: var(--accent); color: var(--accent); }
+  .controls button.active { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+  .filter-label { color: var(--fg); opacity: 0.5; font-size: 10px; align-self: center; }
+
+  /* ── Stats bar ── */
+  .stats-bar {
+    display: flex;
+    gap: 24px;
+    padding: 12px 24px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .stat {
+    text-align: center;
+    min-width: 100px;
+  }
+  .stat-value {
+    font-size: 28px;
+    font-weight: 700;
+    animation: countUp 1.5s ease-out;
+  }
+  .stat-label { font-size: 10px; opacity: 0.5; text-transform: uppercase; letter-spacing: 1px; }
+  @keyframes countUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ── Timeline ── */
+  .timeline-container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 24px;
+    position: relative;
+  }
+  .timeline-line {
+    position: absolute;
+    left: 140px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: linear-gradient(to bottom, var(--mcp-color), var(--agent-color), var(--skill-color), var(--hook-color));
+  }
+
+  /* ── Era headers ── */
+  .era-header {
+    position: relative;
+    margin: 32px 0 16px 0;
+    padding: 12px 16px 12px 168px;
+    background: linear-gradient(90deg, transparent, var(--surface), transparent);
+    border-left: 3px solid var(--accent);
+    margin-left: 130px;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 1px;
+  }
+  .era-header .era-ascii {
+    font-size: 9px;
+    opacity: 0.4;
+    display: block;
+    margin-top: 4px;
+    letter-spacing: 0;
+    font-weight: 400;
+  }
+
+  /* ── Version entries ── */
+  .version-entry {
+    position: relative;
+    margin: 8px 0;
+    padding: 12px 16px 12px 168px;
+    min-height: 48px;
+    transition: all 0.2s;
+    border-radius: 6px;
+  }
+  .version-entry:hover {
+    background: var(--surface);
+  }
+  .version-entry.hidden { display: none; }
+
+  .version-label {
+    position: absolute;
+    left: 0;
+    top: 12px;
+    width: 120px;
+    text-align: right;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--accent);
+  }
+  .version-dot {
+    position: absolute;
+    left: 135px;
+    top: 16px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    background: var(--bg);
+    z-index: 2;
+    transition: all 0.2s;
+  }
+  .version-entry:hover .version-dot {
+    transform: scale(1.5);
+    border-color: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+  }
+  .version-dot.cat-mcp { background: var(--mcp-color); border-color: var(--mcp-color); }
+  .version-dot.cat-agent { background: var(--agent-color); border-color: var(--agent-color); }
+  .version-dot.cat-hook { background: var(--hook-color); border-color: var(--hook-color); }
+  .version-dot.cat-skill { background: var(--skill-color); border-color: var(--skill-color); }
+  .version-dot.cat-sdk { background: var(--sdk-color); border-color: var(--sdk-color); }
+  .version-dot.cat-tool { background: var(--tool-color); border-color: var(--tool-color); }
+
+  .entry-content { position: relative; }
+  .entry-tags { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 4px; }
+  .tag {
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 700;
+  }
+  .tag-mcp { background: color-mix(in srgb, var(--mcp-color) 20%, transparent); color: var(--mcp-color); }
+  .tag-agent { background: color-mix(in srgb, var(--agent-color) 20%, transparent); color: var(--agent-color); }
+  .tag-hook { background: color-mix(in srgb, var(--hook-color) 20%, transparent); color: var(--hook-color); }
+  .tag-skill { background: color-mix(in srgb, var(--skill-color) 20%, transparent); color: var(--skill-color); }
+  .tag-sdk { background: color-mix(in srgb, var(--sdk-color) 20%, transparent); color: var(--sdk-color); }
+  .tag-tool { background: color-mix(in srgb, var(--tool-color) 20%, transparent); color: var(--tool-color); }
+
+  .entry-text { font-size: 12px; color: var(--fg); }
+  .entry-detail {
+    font-size: 11px;
+    color: color-mix(in srgb, var(--fg) 60%, transparent);
+    margin-top: 4px;
+    display: none;
+  }
+  .version-entry.expanded .entry-detail { display: block; }
+
+  /* ── Mermaid diagrams ── */
+  .diagram-section {
+    max-width: 1100px;
+    margin: 32px auto;
+    padding: 0 24px;
+  }
+  .diagram-section h2 {
+    color: var(--accent);
+    font-size: 16px;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .mermaid-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px;
+    margin-bottom: 24px;
+    overflow-x: auto;
+  }
+  .mermaid-container svg { max-width: 100%; }
+  .mermaid { font-size: 12px; }
+
+  /* ── Object interaction table ── */
+  .interaction-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+    margin-top: 16px;
+  }
+  .interaction-table th {
+    text-align: left;
+    padding: 8px 12px;
+    border-bottom: 2px solid var(--border);
+    color: var(--accent);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .interaction-table td {
+    padding: 6px 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  .interaction-table tr:hover { background: var(--surface2); }
+
+  /* ── Params viewer ── */
+  .params-block {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 8px 12px;
+    font-size: 10px;
+    white-space: pre-wrap;
+    margin-top: 8px;
+    color: var(--accent3);
+    max-height: 200px;
+    overflow-y: auto;
+  }
+
+  /* ── Legend ── */
+  .legend {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    padding: 16px;
+    flex-wrap: wrap;
+    border-top: 1px solid var(--border);
+    margin-top: 32px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+  }
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+
+  /* ── Scroll animation ── */
+  .version-entry {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  .version-entry.visible {
+    opacity: 1;
+    transform: translateX(0);
+    transition: opacity 0.4s ease-out, transform 0.4s ease-out;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 768px) {
+    .timeline-line { left: 20px; }
+    .version-label { width: auto; left: 0; top: -18px; font-size: 10px; text-align: left; }
+    .version-entry { padding: 28px 8px 12px 40px; }
+    .version-dot { left: 15px; }
+    .era-header { padding-left: 40px; margin-left: 10px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     ASCII BANNER  - Ghostty-style animated header
+     ══════════════════════════════════════════════════════════════════ -->
+<div id="ascii-banner">
+ ██████╗██╗      █████╗ ██╗   ██╗██████╗ ███████╗     ██████╗ ██████╗ ██████╗ ███████╗
+██╔════╝██║     ██╔══██╗██║   ██║██╔══██╗██╔════╝    ██╔════╝██╔═══██╗██╔══██╗██╔════╝
+██║     ██║     ███████║██║   ██║██║  ██║█████╗      ██║     ██║   ██║██║  ██║█████╗
+██║     ██║     ██╔══██║██║   ██║██║  ██║██╔══╝      ██║     ██║   ██║██║  ██║██╔══╝
+╚██████╗███████╗██║  ██║╚██████╔╝██████╔╝███████╗    ╚██████╗╚██████╔╝██████╔╝███████╗
+ ╚═════╝╚══════╝╚═╝  ╚═╝ ╚═════╝ ╚═════╝ ╚══════╝     ╚═════╝ ╚═════╝ ╚═════╝ ╚══════╝
+       Agent  &amp;  MCP  Evolution  ──  Interactive  Changelog  Explorer
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     GHOSTTY-STYLE ANIMATED ASCII FRAME
+     ══════════════════════════════════════════════════════════════════ -->
+<div id="ghostty-frame"></div>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     FILTER CONTROLS
+     ══════════════════════════════════════════════════════════════════ -->
+<div class="controls" id="controls">
+  <span class="filter-label">FILTER:</span>
+  <button class="active" data-filter="all">All</button>
+  <button data-filter="mcp" style="border-color:var(--mcp-color);color:var(--mcp-color)">MCP</button>
+  <button data-filter="agent" style="border-color:var(--agent-color);color:var(--agent-color)">Agents</button>
+  <button data-filter="hook" style="border-color:var(--hook-color);color:var(--hook-color)">Hooks</button>
+  <button data-filter="skill" style="border-color:var(--skill-color);color:var(--skill-color)">Skills</button>
+  <button data-filter="sdk" style="border-color:var(--sdk-color);color:var(--sdk-color)">SDK</button>
+  <button data-filter="tool" style="border-color:var(--tool-color);color:var(--tool-color)">Tools</button>
+  <span class="filter-label" style="margin-left:12px">VIEW:</span>
+  <button id="btn-timeline" class="active">Timeline</button>
+  <button id="btn-diagram">Diagrams</button>
+  <button id="btn-objects">Objects</button>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     STATS BAR
+     ══════════════════════════════════════════════════════════════════ -->
+<div class="stats-bar" id="stats-bar">
+  <div class="stat"><div class="stat-value" style="color:var(--mcp-color)" id="stat-mcp">0</div><div class="stat-label">MCP Changes</div></div>
+  <div class="stat"><div class="stat-value" style="color:var(--agent-color)" id="stat-agent">0</div><div class="stat-label">Agent Changes</div></div>
+  <div class="stat"><div class="stat-value" style="color:var(--hook-color)" id="stat-hook">0</div><div class="stat-label">Hook Changes</div></div>
+  <div class="stat"><div class="stat-value" style="color:var(--skill-color)" id="stat-skill">0</div><div class="stat-label">Skill Changes</div></div>
+  <div class="stat"><div class="stat-value" style="color:var(--sdk-color)" id="stat-sdk">0</div><div class="stat-label">SDK Changes</div></div>
+  <div class="stat"><div class="stat-value" style="color:var(--tool-color)" id="stat-tool">0</div><div class="stat-label">Tool Changes</div></div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     LEGEND
+     ══════════════════════════════════════════════════════════════════ -->
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:var(--mcp-color)"></div>MCP (Model Context Protocol)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--agent-color)"></div>Agents / Subagents</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--hook-color)"></div>Hooks / Events</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--skill-color)"></div>Skills / Commands</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--sdk-color)"></div>SDK / API</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--tool-color)"></div>Tools / Params</div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     TIMELINE VIEW
+     ══════════════════════════════════════════════════════════════════ -->
+<div class="timeline-container" id="view-timeline"></div>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     DIAGRAM VIEW (Mermaid)
+     ══════════════════════════════════════════════════════════════════ -->
+<div class="diagram-section" id="view-diagram" style="display:none">
+
+  <h2>1. MCP Architecture &mdash; Object &amp; Tool Flow</h2>
+  <div class="mermaid-container">
+    <pre class="mermaid">
+%%{init: {'theme': 'dark', 'themeVariables': {'primaryColor': '#58a6ff', 'primaryTextColor': '#c9d1d9', 'primaryBorderColor': '#30363d', 'lineColor': '#58a6ff', 'secondaryColor': '#161b22', 'tertiaryColor': '#21262d'}}}%%
+graph TD
+    subgraph "Claude Code CLI"
+        A["User Prompt"] --> B["Main Agent<br/>(Opus/Sonnet)"]
+        B --> C{"Tool Router"}
+    end
+
+    subgraph "Built-in Tools"
+        C --> D["Bash"]
+        C --> E["Read / Edit / Write"]
+        C --> F["Glob / Grep"]
+        C --> G["WebFetch / WebSearch"]
+        C --> H["Task (Subagent)"]
+        C --> I["NotebookEdit"]
+        C --> J["TodoWrite"]
+        C --> K["AskUserQuestion"]
+    end
+
+    subgraph "MCP Layer (v0.2.32+)"
+        C --> L["MCP Client"]
+        L --> M["stdio Transport"]
+        L --> N["SSE Transport<br/>(v0.2.53+)"]
+        L --> O["Streamable HTTP<br/>(v1.0.27+)"]
+        M --> P["MCP Server 1"]
+        N --> Q["MCP Server 2"]
+        O --> R["MCP Server N"]
+        P --> S["server tools[]"]
+        Q --> T["server resources[]"]
+        R --> U["server prompts[]"]
+    end
+
+    subgraph "Subagent System (v0.2.74+)"
+        H --> V["Explore Agent"]
+        H --> W["Plan Agent"]
+        H --> X["Bash Agent"]
+        H --> Y["General Purpose"]
+        H --> Z["Custom Agent<br/>(v1.0.60+)"]
+    end
+
+    subgraph "Hooks (v1.0.38+)"
+        AA["PreToolUse"] --> C
+        BB["PostToolUse"] --> C
+        CC["SessionStart"] --> B
+        DD["SessionEnd"] --> B
+        EE["UserPromptSubmit<br/>(v1.0.54+)"] --> B
+        FF["SubagentStop<br/>(v1.0.41+)"] --> H
+        GG["PermissionRequest<br/>(v2.0.45+)"] --> C
+    end
+
+    subgraph "Skills (v2.0.20+)"
+        HH["Skill Loader"] --> B
+        HH --> II[".claude/skills/"]
+        HH --> JJ["Slash Commands"]
+        HH --> KK["Plugin Skills<br/>(v2.0.12+)"]
+    end
+
+    style A fill:#58a6ff,stroke:#58a6ff,color:#0d1117
+    style L fill:#58a6ff,stroke:#58a6ff,color:#0d1117
+    style H fill:#7ee787,stroke:#7ee787,color:#0d1117
+    style AA fill:#f78166,stroke:#f78166,color:#0d1117
+    style BB fill:#f78166,stroke:#f78166,color:#0d1117
+    style CC fill:#f78166,stroke:#f78166,color:#0d1117
+    style HH fill:#d2a8ff,stroke:#d2a8ff,color:#0d1117
+    </pre>
+  </div>
+
+  <h2>2. Agent Interaction Sequence &mdash; From Prompt to MCP Tool Call</h2>
+  <div class="mermaid-container">
+    <pre class="mermaid">
+%%{init: {'theme': 'dark', 'themeVariables': {'actorBkg': '#58a6ff', 'actorTextColor': '#0d1117', 'actorLineColor': '#58a6ff', 'signalColor': '#c9d1d9', 'signalTextColor': '#c9d1d9', 'noteBkgColor': '#21262d', 'noteTextColor': '#c9d1d9'}}}%%
+sequenceDiagram
+    participant U as User
+    participant M as Main Agent
+    participant HR as Hook Runner
+    participant TR as Tool Router
+    participant MCP as MCP Client
+    participant S as MCP Server
+    participant SA as Subagent
+
+    U->>HR: prompt text
+    HR->>HR: UserPromptSubmit hook
+    HR->>M: validated prompt
+
+    M->>TR: tool_use request
+    TR->>HR: PreToolUse hook
+    HR-->>TR: allow / deny / modify
+
+    alt MCP Tool
+        TR->>MCP: call mcp__server__tool
+        MCP->>S: JSON-RPC request
+        S-->>MCP: tool result
+        MCP-->>TR: result
+    else Task (Subagent)
+        TR->>SA: spawn subagent
+        SA->>SA: autonomous execution
+        SA-->>TR: result
+        TR->>HR: SubagentStop hook
+    else Built-in Tool
+        TR->>TR: execute locally
+    end
+
+    TR->>HR: PostToolUse hook
+    HR-->>TR: proceed
+    TR-->>M: tool_result
+    M-->>U: response
+    </pre>
+  </div>
+
+  <h2>3. MCP Transport Evolution</h2>
+  <div class="mermaid-container">
+    <pre class="mermaid">
+%%{init: {'theme': 'dark', 'themeVariables': {'primaryColor': '#58a6ff', 'primaryTextColor': '#c9d1d9', 'primaryBorderColor': '#30363d'}}}%%
+timeline
+    title MCP Transport &amp; Feature Evolution
+    section v0.2.x (Foundation)
+        v0.2.32 : MCP setup wizard (claude mcp add)
+                 : stdio transport only
+        v0.2.36 : Import from Claude Desktop
+        v0.2.50 : Project scope .mcp.json
+        v0.2.53 : SSE transport support
+    section v1.0.x (Maturation)
+        v1.0.4  : MCP error parsing fix
+        v1.0.8  : MCP_TIMEOUT / MCP_TOOL_TIMEOUT
+        v1.0.18 : /mcp shows detailed tools
+        v1.0.27 : Streamable HTTP transport
+                 : SSE/HTTP OAuth
+                 : @-mention MCP resources
+        v1.0.35 : OAuth AuthZ Server discovery
+        v1.0.44 : resource_link + tool annotations
+        v1.0.48 : MCP variable expansion
+        v1.0.52 : MCP server instructions
+    section v2.0.x (Expansion)
+        v2.0.10 : MCP enable/disable via @-mention
+        v2.0.14 : MCP tool toggle via @-mention
+        v2.0.21 : structuredContent support
+        v2.0.30 : OAuth client credentials
+        v2.0.33 : outputSchema validation
+        v2.0.70 : mcp__server__* wildcard permissions
+    section v2.1.x (Polish)
+        v2.1.9  : auto:N search threshold
+        v2.1.11 : HTTP/SSE connection fix
+        v2.1.15 : stdio timeout kill
+        v2.1.41 : MCP image streaming
+    </pre>
+  </div>
+
+  <h2>4. Agent System Evolution</h2>
+  <div class="mermaid-container">
+    <pre class="mermaid">
+%%{init: {'theme': 'dark', 'themeVariables': {'primaryColor': '#7ee787', 'primaryTextColor': '#c9d1d9', 'primaryBorderColor': '#30363d'}}}%%
+timeline
+    title Agent &amp; Subagent System Evolution
+    section v0.2.x (Genesis)
+        v0.2.74 : Task tool introduced
+                 : can perform writes + bash
+        v0.2.82 : Tool renaming (View->Read etc)
+        v0.2.93 : TodoWrite tool added
+    section v1.0.x (Subagents)
+        v1.0.17 : Sub-task messages with parent_tool_use_id
+        v1.0.22 : SDK total_cost_usd rename
+        v1.0.23 : TypeScript + Python SDK released
+        v1.0.41 : SubagentStop hook
+        v1.0.60 : Custom subagents (/agents)
+        v1.0.62 : @-mention custom agents
+        v1.0.64 : Agent model customization
+                 : recursive agent access
+    section v2.0.x (Skills + Plugins)
+        v2.0.12 : Plugin System released
+        v2.0.20 : Claude Skills released
+        v2.0.24 : Project skills auto-load
+                 : Sandbox BashTool
+        v2.0.25 : claude-agent-sdk migration
+        v2.0.28 : Plan subagent
+                 : dynamic model selection
+                 : AGENT_TEAMS experimental
+        v2.0.43 : permissionMode for agents
+                 : skills frontmatter for subagents
+        v2.0.59 : --agent flag
+        v2.0.60 : Background agent support
+    section v2.1.x (Teams + Opus 4.6)
+        v2.1.0  : Skill hot-reload
+                 : context:fork for subagents
+        v2.1.3  : Skills/slash commands merged
+        v2.1.16 : Task management with dependencies
+        v2.1.32 : Opus 4.6 + Agent Teams preview
+                 : .claude/skills auto-load
+        v2.1.33 : TeammateIdle/TaskCompleted hooks
+                 : Task(agent_type) syntax
+    </pre>
+  </div>
+
+  <h2>5. Object Relationship &mdash; MCP Server, Tools, and Params</h2>
+  <div class="mermaid-container">
+    <pre class="mermaid">
+%%{init: {'theme': 'dark', 'themeVariables': {'primaryColor': '#79c0ff', 'primaryTextColor': '#c9d1d9', 'primaryBorderColor': '#30363d', 'lineColor': '#79c0ff'}}}%%
+classDiagram
+    class MCPServer {
+        +string name
+        +string transport [stdio|sse|http]
+        +string scope [user|project]
+        +string[] env_vars
+        +string instructions
+        +string headersHelper
+        +connect()
+        +disconnect()
+        +listTools()
+        +listResources()
+        +callTool()
+    }
+
+    class MCPTool {
+        +string name
+        +string description
+        +object inputSchema
+        +object outputSchema
+        +object annotations
+        +boolean enabled
+        +execute(params)
+    }
+
+    class MCPResource {
+        +string uri
+        +string name
+        +string mimeType
+        +read()
+    }
+
+    class MCPTransport {
+        <<interface>>
+        +send(message)
+        +receive() message
+    }
+
+    class StdioTransport {
+        +string command
+        +string[] args
+        +number timeout
+    }
+
+    class SSETransport {
+        +string url
+        +object headers
+        +string oauth_config
+    }
+
+    class HTTPTransport {
+        +string url
+        +object headers
+        +string oauth_config
+    }
+
+    class SubagentConfig {
+        +string name
+        +string model
+        +string[] tools
+        +string permissionMode
+        +string systemPrompt
+        +boolean recursive
+    }
+
+    class HookConfig {
+        +string event
+        +string command
+        +number timeout
+        +string[] matchers
+    }
+
+    class SkillConfig {
+        +string name
+        +string description
+        +string agent
+        +string model
+        +string content
+        +string[] triggers
+    }
+
+    MCPServer "1" --> "*" MCPTool : exposes
+    MCPServer "1" --> "*" MCPResource : provides
+    MCPServer "1" --> "1" MCPTransport : uses
+    MCPTransport <|-- StdioTransport
+    MCPTransport <|-- SSETransport
+    MCPTransport <|-- HTTPTransport
+    SubagentConfig --> MCPServer : may access
+    HookConfig --> MCPTool : intercepts
+    SkillConfig --> SubagentConfig : configures
+    </pre>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     OBJECTS VIEW
+     ══════════════════════════════════════════════════════════════════ -->
+<div class="diagram-section" id="view-objects" style="display:none">
+  <h2>Agent &amp; MCP Object Reference</h2>
+  <p style="color:var(--fg);opacity:0.6;margin-bottom:16px;font-size:11px">
+    Objects, their params, and how they interact across releases. Click a row to expand.
+  </p>
+
+  <table class="interaction-table" id="object-table">
+    <thead>
+      <tr>
+        <th>Object</th>
+        <th>Introduced</th>
+        <th>Category</th>
+        <th>Params / Fields</th>
+        <th>Interacts With</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     MERMAID CDN
+     ══════════════════════════════════════════════════════════════════ -->
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script>
+mermaid.initialize({
+  startOnLoad: false,
+  theme: 'dark',
+  themeVariables: {
+    darkMode: true,
+    background: '#0d1117',
+    primaryColor: '#58a6ff',
+    primaryTextColor: '#c9d1d9',
+    primaryBorderColor: '#30363d',
+    lineColor: '#58a6ff',
+    secondaryColor: '#161b22',
+    tertiaryColor: '#21262d',
+    fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+    fontSize: '12px'
+  },
+  flowchart: { curve: 'basis', padding: 16 },
+  sequence: { mirrorActors: false },
+  timeline: { padding: 16 }
+});
+</script>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+// DATA: Changelog entries filtered for Agent/MCP/Skills/Hooks/SDK
+// ═══════════════════════════════════════════════════════════════════
+const DATA = [
+  // ── ERA: v0.2.x  Foundation ──
+  { v:"0.2.30", cats:["skill"], text:"Custom slash commands now available", detail:"Markdown files in .claude/commands/ become slash commands." },
+  { v:"0.2.32", cats:["mcp"], text:"Interactive MCP setup wizard", detail:"claude mcp add — first MCP integration, stdio transport only." },
+  { v:"0.2.36", cats:["mcp"], text:"Import MCP servers from Claude Desktop", detail:"claude mcp add-from-claude-desktop" },
+  { v:"0.2.37", cats:["mcp"], text:"Multiple MCP server value configuration", detail:"Comma/space separation for multiple values." },
+  { v:"0.2.41", cats:["mcp"], text:"MCP server startup timeout configurable", detail:"MCP_TIMEOUT environment variable introduced." },
+  { v:"0.2.50", cats:["mcp"], text:'MCP "project" scope added', detail:".mcp.json files in repository root for project-scoped MCP servers." },
+  { v:"0.2.53", cats:["mcp","tool"], text:"SSE transport + WebFetch tool", detail:"MCP SSE transport support. Web fetch tool for URL viewing." },
+  { v:"0.2.63", cats:["mcp"], text:"Fixed MCP tools loading twice", detail:"Bug fix for duplicate tool registration." },
+  { v:"0.2.74", cats:["agent","tool"], text:"Task tool introduced", detail:"Task tool can now perform writes and run bash commands. Birth of subagents." },
+  { v:"0.2.75", cats:["mcp"], text:"One-off MCP servers", detail:"Ad-hoc MCP server connections within sessions." },
+  { v:"0.2.82", cats:["tool"], text:"Tool renaming for consistency", detail:"LSTool→LS, View→Read, etc. Standardized tool naming." },
+  { v:"0.2.93", cats:["tool","agent"], text:"TodoWrite tool + conversation resume", detail:"Agents gain todo list access for task tracking." },
+
+  // ── ERA: v1.0.x  General Availability ──
+  { v:"1.0.0", cats:["agent"], text:"General Availability with Sonnet 4 & Opus 4", detail:"Claude Code reaches 1.0. Sonnet 4 and Opus 4 as base models." },
+  { v:"1.0.4", cats:["mcp"], text:"Fixed MCP tool error parsing", detail:"Improved error handling for MCP tool failures." },
+  { v:"1.0.7", cats:["tool"], text:"/permissions command + settings migration", detail:"Renamed /allowed-tools to /permissions. Tool permission system redesign." },
+  { v:"1.0.8", cats:["mcp"], text:"MCP_TIMEOUT and MCP_TOOL_TIMEOUT respect", detail:"Granular timeout control for MCP connections and tool calls." },
+  { v:"1.0.17", cats:["agent","sdk"], text:"Sub-task messages with parent_tool_use_id", detail:"Print mode emits sub-task messages linked to parent tool use. Foundation for agent tracing." },
+  { v:"1.0.18", cats:["mcp"], text:"/mcp shows detailed tools", detail:"Enhanced MCP inspection in CLI." },
+  { v:"1.0.21", cats:["mcp"], text:"MCP stdio cleanup improvements", detail:"Better process lifecycle management for stdio MCP servers." },
+  { v:"1.0.22", cats:["sdk"], text:"SDK: total_cost renamed to total_cost_usd", detail:"API field naming standardization." },
+  { v:"1.0.23", cats:["sdk"], text:"TypeScript + Python SDK released", detail:"@anthropic-ai/claude-code (TS) and claude-code-sdk (Python) packages." },
+  { v:"1.0.24", cats:["mcp"], text:"/mcp output improved", detail:"Better formatting and information density." },
+  { v:"1.0.25", cats:["mcp"], text:"MCP reliability + Ghostty support", detail:"Improved MCP connection stability. Ghostty terminal support." },
+  { v:"1.0.27", cats:["mcp"], text:"Streamable HTTP MCP servers", detail:"Third transport: Streamable HTTP. SSE/HTTP OAuth support. @-mention MCP resources." },
+  { v:"1.0.30", cats:["skill"], text:"Custom slash commands enhanced", detail:"Bash output, @file mentions, thinking keywords in custom slash commands." },
+  { v:"1.0.35", cats:["mcp"], text:"OAuth Authorization Server discovery", detail:"MCP OAuth AuthZ Server discovery protocol support." },
+  { v:"1.0.38", cats:["hook"], text:"Hooks system released", detail:"First hook system: PreToolUse, PostToolUse, SessionStart, SessionEnd events." },
+  { v:"1.0.41", cats:["hook","agent"], text:"SubagentStop hook + hook timeouts", detail:"Stop hook split into Stop/SubagentStop. Hook timeout configuration. Bash tool JSON parameters." },
+  { v:"1.0.44", cats:["mcp"], text:"MCP resource_link + tool annotations", detail:"Rich MCP tool metadata display. Resource linking." },
+  { v:"1.0.48", cats:["mcp"], text:"MCP variable expansion", detail:"Environment variable expansion in MCP server configurations." },
+  { v:"1.0.52", cats:["mcp"], text:"MCP server instructions", detail:"Server-defined instruction text for context." },
+  { v:"1.0.54", cats:["hook"], text:"UserPromptSubmit hook", detail:"Hook fires when user submits a prompt. Custom slash command argument-hint." },
+  { v:"1.0.59", cats:["sdk","hook"], text:"SDK canUseTool + PermissionDecision hook", detail:"SDK tool confirmation callback. Hooks expose permission decisions." },
+  { v:"1.0.60", cats:["agent"], text:"Custom subagents via /agents", detail:"Users can define custom agent types with specific models, tools, and behaviors." },
+  { v:"1.0.62", cats:["agent","hook"], text:"@-mention custom agents + SessionStart hook", detail:"Reference agents inline. SessionStart hook event added." },
+  { v:"1.0.64", cats:["agent"], text:"Agent model customization + recursive access", detail:"Agents can specify their own model. Recursive agent invocation enabled." },
+  { v:"1.0.70", cats:["agent"], text:"@-mention in slash commands + Windows subagent", detail:"Windows subagent file search and ripgrep support." },
+  { v:"1.0.77", cats:["agent"], text:"Opus Plan Mode", detail:"Opus used for planning, Sonnet for execution. Session summarization." },
+  { v:"1.0.80", cats:["agent"], text:"Custom subagent colors in UI", detail:"Visual differentiation for different agent types." },
+  { v:"1.0.81", cats:["agent","skill"], text:"Output styles + agent loading fixes", detail:"Explanatory and Learning output styles. Agent initialization reliability." },
+  { v:"1.0.82", cats:["sdk","mcp"], text:"SDK additionalDirectories + MCP tool name consistency", detail:"SDK can specify working directories. MCP tool naming standardized." },
+  { v:"1.0.85", cats:["hook"], text:"SessionEnd hook", detail:"Hook fires when session terminates. Status line cost info." },
+  { v:"1.0.94", cats:["sdk","tool"], text:"SDK custom tool callbacks + /todos", detail:"SDK supports custom tool result callbacks. /todos command for task viewing." },
+
+  // ── ERA: v2.0.x  Next Generation ──
+  { v:"2.0.0", cats:["agent","tool"], text:"Major redesign: native VSCode extension", detail:"Complete UI overhaul. /rewind, /usage, Tab thinking toggle, Ctrl+R history." },
+  { v:"2.0.10", cats:["mcp","hook"], text:"MCP enable/disable via @-mention + PreToolUse input modification", detail:"Toggle MCP servers inline. Hooks can now modify tool inputs." },
+  { v:"2.0.12", cats:["skill"], text:"Plugin System released", detail:"/plugin install/enable/disable/marketplace. Repository plugins via extraKnownMarketplaces." },
+  { v:"2.0.14", cats:["mcp"], text:"MCP tool toggle via @-mention", detail:"Fine-grained MCP tool control per conversation." },
+  { v:"2.0.20", cats:["skill"], text:"Claude Skills released", detail:"Skills system: packaged instructions that extend agent capabilities." },
+  { v:"2.0.21", cats:["mcp","tool"], text:"MCP structuredContent + interactive questions", detail:"MCP structured content support. Haiku 4.5 model. AskUserQuestion tool." },
+  { v:"2.0.24", cats:["skill","agent","tool"], text:"Project skills auto-load + Sandbox", detail:"Skills in .claude/skills/ auto-load. Sandbox BashTool for Linux/Mac." },
+  { v:"2.0.25", cats:["sdk"], text:"Migration to @anthropic-ai/claude-agent-sdk", detail:"Legacy SDK entrypoint removed. New unified agent SDK package." },
+  { v:"2.0.28", cats:["agent"], text:"Plan subagent + Agent Teams experimental", detail:"Dedicated Plan subagent type. Dynamic model selection. CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS flag." },
+  { v:"2.0.30", cats:["mcp"], text:"OAuth client credentials for non-DCR MCP", detail:"Broader OAuth support for MCP servers." },
+  { v:"2.0.32", cats:["agent","mcp"], text:"Subagent MCP sync", detail:"Subagents synchronize MCP server state with parent agent." },
+  { v:"2.0.33", cats:["mcp"], text:"MCP outputSchema validation", detail:"Server-side output schema validation for MCP tools." },
+  { v:"2.0.43", cats:["agent","skill","hook"], text:"Agent permissionMode + skill frontmatter", detail:"Per-agent permission configuration. Skills can set frontmatter for subagent targeting." },
+  { v:"2.0.45", cats:["hook"], text:"PermissionRequest hook", detail:"Hook fires on permission requests. Background tasks on web." },
+  { v:"2.0.54", cats:["hook"], text:"PermissionRequest hooks process suggestions", detail:"Hooks can suggest permission outcomes." },
+  { v:"2.0.59", cats:["agent"], text:"--agent flag for system prompt/tools/model", detail:"CLI flag to configure agent behavior at launch." },
+  { v:"2.0.60", cats:["agent"], text:"Background agent support", detail:"Agents can run in background. /mcp enable/disable [server] command." },
+  { v:"2.0.64", cats:["agent"], text:"Async agents + .claude/rules memory", detail:"Asynchronous agent execution. Rules-based memory in .claude/rules." },
+  { v:"2.0.70", cats:["mcp"], text:"mcp__server__* wildcard permissions", detail:"Wildcard permission rules for MCP tool access." },
+  { v:"2.0.74", cats:["tool"], text:"LSP tool for code intelligence", detail:"Language Server Protocol integration: go-to-definition, find references, hover." },
+
+  // ── ERA: v2.1.x  Agent Teams & Polish ──
+  { v:"2.1.0", cats:["skill","agent"], text:"Skill hot-reload + context:fork subagents", detail:"Skills reload automatically on change. Forked subagent context isolation." },
+  { v:"2.1.3", cats:["skill"], text:"Skills and slash commands merged", detail:"Unified skill/command system. Release channel toggle." },
+  { v:"2.1.9", cats:["mcp","hook"], text:"MCP auto:N threshold + PreToolUse additionalContext", detail:"Smart MCP tool search. Hooks gain additional context injection." },
+  { v:"2.1.11", cats:["mcp"], text:"MCP HTTP/SSE connection request fix", detail:"Connection reliability improvement." },
+  { v:"2.1.15", cats:["mcp"], text:"MCP stdio timeout kill", detail:"Forceful cleanup of unresponsive MCP stdio processes." },
+  { v:"2.1.16", cats:["agent","tool"], text:"Task management with dependency tracking", detail:"Structured task dependencies. VSCode native plugin management." },
+  { v:"2.1.19", cats:["tool"], text:"CLAUDE_CODE_ENABLE_TASKS + shorthand args", detail:"Task system feature flag. $0/$1 shorthand arguments." },
+  { v:"2.1.22", cats:["sdk"], text:"Structured outputs for -p mode", detail:"JSON schema-validated outputs in programmatic mode." },
+  { v:"2.1.27", cats:["agent"], text:"--from-pr flag + PR linking", detail:"Agent can be initialized from a pull request context." },
+  { v:"2.1.30", cats:["mcp"], text:"MCP OAuth pre-configured clients", detail:"Out-of-box OAuth client configurations for common MCP servers." },
+  { v:"2.1.32", cats:["agent","skill"], text:"Opus 4.6 + Agent Teams preview", detail:"Claude Opus 4.6. AGENT_TEAMS experimental flag. .claude/skills auto-load. Memory recording." },
+  { v:"2.1.33", cats:["agent","hook"], text:"TeammateIdle/TaskCompleted hooks + Task(agent_type)", detail:"Agent team lifecycle hooks. Typed task dispatching syntax." },
+  { v:"2.1.41", cats:["mcp","agent"], text:"MCP image streaming + nested model identifiers", detail:"Image data via MCP. Bedrock/Vertex/Foundry model resolution." },
+  { v:"2.1.42", cats:["agent"], text:"Opus 4.6 effort + prompt cache hit rate", detail:"Startup performance via Zod deferral. Opus 4.6 efficiency callout." },
+];
+
+// ═══════════════════════════════════════════════════════════════════
+// OBJECT REFERENCE DATA
+// ═══════════════════════════════════════════════════════════════════
+const OBJECTS = [
+  { name:"MCPServer", introduced:"0.2.32", cat:"mcp",
+    params:"name, transport (stdio|sse|http), scope (user|project), env_vars[], instructions, headersHelper, oauth_config",
+    interacts:"MCPTool, MCPResource, MCPTransport, SubagentConfig (sync)" },
+  { name:"MCPTool", introduced:"0.2.32", cat:"mcp",
+    params:"name, description, inputSchema, outputSchema (v2.0.33), annotations (v1.0.44), enabled (v2.0.14)",
+    interacts:"MCPServer, HookConfig (PreToolUse/PostToolUse), ToolRouter" },
+  { name:"MCPResource", introduced:"1.0.27", cat:"mcp",
+    params:"uri, name, mimeType, resource_link (v1.0.44)",
+    interacts:"MCPServer, @-mention system" },
+  { name:"MCPTransport", introduced:"0.2.32", cat:"mcp",
+    params:"type (stdio→0.2.32, sse→0.2.53, http→1.0.27), timeout (MCP_TIMEOUT, MCP_TOOL_TIMEOUT)",
+    interacts:"MCPServer" },
+  { name:"TaskTool", introduced:"0.2.74", cat:"agent",
+    params:"prompt, subagent_type (Explore|Plan|Bash|general-purpose|custom), model, max_turns, run_in_background, resume",
+    interacts:"SubagentConfig, MCPServer (sync v2.0.32), HookConfig (SubagentStop)" },
+  { name:"SubagentConfig", introduced:"1.0.60", cat:"agent",
+    params:"name, model (v1.0.64), tools[], permissionMode (v2.0.43), systemPrompt, recursive (v1.0.64), agent_type (v2.1.33)",
+    interacts:"TaskTool, MCPServer, SkillConfig, HookConfig" },
+  { name:"AgentTeam", introduced:"2.0.28", cat:"agent",
+    params:"CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS, teammates[], context:fork (v2.1.0), tmux sessions (v2.1.33)",
+    interacts:"SubagentConfig, TeammateIdle hook, TaskCompleted hook" },
+  { name:"HookConfig", introduced:"1.0.38", cat:"hook",
+    params:"event (PreToolUse|PostToolUse|SessionStart|SessionEnd|UserPromptSubmit|SubagentStop|PermissionRequest|SetupHook|TeammateIdle|TaskCompleted), command, timeout, matchers[], hook_event_name",
+    interacts:"MCPTool, TaskTool, SubagentConfig, SkillConfig" },
+  { name:"SkillConfig", introduced:"2.0.20", cat:"skill",
+    params:"name, description, agent (v2.1.0), model (v1.0.57), content (SKILL.md), triggers[], frontmatter (v2.0.43), auto-load (v2.0.24)",
+    interacts:"SubagentConfig, SlashCommand, PluginConfig" },
+  { name:"PluginConfig", introduced:"2.0.12", cat:"skill",
+    params:"name, source (marketplace|repository), enabled, commitSHA (v2.1.14), extraKnownMarketplaces[]",
+    interacts:"SkillConfig, HookConfig" },
+  { name:"SlashCommand", introduced:"0.2.30", cat:"skill",
+    params:"name, description, content (.md file), bash_output (v1.0.30), @file mentions, thinking_keywords, argument-hint (v1.0.54), model (v1.0.57)",
+    interacts:"SkillConfig (merged v2.1.3), SubagentConfig" },
+  { name:"SDK (claude-agent-sdk)", introduced:"1.0.23", cat:"sdk",
+    params:"total_cost_usd, canUseTool (v1.0.59), additionalDirectories (v1.0.82), custom tool callbacks (v1.0.94), structured outputs (v2.1.22), partial message streaming (v1.0.109), user input tracking (v1.0.64)",
+    interacts:"SubagentConfig, MCPServer, HookConfig" },
+  { name:"TodoWrite", introduced:"0.2.93", cat:"tool",
+    params:"todos[{content, status (pending|in_progress|completed), activeForm}]",
+    interacts:"TaskTool (task management v2.1.16), SubagentConfig" },
+  { name:"AskUserQuestion", introduced:"2.0.21", cat:"tool",
+    params:"questions[{question, header, options[{label,description}], multiSelect}], answers",
+    interacts:"Main Agent, HookConfig (UserPromptSubmit)" },
+  { name:"LSPTool", introduced:"2.0.74", cat:"tool",
+    params:"go-to-definition, find-references, hover, diagnostics",
+    interacts:"Main Agent, TaskTool (code intelligence)" },
+];
+
+// ═══════════════════════════════════════════════════════════════════
+// ERA DEFINITIONS
+// ═══════════════════════════════════════════════════════════════════
+const ERAS = [
+  { prefix:"0.2", label:"v0.2.x — Foundation Era", ascii:"╔══ stdio MCP ═══ Task tool born ═══ slash commands ══╗" },
+  { prefix:"1.0", label:"v1.0.x — General Availability", ascii:"╔══ SSE + HTTP transports ═══ Hooks ═══ Custom agents ═══ SDK ══╗" },
+  { prefix:"2.0", label:"v2.0.x — Next Generation", ascii:"╔══ Skills ═══ Plugins ═══ Agent teams ═══ Sandbox ═══ Background agents ══╗" },
+  { prefix:"2.1", label:"v2.1.x — Agent Teams & Opus 4.6", ascii:"╔══ Skill hot-reload ═══ Tasks with deps ═══ Opus 4.6 ═══ Teammates ══╗" },
+];
+
+// ═══════════════════════════════════════════════════════════════════
+// GHOSTTY-STYLE ASCII ANIMATION FRAMES
+// ═══════════════════════════════════════════════════════════════════
+const GHOST_FRAMES = [
+`    ┌─────────────────────────────────────────────┐
+    │  ◉ MCP Server  ──▸  ◈ Tool  ──▸  ◆ Agent  │
+    │       ╱                 │             ╲      │
+    │  ◉ Server 2    ◈ Tool 2 │      ◆ Subagent  │
+    │       ╲                 │             ╱      │
+    │         ╚═══ hooks ═══▸ ◇ Result ═══╝       │
+    └─────────────────────────────────────────────┘`,
+`    ┌─────────────────────────────────────────────┐
+    │  ● MCP Server  ━━▶  ◈ Tool  ━━▶  ◆ Agent  │
+    │       ╱                 │             ╲      │
+    │  ● Server 2    ◈ Tool 2 │      ◆ Subagent  │
+    │       ╲                 │             ╱      │
+    │         ╚═══ hooks ━━▶ ◇ Result ═══╝       │
+    └─────────────────────────────────────────────┘`,
+`    ┌─────────────────────────────────────────────┐
+    │  ○ MCP Server  ──▸  ◇ Tool  ──▸  ◇ Agent  │
+    │       ╱                 │             ╲      │
+    │  ○ Server 2    ◇ Tool 2 │      ◇ Subagent  │
+    │       ╲                 │             ╱      │
+    │         ╚═══ hooks ──▸ ● Result ═══╝       │
+    └─────────────────────────────────────────────┘`,
+`    ┌─────────────────────────────────────────────┐
+    │  ◎ MCP Server  ══▷  ◆ Tool  ══▷  ● Agent  │
+    │       ╱                 │             ╲      │
+    │  ◎ Server 2    ◆ Tool 2 │      ● Subagent  │
+    │       ╲                 │             ╱      │
+    │         ╚═══ hooks ══▷ ◎ Result ═══╝       │
+    └─────────────────────────────────────────────┘`,
+];
+
+// ═══════════════════════════════════════════════════════════════════
+// RENDER ENGINE
+// ═══════════════════════════════════════════════════════════════════
+let activeFilter = 'all';
+let activeView = 'timeline';
+
+function buildTimeline() {
+  const container = document.getElementById('view-timeline');
+  container.innerHTML = '<div class="timeline-line"></div>';
+  let currentEra = null;
+
+  DATA.forEach((entry, i) => {
+    const eraPrefix = entry.v.match(/^(\d+\.\d+)/)?.[1] || '';
+    const era = ERAS.find(e => eraPrefix.startsWith(e.prefix));
+
+    if (era && era.prefix !== currentEra) {
+      currentEra = era.prefix;
+      const h = document.createElement('div');
+      h.className = 'era-header';
+      h.innerHTML = `${era.label}<span class="era-ascii">${era.ascii}</span>`;
+      container.appendChild(h);
+    }
+
+    const primaryCat = entry.cats[0];
+    const div = document.createElement('div');
+    div.className = `version-entry`;
+    div.dataset.cats = entry.cats.join(',');
+    div.style.transitionDelay = `${(i % 20) * 30}ms`;
+
+    const tags = entry.cats.map(c => `<span class="tag tag-${c}">${c}</span>`).join('');
+    div.innerHTML = `
+      <div class="version-label">v${entry.v}</div>
+      <div class="version-dot cat-${primaryCat}"></div>
+      <div class="entry-content">
+        <div class="entry-tags">${tags}</div>
+        <div class="entry-text">${entry.text}</div>
+        <div class="entry-detail">${entry.detail}</div>
+      </div>
+    `;
+    div.addEventListener('click', () => div.classList.toggle('expanded'));
+    container.appendChild(div);
+  });
+
+  applyFilter();
+  observeEntries();
+}
+
+function buildObjectTable() {
+  const tbody = document.querySelector('#object-table tbody');
+  tbody.innerHTML = '';
+  OBJECTS.forEach(obj => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="font-weight:700;color:var(--${obj.cat}-color)">${obj.name}</td>
+      <td>v${obj.introduced}</td>
+      <td><span class="tag tag-${obj.cat}">${obj.cat}</span></td>
+      <td style="font-size:10px">${obj.params}</td>
+      <td style="font-size:10px">${obj.interacts}</td>
+    `;
+    tr.style.cursor = 'pointer';
+    tr.addEventListener('click', () => {
+      const existing = tr.nextElementSibling;
+      if (existing && existing.classList.contains('params-row')) {
+        existing.remove();
+        return;
+      }
+      const detail = document.createElement('tr');
+      detail.className = 'params-row';
+      detail.innerHTML = `<td colspan="5"><div class="params-block">${formatParams(obj)}</div></td>`;
+      tr.after(detail);
+    });
+    tbody.appendChild(tr);
+  });
+}
+
+function formatParams(obj) {
+  const lines = [
+    `┌─ ${obj.name} ─────────────────────────────`,
+    `│ Category:    ${obj.cat}`,
+    `│ Introduced:  v${obj.introduced}`,
+    `│`,
+    `│ Parameters:`,
+    ...obj.params.split(', ').map(p => `│   ├─ ${p}`),
+    `│`,
+    `│ Interactions:`,
+    ...obj.interacts.split(', ').map(p => `│   ├─ ${p}`),
+    `└──────────────────────────────────────────`,
+  ];
+  return lines.join('\n');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// FILTER + VIEW SWITCHING
+// ═══════════════════════════════════════════════════════════════════
+function applyFilter() {
+  document.querySelectorAll('.version-entry').forEach(el => {
+    const cats = el.dataset.cats?.split(',') || [];
+    if (activeFilter === 'all' || cats.includes(activeFilter)) {
+      el.classList.remove('hidden');
+    } else {
+      el.classList.add('hidden');
+    }
+  });
+  updateStats();
+}
+
+function updateStats() {
+  const counts = { mcp:0, agent:0, hook:0, skill:0, sdk:0, tool:0 };
+  DATA.forEach(e => e.cats.forEach(c => { if (counts[c] !== undefined) counts[c]++; }));
+  Object.keys(counts).forEach(k => {
+    const el = document.getElementById(`stat-${k}`);
+    if (el) animateNumber(el, counts[k]);
+  });
+}
+
+function animateNumber(el, target) {
+  let current = 0;
+  const step = Math.max(1, Math.floor(target / 30));
+  const interval = setInterval(() => {
+    current = Math.min(current + step, target);
+    el.textContent = current;
+    if (current >= target) clearInterval(interval);
+  }, 30);
+}
+
+function switchView(view) {
+  activeView = view;
+  document.getElementById('view-timeline').style.display = view === 'timeline' ? '' : 'none';
+  document.getElementById('view-diagram').style.display = view === 'diagram' ? '' : 'none';
+  document.getElementById('view-objects').style.display = view === 'objects' ? '' : 'none';
+  document.getElementById('btn-timeline').classList.toggle('active', view === 'timeline');
+  document.getElementById('btn-diagram').classList.toggle('active', view === 'diagram');
+  document.getElementById('btn-objects').classList.toggle('active', view === 'objects');
+
+  if (view === 'diagram') {
+    mermaid.run({ querySelector: '.mermaid' });
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// INTERSECTION OBSERVER for scroll animation
+// ═══════════════════════════════════════════════════════════════════
+function observeEntries() {
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+      }
+    });
+  }, { threshold: 0.1 });
+  document.querySelectorAll('.version-entry').forEach(el => observer.observe(el));
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// GHOSTTY ASCII ANIMATION ENGINE (targeting ~15fps for efficiency)
+// ═══════════════════════════════════════════════════════════════════
+function startGhosttyAnimation() {
+  const container = document.getElementById('ghostty-frame');
+  let frameIndex = 0;
+
+  function renderFrame() {
+    container.textContent = GHOST_FRAMES[frameIndex];
+    frameIndex = (frameIndex + 1) % GHOST_FRAMES.length;
+  }
+
+  renderFrame();
+  setInterval(renderFrame, 500); // 2fps for subtle pulse, efficient
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// EVENT BINDINGS
+// ═══════════════════════════════════════════════════════════════════
+document.querySelectorAll('.controls button[data-filter]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.controls button[data-filter]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeFilter = btn.dataset.filter;
+    applyFilter();
+  });
+});
+
+document.getElementById('btn-timeline').addEventListener('click', () => switchView('timeline'));
+document.getElementById('btn-diagram').addEventListener('click', () => switchView('diagram'));
+document.getElementById('btn-objects').addEventListener('click', () => switchView('objects'));
+
+// ═══════════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════════
+buildTimeline();
+buildObjectTable();
+startGhosttyAnimation();
+updateStats();
+</script>
+</body>
+</html>
