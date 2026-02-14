@@ -1,0 +1,12 @@
+{
+  "name": "developer-utilities",
+  "description": "Essential developer utilities for cache cleanup, command validation, session management, and workflow optimization",
+  "version": "1.2.0",
+  "author": {
+    "name": "Claude Code Community",
+    "email": "support@anthropic.com"
+  },
+  "development": {
+    "note": "When developing new commands, sync to installed location with: cp plugins/developer-utilities/commands/*.md ~/.claude/plugins/developer-utilities/commands/"
+  }
+}
