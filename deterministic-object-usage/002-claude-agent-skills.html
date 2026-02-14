@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Code Agent Skills - Feature Evolution Timeline</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --bg2: #161b22;
+    --bg3: #21262d;
+    --border: #30363d;
+    --text: #e6edf3;
+    --text-muted: #8b949e;
+    --accent: #58a6ff;
+    --accent2: #3fb950;
+    --accent3: #d2a8ff;
+    --accent4: #f0883e;
+    --accent5: #f778ba;
+    --danger: #f85149;
+    --tag-skill: #388bfd26;
+    --tag-agent: #3fb95026;
+    --tag-slash: #d2a8ff26;
+    --tag-hook: #f0883e26;
+    --tag-plugin: #f778ba26;
+    --tag-tool: #f8514926;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  /* Header */
+  .hero {
+    background: linear-gradient(135deg, #0d1117 0%, #161b22 50%, #1a1e2e 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 3rem 2rem 2rem;
+    text-align: center;
+  }
+  .hero h1 {
+    font-size: 2.2rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--accent), var(--accent3));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 0.5rem;
+  }
+  .hero p { color: var(--text-muted); font-size: 1.05rem; max-width: 700px; margin: 0 auto; }
+  .hero .source-link {
+    display: inline-block;
+    margin-top: 1rem;
+    color: var(--accent);
+    text-decoration: none;
+    font-size: 0.85rem;
+    border: 1px solid var(--border);
+    padding: 0.3rem 0.8rem;
+    border-radius: 6px;
+  }
+  .hero .source-link:hover { border-color: var(--accent); }
+
+  /* Stats bar */
+  .stats-bar {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    padding: 1.2rem 2rem;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  .stat { text-align: center; }
+  .stat .num { font-size: 1.8rem; font-weight: 700; color: var(--accent); }
+  .stat .label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+
+  /* Controls */
+  .controls {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1rem 2rem;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .filter-btn {
+    padding: 0.35rem 0.85rem;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: all 0.2s;
+  }
+  .filter-btn:hover { border-color: var(--accent); color: var(--text); }
+  .filter-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .filter-btn[data-cat="skill"].active { background: #388bfd; }
+  .filter-btn[data-cat="agent"].active { background: #3fb950; }
+  .filter-btn[data-cat="slash-cmd"].active { background: #d2a8ff; color: #000; }
+  .filter-btn[data-cat="hook"].active { background: #f0883e; color: #000; }
+  .filter-btn[data-cat="plugin"].active { background: #f778ba; color: #000; }
+  .filter-btn[data-cat="tool"].active { background: #f85149; }
+
+  /* Legend */
+  .legend {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    padding: 0.8rem 2rem;
+    flex-wrap: wrap;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+  .legend-item { display: flex; align-items: center; gap: 0.3rem; }
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+
+  /* Architecture diagram */
+  .arch-section {
+    max-width: 1100px;
+    margin: 2rem auto;
+    padding: 0 1.5rem;
+  }
+  .arch-section h2 {
+    font-size: 1.3rem;
+    margin-bottom: 1rem;
+    color: var(--accent);
+  }
+  .arch-diagram {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 2rem;
+    overflow-x: auto;
+  }
+  .arch-svg { width: 100%; height: auto; }
+
+  /* Timeline */
+  .timeline {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem 4rem;
+    position: relative;
+  }
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 28px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: linear-gradient(to bottom, var(--accent), var(--accent3), var(--accent2));
+  }
+
+  .release {
+    position: relative;
+    margin-bottom: 1.5rem;
+    padding-left: 60px;
+  }
+  .release.hidden { display: none; }
+
+  .release-dot {
+    position: absolute;
+    left: 20px;
+    top: 6px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--bg);
+    border: 3px solid var(--accent);
+    z-index: 2;
+    transition: transform 0.2s;
+  }
+  .release.milestone .release-dot {
+    width: 24px;
+    height: 24px;
+    left: 17px;
+    border-color: var(--accent2);
+    box-shadow: 0 0 12px rgba(63,185,80,0.4);
+  }
+
+  .release-header {
+    display: flex;
+    align-items: baseline;
+    gap: 0.8rem;
+    cursor: pointer;
+    user-select: none;
+  }
+  .release-version {
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: var(--text);
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  }
+  .release.milestone .release-version { color: var(--accent2); font-size: 1.25rem; }
+  .release-label {
+    font-size: 0.7rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .label-introduced { background: #3fb95030; color: #3fb950; }
+  .label-breaking { background: #f8514930; color: #f85149; }
+  .label-major { background: #d2a8ff30; color: #d2a8ff; }
+  .release-chevron {
+    margin-left: auto;
+    color: var(--text-muted);
+    transition: transform 0.2s;
+    font-size: 0.9rem;
+  }
+  .release.open .release-chevron { transform: rotate(90deg); }
+
+  .release-body {
+    margin-top: 0.6rem;
+    display: none;
+  }
+  .release.open .release-body { display: block; }
+
+  .change-item {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.8rem 1rem;
+    margin-bottom: 0.5rem;
+    transition: border-color 0.2s;
+  }
+  .change-item:hover { border-color: var(--accent); }
+  .change-item .tags { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 0.4rem; }
+  .tag {
+    font-size: 0.65rem;
+    padding: 0.1rem 0.45rem;
+    border-radius: 4px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  .tag-skill { background: var(--tag-skill); color: #58a6ff; }
+  .tag-agent { background: var(--tag-agent); color: #3fb950; }
+  .tag-slash { background: var(--tag-slash); color: #d2a8ff; }
+  .tag-hook { background: var(--tag-hook); color: #f0883e; }
+  .tag-plugin { background: var(--tag-plugin); color: #f778ba; }
+  .tag-tool { background: var(--tag-tool); color: #f85149; }
+  .tag-added { background: #3fb95015; color: #3fb950; border: 1px solid #3fb95040; }
+  .tag-changed { background: #d2a8ff15; color: #d2a8ff; border: 1px solid #d2a8ff40; }
+  .tag-fixed { background: #58a6ff15; color: #58a6ff; border: 1px solid #58a6ff40; }
+  .tag-removed { background: #f8514915; color: #f85149; border: 1px solid #f8514940; }
+
+  .change-item .desc {
+    font-size: 0.88rem;
+    color: var(--text);
+    line-height: 1.5;
+  }
+  .change-item code {
+    background: var(--bg3);
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+    font-size: 0.82rem;
+    color: var(--accent);
+  }
+
+  /* Object params panel */
+  .obj-panel {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.6rem 0.8rem;
+    margin-top: 0.5rem;
+    font-size: 0.8rem;
+    font-family: 'SFMono-Regular', Consolas, monospace;
+    color: var(--text-muted);
+  }
+  .obj-panel summary {
+    cursor: pointer;
+    color: var(--accent3);
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .obj-panel .param { margin-left: 1rem; }
+  .obj-panel .param-name { color: var(--accent); }
+  .obj-panel .param-type { color: var(--accent4); }
+  .obj-panel .arrow { color: var(--accent2); }
+
+  /* Search */
+  .search-wrap {
+    display: flex;
+    justify-content: center;
+    padding: 0 2rem;
+    margin-bottom: 0.5rem;
+  }
+  .search-input {
+    width: 100%;
+    max-width: 500px;
+    padding: 0.5rem 1rem;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 0.9rem;
+    outline: none;
+  }
+  .search-input:focus { border-color: var(--accent); }
+  .search-input::placeholder { color: var(--text-muted); }
+
+  /* Responsive */
+  @media (max-width: 700px) {
+    .hero h1 { font-size: 1.5rem; }
+    .stats-bar { gap: 1rem; }
+    .stat .num { font-size: 1.3rem; }
+    .timeline::before { left: 18px; }
+    .release { padding-left: 45px; }
+    .release-dot { left: 10px; }
+    .release.milestone .release-dot { left: 7px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>Claude Code: Agent Skills Evolution</h1>
+  <p>A visual timeline of how Agent Skills, Custom Agents, Slash Commands, Hooks, Plugins, and related tooling evolved across every semver release.</p>
+  <a class="source-link" href="https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md" target="_blank" rel="noopener">Source: CHANGELOG.md</a>
+</div>
+
+<div class="stats-bar">
+  <div class="stat"><div class="num" id="stat-releases">0</div><div class="label">Releases with changes</div></div>
+  <div class="stat"><div class="num" id="stat-changes">0</div><div class="label">Total changes tracked</div></div>
+  <div class="stat"><div class="num" id="stat-skills">0</div><div class="label">Skill changes</div></div>
+  <div class="stat"><div class="num" id="stat-agents">0</div><div class="label">Agent changes</div></div>
+  <div class="stat"><div class="num" id="stat-hooks">0</div><div class="label">Hook changes</div></div>
+</div>
+
+<div class="controls">
+  <button class="filter-btn active" data-cat="all">All</button>
+  <button class="filter-btn" data-cat="skill">Skills</button>
+  <button class="filter-btn" data-cat="agent">Agents</button>
+  <button class="filter-btn" data-cat="slash-cmd">Slash Cmds</button>
+  <button class="filter-btn" data-cat="hook">Hooks</button>
+  <button class="filter-btn" data-cat="plugin">Plugins</button>
+  <button class="filter-btn" data-cat="tool">Tools</button>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><span class="legend-dot" style="background:#58a6ff"></span> Skill</div>
+  <div class="legend-item"><span class="legend-dot" style="background:#3fb950"></span> Agent</div>
+  <div class="legend-item"><span class="legend-dot" style="background:#d2a8ff"></span> Slash Command</div>
+  <div class="legend-item"><span class="legend-dot" style="background:#f0883e"></span> Hook</div>
+  <div class="legend-item"><span class="legend-dot" style="background:#f778ba"></span> Plugin</div>
+  <div class="legend-item"><span class="legend-dot" style="background:#f85149"></span> Tool / Param</div>
+</div>
+
+<div class="search-wrap">
+  <input type="text" class="search-input" id="search" placeholder="Search changes... (e.g. frontmatter, permission, subagent)">
+</div>
+
+<!-- Architecture Diagram -->
+<div class="arch-section">
+  <h2>Object &amp; Interaction Model (Current State)</h2>
+  <div class="arch-diagram">
+    <svg class="arch-svg" viewBox="0 0 980 520" xmlns="http://www.w3.org/2000/svg">
+      <!-- Arrows / connections -->
+      <defs>
+        <marker id="ah" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6Z" fill="#8b949e"/></marker>
+        <marker id="ah-green" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6Z" fill="#3fb950"/></marker>
+        <marker id="ah-blue" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6Z" fill="#58a6ff"/></marker>
+        <marker id="ah-purple" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6Z" fill="#d2a8ff"/></marker>
+        <marker id="ah-orange" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6Z" fill="#f0883e"/></marker>
+      </defs>
+
+      <!-- User prompt -->
+      <rect x="20" y="20" width="150" height="50" rx="8" fill="#161b22" stroke="#30363d"/>
+      <text x="95" y="50" text-anchor="middle" fill="#e6edf3" font-size="13" font-weight="600">User Prompt</text>
+
+      <!-- Main Agent -->
+      <rect x="250" y="10" width="200" height="70" rx="10" fill="#161b22" stroke="#3fb950" stroke-width="2"/>
+      <text x="350" y="38" text-anchor="middle" fill="#3fb950" font-size="14" font-weight="700">Main Agent</text>
+      <text x="350" y="58" text-anchor="middle" fill="#8b949e" font-size="10">model | permissionMode | tools</text>
+
+      <!-- arrow user -> main -->
+      <line x1="170" y1="45" x2="248" y2="45" stroke="#8b949e" stroke-width="1.5" marker-end="url(#ah)"/>
+
+      <!-- Skill box -->
+      <rect x="540" y="10" width="200" height="90" rx="10" fill="#161b22" stroke="#58a6ff" stroke-width="2"/>
+      <text x="640" y="35" text-anchor="middle" fill="#58a6ff" font-size="14" font-weight="700">Skills</text>
+      <text x="640" y="52" text-anchor="middle" fill="#8b949e" font-size="9">.claude/skills/ | ~/.claude/skills/</text>
+      <text x="640" y="67" text-anchor="middle" fill="#8b949e" font-size="9">frontmatter: allowed-tools, model,</text>
+      <text x="640" y="80" text-anchor="middle" fill="#8b949e" font-size="9">context, agent, hooks, description</text>
+
+      <!-- arrow main -> skill -->
+      <line x1="450" y1="45" x2="538" y2="50" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#ah-blue)"/>
+      <text x="492" y="38" text-anchor="middle" fill="#58a6ff" font-size="9">Skill tool</text>
+
+      <!-- Slash Commands -->
+      <rect x="540" y="120" width="200" height="70" rx="10" fill="#161b22" stroke="#d2a8ff" stroke-width="2"/>
+      <text x="640" y="148" text-anchor="middle" fill="#d2a8ff" font-size="14" font-weight="700">Slash Commands</text>
+      <text x="640" y="168" text-anchor="middle" fill="#8b949e" font-size="9">.claude/commands/ | merged with skills</text>
+
+      <!-- arrow skill <-> slash -->
+      <line x1="640" y1="100" x2="640" y2="118" stroke="#d2a8ff" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#ah-purple)"/>
+      <text x="660" y="112" fill="#d2a8ff" font-size="8">merged (2.1.3)</text>
+
+      <!-- Subagent / Task -->
+      <rect x="250" y="130" width="200" height="80" rx="10" fill="#161b22" stroke="#3fb950" stroke-width="2"/>
+      <text x="350" y="155" text-anchor="middle" fill="#3fb950" font-size="14" font-weight="700">Subagents (Task)</text>
+      <text x="350" y="172" text-anchor="middle" fill="#8b949e" font-size="9">.claude/agents/ | type: Explore, Plan, etc.</text>
+      <text x="350" y="187" text-anchor="middle" fill="#8b949e" font-size="9">model | tools | disallowedTools | memory</text>
+
+      <!-- arrow main -> subagent -->
+      <line x1="350" y1="80" x2="350" y2="128" stroke="#3fb950" stroke-width="1.5" marker-end="url(#ah-green)"/>
+      <text x="370" y="108" fill="#3fb950" font-size="9">Task tool</text>
+
+      <!-- Hooks -->
+      <rect x="20" y="260" width="210" height="100" rx="10" fill="#161b22" stroke="#f0883e" stroke-width="2"/>
+      <text x="125" y="288" text-anchor="middle" fill="#f0883e" font-size="14" font-weight="700">Hooks</text>
+      <text x="125" y="305" text-anchor="middle" fill="#8b949e" font-size="9">SessionStart | PreToolUse | PostToolUse</text>
+      <text x="125" y="320" text-anchor="middle" fill="#8b949e" font-size="9">Stop | SubagentStop | SubagentStart</text>
+      <text x="125" y="335" text-anchor="middle" fill="#8b949e" font-size="9">PermissionRequest | PreCompact | Notification</text>
+      <text x="125" y="348" text-anchor="middle" fill="#8b949e" font-size="9">SessionEnd | UserPromptSubmit | Setup</text>
+
+      <!-- arrow main <-> hooks -->
+      <line x1="250" y1="75" x2="125" y2="258" stroke="#f0883e" stroke-width="1.5" marker-end="url(#ah-orange)"/>
+      <text x="170" y="160" fill="#f0883e" font-size="9">lifecycle events</text>
+
+      <!-- arrow hooks -> skills -->
+      <line x1="230" y1="280" x2="540" y2="80" stroke="#f0883e" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="400" y="175" fill="#f0883e" font-size="8">skills can define hooks</text>
+
+      <!-- Plugins -->
+      <rect x="300" y="270" width="200" height="80" rx="10" fill="#161b22" stroke="#f778ba" stroke-width="2"/>
+      <text x="400" y="298" text-anchor="middle" fill="#f778ba" font-size="14" font-weight="700">Plugins</text>
+      <text x="400" y="315" text-anchor="middle" fill="#8b949e" font-size="9">commands | agents | hooks | MCP servers</text>
+      <text x="400" y="330" text-anchor="middle" fill="#8b949e" font-size="9">marketplaces | .claude-plugin/plugin.json</text>
+
+      <!-- arrow plugins -> skills/agents/hooks -->
+      <line x1="400" y1="270" x2="360" y2="212" stroke="#f778ba" stroke-width="1" stroke-dasharray="4,3"/>
+      <line x1="420" y1="270" x2="580" y2="120" stroke="#f778ba" stroke-width="1" stroke-dasharray="4,3"/>
+      <line x1="300" y1="310" x2="232" y2="310" stroke="#f778ba" stroke-width="1" stroke-dasharray="4,3"/>
+
+      <!-- MCP Servers -->
+      <rect x="560" y="270" width="200" height="70" rx="10" fill="#161b22" stroke="#f85149" stroke-width="2"/>
+      <text x="660" y="298" text-anchor="middle" fill="#f85149" font-size="14" font-weight="700">MCP Servers</text>
+      <text x="660" y="315" text-anchor="middle" fill="#8b949e" font-size="9">tools | prompts | resources | OAuth</text>
+      <text x="660" y="330" text-anchor="middle" fill="#8b949e" font-size="9">stdio | SSE | HTTP | .mcp.json</text>
+
+      <!-- arrow subagent -> MCP -->
+      <line x1="450" y1="175" x2="558" y2="290" stroke="#f85149" stroke-width="1" stroke-dasharray="4,3"/>
+
+      <!-- Tool permissions -->
+      <rect x="770" y="10" width="190" height="80" rx="10" fill="#161b22" stroke="#f85149" stroke-width="1.5"/>
+      <text x="865" y="35" text-anchor="middle" fill="#f85149" font-size="12" font-weight="600">Permissions</text>
+      <text x="865" y="52" text-anchor="middle" fill="#8b949e" font-size="9">allowed-tools | disallowedTools</text>
+      <text x="865" y="66" text-anchor="middle" fill="#8b949e" font-size="9">Bash(*) | Read | Edit | Task(type)</text>
+      <text x="865" y="80" text-anchor="middle" fill="#8b949e" font-size="9">settings.json | frontmatter</text>
+
+      <!-- arrow skill -> perms -->
+      <line x1="740" y1="50" x2="768" y2="50" stroke="#f85149" stroke-width="1" stroke-dasharray="4,3"/>
+
+      <!-- Output styles -->
+      <rect x="770" y="120" width="190" height="55" rx="10" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
+      <text x="865" y="143" text-anchor="middle" fill="#8b949e" font-size="12" font-weight="600">Output Styles</text>
+      <text x="865" y="160" text-anchor="middle" fill="#8b949e" font-size="9">deprecated then un-deprecated</text>
+
+      <!-- Frontmatter -->
+      <rect x="20" y="400" width="940" height="100" rx="10" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
+      <text x="490" y="425" text-anchor="middle" fill="#e6edf3" font-size="13" font-weight="700">Shared Frontmatter Fields (Skills / Agents / Commands)</text>
+      <text x="120" y="450" text-anchor="middle" fill="#58a6ff" font-size="10">allowed-tools</text>
+      <text x="250" y="450" text-anchor="middle" fill="#58a6ff" font-size="10">model</text>
+      <text x="360" y="450" text-anchor="middle" fill="#58a6ff" font-size="10">description</text>
+      <text x="480" y="450" text-anchor="middle" fill="#3fb950" font-size="10">agent</text>
+      <text x="580" y="450" text-anchor="middle" fill="#3fb950" font-size="10">context: fork</text>
+      <text x="700" y="450" text-anchor="middle" fill="#f0883e" font-size="10">hooks</text>
+      <text x="820" y="450" text-anchor="middle" fill="#d2a8ff" font-size="10">argument-hint</text>
+      <text x="120" y="475" text-anchor="middle" fill="#3fb950" font-size="10">permissionMode</text>
+      <text x="250" y="475" text-anchor="middle" fill="#3fb950" font-size="10">disallowedTools</text>
+      <text x="380" y="475" text-anchor="middle" fill="#3fb950" font-size="10">tools (Task types)</text>
+      <text x="520" y="475" text-anchor="middle" fill="#3fb950" font-size="10">memory</text>
+      <text x="640" y="475" text-anchor="middle" fill="#d2a8ff" font-size="10">user-invocable</text>
+      <text x="780" y="475" text-anchor="middle" fill="#58a6ff" font-size="10">skills (auto-load)</text>
+      <text x="910" y="475" text-anchor="middle" fill="#d2a8ff" font-size="10">once: true</text>
+    </svg>
+  </div>
+</div>
+
+<!-- Timeline -->
+<div class="timeline" id="timeline">
+</div>
+
+<script>
+// ===== DATA: Every agent-skills-related changelog entry, organized by semver release =====
+const RELEASES = [
+  {
+    version: "0.2.31",
+    milestone: true,
+    labels: ["introduced"],
+    changes: [
+      { cats: ["slash-cmd"], type: "added", desc: "Custom slash commands introduced: Markdown files in <code>.claude/commands/</code> directories now appear as custom slash commands to insert prompts into your conversation.", objects: ["SlashCommand", ".claude/commands/*.md"] },
+      { cats: ["tool"], type: "added", desc: "MCP debug mode: Run with <code>--mcp-debug</code> flag to get more information about MCP server errors.", objects: ["MCP"] }
+    ]
+  },
+  {
+    version: "0.2.74",
+    changes: [
+      { cats: ["agent", "tool"], type: "added", desc: "Task tool can now perform writes and run bash commands.", objects: ["Task tool", "BashTool", "Write"] }
+    ]
+  },
+  {
+    version: "0.2.82",
+    changes: [
+      { cats: ["tool"], type: "changed", desc: "Renamed tools for consistency: <code>LSTool -> LS</code>, <code>View -> Read</code>, etc. Added <code>--disallowedTools</code> support.", objects: ["Read", "LS", "disallowedTools"] }
+    ]
+  },
+  {
+    version: "1.0.23",
+    changes: [
+      { cats: ["tool"], type: "added", desc: "Released TypeScript SDK (<code>@anthropic-ai/claude-code</code>) and Python SDK (<code>claude-code-sdk</code>).", objects: ["SDK"] }
+    ]
+  },
+  {
+    version: "1.0.25",
+    changes: [
+      { cats: ["slash-cmd"], type: "changed", desc: "Slash commands: moved 'project' and 'user' prefixes to descriptions. Improved reliability for command discovery.", objects: ["SlashCommand"] }
+    ]
+  },
+  {
+    version: "1.0.30",
+    changes: [
+      { cats: ["slash-cmd"], type: "added", desc: "Custom slash commands: Run bash output, <code>@</code>-mention files, enable thinking with thinking keywords.", objects: ["SlashCommand", "bash output", "@-mention"] }
+    ]
+  },
+  {
+    version: "1.0.38",
+    milestone: true,
+    labels: ["introduced"],
+    changes: [
+      { cats: ["hook"], type: "added", desc: "Released hooks system. <code>PreToolUse</code>, <code>PostToolUse</code>, <code>Stop</code> hook events.", objects: ["Hook", "PreToolUse", "PostToolUse", "Stop"], params: { "type": "command", "command": "string", "timeout?": "number" } }
+    ]
+  },
+  {
+    version: "1.0.41",
+    changes: [
+      { cats: ["hook"], type: "changed", desc: "Split <code>Stop</code> hook into <code>Stop</code> and <code>SubagentStop</code>. Enabled optional timeout per command. Added <code>hook_event_name</code> to hook input.", objects: ["Stop", "SubagentStop", "hook_event_name"] }
+    ]
+  },
+  {
+    version: "1.0.45",
+    changes: [
+      { cats: ["slash-cmd", "hook"], type: "fixed", desc: "Stop hooks: Fixed transcript path after <code>/clear</code>. Custom slash commands: Restored namespacing based on subdirectories (e.g., <code>.claude/commands/frontend/component.md</code> -> <code>/frontend:component</code>).", objects: ["SlashCommand", "Stop hook"] }
+    ]
+  },
+  {
+    version: "1.0.48",
+    changes: [
+      { cats: ["hook"], type: "added", desc: "Added <code>PreCompact</code> hook.", objects: ["PreCompact"] }
+    ]
+  },
+  {
+    version: "1.0.54",
+    changes: [
+      { cats: ["hook", "slash-cmd"], type: "added", desc: "Added <code>UserPromptSubmit</code> hook and CWD to hook inputs. Custom slash commands: Added <code>argument-hint</code> to frontmatter.", objects: ["UserPromptSubmit", "argument-hint", "cwd"] }
+    ]
+  },
+  {
+    version: "1.0.57",
+    changes: [
+      { cats: ["slash-cmd"], type: "added", desc: "Added support for specifying a <code>model</code> in slash command frontmatter.", objects: ["model (frontmatter)"] }
+    ]
+  },
+  {
+    version: "1.0.59",
+    changes: [
+      { cats: ["hook"], type: "changed", desc: "Exposed <code>PermissionDecision</code> to hooks (including 'ask'). <code>UserPromptSubmit</code> now supports <code>additionalContext</code> in advanced JSON output.", objects: ["PermissionDecision", "additionalContext"] }
+    ]
+  },
+  {
+    version: "1.0.60",
+    milestone: true,
+    labels: ["introduced"],
+    changes: [
+      { cats: ["agent"], type: "added", desc: "Custom subagents introduced! Create specialized agents in <code>.claude/agents/</code>. Run <code>/agents</code> to get started.", objects: ["Agent", ".claude/agents/", "/agents command"], params: { "model": "string", "tools": "string[]", "description": "string" } }
+    ]
+  },
+  {
+    version: "1.0.61",
+    changes: [
+      { cats: ["slash-cmd"], type: "fixed", desc: "Fixed permissions checking for <code>allowed-tools</code> with Bash in slash commands.", objects: ["allowed-tools", "Bash permissions"] }
+    ]
+  },
+  {
+    version: "1.0.62",
+    changes: [
+      { cats: ["agent", "hook"], type: "added", desc: "Added <code>@-mention</code> support with typeahead for custom agents (<code>@&lt;your-custom-agent&gt;</code>). Added <code>SessionStart</code> hook.", objects: ["@-mention agents", "SessionStart"] }
+    ]
+  },
+  {
+    version: "1.0.64",
+    changes: [
+      { cats: ["agent", "hook"], type: "added", desc: "Agents: Added <code>model</code> customization support. Hooks: Added <code>systemMessage</code> field to hook JSON output.", objects: ["agent model", "systemMessage"] }
+    ]
+  },
+  {
+    version: "1.0.81",
+    changes: [
+      { cats: ["agent"], type: "added", desc: "Released output styles, including built-in 'Explanatory' and 'Learning' styles. Fixed custom agent loading when agent files are unparsable.", objects: ["output styles", "Agent loading"] }
+    ]
+  },
+  {
+    version: "1.0.85",
+    changes: [
+      { cats: ["hook"], type: "added", desc: "Introduced <code>SessionEnd</code> hook.", objects: ["SessionEnd"] }
+    ]
+  },
+  {
+    version: "1.0.112",
+    changes: [
+      { cats: ["hook"], type: "added", desc: "Hooks: Added <code>systemMessage</code> support for <code>SessionEnd</code> hooks.", objects: ["SessionEnd", "systemMessage"] }
+    ]
+  },
+  {
+    version: "1.0.123",
+    changes: [
+      { cats: ["slash-cmd", "tool"], type: "added", desc: "Added <code>SlashCommand</code> tool, enabling Claude to programmatically invoke your slash commands.", objects: ["SlashCommand tool"] }
+    ]
+  },
+  {
+    version: "2.0.0",
+    milestone: true,
+    labels: ["major"],
+    changes: [
+      { cats: ["agent", "tool", "hook"], type: "changed", desc: "Claude Code SDK renamed to Claude Agent SDK. Added <code>--agents</code> flag to dynamically add subagents. Hooks: Reduced PostToolUse errors.", objects: ["Agent SDK", "--agents flag"] }
+    ]
+  },
+  {
+    version: "2.0.8",
+    changes: [
+      { cats: ["agent"], type: "removed", desc: "Removed deprecated <code>.claude.json</code> <code>allowedTools</code>, <code>ignorePatterns</code>, <code>env</code>, and <code>todoFeatureEnabled</code> config options. Configure in <code>settings.json</code> instead.", objects: ["settings.json migration"] }
+    ]
+  },
+  {
+    version: "2.0.10",
+    changes: [
+      { cats: ["hook"], type: "changed", desc: "<code>PreToolUse</code> hooks can now modify tool inputs (middleware pattern).", objects: ["PreToolUse", "updatedInput"] }
+    ]
+  },
+  {
+    version: "2.0.12",
+    milestone: true,
+    labels: ["introduced"],
+    changes: [
+      { cats: ["plugin"], type: "added", desc: "Plugin system released. Extend Claude Code with custom commands, agents, hooks, and MCP servers from marketplaces. <code>/plugin install</code>, <code>/plugin enable/disable</code>, <code>/plugin marketplace</code>.", objects: ["Plugin", "Marketplace", "/plugin commands"], params: { "commands": "*.md", "agents": "*.md", "hooks": "hooks.json", "mcp": "servers" } }
+    ]
+  },
+  {
+    version: "2.0.17",
+    changes: [
+      { cats: ["agent"], type: "added", desc: "Introducing the <code>Explore</code> subagent. Powered by Haiku, it searches your codebase efficiently to save context.", objects: ["Explore subagent", "Haiku"] }
+    ]
+  },
+  {
+    version: "2.0.19",
+    changes: [
+      { cats: ["tool"], type: "changed", desc: "Auto-background long-running bash commands instead of killing them. Customize with <code>BASH_DEFAULT_TIMEOUT_MS</code>.", objects: ["BashTool", "auto-background"] }
+    ]
+  },
+  {
+    version: "2.0.20",
+    milestone: true,
+    labels: ["introduced"],
+    changes: [
+      { cats: ["skill"], type: "added", desc: "Added support for Claude Skills. Skills live in <code>.claude/skills/</code> with frontmatter metadata.", objects: ["Skill", ".claude/skills/", "SKILL.md"], params: { "allowed-tools": "string[]", "description": "string", "model?": "string" } }
+    ]
+  },
+  {
+    version: "2.0.21",
+    changes: [
+      { cats: ["tool"], type: "added", desc: "Added an interactive question tool (<code>AskUserQuestion</code>). Claude will now ask questions more often in plan mode.", objects: ["AskUserQuestion"] }
+    ]
+  },
+  {
+    version: "2.0.24",
+    changes: [
+      { cats: ["skill"], type: "fixed", desc: "Fixed project-level skills not loading when <code>--setting-sources 'project'</code> was specified.", objects: ["Skill loading"] }
+    ]
+  },
+  {
+    version: "2.0.28",
+    changes: [
+      { cats: ["agent"], type: "added", desc: "Plan mode: introduced new <code>Plan</code> subagent. Subagents: Claude can now resume subagents and dynamically choose the model used.", objects: ["Plan subagent", "subagent resume", "dynamic model"] }
+    ]
+  },
+  {
+    version: "2.0.30",
+    changes: [
+      { cats: ["agent", "hook"], type: "added", desc: "Added <code>disallowedTools</code> field to custom agent definitions. Added prompt-based stop hooks.", objects: ["disallowedTools (agent)", "prompt-based stop hooks"] }
+    ]
+  },
+  {
+    version: "2.0.37",
+    changes: [
+      { cats: ["hook"], type: "added", desc: "Hooks: Added matcher values for <code>Notification</code> hook events.", objects: ["Notification hook", "matcher"] }
+    ]
+  },
+  {
+    version: "2.0.41",
+    changes: [
+      { cats: ["hook"], type: "added", desc: "Added <code>model</code> parameter to prompt-based stop hooks. Plugins: Added support for sharing output styles.", objects: ["stop hook model", "output styles sharing"] }
+    ]
+  },
+  {
+    version: "2.0.42",
+    changes: [
+      { cats: ["hook"], type: "added", desc: "Added <code>agent_id</code> and <code>agent_transcript_path</code> fields to <code>SubagentStop</code> hooks.", objects: ["agent_id", "agent_transcript_path", "SubagentStop"] }
+    ]
+  },
+  {
+    version: "2.0.43",
+    changes: [
+      { cats: ["agent", "hook", "skill"], type: "added", desc: "Added <code>permissionMode</code> field for custom agents. Added skills frontmatter field to declare skills to auto-load for subagents. Added <code>SubagentStart</code> hook event.", objects: ["permissionMode", "skills (frontmatter)", "SubagentStart"], params: { "permissionMode": "string", "skills": "string[]" } }
+    ]
+  },
+  {
+    version: "2.0.45",
+    changes: [
+      { cats: ["hook"], type: "added", desc: "Added <code>PermissionRequest</code> hook to automatically approve or deny tool permission requests.", objects: ["PermissionRequest"] }
+    ]
+  },
+  {
+    version: "2.0.54",
+    changes: [
+      { cats: ["hook"], type: "changed", desc: "Hooks: Enable <code>PermissionRequest</code> hooks to process 'always allow' suggestions and apply permission updates.", objects: ["PermissionRequest", "always allow"] }
+    ]
+  },
+  {
+    version: "2.0.59",
+    changes: [
+      { cats: ["agent"], type: "added", desc: "Added <code>--agent</code> CLI flag to override the agent setting for the current session. Added <code>agent</code> setting to configure main thread with a specific agent's system prompt, tool restrictions, and model.", objects: ["--agent flag", "agent setting"] }
+    ]
+  },
+  {
+    version: "2.0.60",
+    changes: [
+      { cats: ["agent"], type: "added", desc: "Added background agent support. Agents run in the background while you work. Added <code>--disable-slash-commands</code> CLI flag.", objects: ["background agents", "--disable-slash-commands"] }
+    ]
+  },
+  {
+    version: "2.0.64",
+    changes: [
+      { cats: ["agent", "tool"], type: "changed", desc: "Agents and bash commands can run asynchronously and send messages to wake up the main agent. Unshipped <code>AgentOutputTool</code> and <code>BashOutputTool</code> in favor of unified <code>TaskOutputTool</code>.", objects: ["async agents", "TaskOutputTool"] }
+    ]
+  },
+  {
+    version: "2.0.72",
+    changes: [
+      { cats: ["tool"], type: "added", desc: "Added Claude in Chrome (Beta) feature that works with Chrome extension for browser control from Claude Code.", objects: ["Chrome integration"] }
+    ]
+  },
+  {
+    version: "2.0.74",
+    changes: [
+      { cats: ["tool", "skill"], type: "added", desc: "Added LSP tool for code intelligence (go-to-definition, find references, hover docs). Fixed skill <code>allowed-tools</code> not being applied to tools invoked by the skill.", objects: ["LSP tool", "skill allowed-tools fix"] }
+    ]
+  },
+  {
+    version: "2.1.0",
+    milestone: true,
+    labels: ["major"],
+    changes: [
+      { cats: ["skill", "slash-cmd", "agent", "hook"], type: "added", desc: "Automatic skill hot-reload: skills in <code>.claude/skills</code> immediately available without restart. Added <code>context: fork</code> for running skills in forked sub-agent context. Added <code>agent</code> field in skill frontmatter. Added hooks support to agent and skill frontmatter. Added <code>once: true</code> hook config. YAML-style lists in frontmatter <code>allowed-tools</code>.", objects: ["hot-reload", "context: fork", "agent (frontmatter)", "hooks (frontmatter)", "once: true"], params: { "context": "'fork'", "agent": "string", "hooks": "Hook[]", "once": "boolean" } },
+      { cats: ["agent"], type: "added", desc: "Added support for disabling specific agents using <code>Task(AgentName)</code> syntax in settings.json permissions or <code>--disallowedTools</code> CLI flag.", objects: ["Task(AgentName)", "agent disabling"] },
+      { cats: ["skill"], type: "changed", desc: "Skills from <code>/skills/</code> directories now visible in slash command menu by default. Opt-out with <code>user-invocable: false</code> in frontmatter. Skills show progress while executing.", objects: ["user-invocable", "skill progress"] },
+      { cats: ["slash-cmd"], type: "added", desc: "Slash command autocomplete support when <code>/</code> appears anywhere in input, not just at the beginning.", objects: ["slash command autocomplete"] },
+      { cats: ["tool"], type: "added", desc: "Added <code>--tools</code> flag to restrict built-in tools in interactive sessions. Added <code>CLAUDE_CODE_FILE_READ_MAX_OUTPUT_TOKENS</code> env var.", objects: ["--tools flag"] },
+      { cats: ["hook"], type: "added", desc: "Added prompt and agent hook types from plugins. Added support for <code>PreToolUse</code> hooks returning <code>updatedInput</code> with <code>ask</code> decision (middleware + consent pattern).", objects: ["plugin hooks", "updatedInput + ask"] }
+    ]
+  },
+  {
+    version: "2.1.3",
+    milestone: true,
+    labels: ["major"],
+    changes: [
+      { cats: ["slash-cmd", "skill"], type: "changed", desc: "Merged slash commands and skills, simplifying the mental model with no change in behavior.", objects: ["skill/command merge"] }
+    ]
+  },
+  {
+    version: "2.1.6",
+    changes: [
+      { cats: ["skill"], type: "added", desc: "Added automatic discovery of skills from nested <code>.claude/skills</code> directories when working with files in subdirectories.", objects: ["nested skill discovery"] }
+    ]
+  },
+  {
+    version: "2.1.7",
+    changes: [
+      { cats: ["tool"], type: "changed", desc: "Enabled MCP tool search auto mode by default. When MCP tool descriptions exceed 10% of context window, they are deferred to <code>MCPSearch</code> tool.", objects: ["MCPSearch", "auto mode"] }
+    ]
+  },
+  {
+    version: "2.1.9",
+    changes: [
+      { cats: ["skill", "hook"], type: "added", desc: "Added <code>${CLAUDE_SESSION_ID}</code> string substitution for skills. Added support for <code>PreToolUse</code> hooks to return <code>additionalContext</code>.", objects: ["CLAUDE_SESSION_ID", "additionalContext (PreToolUse)"] }
+    ]
+  },
+  {
+    version: "2.1.10",
+    changes: [
+      { cats: ["hook"], type: "added", desc: "Added <code>Setup</code> hook event triggered via <code>--init</code>, <code>--init-only</code>, or <code>--maintenance</code> CLI flags.", objects: ["Setup hook"] }
+    ]
+  },
+  {
+    version: "2.1.16",
+    changes: [
+      { cats: ["tool"], type: "added", desc: "Added new task management system with dependency tracking.", objects: ["Task management", "dependency tracking"] }
+    ]
+  },
+  {
+    version: "2.1.19",
+    changes: [
+      { cats: ["slash-cmd", "skill"], type: "changed", desc: "Skills without additional permissions or hooks allowed without requiring approval. Changed indexed argument syntax from <code>$ARGUMENTS.0</code> to <code>$ARGUMENTS[0]</code> (bracket syntax). Added <code>$0</code>, <code>$1</code> shorthand for accessing individual arguments.", objects: ["$ARGUMENTS[0]", "auto-allow skills", "$0 shorthand"] }
+    ]
+  },
+  {
+    version: "2.1.20",
+    changes: [
+      { cats: ["tool", "skill"], type: "added", desc: "Added ability to delete tasks via the <code>TaskUpdate</code> tool. Added Skills as a separate category in the context visualization.", objects: ["TaskUpdate", "skill context category"] }
+    ]
+  },
+  {
+    version: "2.1.32",
+    changes: [
+      { cats: ["skill", "agent"], type: "added", desc: "Skills defined in <code>.claude/skills/</code> within additional directories (<code>--add-dir</code>) now loaded automatically. Skill character budget now scales with context window (2% of context).", objects: ["--add-dir skill loading", "skill budget scaling"] },
+      { cats: ["agent"], type: "added", desc: "Added research preview agent teams feature for multi-agent collaboration (requires <code>CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1</code>). Claude now automatically records and recalls memories.", objects: ["agent teams", "automatic memory"] }
+    ]
+  },
+  {
+    version: "2.1.33",
+    changes: [
+      { cats: ["agent", "hook"], type: "added", desc: "Added <code>TeammateIdle</code> and <code>TaskCompleted</code> hook events for multi-agent workflows. Added support for restricting sub-agents via <code>Task(agent_type)</code> syntax in agent <code>tools</code> frontmatter. Added <code>memory</code> frontmatter field for agents (user, project, or local scope).", objects: ["TeammateIdle", "TaskCompleted", "Task(agent_type)", "memory (frontmatter)"], params: { "tools": "string[] (Task types)", "memory": "'user' | 'project' | 'local'" } },
+      { cats: ["plugin", "skill"], type: "changed", desc: "Added plugin name to skill descriptions and <code>/skills</code> menu for better discoverability.", objects: ["plugin skill naming"] }
+    ]
+  },
+  {
+    version: "2.1.38",
+    changes: [
+      { cats: ["skill"], type: "changed", desc: "Blocked writes to <code>.claude/skills</code> directory in sandbox mode.", objects: [".claude/skills sandbox protection"] }
+    ]
+  },
+  {
+    version: "2.1.39",
+    changes: [
+      { cats: ["agent"], type: "fixed", desc: "Fixed Agent Teams using wrong model identifier for Bedrock, Vertex, and Foundry customers. Fixed spurious warnings for non-agent markdown files in <code>.claude/agents/</code> directory.", objects: ["agent teams model fix", "agent directory warnings"] }
+    ]
+  }
+];
+
+// ===== RENDER =====
+function renderTimeline(filter, search) {
+  const container = document.getElementById('timeline');
+  container.innerHTML = '';
+  let totalReleases = 0, totalChanges = 0, skillCount = 0, agentCount = 0, hookCount = 0;
+
+  RELEASES.forEach(rel => {
+    let visibleChanges = rel.changes.filter(c => {
+      const catMatch = filter === 'all' || c.cats.includes(filter);
+      const searchMatch = !search || c.desc.toLowerCase().includes(search.toLowerCase()) ||
+        c.cats.some(cat => cat.includes(search.toLowerCase())) ||
+        (c.objects && c.objects.some(o => o.toLowerCase().includes(search.toLowerCase())));
+      return catMatch && searchMatch;
+    });
+
+    if (visibleChanges.length === 0) return;
+    totalReleases++;
+    totalChanges += visibleChanges.length;
+    visibleChanges.forEach(c => {
+      if (c.cats.includes('skill')) skillCount++;
+      if (c.cats.includes('agent')) agentCount++;
+      if (c.cats.includes('hook')) hookCount++;
+    });
+
+    const div = document.createElement('div');
+    div.className = 'release' + (rel.milestone ? ' milestone' : '');
+    div.innerHTML = `
+      <div class="release-dot"></div>
+      <div class="release-header" onclick="this.parentElement.classList.toggle('open')">
+        <span class="release-version">v${rel.version}</span>
+        ${(rel.labels || []).map(l => `<span class="release-label label-${l}">${l}</span>`).join('')}
+        <span class="release-chevron">&#9654;</span>
+      </div>
+      <div class="release-body">
+        ${visibleChanges.map(c => {
+          const tags = [
+            ...c.cats.map(cat => `<span class="tag tag-${cat}">${cat}</span>`),
+            `<span class="tag tag-${c.type}">${c.type}</span>`
+          ].join('');
+          const objPanel = c.objects ? `
+            <details class="obj-panel">
+              <summary>Objects &amp; Params</summary>
+              ${c.objects.map(o => `<div class="param"><span class="param-name">${o}</span></div>`).join('')}
+              ${c.params ? Object.entries(c.params).map(([k,v]) => `<div class="param"><span class="param-name">${k}</span> <span class="arrow">:</span> <span class="param-type">${v}</span></div>`).join('') : ''}
+            </details>
+          ` : '';
+          return `<div class="change-item"><div class="tags">${tags}</div><div class="desc">${c.desc}</div>${objPanel}</div>`;
+        }).join('')}
+      </div>
+    `;
+    container.appendChild(div);
+  });
+
+  document.getElementById('stat-releases').textContent = totalReleases;
+  document.getElementById('stat-changes').textContent = totalChanges;
+  document.getElementById('stat-skills').textContent = skillCount;
+  document.getElementById('stat-agents').textContent = agentCount;
+  document.getElementById('stat-hooks').textContent = hookCount;
+}
+
+// Filter buttons
+let activeFilter = 'all';
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeFilter = btn.dataset.cat;
+    renderTimeline(activeFilter, document.getElementById('search').value);
+  });
+});
+
+// Search
+document.getElementById('search').addEventListener('input', e => {
+  renderTimeline(activeFilter, e.target.value);
+});
+
+// Initial render
+renderTimeline('all', '');
+</script>
+</body>
+</html>

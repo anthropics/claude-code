@@ -9,6 +9,29 @@ fi
 REPO_DIR="${CLAUDE_PROJECT_DIR:-.}"
 cd "$REPO_DIR"
 
+# === Install gh CLI if missing ===
+if ! command -v gh &>/dev/null; then
+  echo "[session-start] Installing gh CLI..."
+  GH_VERSION="2.65.0"
+  curl -sL "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_amd64.tar.gz" \
+    | tar xz -C /usr/local/bin --strip-components=2 "gh_${GH_VERSION}_linux_amd64/bin/gh" 2>/dev/null || true
+fi
+
+# === Authenticate gh CLI from GH_TOKEN env var ===
+# Set GH_TOKEN in your environment or Claude Code secrets to enable gh auth.
+# If GH_TOKEN is already set, gh CLI uses it automatically (no explicit login needed).
+if [ -n "${GH_TOKEN:-}" ]; then
+  echo "[session-start] GH_TOKEN detected, gh CLI will use it for authentication."
+elif [ -n "${GITHUB_TOKEN:-}" ]; then
+  # Fall back to GITHUB_TOKEN if GH_TOKEN isn't set
+  export GH_TOKEN="${GITHUB_TOKEN}"
+  echo "[session-start] GITHUB_TOKEN detected, exporting as GH_TOKEN for gh CLI."
+  echo "export GH_TOKEN=\"${GITHUB_TOKEN}\"" >> "${CLAUDE_ENV_FILE:-/dev/null}"
+else
+  echo "[session-start] WARNING: No GH_TOKEN or GITHUB_TOKEN found. gh CLI commands (PR creation) will fail."
+  echo "[session-start] Set GH_TOKEN as a secret or env var to enable PR creation."
+fi
+
 # === Git Remote Protection ===
 # Ensure 'origin' always points to the fork, never the upstream anthropics repo.
 # This prevents accidental PRs or pushes to https://github.com/anthropics/claude-code.
