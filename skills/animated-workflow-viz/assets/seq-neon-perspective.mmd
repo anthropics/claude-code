@@ -1,0 +1,74 @@
+sequenceDiagram
+    autonumber
+    participant Dev as Developer
+    participant GH as GitHub
+    participant GA as GitHub Actions
+    participant N as Neon
+    participant V as Vercel
+    participant DB as Neon Database
+
+    Note over N: === NEON PERSPECTIVE ===
+    Note over N: I fork production data into isolated<br/>branches. Each branch is a full Postgres<br/>instance with copy-on-write storage.
+
+    rect rgb(22, 27, 34)
+        Note right of N: Branch Creation (copy-on-write fork)
+        GA->>N: POST /branches (parent: main)
+        Note over N: Copy-on-write fork.<br/>No data duplication — only<br/>divergent pages are stored.<br/>Instant creation (~1 second).
+        N->>DB: Fork production data
+        Note over DB: git_branches: INSERT<br/>neon_branches: INSERT<br/>Inherits full schema + data
+        N-->>GA: branch_id, db_url_with_pooler
+        Note over N: Pooled connection via<br/>PgBouncer. 10K connections<br/>→ ~100 server connections.
+    end
+
+    rect rgb(22, 27, 34)
+        Note right of N: Schema Diff (PR opened)
+        GA->>N: GET /branches/{head}/schema
+        GA->>N: GET /branches/{base}/schema
+        Note over N: Compare DDL between branches.<br/>Detect: tables added/removed,<br/>columns changed, indexes modified,<br/>constraints altered.
+        N-->>GA: schema_diff (DDL delta)
+        Note over DB: schema_diffs: INSERT<br/>(tables_added, columns_removed, etc.)
+        GA->>GH: Post diff as PR comment
+    end
+
+    rect rgb(22, 27, 34)
+        Note right of N: Preview Deployment (DB connection)
+        GA->>V: vercel build (DATABASE_URL = pooled)
+        Note over N: App connects to MY branch,<br/>not production. Writes are<br/>isolated — production is safe.
+        V->>N: SQL queries via pooler
+        N->>DB: Route to preview branch compute
+        Note over DB: vercel_deployments: INSERT<br/>pull_requests: UPDATE neon_preview_id
+        DB-->>N: query results
+        N-->>V: response
+    end
+
+    rect rgb(22, 27, 34)
+        Note right of N: Migration Testing
+        Dev->>N: Run migration on preview branch
+        Note over N: Migrations run against<br/>forked data — safe to test<br/>ALTER TABLE, DROP COLUMN, etc.<br/>Production untouched.
+        N->>DB: ALTER TABLE / CREATE INDEX
+        DB-->>N: migration result
+        Note over DB: schema_diffs: UPDATE<br/>has_changes = TRUE
+    end
+
+    rect rgb(22, 27, 34)
+        Note right of N: Branch Reset (refresh from prod)
+        GA->>N: POST /branches/{id}/reset
+        Note over N: Reset branch to parent's<br/>latest state. Discards all<br/>divergent pages. Re-fork<br/>from current production data.
+        N->>DB: Reset copy-on-write pages
+        Note over DB: neon_branches: UPDATE<br/>All preview data discarded
+        N-->>GA: branch reset confirmed
+    end
+
+    rect rgb(22, 27, 34)
+        Note right of N: Branch Deletion (PR merged/closed)
+        GA->>N: DELETE /branches/{id}
+        Note over N: Delete branch compute +<br/>storage. Release copy-on-write<br/>pages. Connection strings<br/>become invalid immediately.
+        N->>DB: Drop branch
+        Note over DB: neon_branches: UPDATE deleted_at<br/>workflow_runs: INSERT (cleanup)
+        N-->>GA: branch deleted
+    end
+
+    rect rgb(48, 54, 61)
+        Note over N,DB: Storage Model
+        Note over N: Production: 10 GB data<br/>Branch 1: +50 MB divergent pages<br/>Branch 2: +12 MB divergent pages<br/>Branch 3: +0 MB (read-only fork)<br/>─────────────────────────────<br/>Total: ~10.06 GB (not 40 GB)
+    end

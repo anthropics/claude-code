@@ -1,0 +1,66 @@
+sequenceDiagram
+    autonumber
+    participant Dev as Developer
+    participant GH as GitHub
+    participant GA as GitHub Actions
+    participant V as Vercel
+    participant N as Neon
+
+    Note over V: === VERCEL PERSPECTIVE ===
+    Note over V: I receive builds, deploy previews,<br/>and promote to production.
+
+    rect rgb(22, 27, 34)
+        Note right of Dev: Feature Branch Push
+        Dev->>GH: git push claude/feature-xyz
+        GH-->>GA: trigger: create event
+        GA->>N: Create Neon branch (fork prod)
+        N-->>GA: branch_id + db_url
+    end
+
+    rect rgb(22, 27, 34)
+        Note right of Dev: PR Opened
+        Dev->>GH: gh pr create
+        GH-->>GA: trigger: pull_request.opened
+        GA->>N: Create preview/pr-42
+        N-->>GA: db_url_with_pooler
+
+        GA->>V: vercel pull --environment=preview
+        V-->>GA: .vercel/project config
+
+        GA->>V: vercel build (DATABASE_URL injected)
+        Note over V: Build with Neon preview DB.<br/>Source code stays in GitHub Actions,<br/>only .vercel/output sent to me.
+        V-->>GA: build artifacts (.vercel/output)
+
+        GA->>V: vercel deploy --prebuilt
+        Note over V: Deploy prebuilt output.<br/>No source code exposure.<br/>Generate unique preview URL.
+        V-->>GA: preview_url
+        GA->>GH: Post PR comment (preview URL)
+    end
+
+    rect rgb(22, 27, 34)
+        Note right of Dev: PR Updated
+        Dev->>GH: git push (new commits)
+        GH-->>GA: trigger: pull_request.synchronize
+        GA->>V: vercel build + deploy (same flow)
+        Note over V: Cancel in-flight build<br/>(concurrency group).<br/>Deploy latest commit.
+        V-->>GA: updated preview_url
+        GA->>GH: Update PR comment
+    end
+
+    rect rgb(22, 27, 34)
+        Note right of Dev: PR Merged
+        Dev->>GH: Merge PR to main
+        GH-->>V: Push to production branch
+        Note over V: Auto-deploy to production.<br/>Custom domains updated.<br/>Previous deploy = instant rollback.
+        V->>V: Production deployment
+        GH-->>GA: trigger: pull_request.closed
+        GA->>N: Delete preview/pr-42
+        N-->>GA: branch deleted
+    end
+
+    rect rgb(48, 54, 61)
+        Note over V: Rollback Scenario
+        Dev->>GH: git revert (bad commit)
+        GH-->>V: Push revert to main
+        Note over V: Previous production deployment<br/>instantly available at custom domain.<br/>No rebuild needed.
+    end

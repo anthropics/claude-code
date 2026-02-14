@@ -1,0 +1,79 @@
+sequenceDiagram
+    autonumber
+    participant Dev as Developer
+    participant GH as GitHub
+    participant GA as GitHub Actions
+    participant N as Neon API
+    participant V as Vercel CLI
+    participant PR as PR Comments
+
+    Note over GA: === GITHUB ACTIONS PERSPECTIVE ===
+    Note over GA: I orchestrate three workflows that<br/>wire Neon and Vercel together.
+
+    rect rgb(22, 27, 34)
+        Note over GA: Workflow 1: branch-neon-sync.yml
+        Note right of GA: Trigger: branch create / PR sync / manual
+        GH->>GA: event: create (ref_type: branch)
+        Note over GA: Job: create-neon-branch<br/>1. Sanitize branch name<br/>2. Call Neon create-branch-action@v5<br/>3. Log to step summary
+        GA->>GA: Sanitize branch name (sed)
+        GA->>N: neondatabase/create-branch-action@v5
+        N-->>GA: branch_id, db_url
+        GA->>GA: Write GITHUB_STEP_SUMMARY
+
+        Note over GA: Job: schema-diff (on PR)
+        GH->>GA: event: pull_request.opened
+        GA->>GA: Determine head/base branch names
+        GA->>N: neondatabase/schema-diff-action@v1
+        Note over GA: Schema diff action auto-posts<br/>a PR comment with the diff.
+        N-->>PR: Schema diff comment
+
+        Note over GA: Job: reset-neon-branch (manual)
+        Dev->>GH: workflow_dispatch (action: reset)
+        GH->>GA: event: workflow_dispatch
+        GA->>N: neondatabase/reset-branch-action@v1
+        N-->>GA: branch reset confirmed
+    end
+
+    rect rgb(22, 27, 34)
+        Note over GA: Workflow 2: preview-deploy.yml
+        Note right of GA: Trigger: PR open / push / reopen
+        GH->>GA: event: pull_request.opened
+        Note over GA: Job: preview-deploy<br/>Concurrency: preview-{pr_number}<br/>Cancel in-progress: true<br/>Timeout: 15 minutes
+
+        GA->>GA: actions/checkout@v4
+        GA->>N: neondatabase/create-branch-action@v5
+        N-->>GA: db_url_with_pooler
+        GA->>GA: npm install vercel@latest
+        GA->>V: vercel pull --environment=preview
+        V-->>GA: .vercel/ config pulled
+
+        GA->>V: vercel build
+        Note over GA: Inject DATABASE_URL from Neon<br/>via env: block. Source code<br/>never leaves this runner.
+        V-->>GA: .vercel/output/ built
+
+        GA->>V: vercel deploy --prebuilt
+        V-->>GA: preview_url
+        GA->>GA: echo preview_url >> GITHUB_OUTPUT
+
+        GA->>PR: actions/github-script@v7
+        Note over GA: Find existing bot comment<br/>(marker: "## Preview Deployment").<br/>Update if exists, create if not.<br/>Include: preview URL, Neon branch,<br/>branch ID, PR number.
+    end
+
+    rect rgb(22, 27, 34)
+        Note over GA: Workflow 3: preview-cleanup.yml
+        Note right of GA: Trigger: PR closed
+        GH->>GA: event: pull_request.closed
+        Note over GA: Job: cleanup<br/>Concurrency: cleanup-{pr_number}<br/>Timeout: 5 minutes
+
+        GA->>N: neondatabase/delete-branch-action@v3
+        Note over GA: Delete preview/pr-{number}.<br/>Connection strings invalidated.
+        N-->>GA: branch deleted
+
+        GA->>PR: actions/github-script@v7
+        Note over GA: Post cleanup confirmation.<br/>Show merged vs closed status.<br/>Show Neon deleted + Vercel expired.
+    end
+
+    rect rgb(48, 54, 61)
+        Note over GA: Concurrency Groups
+        Note over GA: preview-{N}: One deploy per PR at a time<br/>cleanup-{N}: One cleanup per PR<br/>New pushes cancel in-flight builds
+    end

@@ -1,0 +1,101 @@
+sequenceDiagram
+    autonumber
+    participant Dev as Developer
+    participant Git as Git (Local)
+    participant GH as GitHub
+    participant GA as GitHub Actions
+    participant N as Neon
+    participant V as Vercel
+    participant Rev as Reviewer
+
+    Note over GH: === PR / BRANCH LIFECYCLE ===
+    Note over GH: The full journey of a branch<br/>from creation to merge.
+
+    rect rgb(22, 27, 34)
+        Note over Git: Phase 1: Branch Creation
+        Dev->>Git: git checkout -b claude/feature-xyz
+        Dev->>GH: git push -u origin claude/feature-xyz
+        GH-->>GA: trigger: create (branch)
+        GA->>N: Create neon branch "claude/feature-xyz"
+        N-->>GA: branch_id
+        Note over GH: Git branch + Neon branch<br/>now exist in parallel.<br/>No PR yet.
+    end
+
+    rect rgb(22, 27, 34)
+        Note over Git: Phase 2: Development
+        Dev->>Git: Write code, commit
+        Dev->>Git: Run tests locally
+        Dev->>GH: git push (incremental commits)
+        Note over GH: Each push updates the branch.<br/>No workflows fire (no PR yet).<br/>Neon branch available for<br/>local development if needed.
+    end
+
+    rect rgb(22, 27, 34)
+        Note over GH: Phase 3: PR Creation
+        Dev->>GH: gh pr create --template feature-branch
+        Note over GH: PR template rendered with<br/>Neon + Vercel checklist.<br/>Three workflows fire:
+
+        par preview-deploy.yml
+            GH-->>GA: pull_request.opened
+            GA->>N: Create preview/pr-42
+            N-->>GA: db_url_pooled
+            GA->>V: Build + Deploy
+            V-->>GA: preview_url
+            GA->>GH: Comment: preview URL + Neon details
+        and branch-neon-sync.yml (schema-diff)
+            GH-->>GA: pull_request.opened
+            GA->>N: Schema diff (head vs base)
+            N-->>GA: DDL delta
+            GA->>GH: Comment: schema diff
+        end
+
+        Note over GH: PR now has:<br/>- Preview deployment comment<br/>- Schema diff comment<br/>- Feature branch checklist
+    end
+
+    rect rgb(22, 27, 34)
+        Note over GH: Phase 4: Review Cycle
+        Rev->>GH: Review PR, request changes
+        Dev->>Git: Address feedback, commit
+        Dev->>GH: git push
+
+        GH-->>GA: pull_request.synchronize
+        GA->>V: Rebuild + Redeploy (cancel previous)
+        V-->>GA: updated preview_url
+        GA->>GH: Update preview comment
+
+        GA->>N: Re-run schema diff
+        N-->>GA: updated DDL delta
+        GA->>GH: Update schema diff comment
+
+        Rev->>V: Test on preview URL
+        Rev->>GH: Approve PR
+    end
+
+    rect rgb(22, 27, 34)
+        Note over GH: Phase 5: Merge
+        Dev->>GH: Merge PR (squash/merge/rebase)
+
+        par Production deploy
+            GH-->>V: Push to main
+            V->>V: Auto-deploy to production
+            Note over V: Custom domains updated.<br/>Production DATABASE_URL<br/>points to Neon main branch.
+        and Preview cleanup
+            GH-->>GA: pull_request.closed (merged: true)
+            GA->>N: Delete preview/pr-42
+            N-->>GA: branch deleted
+            GA->>GH: Comment: cleanup confirmation
+        end
+
+        Note over GH: PR state: merged<br/>Neon preview: deleted<br/>Vercel preview: expired<br/>Production: live
+    end
+
+    rect rgb(48, 54, 61)
+        Note over GH: Phase 6: Post-Merge
+        Note over GH: Git branch can be deleted.<br/>Neon feature branch persists until<br/>manually deleted or TTL expires.<br/>Production Neon branch has the<br/>merged schema changes (if any<br/>migrations were applied to main).
+        Dev->>GH: Delete branch (optional)
+        Dev->>N: Delete claude/feature-xyz (optional)
+    end
+
+    rect rgb(48, 54, 61)
+        Note over GH,V: Entity State Matrix
+        Note over GH: Open: Git ✓ Neon ✓ Preview ✓ Schema ✓<br/>Merged: Git ✗ Neon ✗ Prod ✓ Schema applied<br/>Closed: Git ✓ Neon ✗ Preview ✗ No merge
+    end

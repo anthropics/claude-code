@@ -1,0 +1,104 @@
+sequenceDiagram
+    autonumber
+    participant GB as git_branches
+    participant NB as neon_branches
+    participant VD as vercel_deployments
+    participant PRs as pull_requests
+    participant SD as schema_diffs
+    participant WR as workflow_runs
+
+    Note over GB,WR: === DATABASE ENTITY LIFECYCLE ===
+    Note over GB,WR: How rows flow through the schema<br/>as a branch moves from creation to merge.
+
+    rect rgb(22, 27, 34)
+        Note over GB: Step 1: Branch Created
+        Note right of GB: branch-neon-sync.yml fires
+
+        GB->>GB: INSERT (branch_name, branch_type, created_by)
+        Note over GB: id: 1<br/>branch_name: claude/feature-xyz<br/>branch_type: feature<br/>is_active: TRUE
+
+        GB->>NB: FK: git_branch_id → git_branches.id
+        NB->>NB: INSERT (neon_branch_id, branch_name, branch_purpose)
+        Note over NB: id: 1<br/>branch_name: claude/feature-xyz<br/>branch_purpose: development<br/>parent_branch: main<br/>is_active: TRUE
+
+        NB->>WR: FK: neon_branch_id → neon_branches.id
+        WR->>WR: INSERT (workflow_name, trigger_event)
+        Note over WR: workflow_name: Branch Neon Sync<br/>workflow_file: branch-neon-sync.yml<br/>trigger_event: create<br/>status: completed
+    end
+
+    rect rgb(22, 27, 34)
+        Note over PRs: Step 2: PR Opened
+        Note right of PRs: preview-deploy.yml fires
+
+        PRs->>PRs: INSERT (pr_number, title, head_branch)
+        Note over PRs: pr_number: 42<br/>state: open<br/>head_branch: claude/feature-xyz<br/>template_used: feature-branch
+
+        NB->>NB: INSERT (preview branch)
+        Note over NB: id: 2<br/>branch_name: preview/pr-42<br/>branch_purpose: preview<br/>parent_branch: main
+
+        PRs->>NB: FK: neon_preview_id → neon_branches.id (id: 2)
+
+        VD->>VD: INSERT (deployment_id, preview_url)
+        Note over VD: preview_url: project-abc.vercel.app<br/>environment: preview<br/>build_status: pending → ready<br/>git_commit_sha: fa1eade4
+
+        VD->>NB: FK: neon_branch_id → neon_branches.id (id: 2)
+        PRs->>VD: FK: vercel_deployment_id → vercel_deployments.id
+
+        WR->>WR: INSERT (preview-deploy workflow)
+        WR->>PRs: FK: pr_number → pull_requests.pr_number
+        WR->>NB: FK: neon_branch_id (id: 2)
+        WR->>VD: FK: vercel_deployment_id
+    end
+
+    rect rgb(22, 27, 34)
+        Note over SD: Step 3: Schema Diff
+        Note right of SD: branch-neon-sync.yml (schema-diff job)
+
+        SD->>SD: INSERT (compare_branch, base_branch, diff)
+        Note over SD: pr_number: 42<br/>compare_branch: claude/feature-xyz<br/>has_changes: TRUE<br/>tables_added: {users}<br/>columns_added: {users.email}
+
+        SD->>PRs: FK: pr_number → pull_requests.pr_number
+        PRs->>PRs: UPDATE schema_diff_posted = TRUE
+    end
+
+    rect rgb(22, 27, 34)
+        Note over VD: Step 4: PR Updated (new push)
+        Note right of VD: preview-deploy.yml (synchronize)
+
+        VD->>VD: INSERT (new deployment for same PR)
+        Note over VD: New deployment row.<br/>Previous deployment stays<br/>as historical record.
+
+        SD->>SD: INSERT (updated schema diff)
+        Note over SD: New diff row — previous<br/>diffs preserved for audit.
+
+        WR->>WR: INSERT (new workflow run)
+    end
+
+    rect rgb(22, 27, 34)
+        Note over PRs: Step 5: PR Merged
+        Note right of PRs: preview-cleanup.yml fires
+
+        PRs->>PRs: UPDATE state = 'merged', merged_at = NOW()
+
+        NB->>NB: UPDATE deleted_at = NOW(), is_active = FALSE
+        Note over NB: preview/pr-42 marked deleted.<br/>Connection strings invalid.
+
+        GB->>GB: UPDATE closed_at = NOW(), is_active = FALSE
+        Note over GB: claude/feature-xyz closed.
+
+        VD->>VD: INSERT (production deployment)
+        Note over VD: environment: production<br/>build_status: ready<br/>Same commit as last preview.
+
+        WR->>WR: INSERT (cleanup workflow)
+        Note over WR: workflow_file: preview-cleanup.yml<br/>status: completed<br/>conclusion: success
+    end
+
+    rect rgb(48, 54, 61)
+        Note over GB,WR: Final State
+        Note over GB: git_branches: 1 row (is_active: FALSE)
+        Note over NB: neon_branches: 2 rows (both is_active: FALSE)
+        Note over VD: vercel_deployments: 3 rows (preview x2, production x1)
+        Note over PRs: pull_requests: 1 row (state: merged)
+        Note over SD: schema_diffs: 2 rows (initial + updated)
+        Note over WR: workflow_runs: 5 rows (create, deploy, diff, redeploy, cleanup)
+    end

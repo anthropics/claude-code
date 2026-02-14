@@ -120,11 +120,16 @@ The 5-color category system from `deterministic-object-usage/` is preserved:
 
 ### Provided Templates
 
-| Template              | File                           | Description                    |
-|-----------------------|--------------------------------|--------------------------------|
-| `branch-create`      | `branch-create-workflow.mmd`   | 8-phase branch creation flow   |
-| `extraction-pipeline` | `extraction-pipeline.mmd`     | CHANGELOG → JSONL → HTML flow  |
-| `neon-vercel-cicd`   | `neon-vercel-cicd.mmd`         | Neon + Vercel CI/CD pipeline   |
+| Template              | File                                | Description                       |
+|-----------------------|-------------------------------------|-----------------------------------|
+| `branch-create`      | `branch-create-workflow.mmd`        | 8-phase branch creation flow      |
+| `extraction-pipeline` | `extraction-pipeline.mmd`          | CHANGELOG → JSONL → HTML flow     |
+| `neon-vercel-cicd`   | `neon-vercel-cicd.mmd`              | Neon + Vercel CI/CD pipeline      |
+| `seq-vercel`         | `seq-vercel-perspective.mmd`        | Vercel entity sequence diagram    |
+| `seq-neon`           | `seq-neon-perspective.mmd`          | Neon entity sequence diagram      |
+| `seq-github-actions` | `seq-github-actions-perspective.mmd`| GitHub Actions sequence diagram   |
+| `seq-pr-lifecycle`   | `seq-pr-lifecycle-perspective.mmd`  | Full PR lifecycle sequence        |
+| `seq-db-entities`    | `seq-database-entities.mmd`         | Database entity lifecycle         |
 
 ### Creating Custom Templates
 

@@ -46,9 +46,14 @@ const ASSETS_DIR = join(__dirname, '..', 'assets');
 // ─── Templates ─────────────────────────────────────────────────────────────
 
 const TEMPLATES = {
-  'branch-create':        'branch-create-workflow.mmd',
-  'extraction-pipeline':  'extraction-pipeline.mmd',
-  'neon-vercel-cicd':     'neon-vercel-cicd.mmd',
+  'branch-create':          'branch-create-workflow.mmd',
+  'extraction-pipeline':    'extraction-pipeline.mmd',
+  'neon-vercel-cicd':       'neon-vercel-cicd.mmd',
+  'seq-vercel':             'seq-vercel-perspective.mmd',
+  'seq-neon':               'seq-neon-perspective.mmd',
+  'seq-github-actions':     'seq-github-actions-perspective.mmd',
+  'seq-pr-lifecycle':       'seq-pr-lifecycle-perspective.mmd',
+  'seq-db-entities':        'seq-database-entities.mmd',
 };
 
 // ─── Phase Definitions (for progress tracking) ─────────────────────────────
@@ -259,6 +264,11 @@ function renderHeader(templateName, theme, caps) {
     'branch-create': 'Branch Creation Workflow',
     'extraction-pipeline': 'Extraction Pipeline',
     'neon-vercel-cicd': 'Neon + Vercel CI/CD',
+    'seq-vercel': 'Vercel Entity Sequence',
+    'seq-neon': 'Neon Entity Sequence',
+    'seq-github-actions': 'GitHub Actions Entity Sequence',
+    'seq-pr-lifecycle': 'PR Lifecycle Sequence',
+    'seq-db-entities': 'Database Entity Lifecycle',
     'inline': 'Custom Diagram',
   };
 
@@ -301,6 +311,11 @@ ${c('TEMPLATES:', 'tool')}
                            ${c('branch-create', 'bright')}        8-phase extraction workflow
                            ${c('extraction-pipeline', 'bright')}  CHANGELOG -> JSONL -> HTML flow
                            ${c('neon-vercel-cicd', 'bright')}     Neon + Vercel CI/CD pipeline
+                           ${c('seq-vercel', 'bright')}           Vercel entity sequence diagram
+                           ${c('seq-neon', 'bright')}             Neon entity sequence diagram
+                           ${c('seq-github-actions', 'bright')}   GitHub Actions sequence diagram
+                           ${c('seq-pr-lifecycle', 'bright')}     PR lifecycle sequence diagram
+                           ${c('seq-db-entities', 'bright')}      Database entity lifecycle
 
 ${c('CUSTOM INPUT:', 'tool')}
   --file, -f <path>        Render a custom .mmd file
