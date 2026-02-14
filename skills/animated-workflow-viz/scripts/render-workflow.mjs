@@ -54,6 +54,7 @@ const TEMPLATES = {
   'seq-github-actions':     'seq-github-actions-perspective.mmd',
   'seq-pr-lifecycle':       'seq-pr-lifecycle-perspective.mmd',
   'seq-db-entities':        'seq-database-entities.mmd',
+  'seq-cache-adapter':      'seq-cache-adapter.mmd',
 };
 
 // ─── Phase Definitions (for progress tracking) ─────────────────────────────
@@ -269,6 +270,7 @@ function renderHeader(templateName, theme, caps) {
     'seq-github-actions': 'GitHub Actions Entity Sequence',
     'seq-pr-lifecycle': 'PR Lifecycle Sequence',
     'seq-db-entities': 'Database Entity Lifecycle',
+    'seq-cache-adapter': 'Tool Cache Adapter Flow',
     'inline': 'Custom Diagram',
   };
 

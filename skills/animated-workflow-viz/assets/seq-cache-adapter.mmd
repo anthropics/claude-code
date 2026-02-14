@@ -1,0 +1,99 @@
+sequenceDiagram
+    autonumber
+    participant C as Claude Agent
+    participant Pre as PreToolUse Hook
+    participant Cache as Cache Store
+    participant Tool as Tool Executor
+    participant Post as PostToolUse Hook
+    participant Disk as Disk Cache
+
+    Note over C,Disk: === TOOL CACHE ADAPTER ===
+    Note over Cache: Two-tier: session (/tmp) + persistent (~/.claude/cache)
+
+    rect rgb(22, 27, 34)
+        Note over C: Scenario 1: Cache MISS (first call)
+        C->>Pre: Read("/src/index.ts")
+        Pre->>Pre: Compute key: sha256("Read:file+mtime")
+        Pre->>Cache: Lookup session cache
+        Cache-->>Pre: MISS
+        Pre->>Cache: Lookup persistent cache
+        Cache-->>Pre: MISS
+        Pre-->>C: {} (no cache, allow execution)
+
+        C->>Tool: Execute Read("/src/index.ts")
+        Tool-->>C: file contents (200 lines)
+
+        C->>Post: tool_result = file contents
+        Post->>Post: should_cache("Read", input) = TRUE
+        Post->>Post: result < 100KB, not error
+        Post->>Cache: Store with TTL = mtime-based
+        Cache->>Disk: Write session + persistent entry
+        Disk-->>Cache: stored
+        Post-->>C: {} (done)
+    end
+
+    rect rgb(22, 27, 34)
+        Note over C: Scenario 2: Cache HIT (same file, unchanged)
+        C->>Pre: Read("/src/index.ts")
+        Pre->>Pre: Compute key: sha256("Read:file+mtime")
+        Pre->>Cache: Lookup session cache
+        Cache-->>Pre: HIT (age: 12s)
+        Note over Pre: File mtime unchanged.<br/>Inject cached result.
+        Pre-->>C: systemMessage: "[CACHE HIT] 12s ago"
+
+        C->>Tool: Execute Read (still runs)
+        Note over C: Claude sees cached result<br/>in systemMessage AND fresh<br/>result from tool. Uses both.
+    end
+
+    rect rgb(22, 27, 34)
+        Note over C: Scenario 3: Cache INVALIDATION (file edited)
+        C->>Post: Edit("/src/index.ts", old, new)
+        Post->>Post: should_cache("Edit") = FALSE
+        Post->>Post: Edit.invalidates = [Read, Grep, Glob]
+        Post->>Cache: Invalidate Read for /src/index.ts
+        Cache->>Disk: Delete entry
+        Post-->>C: {} (done)
+
+        Note over C: Next Read of same file → MISS → fresh content
+    end
+
+    rect rgb(22, 27, 34)
+        Note over C: Scenario 4: Bash command caching
+        C->>Pre: Bash("git status")
+        Pre->>Pre: is_bash_cacheable("git status") = TRUE
+        Pre->>Cache: Lookup
+        Cache-->>Pre: MISS
+        Pre-->>C: {} (allow)
+
+        C->>Tool: Execute git status
+        Tool-->>C: "On branch main, nothing to commit"
+
+        C->>Post: tool_result = git output
+        Post->>Cache: Store with TTL = 300s
+        Post-->>C: {} (done)
+
+        Note over C: 30 seconds later...
+        C->>Pre: Bash("git status")
+        Pre->>Cache: Lookup
+        Cache-->>Pre: HIT (age: 30s, TTL: 300s)
+        Pre-->>C: systemMessage: "[CACHE HIT]"
+    end
+
+    rect rgb(22, 27, 34)
+        Note over C: Scenario 5: Non-cacheable Bash
+        C->>Pre: Bash("npm install")
+        Pre->>Pre: is_bash_cacheable("npm install") = FALSE
+        Pre-->>C: {} (allow, no cache check)
+
+        C->>Tool: Execute npm install
+        Tool-->>C: "added 42 packages"
+
+        C->>Post: tool_result = npm output
+        Post->>Post: should_cache("Bash", {cmd: "npm install"}) = FALSE
+        Post-->>C: {} (not stored)
+    end
+
+    rect rgb(48, 54, 61)
+        Note over C,Disk: Cache Key Anatomy
+        Note over Cache: Read: sha256("Read:{file_path, __mtime__}")<br/>Grep: sha256("Grep:{pattern, path, glob, mode, ...}")<br/>Bash: sha256("Bash:{command}")<br/>WebFetch: sha256("WebFetch:{url, prompt}")<br/>WebSearch: sha256("WebSearch:{query, domains}")
+    end

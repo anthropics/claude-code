@@ -1,0 +1,8 @@
+{
+  "name": "tool-cache-adapter",
+  "version": "0.1.0",
+  "description": "Transparent tool result caching for Claude Code. Intercepts idempotent tool calls (Read, Grep, Glob, WebFetch, WebSearch, Bash) via PreToolUse/PostToolUse hooks, stores results with tool-specific TTLs, and invalidates cache when mutating tools (Edit, Write) modify files.",
+  "author": {
+    "name": "jadecli-experimental"
+  }
+}

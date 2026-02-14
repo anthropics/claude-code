@@ -155,6 +155,16 @@
       },
       "source": "./plugins/neon-branching",
       "category": "database"
+    },
+    {
+      "name": "tool-cache-adapter",
+      "description": "Transparent tool result caching for Claude Code. Caches idempotent tool calls (Read, Grep, Glob, WebFetch, WebSearch, Bash) with tool-specific TTLs and auto-invalidation on file mutations.",
+      "version": "0.1.0",
+      "author": {
+        "name": "jadecli-experimental"
+      },
+      "source": "./plugins/tool-cache-adapter",
+      "category": "performance"
     }
   ]
 }
