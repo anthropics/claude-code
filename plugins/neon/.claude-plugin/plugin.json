@@ -1,0 +1,9 @@
+{
+  "name": "neon",
+  "version": "0.1.0",
+  "description": "Neon Serverless Postgres integration for Claude Code. Includes skills for Drizzle ORM setup, serverless driver configuration, branch/project management via the Neon API, and contextual Neon documentation. Bundles the Neon MCP Server for natural language database management.",
+  "author": {
+    "name": "Neon",
+    "email": "support@neon.tech"
+  }
+}

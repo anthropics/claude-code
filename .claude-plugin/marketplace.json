@@ -145,6 +145,28 @@
       },
       "source": "./plugins/security-guidance",
       "category": "security"
+    },
+    {
+      "name": "deterministic-visual",
+      "description": "Renders deterministic process diagrams as beautiful-mermaid ASCII art with Ghostty-style terminal animation. Supports terminal (ASCII frames at 60fps) and web (Next.js + SVG) output modes.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Claude Code",
+        "email": "claude@anthropic.com"
+      },
+      "source": "./plugins/deterministic-visual",
+      "category": "development"
+    },
+    {
+      "name": "neon",
+      "description": "Neon Serverless Postgres integration with skills for Drizzle ORM, serverless driver, branch/project management, and contextual documentation. Bundles the Neon MCP Server for natural language database management.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Neon",
+        "email": "support@neon.tech"
+      },
+      "source": "./plugins/neon",
+      "category": "development"
     }
   ]
 }
