@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 scripts/resurface.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
