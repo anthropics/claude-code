@@ -1,0 +1,9 @@
+{
+  "name": "secrets-scanner",
+  "version": "1.0.0",
+  "description": "Real-time detection of exposed secrets, API keys, and credentials in Claude Code output. Warns users when sensitive data is detected to prevent accidental exposure.",
+  "author": {
+    "name": "Steven Elliott",
+    "email": "srichardelliottjr@gmail.com"
+  }
+}
