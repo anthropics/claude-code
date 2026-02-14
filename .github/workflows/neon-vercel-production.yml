@@ -1,0 +1,68 @@
+# ─────────────────────────────────────────────────────────────────────
+# Neon + Vercel Production Deployment
+#
+# On push to main:
+#   1. Reset the Neon dev branch to match production (optional)
+#   2. Deploy to Vercel production
+# ─────────────────────────────────────────────────────────────────────
+name: Production — Neon Reset + Vercel Deploy
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: production
+  cancel-in-progress: false  # never cancel production deploys mid-flight
+
+env:
+  NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+  NEON_PROJECT_ID: ${{ vars.NEON_PROJECT_ID }}
+  VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+jobs:
+  # ── 1. Reset Neon dev branch to latest production state ─────────
+  neon-reset:
+    name: Reset Neon Dev Branch
+    runs-on: ubuntu-latest
+    # Only reset if a dev branch exists (skip on first run)
+    continue-on-error: true
+    steps:
+      - name: Reset dev branch to main
+        uses: neondatabase/reset-branch-action@v1
+        with:
+          project_id: ${{ env.NEON_PROJECT_ID }}
+          branch: dev
+          api_key: ${{ env.NEON_API_KEY }}
+          # Resets the 'dev' branch to the latest state of the
+          # default (production) branch, keeping dev in sync
+
+  # ── 2. Vercel production deployment ─────────────────────────────
+  vercel-production:
+    name: Vercel Production Deploy
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4
+        with:
+          node-version: "20"
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Pull Vercel environment
+        run: vercel pull --yes --environment=production --token=${{ env.VERCEL_TOKEN }}
+
+      - name: Build project
+        run: vercel build --prod --token=${{ env.VERCEL_TOKEN }}
+
+      - name: Deploy to Vercel production
+        run: vercel deploy --prebuilt --prod --token=${{ env.VERCEL_TOKEN }}

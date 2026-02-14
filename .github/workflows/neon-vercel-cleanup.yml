@@ -1,0 +1,30 @@
+# ─────────────────────────────────────────────────────────────────────
+# Neon Branch Cleanup
+#
+# On PR close (merged or abandoned):
+#   1. Delete the Neon preview branch
+#
+# The Vercel preview deployment is automatically deactivated by Vercel
+# when the PR is closed, so no explicit cleanup is needed there.
+# ─────────────────────────────────────────────────────────────────────
+name: Cleanup — Delete Neon Branch
+
+on:
+  pull_request:
+    types: [closed]
+
+env:
+  NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+  NEON_PROJECT_ID: ${{ vars.NEON_PROJECT_ID }}
+
+jobs:
+  delete-neon-branch:
+    name: Delete Neon Branch
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete Neon branch for closed PR
+        uses: neondatabase/delete-branch-action@v3
+        with:
+          project_id: ${{ env.NEON_PROJECT_ID }}
+          branch: preview/pr-${{ github.event.pull_request.number }}
+          api_key: ${{ env.NEON_API_KEY }}

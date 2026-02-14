@@ -1,0 +1,144 @@
+# ─────────────────────────────────────────────────────────────────────
+# Neon + Vercel Preview Deployment
+#
+# On every PR open/synchronize:
+#   1. Create a Neon database branch from the parent (main) branch
+#   2. Deploy a Vercel preview with the Neon branch connection string
+#   3. Run schema diff and comment on the PR
+# ─────────────────────────────────────────────────────────────────────
+name: Preview — Neon Branch + Vercel Deploy
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+  NEON_PROJECT_ID: ${{ vars.NEON_PROJECT_ID }}
+  VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+jobs:
+  # ── 1. Create Neon database branch ──────────────────────────────
+  neon-branch:
+    name: Create Neon Branch
+    runs-on: ubuntu-latest
+    outputs:
+      db_url: ${{ steps.create.outputs.db_url }}
+      db_url_with_pooler: ${{ steps.create.outputs.db_url_with_pooler }}
+      branch_id: ${{ steps.create.outputs.branch_id }}
+    steps:
+      - name: Create Neon branch for PR
+        id: create
+        uses: neondatabase/create-branch-action@v5
+        with:
+          project_id: ${{ env.NEON_PROJECT_ID }}
+          branch_name: preview/pr-${{ github.event.pull_request.number }}
+          api_key: ${{ env.NEON_API_KEY }}
+          # Parent defaults to the project's default branch (main)
+
+  # ── 2. Schema diff (comment on PR) ─────────────────────────────
+  schema-diff:
+    name: Schema Diff
+    needs: neon-branch
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Compare schema with main
+        uses: neondatabase/schema-diff-action@v1
+        with:
+          project_id: ${{ env.NEON_PROJECT_ID }}
+          compare_branch: preview/pr-${{ github.event.pull_request.number }}
+          api_key: ${{ env.NEON_API_KEY }}
+          # Posts a comment on the PR with the schema diff
+
+  # ── 3. Vercel preview deployment ────────────────────────────────
+  vercel-preview:
+    name: Vercel Preview Deploy
+    needs: neon-branch
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      deployments: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4
+        with:
+          node-version: "20"
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Pull Vercel environment
+        run: vercel pull --yes --environment=preview --token=${{ env.VERCEL_TOKEN }}
+
+      - name: Build project
+        run: vercel build --token=${{ env.VERCEL_TOKEN }}
+        env:
+          # Neon connection strings injected as build-time env vars
+          DATABASE_URL: ${{ needs.neon-branch.outputs.db_url }}
+          DATABASE_URL_POOLED: ${{ needs.neon-branch.outputs.db_url_with_pooler }}
+          # Metadata for the app to identify which branch it's on
+          NEON_BRANCH_ID: ${{ needs.neon-branch.outputs.branch_id }}
+          NEON_BRANCH_NAME: preview/pr-${{ github.event.pull_request.number }}
+
+      - name: Deploy to Vercel
+        id: deploy
+        run: |
+          url=$(vercel deploy --prebuilt --token=${{ env.VERCEL_TOKEN }})
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+        env:
+          DATABASE_URL: ${{ needs.neon-branch.outputs.db_url }}
+          DATABASE_URL_POOLED: ${{ needs.neon-branch.outputs.db_url_with_pooler }}
+
+      - name: Comment preview URL on PR
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7
+        with:
+          script: |
+            const url = '${{ steps.deploy.outputs.url }}';
+            const branchId = '${{ needs.neon-branch.outputs.branch_id }}';
+            const body = [
+              '### Preview Deployment',
+              '',
+              `| Resource | Link |`,
+              `|----------|------|`,
+              `| **Vercel** | [${url}](${url}) |`,
+              `| **Neon Branch** | \`preview/pr-${{ github.event.pull_request.number }}\` (${branchId}) |`,
+              '',
+              `> Neon branch created from \`main\`. Database is isolated for this PR.`,
+            ].join('\n');
+
+            // Upsert: find existing bot comment or create new
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c =>
+              c.user.type === 'Bot' && c.body.includes('### Preview Deployment')
+            );
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
