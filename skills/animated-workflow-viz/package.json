@@ -1,0 +1,20 @@
+{
+  "name": "@jadecli/animated-workflow-viz",
+  "version": "0.1.0",
+  "description": "Animated Mermaid workflow diagrams in the terminal — beautiful-mermaid ASCII + ghostty-style ANSI animation",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "render": "node scripts/render-workflow.mjs",
+    "render:branch": "node scripts/render-workflow.mjs --template branch-create",
+    "render:pipeline": "node scripts/render-workflow.mjs --template extraction-pipeline",
+    "render:static": "node scripts/render-workflow.mjs --static"
+  },
+  "dependencies": {
+    "@vercel/beautiful-mermaid": "^0.1.5"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "license": "MIT"
+}

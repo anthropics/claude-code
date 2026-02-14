@@ -1,0 +1,79 @@
+graph TD
+    subgraph phase1[Phase 1 — Setup]
+        hook_branch[Create Branch]
+        tool_read_claude[Read CLAUDE.md]
+        tool_read_process[Read Process Doc]
+    end
+
+    subgraph phase2[Phase 2 — Changelog Fetch]
+        tool_fetch[Fetch Changelog]
+        tool_parse[Parse Versions]
+        param_count[Count Versions]
+    end
+
+    subgraph phase3[Phase 3 — JSONL Extraction]
+        param_keywords[Define Keywords]
+        tool_meta[Write Meta Line]
+        tool_scan_eras[Scan: Write Eras]
+        tool_scan_objects[Scan: Write Objects]
+        tool_scan_releases[Scan: Write Releases]
+        agent_interactions[Write Interactions]
+        tool_expand_kw[Expand Keywords]
+    end
+
+    subgraph phase4[Phase 4 — JSONL Validation]
+        tool_validate_json[Validate JSON]
+        tool_validate_order[Validate Ordering]
+        tool_validate_dedup[Validate Dedup]
+        tool_validate_complete[Validate Completeness]
+        tool_validate_count[Validate Count]
+    end
+
+    subgraph phase5[Phase 5 — HTML Generation]
+        tool_gen_html[Generate HTML]
+        agent_sidebar[Sidebar Registry]
+        agent_timeline[Timeline Cards]
+        agent_eras[Era Dividers]
+        agent_diagrams[Interaction Diagrams]
+        tool_filters[Filter Controls]
+        tool_footer[Footer Attribution]
+    end
+
+    subgraph phase6[Phase 6 — HTML Validation]
+        tool_self_contained[Self-Contained Check]
+        tool_cross_ref[Cross-Reference JSONL]
+        tool_interactive[Interactive Features]
+    end
+
+    subgraph phase7[Phase 7 — Documentation]
+        tool_update_table[Update Extraction Table]
+        tool_increment[Increment Number]
+        tool_insights[Record Insights]
+        tool_edge_cases[Record Edge Cases]
+    end
+
+    subgraph phase8[Phase 8 — Ship]
+        event_commit[Final Commit]
+        event_push[Push to Fork]
+        event_pr[Open PR]
+    end
+
+    hook_branch --> tool_read_claude --> tool_read_process
+    tool_read_process --> tool_fetch
+    tool_fetch --> tool_parse --> param_count
+    param_count --> param_keywords
+    param_keywords --> tool_meta --> tool_scan_eras
+    tool_scan_eras --> tool_scan_objects --> tool_scan_releases
+    tool_scan_releases --> agent_interactions --> tool_expand_kw
+    tool_expand_kw --> tool_validate_json
+    tool_validate_json --> tool_validate_order --> tool_validate_dedup
+    tool_validate_dedup --> tool_validate_complete --> tool_validate_count
+    tool_validate_count --> tool_gen_html
+    tool_gen_html --> agent_sidebar --> agent_timeline
+    agent_timeline --> agent_eras --> agent_diagrams
+    agent_diagrams --> tool_filters --> tool_footer
+    tool_footer --> tool_self_contained
+    tool_self_contained --> tool_cross_ref --> tool_interactive
+    tool_interactive --> tool_update_table
+    tool_update_table --> tool_increment --> tool_insights --> tool_edge_cases
+    tool_edge_cases --> event_commit --> event_push --> event_pr

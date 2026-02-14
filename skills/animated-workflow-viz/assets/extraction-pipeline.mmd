@@ -1,0 +1,69 @@
+graph LR
+    subgraph input[Input]
+        param_url[CHANGELOG_URL]
+        param_feature[FEATURE_NAME]
+        param_kw[KEYWORDS]
+    end
+
+    subgraph process[Extraction Engine]
+        tool_fetch[Fetch Raw MD]
+        tool_parse[Parse Versions]
+        agent_classify[Classify Entries]
+        tool_dedup[Deduplicate Objects]
+        agent_interact[Map Interactions]
+    end
+
+    subgraph output_jsonl[JSONL Output]
+        tool_meta_out[meta line]
+        tool_era_out[era lines]
+        tool_obj_out[object lines]
+        tool_rel_out[release lines]
+        agent_int_out[interaction lines]
+    end
+
+    subgraph validate[Validation]
+        tool_json_check[JSON Parse Check]
+        tool_order_check[Ordering Check]
+        tool_dedup_check[Dedup Check]
+        tool_count_check[Count Check]
+    end
+
+    subgraph output_html[HTML Output]
+        tool_gen[Generate HTML]
+        agent_sidebar[Object Sidebar]
+        agent_timeline[Release Timeline]
+        agent_diagrams[Interaction Diagrams]
+    end
+
+    subgraph ship[Ship]
+        event_commit[Commit]
+        event_push[Push]
+        event_pr[Open PR]
+    end
+
+    param_url --> tool_fetch
+    param_feature --> agent_classify
+    param_kw --> agent_classify
+    tool_fetch --> tool_parse --> agent_classify
+    agent_classify --> tool_dedup --> agent_interact
+
+    agent_interact --> tool_meta_out
+    agent_interact --> tool_era_out
+    agent_interact --> tool_obj_out
+    agent_interact --> tool_rel_out
+    agent_interact --> agent_int_out
+
+    tool_meta_out --> tool_json_check
+    tool_era_out --> tool_json_check
+    tool_obj_out --> tool_json_check
+    tool_rel_out --> tool_json_check
+    agent_int_out --> tool_json_check
+
+    tool_json_check --> tool_order_check --> tool_dedup_check --> tool_count_check
+
+    tool_count_check --> tool_gen
+    tool_gen --> agent_sidebar
+    tool_gen --> agent_timeline
+    tool_gen --> agent_diagrams
+
+    agent_diagrams --> event_commit --> event_push --> event_pr

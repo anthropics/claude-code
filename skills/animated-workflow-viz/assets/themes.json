@@ -1,0 +1,115 @@
+{
+  "dark": {
+    "name": "Deterministic Dark",
+    "description": "Default theme matching deterministic-object-usage visual language",
+    "bg": "#0d1117",
+    "fg": "#f0f6fc",
+    "categories": {
+      "agent":  "#58a6ff",
+      "tool":   "#3fb950",
+      "hook":   "#d29922",
+      "param":  "#bc8cff",
+      "event":  "#f778ba"
+    },
+    "ui": {
+      "dim":     "#484f58",
+      "bright":  "#f0f6fc",
+      "border":  "#30363d",
+      "surface": "#161b22",
+      "success": "#3fb950",
+      "error":   "#f85149",
+      "warning": "#d29922"
+    },
+    "beautiful_mermaid": {
+      "bg": "#0d1117",
+      "fg": "#f0f6fc",
+      "accent": "#58a6ff",
+      "surface": "#161b22",
+      "border": "#30363d"
+    }
+  },
+  "tokyo-night": {
+    "name": "Tokyo Night",
+    "description": "Inspired by Tokyo Night VS Code theme — beautiful-mermaid compatible",
+    "bg": "#1a1b26",
+    "fg": "#c0caf5",
+    "categories": {
+      "agent":  "#7aa2f7",
+      "tool":   "#9ece6a",
+      "hook":   "#e0af68",
+      "param":  "#bb9af7",
+      "event":  "#f7768e"
+    },
+    "ui": {
+      "dim":     "#565f89",
+      "bright":  "#c0caf5",
+      "border":  "#3b4261",
+      "surface": "#24283b",
+      "success": "#9ece6a",
+      "error":   "#f7768e",
+      "warning": "#e0af68"
+    },
+    "beautiful_mermaid": {
+      "bg": "#1a1b26",
+      "fg": "#c0caf5",
+      "accent": "#7aa2f7",
+      "surface": "#24283b",
+      "border": "#3b4261"
+    }
+  },
+  "catppuccin": {
+    "name": "Catppuccin Mocha",
+    "description": "Warm pastel theme — beautiful-mermaid compatible",
+    "bg": "#1e1e2e",
+    "fg": "#cdd6f4",
+    "categories": {
+      "agent":  "#89b4fa",
+      "tool":   "#a6e3a1",
+      "hook":   "#f9e2af",
+      "param":  "#cba6f7",
+      "event":  "#f38ba8"
+    },
+    "ui": {
+      "dim":     "#6c7086",
+      "bright":  "#cdd6f4",
+      "border":  "#45475a",
+      "surface": "#313244",
+      "success": "#a6e3a1",
+      "error":   "#f38ba8",
+      "warning": "#f9e2af"
+    },
+    "beautiful_mermaid": {
+      "bg": "#1e1e2e",
+      "fg": "#cdd6f4",
+      "accent": "#89b4fa",
+      "surface": "#313244",
+      "border": "#45475a"
+    }
+  },
+  "ghostty": {
+    "name": "Ghostty",
+    "description": "Inspired by Ghostty terminal defaults — high contrast for animation",
+    "bg": "#0a0a0a",
+    "fg": "#ededed",
+    "categories": {
+      "agent":  "#6cb6ff",
+      "tool":   "#56d364",
+      "hook":   "#e3b341",
+      "param":  "#d2a8ff",
+      "event":  "#ff7b72"
+    },
+    "ui": {
+      "dim":     "#484f58",
+      "bright":  "#ffffff",
+      "border":  "#30363d",
+      "surface": "#161b22",
+      "success": "#56d364",
+      "error":   "#ff7b72",
+      "warning": "#e3b341"
+    },
+    "beautiful_mermaid": {
+      "bg": "#0a0a0a",
+      "fg": "#ededed"
+    }
+  }
+}
