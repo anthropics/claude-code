@@ -15,9 +15,11 @@ To do this, follow these steps precisely:
    - The pull request is closed
    - The pull request is a draft
    - The pull request does not need code review (e.g. automated PR, trivial change that is obviously correct)
-   - Claude has already commented on this PR (check `gh pr view <PR> --comments` for comments left by claude)
+   - Claude has already commented on this PR AND no new commits have been pushed since (check `gh pr view <PR> --comments` for comments left by claude, then compare the timestamp of the most recent Claude comment against the timestamp of the HEAD commit using `gh pr view <PR> --json commits`)
 
    If any condition is true, stop and do not proceed.
+
+   **Note on re-reviews**: If Claude previously commented but new commits have been pushed since, proceed with the review. This enables iterative PR workflows where authors push fixes and need updated feedback. If `--force` is provided as an argument, skip the "already commented" check entirely.
 
 Note: Still review Claude generated PR's.
 
