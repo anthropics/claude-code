@@ -27,6 +27,9 @@ def debug_log(message):
 
 # State file to track warnings shown (session-scoped using session ID)
 
+# Documentation file extensions that should skip content-based security checks
+DOC_EXTENSIONS = [".md", ".txt", ".rst", ".adoc", ".asciidoc", ".html", ".htm"]
+
 # Security patterns configuration
 SECURITY_PATTERNS = [
     {
@@ -69,7 +72,7 @@ Other risky inputs to be careful with:
     {
         "ruleName": "child_process_exec",
         "substrings": ["child_process.exec", "exec(", "execSync("],
-        "reminder": """⚠️ Security Warning: Using child_process.exec() can lead to command injection vulnerabilities.
+        "reminder": """Security Warning: Using child_process.exec() can lead to command injection vulnerabilities.
 
 This codebase provides a safer alternative: src/utils/execFileNoThrow.ts
 
@@ -91,37 +94,171 @@ Only use exec() if you absolutely need shell features and the input is guarantee
     {
         "ruleName": "new_function_injection",
         "substrings": ["new Function"],
-        "reminder": "⚠️ Security Warning: Using new Function() with dynamic strings can lead to code injection vulnerabilities. Consider alternative approaches that don't evaluate arbitrary code. Only use new Function() if you truly need to evaluate arbitrary dynamic code.",
+        "reminder": "Security Warning: Using new Function() with dynamic strings can lead to code injection vulnerabilities. Consider alternative approaches that don't evaluate arbitrary code. Only use new Function() if you truly need to evaluate arbitrary dynamic code.",
     },
     {
         "ruleName": "eval_injection",
         "substrings": ["eval("],
-        "reminder": "⚠️ Security Warning: eval() executes arbitrary code and is a major security risk. Consider using JSON.parse() for data parsing or alternative design patterns that don't require code evaluation. Only use eval() if you truly need to evaluate arbitrary code.",
+        "reminder": "Security Warning: eval() executes arbitrary code and is a major security risk. Consider using JSON.parse() for data parsing or alternative design patterns that don't require code evaluation. Only use eval() if you truly need to evaluate arbitrary code.",
     },
     {
         "ruleName": "react_dangerously_set_html",
         "substrings": ["dangerouslySetInnerHTML"],
-        "reminder": "⚠️ Security Warning: dangerouslySetInnerHTML can lead to XSS vulnerabilities if used with untrusted content. Ensure all content is properly sanitized using an HTML sanitizer library like DOMPurify, or use safe alternatives.",
+        "reminder": "Security Warning: dangerouslySetInnerHTML can lead to XSS vulnerabilities if used with untrusted content. Ensure all content is properly sanitized using an HTML sanitizer library like DOMPurify, or use safe alternatives.",
     },
     {
         "ruleName": "document_write_xss",
         "substrings": ["document.write"],
-        "reminder": "⚠️ Security Warning: document.write() can be exploited for XSS attacks and has performance issues. Use DOM manipulation methods like createElement() and appendChild() instead.",
+        "reminder": "Security Warning: document.write() can be exploited for XSS attacks and has performance issues. Use DOM manipulation methods like createElement() and appendChild() instead.",
     },
     {
         "ruleName": "innerHTML_xss",
         "substrings": [".innerHTML =", ".innerHTML="],
-        "reminder": "⚠️ Security Warning: Setting innerHTML with untrusted content can lead to XSS vulnerabilities. Use textContent for plain text or safe DOM methods for HTML content. If you need HTML support, consider using an HTML sanitizer library such as DOMPurify.",
+        "reminder": "Security Warning: Setting innerHTML with untrusted content can lead to XSS vulnerabilities. Use textContent for plain text or safe DOM methods for HTML content. If you need HTML support, consider using an HTML sanitizer library such as DOMPurify.",
     },
     {
         "ruleName": "pickle_deserialization",
         "substrings": ["pickle"],
-        "reminder": "⚠️ Security Warning: Using pickle with untrusted content can lead to arbitrary code execution. Consider using JSON or other safe serialization formats instead. Only use pickle if it is explicitly needed or requested by the user.",
+        "reminder": "Security Warning: Using pickle with untrusted content can lead to arbitrary code execution. Consider using JSON or other safe serialization formats instead. Only use pickle if it is explicitly needed or requested by the user.",
     },
     {
         "ruleName": "os_system_injection",
         "substrings": ["os.system", "from os import system"],
-        "reminder": "⚠️ Security Warning: This code appears to use os.system. This should only be used with static arguments and never with arguments that could be user-controlled.",
+        "reminder": "Security Warning: This code appears to use os.system. This should only be used with static arguments and never with arguments that could be user-controlled.",
+    },
+    {
+        "ruleName": "sql_injection_concat",
+        "substrings": ["execute(f\"", "execute(f'", 'execute("' + "", "cursor.execute(", ".query(f\"", ".query(f'"],
+        "reminder": """Security Warning: Potential SQL injection vulnerability detected.
+
+Never concatenate user input directly into SQL queries. Use parameterized queries instead.
+
+UNSAFE:
+  cursor.execute(f"SELECT * FROM users WHERE id = {user_id}")
+  db.query("SELECT * FROM users WHERE name = '" + name + "'")
+
+SAFE:
+  cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
+  cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
+
+Using parameterized queries prevents attackers from injecting malicious SQL code.""",
+    },
+    {
+        "ruleName": "path_traversal",
+        "substrings": ["../", "..\\"],
+        "reminder": """Security Warning: Potential path traversal vulnerability detected.
+
+The pattern '../' can be used by attackers to access files outside the intended directory.
+
+UNSAFE:
+  file_path = base_dir + user_input  # user_input could be '../../../etc/passwd'
+  open(request.args.get('file'))
+
+SAFE:
+  import os
+  safe_path = os.path.normpath(os.path.join(base_dir, user_input))
+  if not safe_path.startswith(os.path.abspath(base_dir)):
+      raise ValueError("Invalid path")
+
+Always validate and sanitize file paths before use.""",
+    },
+    {
+        "ruleName": "hardcoded_secrets",
+        "substrings": [
+            "api_key = \"",
+            "api_key = '",
+            "apiKey = \"",
+            "apiKey = '",
+            "password = \"",
+            "password = '",
+            "secret = \"",
+            "secret = '",
+            "AWS_SECRET_ACCESS_KEY = \"",
+            "AWS_SECRET_ACCESS_KEY = '",
+        ],
+        "reminder": """Security Warning: Potential hardcoded secret detected.
+
+Never hardcode sensitive credentials in source code. They can be exposed through:
+- Version control history
+- Log files
+- Error messages
+- Decompiled code
+
+UNSAFE:
+  api_key = "sk-1234567890abcdef"
+  password = "super_secret_123"
+
+SAFE:
+  import os
+  api_key = os.environ.get("API_KEY")
+  password = os.environ.get("DB_PASSWORD")
+
+Use environment variables, secrets managers (AWS Secrets Manager, HashiCorp Vault), or configuration files excluded from version control.""",
+    },
+    {
+        "ruleName": "subprocess_shell_true",
+        "substrings": ["shell=True", "shell = True"],
+        "reminder": """Security Warning: Using shell=True in subprocess can lead to command injection.
+
+UNSAFE:
+  subprocess.run(f"ls {user_input}", shell=True)
+  subprocess.Popen(cmd, shell=True)
+
+SAFE:
+  subprocess.run(["ls", user_input], shell=False)
+  subprocess.Popen(["ls", user_input])
+
+When shell=True, the command is executed through the shell, allowing shell metacharacters to be interpreted. Use shell=False (default) and pass arguments as a list.""",
+    },
+    {
+        "ruleName": "yaml_unsafe_load",
+        "substrings": ["yaml.load(", "yaml.unsafe_load("],
+        "reminder": """Security Warning: yaml.load() without Loader can execute arbitrary Python code.
+
+UNSAFE:
+  data = yaml.load(user_input)
+  data = yaml.unsafe_load(file_content)
+
+SAFE:
+  data = yaml.safe_load(user_input)
+  data = yaml.load(user_input, Loader=yaml.SafeLoader)
+
+Always use yaml.safe_load() or specify SafeLoader to prevent code execution from malicious YAML.""",
+    },
+    {
+        "ruleName": "jwt_none_algorithm",
+        "substrings": ["algorithms=[\"none\"]", "algorithms=['none']", 'algorithm="none"', "algorithm='none'"],
+        "reminder": """Security Warning: JWT with 'none' algorithm is insecure.
+
+The 'none' algorithm means no signature verification, allowing attackers to forge tokens.
+
+UNSAFE:
+  jwt.decode(token, algorithms=["none"])
+  jwt.encode(payload, key, algorithm="none")
+
+SAFE:
+  jwt.decode(token, secret, algorithms=["HS256"])
+  jwt.encode(payload, secret, algorithm="HS256")
+
+Always use a secure algorithm (HS256, RS256, etc.) and verify signatures.""",
+    },
+    {
+        "ruleName": "prototype_pollution",
+        "substrings": ["__proto__", "constructor.prototype", "Object.assign(target,"],
+        "reminder": """Security Warning: Potential prototype pollution vulnerability.
+
+Modifying __proto__ or constructor.prototype can affect all objects and lead to security issues.
+
+UNSAFE:
+  obj[userKey] = userValue  // if userKey is '__proto__'
+  Object.assign(target, untrustedSource)
+
+SAFE:
+  if (key === '__proto__' || key === 'constructor') return;
+  const safeObj = Object.create(null);
+  Object.assign(safeObj, untrustedSource);
+
+Validate object keys and use Object.create(null) for untrusted data.""",
     },
 ]
 
@@ -180,18 +317,27 @@ def save_state(session_id, shown_warnings):
         pass  # Fail silently if we can't save state
 
 
-def check_patterns(file_path, content):
+def isDocumentationFile(file_path):
+    """Check if file is a documentation file that should skip content checks."""
+    normalized_path = file_path.lower()
+    return any(normalized_path.endswith(ext) for ext in DOC_EXTENSIONS)
+
+
+def checkPatterns(file_path, content):
     """Check if file path or content matches any security patterns."""
     # Normalize path by removing leading slashes
     normalized_path = file_path.lstrip("/")
 
+    # Check if this is a documentation file (skip content-based checks)
+    is_doc_file = isDocumentationFile(normalized_path)
+
     for pattern in SECURITY_PATTERNS:
-        # Check path-based patterns
+        # Check path-based patterns (always check, even for docs)
         if "path_check" in pattern and pattern["path_check"](normalized_path):
             return pattern["ruleName"], pattern["reminder"]
 
-        # Check content-based patterns
-        if "substrings" in pattern and content:
+        # Check content-based patterns (skip for documentation files)
+        if "substrings" in pattern and content and not is_doc_file:
             for substring in pattern["substrings"]:
                 if substring in content:
                     return pattern["ruleName"], pattern["reminder"]
@@ -253,7 +399,7 @@ def main():
     content = extract_content_from_input(tool_name, tool_input)
 
     # Check for security patterns
-    rule_name, reminder = check_patterns(file_path, content)
+    rule_name, reminder = checkPatterns(file_path, content)
 
     if rule_name and reminder:
         # Create unique warning key
