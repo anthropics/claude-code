@@ -77,6 +77,14 @@ async function closeIssueAsDuplicate(
     {
       state: 'closed',
       state_reason: 'duplicate',
+    }
+  );
+
+  await githubRequest(
+    `/repos/${owner}/${repo}/issues/${issueNumber}/labels`,
+    token,
+    'POST',
+    {
       labels: ['duplicate']
     }
   );
