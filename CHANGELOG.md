@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.1.44
+
+- Fixed auth refresh errors
+
+## 2.1.43
+
+- Fixed AWS auth refresh hanging indefinitely by adding a 3-minute timeout
+- Fixed spurious warnings for non-agent markdown files in `.claude/agents/` directory
+- Fixed structured-outputs beta header being sent unconditionally on Vertex/Bedrock
+
 ## 2.1.42
 
 - Improved startup performance by deferring Zod schema construction
