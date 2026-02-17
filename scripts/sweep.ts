@@ -70,11 +70,8 @@ async function markStale(owner: string, repo: string) {
       );
       if (alreadyStale) continue;
 
-      const isEnhancement = issue.labels?.some(
-        (l: any) => l.name === "enhancement"
-      );
       const thumbsUp = issue.reactions?.["+1"] ?? 0;
-      if (isEnhancement && thumbsUp >= STALE_UPVOTE_THRESHOLD) continue;
+      if (thumbsUp >= STALE_UPVOTE_THRESHOLD) continue;
 
       const base = `/repos/${owner}/${repo}/issues/${issue.number}`;
 
@@ -109,6 +106,10 @@ async function closeExpired(owner: string, repo: string) {
       for (const issue of issues) {
         if (issue.pull_request) continue;
         if (issue.locked) continue;
+
+        const thumbsUp = issue.reactions?.["+1"] ?? 0;
+        if (thumbsUp >= STALE_UPVOTE_THRESHOLD) continue;
+
         const base = `/repos/${owner}/${repo}/issues/${issue.number}`;
 
         const events = await githubRequest<any[]>(`${base}/events?per_page=100`);
@@ -119,6 +120,22 @@ async function closeExpired(owner: string, repo: string) {
           .pop();
 
         if (!labeledAt || labeledAt > cutoff) continue;
+
+        // Skip if a non-bot user commented after the label was applied.
+        // The triage workflow should remove lifecycle labels on human
+        // activity, but check here too as a safety net.
+        const comments = await githubRequest<any[]>(
+          `${base}/comments?since=${labeledAt.toISOString()}&per_page=100`
+        );
+        const hasHumanComment = comments.some(
+          (c) => c.user && c.user.type !== "Bot"
+        );
+        if (hasHumanComment) {
+          console.log(
+            `#${issue.number}: skipping (human activity after ${label} label)`
+          );
+          continue;
+        }
 
         if (DRY_RUN) {
           const age = Math.floor((Date.now() - labeledAt.getTime()) / 86400000);

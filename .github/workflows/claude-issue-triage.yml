@@ -45,7 +45,7 @@ jobs:
             ALLOWED LABELS — you may ONLY use labels from this list. Never invent new labels.
 
             Type: bug, enhancement, question, documentation, duplicate, invalid
-            Lifecycle: needs-repro, needs-info
+            Lifecycle: needs-repro, needs-info, stale, autoclose
             Platform: platform:linux, platform:macos, platform:windows, platform:wsl, platform:ios, platform:android, platform:vscode, platform:intellij, platform:web, platform:aws-bedrock
             API: api:bedrock, api:vertex
 
@@ -85,10 +85,12 @@ jobs:
             **If EVENT is "issue_comment" (comment on existing issue):**
 
             3. Evaluate lifecycle labels based on the full conversation:
+               - If the issue has `stale` or `autoclose`, remove the label — a new human comment means the issue is still active:
+                 `gh issue edit ${{ github.event.issue.number }} --remove-label "stale" --remove-label "autoclose"`
                - If the issue has `needs-repro` or `needs-info` and the missing information has now been provided, remove the label:
                  `gh issue edit ${{ github.event.issue.number }} --remove-label "needs-repro"`
                - If the issue doesn't have lifecycle labels but clearly needs them (e.g., a maintainer asked for repro steps or more details), add the appropriate label.
-               - Comments like "+1", "me too", "same here", or emoji reactions are NOT the missing information. Only remove labels when substantive details are actually provided.
+               - Comments like "+1", "me too", "same here", or emoji reactions are NOT the missing information. Only remove `needs-repro` or `needs-info` when substantive details are actually provided.
                - Do NOT add or remove category labels (bug, enhancement, etc.) on comment events.
 
             GUIDELINES:
