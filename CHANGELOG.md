@@ -1,3 +1,4 @@
+# Lines 121-130 of CHANGELOG.md
 # Changelog
 
 ## 2.1.45
@@ -18,6 +19,16 @@
 - Improved collapsed read/search groups to show the current file or search pattern being processed beneath the summary line while active
 - [VSCode] Improved permission destination choice (project/user/session) to persist across sessions
 
+## 2.1.45
+
+- Fixed subscription tier eligibility check so Max plan ($200/mo) users are correctly granted access to sonnet[1m]
+- Added support for new feature X
+- Improved performance of function Y
+- Fixed bug Z
+- Added support for new feature X
+- Improved performance of function Y
+- Fixed bug Z
+
 ## 2.1.44
 
 - Fixed ENAMETOOLONG errors for deeply-nested directory paths
@@ -34,7 +45,8 @@
 - Improved startup performance by deferring Zod schema construction
 - Improved prompt cache hit rates by moving date out of system prompt
 - Added one-time Opus 4.6 effort callout for eligible users
-- Fixed /resume showing interrupt messages as session titles
+- Fixed /resume showing interrupt messag
+... [truncated]
 - Fixed image dimension limit errors to suggest /compact
 
 ## 2.1.41
@@ -371,9 +383,9 @@
 - Fixed numpad keys outputting escape sequences instead of characters in Kitty keyboard protocol terminals
 - Fixed Option+Return not inserting newlines in Kitty keyboard protocol terminals
 - Fixed corrupted config backup files accumulating in the home directory (now only one backup is created per config file)
-- Fixed `mcp list` and `mcp get` commands leaving orphaned MCP server processes
-- Fixed visual artifacts in ink2 mode when nodes become hidden via `display:none`
-- Improved the external CLAUDE.md imports approval dialog to show which files are being imported and from where
+import os
+import sys
+from typing import List, Dict
 - Improved the `/tasks` dialog to go directly to task details when there's only one background task running
 - Improved @ autocomplete with icons for different suggestion types and single-line formatting
 - Updated "Help improve Claude" setting fetch to refresh OAuth and retry when it fails due to a stale OAuth token
