@@ -2,6 +2,7 @@
 
 ## 2.1.44
 
+- Fixed ENAMETOOLONG errors for deeply-nested directory paths
 - Fixed auth refresh errors
 
 ## 2.1.43
