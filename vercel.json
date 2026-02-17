@@ -1,0 +1,5 @@
+{
+  "buildCommand": "cd walk-rating-app && npm install && npm run build",
+  "outputDirectory": "walk-rating-app/dist",
+  "framework": "vite"
+}
