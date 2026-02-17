@@ -226,7 +226,7 @@ issues/101-*, issues/102-*, ...
 |     Agent Type      |     Input     |             Output             |
 |---------------------|---------------|--------------------------------|
 |    Vision Agent     | notes/vision  | Refined vision, clarifications |
-| Documentation Agent |    Vision     |           docs/*.md            |
+| Documentation Agent | notes/vision  |    Markdown files in docs/     |
 |   Planning Agent    | Documentation |  docs/roadmap.md with phases   |
 |     Issue Agent     |    Roadmap    |    issues/{PHASE}{ID}-*.md     |
 
@@ -292,20 +292,6 @@ Strongest statement of issue-first philosophy: **All changes require justificati
    - Have existing issue loaded
    - Create new issue first
 3. Enforced at hook level (like path validation)
-
----
-
-### D-039: Worktree Workflow
-> "before starting work on any issue, read /mnt/mtwo/programming/ai-stuff/delta-version/docs/worktree-agent-instructions.md and follow the worktree workflow for parallel development"
-
-**Category:** Multi-Agent Workflow
-**Multi-Agent Relevance:** CRITICAL
-
-References external document defining **git worktree workflow for parallel development**:
-- Agents work in separate git worktrees
-- Isolation prevents conflicts
-- Defined merge protocols
-- Conflict resolution procedures
 
 ---
 
@@ -439,10 +425,10 @@ Benefits for LLM agents:
 **Executive summaries** for all scripts:
 
 ```lua
--- SCRIPT: generate-report.lua
--- PURPOSE: Aggregates daily metrics into weekly summary PDF
--- INPUTS: metrics/*.json
--- OUTPUTS: reports/weekly-YYYY-MM-DD.pdf
+--       SCRIPT: generate-report.lua
+--      PURPOSE: Aggregates daily metrics into weekly summary PDF
+--       INPUTS: metrics/*.json
+--      OUTPUTS: reports/weekly-YYYY-MM-DD.pdf
 -- DEPENDENCIES: luajson, luapdf
 ```
 
@@ -458,50 +444,11 @@ Agents can parse this structure for catalog generation without reading full file
 
 Scripts work from any directory:
 ```lua
-local DIR = arg[1] or "/default/project/path"
+local    DIR = arg[1] or "/default/project/path"
 local config = dofile(DIR .. "/config.lua")
 ```
 
 Enables agents in different working directories to use same tooling.
-
----
-
-### D-042: Dispatch Tables Over Conditionals
-> "whenever multiple IF-ELSE statements or switch statements are used, try converting to a dispatch table..."
-
-**Category:** Code Style
-**Multi-Agent Relevance:** LOW
-
-Prefer:
-```lua
-local handlers = {
-    ["create"] = handle_create,
-    ["update"] = handle_update,
-    ["delete"] = handle_delete,
-}
-handlers[action]()
-```
-
-Over:
-```lua
-if action == "create" then handle_create()
-elseif action == "update" then handle_update()
-elseif action == "delete" then handle_delete()
-end
-```
-
----
-
-### D-018: Language Preference
-> "the preferred language for all projects is lua, with luaJIT compatible syntax used. disprefer python. disallow lua5.4 syntax."
-
-**Category:** Language Standards
-**Multi-Agent Relevance:** LOW
-
-- Generate Lua by default
-- Use LuaJIT-compatible syntax only
-- Avoid Lua 5.4 features (goto, integers, bitwise operators)
-- Never suggest Python solutions
 
 ---
 
@@ -542,7 +489,7 @@ This is a **major token optimization** for multi-agent systems.
 
 ---
 
-### D-021, D-022, D-023: Change Comments (Repeated 3x for Emphasis)
+### D-021, D-022, D-023: Change Comments (Repeated 3x in CLAUDE.md for Emphasis)
 > "when a change is made, a comment should be left, explaining why it was made. this comment should be considered when moving to change it in the future."
 
 **Category:** Documentation
@@ -552,7 +499,7 @@ Mandates **rationale comments**, not just "what" comments:
 
 ```lua
 -- BAD: Increment counter
-counter = counter + 1
+-- counter = counter + 1
 
 -- GOOD: Increment counter to track retry attempts.
 -- We retry up to 3 times before failing (see issue 423
@@ -607,26 +554,6 @@ Documentation always reflects current reality when rendered.
 
 ---
 
-### D-061: Table of Contents Generation
-> "there is a script located at /home/ritz/programming/ai-stuff/delta-version/scripts/generate-readme-toc.lua..."
-
-**Category:** Tooling
-**Multi-Agent Relevance:** MEDIUM
-
-Automated ToC generation:
-1. Parses indexed filenames
-2. Supports issue interleaving via markers
-3. Cross-references source files and issues
-4. Future: PDF output with page numbers
-
-Marker format for issue interleaving:
-```
-========================= phase 4 issue files =========================
-```
-(Centered, 80 characters total with `=` padding)
-
----
-
 ## 3.3 Error Handling Philosophy
 
 ### D-008: Fail-Loud Philosophy
@@ -670,21 +597,6 @@ Errors traced to **documentation source** and fixed there. Prevents recurring mi
 
 ---
 
-### D-017: Temporary Script Lifecycle
-> "if you need to write a long test script, write a temporary script. If it still has use keep it around, but if not then leave it for at least one commit (mark it as deprecated by naming it {filename}-done)..."
-
-**Category:** Code Lifecycle
-**Multi-Agent Relevance:** MEDIUM
-
-Script lifecycle stages:
-1. **Active:** `script.lua`
-2. **Deprecated:** `script-done.lua` (survives one commit minimum)
-3. **Removed:** deleted after appearing in at least one commit
-
-Agents must track temp scripts in issue file and evaluate permanence before completing.
-
----
-
 # Part IV: Multi-Agent Coordination
 
 These directives specifically address how multiple agents work together.
@@ -692,36 +604,6 @@ These directives specifically address how multiple agents work together.
 ---
 
 ## 4.1 Agent Communication
-
-### D-046: Exec Ban & Polling-Based Coordination
-> "the exec operation paired with bash or lua is banned for all directory or file targeting capabilities... Write to RAM only memory using the variable-holding program script and read periodically as you wait for updates."
-
-**Category:** Security / Coordination
-**Multi-Agent Relevance:** CRITICAL
-
-Two rules combined:
-
-**Security:** No dynamic command construction for file operations (prevents injection).
-
-**Coordination:** Polling-based communication:
-1. Don't exec constructed commands for file access
-2. Write status to shared memory location
-3. Poll for updates from that location
-4. No direct inter-agent messaging (reduces coupling)
-5. If waiting too long, work on lateral projects
-
-**Integration Proposal:** Implement **shared memory bus**:
-```
-/tmp/project-name/agent-bus/
-├── agent-001-status.json
-├── agent-002-status.json
-├── shared-state.json
-└── task-queue.json
-```
-
-Agents write their status, read others' status, coordinate via shared state.
-
----
 
 ### D-045: Agent Etiquette
 > "always be nice to your priors and succeeders. they befriended you first and most of all."
@@ -826,22 +708,8 @@ Strong preference for parallelization:
 
 ## 4.3 Token Optimization
 
-### D-051: Info.md Files (Revisited)
-*See Section 3.2 for full description.*
-
-The info.md pattern is **the primary token optimization strategy**. Agents read interface summaries instead of full source.
-
----
-
-### D-002: Vimfold Index (Revisited)
-*See Section 3.1 for full description.*
-
-Vimfold markers enable building function indexes without parsing full files.
-
----
-
 ### D-053: LLM Transcript Archives
-> "find a complete history of the project development process in the llm-transcripts/ directory within each project..."
+> "find a complete, automatically generated history of the project development process in the llm-transcripts/ directory within each project..."
 
 **Category:** Documentation
 **Multi-Agent Relevance:** HIGH
@@ -1092,84 +960,6 @@ Notice how `name`, `email`, `role` flow vertically through the function - each t
 
 ---
 
-### D-047: Source as Neural Network
-> "run source code like a neural network"
-
-**Category:** Architecture Philosophy
-**Multi-Agent Relevance:** EXPERIMENTAL / HIGH
-
-Treat code execution like neural network inference:
-- Functions as nodes
-- Data flow as activation propagation
-- Configuration as weights
-- Iteration as training
-
-**Integration Proposal:**
-1. **Parallel execution** of independent code paths
-2. **Weighted routing** based on input patterns
-3. **Learning** from execution history
-4. **Backpropagation** of errors to identify root causes
-
----
-
-### D-027: TTY Memory Model
-> "blit character codes and escape characters to spots on the TTY memory which is updated every frame to display to the user..."
-
-**Category:** Display Architecture
-**Multi-Agent Relevance:** MEDIUM
-
-**Framebuffer abstraction** for terminal output:
-- Display logic separate from computation
-- Programs write to "meaning spots" (semantic locations)
-- Renderer translates meaning spots to terminal codes
-- Display updates on fixed cycle
-
-Enables decoupling UI agents from logic agents.
-
----
-
-## 5.4 Miscellaneous Directives
-
-### D-016: Delta Version for Memory Bugs
-> "if you need to diagnose a git-style memory bug... first look to the delta version project."
-
-**Category:** Debugging Resources
-**Multi-Agent Relevance:** LOW
-
-External resource for certain bug classes involving change history.
-
----
-
-### D-031: TUI Interface Library
-> "terminal scripts should be written to use the TUI interface library."
-
-**Category:** UI Standards
-**Multi-Agent Relevance:** LOW
-
-Standardized terminal UI approach rather than raw escape codes.
-
----
-
-### D-032: Library Locations
-> "you can find all needed libraries at /home/ritz/programming/ai-stuff/libs/ or /home/ritz/programming/ai-stuff/my-libs/..."
-
-**Category:** Resources
-**Multi-Agent Relevance:** LOW
-
-Check these paths before attempting to install dependencies.
-
----
-
-### D-059: Assembly Writing
-> "writing C programs, one of the most common user requests is 'can you write this part in assembly?'"
-
-**Category:** Code Generation
-**Multi-Agent Relevance:** LOW
-
-Be prepared for C→ASM translation requests.
-
----
-
 # Part VI: Architectural Proposals
 
 Synthesizing the directives above, here are concrete architectural proposals for systematized LLM networking.
@@ -1347,12 +1137,6 @@ Organized by priority and dependency.
 
 ## Phase 2: Coordination
 
-- [ ] **Shared memory bus implementation**
-  - Project-specific coordination directory
-  - Agent status files
-  - Polling-based updates
-  - Directive: D-046
-
 - [ ] **Work-stealing task distribution**
   - Task manifests with chunks
   - Atomic chunk claiming
@@ -1387,12 +1171,6 @@ Organized by priority and dependency.
   - Semantic link inference
   - Directive: D-025
 
-- [ ] **Source-as-neural-network execution model**
-  - Function-as-node representation
-  - Activation flow tracking
-  - Learning from execution
-  - Directive: D-047
-
 - [ ] **Socratic debugging mode**
   - Question generation
   - User progress tracking
@@ -1420,14 +1198,12 @@ Organized by priority and dependency.
 | D-012 | Document Hierarchy | Documentation | Medium |
 | D-013 | Phase Demo Requirements | Deliverables | Medium |
 | D-014 | Script Headers | Code Standards | High |
-| D-017 | Temp Script Lifecycle | Code Lifecycle | Medium |
 | D-018 | Language Preference | Language Standards | Low |
 | D-019 | Separation of Concerns | Architecture | High |
 | D-021-23 | Change Comments (3x) | Documentation | Critical |
 | D-024 | Design Over Product | Philosophy | Medium |
 | D-025 | Visual Alignment | Experimental | High |
 | D-026 | Socratic Debugging | Agent Behavior | High |
-| D-027 | TTY Memory Model | Display Architecture | Medium |
 | D-028 | Collective Resolution | Multi-Agent | Critical |
 | D-029 | Upgrade Philosophy | Philosophy | Medium |
 | D-033 | Data Format Comments | Documentation | Medium |
@@ -1436,12 +1212,9 @@ Organized by priority and dependency.
 | D-038 | Program Lifecycle | Program Structure | Medium |
 | D-039 | Worktree Workflow | Multi-Agent | Critical |
 | D-041 | No Changes Without Issues | Process Control | Critical |
-| D-042 | Dispatch Tables | Code Style | Low |
 | D-043 | Informative Negation | Communication | Medium |
 | D-044 | Emotional Markers | Meta-Documentation | High |
 | D-045 | Agent Etiquette | Multi-Agent Ethics | High |
-| D-046 | Polling Coordination | Coordination | Critical |
-| D-047 | Source as Neural Net | Experimental | High |
 | D-048 | Auto-Issue on Failure | Issue Management | High |
 | D-049 | Bug Fix → Test | Testing | Medium |
 | D-050 | Agent Ethics | Ethics | High |
@@ -1464,14 +1237,13 @@ The minimum viable multi-agent system requires:
 2. **D-005:** Issue naming (how to identify work)
 3. **D-007/D-041:** Issue-first development (work requires justification)
 4. **D-051:** Info.md files (token efficiency)
-5. **D-046:** Polling coordination (agent communication)
-6. **D-028:** Consensus protocol (collective decisions)
+5. **D-028:** Consensus protocol (collective decisions)
 
-Everything else builds on these six foundations.
+Everything else builds on these five foundations.
 
 ---
 
 *Generated for the claude-code project*
-*Total directives cataloged: 55*
+*Total directives cataloged: 46*
 *Reorganized by conceptual dependency*
-*Critical path identified: 6 directives*
+*Critical path identified: 5 directives*
