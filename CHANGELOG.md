@@ -1,5 +1,28 @@
 # Changelog
 
+## 2.1.49
+
+- Fixed Ctrl+C and ESC being silently ignored when background agents are running and the main thread is idle. Pressing twice within 3 seconds now kills all background agents.
+- Fixed prompt suggestion cache regression that reduced cache hit rates.
+- Fixed `plugin enable` and `plugin disable` to auto-detect the correct scope when `--scope` is not specified, instead of always defaulting to user scope
+- Simple mode (`CLAUDE_CODE_SIMPLE`) now includes the file edit tool in addition to the Bash tool, allowing direct file editing in simple mode.
+- Permission suggestions are now populated when safety checks trigger an ask response, enabling SDK consumers to display permission options
+- Sonnet 4.5 with 1M context is being removed from the Max plan in favor of our frontier Sonnet 4.6 model, which now has 1M context. Please switch in /model.
+- Fixed verbose mode not updating thinking block display when toggled via `/config` — memo comparators now correctly detect verbose changes
+- Fixed unbounded WASM memory growth during long sessions by periodically resetting the tree-sitter parser
+- Fixed potential rendering issues caused by stale yoga layout references
+- Improved performance in non-interactive mode (`-p`) by skipping unnecessary API calls during startup
+- Improved performance by caching authentication failures for HTTP and SSE MCP servers, avoiding repeated connection attempts to servers requiring auth
+- Fixed unbounded memory growth during long-running sessions caused by Yoga WASM linear memory never shrinking
+- SDK model info now includes `supportsEffort`, `supportedEffortLevels`, and `supportsAdaptiveThinking` fields so consumers can discover model capabilities.
+- Added `ConfigChange` hook event that fires when configuration files change during a session, enabling enterprise security auditing and optional blocking of settings changes.
+- Improved startup performance by caching MCP auth failures to avoid redundant connection attempts
+- Improved startup performance by reducing HTTP calls for analytics token counting
+- Improved startup performance by batching MCP tool token counting into a single API call
+- Fixed `disableAllHooks` setting to respect managed settings hierarchy — non-managed settings can no longer disable managed hooks set by policy (#26637)
+- Fixed `--resume` session picker showing raw XML tags for sessions that start with commands like `/clear`. Now correctly falls through to the session ID fallback.
+- Improved permission prompts for path safety and working directory blocks to show the reason for the restriction instead of a bare prompt with no context
+
 ## 2.1.47
 
 - Fixed FileWriteTool line counting to preserve intentional trailing blank lines instead of stripping them with `trimEnd()`.
