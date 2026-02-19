@@ -1,0 +1,22 @@
+{
+  "name": "productivity-agent",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "tsc --noEmit",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "@linear/sdk": "^24.0.0",
+    "@vercel/kv": "^3.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@vercel/node": "^5.0.0",
+    "typescript": "^5.4.0",
+    "vercel": "^39.0.0"
+  }
+}

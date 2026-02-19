@@ -1,0 +1,13 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/morning",
+      "schedule": "0 13 * * 1-5"
+    }
+  ],
+  "functions": {
+    "api/**/*.ts": {
+      "maxDuration": 60
+    }
+  }
+}
