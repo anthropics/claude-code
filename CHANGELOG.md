@@ -2,6 +2,12 @@
 
 ## 2.1.49
 
+- Added `--worktree` (`-w`) flag to start Claude in an isolated git worktree
+- Subagents support `isolation: "worktree"` for working in a temporary git worktree
+- Added Ctrl+F keybinding to kill background agents (two-press confirmation)
+- Agent definitions support `background: true` to always run as a background task
+- Plugins can ship `settings.json` for default configuration
+- Fixed file-not-found errors to suggest corrected paths when the model drops the repo folder
 - Fixed Ctrl+C and ESC being silently ignored when background agents are running and the main thread is idle. Pressing twice within 3 seconds now kills all background agents.
 - Fixed prompt suggestion cache regression that reduced cache hit rates.
 - Fixed `plugin enable` and `plugin disable` to auto-detect the correct scope when `--scope` is not specified, instead of always defaulting to user scope
