@@ -65,6 +65,10 @@ touch "/tmp/claude-bridge-${PPID}-done"
 
 Brief summary of what was added, updated, or retired. The user can then `/clear` to start fresh — MEMORY.md reloads from the system prompt, so the resume snapshot is immediately available.
 
+## Saving principle
+
+A single mention is exactly what's worth remembering — it can't be found or regenerated from anywhere else. Those are the real independent signals. Treat every difference as signal. Only discard if deemed irrelevant through logic and intentional user choice, never from pattern-matching speculation (e.g., "only mentioned once" or "might not matter").
+
 ## Anti-patterns
 
 - Adding without checking for duplicates
@@ -72,3 +76,4 @@ Brief summary of what was added, updated, or retired. The user can then `/clear`
 - Documenting speculation (only confirmed patterns)
 - Comprehensive description instead of generative ground (minimal entries that reconstruct understanding)
 - Accumulating entries over time (fewer and stronger, not more)
+- Discarding novel signals because they were only mentioned once — frequency measures redundancy, not importance
