@@ -2,6 +2,7 @@
 
 ## 2.1.49
 
+- Improved MCP OAuth authentication with step-up auth support and discovery caching, reducing redundant network requests during server connections
 - Added `--worktree` (`-w`) flag to start Claude in an isolated git worktree
 - Subagents support `isolation: "worktree"` for working in a temporary git worktree
 - Added Ctrl+F keybinding to kill background agents (two-press confirmation)
