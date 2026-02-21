@@ -2,6 +2,26 @@
 set -euo pipefail  # Exit on error, undefined vars, and pipeline failures
 IFS=$'\n\t'       # Stricter word splitting
 
+# Fix localhost resolving to ::1 (IPv6) instead of 127.0.0.1 (IPv4).
+#
+# Claude Code's OAuth callback server calls getaddrinfo("localhost") and binds
+# to whichever address is returned first. Ubuntu containers list ::1 before
+# 127.0.0.1 in /etc/hosts, so the server ends up on [::1]:PORT. VS Code port
+# forwarding connects via IPv4 and never reaches it, causing `claude login` to
+# hang indefinitely after the user clicks Authorize in the browser.
+#
+# Setting NODE_OPTIONS=--dns-result-order=ipv4first has no effect because
+# Claude Code ships a self-contained binary with a bundled Node.js runtime that
+# ignores environment-level Node.js flags.
+#
+# Removing the ::1 entries from /etc/hosts fixes this at the C library
+# (getaddrinfo) level, which all Node.js runtimes call regardless of bundling.
+# Note: sed -i cannot be used here because Docker mounts /etc/hosts as a bind
+# mount, which does not support the atomic rename that sed -i relies on.
+#
+# See: https://github.com/anthropics/claude-code/issues/9376
+grep -v '^::1' /etc/hosts > /tmp/hosts.tmp && cat /tmp/hosts.tmp > /etc/hosts && rm /tmp/hosts.tmp
+
 # 1. Extract Docker DNS info BEFORE any flushing
 DOCKER_DNS_RULES=$(iptables-save -t nat | grep "127\.0\.0\.11" || true)
 
@@ -60,13 +80,15 @@ while read -r cidr; do
         exit 1
     fi
     echo "Adding GitHub range $cidr"
-    ipset add allowed-domains "$cidr"
+    ipset add -exist allowed-domains "$cidr"
 done < <(echo "$gh_ranges" | jq -r '(.web + .api + .git)[]' | aggregate -q)
 
 # Resolve and add other allowed domains
 for domain in \
     "registry.npmjs.org" \
     "api.anthropic.com" \
+    "claude.ai" \
+    "platform.claude.com" \
     "sentry.io" \
     "statsig.anthropic.com" \
     "statsig.com" \
@@ -86,7 +108,7 @@ for domain in \
             exit 1
         fi
         echo "Adding $ip for $domain"
-        ipset add allowed-domains "$ip"
+        ipset add -exist allowed-domains "$ip"
     done < <(echo "$ips")
 done
 
