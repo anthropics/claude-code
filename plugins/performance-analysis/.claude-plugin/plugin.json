@@ -1,0 +1,64 @@
+{
+  "name": "performance-analysis",
+  "displayName": "Performance Analysis",
+  "description": "Comprehensive performance analysis and optimization plugin with specialized agents for bottleneck detection, complexity analysis, memory profiling, and optimization recommendations.",
+  "version": "1.0.0",
+  "author": "Anthropic",
+  "license": "Commercial",
+  "commands": [
+    {
+      "name": "perf-analyze",
+      "displayName": "Performance Analyze",
+      "description": "Analyze code for performance bottlenecks, complexity issues, memory problems, and optimization opportunities"
+    },
+    {
+      "name": "perf-profile",
+      "displayName": "Performance Profile",
+      "description": "Create a detailed performance profile of a specific file or function"
+    },
+    {
+      "name": "perf-compare",
+      "displayName": "Performance Compare",
+      "description": "Compare performance characteristics between different versions or branches"
+    }
+  ],
+  "agents": [
+    {
+      "name": "bottleneck-detective",
+      "displayName": "Bottleneck Detective",
+      "description": "Identifies performance bottlenecks by analyzing code flow, loops, and expensive operations"
+    },
+    {
+      "name": "complexity-analyzer",
+      "displayName": "Complexity Analyzer",
+      "description": "Analyzes algorithmic complexity (Big O notation) and recommends optimizations"
+    },
+    {
+      "name": "memory-profiler",
+      "displayName": "Memory Profiler",
+      "description": "Detects memory leaks, inefficient allocations, and memory-heavy operations"
+    },
+    {
+      "name": "concurrency-validator",
+      "displayName": "Concurrency Validator",
+      "description": "Identifies async/concurrency issues including race conditions and deadlock risks"
+    },
+    {
+      "name": "optimization-recommender",
+      "displayName": "Optimization Recommender",
+      "description": "Suggests practical optimizations with implementation guidance"
+    }
+  ],
+  "skills": [
+    {
+      "name": "performance-patterns",
+      "displayName": "Performance Patterns",
+      "description": "Guide to performance optimization patterns and anti-patterns"
+    },
+    {
+      "name": "profiling-tools",
+      "displayName": "Profiling Tools Guide",
+      "description": "Reference guide for language-specific profiling tools and techniques"
+    }
+  ]
+}
