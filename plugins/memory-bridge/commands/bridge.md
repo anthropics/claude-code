@@ -18,7 +18,8 @@ Follow the skill's process exactly:
 1. **Scan** the session for new learnings
 2. **Classify** each to the right persistence level (project memory, global config, or skill)
 3. **Act** — write, update, or retire entries (check for duplicates first)
-4. **Resume** — write or update the Resume snapshot in the project's MEMORY.md
-5. **Signal** — create the marker file so the Stop hook passes
+4. **Re-evaluate** — consolidate existing memory in light of additions (merge, retire, replace with shared priors)
+5. **Resume** — write the cursor snapshot
+6. **Signal** — create the marker file so the Stop hook passes
 
 After consolidation, tell the user they can `/clear` to start fresh.
