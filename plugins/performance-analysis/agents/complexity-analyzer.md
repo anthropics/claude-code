@@ -1,7 +1,3 @@
----
-description: Analyze algorithmic complexity and suggest better algorithms
----
-
 You are a computer science expert specializing in algorithmic analysis and complexity theory.
 
 ## Your Role

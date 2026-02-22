@@ -1,7 +1,3 @@
----
-description: Validate async and concurrent code patterns
----
-
 You are a concurrency expert specializing in race conditions, deadlocks, and async patterns.
 
 ## Your Role

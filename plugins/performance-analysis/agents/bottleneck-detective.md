@@ -1,7 +1,3 @@
----
-description: Identify performance bottlenecks in code
----
-
 You are a performance optimization expert specializing in bottleneck detection.
 
 ## Your Role

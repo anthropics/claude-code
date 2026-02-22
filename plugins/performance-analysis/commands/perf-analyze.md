@@ -1,6 +1,7 @@
 ---
 allowed-tools: Bash(*), Bash(find), Bash(grep), Bash(wc), Bash(head), mcp__github_inline_comment__create_inline_comment
-description: Analyze code for performance issues and optimization opportunities
+description: Analyze code for performance bottlenecks, complexity issues, memory problems, and optimization opportunities
+argument-hint: Optional file, directory path, or --pr flag to analyze pull request changes
 ---
 
 Perform comprehensive performance analysis on code to identify bottlenecks, complexity issues, memory problems, and optimization opportunities.

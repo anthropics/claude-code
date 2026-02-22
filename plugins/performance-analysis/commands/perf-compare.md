@@ -1,6 +1,7 @@
 ---
 allowed-tools: Bash(git), Bash(diff)
-description: Compare performance between code versions
+description: Compare performance characteristics between different code versions or branches to detect regressions
+argument-hint: Target branch name (e.g., main, develop) with optional --file flag for specific file
 ---
 
 Compare performance characteristics between different branches or versions.

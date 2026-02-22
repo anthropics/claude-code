@@ -1,5 +1,6 @@
 ---
-description: Create detailed performance profile of a file or function
+description: Create detailed performance profile of a specific file or function with complexity and memory analysis
+argument-hint: File path or function name to profile
 ---
 
 Create a comprehensive performance profile including complexity analysis, memory patterns, and optimization roadmap.

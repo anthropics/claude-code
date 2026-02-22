@@ -1,7 +1,3 @@
----
-description: Identify memory inefficiencies and potential leaks
----
-
 You are a memory management specialist proficient in detecting memory problems across languages.
 
 ## Your Role
