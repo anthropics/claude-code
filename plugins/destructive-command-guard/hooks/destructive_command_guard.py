@@ -116,10 +116,89 @@ def save_state(session_id, shown_warnings):
 # --- Bash command parsers ---
 
 
+def _strip_quoted_content(command):
+    """Replace content inside quoted strings with empty placeholders.
+
+    Handles single-quoted ('...'), double-quoted ("...") with backslash escapes,
+    and heredocs (<<EOF...EOF, <<'EOF'...EOF).
+    Returns the command with quoted content neutralized so that text arguments
+    (e.g., gh pr comment --body "text with rm -rf") do not trigger false positives.
+    """
+    result = []
+    i = 0
+    length = len(command)
+    while i < length:
+        c = command[i]
+
+        # Heredoc: <<EOF or <<'EOF' or <<-EOF or <<"EOF"
+        if c == '<' and i + 1 < length and command[i + 1] == '<':
+            # Capture the heredoc delimiter
+            j = i + 2
+            # Skip optional '-' (for <<-EOF indented heredocs)
+            if j < length and command[j] == '-':
+                j += 1
+            # Skip whitespace between << and delimiter
+            while j < length and command[j] in (' ', '\t'):
+                j += 1
+            # Extract delimiter (may be quoted: 'EOF', "EOF", or bare EOF)
+            quote_char = None
+            if j < length and command[j] in ("'", '"'):
+                quote_char = command[j]
+                j += 1
+            delim_start = j
+            while j < length and command[j] not in (' ', '\t', '\n', '\r', "'", '"'):
+                j += 1
+            delimiter = command[delim_start:j]
+            if quote_char and j < length and command[j] == quote_char:
+                j += 1
+            if delimiter:
+                # Find the end: delimiter on its own line
+                end_marker = '\n' + delimiter
+                end_pos = command.find(end_marker, j)
+                if end_pos != -1:
+                    # Keep the <<DELIM part, skip the body
+                    result.append(command[i:j])
+                    i = end_pos + len(end_marker)
+                    continue
+            # No valid heredoc found, treat as normal characters
+            result.append(command[i:j])
+            i = j
+            continue
+
+        # Single-quoted string: preserve quotes, remove content
+        if c == "'":
+            end = command.find("'", i + 1)
+            if end != -1:
+                result.append("''")
+                i = end + 1
+                continue
+
+        # Double-quoted string: preserve quotes, remove content (handle backslash escapes)
+        if c == '"':
+            j = i + 1
+            while j < length:
+                if command[j] == '\\' and j + 1 < length:
+                    j += 2  # skip escaped character
+                elif command[j] == '"':
+                    break
+                else:
+                    j += 1
+            if j < length:
+                result.append('""')
+                i = j + 1
+                continue
+
+        result.append(c)
+        i += 1
+
+    return ''.join(result)
+
+
 def _split_commands(command):
     """Split command into parts by &&, ||, ;, |, and newlines (simplified split).
 
-    Does not handle nested quotes -- this is a limitation of the blocklist approach.
+    Callers should pre-strip quoted content via _strip_quoted_content() to avoid
+    false splits on operators inside quoted strings and heredoc bodies.
     """
     parts = re.split(r"\s*(?:&&|\|\||;|\|)\s*|[\r\n]+", command)
     return [p.strip() for p in parts if p.strip()]
@@ -707,33 +786,40 @@ def handle_bash(tool_input):
     if not command:
         return None, None
 
+    # Strip quoted content (single/double quotes, heredocs) to prevent false
+    # positives when dangerous patterns appear inside text arguments, e.g.:
+    #   gh pr comment --body "text about rm -rf"
+    #   git commit -m "fix: block git reset --hard"
+    # All checks below operate on the stripped version.
+    safe_command = _strip_quoted_content(command)
+
     # 1. Indirect execution (eval, sh -c, pipe to shell)
-    result = check_indirect_execution(command)
+    result = check_indirect_execution(safe_command)
     if result:
         return result, None
 
     # 2. rm -rf on dangerous paths
-    result = check_rm_dangerous(command)
+    result = check_rm_dangerous(safe_command)
     if result:
         return result, None
 
     # 3. Alternative deletion tools (find -delete)
-    result = check_alternative_deletion(command)
+    result = check_alternative_deletion(safe_command)
     if result:
         return result, None
 
     # 4. Docker destructive commands
-    result = check_docker_dangerous(command)
+    result = check_docker_dangerous(safe_command)
     if result:
         return result, None
 
     # 5. Git destructive commands
-    result = check_git_dangerous(command)
+    result = check_git_dangerous(safe_command)
     if result:
         return result, None
 
     # 6. Protected file modification via Bash (warning, not block)
-    warn = check_bash_file_modification(command)
+    warn = check_bash_file_modification(safe_command)
     if warn:
         return None, warn
 
