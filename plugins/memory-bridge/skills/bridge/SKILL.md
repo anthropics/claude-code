@@ -1,6 +1,6 @@
 ---
 name: bridge
-description: Consolidate session learnings into memory and skills. Run at session end before exiting. Auto-triggered by Stop hook for substantial sessions.
+description: Consolidate session learnings into memory and skills. Run at session end before exiting. Stop hook advises (never blocks) for substantial sessions.
 ---
 
 # Bridge — Knowledge Consolidation
@@ -15,7 +15,7 @@ Nothing in this process is static — every rule here is itself refinable throug
 
 ## When to bridge
 
-Claude owns the decision. Suggest `/bridge` at natural breakpoints when learnings have accumulated — task complete, rich exploration, shift in focus. Don't interrupt mid-flow. A Stop hook at ~1.5MB serves as safety net before auto-compaction; never rely on it.
+The user is the final decision maker. Claude suggests `/bridge` at natural breakpoints when learnings have accumulated — task complete, rich exploration, shift in focus. Don't interrupt mid-flow. A Stop hook at ~1.5MB warns (never blocks) before auto-compaction. The user can follow, ignore, or override at every step.
 
 After `/bridge` completes, create the marker so the safety-net hook passes:
 ```bash

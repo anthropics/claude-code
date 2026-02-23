@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Stop hook for memory-bridge plugin.
 
-Safety-net only: blocks when context approaches auto-compaction (~1.5MB).
+Advisory only: warns when context approaches auto-compaction (~1.5MB).
 Claude self-monitors and suggests /bridge at natural breakpoints.
 This hook is the last resort — if it fires, context management failed.
+The user is always the final decision maker.
 """
 
 import json
@@ -66,7 +67,7 @@ def main():
             print(json.dumps({}))
             sys.exit(0)
 
-        # Only block when approaching auto-compaction
+        # Only warn when approaching auto-compaction
         if not is_context_critical(hook_input):
             print(json.dumps({}))
             sys.exit(0)
@@ -74,14 +75,13 @@ def main():
         # Mark as reminded so we only ask once
         open(f"{marker}-reminded", "w").close()
 
-        result = {
-            "decision": "block",
-            "reason": (
-                "Context approaching auto-compaction. "
-                "Run /bridge now to consolidate, then /clear."
-            ),
-        }
-        print(json.dumps(result))
+        # Advisory: warn but never block — user is the final decision maker
+        print(
+            "\n⚠️  Context approaching auto-compaction. "
+            "Consider running /bridge to consolidate before stopping.\n",
+            file=sys.stderr,
+        )
+        print(json.dumps({}))
 
     except Exception:
         # On any error, allow the stop — never trap the user

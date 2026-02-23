@@ -22,7 +22,7 @@ A consolidation cycle: **work → bridge → clear**.
 3. Before ending your session, run `/bridge`
 4. After consolidation, run `/clear` to start fresh
 
-Claude monitors its own context and suggests `/bridge` at natural breakpoints — when learnings are rich, when a task completes, or when focus shifts. A Stop hook serves as a safety net, blocking only when context approaches auto-compaction (~1.5MB).
+Claude monitors its own context and suggests `/bridge` at natural breakpoints — when learnings are rich, when a task completes, or when focus shifts. A Stop hook warns (never blocks) when context approaches auto-compaction (~1.5MB). The user is always the final decision maker — they can initiate `/bridge` any time, follow or ignore Claude's suggestions, and dismiss the hook warning if they prefer to let auto-compact happen.
 
 ## How It Works
 
@@ -60,7 +60,7 @@ Create a marker file so the Stop hook knows bridging is done.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `BRIDGE_THRESHOLD_KB` | `1500` | Safety-net threshold (KB) — blocks only when approaching auto-compaction |
+| `BRIDGE_THRESHOLD_KB` | `1500` | Safety-net threshold (KB) — warns when approaching auto-compaction |
 
 Set in your shell profile or `.env`:
 ```bash
@@ -73,9 +73,11 @@ export BRIDGE_THRESHOLD_KB=1200  # adjust safety-net threshold
 |-----------|------|---------|
 | Command | `commands/bridge.md` | `/bridge` slash command with project context injection |
 | Skill | `skills/bridge/SKILL.md` | The consolidation methodology |
-| Stop hook | `hooks/stop.py` | Safety net — blocks only near auto-compaction (~1.5MB) |
+| Stop hook | `hooks/stop.py` | Safety net — warns (never blocks) near auto-compaction (~1.5MB) |
 
 ## Philosophy
+
+**User agency first.** This plugin builds better tools for users to exercise their agency, not replace it. Every intervention is advisory — the user can always initiate, follow, ignore, or override.
 
 **Consolidate, don't accumulate.** Memory grows stronger over time, not larger. Each bridge pass should result in fewer, more precise entries — not a growing append-only log.
 
