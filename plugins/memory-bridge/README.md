@@ -85,12 +85,25 @@ The guiding principle:
 
 > Keep as much as possible that is not already there. Keep as little as possible that is already there.
 
-### Anti-patterns to avoid
+### Ontological ground
+
+The consolidation methodology is rooted in [Not a ToE](https://github.com/powerpig99/not-a-toe) — an ontological clarity framework. Key projections into this design:
+
+- Memory as *generative ground*, not comprehensive description — minimal entries that reconstruct understanding
+- Consolidation toward *shared priors* — two entries with common ground become the ground
+- Selective forgetting as *the feature* — intelligence is knowing what to discard
+- Single mentions as *the real signals* — what can't be found elsewhere is what's worth keeping
+
+This is a specific ground, not a neutral one. The methodology and the ontology are inseparable — the principles determine what "consolidation" means in practice.
+
+Every part of this process is refinable by each user. Fork it, reshape it, bring your own ground. That's user agency applied one level up.
+
+### Anti-patterns
 
 - **Adding without checking** — search existing memory before writing
 - **Duplicating across levels** — one canonical location per fact
 - **Documenting speculation** — only confirmed patterns
-- **Comprehensive description** — aim for generative ground (minimal entries that reconstruct understanding)
+- **Comprehensive description** — aim for generative ground
 - **Accumulating over time** — fewer and stronger entries, not more
 
 ## How It Integrates
