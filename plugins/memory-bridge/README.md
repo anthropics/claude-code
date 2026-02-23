@@ -22,7 +22,7 @@ A consolidation cycle: **work → bridge → clear**.
 3. Before ending your session, run `/bridge`
 4. After consolidation, run `/clear` to start fresh
 
-The Stop hook will remind you if you try to exit a substantial session without bridging.
+Claude monitors its own context and suggests `/bridge` at natural breakpoints — when learnings are rich, when a task completes, or when focus shifts. A Stop hook serves as a safety net, blocking only when context approaches auto-compaction (~1.5MB).
 
 ## How It Works
 
@@ -60,11 +60,11 @@ Create a marker file so the Stop hook knows bridging is done.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `BRIDGE_THRESHOLD_KB` | `100` | Session transcript size (KB) that triggers the Stop hook reminder |
+| `BRIDGE_THRESHOLD_KB` | `1500` | Safety-net threshold (KB) — blocks only when approaching auto-compaction |
 
 Set in your shell profile or `.env`:
 ```bash
-export BRIDGE_THRESHOLD_KB=200  # remind at 200KB instead of 100KB
+export BRIDGE_THRESHOLD_KB=1200  # adjust safety-net threshold
 ```
 
 ## Components
@@ -73,7 +73,7 @@ export BRIDGE_THRESHOLD_KB=200  # remind at 200KB instead of 100KB
 |-----------|------|---------|
 | Command | `commands/bridge.md` | `/bridge` slash command with project context injection |
 | Skill | `skills/bridge/SKILL.md` | The consolidation methodology |
-| Stop hook | `hooks/stop.py` | Reminds when session context exceeds threshold |
+| Stop hook | `hooks/stop.py` | Safety net — blocks only near auto-compaction (~1.5MB) |
 
 ## Philosophy
 

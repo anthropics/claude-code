@@ -1,6 +1,6 @@
 ---
 name: bridge
-description: Consolidate session learnings into persistent memory. Run at session end before exiting.
+description: Consolidate session learnings into memory and skills. Run at session end before exiting. Auto-triggered by Stop hook for substantial sessions.
 ---
 
 # Bridge — Knowledge Consolidation
@@ -12,6 +12,15 @@ Memory is a bridge — a living derivation path from generative ground to the cu
 **Consolidation direction**: Entries consolidate *toward their shared priors*. Two entries with common ground become the ground. The count goes down over time, each entry carrying more weight.
 
 Nothing in this process is static — every rule here is itself refinable through use.
+
+## When to bridge
+
+Claude owns the decision. Suggest `/bridge` at natural breakpoints when learnings have accumulated — task complete, rich exploration, shift in focus. Don't interrupt mid-flow. A Stop hook at ~1.5MB serves as safety net before auto-compaction; never rely on it.
+
+After `/bridge` completes, create the marker so the safety-net hook passes:
+```bash
+touch "/tmp/claude-bridge-${PPID}-done"
+```
 
 ## Process
 

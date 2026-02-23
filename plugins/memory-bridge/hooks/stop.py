@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Stop hook for memory-bridge plugin.
 
-Reminds the user to run /bridge when the session context is substantial,
-so learnings are consolidated before the session ends.
+Safety-net only: blocks when context approaches auto-compaction (~1.5MB).
+Claude self-monitors and suggests /bridge at natural breakpoints.
+This hook is the last resort — if it fires, context management failed.
 """
 
 import json
@@ -12,8 +13,8 @@ import glob
 
 
 def get_threshold_bytes():
-    """Get context size threshold from env var (default 100KB)."""
-    kb = int(os.environ.get("BRIDGE_THRESHOLD_KB", "100"))
+    """Get context size threshold from env var (default 1500KB ~ 1.5MB)."""
+    kb = int(os.environ.get("BRIDGE_THRESHOLD_KB", "1500"))
     return kb * 1024
 
 
@@ -23,26 +24,35 @@ def get_marker_base():
     return f"/tmp/claude-bridge-{ppid}"
 
 
-def is_context_substantial():
-    """Check if the current session transcript exceeds the threshold."""
-    threshold = get_threshold_bytes()
+def get_transcript_path(hook_input):
+    """Get transcript path from hook input, fall back to glob."""
+    # Prefer transcript_path from hook input
+    path = hook_input.get("transcript_path")
+    if path and os.path.exists(path):
+        return path
+
+    # Fall back to most recent JSONL
     home = os.path.expanduser("~")
     pattern = os.path.join(home, ".claude", "projects", "*", "*.jsonl")
     transcripts = sorted(glob.glob(pattern), key=os.path.getmtime, reverse=True)
-    if not transcripts:
+    return transcripts[0] if transcripts else None
+
+
+def is_context_critical(hook_input):
+    """Check if context is approaching auto-compaction danger zone."""
+    threshold = get_threshold_bytes()
+    transcript = get_transcript_path(hook_input)
+    if not transcript:
         return False
-    latest = transcripts[0]
     try:
-        size = os.path.getsize(latest)
-        return size >= threshold
+        return os.path.getsize(transcript) >= threshold
     except OSError:
         return False
 
 
 def main():
     try:
-        # Read hook input (required even if unused)
-        json.load(sys.stdin)
+        hook_input = json.load(sys.stdin)
 
         marker = get_marker_base()
 
@@ -56,21 +66,19 @@ def main():
             print(json.dumps({}))
             sys.exit(0)
 
-        # Check if context is substantial enough to warrant bridging
-        if not is_context_substantial():
+        # Only block when approaching auto-compaction
+        if not is_context_critical(hook_input):
             print(json.dumps({}))
             sys.exit(0)
 
         # Mark as reminded so we only ask once
         open(f"{marker}-reminded", "w").close()
 
-        # Block the stop and remind
         result = {
             "decision": "block",
             "reason": (
-                "Session has substantial context. "
-                "Run /bridge to consolidate learnings before exiting, "
-                "then /clear to start fresh."
+                "Context approaching auto-compaction. "
+                "Run /bridge now to consolidate, then /clear."
             ),
         }
         print(json.dumps(result))
