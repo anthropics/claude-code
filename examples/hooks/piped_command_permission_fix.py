@@ -13,6 +13,12 @@ This PermissionRequest hook intercepts Bash permission prompts, checks if the
 command is a simple pipeline where each segment's base command is in an allowed
 list, and auto-approves if all segments match.
 
+Allowed commands are automatically read from Bash() permission rules in:
+  ~/.claude/settings.json
+  ~/.claude/settings.local.json
+  .claude/settings.json
+  .claude/settings.local.json
+
 Installation
 ------------
 Add to your .claude/settings.json or .claude/settings.local.json:
@@ -32,77 +38,45 @@ Add to your .claude/settings.json or .claude/settings.local.json:
     ]
   }
 }
-
-Configuration
--------------
-Edit ALLOWED_PREFIXES below to match the command prefixes you have whitelisted
-in your permissions.allow rules. For example, if your settings include:
-
-  "permissions": { "allow": ["Bash(ls:*)", "Bash(awk:*)"] }
-
-Then set: ALLOWED_PREFIXES = {"ls", "awk"}
 """
 
 import json
-import shlex
+import re
 import sys
-
-# ============================================================================
-# CONFIGURE THIS: Set of command prefixes that are individually whitelisted
-# in your permissions.allow rules. Add any commands you have allowed via
-# Bash(<command>:*) rules.
-# ============================================================================
-ALLOWED_PREFIXES: set[str] = {
-    "ls",
-    "awk",
-    "grep",
-    "egrep",
-    "fgrep",
-    "cat",
-    "head",
-    "tail",
-    "sort",
-    "wc",
-    "cut",
-    "tr",
-    "sed",
-    "find",
-    "xargs",
-    "echo",
-    "printf",
-    "tee",
-    "uniq",
-    "diff",
-    "comm",
-    "paste",
-    "column",
-    "basename",
-    "dirname",
-    "realpath",
-    "stat",
-    "file",
-    "du",
-    "df",
-    "date",
-    "env",
-    "which",
-    "whoami",
-    "id",
-    "uname",
-    "strings",
-    "od",
-    "hexdump",
-    "xxd",
-    "jq",
-    "yq",
-    "rg",
-    "ag",
-    "tree",
-}
+from pathlib import Path
 
 # Characters/patterns that indicate the command is more complex than a
 # simple pipeline and should go through normal security review.
 DANGEROUS_PATTERNS = ["&&", "||", "$(", "`", ";", "<<"]
+
+# Regex to extract the command name from Bash() permission rules.
+# Matches patterns like: Bash(cmd:*), Bash(cmd:args), Bash(cmd)
+_BASH_RULE_RE = re.compile(r"^Bash\(([^:)]+)")
+
+
+def load_allowed_prefixes() -> set[str]:
+    """Load allowed command prefixes from Claude settings files."""
+    prefixes: set[str] = set()
+
+    settings_paths = [
+        Path.home() / ".claude" / "settings.json",
+        Path.home() / ".claude" / "settings.local.json",
+        Path(".claude") / "settings.json",
+        Path(".claude") / "settings.local.json",
+    ]
+
+    for path in settings_paths:
+        try:
+            data = json.loads(path.read_text())
+        except (OSError, json.JSONDecodeError):
+            continue
+
+        for rule in data.get("permissions", {}).get("allow", []):
+            m = _BASH_RULE_RE.match(rule)
+            if m:
+                prefixes.add(m.group(1))
+
+    return prefixes
 
 
 def is_simple_pipeline(command: str) -> bool:
@@ -129,7 +103,7 @@ def extract_base_command(segment: str) -> str | None:
     return None
 
 
-def all_segments_allowed(command: str) -> bool:
+def all_segments_allowed(command: str, allowed: set[str]) -> bool:
     """Check if all pipe segments have allowed base commands."""
     segments = command.split("|")
 
@@ -137,7 +111,7 @@ def all_segments_allowed(command: str) -> bool:
         base_cmd = extract_base_command(segment)
         if base_cmd is None:
             return False
-        if base_cmd not in ALLOWED_PREFIXES:
+        if base_cmd not in allowed:
             return False
 
     return True
@@ -165,8 +139,12 @@ def main():
     if not is_simple_pipeline(command):
         sys.exit(0)
 
+    allowed = load_allowed_prefixes()
+    if not allowed:
+        sys.exit(0)
+
     # Check if all pipe segments have allowed base commands
-    if all_segments_allowed(command):
+    if all_segments_allowed(command, allowed):
         # All segments are individually allowed - auto-approve
         result = {
             "hookSpecificOutput": {
