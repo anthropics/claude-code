@@ -1,5 +1,20 @@
 # Changelog
 
+## 2.1.51
+
+- Added `claude remote-control` subcommand for external builds, enabling local environment serving for all users.
+- Updated plugin marketplace default git timeout from 30s to 120s and added `CLAUDE_CODE_PLUGIN_GIT_TIMEOUT_MS` to configure.
+- Added support for custom npm registries and specific version pinning when installing plugins from npm sources
+- BashTool now skips login shell (`-l` flag) by default when a shell snapshot is available, improving command execution performance. Previously this required setting `CLAUDE_BASH_NO_LOGIN=true`.
+- Fixed a security issue where `statusLine` and `fileSuggestion` hook commands could execute without workspace trust acceptance in interactive mode.
+- Tool results larger than 50K characters are now persisted to disk (previously 100K). This reduces context window usage and improves conversation longevity.
+- Fixed a security issue where HTTP hooks could interpolate arbitrary environment variables from header values. Env var interpolation now requires an explicit `allowedEnvVars` list in the hook configuration.
+- Fixed a bug where duplicate `control_response` messages (e.g. from WebSocket reconnects) could cause API 400 errors by pushing duplicate assistant messages into the conversation.
+- Added `CLAUDE_CODE_ACCOUNT_UUID`, `CLAUDE_CODE_USER_EMAIL`, and `CLAUDE_CODE_ORGANIZATION_UUID` environment variables for SDK callers to provide account info synchronously, eliminating a race condition where early telemetry events lacked account metadata.
+- Fixed slash command autocomplete crashing when a plugin's SKILL.md description is a YAML array or other non-string type
+- HTTP hooks are now routed through the sandbox network proxy when sandboxing is enabled, enforcing the domain allowlist. HTTP hooks are not supported for SessionStart/Setup events.
+- The `/model` picker now shows human-readable labels (e.g., "Sonnet 4.5") instead of raw model IDs for pinned model versions, with an upgrade hint when a newer version is available.
+
 ## 2.1.50
 
 - Added support for `startupTimeout` configuration for LSP servers
