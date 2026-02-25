@@ -1,5 +1,5 @@
 ---
-allowed-tools: Bash(gh issue view:*), Bash(gh search:*), Bash(gh issue list:*), Bash(./scripts/comment-on-duplicates.sh:*)
+allowed-tools: Bash(./scripts/gh.sh:*), Bash(./scripts/comment-on-duplicates.sh:*)
 description: Find duplicate GitHub issues
 ---
 
@@ -18,6 +18,10 @@ To do this, follow these steps precisely:
 
 Notes (be sure to tell this to your agents, too):
 
-- Use `gh` to interact with Github, rather than web fetch
-- Do not use other tools, beyond `gh` and the comment script (eg. don't use other MCP servers, file edit, etc.)
+- Use `./scripts/gh.sh` to interact with Github, rather than web fetch or raw `gh`. Examples:
+  - `./scripts/gh.sh issue view 123` — view an issue
+  - `./scripts/gh.sh issue view 123 --comments` — view with comments
+  - `./scripts/gh.sh issue list --state open --limit 20` — list issues
+  - `./scripts/gh.sh search issues "query" --limit 10` — search for issues
+- Do not use other tools, beyond `./scripts/gh.sh` and the comment script (eg. don't use other MCP servers, file edit, etc.)
 - Make a todo list first

@@ -29,6 +29,7 @@ jobs:
         uses: anthropics/claude-code-action@v1
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           allowed_non_write_users: "*"
