@@ -16,103 +16,19 @@ jobs:
     permissions:
       contents: read
       issues: write
-      id-token: write
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Setup GitHub MCP Server
-        run: |
-          mkdir -p /tmp/mcp-config
-          cat > /tmp/mcp-config/mcp-servers.json << 'EOF'
-          {
-            "mcpServers": {
-              "github": {
-                "command": "docker",
-                "args": [
-                  "run",
-                  "-i",
-                  "--rm",
-                  "-e",
-                  "GITHUB_PERSONAL_ACCESS_TOKEN",
-                  "ghcr.io/github/github-mcp-server:sha-7aced2b"
-                ],
-                "env": {
-                  "GITHUB_PERSONAL_ACCESS_TOKEN": "${{ secrets.GITHUB_TOKEN }}"
-                }
-              }
-            }
-          }
-          EOF
 
       - name: Run Claude Code for Oncall Triage
         timeout-minutes: 10
         uses: anthropics/claude-code-action@v1
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           allowed_non_write_users: "*"
-          prompt: |
-            You're an oncall triage assistant for GitHub issues. Your task is to identify critical issues that require immediate oncall attention.
-
-            Important: Don't post any comments or messages to the issues. Your only action should be to apply the "oncall" label to qualifying issues.
-
-            Repository: ${{ github.repository }}
-
-            Task overview:
-            1. Fetch all open issues updated in the last 3 days:
-               - Use mcp__github__list_issues with:
-                 - state="open"
-                 - first=5 (fetch only 5 issues per page)
-                 - orderBy="UPDATED_AT"
-                 - direction="DESC"
-               - This will give you the most recently updated issues first
-               - For each page of results, check the updatedAt timestamp of each issue
-               - Add issues updated within the last 3 days (72 hours) to your TODO list as you go
-               - Keep paginating using the 'after' parameter until you encounter issues older than 3 days
-               - Once you hit issues older than 3 days, you can stop fetching (no need to fetch all open issues)
-
-            2. Build your TODO list incrementally as you fetch:
-               - As you fetch each page, immediately add qualifying issues to your TODO list
-               - One TODO item per issue number (e.g., "Evaluate issue #123")
-               - This allows you to start processing while still fetching more pages
-
-            3. For each issue in your TODO list:
-               - Use mcp__github__get_issue to read the issue details (title, body, labels)
-               - Use mcp__github__get_issue_comments to read all comments
-               - Evaluate whether this issue needs the oncall label:
-                 a) Is it a bug? (has "bug" label or describes bug behavior)
-                 b) Does it have at least 50 engagements? (count comments + reactions)
-                 c) Is it truly blocking? Read and understand the full content to determine:
-                    - Does this prevent core functionality from working?
-                    - Can users work around it?
-                    - Consider severity indicators: "crash", "stuck", "frozen", "hang", "unresponsive", "cannot use", "blocked", "broken"
-                    - Be conservative - only flag issues that truly prevent users from getting work done
-
-            4. For issues that meet all criteria and do not already have the "oncall" label:
-               - Use mcp__github__update_issue to add the "oncall" label
-               - Do not post any comments
-               - Do not remove any existing labels
-               - Do not remove the "oncall" label from issues that already have it
-
-            Important guidelines:
-            - Use the TODO list to track your progress through ALL candidate issues
-            - Process issues efficiently - don't read every single issue upfront, work through your TODO list systematically
-            - Be conservative in your assessment - only flag truly critical blocking issues
-            - Do not post any comments to issues
-            - Your only action should be to add the "oncall" label using mcp__github__update_issue
-            - Mark each issue as complete in your TODO list as you process it
-
-            7. After processing all issues in your TODO list, provide a summary of your actions:
-               - Total number of issues processed (candidate issues evaluated)
-               - Number of issues that received the "oncall" label
-               - For each issue that got the label: list issue number, title, and brief reason why it qualified
-               - Close calls: List any issues that almost qualified but didn't quite meet the criteria (e.g., borderline blocking, had workarounds)
-               - If no issues qualified, state that clearly
-               - Format the summary clearly for easy reading
+          prompt: "/oncall-triage-ci REPO: ${{ github.repository }}"
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          claude_args: |
-            --mcp-config /tmp/mcp-config/mcp-servers.json
-            --allowedTools "mcp__github__list_issues,mcp__github__get_issue,mcp__github__get_issue_comments,mcp__github__update_issue"
