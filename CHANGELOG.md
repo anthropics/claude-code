@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.1.55
+
+- Fixed BashTool failing on Windows with EINVAL error
+
 ## 2.1.53
 
 - Fixed a UI flicker where user input would briefly disappear after submission before the message rendered
