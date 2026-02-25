@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.1.56
+
+- VS Code: Fixed another cause of "command 'claude-vscode.editor.openLast' not found" crashes
+
 ## 2.1.55
 
 - Fixed BashTool failing on Windows with EINVAL error
