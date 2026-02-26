@@ -9,6 +9,7 @@
 - Improved memory usage in multi-agent sessions by releasing completed subagent task state
 - Fixed MCP OAuth token refresh race condition when running multiple Claude Code instances simultaneously
 - Fixed shell commands not showing a clear error message when the working directory has been deleted
+- Fixed config file corruption that could wipe authentication when multiple Claude Code instances ran simultaneously
 
 ## 2.1.58
 
