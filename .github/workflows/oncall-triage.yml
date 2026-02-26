@@ -12,7 +12,7 @@ on:
 jobs:
   oncall-triage:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     permissions:
       contents: read
       issues: write
@@ -22,7 +22,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run Claude Code for Oncall Triage
-        timeout-minutes: 10
+        timeout-minutes: 20
         uses: anthropics/claude-code-action@v1
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
