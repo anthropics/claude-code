@@ -1,0 +1,8 @@
+{
+  "name": "timestamp-context",
+  "version": "1.0.0",
+  "description": "Injects the current local time into conversation context on every message, giving Claude accurate temporal awareness",
+  "author": {
+    "name": "NoRain211"
+  }
+}
