@@ -1,14 +1,23 @@
 # Claude Code Plugin Repository
 
-This is Anthropic's official open-source plugin repository for Claude Code. It is a collection of example plugins, configuration templates, and GitHub automation scripts — not a traditional application. There is no root-level `package.json`, no build step, and no application entry point.
+**This repository does not contain the Claude Code CLI source code.** The CLI is
+closed-source, distributed as prebuilt binaries via `curl`, `brew`, `winget`, and
+(deprecated) npm. This repo exists to host the plugin ecosystem, example
+configurations, the changelog, the issue tracker, and the security policy.
+
+The actual contents are example plugins, configuration templates, and GitHub
+automation scripts. There is no root-level `package.json`, no build step, and no
+application entry point.
 
 ## Repository Layout
 
-```
-plugins/           # 13 example plugins (the core of this repo)
-scripts/           # GitHub issue automation (Bun/TypeScript)
-examples/settings/ # Claude Code settings templates (lax, strict, sandboxed)
-.claude-plugin/    # Marketplace manifest (marketplace.json)
+```text
+plugins/             13 example plugins (the core of this repo)
+scripts/             GitHub issue automation (Bun/TypeScript)
+examples/settings/   Claude Code settings templates (lax, strict, sandboxed)
+.claude-plugin/      Marketplace manifest (marketplace.json)
+Script/              DevContainer helper (PowerShell)
+CHANGELOG.md         Release notes for the closed-source CLI
 ```
 
 ## Plugin Architecture
@@ -20,13 +29,13 @@ Plugins combine four composable abstractions:
 | **Commands** | `commands/*.md` | YAML frontmatter + markdown body | User types `/command-name` |
 | **Agents** | `agents/*.md` | YAML frontmatter + system prompt | Auto-matched via `<example>` blocks in description |
 | **Skills** | `skills/skill-name/SKILL.md` | YAML frontmatter + progressive disclosure | Auto-loaded when trigger phrases appear |
-| **Hooks** | `hooks/hooks.json` + scripts | JSON config pointing to executables | Fired on events (PreToolUse, PostToolUse, SessionStart, Stop, etc.) |
+| **Hooks** | `hooks/hooks.json` + scripts | JSON config pointing to executables | Fired on events: PreToolUse, PostToolUse, SessionStart, SessionEnd, Stop, SubagentStop, UserPromptSubmit, PreCompact, Notification |
 
 All abstractions are optional — a plugin can contain any combination.
 
 ## Standard Plugin Structure
 
-```
+```text
 plugin-name/
 ├── .claude-plugin/
 │   └── plugin.json          # name, description, version, author
@@ -81,15 +90,19 @@ Use `${CLAUDE_PLUGIN_ROOT}` in `hooks.json` for portable paths to scripts.
 
 ### Tool Restrictions
 
-Commands restrict available tools via `allowed-tools` frontmatter. Supports patterns: `Bash(git commit:*)` allows only git commit subcommands.
+Commands restrict available tools via `allowed-tools` frontmatter. Supports
+patterns like `Bash(git commit:*)` to allow only specific subcommands.
 
 ## Scripts
 
-GitHub automation in `scripts/` uses **Bun** (`#!/usr/bin/env bun`):
+GitHub issue automation in `scripts/` uses **Bun** (`#!/usr/bin/env bun`):
 
 - `sweep.ts` — Issue lifecycle automation
 - `auto-close-duplicates.ts` — Duplicate issue management
 - `issue-lifecycle.ts` — Issue state transitions
+- `lifecycle-comment.ts` — Comment templates
+- `backfill-duplicate-comments.ts` — Backfill comments on duplicates
+- `comment-on-duplicates.sh` — Shell wrapper for duplicate commenting
 
 ## Configuration Examples
 
