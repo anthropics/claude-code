@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.1.62
+
+- Fixed prompt suggestion cache regression that reduced cache hit rates
+
 ## 2.1.61
 
 - Fixed concurrent writes corrupting config file on Windows
