@@ -14,17 +14,17 @@ TOOLS:
   - `./scripts/gh.sh issue list --state open --label bug --limit 100` — list open bugs
   - `./scripts/gh.sh issue view 123` — view issue details
   - `./scripts/gh.sh issue view 123 --comments` — view with comments
-  - `./scripts/gh.sh search issues "query" --limit 10` — search for issues
+  - `./scripts/gh.sh search issues "query" --limit 1000` — search for issues
 - `./scripts/edit-issue-labels.sh --issue NUMBER --add-label LABEL` — add labels to an issue
 
 Task overview:
 
 1. Fetch all open issues updated in the last 3 days:
-   - Use `./scripts/gh.sh issue list --state open --limit 100` to get issues
-   - This will give you the most recently updated issues first
-   - For each page of results, check the updatedAt timestamp of each issue
-   - Add issues updated within the last 3 days (72 hours) to your TODO list as you go
-   - Once you hit issues older than 3 days, you can stop fetching
+   - Do NOT rely on `issue list` ordering for recency.
+   - Use GitHub search with explicit sorting:
+     - `./scripts/gh.sh search issues "is:issue is:open sort:updated-desc updated:>=YYYY-MM-DD" --limit 1000`
+   - Replace `YYYY-MM-DD` with the UTC date for 3 days ago.
+   - Build your candidate set from this search result.
 
 2. Build your TODO list incrementally as you fetch:
    - As you fetch each page, immediately add qualifying issues to your TODO list
@@ -36,7 +36,9 @@ Task overview:
    - Use `./scripts/gh.sh issue view <number> --comments` to read all comments
    - Evaluate whether this issue needs the oncall label:
      a) Is it a bug? (has "bug" label or describes bug behavior)
-     b) Does it have at least 50 engagements? (count comments + reactions)
+     b) Does it have at least 50 engagements?
+        - Engagement = issue-level reactions + number of comments + comment-level reactions.
+        - Count all user engagement, not just comments on bot messages.
      c) Is it truly blocking? Read and understand the full content to determine:
         - Does this prevent core functionality from working?
         - Can users work around it?
