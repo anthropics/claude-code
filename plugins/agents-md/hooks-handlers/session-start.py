@@ -19,12 +19,13 @@ import os
 import sys
 
 MAX_CONTENT_LENGTH = 40000
+MAX_ANCESTOR_DEPTH = 20
 
 
 def _is_regular_file(path):
-    """Check if path is a regular file, not a symlink."""
+    """Check if path is a regular file (follows symlinks, matching CLAUDE.md behavior)."""
     try:
-        return os.path.isfile(path) and not os.path.islink(path)
+        return os.path.isfile(path)
     except OSError:
         return False
 
@@ -32,11 +33,12 @@ def _is_regular_file(path):
 def get_cwd():
     """Extract CWD from hook input or environment."""
     try:
-        hook_input = json.load(sys.stdin)
-        cwd = hook_input.get("cwd", "")
-        if cwd and os.path.isabs(cwd):
-            return cwd
-    except (json.JSONDecodeError, OSError):
+        if not sys.stdin.isatty():
+            hook_input = json.load(sys.stdin)
+            cwd = hook_input.get("cwd", "")
+            if cwd and os.path.isabs(cwd):
+                return cwd
+    except (json.JSONDecodeError, OSError, ValueError):
         pass
     try:
         return os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd()
@@ -88,6 +90,8 @@ def collect_ancestors(cwd):
             break
         d = parent
     dirs.reverse()
+    if len(dirs) > MAX_ANCESTOR_DEPTH:
+        dirs = dirs[:1] + dirs[-(MAX_ANCESTOR_DEPTH - 1):]
     return dirs
 
 
@@ -126,9 +130,13 @@ def main():
             }
         }
         print(json.dumps(output))
-    except Exception:
-        pass
+    except Exception as e:
+        try:
+            print(json.dumps({"systemMessage": f"agents-md plugin error: {e}"}))
+        except Exception:
+            pass
 
 
 if __name__ == "__main__":
     main()
+    sys.exit(0)
