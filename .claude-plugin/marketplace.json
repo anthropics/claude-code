@@ -136,6 +136,17 @@
       "category": "development"
     },
     {
+      "name": "push-guardrails",
+      "description": "Guardrails to prevent accidental exposure of private code to public repositories. Checks repo visibility before push, detects sensitive files before commit, and warns about fork visibility.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Yohei Demachi",
+        "email": "yohei.demachi@example.com"
+      },
+      "source": "./plugins/push-guardrails",
+      "category": "security"
+    },
+    {
       "name": "security-guidance",
       "description": "Security reminder hook that warns about potential security issues when editing files, including command injection, XSS, and unsafe code patterns",
       "version": "1.0.0",
