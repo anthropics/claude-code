@@ -1,0 +1,62 @@
+# agents-md plugin for Claude Code
+
+Adds [AGENTS.md](https://github.com/anthropics/claude-code/issues/6235) support to Claude Code, enabling cross-tool compatibility with Codex, Cursor, Amp, and other AI coding tools that use the `AGENTS.md` standard.
+
+## Problem
+
+Over 20,000 open-source repositories use `AGENTS.md` to provide instructions to AI coding assistants. Claude Code only reads `CLAUDE.md` files, which means it ignores project-level AI instructions when working on these repositories.
+
+See: [anthropics/claude-code#6235](https://github.com/anthropics/claude-code/issues/6235) (2,900+ upvotes)
+
+## How it works
+
+This plugin uses a `SessionStart` hook to detect and load `AGENTS.md` files as a fallback:
+
+1. On session start, the hook walks from the project root up to the filesystem root
+2. At each directory level, it checks for `CLAUDE.md` (or `.claude/CLAUDE.md`)
+3. If `CLAUDE.md` exists at that level, `AGENTS.md` is **skipped** (CLAUDE.md takes priority)
+4. If only `AGENTS.md` exists, its content is loaded into Claude's context via `additionalContext`
+
+This mirrors Claude Code's native CLAUDE.md loading order (root-first) and respects the priority hierarchy: if a project has both files, `CLAUDE.md` wins.
+
+### Lookup locations
+
+For each directory from root to CWD:
+- `<dir>/AGENTS.md`
+- `<dir>/.claude/AGENTS.md`
+
+### Behavior matrix
+
+| CLAUDE.md exists | AGENTS.md exists | Result |
+|:---:|:---:|---|
+| Yes | Yes | Only CLAUDE.md is used (native behavior) |
+| Yes | No | Only CLAUDE.md is used (native behavior) |
+| No | Yes | **AGENTS.md is loaded by this plugin** |
+| No | No | Nothing loaded |
+
+## Installation
+
+Copy or symlink this plugin directory into your Claude Code plugins location:
+
+```bash
+# Option 1: Clone into your project's .claude/plugins/
+cp -r agents-md-plugin /path/to/project/.claude/plugins/agents-md
+
+# Option 2: Symlink for global use
+ln -s /path/to/agents-md-plugin ~/.claude/plugins/agents-md
+```
+
+## Requirements
+
+- Claude Code v2.1+
+- `bash` and `python3` available in PATH
+
+## Limitations
+
+- Content is injected via `additionalContext`, not through the native CLAUDE.md pipeline. This means it won't appear in `/memory` views or support `@include` syntax.
+- The `AGENTS.md` content does not support Claude Code's frontmatter `paths:` conditional rules.
+- Maximum content size is capped at 40,000 characters (matching CLAUDE.md's warning threshold).
+
+## License
+
+MIT
