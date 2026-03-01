@@ -21,16 +21,27 @@ import sys
 MAX_CONTENT_LENGTH = 40000
 
 
+def _is_regular_file(path):
+    """Check if path is a regular file, not a symlink."""
+    try:
+        return os.path.isfile(path) and not os.path.islink(path)
+    except OSError:
+        return False
+
+
 def get_cwd():
     """Extract CWD from hook input or environment."""
     try:
         hook_input = json.load(sys.stdin)
         cwd = hook_input.get("cwd", "")
-        if cwd:
+        if cwd and os.path.isabs(cwd):
             return cwd
     except (json.JSONDecodeError, OSError):
         pass
-    return os.environ.get("CLAUDE_PROJECT_DIR", os.getcwd())
+    try:
+        return os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd()
+    except OSError:
+        return "/"
 
 
 def has_claude_md(directory):
@@ -40,7 +51,7 @@ def has_claude_md(directory):
         os.path.join(directory, ".claude", "CLAUDE.md"),
         os.path.join(directory, "CLAUDE.local.md"),
     ]
-    return any(os.path.isfile(p) for p in paths)
+    return any(_is_regular_file(p) for p in paths)
 
 
 def read_agents_md(directory):
@@ -51,11 +62,14 @@ def read_agents_md(directory):
     ]
     results = []
     for path in candidates:
-        if not os.path.isfile(path):
+        if not _is_regular_file(path):
             continue
         try:
+            file_size = os.path.getsize(path)
+            if file_size > MAX_CONTENT_LENGTH:
+                continue
             with open(path, "r", encoding="utf-8", errors="replace") as f:
-                content = f.read().strip()
+                content = f.read(MAX_CONTENT_LENGTH).strip()
             if content:
                 results.append((path, content))
         except OSError:
@@ -78,38 +92,42 @@ def collect_ancestors(cwd):
 
 
 def main():
-    cwd = get_cwd()
-    ancestors = collect_ancestors(cwd)
+    try:
+        cwd = get_cwd()
+        ancestors = collect_ancestors(cwd)
 
-    sections = []
-    for directory in ancestors:
-        if has_claude_md(directory):
-            continue
-        for path, content in read_agents_md(directory):
-            label = (
-                f"Contents of {path} "
-                f"(project instructions from AGENTS.md, loaded by agents-md plugin):"
+        sections = []
+        for directory in ancestors:
+            if has_claude_md(directory):
+                continue
+            for path, content in read_agents_md(directory):
+                label = (
+                    f"Contents of {path} "
+                    f"(project instructions from AGENTS.md, "
+                    f"loaded by agents-md plugin):"
+                )
+                sections.append(f"{label}\n\n{content}")
+
+        if not sections:
+            return
+
+        collected = "\n\n".join(sections)
+
+        if len(collected) > MAX_CONTENT_LENGTH:
+            collected = (
+                collected[:MAX_CONTENT_LENGTH]
+                + "\n\n... [AGENTS.md content truncated]"
             )
-            sections.append(f"{label}\n\n{content}")
 
-    if not sections:
-        sys.exit(0)
-
-    collected = "\n\n".join(sections)
-
-    if len(collected) > MAX_CONTENT_LENGTH:
-        collected = (
-            collected[:MAX_CONTENT_LENGTH]
-            + f"\n\n... [AGENTS.md content truncated at {MAX_CONTENT_LENGTH} characters]"
-        )
-
-    output = {
-        "hookSpecificOutput": {
-            "hookEventName": "SessionStart",
-            "additionalContext": collected,
+        output = {
+            "hookSpecificOutput": {
+                "hookEventName": "SessionStart",
+                "additionalContext": collected,
+            }
         }
-    }
-    print(json.dumps(output))
+        print(json.dumps(output))
+    except Exception:
+        pass
 
 
 if __name__ == "__main__":
