@@ -140,8 +140,7 @@
       "description": "Guardrails to prevent accidental exposure of private code to public repositories. Checks repo visibility before push, detects sensitive files before commit, and warns about fork visibility.",
       "version": "1.0.0",
       "author": {
-        "name": "Yohei Demachi",
-        "email": "yohei.demachi@example.com"
+        "name": "Yohei Demachi"
       },
       "source": "./plugins/push-guardrails",
       "category": "security"

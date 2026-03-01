@@ -10,16 +10,19 @@ Prevents accidental exposure of private code to public repositories by:
 Addresses: https://github.com/anthropics/claude-code/issues/29225
 """
 
+import fcntl
+import hashlib
 import json
 import os
-import random
 import re
 import subprocess
 import sys
 from datetime import datetime
 
-# Debug log file
-DEBUG_LOG_FILE = "/tmp/push-guardrails-log.txt"
+# Debug log file (user-specific to avoid conflicts in multi-user environments)
+DEBUG_LOG_FILE = os.path.join(
+    os.path.expanduser("~"), ".claude", "push-guardrails-debug.log"
+)
 
 
 def debug_log(message):
@@ -34,26 +37,32 @@ def debug_log(message):
 
 # --- Command detection patterns ---
 
+# Optional prefix: env vars (FOO=bar), `env`, `command`, `builtin`
+_CMD_PREFIX = r"(?:(?:\w+=\S*\s+)*(?:env\s+|command\s+|builtin\s+)*)"
+# Optional git global options like -C /path, -c key=val, --git-dir=...
+_GIT_OPTS = r"(?:\s+(?:-[Cc]\s+\S+|--git-dir[=\s]\S+|--work-tree[=\s]\S+))*"
+
 # Commands that push code to remote (need repo visibility check)
 PUSH_PATTERNS = [
-    re.compile(r"\bgit\s+push\b"),
-    re.compile(r"\bgh\s+pr\s+create\b"),
+    re.compile(_CMD_PREFIX + r"\bgit" + _GIT_OPTS + r"\s+push\b"),
+    re.compile(_CMD_PREFIX + r"\bgh\s+pr\s+create\b"),
 ]
 
 # Commands that stage/commit code (need sensitive file check)
 COMMIT_PATTERNS = [
-    re.compile(r"\bgit\s+commit\b"),
+    re.compile(_CMD_PREFIX + r"\bgit" + _GIT_OPTS + r"\s+commit\b"),
 ]
 
 # Broad git add patterns (git add . / git add -A / git add --all)
 ADD_BROAD_PATTERNS = [
-    re.compile(r"\bgit\s+add\s+(-A|--all|\.)\s*$"),
-    re.compile(r"\bgit\s+add\s+(-A|--all|\.)\s*(&|;|\|)"),
+    re.compile(_CMD_PREFIX + r"\bgit" + _GIT_OPTS + r"\s+add\s+(-A|--all|\.)(\s|$|&|;|\|)"),
 ]
 
 # Quick skip: commands that are definitely not git-related
+# Only matches when the very first token is a known non-git command
 SKIP_PATTERN = re.compile(
-    r"^\s*(ls|pwd|echo|cat|head|tail|grep|rg|find|mkdir|cd|npm|npx|pip|python|"
+    r"^\s*(?:\w+=\S*\s+)*"
+    r"(ls|pwd|echo|cat|head|tail|grep|rg|find|mkdir|cd|npm|npx|pip|python|"
     r"python3|node|cargo|make|curl|wget|which|type|touch|cp|mv|rm|chmod|chown|"
     r"date|whoami|hostname|uname|df|du|ps|kill|top|htop|brew|apt|yum|dnf)\b"
 )
@@ -105,11 +114,19 @@ def get_state_file(session_id):
 
 
 def cleanup_old_state_files():
-    """Remove state files older than 7 days."""
+    """Remove state files older than 7 days. Runs at most once per day."""
     try:
         state_dir = os.path.expanduser("~/.claude")
         if not os.path.exists(state_dir):
             return
+
+        # Check if cleanup ran recently (within the last 24 hours)
+        marker = os.path.join(state_dir, ".push_guardrails_last_cleanup")
+        if os.path.exists(marker):
+            last_cleanup = os.path.getmtime(marker)
+            if datetime.now().timestamp() - last_cleanup < 86400:
+                return
+
         current_time = datetime.now().timestamp()
         seven_days_ago = current_time - (7 * 24 * 60 * 60)
         for filename in os.listdir(state_dir):
@@ -122,6 +139,10 @@ def cleanup_old_state_files():
                         os.remove(file_path)
                 except (OSError, IOError):
                     pass
+
+        # Update marker
+        with open(marker, "w") as f:
+            f.write("")
     except Exception:
         pass
 
@@ -132,7 +153,11 @@ def load_state(session_id):
     if os.path.exists(state_file):
         try:
             with open(state_file, "r") as f:
-                return set(json.load(f))
+                fcntl.flock(f, fcntl.LOCK_SH)
+                try:
+                    return set(json.load(f))
+                finally:
+                    fcntl.flock(f, fcntl.LOCK_UN)
         except (json.JSONDecodeError, IOError):
             return set()
     return set()
@@ -144,7 +169,11 @@ def save_state(session_id, shown_warnings):
     try:
         os.makedirs(os.path.dirname(state_file), exist_ok=True)
         with open(state_file, "w") as f:
-            json.dump(list(shown_warnings), f)
+            fcntl.flock(f, fcntl.LOCK_EX)
+            try:
+                json.dump(list(shown_warnings), f)
+            finally:
+                fcntl.flock(f, fcntl.LOCK_UN)
     except IOError as e:
         debug_log(f"Failed to save state file: {e}")
 
@@ -307,8 +336,14 @@ def handle_push_command(command, session_id):
     if visibility != "public" and not is_fork:
         sys.exit(0)
 
-    # Session-based dedup
-    warning_key = f"push-{repo_name}"
+    # Get files early so we can include them in the dedup key
+    files_to_push = get_unpushed_files()
+    files_hash = hashlib.sha256(
+        ",".join(sorted(files_to_push)).encode()
+    ).hexdigest()[:12]
+
+    # Session-based dedup (includes file hash so new files trigger re-warning)
+    warning_key = f"push-{repo_name}-{files_hash}"
     shown_warnings = load_state(session_id)
     if warning_key in shown_warnings:
         sys.exit(0)
@@ -341,26 +376,24 @@ def handle_push_command(command, session_id):
         )
 
     # Check 3: List files that will be exposed
-    if warnings:
-        files_to_push = get_unpushed_files()
-        if files_to_push:
-            sensitive_files = detect_sensitive_files(files_to_push)
+    if warnings and files_to_push:
+        sensitive_files = detect_sensitive_files(files_to_push)
 
-            file_summary = "\n".join(f"    - {f}" for f in files_to_push[:20])
-            if len(files_to_push) > 20:
-                file_summary += f"\n    ... and {len(files_to_push) - 20} more files"
+        file_summary = "\n".join(f"    - {f}" for f in files_to_push[:20])
+        if len(files_to_push) > 20:
+            file_summary += f"\n    ... and {len(files_to_push) - 20} more files"
 
-            warnings.append(
-                f"FILES TO BE PUSHED ({len(files_to_push)} files):\n{file_summary}"
+        warnings.append(
+            f"FILES TO BE PUSHED ({len(files_to_push)} files):\n{file_summary}"
+        )
+
+        if sensitive_files:
+            sensitive_summary = "\n".join(
+                f"    - {f}" for f in sensitive_files
             )
-
-            if sensitive_files:
-                sensitive_summary = "\n".join(
-                    f"    - {f}" for f in sensitive_files
-                )
-                warnings.append(
-                    "SENSITIVE FILES DETECTED in push:\n" + sensitive_summary
-                )
+            warnings.append(
+                "SENSITIVE FILES DETECTED in push:\n" + sensitive_summary
+            )
 
     if warnings:
         shown_warnings.add(warning_key)
@@ -493,9 +526,8 @@ def main():
     if os.environ.get("PUSH_GUARDRAILS_DISABLED", "0") == "1":
         sys.exit(0)
 
-    # Periodically clean up old state files (10% chance per run)
-    if random.random() < 0.1:
-        cleanup_old_state_files()
+    # Clean up old state files (runs at most once per day)
+    cleanup_old_state_files()
 
     # Read input from stdin
     try:

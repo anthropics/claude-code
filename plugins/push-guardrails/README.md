@@ -75,7 +75,7 @@ export PUSH_GUARDRAILS_DISABLED=1
 
 ### Debug logging
 
-Debug logs are written to `/tmp/push-guardrails-log.txt`.
+Debug logs are written to `~/.claude/push-guardrails-debug.log`.
 
 ## Requirements
 
