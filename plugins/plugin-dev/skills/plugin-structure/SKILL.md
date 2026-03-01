@@ -193,6 +193,8 @@ version: 1.0.0
 Skill instructions and guidance...
 ```
 
+> **Note:** The `name` field is used as the slash command trigger (e.g., `name: skill-name` triggers via `/skill-name`). Always use lowercase hyphenated format, not title case with spaces.
+
 **Supporting files**: Skills can include scripts, references, examples, or assets in subdirectories
 
 **Usage**: Claude Code autonomously activates skills based on task context matching the description
