@@ -6,7 +6,7 @@ This directory contains some official Claude Code plugins that extend functional
 
 Claude Code plugins are extensions that enhance Claude Code with custom slash commands, specialized agents, hooks, and MCP servers. Plugins can be shared across projects and teams, providing consistent tooling and workflows.
 
-Learn more in the [official plugins documentation](https://docs.claude.com/en/docs/claude-code/plugins).
+Learn more in the [official plugins documentation](https://code.claude.com/docs/en/plugins).
 
 ## Plugins in This Directory
 
@@ -30,9 +30,13 @@ Learn more in the [official plugins documentation](https://docs.claude.com/en/do
 
 These plugins are included in the Claude Code repository. To use them in your own projects:
 
-1. Install Claude Code globally:
+1. Install Claude Code using one of the [recommended methods](https://code.claude.com/docs/en/setup):
 ```bash
-npm install -g @anthropic-ai/claude-code
+# macOS/Linux
+curl -fsSL https://claude.ai/install.sh | bash
+
+# or via Homebrew
+brew install --cask claude-code
 ```
 
 2. Navigate to your project and run Claude Code:
@@ -42,7 +46,7 @@ claude
 
 3. Use the `/plugin` command to install plugins from marketplaces, or configure them in your project's `.claude/settings.json`.
 
-For detailed plugin installation and configuration, see the [official documentation](https://docs.claude.com/en/docs/claude-code/plugins).
+For detailed plugin installation and configuration, see the [official documentation](https://code.claude.com/docs/en/plugins).
 
 ## Plugin Structure
 
@@ -72,6 +76,6 @@ When adding new plugins to this directory:
 
 ## Learn More
 
-- [Claude Code Documentation](https://docs.claude.com/en/docs/claude-code/overview)
-- [Plugin System Documentation](https://docs.claude.com/en/docs/claude-code/plugins)
-- [Agent SDK Documentation](https://docs.claude.com/en/api/agent-sdk/overview)
+- [Claude Code Documentation](https://code.claude.com/docs/en/overview)
+- [Plugin System Documentation](https://code.claude.com/docs/en/plugins)
+- [Agent SDK Documentation](https://code.claude.com/api/en/agent-sdk/overview)

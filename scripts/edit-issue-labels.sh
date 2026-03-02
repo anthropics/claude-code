@@ -26,6 +26,7 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     *)
+      echo "Error: unknown option '$1'" >&2
       exit 1
       ;;
   esac
@@ -33,14 +34,17 @@ done
 
 # Validate issue number
 if [[ -z "$ISSUE" ]]; then
+  echo "Error: --issue is required" >&2
   exit 1
 fi
 
 if ! [[ "$ISSUE" =~ ^[0-9]+$ ]]; then
+  echo "Error: --issue must be a number, got: $ISSUE" >&2
   exit 1
 fi
 
 if [[ ${#ADD_LABELS[@]} -eq 0 && ${#REMOVE_LABELS[@]} -eq 0 ]]; then
+  echo "Error: at least one --add-label or --remove-label is required" >&2
   exit 1
 fi
 

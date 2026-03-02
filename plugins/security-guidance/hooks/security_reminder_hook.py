@@ -204,11 +204,16 @@ def extract_content_from_input(tool_name, tool_input):
     if tool_name == "Write":
         return tool_input.get("content", "")
     elif tool_name == "Edit":
-        return tool_input.get("new_string", "")
+        # Support both "new_string" and "new_text" field names
+        return tool_input.get("new_string", "") or tool_input.get("new_text", "")
     elif tool_name == "MultiEdit":
         edits = tool_input.get("edits", [])
         if edits:
-            return " ".join(edit.get("new_string", "") for edit in edits)
+            # Support both "new_string" and "new_text" field names
+            return " ".join(
+                edit.get("new_string", "") or edit.get("new_text", "")
+                for edit in edits
+            )
         return ""
 
     return ""
