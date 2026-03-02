@@ -154,7 +154,7 @@ description: Complete plugin workflow
 allowed-tools: Bash(*), Read
 ---
 
-Step 1 - Prepare: !`bash ${CLAUDE_PLUGIN_ROOT}/scripts/prepare.sh $1`
+Step 1 - Prepare: !`bash "${CLAUDE_PLUGIN_ROOT}/scripts/prepare.sh" $1`
 Step 2 - Config: @${CLAUDE_PLUGIN_ROOT}/config/$1.json
 Step 3 - Execute: !`${CLAUDE_PLUGIN_ROOT}/bin/execute $1`
 
@@ -179,7 +179,7 @@ Review results and report status.
    allowed-tools: Bash(test:*), Read
    ---
 
-   !`test -f ${CLAUDE_PLUGIN_ROOT}/config.json && echo "exists" || echo "missing"`
+   !`test -f "${CLAUDE_PLUGIN_ROOT}/config.json" && echo "exists" || echo "missing"`
 
    If config exists, load it: @${CLAUDE_PLUGIN_ROOT}/config.json
    Otherwise, use defaults...
@@ -198,7 +198,7 @@ Review results and report status.
 
 4. **Combine with arguments:**
    ```markdown
-   Run: !`${CLAUDE_PLUGIN_ROOT}/bin/process.sh $1 $2`
+   Run: !`bash "${CLAUDE_PLUGIN_ROOT}/bin/process.sh" $1 $2`
    ```
 
 ### Troubleshooting
@@ -274,9 +274,9 @@ description: Complete build and test workflow
 allowed-tools: Bash(*)
 ---
 
-Build: !`bash ${CLAUDE_PLUGIN_ROOT}/scripts/build.sh`
-Validate: !`bash ${CLAUDE_PLUGIN_ROOT}/scripts/validate.sh`
-Test: !`bash ${CLAUDE_PLUGIN_ROOT}/scripts/test.sh`
+Build: !`bash "${CLAUDE_PLUGIN_ROOT}/scripts/build.sh"`
+Validate: !`bash "${CLAUDE_PLUGIN_ROOT}/scripts/validate.sh"`
+Test: !`bash "${CLAUDE_PLUGIN_ROOT}/scripts/test.sh"`
 
 Review all outputs and report:
 1. Build status
@@ -528,7 +528,7 @@ description: Build and validate output
 allowed-tools: Bash(*)
 ---
 
-Build: !`bash ${CLAUDE_PLUGIN_ROOT}/scripts/build.sh`
+Build: !`bash "${CLAUDE_PLUGIN_ROOT}/scripts/build.sh"`
 
 Validate output:
 - Exit code: !`echo $?`
