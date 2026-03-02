@@ -1,217 +1,188 @@
 # Remote Control Troubleshooting Guide
 
-> **Last updated:** 2026-03-02  
+> **Last updated:** 2026-03-02
 > **Tracks issues:** #28817, #28816, #29037, #29185, #29449, #29638, #29980 and related
 
 ## Overview
 
-This guide addresses the widespread `Remote Control environments are not available for your account` and `Remote Control is not yet available on your plan` errors reported by Claude Pro and Max plan users when running `claude remote-control`.
+This guide addresses the widespread `Remote Control environments are not available for your account` and `Remote Control is not yet available on your plan` errors reported by Claude Code users when running `claude remote-control`.
 
 ---
 
-## Current Rollout Status
+## Current Plan Eligibility (IMPORTANT)
 
-> **Important:** Remote Control is a **research preview feature** undergoing a **phased rollout**.
+> **As of March 2026, Remote Control is available for Max plan only.**
+> Pro plan support is listed as "coming soon" in the official docs.
+> API keys are not supported.
 
-| Plan | Status |
-|------|--------|
-| **Max** | Generally available (rolling out to all Max users) |
-| **Pro** | **Rollout in progress** — not yet available for all Pro accounts |
-| **Team** | Not available |
-| **Enterprise** | Not available |
-| **API key** | Not supported |
+Source: https://code.claude.com/docs/en/remote-control
 
-The documentation at `code.claude.com/docs/en/remote-control` contains two statements that appear contradictory:
+| Plan | Remote Control Status |
+|------|----------------------|
+| Max ($100-$200/mo) | Available (research preview) |
+| Pro ($20/mo) | Coming soon — NOT yet available |
+| Team / Enterprise | Not available |
+| API Key | Not supported |
 
-- _"Remote Control is available as a research preview on Max and Pro plans."_ (feature overview section)
-- _"Subscription: requires a Max plan. Pro plan support is coming soon."_ (requirements section)
-
-The **requirements section is the authoritative, current status**. Pro plan availability is actively being rolled out but is not yet available to all accounts. This documentation inconsistency is tracked in issue #28817 (assigned to the Anthropic docs team).
+**If you are on Pro plan:** The error `Remote Control environments are not available for your account` is expected and is a server-side restriction, not a local configuration issue. No local fix will resolve this. See workarounds below.
 
 ---
 
-## Error Messages & What They Mean
+## Error Messages Explained
 
 ### 1. `Remote Control environments are not available for your account.`
-**Cause:** Your account has not yet been included in the Pro rollout, OR there is a session/config state issue.  
-**Platform:** All platforms (Windows, macOS, Linux)
+- **Meaning:** Your account tier does not have the Remote Control feature flag enabled server-side.
+- **Who sees this:** Pro plan users (feature not yet rolled out), and occasionally Max users during rollout.
+- **Fix:** If on Pro plan — wait for rollout or upgrade to Max. If on Max — see troubleshooting steps below.
 
-### 2. `Remote Control is not yet available on your plan.`  
-**Cause:** Your plan (Pro or earlier) has not been enabled for Remote Control yet.  
-**Platform:** All platforms
+### 2. `Remote Control is not yet available on your plan`
+- **Meaning:** Same as above — the backend eligibility check returned ineligible.
+- **Fix:** Same as above.
 
-### 3. `Remote Control is not enabled for your account. Contact your administrator.`  
-**Cause:** Account-level flag not set. Common on enterprise-adjacent accounts.  
-**Platform:** All platforms
+### 3. `Remote Control Failed.`
+- **Meaning:** The remote environment was provisioned but failed to connect (network/firewall issue).
+- **Fix:** Check firewall settings; ensure outbound connections to `*.claude.ai` on port 443 are allowed.
 
-### 4. `Subscription: requires a Pro or Max plan. API keys are not supported.`  
-**Cause:** You are authenticated via an API key instead of claude.ai account login.  
-**Fix:** Log out and log back in using `/login` (claude.ai account, not API key)
+### 4. `Error: Remote Control is not enabled for your account. Contact your administrator.`
+- **Meaning:** Team/Enterprise account where the admin has not enabled the feature.
+- **Fix:** Contact your workspace admin or Claude Code administrator.
 
 ---
 
-## Troubleshooting Steps
+## Known UX Bugs (for Anthropic team)
 
-Try these steps in order before concluding your account lacks access.
+These are confirmed UX bugs that need fixing regardless of plan rollout:
 
-### Step 1 — Verify authentication method
+### Bug 1: Prompt shown before eligibility check
+The CLI shows `Enable Remote Control? (y/n)` to **all users including ineligible ones** before checking whether their account supports the feature. The eligibility check only happens after the user answers `y`. This is a misleading UX.
 
-Remote Control **only works with claude.ai account login**, not API keys.
+**Expected behavior:** Check eligibility first. If ineligible, skip the prompt and show:
+```
+Remote Control requires a Max plan subscription.
+Pro plan support is coming soon.
+Visit https://claude.ai/upgrade for plan details.
+```
 
+### Bug 2: Failed state cached as preference
+After the first failed attempt, the CLI caches the state and skips the prompt on subsequent runs — but still attempts to provision and fails. The cached failed state should not persist; users should be re-prompted after an account upgrade.
+
+### Bug 3: Error message is vague
+The current error message does not tell users:
+- Whether this is a plan tier restriction or a temporary outage
+- What plan they need
+- When Pro support is coming
+- Where to get more information
+
+---
+
+## Troubleshooting Steps (Max Plan Users)
+
+If you are on Max plan and still seeing the error:
+
+### Step 1: Verify authentication method
 ```bash
 claude auth status
 ```
+Ensure output shows `claude.ai` account authentication, **not** API key. Remote Control does not work with API keys.
 
-If it shows `API key` authentication, switch to account-based auth:
-
-```bash
-claude auth logout
-claude auth login
-# Select the claude.ai account option (not API key)
-```
-
-### Step 2 — Check for conflicting environment variables
-
-Ensure `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` is not set:
-
-**Linux/macOS:**
+### Step 2: Check for conflicting environment variables
 ```bash
 unset CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC
-claude remote-control
+unset DISABLE_TELEMETRY
 ```
+Then retry `claude remote-control`.
 
-**Windows PowerShell:**
-```powershell
-$env:CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC = $null
-claude remote-control
-```
-
-Also check that `ANTHROPIC_API_KEY` is NOT set if you intend to use claude.ai account auth:
+### Step 3: Update to the latest version
 ```bash
-# Linux/macOS
-unset ANTHROPIC_API_KEY
-
-# Windows PowerShell
-$env:ANTHROPIC_API_KEY = $null
+npm update -g @anthropic-ai/claude-code
+claude --version
 ```
 
-### Step 3 — Reset local settings
-
-Corrupted or overly customized `settings.json` can block Remote Control.
-
-**Linux/macOS:**
+### Step 4: Reset settings
 ```bash
-cat ~/.claude/settings.json
-# If it has complex settings, back it up and reset:
-cp ~/.claude/settings.json ~/.claude/settings.json.backup
 echo '{"env": {}}' > ~/.claude/settings.json
 ```
 
-**Windows:**
-```powershell
-Copy-Item "$env:USERPROFILE\.claude\settings.json" "$env:USERPROFILE\.claude\settings.json.backup"
-Set-Content "$env:USERPROFILE\.claude\settings.json" '{"env": {}}'
-```
-
-Then log out and back in:
+### Step 5: Re-authenticate
 ```bash
-claude auth logout
-claude auth login
-claude remote-control
+claude /logout
+claude /login
 ```
+Make sure you sign in via claude.ai, not console.anthropic.com.
 
-### Step 4 — Update to the latest version
-
-```bash
-# macOS/Linux
-curl -fsSL https://claude.ai/install.sh | bash
-
-# Windows PowerShell
-irm https://claude.ai/install.ps1 | iex
-
-# Homebrew
-brew upgrade --cask claude-code
-
-# WinGet
-winget upgrade Anthropic.ClaudeCode
-```
-
-> **Note:** If you previously installed via `npm install -g @anthropic-ai/claude-code`, uninstall it first:
-> ```bash
-> npm -g uninstall @anthropic-ai/claude-code
-> ```
-> Then reinstall using the native installer above. Running both the npm and native versions simultaneously causes conflicts.
-
-### Step 5 — Check `claude doctor`
-
+### Step 6: Run diagnostics
 ```bash
 claude doctor
 ```
+This checks for conflicting global npm installations and auth issues.
 
-Look for warnings about multiple installations (especially leftover npm global installs at paths like `C:\Users\<user>\AppData\Roaming\npm\claude` on Windows). If found, uninstall the npm version:
+### Step 7: Node.js version (Windows users)
+Ensure Node.js is up to date (v18+ required). Outdated Node.js causes provisioning failures:
 ```bash
-npm -g uninstall @anthropic-ai/claude-code
+node --version  # should be v18 or higher
+npm install -g n && n latest  # update Node
 ```
 
-### Step 6 — Re-authenticate fresh
+---
 
-Full clean re-authentication cycle:
+## Alternatives to Remote Control (While Waiting for Pro Rollout)
 
+### Option 1: SSH + tmux (recommended for developers)
 ```bash
-claude auth logout
-# Delete any cached tokens if needed:
-# macOS/Linux: rm -rf ~/.claude/auth.json
-# Windows: del %USERPROFILE%\.claude\auth.json
-claude auth login
-claude remote-control
+# On your development machine:
+tmux new -s claude-session
+claude
+# Detach: Ctrl+B then D
+
+# From any device via SSH:
+ssh user@your-machine
+tmux attach -t claude-session
+```
+
+### Option 2: VS Code Remote SSH
+Use VS Code's built-in Remote SSH extension to connect to your dev machine from any device. Full IDE + Claude Code extension works seamlessly.
+
+### Option 3: Tailscale + SSH
+For machines behind NAT/firewall, use Tailscale for secure remote access:
+```bash
+# Install Tailscale, then SSH from anywhere:
+ssh user@your-tailscale-hostname
+tmux attach -t claude-session
 ```
 
 ---
 
 ## Platform-Specific Notes
 
-### Windows
-
-- Use `claude remote-control` in **PowerShell** (not Command Prompt) for best results.
-- If using WSL, Remote Control may have limitations — test in native Windows PowerShell first.
-- Check for leftover npm global installs with `claude doctor`.
-
 ### macOS
+- Ghostty and iTerm2 users: ensure your terminal is not blocking outbound WebSocket connections
+- Check System Preferences > Security & Privacy for any firewall rules blocking `claude`
 
-- VS Code integrated terminal and iTerm both work.
-- Some users on macOS have reported success after upgrading to Max plan — if Pro rollout hasn't reached your account yet, this is the current fallback.
+### Windows / WSL
+- Must use WSL2 (not WSL1)
+- Run `claude remote-control` from within WSL, not PowerShell or CMD
+- Ensure WSL2 network adapter has internet access: `curl https://api.anthropic.com`
 
-### Linux / WSL
-
-- Ensure no proxy or firewall is blocking outbound connections to `claude.ai`.
-- Try `unset CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` before running.
-
----
-
-## If None of the Above Work
-
-If you have tried all steps above and still get the error, your account most likely has **not yet been included in the Pro rollout**. This is a server-side eligibility check — no local fix can override it.
-
-Options:
-1. **Wait** — Anthropic is actively rolling out Remote Control to all Pro users.
-2. **Upgrade to Max** — Remote Control is more broadly available on Max plans.
-3. **Upvote** issue [#28817](https://github.com/anthropics/claude-code/issues/28817) to increase visibility with the team.
-4. **Check the changelog** at [CHANGELOG.md](../CHANGELOG.md) for updates on Remote Control Pro availability.
+### Linux
+- No special requirements beyond Node.js v18+ and outbound HTTPS access
 
 ---
 
 ## Related Issues
 
-| Issue | Description | Status |
-|-------|-------------|--------|
-| [#28817](https://github.com/anthropics/claude-code/issues/28817) | Remote Control unavailable despite Pro plan (primary tracking issue) | Open, assigned |
-| [#28816](https://github.com/anthropics/claude-code/issues/28816) | Same error on Max plan | Open |
-| [#29037](https://github.com/anthropics/claude-code/issues/29037) | Remote Control not available despite active Pro plan | Open |
-| [#29185](https://github.com/anthropics/claude-code/issues/29185) | Remote Control not available on Pro — requesting access | Open |
-| [#29449](https://github.com/anthropics/claude-code/issues/29449) | CLI returns error immediately after answering `y` | Open |
-| [#29638](https://github.com/anthropics/claude-code/issues/29638) | Feature request: Remote Control support for Pro | Open |
-| [#29980](https://github.com/anthropics/claude-code/issues/29980) | Same error on Windows 11 Pro plan | Open |
+| Issue | Description |
+|-------|-------------|
+| #28817 | Remote Control unavailable despite Pro plan authentication |
+| #28816 | Remote Control not working on Pro plan |
+| #29185 | Remote Control not available on Pro plan — requesting access |
+| #29430 | Remote Control regression - "not yet available on your plan" on Claude Max |
+| #29449 | "Remote Control environments are not available for your account." for Claude Code Pro Plan user |
+| #29980 | Remote Control feature unavailable on Pro plan despite account eligibility |
 
 ---
 
-_This document was contributed by the community to consolidate troubleshooting information while the official docs are updated. See [CONTRIBUTING](../CONTRIBUTING.md) if you have additional fixes to add._
+## Summary
+
+- **Pro plan users:** Remote Control is not yet available. This is a server-side rollout restriction. No local fix exists. Use SSH + tmux as an alternative.
+- **Max plan users:** Follow the 7-step troubleshooting checklist above. Most issues are auth method or environment variable conflicts.
+- **Team/Enterprise users:** Feature is not available at any tier currently.
