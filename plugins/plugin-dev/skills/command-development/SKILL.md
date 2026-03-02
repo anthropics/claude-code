@@ -796,8 +796,8 @@ allowed-tools: Bash(test:*)
 ---
 
 Validate plugin setup:
-- Script: !`test -x ${CLAUDE_PLUGIN_ROOT}/bin/analyze && echo "✓" || echo "✗"`
-- Config: !`test -f ${CLAUDE_PLUGIN_ROOT}/config.json && echo "✓" || echo "✗"`
+- Script: !`test -x "${CLAUDE_PLUGIN_ROOT}/bin/analyze" && echo "✓" || echo "✗"`
+- Config: !`test -f "${CLAUDE_PLUGIN_ROOT}/config.json" && echo "✓" || echo "✗"`
 
 If all checks pass, run analysis.
 Otherwise, report missing components.

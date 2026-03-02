@@ -474,7 +474,7 @@ Use for: Validating command arguments
 
 ### Pattern: Resource Validation
 ```markdown
-Check exists: !`test -f ${CLAUDE_PLUGIN_ROOT}/path/file && echo "YES" || echo "NO"`
+Check exists: !`test -f "${CLAUDE_PLUGIN_ROOT}/path/file" && echo "YES" || echo "NO"`
 ```
 Use for: Verifying required plugin files exist
 

@@ -510,9 +510,9 @@ allowed-tools: Bash(test:*)
 ---
 
 Validate plugin setup:
-- Config exists: !`test -f ${CLAUDE_PLUGIN_ROOT}/config.json && echo "✓" || echo "✗"`
-- Scripts exist: !`test -d ${CLAUDE_PLUGIN_ROOT}/scripts && echo "✓" || echo "✗"`
-- Tools available: !`test -x ${CLAUDE_PLUGIN_ROOT}/bin/analyze && echo "✓" || echo "✗"`
+- Config exists: !`test -f "${CLAUDE_PLUGIN_ROOT}/config.json" && echo "✓" || echo "✗"`
+- Scripts exist: !`test -d "${CLAUDE_PLUGIN_ROOT}/scripts" && echo "✓" || echo "✗"`
+- Tools available: !`test -x "${CLAUDE_PLUGIN_ROOT}/bin/analyze" && echo "✓" || echo "✗"`
 
 If all checks pass, proceed with analysis.
 Otherwise, report missing components and installation steps.
