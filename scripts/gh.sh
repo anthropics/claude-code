@@ -21,6 +21,7 @@ case "$CMD" in
   "issue view"|"issue list"|"search issues"|"label list")
     ;;
   *)
+    echo "Error: unsupported command '$CMD'. Allowed: issue view, issue list, search issues, label list" >&2
     exit 1
     ;;
 esac
@@ -45,6 +46,7 @@ for arg in "$@"; do
       fi
     done
     if [[ "$matched" == false ]]; then
+      echo "Error: unsupported flag '$flag'. Allowed: ${ALLOWED_FLAGS[*]}" >&2
       exit 1
     fi
     FLAGS+=("$arg")
@@ -66,11 +68,13 @@ REPO="${GH_REPO:-${GITHUB_REPOSITORY:-}}"
 
 if [[ "$CMD" == "search issues" ]]; then
   if [[ -z "$REPO" ]]; then
+    echo "Error: GH_REPO or GITHUB_REPOSITORY must be set for search" >&2
     exit 1
   fi
   QUERY="${POSITIONAL[0]:-}"
   QUERY_LOWER=$(echo "$QUERY" | tr '[:upper:]' '[:lower:]')
   if [[ "$QUERY_LOWER" == *"repo:"* || "$QUERY_LOWER" == *"org:"* || "$QUERY_LOWER" == *"user:"* ]]; then
+    echo "Error: search query must not contain repo:, org:, or user: scoping" >&2
     exit 1
   fi
   gh "$SUB1" "$SUB2" "$QUERY" --repo "$REPO" "${FLAGS[@]}"
@@ -78,6 +82,7 @@ else
   # Reject URLs in positional args to prevent cross-repo access
   for pos in "${POSITIONAL[@]}"; do
     if [[ "$pos" == http://* || "$pos" == https://* ]]; then
+      echo "Error: URLs are not allowed in positional arguments" >&2
       exit 1
     fi
   done

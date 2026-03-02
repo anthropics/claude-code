@@ -165,10 +165,10 @@ This plugin is included in the Claude Code repository. To use it:
 
 ## Resources
 
-- [Agent SDK Overview](https://docs.claude.com/en/api/agent-sdk/overview)
-- [TypeScript SDK Reference](https://docs.claude.com/en/api/agent-sdk/typescript)
-- [Python SDK Reference](https://docs.claude.com/en/api/agent-sdk/python)
-- [Agent SDK Examples](https://docs.claude.com/en/api/agent-sdk/examples)
+- [Agent SDK Overview](https://code.claude.com/api/en/agent-sdk/overview)
+- [TypeScript SDK Reference](https://code.claude.com/api/en/agent-sdk/typescript)
+- [Python SDK Reference](https://code.claude.com/api/en/agent-sdk/python)
+- [Agent SDK Examples](https://code.claude.com/api/en/agent-sdk/examples)
 
 ## Troubleshooting
 

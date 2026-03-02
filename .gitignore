@@ -1,2 +1,24 @@
+# macOS
 .DS_Store
 
+# Node
+node_modules/
+dist/
+bun.lockb
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Environment
+.env
+.env.local
+
+# Logs
+*.log
+
+# Editor
+*.swp
+*.swo
+*~

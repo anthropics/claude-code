@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Hook Testing Helper
 # Tests a hook with sample input and shows output
 
