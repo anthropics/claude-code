@@ -1,0 +1,47 @@
+name: Non-write Users Check
+on:
+  pull_request:
+    paths:
+      - ".github/**"
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  allowed-non-write-check:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - run: |
+          DIFF=$(gh pr diff "$PR_NUMBER" -R "$REPO" || true)
+
+          if ! echo "$DIFF" | grep -qE '^diff --git a/\.github/.*\.ya?ml'; then
+            exit 0
+          fi
+
+          MATCHES=$(echo "$DIFF" | grep "^+.*allowed_non_write_users" || true)
+
+          if [ -z "$MATCHES" ]; then
+            exit 0
+          fi
+
+          EXISTING=$(gh pr view "$PR_NUMBER" -R "$REPO" --json comments --jq '.comments[].body' \
+            | grep -c "<!-- non-write-users-check -->" || true)
+
+          if [ "$EXISTING" -gt 0 ]; then
+            exit 0
+          fi
+
+          gh pr comment "$PR_NUMBER" -R "$REPO" --body '<!-- non-write-users-check -->
+          **`allowed_non_write_users` detected**
+
+          This PR adds or modifies `allowed_non_write_users`, which allows users without write access to trigger Claude Code Action workflows. This can introduce security risks.
+
+          If this is a new flow, please make sure you actually need `allowed_non_write_users`. If you are editing an existing workflow, double check that you are not adding new Claude permissions which might lead to a vulnerability.
+
+          See existing workflows in this repo for safe usage examples, or contact the AppSec team.'
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
