@@ -46,7 +46,7 @@ name: [identifier from JSON]
 description: [whenToUse from JSON]
 model: inherit
 color: [choose: blue/cyan/green/yellow/magenta/red]
-tools: ["Read", "Write", "Grep"]  # Optional: restrict tools
+tools: Read, Write, Grep  # Optional: restrict tools
 ---
 
 [systemPrompt from JSON]
@@ -98,7 +98,7 @@ Explicit review request triggers the agent.
 
 model: inherit
 color: blue
-tools: ["Read", "Grep", "Glob"]
+tools: Read, Grep, Glob
 ---
 
 You are an expert code quality reviewer specializing in identifying issues in software implementations.
