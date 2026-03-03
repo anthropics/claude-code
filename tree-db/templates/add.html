@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+
+{% block title %}樹木を追加{% endblock %}
+
+{% block head %}
+<style>
+  /* ─── Photo Upload ───────────────────────────────── */
+  .photo-upload-area {
+    width: 100%;
+    aspect-ratio: 4/3;
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: var(--white);
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    overflow: hidden;
+    position: relative;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .photo-upload-area.has-photo { border-style: solid; border-color: var(--green); }
+  .photo-upload-area:active { background: var(--green-light); }
+  .upload-icon { font-size: 44px; }
+  .upload-text { font-size: 15px; font-weight: 600; color: var(--text-sub); }
+  .upload-hint { font-size: 12px; color: var(--border); }
+  #photoInput { display: none; }
+  #photoPreview {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: none;
+  }
+  .photo-change-btn {
+    position: absolute;
+    bottom: 10px; right: 10px;
+    background: rgba(0,0,0,0.5);
+    color: white;
+    border: none;
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    display: none;
+    cursor: pointer;
+  }
+
+  /* ─── Condition Selector ─────────────────────────── */
+  .condition-group {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .condition-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 14px 8px;
+    border: 2px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--white);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .condition-btn .c-icon { font-size: 24px; }
+  .condition-btn.selected-良好  { border-color: #28a745; background: #d4edda; color: #155724; }
+  .condition-btn.selected-普通  { border-color: #ffc107; background: #fff3cd; color: #856404; }
+  .condition-btn.selected-要注意 { border-color: #fd7e14; background: #ffe5d0; color: #7d3f00; }
+  .condition-btn.selected-枯死  { border-color: #6c757d; background: #e2e3e5; color: #383d41; }
+
+  /* ─── Page Title ─────────────────────────────────── */
+  .page-title {
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 20px;
+    color: var(--green-dark);
+  }
+
+  /* ─── Form Card ──────────────────────────────────── */
+  .form-card {
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 20px 16px;
+    margin-bottom: 16px;
+  }
+  .form-section-title {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-sub);
+    margin-bottom: 14px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-title">🌿 樹木を追加</div>
+
+<form method="post" enctype="multipart/form-data" id="addForm">
+
+  <!-- Photo Upload -->
+  <div class="form-card">
+    <div class="form-section-title">📷 写真</div>
+    <div class="photo-upload-area" id="uploadArea" onclick="document.getElementById('photoInput').click()">
+      <span class="upload-icon">📸</span>
+      <span class="upload-text">タップして写真を選択</span>
+      <span class="upload-hint">カメラまたはアルバムから</span>
+      <img id="photoPreview" alt="プレビュー">
+      <button type="button" class="photo-change-btn" id="changeBtn"
+              onclick="event.stopPropagation(); document.getElementById('photoInput').click()">
+        変更
+      </button>
+    </div>
+    <input type="file" name="photo" id="photoInput" accept="image/*" capture="environment">
+  </div>
+
+  <!-- Basic Info -->
+  <div class="form-card">
+    <div class="form-section-title">🏷️ 基本情報</div>
+
+    <div class="form-group">
+      <label class="form-label" for="name">樹木名 <span style="color:#e74c3c">*</span></label>
+      <input type="text" name="name" id="name" class="form-input"
+             placeholder="例: 正門前のサクラ" required autocomplete="off">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="species">樹種</label>
+      <input type="text" name="species" id="species" class="form-input"
+             placeholder="例: ソメイヨシノ" list="species-list" autocomplete="off">
+      <datalist id="species-list">
+        <option value="ソメイヨシノ">
+        <option value="クスノキ">
+        <option value="イチョウ">
+        <option value="ケヤキ">
+        <option value="マツ">
+        <option value="スギ">
+        <option value="ヒノキ">
+        <option value="ウメ">
+        <option value="モモ">
+        <option value="カエデ">
+      </datalist>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="location">場所・管理番号</label>
+      <input type="text" name="location" id="location" class="form-input"
+             placeholder="例: 正門前 / A-001" autocomplete="off">
+    </div>
+  </div>
+
+  <!-- Condition -->
+  <div class="form-card">
+    <div class="form-section-title">📊 状態</div>
+    <div class="condition-group">
+      <button type="button" class="condition-btn" data-value="良好" onclick="selectCondition('良好')">
+        <span class="c-icon">✅</span>良好
+      </button>
+      <button type="button" class="condition-btn" data-value="普通" onclick="selectCondition('普通')">
+        <span class="c-icon">🟡</span>普通
+      </button>
+      <button type="button" class="condition-btn" data-value="要注意" onclick="selectCondition('要注意')">
+        <span class="c-icon">⚠️</span>要注意
+      </button>
+      <button type="button" class="condition-btn" data-value="枯死" onclick="selectCondition('枯死')">
+        <span class="c-icon">💀</span>枯死
+      </button>
+    </div>
+    <input type="hidden" name="condition" id="conditionInput" value="">
+  </div>
+
+  <!-- Note -->
+  <div class="form-card">
+    <div class="form-section-title">📝 備考</div>
+    <textarea name="note" class="form-textarea"
+              placeholder="点検メモ、処置履歴など…"></textarea>
+  </div>
+
+  <!-- Submit -->
+  <button type="submit" class="btn btn-primary btn-full" style="font-size: 17px;">
+    ✅ 登録する
+  </button>
+
+  <a href="{{ url_for('index') }}" class="btn btn-ghost btn-full mt-8">
+    キャンセル
+  </a>
+</form>
+
+<script>
+  // Photo preview
+  document.getElementById('photoInput').addEventListener('change', function() {
+    const file = this.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const preview = document.getElementById('photoPreview');
+      const area = document.getElementById('uploadArea');
+      const changeBtn = document.getElementById('changeBtn');
+      preview.src = e.target.result;
+      preview.style.display = 'block';
+      changeBtn.style.display = 'block';
+      area.classList.add('has-photo');
+      area.querySelector('.upload-icon').style.display = 'none';
+      area.querySelector('.upload-text').style.display = 'none';
+      area.querySelector('.upload-hint').style.display = 'none';
+    };
+    reader.readAsDataURL(file);
+  });
+
+  // Condition select
+  function selectCondition(value) {
+    document.querySelectorAll('.condition-btn').forEach(btn => {
+      btn.className = 'condition-btn';
+      if (btn.dataset.value === value) {
+        btn.classList.add('selected-' + value);
+      }
+    });
+    document.getElementById('conditionInput').value = value;
+  }
+</script>
+{% endblock %}

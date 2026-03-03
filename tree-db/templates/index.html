@@ -1,0 +1,351 @@
+{% extends "base.html" %}
+
+{% block title %}樹木台帳 — 一覧{% endblock %}
+
+{% block head %}
+<style>
+  /* ─── Search Bar ─────────────────────────────────── */
+  .search-section {
+    position: sticky;
+    top: calc(48px + env(safe-area-inset-top, 0px));
+    z-index: 90;
+    background: var(--green-pale);
+    padding: 12px 0 8px;
+    margin: -16px -16px 0;
+    padding-left: 16px; padding-right: 16px;
+  }
+  .search-bar {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  .search-input-wrap {
+    flex: 1;
+    position: relative;
+  }
+  .search-input-wrap .search-icon {
+    position: absolute;
+    left: 14px; top: 50%;
+    transform: translateY(-50%);
+    font-size: 17px;
+    pointer-events: none;
+  }
+  .search-input {
+    width: 100%;
+    padding: 12px 16px 12px 42px;
+    border: 1.5px solid var(--border);
+    border-radius: 30px;
+    font-size: 16px;
+    font-family: inherit;
+    background: var(--white);
+    box-shadow: var(--shadow);
+  }
+  .search-input:focus { outline: none; border-color: var(--green); }
+  .filter-btn {
+    width: 46px; height: 46px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border);
+    background: var(--white);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    box-shadow: var(--shadow);
+    flex-shrink: 0;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .filter-btn.active {
+    background: var(--green-dark);
+    border-color: var(--green-dark);
+  }
+
+  /* ─── Filter Drawer ──────────────────────────────── */
+  .filter-drawer {
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height 0.3s ease;
+    margin-top: 8px;
+  }
+  .filter-drawer.open { max-height: 200px; }
+  .filter-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    padding: 8px 0;
+  }
+  .filter-select {
+    padding: 12px 36px 12px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 15px;
+    background: var(--white);
+    width: 100%;
+    font-family: inherit;
+    color: var(--text);
+    appearance: none; -webkit-appearance: none;
+    box-shadow: var(--shadow);
+  }
+  .select-wrap-sm { position: relative; }
+  .select-wrap-sm::after {
+    content: '▾';
+    position: absolute;
+    right: 12px; top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-sub);
+    pointer-events: none;
+    font-size: 13px;
+  }
+
+  /* ─── Results Meta ───────────────────────────────── */
+  .results-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 0 8px;
+    font-size: 13px;
+    color: var(--text-sub);
+  }
+  .results-count { font-weight: 600; color: var(--text); }
+
+  /* ─── Tree Grid ──────────────────────────────────── */
+  .tree-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  @media (min-width: 600px) {
+    .tree-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+  @media (min-width: 900px) {
+    .tree-grid { grid-template-columns: repeat(4, 1fr); }
+  }
+
+  /* ─── Tree Card ──────────────────────────────────── */
+  .tree-card {
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    text-decoration: none;
+    color: var(--text);
+    display: block;
+    transition: transform 0.15s, box-shadow 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .tree-card:active {
+    transform: scale(0.97);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  }
+  .tree-photo {
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    background: var(--green-light);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 40px;
+  }
+  .tree-photo img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+  }
+  .tree-info { padding: 10px 12px 12px; }
+  .tree-name {
+    font-size: 14px;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 4px;
+  }
+  .tree-species {
+    font-size: 12px;
+    color: var(--text-sub);
+    margin-bottom: 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .tree-location {
+    font-size: 11px;
+    color: var(--text-sub);
+    display: flex; align-items: center; gap: 3px;
+  }
+
+  /* ─── Empty State ────────────────────────────────── */
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-sub);
+  }
+  .empty-state .empty-icon { font-size: 56px; margin-bottom: 16px; }
+  .empty-state h3 { font-size: 18px; color: var(--text); margin-bottom: 8px; }
+  .empty-state p { font-size: 14px; margin-bottom: 24px; }
+
+  /* ─── Active filter chips ────────────────────────── */
+  .chip-row {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    padding-bottom: 8px;
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    background: var(--green-dark);
+    color: var(--white);
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .chip .chip-x { opacity: 0.7; }
+</style>
+{% endblock %}
+
+{% block header_right %}
+<span class="header-count">{{ trees|length }}本</span>
+{% endblock %}
+
+{% block content %}
+<!-- Search Section -->
+<div class="search-section">
+  <form method="get" action="/" id="searchForm">
+    <div class="search-bar">
+      <div class="search-input-wrap">
+        <span class="search-icon">🔍</span>
+        <input
+          type="search"
+          name="q"
+          class="search-input"
+          placeholder="名前・場所で検索…"
+          value="{{ keyword }}"
+          autocomplete="off"
+          autocorrect="off"
+        >
+      </div>
+      <button type="button" class="filter-btn {% if selected_species or selected_condition %}active{% endif %}"
+              onclick="toggleFilter(this)" id="filterBtn">
+        🎚️
+      </button>
+    </div>
+
+    <!-- Filter Drawer -->
+    <div class="filter-drawer {% if selected_species or selected_condition %}open{% endif %}" id="filterDrawer">
+      <div class="filter-row">
+        <div class="select-wrap-sm">
+          <select name="species" class="filter-select" onchange="this.form.submit()">
+            <option value="">すべての樹種</option>
+            {% for s in species_list %}
+            <option value="{{ s['species'] }}" {% if selected_species == s['species'] %}selected{% endif %}>
+              {{ s['species'] }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="select-wrap-sm">
+          <select name="condition" class="filter-select" onchange="this.form.submit()">
+            <option value="">すべての状態</option>
+            <option value="良好" {% if selected_condition == '良好' %}selected{% endif %}>✅ 良好</option>
+            <option value="普通" {% if selected_condition == '普通' %}selected{% endif %}>🟡 普通</option>
+            <option value="要注意" {% if selected_condition == '要注意' %}selected{% endif %}>⚠️ 要注意</option>
+            <option value="枯死" {% if selected_condition == '枯死' %}selected{% endif %}>💀 枯死</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </form>
+
+  <!-- Active Filter Chips -->
+  {% if keyword or selected_species or selected_condition %}
+  <div class="chip-row">
+    {% if keyword %}
+    <a href="{{ url_for('index', species=selected_species, condition=selected_condition) }}" class="chip">
+      🔍 {{ keyword }} <span class="chip-x">✕</span>
+    </a>
+    {% endif %}
+    {% if selected_species %}
+    <a href="{{ url_for('index', q=keyword, condition=selected_condition) }}" class="chip">
+      🌿 {{ selected_species }} <span class="chip-x">✕</span>
+    </a>
+    {% endif %}
+    {% if selected_condition %}
+    <a href="{{ url_for('index', q=keyword, species=selected_species) }}" class="chip">
+      📊 {{ selected_condition }} <span class="chip-x">✕</span>
+    </a>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <div class="results-meta">
+    <span><span class="results-count">{{ trees|length }}</span>本の樹木</span>
+    {% if keyword or selected_species or selected_condition %}
+    <a href="{{ url_for('index') }}" style="color: var(--green); font-size:13px; font-weight:600;">クリア</a>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Tree Grid -->
+{% if trees %}
+<div class="tree-grid">
+  {% for tree in trees %}
+  <a href="{{ url_for('detail', tree_id=tree['id']) }}" class="tree-card">
+    <div class="tree-photo">
+      {% if tree['photo'] %}
+      <img src="{{ url_for('static', filename='uploads/' + tree['photo']) }}" alt="{{ tree['name'] }}" loading="lazy">
+      {% else %}
+      🌳
+      {% endif %}
+    </div>
+    <div class="tree-info">
+      <div class="tree-name">{{ tree['name'] }}</div>
+      {% if tree['species'] %}
+      <div class="tree-species">{{ tree['species'] }}</div>
+      {% endif %}
+      <div class="tree-location">
+        {% if tree['condition'] %}
+        {% if tree['condition'] == '良好' %}✅
+        {% elif tree['condition'] == '普通' %}🟡
+        {% elif tree['condition'] == '要注意' %}⚠️
+        {% else %}💀
+        {% endif %}
+        {% endif %}
+        {% if tree['location'] %}<span>{{ tree['location'] }}</span>{% endif %}
+      </div>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+
+{% else %}
+<div class="empty-state">
+  <div class="empty-icon">🌱</div>
+  {% if keyword or selected_species or selected_condition %}
+  <h3>該当する樹木がありません</h3>
+  <p>検索条件を変えてみてください</p>
+  <a href="{{ url_for('index') }}" class="btn btn-ghost">条件をクリア</a>
+  {% else %}
+  <h3>まだ樹木が登録されていません</h3>
+  <p>＋ボタンから最初の樹木を登録しましょう</p>
+  <a href="{{ url_for('add') }}" class="btn btn-primary">樹木を追加する</a>
+  {% endif %}
+</div>
+{% endif %}
+
+<script>
+  function toggleFilter(btn) {
+    const drawer = document.getElementById('filterDrawer');
+    drawer.classList.toggle('open');
+    btn.classList.toggle('active');
+  }
+
+  // Auto-submit on search
+  let searchTimer;
+  document.querySelector('.search-input').addEventListener('input', function() {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+      document.getElementById('searchForm').submit();
+    }, 500);
+  });
+</script>
+{% endblock %}

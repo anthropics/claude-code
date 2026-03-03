@@ -1,0 +1,260 @@
+{% extends "base.html" %}
+
+{% block title %}{{ tree['name'] }} — 樹木台帳{% endblock %}
+
+{% block head %}
+<style>
+  /* ─── Back Button ────────────────────────────────── */
+  .back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--white);
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 600;
+    opacity: 0.9;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* ─── Hero Photo ─────────────────────────────────── */
+  .hero-photo {
+    width: calc(100% + 32px);
+    margin-left: -16px;
+    margin-top: -16px;
+    aspect-ratio: 4/3;
+    background: var(--green-light);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 80px;
+    overflow: hidden;
+    margin-bottom: 0;
+  }
+  .hero-photo img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+  }
+
+  /* ─── Info Card ──────────────────────────────────── */
+  .info-card {
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    margin-top: 16px;
+  }
+  .info-header {
+    padding: 18px 16px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .info-name {
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+  .info-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .info-species {
+    font-size: 15px;
+    color: var(--text-sub);
+    font-style: italic;
+  }
+
+  /* ─── Detail Rows ────────────────────────────────── */
+  .detail-row {
+    display: flex;
+    align-items: center;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--green-pale);
+    gap: 12px;
+  }
+  .detail-row:last-child { border-bottom: none; }
+  .detail-icon { font-size: 20px; width: 28px; text-align: center; flex-shrink: 0; }
+  .detail-label { font-size: 12px; color: var(--text-sub); margin-bottom: 2px; }
+  .detail-value { font-size: 15px; font-weight: 600; color: var(--text); }
+
+  /* ─── Note Section ───────────────────────────────── */
+  .note-section {
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 16px;
+    margin-top: 16px;
+  }
+  .note-label {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-sub);
+    margin-bottom: 10px;
+  }
+  .note-text {
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--text);
+    white-space: pre-wrap;
+  }
+
+  /* ─── Date ───────────────────────────────────────── */
+  .reg-date {
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-sub);
+    margin-top: 12px;
+    margin-bottom: 4px;
+  }
+
+  /* ─── Delete Confirm ─────────────────────────────── */
+  .delete-section { margin-top: 24px; }
+  .delete-btn {
+    width: 100%;
+    padding: 15px;
+    border: 1.5px solid #e74c3c;
+    background: transparent;
+    color: #e74c3c;
+    border-radius: var(--radius-sm);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* ─── Modal ──────────────────────────────────────── */
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 200;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: var(--white);
+    border-radius: var(--radius) var(--radius) 0 0;
+    padding: 24px 20px;
+    padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+    width: 100%;
+    animation: slideUp 0.25s ease;
+  }
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to   { transform: translateY(0); }
+  }
+  .modal h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+  .modal p  { font-size: 14px; color: var(--text-sub); margin-bottom: 20px; }
+  .modal-actions { display: flex; gap: 10px; }
+  .modal-actions .btn { flex: 1; }
+</style>
+{% endblock %}
+
+{% block header_right %}
+<a href="{{ url_for('index') }}" class="back-btn">← 戻る</a>
+{% endblock %}
+
+{% block content %}
+<!-- Hero Photo -->
+<div class="hero-photo">
+  {% if tree['photo'] %}
+  <img src="{{ url_for('static', filename='uploads/' + tree['photo']) }}" alt="{{ tree['name'] }}">
+  {% else %}
+  🌳
+  {% endif %}
+</div>
+
+<!-- Info Card -->
+<div class="info-card">
+  <div class="info-header">
+    <div class="info-name">{{ tree['name'] }}</div>
+    <div class="info-meta">
+      {% if tree['species'] %}
+      <span class="info-species">{{ tree['species'] }}</span>
+      {% endif %}
+      {% if tree['condition'] %}
+        {% if tree['condition'] == '良好' %}
+        <span class="badge badge-good">✅ 良好</span>
+        {% elif tree['condition'] == '普通' %}
+        <span class="badge badge-normal">🟡 普通</span>
+        {% elif tree['condition'] == '要注意' %}
+        <span class="badge badge-poor">⚠️ 要注意</span>
+        {% else %}
+        <span class="badge badge-dead">💀 {{ tree['condition'] }}</span>
+        {% endif %}
+      {% endif %}
+    </div>
+  </div>
+
+  {% if tree['location'] %}
+  <div class="detail-row">
+    <span class="detail-icon">📍</span>
+    <div>
+      <div class="detail-label">場所・管理番号</div>
+      <div class="detail-value">{{ tree['location'] }}</div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if tree['condition'] %}
+  <div class="detail-row">
+    <span class="detail-icon">📊</span>
+    <div>
+      <div class="detail-label">状態</div>
+      <div class="detail-value">{{ tree['condition'] }}</div>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="detail-row">
+    <span class="detail-icon">🗓️</span>
+    <div>
+      <div class="detail-label">登録日</div>
+      <div class="detail-value">{{ tree['created_at'][:10] if tree['created_at'] else '—' }}</div>
+    </div>
+  </div>
+</div>
+
+<!-- Note -->
+{% if tree['note'] %}
+<div class="note-section">
+  <div class="note-label">📝 備考・メモ</div>
+  <div class="note-text">{{ tree['note'] }}</div>
+</div>
+{% endif %}
+
+<!-- Delete Button -->
+<div class="delete-section">
+  <button class="delete-btn" onclick="showDeleteModal()">
+    🗑️ この樹木を削除する
+  </button>
+</div>
+
+<!-- Delete Confirm Modal -->
+<div class="modal-overlay" id="deleteModal" onclick="hideDeleteModal(event)">
+  <div class="modal">
+    <h3>本当に削除しますか？</h3>
+    <p>「{{ tree['name'] }}」のデータと写真が完全に削除されます。この操作は取り消せません。</p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="hideDeleteModal()">キャンセル</button>
+      <form method="post" action="{{ url_for('delete', tree_id=tree['id']) }}" style="flex:1">
+        <button type="submit" class="btn btn-danger btn-full">削除する</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  function showDeleteModal() {
+    document.getElementById('deleteModal').classList.add('show');
+  }
+  function hideDeleteModal(e) {
+    if (!e || e.target === document.getElementById('deleteModal')) {
+      document.getElementById('deleteModal').classList.remove('show');
+    }
+  }
+</script>
+{% endblock %}

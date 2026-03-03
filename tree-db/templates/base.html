@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#1a6b3c">
+  <title>{% block title %}樹木台帳{% endblock %}</title>
+  <style>
+    /* ─── Reset & Base ─────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green-dark:  #1a6b3c;
+      --green:       #2d9558;
+      --green-light: #e8f5ee;
+      --green-pale:  #f4faf7;
+      --accent:      #f5a623;
+      --text:        #1c2b22;
+      --text-sub:    #5a7363;
+      --border:      #d0e4d8;
+      --white:       #ffffff;
+      --shadow:      0 2px 12px rgba(0,0,0,0.08);
+      --shadow-lg:   0 8px 32px rgba(0,0,0,0.12);
+      --radius:      14px;
+      --radius-sm:   8px;
+      --nav-h:       64px;
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    html { font-size: 16px; -webkit-text-size-adjust: 100%; }
+
+    body {
+      font-family: -apple-system, 'Hiragino Sans', 'Yu Gothic', sans-serif;
+      background: var(--green-pale);
+      color: var(--text);
+      min-height: 100vh;
+      padding-bottom: calc(var(--nav-h) + var(--safe-bottom) + 16px);
+    }
+
+    /* ─── Top Header ────────────────────────────────── */
+    .app-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--green-dark);
+      color: var(--white);
+      padding: 12px 16px;
+      padding-top: calc(12px + env(safe-area-inset-top, 0px));
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    .app-header .logo { font-size: 22px; }
+    .app-header h1 {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+    .app-header .header-sub {
+      font-size: 12px;
+      opacity: 0.7;
+      margin-top: 1px;
+    }
+    .app-header .spacer { flex: 1; }
+    .app-header .header-count {
+      background: rgba(255,255,255,0.2);
+      border-radius: 20px;
+      padding: 4px 10px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    /* ─── Bottom Nav ─────────────────────────────────── */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0; right: 0;
+      z-index: 100;
+      background: var(--white);
+      border-top: 1px solid var(--border);
+      display: flex;
+      padding-bottom: var(--safe-bottom);
+      box-shadow: 0 -2px 12px rgba(0,0,0,0.08);
+    }
+    .nav-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 4px;
+      min-height: var(--nav-h);
+      text-decoration: none;
+      color: var(--text-sub);
+      font-size: 11px;
+      font-weight: 500;
+      gap: 4px;
+      transition: color 0.2s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .nav-item.active { color: var(--green-dark); }
+    .nav-item .nav-icon { font-size: 22px; line-height: 1; }
+    .nav-item.add-btn {
+      color: var(--white);
+    }
+    .nav-item.add-btn .nav-icon-wrap {
+      background: var(--green);
+      border-radius: 50%;
+      width: 48px; height: 48px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 26px;
+      box-shadow: 0 4px 12px rgba(45,149,88,0.4);
+      margin-top: -8px;
+    }
+
+    /* ─── Main Content ───────────────────────────────── */
+    .main { padding: 16px; max-width: 768px; margin: 0 auto; }
+
+    /* ─── Cards ──────────────────────────────────────── */
+    .card {
+      background: var(--white);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    /* ─── Buttons ────────────────────────────────────── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 14px 20px;
+      border-radius: var(--radius-sm);
+      font-size: 15px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      text-decoration: none;
+      min-height: 50px;
+      transition: opacity 0.15s, transform 0.1s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn:active { transform: scale(0.97); opacity: 0.85; }
+    .btn-primary { background: var(--green); color: var(--white); }
+    .btn-danger  { background: #e74c3c; color: var(--white); }
+    .btn-ghost   { background: var(--green-light); color: var(--green-dark); }
+    .btn-full    { width: 100%; }
+
+    /* ─── Form Elements ──────────────────────────────── */
+    .form-group { margin-bottom: 16px; }
+    .form-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-sub);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .form-input, .form-select, .form-textarea {
+      width: 100%;
+      padding: 14px 16px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 16px; /* 16px prevents iOS zoom */
+      font-family: inherit;
+      color: var(--text);
+      background: var(--white);
+      appearance: none;
+      -webkit-appearance: none;
+      transition: border-color 0.2s;
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+      outline: none;
+      border-color: var(--green);
+    }
+    .form-textarea { resize: vertical; min-height: 100px; }
+    .select-wrap { position: relative; }
+    .select-wrap::after {
+      content: '▾';
+      position: absolute;
+      right: 14px; top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-sub);
+      pointer-events: none;
+    }
+
+    /* ─── Tags / Badges ──────────────────────────────── */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .badge-good    { background: #d4edda; color: #155724; }
+    .badge-normal  { background: #fff3cd; color: #856404; }
+    .badge-poor    { background: #f8d7da; color: #721c24; }
+    .badge-dead    { background: #e2e3e5; color: #383d41; }
+
+    /* ─── Utilities ──────────────────────────────────── */
+    .text-center { text-align: center; }
+    .mt-8  { margin-top: 8px; }
+    .mt-16 { margin-top: 16px; }
+    .mt-24 { margin-top: 24px; }
+  </style>
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <header class="app-header">
+    <span class="logo">🌳</span>
+    <div>
+      <h1>樹木台帳</h1>
+    </div>
+    <div class="spacer"></div>
+    {% block header_right %}{% endblock %}
+  </header>
+
+  <main class="main">
+    {% block content %}{% endblock %}
+  </main>
+
+  <nav class="bottom-nav">
+    <a href="{{ url_for('index') }}" class="nav-item {% if request.endpoint == 'index' %}active{% endif %}">
+      <span class="nav-icon">🏠</span>
+      一覧
+    </a>
+    <a href="{{ url_for('add') }}" class="nav-item add-btn">
+      <span class="nav-icon-wrap">＋</span>
+    </a>
+    <a href="{{ url_for('index') }}?sort=recent" class="nav-item">
+      <span class="nav-icon">📋</span>
+      履歴
+    </a>
+  </nav>
+</body>
+</html>
