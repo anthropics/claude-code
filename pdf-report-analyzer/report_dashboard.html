@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PDF Report Analyzer Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #0f1117;
+  --surface: #1a1d27;
+  --surface2: #242836;
+  --border: #2e3344;
+  --text: #e4e6f0;
+  --text2: #9498ad;
+  --accent: #6c8cff;
+  --accent2: #4ecdc4;
+  --accent3: #ff6b9d;
+  --accent4: #ffd93d;
+  --positive: #4ecdc4;
+  --negative: #ff6b6b;
+  --mixed: #ffd93d;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg); color: var(--text); line-height:1.5;
+  min-height:100vh;
+}
+.container { max-width:1400px; margin:0 auto; padding:20px; }
+
+/* Header */
+header { text-align:center; padding:30px 0 20px; }
+header h1 { font-size:28px; font-weight:700; letter-spacing:-0.5px; }
+header p { color:var(--text2); margin-top:6px; }
+
+/* File loader */
+#file-loader {
+  text-align:center; padding:80px 20px;
+  border:2px dashed var(--border); border-radius:16px;
+  margin:40px auto; max-width:600px;
+}
+#file-loader.hidden { display:none; }
+#file-loader h2 { margin-bottom:12px; }
+#file-loader p { color:var(--text2); margin-bottom:20px; font-size:14px; }
+#file-loader input[type=file] { display:none; }
+#file-loader label {
+  display:inline-block; padding:12px 32px;
+  background:var(--accent); color:#fff; border-radius:8px;
+  cursor:pointer; font-weight:600; transition:0.2s;
+}
+#file-loader label:hover { opacity:0.85; }
+#file-loader .or { color:var(--text2); margin:16px 0; font-size:13px; }
+#file-loader button {
+  padding:10px 24px; background:var(--surface2); color:var(--text);
+  border:1px solid var(--border); border-radius:8px; cursor:pointer;
+  font-size:14px;
+}
+#file-loader button:hover { border-color:var(--accent); }
+
+/* Dashboard (hidden until data loads) */
+#dashboard { display:none; }
+#dashboard.active { display:block; }
+
+/* Summary cards */
+.summary-grid {
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+  gap:16px; margin-bottom:28px;
+}
+.card {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:12px; padding:20px;
+}
+.card .label { font-size:12px; text-transform:uppercase; letter-spacing:1px; color:var(--text2); }
+.card .value { font-size:32px; font-weight:700; margin-top:4px; }
+.card .sub { font-size:13px; color:var(--text2); margin-top:2px; }
+
+/* Tabs */
+.tabs {
+  display:flex; gap:4px; margin-bottom:20px;
+  border-bottom:1px solid var(--border); padding-bottom:0;
+}
+.tab {
+  padding:10px 20px; cursor:pointer; border:none;
+  background:none; color:var(--text2); font-size:14px; font-weight:500;
+  border-bottom:2px solid transparent; transition:0.2s;
+}
+.tab:hover { color:var(--text); }
+.tab.active { color:var(--accent); border-bottom-color:var(--accent); }
+
+/* Tab panels */
+.panel { display:none; }
+.panel.active { display:block; }
+
+/* Chart containers */
+.chart-row { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:20px; }
+.chart-box {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:12px; padding:20px;
+}
+.chart-box h3 { font-size:15px; margin-bottom:12px; font-weight:600; }
+.chart-box canvas { width:100%!important; }
+
+@media (max-width:800px) {
+  .chart-row { grid-template-columns:1fr; }
+}
+
+/* Scatter / map */
+#map-container {
+  position:relative; width:100%; height:600px;
+  background:var(--surface); border:1px solid var(--border); border-radius:12px;
+  overflow:hidden; margin-bottom:20px;
+}
+.map-dot {
+  position:absolute; width:12px; height:12px; border-radius:50%;
+  transform:translate(-50%,-50%); cursor:pointer; transition:0.15s;
+  border:2px solid rgba(255,255,255,0.15);
+}
+.map-dot:hover { transform:translate(-50%,-50%) scale(1.6); z-index:10; }
+
+/* Tooltip */
+.tooltip {
+  display:none; position:fixed; background:var(--surface2);
+  border:1px solid var(--border); border-radius:10px; padding:14px 18px;
+  max-width:340px; z-index:100; pointer-events:none;
+  box-shadow:0 8px 32px rgba(0,0,0,0.4);
+}
+.tooltip h4 { font-size:14px; margin-bottom:6px; color:var(--accent); }
+.tooltip .meta { font-size:12px; color:var(--text2); margin-bottom:6px; }
+.tooltip .kw-list { display:flex; flex-wrap:wrap; gap:4px; }
+.tooltip .kw {
+  background:var(--surface); padding:2px 8px; border-radius:4px;
+  font-size:11px; color:var(--accent2);
+}
+
+/* Word cloud */
+#word-cloud {
+  display:flex; flex-wrap:wrap; gap:6px; justify-content:center;
+  align-items:center; padding:20px; min-height:200px;
+}
+.cloud-word {
+  display:inline-block; padding:4px 10px; border-radius:6px;
+  cursor:default; transition:0.15s; color:var(--text);
+}
+.cloud-word:hover { opacity:0.7; }
+
+/* Table */
+.data-table {
+  width:100%; border-collapse:collapse; font-size:13px;
+}
+.data-table th {
+  text-align:left; padding:10px 12px; border-bottom:2px solid var(--border);
+  color:var(--text2); font-weight:600; text-transform:uppercase;
+  font-size:11px; letter-spacing:0.5px; cursor:pointer;
+  user-select:none;
+}
+.data-table th:hover { color:var(--accent); }
+.data-table td { padding:10px 12px; border-bottom:1px solid var(--border); }
+.data-table tr:hover td { background:var(--surface2); }
+.badge {
+  display:inline-block; padding:2px 8px; border-radius:4px;
+  font-size:11px; font-weight:600;
+}
+.badge.pos { background:rgba(78,205,196,0.15); color:var(--positive); }
+.badge.neg { background:rgba(255,107,107,0.15); color:var(--negative); }
+.badge.mix { background:rgba(255,217,61,0.15); color:var(--mixed); }
+
+/* Search */
+.search-bar {
+  margin-bottom:16px;
+}
+.search-bar input {
+  width:100%; padding:10px 16px; background:var(--surface);
+  border:1px solid var(--border); border-radius:8px; color:var(--text);
+  font-size:14px; outline:none;
+}
+.search-bar input:focus { border-color:var(--accent); }
+.search-bar input::placeholder { color:var(--text2); }
+
+/* Theme cards */
+.theme-grid {
+  display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
+  gap:16px; margin-bottom:20px;
+}
+.theme-card {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:12px; padding:18px; transition:0.2s;
+}
+.theme-card:hover { border-color:var(--accent); }
+.theme-card h4 { font-size:15px; margin-bottom:8px; color:var(--accent); }
+.theme-card .count { font-size:13px; color:var(--text2); margin-bottom:10px; }
+.theme-card .kw-list { display:flex; flex-wrap:wrap; gap:4px; }
+.theme-card .kw {
+  background:var(--surface2); padding:3px 8px; border-radius:4px;
+  font-size:11px; color:var(--accent2);
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <h1>PDF Report Analyzer</h1>
+    <p>Interactive dashboard for participant learning reports</p>
+  </header>
+
+  <!-- File loader -->
+  <div id="file-loader">
+    <h2>Load Analysis Data</h2>
+    <p>Run <code>python pdf_report_analyzer.py &lt;pdf_folder&gt;</code> first, then load the JSON output here.</p>
+    <input type="file" id="file-input" accept=".json">
+    <label for="file-input">Choose analysis.json</label>
+    <div class="or">or</div>
+    <button onclick="loadDemo()">Load Demo Data</button>
+  </div>
+
+  <!-- Dashboard -->
+  <div id="dashboard">
+
+    <!-- Summary -->
+    <div class="summary-grid">
+      <div class="card">
+        <div class="label">Total Reports</div>
+        <div class="value" id="stat-total">-</div>
+      </div>
+      <div class="card">
+        <div class="label">Avg Word Count</div>
+        <div class="value" id="stat-words">-</div>
+      </div>
+      <div class="card">
+        <div class="label">Themes Detected</div>
+        <div class="value" id="stat-themes">-</div>
+      </div>
+      <div class="card">
+        <div class="label">Avg Readability</div>
+        <div class="value" id="stat-read">-</div>
+        <div class="sub">Flesch scale (0-100)</div>
+      </div>
+      <div class="card">
+        <div class="label">Avg Sentiment</div>
+        <div class="value" id="stat-sent">-</div>
+        <div class="sub">-1 (neg) to +1 (pos)</div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab active" data-tab="overview">Overview</button>
+      <button class="tab" data-tab="themes">Themes</button>
+      <button class="tab" data-tab="map">Similarity Map</button>
+      <button class="tab" data-tab="words">Word Cloud</button>
+      <button class="tab" data-tab="table">All Reports</button>
+    </div>
+
+    <!-- Overview panel -->
+    <div class="panel active" id="panel-overview">
+      <div class="chart-row">
+        <div class="chart-box">
+          <h3>Word Count Distribution</h3>
+          <canvas id="chart-wordcount"></canvas>
+        </div>
+        <div class="chart-box">
+          <h3>Sentiment Distribution</h3>
+          <canvas id="chart-sentiment"></canvas>
+        </div>
+      </div>
+      <div class="chart-row">
+        <div class="chart-box">
+          <h3>Readability Scores</h3>
+          <canvas id="chart-readability"></canvas>
+        </div>
+        <div class="chart-box">
+          <h3>Theme Frequency</h3>
+          <canvas id="chart-themefreq"></canvas>
+        </div>
+      </div>
+      <div class="chart-row">
+        <div class="chart-box" style="grid-column:1/-1">
+          <h3>Top 30 Keywords Across All Reports</h3>
+          <canvas id="chart-topwords"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Themes panel -->
+    <div class="panel" id="panel-themes">
+      <div class="theme-grid" id="theme-grid"></div>
+    </div>
+
+    <!-- Similarity map panel -->
+    <div class="panel" id="panel-map">
+      <p style="color:var(--text2);margin-bottom:12px;font-size:13px;">
+        Each dot is a report. Reports that are closer together are more similar in content. Hover to see details.
+      </p>
+      <div id="map-container"></div>
+    </div>
+
+    <!-- Word cloud panel -->
+    <div class="panel" id="panel-words">
+      <div class="chart-box">
+        <h3>Word Cloud &mdash; Top 80 Words</h3>
+        <div id="word-cloud"></div>
+      </div>
+    </div>
+
+    <!-- Table panel -->
+    <div class="panel" id="panel-table">
+      <div class="search-bar">
+        <input type="text" id="table-search" placeholder="Search participants, themes, keywords...">
+      </div>
+      <div class="chart-box" style="overflow-x:auto;">
+        <table class="data-table" id="report-table">
+          <thead>
+            <tr>
+              <th data-sort="participant">Participant</th>
+              <th data-sort="word_count">Words</th>
+              <th data-sort="readability">Readability</th>
+              <th data-sort="sentiment_score">Sentiment</th>
+              <th>Themes</th>
+              <th>Top Keywords</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /dashboard -->
+</div>
+
+<!-- Tooltip -->
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+let DATA = null;
+const THEME_COLORS = [
+  '#6c8cff','#4ecdc4','#ff6b9d','#ffd93d','#a78bfa',
+  '#f97316','#22d3ee','#f472b6','#84cc16','#e879f9',
+  '#fb923c','#34d399','#f87171','#60a5fa','#c084fc',
+];
+
+// --- File loading ---
+document.getElementById('file-input').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      DATA = JSON.parse(ev.target.result);
+      initDashboard();
+    } catch(err) { alert('Invalid JSON file: ' + err.message); }
+  };
+  reader.readAsText(file);
+});
+
+function loadDemo() {
+  // Generate synthetic demo data
+  const themes = ['Leadership & Growth','Communication & Teamwork','Problem Solving & Analysis',
+    'Creativity & Innovation','Time Management & Planning','Resilience & Adaptation',
+    'Technical Skills & Learning','Mentoring & Collaboration','Strategy & Vision',
+    'Self Awareness & Reflection'];
+  const words = ['learning','development','skills','leadership','team','communication',
+    'growth','challenge','problem','solution','strategy','innovation','collaboration',
+    'feedback','experience','knowledge','practice','improvement','goals','reflection',
+    'confidence','motivation','progress','understanding','thinking','planning',
+    'creativity','resilience','opportunity','engagement','mentoring','professional',
+    'decision','analysis','perspective','awareness','impact','vision','change','support'];
+
+  const docs = [];
+  for (let i = 0; i < 48; i++) {
+    const t1 = themes[Math.floor(Math.random()*themes.length)];
+    const t2 = themes[Math.floor(Math.random()*themes.length)];
+    const docThemes = t1 === t2 ? [t1] : [t1, t2];
+    const kws = [];
+    const used = new Set();
+    for (let k = 0; k < 8; k++) {
+      let w = words[Math.floor(Math.random()*words.length)];
+      if (!used.has(w)) { kws.push({word:w, score:+(Math.random()*0.3+0.05).toFixed(4)}); used.add(w); }
+    }
+    docs.push({
+      filename: `report_${i+1}.pdf`,
+      participant: `Participant ${i+1}`,
+      word_count: Math.floor(Math.random()*600+700),
+      sentence_count: Math.floor(Math.random()*30+30),
+      avg_sentence_length: +(Math.random()*10+14).toFixed(1),
+      readability: +(Math.random()*30+40).toFixed(1),
+      unique_words: Math.floor(Math.random()*200+250),
+      keywords: kws,
+      themes: docThemes,
+      sentiment_score: +(Math.random()*1.2-0.2).toFixed(3),
+      sentiment_label: Math.random()>0.3 ? 'Positive' : Math.random()>0.5 ? 'Mixed' : 'Negative',
+      x: +(Math.random()*90+5).toFixed(2),
+      y: +(Math.random()*90+5).toFixed(2),
+    });
+  }
+  const topWords = words.map(w => ({word:w, count:Math.floor(Math.random()*80+10)}))
+    .sort((a,b)=>b.count-a.count);
+  const themesOut = themes.map(t => ({
+    name:t, keywords:t.toLowerCase().replace(' & ',',').split(',').map(s=>s.trim()),
+    document_count: docs.filter(d=>d.themes.includes(t)).length
+  }));
+
+  DATA = {
+    summary: { total_reports:48, avg_word_count:980, avg_readability:55.2, avg_sentiment:0.31, theme_count:themes.length },
+    themes: themesOut,
+    top_words: topWords,
+    documents: docs,
+  };
+  initDashboard();
+}
+
+// --- Dashboard init ---
+function initDashboard() {
+  document.getElementById('file-loader').classList.add('hidden');
+  document.getElementById('dashboard').classList.add('active');
+
+  // Summary
+  document.getElementById('stat-total').textContent = DATA.summary.total_reports;
+  document.getElementById('stat-words').textContent = DATA.summary.avg_word_count;
+  document.getElementById('stat-themes').textContent = DATA.summary.theme_count;
+  document.getElementById('stat-read').textContent = DATA.summary.avg_readability;
+  document.getElementById('stat-sent').textContent = DATA.summary.avg_sentiment;
+
+  renderCharts();
+  renderThemes();
+  renderMap();
+  renderWordCloud();
+  renderTable();
+}
+
+// --- Charts ---
+function renderCharts() {
+  // Word count histogram
+  const wcBins = buildHistogram(DATA.documents.map(d=>d.word_count), 10);
+  new Chart(document.getElementById('chart-wordcount'), {
+    type:'bar',
+    data:{ labels:wcBins.labels, datasets:[{label:'Reports',data:wcBins.counts,
+      backgroundColor:'rgba(108,140,255,0.6)',borderColor:'#6c8cff',borderWidth:1}]},
+    options:chartOpts('Word count range','Number of reports'),
+  });
+
+  // Sentiment histogram
+  const sentBins = buildHistogram(DATA.documents.map(d=>d.sentiment_score), 10);
+  new Chart(document.getElementById('chart-sentiment'), {
+    type:'bar',
+    data:{ labels:sentBins.labels, datasets:[{label:'Reports',data:sentBins.counts,
+      backgroundColor: sentBins.labels.map(l => {
+        const v = parseFloat(l);
+        return v < -0.1 ? 'rgba(255,107,107,0.6)' : v > 0.2 ? 'rgba(78,205,196,0.6)' : 'rgba(255,217,61,0.6)';
+      }),
+      borderWidth:0}]},
+    options:chartOpts('Sentiment score','Number of reports'),
+  });
+
+  // Readability
+  const readBins = buildHistogram(DATA.documents.map(d=>d.readability), 8);
+  new Chart(document.getElementById('chart-readability'), {
+    type:'bar',
+    data:{ labels:readBins.labels, datasets:[{label:'Reports',data:readBins.counts,
+      backgroundColor:'rgba(164,139,250,0.6)',borderWidth:0}]},
+    options:chartOpts('Readability score','Number of reports'),
+  });
+
+  // Theme frequency
+  const tNames = DATA.themes.map(t=>t.name);
+  const tCounts = DATA.themes.map(t=>t.document_count);
+  new Chart(document.getElementById('chart-themefreq'), {
+    type:'bar',
+    data:{ labels:tNames, datasets:[{label:'Reports',data:tCounts,
+      backgroundColor:THEME_COLORS.slice(0,tNames.length).map(c=>c+'99'),
+      borderColor:THEME_COLORS.slice(0,tNames.length), borderWidth:1}]},
+    options:{...chartOpts('','Reports'),indexAxis:'y',plugins:{legend:{display:false}}},
+  });
+
+  // Top 30 words bar
+  const tw = DATA.top_words.slice(0,30);
+  new Chart(document.getElementById('chart-topwords'), {
+    type:'bar',
+    data:{ labels:tw.map(w=>w.word), datasets:[{label:'Occurrences',data:tw.map(w=>w.count),
+      backgroundColor:'rgba(78,205,196,0.5)',borderColor:'#4ecdc4',borderWidth:1}]},
+    options:chartOpts('','Count'),
+  });
+}
+
+function buildHistogram(values, bins) {
+  const mn = Math.min(...values), mx = Math.max(...values);
+  const step = (mx-mn)/bins || 1;
+  const labels=[], counts=new Array(bins).fill(0);
+  for(let i=0;i<bins;i++){
+    const lo = mn+step*i, hi = mn+step*(i+1);
+    labels.push(lo.toFixed(lo%1?2:0));
+  }
+  values.forEach(v=>{
+    let idx=Math.floor((v-mn)/step);
+    if(idx>=bins) idx=bins-1;
+    if(idx<0) idx=0;
+    counts[idx]++;
+  });
+  return {labels,counts};
+}
+
+function chartOpts(xLabel,yLabel) {
+  return {
+    responsive:true, maintainAspectRatio:true,
+    plugins:{legend:{display:false}},
+    scales:{
+      x:{ticks:{color:'#9498ad',maxRotation:45},grid:{color:'#2e334422'}},
+      y:{ticks:{color:'#9498ad'},grid:{color:'#2e334422'}},
+    }
+  };
+}
+
+// --- Themes ---
+function renderThemes() {
+  const grid = document.getElementById('theme-grid');
+  grid.innerHTML = DATA.themes.map((t,i) => `
+    <div class="theme-card">
+      <h4 style="color:${THEME_COLORS[i%THEME_COLORS.length]}">${esc(t.name)}</h4>
+      <div class="count">${t.document_count} report${t.document_count!==1?'s':''}</div>
+      <div class="kw-list">${t.keywords.map(k=>`<span class="kw">${esc(k)}</span>`).join('')}</div>
+    </div>
+  `).join('');
+}
+
+// --- Similarity map ---
+function renderMap() {
+  const container = document.getElementById('map-container');
+  container.innerHTML = '';
+  const tooltip = document.getElementById('tooltip');
+  // Assign theme colours
+  const themeColorMap = {};
+  DATA.themes.forEach((t,i) => themeColorMap[t.name] = THEME_COLORS[i%THEME_COLORS.length]);
+
+  DATA.documents.forEach((doc,idx) => {
+    const dot = document.createElement('div');
+    dot.className = 'map-dot';
+    const color = themeColorMap[doc.themes[0]] || '#6c8cff';
+    dot.style.background = color;
+    dot.style.left = doc.x + '%';
+    dot.style.top = doc.y + '%';
+    dot.addEventListener('mouseenter', e => {
+      tooltip.style.display = 'block';
+      tooltip.innerHTML = `
+        <h4>${esc(doc.participant)}</h4>
+        <div class="meta">${doc.word_count} words &middot; Readability ${doc.readability} &middot;
+        Sentiment <span style="color:${doc.sentiment_score>0.2?'var(--positive)':doc.sentiment_score<-0.1?'var(--negative)':'var(--mixed)'}">${doc.sentiment_score}</span></div>
+        <div class="meta">Themes: ${doc.themes.join(', ')}</div>
+        <div class="kw-list">${doc.keywords.slice(0,6).map(k=>`<span class="kw">${esc(k.word)}</span>`).join('')}</div>
+      `;
+    });
+    dot.addEventListener('mousemove', e => {
+      tooltip.style.left = (e.clientX+14)+'px';
+      tooltip.style.top = (e.clientY+14)+'px';
+    });
+    dot.addEventListener('mouseleave', () => { tooltip.style.display='none'; });
+    container.appendChild(dot);
+  });
+}
+
+// --- Word cloud ---
+function renderWordCloud() {
+  const cloud = document.getElementById('word-cloud');
+  const maxCount = DATA.top_words[0]?.count || 1;
+  cloud.innerHTML = DATA.top_words.slice(0,80).map((w,i) => {
+    const size = Math.round(12 + (w.count/maxCount)*36);
+    const opacity = 0.5 + (w.count/maxCount)*0.5;
+    const color = THEME_COLORS[i % THEME_COLORS.length];
+    return `<span class="cloud-word" style="font-size:${size}px;color:${color};opacity:${opacity}">${esc(w.word)}</span>`;
+  }).join(' ');
+}
+
+// --- Table ---
+let sortCol = null, sortAsc = true;
+function renderTable() {
+  const tbody = document.querySelector('#report-table tbody');
+  const search = document.getElementById('table-search').value.toLowerCase();
+  let docs = DATA.documents;
+  if (search) {
+    docs = docs.filter(d =>
+      d.participant.toLowerCase().includes(search) ||
+      d.themes.some(t=>t.toLowerCase().includes(search)) ||
+      d.keywords.some(k=>k.word.toLowerCase().includes(search))
+    );
+  }
+  if (sortCol) {
+    docs = [...docs].sort((a,b) => {
+      let va=a[sortCol], vb=b[sortCol];
+      if (typeof va==='string') return sortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
+      return sortAsc ? va-vb : vb-va;
+    });
+  }
+  tbody.innerHTML = docs.map(d => {
+    const sentClass = d.sentiment_label==='Positive'?'pos':d.sentiment_label==='Negative'?'neg':'mix';
+    return `<tr>
+      <td><strong>${esc(d.participant)}</strong></td>
+      <td>${d.word_count}</td>
+      <td>${d.readability}</td>
+      <td><span class="badge ${sentClass}">${d.sentiment_score} ${d.sentiment_label}</span></td>
+      <td>${d.themes.map(t=>`<span class="badge" style="background:${(themeColor(t))}22;color:${themeColor(t)}">${esc(t)}</span>`).join(' ')}</td>
+      <td>${d.keywords.slice(0,5).map(k=>`<span class="kw" style="background:var(--surface);padding:2px 6px;border-radius:3px;font-size:11px;color:var(--accent2)">${esc(k.word)}</span>`).join(' ')}</td>
+    </tr>`;
+  }).join('');
+}
+
+function themeColor(name) {
+  const idx = DATA.themes.findIndex(t=>t.name===name);
+  return idx>=0 ? THEME_COLORS[idx%THEME_COLORS.length] : '#6c8cff';
+}
+
+// Table sorting
+document.querySelectorAll('#report-table th[data-sort]').forEach(th => {
+  th.addEventListener('click', () => {
+    const col = th.dataset.sort;
+    if (sortCol===col) sortAsc=!sortAsc; else { sortCol=col; sortAsc=true; }
+    renderTable();
+  });
+});
+document.getElementById('table-search').addEventListener('input', renderTable);
+
+// Tab switching
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('panel-'+tab.dataset.tab).classList.add('active');
+  });
+});
+
+function esc(s) { const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+</script>
+</body>
+</html>
