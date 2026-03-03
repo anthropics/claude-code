@@ -63,16 +63,33 @@ while read -r cidr; do
     ipset add allowed-domains "$cidr"
 done < <(echo "$gh_ranges" | jq -r '(.web + .api + .git)[]' | aggregate -q)
 
-# Resolve and add other allowed domains
-for domain in \
-    "registry.npmjs.org" \
-    "api.anthropic.com" \
-    "sentry.io" \
-    "statsig.anthropic.com" \
-    "statsig.com" \
-    "marketplace.visualstudio.com" \
-    "vscode.blob.core.windows.net" \
-    "update.code.visualstudio.com"; do
+# Define default allowed domains
+DEFAULT_ALLOWED_DOMAINS="
+registry.npmjs.org
+api.anthropic.com
+sentry.io
+statsig.anthropic.com
+statsig.com
+marketplace.visualstudio.com
+vscode.blob.core.windows.net
+update.code.visualstudio.com
+"
+
+# Combine default domains with optional external domains
+# External domains can be provided via EXTRA_ALLOWED_DOMAINS env var (space/tab separated)
+ALL_ALLOWED_DOMAINS="$DEFAULT_ALLOWED_DOMAINS"
+if [ -n "${EXTRA_ALLOWED_DOMAINS:-}" ]; then
+    echo "Adding extra allowed domains from EXTRA_ALLOWED_DOMAINS..."
+    # Convert space/tab separated list to newline separated and append
+    EXTRA_DOMAINS=$(echo "$EXTRA_ALLOWED_DOMAINS" | tr ' \t' '\n' | grep -v '^$')
+    ALL_ALLOWED_DOMAINS=$(printf "%s\n%s" "$DEFAULT_ALLOWED_DOMAINS" "$EXTRA_DOMAINS")
+fi
+
+# Resolve and add all allowed domains
+for domain in $ALL_ALLOWED_DOMAINS; do
+    # Skip empty lines
+    [ -z "$domain" ] && continue
+
     echo "Resolving $domain..."
     ips=$(dig +noall +answer A "$domain" | awk '$4 == "A" {print $5}')
     if [ -z "$ips" ]; then
