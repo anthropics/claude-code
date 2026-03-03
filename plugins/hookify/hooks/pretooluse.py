@@ -42,11 +42,18 @@ def main():
         # For PreToolUse, we use tool_name to determine "bash" vs "file" event
         tool_name = input_data.get('tool_name', '')
 
+        # Map tools to event types for rule filtering:
+        # - 'bash': Bash commands
+        # - 'file': File modifications (Edit, Write, MultiEdit)
+        # - 'read': File reads (Read, Glob, Grep, LS) - should NOT trigger file rules
+        # - None: Other tools - only 'all' rules fire
         event = None
         if tool_name == 'Bash':
             event = 'bash'
         elif tool_name in ['Edit', 'Write', 'MultiEdit']:
             event = 'file'
+        elif tool_name in ['Read', 'Glob', 'Grep', 'LS']:
+            event = 'read'
 
         # Load rules
         rules = load_rules(event=event)
