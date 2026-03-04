@@ -88,6 +88,75 @@ if [[ -n "$GH_BIN" ]]; then
   BINARY_MOUNTS+=(-v "$GH_BIN:/usr/local/bin/gh:ro")
 fi
 
+# --- Host toolchains ---
+# Auto-detect common language toolchains and mount them into the container.
+# This is best-effort — missing tools are silently skipped.
+TOOLCHAIN_MOUNTS=()
+TOOLCHAIN_ENV=()
+
+# Go
+if command -v go &>/dev/null; then
+  GO_BIN="$(command -v go)"
+  TOOLCHAIN_MOUNTS+=(-v "$GO_BIN:/usr/local/bin/go:ro")
+  GOROOT="$(go env GOROOT 2>/dev/null || true)"
+  if [[ -n "$GOROOT" && -d "$GOROOT" ]]; then
+    TOOLCHAIN_MOUNTS+=(-v "$GOROOT:$GOROOT:ro")
+    TOOLCHAIN_ENV+=(-e "GOROOT=$GOROOT")
+  fi
+  GOPATH="${GOPATH:-$HOME/go}"
+  if [[ -d "$GOPATH" ]]; then
+    TOOLCHAIN_MOUNTS+=(-v "$GOPATH:$GOPATH")
+    TOOLCHAIN_ENV+=(-e "GOPATH=$GOPATH")
+  fi
+fi
+
+# Node.js
+if command -v node &>/dev/null; then
+  NODE_BIN="$(command -v node)"
+  NODE_DIR="$(dirname "$NODE_BIN")"
+  TOOLCHAIN_MOUNTS+=(-v "$NODE_DIR:$NODE_DIR:ro")
+  [[ -d "$HOME/.npm" ]] && TOOLCHAIN_MOUNTS+=(-v "$HOME/.npm:$HOME/.npm")
+fi
+
+# Python
+if command -v python3 &>/dev/null; then
+  PYTHON_BIN="$(command -v python3)"
+  PYTHON_DIR="$(dirname "$PYTHON_BIN")"
+  TOOLCHAIN_MOUNTS+=(-v "$PYTHON_DIR:$PYTHON_DIR:ro")
+fi
+
+# Java
+if command -v java &>/dev/null; then
+  JAVA_BIN="$(command -v java)"
+  TOOLCHAIN_MOUNTS+=(-v "$JAVA_BIN:/usr/local/bin/java:ro")
+  if command -v javac &>/dev/null; then
+    JAVAC_BIN="$(command -v javac)"
+    TOOLCHAIN_MOUNTS+=(-v "$JAVAC_BIN:/usr/local/bin/javac:ro")
+  fi
+  JAVA_REAL="$(readlink -f "$JAVA_BIN")"
+  JAVA_HOME_DETECTED="$(dirname "$(dirname "$JAVA_REAL")")"
+  if [[ -d "$JAVA_HOME_DETECTED/lib" ]]; then
+    TOOLCHAIN_MOUNTS+=(-v "$JAVA_HOME_DETECTED:$JAVA_HOME_DETECTED:ro")
+    TOOLCHAIN_ENV+=(-e "JAVA_HOME=$JAVA_HOME_DETECTED")
+  fi
+fi
+
+# Rust
+if command -v rustc &>/dev/null; then
+  RUSTC_BIN="$(command -v rustc)"
+  TOOLCHAIN_MOUNTS+=(-v "$RUSTC_BIN:/usr/local/bin/rustc:ro")
+  command -v cargo &>/dev/null && TOOLCHAIN_MOUNTS+=(-v "$(command -v cargo):/usr/local/bin/cargo:ro")
+  [[ -d "$HOME/.cargo" ]] && TOOLCHAIN_MOUNTS+=(-v "$HOME/.cargo:$HOME/.cargo")
+  [[ -d "$HOME/.rustup" ]] && TOOLCHAIN_MOUNTS+=(-v "$HOME/.rustup:$HOME/.rustup:ro")
+fi
+
+# Build tools
+for tool in make cmake; do
+  if command -v "$tool" &>/dev/null; then
+    TOOLCHAIN_MOUNTS+=(-v "$(command -v "$tool"):/usr/local/bin/$tool:ro")
+  fi
+done
+
 # --- Run ---
 mkdir -p "$CLAUDE_HOME/rules"
 
@@ -108,6 +177,8 @@ exec "$PODMAN" run --rm -it --userns=keep-id \
   -e "COLORTERM=${COLORTERM:-}" \
   --hostname "container" \
   "${BINARY_MOUNTS[@]}" \
+  ${TOOLCHAIN_MOUNTS[@]+"${TOOLCHAIN_MOUNTS[@]}"} \
+  ${TOOLCHAIN_ENV[@]+"${TOOLCHAIN_ENV[@]}"} \
   ${SSH_ARGS[@]+"${SSH_ARGS[@]}"} \
   ${ENV_ARGS[@]+"${ENV_ARGS[@]}"} \
   ${CLAUDE_DOCKER_EXTRA:-} \
