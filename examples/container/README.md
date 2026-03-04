@@ -106,6 +106,24 @@ The container replaces Claude Code's built-in sandbox. Podman rootless provides 
 | **Repo writes** | Claude can modify files in mounted directories — that's the point. Guard hook catches destructive git ops. |
 | **Secrets in env vars** | API keys are visible inside the container. Use short-lived tokens where possible. |
 
+## FAQ
+
+**Why not just use the built-in sandbox?**
+
+The sandbox restricts *which commands* Claude can run. This means you either approve commands one by one (slow, breaks flow) or pre-allow patterns that may be too broad. A container flips the model: Claude runs `--dangerously-skip-permissions` and can do anything *inside* the container, but the container itself limits what reaches the host. You get full autonomy for Claude with less risk, not more.
+
+**Why not just configure permissions carefully?**
+
+You can — and the guard hook works without a container for exactly this. But permissions are allow-lists: you're always one missed pattern away from an unexpected action. The container is a deny-by-default boundary. Even if Claude finds a creative way to combine allowed tools, it can't escape the container. The two approaches complement each other — the container handles the "unknown unknowns."
+
+**Why not Docker?**
+
+The wrapper uses Podman-specific flags (`--userns=keep-id`, `--passwd-entry`) for rootless UID mapping. Docker doesn't support these. You can adapt the setup for Docker (see [Docker notes](#docker-non-podman-notes) below), but Podman's rootless mode is a better security fit — no daemon running as root.
+
+**Does this replace the permission system entirely?**
+
+No. The container settings overlay (`settings.container.json`) still controls what Claude *thinks* it's allowed to do. The guard hook still catches destructive git commands. The container adds a third layer: even if both the permission system and the hook miss something, the container limits blast radius.
+
 ## Customization
 
 | Env var | Purpose |
