@@ -1,0 +1,46 @@
+#!/bin/bash
+# PreToolUse hook: prompt for confirmation on destructive git commands.
+# Works even with --dangerously-skip-permissions (hooks always fire).
+# Uses regex matching so compound commands (e.g. "git fetch && git merge")
+# are caught too.
+#
+# Install: copy to ~/.claude/bin/ and add to settings.json:
+# {
+#   "hooks": {
+#     "PreToolUse": [{
+#       "matcher": "Bash",
+#       "hooks": [{"type": "command", "command": "$HOME/.claude/bin/guard-destructive-git"}]
+#     }]
+#   }
+# }
+
+INPUT=$(cat)
+COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty')
+
+check() {
+  local pattern="$1" reason="$2"
+  if [[ "$COMMAND" =~ $pattern ]]; then
+    REASON="$reason"
+    return 0
+  fi
+  return 1
+}
+
+check 'git push (--force|-f)' "Force push will overwrite remote history." ||
+check 'git reset --hard'      "Hard reset discards uncommitted changes." ||
+check 'git branch -D '        "Force-deleting a branch cannot be easily undone." ||
+check 'git checkout (--|\.)'  "This discards uncommitted changes." ||
+check 'git clean -f'          "This permanently deletes untracked files." ||
+check 'rm -rf '               "Recursive force-delete is irreversible." ||
+check 'gh (.+ )?merge '       "Merging a PR cannot be easily undone." ||
+exit 0
+
+cat <<EOF
+{
+  "hookSpecificOutput": {
+    "hookEventName": "PreToolUse",
+    "permissionDecision": "ask",
+    "permissionDecisionReason": "$REASON"
+  }
+}
+EOF
