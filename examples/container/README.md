@@ -118,7 +118,7 @@ You can — and the guard hook works without a container for exactly this. But p
 
 **What about outgoing network access?**
 
-The container does NOT restrict outgoing network access. Claude has full outbound connectivity — needed for git push, API calls, package installs, etc. This is a deliberate trade-off: restricting the network would break too many common workflows. If you need network isolation, add `--network=none` via `CLAUDE_DOCKER_EXTRA`, but expect git and API operations to fail.
+The container does NOT restrict outgoing network access. Claude has full outbound connectivity — needed for git push, API calls, package installs, etc. The risk: a compromised model could exfiltrate secrets injected into the container (your Claude API key, GitHub token, SSH agent access). For most users this is an acceptable trade-off — these credentials are already exposed to any process on your host. If you need stricter isolation, add `--network=none` via `CLAUDE_DOCKER_EXTRA`, but expect git and API operations to fail. A middle ground (allowlist proxy or DNS filtering) is possible but not included here.
 
 **Why not Docker?**
 
