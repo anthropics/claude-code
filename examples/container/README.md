@@ -1,6 +1,6 @@
 # Running Claude Code in a Container
 
-Run Claude Code inside a Podman or Docker container for isolation instead of the built-in sandbox.
+Run Claude Code inside a Podman container for isolation instead of the built-in sandbox.
 
 ## Why a container?
 
@@ -48,7 +48,7 @@ The guard hook intercepts destructive git commands (force push, hard reset, bran
 
 ### Prerequisites
 
-- Podman (recommended) or Docker
+- Podman (required — the wrapper uses `--userns=keep-id` and `--passwd-entry` which are Podman-specific)
 - `claude` CLI installed on the host
 - `gh` CLI (optional, for GitHub integration)
 
@@ -132,6 +132,6 @@ Then mount the toolchain directories read-only (e.g. `~/.local/share/mise/instal
 
 ### Docker (non-Podman) notes
 
-The wrapper defaults to Podman. For Docker:
+The wrapper requires Podman. To adapt for Docker manually:
 - Replace `--userns=keep-id` with `--user "$(id -u):$(id -g)"`
-- The `--passwd-entry` flag is Podman-specific — use a bind-mounted `/etc/passwd` entry instead, or remove it if home directory resolution isn't needed
+- Remove `--passwd-entry` (Podman-specific) — use a bind-mounted `/etc/passwd` entry instead if home directory resolution is needed
