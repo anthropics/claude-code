@@ -1,5 +1,70 @@
 # Changelog
 
+## 2.1.64
+
+- Added persistent session support to `claude server`: connections with a `session_key` survive WebSocket disconnects and can be resumed across server restarts. New flags: `--workspace`, `--idle-timeout`, `--max-sessions`.
+- Added `claude remote-control server` for hosting multiple concurrent sessions with worktree or same-dir isolation
+- Added optional name argument to `/remote-control` and `claude remote-control` (`/remote-control My Project` or `--name "My Project"`) to set a custom session title visible in claude.ai/code
+- Added Voice STT support for 10 new languages (20 total) — Russian, Polish, Turkish, Dutch, Ukrainian, Greek, Czech, Danish, Swedish, Norwegian
+- Added effort level display (e.g., "with low effort") to the logo and spinner, making it easier to see which effort setting is active
+- Added agent name display in terminal title when using `claude --agent`
+- Added `sandbox.enableWeakerNetworkIsolation` setting (macOS only) to allow Go programs like `gh`, `gcloud`, and `terraform` to verify TLS certificates when using a custom MITM proxy with `httpProxyPort`
+- Added `includeGitInstructions` setting (and `CLAUDE_CODE_DISABLE_GIT_INSTRUCTIONS` env var) to remove built-in commit and PR workflow instructions from Claude's system prompt
+- Added `/reload-plugins` command to activate pending plugin changes without restarting
+- Added a one-time startup prompt suggesting Claude Code Desktop on macOS and Windows (max 3 showings, dismissible)
+- Added `${CLAUDE_SKILL_DIR}` variable for skills to reference their own directory in SKILL.md content
+- Added `InstructionsLoaded` hook event that fires when CLAUDE.md or `.claude/rules/*.md` files are loaded into context
+- Added `agent_id` (for subagents) and `agent_type` (for subagents and `--agent`) to hook events
+- Added `worktree` field to status line hook commands with name, path, branch, and original repo directory when running in a `--worktree` session
+- Added scheduled skill triggers to the background tasks indicator with a detail dialog showing schedule and countdown
+- Added `pluginTrustMessage` in managed settings to append organization-specific context to the plugin trust warning shown before installation
+- Added policy limit fetching (e.g., remote control restrictions) for Team plan OAuth users, not just Enterprise
+- Added `pathPattern` to `strictKnownMarketplaces` for regex-matching file/directory marketplace sources alongside `hostPattern` restrictions
+- Added plugin source type `git-subdir` to point to a subdirectory within a git repo
+- Added `CLAUDE_CODE_AUTO_MEMORY_PATH` env var to override the auto-memory directory with a direct path
+- Added `oauth.authServerMetadataUrl` config option for MCP servers to specify a custom OAuth metadata discovery URL when standard discovery fails
+- Fixed symlink bypass where writing new files through a symlinked parent directory could escape the working directory in `acceptEdits` mode
+- Fixed sandbox prompting users to approve non-allowed domains when `allowManagedDomainsOnly` is enabled in managed settings — non-allowed domains are now blocked automatically with no bypass
+- Fixed interactive tools (e.g., `AskUserQuestion`) being silently auto-allowed when listed in a skill's allowed-tools, bypassing the permission prompt and running with empty answers
+- Fixed multi-GB memory spike when committing with large untracked binary files in the working tree
+- Fixed Escape not interrupting a running turn when the input box has draft text. Use Up arrow to pull queued messages back for editing, or Ctrl+U to clear the input line.
+- Fixed Android app crash when running local slash commands (`/voice`, `/cost`) in Remote Control sessions
+- Fixed a memory leak where old message array versions accumulated in React Compiler `memoCache` over long sessions
+- Fixed a memory leak where REPL render scopes accumulated over long sessions (~35MB over 1000 turns)
+- Fixed memory retention in in-process teammates where the parent's full conversation history was pinned for the teammate's lifetime, preventing GC after `/clear` or auto-compact
+- Fixed a memory leak in interactive mode where hook events could accumulate unboundedly during long sessions
+- Fixed hang when `--mcp-config` points to a corrupted file
+- Fixed slow startup when many skills/plugins are installed
+- Fixed `cd <outside-dir> && rm/mv/cp ...` permission prompt to mention the chained write command instead of only showing "allow reading from <dir>/"
+- Fixed `cd <outside-dir> && <cmd>` permission prompt to surface the chained command instead of only showing "Yes, allow reading from <dir>/"
+- Fixed conditional `.claude/rules/*.md` files (with `paths:` frontmatter) and nested CLAUDE.md files not loading in print mode (`claude -p`)
+- Fixed `/clear` not fully clearing all session caches, reducing memory retention in long sessions
+- Fixed terminal flicker caused by animated elements at the scrollback boundary
+- Fixed UI frame drops on macOS when using MCP servers with OAuth (regression from 2.1.x)
+- Fixed occasional frame stalls during typing caused by synchronous debug log flushes
+- Fixed `TeammateIdle` and `TaskCompleted` hooks to support `{"continue": false, "stopReason": "..."}` to stop the teammate, matching `Stop` hook behavior
+- Fixed `WorktreeCreate` and `WorktreeRemove` plugin hooks being silently ignored
+- Fixed `WorktreeCreate` hooks registered by plugins or SDK consumers being silently ignored
+- Fixed skill descriptions with colons (e.g., "Triggers include: X, Y, Z") failing to load from SKILL.md frontmatter
+- Fixed project skills without a `description:` frontmatter field not appearing in Claude's available skills list
+- Fixed `/context` showing identical token counts for all MCP tools from a server
+- Fixed literal `nul` file creation on Windows when the model uses CMD-style `2>nul` redirection in Git Bash
+- Fixed extra blank lines appearing below each tool call in the expanded subagent transcript view (Ctrl+O)
+- Fixed Tab/arrow keys not cycling Settings tabs when `/config` search box is focused but empty
+- Fixed service key OAuth sessions (CCR containers) spamming `[ERROR]` logs with 403s from profile-scoped endpoints
+- Fixed inconsistent color for "Remote Control active" status indicator
+- Fixed Voice waveform cursor covering the first suffix letter when dictating mid-input
+- Fixed Voice input showing all 5 spaces during warmup instead of capping at ~2 (aligning with the "keep holding…" hint)
+- Improved MCP binary content handling: tools returning PDFs, Office documents, or audio now save decoded bytes to disk with the correct file extension instead of dumping raw base64 into the conversation context. WebFetch also saves binary responses alongside its summary.
+- Improved memory usage in long sessions by stabilizing `onSubmit` across message updates
+- Improved LSP tool rendering and memory context building to no longer read entire files
+- Improved session upload and memory sync to avoid reading large files into memory before size/binary checks
+- Improved file operation performance by avoiding reading file contents for existence checks (6 sites)
+- Improved documentation to clarify that `--append-system-prompt-file` and `--system-prompt-file` work in interactive mode (the docs previously said print mode only)
+- Changed thinking summaries in Ctrl+O to show a `✻ Thinking…` stub instead of full content. Set `showThinkingSummaries: true` in settings.json to restore.
+- [VSCode] Fixed rename and remove icons showing on the current active session when it is untitled and empty
+- [VSCode] Fixed blank dot appearing in the timeline for some tools
+
 ## 2.1.63
 
 - Added `/simplify` and `/batch` bundled slash commands
