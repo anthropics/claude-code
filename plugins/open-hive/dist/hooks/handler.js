@@ -9,6 +9,16 @@ function getSessionId(input) {
 function getRepo(input) {
     return basename(input.cwd ?? process.cwd());
 }
+function timeSince(isoTimestamp) {
+    const diff = Date.now() - new Date(isoTimestamp).getTime();
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    if (hours < 1)
+        return '<1h';
+    if (hours < 24)
+        return `${hours}h`;
+    const days = Math.floor(hours / 24);
+    return `${days}d`;
+}
 function formatCollisions(collisions) {
     if (collisions.length === 0)
         return '';
@@ -36,6 +46,13 @@ async function handleSessionStart(input) {
         messages.push('Open Hive: Active sessions in this repo:');
         for (const s of result.active_sessions_in_repo) {
             messages.push(`  - ${s.developer_name}: ${s.intent ?? 'no intent declared'} (areas: ${s.areas.join(', ') || 'none yet'})`);
+        }
+    }
+    if (result.recent_historical_intents?.length > 0) {
+        messages.push('Open Hive: Recent work in this repo (last 48h):');
+        for (const hi of result.recent_historical_intents) {
+            const ago = timeSince(hi.timestamp);
+            messages.push(`  - ${hi.developer_name} (${ago} ago): ${hi.intent}`);
         }
     }
     if (result.active_collisions.length > 0) {
