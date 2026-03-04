@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Launch Claude Code inside a Podman container.
+# Launch Claude Code inside a Podman container (Podman only — uses --userns=keep-id
+# and --passwd-entry which have no Docker equivalent).
 # Place at ~/.claude/bin/claude and add ~/.claude/bin to PATH.
 #
 # Environment variables:
@@ -13,7 +14,12 @@ set -euo pipefail
 IMAGE="${CLAUDE_DOCKER_IMAGE:-claude-code}"
 CLAUDE_HOME="$HOME/.claude"
 DOCKER_DIR="${CLAUDE_HOME}/docker"
-PODMAN="$(command -v podman || command -v docker)"
+PODMAN="$(command -v podman || true)"
+if [[ -z "$PODMAN" ]]; then
+  echo "Error: podman is required (Docker is not supported — uses Podman-specific flags)." >&2
+  echo "See README.md 'Docker (non-Podman) notes' for manual adaptation." >&2
+  exit 1
+fi
 
 # --- Build image if needed ---
 if [[ "${CLAUDE_DOCKER_REBUILD:-}" == "1" ]] || ! "$PODMAN" image inspect "$IMAGE" &>/dev/null; then

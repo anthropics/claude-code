@@ -14,8 +14,37 @@
 #   }
 # }
 
+set -euo pipefail
+
 INPUT=$(cat)
-COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty')
+
+# Ensure jq is available; if not, fail closed by asking for confirmation.
+if ! command -v jq >/dev/null 2>&1; then
+  cat <<EOF
+{
+  "hookSpecificOutput": {
+    "hookEventName": "PreToolUse",
+    "permissionDecision": "ask",
+    "permissionDecisionReason": "jq is not installed; cannot safely inspect git command."
+  }
+}
+EOF
+  exit 0
+fi
+
+# Safely extract the command; on parse failure, fail closed with an ask decision.
+if ! COMMAND=$(echo "$INPUT" | jq -er '.tool_input.command'); then
+  cat <<EOF
+{
+  "hookSpecificOutput": {
+    "hookEventName": "PreToolUse",
+    "permissionDecision": "ask",
+    "permissionDecisionReason": "Failed to parse tool input JSON; cannot safely inspect git command."
+  }
+}
+EOF
+  exit 0
+fi
 
 check() {
   local pattern="$1" reason="$2"
