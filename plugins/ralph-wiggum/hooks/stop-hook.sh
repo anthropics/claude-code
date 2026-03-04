@@ -6,16 +6,19 @@
 
 set -euo pipefail
 
-# Read hook input from stdin (advanced stop hook API)
-HOOK_INPUT=$(cat)
-
-# Check if ralph-loop is active
+# Check if ralph-loop is active BEFORE reading stdin.
+# Reading stdin first (cat) blocks when no data is piped, causing the hook
+# to hang/timeout with a non-zero exit on every session end — even when
+# no loop is active (the 99.9% case).
 RALPH_STATE_FILE=".claude/ralph-loop.local.md"
 
 if [[ ! -f "$RALPH_STATE_FILE" ]]; then
-  # No active loop - allow exit
+  # No active loop - allow exit immediately (no stdin read needed)
   exit 0
 fi
+
+# Read hook input from stdin (advanced stop hook API — only when loop is active)
+HOOK_INPUT=$(timeout 5 cat 2>/dev/null || echo "{}")
 
 # Parse markdown frontmatter (YAML between ---) and extract values
 FRONTMATTER=$(sed -n '/^---$/,/^---$/{ /^---$/d; p; }' "$RALPH_STATE_FILE")
