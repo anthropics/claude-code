@@ -110,11 +110,15 @@ The container replaces Claude Code's built-in sandbox. Podman rootless provides 
 
 **Why not just use the built-in sandbox?**
 
-The sandbox restricts *which commands* Claude can run. This means you either approve commands one by one (slow, breaks flow) or pre-allow patterns that may be too broad. A container flips the model: Claude runs `--dangerously-skip-permissions` and can do anything *inside* the container, but the container itself limits what reaches the host. You get full autonomy for Claude with less risk, not more.
+In practice, the sandbox doesn't stay out of the way. Shell expansion, pipes, and compound commands trigger permission prompts even when the underlying operation is safe. You end up approving things constantly, which defeats the purpose of autonomous operation. A container flips the model: Claude runs `--dangerously-skip-permissions` and can do anything *inside* the container, but the container itself limits what reaches the host. No prompts, no flow interruption.
 
 **Why not just configure permissions carefully?**
 
-You can — and the guard hook works without a container for exactly this. But permissions are allow-lists: you're always one missed pattern away from an unexpected action. The container is a deny-by-default boundary. Even if Claude finds a creative way to combine allowed tools, it can't escape the container. The two approaches complement each other — the container handles the "unknown unknowns."
+You can — and the guard hook works without a container for exactly this. But permissions are allow-lists: you're always one missed pattern away from an unexpected prompt. The container is a deny-by-default boundary. Even if Claude finds a creative way to combine allowed tools, it can't escape the container. The two approaches complement each other — the container handles the "unknown unknowns."
+
+**What about outgoing network access?**
+
+The container does NOT restrict outgoing network access. Claude has full outbound connectivity — needed for git push, API calls, package installs, etc. This is a deliberate trade-off: restricting the network would break too many common workflows. If you need network isolation, add `--network=none` via `CLAUDE_DOCKER_EXTRA`, but expect git and API operations to fail.
 
 **Why not Docker?**
 
