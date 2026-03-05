@@ -430,11 +430,11 @@ export default function Canvas({ board, onUpdate, onBack }) {
             edges={edges}
             nmap={nmap}
             onUpdate={fn => {
-              onUpdate(fn);
-              // Keep the panel state in sync by reflecting the updated node
+              const updatedBoard = fn(board);
+              onUpdate(() => updatedBoard);
               setPanel(prev => {
                 if (!prev) return prev;
-                const updated = fn(board).nodes.find(n => n.id === prev.id);
+                const updated = updatedBoard.nodes.find(n => n.id === prev.id);
                 return updated ? { ...updated } : prev;
               });
             }}
