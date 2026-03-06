@@ -344,3 +344,58 @@ fi
 - Per-project settings
 - Team-specific rules
 - Dynamic validation criteria
+
+## Pattern 11: Cross-Platform Hook Wrapper
+
+Use a polyglot `.cmd` wrapper to ensure hooks work on Windows (where WSL's `bash.exe` can intercept `.sh` execution) and Unix/macOS:
+
+**Wrapper file (`run-hook.cmd`):**
+```cmd
+:; # Cross-platform hook wrapper (polyglot: cmd.exe + bash)
+:; # On Unix/macOS: passes through to bash natively
+:; SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+:; exec bash "$SCRIPT_DIR/$1" "${@:2}"
+:; exit $?
+
+@echo off
+set "SCRIPT_DIR=%~dp0"
+set "HOOK_SCRIPT=%SCRIPT_DIR%%~1"
+
+if exist "C:\Program Files\Git\bin\bash.exe" (
+    "C:\Program Files\Git\bin\bash.exe" "%HOOK_SCRIPT%" %2 %3 %4 %5 %6 %7 %8 %9
+    exit /b %errorlevel%
+)
+if exist "C:\Program Files (x86)\Git\bin\bash.exe" (
+    "C:\Program Files (x86)\Git\bin\bash.exe" "%HOOK_SCRIPT%" %2 %3 %4 %5 %6 %7 %8 %9
+    exit /b %errorlevel%
+)
+
+echo ERROR: Git Bash not found. Install Git for Windows. >&2
+exit /b 1
+```
+
+**hooks.json configuration:**
+```json
+{
+  "SessionStart": [
+    {
+      "hooks": [
+        {
+          "type": "command",
+          "command": "${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd my-hook.sh"
+        }
+      ]
+    }
+  ]
+}
+```
+
+**How it works:**
+- Lines starting with `:;` are labels in cmd.exe (ignored) and no-ops in bash (valid syntax)
+- When bash runs the file, it executes the `:;` lines, which `exec` the target `.sh` script
+- When cmd.exe runs the file, it skips `:;` labels and runs the `@echo off` section, which explicitly invokes Git Bash
+
+**Use for:**
+- Any plugin that needs to work on Windows, macOS, and Linux
+- Avoiding WSL bash interception on Windows systems with Docker Desktop
+- Plugins distributed via the marketplace (must work for all users)
