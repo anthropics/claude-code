@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/uuddlrlrba.sh",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}
