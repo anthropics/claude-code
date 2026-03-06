@@ -53,8 +53,7 @@ TASK:
 **If EVENT is "issue_comment" (comment on existing issue):**
 
 4. Evaluate lifecycle labels based on the full conversation:
-   - If the issue has `stale` or `autoclose`, remove the label — a new human comment means the issue is still active:
-     `./scripts/edit-issue-labels.sh --issue ISSUE_NUMBER --remove-label "stale" --remove-label "autoclose"`
+   - `stale` and `autoclose` labels are already removed automatically by the workflow before this step — no action needed for those.
    - If the issue has `needs-repro` or `needs-info` and the missing information has now been provided, remove the label:
      `./scripts/edit-issue-labels.sh --issue ISSUE_NUMBER --remove-label "needs-repro"`
    - If the issue doesn't have lifecycle labels but clearly needs them (e.g., a maintainer asked for repro steps or more details), add the appropriate label.
