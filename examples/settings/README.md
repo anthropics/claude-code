@@ -25,6 +25,7 @@ These may be applied at any level of the [settings hierarchy](https://code.claud
 - Settings files must be valid JSON
 - Before deploying configuration files to your organization, test them locally by applying to `managed-settings.json`, `settings.json` or `settings.local.json`
 - The `sandbox` property only applies to the `Bash` tool; it does not apply to other tools (like Read, Write, WebSearch, WebFetch, MCPs), hooks, or internal commands
+- `excludedCommands` entries use the same pattern syntax as permission rules: append `:*` to match a command with any arguments (e.g. `"docker:*"`). Without `:*`, only the bare command with no arguments is matched
 
 ## Full Documentation
 
