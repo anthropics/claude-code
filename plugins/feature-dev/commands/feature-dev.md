@@ -24,7 +24,7 @@ You are helping a developer implement a new feature. Follow a systematic approac
 Initial request: $ARGUMENTS
 
 **Actions**:
-1. Create todo list with all phases
+1. Create todo list with all 7 phases. Each phase todo should be prefixed with `[Phase N]` (e.g., `[Phase 1] Discovery`, `[Phase 5] Implementation`, `[Phase 6] Quality Review`). These phase-level todos must be preserved throughout the entire workflow.
 2. If feature unclear, ask user for:
    - What problem are they solving?
    - What should the feature do?
@@ -94,7 +94,8 @@ If the user says "whatever you think is best", provide your recommendation and g
 3. Implement following chosen architecture
 4. Follow codebase conventions strictly
 5. Write clean, well-documented code
-6. Update todos as you progress
+6. Update todos as you progress. **IMPORTANT: When calling TodoWrite, always include ALL existing phase-level `[Phase N]` todos in the list. TodoWrite replaces the entire todo list — omitting phase todos will cause them to be lost, skipping Phase 6 (Quality Review) and Phase 7 (Summary).**
+7. After implementation is complete, verify that `[Phase 6] Quality Review` and `[Phase 7] Summary` todos still exist. If they were lost, recreate them before proceeding.
 
 ---
 
