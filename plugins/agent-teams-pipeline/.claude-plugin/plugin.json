@@ -1,0 +1,10 @@
+{
+  "name": "agent-teams-pipeline",
+  "description": "Lifecycle management for Agent Teams: orphan detection, context-aware shutdown, tmux cleanup, and multi-phase pipeline orchestration",
+  "version": "1.0.0",
+  "author": {
+    "name": "arkstar"
+  },
+  "keywords": ["agent-teams", "pipeline", "lifecycle", "hooks", "tmux"],
+  "repository": "https://github.com/anthropics/claude-code"
+}
