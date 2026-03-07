@@ -1,0 +1,8 @@
+{
+  "name": "session-manager",
+  "description": "List, delete, and clean up Claude Code sessions across all projects without leaving the CLI",
+  "version": "1.0.0",
+  "author": {
+    "name": "Alexander Kropiunig"
+  }
+}
