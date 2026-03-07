@@ -11,7 +11,7 @@ import json
 
 # CRITICAL: Add plugin root to Python path for imports
 # We need to add the parent of the plugin directory so Python can find "hookify" package
-PLUGIN_ROOT = os.environ.get('CLAUDE_PLUGIN_ROOT')
+PLUGIN_ROOT = os.environ.get('CLAUDE_PLUGIN_ROOT') or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if PLUGIN_ROOT:
     # Add the parent directory of the plugin
     parent_dir = os.path.dirname(PLUGIN_ROOT)
