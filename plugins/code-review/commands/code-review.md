@@ -11,11 +11,11 @@ Provide a code review for the given pull request.
 
 To do this, follow these steps precisely:
 
-1. Launch a haiku agent to check if any of the following are true:
+1. Launch a sonnet agent to check if any of the following are true:
    - The pull request is closed
    - The pull request is a draft
-   - The pull request does not need code review (e.g. automated PR, trivial change that is obviously correct)
-   - Claude has already commented on this PR (check `gh pr view <PR> --comments` for comments left by claude)
+   - The pull request is trivial and does not need code review. A PR is trivial only if it exclusively contains one or more of the following: auto-generated file changes (lock files, changelogs, generated code), whitespace or formatting changes with no logic modifications, or automated dependency version bumps (e.g. Dependabot, Renovate). If the PR contains any non-trivial changes alongside these, it is not trivial.
+   - Claude has already reviewed this PR (check `gh pr view <PR> --comments` for a comment containing the `## Code review` header)
 
    If any condition is true, stop and do not proceed.
 
