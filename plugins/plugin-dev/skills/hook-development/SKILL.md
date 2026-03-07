@@ -61,47 +61,7 @@ Execute bash commands for deterministic checks:
 
 ### Plugin hooks.json Format
 
-**For plugin hooks** in `hooks/hooks.json`, use wrapper format:
-
-```json
-{
-  "description": "Brief explanation of hooks (optional)",
-  "hooks": {
-    "PreToolUse": [...],
-    "Stop": [...],
-    "SessionStart": [...]
-  }
-}
-```
-
-**Key points:**
-- `description` field is optional
-- `hooks` field is required wrapper containing actual hook events
-- This is the **plugin-specific format**
-
-**Example:**
-```json
-{
-  "description": "Validation hooks for code quality",
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/validate.sh"
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
-### Settings Format (Direct)
-
-**For user settings** in `.claude/settings.json`, use direct format:
+**For plugin hooks** in `hooks/hooks.json` and **user settings** in `.claude/settings.json`, use the direct format:
 
 ```json
 {
@@ -112,11 +72,25 @@ Execute bash commands for deterministic checks:
 ```
 
 **Key points:**
-- No wrapper - events directly at top level
-- No description field
-- This is the **settings format**
+- No wrapper - events are directly at the top level
+- No `description` or `hooks` wrapper fields
 
-**Important:** The examples below show the hook event structure that goes inside either format. For plugin hooks.json, wrap these in `{"hooks": {...}}`.
+**Example:**
+```json
+{
+  "PreToolUse": [
+    {
+      "matcher": "Write",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "${CLAUDE_PLUGIN_ROOT}/hooks/validate.sh"
+        }
+      ]
+    }
+  ]
+}
+```
 
 ## Hook Events
 
