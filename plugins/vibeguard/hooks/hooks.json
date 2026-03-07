@@ -1,0 +1,17 @@
+{
+  "description": "VibeGuard plugin - prompt guard mode (no MITM)",
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks-handlers/user-prompt-submit.py",
+            "timeout": 2
+          }
+        ]
+      }
+    ]
+  }
+}

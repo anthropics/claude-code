@@ -145,6 +145,12 @@
       },
       "source": "./plugins/security-guidance",
       "category": "security"
+    },
+    {
+      "name": "vibeguard",
+      "description": "Community plugin: protect secrets/PII by blocking prompts and showing VibeGuard-style placeholders (no MITM)",
+      "source": "./plugins/vibeguard",
+      "category": "security"
     }
   ]
 }
