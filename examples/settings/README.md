@@ -27,5 +27,5 @@ These may be applied at any level of the [settings hierarchy](https://code.claud
 - The `sandbox` property only applies to the `Bash` tool; it does not apply to other tools (like Read, Write, WebSearch, WebFetch, MCPs), hooks, or internal commands
 
 ## Full Documentation
-
+ok
 See https://code.claude.com/docs/en/settings for complete documentation on all available managed settings.
