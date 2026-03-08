@@ -4,7 +4,7 @@ A comprehensive, structured workflow for feature development with specialized ag
 
 ## Overview
 
-The Feature Development Plugin provides a systematic 7-phase approach to building new features. Instead of jumping straight into code, it guides you through understanding the codebase, asking clarifying questions, designing architecture, and ensuring quality—resulting in better-designed features that integrate seamlessly with your existing code.
+The Feature Development Plugin provides a systematic 8-phase approach to building new features. Instead of jumping straight into code, it guides you through understanding the codebase, asking clarifying questions, designing architecture, and ensuring quality—resulting in better-designed features that integrate seamlessly with your existing code. Implementation is broken into reviewable increments with PRs created between each, supporting collaborative development workflows.
 
 ## Philosophy
 
@@ -18,7 +18,7 @@ This plugin embeds these practices into a structured workflow that runs automati
 
 ## Command: `/feature-dev`
 
-Launches a guided feature development workflow with 7 distinct phases.
+Launches a guided feature development workflow with 8 distinct phases.
 
 **Usage:**
 ```bash
@@ -32,7 +32,7 @@ Or simply:
 
 The command will guide you through the entire process interactively.
 
-## The 7-Phase Workflow
+## The 8-Phase Workflow
 
 ### Phase 1: Discovery
 
@@ -155,25 +155,61 @@ excessive refactoring, and fits your existing architecture well.
 Which approach would you like to use?
 ```
 
-### Phase 5: Implementation
+### Phase 5: Implementation Planning
 
-**Goal**: Build the feature
+**Goal**: Break the feature into reviewable increments
 
 **What happens:**
-- **Waits for explicit approval** before starting
-- Reads all relevant files identified in previous phases
-- Implements following chosen architecture
-- Follows codebase conventions strictly
-- Writes clean, well-documented code
-- Updates todos as progress is made
+- **Waits for explicit approval** of the architecture before starting
+- Breaks implementation into 2-5 logical increments, each self-contained and non-breaking
+- Presents the increment plan with descriptions and estimated files per increment
+- **Asks you to confirm or adjust the granularity**
+
+**Example output:**
+```
+Implementation plan (3 increments):
+
+1. Data layer: Add OAuthProvider model and migration
+   Files: src/models/OAuthProvider.ts, src/db/migrations/
+2. Auth service: Integrate OAuth flow into AuthService
+   Files: src/auth/AuthService.ts, src/auth/OAuthProvider.ts
+3. API routes + UI: Add OAuth routes and login buttons
+   Files: src/routes/auth.ts, src/components/LoginForm.tsx
+
+Does this breakdown work, or would you prefer different granularity?
+```
+
+### Phase 6: Iterative Implementation
+
+**Goal**: Build each increment and submit it for review
+
+**What happens:**
+- For each increment in the plan:
+  - Implements the changes following the chosen architecture
+  - Creates a commit with a clear message summarizing the increment
+  - Pushes and creates a pull request via `gh pr create`
+  - **Presents the PR link to you**
+  - **Waits for your go-ahead before starting the next increment**
+- If you prefer a single PR for the whole feature, the workflow respects that
 
 **Notes:**
-- Implementation only starts after you approve
-- Follows patterns discovered in Phase 2
-- Uses architecture designed in Phase 4
-- Continuously tracks progress
+- Each increment should pass tests and not break existing functionality
+- Later increments build on earlier ones (stacked changes on the same branch)
+- You can adjust scope or direction between increments
 
-### Phase 6: Quality Review
+**Example interaction:**
+```
+Increment 1 complete: Data layer
+
+PR created: https://github.com/you/repo/pull/42
+  Title: "Add OAuthProvider model and migration"
+  Files changed: 3
+
+Ready to proceed to increment 2 (Auth service), or do you want
+to adjust anything?
+```
+
+### Phase 7: Quality Review
 
 **Goal**: Ensure code is simple, DRY, elegant, and functionally correct
 
@@ -207,7 +243,7 @@ All tests pass. Code follows project conventions.
 What would you like to do?
 ```
 
-### Phase 7: Summary
+### Phase 8: Summary
 
 **Goal**: Document what was accomplished
 
@@ -303,7 +339,7 @@ Suggested next steps:
 - Confidence-based filtering (only reports high-confidence issues ≥80)
 
 **When triggered:**
-- Automatically in Phase 6
+- Automatically in Phase 7
 - Can be invoked manually after writing code
 
 **Output:**
@@ -319,7 +355,7 @@ Suggested next steps:
 /feature-dev Add rate limiting to API endpoints
 ```
 
-Let the workflow guide you through all 7 phases.
+Let the workflow guide you through all 8 phases.
 
 ### Manual agent invocation:
 
@@ -340,11 +376,12 @@ Let the workflow guide you through all 7 phases.
 
 ## Best Practices
 
-1. **Use the full workflow for complex features**: The 7 phases ensure thorough planning
+1. **Use the full workflow for complex features**: The 8 phases ensure thorough planning
 2. **Answer clarifying questions thoughtfully**: Phase 3 prevents future confusion
 3. **Choose architecture deliberately**: Phase 4 gives you options for a reason
-4. **Don't skip code review**: Phase 6 catches issues before they reach production
-5. **Read the suggested files**: Phase 2 identifies key files—read them to understand context
+4. **Review each increment**: Phase 6 creates PRs so you can review changes incrementally
+5. **Don't skip code review**: Phase 7 catches issues before they reach production
+6. **Read the suggested files**: Phase 2 identifies key files—read them to understand context
 
 ## When to Use This Plugin
 
@@ -409,4 +446,4 @@ Sid Bidasaria (sbidasaria@anthropic.com)
 
 ## Version
 
-1.0.0
+1.1.0
