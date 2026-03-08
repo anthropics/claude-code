@@ -1,0 +1,9 @@
+{
+  "name": "swarm-dev",
+  "version": "1.0.0",
+  "description": "Multi-agent orchestration workflow for research, implementation, and bounded verification loops",
+  "author": {
+    "name": "Anthropic",
+    "email": "support@anthropic.com"
+  }
+}
