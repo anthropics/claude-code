@@ -16,10 +16,11 @@ export interface Photo {
 export interface Observation {
   id: string;
   rawText: string;           // Original dictated/typed text
-  processedText: string;     // AI-professionalised text
-  withTheory: string;        // Text + technical theory added by AI
+  processedText: string;     // AI-formatted text
+  withTheory: string;        // Text + technical references
   photos: Photo[];
   urgency: UrgencyLevel;
+  moistureReading: string;   // Pintakosteudentunnistimen arvo (esim. "WS 68%")
   aiProcessing?: boolean;
   createdAt: string;
   updatedAt: string;
@@ -34,26 +35,73 @@ export interface InspectionCategory {
   notes: string;             // Free-form category notes
 }
 
+export interface RepairHistoryItem {
+  id: string;
+  year: string;
+  description: string;
+}
+
 export interface PropertyInfo {
+  // Kohteen tiedot
   address: string;
   postalCode: string;
   city: string;
   propertyId: string;        // Kiinteistötunnus
   buildYear: string;
-  buildingType: string;      // Omakotitalo, Rivitalo, etc.
+  buildingType: string;
   floorArea: string;         // m²
   floors: string;
-  heatingSystem: string;
+  energyClass: string;       // Energialuokka
+
+  // Osapuolet
+  owner: string;             // Omistaja
+  ownerPhone: string;
+  realEstateAgent: string;   // Kiinteistönvälittäjä
   inspector: string;
   inspectorTitle: string;
+  inspectorQualification: string; // Pätevyys (esim. PKA, AKK)
+
+  // Tarkastusolosuhteet
   inspectionDate: string;
+  weatherConditions: string;
+  outdoorTemp: string;
+  outdoorHumidity: string;   // Ulkoilman kosteus %
+  indoorTemp: string;
+  indoorHumidity: string;    // Sisäilman kosteus %
+
+  // Käytetyt laitteet
+  devicesUsed: string;       // Esim. "Gann Hydromette RTU 600, kalibroitu 2024-01"
+
+  // Rakennetyypit
+  heatingSystem: string;
+  heatingDistribution: string; // Lämmönjako (patterit, lattialämmitys)
+  foundationType: string;
+  wallType: string;
+  roofType: string;
+  ventilationType: string;
+  drainagePipeType: string;  // Viemärimateriaali
+  waterPipeType: string;     // Käyttövesiputket
+
+  // Tarkastuksen rajaukset
+  accessLimitations: string; // Tilat joihin ei ollut pääsyä
+
+  // Dokumentit ja historia
+  availableDocuments: string;  // Käytettävissä olevat asiakirjat
+  ownerDefects: string;        // Omistajan ilmoittamat virheet/puutteet
+  repairHistory: RepairHistoryItem[];
+
+  // Tilaajan tiedot
   clientName: string;
   clientPhone: string;
   clientEmail: string;
-  weatherConditions: string;
-  outdoorTemp: string;
-  indoorTemp: string;
   additionalInfo: string;
+}
+
+export interface RiskStructure {
+  name: string;
+  description: string;
+  severity: 'high' | 'medium';
+  recommendation: string;
 }
 
 export interface ReportSummary {
@@ -81,81 +129,81 @@ export interface InspectionReport {
 export const INSPECTION_CATEGORIES: Omit<InspectionCategory, 'observations' | 'notes'>[] = [
   {
     id: 'perustukset',
-    name: 'Perustukset ja maanvastainen rakenne',
+    name: 'Perustukset ja alapohja',
     icon: 'Layers',
-    description: 'Perustukset, sokkelit, maanvastaiset seinät, salaojitus',
+    description: 'Sokkelit, perustukset, routasuojaus, salaojitus, sadevesijärjestelmä',
   },
   {
-    id: 'alapohja',
-    name: 'Alapohja',
-    icon: 'Square',
-    description: 'Alapohjarakenne, ryömintätila, kosteus',
+    id: 'ulkoalueet',
+    name: 'Ulkoalueet ja tontti',
+    icon: 'Trees',
+    description: 'Tontin rajat, maanpinnan kallistukset, vierustat, piha',
   },
   {
     id: 'ulkoseinat',
     name: 'Ulkoseinät ja julkisivu',
     icon: 'Home',
-    description: 'Ulkoverhous, ikkunapellit, räystäät, maalaus',
+    description: 'Ulkoverhous, tuuletusraot, ikkunapellit, räystäät, maalaus',
   },
   {
     id: 'ikkunat',
     name: 'Ikkunat ja ulko-ovet',
     icon: 'Maximize2',
-    description: 'Ikkunat, ulko-ovet, tiivisteet, kunto',
+    description: 'Ikkunat, ulko-ovet, tiivisteet, kunto, toimivuus',
   },
   {
     id: 'vesikatto',
     name: 'Vesikatto ja yläpohja',
     icon: 'Triangle',
-    description: 'Kattorakenne, kate, läpiviennit, yläpohjan eristys',
+    description: 'Kattorakenne, kate, aluskate, läpiviennit, yläpohjan eristys, tuuletus, kattoturvatuotteet',
   },
   {
     id: 'markatilat',
     name: 'Märkätilat',
     icon: 'Droplets',
-    description: 'Kylpyhuone, WC, sauna, kosteusvauriot',
+    description: 'Kylpyhuone, WC, sauna, kodinhoitohuone – vesieristykset, kaivot, pinnat',
   },
   {
     id: 'keittiö',
     name: 'Keittiö',
     icon: 'UtensilsCrossed',
-    description: 'Keittiö, kalusteet, koneet, liesituuletin',
+    description: 'Keittiö, kalusteet, kodinkoneet, liesituuletin, altaan tiiveys',
   },
   {
     id: 'muut_sisatilat',
     name: 'Muut sisätilat',
     icon: 'DoorOpen',
-    description: 'Olohuone, makuuhuoneet, käytävät, porrashuone',
+    description: 'Olohuone, makuuhuoneet, käytävät, porrashuone – pintamateriaalit, kosteus',
   },
   {
     id: 'lammitys',
     name: 'Lämmitysjärjestelmä',
     icon: 'Thermometer',
-    description: 'Lämmityslaitteisto, patterit, lattialämmitys, hormit',
+    description: 'Lämmityslaitteisto, patterit, lattialämmitys, tulisijat, hormit',
   },
   {
     id: 'vesi_viemari',
     name: 'Vesi- ja viemärijärjestelmä',
     icon: 'Pipe',
-    description: 'Käyttövesiputket, viemärit, vesikalusteet',
+    description: 'Käyttövesiputket, viemärit, vesikalusteet, iän arviointi',
   },
   {
     id: 'sahko',
     name: 'Sähköjärjestelmä',
     icon: 'Zap',
-    description: 'Sähkökeskus, johdotukset, pistorasiat, turvallisuus',
+    description: 'Sähkökeskus, johdotukset, pistorasiat, maadoitus, vikavirtasuojat',
   },
   {
     id: 'ilmanvaihto',
     name: 'Ilmanvaihto',
     icon: 'Wind',
-    description: 'IV-koneisto, kanavat, venttiilit, toiminta',
+    description: 'IV-koneisto, kanavat, venttiilit, toiminta, puhtaus',
   },
   {
-    id: 'piha',
-    name: 'Piha ja ympäristö',
-    icon: 'Trees',
-    description: 'Piha-alue, maanpinnan kallistukset, liittymät, autotalli',
+    id: 'turvallisuus',
+    name: 'Paloturvallisuus ja haitta-aineet',
+    icon: 'ShieldAlert',
+    description: 'Palovaroittimet, sammutin, asbesti, radon, lyijy – rakennusvuoden mukaiset riskit',
   },
 ];
 

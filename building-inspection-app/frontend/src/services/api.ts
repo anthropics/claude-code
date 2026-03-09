@@ -62,7 +62,7 @@ export async function generateFindingsSummary(
  * Generates the final report summary
  */
 export async function generateFinalSummary(reportData: {
-  propertyInfo: Record<string, string>;
+  propertyInfo: Record<string, unknown>;
   observations: Array<{ category: string; text: string }>;
   findingsSummary: string;
 }): Promise<string> {

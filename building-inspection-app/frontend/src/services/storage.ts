@@ -40,6 +40,7 @@ export function createReport(): InspectionReport {
     id: uuidv4(),
     status: 'draft',
     propertyInfo: {
+      // Kohdetiedot
       address: '',
       postalCode: '',
       city: '',
@@ -48,16 +49,42 @@ export function createReport(): InspectionReport {
       buildingType: 'Omakotitalo',
       floorArea: '',
       floors: '',
-      heatingSystem: '',
+      energyClass: '',
+      // Osapuolet
+      owner: '',
+      ownerPhone: '',
+      realEstateAgent: '',
       inspector: '',
       inspectorTitle: 'Rakennusterveysasiantuntija',
+      inspectorQualification: '',
+      // Tarkastusolosuhteet
       inspectionDate: today,
+      weatherConditions: '',
+      outdoorTemp: '',
+      outdoorHumidity: '',
+      indoorTemp: '',
+      indoorHumidity: '',
+      // Laitteet
+      devicesUsed: '',
+      // Rakennetyypit
+      heatingSystem: '',
+      heatingDistribution: '',
+      foundationType: '',
+      wallType: '',
+      roofType: '',
+      ventilationType: '',
+      drainagePipeType: '',
+      waterPipeType: '',
+      // Rajaukset
+      accessLimitations: '',
+      // Historia
+      availableDocuments: '',
+      ownerDefects: '',
+      repairHistory: [],
+      // Tilaaja
       clientName: '',
       clientPhone: '',
       clientEmail: '',
-      weatherConditions: '',
-      outdoorTemp: '',
-      indoorTemp: '',
       additionalInfo: '',
     },
     categories: defaultCategories,

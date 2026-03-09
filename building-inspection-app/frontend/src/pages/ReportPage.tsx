@@ -8,10 +8,12 @@ import { getReport } from '../services/storage';
 import { InspectionReport } from '../types';
 import { useReport } from '../hooks/useReport';
 import { PropertyForm } from '../components/Report/PropertyForm';
+import { RiskStructurePanel } from '../components/Report/RiskStructurePanel';
 import { CategorySection } from '../components/Inspection/CategorySection';
 import { ReportSummaryView } from '../components/Report/ReportSummaryView';
 import { Button } from '../components/UI/Button';
 import { generatePDF } from '../utils/pdfGenerator';
+import { detectRiskStructures } from '../utils/riskDetector';
 
 type Tab = 'property' | 'inspection' | 'summary';
 
@@ -100,7 +102,7 @@ const ReportPageContent: React.FC<{
     },
     {
       id: 'summary',
-      label: 'Yhteenveto & AI',
+      label: 'Yhteenveto',
       icon: <Sparkles size={15} />,
     },
   ];
@@ -214,6 +216,16 @@ const ReportPageContent: React.FC<{
               onChange={updatePropertyInfo}
             />
 
+            {/* Risk structure detection panel */}
+            {report.propertyInfo.buildYear && (
+              <div className="mt-6">
+                <RiskStructurePanel
+                  risks={detectRiskStructures(report.propertyInfo)}
+                  buildYear={report.propertyInfo.buildYear}
+                />
+              </div>
+            )}
+
             <div className="mt-6 flex justify-end">
               <Button
                 variant="primary"
@@ -259,7 +271,7 @@ const ReportPageContent: React.FC<{
                   onClick={() => setActiveTab('summary')}
                   icon={<Sparkles size={15} />}
                 >
-                  Luo tekoälyanalyysi
+                  Siirry yhteenvetoon
                 </Button>
               </div>
             )}
@@ -268,7 +280,7 @@ const ReportPageContent: React.FC<{
 
         {/* Summary tab */}
         {activeTab === 'summary' && (
-          <div className="p-4 lg:p-6 max-w-3xl mx-auto">
+          <div className="p-4 lg:p-6 max-w-3xl mx-auto space-y-4">
             <ReportSummaryView
               report={report}
               onSummaryGenerated={(findings, final) => {

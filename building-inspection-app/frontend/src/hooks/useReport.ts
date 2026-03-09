@@ -17,7 +17,7 @@ export function useReport(initialReport: InspectionReport) {
   }, [report.id]);
 
   const updatePropertyInfo = useCallback(
-    (field: string, value: string) => {
+    (field: string, value: unknown) => {
       const updated = {
         ...report,
         propertyInfo: { ...report.propertyInfo, [field]: value },
@@ -37,6 +37,7 @@ export function useReport(initialReport: InspectionReport) {
         withTheory: '',
         photos: [],
         urgency: 'seurattava',
+        moistureReading: '',
         createdAt: now,
         updatedAt: now,
       };

@@ -149,36 +149,84 @@ Lisää taulukon jälkeen lyhyt (3-5 lausetta) yleisarvio kohteen kunnosta.`
  * Generates the final report summary
  */
 export async function generateFinalSummary(reportData: {
-  propertyInfo: Record<string, string>;
+  propertyInfo: Record<string, unknown>;
   observations: Array<{ category: string; text: string }>;
   findingsSummary: string;
 }): Promise<string> {
+  const p = reportData.propertyInfo as Record<string, string>;
+
+  const olosuhdetiedot = [
+    p.inspectionDate && `Päivämäärä: ${p.inspectionDate}`,
+    p.weatherConditions && `Sää: ${p.weatherConditions}`,
+    p.outdoorTemp && `Ulkolämpötila: ${p.outdoorTemp} °C`,
+    p.outdoorHumidity && `Ulkoilman kosteus: ${p.outdoorHumidity} %`,
+    p.indoorTemp && `Sisälämpötila: ${p.indoorTemp} °C`,
+    p.indoorHumidity && `Sisäilman kosteus: ${p.indoorHumidity} %`,
+  ].filter(Boolean).join(', ');
+
+  const kohdetiedot = [
+    p.address && `${p.address}, ${p.postalCode} ${p.city}`,
+    p.buildYear && `Rakennusvuosi: ${p.buildYear}`,
+    p.buildingType && `Tyyppi: ${p.buildingType}`,
+    p.floorArea && `Kerrosala: ${p.floorArea} m²`,
+    p.energyClass && `Energialuokka: ${p.energyClass}`,
+    p.foundationType && `Perustus: ${p.foundationType}`,
+    p.wallType && `Ulkoseinä: ${p.wallType}`,
+    p.roofType && `Vesikate: ${p.roofType}`,
+    p.heatingSystem && `Lämmitys: ${p.heatingSystem}`,
+    p.ventilationType && `Ilmanvaihto: ${p.ventilationType}`,
+    p.drainagePipeType && `Viemärit: ${p.drainagePipeType}`,
+    p.waterPipeType && `Käyttövesiputket: ${p.waterPipeType}`,
+  ].filter(Boolean).join('\n');
+
   const stream = await client.messages.stream({
     model: MODEL,
-    max_tokens: 4000,
+    max_tokens: 5000,
     thinking: { type: 'adaptive' },
     system: INSPECTION_SYSTEM_PROMPT,
     messages: [{
       role: 'user',
       content: `Laadi kattava loppuyhteenveto kuntotarkastusraportille.
 
-Kohdetiedot:
-${JSON.stringify(reportData.propertyInfo, null, 2)}
+KOHDE:
+${kohdetiedot}
 
-Kategorioiden havainnot:
+TARKASTUSOLOSUHTEET:
+${olosuhdetiedot || 'Ei kirjattu'}
+
+KÄYTETYT LAITTEET:
+${p.devicesUsed || 'Ei kirjattu'}
+
+OMISTAJAN ILMOITTAMAT VIRHEET:
+${p.ownerDefects || 'Ei omistajan ilmoituksia'}
+
+TARKASTUKSEN RAJAUKSET:
+${p.accessLimitations || 'Ei rajauksia – kaikki tilat tarkastettu'}
+
+KATEGORIOIDEN HAVAINNOT:
 ${reportData.observations.map(o => `**${o.category}:** ${o.text}`).join('\n\n')}
 
-Havaintoyhteenveto:
+HAVAINTOYHTEENVETO:
 ${reportData.findingsSummary}
 
-Kirjoita ammattimainen loppuyhteenveto joka sisältää:
-1. **Yleisarvio** - Kohteen yleinen kuntoluokka (Hyvä/Tyydyttävä/Välttävä/Huono) ja perustelu
-2. **Tärkeimmät havainnot** - 3-5 keskeisintä löydöstä
-3. **Kiireelliset toimenpiteet** - Välittömästi tai pian tehtävät korjaukset
-4. **Suositukset jatkoselvityksiin** - Mahdolliset lisätutkimustarpeet
-5. **Yhteenveto** - 2-3 lauseen lopetus
+Kirjoita ammattimainen loppuyhteenveto seuraavilla osioilla:
 
-Käytä selkeää otsikoinnilla varustettua rakennetta. Kirjoita asiallisella ja objektiivisella ammattikielellä.`
+## Yleisarvio
+Kohteen yleinen kuntoluokka (Hyvä / Tyydyttävä / Välttävä / Huono) ja lyhyt perustelu.
+
+## Tärkeimmät havainnot
+3–5 keskeisintä löydöstä luettelona.
+
+## Kiireelliset toimenpiteet
+Välittömästi tai lähivuosina tehtävät korjaukset.
+
+## Suositukset jatkoselvityksiin
+Mahdolliset lisätutkimukset tai -katselmukset (esim. viemärin kuvaus, asbestikartoitus, radonmittaus).
+
+## Vastuunrajaukset
+Kirjoita tähän standardin mukaiset vastuunrajauslausekkeet: tarkastus on aistinvarainen eikä paljasta rakenteen sisäisiä piileviä vaurioita; tarkastus ei poista ostajan selonottovelvollisuutta; tarkastuksen ulkopuolelle jääneet tilat eivät kuulu tarkastuksen piiriin.
+
+Kirjoita asiallisella, objektiivisella ammattikielellä. Älä lisää omia arvioita tarkastajan tekemien havaintojen päälle.`
     }],
   });
 

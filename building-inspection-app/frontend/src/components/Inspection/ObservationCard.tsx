@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   Trash2, ChevronDown, ChevronUp, Sparkles, RefreshCw,
-  AlertTriangle, Clock, Info, CheckCircle2, Eye
+  AlertTriangle, Clock, Info, CheckCircle2, Eye, Gauge
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { Observation, UrgencyLevel } from '../../types';
@@ -75,6 +75,8 @@ export const ObservationCard: React.FC<ObservationCardProps> = ({
   const [activeTab, setActiveTab] = useState<'processed' | 'theory'>('processed');
   const [editingRaw, setEditingRaw] = useState(false);
   const [rawText, setRawText] = useState(observation.rawText);
+  const [editingMoisture, setEditingMoisture] = useState(false);
+  const [moistureInput, setMoistureInput] = useState(observation.moistureReading || '');
 
   const urgency = urgencyConfig[observation.urgency];
 
@@ -115,6 +117,11 @@ export const ObservationCard: React.FC<ObservationCardProps> = ({
   const handleSaveRaw = () => {
     onUpdate({ rawText });
     setEditingRaw(false);
+  };
+
+  const handleSaveMoisture = () => {
+    onUpdate({ moistureReading: moistureInput });
+    setEditingMoisture(false);
   };
 
   return (
@@ -160,6 +167,18 @@ export const ObservationCard: React.FC<ObservationCardProps> = ({
               {observation.rawText || <span className="text-gray-400 italic">Tyhjä havainto</span>}
             </p>
           )}
+
+          {/* Moisture reading inline display */}
+          {observation.moistureReading && !editingMoisture && (
+            <button
+              onClick={() => { setEditingMoisture(true); setMoistureInput(observation.moistureReading); }}
+              className="mt-1.5 inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100"
+              title="Muokkaa kosteusarvo"
+            >
+              <Gauge size={11} />
+              {observation.moistureReading}
+            </button>
+          )}
         </div>
 
         {/* Actions */}
@@ -181,14 +200,14 @@ export const ObservationCard: React.FC<ObservationCardProps> = ({
         </div>
       </div>
 
-      {/* AI badge */}
+      {/* Processing badge */}
       {processing && (
         <div className="px-4 pb-3">
           <AIProcessingBadge text="Muotoillaan..." />
         </div>
       )}
 
-      {/* AI action buttons */}
+      {/* Action buttons */}
       {!processing && (
         <div className="px-4 pb-3 flex flex-wrap gap-2">
           <Button
@@ -220,6 +239,37 @@ export const ObservationCard: React.FC<ObservationCardProps> = ({
               Päivitä
             </Button>
           )}
+          {/* Moisture reading button */}
+          {!observation.moistureReading && !editingMoisture && (
+            <Button
+              size="xs"
+              variant="ghost"
+              icon={<Gauge size={12} />}
+              onClick={() => { setEditingMoisture(true); setExpanded(true); }}
+            >
+              Kosteusarvo
+            </Button>
+          )}
+        </div>
+      )}
+
+      {/* Moisture reading editor (shown when editing) */}
+      {editingMoisture && (
+        <div className="px-4 pb-3">
+          <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
+            <Gauge size={14} className="text-blue-600 flex-shrink-0" />
+            <input
+              type="text"
+              value={moistureInput}
+              onChange={e => setMoistureInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleSaveMoisture()}
+              placeholder="Esim. WS 78%, kohonnut (raja 60%)"
+              className="flex-1 text-sm bg-transparent border-none outline-none text-blue-900 placeholder-blue-300"
+              autoFocus
+            />
+            <Button size="xs" variant="primary" onClick={handleSaveMoisture}>OK</Button>
+            <Button size="xs" variant="ghost" onClick={() => setEditingMoisture(false)}>✕</Button>
+          </div>
         </div>
       )}
 
@@ -289,7 +339,6 @@ export const ObservationCard: React.FC<ObservationCardProps> = ({
 };
 
 function extractProcessedText(theoryText: string): string {
-  // Extract just the observation part from the theory-enhanced text
   const match = theoryText.match(/\*\*Havainto:\*\*\s*(.+?)(?=\*\*Tekninen|$)/s);
   return match ? match[1].trim() : theoryText.split('\n')[0] || theoryText;
 }

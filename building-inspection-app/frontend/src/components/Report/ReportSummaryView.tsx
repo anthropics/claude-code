@@ -20,12 +20,15 @@ export const ReportSummaryView: React.FC<ReportSummaryViewProps> = ({
   const [localFindings, setLocalFindings] = React.useState(report.summary?.findingsSummary || '');
   const [localFinal, setLocalFinal] = React.useState(report.summary?.finalSummary || '');
 
-  // Collect all observations across all categories
+  // Collect all observations with moisture readings when available
   const allObservations = report.categories.flatMap(cat =>
-    cat.observations.map(obs => ({
-      category: cat.name,
-      text: obs.withTheory || obs.processedText || obs.rawText,
-    }))
+    cat.observations.map(obs => {
+      const baseText = obs.withTheory || obs.processedText || obs.rawText;
+      const text = obs.moistureReading
+        ? `${baseText} [Kosteusarvo: ${obs.moistureReading}]`
+        : baseText;
+      return { category: cat.name, text };
+    })
   ).filter(o => o.text);
 
   const handleGenerateFindings = async () => {
@@ -51,7 +54,7 @@ export const ReportSummaryView: React.FC<ReportSummaryViewProps> = ({
     setGeneratingFinal(true);
     try {
       const finalSummary = await generateFinalSummary({
-        propertyInfo: report.propertyInfo as unknown as Record<string, string>,
+        propertyInfo: report.propertyInfo as unknown as Record<string, unknown>,
         observations: allObservations,
         findingsSummary: localFindings,
       });
