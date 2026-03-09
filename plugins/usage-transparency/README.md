@@ -6,7 +6,9 @@ Add clearer, repeatable troubleshooting for Claude Code usage failures without p
 
 This plugin lives in the Claude Code repository as an example plugin. Its commands are not core built-in commands in this repo by default; they are available only when this plugin is installed or enabled through the normal Claude Code plugin workflow.
 
-To use it in a project, install or copy the plugin following your normal Claude Code plugin workflow.
+For a repo-local setup example, copy `plugins/usage-transparency` into your own project's plugin directory (for example, `.claude/plugins/usage-transparency`) and enable it through your normal Claude Code plugin workflow there.
+
+This repository copy is primarily a reference/example; simply cloning this repo does not make `/usage-status` or `/usage-help` available in every Claude Code session.
 
 ## Why this plugin exists
 

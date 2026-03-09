@@ -29,21 +29,18 @@ Learn more in the [official plugins documentation](https://docs.claude.com/en/do
 
 ## Installation
 
-These plugins are included in the Claude Code repository. To use them in your own projects:
+These plugins are included in the Claude Code repository as examples and building blocks. They are not the primary Claude Code installation path.
 
-1. Install Claude Code globally:
-```bash
-npm install -g @anthropic-ai/claude-code
-```
+To use them in your own projects:
 
+1. Install Claude Code using one of the recommended methods from the top-level README or setup docs.
 2. Navigate to your project and run Claude Code:
 ```bash
 claude
 ```
+3. Use the `/plugin` command to install plugins from marketplaces, or copy/configure a plugin in your project's `.claude` plugin settings.
 
-3. Use the `/plugin` command to install plugins from marketplaces, or configure them in your project's `.claude/settings.json`.
-
-For detailed plugin installation and configuration, see the [official documentation](https://docs.claude.com/en/docs/claude-code/plugins).
+For detailed Claude Code setup plus plugin installation and configuration, see the [official documentation](https://docs.claude.com/en/docs/claude-code/plugins).
 
 ## Plugin Structure
 

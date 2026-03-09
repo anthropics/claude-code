@@ -17,6 +17,7 @@ When a user says Claude Code "hit a limit" or "stopped working", help them under
 ## Classification guide
 
 Use the user's pasted text, screenshots, or description to map to one of these categories:
+- If the user provides an image path or screenshot path, inspect it with `Read` before classifying.
 
 1. **Rate limit**
    - Temporary throttling
