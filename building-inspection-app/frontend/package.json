@@ -1,0 +1,32 @@
+{
+  "name": "building-inspection-frontend",
+  "version": "1.0.0",
+  "description": "Frontend for Building Inspection AI App",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "html2canvas": "^1.4.1",
+    "jspdf": "^2.5.1",
+    "lucide-react": "^0.395.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.23.1",
+    "react-markdown": "^9.0.1",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@types/uuid": "^9.0.8",
+    "@vitejs/plugin-react": "^4.3.0",
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.4",
+    "typescript": "^5.4.5",
+    "vite": "^5.2.12"
+  }
+}
