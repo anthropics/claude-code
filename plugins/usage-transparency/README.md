@@ -12,9 +12,11 @@ This repository copy is primarily a reference/example; simply cloning this repo 
 
 ## Why this plugin exists
 
-A common Claude Code failure mode is not just "being limited" — it is **not knowing what kind of limit or access problem happened**.
+A recurring troubleshooting problem in Claude Code is not just "being limited" — it is **not knowing what kind of limit or access problem happened**.
 
-Users often need to distinguish between:
+This also reflects recurring public requests for clearer distinction between throttling vs exhausted allowance and for more visible usage signals, including [#25805](https://github.com/anthropics/claude-code/issues/25805), [#21943](https://github.com/anthropics/claude-code/issues/21943), and [#28999](https://github.com/anthropics/claude-code/issues/28999).
+
+When troubleshooting, users need to distinguish between:
 
 - **Rate limit**: temporary throttling or retry window
 - **Quota exhausted**: the current allowance is consumed
@@ -98,6 +100,28 @@ It cannot, by itself, guarantee access to:
 
 Those are platform-side capabilities.
 
+## Reproducible classification examples
+
+Use these pasted-error examples as a compact manual check that the taxonomy stays stable.
+
+| Pasted error example | Expected classification |
+|---|---|
+| `Rate limited, try again in 2 minutes.` | `rate limit` |
+| `Usage limit reached for your current plan.` | `quota exhausted` |
+| `Your session appears valid, but this workspace was opened under a different account.` | `auth conflict` |
+| `Access denied: your organization has been disabled.` | `organization disabled` |
+| `You are signed in, but your current subscription does not include access to this model in this workspace.` | `subscription mismatch` |
+
+## Acceptance check
+
+Reviewer checklist:
+
+- Feed each example above to `/usage-help`.
+- Confirm the output includes the expected classification.
+- Confirm the output includes `What Claude Code can confirm locally`.
+- Confirm the output includes `What remains unavailable locally`.
+- Confirm the output does not invent quota or reset numbers.
+
 ## Example outcomes
 
 ### Example: rate limit
@@ -135,6 +159,12 @@ Those are platform-side capabilities.
 
 ### Example: auth conflict
 
+Pasted error input:
+
+```text
+Your session appears valid, but this workspace was opened under a different account. Please re-check which account is active.
+```
+
 ```markdown
 ## Usage status
 - **Classification:** auth conflict
@@ -148,6 +178,57 @@ Those are platform-side capabilities.
 - Inspect `claude auth status`.
 - Re-authenticate only if the observed state supports that conclusion.
 ```
+
+### Example: organization disabled
+
+Pasted error input:
+
+```text
+Access denied: your organization has been disabled. Contact your workspace administrator.
+```
+
+```markdown
+## Usage status
+- **Classification:** organization disabled
+- **What Claude Code can confirm locally:** the pasted error points to an organization or workspace access block
+- **What remains unavailable locally:** backend org status details and any admin-side remediation state
+
+## Why this is happening
+- This looks like an org or workspace state issue rather than a normal rate or quota limit.
+
+## What to do next
+- Confirm the active org or workspace context.
+- Escalate to the workspace administrator because local CLI signals usually cannot confirm backend org state directly.
+```
+
+### Example: subscription mismatch
+
+Pasted error input:
+
+```text
+You are signed in, but your current subscription does not include access to this model in this workspace.
+```
+
+```markdown
+## Usage status
+- **Classification:** subscription mismatch
+- **What Claude Code can confirm locally:** the pasted error indicates a signed-in session whose entitlement path does not match the expected access
+- **What remains unavailable locally:** the exact platform-side entitlement rule or billing reason unless explicitly exposed
+
+## Why this is happening
+- The account appears authenticated, but the active entitlement path differs from the expected subscription or workspace access.
+
+## What to do next
+- Check which account and workspace are active.
+- State only the locally observed auth or subscription hints, and avoid guessing the backend billing reason.
+```
+
+## Maintainer notes
+
+- This is a documentation/prompt-guidance-only example plugin in the repository.
+- Keep the default taxonomy at five categories unless Claude Code platform behavior clearly changes.
+- If Claude Code later exposes authoritative quota or entitlement signals, revise the examples and the unknown-boundary wording to use those outputs directly.
+- If a claim cannot be verified from public documentation or local CLI behavior, write it as unknown instead of inferring it.
 
 ## Commands summary
 
