@@ -184,7 +184,7 @@ export const ObservationCard: React.FC<ObservationCardProps> = ({
       {/* AI badge */}
       {processing && (
         <div className="px-4 pb-3">
-          <AIProcessingBadge text="Tekoäly käsittelee havaintoa..." />
+          <AIProcessingBadge text="Muotoillaan..." />
         </div>
       )}
 
@@ -198,7 +198,7 @@ export const ObservationCard: React.FC<ObservationCardProps> = ({
             onClick={handleProcessWithAI}
             loading={processing}
           >
-            Käsittele tekoälyllä
+            Muotoile teksti
           </Button>
           {observation.processedText && !observation.withTheory && (
             <Button
@@ -207,7 +207,7 @@ export const ObservationCard: React.FC<ObservationCardProps> = ({
               icon={<Info size={12} />}
               onClick={handleAddTheory}
             >
-              Lisää teoriatiedot
+              Lisää viitteet
             </Button>
           )}
           {observation.withTheory && (
@@ -237,7 +237,7 @@ export const ObservationCard: React.FC<ObservationCardProps> = ({
                     : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
               >
-                Ammattimainen teksti
+                Muotoiltu
               </button>
               <button
                 onClick={() => setActiveTab('theory')}
@@ -247,7 +247,7 @@ export const ObservationCard: React.FC<ObservationCardProps> = ({
                     : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
               >
-                Teoriatiedoilla
+                Viitteineen
               </button>
             </div>
           )}
@@ -266,11 +266,7 @@ export const ObservationCard: React.FC<ObservationCardProps> = ({
               <div className="prose-inspection">
                 <ReactMarkdown>{observation.withTheory || streamedText}</ReactMarkdown>
               </div>
-            ) : (
-              <p className="text-xs text-gray-400 italic">
-                Paina "Käsittele tekoälyllä" saadaksesi ammattimaisen tekstin ja teoriatiedot.
-              </p>
-            )}
+            ) : null}
 
             {/* Photos section */}
             <div className="mt-4 pt-4 border-t border-gray-100">

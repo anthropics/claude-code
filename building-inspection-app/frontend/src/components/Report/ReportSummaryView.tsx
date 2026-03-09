@@ -75,7 +75,7 @@ export const ReportSummaryView: React.FC<ReportSummaryViewProps> = ({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-bold text-gray-900">Tekoälyanalyysi ja yhteenvedot</h2>
+          <h2 className="text-lg font-bold text-gray-900">Yhteenvedot</h2>
           <p className="text-sm text-gray-500 mt-0.5">
             {allObservations.length} havaintoa · {report.categories.filter(c => c.observations.length > 0).length} kategoriaa
           </p>
@@ -111,7 +111,7 @@ export const ReportSummaryView: React.FC<ReportSummaryViewProps> = ({
 
         <div className="p-4">
           {generatingFindings ? (
-            <Spinner size="sm" text="Tekoäly analysoi havainnot..." className="py-8" />
+            <Spinner size="sm" text="Laaditaan..." className="py-8" />
           ) : localFindings ? (
             <div className="prose-inspection">
               <ReactMarkdown>{localFindings}</ReactMarkdown>
@@ -119,9 +119,6 @@ export const ReportSummaryView: React.FC<ReportSummaryViewProps> = ({
           ) : (
             <div className="text-center py-8">
               <TableProperties size={32} className="text-gray-200 mx-auto mb-3" />
-              <p className="text-sm text-gray-400">
-                Tekoäly luo automaattisesti taulukon havainnoista kiireellisyyden mukaan järjestettynä.
-              </p>
             </div>
           )}
         </div>
@@ -147,7 +144,7 @@ export const ReportSummaryView: React.FC<ReportSummaryViewProps> = ({
 
         <div className="p-4">
           {generatingFinal ? (
-            <Spinner size="sm" text="Tekoäly kirjoittaa loppuyhteenvetoa..." className="py-8" />
+            <Spinner size="sm" text="Laaditaan..." className="py-8" />
           ) : localFinal ? (
             <div className="prose-inspection">
               <ReactMarkdown>{localFinal}</ReactMarkdown>
@@ -155,9 +152,6 @@ export const ReportSummaryView: React.FC<ReportSummaryViewProps> = ({
           ) : (
             <div className="text-center py-8">
               <FileText size={32} className="text-gray-200 mx-auto mb-3" />
-              <p className="text-sm text-gray-400">
-                Tekoäly kirjoittaa ammattimaisen loppuyhteenvedon kohteen kunnosta.
-              </p>
             </div>
           )}
         </div>

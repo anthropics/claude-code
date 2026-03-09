@@ -87,7 +87,7 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
                 value={quickText}
                 onChange={e => setQuickText(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleAddText()}
-                placeholder="Kirjoita havainto tai käytä sanelua..."
+                placeholder="Havainto..."
                 className="flex-1 text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
               />
               <Button
@@ -108,7 +108,7 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
                 className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 font-medium"
               >
                 <MessageSquare size={13} />
-                {showVoice ? 'Piilota sanelu' : 'Käytä saneluominaisuutta'}
+                {showVoice ? 'Sulje sanelu' : 'Sanelu'}
               </button>
 
               {showVoice && (

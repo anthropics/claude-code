@@ -71,7 +71,7 @@ export const Dashboard: React.FC = () => {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Kuntotarkastukset</h1>
           <p className="text-gray-500 mt-1 text-sm">
-            Hallinnoi ja luo ammattimaisia kuntotarkastusraportteja tekoälyn avulla
+            Kuntotarkastusraportit
           </p>
         </div>
         <Button
@@ -106,7 +106,7 @@ export const Dashboard: React.FC = () => {
             Ei vielä yhtään tarkastusta
           </h3>
           <p className="text-gray-400 text-sm mb-6">
-            Aloita luomalla uusi kuntotarkastus. Tekoäly auttaa sinua joka vaiheessa.
+            Aloita luomalla uusi tarkastusraportti.
           </p>
           <Button variant="primary" icon={<Plus size={16} />} onClick={handleCreate}>
             Aloita ensimmäinen tarkastus

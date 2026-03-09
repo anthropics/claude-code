@@ -7,9 +7,9 @@ const client = new Anthropic({
 const MODEL = 'claude-opus-4-6';
 
 // System prompt for building inspection context
-const INSPECTION_SYSTEM_PROMPT = `Olet kokenut rakennustarkastaja ja tekninen kirjoittaja, joka on erikoistunut kuntotarkastusraporttien laatimiseen Suomessa.
-Sinulla on syvällinen tuntemus suomalaisista rakennusmääräyksistä (Suomen rakentamismääräyskokoelma),
-RT-korteista ja hyvästä rakennustavasta. Kirjoitat aina selkeää, ammattimaista suomen kieltä.`;
+const INSPECTION_SYSTEM_PROMPT = `Avustat rakennustarkastajaa muotoilemaan kenttähavainnot kirjalliseen raporttiformaattiin.
+Muotoilet tarkastajan havainnot selkeäksi, ammattimaiseksi tekstiksi säilyttäen tarkastajan alkuperäisen arvion ja johtopäätökset.
+Et lisää omia tulkintoja tai arviointeja - tarkastaja on asiantuntija. Kirjoitat selkeää, ammattimaista suomen kieltä.`;
 
 /**
  * Transcribes and professionalizes voice note text in Finnish
@@ -22,13 +22,13 @@ export async function transcribeAndProfessionalize(rawText: string, category: st
     system: INSPECTION_SYSTEM_PROMPT,
     messages: [{
       role: 'user',
-      content: `Muuta seuraava kenttähavainto ammattimaiseksi kuntotarkastustekstiksi suomeksi.
+      content: `Muotoile seuraava kenttähavainto raporttikielelle. Säilytä tarkastajan alkuperäinen havainto ja arvio.
 Kategoria: ${category}
 
-Raakahavainto: "${rawText}"
+Kenttämuistiinpano: "${rawText}"
 
-Kirjoita havainto ammattimaisesti, selkeästi ja täsmällisesti. Käytä teknisiä termejä oikein.
-Älä lisää teoriatietoa tässä vaiheessa - se lisätään erikseen. Vastaa vain puhtaaksikirjoitetulla tekstillä.`
+Kirjoita havainto selkeästi raporttiin sopivaan muotoon. Käytä alan vakiintuneita termejä.
+Älä lisää teoriatietoa tai omia tulkintoja. Vastaa vain muotoillulla tekstillä.`
     }],
   });
 
@@ -48,19 +48,19 @@ export async function addTechnicalTheory(observation: string, category: string):
     system: INSPECTION_SYSTEM_PROMPT,
     messages: [{
       role: 'user',
-      content: `Lisää seuraavaan kuntotarkastushavaintoon lyhyt teoriaosuus rakennusteknisestä taustasta ja sovellettavista rakennusmääräyksistä tai standardeista.
+      content: `Liitä seuraavaan kuntotarkastushavaintoon alan viitteet: tekninen tausta ja sovellettavat rakennusmääräykset tai standardit.
 
 Kategoria: ${category}
 Havainto: "${observation}"
 
-Rakenna vastaus näin:
-**Havainto:** [alkuperäinen havainto]
+Rakenne:
+**Havainto:** [havainto sellaisenaan]
 
-**Tekninen tausta:** [lyhyt, ammattimainen selitys rakenteen toiminnasta ja havaitun asian merkityksestä]
+**Tekninen tausta:** [lyhyt kuvaus rakenteen toiminnasta ja havaitun asian merkityksestä]
 
-**Sovellettavat määräykset:** [relevantti RT-kortti, rakennusmääräys tai standardi, jos sovellettavissa]
+**Sovellettavat määräykset:** [RT-kortti, rakennusmääräys tai standardi, jos sovellettavissa]
 
-Pidä teoriaosuus tiiviinä (2-4 lausetta) ja käytännönläheisenä.`
+Pidä viiteosuus tiiviinä (2-4 lausetta).`
     }],
   });
 
@@ -202,19 +202,19 @@ export async function streamProcessObservation(
     system: INSPECTION_SYSTEM_PROMPT,
     messages: [{
       role: 'user',
-      content: `Muuta seuraava kenttähavainto ammattimaiseksi kuntotarkastustekstiksi ja lisää tekninen tausta.
+      content: `Muotoile kenttähavainto raporttikielelle ja liitä alan viitteet.
 
 Kategoria: ${category}
-Raakahavainto: "${rawText}"
+Kenttämuistiinpano: "${rawText}"
 
-Rakenna vastaus:
-**Havainto:** [ammattimainen, täsmällinen kuvaus]
+Rakenne:
+**Havainto:** [muotoiltu havainto, tarkastajan arvio säilytetään]
 
-**Tekninen tausta:** [lyhyt selitys rakenteen toiminnasta ja havaitun asian merkityksestä]
+**Tekninen tausta:** [lyhyt kuvaus rakenteen toiminnasta ja havaitun asian merkityksestä]
 
-**Sovellettavat määräykset:** [relevantti RT-kortti tai rakennusmääräys jos sovellettavissa]
+**Sovellettavat määräykset:** [RT-kortti tai rakennusmääräys, jos sovellettavissa]
 
-**Toimenpide-ehdotus:** [konkreettinen korjausehdotus kiireellisyysluokituksella]`,
+**Toimenpide-ehdotus:** [konkreettinen toimenpide]`,
     }],
   });
 
