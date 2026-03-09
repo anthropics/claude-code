@@ -1,0 +1,26 @@
+# Environment files (NEVER commit these)
+.env
+backend/.env
+*.env.local
+
+# Dependencies
+node_modules/
+backend/node_modules/
+frontend/node_modules/
+
+# Build output
+backend/dist/
+frontend/dist/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor
+.DS_Store
+.vscode/
+*.swp
+*.swo
+
+# TypeScript
+*.tsbuildinfo
