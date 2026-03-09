@@ -5,6 +5,10 @@ description: Code review a pull request
 
 Provide a code review for the given pull request.
 
+**IMPORTANT: `--comment` flag behavior:**
+- **Without `--comment`**: Output all findings to the terminal. Do NOT post any GitHub comments or use `gh pr comment` or inline comment tools. This is the default.
+- **With `--comment`**: Post findings as GitHub PR comments.
+
 **Agent assumptions (applies to all agents and subagents):**
 - All tools are functional and will work without error. Do not test tools or make exploratory calls. Make sure this is clear to every subagent that is launched.
 - Only call a tool if it is required to complete the task. Every tool call should have a clear purpose.
@@ -60,15 +64,17 @@ Note: Still review Claude generated PR's.
    - If issues were found, list each issue with a brief description.
    - If no issues were found, state: "No issues found. Checked for bugs and CLAUDE.md compliance."
 
-   If `--comment` argument was NOT provided, stop here. Do not post any GitHub comments.
+   If `--comment` argument was NOT provided, you are DONE. Do not proceed to steps 8 or 9. Do not post any GitHub comments, inline comments, or use `gh pr comment`. Output your findings only to the terminal and stop.
 
    If `--comment` argument IS provided and NO issues were found, post a summary comment using `gh pr comment` and stop.
 
    If `--comment` argument IS provided and issues were found, continue to step 8.
 
-8. Create a list of all comments that you plan on leaving. This is only for you to make sure you are comfortable with the comments. Do not post this list anywhere.
+8. **ONLY if `--comment` argument was provided** (otherwise skip to end):
+   Create a list of all comments that you plan on leaving. This is only for you to make sure you are comfortable with the comments. Do not post this list anywhere.
 
-9. Post inline comments for each issue using `mcp__github_inline_comment__create_inline_comment`. For each comment:
+9. **ONLY if `--comment` argument was provided:**
+   Post inline comments for each issue using `mcp__github_inline_comment__create_inline_comment`. For each comment:
    - Provide a brief description of the issue
    - For small, self-contained fixes, include a committable suggestion block
    - For larger fixes (6+ lines, structural changes, or changes spanning multiple locations), describe the issue and suggested fix without a suggestion block
@@ -100,6 +106,7 @@ No issues found. Checked for bugs and CLAUDE.md compliance.
 
 ---
 
+- NEVER post GitHub comments (via `gh pr comment` or inline comments) unless the `--comment` argument was explicitly provided.
 - When linking to code in inline comments, follow the following format precisely, otherwise the Markdown preview won't render correctly: https://github.com/anthropics/claude-code/blob/c21d3c10bc8e898b7ac1a2d745bdc9bc4e423afe/package.json#L10-L15
   - Requires full git sha
   - You must provide the full sha. Commands like `https://github.com/owner/repo/blob/$(git rev-parse HEAD)/foo/bar` will not work, since your comment will be directly rendered in Markdown.
