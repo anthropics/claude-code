@@ -9,7 +9,7 @@ allowed-tools:
 
 # Usage Status
 
-Help the user understand *why Claude Code is currently limited* without pretending you have access to billing data that may not exist in the CLI.
+Help the user understand *why Claude Code is currently limited* without pretending you have access to billing data that may not exist in the CLI. This plugin command complements built-in `/usage` by adding a troubleshooting interpretation layer from local visible signals.
 
 ## Core rules
 

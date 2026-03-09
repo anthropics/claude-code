@@ -8,7 +8,7 @@ allowed-tools:
 
 # Usage Help
 
-Explain the difference between Claude Code usage-related failures in plain language.
+Explain the difference between Claude Code usage-related failures in plain language. This plugin command complements built-in `/usage` by interpreting pasted errors from local visible signals; it does not replace any official usage view.
 
 ## Goal
 

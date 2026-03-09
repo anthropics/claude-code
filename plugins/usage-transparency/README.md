@@ -28,6 +28,16 @@ This plugin adds slash commands that focus on **classification, visible local si
 
 ## What this plugin does
 
+These plugin commands do not replace Claude Code's built-in `/usage` command or any backend or future quota API. They provide a consistent interpretation layer for troubleshooting when official visible signals are limited or do not clearly distinguish rate limits, quota exhaustion, and access-path issues.
+
+### Command relationship
+
+| Command | Scope | When to use it |
+|---|---|---|
+| `/usage` | Built-in Claude Code usage view | Use when you want the official usage information the CLI currently exposes |
+| `/usage-help` | Plugin interpretation of a pasted error | Use when you already have an error and want it classified without inventing backend details |
+| `/usage-status` | Plugin diagnosis flow for a current symptom | Use when you want step-by-step troubleshooting from local signals |
+
 ### `/usage-status`
 
 Provides a structured diagnosis flow for current usage/access problems.
@@ -100,9 +110,21 @@ It cannot, by itself, guarantee access to:
 
 Those are platform-side capabilities.
 
-## Reproducible classification examples
+## Publicly verifiable acceptance samples
 
-Use these pasted-error examples as a compact manual check that the taxonomy stays stable.
+This section is limited to genuinely public or directly verifiable material. It is not proof of backend billing visibility.
+
+### Public issue evidence
+
+Public issue reports motivating clearer usage differentiation include [#25805](https://github.com/anthropics/claude-code/issues/25805), [#21943](https://github.com/anthropics/claude-code/issues/21943), and [#28999](https://github.com/anthropics/claude-code/issues/28999). Use [#25805](https://github.com/anthropics/claude-code/issues/25805) as the concrete public runtime sample with the verified string `API Error: Rate limit reached`. Treat [#21943](https://github.com/anthropics/claude-code/issues/21943) and [#28999](https://github.com/anthropics/claude-code/issues/28999) as positioning evidence for clearer `/usage` visibility, not as exact runtime error samples.
+
+| Publicly verifiable sample | Expected classification |
+|---|---|
+| `API Error: Rate limit reached` | `rate limit` |
+
+## Synthetic taxonomy examples
+
+The examples below are synthetic prompt-taxonomy fixtures for maintainers. They are intentionally invented to exercise category boundaries and should not be presented as quotations from public issues.
 
 | Pasted error example | Expected classification |
 |---|---|
@@ -116,7 +138,9 @@ Use these pasted-error examples as a compact manual check that the taxonomy stay
 
 Reviewer checklist:
 
-- Feed each example above to `/usage-help`.
+- For public-facing acceptance checks, use the publicly verifiable sample above and keep public-issue references labeled as evidence rather than exact source strings unless the exact string is verified.
+- Use the synthetic taxonomy examples only as invented fixtures for maintainers, not as public evidence.
+- Feed each sample above to `/usage-help`.
 - Confirm the output includes the expected classification.
 - Confirm the output includes `What Claude Code can confirm locally`.
 - Confirm the output includes `What remains unavailable locally`.
