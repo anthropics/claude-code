@@ -31,7 +31,7 @@ jobs:
           allowed_non_write_users: "*"
           prompt: "/dedupe ${{ github.repository }}/issues/${{ github.event.issue.number || inputs.issue_number }}"
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          claude_args: "--model claude-sonnet-4-5-20250929"
+          claude_args: "--model claude-sonnet-4-6"
 
       - name: Log duplicate comment event to Statsig
         if: always()
