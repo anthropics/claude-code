@@ -140,6 +140,54 @@ This plugin is included in the Claude Code repository. The command is automatica
 # Skip if review already exists
 ```
 
+### Required Permissions for CI/CD
+
+When running in CI/CD with a restrictive `.claude/settings.json`, the code-review plugin needs the following tool permissions to function correctly. Without these, the plugin will silently complete without posting any review comments.
+
+Add these permissions to your workflow's `settings` input or your project's `.claude/settings.json`:
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Read",
+      "Glob",
+      "Grep"
+    ]
+  }
+}
+```
+
+**Example GitHub Actions workflow with permissions:**
+```yaml
+- uses: anthropics/claude-code-action@v1
+  with:
+    claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+    plugin_marketplaces: 'https://github.com/anthropics/claude-code.git'
+    plugins: 'code-review@claude-code-plugins'
+    prompt: '/code-review:code-review --comment'
+    settings: |
+      {
+        "permissions": {
+          "allow": [
+            "Bash(gh:*)",
+            "Bash(git diff:*)",
+            "Bash(git log:*)",
+            "Bash(git show:*)",
+            "Read",
+            "Glob",
+            "Grep"
+          ]
+        }
+      }
+```
+
+> **Note:** If you see `"permission_denials_count"` in the workflow output with a non-zero value, this typically means the plugin was blocked from using required tools. Add the permissions listed above to resolve this.
+
 ## Requirements
 
 - Git repository with GitHub integration
