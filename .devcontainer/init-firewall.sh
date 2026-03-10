@@ -90,14 +90,20 @@ for domain in \
     done < <(echo "$ips")
 done
 
-# Get host IP from default route
-HOST_IP=$(ip route | grep default | cut -d" " -f3)
+# Get host IP and network from default route
+DEFAULT_ROUTE=$(ip route | grep default | head -1)
+HOST_IP=$(echo "$DEFAULT_ROUTE" | awk '{print $3}')
 if [ -z "$HOST_IP" ]; then
     echo "ERROR: Failed to detect host IP"
     exit 1
 fi
 
-HOST_NETWORK=$(echo "$HOST_IP" | sed "s/\.[0-9]*$/.0\/24/")
+# Parse the actual subnet from the routing table instead of assuming /24
+HOST_NETWORK=$(ip route | grep "src $HOST_IP" | grep -v default | head -1 | awk '{print $1}')
+if [ -z "$HOST_NETWORK" ]; then
+    # Fallback to /24 if route parsing fails
+    HOST_NETWORK=$(echo "$HOST_IP" | sed "s/\.[0-9]*$/.0\/24/")
+fi
 echo "Host network detected as: $HOST_NETWORK"
 
 # Set up remaining iptables rules
