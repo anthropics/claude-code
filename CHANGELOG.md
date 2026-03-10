@@ -18,7 +18,6 @@
 - Improved marketplace clone failure messages to show diagnostic info even when git produces no stderr
 - Improved `claude plugin validate` to explain that marketplace.json source paths are relative to the repo root when rejecting `../` paths
 - Improved bash command parsing by switching to a native module — faster initialization and no memory leak
-- Reduced false-positive bash permission prompts — tree-sitter parsing now handles `find -exec`, variable assignments, command substitutions, and many other patterns that previously triggered unnecessary prompts. Also fixed tree-sitter not loading in npm-installed versions
 - Reduced bundle size by ~510 KB
 - Changed CLAUDE.md HTML comments (`<!-- ... -->`) to be hidden from Claude when auto-injected. Comments remain visible when read with the Read tool
 - Fixed slow exits when background tasks or hooks were slow to respond
