@@ -17,7 +17,7 @@ To do this, follow these steps precisely:
    - explicit keywords that should and should not match
 3. Launch 5 parallel agents to search GitHub for duplicates of this issue using diverse keywords and search approaches grounded in the summary from step 2.
 4. Feed the issue summary and search results into another agent so it can filter out false positives. Keep a candidate only when the underlying problem is the same, not merely the same area of the product.
-5. Re-open the base issue and each candidate issue before posting. If any candidate is already closed for a different reason, only keep it if the description still clearly matches the same root issue.
+5. Re-read the base issue and each candidate issue before posting. If any candidate is already closed for a different reason, only keep it if the description still clearly matches the same root issue.
 6. If there are no high-confidence duplicates remaining, do not proceed.
 7. Finally, use the comment script to post duplicates:
    ```
