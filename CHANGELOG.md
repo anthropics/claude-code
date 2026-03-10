@@ -2,21 +2,17 @@
 
 ## 2.1.72
 
-- Changed tool search to bypass the third-party proxy gate when the environment variable is set (replaces `CLAUDE_CODE_PROXY_SUPPORTS_TOOL_REFERENCE`, now removed)
+- Fixed tool search to activate even with `ANTHROPIC_BASE_URL` as long as `ENABLE_TOOL_SEARCH` is set.
 - Added `w` key in `/copy` to write the focused selection directly to a file, bypassing the clipboard (useful over SSH)
 - Added optional description argument to `/plan` (e.g., `/plan fix the auth bug`) that enters plan mode and immediately starts
-- Added `claude plugins` as an alias for `claude plugin`
 - Added `ExitWorktree` tool to leave an `EnterWorktree` session
 - Added `CLAUDE_CODE_DISABLE_CRON` environment variable to immediately stop scheduled cron jobs mid-session
 - Added `lsof`, `pgrep`, `tput`, `ss`, `fd`, and `fdfind` to the bash auto-approval allowlist, reducing permission prompts for common read-only operations
-- Added support for marketplace git URLs without `.git` suffix (Azure DevOps, AWS CodeCommit)
 - Restored the `model` parameter on the Agent tool for per-invocation model overrides
 - Simplified effort levels to low/medium/high (removed max) with new symbols (○ ◐ ●) and a brief notification instead of a persistent icon. Use `/effort auto` to reset to default
 - Improved `/config` — Escape now cancels changes, Enter saves and closes, Space toggles settings
 - Improved up-arrow history to show current session's messages first when running multiple concurrent sessions
 - Improved voice input transcription accuracy for repo names and common dev terms (regex, OAuth, JSON)
-- Improved marketplace clone failure messages to show diagnostic info even when git produces no stderr
-- Improved `claude plugin validate` to explain that marketplace.json source paths are relative to the repo root when rejecting `../` paths
 - Improved bash command parsing by switching to a native module — faster initialization and no memory leak
 - Reduced bundle size by ~510 KB
 - Changed CLAUDE.md HTML comments (`<!-- ... -->`) to be hidden from Claude when auto-injected. Comments remain visible when read with the Read tool
@@ -26,6 +22,8 @@
 - Fixed several voice mode issues: occasional input lag, false "No speech detected" errors after releasing push-to-talk, and stale transcripts re-filling the prompt after submission
 - Fixed `--continue` not resuming from the most recent point after `--compact`
 - Fixed bash security parsing edge cases
+- Added support for marketplace git URLs without `.git` suffix (Azure DevOps, AWS CodeCommit)
+- Improved marketplace clone failure messages to show diagnostic info even when git produces no stderr
 - Fixed several plugin issues: installation failing on Windows with `EEXIST` error in OneDrive folders, marketplace blocking user-scope installs when a project-scope install exists, `CLAUDE_CODE_PLUGIN_CACHE_DIR` creating literal `~` directories, and `plugin.json` with marketplace-only fields failing to load
 - Fixed feedback survey appearing too frequently in long sessions
 - Fixed `--effort` CLI flag being reset by unrelated settings writes on startup
