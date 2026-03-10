@@ -1,0 +1,9 @@
+{
+  "name": "create-test",
+  "version": "1.0.0",
+  "description": "Automatically generate unit tests for source files. Analyzes TypeScript, JavaScript, Python, and Go files to produce idiomatic, framework-specific test suites.",
+  "author": {
+    "name": "Anthropic",
+    "email": "support@anthropic.com"
+  }
+}

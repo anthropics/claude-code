@@ -145,6 +145,17 @@
       },
       "source": "./plugins/security-guidance",
       "category": "security"
+    },
+    {
+      "name": "create-test",
+      "description": "Automatically generate unit tests for TypeScript, JavaScript, Python, and Go source files. Detects your test framework, mirrors project conventions, and emits idiomatic tests with mocks, happy-path, and edge-case coverage.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Anthropic",
+        "email": "support@anthropic.com"
+      },
+      "source": "./plugins/create-test",
+      "category": "development"
     }
   ]
 }
