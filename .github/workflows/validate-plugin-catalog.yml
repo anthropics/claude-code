@@ -1,5 +1,4 @@
 name: Validate Plugin Catalog
-description: Verify bundled plugin metadata stays in sync across the catalog
 
 on:
   pull_request:
