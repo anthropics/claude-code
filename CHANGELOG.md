@@ -1,5 +1,34 @@
 # Changelog
 
+## 2.1.73
+
+- Added `modelOverrides` setting to map model picker entries to custom provider model IDs (e.g. Bedrock inference profile ARNs)
+- Added actionable guidance when OAuth login or connectivity checks fail due to SSL certificate errors (corporate proxies, `NODE_EXTRA_CA_CERTS`)
+- Fixed freezes and 100% CPU loops triggered by permission prompts for complex bash commands
+- Fixed a deadlock that could freeze Claude Code when many skill files changed at once (e.g. during `git pull` in a repo with a large `.claude/skills/` directory)
+- Fixed Bash tool output being lost when running multiple Claude Code sessions in the same project directory
+- Fixed subagents with `model: opus`/`sonnet`/`haiku` being silently downgraded to older model versions on Bedrock, Vertex, and Microsoft Foundry
+- Fixed background bash processes spawned by subagents not being cleaned up when the agent exits
+- Fixed `/resume` showing the current session in the picker
+- Fixed `/ide` crashing with `onInstall is not defined` when auto-installing the extension
+- Fixed `/loop` not being available on Bedrock/Vertex/Foundry and when telemetry was disabled
+- Fixed SessionStart hooks firing twice when resuming a session via `--resume` or `--continue`
+- Fixed JSON-output hooks injecting no-op system-reminder messages into the model's context on every turn
+- Fixed voice mode session corruption when a slow connection overlaps a new recording
+- Fixed Linux sandbox failing to start with "ripgrep (rg) not found" on native builds
+- Fixed Linux native modules not loading on Amazon Linux 2 and other glibc 2.26 systems
+- Fixed "media_type: Field required" API error when receiving images via Remote Control
+- Fixed `/heapdump` failing on Windows with `EEXIST` error when the Desktop folder already exists
+- Improved Up arrow after interrupting Claude — now restores the interrupted prompt and rewinds the conversation in one step
+- Improved IDE detection speed at startup
+- Improved clipboard image pasting performance on macOS
+- Improved `/effort` to work while Claude is responding, matching `/model` behavior
+- Improved voice mode to automatically retry transient connection failures during rapid push-to-talk re-press
+- Improved the Remote Control spawn mode selection prompt with better context
+- Changed default Opus model on Bedrock, Vertex, and Microsoft Foundry to Opus 4.6 (was Opus 4.1)
+- Deprecated `/output-style` command — use `/config` instead. Output style is now fixed at session start for better prompt caching
+- VSCode: Fixed HTTP 400 errors for users behind proxies or on Bedrock/Vertex with Claude 4.5 models
+
 ## 2.1.72
 
 - Fixed tool search to activate even with `ANTHROPIC_BASE_URL` as long as `ENABLE_TOOL_SEARCH` is set.
