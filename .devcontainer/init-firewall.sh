@@ -14,6 +14,12 @@ declare -a DYNAMIC_DOMAINS=(
     "update.code.visualstudio.com"
 )
 
+# Merge user-specified domains from WHITELIST_DOMAINS env var (space-separated)
+if [ -n "${WHITELIST_DOMAINS:-}" ]; then
+    IFS=' ' read -ra USER_DOMAINS <<< "$WHITELIST_DOMAINS"
+    DYNAMIC_DOMAINS+=("${USER_DOMAINS[@]}")
+fi
+
 # IPSet configuration
 IPSET_STATIC="allowed-static"    # For GitHub and other static IPs
 IPSET_DYNAMIC="allowed-dynamic"  # For dynamically resolved domains
