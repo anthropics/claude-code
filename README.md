@@ -45,7 +45,7 @@ For more installation options, uninstall steps, and troubleshooting, see the [se
 
 2. Navigate to your project directory and run `claude`.
 
-## Known Issue: False-Positive Update Banner (Homebrew/WinGet)
+## Known issue with false-positive update banner (Homebrew/WinGet)
 
 Some users installed via Homebrew or WinGet may see:
 
@@ -64,6 +64,8 @@ those package registries catch up.
 Temporary workaround:
 
 - Set `DISABLE_AUTOUPDATER=1` to hide update notifications.
+- This also suppresses legitimate update notifications, so use it only as a
+    temporary workaround.
 
 Examples:
 
@@ -73,6 +75,16 @@ DISABLE_AUTOUPDATER=1 claude
 
 ```powershell
 $env:DISABLE_AUTOUPDATER=1; claude
+```
+
+To re-enable update notifications:
+
+```bash
+unset DISABLE_AUTOUPDATER
+```
+
+```powershell
+Remove-Item Env:DISABLE_AUTOUPDATER
 ```
 
 ## Plugins
