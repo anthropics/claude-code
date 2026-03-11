@@ -1,0 +1,9 @@
+{
+  "name": "reframe",
+  "description": "Break through stuck debugging and design problems by reframing them through first principles, inversion, and analogy",
+  "version": "1.0.0",
+  "author": {
+    "name": "Anuj Gupta",
+    "email": "anuj.1306.gupta@gmail.com"
+  }
+}
