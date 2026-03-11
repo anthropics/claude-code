@@ -21,6 +21,7 @@ import json
 import os
 import re
 import sys
+from typing import Optional
 
 # ──────────────────────────────────────────────────────────────────────────────
 # protected paths
@@ -40,11 +41,10 @@ PROTECTED_FILES = [
     os.path.join(HOME, ".claude", "settings.local.json"),
 ]
 
-# patterns for plugin hook files (relative to any plugin root)
-PROTECTED_PATTERNS = [
-    "hooks.json",
-    os.path.join("hooks", ""),       # any file inside a hooks/ directory
+# patterns for plugin config files (scoped to .claude-plugin/ context)
+PROTECTED_PLUGIN_FILES = [
     os.path.join(".claude-plugin", "plugin.json"),
+    os.path.join(".claude-plugin", "hooks.json"),
 ]
 
 
@@ -63,7 +63,7 @@ def normalize_path(path: str) -> str:
     return path
 
 
-def is_protected_path(file_path: str) -> str | None:
+def is_protected_path(file_path: str) -> Optional[str]:
     """
     check if a file path targets a protected location.
     returns a human-readable reason if protected, None otherwise.
@@ -75,23 +75,32 @@ def is_protected_path(file_path: str) -> str | None:
     # check exact protected files
     for protected in PROTECTED_FILES:
         if resolved == os.path.realpath(protected):
-            return f"settings file ({os.path.basename(protected)})"
+            return "settings file ({})".format(os.path.basename(protected))
 
     # check protected directories
     for protected_dir in PROTECTED_DIRS:
         real_dir = os.path.realpath(protected_dir)
         if resolved.startswith(real_dir + os.sep) or resolved == real_dir:
-            return f"hook directory ({os.path.basename(protected_dir)}/)"
+            basename = os.path.basename(protected_dir)
+            if basename == "commands":
+                return "commands directory (commands/)"
+            return "hook directory (hooks/)"
 
-    # check plugin hook patterns (catches hooks.json and hooks/ in any plugin)
-    for pattern in PROTECTED_PATTERNS:
-        if pattern.endswith(os.sep):
-            # directory pattern: check if path contains /hooks/ segment
-            if os.sep + pattern in resolved + os.sep:
-                return f"plugin hook directory ({pattern})"
-        else:
-            if resolved.endswith(os.sep + pattern) or os.sep + pattern + os.sep in resolved:
-                return f"plugin config ({pattern})"
+    # check plugin config files (only within .claude-plugin/ directories)
+    for pattern in PROTECTED_PLUGIN_FILES:
+        if resolved.endswith(os.sep + pattern):
+            return "plugin config ({})".format(pattern)
+
+    # check if path is inside a plugin's hooks/ directory
+    # only match hooks/ dirs that are siblings of a .claude-plugin/ dir
+    # (i.e., actual plugin hook directories, not arbitrary project hooks/)
+    parts = resolved.split(os.sep)
+    for i, part in enumerate(parts):
+        if part == "hooks" and i > 0:
+            # check if a .claude-plugin/ dir exists as a sibling
+            parent = os.sep.join(parts[:i])
+            if os.path.isdir(os.path.join(parent, ".claude-plugin")):
+                return "plugin hook directory (hooks/)"
 
     return None
 
@@ -101,18 +110,22 @@ def is_protected_path(file_path: str) -> str | None:
 # ──────────────────────────────────────────────────────────────────────────────
 
 # commands that modify or destroy files
+# note: cp is excluded because copying FROM a protected path is a read operation
 DESTRUCTIVE_COMMANDS = re.compile(
-    r"\b(?:rm|rmdir|unlink|mv|cp|chmod|chown|chflags|truncate)\b"
+    r"\b(?:rm|rmdir|unlink|mv|chmod|chown|chflags|truncate)\b",
+    re.IGNORECASE,
 )
 
 # in-place file editors
 INPLACE_EDITORS = re.compile(
-    r"\b(?:sed\s+-i|perl\s+-[ip]|awk\s+-i)\b"
+    r"\b(?:sed\s+-i|perl\s+-[ip]|awk\s+-i)\b",
+    re.IGNORECASE,
 )
 
 # output redirection targeting a file
 REDIRECT_PATTERN = re.compile(
-    r"(?:>\s*|>>\s*|tee\s+(?:-a\s+)?)"
+    r"(?:>\s*|>>\s*|tee\s+(?:-a\s+)?)",
+    re.IGNORECASE,
 )
 
 # common path fragments that indicate hook/settings targets
@@ -120,14 +133,12 @@ SENSITIVE_PATH_FRAGMENTS = [
     ".claude/hooks",
     ".claude/settings",
     ".claude/commands",
-    "hooks.json",
-    "hooks/guard",
-    "hooks/hooks.json",
     ".claude-plugin/plugin.json",
+    ".claude-plugin/hooks.json",
 ]
 
 
-def check_bash_command(command: str) -> str | None:
+def check_bash_command(command: str) -> Optional[str]:
     """
     analyze a bash command for operations that could modify protected files.
     returns a reason string if the command targets protected paths, None otherwise.
@@ -135,7 +146,6 @@ def check_bash_command(command: str) -> str | None:
     if not command:
         return None
 
-    # normalize the command for analysis
     cmd_lower = command.lower()
 
     # check if the command references any sensitive path fragments
@@ -148,21 +158,22 @@ def check_bash_command(command: str) -> str | None:
         return None
 
     # the command references sensitive paths, now check if it's destructive
-    is_destructive = bool(DESTRUCTIVE_COMMANDS.search(command))
-    is_inplace_edit = bool(INPLACE_EDITORS.search(command))
-    is_redirect = bool(REDIRECT_PATTERN.search(command))
+    # all regex checks use the same normalized string for consistency
+    is_destructive = bool(DESTRUCTIVE_COMMANDS.search(cmd_lower))
+    is_inplace_edit = bool(INPLACE_EDITORS.search(cmd_lower))
+    is_redirect = bool(REDIRECT_PATTERN.search(cmd_lower))
 
     # also catch: cat > file, echo > file, printf > file
-    has_write_redirect = bool(re.search(r"(?:cat|echo|printf)\s+.*>", command))
+    has_write_redirect = bool(re.search(r"(?:cat|echo|printf)\s+.*>", cmd_lower))
 
     if is_destructive or is_inplace_edit or is_redirect or has_write_redirect:
         paths_str = ", ".join(targeted_paths)
         if is_destructive:
-            return f"destructive command targeting: {paths_str}"
+            return "destructive command targeting: {}".format(paths_str)
         elif is_inplace_edit:
-            return f"in-place edit targeting: {paths_str}"
+            return "in-place edit targeting: {}".format(paths_str)
         else:
-            return f"write/redirect targeting: {paths_str}"
+            return "write/redirect targeting: {}".format(paths_str)
 
     return None
 
@@ -179,7 +190,12 @@ def main():
         raw = sys.stdin.read()
         data = json.loads(raw)
     except (json.JSONDecodeError, Exception):
-        # fail open on malformed input to avoid breaking unrelated operations
+        # fail open on malformed input. rationale: this hook runs on EVERY tool
+        # call. if the hook input format changes or the JSON is unexpectedly
+        # empty, failing closed would break all operations for every user.
+        # the security tradeoff is acceptable because the attack surface
+        # (malformed hook input) is controlled by the Claude Code runtime,
+        # not by the model.
         sys.exit(0)
 
     tool_name = data.get("tool_name", "")
@@ -200,15 +216,15 @@ def main():
 
     if reason:
         msg = (
-            f"{DENY_PREFIX} blocked: {reason}\n"
-            f"\n"
-            f"Claude is not allowed to modify its own hooks, settings, or safety\n"
-            f"infrastructure. This restriction exists because the model has been\n"
-            f"observed weakening its own constraints to complete tasks more easily\n"
-            f"(see CVE-2025-59536, anthropics/claude-code#32376, #32990).\n"
-            f"\n"
-            f"If you need to modify these files, do so manually outside of Claude."
-        )
+            "{} blocked: {}\n"
+            "\n"
+            "Claude is not allowed to modify its own hooks, settings, or safety\n"
+            "infrastructure. This restriction exists because the model has been\n"
+            "observed weakening its own constraints to complete tasks more easily\n"
+            "(see CVE-2025-59536, anthropics/claude-code#32376, #32990).\n"
+            "\n"
+            "If you need to modify these files, do so manually outside of Claude."
+        ).format(DENY_PREFIX, reason)
         print(msg, file=sys.stderr)
         sys.exit(2)
 
