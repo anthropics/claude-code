@@ -45,6 +45,36 @@ For more installation options, uninstall steps, and troubleshooting, see the [se
 
 2. Navigate to your project directory and run `claude`.
 
+## Known Issue: False-Positive Update Banner (Homebrew/WinGet)
+
+Some users installed via Homebrew or WinGet may see:
+
+`Update available! Run: brew upgrade claude-code`
+
+or
+
+`Update available! Run: winget upgrade Anthropic.ClaudeCode`
+
+even when their package manager reports no update.
+
+This can happen when the latest npm release is newer than the latest package
+available in Homebrew cask/WinGet. The notification resolves automatically once
+those package registries catch up.
+
+Temporary workaround:
+
+- Set `DISABLE_AUTOUPDATER=1` to hide update notifications.
+
+Examples:
+
+```bash
+DISABLE_AUTOUPDATER=1 claude
+```
+
+```powershell
+$env:DISABLE_AUTOUPDATER=1; claude
+```
+
 ## Plugins
 
 This repository includes several Claude Code plugins that extend functionality with custom commands and agents. See the [plugins directory](./plugins/README.md) for detailed documentation on available plugins.
