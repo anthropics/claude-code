@@ -1,5 +1,25 @@
 # Changelog
 
+## 2.1.74
+
+- Added actionable suggestions to `/context` command — identifies context-heavy tools, memory bloat, and capacity warnings with specific optimization tips
+- Added `autoMemoryDirectory` setting to configure a custom directory for auto-memory storage
+- Fixed memory leak where streaming API response buffers were not released when the generator was terminated early, causing unbounded RSS growth on the Node.js/npm code path
+- Fixed managed policy `ask` rules being bypassed by user `allow` rules or skill `allowed-tools`
+- Fixed full model IDs (e.g., `claude-opus-4-5`) being silently ignored in agent frontmatter `model:` field and `--agents` JSON config — agents now accept the same model values as `--model`
+- Fixed MCP OAuth authentication hanging when the callback port is already in use
+- Fixed MCP OAuth refresh never prompting for re-auth after the refresh token expires, for OAuth servers that return errors with HTTP 200 (e.g. Slack)
+- Fixed voice mode silently failing on the macOS native binary for users whose terminal had never been granted microphone permission — the binary now includes the `audio-input` entitlement so macOS prompts correctly
+- Fixed `SessionEnd` hooks being killed after 1.5 s on exit regardless of `hook.timeout` — now configurable via `CLAUDE_CODE_SESSIONEND_HOOKS_TIMEOUT_MS`
+- Fixed `/plugin install` failing inside the REPL for marketplace plugins with local sources
+- Fixed marketplace update not syncing git submodules — plugin sources in submodules no longer break after update
+- Fixed unknown slash commands with arguments silently dropping input — now shows your input as a warning
+- Fixed Hebrew, Arabic, and other RTL text not rendering correctly in Windows Terminal, conhost, and VS Code integrated terminal
+- Fixed LSP servers not working on Windows due to malformed file URIs
+- Changed `--plugin-dir` so local dev copies now override installed marketplace plugins with the same name (unless that plugin is force-enabled by managed settings)
+- [VSCode] Fixed delete button not working for Untitled sessions
+- [VSCode] Improved scroll wheel responsiveness in the integrated terminal with terminal-aware acceleration
+
 ## 2.1.73
 
 - Added `modelOverrides` setting to map model picker entries to custom provider model IDs (e.g. Bedrock inference profile ARNs)
