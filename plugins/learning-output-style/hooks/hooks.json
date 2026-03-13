@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks-handlers/session-start.sh"
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks-handlers/run-hook.cmd session-start.sh"
           }
         ]
       }
