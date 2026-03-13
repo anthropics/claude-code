@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="AutomaattiLinja - AI-puhelinvastaaja yrityksille. Älä menetä enää yhtään asiakasta. Tekoäly vastaa puheluihisi 24/7 luonnollisella suomen kielellä.">
+    <meta name="keywords" content="AI puhelinvastaaja, tekoäly vastaaja, automaattinen puhelinpalvelu, yrityksen puhelinvastaaja, 24/7 vastauspalvelu">
+    <meta name="robots" content="index, follow">
+    <meta property="og:title" content="AutomaattiLinja - AI-puhelinvastaaja yrityksille">
+    <meta property="og:description" content="Tekoäly vastaa puheluihisi 24/7. Luonnollinen suomenkielinen keskustelu. Ei enää menetettyjä asiakkaita.">
+    <meta property="og:type" content="website">
+    <meta name="theme-color" content="#0A1628">
+    <title>AutomaattiLinja | AI-puhelinvastaaja yrityksille – 24/7 vastauspalvelu</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="container nav-container">
+            <a href="#" class="logo">
+                <div class="logo-icon">
+                    <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="32" height="32" rx="8" fill="url(#logo-gradient)"/>
+                        <path d="M10 20V12C10 10.8954 10.8954 10 12 10H14C15.1046 10 16 10.8954 16 12V20" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                        <path d="M16 20V12C16 10.8954 16.8954 10 18 10H20C21.1046 10 22 10.8954 22 12V20" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                        <circle cx="13" cy="16" r="1.5" fill="white"/>
+                        <circle cx="19" cy="16" r="1.5" fill="white"/>
+                        <path d="M10 16H22" stroke="white" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
+                        <defs>
+                            <linearGradient id="logo-gradient" x1="0" y1="0" x2="32" y2="32">
+                                <stop stop-color="#3B82F6"/>
+                                <stop offset="1" stop-color="#8B5CF6"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </div>
+                <span class="logo-text">AutomaattiLinja</span>
+            </a>
+            <div class="nav-links" id="nav-links">
+                <a href="#demo" class="nav-link">Kokeile demoa</a>
+                <a href="#edut" class="nav-link">Miksi me</a>
+                <a href="#miten-toimii" class="nav-link">Miten toimii</a>
+                <a href="#hinnoittelu" class="nav-link">Hinnoittelu</a>
+                <a href="#ukk" class="nav-link">UKK</a>
+            </div>
+            <div class="nav-actions">
+                <a href="#demo" class="btn btn-primary btn-nav">Kokeile nyt</a>
+                <button class="mobile-menu-toggle" id="mobile-menu-toggle" aria-label="Avaa valikko">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero" id="hero">
+        <div class="hero-bg-effects">
+            <div class="hero-glow hero-glow-1"></div>
+            <div class="hero-glow hero-glow-2"></div>
+            <div class="hero-grid"></div>
+        </div>
+        <div class="container hero-container">
+            <div class="hero-content">
+                <div class="hero-badge">
+                    <span class="badge-dot"></span>
+                    <span>Suomen ensimmäinen alueellinen AI-vastauspalvelu</span>
+                </div>
+                <h1 class="hero-title">
+                    Älä menetä enää <span class="gradient-text">yhtään asiakasta</span> vastaamattomiin puheluihin
+                </h1>
+                <p class="hero-subtitle">
+                    Tekoälypohjainen puhelinvastaaja vastaa asiakkaidesi puheluihin 24/7 luonnollisella suomen kielellä. Ei enää vastaajaan puhuttuja viestejä – oikea keskustelu, oikeat tulokset.
+                </p>
+                <div class="hero-cta-group">
+                    <a href="#demo" class="btn btn-primary btn-lg">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                            <path d="M2 3C2 2.44772 2.44772 2 3 2H6.27924C6.70967 2 7.09181 2.27543 7.22792 2.68377L8.72574 7.17721C8.88185 7.64609 8.6861 8.16034 8.2527 8.3771L6.69409 9.15641C7.66569 11.0273 9.17271 12.5343 11.0436 13.5059L11.8229 11.9473C12.0397 11.5139 12.5539 11.3181 13.0228 11.4743L17.5162 12.9721C17.9246 13.1082 18.2 13.4903 18.2 13.9208V17.2C18.2 17.7523 17.7523 18.2 17.2 18.2H15C7.8203 18.2 2 12.3797 2 5.2V3Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        Soita demoon nyt
+                    </a>
+                    <a href="#miten-toimii" class="btn btn-ghost btn-lg">
+                        Katso miten toimii
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <path d="M6 12L10 8L6 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </a>
+                </div>
+                <div class="hero-stats">
+                    <div class="hero-stat">
+                        <span class="hero-stat-value" data-count="98">0</span><span class="hero-stat-suffix">%</span>
+                        <span class="hero-stat-label">puheluista vastattu</span>
+                    </div>
+                    <div class="hero-stat-divider"></div>
+                    <div class="hero-stat">
+                        <span class="hero-stat-value">&lt;1</span><span class="hero-stat-suffix">s</span>
+                        <span class="hero-stat-label">vastausaika</span>
+                    </div>
+                    <div class="hero-stat-divider"></div>
+                    <div class="hero-stat">
+                        <span class="hero-stat-value">24/7</span>
+                        <span class="hero-stat-label">aina päivystää</span>
+                    </div>
+                </div>
+            </div>
+            <div class="hero-visual">
+                <div class="phone-mockup">
+                    <div class="phone-frame">
+                        <div class="phone-notch"></div>
+                        <div class="phone-screen">
+                            <div class="call-ui">
+                                <div class="call-status">Puhelu käynnissä</div>
+                                <div class="call-avatar">
+                                    <div class="call-avatar-ring call-ring-1"></div>
+                                    <div class="call-avatar-ring call-ring-2"></div>
+                                    <div class="call-avatar-ring call-ring-3"></div>
+                                    <div class="call-avatar-icon">
+                                        <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+                                            <path d="M20 20C23.3137 20 26 17.3137 26 14C26 10.6863 23.3137 8 20 8C16.6863 8 14 10.6863 14 14C14 17.3137 16.6863 20 20 20Z" fill="white"/>
+                                            <path d="M20 23C13.3726 23 8 26.3726 8 30.5V32H32V30.5C32 26.3726 26.6274 23 20 23Z" fill="white"/>
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="call-name">AutomaattiLinja AI</div>
+                                <div class="call-timer" id="call-timer">00:00</div>
+                                <div class="call-waveform" id="call-waveform">
+                                    <div class="wave-bar"></div>
+                                    <div class="wave-bar"></div>
+                                    <div class="wave-bar"></div>
+                                    <div class="wave-bar"></div>
+                                    <div class="wave-bar"></div>
+                                    <div class="wave-bar"></div>
+                                    <div class="wave-bar"></div>
+                                    <div class="wave-bar"></div>
+                                    <div class="wave-bar"></div>
+                                    <div class="wave-bar"></div>
+                                    <div class="wave-bar"></div>
+                                    <div class="wave-bar"></div>
+                                </div>
+                                <div class="call-transcript" id="call-transcript">
+                                    <!-- Transcript populated by JS -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Social Proof Bar -->
+    <section class="social-proof-bar">
+        <div class="container">
+            <p class="social-proof-text">Luottamuksella käytössä yrityksillä, jotka eivät halua menettää yhtään puhelua</p>
+            <div class="proof-logos">
+                <div class="proof-item">
+                    <div class="proof-icon">🔧</div>
+                    <span>LVI-Palvelut</span>
+                </div>
+                <div class="proof-item">
+                    <div class="proof-icon">🦷</div>
+                    <span>Hammaslääkärit</span>
+                </div>
+                <div class="proof-item">
+                    <div class="proof-icon">⚖️</div>
+                    <span>Lakitoimistot</span>
+                </div>
+                <div class="proof-item">
+                    <div class="proof-icon">🏗️</div>
+                    <span>Rakennusliikkeet</span>
+                </div>
+                <div class="proof-item">
+                    <div class="proof-icon">🏥</div>
+                    <span>Terveyskeskukset</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Problem Section -->
+    <section class="problem-section" id="ongelma">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-tag">Ongelma</span>
+                <h2 class="section-title">Tiedätkö kuinka monta asiakasta menetät <span class="gradient-text">joka päivä?</span></h2>
+            </div>
+            <div class="problem-grid">
+                <div class="problem-card">
+                    <div class="problem-stat">67%</div>
+                    <p class="problem-desc">asiakkaista ei jätä viestiä vastaajaan – he soittavat kilpailijalle</p>
+                </div>
+                <div class="problem-card">
+                    <div class="problem-stat">85%</div>
+                    <p class="problem-desc">puheluista tulee työajan ulkopuolella tai kun olet kiireinen</p>
+                </div>
+                <div class="problem-card">
+                    <div class="problem-stat">2400€</div>
+                    <p class="problem-desc">keskimääräinen kuukausittainen menetys vastaamattomista puheluista</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Demo Section -->
+    <section class="demo-section" id="demo">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-tag">Kokeile itse</span>
+                <h2 class="section-title">Soita ja kuule ero <span class="gradient-text">omin korvin</span></h2>
+                <p class="section-desc">Valitse toimiala ja soita demonumeroon. AI-vastaajamme vastaa alle sekunnissa luonnollisella suomen kielellä.</p>
+            </div>
+            <div class="demo-grid">
+                <div class="demo-card" data-demo="lvi">
+                    <div class="demo-card-header">
+                        <div class="demo-icon">🔧</div>
+                        <h3>LVI-yritys</h3>
+                        <span class="demo-badge">Suosittu</span>
+                    </div>
+                    <p class="demo-desc">Kokeile miltä kuulostaa kun AI vastaa putkiliikkeen puheluihin. Ajanvaraus, hätätapaukset ja tiedustelut.</p>
+                    <div class="demo-features">
+                        <div class="demo-feature">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13.3333 4L6 11.3333L2.66667 8" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            Ajanvaraus
+                        </div>
+                        <div class="demo-feature">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13.3333 4L6 11.3333L2.66667 8" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            Hätäpäivystys
+                        </div>
+                        <div class="demo-feature">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13.3333 4L6 11.3333L2.66667 8" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            Hintatiedustelut
+                        </div>
+                    </div>
+                    <a href="tel:+358XXXXXXXXX" class="btn btn-primary btn-demo">
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                            <path d="M2 3C2 2.44772 2.44772 2 3 2H6.27924C6.70967 2 7.09181 2.27543 7.22792 2.68377L8.72574 7.17721C8.88185 7.64609 8.6861 8.16034 8.2527 8.3771L6.69409 9.15641C7.66569 11.0273 9.17271 12.5343 11.0436 13.5059L11.8229 11.9473C12.0397 11.5139 12.5539 11.3181 13.0228 11.4743L17.5162 12.9721C17.9246 13.1082 18.2 13.4903 18.2 13.9208V17.2C18.2 17.7523 17.7523 18.2 17.2 18.2H15C7.8203 18.2 2 12.3797 2 5.2V3Z" stroke="currentColor" stroke-width="1.5"/>
+                        </svg>
+                        Soita LVI-demoon
+                    </a>
+                </div>
+                <div class="demo-card demo-card-featured" data-demo="hammas">
+                    <div class="demo-card-header">
+                        <div class="demo-icon">🦷</div>
+                        <h3>Hammaslääkäri</h3>
+                        <span class="demo-badge demo-badge-featured">Demo</span>
+                    </div>
+                    <p class="demo-desc">Kuule miten AI hoitaa hammaslääkärin ajanvarauksen, peruutukset ja kiireelliset tapaukset.</p>
+                    <div class="demo-features">
+                        <div class="demo-feature">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13.3333 4L6 11.3333L2.66667 8" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            Ajanvaraus & peruutus
+                        </div>
+                        <div class="demo-feature">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13.3333 4L6 11.3333L2.66667 8" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            Kiireellinen hoito
+                        </div>
+                        <div class="demo-feature">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13.3333 4L6 11.3333L2.66667 8" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            Vakuutuskysymykset
+                        </div>
+                    </div>
+                    <a href="tel:+358XXXXXXXXX" class="btn btn-primary btn-demo">
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                            <path d="M2 3C2 2.44772 2.44772 2 3 2H6.27924C6.70967 2 7.09181 2.27543 7.22792 2.68377L8.72574 7.17721C8.88185 7.64609 8.6861 8.16034 8.2527 8.3771L6.69409 9.15641C7.66569 11.0273 9.17271 12.5343 11.0436 13.5059L11.8229 11.9473C12.0397 11.5139 12.5539 11.3181 13.0228 11.4743L17.5162 12.9721C17.9246 13.1082 18.2 13.4903 18.2 13.9208V17.2C18.2 17.7523 17.7523 18.2 17.2 18.2H15C7.8203 18.2 2 12.3797 2 5.2V3Z" stroke="currentColor" stroke-width="1.5"/>
+                        </svg>
+                        Soita hammaslääkäri-demoon
+                    </a>
+                </div>
+                <div class="demo-card" data-demo="rakennus">
+                    <div class="demo-icon">🏗️</div>
+                    <div class="demo-card-header">
+                        <h3>Rakennusliike</h3>
+                    </div>
+                    <p class="demo-desc">Testaa miten AI käsittelee rakennusalan tarjouspyynnöt, aikataulut ja reklamaatiot.</p>
+                    <div class="demo-features">
+                        <div class="demo-feature">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13.3333 4L6 11.3333L2.66667 8" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            Tarjouspyynnöt
+                        </div>
+                        <div class="demo-feature">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13.3333 4L6 11.3333L2.66667 8" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            Aikataulutiedustelut
+                        </div>
+                        <div class="demo-feature">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13.3333 4L6 11.3333L2.66667 8" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            Reklamaatiot
+                        </div>
+                    </div>
+                    <a href="tel:+358XXXXXXXXX" class="btn btn-primary btn-demo">
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                            <path d="M2 3C2 2.44772 2.44772 2 3 2H6.27924C6.70967 2 7.09181 2.27543 7.22792 2.68377L8.72574 7.17721C8.88185 7.64609 8.6861 8.16034 8.2527 8.3771L6.69409 9.15641C7.66569 11.0273 9.17271 12.5343 11.0436 13.5059L11.8229 11.9473C12.0397 11.5139 12.5539 11.3181 13.0228 11.4743L17.5162 12.9721C17.9246 13.1082 18.2 13.4903 18.2 13.9208V17.2C18.2 17.7523 17.7523 18.2 17.2 18.2H15C7.8203 18.2 2 12.3797 2 5.2V3Z" stroke="currentColor" stroke-width="1.5"/>
+                        </svg>
+                        Soita rakennus-demoon
+                    </a>
+                </div>
+            </div>
+            <div class="demo-note">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                    <path d="M10 18C14.4183 18 18 14.4183 18 10C18 5.58172 14.4183 2 10 2C5.58172 2 2 5.58172 2 10C2 14.4183 5.58172 18 10 18Z" stroke="#3B82F6" stroke-width="1.5"/>
+                    <path d="M10 14V10" stroke="#3B82F6" stroke-width="1.5" stroke-linecap="round"/>
+                    <circle cx="10" cy="7" r="0.75" fill="#3B82F6"/>
+                </svg>
+                <p>Demopuhelut ovat ilmaisia. AI-vastaaja räätälöidään yrityksesi tarpeiden mukaan käyttöönottovaiheessa.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Benefits Section -->
+    <section class="benefits-section" id="edut">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-tag">Edut</span>
+                <h2 class="section-title">Miksi <span class="gradient-text">AutomaattiLinja?</span></h2>
+                <p class="section-desc">Ei pelkkä vastaaja – älykäs liiketoiminta-assistentti joka ymmärtää asiakkaitasi.</p>
+            </div>
+            <div class="benefits-grid">
+                <div class="benefit-card">
+                    <div class="benefit-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                            <path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <h3>Alle sekunnin vastausaika</h3>
+                    <p>AI vastaa puheluun välittömästi – ei jonotusta, ei odottelua. Asiakas saa avun heti kun soittaa.</p>
+                </div>
+                <div class="benefit-card">
+                    <div class="benefit-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                            <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" stroke-width="2"/>
+                            <path d="M12 6V12L16 14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <h3>24/7 – myös viikonloput</h3>
+                    <p>Yrityksesi vastaa puheluihin ympäri vuorokauden, myös juhlapyhinä. Ei sairaslomia, ei lomia.</p>
+                </div>
+                <div class="benefit-card">
+                    <div class="benefit-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                            <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <h3>Luonnollinen suomi</h3>
+                    <p>Ei robottimaista puhetta – AI keskustelee luonnollisesti suomeksi ja ymmärtää murteitakin.</p>
+                </div>
+                <div class="benefit-card">
+                    <div class="benefit-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                            <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M14 2V8H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <h3>Automaattinen raportointi</h3>
+                    <p>Saat yhteenvedon joka puhelusta sähköpostiin tai tekstiviestillä. Tiedät aina mitä asiakkaat tarvitsevat.</p>
+                </div>
+                <div class="benefit-card">
+                    <div class="benefit-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                            <path d="M16 21V19C16 17.9391 15.5786 16.9217 14.8284 16.1716C14.0783 15.4214 13.0609 15 12 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <circle cx="8.5" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
+                            <path d="M20 8V14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            <path d="M23 11H17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <h3>Skaalautuu kanssasi</h3>
+                    <p>Yksi puhelu vai sata samanaikaisesti – AI hoitaa kaiken. Kasvata liiketoimintaa ilman lisähenkilöstöä.</p>
+                </div>
+                <div class="benefit-card">
+                    <div class="benefit-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                            <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" stroke-width="2"/>
+                            <path d="M8 12L11 15L16 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <h3>Helppo käyttöönotto</h3>
+                    <p>Räätälöinti valmiina päivässä. Ei monimutkaisia integraatioita – yhdistä nykyiseen puhelinnumeroosi.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section class="how-section" id="miten-toimii">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-tag">Miten toimii</span>
+                <h2 class="section-title">Käyttöönotto <span class="gradient-text">kolmessa askeleessa</span></h2>
+            </div>
+            <div class="steps-grid">
+                <div class="step-card">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h3>Kerro tarpeesi</h3>
+                        <p>Kerrot minkälaisia puheluita yrityksesi saa ja miten haluat niihin vastattavan. Me konfiguroidaan AI juuri sinun yrityksellesi.</p>
+                    </div>
+                    <div class="step-visual">
+                        <div class="step-chat">
+                            <div class="chat-bubble chat-user">Meillä tulee paljon ajanvarauspyyntöjä ja hätäkeikkoja</div>
+                            <div class="chat-bubble chat-ai">Selvä! Konfiguroidaan AI erottamaan kiireelliset tapaukset ja varaamaan aikoja kalenterista.</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h3>Testaa ja hyväksy</h3>
+                        <p>Soitat testidemoon ja kuulet miten AI vastaa yrityksesi puheluihin. Hienosäädämme kunnes olet tyytyväinen.</p>
+                    </div>
+                    <div class="step-visual">
+                        <div class="step-checklist">
+                            <div class="check-item check-done">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13.3333 4L6 11.3333L2.66667 8" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                Äänen sävy ja tyyli
+                            </div>
+                            <div class="check-item check-done">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13.3333 4L6 11.3333L2.66667 8" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                Vastausten sisältö
+                            </div>
+                            <div class="check-item check-done">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13.3333 4L6 11.3333L2.66667 8" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                Ajanvarauslogiikka
+                            </div>
+                            <div class="check-item check-active">
+                                <div class="check-spinner"></div>
+                                Viimeistelyä...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h3>Aktivoi ja nauti</h3>
+                        <p>Yhdistetään AI nykyiseen puhelinnumeroosi. Puhelut ohjautuvat AI:lle kun et vastaa itse – tai aina, sinä päätät.</p>
+                    </div>
+                    <div class="step-visual">
+                        <div class="step-stats-mini">
+                            <div class="mini-stat">
+                                <div class="mini-stat-bar" style="--width: 98%"></div>
+                                <span>98% vastattu</span>
+                            </div>
+                            <div class="mini-stat">
+                                <div class="mini-stat-bar" style="--width: 94%"></div>
+                                <span>94% tyytyväisyys</span>
+                            </div>
+                            <div class="mini-stat">
+                                <div class="mini-stat-bar" style="--width: 75%"></div>
+                                <span>+75% lisää liidejä</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Comparison Section -->
+    <section class="comparison-section">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-tag">Vertailu</span>
+                <h2 class="section-title">AutomaattiLinja vs. <span class="gradient-text">perinteinen vastaaja</span></h2>
+            </div>
+            <div class="comparison-table-wrap">
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Ominaisuus</th>
+                            <th>Perinteinen vastaaja</th>
+                            <th class="highlight-col">AutomaattiLinja AI</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Vastausaika</td>
+                            <td class="text-muted">4-6 sekuntia + jonotus</td>
+                            <td class="highlight-col"><strong>&lt; 1 sekunti</strong></td>
+                        </tr>
+                        <tr>
+                            <td>Saatavuus</td>
+                            <td class="text-muted">Toimistoaikana</td>
+                            <td class="highlight-col"><strong>24/7/365</strong></td>
+                        </tr>
+                        <tr>
+                            <td>Keskustelun laatu</td>
+                            <td class="text-muted">"Jätä viesti piippauksen jälkeen"</td>
+                            <td class="highlight-col"><strong>Luonnollinen keskustelu</strong></td>
+                        </tr>
+                        <tr>
+                            <td>Ajanvaraus</td>
+                            <td class="text-muted">Ei mahdollista</td>
+                            <td class="highlight-col"><strong>Automaattinen</strong></td>
+                        </tr>
+                        <tr>
+                            <td>Samanaikaiset puhelut</td>
+                            <td class="text-muted">1 kerrallaan</td>
+                            <td class="highlight-col"><strong>Rajaton</strong></td>
+                        </tr>
+                        <tr>
+                            <td>Raportointi</td>
+                            <td class="text-muted">Ei mitään</td>
+                            <td class="highlight-col"><strong>Reaaliaikainen yhteenveto</strong></td>
+                        </tr>
+                        <tr>
+                            <td>Hinta</td>
+                            <td class="text-muted">Henkilöstökulut + lomat</td>
+                            <td class="highlight-col"><strong>Kiinteä kuukausihinta</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials -->
+    <section class="testimonials-section" id="arvostelut">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-tag">Kokemuksia</span>
+                <h2 class="section-title">Mitä <span class="gradient-text">pilottiasiakkaamme</span> sanovat</h2>
+            </div>
+            <div class="testimonials-grid">
+                <div class="testimonial-card">
+                    <div class="testimonial-stars">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="#FBBF24"><path d="M8 1L10.163 5.279L15 6.006L11.5 9.421L12.326 14.236L8 12L3.674 14.236L4.5 9.421L1 6.006L5.837 5.279L8 1Z"/></svg>
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="#FBBF24"><path d="M8 1L10.163 5.279L15 6.006L11.5 9.421L12.326 14.236L8 12L3.674 14.236L4.5 9.421L1 6.006L5.837 5.279L8 1Z"/></svg>
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="#FBBF24"><path d="M8 1L10.163 5.279L15 6.006L11.5 9.421L12.326 14.236L8 12L3.674 14.236L4.5 9.421L1 6.006L5.837 5.279L8 1Z"/></svg>
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="#FBBF24"><path d="M8 1L10.163 5.279L15 6.006L11.5 9.421L12.326 14.236L8 12L3.674 14.236L4.5 9.421L1 6.006L5.837 5.279L8 1Z"/></svg>
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="#FBBF24"><path d="M8 1L10.163 5.279L15 6.006L11.5 9.421L12.326 14.236L8 12L3.674 14.236L4.5 9.421L1 6.006L5.837 5.279L8 1Z"/></svg>
+                    </div>
+                    <blockquote>"Ensimmäisen kuukauden aikana saimme kiinni 23 puhelua jotka olisivat muuten menneet ohi. Se on helposti 5000€ lisää liikevaihtoa."</blockquote>
+                    <div class="testimonial-author">
+                        <div class="author-avatar">MK</div>
+                        <div>
+                            <strong>Matti K.</strong>
+                            <span>LVI-yrittäjä, Pirkanmaa</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="testimonial-card">
+                    <div class="testimonial-stars">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="#FBBF24"><path d="M8 1L10.163 5.279L15 6.006L11.5 9.421L12.326 14.236L8 12L3.674 14.236L4.5 9.421L1 6.006L5.837 5.279L8 1Z"/></svg>
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="#FBBF24"><path d="M8 1L10.163 5.279L15 6.006L11.5 9.421L12.326 14.236L8 12L3.674 14.236L4.5 9.421L1 6.006L5.837 5.279L8 1Z"/></svg>
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="#FBBF24"><path d="M8 1L10.163 5.279L15 6.006L11.5 9.421L12.326 14.236L8 12L3.674 14.236L4.5 9.421L1 6.006L5.837 5.279L8 1Z"/></svg>
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="#FBBF24"><path d="M8 1L10.163 5.279L15 6.006L11.5 9.421L12.326 14.236L8 12L3.674 14.236L4.5 9.421L1 6.006L5.837 5.279L8 1Z"/></svg>
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="#FBBF24"><path d="M8 1L10.163 5.279L15 6.006L11.5 9.421L12.326 14.236L8 12L3.674 14.236L4.5 9.421L1 6.006L5.837 5.279L8 1Z"/></svg>
+                    </div>
+                    <blockquote>"Potilaat luulevat puhuvansa oikean vastaanoton kanssa. AI osaa jopa kysyä oikeita jatkokysymyksiä särkytapauksissa."</blockquote>
+                    <div class="testimonial-author">
+                        <div class="author-avatar">SL</div>
+                        <div>
+                            <strong>Sanna L.</strong>
+                            <span>Hammaslääkäri, Hämeenlinna</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="testimonial-card">
+                    <div class="testimonial-stars">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="#FBBF24"><path d="M8 1L10.163 5.279L15 6.006L11.5 9.421L12.326 14.236L8 12L3.674 14.236L4.5 9.421L1 6.006L5.837 5.279L8 1Z"/></svg>
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="#FBBF24"><path d="M8 1L10.163 5.279L15 6.006L11.5 9.421L12.326 14.236L8 12L3.674 14.236L4.5 9.421L1 6.006L5.837 5.279L8 1Z"/></svg>
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="#FBBF24"><path d="M8 1L10.163 5.279L15 6.006L11.5 9.421L12.326 14.236L8 12L3.674 14.236L4.5 9.421L1 6.006L5.837 5.279L8 1Z"/></svg>
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="#FBBF24"><path d="M8 1L10.163 5.279L15 6.006L11.5 9.421L12.326 14.236L8 12L3.674 14.236L4.5 9.421L1 6.006L5.837 5.279L8 1Z"/></svg>
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="#FBBF24"><path d="M8 1L10.163 5.279L15 6.006L11.5 9.421L12.326 14.236L8 12L3.674 14.236L4.5 9.421L1 6.006L5.837 5.279L8 1Z"/></svg>
+                    </div>
+                    <blockquote>"Lopultakin ratkaisu joka toimii suomeksi kunnolla. Asiakkaat kehuvat nopeaa palvelua ja me säästämme aikaa joka päivä."</blockquote>
+                    <div class="testimonial-author">
+                        <div class="author-avatar">JP</div>
+                        <div>
+                            <strong>Juha P.</strong>
+                            <span>Toimitusjohtaja, Rakennusliike</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section class="pricing-section" id="hinnoittelu">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-tag">Hinnoittelu</span>
+                <h2 class="section-title">Selkeä hinnoittelu, <span class="gradient-text">ei yllätyksiä</span></h2>
+                <p class="section-desc">Aloita ilmaisella pilottijaksolla. Ei sitoutumista, ei piilokuluja.</p>
+            </div>
+            <div class="pricing-grid">
+                <div class="pricing-card">
+                    <div class="pricing-header">
+                        <h3>Pilotti</h3>
+                        <p class="pricing-desc">Kokeile riskittömästi</p>
+                    </div>
+                    <div class="pricing-price">
+                        <span class="price-amount">0€</span>
+                        <span class="price-period">/ ensimmäinen kuukausi</span>
+                    </div>
+                    <ul class="pricing-features">
+                        <li>
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13.3333 4L6 11.3333L2.66667 8" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            100 puhelua/kk
+                        </li>
+                        <li>
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13.3333 4L6 11.3333L2.66667 8" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            1 puhelinnumero
+                        </li>
+                        <li>
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13.3333 4L6 11.3333L2.66667 8" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            Sähköpostiraportit
+                        </li>
+                        <li>
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13.3333 4L6 11.3333L2.66667 8" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            Räätälöity AI-persoona
+                        </li>
+                    </ul>
+                    <a href="#yhteydenotto" class="btn btn-outline btn-pricing">Aloita ilmainen pilotti</a>
+                </div>
+                <div class="pricing-card pricing-card-featured">
+                    <div class="pricing-popular">Suosituin</div>
+                    <div class="pricing-header">
+                        <h3>Yritys</h3>
+                        <p class="pricing-desc">Kasvavalle yritykselle</p>
+                    </div>
+                    <div class="pricing-price">
+                        <span class="price-amount">149€</span>
+                        <span class="price-period">/ kuukausi</span>
+                    </div>
+                    <ul class="pricing-features">
+                        <li>
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13.3333 4L6 11.3333L2.66667 8" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            500 puhelua/kk
+                        </li>
+                        <li>
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13.3333 4L6 11.3333L2.66667 8" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            3 puhelinnumeroa
+                        </li>
+                        <li>
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13.3333 4L6 11.3333L2.66667 8" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            SMS + sähköpostiraportit
+                        </li>
+                        <li>
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13.3333 4L6 11.3333L2.66667 8" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            Kalenteriintegraatio
+                        </li>
+                        <li>
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13.3333 4L6 11.3333L2.66667 8" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            Puheluiden siirto ihmiselle
+                        </li>
+                    </ul>
+                    <a href="#yhteydenotto" class="btn btn-primary btn-pricing">Valitse Yritys</a>
+                </div>
+                <div class="pricing-card">
+                    <div class="pricing-header">
+                        <h3>Pro</h3>
+                        <p class="pricing-desc">Suuremmat tarpeet</p>
+                    </div>
+                    <div class="pricing-price">
+                        <span class="price-amount">349€</span>
+                        <span class="price-period">/ kuukausi</span>
+                    </div>
+                    <ul class="pricing-features">
+                        <li>
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13.3333 4L6 11.3333L2.66667 8" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            Rajaton puhelumäärä
+                        </li>
+                        <li>
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13.3333 4L6 11.3333L2.66667 8" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            Rajaton puhelinnumeroita
+                        </li>
+                        <li>
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13.3333 4L6 11.3333L2.66667 8" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            CRM-integraatio
+                        </li>
+                        <li>
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13.3333 4L6 11.3333L2.66667 8" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            Analytiikka-dashboard
+                        </li>
+                        <li>
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13.3333 4L6 11.3333L2.66667 8" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            Oma asiakasvastaava
+                        </li>
+                    </ul>
+                    <a href="#yhteydenotto" class="btn btn-outline btn-pricing">Ota yhteyttä</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section class="faq-section" id="ukk">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-tag">Usein kysyttyä</span>
+                <h2 class="section-title">Vastauksia <span class="gradient-text">yleisimpiin kysymyksiin</span></h2>
+            </div>
+            <div class="faq-list">
+                <div class="faq-item">
+                    <button class="faq-question" aria-expanded="false">
+                        <span>Kuulostaako AI robotilta?</span>
+                        <svg class="faq-chevron" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                            <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Ei. Käytämme uusinta tekoälyteknologiaa joka tuottaa luonnollista suomenkielistä puhetta. Asiakkaat eivät yleensä huomaa puhuvansa AI:n kanssa. Voit kuulla eron itse soittamalla demonumeroihimme.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <button class="faq-question" aria-expanded="false">
+                        <span>Entä jos AI ei osaa vastata kysymykseen?</span>
+                        <svg class="faq-chevron" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                            <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                    <div class="faq-answer">
+                        <p>AI on koulutettu yrityksesi tiedoilla, mutta jos se kohtaa tilanteen johon ei osaa vastata, se siirtää puhelun sinulle tai ottaa yhteystiedot ja lupaa takaisinsoiton. Et koskaan menetä asiakasta.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <button class="faq-question" aria-expanded="false">
+                        <span>Miten nopeasti pääsen alkuun?</span>
+                        <svg class="faq-chevron" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                            <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Ensimmäinen demo on valmiina tunnissa alkukeskustelun jälkeen. Tuotantovalmiiksi pääset tyypillisesti 1-3 päivässä, riippuen räätälöinnin laajuudesta.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <button class="faq-question" aria-expanded="false">
+                        <span>Onko palvelu GDPR-yhteensopiva?</span>
+                        <svg class="faq-chevron" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                            <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Kyllä. Kaikki puhelutiedot käsitellään EU:n sisällä GDPR:n mukaisesti. Puheluiden tallenteet ja transkriptiot säilytetään turvallisesti ja niitä käytetään vain sovittuun tarkoitukseen.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <button class="faq-question" aria-expanded="false">
+                        <span>Voinko pitää nykyisen puhelinnumeroni?</span>
+                        <svg class="faq-chevron" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                            <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Kyllä! Yleensä ohjaamme puhelut nykyisestä numerostasi AI-vastaajalle puhelunohjauksen kautta. Vaihtoehtoisesti voit saada erillisen numeron. Kumpikin tapa toimii.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <button class="faq-question" aria-expanded="false">
+                        <span>Mitä jos haluan peruuttaa?</span>
+                        <svg class="faq-chevron" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                            <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Ei sitoutumisaikaa. Voit peruuttaa milloin tahansa kuukauden loppuun. Pilottijakson aikana peruutus on välitön eikä maksa mitään.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta-section" id="yhteydenotto">
+        <div class="container">
+            <div class="cta-card">
+                <div class="cta-content">
+                    <h2>Valmis lopettamaan asiakkaiden menettämisen?</h2>
+                    <p>Aloita ilmaisella pilottijaksolla. Ei luottokorttia, ei sitoutumista. Näe itse miten AI-vastaaja muuttaa yrityksesi puhelinpalvelun.</p>
+                    <div class="cta-actions">
+                        <a href="#demo" class="btn btn-white btn-lg">
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                <path d="M2 3C2 2.44772 2.44772 2 3 2H6.27924C6.70967 2 7.09181 2.27543 7.22792 2.68377L8.72574 7.17721C8.88185 7.64609 8.6861 8.16034 8.2527 8.3771L6.69409 9.15641C7.66569 11.0273 9.17271 12.5343 11.0436 13.5059L11.8229 11.9473C12.0397 11.5139 12.5539 11.3181 13.0228 11.4743L17.5162 12.9721C17.9246 13.1082 18.2 13.4903 18.2 13.9208V17.2C18.2 17.7523 17.7523 18.2 17.2 18.2H15C7.8203 18.2 2 12.3797 2 5.2V3Z" stroke="currentColor" stroke-width="1.5"/>
+                            </svg>
+                            Soita demoon
+                        </a>
+                        <a href="mailto:info@automaattilinja.fi" class="btn btn-ghost-white btn-lg">
+                            Ota yhteyttä sähköpostilla
+                        </a>
+                    </div>
+                    <p class="cta-note">Tai soita meille: <a href="tel:+358XXXXXXXXX">+358 XX XXX XXXX</a></p>
+                </div>
+                <div class="cta-visual">
+                    <div class="cta-floating-card">
+                        <div class="floating-notification">
+                            <div class="notif-icon notif-green"></div>
+                            <div>
+                                <strong>Uusi puhelu vastattu</strong>
+                                <span>LVI-ajanvaraus – Tampere</span>
+                            </div>
+                            <span class="notif-time">juuri nyt</span>
+                        </div>
+                        <div class="floating-notification">
+                            <div class="notif-icon notif-blue"></div>
+                            <div>
+                                <strong>Raportti lähetetty</strong>
+                                <span>5 puhelun yhteenveto</span>
+                            </div>
+                            <span class="notif-time">2 min sitten</span>
+                        </div>
+                        <div class="floating-notification">
+                            <div class="notif-icon notif-purple"></div>
+                            <div>
+                                <strong>Ajanvaraus tehty</strong>
+                                <span>Ke 15.3. klo 14:00</span>
+                            </div>
+                            <span class="notif-time">5 min sitten</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <a href="#" class="logo">
+                        <div class="logo-icon">
+                            <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <rect width="32" height="32" rx="8" fill="url(#logo-gradient-footer)"/>
+                                <path d="M10 20V12C10 10.8954 10.8954 10 12 10H14C15.1046 10 16 10.8954 16 12V20" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                                <path d="M16 20V12C16 10.8954 16.8954 10 18 10H20C21.1046 10 22 10.8954 22 12V20" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                                <circle cx="13" cy="16" r="1.5" fill="white"/>
+                                <circle cx="19" cy="16" r="1.5" fill="white"/>
+                                <defs>
+                                    <linearGradient id="logo-gradient-footer" x1="0" y1="0" x2="32" y2="32">
+                                        <stop stop-color="#3B82F6"/>
+                                        <stop offset="1" stop-color="#8B5CF6"/>
+                                    </linearGradient>
+                                </defs>
+                            </svg>
+                        </div>
+                        <span class="logo-text">AutomaattiLinja</span>
+                    </a>
+                    <p class="footer-tagline">AI-puhelinvastaaja joka ei koskaan nuku.</p>
+                </div>
+                <div class="footer-links-group">
+                    <h4>Palvelu</h4>
+                    <a href="#demo">Kokeile demoa</a>
+                    <a href="#edut">Ominaisuudet</a>
+                    <a href="#hinnoittelu">Hinnoittelu</a>
+                    <a href="#ukk">UKK</a>
+                </div>
+                <div class="footer-links-group">
+                    <h4>Yritys</h4>
+                    <a href="#">Tietoa meistä</a>
+                    <a href="#">Tietosuoja</a>
+                    <a href="#">Käyttöehdot</a>
+                    <a href="#">GDPR</a>
+                </div>
+                <div class="footer-links-group">
+                    <h4>Yhteystiedot</h4>
+                    <a href="mailto:info@automaattilinja.fi">info@automaattilinja.fi</a>
+                    <a href="tel:+358XXXXXXXXX">+358 XX XXX XXXX</a>
+                    <p class="footer-address">Suomi</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 AutomaattiLinja. Kaikki oikeudet pidätetään.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="main.js"></script>
+</body>
+</html>
