@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Town Simulator</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- Top Bar -->
+<div id="top-bar">
+  <div id="clock-display">
+    <span id="stat-day">Day 1</span>
+    <span id="stat-time">08:00</span>
+    <span id="stat-season">Spring</span>
+  </div>
+
+  <div class="speed-group">
+    <label>Speed:</label>
+    <button id="btn-pause" title="Pause (Space)">⏸</button>
+    <button id="speed-1x" class="active" title="1x (Key 1)">1×</button>
+    <button id="speed-2x" title="2x (Key 2)">2×</button>
+    <button id="speed-5x" title="5x (Key 3)">5×</button>
+    <button id="speed-10x" title="10x (Key 4)">10×</button>
+    <button id="speed-20x" title="20x (Key 5)">20×</button>
+  </div>
+
+  <div style="font-size:11px;color:#666;margin-left:auto;">
+    Click to inspect &bull; Right-drag to pan &bull; WASD/Arrows to scroll
+  </div>
+</div>
+
+<!-- Main layout -->
+<div id="app">
+
+  <!-- Canvas -->
+  <div id="canvas-container">
+    <canvas id="townCanvas"></canvas>
+    <div id="pause-indicator">⏸ PAUSED</div>
+  </div>
+
+  <!-- Sidebar -->
+  <div id="sidebar">
+
+    <!-- Town Stats -->
+    <div id="stats-panel">
+      <h3>Town Stats</h3>
+      <div class="stat-line"><span class="label">Population</span><span class="value" id="stat-pop">0</span></div>
+      <div class="stat-line"><span class="label">Happiness</span><span class="value" id="stat-happy">—</span></div>
+      <div class="stat-line"><span class="label">Avg Health</span><span class="value" id="stat-health">—</span></div>
+      <div class="stat-line"><span class="label">Unemployment</span><span class="value" id="stat-unemp">—</span></div>
+      <div class="stat-line"><span class="label">Treasury</span><span class="value" id="stat-treasury">—</span></div>
+      <div class="stat-line"><span class="label">Avg Wealth</span><span class="value" id="stat-wealth">—</span></div>
+      <div class="stat-line"><span class="label">Births Today</span><span class="value" id="stat-births">0</span></div>
+      <div class="stat-line"><span class="label">Deaths Today</span><span class="value" id="stat-deaths">0</span></div>
+    </div>
+
+    <!-- Inspector (hidden until click) -->
+    <div id="inspector" class="hidden"></div>
+
+    <!-- Legend -->
+    <div id="legend">
+      <h3>Legend</h3>
+      <div class="legend-row"><div class="legend-dot" style="background:#4488cc"></div><span class="legend-text">Adult male</span></div>
+      <div class="legend-row"><div class="legend-dot" style="background:#cc6688"></div><span class="legend-text">Adult female</span></div>
+      <div class="legend-row"><div class="legend-dot" style="background:#88bbff"></div><span class="legend-text">Child</span></div>
+      <div class="legend-row"><div class="legend-dot" style="background:#aaaaaa"></div><span class="legend-text">Elderly</span></div>
+      <div style="margin-top:5px;color:#777;font-size:10px;">State dots above heads:</div>
+      <div class="legend-row"><div class="legend-dot" style="background:#ff8800"></div><span class="legend-text">Working</span></div>
+      <div class="legend-row"><div class="legend-dot" style="background:#334488"></div><span class="legend-text">Sleeping</span></div>
+      <div class="legend-row"><div class="legend-dot" style="background:#cc2222"></div><span class="legend-text">Sick</span></div>
+      <div class="legend-row"><div class="legend-dot" style="background:#ffdd00"></div><span class="legend-text">Socializing</span></div>
+      <div class="legend-row"><div class="legend-dot" style="background:#44dd88"></div><span class="legend-text">Leisure</span></div>
+    </div>
+
+    <!-- Event Log -->
+    <div id="event-log">
+      <h3>Event Log</h3>
+      <div id="event-log-list"></div>
+    </div>
+
+  </div><!-- /sidebar -->
+</div><!-- /app -->
+
+<div id="help-bar">
+  Town Simulator &bull; Click a person or building to inspect &bull; Right-click drag or WASD to pan
+</div>
+
+<!-- ===== Scripts (load order matters) ===== -->
+
+<!-- Core -->
+<script src="js/core/Config.js"></script>
+<script src="js/core/EventBus.js"></script>
+<script src="js/core/Utils.js"></script>
+<script src="js/core/GameLoop.js"></script>
+
+<!-- World -->
+<script src="js/world/Tile.js"></script>
+<script src="js/world/Grid.js"></script>
+<script src="js/world/DayNightCycle.js"></script>
+
+<!-- Buildings (must come before World and Entities) -->
+<script src="js/buildings/Building.js"></script>
+<script src="js/buildings/BuildingTypes.js"></script>
+<script src="js/buildings/BuildingFactory.js"></script>
+
+<!-- Entities -->
+<script src="js/entities/Pathfinder.js"></script>
+<script src="js/entities/PersonFactory.js"></script>
+<script src="js/entities/Person.js"></script>
+
+<!-- Systems -->
+<script src="js/systems/EconomySystem.js"></script>
+<script src="js/systems/HealthSystem.js"></script>
+<script src="js/systems/HappinessSystem.js"></script>
+<script src="js/systems/RelationshipSystem.js"></script>
+<script src="js/systems/EventSystem.js"></script>
+
+<!-- World (after all systems defined) -->
+<script src="js/world/World.js"></script>
+
+<!-- Rendering -->
+<script src="js/rendering/WorldRenderer.js"></script>
+<script src="js/rendering/BuildingRenderer.js"></script>
+<script src="js/rendering/PersonRenderer.js"></script>
+<script src="js/rendering/LightingRenderer.js"></script>
+<script src="js/rendering/UIRenderer.js"></script>
+<script src="js/rendering/Renderer.js"></script>
+
+<!-- UI -->
+<script src="js/ui/UI.js"></script>
+<script src="js/ui/Inspector.js"></script>
+<script src="js/ui/Controls.js"></script>
+
+<!-- Bootstrap -->
+<script>
+  // Initialize the simulation
+  const world    = new World();
+  const canvas   = document.getElementById('townCanvas');
+  const renderer = new Renderer(canvas);
+  const ui       = new UI(world);
+  let inspector;
+
+  world.init();
+  renderer.init(world);
+
+  // Link UI update into the world tick
+  const originalWorldTick = world.tick.bind(world);
+  world.tick = function(tickCount) {
+    originalWorldTick(tickCount);
+    ui.update(tickCount);
+    if (inspector) inspector.update();
+  };
+
+  // Setup inspector (needs renderer and world)
+  inspector = new Inspector(world, renderer);
+
+  // Setup controls
+  const controls = new Controls(gameLoop);
+
+  // Init and start the game loop
+  gameLoop.init(world, renderer);
+  gameLoop.start();
+
+  // Log welcome message
+  eventBus.emit('LOG', `Welcome to ${world.persons.length > 0 ? world.persons[0].name.split(' ')[1] : 'your'} Town! Population: ${world.persons.length}`);
+  eventBus.emit('LOG', 'Click any person or building to inspect it.');
+  eventBus.emit('LOG', 'Use speed controls or keys 1-5 to change time speed.');
+</script>
+
+</body>
+</html>
