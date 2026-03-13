@@ -207,8 +207,20 @@ def load_rules(event: Optional[str] = None) -> List[Rule]:
     rules = []
 
     # Find all hookify.*.local.md files
-    pattern = os.path.join('.claude', 'hookify.*.local.md')
-    files = glob.glob(pattern)
+    # Search project-level rules (current working directory)
+    project_pattern = os.path.join('.claude', 'hookify.*.local.md')
+    files = glob.glob(project_pattern)
+
+    # Search home-level rules (~/.claude/)
+    home_dir = os.path.expanduser('~')
+    home_pattern = os.path.join(home_dir, '.claude', 'hookify.*.local.md')
+    home_files = glob.glob(home_pattern)
+
+    # Add home rules, dedup by absolute path (handles cwd == home)
+    seen = set(os.path.abspath(f) for f in files)
+    for f in home_files:
+        if os.path.abspath(f) not in seen:
+            files.append(f)
 
     for file_path in files:
         try:
