@@ -1,0 +1,8 @@
+{
+  "name": "strip-license-headers",
+  "version": "1.0.0",
+  "description": "Automatically strips license headers from file reads to reduce context tokens",
+  "author": {
+    "name": "Claude Code Community"
+  }
+}
