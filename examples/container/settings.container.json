@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [],
+    "ask": [],
+    "deny": []
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/bin/guard-destructive-git"
+          }
+        ]
+      }
+    ]
+  },
+  "enabled": true
+}
