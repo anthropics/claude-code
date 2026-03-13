@@ -673,7 +673,7 @@ Agent uses plugin resources:
 
 **Key points:**
 - Agent must exist in `plugin/agents/` directory
-- Claude uses Task tool to launch agent
+- Claude uses Agent tool to launch agent
 - Document agent capabilities
 - Reference plugin resources agent uses
 
