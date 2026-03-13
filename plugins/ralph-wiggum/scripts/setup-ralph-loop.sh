@@ -110,7 +110,7 @@ HELP_EOF
 done
 
 # Join all prompt parts with spaces
-PROMPT="${PROMPT_PARTS[*]}"
+PROMPT="${PROMPT_PARTS[*]:-}"
 
 # Validate prompt is non-empty
 if [[ -z "$PROMPT" ]]; then
