@@ -1,0 +1,16 @@
+{
+  "description": "Loads AGENTS.md files as fallback context when no CLAUDE.md is present",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks-handlers/session-start.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
