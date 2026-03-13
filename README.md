@@ -45,6 +45,20 @@ For more installation options, uninstall steps, and troubleshooting, see the [se
 
 2. Navigate to your project directory and run `claude`.
 
+## Common Commands
+
+| Command | Description |
+|---------|-------------|
+| `claude` | Start a new session in the current directory |
+| `/explain` | Ask Claude to explain the code or a specific file |
+| `/test` | Run tests and fix failures |
+| `/review` | Perform a code review of your changes |
+| `/bug` | Report a bug in Claude Code |
+| `/compact` | Compact the conversation history to save tokens |
+| `/help` | List all available commands and help |
+
+For more commands and options, see the [command reference](https://code.claude.com/docs/en/commands).
+
 ## Plugins
 
 This repository includes several Claude Code plugins that extend functionality with custom commands and agents. See the [plugins directory](./plugins/README.md) for detailed documentation on available plugins.
