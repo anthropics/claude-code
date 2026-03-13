@@ -1,10 +1,10 @@
 # Code Review Plugin
 
-Automated code review for pull requests using multiple specialized agents with confidence-based scoring to filter false positives.
+Automated code review for pull requests using multiple specialized agents with a validation step to filter false positives.
 
 ## Overview
 
-The Code Review Plugin automates pull request review by launching multiple agents in parallel to independently audit changes from different perspectives. It uses confidence scoring to filter out false positives, ensuring only high-quality, actionable feedback is posted.
+The Code Review Plugin automates pull request review by launching multiple agents in parallel to independently audit changes from different perspectives. Each issue found is then independently validated by a separate agent, ensuring only high-confidence, actionable feedback is surfaced.
 
 ## Commands
 
@@ -17,12 +17,12 @@ Performs automated code review on a pull request using multiple specialized agen
 2. Gathers relevant CLAUDE.md guideline files from the repository
 3. Summarizes the pull request changes
 4. Launches 4 parallel agents to independently review:
-   - **Agents #1 & #2**: Audit for CLAUDE.md compliance
-   - **Agent #3**: Scan for obvious bugs in changes
-   - **Agent #4**: Analyze git blame/history for context-based issues
-5. Scores each issue 0-100 for confidence level
-6. Filters out issues below 80 confidence threshold
-7. Outputs review (to terminal by default, or as PR comment with `--comment` flag)
+   - **Agents #1 & #2**: Audit for CLAUDE.md compliance (parallel)
+   - **Agent #3**: Scan for obvious bugs in the diff only
+   - **Agent #4**: Analyze problems introduced by the changed code (security, logic errors)
+5. Validates each issue from agents #3 and #4 with dedicated parallel subagents
+6. Filters out issues that did not pass validation
+7. Outputs review to terminal (or as inline PR comments with `--comment` flag)
 
 **Usage:**
 ```bash
@@ -30,31 +30,30 @@ Performs automated code review on a pull request using multiple specialized agen
 ```
 
 **Options:**
-- `--comment`: Post the review as a comment on the pull request (default: outputs to terminal only)
+- `--comment`: Post the review as inline comments on the pull request (default: outputs to terminal only)
 
 **Example workflow:**
 ```bash
 # On a PR branch, run locally (outputs to terminal):
 /code-review
 
-# Post review as PR comment:
+# Post review as inline PR comments:
 /code-review --comment
 
 # Claude will:
 # - Launch 4 review agents in parallel
-# - Score each issue for confidence
-# - Output issues ≥80 confidence (to terminal or PR depending on flag)
-# - Skip if no high-confidence issues found
+# - Validate each flagged issue with a dedicated subagent
+# - Output validated issues (to terminal or as PR inline comments)
+# - Skip if no validated issues found
 ```
 
 **Features:**
 - Multiple independent agents for comprehensive review
-- Confidence-based scoring reduces false positives (threshold: 80)
+- Dedicated validation step eliminates false positives
 - CLAUDE.md compliance checking with explicit guideline verification
 - Bug detection focused on changes (not pre-existing issues)
-- Historical context analysis via git blame
 - Automatic skipping of closed, draft, or already-reviewed PRs
-- Links directly to code with full SHA and line ranges
+- Inline PR comments with links to exact code locations
 
 **Review comment format:**
 ```markdown
@@ -75,13 +74,6 @@ https://github.com/owner/repo/blob/abc123.../src/auth.ts#L88-L95
 https://github.com/owner/repo/blob/abc123.../src/utils.ts#L23-L28
 ```
 
-**Confidence scoring:**
-- **0**: Not confident, false positive
-- **25**: Somewhat confident, might be real
-- **50**: Moderately confident, real but minor
-- **75**: Highly confident, real and important
-- **100**: Absolutely certain, definitely real
-
 **False positives filtered:**
 - Pre-existing issues not introduced in PR
 - Code that looks like a bug but isn't
@@ -89,6 +81,26 @@ https://github.com/owner/repo/blob/abc123.../src/utils.ts#L23-L28
 - Issues linters will catch
 - General quality issues (unless in CLAUDE.md)
 - Issues with lint ignore comments
+
+## Required permissions
+
+The plugin's subagents need the following tools to read repository files and interact with GitHub. If your project's `.claude/settings.json` uses a restrictive `permissions.allow` list, add these entries or the plugin will silently produce no output:
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh *)",
+      "Bash(git *)",
+      "Read",
+      "Glob",
+      "Grep"
+    ]
+  }
+}
+```
+
+> **Note:** When tool permissions are denied, the plugin completes with a `success` status but produces no review output and no error message. If you run `/code-review` and get no output despite having a non-trivial PR, check your project's permission settings first.
 
 ## Installation
 
@@ -98,7 +110,7 @@ This plugin is included in the Claude Code repository. The command is automatica
 
 ### Using `/code-review`
 - Maintain clear CLAUDE.md files for better compliance checking
-- Trust the 80+ confidence threshold - false positives are filtered
+- Trust the validation step — issues must be confirmed by a second agent before being surfaced
 - Run on all non-trivial pull requests
 - Review agent findings as a starting point for human review
 - Update CLAUDE.md based on recurring review patterns
@@ -110,7 +122,7 @@ This plugin is included in the Claude Code repository. The command is automatica
 - PRs where guideline compliance matters
 
 ### When not to use
-- Closed or draft PRs (automatically skipped anyway)
+- Closed or draft PRs (automatically skipped)
 - Trivial automated PRs (automatically skipped)
 - Urgent hotfixes requiring immediate merge
 - PRs already reviewed (automatically skipped)
@@ -126,7 +138,7 @@ This plugin is included in the Claude Code repository. The command is automatica
 # Review the automated feedback
 # Make any necessary fixes
 
-# Optionally post as PR comment
+# Optionally post as inline PR comments
 /code-review --comment
 
 # Merge when ready
@@ -135,7 +147,7 @@ This plugin is included in the Claude Code repository. The command is automatica
 ### As part of CI/CD:
 ```bash
 # Trigger on PR creation or update
-# Use --comment flag to post review comments
+# Use --comment flag to post inline review comments
 /code-review --comment
 # Skip if review already exists
 ```
@@ -144,6 +156,7 @@ This plugin is included in the Claude Code repository. The command is automatica
 
 - Git repository with GitHub integration
 - GitHub CLI (`gh`) installed and authenticated
+- `mcp__github_inline_comment` MCP server configured (required for `--comment` to post inline comments)
 - CLAUDE.md files (optional but recommended for guideline checking)
 
 ## Troubleshooting
@@ -153,30 +166,23 @@ This plugin is included in the Claude Code repository. The command is automatica
 **Issue**: Agents are slow on large PRs
 
 **Solution**:
-- Normal for large changes - agents run in parallel
-- 4 independent agents ensure thoroughness
+- Normal for large changes — agents run in parallel
+- Multiple independent agents ensure thoroughness
 - Consider splitting large PRs into smaller ones
 
-### Too many false positives
+### No review output or comment posted
 
-**Issue**: Review flags issues that aren't real
-
-**Solution**:
-- Default threshold is 80 (already filters most false positives)
-- Make CLAUDE.md more specific about what matters
-- Consider if the flagged issue is actually valid
-
-### No review comment posted
-
-**Issue**: `/code-review` runs but no comment appears
+**Issue**: `/code-review` runs but produces no terminal output or PR comment
 
 **Solution**:
-Check if:
-- PR is closed (reviews skipped)
-- PR is draft (reviews skipped)
-- PR is trivial/automated (reviews skipped)
-- PR already has review (reviews skipped)
-- No issues scored ≥80 (no comment needed)
+Check in order:
+
+1. **Tool permissions denied** — If your project's `.claude/settings.json` has a restrictive `permissions.allow` list, the subagents may be silently blocked from reading files or running `git`/`gh` commands. See the [Required permissions](#required-permissions) section above. This is the most common cause of silent failures.
+2. PR is closed (reviews skipped)
+3. PR is draft (reviews skipped)
+4. PR is trivial/automated (reviews skipped)
+5. PR already has a Claude review (reviews skipped)
+6. No issues passed validation (no output needed)
 
 ### Link formatting broken
 
@@ -191,6 +197,15 @@ https://github.com/owner/repo/blob/[full-sha]/path/file.ext#L[start]-L[end]
 - Must use `#L` notation
 - Must include line range with at least 1 line of context
 
+### Inline comments not posted
+
+**Issue**: `--comment` flag used but no inline comments appear on the PR
+
+**Solution**:
+- Ensure the `mcp__github_inline_comment` MCP server is configured in your `.mcp.json`
+- Verify `gh` is authenticated: `gh auth status`
+- Check that the PR exists and is open
+
 ### GitHub CLI not working
 
 **Issue**: `gh` commands fail
@@ -204,21 +219,11 @@ https://github.com/owner/repo/blob/[full-sha]/path/file.ext#L[start]-L[end]
 
 - **Write specific CLAUDE.md files**: Clear guidelines = better reviews
 - **Include context in PRs**: Helps agents understand intent
-- **Use confidence scores**: Issues ≥80 are usually correct
-- **Iterate on guidelines**: Update CLAUDE.md based on patterns
+- **Check permissions first**: Silent failures are almost always a permissions issue
 - **Review automatically**: Set up as part of PR workflow
-- **Trust the filtering**: Threshold prevents noise
+- **Trust the validation step**: Issues must survive a second review before being surfaced
 
 ## Configuration
-
-### Adjusting confidence threshold
-
-The default threshold is 80. To adjust, modify the command file at `commands/code-review.md`:
-```markdown
-Filter out any issues with a score less than 80.
-```
-
-Change `80` to your preferred threshold (0-100).
 
 ### Customizing review focus
 
@@ -231,23 +236,25 @@ Edit `commands/code-review.md` to add or modify agent tasks:
 ## Technical Details
 
 ### Agent architecture
-- **2x CLAUDE.md compliance agents**: Redundancy for guideline checks
-- **1x bug detector**: Focused on obvious bugs in changes only
-- **1x history analyzer**: Context from git blame and history
-- **Nx confidence scorers**: One per issue for independent scoring
+- **2x CLAUDE.md compliance agents** (Sonnet): Redundancy for guideline checks, run in parallel
+- **1x bug detector** (Opus): Focused on obvious bugs in the diff only
+- **1x introduced-code analyzer** (Opus): Security issues, incorrect logic in changed code
+- **Nx validation agents**: One per flagged issue from the bug/logic agents; filters false positives before output
 
-### Scoring system
-- Each issue independently scored 0-100
-- Scoring considers evidence strength and verification
-- Threshold (default 80) filters low-confidence issues
-- For CLAUDE.md issues: verifies guideline explicitly mentions it
+### Validation system
+Each issue flagged by agents #3 and #4 is passed to a dedicated validation subagent. The validator:
+- Re-examines the specific issue independently
+- Confirms the issue is real (e.g. variable actually undefined, CLAUDE.md rule actually violated)
+- Drops the issue if it cannot be confirmed with high confidence
 
 ### GitHub integration
 Uses `gh` CLI for:
 - Viewing PR details and diffs
 - Fetching repository data
-- Reading git blame and history
-- Posting review comments
+- Posting summary comments
+
+Uses `mcp__github_inline_comment` MCP server for:
+- Posting inline comments on specific lines
 
 ## Author
 
