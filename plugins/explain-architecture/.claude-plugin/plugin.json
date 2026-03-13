@@ -1,0 +1,9 @@
+{
+  "name": "explain-architecture",
+  "description": "Scan a repository and generate a visual architecture diagram from import relationships",
+  "version": "1.0.0",
+  "author": {
+    "name": "Fabien83560",
+    "email": "fabienortega.290604@gmail.com"
+  }
+}
