@@ -106,6 +106,16 @@ If no config file exists or no rules match, the tool call proceeds normally.
 
 Use deny-with-reason for straightforward tool denial with explanations. Use [hookify](../hookify/) for complex, multi-condition rule engines.
 
+## Development
+
+Run the test suite:
+
+```bash
+uvx pytest plugins/deny-with-reason/tests/ -v
+```
+
+Tests cover pattern parsing, rule matching, config loading, response format, and end-to-end subprocess invocation (matching how Claude Code calls the hook). YAML config tests are skipped if PyYAML is not installed.
+
 ## Requirements
 
 - Python 3.9+
