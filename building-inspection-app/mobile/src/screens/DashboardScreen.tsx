@@ -1,10 +1,9 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, FlatList, StyleSheet,
   Alert, ActivityIndicator, RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from '@react-navigation/native';
 import { InspectionReport, ReportStatus } from '../types';
 import { getAllReports, createReport, deleteReport, duplicateReport } from '../services/storage';
 import { logout } from '../services/authService';
@@ -32,11 +31,9 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onOpenReport, 
     setReports(data);
   }, []);
 
-  useFocusEffect(
-    useCallback(() => {
-      loadData();
-    }, [loadData])
-  );
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
