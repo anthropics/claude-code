@@ -1,12 +1,39 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { InspectionReport, Observation, Photo, UrgencyLevel } from '../types';
 import { updateReport, getReport } from '../services/storage';
 import { processObservationFull, BuildingContext } from '../services/api';
+import { syncCorrectionsToBackend, getUnsyncedCorrections } from '../services/learningStore';
+import { getToken } from '../services/authService';
 import { v4 as uuidv4 } from 'uuid';
 
 export function useReport(initialReport: InspectionReport) {
   const [report, setReport] = useState<InspectionReport>(initialReport);
   const processingQueue = useRef<Set<string>>(new Set());
+
+  // Auto-sync learning corrections when online
+  useEffect(() => {
+    const syncLearning = async () => {
+      const token = getToken();
+      if (!token) return;
+      const unsynced = getUnsyncedCorrections();
+      if (unsynced.length === 0) return;
+      try {
+        await syncCorrectionsToBackend(token);
+      } catch {
+        // Silently fail — will retry on next opportunity
+      }
+    };
+
+    // Sync on mount and when coming back online
+    syncLearning();
+    window.addEventListener('online', syncLearning);
+    // Periodic sync every 5 minutes
+    const interval = setInterval(syncLearning, 5 * 60 * 1000);
+    return () => {
+      window.removeEventListener('online', syncLearning);
+      clearInterval(interval);
+    };
+  }, []);
 
   const save = useCallback((updatedReport: InspectionReport) => {
     updateReport(updatedReport);

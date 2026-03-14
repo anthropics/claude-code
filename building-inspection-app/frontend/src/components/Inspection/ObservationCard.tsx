@@ -9,6 +9,7 @@ import { PhotoCapture } from './PhotoCapture';
 import { Button } from '../UI/Button';
 import { AIProcessingBadge } from '../UI/Spinner';
 import { streamProcessObservation, addTechnicalTheory, BuildingContext } from '../../services/api';
+import { recordCorrection } from '../../services/learningStore';
 import { Photo } from '../../types';
 
 interface ObservationCardProps {
@@ -79,6 +80,8 @@ export const ObservationCard: React.FC<ObservationCardProps> = ({
   const [rawText, setRawText] = useState(observation.rawText);
   const [editingMoisture, setEditingMoisture] = useState(false);
   const [moistureInput, setMoistureInput] = useState(observation.moistureReading || '');
+  const [editingProcessed, setEditingProcessed] = useState(false);
+  const [processedInput, setProcessedInput] = useState(observation.processedText || '');
 
   const urgency = urgencyConfig[observation.urgency];
   const isAutoProcessing = observation.aiProcessing;
@@ -118,6 +121,10 @@ export const ObservationCard: React.FC<ObservationCardProps> = ({
   };
 
   const handleSaveRaw = () => {
+    // Record correction for AI learning if processedText was AI-generated
+    if (observation.processedText && observation.processedText !== observation.rawText) {
+      recordCorrection(observation.rawText, rawText, categoryName, 'rawText');
+    }
     onUpdate({ rawText });
     setEditingRaw(false);
   };
@@ -320,9 +327,35 @@ export const ObservationCard: React.FC<ObservationCardProps> = ({
                 <ReactMarkdown>{streamedText + '▍'}</ReactMarkdown>
               </div>
             ) : activeTab === 'processed' && observation.processedText ? (
-              <div className="prose-inspection">
-                <ReactMarkdown>{observation.processedText}</ReactMarkdown>
-              </div>
+              editingProcessed ? (
+                <div className="space-y-2">
+                  <textarea
+                    value={processedInput}
+                    onChange={e => setProcessedInput(e.target.value)}
+                    className="w-full text-sm border border-gray-300 rounded-lg p-2.5 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                    rows={6}
+                    autoFocus
+                  />
+                  <div className="flex gap-2">
+                    <Button size="xs" variant="primary" onClick={() => {
+                      // Record the correction for AI learning
+                      recordCorrection(observation.processedText, processedInput, categoryName, 'processedText');
+                      onUpdate({ processedText: processedInput });
+                      setEditingProcessed(false);
+                    }}>Tallenna</Button>
+                    <Button size="xs" variant="ghost" onClick={() => { setEditingProcessed(false); setProcessedInput(observation.processedText); }}>Peruuta</Button>
+                  </div>
+                  <p className="text-xs text-blue-500">AI oppii korjauksistasi ja mukauttaa tyyliaan.</p>
+                </div>
+              ) : (
+                <div
+                  className="prose-inspection cursor-text hover:bg-gray-50 rounded p-1 -m-1 transition-colors"
+                  onClick={() => { setEditingProcessed(true); setProcessedInput(observation.processedText); }}
+                  title="Klikkaa muokataksesi — AI oppii korjauksistasi"
+                >
+                  <ReactMarkdown>{observation.processedText}</ReactMarkdown>
+                </div>
+              )
             ) : activeTab === 'theory' && (observation.withTheory || streamedText) ? (
               <div className="prose-inspection">
                 <ReactMarkdown>{observation.withTheory || streamedText}</ReactMarkdown>

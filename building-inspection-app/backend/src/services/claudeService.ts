@@ -47,7 +47,7 @@ export interface BuildingContext {
 /**
  * Transcribes and professionalizes voice note text in Finnish
  */
-export async function transcribeAndProfessionalize(rawText: string, category: string): Promise<string> {
+export async function transcribeAndProfessionalize(rawText: string, category: string, fewShotExamples: string = ''): Promise<string> {
   const stream = await client.messages.stream({
     model: MODEL,
     max_tokens: 1024,
@@ -57,7 +57,7 @@ export async function transcribeAndProfessionalize(rawText: string, category: st
       role: 'user',
       content: `Muotoile seuraava kenttähavainto raporttikielelle. Säilytä tarkastajan alkuperäinen havainto ja arvio.
 Kategoria: ${category}
-
+${fewShotExamples}
 Kenttämuistiinpano: "${rawText}"
 
 Kirjoita havainto selkeästi raporttiin sopivaan muotoon. Käytä alan vakiintuneita termejä.
@@ -369,7 +369,8 @@ Vastaa VAIN tällä JSON-rakenteella, ei muuta tekstiä:
 export async function processObservationFull(
   rawText: string,
   category: string,
-  buildingContext?: BuildingContext
+  buildingContext?: BuildingContext,
+  fewShotExamples: string = ''
 ): Promise<{
   processedText: string;
   withTheory: string;
@@ -388,6 +389,7 @@ export async function processObservationFull(
       content: `Käsittele tämä kuntotarkastushavainto kokonaisuudessaan. Vastaa JSON-muodossa.
 
 Kategoria: ${category}
+${fewShotExamples}
 Kenttämuistiinpano: "${rawText}"
 
 Vastaa VAIN tällä JSON-rakenteella:

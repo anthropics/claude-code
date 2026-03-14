@@ -13,9 +13,15 @@
     "build": "npm run build:backend && npm run build:frontend"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "@capacitor/cli": "^8.2.0",
+    "concurrently": "^8.2.2",
+    "typescript": "^5.9.3"
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.2.0",
+    "@capacitor/core": "^8.2.0"
   }
 }

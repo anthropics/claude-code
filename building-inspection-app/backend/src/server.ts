@@ -3,6 +3,8 @@ import cors from 'cors';
 import path from 'path';
 import dotenv from 'dotenv';
 import { aiRouter } from './routes/ai';
+import { authRouter } from './routes/auth';
+import { learningRouter } from './routes/learning';
 
 dotenv.config();
 
@@ -19,6 +21,8 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // API Routes
 app.use('/api/ai', aiRouter);
+app.use('/api/auth', authRouter);
+app.use('/api/learning', learningRouter);
 
 // Health check
 app.get('/health', (_req, res) => {

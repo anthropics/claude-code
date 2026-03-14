@@ -14,8 +14,18 @@ import {
   analyzePhotoDefects,
   generateRiskObservations,
 } from '../services/claudeService';
+import { buildFewShotExamples } from '../services/learningService';
+import { validateToken } from '../services/authService';
 
 export const aiRouter = Router();
+
+// Helper: extract userId from auth token if present (optional auth for AI routes)
+function getUserId(req: Request): string | undefined {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return undefined;
+  const result = validateToken(authHeader.slice(7));
+  return result?.user.id;
+}
 
 /**
  * POST /api/ai/transcribe
@@ -28,7 +38,9 @@ aiRouter.post('/transcribe', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'rawText and category are required' });
     }
 
-    const result = await transcribeAndProfessionalize(rawText, category);
+    const userId = getUserId(req);
+    const fewShot = userId ? buildFewShotExamples(userId, category, 5) : '';
+    const result = await transcribeAndProfessionalize(rawText, category, fewShot);
     return res.json({ result });
   } catch (err) {
     console.error('Transcribe error:', err);
@@ -184,7 +196,9 @@ aiRouter.post('/process-observation-full', async (req: Request, res: Response) =
       return res.status(400).json({ error: 'rawText and category are required' });
     }
 
-    const result = await processObservationFull(rawText, category, buildingContext);
+    const userId = getUserId(req);
+    const fewShot = userId ? buildFewShotExamples(userId, category, 5) : '';
+    const result = await processObservationFull(rawText, category, buildingContext, fewShot);
     return res.json(result);
   } catch (err) {
     console.error('Process observation full error:', err);

@@ -1,10 +1,19 @@
 // API service for communicating with the backend
+import { getToken } from './authService';
+
 const API_BASE = '/api/ai';
+
+function authHeaders(): Record<string, string> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  const token = getToken();
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  return headers;
+}
 
 async function post<T>(endpoint: string, body: Record<string, unknown>): Promise<T> {
   const response = await fetch(`${API_BASE}${endpoint}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(),
     body: JSON.stringify(body),
   });
 
@@ -82,7 +91,7 @@ export async function streamProcessObservation(
 ): Promise<void> {
   const response = await fetch(`${API_BASE}/process-observation-stream`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(),
     body: JSON.stringify({ rawText, category }),
   });
 
