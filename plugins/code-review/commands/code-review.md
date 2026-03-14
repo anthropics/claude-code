@@ -9,6 +9,8 @@ Provide a code review for the given pull request.
 - All tools are functional and will work without error. Do not test tools or make exploratory calls. Make sure this is clear to every subagent that is launched.
 - Only call a tool if it is required to complete the task. Every tool call should have a clear purpose.
 
+If `--model <value>` is provided in the arguments, use that model for all agents in every step below, overriding the per-step defaults. Valid values: `haiku`, `sonnet`, `opus`. If an invalid value is provided, stop and print: "unknown model — valid values are haiku, sonnet, opus". If `--model` is not provided, use the model specified per step.
+
 To do this, follow these steps precisely:
 
 1. Launch a haiku agent to check if any of the following are true:
