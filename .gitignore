@@ -1,2 +1,4 @@
 .DS_Store
 
+*.ffs_db
+*.pyc
