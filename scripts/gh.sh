@@ -14,7 +14,7 @@ set -euo pipefail
 export GH_HOST=github.com
 
 REPO="${GH_REPO:-${GITHUB_REPOSITORY:-}}"
-if [[ -z "$REPO" || "$REPO" == */*/* || "$REPO" != */* ]]; then
+if [[ -z "$REPO" || ! "$REPO" =~ ^[^/]+/[^/]+$ ]]; then
   echo "Error: GH_REPO or GITHUB_REPOSITORY must be set to owner/repo format (e.g., GITHUB_REPOSITORY=anthropics/claude-code)" >&2
   exit 1
 fi
@@ -41,10 +41,12 @@ shift 2
 POSITIONAL=()
 FLAGS=()
 skip_next=false
+pending_flag=""
 for arg in "$@"; do
   if [[ "$skip_next" == true ]]; then
     FLAGS+=("$arg")
     skip_next=false
+    pending_flag=""
   elif [[ "$arg" == -* ]]; then
     flag="${arg%%=*}"
     matched=false
@@ -64,6 +66,7 @@ for arg in "$@"; do
       for vflag in "${FLAGS_WITH_VALUES[@]}"; do
         if [[ "$flag" == "$vflag" ]]; then
           skip_next=true
+          pending_flag="$flag"
           break
         fi
       done
@@ -72,6 +75,11 @@ for arg in "$@"; do
     POSITIONAL+=("$arg")
   fi
 done
+
+if [[ "$skip_next" == true ]]; then
+  echo "Error: $pending_flag requires a value" >&2
+  exit 1
+fi
 
 if [[ "$CMD" == "search issues" ]]; then
   QUERY="${POSITIONAL[0]:-}"
