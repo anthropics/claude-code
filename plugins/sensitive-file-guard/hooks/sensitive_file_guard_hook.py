@@ -1,19 +1,16 @@
 #!/usr/bin/env python3
 """
-Sensitive File Guard Hook for Claude Code
+Sensitive File Guard Hook for Claude Code.
 
-This hook intercepts Write, Edit, and MultiEdit operations to protect
-sensitive infrastructure files from accidental overwrites.
+This hook uses structured PreToolUse decisions:
+- deny for high-risk files such as .env secrets, private keys, and tfstate
+- ask for medium-risk infrastructure files such as Dockerfiles and k8s manifests
+- allow for medium-risk files that were already confirmed in-session
 
-Protected file categories:
-- Environment files (.env, .env.local, .env.production, etc.)
-- Lockfiles (package-lock.json, yarn.lock, pnpm-lock.yaml, etc.)
-- CI/CD configs (.github/workflows/*.yml, .gitlab-ci.yml, etc.)
-- Container configs (Dockerfile, docker-compose.yml, etc.)
-- Infrastructure as Code (terraform.tfstate, *.tfvars)
-- SSH/Crypto keys (*.pem, *.key, id_rsa, id_ed25519)
-- Deployment configs (vercel.json, netlify.toml, fly.toml, etc.)
+Confirmed files are recorded only after a matching asked tool call succeeds.
 """
+
+from __future__ import annotations
 
 import json
 import os
@@ -23,119 +20,24 @@ from datetime import datetime
 
 # Debug log file
 DEBUG_LOG_FILE = "/tmp/sensitive-file-guard-log.txt"
+STATE_VERSION = 2
+ASK = "ask"
+ALLOW = "allow"
+DENY = "deny"
 
 
 def debug_log(message):
     """Append debug message to log file with timestamp."""
     try:
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
-        with open(DEBUG_LOG_FILE, "a") as f:
-            f.write(f"[{timestamp}] {message}\n")
+        with open(DEBUG_LOG_FILE, "a", encoding="utf-8") as file_handle:
+            file_handle.write(f"[{timestamp}] {message}\n")
     except Exception:
-        pass  # Silently ignore logging errors
+        pass
 
 
-# ─── Protected File Definitions ──────────────────────────────────────────────
-
-# Exact filenames (case-insensitive) that are always protected
-PROTECTED_FILENAMES = {
-    # Environment files
-    ".env",
-    ".env.local",
-    ".env.development",
-    ".env.staging",
-    ".env.production",
-    ".env.test",
-    ".env.example",
-    # Lockfiles
-    "package-lock.json",
-    "yarn.lock",
-    "pnpm-lock.yaml",
-    "bun.lockb",
-    "gemfile.lock",
-    "pipfile.lock",
-    "poetry.lock",
-    "composer.lock",
-    "go.sum",
-    "cargo.lock",
-    "mix.lock",
-    "pubspec.lock",
-    "flake.lock",
-    "shrinkwrap.yaml",
-    # Container configs
-    "dockerfile",
-    "docker-compose.yml",
-    "docker-compose.yaml",
-    "docker-compose.override.yml",
-    "docker-compose.override.yaml",
-    ".dockerignore",
-    # CI/CD configs
-    ".gitlab-ci.yml",
-    "jenkinsfile",
-    ".travis.yml",
-    "appveyor.yml",
-    "bitbucket-pipelines.yml",
-    "azure-pipelines.yml",
-    "cloudbuild.yaml",
-    "cloudbuild.yml",
-    # Infrastructure
-    "terraform.tfstate",
-    "terraform.tfstate.backup",
-    # Deployment configs
-    "vercel.json",
-    "netlify.toml",
-    "fly.toml",
-    "render.yaml",
-    "railway.toml",
-    "procfile",
-    "app.yaml",
-    "app.yml",
-    # SSH/Crypto key filenames
-    "id_rsa",
-    "id_rsa.pub",
-    "id_ed25519",
-    "id_ed25519.pub",
-    "id_ecdsa",
-    "id_ecdsa.pub",
-    "authorized_keys",
-    "known_hosts",
-}
-
-# File extensions that indicate sensitive files
-PROTECTED_EXTENSIONS = {
-    ".pem",
-    ".key",
-    ".crt",
-    ".cer",
-    ".p12",
-    ".pfx",
-    ".jks",
-    ".keystore",
-    ".tfvars",
-}
-
-# Path patterns for files that are protected based on their directory
-# Each entry is (directory_substring, filename_extension_or_pattern)
-PROTECTED_PATH_PATTERNS = [
-    # GitHub Actions workflows
-    (".github/workflows/", ".yml"),
-    (".github/workflows/", ".yaml"),
-    # CircleCI
-    (".circleci/", "config.yml"),
-    (".circleci/", "config.yaml"),
-    # Kubernetes
-    ("k8s/", ".yml"),
-    ("k8s/", ".yaml"),
-    ("kubernetes/", ".yml"),
-    ("kubernetes/", ".yaml"),
-    # Terraform
-    ("terraform/", ".tf"),
-    ("terraform/", ".tfvars"),
-]
-
-# Category labels for user-friendly messages
 FILE_CATEGORIES = {
-    ".env": "Environment variable file",
+    "environment": "Environment variable file",
     "lockfile": "Package lockfile",
     "container": "Container configuration",
     "ci_cd": "CI/CD pipeline configuration",
@@ -144,106 +46,108 @@ FILE_CATEGORIES = {
     "crypto": "SSH/Cryptographic key file",
 }
 
+EXACT_FILE_RULES = {
+    # Environment files
+    ".env": ("environment", DENY),
+    ".env.local": ("environment", DENY),
+    ".env.development": ("environment", DENY),
+    ".env.staging": ("environment", DENY),
+    ".env.production": ("environment", DENY),
+    ".env.test": ("environment", DENY),
+    ".env.example": ("environment", ASK),
+    # Lockfiles
+    "package-lock.json": ("lockfile", ASK),
+    "yarn.lock": ("lockfile", ASK),
+    "pnpm-lock.yaml": ("lockfile", ASK),
+    "bun.lockb": ("lockfile", ASK),
+    "gemfile.lock": ("lockfile", ASK),
+    "pipfile.lock": ("lockfile", ASK),
+    "poetry.lock": ("lockfile", ASK),
+    "composer.lock": ("lockfile", ASK),
+    "go.sum": ("lockfile", ASK),
+    "cargo.lock": ("lockfile", ASK),
+    "mix.lock": ("lockfile", ASK),
+    "pubspec.lock": ("lockfile", ASK),
+    "flake.lock": ("lockfile", ASK),
+    "shrinkwrap.yaml": ("lockfile", ASK),
+    # Container configs
+    "dockerfile": ("container", ASK),
+    "docker-compose.yml": ("container", ASK),
+    "docker-compose.yaml": ("container", ASK),
+    "docker-compose.override.yml": ("container", ASK),
+    "docker-compose.override.yaml": ("container", ASK),
+    ".dockerignore": ("container", ASK),
+    # CI/CD configs
+    ".gitlab-ci.yml": ("ci_cd", ASK),
+    "jenkinsfile": ("ci_cd", ASK),
+    ".travis.yml": ("ci_cd", ASK),
+    "appveyor.yml": ("ci_cd", ASK),
+    "bitbucket-pipelines.yml": ("ci_cd", ASK),
+    "azure-pipelines.yml": ("ci_cd", ASK),
+    "cloudbuild.yaml": ("ci_cd", ASK),
+    "cloudbuild.yml": ("ci_cd", ASK),
+    # Infrastructure state
+    "terraform.tfstate": ("infrastructure", DENY),
+    "terraform.tfstate.backup": ("infrastructure", DENY),
+    # Deployment configs
+    "vercel.json": ("deployment", ASK),
+    "netlify.toml": ("deployment", ASK),
+    "fly.toml": ("deployment", ASK),
+    "render.yaml": ("deployment", ASK),
+    "railway.toml": ("deployment", ASK),
+    "procfile": ("deployment", ASK),
+    "app.yaml": ("deployment", ASK),
+    "app.yml": ("deployment", ASK),
+    # SSH/Crypto key filenames
+    "id_rsa": ("crypto", DENY),
+    "id_rsa.pub": ("crypto", ASK),
+    "id_ed25519": ("crypto", DENY),
+    "id_ed25519.pub": ("crypto", ASK),
+    "id_ecdsa": ("crypto", DENY),
+    "id_ecdsa.pub": ("crypto", ASK),
+    "authorized_keys": ("crypto", DENY),
+    "known_hosts": ("crypto", ASK),
+}
 
-def get_file_category(file_path, filename):
-    """Determine the category of a protected file for display purposes."""
-    lower_name = filename.lower()
-    _, ext = os.path.splitext(lower_name)
-    normalized_path = file_path.replace("\\", "/").lstrip("/")
+EXTENSION_RULES = {
+    ".pem": ("crypto", DENY),
+    ".key": ("crypto", DENY),
+    ".crt": ("crypto", ASK),
+    ".cer": ("crypto", ASK),
+    ".p12": ("crypto", DENY),
+    ".pfx": ("crypto", DENY),
+    ".jks": ("crypto", DENY),
+    ".keystore": ("crypto", DENY),
+    ".tfvars": ("infrastructure", ASK),
+}
 
-    if lower_name.startswith(".env"):
-        return FILE_CATEGORIES[".env"]
-    if "lock" in lower_name or lower_name in {
-        "go.sum",
-        "shrinkwrap.yaml",
-    }:
-        return FILE_CATEGORIES["lockfile"]
-    if "docker" in lower_name or lower_name == ".dockerignore":
-        return FILE_CATEGORIES["container"]
-    if any(
-        ci in lower_name
-        for ci in [
-            "gitlab-ci",
-            "jenkins",
-            "travis",
-            "appveyor",
-            "pipelines",
-            "cloudbuild",
-        ]
-    ):
-        return FILE_CATEGORIES["ci_cd"]
-    if ".github/workflows/" in normalized_path or ".circleci/" in normalized_path:
-        return FILE_CATEGORIES["ci_cd"]
-    if ext in PROTECTED_EXTENSIONS:
-        if ext in {".pem", ".key", ".crt", ".cer", ".p12", ".pfx", ".jks", ".keystore"}:
-            return FILE_CATEGORIES["crypto"]
-        if ext == ".tfvars":
-            return FILE_CATEGORIES["infrastructure"]
-    if lower_name in {"terraform.tfstate", "terraform.tfstate.backup"}:
-        return FILE_CATEGORIES["infrastructure"]
-    if lower_name in {
-        "vercel.json",
-        "netlify.toml",
-        "fly.toml",
-        "render.yaml",
-        "railway.toml",
-        "procfile",
-        "app.yaml",
-        "app.yml",
-    }:
-        return FILE_CATEGORIES["deployment"]
-    if any(
-        p in normalized_path for p in ["k8s/", "kubernetes/", "terraform/"]
-    ):
-        return FILE_CATEGORIES["infrastructure"]
-
-    return "Sensitive file"
+PATH_RULES = [
+    (".github/workflows/", ".yml", "ci_cd", ASK),
+    (".github/workflows/", ".yaml", "ci_cd", ASK),
+    (".circleci/", "config.yml", "ci_cd", ASK),
+    (".circleci/", "config.yaml", "ci_cd", ASK),
+    ("k8s/", ".yml", "infrastructure", ASK),
+    ("k8s/", ".yaml", "infrastructure", ASK),
+    ("kubernetes/", ".yml", "infrastructure", ASK),
+    ("kubernetes/", ".yaml", "infrastructure", ASK),
+    ("terraform/", ".tf", "infrastructure", ASK),
+    ("terraform/", ".tfvars", "infrastructure", ASK),
+]
 
 
-def is_protected_file(file_path):
-    """
-    Check if a file path matches a protected file pattern.
-
-    Returns:
-        (is_protected, reason): Tuple of whether file is protected and why.
-    """
+def normalize_path(file_path, cwd=""):
+    """Normalize a path for matching and session allowlisting."""
     if not file_path:
-        return False, ""
+        return ""
 
-    # Normalize path
-    normalized_path = file_path.replace("\\", "/").lstrip("/")
-    filename = os.path.basename(normalized_path)
-    lower_filename = filename.lower()
-    _, ext = os.path.splitext(lower_filename)
+    normalized = os.path.expanduser(file_path)
+    if cwd and not os.path.isabs(normalized):
+        normalized = os.path.join(cwd, normalized)
 
-    # Check exact filename match (case-insensitive)
-    if lower_filename in PROTECTED_FILENAMES:
-        category = get_file_category(file_path, filename)
-        return True, f"{category}: {filename}"
-
-    # Check extension match
-    if ext in PROTECTED_EXTENSIONS:
-        category = get_file_category(file_path, filename)
-        return True, f"{category}: {filename} ({ext} extension)"
-
-    # Check path pattern match
-    for dir_pattern, file_pattern in PROTECTED_PATH_PATTERNS:
-        if dir_pattern in normalized_path:
-            if file_pattern.startswith("."):
-                # Extension match
-                if lower_filename.endswith(file_pattern):
-                    category = get_file_category(file_path, filename)
-                    return True, f"{category}: {filename} (in {dir_pattern})"
-            else:
-                # Exact filename match within directory
-                if lower_filename == file_pattern:
-                    category = get_file_category(file_path, filename)
-                    return True, f"{category}: {filename} (in {dir_pattern})"
-
-    return False, ""
-
-
-# ─── State Management ────────────────────────────────────────────────────────
+    normalized = os.path.abspath(normalized)
+    normalized = os.path.normpath(normalized)
+    normalized = os.path.normcase(normalized)
+    return normalized.replace("\\", "/")
 
 
 def get_state_file(session_id):
@@ -275,120 +179,305 @@ def cleanup_old_state_files():
                 except (OSError, IOError):
                     pass
     except Exception:
-        pass  # Silently ignore cleanup errors
+        pass
 
 
 def load_state(session_id):
-    """Load the set of already-warned file keys for this session."""
+    """Load session state while ignoring legacy warning-only state."""
     state_file = get_state_file(session_id)
-    if os.path.exists(state_file):
-        try:
-            with open(state_file, "r") as f:
-                return set(json.load(f))
-        except (json.JSONDecodeError, IOError):
-            return set()
-    return set()
+    if not os.path.exists(state_file):
+        return {
+            "version": STATE_VERSION,
+            "allowed_files": set(),
+            "pending_requests": {},
+        }
+
+    try:
+        with open(state_file, "r", encoding="utf-8") as file_handle:
+            raw_state = json.load(file_handle)
+    except (json.JSONDecodeError, IOError):
+        return {
+            "version": STATE_VERSION,
+            "allowed_files": set(),
+            "pending_requests": {},
+        }
+
+    if isinstance(raw_state, list):
+        # Legacy versions stored "warned" files, which must not be treated as confirmed.
+        return {
+            "version": STATE_VERSION,
+            "allowed_files": set(),
+            "pending_requests": {},
+        }
+
+    allowed_files = raw_state.get("allowed_files", [])
+    if not isinstance(allowed_files, list):
+        allowed_files = []
+
+    pending_requests = raw_state.get("pending_requests", {})
+    if not isinstance(pending_requests, dict):
+        pending_requests = {}
+
+    return {
+        "version": STATE_VERSION,
+        "allowed_files": set(allowed_files),
+        "pending_requests": pending_requests,
+    }
 
 
-def save_state(session_id, shown_warnings):
-    """Persist the set of already-warned file keys for this session."""
+def save_state(session_id, state):
+    """Persist session allowlist state."""
     state_file = get_state_file(session_id)
+    payload = {
+        "version": STATE_VERSION,
+        "allowed_files": sorted(state["allowed_files"]),
+        "pending_requests": state["pending_requests"],
+    }
     try:
         os.makedirs(os.path.dirname(state_file), exist_ok=True)
-        with open(state_file, "w") as f:
-            json.dump(list(shown_warnings), f)
-    except IOError as e:
-        debug_log(f"Failed to save state file: {e}")
+        with open(state_file, "w", encoding="utf-8") as file_handle:
+            json.dump(payload, file_handle)
+    except IOError as error:
+        debug_log(f"Failed to save state file: {error}")
 
 
-# ─── Input Extraction ────────────────────────────────────────────────────────
+def build_reason(category, filename, detail=""):
+    """Create a user-facing reason string."""
+    category_label = FILE_CATEGORIES.get(category, "Sensitive file")
+    if detail:
+        return f"{category_label}: {filename} ({detail})"
+    return f"{category_label}: {filename}"
 
 
-def extract_file_path(tool_name, tool_input):
-    """Extract the target file path from the tool input."""
+def classify_file(file_path, cwd=""):
+    """
+    Classify a file path if it matches a protected rule.
+
+    Returns:
+        dict with path, filename, category, risk, reason, or None.
+    """
+    normalized_path = normalize_path(file_path, cwd)
+    if not normalized_path:
+        return None
+
+    filename = os.path.basename(normalized_path)
+    lower_filename = filename.lower()
+    _, extension = os.path.splitext(lower_filename)
+
+    if lower_filename in EXACT_FILE_RULES:
+        category, risk = EXACT_FILE_RULES[lower_filename]
+        return {
+            "path": normalized_path,
+            "filename": filename,
+            "category": category,
+            "risk": risk,
+            "reason": build_reason(category, filename),
+        }
+
+    if extension in EXTENSION_RULES:
+        category, risk = EXTENSION_RULES[extension]
+        return {
+            "path": normalized_path,
+            "filename": filename,
+            "category": category,
+            "risk": risk,
+            "reason": build_reason(category, filename, f"{extension} extension"),
+        }
+
+    for directory_pattern, filename_pattern, category, risk in PATH_RULES:
+        if directory_pattern not in normalized_path:
+            continue
+
+        if filename_pattern.startswith("."):
+            if lower_filename.endswith(filename_pattern):
+                return {
+                    "path": normalized_path,
+                    "filename": filename,
+                    "category": category,
+                    "risk": risk,
+                    "reason": build_reason(
+                        category, filename, f"in {directory_pattern}"
+                    ),
+                }
+            continue
+
+        if lower_filename == filename_pattern:
+            return {
+                "path": normalized_path,
+                "filename": filename,
+                "category": category,
+                "risk": risk,
+                "reason": build_reason(category, filename, f"in {directory_pattern}"),
+            }
+
+    return None
+
+
+def extract_file_path(tool_input):
+    """Extract a file path from Write/Edit/MultiEdit input."""
+    if not isinstance(tool_input, dict):
+        return ""
     return tool_input.get("file_path", "")
 
 
-# ─── Main ─────────────────────────────────────────────────────────────────────
+def extract_tool_use_id(input_data):
+    """Extract the current tool call ID if present."""
+    tool_use_id = input_data.get("tool_use_id", "")
+    if isinstance(tool_use_id, str):
+        return tool_use_id
+    return ""
+
+
+def emit_json(payload):
+    """Emit hook JSON to stdout."""
+    json.dump(payload, sys.stdout)
+    sys.stdout.write("\n")
+
+
+def emit_pretool_decision(permission_decision, reason):
+    """Emit a structured PreToolUse decision."""
+    emit_json(
+        {
+            "hookSpecificOutput": {
+                "hookEventName": "PreToolUse",
+                "permissionDecision": permission_decision,
+                "permissionDecisionReason": reason,
+            }
+        }
+    )
+
+
+def handle_pre_tool_use(input_data):
+    """Handle PreToolUse by deny/ask/allow based on file risk and session state."""
+    session_id = input_data.get("session_id", "default")
+    cwd = input_data.get("cwd", "")
+    tool_input = input_data.get("tool_input", {})
+    file_path = extract_file_path(tool_input)
+    if not file_path:
+        return
+
+    match = classify_file(file_path, cwd)
+    if not match:
+        return
+
+    state = load_state(session_id)
+    file_key = match["path"]
+    tool_use_id = extract_tool_use_id(input_data)
+
+    if match["risk"] == DENY:
+        emit_pretool_decision(
+            DENY,
+            (
+                f"Sensitive File Guard blocked {match['reason']}. "
+                "Use a safer workflow than direct Claude edits for secrets, private keys, or tfstate files."
+            ),
+        )
+        return
+
+    if file_key in state["allowed_files"]:
+        emit_pretool_decision(
+            ALLOW,
+            f"Previously confirmed this session: {match['reason']}",
+        )
+        return
+
+    if tool_use_id:
+        state["pending_requests"][tool_use_id] = {
+            "path": file_key,
+            "reason": match["reason"],
+        }
+        save_state(session_id, state)
+
+    emit_pretool_decision(
+        ASK,
+        (
+            f"Sensitive File Guard requires confirmation before editing {match['reason']}. "
+            "If you approve and the edit runs, this file will be auto-allowed for the rest of the session."
+        ),
+    )
+
+
+def handle_post_tool_use(input_data):
+    """Record confirmed medium-risk files only after the edit reaches PostToolUse."""
+    session_id = input_data.get("session_id", "default")
+    cwd = input_data.get("cwd", "")
+    tool_input = input_data.get("tool_input", {})
+    file_path = extract_file_path(tool_input)
+    if not file_path:
+        return
+
+    tool_use_id = extract_tool_use_id(input_data)
+    match = classify_file(file_path, cwd)
+    if not match or match["risk"] != ASK or not tool_use_id:
+        return
+
+    state = load_state(session_id)
+    file_key = match["path"]
+    pending_request = state["pending_requests"].pop(tool_use_id, None)
+
+    if not pending_request:
+        save_state(session_id, state)
+        return
+
+    if pending_request.get("path") != file_key:
+        save_state(session_id, state)
+        debug_log(
+            f"Skipped allowlisting due to path mismatch for tool call {tool_use_id}: "
+            f"pending={pending_request.get('path')} current={file_key}"
+        )
+        return
+
+    if file_key in state["allowed_files"]:
+        save_state(session_id, state)
+        return
+
+    state["allowed_files"].add(file_key)
+    save_state(session_id, state)
+    debug_log(f"Recorded confirmed sensitive file for session allowlist: {file_key}")
+
+
+def handle_post_tool_use_failure(input_data):
+    """Clear pending confirmation state when an asked tool call fails."""
+    session_id = input_data.get("session_id", "default")
+    tool_use_id = extract_tool_use_id(input_data)
+    if not tool_use_id:
+        return
+
+    state = load_state(session_id)
+    if tool_use_id not in state["pending_requests"]:
+        return
+
+    state["pending_requests"].pop(tool_use_id, None)
+    save_state(session_id, state)
+    debug_log(f"Cleared pending sensitive file request after failure: {tool_use_id}")
 
 
 def main():
     """Main hook function."""
-    # Check if guard is enabled (can be disabled via env var)
-    guard_enabled = os.environ.get("SENSITIVE_FILE_GUARD_ENABLED", "1")
-    if guard_enabled == "0":
+    if os.environ.get("SENSITIVE_FILE_GUARD_ENABLED", "1") == "0":
         debug_log("Sensitive file guard disabled by environment variable")
-        sys.exit(0)
+        return
 
-    # Periodically clean up old state files (10% chance per run)
     if random.random() < 0.1:
         cleanup_old_state_files()
 
-    # Read input from stdin
     try:
-        raw_input = sys.stdin.read()
-        input_data = json.loads(raw_input)
-    except json.JSONDecodeError as e:
-        debug_log(f"JSON decode error: {e}")
-        sys.exit(0)  # Allow tool to proceed if we can't parse input
+        input_data = json.load(sys.stdin)
+    except json.JSONDecodeError as error:
+        debug_log(f"JSON decode error: {error}")
+        return
 
-    # Extract tool information
-    session_id = input_data.get("session_id", "default")
     tool_name = input_data.get("tool_name", "")
-    tool_input = input_data.get("tool_input", {})
-
-    # Only process file-modifying tools
     if tool_name not in ["Write", "Edit", "MultiEdit"]:
-        sys.exit(0)
+        return
 
-    # Extract file path
-    file_path = extract_file_path(tool_name, tool_input)
-    if not file_path:
-        sys.exit(0)
-
-    # Check if this is a protected file
-    is_protected, reason = is_protected_file(file_path)
-
-    if not is_protected:
-        sys.exit(0)
-
-    # Create unique warning key
-    warning_key = f"{file_path}"
-
-    # Load existing warnings for this session
-    shown_warnings = load_state(session_id)
-
-    # Skip if already warned in this session
-    if warning_key in shown_warnings:
-        debug_log(f"Already warned about {file_path}, allowing")
-        sys.exit(0)
-
-    # Record this warning
-    shown_warnings.add(warning_key)
-    save_state(session_id, shown_warnings)
-
-    # Build warning message
-    warning_message = f"""⚠️  SENSITIVE FILE GUARD — Modification Blocked
-
-  File:   {file_path}
-  Reason: {reason}
-
-This file is classified as a sensitive infrastructure file. Accidental
-modifications can break deployments, leak secrets, or cause dependency
-conflicts.
-
-Common risks:
-  • .env files may contain API keys and secrets
-  • Lockfiles ensure reproducible builds — manual edits cause drift
-  • CI/CD configs control deployment pipelines
-  • Crypto keys are irreplaceable credentials
-
-To proceed, explicitly confirm you intend to modify this file.
-To disable this guard, set SENSITIVE_FILE_GUARD_ENABLED=0."""
-
-    # Output warning to stderr and block the operation
-    print(warning_message, file=sys.stderr)
-    sys.exit(2)  # Exit code 2 blocks the tool in PreToolUse hooks
+    hook_event_name = input_data.get("hook_event_name", "PreToolUse")
+    if hook_event_name == "PreToolUse":
+        handle_pre_tool_use(input_data)
+    elif hook_event_name == "PostToolUse":
+        handle_post_tool_use(input_data)
+    elif hook_event_name == "PostToolUseFailure":
+        handle_post_tool_use_failure(input_data)
 
 
 if __name__ == "__main__":

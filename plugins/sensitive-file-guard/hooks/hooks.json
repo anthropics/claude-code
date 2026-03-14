@@ -6,7 +6,29 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/sensitive_file_guard_hook.py"
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/run_sensitive_file_guard.sh\""
+          }
+        ],
+        "matcher": "Write|Edit|MultiEdit"
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/run_sensitive_file_guard.sh\""
+          }
+        ],
+        "matcher": "Write|Edit|MultiEdit"
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/run_sensitive_file_guard.sh\""
           }
         ],
         "matcher": "Write|Edit|MultiEdit"
