@@ -1,29 +1,34 @@
 import React, { useRef, useState } from 'react';
-import { Camera, Upload, X, Sparkles, Edit2, Check } from 'lucide-react';
+import { Camera, Upload, X, Sparkles, Edit2, Check, AlertTriangle, Eye } from 'lucide-react';
 import { Photo } from '../../types';
-import { generatePhotoCaption } from '../../services/api';
+import { analyzePhotoDefects, generatePhotoCaption, BuildingContext } from '../../services/api';
 import { v4 as uuidv4 } from 'uuid';
 import { Button } from '../UI/Button';
 
 interface PhotoCaptureProps {
   categoryName: string;
+  buildingContext?: BuildingContext;
   photos: Photo[];
   onPhotoAdded: (photo: Photo) => void;
   onPhotoUpdated: (photoId: string, changes: Partial<Photo>) => void;
   onPhotoDeleted: (photoId: string) => void;
+  onSuggestedObservation?: ((text: string) => void) | undefined;
 }
 
 export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
   categoryName,
+  buildingContext,
   photos,
   onPhotoAdded,
   onPhotoUpdated,
   onPhotoDeleted,
+  onSuggestedObservation,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const [editingCaption, setEditingCaption] = useState<string | null>(null);
   const [editCaptionText, setEditCaptionText] = useState('');
+  const [defectAlerts, setDefectAlerts] = useState<Record<string, Array<{ description: string; severity: string }>>>({});
 
   const processImage = async (file: File) => {
     if (!file.type.startsWith('image/')) return;
@@ -43,11 +48,29 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
 
     onPhotoAdded(photo);
 
-    // Generate AI caption
+    // Use enhanced AI photo analysis with defect detection
     try {
       const base64Data = compressedBase64.split(',')[1];
-      const caption = await generatePhotoCaption(base64Data, mediaType, categoryName);
-      onPhotoUpdated(photo.id, { caption, captionLoading: false });
+
+      // Try enhanced analysis first, fall back to simple caption
+      try {
+        const analysis = await analyzePhotoDefects(base64Data, mediaType, categoryName, buildingContext);
+        onPhotoUpdated(photo.id, { caption: analysis.caption, captionLoading: false });
+
+        // Show defect alerts if found
+        if (analysis.defectsFound && analysis.defects.length > 0) {
+          setDefectAlerts(prev => ({ ...prev, [photo.id]: analysis.defects }));
+        }
+
+        // Auto-suggest observation from detected defects
+        if (analysis.suggestedObservation && onSuggestedObservation) {
+          onSuggestedObservation(analysis.suggestedObservation);
+        }
+      } catch {
+        // Fallback to simple caption
+        const caption = await generatePhotoCaption(base64Data, mediaType, categoryName);
+        onPhotoUpdated(photo.id, { caption, captionLoading: false });
+      }
     } catch {
       onPhotoUpdated(photo.id, {
         caption: `Kuva kohteesta: ${categoryName}`,
@@ -72,6 +95,14 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
   const saveEditCaption = (photoId: string) => {
     onPhotoUpdated(photoId, { caption: editCaptionText });
     setEditingCaption(null);
+  };
+
+  const dismissDefects = (photoId: string) => {
+    setDefectAlerts(prev => {
+      const next = { ...prev };
+      delete next[photoId];
+      return next;
+    });
   };
 
   return (
@@ -135,6 +166,13 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
                 >
                   <X size={12} />
                 </button>
+
+                {/* Defect indicator */}
+                {defectAlerts[photo.id] && defectAlerts[photo.id].length > 0 && (
+                  <div className="absolute top-1.5 left-1.5 bg-amber-500 text-white p-1 rounded-md">
+                    <AlertTriangle size={12} />
+                  </div>
+                )}
               </div>
 
               {/* Caption */}
@@ -142,7 +180,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
                 {photo.captionLoading ? (
                   <div className="flex items-center gap-1.5 text-xs text-blue-600">
                     <Sparkles size={11} className="animate-pulse" />
-                    <span className="ai-shimmer bg-clip-text">Tekoäly tunnistaa kuvaa...</span>
+                    <span className="ai-shimmer bg-clip-text">AI analysoi kuvaa...</span>
                   </div>
                 ) : editingCaption === photo.id ? (
                   <div className="space-y-1.5">
@@ -177,6 +215,28 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
                       title="Muokkaa kuvatekstiä"
                     >
                       <Edit2 size={11} />
+                    </button>
+                  </div>
+                )}
+
+                {/* Defect alerts */}
+                {defectAlerts[photo.id] && defectAlerts[photo.id].length > 0 && (
+                  <div className="mt-2 space-y-1">
+                    {defectAlerts[photo.id].map((defect, i) => (
+                      <div key={i} className={`flex items-start gap-1.5 text-xs p-1.5 rounded ${
+                        defect.severity === 'high' ? 'bg-red-50 text-red-700' :
+                        defect.severity === 'medium' ? 'bg-amber-50 text-amber-700' :
+                        'bg-blue-50 text-blue-700'
+                      }`}>
+                        <Eye size={10} className="flex-shrink-0 mt-0.5" />
+                        <span>{defect.description}</span>
+                      </div>
+                    ))}
+                    <button
+                      onClick={() => dismissDefects(photo.id)}
+                      className="text-[10px] text-gray-400 hover:text-gray-600"
+                    >
+                      Kuittaa
                     </button>
                   </div>
                 )}

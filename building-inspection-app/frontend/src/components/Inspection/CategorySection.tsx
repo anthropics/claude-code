@@ -1,13 +1,19 @@
 import React, { useState } from 'react';
-import { Plus, ChevronDown, ChevronRight, MessageSquare } from 'lucide-react';
-import { InspectionCategory, Observation, Photo } from '../../types';
+import {
+  Plus, ChevronDown, ChevronRight, MessageSquare, ListChecks,
+  Sparkles, CheckSquare, Square
+} from 'lucide-react';
+import { InspectionCategory, Observation, Photo, ChecklistItem } from '../../types';
 import { ObservationCard } from './ObservationCard';
 import { VoiceRecorder } from './VoiceRecorder';
 import { Button } from '../UI/Button';
+import { AIProcessingBadge } from '../UI/Spinner';
+import { generateCategoryChecklist, BuildingContext } from '../../services/api';
 import * as Icons from 'lucide-react';
 
 interface CategorySectionProps {
   category: InspectionCategory;
+  buildingContext?: BuildingContext;
   onAddObservation: (rawText: string) => void;
   onUpdateObservation: (obsId: string, changes: Partial<Observation>) => void;
   onDeleteObservation: (obsId: string) => void;
@@ -19,6 +25,7 @@ interface CategorySectionProps {
 
 export const CategorySection: React.FC<CategorySectionProps> = ({
   category,
+  buildingContext,
   onAddObservation,
   onUpdateObservation,
   onDeleteObservation,
@@ -30,12 +37,16 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
   const [expanded, setExpanded] = useState(false);
   const [showVoice, setShowVoice] = useState(false);
   const [quickText, setQuickText] = useState('');
+  const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
+  const [loadingChecklist, setLoadingChecklist] = useState(false);
+  const [showChecklist, setShowChecklist] = useState(false);
 
   // Get icon component dynamically
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const IconComponent = ((Icons as unknown) as Record<string, React.ComponentType<{size?: number; className?: string}>>)[category.icon] || Icons.FileText;
 
   const obsCount = category.observations.length;
+  const processingCount = category.observations.filter(o => o.aiProcessing).length;
   const hasContent = obsCount > 0 || category.notes;
 
   const handleAddText = () => {
@@ -49,6 +60,36 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
   const handleVoiceTranscript = (text: string) => {
     onAddObservation(text);
     setShowVoice(false);
+  };
+
+  // Generate AI checklist for this category
+  const handleGenerateChecklist = async () => {
+    setLoadingChecklist(true);
+    try {
+      const result = await generateCategoryChecklist(
+        category.name,
+        category.description,
+        buildingContext
+      );
+      setChecklist(result.checklist.map(item => ({ ...item, checked: false })));
+      setShowChecklist(true);
+    } catch (err) {
+      console.error('Checklist generation failed:', err);
+    } finally {
+      setLoadingChecklist(false);
+    }
+  };
+
+  // Toggle checklist item and optionally add as observation
+  const handleChecklistItemToggle = (index: number) => {
+    setChecklist(prev => prev.map((item, i) =>
+      i === index ? { ...item, checked: !item.checked } : item
+    ));
+  };
+
+  // Add a checklist item as an observation
+  const handleChecklistToObservation = (item: ChecklistItem) => {
+    onAddObservation(item.item + (item.hint ? ` – ${item.hint}` : ''));
   };
 
   return (
@@ -66,6 +107,12 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
           <p className="text-xs text-gray-500 mt-0.5">{category.description}</p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
+          {processingCount > 0 && (
+            <span className="flex items-center gap-1 text-xs text-blue-600 font-medium">
+              <Sparkles size={11} className="animate-pulse" />
+              {processingCount}
+            </span>
+          )}
           {obsCount > 0 && (
             <span className="bg-blue-600 text-white text-xs font-medium px-2 py-0.5 rounded-full">
               {obsCount}
@@ -87,7 +134,7 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
                 value={quickText}
                 onChange={e => setQuickText(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleAddText()}
-                placeholder="Havainto..."
+                placeholder="Havainto... (AI muotoilee ja lisää viitteet automaattisesti)"
                 className="flex-1 text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
               />
               <Button
@@ -101,22 +148,99 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
               </Button>
             </div>
 
-            {/* Voice toggle */}
-            <div>
+            {/* Action buttons row */}
+            <div className="flex flex-wrap gap-2">
+              {/* Voice toggle */}
               <button
                 onClick={() => setShowVoice(!showVoice)}
-                className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 font-medium"
+                className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 font-medium px-2 py-1 rounded-md hover:bg-blue-50 transition-colors"
               >
                 <MessageSquare size={13} />
                 {showVoice ? 'Sulje sanelu' : 'Sanelu'}
               </button>
 
-              {showVoice && (
-                <div className="mt-3 bg-white rounded-lg border border-gray-200 p-3">
-                  <VoiceRecorder onTranscript={handleVoiceTranscript} />
-                </div>
-              )}
+              {/* AI Checklist button */}
+              <button
+                onClick={showChecklist ? () => setShowChecklist(false) : handleGenerateChecklist}
+                disabled={loadingChecklist}
+                className="inline-flex items-center gap-1.5 text-xs text-purple-600 hover:text-purple-700 font-medium px-2 py-1 rounded-md hover:bg-purple-50 transition-colors disabled:opacity-50"
+              >
+                <ListChecks size={13} />
+                {loadingChecklist ? 'Luodaan...' : showChecklist ? 'Piilota tarkastuslista' : 'AI-tarkastuslista'}
+              </button>
             </div>
+
+            {/* Voice recorder */}
+            {showVoice && (
+              <div className="bg-white rounded-lg border border-gray-200 p-3">
+                <VoiceRecorder onTranscript={handleVoiceTranscript} />
+              </div>
+            )}
+
+            {/* AI-Generated Checklist */}
+            {showChecklist && checklist.length > 0 && (
+              <div className="bg-purple-50 rounded-lg border border-purple-200 p-3">
+                <div className="flex items-center gap-2 mb-3">
+                  <ListChecks size={14} className="text-purple-600" />
+                  <span className="text-xs font-semibold text-purple-800 uppercase tracking-wide">
+                    AI-tarkastuslista
+                  </span>
+                  <span className="text-xs text-purple-500 ml-auto">
+                    {checklist.filter(i => i.checked).length}/{checklist.length} tarkastettu
+                  </span>
+                </div>
+                <div className="space-y-1.5">
+                  {checklist.map((item, i) => (
+                    <div
+                      key={i}
+                      className={`flex items-start gap-2 p-2 rounded-md transition-colors ${
+                        item.checked ? 'bg-purple-100/50' : 'bg-white hover:bg-white'
+                      }`}
+                    >
+                      <button
+                        onClick={() => handleChecklistItemToggle(i)}
+                        className="flex-shrink-0 mt-0.5 text-purple-600 hover:text-purple-800"
+                      >
+                        {item.checked
+                          ? <CheckSquare size={14} />
+                          : <Square size={14} />
+                        }
+                      </button>
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-xs font-medium ${item.checked ? 'text-purple-400 line-through' : 'text-gray-800'}`}>
+                          {item.item}
+                        </p>
+                        {item.hint && (
+                          <p className="text-xs text-gray-500 mt-0.5">{item.hint}</p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
+                          item.priority === 'high' ? 'bg-red-100 text-red-700' :
+                          item.priority === 'medium' ? 'bg-amber-100 text-amber-700' :
+                          'bg-gray-100 text-gray-600'
+                        }`}>
+                          {item.priority === 'high' ? 'Tärkeä' : item.priority === 'medium' ? 'Normaali' : 'Lisä'}
+                        </span>
+                        <button
+                          onClick={() => handleChecklistToObservation(item)}
+                          className="text-xs text-blue-600 hover:text-blue-800 font-medium px-1.5 py-0.5 rounded hover:bg-blue-50"
+                          title="Lisää havaintona"
+                        >
+                          <Plus size={12} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {loadingChecklist && (
+              <div className="py-2">
+                <AIProcessingBadge text="Luodaan tarkastuslistaa..." />
+              </div>
+            )}
           </div>
 
           {/* Observations */}
@@ -128,6 +252,7 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
                   observation={obs}
                   categoryId={category.id}
                   categoryName={category.name}
+                  buildingContext={buildingContext}
                   onUpdate={(changes) => onUpdateObservation(obs.id, changes)}
                   onDelete={() => onDeleteObservation(obs.id)}
                   onPhotoAdded={(photo) => onAddPhoto(obs.id, photo)}

@@ -15,7 +15,7 @@
 @layer components {
   /* Prose styles for AI-generated markdown content */
   .prose-inspection {
-    @apply prose prose-sm max-w-none;
+    @apply max-w-none text-sm leading-relaxed;
   }
 
   .prose-inspection h2 {

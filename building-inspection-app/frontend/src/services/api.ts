@@ -124,3 +124,125 @@ export async function streamProcessObservation(
     }
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// NEW AI APIs: Auto-urgency, batch processing, completeness, checklists
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface BuildingContext {
+  buildYear?: string;
+  buildingType?: string;
+  foundationType?: string;
+  wallType?: string;
+  roofType?: string;
+  heatingSystem?: string;
+  ventilationType?: string;
+  drainagePipeType?: string;
+  waterPipeType?: string;
+}
+
+/**
+ * AI-powered urgency suggestion for an observation
+ */
+export async function suggestUrgency(
+  observationText: string,
+  category: string,
+  buildingContext?: BuildingContext
+): Promise<{ urgency: string; confidence: number; reasoning: string }> {
+  return post('/suggest-urgency', { observationText, category, buildingContext });
+}
+
+/**
+ * Full AI processing of a single observation in one call
+ */
+export async function processObservationFull(
+  rawText: string,
+  category: string,
+  buildingContext?: BuildingContext
+): Promise<{
+  processedText: string;
+  withTheory: string;
+  urgency: string;
+  actionRecommendation: string;
+}> {
+  return post('/process-observation-full', { rawText, category, buildingContext });
+}
+
+/**
+ * Batch processes multiple observations at once
+ */
+export async function batchProcessObservations(
+  observations: Array<{ id: string; rawText: string; category: string }>,
+  buildingContext?: BuildingContext
+): Promise<{
+  results: Array<{
+    id: string;
+    processedText: string;
+    withTheory: string;
+    urgency: string;
+    actionRecommendation: string;
+  }>;
+}> {
+  return post('/batch-process', { observations, buildingContext });
+}
+
+/**
+ * AI-powered completeness check for the inspection
+ */
+export async function checkCompleteness(
+  categories: Array<{ name: string; observationCount: number }>,
+  buildingContext?: BuildingContext
+): Promise<{
+  completenessPercent: number;
+  missingAreas: Array<{ area: string; importance: 'critical' | 'recommended' | 'optional'; reason: string }>;
+  overallAssessment: string;
+}> {
+  return post('/check-completeness', { categories, buildingContext });
+}
+
+/**
+ * Generates AI-powered checklist for an inspection category
+ */
+export async function generateCategoryChecklist(
+  categoryName: string,
+  categoryDescription: string,
+  buildingContext?: BuildingContext
+): Promise<{
+  checklist: Array<{ item: string; priority: 'high' | 'medium' | 'low'; hint: string }>;
+}> {
+  return post('/generate-checklist', { categoryName, categoryDescription, buildingContext });
+}
+
+/**
+ * Enhanced photo analysis with defect detection
+ */
+export async function analyzePhotoDefects(
+  imageBase64: string,
+  mediaType: string,
+  category: string,
+  buildingContext?: BuildingContext
+): Promise<{
+  caption: string;
+  defectsFound: boolean;
+  defects: Array<{ description: string; severity: 'high' | 'medium' | 'low' }>;
+  suggestedObservation: string;
+}> {
+  return post('/analyze-photo', { imageBase64, mediaType, category, buildingContext });
+}
+
+/**
+ * Generates observation templates from detected risk structures
+ */
+export async function generateRiskObservations(
+  risks: Array<{ name: string; description: string; severity: string; recommendation: string }>,
+  buildingContext?: BuildingContext
+): Promise<{
+  observations: Array<{
+    riskName: string;
+    category: string;
+    observationTemplate: string;
+    urgency: string;
+  }>;
+}> {
+  return post('/generate-risk-observations', { risks, buildingContext });
+}

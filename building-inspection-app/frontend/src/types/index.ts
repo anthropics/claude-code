@@ -211,6 +211,63 @@ export const INSPECTION_CATEGORIES: Omit<InspectionCategory, 'observations' | 'n
 // API response types
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Checklist types for AI-generated inspection checklists
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface ChecklistItem {
+  item: string;
+  priority: 'high' | 'medium' | 'low';
+  hint: string;
+  checked: boolean;
+}
+
+export interface CategoryChecklist {
+  categoryId: string;
+  items: ChecklistItem[];
+  generatedAt: string;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Completeness check types
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface CompletenessResult {
+  completenessPercent: number;
+  missingAreas: Array<{
+    area: string;
+    importance: 'critical' | 'recommended' | 'optional';
+    reason: string;
+  }>;
+  overallAssessment: string;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Risk observation template types
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface RiskObservationTemplate {
+  riskName: string;
+  category: string;
+  observationTemplate: string;
+  urgency: string;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Photo analysis types
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface PhotoAnalysis {
+  caption: string;
+  defectsFound: boolean;
+  defects: Array<{ description: string; severity: 'high' | 'medium' | 'low' }>;
+  suggestedObservation: string;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// API response types
+// ─────────────────────────────────────────────────────────────────────────────
+
 export interface ApiResponse<T> {
   data?: T;
   error?: string;

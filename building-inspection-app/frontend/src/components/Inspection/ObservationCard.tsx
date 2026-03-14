@@ -8,13 +8,14 @@ import { Observation, UrgencyLevel } from '../../types';
 import { PhotoCapture } from './PhotoCapture';
 import { Button } from '../UI/Button';
 import { AIProcessingBadge } from '../UI/Spinner';
-import { streamProcessObservation, addTechnicalTheory } from '../../services/api';
+import { streamProcessObservation, addTechnicalTheory, BuildingContext } from '../../services/api';
 import { Photo } from '../../types';
 
 interface ObservationCardProps {
   observation: Observation;
   categoryId: string;
   categoryName: string;
+  buildingContext?: BuildingContext;
   onUpdate: (changes: Partial<Observation>) => void;
   onDelete: () => void;
   onPhotoAdded: (photo: Photo) => void;
@@ -63,6 +64,7 @@ const urgencyConfig: Record<UrgencyLevel, {
 export const ObservationCard: React.FC<ObservationCardProps> = ({
   observation,
   categoryName,
+  buildingContext,
   onUpdate,
   onDelete,
   onPhotoAdded,
@@ -79,6 +81,7 @@ export const ObservationCard: React.FC<ObservationCardProps> = ({
   const [moistureInput, setMoistureInput] = useState(observation.moistureReading || '');
 
   const urgency = urgencyConfig[observation.urgency];
+  const isAutoProcessing = observation.aiProcessing;
 
   const handleProcessWithAI = async () => {
     setProcessing(true);
@@ -125,7 +128,7 @@ export const ObservationCard: React.FC<ObservationCardProps> = ({
   };
 
   return (
-    <div className="border border-gray-200 rounded-xl bg-white overflow-hidden">
+    <div className={`border rounded-xl bg-white overflow-hidden ${isAutoProcessing ? 'border-blue-300 ring-1 ring-blue-100' : 'border-gray-200'}`}>
       {/* Card header */}
       <div className="flex items-start gap-3 p-4">
         {/* Urgency selector */}
@@ -200,25 +203,43 @@ export const ObservationCard: React.FC<ObservationCardProps> = ({
         </div>
       </div>
 
-      {/* Processing badge */}
-      {processing && (
+      {/* Auto-processing badge */}
+      {isAutoProcessing && (
+        <div className="px-4 pb-3">
+          <AIProcessingBadge text="AI käsittelee automaattisesti..." />
+        </div>
+      )}
+
+      {/* Manual processing badge */}
+      {processing && !isAutoProcessing && (
         <div className="px-4 pb-3">
           <AIProcessingBadge text="Muotoillaan..." />
         </div>
       )}
 
       {/* Action buttons */}
-      {!processing && (
+      {!processing && !isAutoProcessing && (
         <div className="px-4 pb-3 flex flex-wrap gap-2">
-          <Button
-            size="xs"
-            variant="primary"
-            icon={<Sparkles size={12} />}
-            onClick={handleProcessWithAI}
-            loading={processing}
-          >
-            Muotoile teksti
-          </Button>
+          {!observation.withTheory ? (
+            <Button
+              size="xs"
+              variant="primary"
+              icon={<Sparkles size={12} />}
+              onClick={handleProcessWithAI}
+              loading={processing}
+            >
+              Muotoile teksti
+            </Button>
+          ) : (
+            <Button
+              size="xs"
+              variant="ghost"
+              icon={<RefreshCw size={12} />}
+              onClick={handleProcessWithAI}
+            >
+              Päivitä
+            </Button>
+          )}
           {observation.processedText && !observation.withTheory && (
             <Button
               size="xs"
@@ -227,16 +248,6 @@ export const ObservationCard: React.FC<ObservationCardProps> = ({
               onClick={handleAddTheory}
             >
               Lisää viitteet
-            </Button>
-          )}
-          {observation.withTheory && (
-            <Button
-              size="xs"
-              variant="ghost"
-              icon={<RefreshCw size={12} />}
-              onClick={handleProcessWithAI}
-            >
-              Päivitä
             </Button>
           )}
           {/* Moisture reading button */}
@@ -325,10 +336,12 @@ export const ObservationCard: React.FC<ObservationCardProps> = ({
               </h4>
               <PhotoCapture
                 categoryName={categoryName}
+                buildingContext={buildingContext}
                 photos={observation.photos}
                 onPhotoAdded={onPhotoAdded}
                 onPhotoUpdated={onPhotoUpdated}
                 onPhotoDeleted={onPhotoDeleted}
+                onSuggestedObservation={undefined}
               />
             </div>
           </div>

@@ -5,7 +5,7 @@ import {
   LayoutList, Sparkles, Building2, AlertCircle
 } from 'lucide-react';
 import { getReport } from '../services/storage';
-import { InspectionReport } from '../types';
+import { InspectionReport, UrgencyLevel } from '../types';
 import { useReport } from '../hooks/useReport';
 import { PropertyForm } from '../components/Report/PropertyForm';
 import { RiskStructurePanel } from '../components/Report/RiskStructurePanel';
@@ -14,6 +14,7 @@ import { ReportSummaryView } from '../components/Report/ReportSummaryView';
 import { Button } from '../components/UI/Button';
 import { generatePDF } from '../utils/pdfGenerator';
 import { detectRiskStructures } from '../utils/riskDetector';
+import { getLifespanWarnings } from '../utils/lifespanDatabase';
 
 type Tab = 'property' | 'inspection' | 'summary';
 
@@ -21,9 +22,6 @@ export const ReportPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [initialReport, setInitialReport] = useState<InspectionReport | null>(null);
-  const [activeTab, setActiveTab] = useState<Tab>('property');
-  const [exporting, setExporting] = useState(false);
-  const [saveFlash, setSaveFlash] = useState(false);
 
   useEffect(() => {
     if (!id) return navigate('/');
@@ -54,6 +52,7 @@ const ReportPageContent: React.FC<{
     report,
     updatePropertyInfo,
     addObservation,
+    addObservationFromTemplate,
     updateObservation,
     deleteObservation,
     addPhoto,
@@ -61,6 +60,7 @@ const ReportPageContent: React.FC<{
     deletePhoto,
     updateCategoryNotes,
     updateSummary,
+    getBuildingContext,
   } = useReport(initialReport);
 
   const [activeTab, setActiveTab] = useState<Tab>('property');
@@ -70,6 +70,15 @@ const ReportPageContent: React.FC<{
   const totalObs = report.categories.reduce((s, c) => s + c.observations.length, 0);
   const filledCategories = report.categories.filter(c => c.observations.length > 0).length;
   const hasPropertyInfo = report.propertyInfo.address && report.propertyInfo.inspectionDate;
+
+  const buildingContext = getBuildingContext();
+
+  // Get risk structures and lifespan warnings
+  const risks = detectRiskStructures(report.propertyInfo);
+  const buildYear = parseInt(report.propertyInfo.buildYear);
+  const lifespanWarnings = !isNaN(buildYear)
+    ? getLifespanWarnings(buildYear, report.propertyInfo)
+    : [];
 
   const handleExportPDF = async () => {
     setExporting(true);
@@ -86,6 +95,11 @@ const ReportPageContent: React.FC<{
   const handleSave = () => {
     setSaveFlash(true);
     setTimeout(() => setSaveFlash(false), 2000);
+  };
+
+  // Handler for adding risk observation templates to the report
+  const handleAddRiskObservation = (categoryId: string, text: string, urgency: UrgencyLevel) => {
+    addObservationFromTemplate(categoryId, text, urgency);
   };
 
   const tabs: { id: Tab; label: string; icon: React.ReactNode; badge?: number }[] = [
@@ -216,12 +230,15 @@ const ReportPageContent: React.FC<{
               onChange={updatePropertyInfo}
             />
 
-            {/* Risk structure detection panel */}
+            {/* Risk structure detection panel + lifespan warnings */}
             {report.propertyInfo.buildYear && (
               <div className="mt-6">
                 <RiskStructurePanel
-                  risks={detectRiskStructures(report.propertyInfo)}
+                  risks={risks}
                   buildYear={report.propertyInfo.buildYear}
+                  buildingContext={buildingContext}
+                  lifespanWarnings={lifespanWarnings}
+                  onAddRiskObservation={handleAddRiskObservation}
                 />
               </div>
             )}
@@ -244,7 +261,7 @@ const ReportPageContent: React.FC<{
             <div className="mb-4">
               <h2 className="text-lg font-bold text-gray-900">Tarkastushavainnot</h2>
               <p className="text-sm text-gray-500 mt-0.5">
-                Kirjaa havainnot jokaisesta rakenneosasta. Käytä sanelua tai kirjoita suoraan.
+                Kirjaa havainnot jokaisesta rakenneosasta. AI muotoilee ja lisää viitteet automaattisesti.
               </p>
             </div>
 
@@ -253,6 +270,7 @@ const ReportPageContent: React.FC<{
                 <CategorySection
                   key={cat.id}
                   category={cat}
+                  buildingContext={buildingContext}
                   onAddObservation={(text) => addObservation(cat.id, text)}
                   onUpdateObservation={(obsId, changes) => updateObservation(cat.id, obsId, changes)}
                   onDeleteObservation={(obsId) => deleteObservation(cat.id, obsId)}
@@ -283,8 +301,9 @@ const ReportPageContent: React.FC<{
           <div className="p-4 lg:p-6 max-w-3xl mx-auto space-y-4">
             <ReportSummaryView
               report={report}
-              onSummaryGenerated={(findings, final) => {
-                updateSummary(findings, final);
+              buildingContext={buildingContext}
+              onSummaryGenerated={(findings, final_summary) => {
+                updateSummary(findings, final_summary);
               }}
             />
 
