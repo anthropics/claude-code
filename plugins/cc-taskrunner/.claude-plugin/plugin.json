@@ -1,0 +1,9 @@
+{
+  "name": "cc-taskrunner",
+  "version": "1.0.0",
+  "description": "Autonomous task queue for Claude Code with safety hooks, branch isolation, and automatic PR creation",
+  "author": {
+    "name": "Kurt Overmier",
+    "email": "admin@stackbilt.dev"
+  }
+}
