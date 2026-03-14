@@ -1,13 +1,6 @@
 import { getToken } from './authService';
 import { BuildingContext } from '../types';
-
-// Change this to your backend URL
-// For Expo Go on physical device, use your computer's local IP
-// For emulator: Android uses 10.0.2.2, iOS uses localhost
-const API_BASE = 'http://10.0.2.2:3001/api/ai';
-const AUTH_BASE = 'http://10.0.2.2:3001/api/auth';
-
-export { API_BASE, AUTH_BASE };
+import { API_BASE } from './config';
 
 async function authHeaders(): Promise<Record<string, string>> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
