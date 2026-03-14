@@ -36,8 +36,46 @@ export async function isAdmin(): Promise<boolean> {
   return user?.role === 'admin';
 }
 
+const DEMO_USERS: Record<string, { password: string; user: AuthUser }> = {
+  'tarkastaja@kuntotarkastus.fi': {
+    password: 'tarkastaja123',
+    user: {
+      id: 'demo-inspector-1',
+      email: 'tarkastaja@kuntotarkastus.fi',
+      name: 'Demo Tarkastaja',
+      role: 'inspector',
+      createdAt: new Date().toISOString(),
+    },
+  },
+  'admin@kuntotarkastus.fi': {
+    password: 'admin123',
+    user: {
+      id: 'demo-admin-1',
+      email: 'admin@kuntotarkastus.fi',
+      name: 'Demo Admin',
+      role: 'admin',
+      createdAt: new Date().toISOString(),
+    },
+  },
+};
+
 export async function login(email: string, password: string): Promise<{ user: AuthUser } | { error: string }> {
+  // Try demo/offline login first
+  const demoUser = DEMO_USERS[email.toLowerCase()];
+  if (demoUser) {
+    if (demoUser.password !== password) {
+      return { error: 'Väärä salasana' };
+    }
+    await AsyncStorage.setItem(AUTH_TOKEN_KEY, `demo-token-${demoUser.user.id}`);
+    await AsyncStorage.setItem(AUTH_USER_KEY, JSON.stringify(demoUser.user));
+    return { user: demoUser.user };
+  }
+
+  // Fall back to backend login
   try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+
     const response = await fetch(`${AUTH_BASE}/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -47,7 +85,9 @@ export async function login(email: string, password: string): Promise<{ user: Au
         deviceName: `${Platform.OS} - Expo Go`,
         platform: Platform.OS,
       }),
+      signal: controller.signal,
     });
+    clearTimeout(timeout);
 
     const data = await response.json();
     if (!response.ok) {
@@ -58,7 +98,7 @@ export async function login(email: string, password: string): Promise<{ user: Au
     await AsyncStorage.setItem(AUTH_USER_KEY, JSON.stringify(data.user));
     return { user: data.user };
   } catch {
-    return { error: 'Verkkovirhe. Tarkista yhteys.' };
+    return { error: 'Verkkovirhe. Tarkista yhteys tai käytä testitunnuksia.' };
   }
 }
 
