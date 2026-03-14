@@ -90,11 +90,19 @@ If the user says "whatever you think is best", provide your recommendation and g
 
 **Actions**:
 1. Wait for explicit user approval
-2. Read all relevant files identified in previous phases
-3. Implement following chosen architecture
-4. Follow codebase conventions strictly
-5. Write clean, well-documented code
-6. Update todos as you progress
+2. Before making any changes, provide a dry-run preview showing:
+   - List of files to be created vs modified
+   - Estimated scope and lines of code per file
+   - Overall complexity assessment
+3. Ask the user for explicit confirmation of the dry-run before any code changes are made
+4. Read all relevant files identified in previous phases
+5. Break the implementation down into logical chunks that can be reviewed independently
+6. For each chunk:
+   - Implement the code following the chosen architecture and codebase conventions
+   - Write clean, well-documented code
+   - Present the chunk to the user for review
+   - If requested, assist with creating a Pull Request for the increment and wait for approval before proceeding
+7. Update todos as you progress
 
 ---
 
