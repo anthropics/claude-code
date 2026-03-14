@@ -1,0 +1,37 @@
+{
+  "description": "Agent Teams Pipeline - lifecycle hooks for team management",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "hooks": [{ "type": "command", "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/check-context-preemptive.sh", "timeout": 10 }],
+        "matcher": "ExitPlanMode|TeamCreate"
+      },
+      {
+        "hooks": [{ "type": "command", "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/block-after-pipeline.sh", "timeout": 10 }],
+        "matcher": "Task|TeamCreate|ExitPlanMode|Edit|Write|NotebookEdit"
+      },
+      {
+        "hooks": [{ "type": "command", "command": "node ${CLAUDE_PLUGIN_ROOT}/hooks/check-team-limit.js", "timeout": 10 }],
+        "matcher": "Task"
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [{ "type": "command", "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/detect-pipeline-complete.sh", "timeout": 10 }]
+      },
+      {
+        "hooks": [{ "type": "command", "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/check-context-stop.sh", "timeout": 10 }]
+      }
+    ],
+    "TeammateIdle": [
+      {
+        "hooks": [{ "type": "command", "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/check-idle-reason.sh", "timeout": 15 }]
+      }
+    ],
+    "TaskCompleted": [
+      {
+        "hooks": [{ "type": "command", "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/verify-phase-output.sh", "timeout": 10 }]
+      }
+    ]
+  }
+}
