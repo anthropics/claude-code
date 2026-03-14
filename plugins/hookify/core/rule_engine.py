@@ -6,8 +6,8 @@ import sys
 from functools import lru_cache
 from typing import List, Dict, Any, Optional
 
-# Import from local module
-from hookify.core.config_loader import Rule, Condition
+# Import from local module (PLUGIN_ROOT is in sys.path, so use relative import)
+from core.config_loader import Rule, Condition
 
 
 # Cache compiled regexes (max 128 patterns)
