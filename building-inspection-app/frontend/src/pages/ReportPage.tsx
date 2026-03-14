@@ -102,32 +102,35 @@ const ReportPageContent: React.FC<{
     addObservationFromTemplate(categoryId, text, urgency);
   };
 
-  const tabs: { id: Tab; label: string; icon: React.ReactNode; badge?: number }[] = [
+  const tabs: { id: Tab; label: string; shortLabel: string; icon: React.ReactNode; badge?: number }[] = [
     {
       id: 'property',
       label: 'Kohdetiedot',
+      shortLabel: 'Kohde',
       icon: <Building2 size={15} />,
     },
     {
       id: 'inspection',
       label: 'Tarkastushavainnot',
+      shortLabel: 'Havainnot',
       icon: <LayoutList size={15} />,
       badge: totalObs || undefined,
     },
     {
       id: 'summary',
       label: 'Yhteenveto',
+      shortLabel: 'Yhteenveto',
       icon: <Sparkles size={15} />,
     },
   ];
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Top bar */}
-      <header className="bg-white border-b border-gray-200 px-4 lg:px-6 py-3 flex items-center gap-3 flex-shrink-0 sticky top-0 z-10">
+    <div className="flex flex-col h-[100dvh]">
+      {/* Top bar - compact on mobile */}
+      <header className="bg-white border-b border-gray-200 px-3 sm:px-4 lg:px-6 py-2 sm:py-3 flex items-center gap-2 sm:gap-3 flex-shrink-0 sticky top-0 z-10">
         <button
           onClick={() => navigate('/')}
-          className="text-gray-400 hover:text-gray-600 p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+          className="text-gray-400 hover:text-gray-600 p-2 hover:bg-gray-100 rounded-lg transition-colors touch-target"
           aria-label="Takaisin"
         >
           <ArrowLeft size={18} />
@@ -137,38 +140,56 @@ const ReportPageContent: React.FC<{
           <h1 className="text-sm font-semibold text-gray-900 truncate">
             {report.propertyInfo.address || 'Uusi kuntotarkastus'}
           </h1>
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-gray-400 hidden sm:block">
             {filledCategories} kategoriaa · {totalObs} havaintoa
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           <Button
             size="sm"
             variant="ghost"
             icon={saveFlash ? <CheckCircle size={15} className="text-green-600" /> : <Save size={15} />}
             onClick={handleSave}
-            className={saveFlash ? 'text-green-600' : ''}
+            className={`${saveFlash ? 'text-green-600' : ''} hidden sm:inline-flex`}
           >
             {saveFlash ? 'Tallennettu' : 'Tallenna'}
           </Button>
+          {/* Mobile save: icon only */}
+          <button
+            onClick={handleSave}
+            className="sm:hidden p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg touch-target"
+            aria-label="Tallenna"
+          >
+            {saveFlash ? <CheckCircle size={18} className="text-green-600" /> : <Save size={18} />}
+          </button>
           <Button
             size="sm"
             variant="primary"
             icon={<Download size={15} />}
             onClick={handleExportPDF}
             loading={exporting}
+            className="hidden sm:inline-flex"
           >
             Vie PDF
           </Button>
+          {/* Mobile PDF: icon only */}
+          <button
+            onClick={handleExportPDF}
+            disabled={exporting}
+            className="sm:hidden p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 touch-target disabled:opacity-50"
+            aria-label="Vie PDF"
+          >
+            <Download size={18} />
+          </button>
         </div>
       </header>
 
       {/* Progress bar */}
-      <div className="bg-white border-b border-gray-100 px-4 lg:px-6 py-2 flex items-center gap-2">
+      <div className="bg-white border-b border-gray-100 px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 flex items-center gap-2">
         <div className="flex items-center gap-1.5 text-xs text-gray-400">
           <ClipboardList size={13} />
-          <span>Edistyminen:</span>
+          <span className="hidden sm:inline">Edistyminen:</span>
         </div>
         <div className="flex-1 bg-gray-100 rounded-full h-1.5 max-w-xs">
           <div
@@ -177,12 +198,12 @@ const ReportPageContent: React.FC<{
           />
         </div>
         <span className="text-xs text-gray-400">
-          {filledCategories}/{report.categories.length} osioita
+          {filledCategories}/{report.categories.length}
         </span>
       </div>
 
-      {/* Tabs */}
-      <div className="bg-white border-b border-gray-200 px-4 lg:px-6 flex gap-0 flex-shrink-0">
+      {/* Desktop tabs - hidden on mobile (bottom nav used instead) */}
+      <div className="bg-white border-b border-gray-200 px-4 lg:px-6 hidden sm:flex gap-0 flex-shrink-0">
         {tabs.map(tab => (
           <button
             key={tab.id}
@@ -205,10 +226,10 @@ const ReportPageContent: React.FC<{
       </div>
 
       {/* Tab content */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto pb-20 sm:pb-0">
         {/* Property info tab */}
         {activeTab === 'property' && (
-          <div className="p-4 lg:p-6 max-w-3xl mx-auto">
+          <div className="p-3 sm:p-4 lg:p-6 max-w-3xl mx-auto">
             <div className="mb-4">
               <h2 className="text-lg font-bold text-gray-900">Kohde- ja tarkastustiedot</h2>
               <p className="text-sm text-gray-500 mt-0.5">
@@ -257,7 +278,7 @@ const ReportPageContent: React.FC<{
 
         {/* Inspection categories tab */}
         {activeTab === 'inspection' && (
-          <div className="p-4 lg:p-6 max-w-3xl mx-auto">
+          <div className="p-3 sm:p-4 lg:p-6 max-w-3xl mx-auto">
             <div className="mb-4">
               <h2 className="text-lg font-bold text-gray-900">Tarkastushavainnot</h2>
               <p className="text-sm text-gray-500 mt-0.5">
@@ -298,7 +319,7 @@ const ReportPageContent: React.FC<{
 
         {/* Summary tab */}
         {activeTab === 'summary' && (
-          <div className="p-4 lg:p-6 max-w-3xl mx-auto space-y-4">
+          <div className="p-3 sm:p-4 lg:p-6 max-w-3xl mx-auto space-y-4">
             <ReportSummaryView
               report={report}
               buildingContext={buildingContext}
@@ -320,6 +341,34 @@ const ReportPageContent: React.FC<{
           </div>
         )}
       </div>
+
+      {/* Mobile bottom navigation */}
+      <nav className="sm:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 bottom-nav z-20">
+        <div className="flex">
+          {tabs.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex-1 flex flex-col items-center gap-0.5 py-2 pt-2.5 relative transition-colors
+                ${activeTab === tab.id
+                  ? 'text-blue-600'
+                  : 'text-gray-400'
+                }`}
+            >
+              {activeTab === tab.id && (
+                <div className="absolute top-0 left-1/4 right-1/4 h-0.5 bg-blue-600 rounded-b" />
+              )}
+              {tab.icon}
+              <span className="text-[10px] font-medium">{tab.shortLabel}</span>
+              {tab.badge !== undefined && (
+                <span className="absolute top-1 right-1/4 bg-blue-600 text-white text-[9px] rounded-full w-3.5 h-3.5 flex items-center justify-center leading-none">
+                  {tab.badge > 9 ? '9+' : tab.badge}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      </nav>
     </div>
   );
 };

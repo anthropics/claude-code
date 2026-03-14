@@ -127,15 +127,15 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
         <div className="border-t border-gray-100 p-4 space-y-4">
           {/* Add observation controls */}
           <div className="space-y-3">
-            {/* Text input */}
-            <div className="flex gap-2">
+            {/* Text input - stacked on mobile */}
+            <div className="flex flex-col sm:flex-row gap-2">
               <input
                 type="text"
                 value={quickText}
                 onChange={e => setQuickText(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleAddText()}
-                placeholder="Havainto... (AI muotoilee ja lisää viitteet automaattisesti)"
-                className="flex-1 text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                placeholder="Havainto... (AI muotoilee automaattisesti)"
+                className="flex-1 text-sm border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
               />
               <Button
                 variant="primary"
@@ -143,8 +143,10 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
                 icon={<Plus size={15} />}
                 onClick={handleAddText}
                 disabled={!quickText.trim()}
+                className="sm:w-auto"
+                fullWidth
               >
-                Lisää
+                Lisää havainto
               </Button>
             </div>
 

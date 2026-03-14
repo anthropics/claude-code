@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AppLayout } from './components/Layout/AppLayout';
 import { Dashboard } from './components/Dashboard/Dashboard';
 import { ReportPage } from './pages/ReportPage';
+import { InstallPrompt } from './components/PWA/InstallPrompt';
 
 const App: React.FC = () => {
   return (
@@ -32,6 +33,9 @@ const App: React.FC = () => {
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+
+      {/* PWA install prompt */}
+      <InstallPrompt />
     </BrowserRouter>
   );
 };
