@@ -1,4 +1,4 @@
-import { getToken } from './authService';
+import { getToken } from './authStorage';
 import { BuildingContext } from '../types';
 import { API_BASE } from './config';
 

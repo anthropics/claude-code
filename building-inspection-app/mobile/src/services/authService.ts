@@ -1,13 +1,8 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import { AUTH_BASE } from './config';
+import { getToken, getUserRaw, saveToken, saveUserRaw, clearAuthStorage } from './authStorage';
 
-const AUTH_TOKEN_KEY = 'auth_token';
-const AUTH_USER_KEY = 'auth_user';
-
-// In-memory fallback when AsyncStorage is unavailable
-let memoryToken: string | null = null;
-let memoryUser: AuthUser | null = null;
+export { getToken } from './authStorage';
 
 export interface AuthUser {
   id: string;
@@ -17,29 +12,10 @@ export interface AuthUser {
   createdAt: string;
 }
 
-async function saveToken(token: string): Promise<void> {
-  memoryToken = token;
-  try { await AsyncStorage.setItem(AUTH_TOKEN_KEY, token); } catch {}
-}
-
-async function saveUser(user: AuthUser): Promise<void> {
-  memoryUser = user;
-  try { await AsyncStorage.setItem(AUTH_USER_KEY, JSON.stringify(user)); } catch {}
-}
-
-export async function getToken(): Promise<string | null> {
-  if (memoryToken) return memoryToken;
-  try { return await AsyncStorage.getItem(AUTH_TOKEN_KEY); } catch { return null; }
-}
-
 export async function getUser(): Promise<AuthUser | null> {
-  if (memoryUser) return memoryUser;
-  try {
-    const raw = await AsyncStorage.getItem(AUTH_USER_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
+  const raw = await getUserRaw();
+  if (!raw) return null;
+  try { return JSON.parse(raw); } catch { return null; }
 }
 
 export async function isLoggedIn(): Promise<boolean> {
@@ -83,7 +59,7 @@ export async function login(email: string, password: string): Promise<{ user: Au
       return { error: 'Väärä salasana' };
     }
     await saveToken(`demo-token-${demoUser.user.id}`);
-    await saveUser(demoUser.user);
+    await saveUserRaw(JSON.stringify(demoUser.user));
     return { user: demoUser.user };
   }
 
@@ -111,7 +87,7 @@ export async function login(email: string, password: string): Promise<{ user: Au
     }
 
     await saveToken(data.token);
-    await saveUser(data.user);
+    await saveUserRaw(JSON.stringify(data.user));
     return { user: data.user };
   } catch {
     return { error: 'Verkkovirhe. Tarkista yhteys tai käytä testitunnuksia.' };
@@ -130,8 +106,5 @@ export async function logout(): Promise<void> {
       // Ignore network errors during logout
     }
   }
-  memoryToken = null;
-  memoryUser = null;
-  try { await AsyncStorage.removeItem(AUTH_TOKEN_KEY); } catch {}
-  try { await AsyncStorage.removeItem(AUTH_USER_KEY); } catch {}
+  await clearAuthStorage();
 }
