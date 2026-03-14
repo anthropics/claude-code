@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@expo/vector-icons": "^14.0.4",
-    "@react-native-async-storage/async-storage": "^2.1.2",
+    "@react-native-async-storage/async-storage": "2.1.0",
     "expo": "~54.0.0",
     "expo-camera": "~16.1.0",
     "expo-constants": "~17.1.0",

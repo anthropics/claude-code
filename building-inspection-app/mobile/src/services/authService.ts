@@ -5,6 +5,10 @@ import { AUTH_BASE } from './config';
 const AUTH_TOKEN_KEY = 'auth_token';
 const AUTH_USER_KEY = 'auth_user';
 
+// In-memory fallback when AsyncStorage is unavailable
+let memoryToken: string | null = null;
+let memoryUser: AuthUser | null = null;
+
 export interface AuthUser {
   id: string;
   email: string;
@@ -13,11 +17,23 @@ export interface AuthUser {
   createdAt: string;
 }
 
+async function saveToken(token: string): Promise<void> {
+  memoryToken = token;
+  try { await AsyncStorage.setItem(AUTH_TOKEN_KEY, token); } catch {}
+}
+
+async function saveUser(user: AuthUser): Promise<void> {
+  memoryUser = user;
+  try { await AsyncStorage.setItem(AUTH_USER_KEY, JSON.stringify(user)); } catch {}
+}
+
 export async function getToken(): Promise<string | null> {
-  return AsyncStorage.getItem(AUTH_TOKEN_KEY);
+  if (memoryToken) return memoryToken;
+  try { return await AsyncStorage.getItem(AUTH_TOKEN_KEY); } catch { return null; }
 }
 
 export async function getUser(): Promise<AuthUser | null> {
+  if (memoryUser) return memoryUser;
   try {
     const raw = await AsyncStorage.getItem(AUTH_USER_KEY);
     return raw ? JSON.parse(raw) : null;
@@ -66,8 +82,8 @@ export async function login(email: string, password: string): Promise<{ user: Au
     if (demoUser.password !== password) {
       return { error: 'Väärä salasana' };
     }
-    await AsyncStorage.setItem(AUTH_TOKEN_KEY, `demo-token-${demoUser.user.id}`);
-    await AsyncStorage.setItem(AUTH_USER_KEY, JSON.stringify(demoUser.user));
+    await saveToken(`demo-token-${demoUser.user.id}`);
+    await saveUser(demoUser.user);
     return { user: demoUser.user };
   }
 
@@ -94,8 +110,8 @@ export async function login(email: string, password: string): Promise<{ user: Au
       return { error: data.error || 'Kirjautuminen epäonnistui' };
     }
 
-    await AsyncStorage.setItem(AUTH_TOKEN_KEY, data.token);
-    await AsyncStorage.setItem(AUTH_USER_KEY, JSON.stringify(data.user));
+    await saveToken(data.token);
+    await saveUser(data.user);
     return { user: data.user };
   } catch {
     return { error: 'Verkkovirhe. Tarkista yhteys tai käytä testitunnuksia.' };
@@ -114,6 +130,8 @@ export async function logout(): Promise<void> {
       // Ignore network errors during logout
     }
   }
-  await AsyncStorage.removeItem(AUTH_TOKEN_KEY);
-  await AsyncStorage.removeItem(AUTH_USER_KEY);
+  memoryToken = null;
+  memoryUser = null;
+  try { await AsyncStorage.removeItem(AUTH_TOKEN_KEY); } catch {}
+  try { await AsyncStorage.removeItem(AUTH_USER_KEY); } catch {}
 }
