@@ -37,6 +37,9 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
     const compressedBase64 = await compressImage(file, 1200, 0.85);
     const mediaType = file.type;
 
+    // Extract EXIF GPS data before compression
+    const exifData = await extractExifGps(file);
+
     const photo: Photo = {
       id: uuidv4(),
       dataUrl: compressedBase64,
@@ -44,7 +47,33 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
       caption: '',
       captionLoading: true,
       timestamp: new Date().toISOString(),
+      ...(exifData.latitude != null && {
+        gpsLatitude: exifData.latitude,
+        gpsLongitude: exifData.longitude,
+      }),
+      ...(exifData.dateTimeOriginal && {
+        originalExif: {
+          dateTimeOriginal: exifData.dateTimeOriginal,
+          ...(exifData.latitude != null && {
+            gps: { latitude: exifData.latitude!, longitude: exifData.longitude! },
+          }),
+        },
+      }),
     };
+
+    // Also try browser geolocation if no EXIF GPS
+    if (photo.gpsLatitude == null && navigator.geolocation) {
+      try {
+        const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
+          navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 })
+        );
+        photo.gpsLatitude = pos.coords.latitude;
+        photo.gpsLongitude = pos.coords.longitude;
+        photo.gpsAccuracy = pos.coords.accuracy;
+      } catch {
+        // GPS not available, skip
+      }
+    }
 
     onPhotoAdded(photo);
 
@@ -248,6 +277,119 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
     </div>
   );
 };
+
+// Extract GPS coordinates and date from JPEG EXIF data
+async function extractExifGps(file: File): Promise<{
+  latitude?: number;
+  longitude?: number;
+  dateTimeOriginal?: string;
+}> {
+  try {
+    const buffer = await file.arrayBuffer();
+    const view = new DataView(buffer);
+
+    // Check for JPEG SOI marker
+    if (view.getUint16(0) !== 0xFFD8) return {};
+
+    let offset = 2;
+    while (offset < view.byteLength - 1) {
+      const marker = view.getUint16(offset);
+      if (marker === 0xFFE1) {
+        // APP1 (EXIF)
+        const length = view.getUint16(offset + 2);
+        const exifData = buffer.slice(offset + 4, offset + 2 + length);
+        return parseExifSegment(exifData);
+      }
+      if ((marker & 0xFF00) !== 0xFF00) break;
+      offset += 2 + view.getUint16(offset + 2);
+    }
+  } catch {
+    // EXIF parsing failed silently
+  }
+  return {};
+}
+
+function parseExifSegment(data: ArrayBuffer): {
+  latitude?: number;
+  longitude?: number;
+  dateTimeOriginal?: string;
+} {
+  const view = new DataView(data);
+  // Check for 'Exif\0\0'
+  if (view.getUint32(0) !== 0x45786966 || view.getUint16(4) !== 0x0000) return {};
+
+  const tiffOffset = 6;
+  const littleEndian = view.getUint16(tiffOffset) === 0x4949;
+  const ifdOffset = view.getUint32(tiffOffset + 4, littleEndian);
+
+  let dateTimeOriginal: string | undefined;
+  let gpsIfdOffset: number | undefined;
+
+  // Read IFD0
+  const ifd0Count = view.getUint16(tiffOffset + ifdOffset, littleEndian);
+  for (let i = 0; i < ifd0Count; i++) {
+    const entryOffset = tiffOffset + ifdOffset + 2 + i * 12;
+    if (entryOffset + 12 > data.byteLength) break;
+    const tag = view.getUint16(entryOffset, littleEndian);
+    if (tag === 0x8825) {
+      // GPSInfo IFD pointer
+      gpsIfdOffset = view.getUint32(entryOffset + 8, littleEndian);
+    }
+    if (tag === 0x8769) {
+      // ExifIFD pointer - look for DateTimeOriginal
+      const exifIfd = view.getUint32(entryOffset + 8, littleEndian);
+      const exifCount = view.getUint16(tiffOffset + exifIfd, littleEndian);
+      for (let j = 0; j < exifCount; j++) {
+        const eOffset = tiffOffset + exifIfd + 2 + j * 12;
+        if (eOffset + 12 > data.byteLength) break;
+        const eTag = view.getUint16(eOffset, littleEndian);
+        if (eTag === 0x9003) {
+          // DateTimeOriginal
+          const strOffset = view.getUint32(eOffset + 8, littleEndian);
+          const bytes = new Uint8Array(data, tiffOffset + strOffset, 19);
+          dateTimeOriginal = String.fromCharCode(...bytes);
+        }
+      }
+    }
+  }
+
+  let latitude: number | undefined;
+  let longitude: number | undefined;
+
+  if (gpsIfdOffset != null) {
+    const gpsCount = view.getUint16(tiffOffset + gpsIfdOffset, littleEndian);
+    let latRef = 'N', lonRef = 'E';
+    let latVals: number[] | undefined, lonVals: number[] | undefined;
+
+    for (let i = 0; i < gpsCount; i++) {
+      const gOffset = tiffOffset + gpsIfdOffset + 2 + i * 12;
+      if (gOffset + 12 > data.byteLength) break;
+      const gTag = view.getUint16(gOffset, littleEndian);
+      const valOffset = view.getUint32(gOffset + 8, littleEndian);
+
+      if (gTag === 1) latRef = String.fromCharCode(view.getUint8(gOffset + 8));
+      if (gTag === 3) lonRef = String.fromCharCode(view.getUint8(gOffset + 8));
+      if (gTag === 2 || gTag === 4) {
+        const rOffset = tiffOffset + valOffset;
+        if (rOffset + 24 <= data.byteLength) {
+          const d = view.getUint32(rOffset, littleEndian) / view.getUint32(rOffset + 4, littleEndian);
+          const m = view.getUint32(rOffset + 8, littleEndian) / view.getUint32(rOffset + 12, littleEndian);
+          const s = view.getUint32(rOffset + 16, littleEndian) / view.getUint32(rOffset + 20, littleEndian);
+          const dec = d + m / 60 + s / 3600;
+          if (gTag === 2) latVals = [dec];
+          if (gTag === 4) lonVals = [dec];
+        }
+      }
+    }
+
+    if (latVals && lonVals) {
+      latitude = latRef === 'S' ? -latVals[0] : latVals[0];
+      longitude = lonRef === 'W' ? -lonVals[0] : lonVals[0];
+    }
+  }
+
+  return { latitude, longitude, dateTimeOriginal };
+}
 
 // Compress image to specified max width and quality
 async function compressImage(file: File, maxWidth: number, quality: number): Promise<string> {

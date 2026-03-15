@@ -164,8 +164,70 @@ function buildHtml(report: InspectionReport): string {
     <p>${escapeHtml(report.summary.finalSummary)}</p>
   </div>` : ''}
 
+  <!-- Vastuulauseke -->
+  <div style="page-break-before:always;padding:24px;">
+    <h2 style="font-size:16px;color:#1e40af;margin:0 0 16px 0;">VASTUULAUSEKE JA RAJOITUKSET</h2>
+
+    <h3 style="font-size:13px;color:#374151;margin:16px 0 6px 0;">1. TARKASTUKSEN LUONNE</h3>
+    <p style="font-size:12px;color:#374151;line-height:1.6;margin:0;">
+      Tämä kuntotarkastus on suoritettu aistinvaraisesti ja rakenteita rikkomatta
+      KH 90-00394 suoritusohjeen mukaisesti. Tarkastus kattaa vain tarkastushetkellä
+      näkyvissä ja luoksepäästävissä olevat rakenteet ja tilat.
+    </p>
+
+    <h3 style="font-size:13px;color:#374151;margin:16px 0 6px 0;">2. TARKASTUKSEN RAJAUKSET</h3>
+    <ul style="font-size:12px;color:#374151;line-height:1.6;padding-left:16px;margin:0;">
+      <li>Tarkastus ei kata piileviä vaurioita tai rakenteita joihin ei ole pääsyä</li>
+      <li>Tarkastus ei korvaa erikoisalojen (sähkö, LVI, radon) erillisiä tutkimuksia</li>
+      <li>Pintamateriaalien alla olevia rakenteita ei voida arvioida ilman rakenteiden avaamista</li>
+      <li>Maaperän, perustusten alaisten rakenteiden ja salaojien kuntoa ei voida todeta aistinvaraisesti</li>
+    </ul>
+
+    <h3 style="font-size:13px;color:#374151;margin:16px 0 6px 0;">3. LISÄTUTKIMUSSUOSITUKSET</h3>
+    <p style="font-size:12px;color:#374151;line-height:1.6;margin:0;">
+      Raportissa esitetyt lisätutkimussuositukset on syytä toteuttaa ennen kauppaa.
+      Mikäli suositeltuja lisätutkimuksia ei teetetä, ostaja kantaa riskin mahdollisista
+      piilevistä vaurioista suosituksen kohteena olevissa rakenteissa.
+    </p>
+
+    <h3 style="font-size:13px;color:#374151;margin:16px 0 6px 0;">4. VASTUUN RAJAUS</h3>
+    <ul style="font-size:12px;color:#374151;line-height:1.6;padding-left:16px;margin:0;">
+      <li>Kuntotarkastaja vastaa siitä, että tarkastus on tehty ammattitaitoisesti ja suoritusohjeen mukaisesti</li>
+      <li>Kuntotarkastaja ei vastaa kohteen virheistä tai vaurioista, vaan ainoastaan tarkastustyön mahdollisista virheistä</li>
+      <li>Tarkastajan vastuu rajoittuu vahinkoihin, joita havainnon puuttuminen on aiheuttanut</li>
+      <li>Tarkastus ei poista myyjän vastuuta maakaaren mukaisista virheistä eikä ostajan selonottovelvollisuutta</li>
+    </ul>
+
+    <h3 style="font-size:13px;color:#374151;margin:16px 0 6px 0;">5. RAPORTIN KÄYTTÖ</h3>
+    <p style="font-size:12px;color:#374151;line-height:1.6;margin:0;">
+      Tämä raportti on laadittu toimeksiantajan ja asuntokaupan osapuolten käyttöön.
+      Raporttia ei saa käyttää muuhun tarkoitukseen ilman tarkastajan kirjallista suostumusta.
+    </p>
+
+    ${(report as any).signatures?.inspector ? `
+    <div style="margin-top:32px;border-top:1px solid #e5e7eb;padding-top:16px;">
+      <h3 style="font-size:13px;color:#374151;margin:0 0 12px 0;">ALLEKIRJOITUKSET</h3>
+      <div style="display:flex;gap:32px;">
+        <div>
+          <p style="font-size:11px;color:#6b7280;margin:0;">Tarkastaja</p>
+          <img src="${(report as any).signatures.inspector.signatureDataUrl}" style="max-height:60px;margin:4px 0;" />
+          <p style="font-size:12px;color:#374151;margin:0;">${escapeHtml((report as any).signatures.inspector.name)}</p>
+          <p style="font-size:10px;color:#9ca3af;margin:0;">${formatDate((report as any).signatures.inspector.timestamp)}</p>
+        </div>
+        ${(report as any).signatures?.client ? `
+        <div>
+          <p style="font-size:11px;color:#6b7280;margin:0;">Tilaaja</p>
+          <img src="${(report as any).signatures.client.signatureDataUrl}" style="max-height:60px;margin:4px 0;" />
+          <p style="font-size:12px;color:#374151;margin:0;">${escapeHtml((report as any).signatures.client.name)}</p>
+          <p style="font-size:10px;color:#9ca3af;margin:0;">${formatDate((report as any).signatures.client.timestamp)}</p>
+        </div>` : ''}
+      </div>
+    </div>` : ''}
+  </div>
+
   <div class="footer">
     ${escapeHtml(address)} · ${pi.inspectionDate ? formatDate(pi.inspectionDate) : ''}<br/>
+    Tarkastus suoritettu aistinvaraisesti KH 90-00394 mukaisesti. Tarkastus ei kata piileviä vaurioita.<br/>
     KuntotarkastusAI · Laadittu tekoälyavusteisesti
   </div>
 </body>

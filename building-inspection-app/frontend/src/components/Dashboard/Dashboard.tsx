@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Plus, FileText, Clock, CheckCircle, AlertCircle, Trash2,
-  Building2, ChevronRight, Copy
+  Building2, ChevronRight, Copy, Upload
 } from 'lucide-react';
-import { getAllReports, createReport, deleteReport, duplicateReport } from '../../services/storage';
+import { getAllReports, createReport, deleteReport, duplicateReport, createReportFromImport } from '../../services/storage';
+import { importPDFReport } from '../../services/api';
 import { InspectionReport } from '../../types';
 import { Button } from '../UI/Button';
 
@@ -29,6 +30,8 @@ export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const [reports, setReports] = useState<InspectionReport[]>([]);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setReports(getAllReports());
@@ -46,6 +49,24 @@ export const Dashboard: React.FC = () => {
       deleteReport(id);
       setReports(getAllReports());
       setDeletingId(null);
+    }
+  };
+
+  const handleImportPDF = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImporting(true);
+    try {
+      const data = await importPDFReport(file);
+      const report = createReportFromImport(data);
+      setReports(getAllReports());
+      navigate(`/report/${report.id}`);
+    } catch (err) {
+      console.error('PDF import failed:', err);
+      alert('PDF-tuonti epäonnistui. Tarkista tiedosto ja yritä uudelleen.');
+    } finally {
+      setImporting(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
@@ -74,14 +95,32 @@ export const Dashboard: React.FC = () => {
             Kuntotarkastusraportit
           </p>
         </div>
-        <Button
-          variant="primary"
-          size="lg"
-          icon={<Plus size={18} />}
-          onClick={handleCreate}
-        >
-          Uusi tarkastus
-        </Button>
+        <div className="flex gap-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf"
+            onChange={handleImportPDF}
+            className="hidden"
+          />
+          <Button
+            variant="secondary"
+            size="lg"
+            icon={<Upload size={18} />}
+            onClick={() => fileInputRef.current?.click()}
+            loading={importing}
+          >
+            {importing ? 'AI analysoi...' : 'Tuo PDF:stä'}
+          </Button>
+          <Button
+            variant="primary"
+            size="lg"
+            icon={<Plus size={18} />}
+            onClick={handleCreate}
+          >
+            Uusi tarkastus
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}

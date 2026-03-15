@@ -30,6 +30,7 @@ export const PhotoCaptureButton: React.FC<PhotoCaptureButtonProps> = ({
             mediaTypes: ['images'],
             quality: 0.7,
             base64: true,
+            exif: true,
           });
           if (!result.canceled && result.assets[0]) {
             await processImage(result.assets[0]);
@@ -48,6 +49,7 @@ export const PhotoCaptureButton: React.FC<PhotoCaptureButtonProps> = ({
             mediaTypes: ['images'],
             quality: 0.7,
             base64: true,
+            exif: true,
           });
           if (!result.canceled && result.assets[0]) {
             await processImage(result.assets[0]);
@@ -59,6 +61,10 @@ export const PhotoCaptureButton: React.FC<PhotoCaptureButtonProps> = ({
   };
 
   const processImage = async (asset: ImagePicker.ImagePickerAsset) => {
+    const exif = asset.exif;
+    const gpsLat = exif?.GPSLatitude as number | undefined;
+    const gpsLon = exif?.GPSLongitude as number | undefined;
+
     const photo: Photo = {
       id: uuidv4(),
       uri: asset.uri,
@@ -67,6 +73,18 @@ export const PhotoCaptureButton: React.FC<PhotoCaptureButtonProps> = ({
       caption: '',
       captionLoading: true,
       timestamp: new Date().toISOString(),
+      ...(gpsLat != null && { gpsLatitude: gpsLat }),
+      ...(gpsLon != null && { gpsLongitude: gpsLon }),
+      ...(exif && {
+        originalExif: {
+          make: exif.Make as string | undefined,
+          model: exif.Model as string | undefined,
+          dateTimeOriginal: exif.DateTimeOriginal as string | undefined,
+          ...(gpsLat != null && gpsLon != null && {
+            gps: { latitude: gpsLat, longitude: gpsLon },
+          }),
+        },
+      }),
     };
 
     onPhotoAdded(photo);

@@ -114,6 +114,13 @@ export async function analyzePhotoDefects(
   return post('/analyze-photo', { imageBase64, mediaType, category, buildingContext });
 }
 
+export async function importPDFReport(
+  pdfBase64: string,
+  filename: string
+): Promise<Partial<import('../types').InspectionReport>> {
+  return post('/import-pdf', { pdfBase64, filename });
+}
+
 export async function transcribeAudio(audioUri: string): Promise<string> {
   const formData = new FormData();
   formData.append('audio', {

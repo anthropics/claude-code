@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf';
 import { InspectionReport } from '../types';
+import { LEGAL_TERMS } from './legalTerms';
 
 // Helper to strip markdown formatting for plain-text PDF
 function stripMarkdown(text: string): string {
@@ -20,9 +21,9 @@ function formatDate(isoString: string): string {
 }
 
 /**
- * Generates a professional PDF report from the inspection data
+ * Builds a jsPDF document from report data (internal helper)
  */
-export async function generatePDF(report: InspectionReport): Promise<void> {
+function buildPDF(report: InspectionReport): { pdf: jsPDF; filename: string } {
   const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const pageWidth = 210;
   const margin = 20;
@@ -318,6 +319,72 @@ export async function generatePDF(report: InspectionReport): Promise<void> {
     addText(stripMarkdown(report.summary.finalSummary), 9);
   }
 
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // SIGNATURES & LEGAL DISCLAIMER PAGE
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  pdf.addPage();
+  y = margin;
+
+  // Signatures
+  if (report.signatures?.inspector || report.signatures?.client) {
+    addSectionTitle('ALLEKIRJOITUKSET');
+
+    const drawSignature = (sig: { name: string; signatureDataUrl: string; timestamp: string }, role: string) => {
+      checkPageBreak(40);
+      pdf.setFontSize(8);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(...colors.secondary);
+      pdf.text(role, margin, y);
+      y += 5;
+
+      try {
+        pdf.addImage(sig.signatureDataUrl, 'PNG', margin, y, 60, 20);
+      } catch {
+        // skip invalid signature image
+      }
+      y += 22;
+
+      pdf.setFontSize(8);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(...colors.text);
+      pdf.text(sig.name, margin, y);
+      y += 4;
+      pdf.setTextColor(...colors.muted);
+      pdf.text(formatDate(sig.timestamp), margin, y);
+      y += 8;
+    };
+
+    if (report.signatures?.inspector) {
+      drawSignature(report.signatures.inspector, 'TARKASTAJA');
+    }
+    if (report.signatures?.client) {
+      drawSignature(report.signatures.client, 'TILAAJA');
+    }
+    y += 6;
+  }
+
+  // Insurance info
+  if (pi.inspectorInsuranceNumber) {
+    checkPageBreak(10);
+    pdf.setFontSize(8);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(...colors.secondary);
+    pdf.text('VASTUUVAKUUTUS:', margin, y);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setTextColor(...colors.text);
+    pdf.text(pi.inspectorInsuranceNumber, margin + 35, y);
+    y += 8;
+  }
+
+  // Legal disclaimer
+  addSectionTitle('VASTUULAUSEKE JA RAJOITUKSET');
+  const disclaimerLines = LEGAL_TERMS.reportDisclaimer.split('\n');
+  for (const line of disclaimerLines) {
+    if (!line.trim()) { y += 2; continue; }
+    const isBold = /^\d+\./.test(line.trim());
+    addText(line, 7.5, isBold, isBold ? colors.text : colors.secondary);
+  }
+
   // ── Footer on all pages ──────────────────────────────────────────
   const totalPages = (pdf as jsPDF & { internal: { getNumberOfPages: () => number } }).internal.getNumberOfPages();
   for (let page = 1; page <= totalPages; page++) {
@@ -334,10 +401,31 @@ export async function generatePDF(report: InspectionReport): Promise<void> {
     if (page > 1) {
       pdf.setDrawColor(...colors.divider);
       pdf.line(margin, 285, pageWidth - margin, 285);
+
+      // Short disclaimer on every page
+      pdf.setFontSize(5.5);
+      pdf.setTextColor(...colors.muted);
+      pdf.text(LEGAL_TERMS.pdfFooterDisclaimer, pageWidth / 2, 293, { align: 'center', maxWidth: contentWidth });
     }
   }
 
-  // Save
   const filename = `kuntotarkastus_${pi.address?.replace(/\s+/g, '_') || 'raportti'}_${pi.inspectionDate || 'uusi'}.pdf`;
+  return { pdf, filename };
+}
+
+/**
+ * Generates and downloads a PDF report
+ */
+export async function generatePDF(report: InspectionReport): Promise<void> {
+  const { pdf, filename } = buildPDF(report);
   pdf.save(filename);
+}
+
+/**
+ * Generates a PDF and returns it as a Blob (for Web Share API)
+ */
+export async function generatePDFBlob(report: InspectionReport): Promise<{ blob: Blob; filename: string }> {
+  const { pdf, filename } = buildPDF(report);
+  const blob = pdf.output('blob');
+  return { blob, filename };
 }
