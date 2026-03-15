@@ -9,6 +9,13 @@ async function authHeaders(): Promise<Record<string, string>> {
   return headers;
 }
 
+async function authHeadersMultipart(): Promise<Record<string, string>> {
+  const headers: Record<string, string> = {};
+  const token = await getToken();
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  return headers;
+}
+
 async function post<T>(endpoint: string, body: Record<string, unknown>): Promise<T> {
   const response = await fetch(`${API_BASE}${endpoint}`, {
     method: 'POST',
@@ -105,4 +112,28 @@ export async function analyzePhotoDefects(
   suggestedObservation: string;
 }> {
   return post('/analyze-photo', { imageBase64, mediaType, category, buildingContext });
+}
+
+export async function transcribeAudio(audioUri: string): Promise<string> {
+  const formData = new FormData();
+  formData.append('audio', {
+    uri: audioUri,
+    type: 'audio/m4a',
+    name: 'recording.m4a',
+  } as any);
+
+  const headers = await authHeadersMultipart();
+  const response = await fetch(`${API_BASE}/transcribe-audio`, {
+    method: 'POST',
+    headers,
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+    throw new Error(error.error || `HTTP ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.text;
 }

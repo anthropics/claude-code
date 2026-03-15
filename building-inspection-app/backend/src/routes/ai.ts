@@ -1,4 +1,7 @@
 import { Router, Request, Response } from 'express';
+import multer from 'multer';
+import OpenAI from 'openai';
+import fs from 'fs';
 import {
   transcribeAndProfessionalize,
   addTechnicalTheory,
@@ -16,6 +19,8 @@ import {
 } from '../services/claudeService';
 import { buildFewShotExamples } from '../services/learningService';
 import { validateToken } from '../services/authService';
+
+const upload = multer({ dest: '/tmp/audio-uploads/', limits: { fileSize: 25 * 1024 * 1024 } });
 
 export const aiRouter = Router();
 
@@ -306,5 +311,46 @@ aiRouter.post('/generate-risk-observations', async (req: Request, res: Response)
   } catch (err) {
     console.error('Generate risk observations error:', err);
     return res.status(500).json({ error: 'AI processing failed' });
+  }
+});
+
+/**
+ * POST /api/ai/transcribe-audio
+ * Transcribes audio recording to text using OpenAI Whisper
+ * Accepts multipart/form-data with 'audio' file field
+ */
+aiRouter.post('/transcribe-audio', upload.single('audio'), async (req: Request, res: Response) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'Audio file is required' });
+    }
+
+    const openaiKey = process.env.OPENAI_API_KEY;
+    if (!openaiKey) {
+      // Clean up temp file
+      fs.unlinkSync(req.file.path);
+      return res.status(500).json({ error: 'OPENAI_API_KEY not configured for speech transcription' });
+    }
+
+    const openai = new OpenAI({ apiKey: openaiKey });
+
+    const transcription = await openai.audio.transcriptions.create({
+      file: fs.createReadStream(req.file.path),
+      model: 'whisper-1',
+      language: 'fi',
+      prompt: 'Kuntotarkastusraportti. Rakennuksen tarkastushavainto.',
+    });
+
+    // Clean up temp file
+    fs.unlinkSync(req.file.path);
+
+    return res.json({ text: transcription.text });
+  } catch (err) {
+    // Clean up temp file on error
+    if (req.file) {
+      try { fs.unlinkSync(req.file.path); } catch {}
+    }
+    console.error('Transcribe audio error:', err);
+    return res.status(500).json({ error: 'Audio transcription failed' });
   }
 });

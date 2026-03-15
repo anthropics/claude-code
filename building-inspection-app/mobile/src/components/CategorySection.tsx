@@ -3,8 +3,12 @@ import {
   View, Text, TouchableOpacity, TextInput, StyleSheet, Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
+import { v4 as uuidv4 } from 'uuid';
 import { InspectionCategory, Observation, Photo, BuildingContext } from '../types';
 import { ObservationCard } from './ObservationCard';
+import { VoiceRecorder } from './VoiceRecorder';
+import { generatePhotoCaption } from '../services/api';
 import { colors } from '../theme/colors';
 
 // Map icon names to Ionicons equivalents
@@ -61,6 +65,102 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
     }
   };
 
+  const handleVoiceTranscription = (text: string) => {
+    onAddObservation(text);
+  };
+
+  const handleQuickPhoto = () => {
+    Alert.alert('Lisää kuva havaintoon', 'Valitse lähde', [
+      {
+        text: 'Kamera',
+        onPress: async () => {
+          const permission = await ImagePicker.requestCameraPermissionsAsync();
+          if (!permission.granted) {
+            Alert.alert('Lupa vaaditaan', 'Salli kameran käyttö asetuksista');
+            return;
+          }
+          const result = await ImagePicker.launchCameraAsync({
+            mediaTypes: ['images'],
+            quality: 0.7,
+            base64: true,
+          });
+          if (!result.canceled && result.assets[0]) {
+            const asset = result.assets[0];
+            // Create observation from photo
+            const photoId = uuidv4();
+            const photo: Photo = {
+              id: photoId,
+              uri: asset.uri,
+              base64: asset.base64 || undefined,
+              mediaType: 'image/jpeg',
+              caption: '',
+              captionLoading: true,
+              timestamp: new Date().toISOString(),
+            };
+            // Add observation with photo placeholder text
+            onAddObservation('📷 Valokuvahavainto');
+            // The photo will be added to the most recent observation via onAddPhoto
+            const latestObs = category.observations[category.observations.length - 1];
+            if (latestObs) {
+              onAddPhoto(latestObs.id, photo);
+              // Generate AI caption
+              if (asset.base64) {
+                try {
+                  const caption = await generatePhotoCaption(asset.base64, 'image/jpeg', category.name);
+                  onAddPhoto(latestObs.id, { ...photo, caption, captionLoading: false });
+                } catch {
+                  onAddPhoto(latestObs.id, { ...photo, captionLoading: false });
+                }
+              }
+            }
+          }
+        },
+      },
+      {
+        text: 'Galleria',
+        onPress: async () => {
+          const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+          if (!permission.granted) {
+            Alert.alert('Lupa vaaditaan', 'Salli kuvagallerian käyttö asetuksista');
+            return;
+          }
+          const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ['images'],
+            quality: 0.7,
+            base64: true,
+          });
+          if (!result.canceled && result.assets[0]) {
+            const asset = result.assets[0];
+            const photoId = uuidv4();
+            const photo: Photo = {
+              id: photoId,
+              uri: asset.uri,
+              base64: asset.base64 || undefined,
+              mediaType: 'image/jpeg',
+              caption: '',
+              captionLoading: true,
+              timestamp: new Date().toISOString(),
+            };
+            onAddObservation('📷 Valokuvahavainto');
+            const latestObs = category.observations[category.observations.length - 1];
+            if (latestObs) {
+              onAddPhoto(latestObs.id, photo);
+              if (asset.base64) {
+                try {
+                  const caption = await generatePhotoCaption(asset.base64, 'image/jpeg', category.name);
+                  onAddPhoto(latestObs.id, { ...photo, caption, captionLoading: false });
+                } catch {
+                  onAddPhoto(latestObs.id, { ...photo, captionLoading: false });
+                }
+              }
+            }
+          }
+        },
+      },
+      { text: 'Peruuta', style: 'cancel' },
+    ]);
+  };
+
   return (
     <View style={[styles.container, hasContent && styles.containerActive]}>
       {/* Header */}
@@ -103,7 +203,7 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
       {/* Expanded content */}
       {expanded && (
         <View style={styles.body}>
-          {/* Text input */}
+          {/* Text input row */}
           <View style={styles.inputRow}>
             <TextInput
               style={styles.textInput}
@@ -121,6 +221,15 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
             >
               <Ionicons name="add" size={20} color={colors.white} />
             </TouchableOpacity>
+          </View>
+
+          {/* Camera & Voice buttons */}
+          <View style={styles.mediaRow}>
+            <TouchableOpacity style={styles.cameraButton} onPress={handleQuickPhoto}>
+              <Ionicons name="camera" size={18} color={colors.gray600} />
+              <Text style={styles.mediaButtonText}>Kuva</Text>
+            </TouchableOpacity>
+            <VoiceRecorder onTranscription={handleVoiceTranscription} />
           </View>
 
           {/* Observations */}
@@ -238,6 +347,25 @@ const styles = StyleSheet.create({
   },
   addButtonDisabled: {
     opacity: 0.5,
+  },
+  mediaRow: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+  },
+  cameraButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    height: 44,
+    borderRadius: 8,
+    backgroundColor: colors.gray100,
+  },
+  mediaButtonText: {
+    fontSize: 13,
+    color: colors.gray600,
+    fontWeight: '500',
   },
   notesContainer: { marginTop: 4 },
   notesLabel: {

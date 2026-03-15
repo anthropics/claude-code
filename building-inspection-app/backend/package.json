@@ -14,6 +14,7 @@
     "dotenv": "^16.4.5",
     "express": "^4.18.2",
     "multer": "^1.4.5-lts.1",
+    "openai": "^6.29.0",
     "uuid": "^9.0.1"
   },
   "devDependencies": {

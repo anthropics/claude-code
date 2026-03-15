@@ -12,15 +12,16 @@
     "@expo/vector-icons": "^14.0.4",
     "@react-native-async-storage/async-storage": "2.1.0",
     "expo": "~54.0.0",
+    "expo-av": "^16.0.8",
     "expo-camera": "~16.1.0",
     "expo-constants": "~17.1.0",
     "expo-image-picker": "~16.1.0",
     "expo-status-bar": "~2.2.0",
     "react": "19.1.0",
     "react-native": "0.81.4",
+    "react-native-gesture-handler": "~2.28.0",
     "react-native-safe-area-context": "~5.4.0",
     "react-native-screens": "~4.16.0",
-    "react-native-gesture-handler": "~2.28.0",
     "uuid": "^9.0.1"
   },
   "devDependencies": {
