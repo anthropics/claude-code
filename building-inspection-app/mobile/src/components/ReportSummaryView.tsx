@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView,
+  View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView, Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { InspectionReport, BuildingContext } from '../types';
 import {
   generateFindingsSummary, generateFinalSummary, checkCompleteness,
 } from '../services/api';
+import { updateReport } from '../services/storage';
+import { exportPDF } from '../utils/pdfGenerator';
 import { colors } from '../theme/colors';
 
 interface ReportSummaryViewProps {
@@ -22,6 +24,8 @@ export const ReportSummaryView: React.FC<ReportSummaryViewProps> = ({
 }) => {
   const [generating, setGenerating] = useState(false);
   const [checkingCompleteness, setCheckingCompleteness] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [completeness, setCompleteness] = useState<{
     completenessPercent: number;
     missingAreas: Array<{ area: string; importance: string; reason: string }>;
@@ -66,6 +70,33 @@ export const ReportSummaryView: React.FC<ReportSummaryViewProps> = ({
       console.error('Completeness check failed:', err);
     }
     setCheckingCompleteness(false);
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await updateReport({
+        ...report,
+        status: 'review',
+        updatedAt: new Date().toISOString(),
+      });
+      Alert.alert('Tallennettu', 'Raportti on tallennettu onnistuneesti.');
+    } catch (err) {
+      console.error('Save failed:', err);
+      Alert.alert('Virhe', 'Tallentaminen epäonnistui.');
+    }
+    setSaving(false);
+  };
+
+  const handleExportPDF = async () => {
+    setExporting(true);
+    try {
+      await exportPDF(report);
+    } catch (err) {
+      console.error('PDF export failed:', err);
+      Alert.alert('Virhe', 'PDF:n vienti epäonnistui.');
+    }
+    setExporting(false);
   };
 
   return (
@@ -165,6 +196,41 @@ export const ReportSummaryView: React.FC<ReportSummaryViewProps> = ({
           </Text>
         </View>
       )}
+
+      {/* Save & Export PDF */}
+      <View style={styles.exportSection}>
+        <Text style={styles.exportTitle}>Tallenna ja vie</Text>
+        <View style={styles.exportButtons}>
+          <TouchableOpacity
+            style={styles.saveButton}
+            onPress={handleSave}
+            disabled={saving}
+          >
+            {saving ? (
+              <ActivityIndicator color={colors.gray600} size="small" />
+            ) : (
+              <>
+                <Ionicons name="save-outline" size={20} color={colors.gray700} />
+                <Text style={styles.saveButtonText}>Tallenna</Text>
+              </>
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.pdfButton}
+            onPress={handleExportPDF}
+            disabled={exporting}
+          >
+            {exporting ? (
+              <ActivityIndicator color={colors.white} size="small" />
+            ) : (
+              <>
+                <Ionicons name="download-outline" size={20} color={colors.white} />
+                <Text style={styles.pdfButtonText}>Vie PDF</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
+      </View>
     </View>
   );
 };
@@ -250,4 +316,52 @@ const styles = StyleSheet.create({
   },
   summaryText: { fontSize: 13, color: colors.gray700, lineHeight: 20 },
   generatedAt: { fontSize: 11, color: colors.gray400, textAlign: 'right' },
+  exportSection: {
+    marginTop: 24,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: colors.gray200,
+  },
+  exportTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.gray900,
+    marginBottom: 12,
+  },
+  exportButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  saveButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.gray300,
+    borderRadius: 12,
+    paddingVertical: 16,
+  },
+  saveButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.gray700,
+  },
+  pdfButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: colors.primary,
+    borderRadius: 12,
+    paddingVertical: 16,
+  },
+  pdfButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.white,
+  },
 });
