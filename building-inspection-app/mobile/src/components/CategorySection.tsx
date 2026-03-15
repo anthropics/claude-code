@@ -65,7 +65,13 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
     }
   };
 
-  const handleVoiceTranscription = (text: string) => {
+  // Add dictated text as-is (raw, no AI processing)
+  const handleVoiceDirect = (text: string) => {
+    setQuickText(text);
+  };
+
+  // Add dictated text and trigger AI formatting
+  const handleVoiceWithAI = (text: string) => {
     onAddObservation(text);
   };
 
@@ -229,7 +235,10 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
               <Ionicons name="camera" size={18} color={colors.gray600} />
               <Text style={styles.mediaButtonText}>Kuva</Text>
             </TouchableOpacity>
-            <VoiceRecorder onTranscription={handleVoiceTranscription} />
+            <VoiceRecorder
+              onTranscriptionDirect={handleVoiceDirect}
+              onTranscriptionWithAI={handleVoiceWithAI}
+            />
           </View>
 
           {/* Observations */}
