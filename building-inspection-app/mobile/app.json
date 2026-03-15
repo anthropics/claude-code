@@ -23,6 +23,18 @@
       },
       "package": "com.kuntotarkastus.ai"
     },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/UPDATE_URL_PLACEHOLDER"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "EAS_PROJECT_ID_PLACEHOLDER"
+      }
+    },
+    "owner": "EAS_OWNER_PLACEHOLDER",
     "plugins": [
       [
         "expo-camera",
