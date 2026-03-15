@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Ralph Loop Setup Script
 # Creates state file for in-session Ralph loop
@@ -109,8 +109,8 @@ HELP_EOF
   esac
 done
 
-# Join all prompt parts with spaces
-PROMPT="${PROMPT_PARTS[*]}"
+# Join all prompt parts with spaces (handle empty array with set -u)
+PROMPT="${PROMPT_PARTS[*]:-}"
 
 # Validate prompt is non-empty
 if [[ -z "$PROMPT" ]]; then
