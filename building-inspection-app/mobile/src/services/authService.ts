@@ -2,8 +2,6 @@ import { Platform } from 'react-native';
 import { AUTH_BASE } from './config';
 import { getToken, getUserRaw, saveToken, saveUserRaw, clearAuthStorage } from './authStorage';
 
-export { getToken } from './authStorage';
-
 export interface AuthUser {
   id: string;
   email: string;
