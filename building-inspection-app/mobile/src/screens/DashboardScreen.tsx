@@ -5,10 +5,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { InspectionReport, ReportStatus } from '../types';
-import * as DocumentPicker from 'expo-document-picker';
-import * as FileSystem from 'expo-file-system';
-import { getAllReports, createReport, createReportFromImport, deleteReport, duplicateReport } from '../services/storage';
-import { importPDFReport } from '../services/api';
+import { getAllReports, createReport, deleteReport, duplicateReport } from '../services/storage';
 import { logout } from '../services/authService';
 import { colors } from '../theme/colors';
 
@@ -28,7 +25,6 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onOpenReport, 
   const [reports, setReports] = useState<InspectionReport[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [importing, setImporting] = useState(false);
 
   const loadData = useCallback(async () => {
     const data = await getAllReports();
@@ -50,30 +46,6 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onOpenReport, 
     const report = await createReport();
     setCreating(false);
     onOpenReport(report.id);
-  };
-
-  const handleImportPDF = async () => {
-    try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: 'application/pdf',
-        copyToCacheDirectory: true,
-      });
-      if (result.canceled || !result.assets?.[0]) return;
-      setImporting(true);
-      const file = result.assets[0];
-      const base64 = await FileSystem.readAsStringAsync(file.uri, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
-      const data = await importPDFReport(base64, file.name || 'report.pdf');
-      const report = await createReportFromImport(data);
-      await loadData();
-      onOpenReport(report.id);
-    } catch (err) {
-      console.error('PDF import failed:', err);
-      Alert.alert('Virhe', 'PDF-tuonti epäonnistui. Tarkista tiedosto ja yritä uudelleen.');
-    } finally {
-      setImporting(false);
-    }
   };
 
   const handleDelete = (id: string) => {
@@ -198,29 +170,17 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onOpenReport, 
         ))}
       </View>
 
-      {/* Action buttons */}
-      <View style={styles.actionRow}>
-        <TouchableOpacity style={styles.importButton} onPress={handleImportPDF} disabled={importing}>
-          {importing ? (
-            <ActivityIndicator color={colors.primary} size="small" />
-          ) : (
-            <>
-              <Ionicons name="cloud-upload-outline" size={18} color={colors.primary} />
-              <Text style={styles.importButtonText}>{importing ? 'AI analysoi...' : 'Tuo PDF:stä'}</Text>
-            </>
-          )}
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.createButton} onPress={handleCreate} disabled={creating}>
-          {creating ? (
-            <ActivityIndicator color={colors.white} size="small" />
-          ) : (
-            <>
-              <Ionicons name="add" size={20} color={colors.white} />
-              <Text style={styles.createButtonText}>Uusi tarkastus</Text>
-            </>
-          )}
-        </TouchableOpacity>
-      </View>
+      {/* Create button */}
+      <TouchableOpacity style={styles.createButton} onPress={handleCreate} disabled={creating}>
+        {creating ? (
+          <ActivityIndicator color={colors.white} size="small" />
+        ) : (
+          <>
+            <Ionicons name="add" size={20} color={colors.white} />
+            <Text style={styles.createButtonText}>Uusi tarkastus</Text>
+          </>
+        )}
+      </TouchableOpacity>
 
       {/* Report list */}
       {reports.length === 0 ? (
@@ -278,36 +238,18 @@ const styles = StyleSheet.create({
   },
   statValue: { fontSize: 22, fontWeight: '700' },
   statLabel: { fontSize: 11, color: colors.gray500, marginTop: 2 },
-  actionRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginHorizontal: 20,
-    marginBottom: 12,
-  },
-  importButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.primary,
-    borderRadius: 12,
-    paddingVertical: 14,
-  },
-  importButtonText: { color: colors.primary, fontSize: 14, fontWeight: '600' },
   createButton: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
     backgroundColor: colors.primary,
+    marginHorizontal: 20,
+    marginBottom: 12,
     borderRadius: 12,
     paddingVertical: 14,
   },
-  createButtonText: { color: colors.white, fontSize: 14, fontWeight: '600' },
+  createButtonText: { color: colors.white, fontSize: 15, fontWeight: '600' },
   listContent: { paddingHorizontal: 20, paddingBottom: 32 },
   reportCard: {
     flexDirection: 'row',

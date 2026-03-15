@@ -166,18 +166,6 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ propertyInfo, onChan
           <Field field="inspector" label="Tarkastaja" placeholder="Etu Sukunimi" />
           <Field field="inspectorTitle" label="Titteli" placeholder="Rakennusterveysasiantuntija" />
           <Field field="inspectorQualification" label="Pätevyys" options={inspectorQualifications} />
-          <Field field="inspectorInsuranceNumber" label="Vastuuvakuutuksen numero" placeholder="FI-12345678" />
-        </div>
-        <div className="mt-3">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={propertyInfo.kh90Compliant !== false}
-              onChange={e => onChange('kh90Compliant', e.target.checked)}
-              className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-            />
-            <span className="text-xs text-gray-700">Tarkastus suoritetaan KH 90-00394 suoritusohjeen mukaisesti</span>
-          </label>
         </div>
       </section>
 

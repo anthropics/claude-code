@@ -53,7 +53,6 @@ export async function createReport(): Promise<InspectionReport> {
       buildYear: '', buildingType: 'Omakotitalo', floorArea: '', floors: '', energyClass: '',
       owner: '', ownerPhone: '', realEstateAgent: '',
       inspector: '', inspectorTitle: 'Rakennusterveysasiantuntija', inspectorQualification: '',
-      inspectorInsuranceNumber: '', kh90Compliant: true,
       inspectionDate: today, weatherConditions: '',
       outdoorTemp: '', outdoorHumidity: '', indoorTemp: '', indoorHumidity: '',
       devicesUsed: '',
@@ -88,38 +87,6 @@ export async function updateReport(report: InspectionReport): Promise<void> {
 export async function deleteReport(id: string): Promise<void> {
   const reports = (await loadReports()).filter(r => r.id !== id);
   await saveReports(reports);
-}
-
-export async function createReportFromImport(
-  importedData: Partial<InspectionReport>
-): Promise<InspectionReport> {
-  const base = await createReport();
-  const merged: InspectionReport = {
-    ...base,
-    propertyInfo: {
-      ...base.propertyInfo,
-      ...(importedData.propertyInfo || {}),
-    },
-    categories: base.categories.map(cat => {
-      const imported = importedData.categories?.find(ic => ic.id === cat.id);
-      if (imported) {
-        return {
-          ...cat,
-          observations: [...cat.observations, ...imported.observations],
-          notes: imported.notes || cat.notes,
-        };
-      }
-      return cat;
-    }),
-    history: [{
-      id: uuidv4(),
-      timestamp: new Date().toISOString(),
-      changeType: 'observation_added' as const,
-      description: 'Raportti tuotu PDF-tiedostosta AI-analyysillä',
-    }],
-  };
-  await updateReport(merged);
-  return merged;
 }
 
 export async function duplicateReport(id: string): Promise<InspectionReport | null> {

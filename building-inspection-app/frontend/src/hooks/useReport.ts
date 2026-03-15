@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { InspectionReport, Observation, Photo, UrgencyLevel, ReportVersion } from '../types';
+import { InspectionReport, Observation, Photo, UrgencyLevel } from '../types';
 import { updateReport, getReport } from '../services/storage';
 import { processObservationFull, BuildingContext } from '../services/api';
 import { syncCorrectionsToBackend, getUnsyncedCorrections } from '../services/learningStore';
@@ -33,25 +33,6 @@ export function useReport(initialReport: InspectionReport) {
       window.removeEventListener('online', syncLearning);
       clearInterval(interval);
     };
-  }, []);
-
-  const addHistoryEntry = useCallback((
-    report: InspectionReport,
-    changeType: ReportVersion['changeType'],
-    description: string,
-    categoryId?: string,
-    observationId?: string,
-  ): InspectionReport => {
-    const entry: ReportVersion = {
-      id: uuidv4(),
-      timestamp: new Date().toISOString(),
-      changeType,
-      description,
-      categoryId,
-      observationId,
-    };
-    const history = [...(report.history || []), entry].slice(-100);
-    return { ...report, history };
   }, []);
 
   const save = useCallback((updatedReport: InspectionReport) => {
@@ -108,8 +89,7 @@ export function useReport(initialReport: InspectionReport) {
         updatedAt: now,
       };
 
-      const categoryName = report.categories.find(c => c.id === categoryId)?.name || categoryId;
-      let updated: InspectionReport = {
+      const updated = {
         ...report,
         status: 'in_progress' as const,
         categories: report.categories.map(cat =>
@@ -118,13 +98,13 @@ export function useReport(initialReport: InspectionReport) {
             : cat
         ),
       };
-      updated = addHistoryEntry(updated, 'observation_added', `Lisätty havainto kategoriaan ${categoryName}`, categoryId, observation.id);
       save(updated);
 
       // Auto-process with AI in the background
       const obsId = observation.id;
       if (!processingQueue.current.has(obsId)) {
         processingQueue.current.add(obsId);
+        const categoryName = report.categories.find(c => c.id === categoryId)?.name || categoryId;
         const context = getBuildingContext();
 
         processObservationFull(rawText, categoryName, context)
@@ -247,8 +227,7 @@ export function useReport(initialReport: InspectionReport) {
 
   const deleteObservation = useCallback(
     (categoryId: string, observationId: string) => {
-      const categoryName = report.categories.find(c => c.id === categoryId)?.name || categoryId;
-      let updated: InspectionReport = {
+      const updated = {
         ...report,
         categories: report.categories.map(cat =>
           cat.id === categoryId
@@ -256,10 +235,9 @@ export function useReport(initialReport: InspectionReport) {
             : cat
         ),
       };
-      updated = addHistoryEntry(updated, 'observation_deleted', `Poistettu havainto kategoriasta ${categoryName}`, categoryId, observationId);
       save(updated);
     },
-    [report, save, addHistoryEntry]
+    [report, save]
   );
 
   const addPhoto = useCallback(
@@ -324,7 +302,7 @@ export function useReport(initialReport: InspectionReport) {
 
   const updateSummary = useCallback(
     (findingsSummary: string, finalSummary: string) => {
-      let updated: InspectionReport = {
+      const updated = {
         ...report,
         status: 'completed' as const,
         summary: {
@@ -333,10 +311,9 @@ export function useReport(initialReport: InspectionReport) {
           generatedAt: new Date().toISOString(),
         },
       };
-      updated = addHistoryEntry(updated, 'summary_generated', 'Yhteenveto generoitu');
       save(updated);
     },
-    [report, save, addHistoryEntry]
+    [report, save]
   );
 
   return {

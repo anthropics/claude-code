@@ -2,26 +2,21 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Download, Save, CheckCircle, ClipboardList,
-  LayoutList, Sparkles, Building2, AlertCircle, Share2, Clock,
-  Shield
+  LayoutList, Sparkles, Building2, AlertCircle
 } from 'lucide-react';
 import { getReport } from '../services/storage';
-import { InspectionReport, UrgencyLevel, ReportSignature } from '../types';
+import { InspectionReport, UrgencyLevel } from '../types';
 import { useReport } from '../hooks/useReport';
 import { PropertyForm } from '../components/Report/PropertyForm';
 import { RiskStructurePanel } from '../components/Report/RiskStructurePanel';
 import { CategorySection } from '../components/Inspection/CategorySection';
 import { ReportSummaryView } from '../components/Report/ReportSummaryView';
-import { ReportHistory } from '../components/Report/ReportHistory';
-import { SignaturePad } from '../components/Report/SignaturePad';
-import { LegalTermsModal } from '../components/Report/LegalTermsModal';
 import { Button } from '../components/UI/Button';
-import { generatePDF, generatePDFBlob } from '../utils/pdfGenerator';
-import { LEGAL_TERMS } from '../utils/legalTerms';
+import { generatePDF } from '../utils/pdfGenerator';
 import { detectRiskStructures } from '../utils/riskDetector';
 import { getLifespanWarnings } from '../utils/lifespanDatabase';
 
-type Tab = 'property' | 'inspection' | 'summary' | 'history';
+type Tab = 'property' | 'inspection' | 'summary';
 
 export const ReportPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -66,14 +61,11 @@ const ReportPageContent: React.FC<{
     updateCategoryNotes,
     updateSummary,
     getBuildingContext,
-    save,
   } = useReport(initialReport);
 
   const [activeTab, setActiveTab] = useState<Tab>('property');
   const [exporting, setExporting] = useState(false);
-  const [sharing, setSharing] = useState(false);
   const [saveFlash, setSaveFlash] = useState(false);
-  const [showLegalTerms, setShowLegalTerms] = useState(false);
 
   const totalObs = report.categories.reduce((s, c) => s + c.observations.length, 0);
   const filledCategories = report.categories.filter(c => c.observations.length > 0).length;
@@ -100,49 +92,9 @@ const ReportPageContent: React.FC<{
     }
   };
 
-  const handleSharePDF = async () => {
-    setSharing(true);
-    try {
-      const { blob, filename } = await generatePDFBlob(report);
-      const file = new File([blob], filename, { type: 'application/pdf' });
-
-      if (navigator.share && navigator.canShare?.({ files: [file] })) {
-        await navigator.share({
-          title: `Kuntotarkastusraportti – ${report.propertyInfo.address}`,
-          files: [file],
-        });
-      } else {
-        // Fallback: download + hint
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        a.click();
-        URL.revokeObjectURL(url);
-        alert('PDF ladattu. Jaa se sähköpostilla tai muulla tavalla.');
-      }
-    } catch (err) {
-      if ((err as Error).name !== 'AbortError') {
-        console.error('Share failed:', err);
-      }
-    } finally {
-      setSharing(false);
-    }
-  };
-
   const handleSave = () => {
     setSaveFlash(true);
     setTimeout(() => setSaveFlash(false), 2000);
-  };
-
-  const handleSignature = (role: 'inspector' | 'client', dataUrl: string) => {
-    const name = role === 'inspector' ? report.propertyInfo.inspector : report.propertyInfo.clientName;
-    const sig: ReportSignature = { name, signatureDataUrl: dataUrl, timestamp: new Date().toISOString() };
-    const updated = {
-      ...report,
-      signatures: { ...report.signatures, [role]: sig },
-    };
-    save(updated);
   };
 
   // Handler for adding risk observation templates to the report
@@ -169,13 +121,6 @@ const ReportPageContent: React.FC<{
       label: 'Yhteenveto',
       shortLabel: 'Yhteenveto',
       icon: <Sparkles size={15} />,
-    },
-    {
-      id: 'history',
-      label: 'Historia',
-      shortLabel: 'Historia',
-      icon: <Clock size={15} />,
-      badge: report.history?.length || undefined,
     },
   ];
 
@@ -218,13 +163,24 @@ const ReportPageContent: React.FC<{
           >
             {saveFlash ? <CheckCircle size={18} className="text-green-600" /> : <Save size={18} />}
           </button>
-          <button
-            onClick={() => setShowLegalTerms(true)}
-            className="p-2 text-gray-400 hover:text-blue-600 hover:bg-gray-100 rounded-lg transition-colors"
-            aria-label="Sopimusehdot"
-            title="Sopimusehdot"
+          <Button
+            size="sm"
+            variant="primary"
+            icon={<Download size={15} />}
+            onClick={handleExportPDF}
+            loading={exporting}
+            className="hidden sm:inline-flex"
           >
-            <Shield size={18} />
+            Vie PDF
+          </Button>
+          {/* Mobile PDF: icon only */}
+          <button
+            onClick={handleExportPDF}
+            disabled={exporting}
+            className="sm:hidden p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 touch-target disabled:opacity-50"
+            aria-label="Vie PDF"
+          >
+            <Download size={18} />
           </button>
         </div>
       </header>
@@ -372,91 +328,19 @@ const ReportPageContent: React.FC<{
               }}
             />
 
-            {/* Signatures */}
-            <section className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-              <div className="p-4 border-b border-gray-100">
-                <h3 className="font-semibold text-gray-900 text-sm flex items-center gap-2">
-                  <Shield size={16} className="text-blue-600" />
-                  Allekirjoitukset
-                </h3>
-              </div>
-              <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <SignaturePad
-                  label="Tarkastajan allekirjoitus"
-                  onSign={(dataUrl) => handleSignature('inspector', dataUrl)}
-                  existingSignature={report.signatures?.inspector?.signatureDataUrl}
-                  signerName={report.signatures?.inspector?.name}
-                />
-                <SignaturePad
-                  label="Tilaajan allekirjoitus"
-                  onSign={(dataUrl) => handleSignature('client', dataUrl)}
-                  existingSignature={report.signatures?.client?.signatureDataUrl}
-                  signerName={report.signatures?.client?.name}
-                />
-              </div>
-            </section>
-
-            {/* Legal terms link */}
-            <div className="flex items-center justify-center">
-              <button
-                onClick={() => setShowLegalTerms(true)}
-                className="text-xs text-blue-600 hover:text-blue-800 underline flex items-center gap-1"
+            <div className="mt-6 flex justify-end">
+              <Button
+                variant="primary"
+                icon={<Download size={15} />}
+                onClick={handleExportPDF}
+                loading={exporting}
               >
-                <Shield size={12} />
-                Näytä sopimusehdot ja vastuulausekkeet
-              </button>
-            </div>
-
-            {/* PDF Export buttons */}
-            <div className="bg-white rounded-xl border border-gray-200 p-4">
-              <h4 className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-3">Vie raportti</h4>
-              <div className="flex gap-3">
-                <Button
-                  variant="primary"
-                  icon={<Download size={15} />}
-                  onClick={handleExportPDF}
-                  loading={exporting}
-                  className="flex-1"
-                >
-                  Tallenna PDF
-                </Button>
-                <Button
-                  variant="secondary"
-                  icon={<Share2 size={15} />}
-                  onClick={handleSharePDF}
-                  loading={sharing}
-                  className="flex-1"
-                >
-                  Jaa PDF
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* History tab */}
-        {activeTab === 'history' && (
-          <div className="p-3 sm:p-4 lg:p-6 max-w-3xl mx-auto">
-            <div className="mb-4">
-              <h2 className="text-lg font-bold text-gray-900">Muutoshistoria</h2>
-              <p className="text-sm text-gray-500 mt-0.5">
-                Raportin kaikki muutokset aikajärjestyksessä.
-              </p>
-            </div>
-            <div className="bg-white rounded-xl border border-gray-200 p-4">
-              <ReportHistory history={report.history || []} />
+                Lataa PDF-raportti
+              </Button>
             </div>
           </div>
         )}
       </div>
-
-      {/* Legal Terms Modal */}
-      <LegalTermsModal
-        isOpen={showLegalTerms}
-        onClose={() => setShowLegalTerms(false)}
-        title="Sopimusehdot ja vastuulausekkeet"
-        content={LEGAL_TERMS.serviceTerms}
-      />
 
       {/* Mobile bottom navigation */}
       <nav className="sm:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 bottom-nav z-20">

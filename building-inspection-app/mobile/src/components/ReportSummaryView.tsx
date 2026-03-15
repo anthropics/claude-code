@@ -8,7 +8,7 @@ import {
   generateFindingsSummary, generateFinalSummary, checkCompleteness,
 } from '../services/api';
 import { updateReport } from '../services/storage';
-import { exportPDF, printPDF } from '../utils/pdfGenerator';
+import { exportPDF } from '../utils/pdfGenerator';
 import { colors } from '../theme/colors';
 
 interface ReportSummaryViewProps {
@@ -26,7 +26,6 @@ export const ReportSummaryView: React.FC<ReportSummaryViewProps> = ({
   const [checkingCompleteness, setCheckingCompleteness] = useState(false);
   const [saving, setSaving] = useState(false);
   const [exporting, setExporting] = useState(false);
-  const [printing, setPrinting] = useState(false);
   const [completeness, setCompleteness] = useState<{
     completenessPercent: number;
     missingAreas: Array<{ area: string; importance: string; reason: string }>;
@@ -95,20 +94,9 @@ export const ReportSummaryView: React.FC<ReportSummaryViewProps> = ({
       await exportPDF(report);
     } catch (err) {
       console.error('PDF export failed:', err);
-      Alert.alert('Virhe', 'PDF:n jakaminen epäonnistui.');
+      Alert.alert('Virhe', 'PDF:n vienti epäonnistui.');
     }
     setExporting(false);
-  };
-
-  const handlePrint = async () => {
-    setPrinting(true);
-    try {
-      await printPDF(report);
-    } catch (err) {
-      console.error('Print failed:', err);
-      Alert.alert('Virhe', 'Tulostaminen epäonnistui.');
-    }
-    setPrinting(false);
   };
 
   return (
@@ -222,7 +210,7 @@ export const ReportSummaryView: React.FC<ReportSummaryViewProps> = ({
               <ActivityIndicator color={colors.gray600} size="small" />
             ) : (
               <>
-                <Ionicons name="save-outline" size={18} color={colors.gray700} />
+                <Ionicons name="save-outline" size={20} color={colors.gray700} />
                 <Text style={styles.saveButtonText}>Tallenna</Text>
               </>
             )}
@@ -236,22 +224,8 @@ export const ReportSummaryView: React.FC<ReportSummaryViewProps> = ({
               <ActivityIndicator color={colors.white} size="small" />
             ) : (
               <>
-                <Ionicons name="share-outline" size={18} color={colors.white} />
-                <Text style={styles.pdfButtonText}>Jaa PDF</Text>
-              </>
-            )}
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.printButton}
-            onPress={handlePrint}
-            disabled={printing}
-          >
-            {printing ? (
-              <ActivityIndicator color={colors.primary} size="small" />
-            ) : (
-              <>
-                <Ionicons name="print-outline" size={18} color={colors.primary} />
-                <Text style={styles.printButtonText}>Tulosta</Text>
+                <Ionicons name="download-outline" size={20} color={colors.white} />
+                <Text style={styles.pdfButtonText}>Vie PDF</Text>
               </>
             )}
           </TouchableOpacity>
@@ -371,7 +345,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   saveButtonText: {
-    fontSize: 13,
+    fontSize: 15,
     fontWeight: '600',
     color: colors.gray700,
   },
@@ -386,25 +360,8 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   pdfButtonText: {
-    fontSize: 13,
+    fontSize: 15,
     fontWeight: '600',
     color: colors.white,
-  },
-  printButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.primary,
-    borderRadius: 12,
-    paddingVertical: 16,
-  },
-  printButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.primary,
   },
 });

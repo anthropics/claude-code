@@ -240,31 +240,6 @@ export async function analyzePhotoDefects(
 }
 
 /**
- * Imports a PDF building inspection report and converts it to structured data via AI
- */
-export async function importPDFReport(file: File): Promise<Partial<import('../types').InspectionReport>> {
-  const formData = new FormData();
-  formData.append('pdf', file);
-
-  const token = getToken();
-  const headers: Record<string, string> = {};
-  if (token) headers['Authorization'] = `Bearer ${token}`;
-
-  const response = await fetch(`${API_BASE}/import-pdf`, {
-    method: 'POST',
-    headers,
-    body: formData,
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-    throw new Error(error.error || `HTTP ${response.status}`);
-  }
-
-  return response.json();
-}
-
-/**
  * Generates observation templates from detected risk structures
  */
 export async function generateRiskObservations(

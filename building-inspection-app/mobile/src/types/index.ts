@@ -8,15 +8,6 @@ export interface Photo {
   caption: string;
   captionLoading?: boolean;
   timestamp: string;
-  gpsLatitude?: number;
-  gpsLongitude?: number;
-  gpsAccuracy?: number;
-  originalExif?: {
-    make?: string;
-    model?: string;
-    dateTimeOriginal?: string;
-    gps?: { latitude: number; longitude: number };
-  };
 }
 
 export interface Observation {
@@ -81,8 +72,6 @@ export interface PropertyInfo {
   accessLimitations: string;
   availableDocuments: string;
   ownerDefects: string;
-  inspectorInsuranceNumber: string;
-  kh90Compliant: boolean;
   repairHistory: RepairHistoryItem[];
   clientName: string;
   clientPhone: string;
@@ -105,40 +94,12 @@ export interface ReportSummary {
 
 export type ReportStatus = 'draft' | 'in_progress' | 'review' | 'completed';
 
-export interface ReportSignature {
-  name: string;
-  signatureDataUrl: string;
-  timestamp: string;
-}
-
-export interface ReportVersion {
-  id: string;
-  timestamp: string;
-  changeType: 'observation_added' | 'observation_edited' | 'observation_deleted' |
-              'property_updated' | 'summary_generated' | 'status_changed' | 'signature_added';
-  description: string;
-  categoryId?: string;
-  observationId?: string;
-}
-
-export interface KH90CheckStatus {
-  [categoryId: string]: {
-    [checkItemId: string]: boolean;
-  };
-}
-
 export interface InspectionReport {
   id: string;
   status: ReportStatus;
   propertyInfo: PropertyInfo;
   categories: InspectionCategory[];
   summary: ReportSummary | null;
-  signatures?: {
-    inspector?: ReportSignature;
-    client?: ReportSignature;
-  };
-  history?: ReportVersion[];
-  kh90CheckStatus?: KH90CheckStatus;
   createdAt: string;
   updatedAt: string;
 }

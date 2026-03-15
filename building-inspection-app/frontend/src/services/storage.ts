@@ -57,8 +57,6 @@ export function createReport(): InspectionReport {
       inspector: '',
       inspectorTitle: 'Rakennusterveysasiantuntija',
       inspectorQualification: '',
-      inspectorInsuranceNumber: '',
-      kh90Compliant: true,
       // Tarkastusolosuhteet
       inspectionDate: today,
       weatherConditions: '',
@@ -113,33 +111,6 @@ export function updateReport(report: InspectionReport): void {
 export function deleteReport(id: string): void {
   const reports = loadReports().filter(r => r.id !== id);
   saveReports(reports);
-}
-
-export function createReportFromImport(importedData: Partial<InspectionReport>): InspectionReport {
-  const base = createReport();
-
-  // Merge property info
-  if (importedData.propertyInfo) {
-    base.propertyInfo = { ...base.propertyInfo, ...importedData.propertyInfo };
-  }
-
-  // Merge observations into matching categories
-  if (importedData.categories) {
-    for (const importedCat of importedData.categories) {
-      const targetCat = base.categories.find(c => c.id === importedCat.id);
-      if (targetCat && importedCat.observations) {
-        targetCat.observations = importedCat.observations;
-        if (importedCat.notes) targetCat.notes = importedCat.notes;
-      }
-    }
-  }
-
-  base.status = 'draft';
-  base.propertyInfo.inspectionDate = new Date().toISOString().split('T')[0];
-  base.history = [{ id: uuidv4(), timestamp: new Date().toISOString(), changeType: 'status_changed', description: 'Raportti tuotu PDF:stä AI-muunnoksella' }];
-
-  updateReport(base);
-  return base;
 }
 
 export function duplicateReport(id: string): InspectionReport | null {

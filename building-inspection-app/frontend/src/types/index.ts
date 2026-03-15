@@ -11,16 +11,6 @@ export interface Photo {
   caption: string;           // AI-generated or manual
   captionLoading?: boolean;
   timestamp: string;
-  // EXIF metadata for evidential value
-  gpsLatitude?: number;
-  gpsLongitude?: number;
-  gpsAccuracy?: number;
-  originalExif?: {
-    make?: string;
-    model?: string;
-    dateTimeOriginal?: string;
-    gps?: { latitude: number; longitude: number };
-  };
 }
 
 export interface Observation {
@@ -70,8 +60,6 @@ export interface PropertyInfo {
   inspector: string;
   inspectorTitle: string;
   inspectorQualification: string; // Pätevyys (esim. PKA, AKK)
-  inspectorInsuranceNumber: string; // Vastuuvakuutuksen numero
-  kh90Compliant: boolean;          // KH 90-00394 mukaisuus
 
   // Tarkastusolosuhteet
   inspectionDate: string;
@@ -124,38 +112,12 @@ export interface ReportSummary {
 
 export type ReportStatus = 'draft' | 'in_progress' | 'review' | 'completed';
 
-export interface ReportSignature {
-  name: string;
-  signatureDataUrl: string;
-  timestamp: string;
-}
-
-export interface ReportVersion {
-  id: string;
-  timestamp: string;
-  changeType: 'observation_added' | 'observation_edited' | 'observation_deleted' |
-              'property_updated' | 'summary_generated' | 'status_changed' | 'signature_added';
-  description: string;
-  categoryId?: string;
-  observationId?: string;
-}
-
-export interface KH90CheckStatus {
-  [checkItemId: string]: boolean;
-}
-
 export interface InspectionReport {
   id: string;
   status: ReportStatus;
   propertyInfo: PropertyInfo;
   categories: InspectionCategory[];
   summary: ReportSummary | null;
-  signatures?: {
-    inspector?: ReportSignature;
-    client?: ReportSignature;
-  };
-  history?: ReportVersion[];
-  kh90CheckStatus?: KH90CheckStatus;
   createdAt: string;
   updatedAt: string;
 }

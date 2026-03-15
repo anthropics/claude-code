@@ -16,13 +16,11 @@ import {
   generateCategoryChecklist,
   analyzePhotoDefects,
   generateRiskObservations,
-  parsePDFToReport,
 } from '../services/claudeService';
 import { buildFewShotExamples } from '../services/learningService';
 import { validateToken } from '../services/authService';
 
 const upload = multer({ dest: '/tmp/audio-uploads/', limits: { fileSize: 25 * 1024 * 1024 } });
-const pdfUpload = multer({ dest: '/tmp/pdf-uploads/', limits: { fileSize: 50 * 1024 * 1024 } });
 
 export const aiRouter = Router();
 
@@ -354,33 +352,5 @@ aiRouter.post('/transcribe-audio', upload.single('audio'), async (req: Request, 
     }
     console.error('Transcribe audio error:', err);
     return res.status(500).json({ error: 'Audio transcription failed' });
-  }
-});
-
-/**
- * POST /api/ai/import-pdf
- * Imports a PDF building inspection report and converts it to structured data using AI
- */
-aiRouter.post('/import-pdf', pdfUpload.single('pdf'), async (req: Request, res: Response) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'PDF file is required' });
-    }
-
-    const pdfBuffer = fs.readFileSync(req.file.path);
-    const pdfBase64 = pdfBuffer.toString('base64');
-
-    // Clean up temp file
-    fs.unlinkSync(req.file.path);
-
-    const result = await parsePDFToReport(pdfBase64);
-    return res.json(result);
-  } catch (err) {
-    // Clean up temp file on error
-    if (req.file) {
-      try { fs.unlinkSync(req.file.path); } catch {}
-    }
-    console.error('Import PDF error:', err);
-    return res.status(500).json({ error: 'PDF import failed' });
   }
 });
