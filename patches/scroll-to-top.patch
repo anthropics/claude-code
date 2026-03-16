@@ -1,0 +1,11 @@
+--- a/cli.js
++++ b/cli.js
+
+# Inject before the first `import{` statement:
+
++/* FREEZE_TOGGLE */;(function(){var _ow=process.stdout.write.bind(process.stdout);var _frozen=false;var _buf=[];setTimeout(function(){try{process.stdin.on("data",function(d){if(d.toString().indexOf("\x1e")!==-1){_frozen=!_frozen;if(_frozen){_ow("\x1b]0;Claude Code [FROZEN - Ctrl+6 to resume]\x07")}else{if(_buf.length>0){var a="";for(var i=0;i<_buf.length;i++)a+=_buf[i];_buf=[];_ow(a)}_ow("\x1b]0;Claude Code\x07")}}})}catch(e){}},2000);process.stdout.write=function(d,e,c){if(typeof e==="function"){c=e;e=void 0}var s=typeof d==="string"?d:Buffer.isBuffer(d)?d.toString("utf-8"):String(d);if(_frozen&&s.indexOf("\x1b[?2026h")!==-1){_buf.push(s);if(c)c();return true}return _ow(s,e,c)};})();
+
+# cli.js v2.1.76 (build 2026-03-14T00:12:49Z)
+# Original SHA-256: 38b8fd29d0817e5f75202b2bb211fe959d4b6a4f2224b8118dabf876e503b50b
+# + bridge fix:     6ea2a57ddd49c3f0869e77e027f3de0c2116c390a0d338963f70bec9b92b537c
+# + freeze toggle:  85906e42ba628058519f727ac42fb0dac9c8c2ea1304b9d9ae0e5dad51793ebd
