@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "task_key": "TEST-3001",
+  "task_summary": "Add a comment to the top of README.md",
+  "created_at": "2026-03-16T07:42:29.067648+00:00",
+  "updated_at": "2026-03-16T07:42:29.067760+00:00",
+  "features": [
+    {
+      "id": "f1",
+      "title": "Add HTML comment to top of README.md",
+      "description": "Prepend <!-- Updated by OpsPilot test --> as the first line of README.md with a trailing blank line before the existing content",
+      "files": [
+        "README.md"
+      ],
+      "verification_steps": [
+        "head -3 README.md"
+      ],
+      "status": "in_progress",
+      "priority": 1,
+      "estimated_files": [
+        "README.md"
+      ]
+    }
+  ],
+  "session_log": []
+}
