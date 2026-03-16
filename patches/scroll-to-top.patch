@@ -2,20 +2,17 @@
 +++ b/cli.js
 
 # === Inject before the first `import{` statement ===
-# Buffer Ink renders, flush ONLY on user input (stdin). No timer. No auto-flush.
+# Buffer Ink renders, replay ALL on user input (stdin). No timer.
 
-+/* SCROLL_FIX_v6 */;(function(){var _ow=process.stdout.write.bind(process.stdout);var _buf=null;var _userInput=false;process.stdin.on("data",function(){_userInput=true});process.stdout.write=function(d,e,c){if(typeof e==="function"){c=e;e=void 0}var s=typeof d==="string"?d:Buffer.isBuffer(d)?d.toString("utf-8"):String(d);if(s.indexOf("\x1b[?2026h")!==-1){if(_userInput){_userInput=false;return _ow(s,e,c)}_buf={s:s,e:e};if(c)c();return true}return _ow(s,e,c)};})();
++/* SCROLL_FIX_v7 */;(function(){var _ow=process.stdout.write.bind(process.stdout);var _buf=[];var _userInput=false;process.stdin.on("data",function(){_userInput=true});function _flush(){if(_buf.length===0)return;var all="";for(var i=0;i<_buf.length;i++)all+=_buf[i];_buf=[];_ow(all)}process.stdout.write=function(d,e,c){if(typeof e==="function"){c=e;e=void 0}var s=typeof d==="string"?d:Buffer.isBuffer(d)?d.toString("utf-8"):String(d);if(s.indexOf("\x1b[?2026h")!==-1){if(_userInput){_userInput=false;_flush();return _ow(s,e,c)}_buf.push(s);if(c)c();return true}return _ow(s,e,c)};})();
 
-# Target: @anthropic-ai/claude-code@2.1.76 cli.js
-# Build: 2026-03-14T00:12:49Z
+# Target: @anthropic-ai/claude-code@2.1.76 cli.js (build 2026-03-14T00:12:49Z)
 #
 # Original SHA-256: 38b8fd29d0817e5f75202b2bb211fe959d4b6a4f2224b8118dabf876e503b50b
 # + bridge fix:     6ea2a57ddd49c3f0869e77e027f3de0c2116c390a0d338963f70bec9b92b537c
-# + scroll v6:      626975ae7894859cfe301c761272c147a61f20a320ab2427807df063e64cfbf1
+# + scroll v7:      a57e8bc8904aeeccbcabae1656543c95b54d2140e8a9afe91829bf14d527e52e
 #
-# Rule: if user has not typed (not at bottom), ZERO screen updates.
-# Flush ONLY when user types (stdin data = at prompt = at bottom).
-# No timer. No auto-flush. No exceptions.
+# v6 only kept the LAST frame → outdated screens on flush (diff chain broken).
+# v7 keeps ALL frames and replays the entire chain on flush → correct output.
 #
 # Root cause: Windows Terminal bug microsoft/terminal#14774
-# SetConsoleCursorPosition always scrolls viewport to cursor.
