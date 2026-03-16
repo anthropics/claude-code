@@ -15,7 +15,7 @@
       "verification_steps": [
         "head -3 README.md"
       ],
-      "status": "in_progress",
+      "status": "passed",
       "priority": 1,
       "estimated_files": [
         "README.md"
