@@ -3,7 +3,7 @@
 # Ralph Loop Setup Script
 # Creates state file for in-session Ralph loop
 
-set -euo pipefail
+set -eo pipefail
 
 # Parse arguments
 PROMPT_PARTS=()
