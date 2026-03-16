@@ -1,9 +1,23 @@
 --- a/cli.js
 +++ b/cli.js
 
-# Inject before the first `import{` statement in cli.js:
+# === Patch 1: Inject before the first `import{` statement ===
+# Stateful stdout.write interceptor — clamps cursor-up across all writes
 
 +/* SCROLL_FIX_v2 */;(function(){var _ow=process.stdout.write.bind(process.stdout);var _gr=function(){return process.stdout.rows||24};var _up=0;process.stdout.write=function(d,e,c){if(typeof e==="function"){c=e;e=void 0}var s=typeof d==="string"?d:Buffer.isBuffer(d)?d.toString("utf-8"):String(d);var dn=0,m,re=/\x1b\[(\d+)B/g;while(m=re.exec(s))dn+=parseInt(m[1],10);var nl=0;for(var i=0;i<s.length;i++)if(s.charCodeAt(i)===10)nl++;_up=Math.max(0,_up-dn-nl);var mx=_gr()-1;s=s.replace(/\x1b\[(\d+)A/g,function(m,n){var v=parseInt(n,10);_up+=v;if(_up>mx){var a=Math.max(0,v-(_up-mx));_up=mx;if(a<=0)return"";return"\x1b["+a+"A"}return m});if(s.indexOf("\x1b[?2026l")!==-1)_up=0;if(s.indexOf("\x1b[H")!==-1)_up=0;return _ow(s,e,c)};})();
+
+# === Patch 2: Increase render throttle from 16ms to 200ms ===
+# Reduces re-renders from 60fps to 5fps — less frequent viewport resets
+
+-var SK6=16;
++var SK6=200;
+
+# === Patch 3: Disable synchronized update mode ===
+# Lets Windows Terminal's native auto-scroll prevention work per-write
+# instead of batching everything into one viewport-resetting sync block
+
+-kk7=qs(XO.SYNCHRONIZED_UPDATE),Ek7=Ks(XO.SYNCHRONIZED_UPDATE)
++kk7="",Ek7=""
 
 # Target: @anthropic-ai/claude-code@2.1.76 cli.js
 # Build: 2026-03-14T00:12:49Z
@@ -14,17 +28,5 @@
 # With bridge fix (PR #34789) applied:
 #   6ea2a57ddd49c3f0869e77e027f3de0c2116c390a0d338963f70bec9b92b537c
 #
-# With both bridge + scroll v2 fixes applied:
-#   31d7b99667a46ef3df3a0958e937582365acb5d295ae846eeeb623f598c8175a
-#
-# Approach: Stateful stdout.write interceptor that tracks net cursor-up
-# movement across ALL writes (not just sync blocks). Clamps total upward
-# movement to terminal height. Resets on sync block end and cursor home.
-#
-# This catches cursor-up from:
-# - Ink's SH8 renderer (sync blocks)
-# - Inquirer prompt renderer (eraseLines + cursorUp per line)
-# - Any other code path that moves the cursor up
-#
-# The cursor can never go more than (terminal rows - 1) lines above its
-# lowest point, keeping it within the viewport.
+# With all scroll fixes (v2 + throttle + sync disable) applied:
+#   96ed31561b6f04a48f67b583d0491fb3584b7d8a1ae185809569f47e8aaed838
