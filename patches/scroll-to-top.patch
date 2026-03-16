@@ -2,39 +2,20 @@
 +++ b/cli.js
 
 # === Inject before the first `import{` statement ===
-# Buffer Ink renders during active work, flush only on user input or idle
+# Buffer Ink renders, flush ONLY on user input (stdin). No timer. No auto-flush.
 
-+/* SCROLL_FIX_v5 */;(function(){var _ow=process.stdout.write.bind(process.stdout);var _buf=null;var _timer=null;var _userInput=false;var _IDLE=5000;process.stdin.on("data",function(){_userInput=true});function _flush(){if(_timer){clearTimeout(_timer);_timer=null}if(!_buf)return;var b=_buf;_buf=null;_ow(b.s,b.e)}process.stdout.write=function(d,e,c){if(typeof e==="function"){c=e;e=void 0}var s=typeof d==="string"?d:Buffer.isBuffer(d)?d.toString("utf-8"):String(d);if(s.indexOf("\x1b[?2026h")!==-1){if(_userInput){_userInput=false;return _ow(s,e,c)}_buf={s:s,e:e};if(_timer)clearTimeout(_timer);_timer=setTimeout(_flush,_IDLE);if(c)c();return true}return _ow(s,e,c)};})();
++/* SCROLL_FIX_v6 */;(function(){var _ow=process.stdout.write.bind(process.stdout);var _buf=null;var _userInput=false;process.stdin.on("data",function(){_userInput=true});process.stdout.write=function(d,e,c){if(typeof e==="function"){c=e;e=void 0}var s=typeof d==="string"?d:Buffer.isBuffer(d)?d.toString("utf-8"):String(d);if(s.indexOf("\x1b[?2026h")!==-1){if(_userInput){_userInput=false;return _ow(s,e,c)}_buf={s:s,e:e};if(c)c();return true}return _ow(s,e,c)};})();
 
 # Target: @anthropic-ai/claude-code@2.1.76 cli.js
 # Build: 2026-03-14T00:12:49Z
 #
-# Original (unpatched) SHA-256:
-#   38b8fd29d0817e5f75202b2bb211fe959d4b6a4f2224b8118dabf876e503b50b
+# Original SHA-256: 38b8fd29d0817e5f75202b2bb211fe959d4b6a4f2224b8118dabf876e503b50b
+# + bridge fix:     6ea2a57ddd49c3f0869e77e027f3de0c2116c390a0d338963f70bec9b92b537c
+# + scroll v6:      626975ae7894859cfe301c761272c147a61f20a320ab2427807df063e64cfbf1
 #
-# With bridge fix (PR #34789) applied:
-#   6ea2a57ddd49c3f0869e77e027f3de0c2116c390a0d338963f70bec9b92b537c
+# Rule: if user has not typed (not at bottom), ZERO screen updates.
+# Flush ONLY when user types (stdin data = at prompt = at bottom).
+# No timer. No auto-flush. No exceptions.
 #
-# With bridge + scroll v5:
-#   580641c8f9c762b31fce20a9fcfc85b158b1ca52dded5d5495de29c7ec234f2c
-#
-# How it works:
-#   - Intercepts process.stdout.write
-#   - Ink renders (sync blocks with \x1b[?2026h) are BUFFERED, not written
-#   - Only the LATEST frame is kept (previous frames discarded)
-#   - Flush triggers:
-#     (a) User types (stdin data) → next render writes immediately
-#         (user is at the prompt/bottom, viewport follows naturally)
-#     (b) 5 seconds of no new renders → auto-flush
-#         (Claude finished, show final state)
-#   - Non-sync writes pass through immediately
-#
-# Why this works:
-#   Windows Terminal bug microsoft/terminal#14774 causes viewport to jump
-#   on ANY cursor positioning. By not writing to stdout during active work,
-#   the viewport stays wherever the user scrolled. When the user types
-#   (returning to the prompt at the bottom), rendering resumes normally.
-#
-# Trade-off:
-#   Screen is frozen during active Claude work. User sees the result
-#   when Claude pauses or they type. Spinner/progress not visible during work.
+# Root cause: Windows Terminal bug microsoft/terminal#14774
+# SetConsoleCursorPosition always scrolls viewport to cursor.
