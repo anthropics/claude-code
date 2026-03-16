@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "task_key": "TEST-3004",
+  "task_key": "TEST-3005",
   "task_summary": "Add a comment to the top of README.md",
   "created_at": "2026-03-16T08:51:08.000000+00:00",
-  "updated_at": "2026-03-16T08:51:08.000000+00:00",
+  "updated_at": "2026-03-16T09:00:00.000000+00:00",
   "features": [
     {
       "id": "f1",
@@ -15,7 +15,7 @@
       "verification_steps": [
         "head -3 README.md"
       ],
-      "status": "passed",
+      "status": "in_progress",
       "priority": 1,
       "estimated_files": [
         "README.md"
