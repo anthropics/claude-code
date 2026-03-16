@@ -1,30 +1,10 @@
 --- a/cli.js
 +++ b/cli.js
 
-# === Single patch: Increase render throttle from 16ms to 1000ms ===
-#
-# Root cause: Windows Terminal bug #14774 — SetConsoleCursorPosition always
-# scrolls the viewport to the cursor position, even when the cursor is
-# already visible. This is triggered by ANY cursor positioning ANSI sequence.
-# Open since Feb 2023, Priority-1, UNRESOLVED.
-#
-# Since Ink's renderer uses cursor positioning on every re-render (to update
-# the display via diff), every render triggers a viewport reset in WT.
-#
-# The only mitigation without a PTY proxy is to REDUCE render frequency.
-# At 1000ms (1fps), the user gets 1 full second of uninterrupted reading
-# between viewport resets. Streaming text appears in ~1 second chunks.
-#
-# Previous approaches that did NOT work:
-# - Cursor-up clamping: WT bug triggers on ANY cursor positioning, not just up
-# - Disabling synchronized update: causes flickering (worse than scroll)
-# - Both combined: flickering + still scrolls
-#
-# Trade-off: streaming text is slightly chunky (1s batches) but readable
-# and scroll position is mostly stable.
+# === Inject before the first `import{` statement ===
+# Buffer Ink renders during active work, flush only on user input or idle
 
--var SK6=16;
-+var SK6=1000;
++/* SCROLL_FIX_v5 */;(function(){var _ow=process.stdout.write.bind(process.stdout);var _buf=null;var _timer=null;var _userInput=false;var _IDLE=5000;process.stdin.on("data",function(){_userInput=true});function _flush(){if(_timer){clearTimeout(_timer);_timer=null}if(!_buf)return;var b=_buf;_buf=null;_ow(b.s,b.e)}process.stdout.write=function(d,e,c){if(typeof e==="function"){c=e;e=void 0}var s=typeof d==="string"?d:Buffer.isBuffer(d)?d.toString("utf-8"):String(d);if(s.indexOf("\x1b[?2026h")!==-1){if(_userInput){_userInput=false;return _ow(s,e,c)}_buf={s:s,e:e};if(_timer)clearTimeout(_timer);_timer=setTimeout(_flush,_IDLE);if(c)c();return true}return _ow(s,e,c)};})();
 
 # Target: @anthropic-ai/claude-code@2.1.76 cli.js
 # Build: 2026-03-14T00:12:49Z
@@ -35,7 +15,26 @@
 # With bridge fix (PR #34789) applied:
 #   6ea2a57ddd49c3f0869e77e027f3de0c2116c390a0d338963f70bec9b92b537c
 #
-# With bridge + render throttle 1000ms:
-#   e985041bdd17e85dba04ec605346714aa21e4d7be16889e06774a32e1bd1e410
+# With bridge + scroll v5:
+#   580641c8f9c762b31fce20a9fcfc85b158b1ca52dded5d5495de29c7ec234f2c
 #
-# Upstream fix needed: microsoft/terminal#14774
+# How it works:
+#   - Intercepts process.stdout.write
+#   - Ink renders (sync blocks with \x1b[?2026h) are BUFFERED, not written
+#   - Only the LATEST frame is kept (previous frames discarded)
+#   - Flush triggers:
+#     (a) User types (stdin data) → next render writes immediately
+#         (user is at the prompt/bottom, viewport follows naturally)
+#     (b) 5 seconds of no new renders → auto-flush
+#         (Claude finished, show final state)
+#   - Non-sync writes pass through immediately
+#
+# Why this works:
+#   Windows Terminal bug microsoft/terminal#14774 causes viewport to jump
+#   on ANY cursor positioning. By not writing to stdout during active work,
+#   the viewport stays wherever the user scrolled. When the user types
+#   (returning to the prompt at the bottom), rendering resumes normally.
+#
+# Trade-off:
+#   Screen is frozen during active Claude work. User sees the result
+#   when Claude pauses or they type. Spinner/progress not visible during work.
