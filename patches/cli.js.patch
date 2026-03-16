@@ -1,0 +1,20 @@
+--- a/cli.js	2026-03-14 00:12:49.000000000 +0000
++++ b/cli.js	2026-03-16 00:00:00.000000000 +0000
+@@ -1,1 +1,1 @@
+-function _Oz(){if(!w8("tengu_copper_bridge",!1))return;if(t6(process.env.USE_LOCAL_OAUTH)||t6(process.env.LOCAL_BRIDGE))return"ws://localhost:8765";if(t6(process.env.USE_STAGING_OAUTH))return"wss://bridge-staging.claudeusercontent.com";return"wss://bridge.claudeusercontent.com"}
++function _Oz(){return;if(!w8("tengu_copper_bridge",!1))return;if(t6(process.env.USE_LOCAL_OAUTH)||t6(process.env.LOCAL_BRIDGE))return"ws://localhost:8765";if(t6(process.env.USE_STAGING_OAUTH))return"wss://bridge-staging.claudeusercontent.com";return"wss://bridge.claudeusercontent.com"}
+
+# Patch target: @anthropic-ai/claude-code@2.1.76 cli.js
+# Original SHA-256: 38b8fd29d0817e5f75202b2bb211fe959d4b6a4f2224b8118dabf876e503b50b
+# Patched SHA-256:  6ea2a57ddd49c3f0869e77e027f3de0c2116c390a0d338963f70bec9b92b537c
+#
+# What this does:
+#   Adds `return;` at the start of _Oz() (bridge URL resolver).
+#   This makes _Oz() always return undefined, so bridgeConfig is never set,
+#   forcing Xd1() to use the local socket pool (pzA) instead of BridgeClient (y61).
+#
+# Why:
+#   The tengu_copper_bridge server-side feature flag enables the WebSocket bridge
+#   for Max subscribers. The bridge fails to connect on Windows, and there is no
+#   fallback to local named pipes. The local pipe (\\.\pipe\claude-mcp-browser-bridge-{user})
+#   works perfectly.
