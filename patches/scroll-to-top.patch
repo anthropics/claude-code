@@ -1,0 +1,30 @@
+--- a/cli.js
++++ b/cli.js
+@@ Fix 1: LH8() — clearTerminal removes cursor home (HK6 = \x1B[H)
+-function LH8(){if(process.platform==="win32")if(HU3())return jO1+$H8+HK6;else return jO1+wU3;return jO1+$H8+HK6}
++function LH8(){if(process.platform==="win32")if(HU3())return jO1+$H8;else return jO1+wU3;return jO1+$H8}
+
+@@ Fix 2: exitAlternateScreen() — remove \x1B[H from stdout.write
+-exitAlternateScreen(){if(this.options.stdout.write("\x1B[2J\x1B[H"+(this.altScreenActive?NO1:"\x1B[?1049l")+"\x1B[?25l")
++exitAlternateScreen(){if(this.options.stdout.write("\x1B[2J"+(this.altScreenActive?NO1:"\x1B[?1049l")+"\x1B[?25l")
+
+@@ Fix 3: handleResume() SIGCONT — remove \x1B[H from stdout.write
+-this.options.stdout.write(kH8+"\x1B[2J\x1B[H"+(this.altScreenMouseTracking?NO1:""))
++this.options.stdout.write(kH8+"\x1B[2J"+(this.altScreenMouseTracking?NO1:""))
+
+# Target: @anthropic-ai/claude-code@2.1.76 cli.js
+# Build: 2026-03-14T00:12:49Z
+#
+# Original (unpatched) SHA-256:
+#   38b8fd29d0817e5f75202b2bb211fe959d4b6a4f2224b8118dabf876e503b50b
+#
+# With bridge fix (PR #34789) applied:
+#   6ea2a57ddd49c3f0869e77e027f3de0c2116c390a0d338963f70bec9b92b537c
+#
+# With both bridge + scroll fixes applied:
+#   fd47ae1e5cc7686f1b10d4d04e12eed9ce8ce7fdfdd4a4b6529672a61249ac80
+#
+# What: Removes \x1B[H (cursor home = move to row 1, col 1) from 3 places.
+#        Keeps \x1B[2J (erase screen). The diff engine positions the cursor.
+#
+# Why:  \x1B[H makes the terminal viewport snap to the top on every re-render.
