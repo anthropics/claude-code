@@ -1,16 +1,9 @@
 --- a/cli.js
 +++ b/cli.js
-@@ Fix 1: LH8() — clearTerminal removes cursor home (HK6 = \x1B[H)
--function LH8(){if(process.platform==="win32")if(HU3())return jO1+$H8+HK6;else return jO1+wU3;return jO1+$H8+HK6}
-+function LH8(){if(process.platform==="win32")if(HU3())return jO1+$H8;else return jO1+wU3;return jO1+$H8}
 
-@@ Fix 2: exitAlternateScreen() — remove \x1B[H from stdout.write
--exitAlternateScreen(){if(this.options.stdout.write("\x1B[2J\x1B[H"+(this.altScreenActive?NO1:"\x1B[?1049l")+"\x1B[?25l")
-+exitAlternateScreen(){if(this.options.stdout.write("\x1B[2J"+(this.altScreenActive?NO1:"\x1B[?1049l")+"\x1B[?25l")
+# Inject before the first `import{` statement in cli.js:
 
-@@ Fix 3: handleResume() SIGCONT — remove \x1B[H from stdout.write
--this.options.stdout.write(kH8+"\x1B[2J\x1B[H"+(this.altScreenMouseTracking?NO1:""))
-+this.options.stdout.write(kH8+"\x1B[2J"+(this.altScreenMouseTracking?NO1:""))
++/* SCROLL_FIX_v2 */;(function(){var _ow=process.stdout.write.bind(process.stdout);var _gr=function(){return process.stdout.rows||24};var _up=0;process.stdout.write=function(d,e,c){if(typeof e==="function"){c=e;e=void 0}var s=typeof d==="string"?d:Buffer.isBuffer(d)?d.toString("utf-8"):String(d);var dn=0,m,re=/\x1b\[(\d+)B/g;while(m=re.exec(s))dn+=parseInt(m[1],10);var nl=0;for(var i=0;i<s.length;i++)if(s.charCodeAt(i)===10)nl++;_up=Math.max(0,_up-dn-nl);var mx=_gr()-1;s=s.replace(/\x1b\[(\d+)A/g,function(m,n){var v=parseInt(n,10);_up+=v;if(_up>mx){var a=Math.max(0,v-(_up-mx));_up=mx;if(a<=0)return"";return"\x1b["+a+"A"}return m});if(s.indexOf("\x1b[?2026l")!==-1)_up=0;if(s.indexOf("\x1b[H")!==-1)_up=0;return _ow(s,e,c)};})();
 
 # Target: @anthropic-ai/claude-code@2.1.76 cli.js
 # Build: 2026-03-14T00:12:49Z
@@ -21,10 +14,17 @@
 # With bridge fix (PR #34789) applied:
 #   6ea2a57ddd49c3f0869e77e027f3de0c2116c390a0d338963f70bec9b92b537c
 #
-# With both bridge + scroll fixes applied:
-#   fd47ae1e5cc7686f1b10d4d04e12eed9ce8ce7fdfdd4a4b6529672a61249ac80
+# With both bridge + scroll v2 fixes applied:
+#   31d7b99667a46ef3df3a0958e937582365acb5d295ae846eeeb623f598c8175a
 #
-# What: Removes \x1B[H (cursor home = move to row 1, col 1) from 3 places.
-#        Keeps \x1B[2J (erase screen). The diff engine positions the cursor.
+# Approach: Stateful stdout.write interceptor that tracks net cursor-up
+# movement across ALL writes (not just sync blocks). Clamps total upward
+# movement to terminal height. Resets on sync block end and cursor home.
 #
-# Why:  \x1B[H makes the terminal viewport snap to the top on every re-render.
+# This catches cursor-up from:
+# - Ink's SH8 renderer (sync blocks)
+# - Inquirer prompt renderer (eraseLines + cursorUp per line)
+# - Any other code path that moves the cursor up
+#
+# The cursor can never go more than (terminal rows - 1) lines above its
+# lowest point, keeping it within the viewport.
