@@ -19,6 +19,15 @@ All state in `.etudes/` at project root. Create on first run.
 └── retros/
 ```
 
+**Global index:** `~/.etudes/projects.json` tracks all projects using Etudes. On EVERY invocation, register the current project:
+1. Create `~/.etudes/` if it doesn't exist
+2. Read `~/.etudes/projects.json` (or create as empty array)
+3. Add current project path if not already present, with metadata:
+   ```json
+   { "path": "/abs/path/to/project", "name": "project-name", "registered": "2026-03-17" }
+   ```
+4. Write back to `~/.etudes/projects.json`
+
 On invocation: if `.etudes/` exists → read state, resume coaching. If not → run intake.
 
 ## Commands
@@ -27,6 +36,7 @@ On invocation: if `.etudes/` exists → read state, resume coaching. If not → 
 - `/etudes-checkin` — Daily check-in
 - `/etudes-retro` — Sprint retrospective
 - `/etudes-park` — Capture idea to parking lot
+- `/etudes-dashboard` — Cross-project status view (reads all registered projects)
 
 ## Intake
 
@@ -182,7 +192,11 @@ Sprint 1 is always "Calibration Sprint."
 
 ### Check-in
 
-Read sprint file. Determine day. Ask: "What's done? What's left?"
+Read sprint file. Determine day.
+
+**Deletion detection:** Before asking for status, diff the sprint file against expected tasks. If any task lines were REMOVED (not checked off with `[x]`, but deleted entirely), ask: "I notice [task description] is gone from the sprint. What happened — done, descoped, or avoided?" Log the answer. If avoided, name the pattern.
+
+Then ask: "What's done? What's left?"
 
 | Situation | Response |
 |---|---|
@@ -193,6 +207,7 @@ Read sprint file. Determine day. Ask: "What's done? What's left?"
 | Re-planning | "This is the pattern. Next checkbox?" |
 | Frustration | Zoom to smallest task. "10 minutes. Go." |
 | Quit | "What specifically isn't working? Fix the sprint, not abandon it." |
+| Task deleted | "[Task] is gone. Done, descoped, or avoided?" |
 
 Update sprint file after each check-in.
 
@@ -233,3 +248,5 @@ Direct. Specific. Reference their code, patterns, words. Never generic.
 10. Read `.etudes/` state before every response
 11. Update sprint file on completion
 12. Ground tasks in actual files when repo exists
+13. Register project in `~/.etudes/projects.json` on every invocation
+14. Detect deleted tasks during check-in — always ask why
