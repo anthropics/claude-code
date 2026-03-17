@@ -1,5 +1,52 @@
 # Changelog
 
+## 2.1.77
+
+- Increased default maximum output token limits for Claude Opus 4.6 to 64k tokens, and the upper bound for Opus 4.6 and Sonnet 4.6 models to 128k tokens
+- Added `allowRead` sandbox filesystem setting to re-allow read access within `denyRead` regions
+- `/copy` now accepts an optional index: `/copy N` copies the Nth-latest assistant response
+- Fixed "Always Allow" on compound bash commands (e.g. `cd src && npm test`) saving a single rule for the full string instead of per-subcommand, leading to dead rules and repeated permission prompts
+- Fixed auto-updater starting overlapping binary downloads when the slash-command overlay repeatedly opened and closed, accumulating tens of gigabytes of memory
+- Fixed `--resume` silently truncating recent conversation history due to a race between memory-extraction writes and the main transcript
+- Fixed PreToolUse hooks returning `"allow"` bypassing `deny` permission rules, including enterprise managed settings
+- Fixed Write tool silently converting line endings when overwriting CRLF files or creating files in CRLF directories
+- Fixed memory growth in long-running sessions from progress messages surviving compaction
+- Fixed cost and token usage not being tracked when the API falls back to non-streaming mode
+- Fixed `CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS` not stripping beta tool-schema fields, causing proxy gateways to reject requests
+- Fixed Bash tool reporting errors for successful commands when the system temp directory path contains spaces
+- Fixed paste being lost when typing immediately after pasting
+- Fixed Ctrl+D in `/feedback` text input deleting forward instead of the second press exiting the session
+- Fixed API error when dragging a 0-byte image file into the prompt
+- Fixed Claude Desktop sessions incorrectly using the terminal CLI's configured API key instead of OAuth
+- Fixed `git-subdir` plugins at different subdirectories of the same monorepo commit colliding in the plugin cache
+- Fixed ordered list numbers not rendering in terminal UI
+- Fixed a race condition where stale-worktree cleanup could delete an agent worktree just resumed from a previous crash
+- Fixed input deadlock when opening `/mcp` or similar dialogs while the agent is running
+- Fixed Backspace and Delete keys not working in vim NORMAL mode
+- Fixed status line not updating when vim mode is toggled on or off
+- Fixed hyperlinks opening twice on Cmd+click in VS Code, Cursor, and other xterm.js-based terminals
+- Fixed background colors rendering as terminal-default inside tmux with default configuration
+- Fixed iTerm2 session crash when selecting text inside tmux over SSH
+- Fixed clipboard copy silently failing in tmux sessions; copy toast now indicates whether to paste with `⌘V` or tmux `prefix+]`
+- Fixed `←`/`→` accidentally switching tabs in settings, permissions, and sandbox dialogs while navigating lists
+- Fixed IDE integration not auto-connecting when Claude Code is launched inside tmux or screen
+- Fixed CJK characters visually bleeding into adjacent UI elements when clipped at the right edge
+- Fixed teammate panes not closing when the leader exits
+- Fixed iTerm2 auto mode not detecting iTerm2 for native split-pane teammates
+- Faster startup on macOS (~60ms) by reading keychain credentials in parallel with module loading
+- Faster `--resume` on fork-heavy and very large sessions — up to 45% faster loading and ~100-150MB less peak memory
+- Improved Esc to abort in-flight non-streaming API requests
+- Improved `claude plugin validate` to check skill, agent, and command frontmatter plus `hooks/hooks.json`, catching YAML parse errors and schema violations
+- Background bash tasks are now killed if output exceeds 5GB, preventing runaway processes from filling disk
+- Sessions are now auto-named from plan content when you accept a plan
+- Improved headless mode plugin installation to compose correctly with `CLAUDE_CODE_PLUGIN_SEED_DIR`
+- Show a notice when `apiKeyHelper` takes longer than 10s, preventing it from blocking the main loop
+- The Agent tool no longer accepts a `resume` parameter — use `SendMessage({to: agentId})` to continue a previously spawned agent
+- `SendMessage` now auto-resumes stopped agents in the background instead of returning an error
+- Renamed `/fork` to `/branch` (`/fork` still works as an alias)
+- [VSCode] Improved plan preview tab titles to use the plan's heading instead of "Claude's Plan"
+- [VSCode] When option+click doesn't trigger native selection on macOS, the footer now points to the `macOptionClickForcesSelection` setting
+
 ## 2.1.76
 
 - Added MCP elicitation support — MCP servers can now request structured input mid-task via an interactive dialog (form fields or browser URL)
