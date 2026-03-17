@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Buscaminas</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #1a1a2e;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: 'Segoe UI', sans-serif;
+      color: #eee;
+    }
+
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 16px;
+      letter-spacing: 3px;
+      color: #e94560;
+      text-shadow: 0 0 12px #e9456088;
+    }
+
+    #controls {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 16px;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    select, button {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+
+    select {
+      background: #16213e;
+      color: #eee;
+      border: 1px solid #e94560;
+    }
+
+    button {
+      background: #e94560;
+      color: #fff;
+      font-weight: bold;
+      transition: background 0.2s;
+    }
+
+    button:hover { background: #c73652; }
+
+    #info-bar {
+      display: flex;
+      gap: 30px;
+      margin-bottom: 14px;
+      font-size: 1.1rem;
+      background: #16213e;
+      padding: 10px 24px;
+      border-radius: 10px;
+      border: 1px solid #0f3460;
+    }
+
+    .info-item span { color: #e94560; font-weight: bold; }
+
+    #board-wrapper {
+      overflow: auto;
+      max-width: 95vw;
+    }
+
+    #board {
+      display: inline-grid;
+      gap: 2px;
+      background: #0f3460;
+      padding: 6px;
+      border-radius: 10px;
+      border: 2px solid #e94560;
+      box-shadow: 0 0 24px #e9456044;
+    }
+
+    .cell {
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      font-weight: bold;
+      border-radius: 4px;
+      cursor: pointer;
+      user-select: none;
+      transition: filter 0.1s, transform 0.1s;
+      border: none;
+    }
+
+    .cell.hidden {
+      background: #16213e;
+      border: 2px solid #0f3460;
+    }
+
+    .cell.hidden:hover { filter: brightness(1.4); transform: scale(1.08); }
+
+    .cell.flagged {
+      background: #16213e;
+      border: 2px solid #e94560;
+    }
+
+    .cell.revealed {
+      background: #0d1b2a;
+      border: 2px solid #0a141f;
+      cursor: default;
+    }
+
+    .cell.mine-hit {
+      background: #e94560;
+    }
+
+    .cell.revealed-mine {
+      background: #2d0a0a;
+    }
+
+    .n1 { color: #4fc3f7; }
+    .n2 { color: #81c784; }
+    .n3 { color: #e57373; }
+    .n4 { color: #9575cd; }
+    .n5 { color: #ff8a65; }
+    .n6 { color: #4dd0e1; }
+    .n7 { color: #f06292; }
+    .n8 { color: #aaa; }
+
+    #message {
+      margin-top: 14px;
+      font-size: 1.3rem;
+      font-weight: bold;
+      min-height: 1.6rem;
+      text-align: center;
+      letter-spacing: 1px;
+    }
+
+    #message.win  { color: #81c784; text-shadow: 0 0 10px #81c78488; }
+    #message.lose { color: #e94560; text-shadow: 0 0 10px #e9456088; }
+
+    #timer-display::before { content: '⏱ '; }
+    #mines-display::before { content: '💣 '; }
+  </style>
+</head>
+<body>
+
+<h1>💣 BUSCAMINAS</h1>
+
+<div id="controls">
+  <select id="difficulty">
+    <option value="beginner">Principiante (9×9, 10 minas)</option>
+    <option value="intermediate" selected>Intermedio (16×16, 40 minas)</option>
+    <option value="expert">Experto (30×16, 99 minas)</option>
+  </select>
+  <button id="new-game-btn">Nueva Partida</button>
+</div>
+
+<div id="info-bar">
+  <div class="info-item">Minas: <span id="mines-display">0</span></div>
+  <div class="info-item">Tiempo: <span id="timer-display">0</span>s</div>
+</div>
+
+<div id="board-wrapper">
+  <div id="board"></div>
+</div>
+
+<div id="message"></div>
+
+<script>
+  const LEVELS = {
+    beginner:     { rows: 9,  cols: 9,  mines: 10 },
+    intermediate: { rows: 16, cols: 16, mines: 40 },
+    expert:       { rows: 16, cols: 30, mines: 99 },
+  };
+
+  const COLORS = ['', 'n1','n2','n3','n4','n5','n6','n7','n8'];
+
+  let rows, cols, totalMines, grid, revealed, flagged, minesLeft;
+  let gameOver, firstClick, timerInterval, seconds;
+
+  const boardEl    = document.getElementById('board');
+  const minesEl    = document.getElementById('mines-display');
+  const timerEl    = document.getElementById('timer-display');
+  const messageEl  = document.getElementById('message');
+  const diffSelect = document.getElementById('difficulty');
+
+  function init() {
+    const level = LEVELS[diffSelect.value];
+    rows = level.rows; cols = level.cols; totalMines = level.mines;
+
+    grid     = Array.from({length: rows}, () => Array(cols).fill(0));
+    revealed = Array.from({length: rows}, () => Array(cols).fill(false));
+    flagged  = Array.from({length: rows}, () => Array(cols).fill(false));
+    minesLeft = totalMines;
+    gameOver  = false;
+    firstClick = true;
+    seconds   = 0;
+
+    clearInterval(timerInterval);
+    minesEl.textContent  = minesLeft;
+    timerEl.textContent  = seconds;
+    messageEl.textContent = '';
+    messageEl.className  = '';
+
+    render();
+  }
+
+  function placeMines(safeR, safeC) {
+    let placed = 0;
+    while (placed < totalMines) {
+      const r = Math.floor(Math.random() * rows);
+      const c = Math.floor(Math.random() * cols);
+      if (grid[r][c] === -1) continue;
+      if (Math.abs(r - safeR) <= 1 && Math.abs(c - safeC) <= 1) continue;
+      grid[r][c] = -1;
+      placed++;
+    }
+    for (let r = 0; r < rows; r++)
+      for (let c = 0; c < cols; c++)
+        if (grid[r][c] !== -1)
+          grid[r][c] = countAdjMines(r, c);
+  }
+
+  function countAdjMines(r, c) {
+    let count = 0;
+    for (let dr = -1; dr <= 1; dr++)
+      for (let dc = -1; dc <= 1; dc++) {
+        const nr = r+dr, nc = c+dc;
+        if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && grid[nr][nc] === -1)
+          count++;
+      }
+    return count;
+  }
+
+  function render() {
+    boardEl.style.gridTemplateColumns = `repeat(${cols}, 36px)`;
+    boardEl.innerHTML = '';
+
+    for (let r = 0; r < rows; r++)
+      for (let c = 0; c < cols; c++) {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        cell.dataset.r = r;
+        cell.dataset.c = c;
+
+        if (revealed[r][c]) {
+          cell.classList.add('revealed');
+          if (grid[r][c] === -1) {
+            cell.classList.add('revealed-mine');
+            cell.textContent = '💣';
+          } else if (grid[r][c] > 0) {
+            cell.classList.add(COLORS[grid[r][c]]);
+            cell.textContent = grid[r][c];
+          }
+        } else if (flagged[r][c]) {
+          cell.classList.add('flagged');
+          cell.textContent = '🚩';
+        } else {
+          cell.classList.add('hidden');
+        }
+
+        cell.addEventListener('click', handleClick);
+        cell.addEventListener('contextmenu', handleRightClick);
+        boardEl.appendChild(cell);
+      }
+  }
+
+  function handleClick(e) {
+    if (gameOver) return;
+    const r = +e.currentTarget.dataset.r;
+    const c = +e.currentTarget.dataset.c;
+    if (revealed[r][c] || flagged[r][c]) return;
+
+    if (firstClick) {
+      firstClick = false;
+      placeMines(r, c);
+      timerInterval = setInterval(() => {
+        seconds++;
+        timerEl.textContent = seconds;
+      }, 1000);
+    }
+
+    if (grid[r][c] === -1) {
+      revealAllMines(r, c);
+      endGame(false);
+    } else {
+      flood(r, c);
+      if (checkWin()) endGame(true);
+      else render();
+    }
+  }
+
+  function handleRightClick(e) {
+    e.preventDefault();
+    if (gameOver) return;
+    const r = +e.currentTarget.dataset.r;
+    const c = +e.currentTarget.dataset.c;
+    if (revealed[r][c]) return;
+
+    flagged[r][c] = !flagged[r][c];
+    minesLeft += flagged[r][c] ? -1 : 1;
+    minesEl.textContent = minesLeft;
+    render();
+  }
+
+  function flood(r, c) {
+    if (r < 0 || r >= rows || c < 0 || c >= cols) return;
+    if (revealed[r][c] || flagged[r][c]) return;
+    revealed[r][c] = true;
+    if (grid[r][c] === 0)
+      for (let dr = -1; dr <= 1; dr++)
+        for (let dc = -1; dc <= 1; dc++)
+          flood(r+dr, c+dc);
+  }
+
+  function revealAllMines(hitR, hitC) {
+    for (let r = 0; r < rows; r++)
+      for (let c = 0; c < cols; c++)
+        if (grid[r][c] === -1) revealed[r][c] = true;
+    render();
+    // mark the hit cell
+    const cells = boardEl.querySelectorAll('.cell');
+    const idx = hitR * cols + hitC;
+    cells[idx].classList.add('mine-hit');
+  }
+
+  function checkWin() {
+    for (let r = 0; r < rows; r++)
+      for (let c = 0; c < cols; c++)
+        if (grid[r][c] !== -1 && !revealed[r][c]) return false;
+    return true;
+  }
+
+  function endGame(win) {
+    gameOver = true;
+    clearInterval(timerInterval);
+    if (win) {
+      messageEl.textContent = '🎉 ¡Ganaste! ¡Campo despejado!';
+      messageEl.className = 'win';
+    } else {
+      messageEl.textContent = '💥 ¡BOOM! Game Over';
+      messageEl.className = 'lose';
+    }
+  }
+
+  document.getElementById('new-game-btn').addEventListener('click', init);
+  diffSelect.addEventListener('change', init);
+
+  init();
+</script>
+</body>
+</html>
