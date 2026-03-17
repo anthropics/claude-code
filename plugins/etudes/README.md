@@ -17,6 +17,8 @@ All state persists in a `.etudes/` directory at your project root, so coaching c
 | **Command** | `/etudes-checkin` | Daily check-in — reads sprint, asks what's done, updates progress |
 | **Command** | `/etudes-retro` | Sprint retrospective — reviews what shipped, parking lot, generates next sprint |
 | **Command** | `/etudes-park` | Parking lot capture — saves an idea mid-sprint without context-switching |
+| **Command** | `/etudes-dashboard` | Cross-project status view in Claude Code (reads all registered projects) |
+| **Local App** | `etudes-dashboard` | Web dashboard at `localhost:2400` with kanban + park/icebox across projects |
 
 ## Commands
 
@@ -64,6 +66,67 @@ End-of-sprint retrospective. Cross-references completed tasks with git commits, 
 **Usage:**
 ```bash
 /etudes-retro
+```
+
+### `/etudes-dashboard`
+
+Cross-project status command inside Claude Code. Reads `~/.etudes/projects.json`, aggregates all active projects, and shows progress + next tasks in one view.
+
+**Usage:**
+```bash
+/etudes-dashboard
+```
+
+Project-specific drill-down:
+```bash
+/etudes-dashboard liminal
+```
+
+## Local Dashboard (Option C)
+
+Etudes now includes a local web dashboard that tracks all registered projects.
+
+### Features
+
+- UI primitives powered by Basecoat (`basecoat-css`) with Motion-enhanced transitions
+- URL routing:
+  - `http://localhost:2400/<project-slug>`
+  - `http://localhost:2400/all`
+- 5-column kanban: Backlog, To Do, In Progress, Done, Shipped
+- Task CRUD: create, edit, move status, comment, delete
+- Park/Icebox panel across projects
+- Direct file mutation of `.etudes/sprint-current.md` and `.etudes/parking-lot.md`
+- Deleted tasks are caught by Etudes check-ins ("done, descoped, or avoided?")
+
+### Run locally from this repo
+
+```bash
+npm install
+npm start
+```
+
+Then open:
+
+```text
+http://localhost:2400
+```
+
+### Publish for `npx etudes-dashboard`
+
+This is a separate npm package step from `npx skills add`.
+
+```bash
+# one-time npm login
+npm login
+
+# publish package (from repo root)
+npm publish
+```
+
+After publishing:
+
+```bash
+npx etudes-dashboard
 ```
 
 ## The Workflow
@@ -156,6 +219,18 @@ All state lives in `.etudes/` at the project root:
 ```
 
 This persists across Claude Code sessions. The commands read state on every invocation.
+
+Global cross-project index lives at:
+
+```text
+~/.etudes/projects.json
+```
+
+Dashboard-only kanban metadata is stored per project at:
+
+```text
+.etudes/board-state.json
+```
 
 ## When to Use This Plugin
 
