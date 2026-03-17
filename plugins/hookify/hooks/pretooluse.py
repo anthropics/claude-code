@@ -64,9 +64,9 @@ def main():
             "systemMessage": f"Hookify error: {str(e)}"
         }
         print(json.dumps(error_output), file=sys.stdout)
+        sys.exit(0)
 
     finally:
-        # ALWAYS exit 0 - never block operations due to hook errors
         sys.exit(0)
 
 
