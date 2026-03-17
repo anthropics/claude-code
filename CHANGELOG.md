@@ -1,5 +1,34 @@
 # Changelog
 
+## 2.1.78
+
+- Added `StopFailure` hook event that fires when the turn ends due to an API error (rate limit, auth failure, etc.)
+- Added `${CLAUDE_PLUGIN_DATA}` variable for plugin persistent state that survives plugin updates; `/plugin uninstall` prompts before deleting it
+- Added `effort`, `maxTurns`, and `disallowedTools` frontmatter support for plugin-shipped agents
+- Terminal notifications (iTerm2/Kitty/Ghostty popups, progress bar) now reach the outer terminal when running inside tmux with `set -g allow-passthrough on`
+- Response text now streams line-by-line as it's generated
+- Fixed `git log HEAD` failing with "ambiguous argument" inside sandboxed Bash on Linux, and stub files polluting `git status` in the working directory
+- Fixed `cc log` and `--resume` silently truncating conversation history on large sessions (>5 MB) that used subagents
+- Fixed infinite loop when API errors triggered stop hooks that re-fed blocking errors to the model
+- Fixed `deny: ["mcp__servername"]` permission rules not removing MCP server tools before sending to the model, allowing it to see and attempt blocked tools
+- Fixed `sandbox.filesystem.allowWrite` not working with absolute paths (previously required `//` prefix)
+- Fixed `/sandbox` Dependencies tab showing Linux prerequisites on macOS instead of macOS-specific info
+- **Security:** Fixed silent sandbox disable when `sandbox.enabled: true` is set but dependencies are missing — now shows a visible startup warning
+- Fixed `.git`, `.claude`, and other protected directories being writable without a prompt in `bypassPermissions` mode
+- Fixed ctrl+u in normal mode scrolling instead of readline kill-line (ctrl+u/ctrl+d half-page scroll moved to transcript mode only)
+- Fixed voice mode modifier-combo push-to-talk keybindings (e.g. ctrl+k) requiring a hold instead of activating immediately
+- Fixed voice mode not working on WSL2 with WSLg (Windows 11); WSL1/Win10 users now get a clear error
+- Fixed `--worktree` flag not loading skills and hooks from the worktree directory
+- Fixed `CLAUDE_CODE_DISABLE_GIT_INSTRUCTIONS` and `includeGitInstructions` setting not suppressing the git status section in the system prompt
+- Fixed Bash tool not finding Homebrew and other PATH-dependent binaries when VS Code is launched from Dock/Spotlight
+- Fixed washed-out Claude orange color in VS Code/Cursor/code-server terminals that don't advertise truecolor support
+- Added `ANTHROPIC_CUSTOM_MODEL_OPTION` env var to add a custom entry to the `/model` picker, with optional `_NAME` and `_DESCRIPTION` suffixed vars for display
+- Fixed `ANTHROPIC_BETAS` environment variable being silently ignored when using Haiku models
+- Fixed queued prompts being concatenated without a newline separator
+- Improved memory usage and startup time when resuming large sessions
+- [VSCode] Fixed a brief flash of the login screen when opening the sidebar while already authenticated
+- [VSCode] Fixed "API Error: Rate limit reached" when selecting Opus — model dropdown no longer offers 1M context variant to subscribers whose plan tier is unknown
+
 ## 2.1.77
 
 - Increased default maximum output token limits for Claude Opus 4.6 to 64k tokens, and the upper bound for Opus 4.6 and Sonnet 4.6 models to 128k tokens
