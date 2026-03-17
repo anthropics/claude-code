@@ -58,6 +58,18 @@
 
     button:hover { background: #c73652; }
 
+    #flag-mode-btn.active {
+      background: #f5a623;
+      box-shadow: 0 0 10px #f5a62388;
+    }
+
+    #flag-mode-btn.active:hover { background: #d4901e; }
+
+    body.flag-cursor #board .cell.hidden,
+    body.flag-cursor #board .cell.flagged {
+      cursor: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><text y='20' font-size='20'>🚩</text></svg>") 4 4, pointer;
+    }
+
     #info-bar {
       display: flex;
       gap: 30px;
@@ -162,6 +174,7 @@
     <option value="intermediate" selected>Intermedio (16×16, 40 minas)</option>
     <option value="expert">Experto (30×16, 99 minas)</option>
   </select>
+  <button id="flag-mode-btn" title="Modo bandera: el clic izquierdo coloca/quita banderas">🚩 Modo Bandera</button>
   <button id="new-game-btn">Nueva Partida</button>
 </div>
 
@@ -188,11 +201,20 @@
   let rows, cols, totalMines, grid, revealed, flagged, minesLeft;
   let gameOver, firstClick, timerInterval, seconds;
 
-  const boardEl    = document.getElementById('board');
-  const minesEl    = document.getElementById('mines-display');
-  const timerEl    = document.getElementById('timer-display');
-  const messageEl  = document.getElementById('message');
-  const diffSelect = document.getElementById('difficulty');
+  const boardEl      = document.getElementById('board');
+  const minesEl      = document.getElementById('mines-display');
+  const timerEl      = document.getElementById('timer-display');
+  const messageEl    = document.getElementById('message');
+  const diffSelect   = document.getElementById('difficulty');
+  const flagModeBtn  = document.getElementById('flag-mode-btn');
+
+  let flagMode = false;
+
+  flagModeBtn.addEventListener('click', () => {
+    flagMode = !flagMode;
+    flagModeBtn.classList.toggle('active', flagMode);
+    document.body.classList.toggle('flag-cursor', flagMode);
+  });
 
   function init() {
     const level = LEVELS[diffSelect.value];
@@ -211,6 +233,11 @@
     timerEl.textContent  = seconds;
     messageEl.textContent = '';
     messageEl.className  = '';
+
+    // Reset flag mode
+    flagMode = false;
+    flagModeBtn.classList.remove('active');
+    document.body.classList.remove('flag-cursor');
 
     render();
   }
@@ -279,7 +306,15 @@
     if (gameOver) return;
     const r = +e.currentTarget.dataset.r;
     const c = +e.currentTarget.dataset.c;
-    if (revealed[r][c] || flagged[r][c]) return;
+    if (revealed[r][c]) return;
+
+    // In flag mode, left click acts as flag toggle
+    if (flagMode) {
+      toggleFlag(r, c);
+      return;
+    }
+
+    if (flagged[r][c]) return;
 
     if (firstClick) {
       firstClick = false;
@@ -300,17 +335,20 @@
     }
   }
 
+  function toggleFlag(r, c) {
+    flagged[r][c] = !flagged[r][c];
+    minesLeft += flagged[r][c] ? -1 : 1;
+    minesEl.textContent = minesLeft;
+    render();
+  }
+
   function handleRightClick(e) {
     e.preventDefault();
     if (gameOver) return;
     const r = +e.currentTarget.dataset.r;
     const c = +e.currentTarget.dataset.c;
     if (revealed[r][c]) return;
-
-    flagged[r][c] = !flagged[r][c];
-    minesLeft += flagged[r][c] ? -1 : 1;
-    minesEl.textContent = minesLeft;
-    render();
+    toggleFlag(r, c);
   }
 
   function flood(r, c) {
