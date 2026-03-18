@@ -27,6 +27,14 @@ POLL_INTERVAL = 0.15
 # Must be less than the hook timeout (30s) to avoid hook timeout errors.
 MAX_WAIT_SECONDS = 20
 
+# Delay (in seconds) before releasing a semaphore slot. This provides a cooldown
+# between consecutive filesystem operations, giving the OS (especially Windows
+# Wof.sys) time to settle between directory enumerations.
+# Configurable via CLAUDE_TOOL_MUTEX_RELEASE_DELAY_MS (min 15, max 1000).
+DEFAULT_RELEASE_DELAY_MS = 75
+MIN_RELEASE_DELAY_MS = 15
+MAX_RELEASE_DELAY_MS = 1000
+
 
 def _get_mutex_dir(session_id: str) -> Path:
     """Get the mutex directory for a given session.
@@ -167,8 +175,29 @@ def acquire(session_id: str, tool_use_id: str = "", tool_name: str = "") -> bool
             _cleanup_stale_slots(mutex_dir)
 
 
+def _get_release_delay() -> float:
+    """Get the release delay in seconds.
+
+    Configurable via CLAUDE_TOOL_MUTEX_RELEASE_DELAY_MS env var.
+    Clamped to [15, 1000] ms.
+    """
+    env_val = os.environ.get("CLAUDE_TOOL_MUTEX_RELEASE_DELAY_MS")
+    if env_val:
+        try:
+            ms = int(env_val)
+            ms = max(MIN_RELEASE_DELAY_MS, min(MAX_RELEASE_DELAY_MS, ms))
+            return ms / 1000.0
+        except ValueError:
+            pass
+    return DEFAULT_RELEASE_DELAY_MS / 1000.0
+
+
 def release(session_id: str, tool_use_id: str = "") -> bool:
-    """Release a semaphore slot.
+    """Release a semaphore slot after a cooldown delay.
+
+    A short delay before releasing ensures consecutive filesystem operations
+    don't overlap, giving the OS kernel (especially Windows Wof.sys) time to
+    settle between directory enumerations.
 
     Args:
         session_id: Current Claude Code session ID.
@@ -177,6 +206,9 @@ def release(session_id: str, tool_use_id: str = "") -> bool:
     Returns:
         True if the slot was released, False if not found.
     """
+    delay = _get_release_delay()
+    time.sleep(delay)
+
     mutex_dir = _get_mutex_dir(session_id)
     slot_id = _make_slot_id(tool_use_id, session_id)
     slot_path = mutex_dir / slot_id
