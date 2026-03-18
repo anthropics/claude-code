@@ -1,0 +1,9 @@
+{
+  "name": "model-router",
+  "version": "1.0.0",
+  "description": "Automatically recommends the optimal Claude model for each prompt using a Haiku classifier. Surfaces the recommendation before Claude responds so you can switch with /model if needed.",
+  "author": {
+    "name": "Ewan Li",
+    "email": "liyuxuan66@hotmail.com"
+  }
+}
