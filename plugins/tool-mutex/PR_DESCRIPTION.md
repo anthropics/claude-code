@@ -19,11 +19,10 @@ Diagnosed on a **192GB RAM / 32-core CPU / 15GB NVIDIA Ada 5000 GPU** workstatio
 
 Adds a **tool-mutex plugin** with a file-based counting semaphore that queues concurrent filesystem operations:
 
-- **Windows**: max 1 concurrent op (full serialization) — prevents Wof.sys overload
-- **Linux/macOS**: max 4 concurrent ops (light throttling) — prevents OOM
+- **Auto-detected concurrency**: `os.cpu_count() // 2` (e.g. 16 on 32-core, 2 on 4-core) — scales to hardware automatically
 - 75ms cooldown between operations (empirically tested: 50ms unstable under sustained load, 100ms+ adds latency with no benefit)
 - **PID-based stale slot cleanup** — dead-process slots freed immediately via `os.kill(pid, 0)`, with 120s time-based fallback for corrupted metadata
-- Disable with `CLAUDE_TOOL_MUTEX_DISABLED=1` (not recommended on Windows)
+- Disable with `CLAUDE_TOOL_MUTEX_MAX_CONCURRENT=0` (warns on every tool call)
 
 ### Why file-based semaphore (not in-memory)?
 
@@ -42,8 +41,7 @@ Claude Code hooks execute as **separate Python processes** — each PreToolUse/P
 
 | Variable | Default | Description |
 |---|---|---|
-| `CLAUDE_TOOL_MUTEX_DISABLED` | `0` | Set `1` to disable (not recommended on Windows) |
-| `CLAUDE_TOOL_MUTEX_MAX_CONCURRENT` | `1` (Win) / `4` (Linux/Mac) | Max concurrent fs operations |
+| `CLAUDE_TOOL_MUTEX_MAX_CONCURRENT` | `cpu_count // 2` | Cap-down override only — can reduce below auto-detected default, never increase above it. Set to `0` to disable (warns on every tool call) |
 | `CLAUDE_TOOL_MUTEX_RELEASE_DELAY_MS` | `75` | Cooldown between operations (ms), range 15–1000 |
 
 ### Test plan
@@ -54,6 +52,18 @@ Claude Code hooks execute as **separate Python processes** — each PreToolUse/P
 - [x] Python `os` APIs handle 1024 workers fine (crash is Node.js-specific)
 - [x] Mutex batching keeps RSS at 290MB vs 16GB unthrottled, 100% completion
 - [x] PID-based stale slot cleanup — dead-process slots freed immediately, no 2-min lockout
-- [ ] Verify BSOD prevention on affected Windows machine with plugin installed
+- [x] Verified BSOD prevention on affected Windows 192GB/32-core workstation with plugin installed — no BSODs since deployment
+
+### Evidence
+
+- **27 BSODs**, 9 distinct bugcheck types (0x139, 0x3B, 0x1E, 0x50, 0x14F, 0x10E, 0x20001, 0xC2)
+- **Minidump ZIP** (20 unique kernel dumps, 87MB): https://drive.google.com/file/d/1Iqo8Ey4CjHfGbPMMRxlZVxaVf-N3i5Ab/view?usp=sharing
+- **GitHub issues**: #32870, #30137
+- **MS Q&A**: https://learn.microsoft.com/en-us/answers/questions/5814272
+- **Feedback Hub**: https://aka.ms/AA106t77
+
+### Development session
 
 https://claude.ai/code/session_01TyTbGq1fkZgXsUcLwwEnXz
+
+https://www.perplexity.ai/search/https-claude-ai-code-session-0-IRtoFcGISwKZCKBtxsD7Uw

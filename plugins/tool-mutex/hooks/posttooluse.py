@@ -30,9 +30,6 @@ FS_HEAVY_TOOLS = {"Glob", "Grep", "Read", "Bash"}
 
 def main():
     """Release the mutex slot after a filesystem-heavy tool completes."""
-    if os.environ.get("CLAUDE_TOOL_MUTEX_DISABLED", "0") == "1":
-        sys.exit(0)
-
     try:
         input_data = json.load(sys.stdin)
     except (json.JSONDecodeError, IOError):

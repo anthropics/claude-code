@@ -16,7 +16,6 @@ Wof.sys BSOD (see github.com/anthropics/claude-code/issues/32870).
 """
 
 import os
-import platform
 import time
 import json
 import sys
@@ -63,23 +62,26 @@ def _get_mutex_dir(session_id: str) -> Path:
 def _get_max_concurrent() -> int:
     """Get the maximum number of concurrent filesystem operations.
 
-    On Windows, defaults to 1 (fully serialized) to prevent Wof.sys crashes.
-    On other platforms, defaults to 4 (light throttling).
+    Defaults to os.cpu_count() // 2 (e.g. 16 on a 32-core machine).
 
-    Configurable via CLAUDE_TOOL_MUTEX_MAX_CONCURRENT environment variable.
+    CLAUDE_TOOL_MUTEX_MAX_CONCURRENT can only reduce below the default,
+    never increase above it. Set to 0 to disable throttling entirely.
     """
+    cores = os.cpu_count() or 2
+    default = max(1, cores // 2)
+
     env_val = os.environ.get("CLAUDE_TOOL_MUTEX_MAX_CONCURRENT")
     if env_val:
         try:
             val = int(env_val)
-            if val > 0:
+            if val == 0:
+                return 0
+            if 0 < val < default:
                 return val
         except ValueError:
             pass
 
-    if platform.system() == "Windows":
-        return 1
-    return 4
+    return default
 
 
 def _is_pid_alive(pid: int) -> bool:
@@ -172,8 +174,12 @@ def acquire(session_id: str, tool_use_id: str = "", tool_name: str = "") -> bool
         True if a slot was acquired, False if timed out (operation should
         still be allowed to prevent blocking the user).
     """
-    mutex_dir = _get_mutex_dir(session_id)
     max_concurrent = _get_max_concurrent()
+    if max_concurrent == 0:
+        _log("WARNING: tool-mutex DISABLED (CLAUDE_TOOL_MUTEX_MAX_CONCURRENT=0). No filesystem throttling active.")
+        return True
+
+    mutex_dir = _get_mutex_dir(session_id)
     slot_id = _make_slot_id(tool_use_id, session_id)
     slot_path = mutex_dir / slot_id
 

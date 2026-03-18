@@ -36,47 +36,20 @@ All configuration is via environment variables. Set them in your shell profile, 
 
 | Variable | Default | Description |
 |---|---|---|
-| `CLAUDE_TOOL_MUTEX_DISABLED` | `0` | Set to `1` to disable entirely (**not recommended on Windows**) |
-| `CLAUDE_TOOL_MUTEX_MAX_CONCURRENT` | `1` (Windows) / `4` (Linux/macOS) | Max concurrent filesystem operations |
+| `CLAUDE_TOOL_MUTEX_MAX_CONCURRENT` | `cpu_count // 2` | Cap-down override (cannot increase above default). Set to `0` to disable (warns on every tool call) |
 | `CLAUDE_TOOL_MUTEX_RELEASE_DELAY_MS` | `75` | Cooldown delay (ms) between operations. Range: 15–1000 |
 
-### Recommended values
+### Default concurrency
 
-#### Windows (prevents Wof.sys BSOD) — CRITICAL
+The default is **`os.cpu_count() // 2`** — auto-detected at runtime. For example, 16 on a 32-core machine, 2 on a 4-core machine.
 
-```bash
-# Default — full serialization, safest for Windows
-# DO NOT increase above 1 if you have experienced BSODs
-CLAUDE_TOOL_MUTEX_MAX_CONCURRENT=1
-CLAUDE_TOOL_MUTEX_RELEASE_DELAY_MS=75
-```
-
-#### macOS / Linux (light throttling)
+`CLAUDE_TOOL_MUTEX_MAX_CONCURRENT` is a **cap-down override only** — it can reduce concurrency below the auto-detected default but never increase above it. This prevents users from accidentally exceeding safe limits.
 
 ```bash
-# Default — allows moderate parallelism, prevents OOM
-CLAUDE_TOOL_MUTEX_MAX_CONCURRENT=4
-CLAUDE_TOOL_MUTEX_RELEASE_DELAY_MS=75
-```
-
-#### High-performance machine (8+ cores, 32GB+ RAM, non-Windows)
-
-```bash
-CLAUDE_TOOL_MUTEX_MAX_CONCURRENT=8
-CLAUDE_TOOL_MUTEX_RELEASE_DELAY_MS=30
-```
-
-#### Low-memory machine (< 8GB RAM)
-
-```bash
-CLAUDE_TOOL_MUTEX_MAX_CONCURRENT=2
-CLAUDE_TOOL_MUTEX_RELEASE_DELAY_MS=100
-```
-
-#### Disable (NOT recommended on Windows)
-
-```bash
-CLAUDE_TOOL_MUTEX_DISABLED=1
+# On a 32-core machine (default = 16):
+CLAUDE_TOOL_MUTEX_MAX_CONCURRENT=4   # → uses 4 (below default)
+CLAUDE_TOOL_MUTEX_MAX_CONCURRENT=32  # → uses 16 (capped to default)
+CLAUDE_TOOL_MUTEX_MAX_CONCURRENT=0   # → DISABLED (warns on every tool call)
 ```
 
 ## How it works
