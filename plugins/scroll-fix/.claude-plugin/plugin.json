@@ -1,0 +1,8 @@
+{
+  "name": "scroll-fix",
+  "version": "1.0.0",
+  "description": "Fixes terminal scroll-to-top regression caused by Ink renderer's cursor-up sequences exceeding viewport height. Includes Ctrl+6 freeze toggle for manual scroll control.",
+  "author": {
+    "name": "cruzlauroiii"
+  }
+}
