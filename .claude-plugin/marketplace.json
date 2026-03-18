@@ -1,6 +1,6 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
-  "name": "claude-code-plugins",
+  "name": "cruzlauroiii-plugins",
   "version": "1.0.0",
   "description": "Bundled plugins for Claude Code including Agent SDK development tools, PR review toolkit, and commit workflows",
   "owner": {
@@ -145,6 +145,16 @@
       },
       "source": "./plugins/security-guidance",
       "category": "security"
+    },
+    {
+      "name": "bridge-fix",
+      "description": "Fixes Chrome extension bridge connection failure by disabling remote bridge URL resolver, forcing local named pipe usage.",
+      "version": "1.0.0",
+      "author": {
+        "name": "cruzlauroiii"
+      },
+      "source": "./plugins/bridge-fix",
+      "category": "fixes"
     }
   ]
 }

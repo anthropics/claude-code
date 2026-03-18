@@ -1,0 +1,8 @@
+{
+  "name": "bridge-fix",
+  "version": "1.0.0",
+  "description": "Fixes Chrome extension bridge connection failure on Windows by disabling the remote bridge URL resolver, forcing local named pipe usage.",
+  "author": {
+    "name": "cruzlauroiii"
+  }
+}
