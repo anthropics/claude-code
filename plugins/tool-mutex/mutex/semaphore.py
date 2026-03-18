@@ -27,9 +27,9 @@ POLL_INTERVAL = 0.15
 # Must be less than the hook timeout (30s) to avoid hook timeout errors.
 MAX_WAIT_SECONDS = 20
 
-# Delay (in seconds) before releasing a semaphore slot. This provides a cooldown
-# between consecutive filesystem operations, giving the OS (especially Windows
-# Wof.sys) time to settle between directory enumerations.
+# Delay (in seconds) applied in PreToolUse before allowing a filesystem tool to
+# proceed. This provides a cooldown between consecutive operations, giving the
+# OS (especially Windows Wof.sys) time to settle between directory enumerations.
 # Configurable via CLAUDE_TOOL_MUTEX_RELEASE_DELAY_MS (min 15, max 1000).
 DEFAULT_RELEASE_DELAY_MS = 75
 MIN_RELEASE_DELAY_MS = 15
@@ -154,7 +154,11 @@ def acquire(session_id: str, tool_use_id: str = "", tool_name: str = "") -> bool
         active = _count_active_slots(mutex_dir)
 
         if active <= max_concurrent:
-            # We have capacity (our slot is already counted in active)
+            # We have capacity (our slot is already counted in active).
+            # Apply cooldown delay before letting the tool proceed, spacing
+            # out consecutive filesystem operations at the PreToolUse gate.
+            delay = _get_release_delay()
+            time.sleep(delay)
             return True
 
         # Check timeout
@@ -193,11 +197,7 @@ def _get_release_delay() -> float:
 
 
 def release(session_id: str, tool_use_id: str = "") -> bool:
-    """Release a semaphore slot after a cooldown delay.
-
-    A short delay before releasing ensures consecutive filesystem operations
-    don't overlap, giving the OS kernel (especially Windows Wof.sys) time to
-    settle between directory enumerations.
+    """Release a semaphore slot.
 
     Args:
         session_id: Current Claude Code session ID.
@@ -206,9 +206,6 @@ def release(session_id: str, tool_use_id: str = "") -> bool:
     Returns:
         True if the slot was released, False if not found.
     """
-    delay = _get_release_delay()
-    time.sleep(delay)
-
     mutex_dir = _get_mutex_dir(session_id)
     slot_id = _make_slot_id(tool_use_id, session_id)
     slot_path = mutex_dir / slot_id
