@@ -1,0 +1,28 @@
+{
+  "description": "PowerShell Default plugin — redirects Bash tool to use PowerShell Preview",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/session-start.js",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/pre-bash.js",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
