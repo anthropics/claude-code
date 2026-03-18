@@ -83,7 +83,27 @@ CLAUDE_TOOL_MUTEX_DISABLED=1
 
 1. **PreToolUse hook** — Before Glob, Grep, Read, or Bash executes, the hook acquires a semaphore slot. If all slots are taken, the tool waits (polls every 150ms, max 20s timeout to avoid blocking the user).
 2. **PostToolUse hook** — After the tool completes, the hook releases the slot.
-3. **Semaphore** — File-based counting semaphore using slot files in `$TMPDIR/claude-tool-mutex/<session_id>/`. Stale slots (>120s) are auto-cleaned to prevent deadlocks.
+3. **Semaphore** — File-based counting semaphore using slot files in `$TMPDIR/claude-tool-mutex/<session_id>/`. Stale slots are cleaned up via **PID liveness check** (immediate) with a 120s time-based fallback.
+
+### Why file-based (not in-memory)?
+
+Claude Code hooks execute as **separate Python processes** — each PreToolUse / PostToolUse invocation spawns a new `python3` process. In-memory state (asyncio Semaphore, threading.Lock) does not survive across invocations. A file-based semaphore is the only mechanism that works with the plugin hook architecture.
+
+### Stale slot recovery
+
+If a process crashes mid-operation (which is the exact scenario this plugin exists to fix), the slot file is orphaned. On the next `acquire()` call, the semaphore checks whether the **owning PID is still alive** (`os.kill(pid, 0)`). Dead-PID slots are freed immediately — no 2-minute wait. The 120-second timeout is a fallback for corrupted slot metadata only.
+
+### Why 75ms cooldown?
+
+Empirically tested on the affected 32-core Windows workstation:
+- **10–20ms**: still triggered occasional Wof.sys hangs under sustained parallel load
+- **50ms**: stable for short bursts but not sustained (200+ sequential tool calls)
+- **75ms**: stable under all tested workloads, including 256 queued operations
+- **100ms+**: works but adds perceptible latency with no additional benefit
+
+### Wof.sys scope
+
+The `Wof.sys` (Windows Overlay Filter) driver is loaded on **all modern Windows 10/11 installations** — it handles NTFS compressed files and Compact OS. It is not limited to WIMBoot or special configurations. Any Windows machine running Claude Code is potentially affected.
 
 ## Verified results
 
