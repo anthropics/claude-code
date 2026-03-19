@@ -152,6 +152,14 @@ Execute before any tool runs. Use to approve, deny, or modify tool calls.
 }
 ```
 
+**Agent-aware denial messages:**
+
+Use `is_subagent` to tailor the `systemMessage` based on context. For example, when denying a Bash call and redirecting to an MCP resource:
+- **Main agent** (`is_subagent: false`) can invoke `ReadMcpResourceTool` directly.
+- **Subagent** (`is_subagent: true`) must use a `resource-read` wrapper tool instead.
+
+This avoids duplicating both instructions in every denial.
+
 ### PostToolUse
 
 Execute after tool completes. Use to react to results, provide feedback, or log.
@@ -307,9 +315,24 @@ All hooks receive JSON via stdin with common fields:
   "transcript_path": "/path/to/transcript.txt",
   "cwd": "/current/working/dir",
   "permission_mode": "ask|allow",
-  "hook_event_name": "PreToolUse"
+  "hook_event_name": "PreToolUse",
+  "is_subagent": false,
+  "agent_name": "",
+  "parent_session_id": "",
+  "agent_depth": 0
 }
 ```
+
+**Agent context fields:**
+
+| Field | Type | Description |
+|---|---|---|
+| `is_subagent` | boolean | `true` when the tool call originates from a subagent |
+| `agent_name` | string | Name of the current agent; empty string for the main agent |
+| `parent_session_id` | string | Session ID of the parent context; empty string at top level |
+| `agent_depth` | integer | Nesting depth — `0` = main agent, `1` = first-level subagent, etc. |
+
+Use these fields to implement agent-specific policies, security controls, and targeted messages. See `references/advanced.md` for patterns.
 
 **Event-specific fields:**
 

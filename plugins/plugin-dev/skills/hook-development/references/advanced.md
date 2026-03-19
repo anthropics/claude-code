@@ -2,6 +2,143 @@
 
 This reference covers advanced hook patterns and techniques for sophisticated automation workflows.
 
+## Agent-Aware Hook Patterns
+
+Claude Code populates four agent-context fields in every hook input payload:
+
+| Field | Type | Description |
+|---|---|---|
+| `is_subagent` | boolean | `true` when the tool call originates from a subagent |
+| `agent_name` | string | Name of the current agent; empty string for the main agent |
+| `parent_session_id` | string | Session ID of the parent; empty string at top level |
+| `agent_depth` | integer | Nesting depth — `0` = main agent, `1` = subagent, etc. |
+
+These fields are available on **all** hook events (PreToolUse, PostToolUse, Stop, UserPromptSubmit, SessionStart, etc.).
+
+### Example: Targeted Denial Messages (Bash)
+
+When denying a Bash call and redirecting to an MCP resource, main agents and subagents need different instructions. Duplicating both in every message is noisy:
+
+```bash
+#!/bin/bash
+# agent-aware-denial.sh
+set -euo pipefail
+
+input=$(cat)
+is_subagent=$(echo "$input" | jq -r '.is_subagent // false')
+agent_name=$(echo "$input" | jq -r '.agent_name // ""')
+agent_depth=$(echo "$input" | jq -r '.agent_depth // 0')
+tool_name=$(echo "$input" | jq -r '.tool_name // ""')
+
+# Only intercept Bash tool
+if [ "$tool_name" != "Bash" ]; then
+  exit 0
+fi
+
+command=$(echo "$input" | jq -r '.tool_input.command // ""')
+
+# Block access to sensitive script
+if [[ "$command" == *"internal-policy.sh"* ]]; then
+  if [ "$is_subagent" = "true" ]; then
+    # Subagents cannot use ReadMcpResourceTool directly
+    msg="[Subagent: ${agent_name:-unknown}, depth=${agent_depth}] Access denied. "
+    msg+="Use the 'resource-read' wrapper tool: resource-read(uri='policy://internal-policy')"
+  else
+    # Main agent has direct MCP access
+    msg="Access denied. Read the policy directly via: ReadMcpResourceTool(uri='policy://internal-policy')"
+  fi
+
+  echo "$msg" >&2
+  exit 2
+fi
+
+exit 0
+```
+
+### Example: Agent-Specific Security Policy (Python)
+
+Apply stricter rules when the main agent runs code, and looser rules for a trusted subagent:
+
+```python
+#!/usr/bin/env python3
+"""Agent-aware bash security policy hook."""
+import json
+import sys
+
+# Trusted subagents that have broader Bash permissions
+TRUSTED_AGENTS = {"code-reviewer", "test-runner"}
+# Commands always blocked for everyone
+ALWAYS_BLOCKED = ["rm -rf /", "dd if=/dev/zero"]
+
+def main():
+    try:
+        data = json.load(sys.stdin)
+    except json.JSONDecodeError:
+        sys.exit(0)
+
+    if data.get("tool_name") != "Bash":
+        sys.exit(0)
+
+    command = data.get("tool_input", {}).get("command", "")
+    is_subagent = data.get("is_subagent", False)
+    agent_name = data.get("agent_name", "")
+    agent_depth = data.get("agent_depth", 0)
+
+    # Always-blocked commands
+    for blocked in ALWAYS_BLOCKED:
+        if blocked in command:
+            print(f"Blocked: '{blocked}' is prohibited for all agents.", file=sys.stderr)
+            sys.exit(2)
+
+    # Main agent: block git push (must go through code-reviewer agent)
+    if not is_subagent and command.startswith("git push"):
+        print(
+            "Direct 'git push' is not allowed from the main agent. "
+            "Delegate to the @code-reviewer subagent.",
+            file=sys.stderr,
+        )
+        sys.exit(2)
+
+    # Untrusted subagent: block git operations entirely
+    if is_subagent and agent_name not in TRUSTED_AGENTS and command.startswith("git"):
+        print(
+            f"Subagent '{agent_name}' (depth={agent_depth}) is not authorized "
+            f"to run git commands. Only {TRUSTED_AGENTS} may do so.",
+            file=sys.stderr,
+        )
+        sys.exit(2)
+
+    sys.exit(0)
+
+if __name__ == "__main__":
+    main()
+```
+
+### Example: Audit Logging with Agent Context
+
+Log all tool calls with full agent provenance:
+
+```bash
+#!/bin/bash
+input=$(cat)
+tool_name=$(echo "$input"   | jq -r '.tool_name // "unknown"')
+is_subagent=$(echo "$input" | jq -r '.is_subagent // false')
+agent_name=$(echo "$input"  | jq -r '.agent_name // ""')
+parent_sid=$(echo "$input"  | jq -r '.parent_session_id // ""')
+agent_depth=$(echo "$input" | jq -r '.agent_depth // 0')
+session_id=$(echo "$input"  | jq -r '.session_id // ""')
+timestamp=$(date -Iseconds)
+
+echo "$timestamp | session=$session_id | depth=$agent_depth | agent=${agent_name:-main} | subagent=$is_subagent | parent=$parent_sid | tool=$tool_name" \
+  >> ~/.claude/audit.log
+
+exit 0
+```
+
+**Use for:** Security auditing, compliance logging, and debugging multi-agent workflows.
+
+---
+
 ## Multi-Stage Validation
 
 Combine command and prompt hooks for layered validation:

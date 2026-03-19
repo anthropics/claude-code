@@ -344,3 +344,48 @@ fi
 - Per-project settings
 - Team-specific rules
 - Dynamic validation criteria
+
+## Pattern 11: Agent-Context Branching
+
+Apply different policies based on whether the hook fires in the main agent or a subagent:
+
+```bash
+#!/bin/bash
+# Branch on agent context fields available in all hook payloads
+input=$(cat)
+is_subagent=$(echo "$input" | jq -r '.is_subagent // false')
+agent_name=$(echo "$input"  | jq -r '.agent_name // ""')
+agent_depth=$(echo "$input" | jq -r '.agent_depth // 0')
+tool_name=$(echo "$input"   | jq -r '.tool_name // ""')
+
+# Only process Bash tool
+if [ "$tool_name" != "Bash" ]; then
+  exit 0
+fi
+
+if [ "$is_subagent" = "true" ]; then
+  # Subagent-specific guidance
+  echo "Subagent '${agent_name}' (depth=${agent_depth}): use resource-read wrapper for MCP resources." >&2
+else
+  # Main-agent guidance
+  echo "Use ReadMcpResourceTool for MCP resources." >&2
+fi
+exit 2
+```
+
+**Agent context fields (available in all hook events):**
+
+| Field | Type | Description |
+|---|---|---|
+| `is_subagent` | boolean | `true` when originating from a subagent |
+| `agent_name` | string | Subagent name; empty for main agent |
+| `parent_session_id` | string | Parent session ID; empty at top level |
+| `agent_depth` | integer | `0` = main agent, `1` = subagent, `2` = nested subagent |
+
+**Use for:**
+- Targeted denial messages (avoid noisy dual-instruction blocks)
+- Restricting git or deploy operations to designated agents only
+- Audit logging with full agent provenance
+- Tiered security policies per agent role
+
+See `references/advanced.md` → **Agent-Aware Hook Patterns** for full bash and Python examples.
