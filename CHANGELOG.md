@@ -1,5 +1,25 @@
 # Changelog
 
+## 2.1.80
+
+- Added `rate_limits` field to statusline scripts for displaying Claude.ai rate limit usage (5-hour and 7-day windows with `used_percentage` and `resets_at`)
+- Added `source: 'settings'` plugin marketplace source — declare plugin entries inline in settings.json
+- Added CLI tool usage detection to plugin tips, in addition to file pattern matching
+- Added `effort` frontmatter support for skills and slash commands to override the model effort level when invoked
+- Added `--channels` (research preview) — allow MCP servers to push messages into your session
+- Fixed `--resume` dropping parallel tool results — sessions with parallel tool calls now restore all tool_use/tool_result pairs instead of showing `[Tool result missing]` placeholders
+- Fixed voice mode WebSocket failures caused by Cloudflare bot detection on non-browser TLS fingerprints
+- Fixed 400 errors when using fine-grained tool streaming through API proxies, Bedrock, or Vertex
+- Fixed `/remote-control` appearing for gateway and third-party provider deployments where it cannot function
+- Fixed `/sandbox` tab switching not responding to Tab or arrow keys
+- Improved responsiveness of `@` file autocomplete in large git repositories
+- Improved `/effort` to show what auto currently resolves to, matching the status bar indicator
+- Improved `/permissions` — Tab and arrow keys now switch tabs from within a list
+- Improved background tasks panel — left arrow now closes from the list view
+- Simplified plugin install tips to use a single `/plugin install` command instead of a two-step flow
+- Reduced memory usage on startup in large repositories (~80 MB saved on 250k-file repos)
+- Fixed managed settings (`enabledPlugins`, `permissions.defaultMode`, policy-set env vars) not being applied at startup when `remote-settings.json` was cached from a prior session
+
 ## 2.1.79
 
 - Added `--console` flag to `claude auth login` for Anthropic Console (API billing) authentication
