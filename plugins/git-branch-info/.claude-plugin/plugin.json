@@ -1,0 +1,9 @@
+{
+  "name": "git-branch-info",
+  "version": "1.0.0",
+  "description": "Displays current git branch and status info at session start and on demand, making branch context always visible",
+  "author": {
+    "name": "Nick",
+    "email": ""
+  }
+}
