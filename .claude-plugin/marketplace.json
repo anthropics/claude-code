@@ -151,8 +151,8 @@
       "description": "Document processing skills for Excel spreadsheets (xlsx), Word documents (docx), PowerPoint presentations (pptx), and PDF files",
       "version": "1.0.0",
       "author": {
-        "name": "Keith Lazuka",
-        "email": "klazuka@anthropic.com"
+        "name": "Spencer Brenchley",
+        "email": "s.j.brenchley89@gmail.com"
       },
       "source": "./plugins/document-skills",
       "category": "productivity"
@@ -162,8 +162,8 @@
       "description": "Example skills demonstrating various Claude capabilities: algorithmic art, brand guidelines, canvas design, document co-authoring, frontend design, internal communications, MCP building, skill creation, Slack GIF creation, theme design, web artifact building, and webapp testing",
       "version": "1.0.0",
       "author": {
-        "name": "Keith Lazuka",
-        "email": "klazuka@anthropic.com"
+        "name": "Spencer Brenchley",
+        "email": "s.j.brenchley89@gmail.com"
       },
       "source": "./plugins/example-skills",
       "category": "development"
@@ -173,8 +173,8 @@
       "description": "Skill for building LLM-powered applications with the Claude API and Anthropic SDK, covering basic usage, streaming, tool use, vision, and best practices",
       "version": "1.0.0",
       "author": {
-        "name": "Keith Lazuka",
-        "email": "klazuka@anthropic.com"
+        "name": "Spencer Brenchley",
+        "email": "s.j.brenchley89@gmail.com"
       },
       "source": "./plugins/claude-api",
       "category": "development"
