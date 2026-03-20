@@ -1,5 +1,35 @@
 # Changelog
 
+## 2.1.81
+
+- Added `--bare` flag for scripted `-p` calls — skips hooks, LSP, plugin sync, and skill directory walks; requires `ANTHROPIC_API_KEY` or an `apiKeyHelper` via `--settings` (OAuth and keychain auth disabled); auto-memory fully disabled
+- Added `--channels` permission relay — channel servers that declare the permission capability can forward tool approval prompts to your phone
+- Fixed multiple concurrent Claude Code sessions requiring repeated re-authentication when one session refreshes its OAuth token
+- Fixed voice mode silently swallowing retry failures and showing a misleading "check your network" message instead of the actual error
+- Fixed voice mode audio not recovering when the server silently drops the WebSocket connection
+- Fixed `CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS` not suppressing the structured-outputs beta header, causing 400 errors on proxy gateways forwarding to Vertex/Bedrock
+- Fixed `--channels` bypass for Team/Enterprise orgs with no other managed settings configured
+- Fixed a crash on Node.js 18
+- Fixed unnecessary permission prompts for Bash commands containing dashes in strings
+- Fixed plugin hooks blocking prompt submission when the plugin directory is deleted mid-session
+- Fixed a race condition where background agent task output could hang indefinitely when the task completed between polling intervals
+- Resuming a session that was in a worktree now switches back to that worktree
+- Fixed `/btw` not including pasted text when used during an active response
+- Fixed a race where fast Cmd+Tab followed by paste could beat the clipboard copy under tmux
+- Fixed terminal tab title not updating with an auto-generated session description
+- Fixed invisible hook attachments inflating the message count in transcript mode
+- Fixed Remote Control sessions showing a generic title instead of deriving from the first prompt
+- Fixed `/rename` not syncing the title for Remote Control sessions
+- Fixed Remote Control `/exit` not reliably archiving the session
+- Improved MCP read/search tool calls to collapse into a single "Queried {server}" line (expand with Ctrl+O)
+- Improved `!` bash mode discoverability — Claude now suggests it when you need to run an interactive command
+- Improved plugin freshness — ref-tracked plugins now re-clone on every load to pick up upstream changes
+- Improved Remote Control session titles to refresh after your third message
+- Updated MCP OAuth to support Client ID Metadata Document (CIMD / SEP-991) for servers without Dynamic Client Registration
+- Changed plan mode to hide the "clear context" option by default (restore with `"showClearContextOnPlanAccept": true`)
+- Disabled line-by-line response streaming on Windows (including WSL in Windows Terminal) due to rendering issues
+- [VSCode] Fixed Windows PATH inheritance for Bash tool when using Git Bash (regression in v2.1.78)
+
 ## 2.1.80
 
 - Added `rate_limits` field to statusline scripts for displaying Claude.ai rate limit usage (5-hour and 7-day windows with `used_percentage` and `resets_at`)
