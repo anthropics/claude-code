@@ -1,0 +1,17 @@
+{
+  "description": "Block compound bash commands where any segment matches a permissions.deny rule",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/bash_guard.py",
+            "timeout": 5
+          }
+        ],
+        "matcher": "Bash"
+      }
+    ]
+  }
+}
