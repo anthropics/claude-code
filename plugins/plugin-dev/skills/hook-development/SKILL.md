@@ -154,9 +154,9 @@ Execute before any tool runs. Use to approve, deny, or modify tool calls.
 
 **Agent-aware denial messages:**
 
-Use `is_subagent` to tailor the `systemMessage` based on context. For example, when denying a Bash call and redirecting to an MCP resource:
-- **Main agent** (`is_subagent: false`) can invoke `ReadMcpResourceTool` directly.
-- **Subagent** (`is_subagent: true`) must use a `resource-read` wrapper tool instead.
+Use `agent_id` to tailor the `systemMessage` based on context. For example, when denying a Bash call and redirecting to an MCP resource:
+- **Main agent** (no `agent_id`) can invoke `ReadMcpResourceTool` directly.
+- **Subagent** (has `agent_id`) must use a `resource-read` wrapper tool instead.
 
 This avoids duplicating both instructions in every denial.
 
@@ -316,10 +316,8 @@ All hooks receive JSON via stdin with common fields:
   "cwd": "/current/working/dir",
   "permission_mode": "ask|allow",
   "hook_event_name": "PreToolUse",
-  "is_subagent": false,
-  "agent_name": "",
-  "parent_session_id": "",
-  "agent_depth": 0
+  "agent_id": null,
+  "agent_type": null
 }
 ```
 
@@ -327,10 +325,8 @@ All hooks receive JSON via stdin with common fields:
 
 | Field | Type | Description |
 |---|---|---|
-| `is_subagent` | boolean | `true` when the tool call originates from a subagent |
-| `agent_name` | string | Name of the current agent; empty string for the main agent |
-| `parent_session_id` | string | Session ID of the parent context; empty string at top level |
-| `agent_depth` | integer | Nesting depth — `0` = main agent, `1` = first-level subagent, etc. |
+| `agent_id` | string | Unique identifier for the subagent; omitted or empty for the main agent |
+| `agent_type` | string | The type/name of the agent (e.g., `git-expert`, `code-reviewer`) |
 
 Use these fields to implement agent-specific policies, security controls, and targeted messages. See `references/advanced.md` for patterns.
 

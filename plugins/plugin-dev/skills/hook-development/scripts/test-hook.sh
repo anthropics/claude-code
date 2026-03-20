@@ -32,13 +32,11 @@ create_sample() {
 
   # Set agent-context fields based on is_subagent flag
   if [ "$is_subagent" = "true" ]; then
-    agent_name='"git-expert"'
-    parent_session_id='"parent-session-abc"'
-    agent_depth=1
+    agent_id='"subagent-1234"'
+    agent_type='"git-expert"'
   else
-    agent_name='""'
-    parent_session_id='""'
-    agent_depth=0
+    agent_id='null'
+    agent_type='null'
   fi
 
   case "$event_type" in
@@ -50,10 +48,8 @@ create_sample() {
   "cwd": "/tmp/test-project",
   "permission_mode": "ask",
   "hook_event_name": "PreToolUse",
-  "is_subagent": ${is_subagent},
-  "agent_name": ${agent_name},
-  "parent_session_id": ${parent_session_id},
-  "agent_depth": ${agent_depth},
+  "agent_id": ${agent_id},
+  "agent_type": ${agent_type},
   "tool_name": "Write",
   "tool_input": {
     "file_path": "/tmp/test.txt",
@@ -70,10 +66,8 @@ EOF
   "cwd": "/tmp/test-project",
   "permission_mode": "ask",
   "hook_event_name": "PostToolUse",
-  "is_subagent": ${is_subagent},
-  "agent_name": ${agent_name},
-  "parent_session_id": ${parent_session_id},
-  "agent_depth": ${agent_depth},
+  "agent_id": ${agent_id},
+  "agent_type": ${agent_type},
   "tool_name": "Bash",
   "tool_result": "Command executed successfully"
 }
@@ -87,10 +81,8 @@ EOF
   "cwd": "/tmp/test-project",
   "permission_mode": "ask",
   "hook_event_name": "Stop",
-  "is_subagent": ${is_subagent},
-  "agent_name": ${agent_name},
-  "parent_session_id": ${parent_session_id},
-  "agent_depth": ${agent_depth},
+  "agent_id": ${agent_id},
+  "agent_type": ${agent_type},
   "reason": "Task appears complete"
 }
 EOF
@@ -103,10 +95,8 @@ EOF
   "cwd": "/tmp/test-project",
   "permission_mode": "ask",
   "hook_event_name": "UserPromptSubmit",
-  "is_subagent": ${is_subagent},
-  "agent_name": ${agent_name},
-  "parent_session_id": ${parent_session_id},
-  "agent_depth": ${agent_depth},
+  "agent_id": ${agent_id},
+  "agent_type": ${agent_type},
   "user_prompt": "Test user prompt"
 }
 EOF
@@ -119,10 +109,8 @@ EOF
   "cwd": "/tmp/test-project",
   "permission_mode": "ask",
   "hook_event_name": "SessionStart",
-  "is_subagent": ${is_subagent},
-  "agent_name": ${agent_name},
-  "parent_session_id": ${parent_session_id},
-  "agent_depth": ${agent_depth}
+  "agent_id": ${agent_id},
+  "agent_type": ${agent_type}
 }
 EOF
       ;;

@@ -4,14 +4,12 @@ This reference covers advanced hook patterns and techniques for sophisticated au
 
 ## Agent-Aware Hook Patterns
 
-Claude Code populates four agent-context fields in every hook input payload:
+Claude Code populates two agent-context fields in every hook input payload to help identify the originator:
 
 | Field | Type | Description |
 |---|---|---|
-| `is_subagent` | boolean | `true` when the tool call originates from a subagent |
-| `agent_name` | string | Name of the current agent; empty string for the main agent |
-| `parent_session_id` | string | Session ID of the parent; empty string at top level |
-| `agent_depth` | integer | Nesting depth — `0` = main agent, `1` = subagent, etc. |
+| `agent_id` | string | Unique identifier for the subagent; omitted or empty for the main agent |
+| `agent_type` | string | The type/name of the agent (e.g., `git-expert`, `code-reviewer`) |
 
 These fields are available on **all** hook events (PreToolUse, PostToolUse, Stop, UserPromptSubmit, SessionStart, etc.).
 
@@ -25,9 +23,8 @@ When denying a Bash call and redirecting to an MCP resource, main agents and sub
 set -euo pipefail
 
 input=$(cat)
-is_subagent=$(echo "$input" | jq -r '.is_subagent // false')
-agent_name=$(echo "$input" | jq -r '.agent_name // ""')
-agent_depth=$(echo "$input" | jq -r '.agent_depth // 0')
+agent_id=$(echo "$input" | jq -r '.agent_id // ""')
+agent_type=$(echo "$input" | jq -r '.agent_type // ""')
 tool_name=$(echo "$input" | jq -r '.tool_name // ""')
 
 # Only intercept Bash tool
@@ -39,9 +36,9 @@ command=$(echo "$input" | jq -r '.tool_input.command // ""')
 
 # Block access to sensitive script
 if [[ "$command" == *"internal-policy.sh"* ]]; then
-  if [ "$is_subagent" = "true" ]; then
+  if [ -n "$agent_id" ]; then
     # Subagents cannot use ReadMcpResourceTool directly
-    msg="[Subagent: ${agent_name:-unknown}, depth=${agent_depth}] Access denied. "
+    msg="[Subagent: ${agent_type:-unknown}] Access denied. "
     msg+="Use the 'resource-read' wrapper tool: resource-read(uri='policy://internal-policy')"
   else
     # Main agent has direct MCP access
@@ -80,9 +77,9 @@ def main():
         sys.exit(0)
 
     command = data.get("tool_input", {}).get("command", "")
-    is_subagent = data.get("is_subagent", False)
-    agent_name = data.get("agent_name", "")
-    agent_depth = data.get("agent_depth", 0)
+    agent_id = data.get("agent_id")
+    agent_type = data.get("agent_type", "")
+    is_subagent = bool(agent_id)
 
     # Always-blocked commands
     for blocked in ALWAYS_BLOCKED:
@@ -100,9 +97,9 @@ def main():
         sys.exit(2)
 
     # Untrusted subagent: block git operations entirely
-    if is_subagent and agent_name not in TRUSTED_AGENTS and command.startswith("git"):
+    if is_subagent and agent_type not in TRUSTED_AGENTS and command.startswith("git"):
         print(
-            f"Subagent '{agent_name}' (depth={agent_depth}) is not authorized "
+            f"Subagent '{agent_type}' is not authorized "
             f"to run git commands. Only {TRUSTED_AGENTS} may do so.",
             file=sys.stderr,
         )
@@ -122,14 +119,12 @@ Log all tool calls with full agent provenance:
 #!/bin/bash
 input=$(cat)
 tool_name=$(echo "$input"   | jq -r '.tool_name // "unknown"')
-is_subagent=$(echo "$input" | jq -r '.is_subagent // false')
-agent_name=$(echo "$input"  | jq -r '.agent_name // ""')
-parent_sid=$(echo "$input"  | jq -r '.parent_session_id // ""')
-agent_depth=$(echo "$input" | jq -r '.agent_depth // 0')
+agent_id=$(echo "$input" | jq -r '.agent_id // ""')
+agent_type=$(echo "$input" | jq -r '.agent_type // "main"')
 session_id=$(echo "$input"  | jq -r '.session_id // ""')
 timestamp=$(date -Iseconds)
 
-echo "$timestamp | session=$session_id | depth=$agent_depth | agent=${agent_name:-main} | subagent=$is_subagent | parent=$parent_sid | tool=$tool_name" \
+echo "$timestamp | session=$session_id | agent=$agent_type | subagent_id=$agent_id | tool=$tool_name" \
   >> ~/.claude/audit.log
 
 exit 0

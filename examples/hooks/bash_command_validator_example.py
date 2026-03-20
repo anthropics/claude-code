@@ -7,8 +7,8 @@ It validates bash commands against a set of rules before execution.
 In this case it changes grep calls to using rg.
 
 It also demonstrates how to read the new agent context fields
-(is_subagent, agent_name, parent_session_id, agent_depth) added in
-Issue #36270 / #6885 to tailor messages for main agent vs subagent callers.
+(agent_id, agent_type) added natively in Claude Code
+to tailor messages for main agent vs subagent callers.
 
 Read more about hooks here: https://docs.anthropic.com/en/docs/claude-code/hooks
 
@@ -31,10 +31,8 @@ Make sure to change your path to your actual script.
 }
 
 All PreToolUse hook payloads include these agent context fields:
-  - is_subagent       (bool)   True when called from a subagent
-  - agent_name        (str)    Subagent name; empty string for main agent
-  - parent_session_id (str)    Parent session ID; empty at top level
-  - agent_depth       (int)    Nesting depth: 0 = main agent, 1 = subagent, …
+  - agent_id      (str)  Unique agent identifier; omitted or empty for main agent
+  - agent_type    (str)  Subagent name/type; empty string for main agent
 
 """
 
@@ -82,21 +80,18 @@ def main():
         sys.exit(0)
 
     # ── Agent context fields (available in all hook events) ────────────────
-    # is_subagent       – True when the call originates from a subagent
-    # agent_name        – Subagent name; empty string for the main agent
-    # parent_session_id – Parent session ID; empty at top level
-    # agent_depth       – 0 = main agent, 1 = first-level subagent, etc.
-    is_subagent = input_data.get("is_subagent", False)
-    agent_name = input_data.get("agent_name", "")
-    agent_depth = input_data.get("agent_depth", 0)
-    # parent_session_id = input_data.get("parent_session_id", "")  # available if needed
+    # agent_id    – Unique identifier for subagent; omitted/empty for main agent
+    # agent_type  – Subagent name; empty string for the main agent
+    agent_id = input_data.get("agent_id")
+    agent_type = input_data.get("agent_type", "")
+    is_subagent = bool(agent_id)
 
     issues = _validate_command(command)
     if issues:
         for message in issues:
             # Tailor the message prefix based on agent context
             if is_subagent:
-                prefix = f"[Subagent '{agent_name or 'unknown'}' depth={agent_depth}]"
+                prefix = f"[Subagent '{agent_type or 'unknown'}']"
             else:
                 prefix = "[Main agent]"
             print(f"{prefix} • {message}", file=sys.stderr)

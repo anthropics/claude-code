@@ -3,8 +3,8 @@
 # =============================================================================
 # Example PreToolUse hook: Agent-Aware Bash Validator
 # =============================================================================
-# Demonstrates how to use the `is_subagent`, `agent_name`, `parent_session_id`,
-# and `agent_depth` fields to write targeted denial messages.
+# Demonstrates how to use the `agent_id` and `agent_type`
+# fields to write targeted denial messages.
 #
 # Problem this solves (Issue #36270 / #6885):
 #   When a hook denies a Bash call and redirects to an MCP resource, the
@@ -41,10 +41,8 @@ if [ "$tool_name" != "Bash" ]; then
 fi
 
 # ── Extract agent context fields ─────────────────────────────────────────────
-is_subagent=$(echo "$input"      | jq -r '.is_subagent // false')
-agent_name=$(echo "$input"       | jq -r '.agent_name // ""')
-parent_session_id=$(echo "$input"| jq -r '.parent_session_id // ""')
-agent_depth=$(echo "$input"      | jq -r '.agent_depth // 0')
+agent_id=$(echo "$input" | jq -r '.agent_id // ""')
+agent_type=$(echo "$input" | jq -r '.agent_type // ""')
 
 # ── Extract command ───────────────────────────────────────────────────────────
 command=$(echo "$input" | jq -r '.tool_input.command // ""')
@@ -52,12 +50,9 @@ command=$(echo "$input" | jq -r '.tool_input.command // ""')
 # ── Policy: block access to internal-policy.sh ───────────────────────────────
 if [[ "$command" == *"internal-policy.sh"* ]]; then
 
-  if [ "$is_subagent" = "true" ]; then
+  if [ -n "$agent_id" ]; then
     # Subagents cannot call ReadMcpResourceTool — use the wrapper instead
-    context_info="[Subagent: '${agent_name:-unknown}', depth=${agent_depth}]"
-    if [ -n "$parent_session_id" ]; then
-      context_info+=" [parent_session=${parent_session_id}]"
-    fi
+    context_info="[Subagent: '${agent_type:-unknown}']"
     echo "${context_info} Access denied: 'internal-policy.sh' is restricted." >&2
     echo "Use the resource-read wrapper tool:" >&2
     echo "  resource-read(uri='policy://internal-policy')" >&2
@@ -73,7 +68,7 @@ if [[ "$command" == *"internal-policy.sh"* ]]; then
 fi
 
 # ── Policy: main agent must not run git push directly ────────────────────────
-if [ "$is_subagent" = "false" ] && echo "$command" | grep -q "^git push"; then
+if [ -z "$agent_id" ] && echo "$command" | grep -q "^git push"; then
   echo "Direct 'git push' is not permitted from the main agent." >&2
   echo "Delegate to the @git-expert subagent to perform git operations." >&2
   exit 2

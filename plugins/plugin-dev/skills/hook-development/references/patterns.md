@@ -353,9 +353,8 @@ Apply different policies based on whether the hook fires in the main agent or a 
 #!/bin/bash
 # Branch on agent context fields available in all hook payloads
 input=$(cat)
-is_subagent=$(echo "$input" | jq -r '.is_subagent // false')
-agent_name=$(echo "$input"  | jq -r '.agent_name // ""')
-agent_depth=$(echo "$input" | jq -r '.agent_depth // 0')
+agent_id=$(echo "$input" | jq -r '.agent_id // ""')
+agent_type=$(echo "$input"  | jq -r '.agent_type // ""')
 tool_name=$(echo "$input"   | jq -r '.tool_name // ""')
 
 # Only process Bash tool
@@ -363,9 +362,9 @@ if [ "$tool_name" != "Bash" ]; then
   exit 0
 fi
 
-if [ "$is_subagent" = "true" ]; then
+if [ -n "$agent_id" ]; then
   # Subagent-specific guidance
-  echo "Subagent '${agent_name}' (depth=${agent_depth}): use resource-read wrapper for MCP resources." >&2
+  echo "Subagent '${agent_type}': use resource-read wrapper for MCP resources." >&2
 else
   # Main-agent guidance
   echo "Use ReadMcpResourceTool for MCP resources." >&2
@@ -377,10 +376,8 @@ exit 2
 
 | Field | Type | Description |
 |---|---|---|
-| `is_subagent` | boolean | `true` when originating from a subagent |
-| `agent_name` | string | Subagent name; empty for main agent |
-| `parent_session_id` | string | Parent session ID; empty at top level |
-| `agent_depth` | integer | `0` = main agent, `1` = subagent, `2` = nested subagent |
+| `agent_id` | string | Unique identifier for the subagent; omitted or empty for the main agent |
+| `agent_type` | string | Subagent name/type (e.g., `git-expert`) |
 
 **Use for:**
 - Targeted denial messages (avoid noisy dual-instruction blocks)

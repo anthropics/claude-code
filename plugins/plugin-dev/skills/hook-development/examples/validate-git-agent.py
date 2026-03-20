@@ -2,8 +2,8 @@
 """
 Claude Code Hook: Agent-Aware Git Command Validator
 ====================================================
-Demonstrates using the `agent_name`, `is_subagent`, `parent_session_id`, and
-`agent_depth` fields (added in Issue #36270 / #6885) to enforce a security
+Demonstrates using the `agent_id` and `agent_type`
+fields (added natively in Claude Code) to enforce a security
 policy: only the designated @git-expert subagent may run git commands.
 
 Hook configuration (.claude/settings.json):
@@ -24,7 +24,7 @@ Hook configuration (.claude/settings.json):
 }
 
 Backward compatibility note:
-  If `agent_name` is absent from the payload (older Claude Code builds),
+  If `agent_type` is absent from the payload (older Claude Code builds),
   the hook falls back to inspecting the session transcript, using the
   workaround documented in Issue #6885 comment by @coygeek.
 """
@@ -42,7 +42,7 @@ AUTHORIZED_GIT_AGENT = "git-expert"
 def find_agent_in_transcript(transcript_path: str) -> str | None:
     """
     Fallback: parse the JSONL transcript to infer the most recently
-    invoked subagent when native `agent_name` is unavailable.
+    invoked subagent when native `agent_type` is unavailable.
 
     Returns the agent name string, or None if no Task tool call is found.
     """
@@ -93,18 +93,17 @@ def main() -> None:
         sys.exit(0)  # Not a git command — not our concern
 
     # ── Read agent context fields ──────────────────────────────────────────
-    is_subagent: bool        = data.get("is_subagent", False)
-    agent_name: str          = data.get("agent_name", "")          # "" = main agent
-    parent_session_id: str   = data.get("parent_session_id", "")
-    agent_depth: int         = data.get("agent_depth", 0)
+    agent_id: str | None = data.get("agent_id")
+    agent_type: str      = data.get("agent_type", "")
+    is_subagent: bool    = bool(agent_id)
     transcript_path: str     = data.get("transcript_path", "")
 
     # ── Resolve agent name (with transcript fallback) ─────────────────────
-    resolved_name = agent_name
+    resolved_name = agent_type
     used_fallback = False
 
-    if is_subagent and not agent_name and transcript_path:
-        # Older Claude Code: agent_name not yet in payload — use transcript
+    if is_subagent and not agent_type and transcript_path:
+        # Older Claude Code: agent_type not yet in payload — use transcript
         resolved_name = find_agent_in_transcript(transcript_path) or "unknown"
         used_fallback = True
 
@@ -119,9 +118,7 @@ def main() -> None:
         sys.exit(2)
 
     if resolved_name != AUTHORIZED_GIT_AGENT:
-        context = f"agent='{resolved_name}', depth={agent_depth}"
-        if parent_session_id:
-            context += f", parent_session={parent_session_id}"
+        context = f"agent='{resolved_name}'"
         if used_fallback:
             context += " (inferred from transcript)"
 
