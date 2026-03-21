@@ -4,6 +4,7 @@
 // giving the author a heads-up and a chance to respond before auto-close.
 
 import { lifecycle } from "./issue-lifecycle.ts";
+import { githubRequest } from "./github-request.ts";
 
 const DRY_RUN = process.argv.includes("--dry-run");
 const token = process.env.GITHUB_TOKEN;
@@ -31,23 +32,10 @@ if (DRY_RUN) {
   process.exit(0);
 }
 
-const response = await fetch(
-  `https://api.github.com/repos/${repo}/issues/${issueNumber}/comments`,
-  {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: "application/vnd.github.v3+json",
-      "Content-Type": "application/json",
-      "User-Agent": "lifecycle-comment",
-    },
-    body: JSON.stringify({ body }),
-  }
+await githubRequest(
+  `/repos/${repo}/issues/${issueNumber}/comments`,
+  token!,
+  { method: "POST", body: { body } },
 );
-
-if (!response.ok) {
-  const text = await response.text();
-  throw new Error(`GitHub API ${response.status}: ${text}`);
-}
 
 console.log(`Commented on #${issueNumber} for label "${label}"`);
