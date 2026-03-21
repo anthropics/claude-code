@@ -59,10 +59,10 @@ const RETRYABLE_STATUS_CODES = new Set([
 ]);
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Helpers (exported for testing)
 // ---------------------------------------------------------------------------
 
-function isTransientError(error: unknown): boolean {
+export function isTransientError(error: unknown): boolean {
   if (!(error instanceof Error)) return false;
 
   const code = (error as NodeJS.ErrnoException).code ?? "";
@@ -78,7 +78,7 @@ function isTransientError(error: unknown): boolean {
   return false;
 }
 
-function calculateDelay(attempt: number): number {
+export function calculateDelay(attempt: number): number {
   const base = Math.min(
     INITIAL_RETRY_DELAY_MS * Math.pow(2, attempt),
     MAX_RETRY_DELAY_MS,
@@ -96,7 +96,7 @@ function sleep(ms: number): Promise<void> {
  * Parse the `Retry-After` header (seconds or HTTP-date) into milliseconds.
  * Returns `null` when the header is missing or un-parseable.
  */
-function parseRetryAfter(headers: Headers): number | null {
+export function parseRetryAfter(headers: Headers): number | null {
   const value = headers.get("retry-after");
   if (!value) return null;
 

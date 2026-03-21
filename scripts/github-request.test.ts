@@ -1,19 +1,31 @@
 import { describe, test, expect, mock, beforeEach, afterEach } from "bun:test";
-import { githubRequest } from "./github-request.ts";
+import {
+  githubRequest,
+  isTransientError,
+  calculateDelay,
+  parseRetryAfter,
+} from "./github-request.ts";
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Test helpers
 // ---------------------------------------------------------------------------
 
-/** Build a minimal Response-like object for the mock. */
-function jsonResponse(body: unknown, status = 200, headers: Record<string, string> = {}): Response {
+function jsonResponse(
+  body: unknown,
+  status = 200,
+  headers: Record<string, string> = {},
+): Response {
   return new Response(JSON.stringify(body), {
     status,
     headers: { "content-type": "application/json", ...headers },
   });
 }
 
-function textResponse(body: string, status: number, headers: Record<string, string> = {}): Response {
+function textResponse(
+  body: string,
+  status: number,
+  headers: Record<string, string> = {},
+): Response {
   return new Response(body, { status, headers });
 }
 
@@ -24,393 +36,412 @@ function networkError(code: string, message = "Connection failed"): Error {
 }
 
 // ---------------------------------------------------------------------------
-// Mock setup
+// Unit tests — internal helpers
 // ---------------------------------------------------------------------------
 
-const originalFetch = globalThis.fetch;
-let fetchMock: ReturnType<typeof mock>;
+describe("isTransientError", () => {
+  test.each([
+    "ECONNRESET",
+    "ECONNREFUSED",
+    "EPIPE",
+    "ETIMEDOUT",
+    "ENOTFOUND",
+    "EAI_AGAIN",
+    "ENETUNREACH",
+    "EHOSTUNREACH",
+    "UND_ERR_SOCKET",
+    "UND_ERR_CONNECT_TIMEOUT",
+  ])("returns true for %s", (code) => {
+    expect(isTransientError(networkError(code))).toBe(true);
+  });
 
-beforeEach(() => {
-  fetchMock = mock(() => Promise.resolve(jsonResponse({ ok: true })));
-  globalThis.fetch = fetchMock as unknown as typeof fetch;
+  test("returns true for Bun socket close message", () => {
+    expect(
+      isTransientError(
+        new Error("The socket connection was closed unexpectedly"),
+      ),
+    ).toBe(true);
+  });
+
+  test("returns true for AbortError", () => {
+    const err = new Error("aborted");
+    err.name = "AbortError";
+    expect(isTransientError(err)).toBe(true);
+  });
+
+  test("returns true for TimeoutError", () => {
+    const err = new Error("timed out");
+    err.name = "TimeoutError";
+    expect(isTransientError(err)).toBe(true);
+  });
+
+  test("returns false for generic Error", () => {
+    expect(isTransientError(new Error("Something unexpected"))).toBe(false);
+  });
+
+  test("returns false for non-Error values", () => {
+    expect(isTransientError("string error")).toBe(false);
+    expect(isTransientError(null)).toBe(false);
+    expect(isTransientError(undefined)).toBe(false);
+    expect(isTransientError(42)).toBe(false);
+  });
 });
 
-afterEach(() => {
-  globalThis.fetch = originalFetch;
+describe("calculateDelay", () => {
+  test("returns a value in the jitter range for attempt 0", () => {
+    const delay = calculateDelay(0);
+    // base = 500ms, jitter range = [375, 625]
+    expect(delay).toBeGreaterThanOrEqual(375);
+    expect(delay).toBeLessThanOrEqual(625);
+  });
+
+  test("increases exponentially", () => {
+    // attempt 0 base = 500, attempt 3 base = 4000
+    // Collect several samples to verify the trend
+    const lowSamples = Array.from({ length: 10 }, () => calculateDelay(0));
+    const highSamples = Array.from({ length: 10 }, () => calculateDelay(3));
+    const lowAvg = lowSamples.reduce((a, b) => a + b, 0) / lowSamples.length;
+    const highAvg =
+      highSamples.reduce((a, b) => a + b, 0) / highSamples.length;
+    expect(highAvg).toBeGreaterThan(lowAvg * 3);
+  });
+
+  test("caps at MAX_RETRY_DELAY_MS (32s)", () => {
+    const delay = calculateDelay(20); // 500 * 2^20 would be huge without cap
+    // max base = 32000, jitter range = [24000, 40000]
+    expect(delay).toBeLessThanOrEqual(40_000);
+  });
+});
+
+describe("parseRetryAfter", () => {
+  test("parses numeric seconds", () => {
+    const headers = new Headers({ "retry-after": "5" });
+    expect(parseRetryAfter(headers)).toBe(5000);
+  });
+
+  test("returns null for missing header", () => {
+    expect(parseRetryAfter(new Headers())).toBeNull();
+  });
+
+  test("returns null for zero", () => {
+    const headers = new Headers({ "retry-after": "0" });
+    expect(parseRetryAfter(headers)).toBeNull();
+  });
+
+  test("returns null for negative values", () => {
+    const headers = new Headers({ "retry-after": "-10" });
+    expect(parseRetryAfter(headers)).toBeNull();
+  });
+
+  test("caps at 300 seconds", () => {
+    const headers = new Headers({ "retry-after": "301" });
+    expect(parseRetryAfter(headers)).toBeNull();
+  });
+
+  test("accepts values up to 300 seconds", () => {
+    const headers = new Headers({ "retry-after": "300" });
+    expect(parseRetryAfter(headers)).toBe(300_000);
+  });
+
+  test("returns null for unparseable value", () => {
+    const headers = new Headers({ "retry-after": "not-a-number" });
+    expect(parseRetryAfter(headers)).toBeNull();
+  });
 });
 
 // ---------------------------------------------------------------------------
-// Tests
+// Integration tests — githubRequest
 // ---------------------------------------------------------------------------
 
 describe("githubRequest", () => {
-  // ── Basic functionality ───────────────────────────────────────────────
+  const originalFetch = globalThis.fetch;
+  let fetchMock: ReturnType<typeof mock>;
 
-  test("makes GET request by default", async () => {
-    const result = await githubRequest("/repos/test/repo", "test-token");
-    expect(result).toEqual({ ok: true });
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+  /** Replace `globalThis.fetch` with a fresh mock before each test. */
+  function mockFetch(
+    impl: (...args: unknown[]) => Promise<Response>,
+  ): void {
+    fetchMock = mock(impl);
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+  }
 
-    const [url, opts] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(url).toBe("https://api.github.com/repos/test/repo");
-    expect(opts.method).toBe("GET");
-    expect((opts.headers as Record<string, string>)["Authorization"]).toBe("Bearer test-token");
+  beforeEach(() => {
+    mockFetch(() => Promise.resolve(jsonResponse({ ok: true })));
   });
 
-  test("sends POST with JSON body", async () => {
-    await githubRequest("/repos/test/repo/issues", "token", {
-      method: "POST",
-      body: { title: "test" },
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  // ── Basic request functionality ───────────────────────────────────────
+
+  describe("basic requests", () => {
+    test("makes GET request with auth header", async () => {
+      const result = await githubRequest("/repos/test/repo", "test-token");
+      expect(result).toEqual({ ok: true });
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+
+      const [url, opts] = fetchMock.mock.calls[0] as [string, RequestInit];
+      expect(url).toBe("https://api.github.com/repos/test/repo");
+      expect(opts.method).toBe("GET");
+      expect((opts.headers as Record<string, string>)["Authorization"]).toBe(
+        "Bearer test-token",
+      );
     });
 
-    const [, opts] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(opts.method).toBe("POST");
-    expect(JSON.parse(opts.body as string)).toEqual({ title: "test" });
-    expect((opts.headers as Record<string, string>)["Content-Type"]).toBe("application/json");
-  });
+    test("sends POST with JSON body and Content-Type", async () => {
+      await githubRequest("/repos/test/repo/issues", "token", {
+        method: "POST",
+        body: { title: "test" },
+      });
 
-  test("handles 204 No Content", async () => {
-    fetchMock = mock(() => Promise.resolve(new Response(null, { status: 204 })));
-    globalThis.fetch = fetchMock as unknown as typeof fetch;
-
-    const result = await githubRequest("/repos/test/repo/labels", "token", {
-      method: "POST",
-      body: { labels: ["bug"] },
+      const [, opts] = fetchMock.mock.calls[0] as [string, RequestInit];
+      expect(opts.method).toBe("POST");
+      expect(JSON.parse(opts.body as string)).toEqual({ title: "test" });
+      expect((opts.headers as Record<string, string>)["Content-Type"]).toBe(
+        "application/json",
+      );
     });
-    expect(result).toEqual({});
+
+    test("handles 204 No Content without crashing on json()", async () => {
+      mockFetch(() =>
+        Promise.resolve(new Response(null, { status: 204 })),
+      );
+      const result = await githubRequest("/repos/test/repo/labels", "token", {
+        method: "POST",
+        body: { labels: ["bug"] },
+      });
+      expect(result).toEqual({});
+    });
+
+    test("uses custom userAgent", async () => {
+      await githubRequest("/repos/test/repo", "token", {
+        userAgent: "my-script",
+      });
+      const [, opts] = fetchMock.mock.calls[0] as [string, RequestInit];
+      expect((opts.headers as Record<string, string>)["User-Agent"]).toBe(
+        "my-script",
+      );
+    });
+
+    test("uses default userAgent when not specified", async () => {
+      await githubRequest("/repos/test/repo", "token");
+      const [, opts] = fetchMock.mock.calls[0] as [string, RequestInit];
+      expect((opts.headers as Record<string, string>)["User-Agent"]).toBe(
+        "claude-code-scripts",
+      );
+    });
   });
 
-  // ── Error handling ────────────────────────────────────────────────────
+  // ── Non-retryable errors ──────────────────────────────────────────────
 
-  test("throws on non-retryable HTTP error (422)", async () => {
-    fetchMock = mock(() =>
-      Promise.resolve(textResponse("Validation failed", 422)),
-    );
-    globalThis.fetch = fetchMock as unknown as typeof fetch;
+  describe("non-retryable HTTP errors", () => {
+    test.each([
+      [401, "Bad credentials"],
+      [403, "Forbidden"],
+      [422, "Validation failed"],
+    ])("throws immediately on %i without retry", async (status, body) => {
+      mockFetch(() => Promise.resolve(textResponse(body, status)));
+      await expect(
+        githubRequest("/repos/test/repo", "token"),
+      ).rejects.toThrow(`GitHub API ${status}`);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
 
-    await expect(
-      githubRequest("/repos/test/repo", "token"),
-    ).rejects.toThrow("GitHub API 422");
-
-    expect(fetchMock).toHaveBeenCalledTimes(1); // no retries
-  });
-
-  test("throws on 401 Unauthorized without retry", async () => {
-    fetchMock = mock(() =>
-      Promise.resolve(textResponse("Bad credentials", 401)),
-    );
-    globalThis.fetch = fetchMock as unknown as typeof fetch;
-
-    await expect(
-      githubRequest("/repos/test/repo", "token"),
-    ).rejects.toThrow("GitHub API 401");
-
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-  });
-
-  test("throws on 403 Forbidden without retry", async () => {
-    fetchMock = mock(() =>
-      Promise.resolve(textResponse("Forbidden", 403)),
-    );
-    globalThis.fetch = fetchMock as unknown as typeof fetch;
-
-    await expect(
-      githubRequest("/repos/test/repo", "token"),
-    ).rejects.toThrow("GitHub API 403");
-
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    test("does not retry non-transient network errors", async () => {
+      mockFetch(() =>
+        Promise.reject(new Error("Something unexpected")),
+      );
+      await expect(
+        githubRequest("/repos/test/repo", "token", { maxRetries: 3 }),
+      ).rejects.toThrow("Something unexpected");
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
   });
 
   // ── Retry on transient network errors ─────────────────────────────────
 
-  test("retries on ECONNRESET", async () => {
-    let callCount = 0;
-    fetchMock = mock(() => {
-      callCount++;
-      if (callCount <= 2) return Promise.reject(networkError("ECONNRESET"));
-      return Promise.resolve(jsonResponse({ recovered: true }));
-    });
-    globalThis.fetch = fetchMock as unknown as typeof fetch;
+  describe("retry on transient network errors", () => {
+    /**
+     * Helper: fetch fails `failCount` times with the given error, then succeeds.
+     */
+    function failThenSucceed(
+      makeError: () => Error,
+      failCount: number,
+    ): void {
+      let calls = 0;
+      mockFetch(() => {
+        calls++;
+        if (calls <= failCount) return Promise.reject(makeError());
+        return Promise.resolve(jsonResponse({ recovered: true }));
+      });
+    }
 
-    const result = await githubRequest("/repos/test/repo", "token", {
-      maxRetries: 3,
-    });
-
-    expect(result).toEqual({ recovered: true });
-    expect(fetchMock).toHaveBeenCalledTimes(3); // 2 failures + 1 success
-  });
-
-  test("retries on EPIPE", async () => {
-    let callCount = 0;
-    fetchMock = mock(() => {
-      callCount++;
-      if (callCount === 1) return Promise.reject(networkError("EPIPE"));
-      return Promise.resolve(jsonResponse({ ok: true }));
-    });
-    globalThis.fetch = fetchMock as unknown as typeof fetch;
-
-    const result = await githubRequest("/repos/test/repo", "token", {
-      maxRetries: 2,
-    });
-
-    expect(result).toEqual({ ok: true });
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-  });
-
-  test("retries on ETIMEDOUT", async () => {
-    let callCount = 0;
-    fetchMock = mock(() => {
-      callCount++;
-      if (callCount === 1) return Promise.reject(networkError("ETIMEDOUT"));
-      return Promise.resolve(jsonResponse({ ok: true }));
-    });
-    globalThis.fetch = fetchMock as unknown as typeof fetch;
-
-    const result = await githubRequest("/repos/test/repo", "token", {
-      maxRetries: 2,
-    });
-    expect(result).toEqual({ ok: true });
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-  });
-
-  test("retries on ECONNREFUSED", async () => {
-    let callCount = 0;
-    fetchMock = mock(() => {
-      callCount++;
-      if (callCount === 1) return Promise.reject(networkError("ECONNREFUSED"));
-      return Promise.resolve(jsonResponse({ ok: true }));
-    });
-    globalThis.fetch = fetchMock as unknown as typeof fetch;
-
-    const result = await githubRequest("/repos/test/repo", "token", {
-      maxRetries: 2,
-    });
-    expect(result).toEqual({ ok: true });
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-  });
-
-  test("retries on Bun socket close message", async () => {
-    let callCount = 0;
-    fetchMock = mock(() => {
-      callCount++;
-      if (callCount === 1)
-        return Promise.reject(
-          new Error("The socket connection was closed unexpectedly"),
-        );
-      return Promise.resolve(jsonResponse({ ok: true }));
-    });
-    globalThis.fetch = fetchMock as unknown as typeof fetch;
-
-    const result = await githubRequest("/repos/test/repo", "token", {
-      maxRetries: 2,
-    });
-    expect(result).toEqual({ ok: true });
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-  });
-
-  test("exhausts retries and throws on persistent ECONNRESET", async () => {
-    fetchMock = mock(() => Promise.reject(networkError("ECONNRESET")));
-    globalThis.fetch = fetchMock as unknown as typeof fetch;
-
-    await expect(
-      githubRequest("/repos/test/repo", "token", { maxRetries: 2 }),
-    ).rejects.toThrow();
-
-    expect(fetchMock).toHaveBeenCalledTimes(3); // initial + 2 retries
-  });
-
-  test("does not retry non-transient errors", async () => {
-    fetchMock = mock(() =>
-      Promise.reject(new Error("Something unexpected")),
+    test.each(["ECONNRESET", "EPIPE", "ETIMEDOUT", "ECONNREFUSED"])(
+      "retries and recovers from %s",
+      async (code) => {
+        failThenSucceed(() => networkError(code), 1);
+        const result = await githubRequest("/repos/test/repo", "token", {
+          maxRetries: 2,
+        });
+        expect(result).toEqual({ recovered: true });
+        expect(fetchMock).toHaveBeenCalledTimes(2);
+      },
     );
-    globalThis.fetch = fetchMock as unknown as typeof fetch;
 
-    await expect(
-      githubRequest("/repos/test/repo", "token", { maxRetries: 3 }),
-    ).rejects.toThrow("Something unexpected");
+    test("retries and recovers from Bun socket close", async () => {
+      failThenSucceed(
+        () => new Error("The socket connection was closed unexpectedly"),
+        1,
+      );
+      const result = await githubRequest("/repos/test/repo", "token", {
+        maxRetries: 2,
+      });
+      expect(result).toEqual({ recovered: true });
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
 
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    test("recovers after multiple consecutive failures", async () => {
+      failThenSucceed(() => networkError("ECONNRESET"), 2);
+      const result = await githubRequest("/repos/test/repo", "token", {
+        maxRetries: 3,
+      });
+      expect(result).toEqual({ recovered: true });
+      expect(fetchMock).toHaveBeenCalledTimes(3);
+    });
+
+    test("throws after exhausting all retries", async () => {
+      mockFetch(() => Promise.reject(networkError("ECONNRESET")));
+      await expect(
+        githubRequest("/repos/test/repo", "token", { maxRetries: 2 }),
+      ).rejects.toThrow();
+      expect(fetchMock).toHaveBeenCalledTimes(3); // initial + 2 retries
+    });
   });
 
   // ── Retry on retryable HTTP status codes ──────────────────────────────
 
-  test("retries on 502 Bad Gateway", async () => {
-    let callCount = 0;
-    fetchMock = mock(() => {
-      callCount++;
-      if (callCount === 1)
-        return Promise.resolve(textResponse("Bad Gateway", 502));
-      return Promise.resolve(jsonResponse({ ok: true }));
+  describe("retry on retryable HTTP status codes", () => {
+    function httpFailThenSucceed(status: number, body: string): void {
+      let calls = 0;
+      mockFetch(() => {
+        calls++;
+        if (calls === 1) return Promise.resolve(textResponse(body, status));
+        return Promise.resolve(jsonResponse({ ok: true }));
+      });
+    }
+
+    test.each([
+      [429, "Rate limited"],
+      [500, "Internal Server Error"],
+      [502, "Bad Gateway"],
+      [503, "Service Unavailable"],
+      [504, "Gateway Timeout"],
+    ])("retries and recovers from %i", async (status, body) => {
+      httpFailThenSucceed(status, body);
+      const result = await githubRequest("/repos/test/repo", "token", {
+        maxRetries: 2,
+      });
+      expect(result).toEqual({ ok: true });
+      expect(fetchMock).toHaveBeenCalledTimes(2);
     });
-    globalThis.fetch = fetchMock as unknown as typeof fetch;
 
-    const result = await githubRequest("/repos/test/repo", "token", {
-      maxRetries: 2,
+    test("respects Retry-After header on 429", async () => {
+      let calls = 0;
+      mockFetch(() => {
+        calls++;
+        if (calls === 1)
+          return Promise.resolve(
+            textResponse("Rate limited", 429, { "retry-after": "1" }),
+          );
+        return Promise.resolve(jsonResponse({ ok: true }));
+      });
+      const result = await githubRequest("/repos/test/repo", "token", {
+        maxRetries: 2,
+      });
+      expect(result).toEqual({ ok: true });
+      expect(fetchMock).toHaveBeenCalledTimes(2);
     });
-    expect(result).toEqual({ ok: true });
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-  });
 
-  test("retries on 500 Internal Server Error", async () => {
-    let callCount = 0;
-    fetchMock = mock(() => {
-      callCount++;
-      if (callCount === 1)
-        return Promise.resolve(textResponse("Internal Server Error", 500));
-      return Promise.resolve(jsonResponse({ ok: true }));
+    test("throws after exhausting retries on persistent 502", async () => {
+      mockFetch(() => Promise.resolve(textResponse("Bad Gateway", 502)));
+      await expect(
+        githubRequest("/repos/test/repo", "token", { maxRetries: 2 }),
+      ).rejects.toThrow("GitHub API 502");
+      expect(fetchMock).toHaveBeenCalledTimes(3);
     });
-    globalThis.fetch = fetchMock as unknown as typeof fetch;
-
-    const result = await githubRequest("/repos/test/repo", "token", {
-      maxRetries: 2,
-    });
-    expect(result).toEqual({ ok: true });
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-  });
-
-  test("retries on 503 Service Unavailable", async () => {
-    let callCount = 0;
-    fetchMock = mock(() => {
-      callCount++;
-      if (callCount === 1)
-        return Promise.resolve(textResponse("Unavailable", 503));
-      return Promise.resolve(jsonResponse({ ok: true }));
-    });
-    globalThis.fetch = fetchMock as unknown as typeof fetch;
-
-    const result = await githubRequest("/repos/test/repo", "token", {
-      maxRetries: 2,
-    });
-    expect(result).toEqual({ ok: true });
-  });
-
-  test("retries on 429 rate limit", async () => {
-    let callCount = 0;
-    fetchMock = mock(() => {
-      callCount++;
-      if (callCount === 1)
-        return Promise.resolve(
-          textResponse("Rate limited", 429, { "retry-after": "1" }),
-        );
-      return Promise.resolve(jsonResponse({ ok: true }));
-    });
-    globalThis.fetch = fetchMock as unknown as typeof fetch;
-
-    const result = await githubRequest("/repos/test/repo", "token", {
-      maxRetries: 2,
-    });
-    expect(result).toEqual({ ok: true });
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-  });
-
-  test("exhausts retries on persistent 502", async () => {
-    fetchMock = mock(() =>
-      Promise.resolve(textResponse("Bad Gateway", 502)),
-    );
-    globalThis.fetch = fetchMock as unknown as typeof fetch;
-
-    await expect(
-      githubRequest("/repos/test/repo", "token", { maxRetries: 2 }),
-    ).rejects.toThrow("GitHub API 502");
-
-    expect(fetchMock).toHaveBeenCalledTimes(3); // initial + 2 retries
   });
 
   // ── maxRetries=0 disables retry ───────────────────────────────────────
 
-  test("maxRetries=0 disables retry for network errors", async () => {
-    fetchMock = mock(() => Promise.reject(networkError("ECONNRESET")));
-    globalThis.fetch = fetchMock as unknown as typeof fetch;
+  describe("maxRetries=0", () => {
+    test("no retry on network error", async () => {
+      mockFetch(() => Promise.reject(networkError("ECONNRESET")));
+      await expect(
+        githubRequest("/repos/test/repo", "token", { maxRetries: 0 }),
+      ).rejects.toThrow();
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
 
-    await expect(
-      githubRequest("/repos/test/repo", "token", { maxRetries: 0 }),
-    ).rejects.toThrow();
-
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-  });
-
-  test("maxRetries=0 disables retry for HTTP errors", async () => {
-    fetchMock = mock(() =>
-      Promise.resolve(textResponse("Bad Gateway", 502)),
-    );
-    globalThis.fetch = fetchMock as unknown as typeof fetch;
-
-    await expect(
-      githubRequest("/repos/test/repo", "token", { maxRetries: 0 }),
-    ).rejects.toThrow("GitHub API 502");
-
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    test("no retry on retryable HTTP status", async () => {
+      mockFetch(() => Promise.resolve(textResponse("Bad Gateway", 502)));
+      await expect(
+        githubRequest("/repos/test/repo", "token", { maxRetries: 0 }),
+      ).rejects.toThrow("GitHub API 502");
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
   });
 
   // ── Mixed error scenarios ─────────────────────────────────────────────
 
-  test("retries through mixed ECONNRESET then 502 then success", async () => {
-    let callCount = 0;
-    fetchMock = mock(() => {
-      callCount++;
-      if (callCount === 1) return Promise.reject(networkError("ECONNRESET"));
-      if (callCount === 2)
-        return Promise.resolve(textResponse("Bad Gateway", 502));
-      return Promise.resolve(jsonResponse({ finally: "success" }));
+  describe("mixed error scenarios", () => {
+    test("recovers through ECONNRESET → 502 → success", async () => {
+      let calls = 0;
+      mockFetch(() => {
+        calls++;
+        if (calls === 1) return Promise.reject(networkError("ECONNRESET"));
+        if (calls === 2)
+          return Promise.resolve(textResponse("Bad Gateway", 502));
+        return Promise.resolve(jsonResponse({ finally: "success" }));
+      });
+      const result = await githubRequest("/repos/test/repo", "token", {
+        maxRetries: 3,
+      });
+      expect(result).toEqual({ finally: "success" });
+      expect(fetchMock).toHaveBeenCalledTimes(3);
     });
-    globalThis.fetch = fetchMock as unknown as typeof fetch;
-
-    const result = await githubRequest("/repos/test/repo", "token", {
-      maxRetries: 3,
-    });
-    expect(result).toEqual({ finally: "success" });
-    expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
   // ── Timeout ───────────────────────────────────────────────────────────
 
-  test("aborts on timeout and retries", async () => {
-    let callCount = 0;
-    fetchMock = mock((_url: string, opts: RequestInit) => {
-      callCount++;
-      if (callCount === 1) {
-        // Simulate a slow response — the AbortSignal should fire before this resolves
-        return new Promise<Response>((resolve, reject) => {
-          const timer = setTimeout(
-            () => resolve(jsonResponse({ slow: true })),
-            5000,
-          );
-          opts.signal?.addEventListener("abort", () => {
-            clearTimeout(timer);
-            const err = new Error("The operation was aborted");
-            err.name = "AbortError";
-            reject(err);
+  describe("timeout", () => {
+    test("aborts slow requests and retries", async () => {
+      let calls = 0;
+      mockFetch((_url: unknown, opts: RequestInit) => {
+        calls++;
+        if (calls === 1) {
+          return new Promise<Response>((resolve, reject) => {
+            const timer = setTimeout(
+              () => resolve(jsonResponse({ slow: true })),
+              5000,
+            );
+            opts.signal?.addEventListener("abort", () => {
+              clearTimeout(timer);
+              const err = new Error("The operation was aborted");
+              err.name = "AbortError";
+              reject(err);
+            });
           });
-        });
-      }
-      return Promise.resolve(jsonResponse({ fast: true }));
+        }
+        return Promise.resolve(jsonResponse({ fast: true }));
+      });
+
+      const result = await githubRequest("/repos/test/repo", "token", {
+        timeoutMs: 50,
+        maxRetries: 2,
+      });
+      expect(result).toEqual({ fast: true });
+      expect(fetchMock).toHaveBeenCalledTimes(2);
     });
-    globalThis.fetch = fetchMock as unknown as typeof fetch;
-
-    const result = await githubRequest("/repos/test/repo", "token", {
-      timeoutMs: 50, // very short timeout to trigger abort
-      maxRetries: 2,
-    });
-
-    expect(result).toEqual({ fast: true });
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-  });
-
-  // ── Custom User-Agent ─────────────────────────────────────────────────
-
-  test("uses custom userAgent", async () => {
-    await githubRequest("/repos/test/repo", "token", {
-      userAgent: "my-script",
-    });
-
-    const [, opts] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect((opts.headers as Record<string, string>)["User-Agent"]).toBe("my-script");
-  });
-
-  test("uses default userAgent when not specified", async () => {
-    await githubRequest("/repos/test/repo", "token");
-
-    const [, opts] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect((opts.headers as Record<string, string>)["User-Agent"]).toBe("claude-code-scripts");
   });
 });
