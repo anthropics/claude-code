@@ -25,6 +25,7 @@ Learn more in the [official plugins documentation](https://docs.claude.com/en/do
 | [pr-review-toolkit](./pr-review-toolkit/) | Comprehensive PR review agents specializing in comments, tests, error handling, type design, code quality, and code simplification | **Command:** `/pr-review-toolkit:review-pr` - Run with optional review aspects (comments, tests, errors, types, code, simplify, all)<br>**Agents:** `comment-analyzer`, `pr-test-analyzer`, `silent-failure-hunter`, `type-design-analyzer`, `code-reviewer`, `code-simplifier` |
 | [ralph-wiggum](./ralph-wiggum/) | Interactive self-referential AI loops for iterative development. Claude works on the same task repeatedly until completion | **Commands:** `/ralph-loop`, `/cancel-ralph` - Start/stop autonomous iteration loops<br>**Hook:** Stop - Intercepts exit attempts to continue iteration |
 | [security-guidance](./security-guidance/) | Security reminder hook that warns about potential security issues when editing files | **Hook:** PreToolUse - Monitors 9 security patterns including command injection, XSS, eval usage, dangerous HTML, pickle deserialization, and os.system calls |
+| [tmp-cwd-cleanup](./tmp-cwd-cleanup/) | Cleans up orphaned `/tmp/claude-*-cwd` files on session exit, working around a Bash tool memory leak ([#8856](https://github.com/anthropics/claude-code/issues/8856)) | **Hook:** Stop - Deletes accumulated working-directory tracking files owned by the current user |
 
 ## Installation
 

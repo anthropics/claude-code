@@ -1,0 +1,15 @@
+{
+  "description": "Cleans up orphaned /tmp/claude-*-cwd working directory tracking files when the session stops",
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/cleanup_cwd_files.py"
+          }
+        ]
+      }
+    ]
+  }
+}

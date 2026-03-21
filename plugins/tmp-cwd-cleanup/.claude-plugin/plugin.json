@@ -1,0 +1,9 @@
+{
+  "name": "tmp-cwd-cleanup",
+  "version": "1.0.0",
+  "description": "Cleans up orphaned /tmp/claude-*-cwd working directory tracking files on session stop, working around a memory leak in the Bash tool (issue #8856)",
+  "author": {
+    "name": "Claude Code Community",
+    "email": ""
+  }
+}
