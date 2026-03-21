@@ -1,0 +1,9 @@
+{
+  "name": "agents-md",
+  "version": "1.0.0",
+  "description": "Automatically loads AGENTS.md files into context at session start, making Claude Code compatible with cross-tool agent instruction files used by Cursor, Codex, Amp, and others",
+  "author": {
+    "name": "Claude Code Community",
+    "email": ""
+  }
+}

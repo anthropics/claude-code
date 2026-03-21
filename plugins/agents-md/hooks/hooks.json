@@ -1,0 +1,15 @@
+{
+  "description": "Loads AGENTS.md files into context at session start, mirroring how Claude Code handles CLAUDE.md",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/load_agents_md.py"
+          }
+        ]
+      }
+    ]
+  }
+}
