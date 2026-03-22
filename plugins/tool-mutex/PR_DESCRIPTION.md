@@ -58,7 +58,7 @@ Claude Code hooks execute as **separate Python processes** — each PreToolUse/P
 
 - **27 BSODs**, 9 distinct bugcheck types (0x139, 0x3B, 0x1E, 0x50, 0x14F, 0x10E, 0x20001, 0xC2)
 - **Minidump ZIP** (20 unique kernel dumps, 87MB): https://drive.google.com/file/d/1Iqo8Ey4CjHfGbPMMRxlZVxaVf-N3i5Ab/view?usp=sharing
-- **GitHub issues**: #32870, #30137
+- **GitHub issues**: [BUG] claude.exe triggers Windows BSOD via Wof.sys during directory listing (NtQueryDirectoryFileEx) #32870, [BUG] Claude Code sessions cause Windows kernel BSODs (0x139, 0x1E, 0x50) — not application crashes, full OS crashes requiring hard reboot #30137
 - **MS Q&A**: https://learn.microsoft.com/en-us/answers/questions/5814272
 - **Feedback Hub**: https://aka.ms/AA106t77
 
