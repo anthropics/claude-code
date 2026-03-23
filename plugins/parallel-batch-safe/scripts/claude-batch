@@ -1,5 +1,5 @@
 #!/bin/bash
-# claude-batch v5.4 — tmux-isolated parallel claude -p
+# claude-batch v5.5 — tmux-isolated parallel claude -p
 #
 # Strategy: PREVENT REFRESH, DON'T FIX RACE
 # (6/6 consilium APPROVE, 5-agent red team validated)
@@ -26,7 +26,7 @@ MAX_PARALLEL=15
 MAX_RETRIES=3
 RETRY_BASE_DELAY=5               # seconds, exponential + jitter
 MIN_TOKEN_LIFETIME_SEC=7200      # 2h minimum (consilium: prevent refresh)
-JOB_TIMEOUT=300                  # 5 min per job hard timeout (red team #4)
+JOB_TIMEOUT=600                  # 10 min per job (was 5min, Sonnet needs >5min for 260 niches × 10 apps)
 KEYCHAIN_SERVICE="Claude Code-credentials"
 CREDS_FILE="$HOME/.claude/.credentials.json"
 JOB_BASE="/tmp/claude-batch-jobs"
