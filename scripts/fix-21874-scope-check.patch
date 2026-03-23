@@ -1,0 +1,71 @@
+--- a/src/claudeai-mcp/fetch-servers.ts (conceptual, from minified cli.js)
++++ b/src/claudeai-mcp/fetch-servers.ts
+@@ Description:
+  Fix #21874: Claude.ai MCPs not showing up due to client-side scope gate.
+
+  The fetchClaudeAiMcpServers() function (minified as $Y6) performs an
+  early return when the OAuth token lacks the "user:mcp_servers" scope.
+  This prevents MCP servers from loading even when the server would
+  accept the request.
+
+  The root cause is that GrowthBook evaluates the
+  "tengu_claudeai_mcp_connectors" feature flag per-user based on
+  anonymousId. When this flag is false, the OAuth server may not grant
+  the scope, and the client then blocks the fetch entirely.
+
+  This patch removes the early return, allowing the fetch to proceed.
+  The server remains the authority on access control.
+
+--- BEFORE (minified cli.js) ---
+
+  $Y6 = z1(async () => {
+    try {
+      if (dY(process.env.ENABLE_CLAUDEAI_MCP_SERVERS))
+        return V("[claudeai-mcp] Disabled via env var"),
+          Q("tengu_claudeai_mcp_eligibility", { state: "disabled_env_var" }),
+          {};
+
+      let A = hA();
+      if (!A?.accessToken)
+        return V("[claudeai-mcp] No access token"),
+          Q("tengu_claudeai_mcp_eligibility", { state: "no_oauth_token" }),
+          {};
+
+-     if (!A.scopes?.includes("user:mcp_servers"))
+-       return V(`[claudeai-mcp] Missing user:mcp_servers scope (...)`),
+-         Q("tengu_claudeai_mcp_eligibility", { state: "missing_scope" }),
+-         {};
+
+      let K = `${iA().BASE_API_URL}/v1/mcp_servers?limit=1000`;
+      // ... fetch and return servers ...
+    } catch {
+      return V("[claudeai-mcp] Fetch failed"), {};
+    }
+  });
+
+--- AFTER (minified cli.js) ---
+
+  $Y6 = z1(async () => {
+    try {
+      if (dY(process.env.ENABLE_CLAUDEAI_MCP_SERVERS))
+        return V("[claudeai-mcp] Disabled via env var"),
+          Q("tengu_claudeai_mcp_eligibility", { state: "disabled_env_var" }),
+          {};
+
+      let A = hA();
+      if (!A?.accessToken)
+        return V("[claudeai-mcp] No access token"),
+          Q("tengu_claudeai_mcp_eligibility", { state: "no_oauth_token" }),
+          {};
+
++     if (!A.scopes?.includes("user:mcp_servers"))
++       V(`[claudeai-mcp] Missing user:mcp_servers scope (...), will attempt fetch`),
++         Q("tengu_claudeai_mcp_eligibility", { state: "missing_scope_retry" });
++     // No early return - proceed with fetch and let the server decide
+
+      let K = `${iA().BASE_API_URL}/v1/mcp_servers?limit=1000`;
+      // ... fetch and return servers ...
+    } catch {
+      return V("[claudeai-mcp] Fetch failed"), {};
+    }
+  });
