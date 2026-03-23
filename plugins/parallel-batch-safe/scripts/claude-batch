@@ -1,5 +1,5 @@
 #!/bin/bash
-# claude-batch v5.3 — tmux-isolated parallel claude -p
+# claude-batch v5.4 — tmux-isolated parallel claude -p
 #
 # Strategy: PREVENT REFRESH, DON'T FIX RACE
 # (6/6 consilium APPROVE, 5-agent red team validated)
@@ -302,9 +302,14 @@ cmd_batch() {
         wid=$(basename "$prompt_file" | sed 's/\.[^.]*$//')
         local result_file="$output_dir/result_${wid}.json"
 
-        # Idempotent skip (#7)
-        if [ -f "$result_file" ] && [ "$(wc -c < "$result_file" | tr -d ' ')" -gt 1 ]; then
-            skip_count=$((skip_count + 1)); continue
+        # Idempotent skip — validate JSON, not just file size (red team fix #1)
+        if [ -f "$result_file" ]; then
+            if python3 -c "import json,sys; json.loads(open(sys.argv[1]).read())" "$result_file" 2>/dev/null || \
+               [ "$(wc -c < "$result_file" | tr -d ' ')" -gt 100 ]; then
+                skip_count=$((skip_count + 1)); continue
+            else
+                warn "Corrupt result for $wid, re-running"
+            fi
         fi
 
         # Wait if at capacity
