@@ -124,6 +124,7 @@ Ensure credentials are not hardcoded and file is in .gitignore.
 - **`bash`**: Triggers on Bash tool commands
 - **`file`**: Triggers on Edit, Write, MultiEdit tools
 - **`stop`**: Triggers when Claude wants to stop (for completion checks)
+- **`stop_failure`**: Triggers when the turn ends due to an API error (rate limit, auth failure, credit balance, etc.)
 - **`prompt`**: Triggers on user prompt submission
 - **`all`**: Triggers on all events
 
@@ -207,6 +208,34 @@ Before stopping, please run tests to verify your changes work correctly.
 
 **This blocks Claude from stopping** if no test commands appear in the session transcript. Enable only when you want strict enforcement.
 
+### Example 4: Credit Balance Error Guidance
+
+```markdown
+---
+name: credit-balance-error
+enabled: true
+event: stop_failure
+pattern: "credit.balance|credit_balance|balance.too.low|insufficient.fund"
+action: warn
+---
+
+💳 **Credit Balance Too Low**
+
+Your Anthropic API credit balance ran out. Steps to resume:
+
+1. Add funds at https://platform.claude.com/settings/billing
+2. Restart Claude Code — the balance status is cached locally and will not
+   refresh until you start a new session.
+
+If you've already topped up and the error persists, run:
+  claude logout && claude login
+```
+
+**This surfaces actionable guidance** when an API credit balance error occurs. A
+ready-to-use copy of this rule is in
+`plugins/hookify/examples/credit-balance-error.local.md`; copy it to
+`.claude/hookify.credit-balance-error.local.md` in your project to enable it.
+
 ## Advanced Usage
 
 ### Multiple Conditions
@@ -256,7 +285,12 @@ Use environment variables instead of hardcoded values.
 - `user_prompt`: The user's submitted prompt text
 
 **For stop events:**
-- Use general matching on session state
+- `reason`: Why the stop was triggered (for `stop` and `stop_failure` events)
+- Use `transcript` field for matching against session history
+
+**For stop_failure events:**
+- `reason`: The API error reason (e.g. `"credit_balance_too_low"`)
+- Use `transcript` field for matching against session history
 
 ## Management
 
