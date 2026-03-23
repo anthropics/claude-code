@@ -1,11 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-VERSION="${1:-2.1.63}"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WORK_DIR="$(mktemp -d)"
 OUT_DIR="$ROOT_DIR/dist"
-OUT_FILE="$OUT_DIR/claude-code-${VERSION}-mcp-oauth-redirect-uri.tgz"
 
 cleanup() {
   rm -rf "$WORK_DIR"
@@ -13,6 +11,13 @@ cleanup() {
 trap cleanup EXIT
 
 mkdir -p "$OUT_DIR"
+
+VERSION="${1:-}"
+if [[ -z "$VERSION" ]]; then
+  VERSION="$(npm view "@anthropic-ai/claude-code" version --json | tr -d '"')"
+fi
+
+OUT_FILE="$OUT_DIR/claude-code-${VERSION}-mcp-oauth-redirect-uri.tgz"
 
 TARBALL_URL="$(npm view "@anthropic-ai/claude-code@${VERSION}" dist.tarball --json | tr -d '"')"
 if [[ -z "$TARBALL_URL" || "$TARBALL_URL" == "null" ]]; then
