@@ -166,12 +166,38 @@ cmd_run() {
     mkdir -p "$job_dir"
     local session_name="${TMUX_PREFIX}-${job_id}"
 
-    # Build command with proper quoting
-    local quoted_args=""
-    for arg in "$@"; do
-        quoted_args+=" $(printf '%q' "$arg")"
+    # Detect -p flag and extract prompt to temp file (handles large prompts)
+    local prompt_in_file=false
+    local args=()
+    local i=0
+    while [ $# -gt 0 ]; do
+        if [ "$1" = "-p" ] && [ $# -gt 1 ]; then
+            # Write prompt to temp file, replace with stdin pipe
+            echo "$2" > "$job_dir/prompt.txt"
+            prompt_in_file=true
+            shift 2
+        else
+            args+=("$1")
+            shift
+        fi
     done
-    local cmd="claude${quoted_args} > '$job_dir/stdout.log' 2>'$job_dir/stderr.log'; echo \$? > '$job_dir/exit_code'"
+
+    local cmd
+    if $prompt_in_file; then
+        # Pipe prompt via stdin — handles any size
+        local quoted_rest=""
+        for arg in "${args[@]+"${args[@]}"}"; do
+            quoted_rest+=" $(printf '%q' "$arg")"
+        done
+        cmd="cat '$job_dir/prompt.txt' | claude -p${quoted_rest} > '$job_dir/stdout.log' 2>'$job_dir/stderr.log'; echo \$? > '$job_dir/exit_code'"
+    else
+        # No -p flag, pass args directly
+        local quoted_args=""
+        for arg in "${args[@]+"${args[@]}"}"; do
+            quoted_args+=" $(printf '%q' "$arg")"
+        done
+        cmd="claude${quoted_args} > '$job_dir/stdout.log' 2>'$job_dir/stderr.log'; echo \$? > '$job_dir/exit_code'"
+    fi
 
     tmux kill-session -t "$session_name" 2>/dev/null || true
     tmux new-session -d -s "$session_name" "$cmd" 2>/dev/null || {
