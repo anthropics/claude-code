@@ -282,10 +282,10 @@ cmd_batch() {
     log "Estimated batch: ~$((est_seconds/60))min. Token margin: ~$((margin/60))min"
     [ "$margin" -lt 600 ] && warn "Tight margin! Consider reducing parallel or batch size."
 
-    # Cleanup stale sessions
+    # Cleanup stale sessions (|| true: grep returns 1 when no match, pipefail kills script)
     tmux list-sessions 2>/dev/null | grep "^${TMUX_PREFIX}-" | cut -d: -f1 | while read -r s; do
         tmux kill-session -t "$s" 2>/dev/null || true
-    done
+    done || true
 
     local batch_id="batch-$$-$(date +%s)"
     trap '_cleanup_batch' EXIT INT TERM
