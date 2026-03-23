@@ -1,5 +1,5 @@
 #!/bin/bash
-# claude-batch v5.2 — tmux-isolated parallel claude -p
+# claude-batch v5.3 — tmux-isolated parallel claude -p
 #
 # Strategy: PREVENT REFRESH, DON'T FIX RACE
 # (6/6 consilium APPROVE, 5-agent red team validated)
@@ -246,14 +246,26 @@ cmd_batch() {
     log "=== Pre-flight ==="
     ensure_token_fresh || exit 1
 
-    # Clean stale job dirs (Issue 3: stale prompt.txt causes wrong response)
+    # Clean stale job dirs (Issue 3), but NOT dirs from running batches (Issue 6)
     if [ -d "$JOB_BASE" ]; then
-        local stale_dirs
-        stale_dirs=$(find "$JOB_BASE" -maxdepth 1 -type d -name "batch-*" -mmin +30 2>/dev/null | wc -l | tr -d ' ')
-        if [ "$stale_dirs" -gt 0 ]; then
-            find "$JOB_BASE" -maxdepth 1 -type d -name "batch-*" -mmin +30 -exec rm -r {} + 2>/dev/null
-            log "Cleaned $stale_dirs stale job dirs (>30min old)"
-        fi
+        local cleaned=0
+        for stale_dir in "$JOB_BASE"/batch-*; do
+            [ -d "$stale_dir" ] || continue
+            # Extract PID from dir name (batch-PID-TIMESTAMP-...)
+            local dir_pid
+            dir_pid=$(basename "$stale_dir" | cut -d- -f2)
+            # Skip if that PID is still alive (running batch)
+            if [ -n "$dir_pid" ] && kill -0 "$dir_pid" 2>/dev/null; then
+                continue
+            fi
+            # Only remove if older than 30 min
+            local dir_age
+            dir_age=$(find "$stale_dir" -maxdepth 0 -mmin +30 2>/dev/null)
+            if [ -n "$dir_age" ]; then
+                rm -r "$stale_dir" 2>/dev/null && cleaned=$((cleaned + 1))
+            fi
+        done
+        [ "$cleaned" -gt 0 ] && log "Cleaned $cleaned stale job dirs"
     fi
 
     # Collect prompts
