@@ -1,5 +1,5 @@
 #!/bin/bash
-# claude-batch v5 — tmux-isolated parallel claude -p
+# claude-batch v5.2 — tmux-isolated parallel claude -p
 #
 # Strategy: PREVENT REFRESH, DON'T FIX RACE
 # (6/6 consilium APPROVE, 5-agent red team validated)
@@ -163,6 +163,8 @@ cmd_run() {
 
     local job_id="run-$$-$(date +%s)"
     local job_dir="$JOB_BASE/$job_id"
+    # Ensure fresh job dir (no stale files)
+    rm -r "$job_dir" 2>/dev/null || true
     mkdir -p "$job_dir"
     local session_name="${TMUX_PREFIX}-${job_id}"
 
@@ -243,6 +245,16 @@ cmd_batch() {
     # === PRE-FLIGHT (consilium #1, #2) ===
     log "=== Pre-flight ==="
     ensure_token_fresh || exit 1
+
+    # Clean stale job dirs (Issue 3: stale prompt.txt causes wrong response)
+    if [ -d "$JOB_BASE" ]; then
+        local stale_dirs
+        stale_dirs=$(find "$JOB_BASE" -maxdepth 1 -type d -name "batch-*" -mmin +30 2>/dev/null | wc -l | tr -d ' ')
+        if [ "$stale_dirs" -gt 0 ]; then
+            find "$JOB_BASE" -maxdepth 1 -type d -name "batch-*" -mmin +30 -exec rm -r {} + 2>/dev/null
+            log "Cleaned $stale_dirs stale job dirs (>30min old)"
+        fi
+    fi
 
     # Collect prompts
     local prompt_files=()
