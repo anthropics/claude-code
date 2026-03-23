@@ -1,0 +1,29 @@
+{
+  "name": "claude-tunnels",
+  "owner": {
+    "name": "Claude Tunnels"
+  },
+  "metadata": {
+    "description": "Multi-project AI orchestration layer for Claude Code — Slack & Telegram integration, phase-based execution, remote workspaces.",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "claude-tunnels",
+      "source": {
+        "source": "github",
+        "repo": "matteblack9/claude-code-tunnels"
+      },
+      "description": "Turn any folder of projects into an AI-orchestrated workspace. Route tasks from Slack or Telegram to the right project, execute in dependency-aware phases, and get structured results back.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Claude Tunnels"
+      },
+      "homepage": "https://github.com/matteblack9/claude-code-tunnels",
+      "repository": "https://github.com/matteblack9/claude-code-tunnels",
+      "license": "MIT",
+      "keywords": ["orchestrator", "slack", "telegram", "multi-project", "automation", "agent"],
+      "category": "productivity"
+    }
+  ]
+}

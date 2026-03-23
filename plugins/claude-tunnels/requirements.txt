@@ -1,0 +1,16 @@
+claude-agent-sdk
+aiohttp>=3.9
+pyyaml>=6.0
+
+# Slack (install if using Slack channel)
+# slack-bolt>=1.18
+# slack-sdk>=3.26
+
+# Telegram (install if using Telegram channel)
+# aiohttp is already required above
+
+# Teams (install if using Teams channel)
+botbuilder-integration-aiohttp>=4.14.5
+
+# Remote deployment (install if using /setup-remote-project or /setup-remote-workspace)
+requests>=2.31

@@ -1,0 +1,13 @@
+## Orchestrator Integration
+
+This workspace is managed by the parent orchestrator.
+- The orchestrator delegates tasks via `query(cwd=this_directory/)`
+- Task results must be returned as JSON:
+  ```json
+  {
+    "changed_files": ["changed files"],
+    "summary": "work summary",
+    "test_result": "pass | fail | skip",
+    "downstream_context": "changes affecting other workspaces"
+  }
+  ```
