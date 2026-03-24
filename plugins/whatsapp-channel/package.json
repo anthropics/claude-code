@@ -1,0 +1,14 @@
+{
+  "name": "claude-channel-whatsapp",
+  "version": "0.0.1",
+  "license": "Apache-2.0",
+  "type": "module",
+  "bin": "./server.ts",
+  "scripts": {
+    "start": "bun install --no-summary && bun server.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "@whiskeysockets/baileys": "^6.7.16"
+  }
+}
