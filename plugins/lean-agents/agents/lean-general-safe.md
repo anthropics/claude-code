@@ -1,6 +1,6 @@
 ---
 name: lean-general-safe
-description: General-purpose coding agent using Opus (1M context) — guaranteed to work regardless of how many MCP servers are configured. Use this when lean-general still fails due to tool schema inheritance bugs.
+description: General-purpose coding agent using Opus (1M context) — much less likely to hit prompt limits, even with many MCP servers configured. Use this when lean-general still fails due to tool schema inheritance bugs.
 model: opus
 color: green
 ---

@@ -1,6 +1,6 @@
 ---
 name: lean-explore-safe
-description: Codebase explorer using Opus (1M context) — guaranteed to work regardless of how many MCP servers are configured. Use this when lean-explore still fails due to tool schema inheritance bugs.
+description: Codebase explorer using Opus (1M context) — much less likely to hit prompt limits, even with many MCP servers configured. Use this when lean-explore still fails due to tool schema inheritance bugs.
 model: opus
 color: cyan
 ---

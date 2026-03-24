@@ -28,23 +28,12 @@ This plugin provides lightweight agent replacements that use explicit `tools:` a
 
 ## Installation
 
-### From the Claude Code plugin marketplace
+### From the Claude Code plugin system
 
-```bash
-claude /plugin install lean-agents
-```
-
-### Manual installation
-
-Copy the `lean-agents/` directory to your project or global plugins:
-
-```bash
-# Project-level
-cp -r lean-agents/ .claude/plugins/lean-agents/
-
-# User-level
-cp -r lean-agents/ ~/.claude/plugins/lean-agents/
-```
+1. Inside Claude Code, run `/plugin` and select "Add Marketplace"
+2. Enter `moxer-mmh/lean-agents`
+3. Install the `lean-agents` plugin from the marketplace
+4. Restart Claude Code
 
 ## Usage
 
@@ -60,9 +49,9 @@ Claude will automatically use these agents when it detects them as the best matc
 
 ## Limitations
 
-- **Standard variants** may still fail if Claude Code's runtime doesn't respect the `tools:` allowlist for MCP tool schema filtering (this is the core bug in [#37793](https://github.com/anthropics/claude-code/issues/37793))
-- **Safe variants** use Opus which consumes more API quota
-- These agents don't have access to MCP tools (Supabase, PostHog, etc.) — they're designed for pure codebase work
+- **Standard variants** (Sonnet) restrict tools via `tools:` allowlist, so they intentionally exclude MCP tools. They may still fail if the runtime doesn't respect the allowlist for MCP tool schema filtering (this is the core bug in [#37793](https://github.com/anthropics/claude-code/issues/37793))
+- **Safe variants** (Opus) do not restrict tools — they rely on the 1M context window to fit everything. They may still receive MCP tools. While much less likely to hit prompt limits, extremely large MCP configurations could theoretically still overflow
+- Standard variants are designed for pure codebase work without MCP tools. Safe variants may have MCP access depending on the runtime's tool inheritance behavior
 - This is a workaround, not a fix. The proper solution is for Claude Code to support controllable subagent context ([#31623](https://github.com/anthropics/claude-code/issues/31623))
 
 ## Contributing

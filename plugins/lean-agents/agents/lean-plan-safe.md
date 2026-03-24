@@ -1,6 +1,6 @@
 ---
 name: lean-plan-safe
-description: Implementation planner using Opus (1M context) — guaranteed to work regardless of how many MCP servers are configured. Use this when lean-plan still fails due to tool schema inheritance bugs.
+description: Implementation planner using Opus (1M context) — much less likely to hit prompt limits, even with many MCP servers configured. Use this when lean-plan still fails due to tool schema inheritance bugs.
 model: opus
 color: magenta
 ---
