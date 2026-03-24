@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
-    "@whiskeysockets/baileys": "^6.7.16"
+    "@whiskeysockets/baileys": "^6.7.16",
+    "qrcode": "^1.5.4"
   }
 }

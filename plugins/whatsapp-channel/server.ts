@@ -36,6 +36,8 @@ import {
 } from 'fs'
 import { homedir } from 'os'
 import { join, extname, sep, basename } from 'path'
+import { tmpdir } from 'os'
+import QRCode from 'qrcode'
 
 const STATE_DIR = process.env.WHATSAPP_STATE_DIR ?? join(homedir(), '.claude', 'channels', 'whatsapp')
 const ACCESS_FILE = join(STATE_DIR, 'access.json')
@@ -361,6 +363,7 @@ let sock: WASocket | null = null
 let ownJid = ''
 let connectionState: 'disconnected' | 'connecting' | 'pairing' | 'connected' = 'disconnected'
 let lastPairingCode: string | null = null
+let lastQrImagePath: string | null = null
 
 const mcp = new Server(
   { name: 'whatsapp', version: '1.0.0' },
@@ -612,15 +615,22 @@ mcp.setRequestHandler(CallToolRequestSchema, async req => {
       case 'whatsapp_status': {
         const lines = [`status: ${connectionState}`]
         if (ownJid) lines.push(`account: ${ownJid}`)
-        if (connectionState === 'pairing' && lastPairingCode) {
-          lines.push(`pairing_code: ${lastPairingCode}`)
-          lines.push('')
-          lines.push('Tell the user to open WhatsApp > Linked Devices > Link a Device')
-          lines.push('Tap "Link with phone number instead" and enter the pairing code.')
-        }
-        if (connectionState === 'disconnected' && !PHONE_NUMBER) {
-          lines.push('')
-          lines.push('No phone number configured. Set WHATSAPP_PHONE_NUMBER in ~/.claude/channels/whatsapp/.env')
+        if (connectionState === 'pairing') {
+          if (lastQrImagePath) {
+            lines.push(`qr_image: ${lastQrImagePath}`)
+            lines.push('')
+            lines.push('A QR code image has been saved. Read the image file and show it to the user.')
+            lines.push('Tell the user: open WhatsApp → Settings → Linked Devices → Link a Device → scan the QR code.')
+          }
+          if (lastPairingCode) {
+            lines.push(`pairing_code: ${lastPairingCode}`)
+            lines.push('')
+            lines.push('Alternative: the user can tap "Link with phone number instead" and enter the pairing code above.')
+          }
+          if (!lastQrImagePath && !lastPairingCode) {
+            lines.push('')
+            lines.push('Waiting for WhatsApp to generate QR code...')
+          }
         }
         return { content: [{ type: 'text', text: lines.join('\n') }] }
       }
@@ -859,6 +869,56 @@ async function handleMessage(msg: WAMessage): Promise<void> {
   })
 }
 
+// ─── QR code generation ─────────────────────────────────────────────────
+
+const QR_IMAGE_PATH = join(STATE_DIR, 'qr-code.png')
+
+async function generateQrImage(qrData: string): Promise<string> {
+  await QRCode.toFile(QR_IMAGE_PATH, qrData, {
+    width: 512,
+    margin: 2,
+    color: { dark: '#000000', light: '#FFFFFF' },
+  })
+  return QR_IMAGE_PATH
+}
+
+async function notifyQrCode(qrData: string): Promise<void> {
+  try {
+    const imgPath = await generateQrImage(qrData)
+    lastQrImagePath = imgPath
+    connectionState = 'pairing'
+
+    process.stderr.write(`whatsapp channel: QR code saved to ${imgPath}\n`)
+
+    // Notify the Claude session — Claude will Read the image and show it to the user
+    const pairingNote = PHONE_NUMBER
+      ? `\nAlternatively, a pairing code will be available — the user can tap "Link with phone number instead" in WhatsApp.`
+      : ''
+    mcp.notification({
+      method: 'notifications/claude/channel',
+      params: {
+        content: [
+          'WhatsApp device linking required.',
+          `A QR code image has been saved to: ${imgPath}`,
+          'Read this image file and display it to the user.',
+          'Tell the user: open WhatsApp → Settings → Linked Devices → Link a Device → scan the QR code shown above.',
+          pairingNote,
+        ].filter(Boolean).join('\n'),
+        meta: {
+          chat_id: '_system',
+          message_id: `qr-${Date.now()}`,
+          user: 'WhatsApp Channel',
+          user_id: '_system',
+          ts: new Date().toISOString(),
+          qr_image_path: imgPath,
+        },
+      },
+    }).catch(() => {})
+  } catch (err) {
+    process.stderr.write(`whatsapp channel: QR generation failed: ${err}\n`)
+  }
+}
+
 // ─── Baileys connection with retry ─────────────────────────────────────
 
 let reconnectAttempt = 0
@@ -871,7 +931,8 @@ async function connectWhatsApp(): Promise<void> {
 
   sock = makeWASocket({
     auth: state,
-    printQRInTerminal: !PHONE_NUMBER && needsPairing,
+    // Never print QR to terminal — we capture it and generate an image instead
+    printQRInTerminal: false,
     logger: silentLogger,
     browser: ['Claude Code', 'Chrome', '22.0'],
     generateHighQualityLinkPreview: false,
@@ -881,66 +942,36 @@ async function connectWhatsApp(): Promise<void> {
 
   sock.ev.on('creds.update', saveCreds)
 
-  // Request pairing code after socket is created (before connection.update fires)
-  if (needsPairing && PHONE_NUMBER && !pairingCodeRequested) {
-    pairingCodeRequested = true
-    connectionState = 'pairing'
-    // Delay to let the WS handshake start
-    setTimeout(async () => {
-      try {
-        const code = await sock!.requestPairingCode(PHONE_NUMBER!)
-        lastPairingCode = code
-        process.stderr.write(
-          `whatsapp channel: pairing code: ${code}\n` +
-          `  Open WhatsApp > Linked Devices > Link a Device\n` +
-          `  Tap "Link with phone number instead"\n` +
-          `  Enter the code above\n`,
-        )
-        // Notify the Claude session so the user sees the code
-        mcp.notification({
-          method: 'notifications/claude/channel',
-          params: {
-            content: `WhatsApp pairing required. Tell the user to open WhatsApp → Linked Devices → Link a Device → "Link with phone number instead" → enter code: ${code}`,
-            meta: {
-              chat_id: '_system',
-              message_id: `pairing-${Date.now()}`,
-              user: 'WhatsApp Channel',
-              user_id: '_system',
-              ts: new Date().toISOString(),
-            },
-          },
-        }).catch(() => {})
-      } catch (err) {
-        process.stderr.write(`whatsapp channel: pairing code request failed: ${err}\n`)
-      }
-    }, 3000)
-  }
-
   sock.ev.on('connection.update', async (update) => {
     const { connection, lastDisconnect, qr } = update
 
-    if (qr && PHONE_NUMBER && !lastPairingCode) {
-      // QR event fired but we haven't gotten a pairing code yet — request one
-      try {
-        const code = await sock!.requestPairingCode(PHONE_NUMBER)
-        lastPairingCode = code
-        connectionState = 'pairing'
-        process.stderr.write(`whatsapp channel: pairing code: ${code}\n`)
-        mcp.notification({
-          method: 'notifications/claude/channel',
-          params: {
-            content: `WhatsApp pairing code: ${code} — open WhatsApp → Linked Devices → Link a Device → enter this code.`,
-            meta: {
-              chat_id: '_system',
-              message_id: `pairing-${Date.now()}`,
-              user: 'WhatsApp Channel',
-              user_id: '_system',
-              ts: new Date().toISOString(),
+    // QR code received — generate image and notify Claude session
+    if (qr) {
+      await notifyQrCode(qr)
+
+      // Also request pairing code if phone number is configured (as alternative)
+      if (PHONE_NUMBER && !pairingCodeRequested) {
+        pairingCodeRequested = true
+        try {
+          const code = await sock!.requestPairingCode(PHONE_NUMBER)
+          lastPairingCode = code
+          process.stderr.write(`whatsapp channel: pairing code (alternative): ${code}\n`)
+          mcp.notification({
+            method: 'notifications/claude/channel',
+            params: {
+              content: `Alternative pairing method: if you can't scan the QR code, open WhatsApp → Linked Devices → Link a Device → tap "Link with phone number instead" → enter code: ${code}`,
+              meta: {
+                chat_id: '_system',
+                message_id: `pairing-code-${Date.now()}`,
+                user: 'WhatsApp Channel',
+                user_id: '_system',
+                ts: new Date().toISOString(),
+              },
             },
-          },
-        }).catch(() => {})
-      } catch (err) {
-        process.stderr.write(`whatsapp channel: pairing code request failed: ${err}\n`)
+          }).catch(() => {})
+        } catch (err) {
+          process.stderr.write(`whatsapp channel: pairing code request failed: ${err}\n`)
+        }
       }
     }
 
@@ -948,9 +979,12 @@ async function connectWhatsApp(): Promise<void> {
       reconnectAttempt = 0
       pairingCodeRequested = false
       lastPairingCode = null
+      lastQrImagePath = null
       connectionState = 'connected'
       ownJid = jidNormalizedUser(sock!.user?.id ?? '')
       process.stderr.write(`whatsapp channel: connected as ${ownJid}\n`)
+      // Clean up QR image
+      try { rmSync(QR_IMAGE_PATH, { force: true }) } catch {}
     }
 
     if (connection === 'close') {
