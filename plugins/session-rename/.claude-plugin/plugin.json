@@ -1,0 +1,9 @@
+{
+  "name": "session-rename",
+  "description": "Rename Claude Code sessions for easier identification in /resume",
+  "version": "1.0.0",
+  "author": {
+    "name": "Anthropic",
+    "email": "support@anthropic.com"
+  }
+}
