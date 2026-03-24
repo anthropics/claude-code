@@ -359,6 +359,8 @@ function mimeToExt(mime: string | null | undefined): string {
 
 let sock: WASocket | null = null
 let ownJid = ''
+let connectionState: 'disconnected' | 'connecting' | 'pairing' | 'connected' = 'disconnected'
+let lastPairingCode: string | null = null
 
 const mcp = new Server(
   { name: 'whatsapp', version: '1.0.0' },
@@ -473,6 +475,14 @@ mcp.setRequestHandler(ListToolsRequestSchema, async () => ({
           text: { type: 'string' },
         },
         required: ['chat_id', 'message_id', 'text'],
+      },
+    },
+    {
+      name: 'whatsapp_status',
+      description: 'Check WhatsApp connection status. Shows whether the channel is connected, pairing, or disconnected. If pairing is in progress, returns the pairing code.',
+      inputSchema: {
+        type: 'object',
+        properties: {},
       },
     },
   ],
@@ -597,6 +607,22 @@ mcp.setRequestHandler(CallToolRequestSchema, async req => {
           edit: editKey,
         })
         return { content: [{ type: 'text', text: `edited (id: ${args.message_id})` }] }
+      }
+
+      case 'whatsapp_status': {
+        const lines = [`status: ${connectionState}`]
+        if (ownJid) lines.push(`account: ${ownJid}`)
+        if (connectionState === 'pairing' && lastPairingCode) {
+          lines.push(`pairing_code: ${lastPairingCode}`)
+          lines.push('')
+          lines.push('Tell the user to open WhatsApp > Linked Devices > Link a Device')
+          lines.push('Tap "Link with phone number instead" and enter the pairing code.')
+        }
+        if (connectionState === 'disconnected' && !PHONE_NUMBER) {
+          lines.push('')
+          lines.push('No phone number configured. Set WHATSAPP_PHONE_NUMBER in ~/.claude/channels/whatsapp/.env')
+        }
+        return { content: [{ type: 'text', text: lines.join('\n') }] }
       }
 
       default:
@@ -836,13 +862,16 @@ async function handleMessage(msg: WAMessage): Promise<void> {
 // ─── Baileys connection with retry ─────────────────────────────────────
 
 let reconnectAttempt = 0
+let pairingCodeRequested = false
 
 async function connectWhatsApp(): Promise<void> {
+  connectionState = 'connecting'
   const { state, saveCreds } = await useMultiFileAuthState(AUTH_DIR)
+  const needsPairing = !state.creds.registered
 
   sock = makeWASocket({
     auth: state,
-    printQRInTerminal: !PHONE_NUMBER, // QR only if no phone number set
+    printQRInTerminal: !PHONE_NUMBER && needsPairing,
     logger: silentLogger,
     browser: ['Claude Code', 'Chrome', '22.0'],
     generateHighQualityLinkPreview: false,
@@ -852,19 +881,64 @@ async function connectWhatsApp(): Promise<void> {
 
   sock.ev.on('creds.update', saveCreds)
 
-  sock.ev.on('connection.update', async (update) => {
-    const { connection, lastDisconnect, qr } = update
-
-    if (qr && PHONE_NUMBER) {
-      // Use pairing code instead of QR when phone number is configured
+  // Request pairing code after socket is created (before connection.update fires)
+  if (needsPairing && PHONE_NUMBER && !pairingCodeRequested) {
+    pairingCodeRequested = true
+    connectionState = 'pairing'
+    // Delay to let the WS handshake start
+    setTimeout(async () => {
       try {
-        const code = await sock!.requestPairingCode(PHONE_NUMBER)
+        const code = await sock!.requestPairingCode(PHONE_NUMBER!)
+        lastPairingCode = code
         process.stderr.write(
           `whatsapp channel: pairing code: ${code}\n` +
           `  Open WhatsApp > Linked Devices > Link a Device\n` +
           `  Tap "Link with phone number instead"\n` +
           `  Enter the code above\n`,
         )
+        // Notify the Claude session so the user sees the code
+        mcp.notification({
+          method: 'notifications/claude/channel',
+          params: {
+            content: `WhatsApp pairing required. Tell the user to open WhatsApp → Linked Devices → Link a Device → "Link with phone number instead" → enter code: ${code}`,
+            meta: {
+              chat_id: '_system',
+              message_id: `pairing-${Date.now()}`,
+              user: 'WhatsApp Channel',
+              user_id: '_system',
+              ts: new Date().toISOString(),
+            },
+          },
+        }).catch(() => {})
+      } catch (err) {
+        process.stderr.write(`whatsapp channel: pairing code request failed: ${err}\n`)
+      }
+    }, 3000)
+  }
+
+  sock.ev.on('connection.update', async (update) => {
+    const { connection, lastDisconnect, qr } = update
+
+    if (qr && PHONE_NUMBER && !lastPairingCode) {
+      // QR event fired but we haven't gotten a pairing code yet — request one
+      try {
+        const code = await sock!.requestPairingCode(PHONE_NUMBER)
+        lastPairingCode = code
+        connectionState = 'pairing'
+        process.stderr.write(`whatsapp channel: pairing code: ${code}\n`)
+        mcp.notification({
+          method: 'notifications/claude/channel',
+          params: {
+            content: `WhatsApp pairing code: ${code} — open WhatsApp → Linked Devices → Link a Device → enter this code.`,
+            meta: {
+              chat_id: '_system',
+              message_id: `pairing-${Date.now()}`,
+              user: 'WhatsApp Channel',
+              user_id: '_system',
+              ts: new Date().toISOString(),
+            },
+          },
+        }).catch(() => {})
       } catch (err) {
         process.stderr.write(`whatsapp channel: pairing code request failed: ${err}\n`)
       }
@@ -872,6 +946,9 @@ async function connectWhatsApp(): Promise<void> {
 
     if (connection === 'open') {
       reconnectAttempt = 0
+      pairingCodeRequested = false
+      lastPairingCode = null
+      connectionState = 'connected'
       ownJid = jidNormalizedUser(sock!.user?.id ?? '')
       process.stderr.write(`whatsapp channel: connected as ${ownJid}\n`)
     }
@@ -883,16 +960,27 @@ async function connectWhatsApp(): Promise<void> {
       process.stderr.write(`whatsapp channel: disconnected (reason: ${reason})\n`)
 
       if (statusCode === DisconnectReason.loggedOut) {
-        // Device was unlinked — auth is invalid
+        connectionState = 'disconnected'
         process.stderr.write(
           `whatsapp channel: logged out — auth invalid.\n` +
           `  Run /whatsapp:configure reset-auth to clear and re-pair.\n`,
         )
-        // Don't auto-delete auth — let user decide
         return
       }
 
-      // Reconnect with backoff
+      // During pairing, 428 (precondition required) is expected — Baileys disconnects
+      // and reconnects as part of the pairing handshake. Use gentle backoff.
+      if (connectionState === 'pairing' || statusCode === 428) {
+        connectionState = 'pairing'
+        reconnectAttempt++
+        const delay = Math.min(2000 * reconnectAttempt, 15000)
+        process.stderr.write(`whatsapp channel: pairing in progress, retrying in ${delay / 1000}s\n`)
+        setTimeout(connectWhatsApp, delay)
+        return
+      }
+
+      // Normal reconnect with backoff
+      connectionState = 'disconnected'
       reconnectAttempt++
       const delay = Math.min(1000 * reconnectAttempt, 30000)
       const detail = statusCode === 440
