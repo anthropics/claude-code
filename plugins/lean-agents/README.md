@@ -10,30 +10,39 @@ See: [#37793](https://github.com/anthropics/claude-code/issues/37793), [#31623](
 
 ## Solution
 
-This plugin provides lightweight agent replacements that use explicit `tools:` allowlists to avoid inheriting MCP tool schemas:
+This plugin provides lightweight agent replacements that use explicit `tools:` allowlists to try to reduce or avoid inheriting MCP tool schemas. This is a runtime-dependent workaround rather than a guaranteed fix (see [Limitations](#limitations)):
 
 | Agent | Model | Tools | Use Instead Of |
 |-------|-------|-------|----------------|
 | `lean-explore` | Sonnet | Glob, Grep, Read, Bash, LS | Explore |
 | `lean-plan` | Sonnet | Read, Grep, Glob | Plan |
 | `lean-general` | Sonnet | Read, Write, Edit, Bash, Grep, Glob | general-purpose |
-| `lean-explore-safe` | Opus | All (1M context) | Explore (guaranteed) |
-| `lean-plan-safe` | Opus | All (1M context) | Plan (guaranteed) |
-| `lean-general-safe` | Opus | All (1M context) | general-purpose (guaranteed) |
+| `lean-explore-safe` | Opus | All (1M context) | Explore |
+| `lean-plan-safe` | Opus | All (1M context) | Plan |
+| `lean-general-safe` | Opus | All (1M context) | general-purpose |
 
 ### Which variant to use?
 
 - **Standard variants** (`lean-explore`, `lean-plan`, `lean-general`): Use Sonnet with a restricted tool set. Cheaper and faster. Try these first.
-- **Safe variants** (`lean-explore-safe`, `lean-plan-safe`, `lean-general-safe`): Use Opus with 1M context window. Guaranteed to work regardless of how many MCP servers you have. Use these if the standard variants still fail.
+- **Safe variants** (`lean-explore-safe`, `lean-plan-safe`, `lean-general-safe`): Use Opus with 1M context window. Much less likely to hit prompt limits. Use these if the standard variants still fail.
 
 ## Installation
 
-### From the Claude Code plugin system
+### From the marketplace (canonical source: [moxer-mmh/lean-agents](https://github.com/moxer-mmh/lean-agents))
 
 1. Inside Claude Code, run `/plugin` and select "Add Marketplace"
 2. Enter `moxer-mmh/lean-agents`
 3. Install the `lean-agents` plugin from the marketplace
 4. Restart Claude Code
+
+### From this repository (local testing)
+
+If you've cloned this repo, you can point Claude Code at the local directory:
+
+```bash
+# Copy to your user agents directory for immediate use
+cp plugins/lean-agents/agents/*.md ~/.claude/agents/
+```
 
 ## Usage
 
