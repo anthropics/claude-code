@@ -59,8 +59,25 @@
 - Linux: respect `XDG_DATA_HOME` when registering the `claude-cli://` protocol handler
 - Changed "stop all background agents" keybinding from `Ctrl+F` to `Ctrl+X Ctrl+K` to stop shadowing readline forward-char
 - Deprecated `TaskOutput` tool in favor of using `Read` on the background task's output file path
+- Added `CLAUDE_CODE_DISABLE_NONSTREAMING_FALLBACK` env var to disable the non-streaming fallback when streaming fails
+- Plugin options (`manifest.userConfig`) now available externally — plugins can prompt for configuration at enable time, with `sensitive: true` values stored in keychain (macOS) or protected credentials file (other platforms)
+- Claude can now reference the on-disk path of clipboard-pasted images for file operations
+- `Ctrl+L` now clears the screen and forces a full redraw — use this to recover when Cmd+K leaves the UI partially blank. Use `Ctrl+U` or double-Esc to clear prompt input.
+- `--bare -p` (SDK pattern) is ~14% faster to the API request
+- Memory: `MEMORY.md` index now truncates at 25KB as well as 200 lines
+- Disabled `AskUserQuestion` and plan-mode tools when `--channels` is active
+- Fixed API 400 error when a pasted image was queued during a failing tool call
+- Fixed MCP tool calls hanging indefinitely when an SSE connection drops mid-call and exhausts its reconnection attempts
+- Fixed Remote Control session titles showing raw XML when a background agent completed before the first user message
+- Fixed remote sessions forgetting conversation history after a container restart due to progress-message gaps in the resumed transcript chain
+- Fixed remote sessions requiring re-login on transient auth errors instead of retrying automatically
+- Fixed `rg ... | wc -l` and similar piped commands hanging and returning `0` in sandbox mode on Linux
+- Fixed voice input hold-to-talk not activating when a CJK IME inserts a full-width space
+- Fixed `--worktree` hanging silently when the worktree name contained a forward slash
 - [VSCode] Spinner now turns red with "Not responding" when the backend hasn't responded for 60 seconds
 - [VSCode] Fixed session history not loading correctly when reopening a session via URL or after restart
+- [VSCode] Added Esc-twice (or `/rewind`) to open a keyboard-navigable rewind picker
+- [VSCode] Fixed "Fork conversation from here" and rewind actions failing silently after the session cache goes stale
 
 ## 2.1.81
 
