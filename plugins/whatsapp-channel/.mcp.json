@@ -1,8 +1,8 @@
 {
   "mcpServers": {
     "whatsapp": {
-      "command": "npx",
-      "args": ["--yes", "tsx", "${CLAUDE_PLUGIN_ROOT}/server.ts"],
+      "command": "npm",
+      "args": ["run", "--silent", "start"],
       "cwd": "${CLAUDE_PLUGIN_ROOT}"
     }
   }
