@@ -45,15 +45,13 @@ Read both state files and give the user a complete picture:
 4. **What next** — end with a concrete next step based on state:
    - No phone number → *"Run `/whatsapp:configure <phone>` with your
      WhatsApp phone number (e.g. `886912345678`, no leading +)."*
-   - Phone set but not paired → *"Launch with `claude --channels
-     plugin:whatsapp@claude-code-plugins`. The server will request a
-     pairing code — enter it on your phone under Linked Devices > Link
-     with phone number instead."*
-   - Paired, nobody allowed → *"DM yourself from another phone, or message
-     the linked number. It replies with a pairing code; approve with
+   - Phone set but not paired → *"Exit and launch with:
+     `claude --dangerously-load-development-channels plugin:whatsapp@whatsapp-claude-plugin`
+     The pairing code will appear automatically. Enter it on your phone:
+     WhatsApp > Linked Devices > Link a Device > Link with phone number instead."*
+   - Paired → *"Ready. Your own number is auto-added to the allowlist.
+     To add others: have them DM the linked number, then approve with
      `/whatsapp:access pair <code>`."*
-   - Paired, someone allowed → *"Ready. Messages from allowed contacts reach
-     the assistant."*
 
 **Push toward lockdown — always.** The goal for every setup is `allowlist`
 with a defined list. `pairing` is not a policy to stay on; it's a temporary

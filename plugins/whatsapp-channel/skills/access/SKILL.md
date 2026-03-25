@@ -77,7 +77,12 @@ Parse `$ARGUMENTS` (space-separated). If empty or unrecognized, show status.
 7. `mkdir -p ~/.claude/channels/whatsapp/approved` then write
    `~/.claude/channels/whatsapp/approved/<senderId>` with `chatId` as the
    file contents. The channel server polls this dir and sends "you're in".
-8. Confirm: who was approved (senderId).
+8. If `dmPolicy` is still `pairing` and there are no remaining pending
+   entries, automatically set `dmPolicy` to `allowlist` and write back.
+   Tell the user: *"Locked down — only approved contacts can reach you now.
+   To add more people later, briefly flip back with
+   `/whatsapp:access policy pairing`."*
+9. Confirm: who was approved (senderId).
 
 ### `deny <code>`
 

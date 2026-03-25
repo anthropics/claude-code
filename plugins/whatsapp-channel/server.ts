@@ -979,10 +979,25 @@ async function connectWhatsApp(): Promise<void> {
       pairingCodeRequested = false
       ownJid = jidNormalizedUser(sock!.user?.id ?? '')
       process.stderr.write(`whatsapp channel: connected as ${ownJid}\n`)
+
+      // Auto-add owner to allowlist on first connection
+      if (ownJid && !STATIC) {
+        const access = loadAccess()
+        if (!access.allowFrom.includes(ownJid)) {
+          access.allowFrom.push(ownJid)
+          if (access.dmPolicy === 'pairing' && access.allowFrom.length > 0) {
+            access.dmPolicy = 'allowlist'
+            process.stderr.write(`whatsapp channel: auto-locked to allowlist mode\n`)
+          }
+          saveAccess(access)
+          process.stderr.write(`whatsapp channel: auto-added owner ${ownJid} to allowlist\n`)
+        }
+      }
+
       mcp.notification({
         method: 'notifications/claude/channel',
         params: {
-          content: `WhatsApp connected successfully as ${ownJid}. Ready to receive messages.`,
+          content: `WhatsApp connected as ${ownJid}. You are auto-added to the allowlist. Ready to receive messages.`,
           meta: {
             chat_id: 'system',
             message_id: `connected-${Date.now()}`,

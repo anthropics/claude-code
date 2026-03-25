@@ -6,116 +6,100 @@ The MCP server connects to WhatsApp as a linked device (like WhatsApp Web) and p
 
 ## Prerequisites
 
-- [Bun](https://bun.sh) — the MCP server runs on Bun. Install with `curl -fsSL https://bun.sh/install | bash`.
+- [Node.js](https://nodejs.org/) 20+ — the MCP server runs on Node.js.
 - A WhatsApp account with an active phone number.
 
 ## Quick Setup
-> Default pairing flow for a single-user DM setup. See [ACCESS.md](./ACCESS.md) for groups and multi-user setups.
 
 **1. Install the plugin.**
 
-These are Claude Code commands — run `claude` to start a session first.
-
 ```
-/plugin install whatsapp@claude-code-plugins
-```
-
-**2. Configure your phone number.**
-
-```
-/whatsapp:configure 15551234567
+/plugin marketplace add Rich627/whatsapp-claude-plugin
+/plugin install whatsapp@whatsapp-claude-plugin
+/reload-plugins
 ```
 
-Writes `WHATSAPP_PHONE_NUMBER=...` to `~/.claude/channels/whatsapp/.env`. Use your WhatsApp phone number with country code, no leading `+`. You can also write that file by hand, or set the variable in your shell environment — shell takes precedence.
+**2. Configure and pair.**
 
-**3. Launch with the channel flag.**
+```
+/whatsapp:configure 886912345678
+```
 
-Exit your session and start a new one:
+Use your WhatsApp phone number with country code, no leading `+`. Then exit and launch with the channel flag:
 
 ```sh
-claude --channels plugin:whatsapp@claude-code-plugins
+/exit
+claude --dangerously-load-development-channels plugin:whatsapp@whatsapp-claude-plugin
 ```
 
-**4. Pair the device.**
-
-On first launch, the server requests a pairing code and prints it to stderr. On your phone:
+The pairing code appears automatically in your session. On your phone:
 
 1. Open WhatsApp > **Settings** > **Linked Devices** > **Link a Device**
 2. Tap **Link with phone number instead**
-3. Enter the pairing code shown in your terminal
+3. Enter the pairing code
 
-> **Note:** QR code pairing is not reliable with Baileys 6.x (the underlying WhatsApp library). Always configure `WHATSAPP_PHONE_NUMBER` to use pairing code instead.
+Once paired, your own number is **auto-added to the allowlist** and the policy is **auto-locked to allowlist mode**. You're ready to go — messages you send to the linked number from another device (or that others send you) will appear in your Claude Code session.
 
-**5. Pair a contact.**
+> **Note:** `--dangerously-load-development-channels` is required for third-party plugins. Once submitted and approved by Anthropic, use `--channels` instead.
 
-With Claude Code running, have someone DM the linked number. The server replies with a 6-character pairing code. In your Claude Code session:
+**3. Add other contacts (optional).**
+
+Have someone DM the linked number. Briefly flip to pairing mode:
+
+```
+/whatsapp:access policy pairing
+```
+
+They'll receive a 6-character code. Approve in your Claude Code session:
 
 ```
 /whatsapp:access pair <code>
 ```
 
-Their next message reaches the assistant.
+After pairing, the policy auto-locks back to `allowlist`.
 
-**6. Lock it down.**
+## Daily use
 
-Pairing is for capturing JIDs. Once everyone's in, switch to `allowlist` so strangers don't get pairing-code replies:
+After initial setup, just run:
 
+```sh
+claude --dangerously-load-development-channels plugin:whatsapp@whatsapp-claude-plugin
 ```
-/whatsapp:access policy allowlist
-```
+
+Auth is saved in `~/.claude/channels/whatsapp/.baileys_auth/`. The session must stay open to receive messages.
 
 ## Access control
 
 See **[ACCESS.md](./ACCESS.md)** for DM policies, groups, mention detection, delivery config, skill commands, and the `access.json` schema.
 
-Quick reference: IDs are **WhatsApp JIDs** (e.g. `15551234567@s.whatsapp.net`). Default policy is `pairing`. `ackReaction` accepts any emoji.
-
 ## Tools exposed to the assistant
 
 | Tool | Purpose |
 | --- | --- |
-| `reply` | Send to a chat. Takes `chat_id` + `text`, optionally `reply_to` (message ID) for quote-reply and `files` (absolute paths) for attachments. Images send as photos; videos as video messages; other types as documents. Max 16MB each. Auto-chunks text; files send as separate messages after the text. Returns the sent message ID(s). |
-| `react` | Add an emoji reaction to a message by ID. **Any emoji** is supported — WhatsApp has no fixed whitelist. |
-| `download_attachment` | Download media from a received message. Use when inbound meta shows `attachment_file_id`. Returns the local file path. |
-| `edit_message` | Edit a message the account previously sent. Only works on the account's own messages. |
-
-Inbound messages trigger a typing indicator automatically — WhatsApp shows
-"typing…" while the assistant works on a response.
+| `reply` | Send to a chat. Takes `chat_id` + `text`, optionally `reply_to` (message ID) for quote-reply and `files` (absolute paths) for attachments. |
+| `react` | Add an emoji reaction to a message by ID. Any emoji is supported. |
+| `download_attachment` | Download media from a received message. Returns the local file path. |
+| `edit_message` | Edit a message the account previously sent. |
+| `status` | Check connection state and get the pairing code if not yet paired. |
 
 ## Photos & Media
 
-Inbound **photos** are downloaded eagerly to `~/.claude/channels/whatsapp/inbox/`
-and the local path is included in the `<channel>` notification so the assistant
-can `Read` it.
+Inbound **photos** are downloaded eagerly to `~/.claude/channels/whatsapp/inbox/` and the local path is included in the notification so the assistant can read it.
 
-Other media types (**voice notes, audio, video, documents, stickers**) are lazy — the
-inbound notification includes an `attachment_file_id`. The assistant calls
-`download_attachment` to fetch the file on demand, keeping startup fast and
-bandwidth low.
+Other media types (**voice notes, audio, video, documents, stickers**) are lazy — the notification includes an `attachment_file_id`. The assistant calls `download_attachment` to fetch the file on demand.
 
 ## Session conflicts
 
-WhatsApp allows only **one connection per auth state**. Running two instances
-(or two Claude Code sessions with `--channels`) against the same auth causes
-a 440 disconnect. If you see repeated reconnects, check for stale processes:
+WhatsApp allows only **one connection per auth state**. Running two instances causes a 440 disconnect. Check for stale processes:
 
 ```sh
-pkill -f "bun.*whatsapp"
+pkill -f "whatsapp.*server"
 ```
 
-## No history or search
-
-WhatsApp's linked-device protocol exposes **neither** message history nor search.
-The server only sees messages as they arrive. If the assistant needs earlier
-context, it will ask you to paste or summarize.
-
 ## Resetting auth
-
-If the linked device is unlinked from your phone, or you want to pair a
-different number:
 
 ```
 /whatsapp:configure reset-auth
 ```
 
-Then relaunch with `--channels` to re-pair.
+Then relaunch to re-pair.
