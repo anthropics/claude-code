@@ -1,18 +1,17 @@
 # memory-alert
 
-A Claude Code plugin that monitors system memory usage and alerts you in the terminal when it exceeds a configurable threshold. Works on **macOS** and **Linux**.
+A Claude Code plugin that monitors **Claude Code's own process memory** and alerts you in the terminal when it exceeds a configurable threshold. Works on **macOS** and **Linux**.
 
 ## How it works
 
-After every tool call, a lightweight shell script checks system memory usage:
+After every tool call, a lightweight shell script sums the RSS (resident set size) of all running `claude` processes:
 
-- **macOS**: reads `vm_stat` (active + wired + compressed pages)
-- **Linux**: reads `/proc/meminfo` (total - available)
+- **macOS / Linux**: uses `ps -eo rss,command` to find and sum Claude process memory
 
-If usage exceeds the threshold, a warning appears in your Claude Code terminal:
+If the combined memory exceeds the threshold, a warning appears in your Claude Code terminal:
 
 ```
-[MEMORY ALERT] System memory usage: 8.2GB / 16GB (threshold: 5GB)
+[MEMORY ALERT] Claude Code memory usage: 5.2GB (threshold: 5GB) — consider closing idle sessions
 ```
 
 The alert is non-blocking — it never interrupts your workflow.

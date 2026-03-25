@@ -1,5 +1,5 @@
 {
-  "description": "Checks system memory usage after each tool call and alerts when threshold is exceeded",
+  "description": "Checks Claude Code process memory after each tool call and alerts when threshold is exceeded",
   "hooks": {
     "PostToolUse": [
       {
