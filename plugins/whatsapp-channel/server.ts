@@ -478,7 +478,7 @@ const mcp = new Server(
       '== Per-Group Personality ==',
       'Group messages include group_config_path and group_memory_path in the meta. On the FIRST message from a group in this session, Read group_config_path (config.md) for personality/goals/instructions/cron jobs. Follow those for all messages in that group. If the file is empty or missing, use your default personality.',
       '',
-      'config.md may contain a "## Cron Jobs" section listing scheduled tasks managed by system crontab (NOT Claude Code CronList). When asked about cron jobs, refer to config.md — do not use CronList, which only tracks session-level jobs.',
+      'config.md may contain a "## Cron Jobs" section describing recurring tasks for this group. On the FIRST message from a group, if config.md has cron jobs defined, use CronCreate to set them up as session-level crons. The cron prompt should include the WhatsApp reply tool call to send results to the group. CronList shows active session crons.',
       '',
       'After a meaningful conversation in a group (not a quick one-off), append a brief summary to group_memory_path (memory.md). Format: "## YYYY-MM-DD HH:MM\\n- key point\\n\\n". Read memory.md at the start of each group conversation to recall prior context. Keep entries concise.',
       '',
