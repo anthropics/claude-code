@@ -405,10 +405,11 @@ mcp.setNotificationHandler(
       `${tool_name}: ${description}\n` +
       `${input_preview}\n\n` +
       `Reply "yes ${request_id}" to allow or "no ${request_id}" to deny.`
-    for (const jid of access.allowFrom) {
-      if (!sock) break
-      void sock.sendMessage(jid, { text }).catch(e => {
-        process.stderr.write(`permission_request send to ${jid} failed: ${e}\n`)
+    // Send to the first allowlisted contact (owner) only, to avoid spam
+    const owner = access.allowFrom[0]
+    if (sock && owner) {
+      void sock.sendMessage(owner, { text }).catch(e => {
+        process.stderr.write(`permission_request send to ${owner} failed: ${e}\n`)
       })
     }
   },
