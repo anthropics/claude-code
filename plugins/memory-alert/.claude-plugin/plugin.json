@@ -1,0 +1,9 @@
+{
+  "name": "memory-alert",
+  "version": "1.0.0",
+  "description": "Monitors system memory usage and alerts in the Claude Code terminal when it exceeds a configurable threshold (macOS and Linux)",
+  "author": {
+    "name": "Shankar Tiwari",
+    "url": "https://github.com/tiwari91"
+  }
+}
