@@ -25,14 +25,16 @@ Restart to activate the plugin:
 claude
 ```
 
-**2. Configure and pair.**
+**2. Configure your phone number.**
 
 ```
 /whatsapp:configure 886912345678
 /exit
 ```
 
-Use your WhatsApp phone number with country code, no leading `+`. Then launch with the channel flag:
+Use your WhatsApp phone number with country code, no leading `+`.
+
+**3. Launch with the channel flag.**
 
 ```sh
 claude --dangerously-load-development-channels plugin:whatsapp@whatsapp-claude-plugin
@@ -44,11 +46,11 @@ The pairing code appears automatically in your session. On your phone:
 2. Tap **Link with phone number instead**
 3. Enter the pairing code
 
-Once paired, your own number is **auto-added to the allowlist** and the policy is **auto-locked to allowlist mode**. You're ready to go — messages you send to the linked number from another device (or that others send you) will appear in your Claude Code session.
+Once paired, your own number is **auto-added to the allowlist** and the policy is **auto-locked to allowlist mode**.
 
-> **Note:** `--dangerously-load-development-channels` is required for third-party plugins. Once submitted and approved by Anthropic, use `--channels` instead.
+> `--dangerously-load-development-channels` is required for third-party plugins during the research preview. Once submitted and approved by Anthropic, use `--channels` instead.
 
-**3. Add other contacts (optional).**
+**4. Add other contacts (optional).**
 
 Have someone DM the linked number. Briefly flip to pairing mode:
 
@@ -72,7 +74,37 @@ After initial setup, just run:
 claude --dangerously-load-development-channels plugin:whatsapp@whatsapp-claude-plugin
 ```
 
-Auth is saved in `~/.claude/channels/whatsapp/.baileys_auth/`. The session must stay open to receive messages.
+Auth is saved in `~/.claude/channels/whatsapp/.baileys_auth/`. The session must stay open to receive messages — closing the session disconnects WhatsApp.
+
+### Permissions
+
+The WhatsApp channel uses MCP tools to reply, react, and manage messages. By default, Claude Code asks for permission before each tool use.
+
+**To skip permission prompts** (recommended for channel use):
+
+```sh
+claude --dangerously-skip-permissions --dangerously-load-development-channels plugin:whatsapp@whatsapp-claude-plugin
+```
+
+**To auto-allow only WhatsApp tools**, add to your `~/.claude/settings.json`:
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "mcp__plugin_whatsapp_whatsapp__reply",
+      "mcp__plugin_whatsapp_whatsapp__react",
+      "mcp__plugin_whatsapp_whatsapp__status",
+      "mcp__plugin_whatsapp_whatsapp__download_attachment",
+      "mcp__plugin_whatsapp_whatsapp__edit_message"
+    ]
+  }
+}
+```
+
+### Permission relay
+
+When Claude needs to run a tool that requires approval and no one is at the terminal, the request is forwarded to all allowlisted WhatsApp contacts. Reply `yes <code>` or `no <code>` from WhatsApp to approve or deny.
 
 ## Access control
 
