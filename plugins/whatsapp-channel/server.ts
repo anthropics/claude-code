@@ -223,7 +223,30 @@ function groupMemoryPath(groupJid: string): string {
 }
 
 function ensureGroupDir(groupJid: string): void {
-  mkdirSync(join(GROUPS_DIR, groupJid), { recursive: true })
+  const dir = join(GROUPS_DIR, groupJid)
+  mkdirSync(dir, { recursive: true })
+  const cfg = groupConfigPath(groupJid)
+  if (!existsSync(cfg)) {
+    writeFileSync(cfg, [
+      '# Group Personality',
+      '',
+      '## Role',
+      'You are a helpful assistant in this WhatsApp group.',
+      '',
+      '## Goals',
+      '- Be helpful and concise',
+      '- Match the group\'s communication style',
+      '',
+      '## Instructions',
+      '- Keep responses appropriate for group chat',
+      '- Address people by name when relevant',
+      '',
+    ].join('\n'))
+  }
+  const mem = groupMemoryPath(groupJid)
+  if (!existsSync(mem)) {
+    writeFileSync(mem, '# Group Memory\n\n')
+  }
 }
 
 function pruneExpired(a: Access): boolean {
