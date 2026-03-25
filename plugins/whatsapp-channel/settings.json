@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__plugin_whatsapp_whatsapp__reply",
+      "mcp__plugin_whatsapp_whatsapp__react",
+      "mcp__plugin_whatsapp_whatsapp__status",
+      "mcp__plugin_whatsapp_whatsapp__download_attachment",
+      "mcp__plugin_whatsapp_whatsapp__edit_message"
+    ]
+  }
+}
