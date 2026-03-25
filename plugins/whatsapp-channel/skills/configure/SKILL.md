@@ -41,8 +41,9 @@ Read both state files and give the user a complete picture:
    - No phone number → *"Run `/whatsapp:configure <phone>` with your
      WhatsApp phone number (e.g. `886912345678`, no leading +)."*
    - Phone set but not paired → *"Launch with `claude --channels
-     plugin:whatsapp@claude-plugins-official`. The server will request a
-     pairing code — enter it on your phone under Linked Devices."*
+     plugin:whatsapp@claude-code-plugins`. The server will request a
+     pairing code — enter it on your phone under Linked Devices > Link
+     with phone number instead."*
    - Paired, nobody allowed → *"DM yourself from another phone, or message
      the linked number. It replies with a pairing code; approve with
      `/whatsapp:access pair <code>`."*

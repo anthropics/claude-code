@@ -1,7 +1,7 @@
 {
   "name": "whatsapp",
   "description": "WhatsApp channel for Claude Code \u2014 linked-device messaging bridge with built-in access control. Manage pairing, allowlists, and policy via /whatsapp:access.",
-  "version": "0.0.1",
+  "version": "0.0.6",
   "keywords": [
     "whatsapp",
     "messaging",
