@@ -1,16 +1,15 @@
 {
   "name": "claude-channel-whatsapp",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "license": "Apache-2.0",
   "type": "module",
   "bin": "./server.ts",
   "scripts": {
-    "start": "npm install --silent && npx tsx server.ts",
+    "start": "bun install --no-summary && bun server.ts",
     "postinstall": "node patch-baileys.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
-    "@whiskeysockets/baileys": "7.0.0-rc.9",
-    "tsx": "^4.0.0"
+    "@whiskeysockets/baileys": "7.0.0-rc.9"
   }
 }
