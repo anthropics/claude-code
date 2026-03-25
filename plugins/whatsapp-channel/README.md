@@ -16,19 +16,25 @@ The MCP server connects to WhatsApp as a linked device (like WhatsApp Web) and p
 ```
 /plugin marketplace add Rich627/whatsapp-claude-plugin
 /plugin install whatsapp@whatsapp-claude-plugin
-/reload-plugins
+/exit
+```
+
+Restart to activate the plugin:
+
+```sh
+claude
 ```
 
 **2. Configure and pair.**
 
 ```
 /whatsapp:configure 886912345678
+/exit
 ```
 
-Use your WhatsApp phone number with country code, no leading `+`. Then exit and launch with the channel flag:
+Use your WhatsApp phone number with country code, no leading `+`. Then launch with the channel flag:
 
 ```sh
-/exit
 claude --dangerously-load-development-channels plugin:whatsapp@whatsapp-claude-plugin
 ```
 
