@@ -104,16 +104,53 @@ Parse `$ARGUMENTS` (space-separated). If empty or unrecognized, show status.
 1. Validate `<mode>` is one of `pairing`, `allowlist`, `disabled`.
 2. Read (create default if missing), set `dmPolicy`, write.
 
-### `group add <groupJid>` (optional: `--no-mention`, `--allow jid1,jid2`)
+### `group add <groupJid>` (optional: `--mention`, `--allow jid1,jid2`)
 
 1. Read (create default if missing).
-2. Set `groups[<groupJid>] = { requireMention: !hasFlag("--no-mention"),
+2. Set `groups[<groupJid>] = { requireMention: hasFlag("--mention"),
    allowFrom: parsedAllowList }`.
+   Default is `requireMention: false` — Claude responds to all messages.
+   Pass `--mention` to require @mention before Claude responds.
 3. Write.
+4. `mkdir -p ~/.claude/channels/whatsapp/groups/<groupJid>`
+5. If `config.md` does not exist in that directory, create it with:
+   ```
+   # Group Personality
+
+   ## Role
+   You are a helpful assistant in this WhatsApp group.
+
+   ## Goals
+   - Be helpful and concise
+   - Match the group's communication style
+
+   ## Instructions
+   - Keep responses appropriate for group chat
+   - Address people by name when relevant
+   ```
+6. If `memory.md` does not exist, create it with:
+   ```
+   # Group Memory
+   <!-- Claude appends conversation summaries here automatically -->
+   ```
+7. Confirm: show the group JID, policy, and config file paths.
+
+### `group config <groupJid>`
+
+1. Read `~/.claude/channels/whatsapp/groups/<groupJid>/config.md`.
+2. If not found, offer to create with default template.
+3. Tell the user the file path so they can edit directly.
+
+### `group memory <groupJid>`
+
+1. Read `~/.claude/channels/whatsapp/groups/<groupJid>/memory.md`.
+2. If not found, say so.
+3. Offer to clear it if the user wants to reset.
 
 ### `group rm <groupJid>`
 
 1. Read, `delete groups[<groupJid>]`, write.
+2. Note: group config/memory files are kept (not deleted) in case the user re-adds.
 
 ### `set <key> <value>`
 

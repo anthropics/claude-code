@@ -66,6 +66,16 @@ They'll receive a 6-character code. Approve in your Claude Code session:
 
 After pairing, the policy auto-locks back to `allowlist`.
 
+**5. Add groups (optional).**
+
+```
+/whatsapp:access group add <groupJid>
+```
+
+Each group gets its own personality config at `~/.claude/channels/whatsapp/groups/<groupJid>/config.md`. Edit that file to customize how Claude behaves in each group. Conversation memory is auto-saved to `memory.md` in the same directory.
+
+See [ACCESS.md](./ACCESS.md) for group options (`--mention`, `--allow`).
+
 ## Daily use
 
 After initial setup, just run:

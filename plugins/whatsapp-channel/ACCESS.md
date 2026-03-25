@@ -51,13 +51,29 @@ Groups are off by default. Opt each one in individually.
 
 Group JIDs end in `@g.us`. To find one, add the linked device to the group — the server logs the group JID when it receives a message from an unenabled group.
 
-With the default `requireMention: true`, the server responds only when @mentioned. Pass `--no-mention` to process every message, or `--allow jid1,jid2` to restrict which members can trigger it.
+With the default `requireMention: false`, the server responds to every message. Pass `--mention` to require @mention, or `--allow jid1,jid2` to restrict which members can trigger it.
 
 ```
-/whatsapp:access group add 120363424405607157@g.us --no-mention
-/whatsapp:access group add 120363424405607157@g.us --allow 886912345678@s.whatsapp.net,886987654321@s.whatsapp.net
+/whatsapp:access group add 120363424405607157@g.us
+/whatsapp:access group add 120363424405607157@g.us --mention
+/whatsapp:access group add 120363424405607157@g.us --allow 886912345678@s.whatsapp.net
 /whatsapp:access group rm 120363424405607157@g.us
 ```
+
+### Per-group personality & memory
+
+Each enabled group gets a config directory at `~/.claude/channels/whatsapp/groups/<groupJid>/`:
+
+| File | Purpose |
+| --- | --- |
+| `config.md` | Personality, goals, and instructions for Claude in this group. User edits this. |
+| `memory.md` | Conversation summaries appended by Claude automatically. Persists across sessions. |
+
+Created automatically when a group is added. Edit `config.md` to customize Claude's behavior per group. View or clear with `/whatsapp:access group config <jid>` and `/whatsapp:access group memory <jid>`.
+
+### LID identifiers
+
+Baileys 7 uses LID (Local Identifier) format alongside phone JIDs. The same person may appear as both `16024101202@s.whatsapp.net` and `21737517412478@lid`. The server maintains a mapping at `~/.claude/channels/whatsapp/lid-map.json` and resolves both formats automatically. Both work in allowlists.
 
 ## Mention detection
 
