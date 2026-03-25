@@ -5,9 +5,14 @@ user-invocable: true
 allowed-tools:
   - Read
   - Write
+  - Edit
   - Bash(ls *)
   - Bash(mkdir *)
   - Bash(rm -rf *)
+  - Bash(chmod *)
+  - Read(~/.claude/channels/whatsapp/*)
+  - Write(~/.claude/channels/whatsapp/*)
+  - Edit(~/.claude/channels/whatsapp/*)
 ---
 
 # /whatsapp:configure — WhatsApp Channel Setup
