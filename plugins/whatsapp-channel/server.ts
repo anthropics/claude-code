@@ -868,6 +868,33 @@ async function handleMessage(msg: WAMessage): Promise<void> {
 
   const access = result.access
 
+  // ─── In-chat commands ───────────────────────────────────────────────
+  if (text.trim().toLowerCase() === '/new') {
+    if (sock) {
+      await sock.sendMessage(remoteJid, { text: '🔄 Context cleared. Starting fresh.' })
+    }
+    // Notify Claude to reset context for this chat
+    mcp.notification({
+      method: 'notifications/claude/channel',
+      params: {
+        content: 'The user requested /new — clear your conversation context for this chat and start fresh. Do not reference prior messages.',
+        meta: {
+          chat_id: remoteJid,
+          message_id: messageId,
+          user: 'system',
+          user_id: 'system',
+          ts: new Date(timestamp * 1000).toISOString(),
+          ...(isGroup ? {
+            chat_type: 'group',
+            group_config_path: groupConfigPath(remoteJid),
+            group_memory_path: groupMemoryPath(remoteJid),
+          } : {}),
+        },
+      },
+    }).catch(() => {})
+    return
+  }
+
   // Ensure group config directory exists
   if (isGroup) ensureGroupDir(remoteJid)
 
