@@ -369,6 +369,130 @@ function checkApprovals(): void {
 
 if (!STATIC) setInterval(checkApprovals, 5000).unref()
 
+// ─── Server-side cron engine ────────────────────────────────────────
+
+type CronJob = {
+  groupJid: string
+  cron: string // "M H DoM Mon DoW"
+  prompt: string
+  lastFired?: number
+}
+
+function parseCronField(field: string, now: number, max: number): boolean {
+  if (field === '*') return true
+  for (const part of field.split(',')) {
+    if (part.includes('/')) {
+      const [, step] = part.split('/')
+      if (now % parseInt(step) === 0) return true
+    } else if (part.includes('-')) {
+      const [lo, hi] = part.split('-').map(Number)
+      if (now >= lo && now <= hi) return true
+    } else {
+      if (now === parseInt(part)) return true
+    }
+  }
+  return false
+}
+
+function cronMatches(expr: string, date: Date): boolean {
+  const [min, hr, dom, mon, dow] = expr.trim().split(/\s+/)
+  return parseCronField(min, date.getMinutes(), 59) &&
+    parseCronField(hr, date.getHours(), 23) &&
+    parseCronField(dom, date.getDate(), 31) &&
+    parseCronField(mon, date.getMonth() + 1, 12) &&
+    parseCronField(dow, date.getDay(), 6)
+}
+
+function loadGroupCrons(): CronJob[] {
+  const jobs: CronJob[] = []
+  const access = loadAccess()
+  for (const groupJid of Object.keys(access.groups)) {
+    const cfgPath = groupConfigPath(groupJid)
+    try {
+      const content = readFileSync(cfgPath, 'utf8')
+      const cronSection = content.match(/## Cron Jobs\n([\s\S]*?)(?=\n## |\n# |$)/)
+      if (!cronSection) continue
+      // Parse lines like: - **Name**: description (cron: "expr")
+      // Or: - **Name**: cron expr — description
+      const lines = cronSection[1].split('\n').filter(l => l.startsWith('- '))
+      for (const line of lines) {
+        // Match cron expressions in the line
+        const cronMatch = line.match(/(?:每|every)\s*(\d+)\s*(?:分鐘|分|min)/i)
+        const dailyMatch = line.match(/(?:每天|daily)\s*(\d{1,2}):?(\d{2})?\s*(?:AM|PM|am|pm)?/i)
+        const twiceMatch = line.match(/(?:每天|daily)\s*(\d{1,2})(?::(\d{2}))?\s*(?:AM|am)?\s*(?:&|和|,)\s*(\d{1,2})(?::(\d{2}))?\s*(?:PM|pm)?/i)
+
+        let cronExpr = ''
+        const desc = line.replace(/^-\s*\*\*[^*]+\*\*:?\s*/, '').trim()
+
+        if (twiceMatch) {
+          // Two times per day — create two entries
+          const h1 = parseInt(twiceMatch[1])
+          const m1 = parseInt(twiceMatch[2] || '0')
+          const h2 = parseInt(twiceMatch[3]) + (line.toLowerCase().includes('pm') ? 12 : 0)
+          const m2 = parseInt(twiceMatch[4] || '0')
+          jobs.push({ groupJid, cron: `${m1} ${h1} * * *`, prompt: desc })
+          jobs.push({ groupJid, cron: `${m2} ${h2} * * *`, prompt: desc })
+          continue
+        } else if (dailyMatch) {
+          const hr = parseInt(dailyMatch[1])
+          const min = parseInt(dailyMatch[2] || '0')
+          const isPM = line.toLowerCase().includes('pm') && hr < 12
+          cronExpr = `${min} ${isPM ? hr + 12 : hr} * * *`
+        } else if (cronMatch) {
+          cronExpr = `*/${cronMatch[1]} * * * *`
+        }
+
+        if (cronExpr && desc) {
+          jobs.push({ groupJid, cron: cronExpr, prompt: desc })
+        }
+      }
+    } catch {}
+  }
+  return jobs
+}
+
+let serverCrons: CronJob[] = []
+
+function initServerCrons(): void {
+  serverCrons = loadGroupCrons()
+  if (serverCrons.length > 0) {
+    process.stderr.write(`whatsapp channel: loaded ${serverCrons.length} cron jobs from group configs\n`)
+  }
+}
+
+// Check crons every minute
+setInterval(() => {
+  if (!sock || serverCrons.length === 0) return
+  const now = new Date()
+  for (const job of serverCrons) {
+    if (!cronMatches(job.cron, now)) continue
+    // Prevent double-firing within the same minute
+    const minuteKey = Math.floor(now.getTime() / 60000)
+    if (job.lastFired === minuteKey) continue
+    job.lastFired = minuteKey
+
+    process.stderr.write(`whatsapp channel: cron firing for ${job.groupJid}: ${job.prompt.slice(0, 50)}...\n`)
+    mcp.notification({
+      method: 'notifications/claude/channel',
+      params: {
+        content: `[CRON] ${job.prompt}\n\nExecute this scheduled task and send the result to the group using the reply tool.`,
+        meta: {
+          chat_id: job.groupJid,
+          message_id: `cron-${Date.now()}`,
+          user: 'Cron Scheduler',
+          user_id: 'system',
+          ts: now.toISOString(),
+          chat_type: 'group',
+          group_config_path: groupConfigPath(job.groupJid),
+          group_memory_path: groupMemoryPath(job.groupJid),
+        },
+      },
+    }).catch(err => {
+      process.stderr.write(`whatsapp channel: cron notification failed: ${err}\n`)
+    })
+  }
+}, 60_000).unref()
+
 function chunk(text: string, limit: number, mode: 'length' | 'newline'): string[] {
   if (text.length <= limit) return [text]
   const out: string[] = []
@@ -478,7 +602,7 @@ const mcp = new Server(
       '== Per-Group Personality ==',
       'Group messages include group_config_path and group_memory_path in the meta. On the FIRST message from a group in this session, Read group_config_path (config.md) for personality/goals/instructions/cron jobs. Follow those for all messages in that group. If the file is empty or missing, use your default personality.',
       '',
-      'config.md may contain a "## Cron Jobs" section describing recurring tasks for this group. On the FIRST message from a group, if config.md has cron jobs defined, use CronCreate to set them up as session-level crons. The cron prompt should include the WhatsApp reply tool call to send results to the group. CronList shows active session crons.',
+      'config.md may contain a "## Cron Jobs" section describing recurring tasks for this group. These are automatically loaded by the server as permanent cron jobs (not session-level). When asked about cron jobs, read the group\'s config.md to report them.',
       '',
       'After a meaningful conversation in a group (not a quick one-off), append a brief summary to group_memory_path (memory.md). Format: "## YYYY-MM-DD HH:MM\\n- key point\\n\\n". Read memory.md at the start of each group conversation to recall prior context. Keep entries concise.',
       '',
@@ -1143,6 +1267,9 @@ async function connectWhatsApp(): Promise<void> {
           process.stderr.write(`whatsapp channel: auto-added owner ${resolvedOwn} to allowlist\n`)
         }
       }
+
+      // Initialize server-side cron jobs from group configs
+      initServerCrons()
 
       mcp.notification({
         method: 'notifications/claude/channel',
