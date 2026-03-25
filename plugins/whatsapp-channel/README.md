@@ -6,7 +6,7 @@ The MCP server connects to WhatsApp as a linked device (like WhatsApp Web) and p
 
 ## Prerequisites
 
-- [Node.js](https://nodejs.org/) 20+ — the MCP server runs on Node.js.
+- [Bun](https://bun.sh) — the MCP server runs on Bun. Install with `curl -fsSL https://bun.sh/install | bash`.
 - A WhatsApp account with an active phone number.
 
 ## Quick Setup
