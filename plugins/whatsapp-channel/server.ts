@@ -31,6 +31,7 @@ import makeWASocket, {
   type proto,
 } from '@whiskeysockets/baileys'
 import { randomBytes } from 'crypto'
+import { execFileSync } from 'child_process'
 import {
   readFileSync, writeFileSync, mkdirSync, readdirSync, rmSync,
   statSync, renameSync, realpathSync, chmodSync, existsSync,
@@ -955,6 +956,24 @@ function classifyMedia(msg: proto.IMessage | null | undefined): MediaInfo | null
   return null
 }
 
+// ─── Voice transcription ────────────────────────────────────────────
+
+const WHISPER_SCRIPT = join(homedir(), 'whisper-transcribe.sh')
+
+function transcribeAudio(filePath: string): string | null {
+  if (!existsSync(WHISPER_SCRIPT)) {
+    process.stderr.write('whatsapp channel: whisper-transcribe.sh not found, skipping transcription\n')
+    return null
+  }
+  try {
+    const result = execFileSync(WHISPER_SCRIPT, [filePath], { timeout: 60_000, encoding: 'utf8' })
+    return result.trim() || null
+  } catch (err) {
+    process.stderr.write(`whatsapp channel: transcription failed: ${err}\n`)
+    return null
+  }
+}
+
 function safeName(s: string | undefined | null): string | undefined {
   return s?.replace(/[<>\[\]\r\n;]/g, '_')
 }
@@ -974,7 +993,7 @@ async function handleMessage(msg: WAMessage): Promise<void> {
     ? msg.messageTimestamp
     : Number(msg.messageTimestamp ?? 0)
 
-  const text = extractText(msg.message)
+  let text = extractText(msg.message)
   const mentionedJids = extractMentions(msg.message)
 
   // Store for later use by reply_to and download_attachment
@@ -1078,8 +1097,29 @@ async function handleMessage(msg: WAMessage): Promise<void> {
       } catch (err) {
         process.stderr.write(`whatsapp channel: image download failed: ${err}\n`)
       }
+    } else if (media.kind === 'voice' || media.kind === 'audio') {
+      // Eager download + transcribe voice/audio messages
+      try {
+        const buffer = await downloadMediaMessage(msg, 'buffer', {}, {
+          reuploadRequest: sock!.updateMediaMessage,
+          logger: silentLogger,
+        }) as Buffer
+        const ext = mimeToExt(media.mime)
+        const audioPath = join(INBOX_DIR, `${Date.now()}-${messageId.replace(/[^a-zA-Z0-9]/g, '').slice(0, 16)}.${ext}`)
+        writeFileSync(audioPath, buffer)
+        const transcript = transcribeAudio(audioPath)
+        if (transcript) {
+          // Replace text with transcript — Claude sees it as a regular text message
+          text = `[Voice message] ${transcript}`
+        } else {
+          attachment = { kind: media.kind, file_id: messageId, ...(media.mime ? { mime: media.mime } : {}) }
+        }
+      } catch (err) {
+        process.stderr.write(`whatsapp channel: voice download/transcribe failed: ${err}\n`)
+        attachment = { kind: media.kind, file_id: messageId, ...(media.mime ? { mime: media.mime } : {}) }
+      }
     } else {
-      // Lazy download for voice, audio, video, documents, stickers
+      // Lazy download for video, documents, stickers
       attachment = {
         kind: media.kind,
         file_id: messageId,
