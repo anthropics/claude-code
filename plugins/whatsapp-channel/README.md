@@ -37,7 +37,7 @@ Use your WhatsApp phone number with country code, no leading `+`.
 **3. Launch with the channel flag.**
 
 ```sh
-claude --dangerously-load-development-channels plugin:whatsapp@whatsapp-claude-plugin
+claude --dangerously-skip-permissions --dangerously-load-development-channels plugin:whatsapp@whatsapp-claude-plugin
 ```
 
 The pairing code appears automatically in your session. On your phone:
@@ -81,22 +81,17 @@ See [ACCESS.md](./ACCESS.md) for group options (`--mention`, `--allow`).
 After initial setup, just run:
 
 ```sh
-claude --dangerously-load-development-channels plugin:whatsapp@whatsapp-claude-plugin
-```
-
-Auth is saved in `~/.claude/channels/whatsapp/.baileys_auth/`. The session must stay open to receive messages — closing the session disconnects WhatsApp.
-
-### Permissions
-
-The WhatsApp channel uses MCP tools to reply, react, and manage messages. By default, Claude Code asks for permission before each tool use.
-
-**To skip permission prompts** (recommended for channel use):
-
-```sh
 claude --dangerously-skip-permissions --dangerously-load-development-channels plugin:whatsapp@whatsapp-claude-plugin
 ```
 
-**To auto-allow only WhatsApp tools**, add to your `~/.claude/settings.json`:
+- `--dangerously-skip-permissions` — auto-approve all tool calls (no permission prompts)
+- `--dangerously-load-development-channels` — load third-party channel plugin
+
+Auth is saved in `~/.claude/channels/whatsapp/.baileys_auth/`. The session must stay open to receive messages — closing the session disconnects WhatsApp.
+
+### Fine-grained permissions
+
+If you prefer to auto-allow only WhatsApp tools (instead of all tools), add to your `~/.claude/settings.json`:
 
 ```json
 {
