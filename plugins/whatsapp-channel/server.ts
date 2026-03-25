@@ -1080,7 +1080,22 @@ async function connectWhatsApp(): Promise<void> {
       mcp.notification({
         method: 'notifications/claude/channel',
         params: {
-          content: `WhatsApp connected as ${ownJid}. You are auto-added to the allowlist. Ready to receive messages.`,
+          content: [
+            `WhatsApp paired and connected as ${resolvedOwn}.`,
+            `Your number is auto-added to the allowlist and policy is locked to allowlist mode.`,
+            ``,
+            `To add another contact:`,
+            `  /whatsapp:access policy pairing`,
+            `  → have them DM this number → they get a 6-digit code`,
+            `  /whatsapp:access pair <code>`,
+            `  → auto-locks back to allowlist`,
+            ``,
+            `To add a group:`,
+            `  /whatsapp:access group add <groupJid>`,
+            `  → edit personality at ~/.claude/channels/whatsapp/groups/<groupJid>/config.md`,
+            ``,
+            `Ready to receive messages.`,
+          ].join('\n'),
           meta: {
             chat_id: 'system',
             message_id: `connected-${Date.now()}`,
