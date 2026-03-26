@@ -9,6 +9,9 @@ This skill provides detailed knowledge about:
 - `plugin.json` manifest configuration
 - Component organization (commands, agents, skills, hooks)
 - Auto-discovery mechanisms
+- Plugin management workflow and CLI syntax
+- TTY limitations and in-session `/plugin` usage
+- Versioning and cache invalidation during distribution
 - Portable path references with `${CLAUDE_PLUGIN_ROOT}`
 - File naming conventions
 
@@ -46,6 +49,13 @@ Detailed documentation for deep dives:
   - Script organization patterns
   - Cross-component patterns
   - Best practices for scalability
+
+- **plugin-lifecycle.md**: Plugin management and distribution workflow
+  - `claude plugin` command syntax and common mistakes
+  - When to use `/plugin` inside an active session
+  - TTY limitations for plugin-management commands
+  - Marketplace add syntax (`owner/repo`)
+  - Version bump and cache invalidation rules
 
 ### Examples
 
@@ -87,7 +97,7 @@ Claude Code activates this skill when users:
 The skill uses progressive disclosure to manage context:
 
 1. **SKILL.md** (~1600 words): Core concepts and workflows
-2. **References** (~6000 words): Detailed field references and patterns
+2. **References** (~7000 words): Detailed field references, lifecycle notes, and patterns
 3. **Examples** (~8000 words): Complete working examples
 
 Claude loads references and examples only as needed based on the task.

@@ -101,13 +101,16 @@ Use this workflow for structured, high-quality plugin development from concept t
 - plugin.json manifest format and all fields
 - Component organization (commands, agents, skills, hooks)
 - ${CLAUDE_PLUGIN_ROOT} usage throughout
+- Plugin management workflow (`/plugin` vs `claude plugin`)
+- TTY constraints and marketplace command syntax
+- Versioning and cache invalidation during distribution
 - File naming conventions and best practices
 - Minimal, standard, and advanced plugin patterns
 
 **Resources:**
 - Core SKILL.md (1,619 words)
 - 3 example structures (minimal, standard, advanced)
-- 2 reference docs: component-patterns, manifest-reference
+- 3 reference docs: component-patterns, manifest-reference, plugin-lifecycle
 
 **Use when:** Starting a new plugin, organizing components, or configuring the plugin manifest.
 

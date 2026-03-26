@@ -51,6 +51,16 @@ Semantic versioning guidelines:
 - **MINOR**: New functionality, backward-compatible
 - **PATCH**: Bug fixes, backward-compatible
 
+**Operational note**: Claude Code plugin distribution uses the version as an
+update identity. If plugin files change without a version bump, users may keep
+seeing cached content from the older install and assume the update failed.
+
+**Distribution rule of thumb**:
+- Bump `plugin.json` on every shipped change that users should pick up
+- If a marketplace registry also stores the plugin version, update that entry in
+  lockstep with the manifest
+- Do not reuse an old version number for different plugin contents
+
 **Pre-release versions**:
 - `"1.0.0-alpha.1"` - Alpha release
 - `"1.0.0-beta.2"` - Beta release
@@ -537,7 +547,7 @@ Full configuration with all features:
 
 ### Maintenance
 
-1. **Bump version on changes**: Follow semantic versioning
+1. **Bump version on changes**: Follow semantic versioning and treat version as a cache key
 2. **Update keywords**: Reflect new functionality
 3. **Keep description current**: Match actual capabilities
 4. **Maintain changelog**: Track version history

@@ -14,6 +14,8 @@ Claude Code plugins follow a standardized directory structure with automatic com
 - Conventional directory layout for automatic discovery
 - Manifest-driven configuration in `.claude-plugin/plugin.json`
 - Component-based organization (commands, agents, skills, hooks)
+- Plugin management workflow: `/plugin` vs `claude plugin`, TTY limits, and marketplace syntax
+- Versioning as a distribution contract for plugin cache invalidation
 - Portable path references using `${CLAUDE_PLUGIN_ROOT}`
 - Explicit vs. auto-discovered component loading
 
@@ -354,6 +356,55 @@ Claude Code automatically discovers and loads components:
 
 **Override behavior**: Custom paths in `plugin.json` supplement (not replace) default directories
 
+## Plugin Management Workflow
+
+### In-session vs CLI operations
+
+When Claude Code is already running, prefer the `/plugin` slash command family for
+plugin management tasks. These commands are designed for the active session and do
+not require launching a nested Claude CLI process.
+
+Use the standalone CLI in a separate terminal when you are working outside Claude
+Code itself:
+
+```bash
+claude plugin list
+claude plugin install my-plugin@my-marketplace
+claude plugin marketplace add owner/repo
+```
+
+**Important**: The subcommand is `claude plugin` (singular), not `claude plugins`.
+
+### TTY limitations
+
+Do not assume `claude plugin ...` can be run successfully from arbitrary tool
+invocations or non-interactive shells. Plugin-management commands often expect a
+real TTY. If Claude is already in a session, prefer `/plugin ...` instead of
+trying to shell out to `claude plugin ...` from inside the session.
+
+### Marketplace add syntax
+
+For GitHub-hosted marketplaces, use `owner/repo` directly:
+
+```bash
+claude plugin marketplace add owner/repo
+```
+
+Do not prepend `github:` and do not pass a full GitHub URL unless the CLI
+explicitly documents a different format.
+
+### Versioning and cache invalidation
+
+Treat the plugin version as part of the distribution contract, not just release
+metadata.
+
+- Bump `.claude-plugin/plugin.json` whenever you ship a plugin change that users
+  need to receive.
+- If you publish through a marketplace registry, bump the version in both the
+  plugin manifest and the registry entry that points to it.
+- Reinstalling a plugin with changed files but the same version can leave users
+  on cached content and make it look like the update did not apply.
+
 ## Best Practices
 
 ### Organization
@@ -396,7 +447,7 @@ Claude Code automatically discovers and loads components:
 
 ### Maintenance
 
-1. **Version consistently**: Update version in plugin.json for releases
+1. **Version consistently**: Update version in plugin.json for every distributable change
 2. **Deprecate gracefully**: Mark old components clearly before removal
 3. **Document breaking changes**: Note changes affecting existing users
 4. **Test thoroughly**: Verify all components work after changes
@@ -473,4 +524,4 @@ my-plugin/
 
 ---
 
-For detailed examples and advanced patterns, see files in `references/` and `examples/` directories.
+For detailed examples and advanced patterns, see files in `references/` and `examples/` directories, especially `references/plugin-lifecycle.md` for plugin-management workflow guidance.
