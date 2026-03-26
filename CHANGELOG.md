@@ -1,5 +1,38 @@
 # Changelog
 
+## 2.1.85
+
+- Added `CLAUDE_CODE_MCP_SERVER_NAME` and `CLAUDE_CODE_MCP_SERVER_URL` environment variables to MCP `headersHelper` scripts, allowing one helper to serve multiple servers
+- Added conditional `if` field for hooks using permission rule syntax (e.g., `Bash(git *)`) to filter when they run, reducing process spawning overhead
+- Added timestamp markers in transcripts when scheduled tasks (`/loop`, `CronCreate`) fire
+- Added trailing space after `[Image #N]` placeholder when pasting images
+- Deep link queries (`claude-cli://open?q=…`) now support up to 5,000 characters, with a "scroll to review" warning for long pre-filled prompts
+- MCP OAuth now follows RFC 9728 Protected Resource Metadata discovery to find the authorization server
+- Plugins blocked by organization policy (`managed-settings.json`) can no longer be installed or enabled, and are hidden from marketplace views
+- PreToolUse hooks can now satisfy `AskUserQuestion` by returning `updatedInput` alongside `permissionDecision: "allow"`, enabling headless integrations that collect answers via their own UI
+- `tool_parameters` in OpenTelemetry tool_result events are now gated behind `OTEL_LOG_TOOL_DETAILS=1`
+- Fixed `/compact` failing with "context exceeded" when the conversation has grown too large for the compact request itself to fit
+- Fixed `/plugin enable` and `/plugin disable` failing when a plugin's install location differs from where it's declared in settings
+- Fixed `--worktree` exiting with an error in non-git repositories before the `WorktreeCreate` hook could run
+- Fixed `deniedMcpServers` setting not blocking claude.ai MCP servers
+- Fixed `switch_display` in the computer-use tool returning "not available in this session" on multi-monitor setups
+- Fixed crash when `OTEL_LOGS_EXPORTER`, `OTEL_METRICS_EXPORTER`, or `OTEL_TRACES_EXPORTER` is set to `none`
+- Fixed diff syntax highlighting not working in non-native builds
+- Fixed MCP step-up authorization failing when a refresh token exists — servers requesting elevated scopes via `403 insufficient_scope` now correctly trigger the re-authorization flow
+- Fixed memory leak in remote sessions when a streaming response is interrupted
+- Fixed persistent ECONNRESET errors during edge connection churn by using a fresh TCP connection on retry
+- Fixed prompts getting stuck in the queue after running certain slash commands, with up-arrow unable to retrieve them
+- Fixed Python Agent SDK: `type:'sdk'` MCP servers passed via `--mcp-config` are no longer dropped during startup
+- Fixed raw key sequences appearing in the prompt when running over SSH or in the VS Code integrated terminal
+- Fixed Remote Control session status staying stuck on "Requires Action" after a permission is resolved
+- Fixed shift+enter and meta+enter being intercepted by typeahead suggestions instead of inserting newlines
+- Fixed stale content bleeding through when scrolling up during streaming
+- Fixed terminal left in enhanced keyboard mode after exit in Ghostty, Kitty, WezTerm, and other terminals supporting the Kitty keyboard protocol — Ctrl+C and Ctrl+D now work correctly after quitting
+- Improved @-mention file autocomplete performance on large repositories
+- Improved PowerShell dangerous command detection
+- Improved scroll performance with large transcripts by replacing WASM yoga-layout with a pure TypeScript implementation
+- Reduced UI stutter when compaction triggers on large sessions
+
 ## 2.1.84
 
 - Added PowerShell tool for Windows as an opt-in preview. Learn more at https://code.claude.com/docs/en/tools-reference#powershell-tool
