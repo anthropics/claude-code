@@ -60,7 +60,7 @@ Use this workflow for structured, high-quality plugin development from concept t
 **What it covers:**
 - Prompt-based hooks (recommended) with LLM decision-making
 - Command hooks for deterministic validation
-- All hook events: PreToolUse, PostToolUse, Stop, SubagentStop, SessionStart, SessionEnd, UserPromptSubmit, PreCompact, Notification
+- Common hook events: PreToolUse, PostToolUse, Stop, SubagentStop, SessionStart, SessionEnd, UserPromptSubmit, PreCompact, Notification, plus task lifecycle hooks like TaskCreated
 - Hook output formats and JSON schemas
 - Security best practices and input validation
 - ${CLAUDE_PLUGIN_ROOT} for portable paths

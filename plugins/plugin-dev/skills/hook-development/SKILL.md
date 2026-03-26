@@ -1,6 +1,6 @@
 ---
 name: Hook Development
-description: This skill should be used when the user asks to "create a hook", "add a PreToolUse/PostToolUse/Stop hook", "validate tool use", "implement prompt-based hooks", "use ${CLAUDE_PLUGIN_ROOT}", "set up event-driven automation", "block dangerous commands", or mentions hook events (PreToolUse, PostToolUse, Stop, SubagentStop, SessionStart, SessionEnd, UserPromptSubmit, PreCompact, Notification). Provides comprehensive guidance for creating and implementing Claude Code plugin hooks with focus on advanced prompt-based hooks API.
+description: This skill should be used when the user asks to "create a hook", "add a PreToolUse/PostToolUse/Stop hook", "validate tool use", "implement prompt-based hooks", "use ${CLAUDE_PLUGIN_ROOT}", "set up event-driven automation", "block dangerous commands", or mentions hook events (PreToolUse, PostToolUse, Stop, SubagentStop, SessionStart, SessionEnd, UserPromptSubmit, PreCompact, Notification, TaskCreated, TaskCompleted, TeammateIdle). Provides comprehensive guidance for creating and implementing Claude Code plugin hooks with focus on advanced prompt-based hooks API.
 version: 0.1.0
 ---
 
@@ -15,6 +15,7 @@ Hooks are event-driven automation scripts that execute in response to Claude Cod
 - React to tool results (PostToolUse)
 - Enforce completion standards (Stop, SubagentStop)
 - Load project context (SessionStart)
+- Coordinate task and teammate workflows (TaskCreated, TaskCompleted, TeammateIdle)
 - Automate workflows across the development lifecycle
 
 ## Hook Types
@@ -274,6 +275,35 @@ Execute before context compaction. Use to add critical information to preserve.
 ### Notification
 
 Execute when Claude sends notifications. Use to react to user notifications.
+
+### Task lifecycle hooks
+
+Claude Code also supports task and teammate lifecycle hooks for agent-team
+workflows:
+
+- `TaskCreated` fires when a task is created via `TaskCreate`
+- `TaskCompleted` fires when a task is marked as completed
+- `TeammateIdle` fires when an agent-team teammate is about to go idle
+
+Use `matcher: "*"` for these lifecycle events. Standard hook output fields
+(`continue`, `suppressOutput`, `systemMessage`) still apply.
+
+**Example (`TaskCreated`):**
+```json
+{
+  "TaskCreated": [
+    {
+      "matcher": "*",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/on-task-created.sh"
+        }
+      ]
+    }
+  ]
+}
+```
 
 ## Hook Output Format
 
@@ -642,6 +672,9 @@ echo "$output" | jq .
 | SessionEnd | Session ends | Cleanup, logging |
 | PreCompact | Before compact | Preserve context |
 | Notification | User notified | Logging, reactions |
+| TaskCreated | Task created | Initialize workflow state, task automation |
+| TaskCompleted | Task completed | Final validation, cleanup |
+| TeammateIdle | Teammate about to idle | Keep multi-agent workflows moving |
 
 ### Best Practices
 

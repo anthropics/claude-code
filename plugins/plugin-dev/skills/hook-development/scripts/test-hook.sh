@@ -80,20 +80,20 @@ EOF
 }
 EOF
       ;;
-    SessionStart|SessionEnd)
-      cat <<'EOF'
+    SessionStart|SessionEnd|TaskCreated|TaskCompleted|TeammateIdle)
+      cat <<EOF
 {
   "session_id": "test-session",
   "transcript_path": "/tmp/transcript.txt",
   "cwd": "/tmp/test-project",
   "permission_mode": "ask",
-  "hook_event_name": "SessionStart"
+  "hook_event_name": "$event_type"
 }
 EOF
       ;;
     *)
       echo "Unknown event type: $event_type"
-      echo "Valid types: PreToolUse, PostToolUse, Stop, SubagentStop, UserPromptSubmit, SessionStart, SessionEnd"
+      echo "Valid types: PreToolUse, PostToolUse, Stop, SubagentStop, UserPromptSubmit, SessionStart, SessionEnd, TaskCreated, TaskCompleted, TeammateIdle"
       exit 1
       ;;
   esac

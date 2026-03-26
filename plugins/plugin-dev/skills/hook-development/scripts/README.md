@@ -58,6 +58,7 @@ Tests individual hook scripts with sample input before deploying to Claude Code.
 - Validates output JSON
 - Shows exit codes and their meanings
 - Captures environment file output
+- Supports lifecycle samples such as `TaskCreated`, `TaskCompleted`, and `TeammateIdle`
 
 ## hook-linter.sh
 
