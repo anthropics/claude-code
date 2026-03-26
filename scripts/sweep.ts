@@ -34,7 +34,8 @@ async function githubRequest<T>(
   if (!response.ok) {
     if (response.status === 404) return {} as T;
     const text = await response.text();
-    throw new Error(`GitHub API ${response.status}: ${text}`);
+    const truncated = text.length > 500 ? text.substring(0, 500) + "… (truncated)" : text;
+    throw new Error(`GitHub API ${response.status}: ${truncated}`);
   }
 
   return response.json();
