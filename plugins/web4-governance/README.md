@@ -1,0 +1,659 @@
+# Web4 Governance Plugin for Claude Code
+
+Lightweight AI governance with R6 workflow formalism, agent trust accumulation, and audit trails.
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+## Overview
+
+This plugin adds structured governance to Claude Code sessions:
+
+- **R6 Workflow** - Every tool call follows a formal intent→action→result flow
+- **Agent Trust** - T3/V3 tensors accumulate per agent role based on outcomes
+- **Persistent References** - Agents learn patterns that persist across sessions
+- **Heartbeat Coherence** - Timing-based session health tracking
+- **Audit Trail** - Verifiable chain of actions with provenance
+
+No external dependencies. No network calls. Just structured, auditable AI actions.
+
+## What's New in v0.2
+
+- **Agent Governance** - Claude Code agents map to Web4 role entities
+- **Trust Tensors** - Each agent accumulates trust independently (T3/V3)
+- **Reference Store** - Learned patterns persist across sessions
+- **Capability Modulation** - Higher trust = more permissions
+- **SQLite Ledger** - Unified storage with WAL mode for concurrent access
+- **Heartbeat Ledger** - Timing coherence tracking
+
+## Tier 1.5 Features (NEW)
+
+Four new features harmonized with the [moltbot implementation](https://github.com/dp-web4/moltbot):
+
+### Policy Presets
+
+Built-in rule sets for common governance postures:
+
+```python
+from governance import resolve_preset, list_presets
+
+# List available presets
+for p in list_presets():
+    print(f"{p.name}: {p.description}")
+
+# Use a preset with overrides
+config = resolve_preset("safety", enforce=False)
+```
+
+| Preset | Default | Enforce | Description |
+|--------|---------|---------|-------------|
+| `permissive` | allow | false | Pure observation, no rules |
+| `safety` | allow | true | Block `rm -`/secrets, warn on file delete/memory/network |
+| `strict` | deny | true | Only allow Read, Glob, Grep, TodoWrite |
+| `audit-only` | allow | false | Same as safety but dry-run mode |
+
+For detailed information on what each preset blocks, warns, and allows, see **[PRESETS.md](./PRESETS.md)**.
+
+**Safety preset highlights:**
+- **Denies**: `rm` with any flags (not just `-rf`), `mkfs.*`, 24 credential file patterns
+- **Warns**: Plain `rm`, memory file writes, network access
+
+### Rate Limiting
+
+Sliding window counters for policy enforcement:
+
+```python
+from governance import RateLimiter
+
+limiter = RateLimiter()
+
+# Check if under limit (5 actions per 60 seconds)
+result = limiter.check("ratelimit:bash:tool", max_count=5, window_ms=60000)
+if result.allowed:
+    # Proceed and record
+    limiter.record("ratelimit:bash:tool")
+```
+
+### Audit Query
+
+Filter audit records by tool, category, status, target, and time:
+
+```python
+# Query with filters
+results = ledger.query_audit(
+    session_id="sess1",
+    tool="Bash",
+    status="error",
+    since="1h",  # or ISO date: "2026-01-27T10:00:00Z"
+    limit=50
+)
+
+# Get aggregated stats
+stats = ledger.get_audit_stats(session_id="sess1")
+# Returns: {total, tool_counts, status_counts, category_counts}
+```
+
+### Audit Reporter
+
+Generate aggregated reports from audit data:
+
+```python
+from governance import AuditReporter
+
+records = ledger.query_audit(session_id="sess1")
+reporter = AuditReporter(records)
+
+# Text output
+print(reporter.format_text())
+
+# JSON-serializable dict
+data = reporter.to_dict()
+```
+
+Report sections:
+- **Tool Stats** — Invocations, success rate, avg duration per tool
+- **Category Breakdown** — Counts and percentages per category
+- **Policy Stats** — Allow/deny distribution, block rate
+- **Errors** — Count by tool, top error messages
+- **Timeline** — Actions per minute
+
+### Policy Entity (NEW)
+
+Policy is a first-class participant in the trust network — not just configuration, but "society's law" with identity, witnessing, and hash-tracking:
+
+```python
+from governance import PolicyEntity, PolicyRegistry
+
+# Register a policy (creates hash-identified entity)
+registry = PolicyRegistry()
+entity = registry.register_policy("my-policy", preset="safety")
+
+# Entity ID follows: policy:<name>:<version>:<hash>
+print(entity.entity_id)  # policy:my-policy:20260128...:a1b2c3d4...
+
+# Evaluate a tool call against policy
+result = entity.evaluate("Bash", "command", "rm -rf ./temp_build")
+print(result.decision)  # "deny"
+print(result.reason)    # "Destructive command blocked by safety preset"
+
+# Session witnesses operating under policy
+registry.witness_session(entity.entity_id, session_id)
+
+# Policy witnesses decisions
+registry.witness_decision(entity.entity_id, session_id, "Read", "allow", success=True)
+```
+
+**Why Policy as Entity?**
+
+- **Immutable**: Once registered, the policy can't change (new version = new entity)
+- **Hash-tracked**: Content hash in entity ID ensures integrity
+- **Witnessable**: Sessions witness policy, policy witnesses decisions
+- **Auditable**: R6 records reference `policy_entity_id` in rules field
+- **Trust-integrated**: T3/V3 tensors track policy usage patterns
+
+**Hook Integration**:
+
+The PreToolUse hook automatically:
+1. Loads policy entity from session state
+2. Evaluates tool calls against policy rules
+3. Blocks denied actions (if `enforce=true`)
+4. Witnesses decisions in the trust network
+
+## Tier 2 Features (NEW)
+
+Three new features for enhanced security and durability:
+
+### Ed25519 Cryptographic Signing
+
+Sign audit records with Ed25519 for non-repudiation:
+
+```python
+from governance import generate_signing_keypair, sign_data, verify_signature
+
+# Generate keypair for a session
+keypair = generate_signing_keypair()
+print(f"Key ID: {keypair['key_id']}")
+
+# Sign audit record
+import json
+record = {"tool": "Bash", "target": "ls", "status": "success"}
+data = json.dumps(record)
+signature = sign_data(data, keypair['private_key_hex'])
+
+# Verify signature
+is_valid = verify_signature(data, signature, keypair['public_key_hex'])
+print(f"Valid: {is_valid}")  # True
+```
+
+### Persistent Rate Limiting
+
+SQLite-backed rate limits that survive process restarts:
+
+```python
+from governance import PersistentRateLimiter
+
+# Initialize with storage path
+limiter = PersistentRateLimiter("~/.web4")
+
+# Check rate limit (5 actions per minute)
+result = limiter.check("ratelimit:bash:tool", max_count=5, window_ms=60000)
+if result.allowed:
+    # Action permitted
+    limiter.record("ratelimit:bash:tool")
+
+# Check if persistence is active
+print(f"Persistent: {limiter.persistent}")  # True if SQLite available
+```
+
+### Witness Persistence
+
+Policy witnessing relationships now persist to JSONL:
+
+```python
+from governance import PolicyRegistry
+
+registry = PolicyRegistry("~/.web4")
+
+# Witness records are automatically persisted to ~/.web4/witnesses.jsonl
+registry.witness_session(entity.entity_id, session_id)
+registry.witness_decision(entity.entity_id, session_id, "Read", "allow", success=True)
+
+# Query witnesses
+witnesses = registry.get_witnessed_by(entity.entity_id)
+witnessed = registry.get_has_witnessed(f"session:{session_id}")
+```
+
+## Tier 3 Features (NEW)
+
+Advanced pattern matching, multi-target extraction, and temporal constraints:
+
+### Multi-Target Extraction
+
+Extract all file paths and targets from tool parameters:
+
+```python
+from governance import extract_targets, extract_target, is_credential_target
+
+# Extract primary target
+target = extract_target("Bash", {"command": "cat /etc/passwd"})
+# Returns: "cat /etc/passwd"
+
+# Extract all targets from multi-file operations
+targets = extract_targets("Bash", {"command": "rm -rf /tmp/a /tmp/b ~/cache"})
+# Returns: ["/tmp/a", "/tmp/b", "~/cache"]
+
+# Check if target is a credential file
+if is_credential_target("/home/user/.aws/credentials"):
+    print("Credential file detected!")
+
+# Classify tool with target context
+from governance import classify_tool_with_target
+category = classify_tool_with_target("Read", "/app/.env")
+# Returns: "credential_access" (upgraded from "file_read")
+```
+
+### Pattern Matching
+
+Glob and regex pattern matching for policy rules:
+
+```python
+from governance import matches_target, glob_to_regex, validate_regex_pattern
+
+# Glob pattern matching
+if matches_target("/path/to/.env.local", ["**/.env*"], use_regex=False):
+    print("Matches credential pattern!")
+
+# Regex pattern matching
+if matches_target("rm -rf /", [r"rm\s+-"], use_regex=True):
+    print("Destructive command detected!")
+
+# Validate regex patterns for ReDoS vulnerabilities
+valid, reason = validate_regex_pattern(r"(a+)+$")
+if not valid:
+    print(f"Unsafe pattern: {reason}")
+```
+
+### Temporal Constraints (TimeWindow)
+
+Time-based policy rules that only apply during specific windows:
+
+```python
+from governance import TimeWindow, matches_time_window
+
+# Define business hours (9am-5pm, Monday-Friday, US Eastern)
+window = TimeWindow(
+    allowed_hours=(9, 17),
+    allowed_days=[1, 2, 3, 4, 5],  # 0=Sun, 1=Mon, ... 6=Sat
+    timezone="America/New_York"
+)
+
+# Check if current time is within the window
+if matches_time_window(window):
+    print("Within business hours")
+
+# Overnight windows are supported (e.g., 10pm-6am)
+overnight = TimeWindow(allowed_hours=(22, 6))  # 22:00 to 06:00
+```
+
+**Use Cases:**
+- Restrict dangerous operations to business hours only
+- Allow maintenance windows during off-peak times
+- Enforce compliance with operational schedules
+
+## Tier 4 Features (NEW)
+
+Real-time monitoring endpoint for external clients:
+
+### Event Stream
+
+JSONL-based event stream that external tools can consume for monitoring, alerting, and analytics.
+
+**Stream Location**: `~/.web4/events.jsonl`
+
+```python
+from governance import EventStream, EventType, Severity
+
+# Initialize stream
+stream = EventStream("~/.web4")
+
+# Emit events
+stream.emit(
+    event_type=EventType.POLICY_DECISION,
+    severity=Severity.ALERT,
+    session_id="sess-123",
+    tool="Bash",
+    target="rm -rf /tmp/test",
+    decision="deny",
+    reason="Destructive command blocked"
+)
+
+# Convenience methods
+stream.policy_decision(
+    session_id="sess-123",
+    tool="Read",
+    target="/app/.env",
+    decision="deny",
+    reason="Credential file access denied"
+)
+```
+
+**Consuming the stream:**
+```bash
+# Real-time tail
+tail -f ~/.web4/events.jsonl | jq .
+
+# Filter alerts only
+tail -f ~/.web4/events.jsonl | jq -c 'select(.severity == "alert")'
+
+# Filter by event type
+grep '"type":"policy_decision"' ~/.web4/events.jsonl | jq .
+```
+
+**Event Types:**
+- `session_start`, `session_end` - Session lifecycle
+- `tool_call`, `tool_result` - Tool execution
+- `policy_decision`, `policy_violation` - Policy enforcement
+- `rate_limit_exceeded` - Rate limiting
+- `trust_update` - Trust changes
+- `agent_spawn`, `agent_complete` - Agent lifecycle
+- `audit_alert` - High-priority audit events
+
+**Severity Levels:** `debug`, `info`, `warn`, `alert`, `error`
+
+For complete API documentation, see **[EVENT_STREAM_API.md](./EVENT_STREAM_API.md)**.
+
+## Installation
+
+### Option 1: Plugin Marketplace (Recommended)
+
+```
+/plugin install web4-governance
+```
+
+### Option 2: Manual Setup
+
+For standalone installation or development:
+
+```bash
+# Run the deployment script
+./deploy.sh
+
+# Then add hooks to your project's .claude/settings.local.json
+# (The script will display the configuration)
+```
+
+### First Run Setup
+
+The plugin creates `~/.web4/` on first session:
+
+```bash
+~/.web4/
+├── ledger.db                 # SQLite database (unified storage)
+├── preferences.json          # Your settings
+├── sessions/                 # Session state files
+├── audit/                    # Audit records (JSONL)
+├── r6/                       # R6 workflow logs
+├── heartbeat/                # Timing coherence ledgers
+└── governance/
+    ├── roles/                # Per-agent trust tensors
+    ├── references/           # Persistent learned context
+    └── sessions/             # Governed session state
+```
+
+The SQLite ledger uses WAL mode for concurrent access, allowing multiple
+parallel sessions to write simultaneously without conflicts.
+
+## Agent Governance
+
+### How It Works
+
+```
+Agent Spawn (Task tool)     Agent Complete
+        │                          │
+        ▼                          ▼
+┌───────────────┐          ┌───────────────┐
+│ on_agent_spawn│          │on_agent_complete
+│ - Load trust  │          │ - Update trust │
+│ - Load refs   │          │ - Record outcome
+│ - Check caps  │          └───────────────┘
+└───────────────┘
+        │
+        ▼
+┌───────────────────────────────────────┐
+│           Agent Runs                   │
+│  (with prior context injected)        │
+└───────────────────────────────────────┘
+```
+
+### Trust Accumulation
+
+Each agent role (e.g., `code-reviewer`, `test-generator`) accumulates trust independently:
+
+**T3 Trust Tensor (6 dimensions):**
+| Dimension | What It Measures |
+|-----------|------------------|
+| competence | Can they do it? |
+| reliability | Will they do it consistently? |
+| consistency | Same quality over time? |
+| witnesses | Corroborated by others? |
+| lineage | Track record length |
+| alignment | Values match context? |
+
+**Trust Updates:**
+- Success: +5% (diminishing returns near 1.0)
+- Failure: -10% (asymmetric - trust is hard to earn, easy to lose)
+
+### Persistent References
+
+Agents accumulate learned patterns:
+
+```python
+# After code review
+gov.extract_reference(
+    role_id="code-reviewer",
+    content="Pattern: Always check null before array access",
+    source="review of auth.py",
+    ref_type="pattern"
+)
+```
+
+On next invocation, the agent receives prior context automatically.
+
+### Capability Derivation
+
+Trust level determines capabilities:
+
+| Trust Level | can_write | can_execute | can_delegate | max_atp |
+|-------------|-----------|-------------|--------------|---------|
+| < 0.3       | ❌        | ❌          | ❌           | 37      |
+| 0.3-0.4     | ✅        | ❌          | ❌           | 46      |
+| 0.4-0.6     | ✅        | ✅          | ❌           | 64      |
+| 0.6+        | ✅        | ✅          | ✅           | 82+     |
+
+## R6 Workflow
+
+Every tool call gets an R6 record:
+
+```
+R6 = Rules + Role + Request + Reference + Resource → Result
+```
+
+| Component | What It Captures |
+|-----------|------------------|
+| **Rules** | Preferences and constraints |
+| **Role** | Session identity, action index, active agent |
+| **Request** | Tool name, category, target |
+| **Reference** | Chain position, previous R6 |
+| **Resource** | ATP cost |
+| **Result** | Status, output hash, trust update |
+
+## Heartbeat Coherence
+
+The plugin tracks timing between tool calls:
+
+- **on_time**: Within expected interval (good)
+- **early**: Faster than expected (slight penalty)
+- **late**: Slower but acceptable
+- **gap**: Long pause detected
+
+Coherence score (0.0-1.0) indicates session health and can modulate trust application.
+
+### Heartbeat Tracking
+
+Every tool call records a timing heartbeat:
+
+```json
+{
+  "sequence": 47,
+  "timestamp": "2026-01-24T06:30:00Z",
+  "status": "on_time",
+  "delta_seconds": 45.2,
+  "tool_name": "Edit",
+  "entry_hash": "a1b2c3d4..."
+}
+```
+
+**Timing status:**
+- `on_time` - Normal interval (30-90 seconds)
+- `early` - Faster than expected
+- `late` - Slower than expected
+- `gap` - Long pause (>3 minutes)
+
+**Timing coherence** score (0.0-1.0) indicates session regularity. Irregular patterns may indicate interruptions or context switches.
+
+## Commands
+
+| Command | Description |
+|---------|-------------|
+| `/audit` | Show session audit summary |
+| `/audit last 10` | Show last 10 actions |
+| `/audit verify` | Verify chain integrity |
+| `/audit export` | Export audit log |
+
+## Configuration
+
+Create `~/.web4/preferences.json`:
+
+```json
+{
+  "audit_level": "standard",
+  "show_r6_status": true,
+  "action_budget": null
+}
+```
+
+**audit_level**:
+- `minimal` - Just record, no output
+- `standard` - Session start message
+- `verbose` - Show each R6 request with coherence indicator
+
+## Testing
+
+```bash
+# Test heartbeat system
+python3 test_heartbeat.py
+
+# Test agent governance flow
+python3 test_agent_flow.py
+
+# Test entity trust and witnessing
+python3 test_entity_trust.py
+
+# Test Tier 1.5 features (presets, rate limiting, audit query, reporter)
+python3 -m pytest test_tier1_5.py -v
+```
+
+Run all tests:
+```bash
+python3 -m pytest test_*.py -v
+# 50 tests passing
+```
+
+## Governance Module
+
+The plugin includes a Python governance module (`governance/`):
+
+```python
+from governance import Ledger, SoftLCT, SessionManager, AgentGovernance
+
+# Start a session with automatic numbering
+sm = SessionManager()
+session = sm.start_session(project='my-project', atp_budget=100)
+print(f"Session #{session['session_number']}")
+
+# Record actions
+sm.record_action('Edit', target='src/main.py', status='success')
+
+# Agent governance
+gov = AgentGovernance()
+ctx = gov.on_agent_spawn(session_id, "code-reviewer")
+result = gov.on_agent_complete(session_id, "code-reviewer", success=True)
+
+# Get session summary
+print(sm.get_session_summary())
+```
+
+**ATP Accounting**: Each session has an action budget (default 100). Actions consume ATP, enabling cost tracking.
+
+## Files
+
+```
+~/.web4/
+├── ledger.db            # SQLite database (primary storage)
+│   ├── identities       # Soft LCT tokens
+│   ├── sessions         # Session tracking, ATP accounting
+│   ├── session_sequence # Atomic session numbering per project
+│   ├── heartbeats       # Timing coherence records
+│   ├── audit_trail      # Tool use records
+│   └── work_products    # Files, commits registered
+├── preferences.json     # User preferences
+├── sessions/            # Session state (JSON)
+├── audit/               # Audit records (JSONL)
+├── r6/                  # R6 request logs
+├── heartbeat/           # Timing coherence ledgers
+└── governance/
+    ├── roles/           # Trust tensors per agent
+    └── references/      # Learned context per agent
+```
+
+The SQLite ledger provides:
+- **Unified storage** - All data in one file
+- **Concurrent access** - WAL mode for parallel sessions
+- **Atomic operations** - No duplicate session numbers
+- **Cross-table queries** - Join heartbeat + audit data
+
+## Web4 Ecosystem
+
+This plugin implements Web4 governance concepts:
+
+| Concept | This Plugin | Full Web4 |
+|---------|-------------|-----------|
+| Identity | Soft LCT (software) | LCT (hardware-bound) |
+| Workflow | R6 framework | R6 + Policy enforcement |
+| Audit | SQLite + hash-linked chain | Distributed ledger |
+| Timing | Heartbeat coherence | Grounding lifecycle |
+| Trust | T3/V3 tensors per role | Full tensor calculus |
+| Agent | Role trust + references | MRH + Witnessing |
+
+For enterprise features (hardware binding, TPM attestation, cross-machine verification), contact dp@metalinxx.io.
+
+## Contributing
+
+Contributions welcome! This plugin is MIT licensed.
+
+Areas for contribution:
+- Additional audit visualizations
+- R6 analytics and insights
+- Trust visualization
+- Reference search improvements
+- Cross-session analytics
+
+## License
+
+MIT License - see [LICENSE](LICENSE)
+
+## Links
+
+- [Web4 Specification](https://github.com/dp-web4/web4)
+- [R6 Framework Spec](https://github.com/dp-web4/web4/blob/main/web4-standard/core-spec/r6-framework.md)
+- [Trust Tensors Spec](https://github.com/dp-web4/web4/blob/main/web4-standard/core-spec/t3-v3-tensors.md)
+- Enterprise inquiries: dp@metalinxx.io
