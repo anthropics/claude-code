@@ -1,0 +1,9 @@
+{
+  "name": "dream-command",
+  "description": "Manual trigger for memory consolidation — the /dream command referenced in Claude Code's /memory UI",
+  "version": "1.0.0",
+  "author": {
+    "name": "Anthropic",
+    "email": "support@anthropic.com"
+  }
+}
