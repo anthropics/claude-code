@@ -120,9 +120,12 @@ for event in $(jq -r 'keys[]' "$HOOKS_FILE"); do
           ((error_count++))
         fi
 
-        # Check if prompt-based hooks are used on supported events
-        if [ "$event" != "Stop" ] && [ "$event" != "SubagentStop" ] && [ "$event" != "UserPromptSubmit" ] && [ "$event" != "PreToolUse" ]; then
-          echo "⚠️  $event[$i].hooks[$j]: Prompt hooks may not be fully supported on $event (best on Stop, SubagentStop, UserPromptSubmit, PreToolUse)"
+        # Surface the most common prompt-hook caveats early.
+        if [ "$event" = "Stop" ]; then
+          echo "⚠️  $event[$i].hooks[$j]: Prompt Stop hooks are supported, but command hooks are usually more predictable in practice. Test carefully before shipping."
+          ((warning_count++))
+        elif [ "$event" = "UserPromptSubmit" ]; then
+          echo "⚠️  $event[$i].hooks[$j]: Prompt UserPromptSubmit hooks are best for simple validation/blocking. Use a command hook if you need additionalContext."
           ((warning_count++))
         fi
       fi

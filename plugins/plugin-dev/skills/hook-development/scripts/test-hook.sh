@@ -56,7 +56,7 @@ EOF
 }
 EOF
       ;;
-    Stop|SubagentStop)
+    Stop)
       cat <<'EOF'
 {
   "session_id": "test-session",
@@ -64,7 +64,24 @@ EOF
   "cwd": "/tmp/test-project",
   "permission_mode": "ask",
   "hook_event_name": "Stop",
-  "reason": "Task appears complete"
+  "stop_hook_active": false,
+  "last_assistant_message": "Task appears complete"
+}
+EOF
+      ;;
+    SubagentStop)
+      cat <<'EOF'
+{
+  "session_id": "test-session",
+  "transcript_path": "/tmp/transcript.txt",
+  "cwd": "/tmp/test-project",
+  "permission_mode": "ask",
+  "hook_event_name": "SubagentStop",
+  "stop_hook_active": false,
+  "agent_id": "agent-test",
+  "agent_type": "Explore",
+  "agent_transcript_path": "/tmp/test-project/subagents/agent-test.jsonl",
+  "last_assistant_message": "Subagent finished its analysis"
 }
 EOF
       ;;
@@ -76,7 +93,7 @@ EOF
   "cwd": "/tmp/test-project",
   "permission_mode": "ask",
   "hook_event_name": "UserPromptSubmit",
-  "user_prompt": "Test user prompt"
+  "prompt": "Test user prompt"
 }
 EOF
       ;;

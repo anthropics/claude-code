@@ -1,6 +1,6 @@
 ---
 name: Hook Development
-description: This skill should be used when the user asks to "create a hook", "add a PreToolUse/PostToolUse/Stop hook", "validate tool use", "implement prompt-based hooks", "use ${CLAUDE_PLUGIN_ROOT}", "set up event-driven automation", "block dangerous commands", or mentions hook events (PreToolUse, PostToolUse, Stop, SubagentStop, SessionStart, SessionEnd, UserPromptSubmit, PreCompact, Notification). Provides comprehensive guidance for creating and implementing Claude Code plugin hooks with focus on advanced prompt-based hooks API.
+description: This skill should be used when the user asks to "create a hook", "add a PreToolUse/PostToolUse/Stop hook", "validate tool use", "implement prompt-based hooks", "use ${CLAUDE_PLUGIN_ROOT}", "set up event-driven automation", "block dangerous commands", or mentions hook events (PreToolUse, PostToolUse, Stop, SubagentStop, SessionStart, SessionEnd, UserPromptSubmit, PreCompact, Notification). Provides comprehensive guidance for creating and implementing Claude Code plugin hooks with command-first recommendations and event-specific prompt hook caveats.
 version: 0.1.0
 ---
 
@@ -17,11 +17,16 @@ Hooks are event-driven automation scripts that execute in response to Claude Cod
 - Load project context (SessionStart)
 - Automate workflows across the development lifecycle
 
+**Reliability-first rule of thumb:**
+- Default to `type: "command"` for shared plugins and production workflows
+- Use `type: "prompt"` selectively for lightweight review or allow/block decisions
+- Test `Stop` and `UserPromptSubmit` hooks in both interactive sessions and `claude -p` before depending on them in automation
+
 ## Hook Types
 
-### Prompt-Based Hooks (Recommended)
+### Prompt-Based Hooks (Use Selectively)
 
-Use LLM-driven decision making for context-aware validation:
+Use prompt hooks when you want Claude to make a lightweight judgment in natural language:
 
 ```json
 {
@@ -31,17 +36,22 @@ Use LLM-driven decision making for context-aware validation:
 }
 ```
 
-**Supported events:** Stop, SubagentStop, UserPromptSubmit, PreToolUse
+**Best fit events:** PreToolUse, SubagentStop, simple UserPromptSubmit validation
 
-**Benefits:**
+**Good for:**
 - Context-aware decisions based on natural language reasoning
 - Flexible evaluation logic without bash scripting
 - Better edge case handling
-- Easier to maintain and extend
+- Quick policy checks that do not need richer structured output
 
-### Command Hooks
+**Caveats:**
+- `Stop` prompt hooks are supported, but command hooks are usually more predictable in practice
+- `UserPromptSubmit` prompt hooks are best for validation/blocking; use command hooks or plain stdout if you need to add context
+- Behavior can differ between interactive sessions and `claude -p`, so test automation scenarios explicitly
 
-Execute bash commands for deterministic checks:
+### Command Hooks (Recommended Default)
+
+Execute shell scripts or binaries for deterministic checks and richer structured output:
 
 ```json
 {
@@ -53,9 +63,11 @@ Execute bash commands for deterministic checks:
 
 **Use for:**
 - Fast deterministic validations
+- Stop hooks and completion gates
 - File system operations
+- Context injection via `additionalContext`
 - External tool integrations
-- Performance-critical checks
+- CI, shared plugins, and automation-heavy workflows
 
 ## Hook Configuration Formats
 
@@ -182,7 +194,7 @@ Execute after tool completes. Use to react to results, provide feedback, or log.
 
 Execute when main agent considers stopping. Use to validate completeness.
 
-**Example:**
+**Recommended example (`type: "command"`):**
 ```json
 {
   "Stop": [
@@ -190,8 +202,8 @@ Execute when main agent considers stopping. Use to validate completeness.
       "matcher": "*",
       "hooks": [
         {
-          "type": "prompt",
-          "prompt": "Verify task completion: tests run, build succeeded, questions answered. Return 'approve' to stop or 'block' with reason to continue."
+          "type": "command",
+          "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/check-complete.sh"
         }
       ]
     }
@@ -208,6 +220,11 @@ Execute when main agent considers stopping. Use to validate completeness.
 }
 ```
 
+**Notes:**
+- Use `decision: "approve"` or `decision: "block"` for Stop hooks. `allow` is not a valid Stop decision.
+- Command hooks are the safest default for Stop, especially in shared plugins or `claude -p` automation.
+- Prompt Stop hooks can work, but treat them as something to test carefully rather than the default recommendation.
+
 ### SubagentStop
 
 Execute when subagent considers stopping. Use to ensure subagent completed its task.
@@ -216,9 +233,9 @@ Similar to Stop hook, but for subagents.
 
 ### UserPromptSubmit
 
-Execute when user submits a prompt. Use to add context, validate, or block prompts.
+Execute when user submits a prompt. Use to validate prompts, block unsafe requests, or add context before Claude answers.
 
-**Example:**
+**Recommended example for context injection:**
 ```json
 {
   "UserPromptSubmit": [
@@ -226,14 +243,30 @@ Execute when user submits a prompt. Use to add context, validate, or block promp
       "matcher": "*",
       "hooks": [
         {
-          "type": "prompt",
-          "prompt": "Check if prompt requires security guidance. If discussing auth, permissions, or API security, return relevant warnings."
+          "type": "command",
+          "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/augment-prompt.sh"
         }
       ]
     }
   ]
 }
 ```
+
+**Structured JSON output for blocking + context:**
+```json
+{
+  "decision": "block",
+  "reason": "Explanation for decision",
+  "hookSpecificOutput": {
+    "hookEventName": "UserPromptSubmit",
+    "additionalContext": "Remember: run tests before committing."
+  }
+}
+```
+
+**Notes:**
+- Plain stdout is enough when you only want to append context and do not need to block the prompt.
+- Prompt hooks are a reasonable fit for simple allow/block review, but command hooks give you the most control when you need `additionalContext`.
 
 ### SessionStart
 
@@ -314,10 +347,11 @@ All hooks receive JSON via stdin with common fields:
 **Event-specific fields:**
 
 - **PreToolUse/PostToolUse:** `tool_name`, `tool_input`, `tool_result`
-- **UserPromptSubmit:** `user_prompt`
-- **Stop/SubagentStop:** `reason`
+- **UserPromptSubmit:** `prompt`
+- **Stop:** `stop_hook_active`, `last_assistant_message`
+- **SubagentStop:** `stop_hook_active`, `agent_id`, `agent_type`, `agent_transcript_path`, `last_assistant_message`
 
-Access fields in prompts using `$TOOL_INPUT`, `$TOOL_RESULT`, `$USER_PROMPT`, etc.
+When building new hooks, inspect the actual stdin payload with `jq .` instead of relying on older examples from memory.
 
 ## Environment Variables
 
@@ -359,8 +393,8 @@ In plugins, define hooks in `hooks/hooks.json`:
       "matcher": "*",
       "hooks": [
         {
-          "type": "prompt",
-          "prompt": "Verify task completion"
+          "type": "command",
+          "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/check-complete.sh"
         }
       ]
     }
@@ -629,36 +663,36 @@ echo "$output" | jq .
 
 ## Quick Reference
 
-### Hook Events Summary
+### Event Capability Matrix
 
-| Event | When | Use For |
-|-------|------|---------|
-| PreToolUse | Before tool | Validation, modification |
-| PostToolUse | After tool | Feedback, logging |
-| UserPromptSubmit | User input | Context, validation |
-| Stop | Agent stopping | Completeness check |
-| SubagentStop | Subagent done | Task validation |
-| SessionStart | Session begins | Context loading |
-| SessionEnd | Session ends | Cleanup, logging |
-| PreCompact | Before compact | Preserve context |
-| Notification | User notified | Logging, reactions |
+| Event | Recommended default | Prompt hook notes | Command hook notes |
+|-------|----------------------|-------------------|--------------------|
+| PreToolUse | Either | Good for lightweight allow/deny review | Best when you need deterministic checks, `updatedInput`, or richer policy logic |
+| UserPromptSubmit | Command | Fine for simple validation/blocking | Best when you need `additionalContext` or consistent automation behavior |
+| Stop | Command | Supported, but test carefully before relying on it | Most predictable choice for completion gates and `claude -p` workflows |
+| SubagentStop | Either | Useful for lightweight completion review | Prefer for deterministic checks or transcript processing |
+| SessionStart | Command | Not usually the first choice | Best for environment setup and adding startup context |
 
 ### Best Practices
 
 **DO:**
-- ✅ Use prompt-based hooks for complex logic
+- ✅ Default to command hooks when reliability matters
+- ✅ Use prompt hooks selectively for lightweight review and allow/block flows
 - ✅ Use ${CLAUDE_PLUGIN_ROOT} for portability
 - ✅ Validate all inputs in command hooks
 - ✅ Quote all bash variables
 - ✅ Set appropriate timeouts
 - ✅ Return structured JSON output
 - ✅ Test hooks thoroughly
+- ✅ Test `Stop` and `UserPromptSubmit` in both interactive mode and `claude -p`
 
 **DON'T:**
 - ❌ Use hardcoded paths
 - ❌ Trust user input without validation
 - ❌ Create long-running hooks
 - ❌ Rely on hook execution order
+- ❌ Assume prompt hooks can inject `additionalContext` on `UserPromptSubmit`
+- ❌ Treat prompt hooks as the default choice for `Stop`
 - ❌ Modify global state unpredictably
 - ❌ Log sensitive information
 
@@ -700,7 +734,7 @@ Development tools in `scripts/`:
 To implement hooks in a plugin:
 
 1. Identify events to hook into (PreToolUse, Stop, SessionStart, etc.)
-2. Decide between prompt-based (flexible) or command (deterministic) hooks
+2. Default to command hooks, then opt into prompt hooks only when they match the event semantics you need
 3. Write hook configuration in `hooks/hooks.json`
 4. For command hooks, create hook scripts
 5. Use ${CLAUDE_PLUGIN_ROOT} for all file references
@@ -709,4 +743,4 @@ To implement hooks in a plugin:
 8. Test in Claude Code with `claude --debug`
 9. Document hooks in plugin README
 
-Focus on prompt-based hooks for most use cases. Reserve command hooks for performance-critical or deterministic checks.
+Treat command hooks as the baseline. Reach for prompt hooks when you want a lightweight model judgment and you have verified the exact event behavior you need.

@@ -202,7 +202,7 @@ Guide the user through creating a complete, high-quality Claude Code plugin from
 1. Load hook-development skill using Skill tool
 2. For each hook:
    - Create hooks/hooks.json with hook configuration
-   - Prefer prompt-based hooks for complex logic
+   - Default to command hooks for production reliability; use prompt hooks selectively when the event semantics and output limits fit
    - Use ${CLAUDE_PLUGIN_ROOT} for portability
    - Create hook scripts if needed (in examples/ not scripts/)
    - Test with validate-hook-schema.sh and test-hook.sh utilities

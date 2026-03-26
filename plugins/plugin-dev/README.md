@@ -58,8 +58,8 @@ Use this workflow for structured, high-quality plugin development from concept t
 **Trigger phrases:** "create a hook", "add a PreToolUse hook", "validate tool use", "implement prompt-based hooks", "${CLAUDE_PLUGIN_ROOT}", "block dangerous commands"
 
 **What it covers:**
-- Prompt-based hooks (recommended) with LLM decision-making
-- Command hooks for deterministic validation
+- Command-first hook guidance for reliable production behavior
+- Prompt hook caveats and where they are a good fit
 - All hook events: PreToolUse, PostToolUse, Stop, SubagentStop, SessionStart, SessionEnd, UserPromptSubmit, PreCompact, Notification
 - Hook output formats and JSON schemas
 - Security best practices and input validation
