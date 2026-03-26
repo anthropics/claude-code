@@ -1,5 +1,5 @@
 ---
-allowed-tools: Read(*), Write(*), Edit(*), Glob(~/.claude/*/memory/*), Bash(ls:*)
+allowed-tools: Read(*), Write(*), Edit(*), Glob(~/.claude/**/memory/*)
 description: Consolidate and organize memory files
 ---
 
@@ -7,7 +7,7 @@ You are performing a dream — a reflective pass over your memory files. Synthes
 
 ## Instructions
 
-1. **Read the memory index** — find and read the `MEMORY.md` file in your current project's auto-memory directory (`~/.claude/projects/*/memory/MEMORY.md`). This is your starting point.
+1. **Read the memory index** — find and read the `MEMORY.md` file in your current project's auto-memory directory (`~/.claude/projects/*/memory/MEMORY.md`). This is your starting point. If no `MEMORY.md` exists yet, create the memory directory and an initial `MEMORY.md` index file.
 
 2. **Review recent session context** — reflect on key things learned in this conversation and recent interactions. Focus on:
    - User preferences and feedback corrections
