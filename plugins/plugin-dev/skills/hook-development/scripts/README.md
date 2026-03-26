@@ -142,7 +142,8 @@ Checks hook scripts for common issues and best practices violations.
 Check:
 - Script has shebang (`#!/bin/bash`)
 - Script is executable (`chmod +x`)
-- Path in hooks.json is correct (use `${CLAUDE_PLUGIN_ROOT}`)
+- Path in hooks.json is correct (use `bash "${CLAUDE_PLUGIN_ROOT}/path/to/hook.sh"` for shell hooks)
+- Quote `${CLAUDE_PLUGIN_ROOT}` or `${CLAUDE_PROJECT_DIR}` expansions so paths with spaces still work
 
 ### Hook times out
 

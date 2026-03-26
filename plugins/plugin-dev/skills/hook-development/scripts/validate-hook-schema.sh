@@ -14,6 +14,8 @@ if [ $# -eq 0 ]; then
   echo "  - Hook type validity"
   echo "  - Matcher patterns"
   echo "  - Timeout ranges"
+  echo "  - Portable path quoting for CLAUDE_PLUGIN_ROOT / CLAUDE_PROJECT_DIR"
+  echo "  - Explicit interpreters for shell-script commands"
   exit 1
 fi
 
@@ -23,6 +25,24 @@ if [ ! -f "$HOOKS_FILE" ]; then
   echo "❌ Error: File not found: $HOOKS_FILE"
   exit 1
 fi
+
+command_references_path_var() {
+  local command="$1"
+  local var_name="$2"
+  [[ "$command" == *"\${$var_name}"* ]]
+}
+
+command_quotes_path_var() {
+  local command="$1"
+  local var_name="$2"
+  printf '%s\n' "$command" | grep -Eq "\"[^\"]*\\$\\{$var_name\\}[^\"]*\""
+}
+
+command_uses_shell_script_without_interpreter() {
+  local command="$1"
+  printf '%s\n' "$command" | grep -Eq '\.sh([[:space:]]|$)' &&
+    ! printf '%s\n' "$command" | grep -Eq '(^|[[:space:]])(bash|sh|zsh)([[:space:]]|$)'
+}
 
 echo "🔍 Validating hooks configuration: $HOOKS_FILE"
 echo ""
@@ -110,6 +130,19 @@ for event in $(jq -r 'keys[]' "$HOOKS_FILE"); do
           # Check for hardcoded paths
           if [[ "$command" == /* ]] && [[ "$command" != *'${CLAUDE_PLUGIN_ROOT}'* ]]; then
             echo "⚠️  $event[$i].hooks[$j]: Hardcoded absolute path detected. Consider using \${CLAUDE_PLUGIN_ROOT}"
+            ((warning_count++))
+          fi
+
+          for path_var in CLAUDE_PLUGIN_ROOT CLAUDE_PROJECT_DIR; do
+            if command_references_path_var "$command" "$path_var" &&
+              ! command_quotes_path_var "$command" "$path_var"; then
+              echo "⚠️  $event[$i].hooks[$j]: Wrap \${$path_var} paths in double quotes to handle spaces safely"
+              ((warning_count++))
+            fi
+          done
+
+          if command_uses_shell_script_without_interpreter "$command"; then
+            echo "⚠️  $event[$i].hooks[$j]: Invoke .sh hooks via bash/sh instead of relying on executable permissions"
             ((warning_count++))
           fi
         fi
