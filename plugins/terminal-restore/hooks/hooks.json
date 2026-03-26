@@ -1,0 +1,15 @@
+{
+  "description": "Restores terminal state on exit by disabling the kitty keyboard protocol that Claude Code leaves active",
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/stop.sh"
+          }
+        ]
+      }
+    ]
+  }
+}

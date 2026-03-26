@@ -1,0 +1,8 @@
+{
+  "name": "terminal-restore",
+  "description": "Restores terminal state after Claude Code exits, fixing broken Ctrl-C/Ctrl-D in kitty keyboard protocol terminals (Ghostty, Kitty, WezTerm)",
+  "version": "1.0.0",
+  "author": {
+    "name": "bsene"
+  }
+}
