@@ -75,7 +75,8 @@ class RuleEngine:
                         "hookEventName": hook_event,
                         "permissionDecision": "deny",
                         "permissionDecisionReason": combined_message
-                    },
+                        },
+                    "systemMessage": combined_message
                 }
             else:
                 # For other events, just show message
