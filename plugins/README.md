@@ -60,6 +60,90 @@ plugin-name/
 └── README.md                # Plugin documentation
 ```
 
+## Publishing Plugins as npm Packages
+
+Claude Code plugins can be distributed through npm registries in addition to git repositories and marketplace bundles. For npm distribution, publish the plugin package root as a valid Claude Code plugin directory.
+
+### 1. Keep the package root as a valid plugin
+
+When Claude Code installs a plugin from npm, it needs the unpacked package contents to contain the same files you would keep in a local plugin checkout:
+
+- `.claude-plugin/plugin.json`
+- `commands/`, `agents/`, `skills/`, and `hooks/` as needed
+- `.mcp.json` if the plugin configures MCP servers
+- `README.md` and any supporting assets you want to ship
+
+### 2. Add a minimal `package.json`
+
+There are no extra Claude Code-specific npm fields required. A standard package manifest plus the plugin files is enough.
+
+```json
+{
+  "name": "@your-scope/claude-code-plugin-example",
+  "version": "1.0.0",
+  "description": "Example Claude Code plugin distributed through npm",
+  "license": "MIT",
+  "files": [
+    ".claude-plugin",
+    "commands",
+    "agents",
+    "skills",
+    "hooks",
+    ".mcp.json",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}
+```
+
+Use the `files` list to make sure the published tarball includes the plugin manifest and any optional directories your plugin needs. You only need to include the directories that exist in your plugin.
+
+### 3. Publish to npm or a private registry
+
+Publish the package with your normal npm workflow:
+
+```bash
+npm publish
+```
+
+For a private registry, point npm at the registry before publishing, either with `publishConfig.registry` in `package.json` or via project/user `.npmrc` configuration.
+
+Example:
+
+```json
+{
+  "publishConfig": {
+    "registry": "https://registry.example.com"
+  }
+}
+```
+
+This works for private registries such as AWS CodeArtifact, Artifactory, Verdaccio, or other npm-compatible package registries.
+
+### 4. Reference the package from a marketplace
+
+Once published, consumers can install the plugin from a marketplace entry that points at the package name, version, and optional registry:
+
+```json
+{
+  "plugins": [
+    {
+      "name": "example-plugin",
+      "sources": [
+        {
+          "type": "npm",
+          "package": "@your-scope/claude-code-plugin-example",
+          "version": "1.0.0",
+          "registry": "https://registry.example.com"
+        }
+      ]
+    }
+  ]
+}
+```
+
 ## Contributing
 
 When adding new plugins to this directory:
