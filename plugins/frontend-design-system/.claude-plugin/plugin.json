@@ -1,5 +1,9 @@
 {
   "name": "frontend-design-system",
   "version": "1.0.0",
-  "description": "Design-first frontend development: wireframe specs, color theory, and systematic implementation"
+  "description": "Design-first frontend development: wireframe specs, color theory, and systematic implementation",
+  "author": {
+    "name": "Shareef",
+    "email": "shareef@shareefellis.com"
+  }
 }
