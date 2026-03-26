@@ -43,6 +43,20 @@ skill-name/
 
 **Metadata Quality:** The `name` and `description` in YAML frontmatter determine when Claude will use the skill. Be specific about what the skill does and when to use it. Use the third-person (e.g. "This skill should be used when..." instead of "Use this skill when...").
 
+**Optional frontmatter fields:** Skills can also use optional metadata such as `paths` to scope automatic loading to matching files. This is useful for skills that should only trigger in part of a codebase.
+
+```yaml
+---
+name: API Conventions
+description: This skill should be used when the user asks to "update API handlers", "add a new endpoint", or "refactor backend request validation".
+paths:
+  - "src/api/**/*.ts"
+  - "lib/http/**/*.ts"
+---
+```
+
+When `paths` is present, the skill only auto-loads when Claude is working with files that match one or more of the configured glob patterns.
+
 #### Bundled Resources (optional)
 
 ##### Scripts (`scripts/`)
@@ -165,6 +179,9 @@ Also, delete any example files and directories not needed for the skill. Create 
 ---
 name: Skill Name
 description: This skill should be used when the user asks to "specific phrase 1", "specific phrase 2", "specific phrase 3". Include exact phrases users would say that should trigger this skill. Be concrete and specific.
+paths:
+  - "src/path/**/*.ts"
+  - "tests/path/**/*.ts"
 version: 0.1.0
 ---
 ```
@@ -272,6 +289,7 @@ Claude Code automatically discovers skills:
 - Scans `skills/` directory
 - Finds subdirectories containing `SKILL.md`
 - Loads skill metadata (name + description) always
+- Applies `paths` frontmatter, if present, to limit automatic loading to matching files
 - Loads SKILL.md body when skill triggers
 - Loads references/examples when needed
 

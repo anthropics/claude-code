@@ -178,6 +178,7 @@ Use this workflow for structured, high-quality plugin development from concept t
 
 **What it covers:**
 - Skill structure (SKILL.md with YAML frontmatter)
+- Path-scoped skills using `paths` frontmatter (single glob or YAML list)
 - Progressive disclosure principle (metadata → SKILL.md → resources)
 - Strong trigger descriptions with specific phrases
 - Writing style (imperative/infinitive form, third person)
