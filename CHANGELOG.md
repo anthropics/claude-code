@@ -1,5 +1,34 @@
 # Changelog
 
+## 2.1.86
+
+- Added `X-Claude-Code-Session-Id` header to API requests so proxies can aggregate requests by session without parsing the body
+- Added `.jj` and `.sl` to VCS directory exclusion lists so Grep and file autocomplete don't descend into Jujutsu or Sapling metadata
+- Fixed `--resume` failing with "tool_use ids were found without tool_result blocks" on sessions created before v2.1.85
+- Fixed Write/Edit/Read failing on files outside the project root (e.g., `~/.claude/CLAUDE.md`) when conditional skills or rules are configured
+- Fixed unnecessary config disk writes on every skill invocation that could cause performance issues and config corruption on Windows
+- Fixed potential out-of-memory crash when using `/feedback` on very long sessions with large transcript files
+- Fixed `--bare` mode dropping MCP tools in interactive sessions and silently discarding messages enqueued mid-turn
+- Fixed the `c` shortcut copying only ~20 characters of the OAuth login URL instead of the full URL
+- Fixed masked input (e.g., OAuth code paste) leaking the start of the token when wrapping across multiple lines on narrow terminals
+- Fixed official marketplace plugin scripts failing with "Permission denied" on macOS/Linux since v2.1.83
+- Fixed statusline showing another session's model when running multiple Claude Code instances and using `/model` in one of them
+- Fixed scroll not following new messages after wheel scroll or click-to-select at the bottom of a long conversation
+- Fixed `/plugin` uninstall dialog: pressing `n` now correctly uninstalls the plugin while preserving its data directory
+- Fixed a regression where pressing Enter after clicking could leave the transcript blank until the response arrived
+- Fixed `ultrathink` hint lingering after deleting the keyword
+- Fixed memory growth in long sessions from markdown/highlight render caches retaining full content strings
+- Reduced startup event-loop stalls when many claude.ai MCP connectors are configured (macOS keychain cache extended from 5s to 30s)
+- Reduced token overhead when mentioning files with `@` — raw string content no longer JSON-escaped
+- Improved prompt cache hit rate for Bedrock, Vertex, and Foundry users by removing dynamic content from tool descriptions
+- Memory filenames in the "Saved N memories" notice now highlight on hover and open on click
+- Skill descriptions in the `/skills` listing are now capped at 250 characters to reduce context usage
+- Changed `/skills` menu to sort alphabetically for easier scanning
+- Auto mode now shows "unavailable for your plan" when disabled by plan restrictions (was "temporarily unavailable")
+- [VSCode] Fixed extension incorrectly showing "Not responding" during long-running operations
+- [VSCode] Fixed extension defaulting Max plan users to Sonnet after the OAuth token refreshes (8 hours after login)
+- Read tool now uses compact line-number format and deduplicates unchanged re-reads, reducing token usage
+
 ## 2.1.85
 
 - Added `CLAUDE_CODE_MCP_SERVER_NAME` and `CLAUDE_CODE_MCP_SERVER_URL` environment variables to MCP `headersHelper` scripts, allowing one helper to serve multiple servers
