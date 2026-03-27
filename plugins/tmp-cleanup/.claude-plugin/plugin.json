@@ -1,0 +1,5 @@
+{
+  "name": "tmp-cleanup",
+  "version": "0.1.0",
+  "description": "Automatically prunes oversized task .output files from /tmp to prevent unbounded disk usage"
+}
