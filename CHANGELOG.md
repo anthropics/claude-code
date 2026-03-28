@@ -22,7 +22,7 @@
 - Reduced token overhead when mentioning files with `@` — raw string content no longer JSON-escaped
 - Improved prompt cache hit rate for Bedrock, Vertex, and Foundry users by removing dynamic content from tool descriptions
 - Memory filenames in the "Saved N memories" notice now highlight on hover and open on click
-- Skill descriptions in the `/skills` listing are now capped at 250 characters to reduce context usage
+- Skill descriptions in the `/skills` listing are now capped at 250 characters, and the overall listing budget reduced from 2% to 1% of the context window (fallback 16,000 → 8,000 characters). Set `SLASH_COMMAND_TOOL_CHAR_BUDGET` to override if you see excluded skills in `/context`
 - Changed `/skills` menu to sort alphabetically for easier scanning
 - Auto mode now shows "unavailable for your plan" when disabled by plan restrictions (was "temporarily unavailable")
 - [VSCode] Fixed extension incorrectly showing "Not responding" during long-running operations
@@ -65,7 +65,7 @@
 ## 2.1.84
 
 - Added PowerShell tool for Windows as an opt-in preview. Learn more at https://code.claude.com/docs/en/tools-reference#powershell-tool
-- Added `ANTHROPIC_DEFAULT_{OPUS,SONNET,HAIKU}_MODEL_SUPPORTS` env vars to override effort/thinking capability detection for pinned default models for 3p (Bedrock, Vertex, Foundry), and `_MODEL_NAME`/`_DESCRIPTION` to customize the `/model` picker label
+- Added `ANTHROPIC_DEFAULT_{OPUS,SONNET,HAIKU}_MODEL_SUPPORTED_CAPABILITIES` env vars to override effort/thinking capability detection for pinned default models for 3p (Bedrock, Vertex, Foundry), and `_MODEL_NAME`/`_DESCRIPTION` to customize the `/model` picker label
 - Added `CLAUDE_STREAM_IDLE_TIMEOUT_MS` env var to configure the streaming idle watchdog threshold (default 90s)
 - Added `TaskCreated` hook that fires when a task is created via `TaskCreate`
 - Added `WorktreeCreate` hook support for `type: "http"` — return the created worktree path via `hookSpecificOutput.worktreePath` in the response JSON
@@ -83,7 +83,6 @@
 - Fixed up/down arrow keys being unresponsive when a footer item is focused
 - Fixed `Ctrl+U` (kill-to-line-start) being a no-op at line boundaries in multiline input, so repeated `Ctrl+U` now clears across lines
 - Fixed null-unbinding a default chord binding (e.g. `"ctrl+x ctrl+k": null`) still entering chord-wait mode instead of freeing the prefix key
-- Fixed mouse events inserting literal "mouse" text into transcript search input
 - Fixed workflow subagents failing with API 400 when the outer session uses `--json-schema` and the subagent also specifies a schema
 - Fixed missing background color behind certain emoji in user message bubbles on some terminals
 - Fixed the "allow Claude to edit its own settings for this session" permission option not sticking for users with `Edit(.claude)` allow rules
@@ -112,7 +111,6 @@
 - Added `sandbox.failIfUnavailable` setting to exit with an error when sandbox is enabled but cannot start, instead of running unsandboxed
 - Added `disableDeepLinkRegistration` setting to prevent `claude-cli://` protocol handler registration
 - Added `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=1` to strip Anthropic and cloud provider credentials from subprocess environments (Bash tool, hooks, MCP stdio servers)
-- Added transcript search — press `/` in transcript mode (`Ctrl+O`) to search, `n`/`N` to step through matches
 - Added `Ctrl+X Ctrl+E` as an alias for opening the external editor (readline-native binding; `Ctrl+G` still works)
 - Pasted images now insert an `[Image #N]` chip at the cursor so you can reference them positionally in your prompt
 - Agents can now declare `initialPrompt` in frontmatter to auto-submit a first turn
