@@ -92,6 +92,17 @@
       "category": "productivity"
     },
     {
+      "name": "uuddlrlrba",
+      "description": "⬆️⬆️⬇️⬇️⬅️➡️⬅️➡️🅱️🅰️ — Clawd dances. +30 lives.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Mark Pike",
+        "email": "mark@anthropic.com"
+      },
+      "source": "./plugins/uuddlrlrba",
+      "category": "productivity"
+    },
+    {
       "name": "learning-output-style",
       "description": "Interactive learning mode that requests meaningful code contributions at decision points (mimics the unshipped Learning output style)",
       "version": "1.0.0",
