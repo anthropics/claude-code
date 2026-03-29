@@ -223,12 +223,12 @@ def _load_rules_from_dir(
         # If the directory does not exist or is not accessible, skip loading.
         if not directory.is_dir():
             return
-        files = directory.glob(glob_pattern)
+        files = sorted(directory.glob(glob_pattern))
     except (OSError, PermissionError) as e:
         print(f"Warning: Failed to scan rules in {directory}: {e}", file=sys.stderr)
         return
 
-    for file_path in sorted(files):
+    for file_path in files:
         try:
             rule = load_rule_file(str(file_path), scope=scope)
             if not rule:
@@ -298,7 +298,7 @@ def load_rule_file(file_path: str, scope: str = "project") -> Rule | None:
     """Load a single rule file.
 
     Args:
-        file_path: Path to the .local.md rule file.
+        file_path: Path to the rule file (global ``hookify.*.md`` or project-local ``hookify.*.local.md``).
         scope: "project" or "global" — recorded on the returned Rule.
 
     Returns:
