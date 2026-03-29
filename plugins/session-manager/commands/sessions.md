@@ -1,26 +1,24 @@
 ---
-allowed-tools: Bash(ls:*), Bash(stat:*)
+allowed-tools: Bash(pwd:*), Bash(ls:*), Bash(stat:*)
 description: List available Claude Code sessions for the current working directory
 ---
 
-## Context
-
-- Current working directory: !`pwd`
-- Available sessions: !`bash -c 'dir=$(pwd | sed "s|/|-|g" | sed "s|^-||"); session_dir="$HOME/.claude/projects/$dir"; if [ -d "$session_dir" ]; then ls "$session_dir"/*.jsonl 2>/dev/null | while read f; do id=$(basename "$f" .jsonl); modified=$(stat -f "%Sm" -t "%Y-%m-%d %H:%M" "$f" 2>/dev/null || stat --format="%y" "$f" 2>/dev/null | cut -d. -f1); echo "  $id  (last modified: $modified)"; done; else echo "No sessions found for this directory."; fi'`
-
 ## Your task
 
-Display the list of available Claude Code sessions for the current working directory shown above.
+1. Run `pwd` to get the current working directory
+2. Convert the path to the Claude project directory format by replacing all `/` with `-` and removing the leading `-` (e.g. `/Users/foo/myproject` → `Users-foo-myproject`)
+3. Run `ls $HOME/.claude/projects/<encoded-path>/*.jsonl 2>/dev/null` to list session files
+4. For each `.jsonl` file found, run `stat -f "%Sm" -t "%Y-%m-%d %H:%M" <file>` (macOS) to get the last modified time
+5. Display the results in this format:
 
-For each session, show:
-1. The session ID
-2. The last modified time
-
-Then inform the user they can resume any session with:
 ```
-claude --resume <session-id>
+Available Claude Code sessions for <cwd>:
+
+  <session-id>  (last modified: <timestamp>)
+  ...
+
+To resume a session, run:
+  claude --resume <session-id>
 ```
 
-If no sessions are found, let the user know there are no saved sessions for this directory.
-
-Do not use any other tools or do anything beyond displaying this information.
+If no session files are found, tell the user there are no saved sessions for this directory.
