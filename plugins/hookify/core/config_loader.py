@@ -4,10 +4,9 @@
 Loads and parses .claude/hookify.*.local.md files.
 """
 
-import glob
-import os
 import sys
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 
@@ -41,6 +40,7 @@ class Rule:
     action: str = "warn"  # "warn" or "block" (future)
     tool_matcher: str | None = None  # Override tool matching
     message: str = ""  # Message body from markdown
+    scope: str = "project"  # "project" or "global"
 
     @classmethod
     def from_dict(cls, frontmatter: dict[str, Any], message: str) -> "Rule":
@@ -198,52 +198,83 @@ def extract_frontmatter(content: str) -> tuple[dict[str, Any], str]:
     return frontmatter, message
 
 
-def load_rules(event: Optional[str] = None) -> List[Rule]:
-    """Load all hookify rules from .claude directory.
+def _load_rules_from_dir(
+    directory: Path,
+    scope: str,
+    event: str | None,
+    merged: dict,
+) -> None:
+    """Load rules from a directory into a merged dict (name → Rule).
+
+    Rules with the same name overwrite earlier entries, so call global first
+    and project second to let project rules win.
+
+    Args:
+        directory: Directory path to scan for hookify.*.local.md files.
+        scope: "global" or "project" — set on each loaded Rule.
+        event: Optional event filter; rules not matching are skipped.
+        merged: Dict to update in-place.
+
+    """
+    files = directory.glob("hookify.*.md")
+
+    for file_path in files:
+        try:
+            rule = load_rule_file(file_path, scope=scope)
+            if not rule:
+                continue
+
+            # Filter by event if specified
+            if event and rule.event not in ("all", event):
+                continue
+
+            merged[rule.name] = rule
+
+        except (OSError, PermissionError) as e:
+            print(f"Warning: Failed to read {file_path}: {e}", file=sys.stderr)
+        except (ValueError, KeyError, AttributeError, TypeError) as e:
+            print(f"Warning: Failed to parse {file_path}: {e}", file=sys.stderr)
+        except Exception as e:
+            print(
+                f"Warning: Unexpected error loading {file_path} ({type(e).__name__}): {e}",
+                file=sys.stderr,
+            )
+
+
+def load_rules(event: str | None = None) -> list[Rule]:
+    """Load all hookify rules from global (~/.claude) and project (.claude) directories.
+
+    Global rules are loaded first; project rules overlay them by name so that
+    a project rule with the same name as a global rule takes precedence.
+    A project rule with enabled=false suppresses the global rule of the same name.
 
     Args:
         event: Optional event filter ("bash", "file", "stop", etc.)
 
     Returns:
         List of enabled Rule objects matching the event.
+
     """
-    rules = []
+    merged: dict[str, Rule] = {}
 
-    # Find all hookify.*.local.md files
-    pattern = os.path.join('.claude', 'hookify.*.local.md')
-    files = glob.glob(pattern)
+    # Load global rules first (from ~/.claude/)
+    global_dir = Path.home() / ".claude"
+    _load_rules_from_dir(global_dir, scope="global", event=event, merged=merged)
 
-    for file_path in files:
-        try:
-            rule = load_rule_file(file_path)
-            if not rule:
-                continue
+    # Load project rules second (from .claude/ relative to CWD); they overwrite globals by name
+    project_dir = Path(".claude")
+    _load_rules_from_dir(project_dir, scope="project", event=event, merged=merged)
 
-            # Filter by event if specified
-            if event and rule.event != "all" and rule.event != event:
-                continue
-
-            # Only include enabled rules
-            if rule.enabled:
-                rules.append(rule)
-
-        except (OSError, PermissionError) as e:
-            print(f"Warning: Failed to read {file_path}: {e}", file=sys.stderr)
-            continue
-        except (ValueError, KeyError, AttributeError, TypeError) as e:
-            # Parsing errors - log and continue
-            print(f"Warning: Failed to parse {file_path}: {e}", file=sys.stderr)
-            continue
-        except Exception as e:
-            # Unexpected errors - log with type details
-            print(f"Warning: Unexpected error loading {file_path} ({type(e).__name__}): {e}", file=sys.stderr)
-            continue
-
-    return rules
+    # Return only enabled rules
+    return [rule for rule in merged.values() if rule.enabled]
 
 
-def load_rule_file(file_path: str) -> Optional[Rule]:
+def load_rule_file(file_path: str, scope: str = "project") -> Rule | None:
     """Load a single rule file.
+
+    Args:
+        file_path: Path to the .local.md rule file.
+        scope: "project" or "global" — recorded on the returned Rule.
 
     Returns:
         Rule object or None if file is invalid.
@@ -263,6 +294,7 @@ def load_rule_file(file_path: str) -> Optional[Rule]:
             return None
 
         rule = Rule.from_dict(frontmatter, message)
+        rule.scope = scope
         return rule
 
     except (OSError, PermissionError) as e:
