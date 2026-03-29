@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.1.87
+
+- Fixed messages in Cowork Dispatch not getting delivered
+
 ## 2.1.86
 
 - Added `X-Claude-Code-Session-Id` header to API requests so proxies can aggregate requests by session without parsing the body
