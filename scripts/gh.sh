@@ -72,25 +72,40 @@ for arg in "$@"; do
     POSITIONAL+=("$arg")
   fi
 done
-
 if [[ "$CMD" == "search issues" ]]; then
   QUERY="${POSITIONAL[0]:-}"
-  QUERY_LOWER=$(echo "$QUERY" | tr '[:upper:]' '[:lower:]')
+
+  # Normalize to lowercase (with proper fallback)
+  if [[ -n "${BASH_VERSION:-}" ]]; then
+    QUERY_LOWER="${QUERY,,}"
+  else
+    QUERY_LOWER=$(printf '%s' "$QUERY" | tr '[:upper:]' '[:lower:]')
+  fi
+
+  # Block restricted qualifiers
   if [[ "$QUERY_LOWER" == *"repo:"* || "$QUERY_LOWER" == *"org:"* || "$QUERY_LOWER" == *"user:"* ]]; then
     echo "Error: search query must not contain repo:, org:, or user: qualifiers (e.g., ./scripts/gh.sh search issues \"bug report\" --limit 10)" >&2
     exit 1
   fi
+
   gh "$SUB1" "$SUB2" "$QUERY" --repo "$REPO" "${FLAGS[@]}"
+
 elif [[ "$CMD" == "issue view" ]]; then
+
   if [[ ${#POSITIONAL[@]} -ne 1 ]] || ! [[ "${POSITIONAL[0]}" =~ ^[0-9]+$ ]]; then
     echo "Error: issue view requires exactly one numeric issue number (e.g., ./scripts/gh.sh issue view 123)" >&2
     exit 1
   fi
+
   gh "$SUB1" "$SUB2" "${POSITIONAL[0]}" "${FLAGS[@]}"
+
 else
+
   if [[ ${#POSITIONAL[@]} -ne 0 ]]; then
     echo "Error: issue list and label list do not accept positional arguments (e.g., ./scripts/gh.sh issue list --state open, ./scripts/gh.sh label list --limit 100)" >&2
     exit 1
   fi
+
   gh "$SUB1" "$SUB2" "${FLAGS[@]}"
+
 fi
