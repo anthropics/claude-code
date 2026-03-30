@@ -20,7 +20,7 @@ TOOLS:
   - `./scripts/gh.sh issue list --state open --limit 20` — list issues
   - `./scripts/gh.sh search issues "query"` — find similar or duplicate issues
   - `./scripts/gh.sh search issues "query" --limit 10` — search with limit
-- `./scripts/edit-issue-labels.sh --issue NUMBER --add-label LABEL --remove-label LABEL` — add or remove labels
+- `./scripts/edit-issue-labels.sh --add-label LABEL --remove-label LABEL` — add or remove labels (issue number is read from the workflow event)
 
 TASK:
 
@@ -48,15 +48,15 @@ TASK:
    The goal is to avoid issues lingering without a clear next step.
 
 7. Apply all selected labels:
-   `./scripts/edit-issue-labels.sh --issue ISSUE_NUMBER --add-label "label1" --add-label "label2"`
+   `./scripts/edit-issue-labels.sh --add-label "label1" --add-label "label2"`
 
 **If EVENT is "issue_comment" (comment on existing issue):**
 
 4. Evaluate lifecycle labels based on the full conversation:
    - If the issue has `stale` or `autoclose`, remove the label — a new human comment means the issue is still active:
-     `./scripts/edit-issue-labels.sh --issue ISSUE_NUMBER --remove-label "stale" --remove-label "autoclose"`
+     `./scripts/edit-issue-labels.sh --remove-label "stale" --remove-label "autoclose"`
    - If the issue has `needs-repro` or `needs-info` and the missing information has now been provided, remove the label:
-     `./scripts/edit-issue-labels.sh --issue ISSUE_NUMBER --remove-label "needs-repro"`
+     `./scripts/edit-issue-labels.sh --remove-label "needs-repro"`
    - If the issue doesn't have lifecycle labels but clearly needs them (e.g., a maintainer asked for repro steps or more details), add the appropriate label.
    - Comments like "+1", "me too", "same here", or emoji reactions are NOT the missing information. Only remove `needs-repro` or `needs-info` when substantive details are actually provided.
    - Do NOT add or remove category labels (bug, enhancement, etc.) on comment events.
