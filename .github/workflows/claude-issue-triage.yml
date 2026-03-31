@@ -23,6 +23,26 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Remove stale/autoclose labels on new comment
+        if: github.event_name == 'issue_comment'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue;
+            const labelsToRemove = ['stale', 'autoclose'];
+            const currentLabels = issue.labels.map(l => l.name);
+            for (const label of labelsToRemove) {
+              if (currentLabels.includes(label)) {
+                await github.rest.issues.removeLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  name: label,
+                });
+                console.log(`Removed "${label}" label from #${issue.number}`);
+              }
+            }
+
       - name: Run Claude Code for Issue Triage
         timeout-minutes: 5
         uses: anthropics/claude-code-action@v1
