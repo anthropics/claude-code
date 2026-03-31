@@ -1,0 +1,8 @@
+{
+  "name": "bash-guard",
+  "version": "1.0.0",
+  "description": "Enforces permissions.deny rules on every segment of compound bash commands (&&, ||, ;, |), preventing bypass via chained commands.",
+  "author": {
+    "name": "Pro777"
+  }
+}
