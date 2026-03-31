@@ -6,19 +6,32 @@
 
 set -euo pipefail
 
-REPO="anthropics/claude-code"
+REPO="${GH_REPO:-${GITHUB_REPOSITORY:-}}"
+if [[ -z "$REPO" || ! "$REPO" =~ ^[^/]+/[^/]+$ ]]; then
+  echo "Error: GH_REPO or GITHUB_REPOSITORY must be set to owner/repo format (e.g., GITHUB_REPOSITORY=anthropics/claude-code)" >&2
+  exit 1
+fi
 BASE_ISSUE=""
 DUPLICATES=()
+SEEN_DUPLICATES=()
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
   case $1 in
     --base-issue)
+      if [[ $# -lt 2 || "$2" =~ ^-- ]]; then
+        echo "Error: --base-issue requires an issue number" >&2
+        exit 1
+      fi
       BASE_ISSUE="$2"
       shift 2
       ;;
     --potential-duplicates)
       shift
+      if [[ $# -eq 0 || "$1" =~ ^-- ]]; then
+        echo "Error: --potential-duplicates requires at least one issue number" >&2
+        exit 1
+      fi
       while [[ $# -gt 0 && ! "$1" =~ ^-- ]]; do
         DUPLICATES+=("$1")
         shift
@@ -58,17 +71,28 @@ for dup in "${DUPLICATES[@]}"; do
     echo "Error: duplicate issue must be a number, got: $dup" >&2
     exit 1
   fi
+  if [[ "$dup" == "$BASE_ISSUE" ]]; then
+    echo "Error: duplicate issue list cannot include the base issue #$BASE_ISSUE" >&2
+    exit 1
+  fi
+  for seen_dup in "${SEEN_DUPLICATES[@]:-}"; do
+    if [[ "$dup" == "$seen_dup" ]]; then
+      echo "Error: duplicate issue list cannot include issue #$dup more than once" >&2
+      exit 1
+    fi
+  done
+  SEEN_DUPLICATES+=("$dup")
 done
 
 # Validate that base issue exists
-if ! gh issue view "$BASE_ISSUE" --repo "$REPO" &>/dev/null; then
+if ! "$(dirname "$0")/gh.sh" issue view "$BASE_ISSUE" &>/dev/null; then
   echo "Error: issue #$BASE_ISSUE does not exist in $REPO" >&2
   exit 1
 fi
 
 # Validate that all duplicate issues exist
 for dup in "${DUPLICATES[@]}"; do
-  if ! gh issue view "$dup" --repo "$REPO" &>/dev/null; then
+  if ! "$(dirname "$0")/gh.sh" issue view "$dup" &>/dev/null; then
     echo "Error: issue #$dup does not exist in $REPO" >&2
     exit 1
   fi
