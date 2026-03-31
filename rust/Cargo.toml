@@ -33,6 +33,8 @@ members = [
     "crates/claude-updater",
     # Phase 8: Testing
     "crates/claude-tests",
+    # Plugin System
+    "crates/claude-plugins",
 ]
 
 [workspace.package]
@@ -127,6 +129,7 @@ panic = "abort"
 [profile.dev]
 opt-level = 1
 debug = true
+
 
 
 
