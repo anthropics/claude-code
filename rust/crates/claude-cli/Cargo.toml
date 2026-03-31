@@ -1,0 +1,25 @@
+[package]
+name = "claude-cli"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "claude-code"
+path = "src/main.rs"
+
+[dependencies]
+claude-core = { workspace = true }
+claude-engine = { workspace = true }
+claude-api = { workspace = true }
+claude-tools = { workspace = true }
+claude-fs = { workspace = true }
+claude-permissions = { workspace = true }
+claude-sandbox = { workspace = true }
+tokio = { workspace = true }
+anyhow = { workspace = true }
+clap = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+toml = { workspace = true }
+dirs = { workspace = true }
+

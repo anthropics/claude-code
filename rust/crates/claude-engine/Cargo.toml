@@ -1,0 +1,13 @@
+[package]
+name = "claude-engine"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+claude-core = { workspace = true }
+tokio = { workspace = true }
+async-trait = { workspace = true }
+futures = { workspace = true }
+serde_json = { workspace = true }
+tracing = { workspace = true }
+

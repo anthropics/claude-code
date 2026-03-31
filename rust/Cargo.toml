@@ -1,0 +1,59 @@
+[package]
+name = "claude-code-rust"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.80"
+authors = ["Osman Mehmood <mehmoodosman@users.noreply.github.com>"]
+description = "High-performance Rust implementation of Claude Code"
+license = "MIT"
+repository = "https://github.com/anthropics/claude-code"
+
+[workspace]
+members = [
+    "crates/claude-core",
+    "crates/claude-engine",
+    "crates/claude-api",
+    "crates/claude-tools",
+    "crates/claude-fs",
+    "crates/claude-permissions",
+    "crates/claude-sandbox",
+    "crates/claude-cli",
+    "crates/claude-ffi",
+]
+resolver = "2"
+
+[workspace.dependencies]
+tokio = { version = "1.43", features = ["full"] }
+async-trait = "0.1"
+futures = "0.3"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+toml = "0.8"
+anyhow = "1.0"
+thiserror = "2.0"
+reqwest = { version = "0.12", features = ["json", "stream"] }
+clap = { version = "4.5", features = ["derive"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+ignore = "0.4"
+grep = "0.3"
+regex = "1.11"
+dashmap = "6.1"
+chrono = "0.4"
+uuid = { version = "1.15", features = ["v4"] }
+dirs = "5.0"
+
+claude-core = { path = "crates/claude-core" }
+claude-engine = { path = "crates/claude-engine" }
+claude-api = { path = "crates/claude-api" }
+claude-tools = { path = "crates/claude-tools" }
+claude-fs = { path = "crates/claude-fs" }
+claude-permissions = { path = "crates/claude-permissions" }
+claude-sandbox = { path = "crates/claude-sandbox" }
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
+

@@ -1,0 +1,19 @@
+[package]
+name = "claude-tools"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+claude-core = { workspace = true }
+claude-fs = { workspace = true }
+claude-permissions = { workspace = true }
+claude-sandbox = { workspace = true }
+tokio = { workspace = true }
+async-trait = { workspace = true }
+serde_json = { workspace = true }
+tracing = { workspace = true }
+ignore = { workspace = true }
+grep = { workspace = true }
+regex = { workspace = true }
+chrono = { workspace = true }
+
