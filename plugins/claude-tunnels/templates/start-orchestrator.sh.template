@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")"
+
+unset CLAUDECODE CLAUDE_CODE_ENTRYPOINT CLAUDE_CODE_ENABLE_TELEMETRY OTEL_EXPORTER_OTLP_ENDPOINT
+
+# PYTHON_CMD is set during /setup-orchestrator. Change if your environment differs.
+PYTHON_CMD="${PYTHON_CMD:-python3}"
+
+LOG_FILE="/tmp/orchestrator-$(date +%Y%m%d).log"
+
+if [[ "${1:-}" == "--fg" ]]; then
+    echo "Starting orchestrator (foreground)..."
+    "$PYTHON_CMD" -m orchestrator.main 2>&1 | tee "$LOG_FILE"
+else
+    echo "Starting orchestrator (background)..."
+    nohup "$PYTHON_CMD" -m orchestrator.main > "$LOG_FILE" 2>&1 &
+    PID=$!
+    sleep 2
+    if kill -0 "$PID" 2>/dev/null; then
+        echo "Orchestrator started (PID: $PID)"
+        echo "Log: $LOG_FILE"
+    else
+        echo "ERROR: Failed to start. Check $LOG_FILE"
+        tail -20 "$LOG_FILE"
+        exit 1
+    fi
+fi
