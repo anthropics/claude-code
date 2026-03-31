@@ -6,11 +6,18 @@ authors.workspace = true
 license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
-description = "Git operations for repository management"
+description = "Git operations for repository management with interactive UI"
 
 [dependencies]
 # Git operations
 git2 = { workspace = true }
+
+# TUI
+ratatui = { workspace = true }
+crossterm = { workspace = true }
+
+# Syntax highlighting for diffs
+syntect = { version = "5.2", default-features = false, features = ["default-syntaxes", "default-themes"] }
 
 # Error handling
 thiserror = { workspace = true }
@@ -18,6 +25,10 @@ thiserror = { workspace = true }
 # Tracing
 tracing = { workspace = true }
 
+# Time
+chrono = { workspace = true }
+
 [dev-dependencies]
 tempfile = "3.0"
+
 

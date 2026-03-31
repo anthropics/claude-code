@@ -1,13 +1,23 @@
 //! Git operations for repository management
 //!
 //! Provides high-level abstractions over git2 for common operations
-//! used by Claude Code.
+//! used by Claude Code. Includes interactive staging, merge conflict
+//! resolution, and branch visualization.
 
 use git2::{Repository, Signature, StatusOptions, DiffOptions};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
 use tracing::{debug, error, info, instrument};
+
+// Re-export submodules
+pub mod interactive;
+pub mod conflicts;
+pub mod graph;
+
+pub use interactive::{InteractiveStaging, StagingAction, StageOperation, StagingViewMode};
+pub use conflicts::{ConflictResolver, ResolutionAction, ConflictResolution};
+pub use graph::{BranchGraph, GraphAction, BranchComparison};
 
 /// Git operation errors
 #[derive(Debug, Error)]
@@ -32,6 +42,9 @@ pub enum GitError {
     
     #[error("Branch not found: {0}")]
     BranchNotFound(String),
+    
+    #[error("Invalid operation: {0}")]
+    Invalid(String),
 }
 
 /// Git repository wrapper
@@ -494,4 +507,5 @@ mod tests {
         assert_eq!(root, temp.path());
     }
 }
+
 

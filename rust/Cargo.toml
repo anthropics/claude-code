@@ -19,6 +19,20 @@ members = [
     "crates/claude-aliases",
     "crates/claude-mcp",
     "crates/claude-config",
+    # Phase 4: IDE Features
+    "crates/claude-ide",
+    # Phase 5: Settings UI
+    "crates/claude-settings",
+    # Phase 6: Cloud/Auth
+    "crates/claude-cloud",
+    # Phase 7: Polish - Themes
+    "crates/claude-themes",
+    # Phase 7: Polish - Telemetry
+    "crates/claude-telemetry",
+    # Phase 7: Polish - Auto-updater
+    "crates/claude-updater",
+    # Phase 8: Testing
+    "crates/claude-tests",
 ]
 
 [workspace.package]
@@ -113,6 +127,7 @@ panic = "abort"
 [profile.dev]
 opt-level = 1
 debug = true
+
 
 
 

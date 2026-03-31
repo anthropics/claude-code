@@ -15,6 +15,10 @@ pub mod git;
 pub mod github;
 pub mod lsp;
 
+// Advanced modules for full migration
+pub mod file_ops;
+pub mod pty;
+
 pub use bash::BashTool;
 pub use file::{FileEditTool, FileReadTool, FileWriteTool};
 pub use grep::GrepTool;
@@ -24,6 +28,17 @@ pub use mcp::MCPTool;
 pub use git::GitTool;
 pub use github::GitHubTool;
 pub use lsp::LSPTool;
+
+// Re-export advanced modules
+pub use file_ops::{
+    MultiFileEditPreview, FileBrowser, BatchFileOps,
+    PreviewMode, BrowserAction, FileOpsError,
+};
+
+pub use pty::{
+    PtySession, InteractiveShell, PtyConfig, PtyKey,
+    PtyDimensions, EscapeSequenceParser, TerminalEvent, PtyError,
+};
 
 /// Create default tool set
 pub fn default_tools() -> Vec<Box<dyn Tool>> {
@@ -59,4 +74,5 @@ impl ToolFactory {
         }
     }
 }
+
 
