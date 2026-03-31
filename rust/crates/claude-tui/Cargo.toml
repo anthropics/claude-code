@@ -1,36 +1,40 @@
 [package]
-name = "claude-tools"
+name = "claude-tui"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
-description = "Tool implementations for file, shell, git, and more operations"
+description = "Full terminal UI for Claude Code (ratatui-based)"
 
 [dependencies]
 claude-core = { path = "../claude-core" }
 
 # Async runtime
 tokio = { workspace = true }
-async-trait = { workspace = true }
 
 # Error handling
 anyhow = { workspace = true }
+thiserror = { workspace = true }
+
+# TUI
+ratatui = { workspace = true }
+crossterm = { workspace = true, features = ["event-stream"] }
+ansi-to-tui = { workspace = true }
+
+# Text handling
+textwrap = { workspace = true }
+unicode-width = { workspace = true }
+unicode-segmentation = { workspace = true }
 
 # Serialization
 serde = { workspace = true }
 serde_json = { workspace = true }
 
-# Regex for grep
-regex = { workspace = true }
-
-# File walking
-ignore = { workspace = true }
-
 # Tracing
 tracing = { workspace = true }
 
-# Path handling
-path-absolutize = { workspace = true }
+# Time
+chrono = { workspace = true }
 

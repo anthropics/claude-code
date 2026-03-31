@@ -1,13 +1,38 @@
 [package]
 name = "claude-engine"
-version = "0.1.0"
-edition = "2021"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description = "Core orchestration and query processing"
 
 [dependencies]
-claude-core = { workspace = true }
+claude-core = { path = "../claude-core" }
+claude-api = { path = "../claude-api" }
+claude-tools = { path = "../claude-tools" }
+claude-permissions = { path = "../claude-permissions" }
+
+# Async runtime
 tokio = { workspace = true }
+tokio-stream = { workspace = true }
 async-trait = { workspace = true }
-futures = { workspace = true }
+
+# Error handling
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
 serde_json = { workspace = true }
+
+# Tracing
 tracing = { workspace = true }
+
+# Time
+chrono = { workspace = true }
+
+# Utilities
+dashmap = { workspace = true }
 
