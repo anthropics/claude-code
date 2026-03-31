@@ -1,16 +1,16 @@
 [package]
-name = "claude-permissions"
+name = "claude-aliases"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
-description = "Advanced permission system with auto-allow patterns"
+description = "Tool Alias DSL parser and executor for custom tool shortcuts"
 
 [dependencies]
-# Regex for pattern matching
-regex = { workspace = true }
+# Parsing
+nom = "7.1"
 
 # Serialization
 serde = { workspace = true }
@@ -19,12 +19,7 @@ serde_json = { workspace = true }
 # Error handling
 thiserror = { workspace = true }
 
-# Tracing
-tracing = { workspace = true }
-
-# Async runtime
-tokio = { workspace = true }
-
 [dev-dependencies]
-tokio-test = "0.4"
+# Testing
+serde_test = "1.0"
 

@@ -1,17 +1,14 @@
 [package]
-name = "claude-permissions"
+name = "claude-config"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
-description = "Advanced permission system with auto-allow patterns"
+description = "Configuration management for Claude Code"
 
 [dependencies]
-# Regex for pattern matching
-regex = { workspace = true }
-
 # Serialization
 serde = { workspace = true }
 serde_json = { workspace = true }
@@ -22,9 +19,9 @@ thiserror = { workspace = true }
 # Tracing
 tracing = { workspace = true }
 
-# Async runtime
-tokio = { workspace = true }
+# Directory detection
+dirs = "5.0"
 
 [dev-dependencies]
-tokio-test = "0.4"
+tempfile = "3.0"
 

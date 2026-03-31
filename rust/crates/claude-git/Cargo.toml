@@ -1,0 +1,23 @@
+[package]
+name = "claude-git"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description = "Git operations for repository management"
+
+[dependencies]
+# Git operations
+git2 = { workspace = true }
+
+# Error handling
+thiserror = { workspace = true }
+
+# Tracing
+tracing = { workspace = true }
+
+[dev-dependencies]
+tempfile = "3.0"
+

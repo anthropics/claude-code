@@ -1,16 +1,22 @@
 [package]
-name = "claude-permissions"
+name = "claude-mcp"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
-description = "Advanced permission system with auto-allow patterns"
+description = "Model Context Protocol (MCP) client for external tool servers"
 
 [dependencies]
-# Regex for pattern matching
-regex = { workspace = true }
+claude-core = { path = "../claude-core" }
+
+# Async runtime
+tokio = { workspace = true }
+async-trait = { workspace = true }
+
+# HTTP client
+reqwest = { workspace = true }
 
 # Serialization
 serde = { workspace = true }
@@ -22,8 +28,8 @@ thiserror = { workspace = true }
 # Tracing
 tracing = { workspace = true }
 
-# Async runtime
-tokio = { workspace = true }
+# URL parsing
+url = { workspace = true }
 
 [dev-dependencies]
 tokio-test = "0.4"

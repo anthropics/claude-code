@@ -1,16 +1,18 @@
 [package]
-name = "claude-permissions"
+name = "claude-github"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
-description = "Advanced permission system with auto-allow patterns"
+description = "GitHub API client for repository operations, PRs, and issues"
 
 [dependencies]
-# Regex for pattern matching
-regex = { workspace = true }
+claude-core = { path = "../claude-core" }
+
+# HTTP client
+reqwest = { workspace = true }
 
 # Serialization
 serde = { workspace = true }
@@ -22,8 +24,8 @@ thiserror = { workspace = true }
 # Tracing
 tracing = { workspace = true }
 
-# Async runtime
-tokio = { workspace = true }
+# URL encoding
+urlencoding = "2.1"
 
 [dev-dependencies]
 tokio-test = "0.4"

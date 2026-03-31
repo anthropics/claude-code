@@ -11,8 +11,6 @@ members = [
     "crates/claude-tools",
     "crates/claude-fs",
     "crates/claude-permissions",
-    "crates/claude-sandbox",
-    "crates/claude-ffi",
     "crates/claude-cli",
     "crates/claude-tui",
     "crates/claude-lsp",
@@ -93,15 +91,17 @@ dirs = "6.0"
 shell-escape = "0.1"
 which = "7.0"
 tempfile = "3.19"
+url = "2.5"
+urlencoding = "2.1"
+
+# Parsing
+nom = "7.1"
 
 # MCP (Model Context Protocol)
 jsonrpc-core = "18.0"
 
 # Testing
 mockall = "0.13"
-
-# FFI
-libc = "0.2"
 
 [profile.release]
 opt-level = 3
@@ -113,4 +113,6 @@ panic = "abort"
 [profile.dev]
 opt-level = 1
 debug = true
+
+
 
