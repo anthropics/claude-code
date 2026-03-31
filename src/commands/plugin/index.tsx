@@ -1,0 +1,11 @@
+import type { Command } from '../../commands.js';
+const plugin = {
+  type: 'local-jsx',
+  name: 'plugin',
+  aliases: ['plugins', 'marketplace'],
+  description: 'Manage Claude Code plugins',
+  immediate: true,
+  load: () => import('./plugin.js')
+} satisfies Command;
+export default plugin;
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJuYW1lcyI6WyJDb21tYW5kIiwicGx1Z2luIiwidHlwZSIsIm5hbWUiLCJhbGlhc2VzIiwiZGVzY3JpcHRpb24iLCJpbW1lZGlhdGUiLCJsb2FkIl0sInNvdXJjZXMiOlsiaW5kZXgudHN4Il0sInNvdXJjZXNDb250ZW50IjpbImltcG9ydCB0eXBlIHsgQ29tbWFuZCB9IGZyb20gJy4uLy4uL2NvbW1hbmRzLmpzJ1xuXG5jb25zdCBwbHVnaW4gPSB7XG4gIHR5cGU6ICdsb2NhbC1qc3gnLFxuICBuYW1lOiAncGx1Z2luJyxcbiAgYWxpYXNlczogWydwbHVnaW5zJywgJ21hcmtldHBsYWNlJ10sXG4gIGRlc2NyaXB0aW9uOiAnTWFuYWdlIENsYXVkZSBDb2RlIHBsdWdpbnMnLFxuICBpbW1lZGlhdGU6IHRydWUsXG4gIGxvYWQ6ICgpID0+IGltcG9ydCgnLi9wbHVnaW4uanMnKSxcbn0gc2F0aXNmaWVzIENvbW1hbmRcblxuZXhwb3J0IGRlZmF1bHQgcGx1Z2luXG4iXSwibWFwcGluZ3MiOiJBQUFBLGNBQWNBLE9BQU8sUUFBUSxtQkFBbUI7QUFFaEQsTUFBTUMsTUFBTSxHQUFHO0VBQ2JDLElBQUksRUFBRSxXQUFXO0VBQ2pCQyxJQUFJLEVBQUUsUUFBUTtFQUNkQyxPQUFPLEVBQUUsQ0FBQyxTQUFTLEVBQUUsYUFBYSxDQUFDO0VBQ25DQyxXQUFXLEVBQUUsNEJBQTRCO0VBQ3pDQyxTQUFTLEVBQUUsSUFBSTtFQUNmQyxJQUFJLEVBQUVBLENBQUEsS0FBTSxNQUFNLENBQUMsYUFBYTtBQUNsQyxDQUFDLFdBQVdQLE9BQU87QUFFbkIsZUFBZUMsTUFBTSIsImlnbm9yZUxpc3QiOltdfQ==
