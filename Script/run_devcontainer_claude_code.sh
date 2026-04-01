@@ -97,7 +97,7 @@ fi
 echo "Found container ID: $CONTAINER_ID"
 
 # --- Step 5 & 6: Execute command and enter interactive shell inside container ---
-echo "Executing 'claude' command and then starting zsh session inside container $CONTAINER_ID..."
+echo "Executing 'claude' (if available) and starting interactive shell inside container $CONTAINER_ID..."
 # Try running 'claude' if available
 if "$BACKEND" exec -it "$CONTAINER_ID" sh -c 'command -v claude >/dev/null 2>&1'; then
     echo "Running 'claude' inside container..."
