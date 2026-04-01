@@ -30,7 +30,7 @@ claude --plugin-dir /path/to/plugins/preserve-session
 | `/preserve-session:fix` | 이름 변경 또는 이동 후 세션 복구. 복사 감지도 처리 |
 | `/preserve-session:inherit` | 다른 프로젝트의 세션 히스토리를 현재 프로젝트로 복사 |
 | `/preserve-session:doctor` | 현재 프로젝트의 preserve-session 상태 진단 |
-| `/preserve-session:scan` | _(예정)_ 지정한 디렉토리에서 미등록 프로젝트를 탐색하여 일괄 초기화 |
+| `/preserve-session:scan` | 지정한 디렉토리에서 미등록 프로젝트를 탐색하여 일괄 초기화 |
 
 ## 주요 워크플로우
 
