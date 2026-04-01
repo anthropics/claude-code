@@ -1,0 +1,12 @@
+{
+  "name": "evalview",
+  "version": "0.6.1",
+  "description": "Regression testing for AI agents — catch behavioral changes, tool call diffs, and quality drops before they ship",
+  "author": {
+    "name": "Hidai Bar-Mor",
+    "url": "https://github.com/hidai25"
+  },
+  "repository": "https://github.com/hidai25/eval-view",
+  "license": "Apache-2.0",
+  "keywords": ["testing", "evaluation", "agents", "regression", "mcp", "ai-agents", "quality"]
+}

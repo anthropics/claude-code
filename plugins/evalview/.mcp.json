@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "evalview": {
+      "command": "evalview",
+      "args": ["mcp", "serve"],
+      "env": {}
+    }
+  }
+}
