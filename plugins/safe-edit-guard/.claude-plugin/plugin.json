@@ -1,0 +1,9 @@
+{
+  "name": "safe-edit-guard",
+  "version": "1.0.0",
+  "description": "PreToolUse hook that blocks Edit/Write on files Claude hasn't Read first in the current session. Prevents blind edits, hallucinated file paths, and accidental overwrites.",
+  "author": {
+    "name": "OZmasterAI",
+    "url": "https://github.com/OZmasterAI"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "description": "Block Edit/Write on files not yet Read in this session. Prevents blind edits and hallucinated file paths.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/safe_edit_guard.py"
+          }
+        ],
+        "matcher": "Read|Edit|Write|MultiEdit"
+      }
+    ]
+  }
+}
