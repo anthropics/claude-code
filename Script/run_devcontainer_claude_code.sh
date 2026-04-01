@@ -98,9 +98,14 @@ echo "Found container ID: $CONTAINER_ID"
 
 # --- Step 5 & 6: Execute command and enter interactive shell inside container ---
 echo "Executing 'claude' command and then starting zsh session inside container $CONTAINER_ID..."
-if ! "$BACKEND" exec -it "$CONTAINER_ID" zsh -c 'claude; exec zsh'; then
-    echo "Error: Failed to execute command inside container."
-    exit 1
+# Try running 'claude' if available
+if "$BACKEND" exec -it "$CONTAINER_ID" sh -c 'command -v claude >/dev/null 2>&1'; then
+    echo "Running 'claude' inside container..."
+    "$BACKEND" exec -it "$CONTAINER_ID" sh -c 'claude || true'
 fi
+
+# Start interactive shell
+echo "Starting interactive shell inside container..."
+"$BACKEND" exec -it "$CONTAINER_ID" sh
 
 echo "--- Script completed ---"
