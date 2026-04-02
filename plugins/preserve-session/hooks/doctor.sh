@@ -8,6 +8,9 @@ REGISTRY="$HOME/.claude/project-registry.json"
 REAL_PWD=$(realpath "$PWD" 2>/dev/null || echo "$PWD")
 HASH_FILE="$REAL_PWD/.claude/hash.txt"
 
+# shellcheck source=common.sh
+source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
+
 OK="✓"
 FAIL="✗"
 
@@ -29,7 +32,7 @@ if [[ ! -f "$REGISTRY" ]]; then
   exit 1
 fi
 
-REGISTERED=$(PRESERVE_REGISTRY="$REGISTRY" PRESERVE_HASH="$HASH" python3 - <<'PYEOF'
+REGISTERED=$(PRESERVE_REGISTRY="$REGISTRY" PRESERVE_HASH="$HASH" "$PYTHON" - <<'PYEOF'
 import json, os
 try:
     with open(os.environ["PRESERVE_REGISTRY"]) as f:
@@ -57,7 +60,7 @@ else
 fi
 
 # 4. Sessions folder
-SLUG=$(echo "$REAL_PWD" | LC_ALL=C sed 's|[^[:alnum:]-]|-|g')
+SLUG=$(path_to_slug "$REAL_PWD")
 SESSIONS_DIR="$HOME/.claude/projects/$SLUG"
 
 if [[ -d "$SESSIONS_DIR" ]]; then
@@ -74,7 +77,7 @@ fi
 HOOK_FOUND=false
 for settings in "$REAL_PWD/.claude/settings.json" "$HOME/.claude/settings.json"; do
   if [[ -f "$settings" ]]; then
-    if PRESERVE_SETTINGS="$settings" python3 - <<'PYEOF' 2>/dev/null
+    if PRESERVE_SETTINGS="$settings" "$PYTHON" - <<'PYEOF' 2>/dev/null
 import json, os, sys
 with open(os.environ["PRESERVE_SETTINGS"]) as f:
     s = json.load(f)
@@ -96,12 +99,31 @@ else
   echo "                   (if plugin is installed/loaded, hook is still active)"
 fi
 
-# 6. Registry health
+# 6. Path encoding + slug collision
+if "$PYTHON" -c "import sys; sys.exit(0 if all(ord(c) < 128 for c in sys.argv[1]) else 1)" "$REAL_PWD" 2>/dev/null; then
+  echo "$OK  path encoding  ASCII only"
+else
+  echo "~  path encoding  non-ASCII characters detected"
+  echo "                   path: $REAL_PWD"
+fi
+
+SLUG_COLLISION=$(check_slug_collision "$REAL_PWD")
+if [[ -n "$SLUG_COLLISION" ]]; then
+  echo "$FAIL  slug collision  matches other registered project(s):"
+  while IFS= read -r line; do
+    echo "                   $line"
+  done <<< "$SLUG_COLLISION"
+  echo "                   → /preserve-session:fix and /preserve-session:inherit will be blocked"
+else
+  echo "$OK  slug collision none"
+fi
+
+# 7. Registry health
 echo ""
 echo "Registry health"
 echo "==============="
 
-PRESERVE_REAL_PWD="$REAL_PWD" python3 - <<'PYEOF'
+PRESERVE_REAL_PWD="$REAL_PWD" "$PYTHON" - <<'PYEOF'
 import json, os, sys
 
 registry_path = os.path.expanduser("~/.claude/project-registry.json")

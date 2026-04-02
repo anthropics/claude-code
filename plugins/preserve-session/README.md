@@ -33,6 +33,7 @@ claude --plugin-dir /path/to/plugins/preserve-session
 | `/preserve-session:inherit` | Copy session history from another project into the current one |
 | `/preserve-session:doctor` | Diagnose the current project's preserve-session state |
 | `/preserve-session:scan` | Scan a directory for unregistered projects and bulk-initialize them |
+| `/preserve-session:cleanup` | Remove stale session folders left by previous renames _(coming soon)_ |
 
 ## Typical workflows
 
@@ -72,7 +73,9 @@ claude
 - **Use the terminal, not the VS Code extension** — plugin commands and session history browsing are not fully supported in the VS Code extension. Use `claude` in a terminal for the best experience.
 - **Add `.claude/hash.txt` to `.gitignore`** — in team projects, sharing the same UUID causes registry conflicts
 - **`project-registry.json` is local only** — do not include in backups or sync tools
-- **Quit Claude Code before running `/fix`** — prevents conflicts during session folder rename
+- **Quit Claude Code before running `/fix`** — prevents conflicts during session folder rename. If the destination sessions folder already exists (e.g. a new session was started before running `/fix`), sessions are merged automatically and the old folder is left in place. Run `/preserve-session:cleanup` (coming soon) to remove stale session folders.
+- **Use ASCII-only directory names** — Claude Code maps all non-ASCII characters to `-` when computing project slugs. Two different non-ASCII paths of the same structure (e.g. same character counts per segment) can produce identical slugs, causing their sessions to be stored in the same folder. This affects `/inherit`, which copies all sessions from the slug directory without distinguishing between projects. Run `/preserve-session:doctor` to check whether your current project path contains non-ASCII characters.
+- **macOS: non-ASCII paths work correctly** — macOS `realpath` returns NFD-normalized Unicode paths, but Claude Code uses NFC when computing project slugs. The hooks normalize paths to NFC before slug computation to ensure they match.
 
 ## Files
 

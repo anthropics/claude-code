@@ -8,22 +8,11 @@ set -euo pipefail
 REGISTRY="$HOME/.claude/project-registry.json"
 REAL_PWD=$(realpath "$PWD" 2>/dev/null || echo "$PWD")
 HASH_FILE="$REAL_PWD/.claude/hash.txt"
+FORCE=false
+[[ "${1:-}" == "--force" ]] && FORCE=true
 
-# --- Helpers ---
-
-path_to_slug() {
-  local resolved
-  resolved=$(realpath "$1" 2>/dev/null || echo "$1")
-  echo "$resolved" | LC_ALL=C sed 's|[^[:alnum:]-]|-|g'
-}
-
-uuidgen_cross() {
-  if command -v uuidgen &>/dev/null; then
-    uuidgen | tr '[:upper:]' '[:lower:]'
-  else
-    python3 -c "import uuid; print(uuid.uuid4())"
-  fi
-}
+# shellcheck source=common.sh
+source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 
 # --- Checks ---
 
@@ -45,12 +34,12 @@ if [[ -z "$HASH" ]]; then
   exit 1
 fi
 
-REGISTERED=$(PRESERVE_REGISTRY="$REGISTRY" PRESERVE_HASH="$HASH" python3 - <<'PYEOF'
+REGISTERED=$(PRESERVE_REGISTRY="$REGISTRY" PRESERVE_HASH="$HASH" "$PYTHON" - <<'PYEOF'
 import json, os
 try:
     with open(os.environ["PRESERVE_REGISTRY"]) as f:
         r = json.load(f)
-except (json.JSONDecodeError, ValueError):
+except (FileNotFoundError, json.JSONDecodeError, ValueError):
     r = {}
 print(r.get(os.environ["PRESERVE_HASH"], ""))
 PYEOF
@@ -58,21 +47,7 @@ PYEOF
 
 if [[ -z "$REGISTERED" ]]; then
   echo "preserve-session: hash not found in registry. Re-registering current path..."
-  PRESERVE_REGISTRY="$REGISTRY" PRESERVE_HASH="$HASH" PRESERVE_PATH="$REAL_PWD" python3 - <<'PYEOF'
-import json, os, sys
-registry_path = os.environ["PRESERVE_REGISTRY"]
-hash_val      = os.environ["PRESERVE_HASH"]
-real_pwd      = os.environ["PRESERVE_PATH"]
-try:
-    with open(registry_path) as f:
-        r = json.load(f)
-except (json.JSONDecodeError, ValueError):
-    print("preserve-session: registry is corrupted. Fix or delete ~/.claude/project-registry.json and retry.", file=sys.stderr)
-    sys.exit(1)
-r[hash_val] = real_pwd
-with open(registry_path, "w") as f:
-    json.dump(r, f, indent=2)
-PYEOF
+  registry_write "$HASH" "$REAL_PWD" strict
   echo "Done. Registered: $REAL_PWD"
   exit 0
 fi
@@ -92,23 +67,10 @@ if [[ -d "$REGISTERED" ]]; then
   echo "Registering as independent project..."
 
   NEW_HASH=$(uuidgen_cross)
-  echo "$NEW_HASH" > "$HASH_FILE"
 
-  PRESERVE_REGISTRY="$REGISTRY" PRESERVE_HASH="$NEW_HASH" PRESERVE_PATH="$REAL_PWD" python3 - <<'PYEOF'
-import json, os, sys
-registry_path = os.environ["PRESERVE_REGISTRY"]
-hash_val      = os.environ["PRESERVE_HASH"]
-real_pwd      = os.environ["PRESERVE_PATH"]
-try:
-    with open(registry_path) as f:
-        r = json.load(f)
-except (json.JSONDecodeError, ValueError):
-    print("preserve-session: registry is corrupted. Fix or delete ~/.claude/project-registry.json and retry.", file=sys.stderr)
-    sys.exit(1)
-r[hash_val] = real_pwd
-with open(registry_path, "w") as f:
-    json.dump(r, f, indent=2)
-PYEOF
+  # Write registry first — if this fails, hash.txt stays unchanged (no inconsistency)
+  registry_write "$NEW_HASH" "$REAL_PWD" strict
+  echo "$NEW_HASH" > "$HASH_FILE"
 
   echo "Done."
   echo "  new hash: $NEW_HASH"
@@ -128,12 +90,53 @@ else
   OLD_PROJECTS="$HOME/.claude/projects/$OLD_SLUG"
   NEW_PROJECTS="$HOME/.claude/projects/$NEW_SLUG"
 
+  # Check for slug collisions before renaming/merging
+  OLD_COLLISION=$(check_slug_collision "$REGISTERED")
+  NEW_COLLISION=$(check_slug_collision "$REAL_PWD")
+
+  if [[ -n "$OLD_COLLISION" || -n "$NEW_COLLISION" ]]; then
+    echo "preserve-session: warning — slug collision detected"
+    if [[ -n "$OLD_COLLISION" ]]; then
+      while IFS= read -r line; do
+        echo "  old path ($REGISTERED) shares slug with: $line"
+      done <<< "$OLD_COLLISION"
+    fi
+    if [[ -n "$NEW_COLLISION" ]]; then
+      while IFS= read -r line; do
+        echo "  new path ($REAL_PWD) shares slug with: $line"
+      done <<< "$NEW_COLLISION"
+    fi
+    echo "  Sessions from these projects share the same folder."
+    echo "  Renaming may mix sessions from different projects."
+    if [[ "$FORCE" == false ]]; then
+      echo ""
+      echo "  To proceed anyway, run: /preserve-session:fix --force"
+      exit 1
+    fi
+    echo "  Proceeding with --force."
+  fi
+
   if [[ -d "$OLD_PROJECTS" ]]; then
-    if [[ -d "$NEW_PROJECTS" ]]; then
-      echo "  sessions folder already exists at destination — skipping rename"
-      echo "  old: $OLD_PROJECTS"
-      echo "  new: $NEW_PROJECTS (already exists)"
-      echo "  To merge manually, copy *.jsonl files from old to new."
+    if [[ "$OLD_PROJECTS" == "$NEW_PROJECTS" ]]; then
+      echo "  (sessions folder slug unchanged — no rename needed)"
+    elif [[ -d "$NEW_PROJECTS" ]]; then
+      # destination already exists — merge .jsonl files
+      COPIED=0
+      SKIPPED=0
+      for f in "$OLD_PROJECTS"/*.jsonl; do
+        [[ -e "$f" ]] || continue
+        BASENAME=$(basename "$f")
+        DEST="$NEW_PROJECTS/$BASENAME"
+        if [[ ! -f "$DEST" ]]; then
+          cp "$f" "$DEST"
+          (( COPIED++ )) || true
+        else
+          (( SKIPPED++ )) || true
+        fi
+      done
+      echo "  sessions merged: $COPIED copied, $SKIPPED skipped (already existed)"
+      echo "  old folder kept as stale: $OLD_PROJECTS"
+      echo "  (run /preserve-session:cleanup to remove stale folders)"
     else
       mv "$OLD_PROJECTS" "$NEW_PROJECTS"
       echo "  sessions folder renamed: $OLD_SLUG → $NEW_SLUG"
@@ -142,21 +145,7 @@ else
     echo "  (no sessions folder found — nothing to rename)"
   fi
 
-  PRESERVE_REGISTRY="$REGISTRY" PRESERVE_HASH="$HASH" PRESERVE_PATH="$REAL_PWD" python3 - <<'PYEOF'
-import json, os, sys
-registry_path = os.environ["PRESERVE_REGISTRY"]
-hash_val      = os.environ["PRESERVE_HASH"]
-real_pwd      = os.environ["PRESERVE_PATH"]
-try:
-    with open(registry_path) as f:
-        r = json.load(f)
-except (json.JSONDecodeError, ValueError):
-    print("preserve-session: registry is corrupted. Fix or delete ~/.claude/project-registry.json and retry.", file=sys.stderr)
-    sys.exit(1)
-r[hash_val] = real_pwd
-with open(registry_path, "w") as f:
-    json.dump(r, f, indent=2)
-PYEOF
+  registry_write "$HASH" "$REAL_PWD" strict
 
   echo "Done. Session history recovered."
   echo "You can now use 'claude --resume' or 'claude --continue'."

@@ -8,33 +8,8 @@ set -euo pipefail
 
 REGISTRY="$HOME/.claude/project-registry.json"
 
-path_to_slug() {
-  local resolved
-  resolved=$(realpath "$1" 2>/dev/null || echo "$1")
-  echo "$resolved" | LC_ALL=C sed 's|[^[:alnum:]-]|-|g'
-}
-
-find_python() {
-  for candidate in python3 python /usr/bin/python3 /usr/local/bin/python3; do
-    if command -v "$candidate" &>/dev/null 2>&1 && \
-       "$candidate" -c "import sys; sys.exit(0 if sys.version_info >= (3,6) else 1)" 2>/dev/null; then
-      echo "$candidate"
-      return 0
-    fi
-  done
-  echo "preserve-session: no usable python3 found" >&2
-  exit 1
-}
-
-PYTHON=$(find_python)
-
-uuidgen_cross() {
-  if command -v uuidgen &>/dev/null; then
-    uuidgen | tr '[:upper:]' '[:lower:]'
-  else
-    "$PYTHON" -c "import uuid; print(uuid.uuid4())"
-  fi
-}
+# shellcheck source=common.sh
+source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 
 MODE="${1:-}"
 
@@ -125,30 +100,10 @@ for TARGET in "$@"; do
 
   mkdir -p "$TARGET/.claude"
   HASH=$(uuidgen_cross)
+
+  # Write registry first — if this fails, hash.txt stays absent (no inconsistency)
+  registry_write "$HASH" "$TARGET"
   echo "$HASH" > "$HASH_FILE"
-
-  PRESERVE_REGISTRY="$REGISTRY" PRESERVE_HASH="$HASH" PRESERVE_PATH="$TARGET" "$PYTHON" - <<'PYEOF'
-import json, os, sys
-
-registry_path = os.environ["PRESERVE_REGISTRY"]
-new_hash = os.environ["PRESERVE_HASH"]
-new_path = os.environ["PRESERVE_PATH"]
-
-try:
-    with open(registry_path) as f:
-        r = json.load(f)
-except (FileNotFoundError, json.JSONDecodeError, ValueError):
-    r = {}
-
-r[new_hash] = new_path
-
-try:
-    with open(registry_path, "w") as f:
-        json.dump(r, f, indent=2)
-except OSError as e:
-    print(f"preserve-session: failed to write registry: {e}", file=sys.stderr)
-    sys.exit(1)
-PYEOF
 
   echo "  initialized: $TARGET"
   (( INITIALIZED++ )) || true
