@@ -33,6 +33,7 @@ claude --plugin-dir /path/to/plugins/preserve-session
 | `/preserve-session:inherit` | Copy session history from another project into the current one |
 | `/preserve-session:doctor` | Diagnose the current project's preserve-session state |
 | `/preserve-session:scan` | Scan a directory for unregistered projects and bulk-initialize them |
+| `/preserve-session:uninstall` | Permanently remove all preserve-session data (registry and hash files) |
 | `/preserve-session:cleanup` | Remove stale session folders left by previous renames _(coming soon)_ |
 
 ## Typical workflows
