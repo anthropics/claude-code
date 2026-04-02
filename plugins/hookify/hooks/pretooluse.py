@@ -9,22 +9,18 @@ import os
 import sys
 import json
 
-# CRITICAL: Add plugin root to Python path for imports
-# We need to add the parent of the plugin directory so Python can find "hookify" package
-PLUGIN_ROOT = os.environ.get('CLAUDE_PLUGIN_ROOT')
-if PLUGIN_ROOT:
-    # Add the parent directory of the plugin
-    parent_dir = os.path.dirname(PLUGIN_ROOT)
-    if parent_dir not in sys.path:
-        sys.path.insert(0, parent_dir)
-
-    # Also add PLUGIN_ROOT itself in case we have other scripts
-    if PLUGIN_ROOT not in sys.path:
-        sys.path.insert(0, PLUGIN_ROOT)
+# Derive plugin root from this file's location (hooks/ -> plugin root)
+# This is reliable regardless of whether CLAUDE_PLUGIN_ROOT is set,
+# and avoids the broken "hookify" package assumption caused by the
+# version directory in the plugin cache path.
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PLUGIN_ROOT = os.path.dirname(SCRIPT_DIR)
+if PLUGIN_ROOT not in sys.path:
+    sys.path.insert(0, PLUGIN_ROOT)
 
 try:
-    from hookify.core.config_loader import load_rules
-    from hookify.core.rule_engine import RuleEngine
+    from core.config_loader import load_rules
+    from core.rule_engine import RuleEngine
 except ImportError as e:
     # If imports fail, allow operation and log error
     error_msg = {"systemMessage": f"Hookify import error: {e}"}
