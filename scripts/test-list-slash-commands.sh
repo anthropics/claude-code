@@ -155,9 +155,34 @@ test_unavailable_sources_do_not_crash() {
   assert_contains "$output" "Note: Some command sources could not be introspected." "unavailable sources should produce warning"
 }
 
+test_invalid_plugin_manifest_falls_back_and_warns() {
+  local ws="$TMP_ROOT/invalid-manifest"
+  local output
+
+  mkdir -p "$ws/plugins/broken/commands"
+  mkdir -p "$ws/plugins/broken/.claude-plugin"
+
+  cat > "$ws/plugins/broken/.claude-plugin/plugin.json" <<'EOF'
+{ "name":
+EOF
+  cat > "$ws/plugins/broken/commands/run.md" <<'EOF'
+---
+description: Run broken plugin command
+---
+run body
+EOF
+
+  output="$("$COLLECTOR" --workspace "$ws")"
+
+  assert_contains "$output" "  /run" "command should still be listed when manifest is invalid"
+  assert_contains "$output" "source: plugin:broken" "invalid manifest should fallback to plugin directory name"
+  assert_contains "$output" "Note: Some command sources could not be introspected." "invalid manifest should emit introspection warning"
+}
+
 test_no_results
 test_project_detection_and_sorting
 test_plugin_detection
 test_unavailable_sources_do_not_crash
+test_invalid_plugin_manifest_falls_back_and_warns
 
 echo "PASS: list-slash-commands collector tests"

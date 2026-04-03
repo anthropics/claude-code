@@ -78,17 +78,29 @@ extract_frontmatter_field() {
 
 extract_plugin_name() {
   local manifest="$1"
-  local plugin_name=""
+  if command -v python3 >/dev/null 2>&1; then
+    python3 - "$manifest" <<'PY'
+import json
+import sys
+
+path = sys.argv[1]
+with open(path, "r", encoding="utf-8") as f:
+    data = json.load(f)
+
+name = data.get("name", "")
+if isinstance(name, str):
+    print(name)
+else:
+    print("")
+PY
+    return
+  fi
 
   if command -v jq >/dev/null 2>&1; then
-    plugin_name="$(jq -r 'if .name == null then empty else .name end' "$manifest" 2>/dev/null || true)"
+    jq -er '.name // empty' "$manifest" 2>/dev/null
+    return
   fi
-
-  if [[ -z "$plugin_name" ]]; then
-    plugin_name="$(awk -F'"' '/"name"[[:space:]]*:[[:space:]]*"/ { print $4; exit }' "$manifest" 2>/dev/null || true)"
-  fi
-
-  printf '%s' "$plugin_name"
+  return 2
 }
 
 command_name_from_relative_markdown() {
@@ -174,9 +186,15 @@ collect_plugin_commands() {
 
     if [[ -f "$manifest" && -r "$manifest" ]]; then
       local parsed_name
-      parsed_name="$(extract_plugin_name "$manifest")"
-      if [[ -n "$parsed_name" ]]; then
-        plugin_name="$parsed_name"
+      if parsed_name="$(extract_plugin_name "$manifest" 2>/dev/null)"; then
+        if [[ -n "$parsed_name" ]]; then
+          plugin_name="$parsed_name"
+        fi
+      else
+        local extract_status="$?"
+        if [[ "$extract_status" -eq 1 ]]; then
+          WARNINGS=1
+        fi
       fi
     elif [[ -e "$manifest" && ! -r "$manifest" ]]; then
       WARNINGS=1
@@ -217,12 +235,18 @@ print_section() {
 
   while IFS= read -r row; do
     local _category name source description usage origin
-    _category="$(printf '%s\n' "$row" | awk -F'\t' '{ print $1 }')"
-    name="$(printf '%s\n' "$row" | awk -F'\t' '{ print $2 }')"
-    source="$(printf '%s\n' "$row" | awk -F'\t' '{ print $3 }')"
-    description="$(printf '%s\n' "$row" | awk -F'\t' '{ print $4 }')"
-    usage="$(printf '%s\n' "$row" | awk -F'\t' '{ print $5 }')"
-    origin="$(printf '%s\n' "$row" | awk -F'\t' '{ print $6 }')"
+    local remainder
+    _category="${row%%$'\t'*}"
+    remainder="${row#*$'\t'}"
+    name="${remainder%%$'\t'*}"
+    remainder="${remainder#*$'\t'}"
+    source="${remainder%%$'\t'*}"
+    remainder="${remainder#*$'\t'}"
+    description="${remainder%%$'\t'*}"
+    remainder="${remainder#*$'\t'}"
+    usage="${remainder%%$'\t'*}"
+    remainder="${remainder#*$'\t'}"
+    origin="$remainder"
 
     if [[ -z "$description" ]]; then
       description="-"
