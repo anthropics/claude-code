@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="utf-8">
+    <title>OMER Ara Yüz</title>
+    <style>body{font-family:Calibri, sans-serif;margin:40px;} textarea{width:100%;height:150px;} .box{margin-bottom:24px;} .error{color:#990000;}</style>
+  </head>
+  <body>
+    <h1>OMER Web Arayüz</h1>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="box">
+          {% for category, message in messages %}
+            <div class="{{ category }}">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <div class="box">
+      <h2>Metin Analiz</h2>
+      <form method="post" action="{{ url_for('analyze') }}">
+        <textarea name="text" placeholder="Analiz edilecek metni buraya yapıştırın..."></textarea>
+        <button type="submit">Analiz Et</button>
+      </form>
+    </div>
+
+    <div class="box">
+      <h2>Finansal Analiz (CSV)</h2>
+      <form method="post" action="{{ url_for('finance') }}">
+        <textarea name="csv" placeholder="date,description,category,amount\n2026-01-01,Maas,Gelir,10000\n..."></textarea>
+        <button type="submit">Finansal Analiz Yap</button>
+      </form>
+    </div>
+
+    <div class="box">
+      <h2>Yönerge</h2>
+      <p>Python ortamını kurun, sonra bu dizinde çalıştırın: <code>python web_app.py</code></p>
+      <p>Tarayıcıda: <code>http://127.0.0.1:5000</code></p>
+    </div>
+  </body>
+</html>
