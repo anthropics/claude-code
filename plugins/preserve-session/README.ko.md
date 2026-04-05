@@ -30,9 +30,9 @@ claude --plugin-dir /path/to/plugins/preserve-session
 | `/preserve-session:fix` | 이름 변경 또는 이동 후 세션 복구. 복사 감지도 처리 |
 | `/preserve-session:inherit` | 다른 프로젝트의 세션 히스토리를 현재 프로젝트로 복사 |
 | `/preserve-session:doctor` | 현재 프로젝트의 preserve-session 상태 진단 |
-| `/preserve-session:scan` | 지정한 디렉토리에서 미등록 프로젝트를 탐색하여 일괄 초기화 |
+| `/preserve-session:scan` | 지정한 디렉토리에서 미등록 프로젝트를 탐색하여 일괄 초기화 _(출시 예정)_ |
 | `/preserve-session:uninstall` | preserve-session이 생성한 모든 데이터(레지스트리 및 hash 파일) 영구 삭제 |
-| `/preserve-session:cleanup` | 이전 rename으로 남은 stale 세션 폴더 정리 _(출시 예정)_ |
+| `/preserve-session:cleanup` | 등록된 프로젝트 목록을 표시하고 선택한 항목을 registry에서 제거 |
 
 ## 주요 워크플로우
 
