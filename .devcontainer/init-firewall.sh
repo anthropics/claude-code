@@ -14,9 +14,9 @@ declare -a DYNAMIC_DOMAINS=(
     "update.code.visualstudio.com"
 )
 
-# Merge user-specified domains from WHITELIST_DOMAINS env var (space-separated)
-if [ -n "${WHITELIST_DOMAINS:-}" ]; then
-    IFS=' ' read -ra USER_DOMAINS <<< "$WHITELIST_DOMAINS"
+# Merge user-specified domains from EXTRA_DOMAINS env var (space-separated)
+if [ -n "${EXTRA_DOMAINS:-}" ]; then
+    IFS=' ' read -ra USER_DOMAINS <<< "$EXTRA_DOMAINS"
     DYNAMIC_DOMAINS+=("${USER_DOMAINS[@]}")
 fi
 
