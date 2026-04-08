@@ -97,13 +97,20 @@ done < <(echo "$gh_ranges" | jq -r '(.web + .api + .git)[]' | aggregate -q 2>/de
 # This initial resolution fails loudly on misconfigured domains (exit 1).
 # The background refresh script below tolerates transient DNS failures silently.
 for domain in "${DYNAMIC_DOMAINS[@]}"; do
+    # Raw IPs: add directly, skip DNS resolution
+    if [[ "$domain" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
+        echo "Adding IP $domain directly..."
+        ipset add "$IPSET_DYNAMIC" "$domain" timeout "$DNS_TTL" -exist
+        continue
+    fi
+
     echo "Resolving $domain..."
     ips=$(dig +noall +answer A "$domain" | awk '$4 == "A" {print $5}')
     if [ -z "$ips" ]; then
         echo "ERROR: Failed to resolve $domain"
         exit 1
     fi
-    
+
     while read -r ip; do
         if [[ ! "$ip" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
             echo "ERROR: Invalid IP from DNS for $domain: $ip"
@@ -151,6 +158,11 @@ DNS_TTL=$DNS_TTL
 
 # Domain list passed as arguments
 for domain in "\$@"; do
+    # Raw IPs: re-add directly, skip DNS
+    if [[ "\$domain" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\$ ]]; then
+        ipset add "\$IPSET_DYNAMIC" "\$domain" timeout "\$DNS_TTL" -exist 2>/dev/null
+        continue
+    fi
     ips=\$(dig +short A "\$domain" 2>/dev/null | grep -E '^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\$')
     if [ -n "\$ips" ]; then
         while IFS= read -r ip; do
