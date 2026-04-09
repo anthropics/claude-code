@@ -145,6 +145,13 @@
       },
       "source": "./plugins/security-guidance",
       "category": "security"
+    },
+    {
+      "name": "explain-architecture",
+      "description": "Scan a repository and generate a visual architecture diagram from import relationships between modules. Supports Mermaid, PlantUML, and JSON. Works with TypeScript, JavaScript, Python, and Go.",
+      "version": "1.0.0",
+      "source": "./plugins/explain-architecture",
+      "category": "development"
     }
   ]
 }
