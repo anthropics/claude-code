@@ -10,8 +10,8 @@ import random
 import sys
 from datetime import datetime
 
-# Debug log file
-DEBUG_LOG_FILE = "/tmp/security-warnings-log.txt"
+# Debug log file — use ~/.claude/ to avoid world-readable /tmp
+DEBUG_LOG_FILE = os.path.join(os.path.expanduser("~"), ".claude", "security-warnings-log.txt")
 
 
 def debug_log(message):
@@ -220,7 +220,7 @@ def main():
     security_reminder_enabled = os.environ.get("ENABLE_SECURITY_REMINDER", "1")
 
     # Only run if security reminders are enabled
-    if security_reminder_enabled == "0":
+    if security_reminder_enabled.lower() in ("0", "false", "no", "off"):
         sys.exit(0)
 
     # Periodically clean up old state files (10% chance per run)
