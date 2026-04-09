@@ -1,0 +1,9 @@
+{
+  "name": "create-test",
+  "version": "1.0.0",
+  "description": "Automatically generate unit test files for source files with framework detection, dependency mocking, and structured test suites",
+  "author": {
+    "name": "Claude Code",
+    "email": "support@anthropic.com"
+  }
+}

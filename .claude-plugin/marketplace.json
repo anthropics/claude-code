@@ -136,6 +136,17 @@
       "category": "development"
     },
     {
+      "name": "create-test",
+      "description": "Automatically generate unit test files from source code analysis with framework detection (Jest, Vitest, Mocha, pytest, go-test), dependency mocking, and structured test suites",
+      "version": "1.0.0",
+      "author": {
+        "name": "Claude Code",
+        "email": "support@anthropic.com"
+      },
+      "source": "./plugins/create-test",
+      "category": "development"
+    },
+    {
       "name": "security-guidance",
       "description": "Security reminder hook that warns about potential security issues when editing files, including command injection, XSS, and unsafe code patterns",
       "version": "1.0.0",
