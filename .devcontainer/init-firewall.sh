@@ -72,7 +72,9 @@ for domain in \
     "statsig.com" \
     "marketplace.visualstudio.com" \
     "vscode.blob.core.windows.net" \
-    "update.code.visualstudio.com"; do
+    "update.code.visualstudio.com" \
+    "pypi.org" \
+    "files.pythonhosted.org"; do
     echo "Resolving $domain..."
     ips=$(dig +noall +answer A "$domain" | awk '$4 == "A" {print $5}')
     if [ -z "$ips" ]; then
@@ -87,7 +89,7 @@ for domain in \
         fi
         echo "Adding $ip for $domain"
         ipset add --exist allowed-domains "$ip"
-    done < <(echo "$ips")
+    done < <(echo "$ips" | sort -u)
 done
 
 # Get host IP from default route
