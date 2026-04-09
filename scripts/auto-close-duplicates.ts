@@ -46,22 +46,42 @@ async function githubRequest<T>(endpoint: string, token: string, method: string 
   return response.json();
 }
 
-function extractDuplicateIssueNumber(commentBody: string): number | null {
+export function extractDuplicateIssueNumber(commentBody: string): number | null {
   // Try to match #123 format first
   let match = commentBody.match(/#(\d+)/);
   if (match) {
     return parseInt(match[1], 10);
   }
-  
+
   // Try to match GitHub issue URL format: https://github.com/owner/repo/issues/123
   match = commentBody.match(/github\.com\/[^\/]+\/[^\/]+\/issues\/(\d+)/);
   if (match) {
     return parseInt(match[1], 10);
   }
-  
+
   return null;
 }
 
+// Merges a label into an existing label list without duplicating it.
+export function mergeLabels(existing: string[], label: string): string[] {
+  if (existing.includes(label)) {
+    return existing;
+  }
+  return [...existing, label];
+}
+
+async function getIssueLabels(
+  owner: string,
+  repo: string,
+  issueNumber: number,
+  token: string
+): Promise<string[]> {
+  const issue = await githubRequest<{ labels: Array<{ name: string }> }>(
+    `/repos/${owner}/${repo}/issues/${issueNumber}`,
+    token
+  );
+  return issue.labels.map((l) => l.name);
+}
 
 async function closeIssueAsDuplicate(
   owner: string,
@@ -70,6 +90,11 @@ async function closeIssueAsDuplicate(
   duplicateOfNumber: number,
   token: string
 ): Promise<void> {
+  // Fetch existing labels so that the PATCH call (which replaces the full
+  // label list) preserves triage metadata like bug/has-repro/platform/area.
+  const existingLabels = await getIssueLabels(owner, repo, issueNumber, token);
+  const labels = mergeLabels(existingLabels, 'duplicate');
+
   await githubRequest(
     `/repos/${owner}/${repo}/issues/${issueNumber}`,
     token,
@@ -77,7 +102,7 @@ async function closeIssueAsDuplicate(
     {
       state: 'closed',
       state_reason: 'duplicate',
-      labels: ['duplicate']
+      labels,
     }
   );
 
@@ -271,7 +296,7 @@ async function autoCloseDuplicates(): Promise<void> {
   );
 }
 
-autoCloseDuplicates().catch(console.error);
-
-// Make it a module
-export {};
+// Only run when invoked directly, not when imported by tests.
+if (import.meta.main) {
+  autoCloseDuplicates().catch(console.error);
+}
