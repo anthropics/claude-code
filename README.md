@@ -45,6 +45,22 @@ For more installation options, uninstall steps, and troubleshooting, see the [se
 
 2. Navigate to your project directory and run `claude`.
 
+## Print mode prompt caching
+
+When running Claude Code in print mode (`-p`) across multiple machines or users, you can improve prompt-cache hit rates with `--exclude-dynamic-system-prompt-sections`. This flag moves per-machine content (working directory, environment info, memory paths, git status) out of the system prompt and into the first user message, so the system prompt stays identical across environments.
+
+```bash
+claude -p --exclude-dynamic-system-prompt-sections "Summarize this project"
+```
+
+**Scope and limitations:**
+
+- Only applies in print mode (`-p`). Has no effect in interactive sessions.
+- Ignored when `--system-prompt` or `--system-prompt-file` replaces the default prompt entirely.
+- The relocated sections still reach the model in the user turn, so behavior is equivalent. The tradeoff is better cross-user cache reuse at the cost of a slightly different prompt layout.
+
+For the full list of CLI flags, see the [CLI reference documentation](https://code.claude.com/docs/en/cli-reference).
+
 ## Plugins
 
 This repository includes several Claude Code plugins that extend functionality with custom commands and agents. See the [plugins directory](./plugins/README.md) for detailed documentation on available plugins.
