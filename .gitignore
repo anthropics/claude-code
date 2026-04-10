@@ -1,2 +1,5 @@
 .DS_Store
-
+node_modules/
+plugins/whatsapp-channel/node_modules/
+plugins/whatsapp-channel/bun.lock
+plugins/whatsapp-channel/package-lock.json
