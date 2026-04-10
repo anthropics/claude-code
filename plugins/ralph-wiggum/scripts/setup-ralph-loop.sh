@@ -40,7 +40,7 @@ DESCRIPTION:
   - Learning how Ralph works
 
 EXAMPLES:
-  /ralph-loop Build a todo API --completion-promise 'DONE' --max-iterations 20
+  /ralph-loop Build a to-do API --completion-promise 'DONE' --max-iterations 20
   /ralph-loop --max-iterations 10 Fix the auth bug
   /ralph-loop Refactor cache layer  (runs forever)
   /ralph-loop --completion-promise 'TASK COMPLETE' Create a REST API
@@ -119,7 +119,7 @@ if [[ -z "$PROMPT" ]]; then
   echo "   Ralph needs a task description to work on." >&2
   echo "" >&2
   echo "   Examples:" >&2
-  echo "     /ralph-loop Build a REST API for todos" >&2
+  echo "     /ralph-loop Build a REST API for to-dos" >&2
   echo "     /ralph-loop Fix the auth bug --max-iterations 20" >&2
   echo "     /ralph-loop --completion-promise 'DONE' Refactor code" >&2
   echo "" >&2
