@@ -48,6 +48,44 @@ class RuleEngine:
         """
         hook_event = input_data.get('hook_event_name', '')
         tool_name = input_data.get('tool_name', '')
+        blocking_rules = []
+        warning_rules = []
+
+        # Determine the event category based on the hook event and tool
+        event_category = None
+        if hook_event in ['PreToolUse', 'PostToolUse']:
+            if tool_name == 'Bash':
+                event_category = 'bash'
+            elif tool_name in ['Edit', 'Write', 'MultiEdit']:
+                event_category = 'file'
+        elif hook_event == 'Stop':
+            event_category = 'stop'
+        elif hook_event == 'UserPromptSubmit':
+            event_category = 'prompt'
+
+        # Build an index if rules object has changed or we don't have one
+        rules_id = id(rules)
+        if getattr(self, '_rules_cache_id', None) != rules_id:
+            self._rules_cache_id = rules_id
+            self._rules_by_event = {}
+            for rule in rules:
+                rule_event = getattr(rule, 'event', 'all')
+                if rule_event not in self._rules_by_event:
+                    self._rules_by_event[rule_event] = []
+                self._rules_by_event[rule_event].append(rule)
+
+        # Get relevant rules: those specifically for this event category, plus "all" rules
+        relevant_rules = []
+        if event_category and event_category in self._rules_by_event:
+            relevant_rules.extend(self._rules_by_event[event_category])
+        if 'all' in self._rules_by_event:
+            relevant_rules.extend(self._rules_by_event['all'])
+
+        # If no event category could be determined, evaluate all rules to be safe
+        if not event_category:
+            relevant_rules = rules
+
+        for rule in relevant_rules:
 
         # Determine internal event type for filtering
         event_type = None
@@ -222,12 +260,19 @@ class RuleEngine:
             if field == 'reason':
                 return input_data.get('reason', '')
             elif field == 'transcript':
+                # Check if we've already cached the transcript in this evaluation
+                if '_transcript_content' in input_data:
+                    return input_data['_transcript_content']
+
                 # Read transcript file if path provided
                 transcript_path = input_data.get('transcript_path')
                 if transcript_path:
                     try:
                         with open(transcript_path, 'r') as f:
-                            return f.read()
+                            content = f.read()
+                            # Cache it in input_data to prevent redundant disk I/O per memory instructions
+                            input_data['_transcript_content'] = content
+                            return content
                     except FileNotFoundError:
                         print(f"Warning: Transcript file not found: {transcript_path}", file=sys.stderr)
                         return ''
