@@ -7,22 +7,16 @@ This hook checks for security patterns in file edits and warns about potential v
 import json
 import os
 import random
+import logging
 import sys
 from datetime import datetime
 
-# Debug log file
-DEBUG_LOG_FILE = "/tmp/security-warnings-log.txt"
-
-
-def debug_log(message):
-    """Append debug message to log file with timestamp."""
-    try:
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
-        with open(DEBUG_LOG_FILE, "a") as f:
-            f.write(f"[{timestamp}] {message}\n")
-    except Exception as e:
-        # Silently ignore logging errors to avoid disrupting the hook
-        pass
+logging.basicConfig(
+    stream=sys.stderr,
+    level=logging.DEBUG,
+    format="[%(asctime)s.%(msecs)03d] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S"
+)
 
 
 # State file to track warnings shown (session-scoped using session ID)
@@ -176,7 +170,7 @@ def save_state(session_id, shown_warnings):
         with open(state_file, "w") as f:
             json.dump(list(shown_warnings), f)
     except IOError as e:
-        debug_log(f"Failed to save state file: {e}")
+        logging.debug(f"Failed to save state file: {e}")
         pass  # Fail silently if we can't save state
 
 
@@ -232,7 +226,7 @@ def main():
         raw_input = sys.stdin.read()
         input_data = json.loads(raw_input)
     except json.JSONDecodeError as e:
-        debug_log(f"JSON decode error: {e}")
+        logging.debug(f"JSON decode error: {e}")
         sys.exit(0)  # Allow tool to proceed if we can't parse input
 
     # Extract session ID and tool information from the hook input
