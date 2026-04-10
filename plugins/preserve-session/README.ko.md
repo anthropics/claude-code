@@ -85,3 +85,7 @@ claude
 |------|------|------|
 | `hash.txt` | `<project>/.claude/hash.txt` | 프로젝트 고유 UUID |
 | `project-registry.json` | `~/.claude/project-registry.json` | 해시 → 현재 경로 매핑 |
+
+## 라이선스
+
+MIT © 2026 SEONGIL WON. [LICENSE](https://github.com/wonbywondev/claude-plugins/blob/main/LICENSE) 참조.

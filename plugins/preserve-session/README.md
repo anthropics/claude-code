@@ -88,3 +88,7 @@ claude
 |------|----------|---------|
 | `hash.txt` | `<project>/.claude/hash.txt` | Project-unique UUID |
 | `project-registry.json` | `~/.claude/project-registry.json` | Maps hash → current path |
+
+## License
+
+MIT © 2026 SEONGIL WON. See [LICENSE](https://github.com/wonbywondev/claude-plugins/blob/main/LICENSE).
