@@ -149,17 +149,19 @@ def cleanup_old_state_files():
         current_time = datetime.now().timestamp()
         thirty_days_ago = current_time - (30 * 24 * 60 * 60)
 
-        for filename in os.listdir(state_dir):
-            if filename.startswith("security_warnings_state_") and filename.endswith(
-                ".json"
-            ):
-                file_path = os.path.join(state_dir, filename)
-                try:
-                    file_mtime = os.path.getmtime(file_path)
-                    if file_mtime < thirty_days_ago:
-                        os.remove(file_path)
-                except (OSError, IOError):
-                    pass  # Ignore errors for individual file cleanup
+        with os.scandir(state_dir) as entries:
+            for entry in entries:
+                if (
+                    entry.is_file()
+                    and entry.name.startswith("security_warnings_state_")
+                    and entry.name.endswith(".json")
+                ):
+                    try:
+                        file_mtime = entry.stat().st_mtime
+                        if file_mtime < thirty_days_ago:
+                            os.remove(entry.path)
+                    except (OSError, IOError):
+                        pass  # Ignore errors for individual file cleanup
     except Exception:
         pass  # Silently ignore cleanup errors
 
