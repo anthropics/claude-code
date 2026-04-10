@@ -10,16 +10,12 @@ import os
 import random
 import re
 import sys
+import logging
 from datetime import datetime
 
-# Configure logging to stderr
-logging.basicConfig(
-    level=logging.DEBUG,
-    format="[%(asctime)s] %(levelname)s: %(message)s",
-    stream=sys.stderr,
-)
+# Setup standard logging
 logger = logging.getLogger(__name__)
-
+logging.basicConfig(stream=sys.stderr, level=logging.INFO)
 
 # State file to track warnings shown (session-scoped using session ID)
 
