@@ -117,6 +117,13 @@ Only use exec() if you absolutely need shell features and the input is guarantee
     },
 ]
 
+# Pre-compile regexes for faster content checking
+for pattern in SECURITY_PATTERNS:
+    if "substrings" in pattern:
+        pattern["_compiled_regex"] = re.compile(
+            "|".join(map(re.escape, pattern["substrings"]))
+        )
+
 
 def get_state_file(session_id):
     """Get session-specific state file path."""
@@ -191,10 +198,12 @@ def check_patterns(file_path, content):
         if "path_check" in pattern and pattern["path_check"](normalized_path):
             return pattern["ruleName"], pattern["reminder"]
 
-        # Check content-based patterns
-        if "substrings" in pattern and content:
-            for substring in pattern["substrings"]:
-                if substring in content:
+    # Only check content if it exists
+    if content:
+        for pattern in SECURITY_PATTERNS:
+            # Check content-based patterns using compiled regex
+            if "_compiled_regex" in pattern:
+                if pattern["_compiled_regex"].search(content):
                     return pattern["ruleName"], pattern["reminder"]
 
     return None, None
