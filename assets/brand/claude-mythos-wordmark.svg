@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="160" viewBox="0 0 720 160">
+  <rect width="720" height="160" rx="20" fill="#0B1020"/>
+  <circle cx="64" cy="80" r="24" fill="#22D3EE"/>
+  <rect x="52" y="32" width="24" height="96" fill="#F5B700"/>
+  <text x="110" y="96" font-family="Arial, Helvetica, sans-serif" font-size="44" fill="#D1D5DB">Claude Mythos</text>
+</svg>
