@@ -5,18 +5,20 @@ This hook checks for security patterns in file edits and warns about potential v
 """
 
 import json
+import logging
 import os
 import random
-import logging
+import re
 import sys
 from datetime import datetime
 
+# Configure logging to stderr
 logging.basicConfig(
-    stream=sys.stderr,
     level=logging.DEBUG,
-    format="[%(asctime)s.%(msecs)03d] %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S"
+    format="[%(asctime)s] %(levelname)s: %(message)s",
+    stream=sys.stderr,
 )
+logger = logging.getLogger(__name__)
 
 
 # State file to track warnings shown (session-scoped using session ID)
@@ -122,7 +124,16 @@ Only use exec() if you absolutely need shell features and the input is guarantee
 
 def get_state_file(session_id):
     """Get session-specific state file path."""
-    return os.path.expanduser(f"~/.claude/security_warnings_state_{session_id}.json")
+    # Sanitize session_id to prevent path traversal
+    safe_session_id = os.path.basename(str(session_id))
+    # Only allow alphanumeric and dashes/underscores
+    safe_session_id = re.sub(r"[^a-zA-Z0-9_-]", "", safe_session_id)
+    if not safe_session_id:
+        safe_session_id = "default"
+
+    return os.path.expanduser(
+        f"~/.claude/security_warnings_state_{safe_session_id}.json"
+    )
 
 
 def cleanup_old_state_files():
@@ -170,7 +181,7 @@ def save_state(session_id, shown_warnings):
         with open(state_file, "w") as f:
             json.dump(list(shown_warnings), f)
     except IOError as e:
-        logging.debug(f"Failed to save state file: {e}")
+        logger.debug(f"Failed to save state file: {e}")
         pass  # Fail silently if we can't save state
 
 
@@ -226,7 +237,7 @@ def main():
         raw_input = sys.stdin.read()
         input_data = json.loads(raw_input)
     except json.JSONDecodeError as e:
-        logging.debug(f"JSON decode error: {e}")
+        logger.debug(f"JSON decode error: {e}")
         sys.exit(0)  # Allow tool to proceed if we can't parse input
 
     # Extract session ID and tool information from the hook input
