@@ -47,10 +47,27 @@ class RuleEngine:
             Empty dict {} if no rules match.
         """
         hook_event = input_data.get('hook_event_name', '')
+        tool_name = input_data.get('tool_name', '')
+
+        # Determine internal event type for filtering
+        event_type = None
+        if hook_event == 'Stop':
+            event_type = 'stop'
+        elif hook_event == 'UserPromptSubmit':
+            event_type = 'prompt'
+        elif tool_name == 'Bash':
+            event_type = 'bash'
+        elif tool_name in ['Edit', 'Write', 'MultiEdit']:
+            event_type = 'file'
+
         blocking_rules = []
         warning_rules = []
 
         for rule in rules:
+            # Skip rules that don't match the current event type
+            if event_type and rule.event not in (event_type, 'all'):
+                continue
+
             if self._rule_matches(rule, input_data):
                 if rule.action == 'block':
                     blocking_rules.append(rule)
