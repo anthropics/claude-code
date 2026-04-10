@@ -2,6 +2,10 @@
 
 프로젝트 디렉토리 이름 변경, 이동, 복사 시에도 Claude Code 세션 히스토리를 보존합니다.
 
+## 데모
+
+https://github.com/user-attachments/assets/05a3dd4b-dfaa-4540-a2f1-e0c2bf6583af
+
 ## 문제
 
 Claude Code는 디렉토리 경로를 기준으로 프로젝트를 식별합니다. 프로젝트 디렉토리를 이름 변경하거나 이동하면 이전 세션 히스토리에 접근할 수 없게 됩니다.

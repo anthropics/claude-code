@@ -4,6 +4,10 @@
 
 Preserves Claude Code session history across project directory renames, moves, and copies.
 
+## Demo
+
+https://github.com/user-attachments/assets/05a3dd4b-dfaa-4540-a2f1-e0c2bf6583af
+
 ## Problem
 
 Claude Code identifies projects by their directory path. Renaming or moving a project directory causes all previous session history to become unreachable.
