@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="220" viewBox="0 0 960 220">
+  <rect width="960" height="220" rx="24" fill="#0B1020"/>
+  <rect x="40" y="40" width="180" height="140" rx="18" fill="#275EFE"/>
+  <text x="64" y="98" font-family="Arial, Helvetica, sans-serif" font-size="28" fill="#FFFFFF">Ethos</text>
+  <text x="64" y="136" font-family="Arial, Helvetica, sans-serif" font-size="28" fill="#FFFFFF">Aegis</text>
+  <circle cx="320" cy="110" r="12" fill="#F5B700"/>
+  <line x1="360" y1="110" x2="418" y2="110" stroke="#22D3EE" stroke-width="6"/>
+  <text x="448" y="96" font-family="Arial, Helvetica, sans-serif" font-size="40" fill="#D1D5DB">Claude Mythos</text>
+  <text x="448" y="136" font-family="Arial, Helvetica, sans-serif" font-size="20" fill="#22D3EE">Veriflow Immune System</text>
+</svg>
