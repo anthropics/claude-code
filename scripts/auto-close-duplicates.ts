@@ -122,6 +122,7 @@ export async function autoCloseDuplicates(): Promise<void> {
   threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
   const threeDaysAgoIso = threeDaysAgo.toISOString();
   console.log(
+    `[DEBUG] Checking for duplicate comments older than: ${threeDaysAgo.toISOString()}`,
     `[DEBUG] Checking for duplicate comments older than: ${threeDaysAgoIso}`,
   );
 
@@ -138,6 +139,9 @@ export async function autoCloseDuplicates(): Promise<void> {
 
     if (pageIssues.length === 0) break;
 
+    // Filter for issues created more than 3 days ago
+    const oldEnoughIssues = pageIssues.filter(
+      (issue) => new Date(issue.created_at) <= threeDaysAgo,
     // Filter for issues created more than 3 days ago using string comparison
     // Filter for issues created more than 3 days ago
     const oldEnoughIssues = pageIssues.filter(
@@ -312,6 +316,10 @@ export async function autoCloseDuplicates(): Promise<void> {
       const isDupeComment =
         comment.body.includes("Found") &&
         comment.body.includes("possible duplicate") &&
+        comment.user.type === "Bot",
+    );
+    console.log(
+      `[DEBUG] Issue #${issue.number} has ${dupeComments.length} duplicate detection comments`,
         comment.user.type === "Bot";
 
       if (isDupeComment) {
@@ -336,6 +344,7 @@ export async function autoCloseDuplicates(): Promise<void> {
     }
 
     console.log(
+      `[DEBUG] Issue #${issue.number} - most recent duplicate comment from: ${dupeCommentDate.toISOString()}`,
       `[DEBUG] Issue #${
         issue.number
       } - most recent duplicate comment from: ${lastDupeComment.created_at}`,
@@ -348,6 +357,14 @@ export async function autoCloseDuplicates(): Promise<void> {
       continue;
     }
     console.log(
+      `[DEBUG] Issue #${issue.number} - duplicate comment is old enough (${Math.floor((Date.now() - dupeCommentDate.getTime()) / (1000 * 60 * 60 * 24))} days)`,
+    );
+
+    const commentsAfterDupe = comments.filter(
+      (comment) => new Date(comment.created_at) > dupeCommentDate,
+    );
+    console.log(
+      `[DEBUG] Issue #${issue.number} - ${commentsAfterDupe.length} comments after duplicate detection`,
       `[DEBUG] Issue #${
         issue.number
       } - duplicate comment is old enough (${Math.floor(
