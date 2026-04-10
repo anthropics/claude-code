@@ -14,6 +14,7 @@ interface GitHubIssue {
   user: { id: number };
   created_at: string;
   closed_at?: string;
+  pull_request?: any;
 }
 
 interface GitHubComment {
@@ -123,6 +124,9 @@ Environment Variables:
     // Filter to only include issues within the specified range
     const filteredIssues = pageIssues.filter(
       (issue) =>
+        !("pull_request" in issue) &&
+        issue.number >= minIssueNumber &&
+        issue.number < maxIssueNumber,
         issue.number >= minIssueNumber && issue.number < maxIssueNumber,
     );
     allIssues.push(...filteredIssues);
@@ -223,6 +227,7 @@ Environment Variables:
 
     // Add a delay between workflow triggers to avoid overwhelming the system
     await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
   };
 
   const workers = Array(CONCURRENCY_LIMIT)
