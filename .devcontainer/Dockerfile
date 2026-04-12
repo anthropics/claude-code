@@ -112,7 +112,8 @@ RUN chmod +x /usr/local/bin/init-firewall.sh && \
   chmod +x /usr/local/bin/setup-project.sh && \
   echo "node ALL=(root) NOPASSWD: /usr/local/bin/init-firewall.sh" > /etc/sudoers.d/node-firewall && \
   echo "node ALL=(root) NOPASSWD: /usr/bin/docker, /usr/libexec/docker/cli-plugins/docker-compose" >> /etc/sudoers.d/node-firewall && \
+  echo "node ALL=(root) NOPASSWD: /usr/sbin/groupmod, /usr/sbin/usermod" >> /etc/sudoers.d/node-firewall && \
   chmod 0440 /etc/sudoers.d/node-firewall && \
-  # Allow node user to access docker socket
+  # Create docker group (actual GID will be fixed at start time to match host socket)
   groupadd -f docker && usermod -aG docker node
 USER node

@@ -60,11 +60,11 @@
     "CLAUDE_CONFIG_DIR": "/home/node/.claude",
     "POWERLEVEL9K_DISABLE_GITSTATUS": "true",
     "VIRTUAL_ENV": "/workspace/.venv",
-    "PATH": "/workspace/.venv/bin:${containerEnv:PATH}"
+    "PATH": "/workspace/.venv/bin:/usr/local/share/npm-global/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
   },
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=delegated",
   "workspaceFolder": "/workspace",
   "postCreateCommand": "/usr/local/bin/setup-project.sh",
-  "postStartCommand": "sudo /usr/local/bin/init-firewall.sh",
+  "postStartCommand": "sudo /usr/local/bin/init-firewall.sh && if [ -S /var/run/docker.sock ]; then SOCK_GID=$(stat -c '%g' /var/run/docker.sock) && sudo groupmod -g $SOCK_GID docker && sudo usermod -aG docker node; fi",
   "waitFor": "postStartCommand"
 }

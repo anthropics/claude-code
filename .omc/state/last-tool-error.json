@@ -1,0 +1,7 @@
+{
+  "tool_name": "Read",
+  "tool_input_preview": "{\"file_path\":\"/home/nakaj/Pictures/screenshot2.png\"}",
+  "error": "File does not exist. Note: your current working directory is /home/nakaj/claude-code.",
+  "timestamp": "2026-04-12T15:47:06.481Z",
+  "retry_count": 1
+}

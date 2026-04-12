@@ -7,9 +7,9 @@ echo "=== Project Setup Start ==="
 
 # --- Python venv setup ---
 if [ -f "$WORKSPACE/requirements/local.txt" ]; then
-  if [ ! -d "$WORKSPACE/.venv" ]; then
+  if [ ! -x "$WORKSPACE/.venv/bin/pip" ]; then
     echo "Creating Python virtual environment..."
-    python3 -m venv "$WORKSPACE/.venv"
+    python3 -m venv --clear "$WORKSPACE/.venv"
   fi
   echo "Installing Python dependencies..."
   "$WORKSPACE/.venv/bin/pip" install --upgrade pip
