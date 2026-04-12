@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>マイスケジュール</title>
   <style>
-    /* ===== Reset & Base ===== */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
@@ -18,13 +17,9 @@
       --bg:      #f0f2f8;
       --white:   #ffffff;
       --tab-h:   62px;
-      --header-h: 56px;
     }
 
-    html, body {
-      height: 100%;
-      overflow: hidden;
-    }
+    html, body { height: 100%; overflow: hidden; }
 
     body {
       font-family: "Hiragino Sans", "Yu Gothic UI", "Meiryo", sans-serif;
@@ -34,29 +29,51 @@
       flex-direction: column;
     }
 
-    /* ===== Header ===== */
+    /* ===== Header with big clock ===== */
     .app-header {
-      height: var(--header-h);
-      background: linear-gradient(135deg, var(--blue-dk) 0%, #283593 60%, var(--blue) 100%);
+      background: linear-gradient(135deg, var(--blue-dk) 0%, #283593 55%, var(--blue) 100%);
       color: #fff;
+      flex-shrink: 0;
+      padding: 12px 16px 14px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.25);
+    }
+
+    .header-top {
       display: flex;
       align-items: center;
-      padding: 0 16px;
-      gap: 10px;
-      flex-shrink: 0;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      margin-bottom: 8px;
     }
-    .app-header h1 {
-      font-size: 1.05rem;
+    .header-top h1 {
+      font-size: 0.88rem;
       font-weight: 700;
       letter-spacing: 0.04em;
+      opacity: 0.92;
     }
     .header-date {
       margin-left: auto;
-      font-size: 0.78rem;
-      opacity: 0.88;
+      font-size: 0.75rem;
+      opacity: 0.78;
       letter-spacing: 0.02em;
-      white-space: nowrap;
+    }
+
+    /* Big clock */
+    .clock-wrap {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+    }
+    #clock {
+      font-size: 3rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    }
+    .clock-sub {
+      font-size: 0.75rem;
+      opacity: 0.7;
+      letter-spacing: 0.04em;
     }
 
     /* ===== Screen container ===== */
@@ -65,20 +82,17 @@
       overflow: hidden;
       position: relative;
     }
-
     .screen {
       position: absolute;
       inset: 0;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
-      padding: 16px 14px 20px;
+      padding: 14px 13px 18px;
       display: none;
       flex-direction: column;
-      gap: 14px;
+      gap: 12px;
     }
-    .screen.active {
-      display: flex;
-    }
+    .screen.active { display: flex; }
 
     /* ===== Card ===== */
     .card {
@@ -91,116 +105,128 @@
       display: flex;
       align-items: center;
       gap: 9px;
-      padding: 13px 16px 11px;
+      padding: 12px 15px 10px;
       border-bottom: 1.5px solid #f0f2f8;
     }
     .card-icon {
-      width: 28px;
-      height: 28px;
+      width: 26px; height: 26px;
       border-radius: 7px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.95rem;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.88rem;
       flex-shrink: 0;
     }
     .card-head h2 {
-      font-size: 0.9rem;
+      font-size: 0.87rem;
       font-weight: 700;
       letter-spacing: 0.03em;
     }
-    .card-body {
-      padding: 14px 16px;
-    }
+    .card-body { padding: 13px 15px; }
 
     /* ===== Screen 1: 通勤ルート ===== */
-    /* Route — vertical on mobile */
+    .route-card .card-icon { background: #e8eaf6; }
+    .route-card .card-head h2 { color: var(--blue); }
+
+    /* 縦型ルート */
     .route-track {
       display: flex;
       flex-direction: column;
-      align-items: flex-start;
-      padding: 4px 8px 4px 16px;
-      gap: 0;
+      padding: 2px 0 2px 10px;
     }
-
     .route-stop {
       display: flex;
       align-items: center;
-      gap: 14px;
-      position: relative;
+      gap: 12px;
     }
-
     .stop-dot {
-      width: 16px;
-      height: 16px;
+      width: 15px; height: 15px;
       border-radius: 50%;
       border: 3px solid var(--blue);
       background: var(--white);
-      flex-shrink: 0;
-      z-index: 1;
+      flex-shrink: 0; z-index: 1;
     }
     .stop-dot.home { background: var(--blue); border-color: var(--blue-dk); }
-    .stop-dot.work { background: var(--red); border-color: var(--red-dk); }
+    .stop-dot.work { background: var(--red);  border-color: var(--red-dk); }
 
-    .stop-label {
-      font-size: 0.88rem;
+    .stop-info { display: flex; flex-direction: column; gap: 1px; }
+    .stop-name {
+      font-size: 0.87rem;
       font-weight: 700;
       color: #455a64;
-      letter-spacing: 0.02em;
     }
-    .stop-label.home { color: var(--blue-dk); }
-    .stop-label.work { color: var(--red-dk); }
+    .stop-name.home { color: var(--blue-dk); }
+    .stop-name.work { color: var(--red-dk); }
+    .stop-sub {
+      font-size: 0.68rem;
+      color: #90a4ae;
+      letter-spacing: 0.01em;
+    }
 
-    /* Connector between stops */
-    .route-connector {
+    .route-conn {
       display: flex;
-      align-items: center;
-      gap: 14px;
+      align-items: stretch;
+      gap: 12px;
       padding: 0;
     }
-    .connector-line-wrap {
+    .conn-line-col {
       display: flex;
       flex-direction: column;
       align-items: center;
-      width: 16px;
+      width: 15px;
       flex-shrink: 0;
     }
-    .connector-line {
+    .conn-line {
       width: 3px;
-      height: 32px;
-      background: linear-gradient(180deg, var(--blue), #5c6bc0);
+      flex: 1;
+      min-height: 28px;
       border-radius: 2px;
     }
-    .connector-label {
-      font-size: 0.67rem;
-      color: #90a4ae;
-      letter-spacing: 0.02em;
-      padding: 1px 0;
-      white-space: nowrap;
-      line-height: 1;
-    }
+    .conn-line.car   { background: linear-gradient(180deg, #ff8f00, #ffa726); }
+    .conn-line.train { background: linear-gradient(180deg, var(--blue), #5c6bc0); }
 
-    /* Summary row */
-    .route-summary {
-      margin-top: 14px;
+    .conn-label-col {
       display: flex;
-      gap: 8px;
+      flex-direction: column;
+      justify-content: center;
+      padding: 3px 0;
+    }
+    .conn-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      line-height: 1.3;
+    }
+    .conn-label.car   { color: #e65100; }
+    .conn-label.train { color: var(--blue); }
+    .conn-badge {
+      display: inline-block;
+      font-size: 0.62rem;
+      padding: 1px 7px;
+      border-radius: 8px;
+      font-weight: 700;
+      margin-top: 2px;
+    }
+    .conn-badge.car-b   { background: #fff3e0; color: #e65100; }
+    .conn-badge.train-b { background: #e8eaf6; color: var(--blue); }
+    .conn-badge.rapid-b { background: #e0f2f1; color: #00695c; }
+
+    .route-summary {
+      margin-top: 12px;
+      display: flex;
+      gap: 6px;
       flex-wrap: wrap;
     }
     .route-tag {
       background: #e8eaf6;
       color: var(--blue);
-      font-size: 0.72rem;
+      font-size: 0.68rem;
       font-weight: 700;
-      padding: 3px 10px;
-      border-radius: 12px;
-      letter-spacing: 0.03em;
+      padding: 3px 9px;
+      border-radius: 10px;
     }
 
-    /* Info card */
+    /* Info rows */
     .info-card .card-icon { background: #e8eaf6; }
     .info-card .card-head h2 { color: var(--blue); }
-
     .info-row {
       display: flex;
       align-items: center;
@@ -209,32 +235,22 @@
       gap: 10px;
     }
     .info-row:last-child { border-bottom: none; }
-    .info-label {
-      font-size: 0.75rem;
-      color: var(--gray);
-      min-width: 64px;
-      font-weight: 600;
-    }
-    .info-value {
-      font-size: 0.82rem;
-      color: #37474f;
-      font-weight: 600;
-    }
+    .info-label { font-size: 0.73rem; color: var(--gray); min-width: 70px; font-weight: 600; }
+    .info-value { font-size: 0.82rem; color: #37474f; font-weight: 600; line-height: 1.4; }
 
     /* ===== Screen 2: 時刻表 ===== */
     .tt-card .card-icon { background: #e0f2f1; }
     .tt-card .card-head h2 { color: var(--green); }
 
-    .tt-section-title {
-      font-size: 0.7rem;
+    .tt-sec-title {
+      font-size: 0.68rem;
       font-weight: 700;
       color: var(--gray);
-      letter-spacing: 0.06em;
-      margin-bottom: 10px;
-      padding-bottom: 6px;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+      padding-bottom: 5px;
       border-bottom: 1px solid #eceff1;
     }
-
     .tt-row {
       display: flex;
       align-items: center;
@@ -243,321 +259,228 @@
       gap: 10px;
     }
     .tt-row:last-child { border-bottom: none; }
-
     .tt-time {
       font-size: 1.15rem;
       font-weight: 800;
       color: var(--green);
-      min-width: 56px;
+      min-width: 54px;
       font-variant-numeric: tabular-nums;
-      letter-spacing: 0.01em;
     }
     .tt-detail {
       flex: 1;
-      font-size: 0.8rem;
+      font-size: 0.78rem;
       color: var(--gray);
       line-height: 1.5;
     }
-    .tt-detail strong {
-      display: block;
-      color: #37474f;
-      font-size: 0.85rem;
-    }
+    .tt-detail strong { display: block; color: #37474f; font-size: 0.83rem; }
     .tt-badge {
-      font-size: 0.68rem;
-      padding: 3px 10px;
+      font-size: 0.66rem;
+      padding: 3px 9px;
       border-radius: 10px;
       font-weight: 700;
       white-space: nowrap;
     }
     .badge-local  { background: #e8eaf6; color: var(--blue); }
     .badge-rapid  { background: #e0f2f1; color: #00695c; }
-    .badge-express{ background: #fff3e0; color: #e65100; }
-
-    .tt-divider {
-      height: 10px;
-    }
+    .tt-gap { height: 10px; }
 
     /* ===== Screen 3: 仕事内容 ===== */
     .work-card .card-icon { background: #fce4ec; }
     .work-card .card-head h2 { color: var(--red-dk); }
 
-    .work-meta {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 14px;
-      flex-wrap: wrap;
-    }
-    .work-meta-tag {
-      font-size: 0.73rem;
-      font-weight: 700;
-      padding: 3px 12px;
-      border-radius: 12px;
-      letter-spacing: 0.03em;
-    }
-    .meta-time { background: #ffebee; color: var(--red); }
+    .work-meta { display: flex; gap: 7px; margin-bottom: 13px; flex-wrap: wrap; }
+    .meta-tag { font-size: 0.71rem; font-weight: 700; padding: 3px 11px; border-radius: 11px; letter-spacing: 0.03em; }
+    .meta-time  { background: #ffebee; color: var(--red); }
     .meta-place { background: #f3e5f5; color: #7b1fa2; }
 
-    .timeline {
-      position: relative;
-      padding-left: 6px;
-    }
+    .timeline { position: relative; padding-left: 6px; }
     .timeline::before {
       content: "";
       position: absolute;
-      left: 22px;
-      top: 8px;
-      bottom: 8px;
+      left: 21px; top: 8px; bottom: 8px;
       width: 2px;
       background: linear-gradient(180deg, #ef9a9a 0%, #ef5350 50%, #ef9a9a 100%);
       border-radius: 2px;
     }
-
-    .tl-item {
-      display: flex;
-      align-items: flex-start;
-      margin-bottom: 6px;
-    }
+    .tl-item { display: flex; align-items: flex-start; margin-bottom: 6px; }
     .tl-item:last-child { margin-bottom: 0; }
-
     .tl-time {
-      min-width: 44px;
-      font-size: 0.72rem;
-      font-weight: 800;
+      min-width: 42px;
+      font-size: 0.7rem; font-weight: 800;
       color: var(--red);
-      padding-top: 13px;
-      text-align: right;
-      padding-right: 10px;
-      font-variant-numeric: tabular-nums;
-      flex-shrink: 0;
+      padding-top: 13px; text-align: right; padding-right: 9px;
+      font-variant-numeric: tabular-nums; flex-shrink: 0;
     }
-
-    .tl-dot-wrap {
-      position: relative;
-      z-index: 1;
-      padding-top: 16px;
-      margin-right: 10px;
-      flex-shrink: 0;
-    }
-    .tl-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: var(--white);
-      border: 2.5px solid var(--red);
-    }
-
+    .tl-dot-wrap { position: relative; z-index: 1; padding-top: 16px; margin-right: 9px; flex-shrink: 0; }
+    .tl-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--white); border: 2.5px solid var(--red); }
     .tl-block {
       flex: 1;
-      background: #fff8f8;
-      border: 1.5px solid #ffcdd2;
-      border-radius: 10px;
-      padding: 10px 12px;
-      margin-bottom: 2px;
+      background: #fff8f8; border: 1.5px solid #ffcdd2;
+      border-radius: 10px; padding: 9px 11px; margin-bottom: 2px;
     }
-    .tl-block.break {
-      background: #f5f5f5;
-      border-color: #e0e0e0;
-    }
-    .tl-block-title {
-      font-size: 0.85rem;
-      font-weight: 700;
-      color: var(--red-dk);
-      margin-bottom: 2px;
-    }
-    .tl-block.break .tl-block-title { color: var(--gray); }
-    .tl-block-sub {
-      font-size: 0.73rem;
-      color: #90a4ae;
-    }
+    .tl-block.brk { background: #f5f5f5; border-color: #e0e0e0; }
+    .tl-block-title { font-size: 0.83rem; font-weight: 700; color: var(--red-dk); margin-bottom: 2px; }
+    .tl-block.brk .tl-block-title { color: var(--gray); }
+    .tl-block-sub { font-size: 0.71rem; color: #90a4ae; }
 
-    .tl-end {
-      display: flex;
-      align-items: center;
-      margin-top: 6px;
-      gap: 10px;
-    }
-    .tl-end-time {
-      min-width: 44px;
-      font-size: 0.72rem;
-      font-weight: 800;
-      color: var(--red);
-      text-align: right;
-      padding-right: 10px;
-    }
-    .tl-end-dot-wrap {
-      position: relative;
-      z-index: 1;
-      margin-right: 10px;
-    }
-    .tl-end-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: var(--red);
-      border: 2.5px solid var(--red-dk);
-    }
-    .tl-end-flag {
-      font-size: 0.8rem;
-      font-weight: 700;
-      color: var(--red);
-      background: #ffebee;
-      padding: 4px 14px;
-      border-radius: 12px;
-      letter-spacing: 0.04em;
-    }
+    .tl-end { display: flex; align-items: center; margin-top: 6px; gap: 9px; }
+    .tl-end-time { min-width: 42px; font-size: 0.7rem; font-weight: 800; color: var(--red); text-align: right; padding-right: 9px; }
+    .tl-end-dot-wrap { z-index: 1; margin-right: 9px; }
+    .tl-end-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--red); border: 2.5px solid var(--red-dk); }
+    .tl-end-flag { font-size: 0.78rem; font-weight: 700; color: var(--red); background: #ffebee; padding: 4px 13px; border-radius: 11px; letter-spacing: 0.04em; }
 
-    /* ===== Bottom Tab Bar ===== */
+    /* ===== Tab Bar ===== */
     .tab-bar {
       height: var(--tab-h);
       background: var(--white);
       border-top: 1px solid #dde2ee;
       display: flex;
       flex-shrink: 0;
-      /* safe area for notch phones */
       padding-bottom: env(safe-area-inset-bottom);
-      box-shadow: 0 -2px 12px rgba(30,40,80,0.08);
+      box-shadow: 0 -2px 10px rgba(30,40,80,0.08);
     }
-
     .tab-btn {
       flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 3px;
-      border: none;
-      background: transparent;
-      cursor: pointer;
-      padding: 6px 4px;
-      transition: background 0.15s;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 3px; border: none; background: transparent;
+      cursor: pointer; padding: 6px 4px;
       -webkit-tap-highlight-color: transparent;
-      outline: none;
+      outline: none; position: relative;
     }
     .tab-btn:active { background: #f0f2f8; }
+    .tab-icon  { font-size: 1.3rem; line-height: 1; }
+    .tab-label { font-size: 0.63rem; font-weight: 700; color: #90a4ae; letter-spacing: 0.03em; white-space: nowrap; }
 
-    .tab-icon {
-      font-size: 1.35rem;
-      line-height: 1;
-    }
-    .tab-label {
-      font-size: 0.65rem;
-      font-weight: 700;
-      color: #90a4ae;
-      letter-spacing: 0.03em;
-      white-space: nowrap;
-    }
-
-    .tab-btn.active .tab-label { color: var(--blue); }
-    .tab-btn.active .tab-icon  { filter: none; }
-
-    /* Active tab indicator line at top */
     .tab-btn.active::before {
-      content: "";
-      position: absolute;
-      top: 0;
-      width: 40px;
-      height: 3px;
-      background: var(--blue);
-      border-radius: 0 0 3px 3px;
+      content: ""; position: absolute; top: 0;
+      width: 38px; height: 3px; border-radius: 0 0 3px 3px;
     }
-    .tab-btn { position: relative; }
-
-    /* Tab accent colors */
-    .tab-btn[data-tab="route"].active .tab-label   { color: var(--blue); }
-    .tab-btn[data-tab="route"].active::before       { background: var(--blue); }
-    .tab-btn[data-tab="timetable"].active .tab-label{ color: var(--green); }
-    .tab-btn[data-tab="timetable"].active::before   { background: var(--green); }
-    .tab-btn[data-tab="work"].active .tab-label     { color: var(--red); }
-    .tab-btn[data-tab="work"].active::before        { background: var(--red); }
+    .tab-btn[data-tab="route"].active    .tab-label { color: var(--blue); }
+    .tab-btn[data-tab="route"].active::before        { background: var(--blue); }
+    .tab-btn[data-tab="timetable"].active .tab-label { color: var(--green); }
+    .tab-btn[data-tab="timetable"].active::before    { background: var(--green); }
+    .tab-btn[data-tab="work"].active     .tab-label  { color: var(--red); }
+    .tab-btn[data-tab="work"].active::before         { background: var(--red); }
   </style>
 </head>
 <body>
 
   <!-- ===== Header ===== -->
   <header class="app-header">
-    <h1>📅 マイスケジュール</h1>
-    <span class="header-date">4月12日（日）</span>
+    <div class="header-top">
+      <h1>📅 マイスケジュール</h1>
+      <span class="header-date" id="header-date"></span>
+    </div>
+    <div class="clock-wrap">
+      <span id="clock">--:--:--</span>
+      <span class="clock-sub">現在時刻</span>
+    </div>
   </header>
 
-  <!-- ===== Screen container ===== -->
+  <!-- ===== Screens ===== -->
   <div class="screens">
 
-    <!-- ========== Screen 1: 通勤ルート ========== -->
+    <!-- ======= Screen 1: 通勤ルート ======= -->
     <div class="screen active" id="screen-route">
 
-      <div class="card info-card">
+      <div class="card route-card">
         <div class="card-head">
           <div class="card-icon">🚃</div>
           <h2>今日の通勤ルート</h2>
         </div>
         <div class="card-body">
-
           <div class="route-track">
 
+            <!-- 自宅 -->
             <div class="route-stop">
               <div class="stop-dot home"></div>
-              <span class="stop-label home">自宅</span>
-            </div>
-
-            <div class="route-connector">
-              <div class="connector-line-wrap">
-                <div class="connector-line"></div>
+              <div class="stop-info">
+                <span class="stop-name home">自宅</span>
+                <span class="stop-sub">新潟市中央区美咲町1-26-14</span>
               </div>
-              <span class="connector-label">徒歩 / バス</span>
             </div>
 
+            <!-- 自宅 → 関屋駅（母の車） -->
+            <div class="route-conn">
+              <div class="conn-line-col"><div class="conn-line car"></div></div>
+              <div class="conn-label-col">
+                <span class="conn-label car">母の車</span>
+                <span class="conn-badge car-b">🚗 送迎</span>
+              </div>
+            </div>
+
+            <!-- 関屋駅 -->
             <div class="route-stop">
               <div class="stop-dot"></div>
-              <span class="stop-label">関屋駅</span>
-            </div>
-
-            <div class="route-connector">
-              <div class="connector-line-wrap">
-                <div class="connector-line"></div>
+              <div class="stop-info">
+                <span class="stop-name">関屋駅</span>
+                <span class="stop-sub">越後線 乗車</span>
               </div>
-              <span class="connector-label">越後線</span>
             </div>
 
+            <!-- 関屋駅 → 新潟駅（越後線） -->
+            <div class="route-conn">
+              <div class="conn-line-col"><div class="conn-line train"></div></div>
+              <div class="conn-label-col">
+                <span class="conn-label train">越後線</span>
+                <span class="conn-badge train-b">🚃 電車</span>
+              </div>
+            </div>
+
+            <!-- 新潟駅 -->
             <div class="route-stop">
               <div class="stop-dot"></div>
-              <span class="stop-label">新潟駅</span>
-            </div>
-
-            <div class="route-connector">
-              <div class="connector-line-wrap">
-                <div class="connector-line"></div>
+              <div class="stop-info">
+                <span class="stop-name">新潟駅</span>
+                <span class="stop-sub">羽越本線に乗換</span>
               </div>
-              <span class="connector-label">羽越本線</span>
             </div>
 
+            <!-- 新潟駅 → 中条駅（羽越本線） -->
+            <div class="route-conn">
+              <div class="conn-line-col"><div class="conn-line train"></div></div>
+              <div class="conn-label-col">
+                <span class="conn-label train">羽越本線</span>
+                <span class="conn-badge rapid-b">🚃 快速</span>
+              </div>
+            </div>
+
+            <!-- 中条駅 -->
             <div class="route-stop">
               <div class="stop-dot"></div>
-              <span class="stop-label">中条駅</span>
-            </div>
-
-            <div class="route-connector">
-              <div class="connector-line-wrap">
-                <div class="connector-line"></div>
+              <div class="stop-info">
+                <span class="stop-name">中条駅</span>
+                <span class="stop-sub">駅前の駐車場へ徒歩</span>
               </div>
-              <span class="connector-label">徒歩 / バス</span>
             </div>
 
+            <!-- 中条駅 → 職場（自分の車） -->
+            <div class="route-conn">
+              <div class="conn-line-col"><div class="conn-line car"></div></div>
+              <div class="conn-label-col">
+                <span class="conn-label car">自分の車</span>
+                <span class="conn-badge car-b">🚗 駐車場発</span>
+              </div>
+            </div>
+
+            <!-- 職場 -->
             <div class="route-stop">
               <div class="stop-dot work"></div>
-              <span class="stop-label work">職場</span>
+              <div class="stop-info">
+                <span class="stop-name work">職場</span>
+                <span class="stop-sub">8:30 出勤</span>
+              </div>
             </div>
 
           </div><!-- /route-track -->
 
           <div class="route-summary">
-            <span class="route-tag">越後線</span>
-            <span class="route-tag">羽越本線</span>
+            <span class="route-tag">母の車 → 越後線 → 羽越本線 → 自車</span>
             <span class="route-tag">乗換 1回（新潟駅）</span>
           </div>
-
         </div>
-      </div><!-- /card -->
+      </div><!-- /route-card -->
 
       <div class="card info-card">
         <div class="card-head">
@@ -565,6 +488,10 @@
           <h2>本日の概要</h2>
         </div>
         <div class="card-body">
+          <div class="info-row">
+            <span class="info-label">自宅</span>
+            <span class="info-value">新潟市中央区美咲町1-26-14</span>
+          </div>
           <div class="info-row">
             <span class="info-label">出勤</span>
             <span class="info-value">8:30</span>
@@ -575,18 +502,22 @@
           </div>
           <div class="info-row">
             <span class="info-label">勤務時間</span>
-            <span class="info-value">7時間（休憩1時間）</span>
+            <span class="info-value">7時間（昼休憩 12:00〜13:00）</span>
           </div>
           <div class="info-row">
             <span class="info-label">乗換駅</span>
-            <span class="info-value">新潟駅</span>
+            <span class="info-value">新潟駅（越後線 → 羽越本線）</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">駐車場</span>
+            <span class="info-value">中条駅前（借用）</span>
           </div>
         </div>
       </div>
 
     </div><!-- /screen-route -->
 
-    <!-- ========== Screen 2: 時刻表 ========== -->
+    <!-- ======= Screen 2: 時刻表 ======= -->
     <div class="screen" id="screen-timetable">
 
       <!-- 行き -->
@@ -597,42 +528,28 @@
         </div>
         <div class="card-body">
 
-          <div class="tt-section-title">越後線　関屋 → 新潟</div>
-
+          <div class="tt-sec-title">越後線　関屋 → 新潟</div>
           <div class="tt-row">
-            <span class="tt-time">06:45</span>
-            <div class="tt-detail">
-              <strong>関屋 発</strong>
-              新潟 着 07:05頃
-            </div>
+            <span class="tt-time">06:52</span>
+            <div class="tt--detail tt-detail"><strong>関屋 発</strong>新潟 着 07:06頃</div>
             <span class="tt-badge badge-local">普通</span>
           </div>
           <div class="tt-row">
-            <span class="tt-time">07:10</span>
-            <div class="tt-detail">
-              <strong>関屋 発</strong>
-              新潟 着 07:28頃
-            </div>
+            <span class="tt-time">07:18</span>
+            <div class="tt-detail"><strong>関屋 発</strong>新潟 着 07:32頃</div>
             <span class="tt-badge badge-local">普通</span>
           </div>
 
-          <div class="tt-divider"></div>
-          <div class="tt-section-title">羽越本線　新潟 → 中条</div>
-
+          <div class="tt-gap"></div>
+          <div class="tt-sec-title">羽越本線　新潟 → 中条</div>
           <div class="tt-row">
-            <span class="tt-time">07:12</span>
-            <div class="tt-detail">
-              <strong>新潟 発</strong>
-              中条 着 08:05頃
-            </div>
+            <span class="tt-time">07:13</span>
+            <div class="tt-detail"><strong>新潟 発</strong>中条 着 08:05頃</div>
             <span class="tt-badge badge-rapid">快速</span>
           </div>
           <div class="tt-row">
-            <span class="tt-time">07:40</span>
-            <div class="tt-detail">
-              <strong>新潟 発</strong>
-              中条 着 08:38頃
-            </div>
+            <span class="tt-time">07:44</span>
+            <div class="tt-detail"><strong>新潟 発</strong>中条 着 08:38頃</div>
             <span class="tt-badge badge-local">普通</span>
           </div>
 
@@ -647,42 +564,28 @@
         </div>
         <div class="card-body">
 
-          <div class="tt-section-title">羽越本線　中条 → 新潟</div>
-
+          <div class="tt-sec-title">羽越本線　中条 → 新潟</div>
           <div class="tt-row">
-            <span class="tt-time">15:42</span>
-            <div class="tt-detail">
-              <strong>中条 発</strong>
-              新潟 着 16:38頃
-            </div>
+            <span class="tt-time">15:39</span>
+            <div class="tt-detail"><strong>中条 発</strong>新潟 着 16:35頃</div>
             <span class="tt-badge badge-local">普通</span>
           </div>
           <div class="tt-row">
-            <span class="tt-time">16:20</span>
-            <div class="tt-detail">
-              <strong>中条 発</strong>
-              新潟 着 17:10頃
-            </div>
+            <span class="tt-time">16:18</span>
+            <div class="tt-detail"><strong>中条 発</strong>新潟 着 17:08頃</div>
             <span class="tt-badge badge-rapid">快速</span>
           </div>
 
-          <div class="tt-divider"></div>
-          <div class="tt-section-title">越後線　新潟 → 関屋</div>
-
+          <div class="tt-gap"></div>
+          <div class="tt-sec-title">越後線　新潟 → 関屋</div>
           <div class="tt-row">
-            <span class="tt-time">16:48</span>
-            <div class="tt-detail">
-              <strong>新潟 発</strong>
-              関屋 着 17:02頃
-            </div>
+            <span class="tt-time">16:46</span>
+            <div class="tt-detail"><strong>新潟 発</strong>関屋 着 17:00頃</div>
             <span class="tt-badge badge-local">普通</span>
           </div>
           <div class="tt-row">
-            <span class="tt-time">17:20</span>
-            <div class="tt-detail">
-              <strong>新潟 発</strong>
-              関屋 着 17:34頃
-            </div>
+            <span class="tt-time">17:16</span>
+            <div class="tt-detail"><strong>新潟 発</strong>関屋 着 17:30頃</div>
             <span class="tt-badge badge-local">普通</span>
           </div>
 
@@ -691,7 +594,7 @@
 
     </div><!-- /screen-timetable -->
 
-    <!-- ========== Screen 3: 仕事内容 ========== -->
+    <!-- ======= Screen 3: 仕事内容 ======= -->
     <div class="screen" id="screen-work">
 
       <div class="card work-card">
@@ -702,8 +605,8 @@
         <div class="card-body">
 
           <div class="work-meta">
-            <span class="work-meta-tag meta-time">8:30 〜 15:30</span>
-            <span class="work-meta-tag meta-place">職場</span>
+            <span class="meta-tag meta-time">8:30 〜 15:30</span>
+            <span class="meta-tag meta-place">職場</span>
           </div>
 
           <div class="timeline">
@@ -713,7 +616,7 @@
               <div class="tl-dot-wrap"><div class="tl-dot"></div></div>
               <div class="tl-block">
                 <div class="tl-block-title">出勤・朝の準備</div>
-                <div class="tl-block-sub">〜 9:00　ミーティング準備・連絡確認</div>
+                <div class="tl-block-sub">〜 9:00　連絡確認・準備</div>
               </div>
             </div>
 
@@ -729,7 +632,7 @@
             <div class="tl-item">
               <span class="tl-time">12:00</span>
               <div class="tl-dot-wrap"><div class="tl-dot"></div></div>
-              <div class="tl-block break">
+              <div class="tl-block brk">
                 <div class="tl-block-title">昼休み</div>
                 <div class="tl-block-sub">〜 13:00　休憩</div>
               </div>
@@ -744,7 +647,7 @@
               </div>
             </div>
 
-          </div><!-- /timeline -->
+          </div>
 
           <div class="tl-end">
             <span class="tl-end-time">15:30</span>
@@ -759,7 +662,7 @@
 
   </div><!-- /screens -->
 
-  <!-- ===== Bottom Tab Bar ===== -->
+  <!-- ===== Tab Bar ===== -->
   <nav class="tab-bar">
     <button class="tab-btn active" data-tab="route" onclick="switchTab('route')">
       <span class="tab-icon">🚃</span>
@@ -776,15 +679,30 @@
   </nav>
 
   <script>
-    function switchTab(tab) {
-      // Hide all screens
-      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-      // Deactivate all tabs
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    // ── リアルタイム時計 ──
+    const DAYS = ['日','月','火','水','木','金','土'];
+    function updateClock() {
+      const now = new Date();
+      const hh = String(now.getHours()).padStart(2,'0');
+      const mm = String(now.getMinutes()).padStart(2,'0');
+      const ss = String(now.getSeconds()).padStart(2,'0');
+      document.getElementById('clock').textContent = hh + ':' + mm + ':' + ss;
 
-      // Show target screen
+      const y = now.getFullYear();
+      const mo = now.getMonth() + 1;
+      const d = now.getDate();
+      const day = DAYS[now.getDay()];
+      document.getElementById('header-date').textContent =
+        y + '年' + mo + '月' + d + '日（' + day + '）';
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
+
+    // ── タブ切り替え ──
+    function switchTab(tab) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       document.getElementById('screen-' + tab).classList.add('active');
-      // Activate tab button
       document.querySelector('.tab-btn[data-tab="' + tab + '"]').classList.add('active');
     }
   </script>
