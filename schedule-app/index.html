@@ -2,565 +2,742 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>マイスケジュール</title>
   <style>
-    /* ===== Base ===== */
+    /* ===== Reset & Base ===== */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --blue:    #3949ab;
+      --blue-dk: #1a237e;
+      --green:   #00796b;
+      --red:     #e53935;
+      --red-dk:  #b71c1c;
+      --gray:    #78909c;
+      --bg:      #f0f2f8;
+      --white:   #ffffff;
+      --tab-h:   62px;
+      --header-h: 56px;
+    }
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+    }
 
     body {
       font-family: "Hiragino Sans", "Yu Gothic UI", "Meiryo", sans-serif;
-      background: #eef2f7;
+      background: var(--bg);
       color: #2c3e50;
-      min-height: 100vh;
-      padding: 0;
+      display: flex;
+      flex-direction: column;
     }
 
     /* ===== Header ===== */
-    header {
-      background: linear-gradient(135deg, #1a237e 0%, #283593 60%, #3949ab 100%);
+    .app-header {
+      height: var(--header-h);
+      background: linear-gradient(135deg, var(--blue-dk) 0%, #283593 60%, var(--blue) 100%);
       color: #fff;
-      padding: 20px 32px 18px;
-      display: flex;
-      align-items: baseline;
-      gap: 18px;
-    }
-    header h1 {
-      font-size: 1.35rem;
-      font-weight: 700;
-      letter-spacing: 0.05em;
-    }
-    header .date-info {
-      font-size: 0.9rem;
-      opacity: 0.85;
-      letter-spacing: 0.03em;
-    }
-    header .day-badge {
-      margin-left: auto;
-      background: rgba(255,255,255,0.18);
-      border: 1px solid rgba(255,255,255,0.35);
-      border-radius: 20px;
-      padding: 3px 14px;
-      font-size: 0.82rem;
-      letter-spacing: 0.04em;
-    }
-
-    /* ===== Layout ===== */
-    .app-body {
-      display: grid;
-      grid-template-rows: auto 1fr;
-      gap: 0;
-      padding: 24px 28px 32px;
-      max-width: 1100px;
-      margin: 0 auto;
-    }
-
-    /* ===== Card base ===== */
-    .card {
-      background: #fff;
-      border-radius: 14px;
-      box-shadow: 0 2px 12px rgba(30,40,80,0.08);
-      overflow: hidden;
-    }
-    .card-header {
       display: flex;
       align-items: center;
+      padding: 0 16px;
       gap: 10px;
-      padding: 14px 20px 12px;
-      border-bottom: 2px solid #f0f2f8;
+      flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
     }
-    .card-header .icon {
-      width: 30px;
-      height: 30px;
-      border-radius: 8px;
+    .app-header h1 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+    .header-date {
+      margin-left: auto;
+      font-size: 0.78rem;
+      opacity: 0.88;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+    }
+
+    /* ===== Screen container ===== */
+    .screens {
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .screen {
+      position: absolute;
+      inset: 0;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 16px 14px 20px;
+      display: none;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .screen.active {
+      display: flex;
+    }
+
+    /* ===== Card ===== */
+    .card {
+      background: var(--white);
+      border-radius: 14px;
+      box-shadow: 0 2px 10px rgba(30,40,80,0.09);
+      overflow: hidden;
+    }
+    .card-head {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 13px 16px 11px;
+      border-bottom: 1.5px solid #f0f2f8;
+    }
+    .card-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 7px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1rem;
-    }
-    .card-header h2 {
       font-size: 0.95rem;
+      flex-shrink: 0;
+    }
+    .card-head h2 {
+      font-size: 0.9rem;
       font-weight: 700;
-      letter-spacing: 0.04em;
+      letter-spacing: 0.03em;
     }
     .card-body {
-      padding: 18px 20px;
+      padding: 14px 16px;
     }
 
-    /* ===== Section 1: 通勤ルート ===== */
-    .route-card {
-      margin-bottom: 20px;
-    }
-    .route-card .card-header .icon { background: #e8eaf6; }
-    .route-card .card-header h2 { color: #3949ab; }
-
-    .route-line {
+    /* ===== Screen 1: 通勤ルート ===== */
+    /* Route — vertical on mobile */
+    .route-track {
       display: flex;
-      align-items: center;
-      flex-wrap: wrap;
+      flex-direction: column;
+      align-items: flex-start;
+      padding: 4px 8px 4px 16px;
       gap: 0;
-      padding: 8px 4px;
     }
-    .station {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 5px;
-    }
-    .station-dot {
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
-      border: 3px solid #3949ab;
-      background: #fff;
-    }
-    .station-dot.home {
-      background: #3949ab;
-      border-color: #1a237e;
-    }
-    .station-dot.work {
-      background: #e53935;
-      border-color: #b71c1c;
-    }
-    .station-label {
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: #546e7a;
-      white-space: nowrap;
-      letter-spacing: 0.02em;
-    }
-    .station-label.home-label { color: #1a237e; }
-    .station-label.work-label { color: #c62828; }
 
-    .route-arrow {
-      flex: 1;
-      min-width: 30px;
+    .route-stop {
       display: flex;
-      flex-direction: column;
       align-items: center;
-      gap: 4px;
-      padding-bottom: 20px;
-    }
-    .route-arrow-line {
-      width: 100%;
-      height: 3px;
-      background: linear-gradient(90deg, #3949ab, #5c6bc0);
+      gap: 14px;
       position: relative;
     }
-    .route-arrow-line::after {
-      content: "";
-      position: absolute;
-      right: -1px;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 0;
-      height: 0;
-      border-left: 8px solid #5c6bc0;
-      border-top: 5px solid transparent;
-      border-bottom: 5px solid transparent;
-    }
-    .route-line-label {
-      font-size: 0.65rem;
-      color: #90a4ae;
-      letter-spacing: 0.03em;
-      white-space: nowrap;
-    }
 
-    /* ===== Bottom grid: 時刻表 + 仕事内容 ===== */
-    .bottom-grid {
-      display: grid;
-      grid-template-columns: 1fr 1.6fr;
-      gap: 20px;
-      align-items: start;
+    .stop-dot {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border: 3px solid var(--blue);
+      background: var(--white);
+      flex-shrink: 0;
+      z-index: 1;
     }
+    .stop-dot.home { background: var(--blue); border-color: var(--blue-dk); }
+    .stop-dot.work { background: var(--red); border-color: var(--red-dk); }
 
-    /* ===== Section 2: 電車時刻表 ===== */
-    .timetable-card .card-header .icon { background: #e0f2f1; }
-    .timetable-card .card-header h2 { color: #00796b; }
-
-    .timetable-section {
-      margin-bottom: 16px;
-    }
-    .timetable-section:last-child { margin-bottom: 0; }
-    .timetable-section-title {
-      font-size: 0.72rem;
+    .stop-label {
+      font-size: 0.88rem;
       font-weight: 700;
-      color: #546e7a;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      margin-bottom: 8px;
-      padding-bottom: 4px;
-      border-bottom: 1px solid #eceff1;
+      color: #455a64;
+      letter-spacing: 0.02em;
     }
+    .stop-label.home { color: var(--blue-dk); }
+    .stop-label.work { color: var(--red-dk); }
 
-    .timetable-row {
+    /* Connector between stops */
+    .route-connector {
       display: flex;
       align-items: center;
-      padding: 7px 0;
+      gap: 14px;
+      padding: 0;
+    }
+    .connector-line-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 16px;
+      flex-shrink: 0;
+    }
+    .connector-line {
+      width: 3px;
+      height: 32px;
+      background: linear-gradient(180deg, var(--blue), #5c6bc0);
+      border-radius: 2px;
+    }
+    .connector-label {
+      font-size: 0.67rem;
+      color: #90a4ae;
+      letter-spacing: 0.02em;
+      padding: 1px 0;
+      white-space: nowrap;
+      line-height: 1;
+    }
+
+    /* Summary row */
+    .route-summary {
+      margin-top: 14px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .route-tag {
+      background: #e8eaf6;
+      color: var(--blue);
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 12px;
+      letter-spacing: 0.03em;
+    }
+
+    /* Info card */
+    .info-card .card-icon { background: #e8eaf6; }
+    .info-card .card-head h2 { color: var(--blue); }
+
+    .info-row {
+      display: flex;
+      align-items: center;
+      padding: 9px 0;
       border-bottom: 1px solid #f5f5f5;
       gap: 10px;
     }
-    .timetable-row:last-child { border-bottom: none; }
-    .timetable-time {
-      font-size: 1.05rem;
-      font-weight: 700;
-      color: #00796b;
-      min-width: 52px;
-      letter-spacing: 0.02em;
-      font-variant-numeric: tabular-nums;
-    }
-    .timetable-detail {
-      font-size: 0.78rem;
-      color: #78909c;
-      line-height: 1.4;
-    }
-    .timetable-badge {
-      margin-left: auto;
-      font-size: 0.68rem;
-      padding: 2px 8px;
-      border-radius: 10px;
+    .info-row:last-child { border-bottom: none; }
+    .info-label {
+      font-size: 0.75rem;
+      color: var(--gray);
+      min-width: 64px;
       font-weight: 600;
+    }
+    .info-value {
+      font-size: 0.82rem;
+      color: #37474f;
+      font-weight: 600;
+    }
+
+    /* ===== Screen 2: 時刻表 ===== */
+    .tt-card .card-icon { background: #e0f2f1; }
+    .tt-card .card-head h2 { color: var(--green); }
+
+    .tt-section-title {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--gray);
+      letter-spacing: 0.06em;
+      margin-bottom: 10px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid #eceff1;
+    }
+
+    .tt-row {
+      display: flex;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid #f5f5f5;
+      gap: 10px;
+    }
+    .tt-row:last-child { border-bottom: none; }
+
+    .tt-time {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--green);
+      min-width: 56px;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0.01em;
+    }
+    .tt-detail {
+      flex: 1;
+      font-size: 0.8rem;
+      color: var(--gray);
+      line-height: 1.5;
+    }
+    .tt-detail strong {
+      display: block;
+      color: #37474f;
+      font-size: 0.85rem;
+    }
+    .tt-badge {
+      font-size: 0.68rem;
+      padding: 3px 10px;
+      border-radius: 10px;
+      font-weight: 700;
       white-space: nowrap;
     }
-    .badge-express {
-      background: #fff3e0;
-      color: #e65100;
-    }
-    .badge-local {
-      background: #e8eaf6;
-      color: #3949ab;
-    }
-    .badge-rapid {
-      background: #e0f2f1;
-      color: #00695c;
+    .badge-local  { background: #e8eaf6; color: var(--blue); }
+    .badge-rapid  { background: #e0f2f1; color: #00695c; }
+    .badge-express{ background: #fff3e0; color: #e65100; }
+
+    .tt-divider {
+      height: 10px;
     }
 
-    .placeholder-box {
-      background: #f9fbe7;
-      border: 1.5px dashed #c5e1a5;
-      border-radius: 8px;
-      padding: 16px;
-      text-align: center;
-      color: #aed581;
-      font-size: 0.8rem;
-      font-weight: 600;
-    }
+    /* ===== Screen 3: 仕事内容 ===== */
+    .work-card .card-icon { background: #fce4ec; }
+    .work-card .card-head h2 { color: var(--red-dk); }
 
-    /* ===== Section 3: 今日の仕事内容 ===== */
-    .work-card .card-header .icon { background: #fce4ec; }
-    .work-card .card-header h2 { color: #c62828; }
-
-    .work-time-header {
+    .work-meta {
       display: flex;
-      justify-content: space-between;
-      font-size: 0.72rem;
-      color: #90a4ae;
-      font-weight: 600;
-      letter-spacing: 0.04em;
-      margin-bottom: 10px;
+      gap: 8px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
     }
+    .work-meta-tag {
+      font-size: 0.73rem;
+      font-weight: 700;
+      padding: 3px 12px;
+      border-radius: 12px;
+      letter-spacing: 0.03em;
+    }
+    .meta-time { background: #ffebee; color: var(--red); }
+    .meta-place { background: #f3e5f5; color: #7b1fa2; }
 
     .timeline {
       position: relative;
+      padding-left: 6px;
     }
     .timeline::before {
       content: "";
       position: absolute;
-      left: 56px;
-      top: 0;
-      bottom: 0;
+      left: 22px;
+      top: 8px;
+      bottom: 8px;
       width: 2px;
       background: linear-gradient(180deg, #ef9a9a 0%, #ef5350 50%, #ef9a9a 100%);
       border-radius: 2px;
     }
 
-    .timeline-item {
+    .tl-item {
       display: flex;
       align-items: flex-start;
-      gap: 0;
-      margin-bottom: 4px;
+      margin-bottom: 6px;
     }
-    .timeline-item:last-child { margin-bottom: 0; }
+    .tl-item:last-child { margin-bottom: 0; }
 
     .tl-time {
-      min-width: 56px;
-      font-size: 0.75rem;
-      font-weight: 700;
-      color: #e53935;
-      padding-top: 12px;
+      min-width: 44px;
+      font-size: 0.72rem;
+      font-weight: 800;
+      color: var(--red);
+      padding-top: 13px;
       text-align: right;
-      padding-right: 12px;
+      padding-right: 10px;
       font-variant-numeric: tabular-nums;
-      letter-spacing: 0.01em;
+      flex-shrink: 0;
     }
 
-    .tl-dot-wrapper {
+    .tl-dot-wrap {
       position: relative;
       z-index: 1;
-      padding-top: 15px;
-      margin-right: 12px;
+      padding-top: 16px;
+      margin-right: 10px;
+      flex-shrink: 0;
     }
     .tl-dot {
       width: 10px;
       height: 10px;
       border-radius: 50%;
-      background: #fff;
-      border: 2.5px solid #e53935;
+      background: var(--white);
+      border: 2.5px solid var(--red);
     }
 
     .tl-block {
       flex: 1;
       background: #fff8f8;
       border: 1.5px solid #ffcdd2;
-      border-radius: 9px;
-      padding: 9px 12px;
-      margin-bottom: 6px;
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin-bottom: 2px;
     }
     .tl-block.break {
-      background: #f3f4f6;
+      background: #f5f5f5;
       border-color: #e0e0e0;
     }
     .tl-block-title {
-      font-size: 0.82rem;
+      font-size: 0.85rem;
       font-weight: 700;
-      color: #b71c1c;
+      color: var(--red-dk);
       margin-bottom: 2px;
     }
-    .tl-block.break .tl-block-title {
-      color: #78909c;
-    }
+    .tl-block.break .tl-block-title { color: var(--gray); }
     .tl-block-sub {
-      font-size: 0.72rem;
+      font-size: 0.73rem;
       color: #90a4ae;
     }
 
-    .tl-end-label {
+    .tl-end {
       display: flex;
       align-items: center;
+      margin-top: 6px;
       gap: 10px;
-      margin-top: 8px;
     }
     .tl-end-time {
-      min-width: 56px;
-      font-size: 0.75rem;
-      font-weight: 700;
-      color: #e53935;
+      min-width: 44px;
+      font-size: 0.72rem;
+      font-weight: 800;
+      color: var(--red);
       text-align: right;
-      padding-right: 12px;
+      padding-right: 10px;
+    }
+    .tl-end-dot-wrap {
+      position: relative;
+      z-index: 1;
+      margin-right: 10px;
+    }
+    .tl-end-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--red);
+      border: 2.5px solid var(--red-dk);
     }
     .tl-end-flag {
-      font-size: 0.78rem;
+      font-size: 0.8rem;
       font-weight: 700;
-      color: #e53935;
+      color: var(--red);
       background: #ffebee;
-      padding: 3px 12px;
-      border-radius: 10px;
+      padding: 4px 14px;
+      border-radius: 12px;
       letter-spacing: 0.04em;
     }
 
-    /* ===== Footer ===== */
-    footer {
-      text-align: center;
-      padding: 10px;
-      font-size: 0.7rem;
-      color: #b0bec5;
-      letter-spacing: 0.04em;
+    /* ===== Bottom Tab Bar ===== */
+    .tab-bar {
+      height: var(--tab-h);
+      background: var(--white);
+      border-top: 1px solid #dde2ee;
+      display: flex;
+      flex-shrink: 0;
+      /* safe area for notch phones */
+      padding-bottom: env(safe-area-inset-bottom);
+      box-shadow: 0 -2px 12px rgba(30,40,80,0.08);
     }
 
-    /* ===== Responsive ===== */
-    @media (max-width: 680px) {
-      .app-body { padding: 14px 12px 24px; }
-      .bottom-grid { grid-template-columns: 1fr; }
-      header { padding: 16px 16px 14px; }
-      header h1 { font-size: 1.1rem; }
+    .tab-btn {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      padding: 6px 4px;
+      transition: background 0.15s;
+      -webkit-tap-highlight-color: transparent;
+      outline: none;
     }
+    .tab-btn:active { background: #f0f2f8; }
+
+    .tab-icon {
+      font-size: 1.35rem;
+      line-height: 1;
+    }
+    .tab-label {
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: #90a4ae;
+      letter-spacing: 0.03em;
+      white-space: nowrap;
+    }
+
+    .tab-btn.active .tab-label { color: var(--blue); }
+    .tab-btn.active .tab-icon  { filter: none; }
+
+    /* Active tab indicator line at top */
+    .tab-btn.active::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      width: 40px;
+      height: 3px;
+      background: var(--blue);
+      border-radius: 0 0 3px 3px;
+    }
+    .tab-btn { position: relative; }
+
+    /* Tab accent colors */
+    .tab-btn[data-tab="route"].active .tab-label   { color: var(--blue); }
+    .tab-btn[data-tab="route"].active::before       { background: var(--blue); }
+    .tab-btn[data-tab="timetable"].active .tab-label{ color: var(--green); }
+    .tab-btn[data-tab="timetable"].active::before   { background: var(--green); }
+    .tab-btn[data-tab="work"].active .tab-label     { color: var(--red); }
+    .tab-btn[data-tab="work"].active::before        { background: var(--red); }
   </style>
 </head>
 <body>
 
   <!-- ===== Header ===== -->
-  <header>
+  <header class="app-header">
     <h1>📅 マイスケジュール</h1>
-    <span class="date-info">2026年4月12日（日）</span>
-    <span class="day-badge">今日</span>
+    <span class="header-date">4月12日（日）</span>
   </header>
 
-  <div class="app-body">
+  <!-- ===== Screen container ===== -->
+  <div class="screens">
 
-    <!-- ===== Section 1: 通勤ルート ===== -->
-    <div class="card route-card">
-      <div class="card-header">
-        <div class="icon">🚃</div>
-        <h2>今日の通勤ルート</h2>
-      </div>
-      <div class="card-body">
-        <div class="route-line">
+    <!-- ========== Screen 1: 通勤ルート ========== -->
+    <div class="screen active" id="screen-route">
 
-          <!-- 自宅 -->
-          <div class="station">
-            <div class="station-dot home"></div>
-            <span class="station-label home-label">自宅</span>
-          </div>
-
-          <!-- 自宅 → 関屋駅 -->
-          <div class="route-arrow">
-            <div class="route-arrow-line"></div>
-            <span class="route-line-label">徒歩 / バス</span>
-          </div>
-
-          <!-- 関屋駅 -->
-          <div class="station">
-            <div class="station-dot"></div>
-            <span class="station-label">関屋駅</span>
-          </div>
-
-          <!-- 関屋駅 → 新潟駅 -->
-          <div class="route-arrow">
-            <div class="route-arrow-line"></div>
-            <span class="route-line-label">越後線</span>
-          </div>
-
-          <!-- 新潟駅 -->
-          <div class="station">
-            <div class="station-dot"></div>
-            <span class="station-label">新潟駅</span>
-          </div>
-
-          <!-- 新潟駅 → 中条駅 -->
-          <div class="route-arrow">
-            <div class="route-arrow-line"></div>
-            <span class="route-line-label">羽越本線</span>
-          </div>
-
-          <!-- 中条駅 -->
-          <div class="station">
-            <div class="station-dot"></div>
-            <span class="station-label">中条駅</span>
-          </div>
-
-          <!-- 中条駅 → 職場 -->
-          <div class="route-arrow">
-            <div class="route-arrow-line"></div>
-            <span class="route-line-label">徒歩 / バス</span>
-          </div>
-
-          <!-- 職場 -->
-          <div class="station">
-            <div class="station-dot work"></div>
-            <span class="station-label work-label">職場</span>
-          </div>
-
-        </div>
-      </div>
-    </div><!-- /route-card -->
-
-    <!-- ===== Bottom Grid ===== -->
-    <div class="bottom-grid">
-
-      <!-- ===== Section 2: 電車時刻表 ===== -->
-      <div class="card timetable-card">
-        <div class="card-header">
-          <div class="icon">🕐</div>
-          <h2>電車の時刻表</h2>
+      <div class="card info-card">
+        <div class="card-head">
+          <div class="card-icon">🚃</div>
+          <h2>今日の通勤ルート</h2>
         </div>
         <div class="card-body">
 
-          <!-- 行き -->
-          <div class="timetable-section">
-            <div class="timetable-section-title">▶ 行き（関屋 → 新潟 → 中条）</div>
+          <div class="route-track">
 
-            <div class="timetable-row">
-              <span class="timetable-time">06:45</span>
-              <span class="timetable-detail">関屋 → 新潟<br>越後線</span>
-              <span class="timetable-badge badge-local">普通</span>
-            </div>
-            <div class="timetable-row">
-              <span class="timetable-time">07:12</span>
-              <span class="timetable-detail">新潟 → 中条<br>羽越本線</span>
-              <span class="timetable-badge badge-rapid">快速</span>
-            </div>
-            <div class="timetable-row">
-              <span class="timetable-time">08:05</span>
-              <span class="timetable-detail">中条 着</span>
-              <span class="timetable-badge badge-rapid">快速</span>
+            <div class="route-stop">
+              <div class="stop-dot home"></div>
+              <span class="stop-label home">自宅</span>
             </div>
 
-          </div>
-
-          <!-- 帰り -->
-          <div class="timetable-section">
-            <div class="timetable-section-title">◀ 帰り（中条 → 新潟 → 関屋）</div>
-
-            <div class="timetable-row">
-              <span class="timetable-time">15:42</span>
-              <span class="timetable-detail">中条 → 新潟<br>羽越本線</span>
-              <span class="timetable-badge badge-local">普通</span>
-            </div>
-            <div class="timetable-row">
-              <span class="timetable-time">16:48</span>
-              <span class="timetable-detail">新潟 → 関屋<br>越後線</span>
-              <span class="timetable-badge badge-local">普通</span>
-            </div>
-            <div class="timetable-row">
-              <span class="timetable-time">17:02</span>
-              <span class="timetable-detail">関屋 着</span>
-              <span class="timetable-badge badge-local">普通</span>
+            <div class="route-connector">
+              <div class="connector-line-wrap">
+                <div class="connector-line"></div>
+              </div>
+              <span class="connector-label">徒歩 / バス</span>
             </div>
 
-          </div>
+            <div class="route-stop">
+              <div class="stop-dot"></div>
+              <span class="stop-label">関屋駅</span>
+            </div>
 
-          <div class="placeholder-box">
-            ＋ 時刻表はここに追加予定
+            <div class="route-connector">
+              <div class="connector-line-wrap">
+                <div class="connector-line"></div>
+              </div>
+              <span class="connector-label">越後線</span>
+            </div>
+
+            <div class="route-stop">
+              <div class="stop-dot"></div>
+              <span class="stop-label">新潟駅</span>
+            </div>
+
+            <div class="route-connector">
+              <div class="connector-line-wrap">
+                <div class="connector-line"></div>
+              </div>
+              <span class="connector-label">羽越本線</span>
+            </div>
+
+            <div class="route-stop">
+              <div class="stop-dot"></div>
+              <span class="stop-label">中条駅</span>
+            </div>
+
+            <div class="route-connector">
+              <div class="connector-line-wrap">
+                <div class="connector-line"></div>
+              </div>
+              <span class="connector-label">徒歩 / バス</span>
+            </div>
+
+            <div class="route-stop">
+              <div class="stop-dot work"></div>
+              <span class="stop-label work">職場</span>
+            </div>
+
+          </div><!-- /route-track -->
+
+          <div class="route-summary">
+            <span class="route-tag">越後線</span>
+            <span class="route-tag">羽越本線</span>
+            <span class="route-tag">乗換 1回（新潟駅）</span>
           </div>
 
         </div>
-      </div><!-- /timetable-card -->
+      </div><!-- /card -->
 
-      <!-- ===== Section 3: 今日の仕事内容 ===== -->
+      <div class="card info-card">
+        <div class="card-head">
+          <div class="card-icon">ℹ️</div>
+          <h2>本日の概要</h2>
+        </div>
+        <div class="card-body">
+          <div class="info-row">
+            <span class="info-label">出勤</span>
+            <span class="info-value">8:30</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">退勤</span>
+            <span class="info-value">15:30</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">勤務時間</span>
+            <span class="info-value">7時間（休憩1時間）</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">乗換駅</span>
+            <span class="info-value">新潟駅</span>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /screen-route -->
+
+    <!-- ========== Screen 2: 時刻表 ========== -->
+    <div class="screen" id="screen-timetable">
+
+      <!-- 行き -->
+      <div class="card tt-card">
+        <div class="card-head">
+          <div class="card-icon">▶️</div>
+          <h2>行き　関屋 → 新潟 → 中条</h2>
+        </div>
+        <div class="card-body">
+
+          <div class="tt-section-title">越後線　関屋 → 新潟</div>
+
+          <div class="tt-row">
+            <span class="tt-time">06:45</span>
+            <div class="tt-detail">
+              <strong>関屋 発</strong>
+              新潟 着 07:05頃
+            </div>
+            <span class="tt-badge badge-local">普通</span>
+          </div>
+          <div class="tt-row">
+            <span class="tt-time">07:10</span>
+            <div class="tt-detail">
+              <strong>関屋 発</strong>
+              新潟 着 07:28頃
+            </div>
+            <span class="tt-badge badge-local">普通</span>
+          </div>
+
+          <div class="tt-divider"></div>
+          <div class="tt-section-title">羽越本線　新潟 → 中条</div>
+
+          <div class="tt-row">
+            <span class="tt-time">07:12</span>
+            <div class="tt-detail">
+              <strong>新潟 発</strong>
+              中条 着 08:05頃
+            </div>
+            <span class="tt-badge badge-rapid">快速</span>
+          </div>
+          <div class="tt-row">
+            <span class="tt-time">07:40</span>
+            <div class="tt-detail">
+              <strong>新潟 発</strong>
+              中条 着 08:38頃
+            </div>
+            <span class="tt-badge badge-local">普通</span>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- 帰り -->
+      <div class="card tt-card">
+        <div class="card-head">
+          <div class="card-icon">◀️</div>
+          <h2>帰り　中条 → 新潟 → 関屋</h2>
+        </div>
+        <div class="card-body">
+
+          <div class="tt-section-title">羽越本線　中条 → 新潟</div>
+
+          <div class="tt-row">
+            <span class="tt-time">15:42</span>
+            <div class="tt-detail">
+              <strong>中条 発</strong>
+              新潟 着 16:38頃
+            </div>
+            <span class="tt-badge badge-local">普通</span>
+          </div>
+          <div class="tt-row">
+            <span class="tt-time">16:20</span>
+            <div class="tt-detail">
+              <strong>中条 発</strong>
+              新潟 着 17:10頃
+            </div>
+            <span class="tt-badge badge-rapid">快速</span>
+          </div>
+
+          <div class="tt-divider"></div>
+          <div class="tt-section-title">越後線　新潟 → 関屋</div>
+
+          <div class="tt-row">
+            <span class="tt-time">16:48</span>
+            <div class="tt-detail">
+              <strong>新潟 発</strong>
+              関屋 着 17:02頃
+            </div>
+            <span class="tt-badge badge-local">普通</span>
+          </div>
+          <div class="tt-row">
+            <span class="tt-time">17:20</span>
+            <div class="tt-detail">
+              <strong>新潟 発</strong>
+              関屋 着 17:34頃
+            </div>
+            <span class="tt-badge badge-local">普通</span>
+          </div>
+
+        </div>
+      </div>
+
+    </div><!-- /screen-timetable -->
+
+    <!-- ========== Screen 3: 仕事内容 ========== -->
+    <div class="screen" id="screen-work">
+
       <div class="card work-card">
-        <div class="card-header">
-          <div class="icon">💼</div>
-          <h2>今日の仕事内容　8:30 〜 15:30</h2>
+        <div class="card-head">
+          <div class="card-icon">💼</div>
+          <h2>今日の仕事内容</h2>
         </div>
         <div class="card-body">
 
-          <div class="work-time-header">
-            <span>時間</span>
-            <span>内容</span>
+          <div class="work-meta">
+            <span class="work-meta-tag meta-time">8:30 〜 15:30</span>
+            <span class="work-meta-tag meta-place">職場</span>
           </div>
 
           <div class="timeline">
 
-            <div class="timeline-item">
+            <div class="tl-item">
               <span class="tl-time">8:30</span>
-              <div class="tl-dot-wrapper"><div class="tl-dot"></div></div>
+              <div class="tl-dot-wrap"><div class="tl-dot"></div></div>
               <div class="tl-block">
                 <div class="tl-block-title">出勤・朝の準備</div>
                 <div class="tl-block-sub">〜 9:00　ミーティング準備・連絡確認</div>
               </div>
             </div>
 
-            <div class="timeline-item">
+            <div class="tl-item">
               <span class="tl-time">9:00</span>
-              <div class="tl-dot-wrapper"><div class="tl-dot"></div></div>
+              <div class="tl-dot-wrap"><div class="tl-dot"></div></div>
               <div class="tl-block">
                 <div class="tl-block-title">午前の業務</div>
                 <div class="tl-block-sub">〜 12:00　通常業務・作業</div>
               </div>
             </div>
 
-            <div class="timeline-item">
+            <div class="tl-item">
               <span class="tl-time">12:00</span>
-              <div class="tl-dot-wrapper"><div class="tl-dot"></div></div>
+              <div class="tl-dot-wrap"><div class="tl-dot"></div></div>
               <div class="tl-block break">
                 <div class="tl-block-title">昼休み</div>
                 <div class="tl-block-sub">〜 13:00　休憩</div>
               </div>
             </div>
 
-            <div class="timeline-item">
+            <div class="tl-item">
               <span class="tl-time">13:00</span>
-              <div class="tl-dot-wrapper"><div class="tl-dot"></div></div>
+              <div class="tl-dot-wrap"><div class="tl-dot"></div></div>
               <div class="tl-block">
                 <div class="tl-block-title">午後の業務</div>
                 <div class="tl-block-sub">〜 15:30　通常業務・作業</div>
@@ -569,19 +746,48 @@
 
           </div><!-- /timeline -->
 
-          <div class="tl-end-label">
+          <div class="tl-end">
             <span class="tl-end-time">15:30</span>
+            <div class="tl-end-dot-wrap"><div class="tl-end-dot"></div></div>
             <span class="tl-end-flag">退勤</span>
           </div>
 
         </div>
-      </div><!-- /work-card -->
+      </div>
 
-    </div><!-- /bottom-grid -->
+    </div><!-- /screen-work -->
 
-  </div><!-- /app-body -->
+  </div><!-- /screens -->
 
-  <footer>マイスケジュール &mdash; ver 0.1 （レイアウトプレビュー）</footer>
+  <!-- ===== Bottom Tab Bar ===== -->
+  <nav class="tab-bar">
+    <button class="tab-btn active" data-tab="route" onclick="switchTab('route')">
+      <span class="tab-icon">🚃</span>
+      <span class="tab-label">通勤ルート</span>
+    </button>
+    <button class="tab-btn" data-tab="timetable" onclick="switchTab('timetable')">
+      <span class="tab-icon">🕐</span>
+      <span class="tab-label">時刻表</span>
+    </button>
+    <button class="tab-btn" data-tab="work" onclick="switchTab('work')">
+      <span class="tab-icon">💼</span>
+      <span class="tab-label">仕事内容</span>
+    </button>
+  </nav>
+
+  <script>
+    function switchTab(tab) {
+      // Hide all screens
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      // Deactivate all tabs
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+
+      // Show target screen
+      document.getElementById('screen-' + tab).classList.add('active');
+      // Activate tab button
+      document.querySelector('.tab-btn[data-tab="' + tab + '"]').classList.add('active');
+    }
+  </script>
 
 </body>
 </html>
