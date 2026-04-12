@@ -1,0 +1,65 @@
+{% block subject %}{{ site_name|default:"ChatApp" }} アカウント有効化のご案内{% endblock %}
+
+{% block text_body %}
+{{ user.get_username|default:user.email }} 様
+
+{{ site_name|default:"ChatApp" }} にご登録いただき、ありがとうございます。
+アカウントを有効化するには、以下のリンクをクリックしてください。
+
+{{ protocol }}://{{ domain }}/{{ url }}
+
+このリンクの有効期限は一定時間で切れる場合があります。
+リンクがうまく開けない場合は、URL をブラウザにコピー＆ペーストしてください。
+
+本メールに心当たりがない場合は、破棄してください。
+
+— {{ site_name|default:"ChatApp" }} チーム
+{% endblock %}
+
+{% block html_body %}
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="utf-8" />
+  <title>{{ site_name|default:"ChatApp" }} アカウント有効化</title>
+</head>
+
+<body
+  style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, 'Noto Sans JP', 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif; background:#f7f7f8; padding:24px;">
+  <table width="100%" cellspacing="0" cellpadding="0"
+    style="max-width:640px; margin:0 auto; background:#ffffff; border:1px solid #eee; border-radius:8px;">
+    <tr>
+      <td style="padding:24px;">
+        <h1 style="margin:0 0 12px; font-size:20px; color:#111827;">{{ site_name|default:"ChatApp" }} へのご登録ありがとうございます
+        </h1>
+        <p style="margin:0 0 16px; color:#374151; line-height:1.7;">
+          {{ user.get_username|default:user.email }} 様<br />
+          アカウントを有効化するには、以下のボタンをクリックしてください。
+        </p>
+
+        <p style="margin:24px 0; text-align:center;">
+          <a href="{{ protocol }}://{{ domain }}/{{ url }}"
+            style="display:inline-block; background:#2563eb; color:#fff; text-decoration:none; padding:12px 20px; border-radius:6px; font-weight:600;"
+            target="_blank" rel="noopener noreferrer">アカウントを有効化</a>
+        </p>
+
+        <p style="margin:0 0 12px; color:#6b7280; line-height:1.7;">
+          ボタンがうまく動作しない場合は、次のURLをブラウザにコピーして開いてください。<br />
+          <a href="{{ protocol }}://{{ domain }}/{{ url }}" style="color:#2563eb; word-break:break-all;">{{ protocol }}://{{ domain }}/{{ url }}</a>
+        </p>
+
+        <p style="margin:12px 0 0; color:#6b7280; line-height:1.7;">
+          本メールに覚えがない場合は、破棄してください。
+        </p>
+
+        <p style="margin:24px 0 0; color:#9ca3af; font-size:12px;">
+          — {{ site_name|default:"ChatApp" }} チーム
+        </p>
+      </td>
+    </tr>
+  </table>
+</body>
+
+</html>
+{% endblock %}

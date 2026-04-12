@@ -1,0 +1,2 @@
+{{ site_name|default:"ChatApp" }} アカウント有効化のご案内
+

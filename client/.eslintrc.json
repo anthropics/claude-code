@@ -1,0 +1,9 @@
+{
+  "ignorePatterns":["src/components/ui/**"],
+  "extends": ["next/core-web-vitals","standard","plugin:tailwindcss/recommended","prettier"],
+  "rules": {
+    "camelcase":"off",
+    "no-unused-vars":"off",
+    "tailwindcss/no-custom-classname":"off"
+  }
+}

@@ -1,0 +1,124 @@
+
+services:
+  api: &api
+    build:
+      context: .
+      dockerfile: ./docker/local/django/Dockerfile
+    image: api
+    container_name: api
+    user: root
+    volumes:
+      - .:/app:z
+      - ./staticfiles:/app/staticfiles
+    expose:
+      - "8000"
+    env_file:
+      - ./.envs/.env.local
+    depends_on:
+      - postgres
+      - mailpit
+      - redis
+    command: /start
+    networks:
+      - app_nw
+
+  postgres:
+    build:
+      context: .
+      dockerfile: ./docker/local/postgres/Dockerfile
+    image: postgres_local
+    container_name: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    env_file:
+      - ./.envs/.env.local
+    networks:
+      - app_nw
+
+  mailpit:
+    image: docker.io/axllent/mailpit:v1.15
+    container_name: mailpit
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+    volumes:  
+      - mailpit_data:/data
+    environment:
+      MP_MAX_MESSAGES: 5000
+      MP_DATA_FILE: /data/mailpit.db
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1  
+    networks:
+      - app_nw
+
+  client:
+    build:
+      context: ./client
+      dockerfile: ./docker/local/Dockerfile
+    container_name: client
+    image: client
+    expose:
+      - "3000"
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:3000',r=>process.exit((r.statusCode>=200&&r.statusCode<500)?0:1)).on('error',()=>process.exit(1))\""]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+    networks:
+      - app_nw
+
+  redis:
+    image: redis:7.0-alpine3.19
+    command: redis-server --appendonly yes
+    container_name: redis
+    volumes:
+      - redis_data:/data
+    networks:
+      - app_nw
+
+  celeryworker:
+    <<: *api
+    image: celeryworker
+    container_name: celeryworker
+    command: /start-celeryworker
+
+  flower:
+    <<: *api
+    image: flower
+    container_name: flower
+    ports:
+      - "5555:5555"
+    command: /start-flower
+
+  
+  nginx:
+    build:
+      context: ./docker/local/nginx
+      dockerfile: Dockerfile
+    restart: always
+    container_name: nginx
+    ports:
+      - "8080:80"
+    volumes:
+      - ./staticfiles:/app/staticfiles
+      - logs_store:/var/log/nginx
+    depends_on:
+      - api
+      - client
+    networks:
+      - app_nw
+    
+
+networks:
+  app_nw:
+    driver: bridge
+
+volumes:
+  postgres_data: {}
+  mailpit_data: {}
+  logs_store: {}
+  redis_data: {}
+

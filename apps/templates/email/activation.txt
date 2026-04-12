@@ -1,0 +1,14 @@
+{{ user.get_username|default:user.email }} 様
+
+{{ site_name|default:"ChatApp" }} にご登録いただき、ありがとうございます。
+アカウントを有効化するには、以下のリンクをクリックしてください。
+
+{{ protocol }}://{{ domain }}/{{ url }}
+
+このリンクの有効期限は一定時間で切れる場合があります。
+リンクがうまく開けない場合は、URL をブラウザにコピー＆ペーストしてください。
+
+本メールに心当たりがない場合は、破棄してください。
+
+— {{ site_name|default:"ChatApp" }} チーム
+
