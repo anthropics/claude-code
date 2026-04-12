@@ -1,5 +1,54 @@
 # Changelog
 
+## 2.1.101
+
+- Added `/team-onboarding` command to generate a teammate ramp-up guide from your local Claude Code usage
+- Added OS CA certificate store trust by default, so enterprise TLS proxies work without extra setup (set `CLAUDE_CODE_CERT_STORE=bundled` to use only bundled CAs)
+- `/ultraplan` and other remote-session features now auto-create a default cloud environment instead of requiring web setup first
+- Improved brief mode to retry once when Claude responds with plain text instead of a structured message
+- Improved focus mode: Claude now writes more self-contained summaries since it knows you only see its final message
+- Improved tool-not-available errors to explain why and how to proceed when the model calls a tool that exists but isn't available in the current context
+- Improved rate-limit retry messages to show which limit was hit and when it resets instead of an opaque seconds countdown
+- Improved refusal error messages to include the API-provided explanation when available
+- Improved `claude -p --resume <name>` to accept session titles set via `/rename` or `--name`
+- Improved settings resilience: an unrecognized hook event name in `settings.json` no longer causes the entire file to be ignored
+- Improved plugin hooks from plugins force-enabled by managed settings to run when `allowManagedHooksOnly` is set
+- Improved `/plugin` and `claude plugin update` to show a warning when the marketplace could not be refreshed, instead of silently reporting a stale version
+- Improved plan mode to hide the "Refine with Ultraplan" option when the user's org or auth setup can't reach Claude Code on the web
+- Improved beta tracing to honor `OTEL_LOG_USER_PROMPTS`, `OTEL_LOG_TOOL_DETAILS`, and `OTEL_LOG_TOOL_CONTENT`; sensitive span attributes are no longer emitted unless opted in
+- Improved SDK `query()` to clean up subprocess and temp files when consumers `break` from `for await` or use `await using`
+- Fixed a command injection vulnerability in the POSIX `which` fallback used by LSP binary detection
+- Fixed a memory leak where long sessions retained dozens of historical copies of the message list in the virtual scroller
+- Fixed `--resume`/`--continue` losing conversation context on large sessions when the loader anchored on a dead-end branch instead of the live conversation
+- Fixed `--resume` chain recovery bridging into an unrelated subagent conversation when a subagent message landed near a main-chain write gap
+- Fixed a crash on `--resume` when a persisted Edit/Write tool result was missing its `file_path`
+- Fixed a hardcoded 5-minute request timeout that aborted slow backends (local LLMs, extended thinking, slow gateways) regardless of `API_TIMEOUT_MS`
+- Fixed `permissions.deny` rules not overriding a PreToolUse hook's `permissionDecision: "ask"` — previously the hook could downgrade a deny into a prompt
+- Fixed `--setting-sources` without `user` causing background cleanup to ignore `cleanupPeriodDays` and delete conversation history older than 30 days
+- Fixed Bedrock SigV4 authentication failing with 403 when `ANTHROPIC_AUTH_TOKEN`, `apiKeyHelper`, or `ANTHROPIC_CUSTOM_HEADERS` set an Authorization header
+- Fixed `claude -w <name>` failing with "already exists" after a previous session's worktree cleanup left a stale directory
+- Fixed subagents not inheriting MCP tools from dynamically-injected servers
+- Fixed sub-agents running in isolated worktrees being denied Read/Edit access to files inside their own worktree
+- Fixed sandboxed Bash commands failing with `mktemp: No such file or directory` after a fresh boot
+- Fixed `claude mcp serve` tool calls failing with "Tool execution failed" in MCP clients that validate `outputSchema`
+- Fixed `RemoteTrigger` tool's `run` action sending an empty body and being rejected by the server
+- Fixed several `/resume` picker issues: narrow default view hiding sessions from other projects, unreachable preview on Windows Terminal, incorrect cwd in worktrees, session-not-found errors not surfacing in stderr, terminal title not being set, and resume hint overlapping the prompt input
+- Fixed Grep tool ENOENT when the embedded ripgrep binary path becomes stale (VS Code extension auto-update, macOS App Translocation); now falls back to system `rg` and self-heals mid-session
+- Fixed `/btw` writing a copy of the entire conversation to disk on every use
+- Fixed `/context` Free space and Messages breakdown disagreeing with the header percentage
+- Fixed several plugin issues: slash commands resolving to the wrong plugin with duplicate `name:` frontmatter, `/plugin update` failing with `ENAMETOOLONG`, Discover showing already-installed plugins, directory-source plugins loading from a stale version cache, and skills not honoring `context: fork` and `agent` frontmatter fields
+- Fixed the `/mcp` menu offering OAuth-specific actions for MCP servers configured with `headersHelper`; Reconnect is now offered instead to re-invoke the helper script
+- Fixed `ctrl+]`, `ctrl+\`, and `ctrl+^` keybindings not firing in terminals that send raw C0 control bytes (Terminal.app, default iTerm2, xterm)
+- Fixed `/login` OAuth URL rendering with padding that prevented clean mouse selection
+- Fixed rendering issues: flicker in non-fullscreen mode when content above the visible area changed, terminal scrollback being wiped during long sessions in non-fullscreen mode, and mouse-scroll escape sequences occasionally leaking into the prompt as text
+- Fixed crash when `settings.json` env values are numbers instead of strings
+- Fixed in-app settings writes (e.g. `/add-dir --remember`, `/config`) not refreshing the in-memory snapshot, preventing removed directories from being revoked mid-session
+- Fixed custom keybindings (`~/.claude/keybindings.json`) not loading on Bedrock, Vertex, and other third-party providers
+- Fixed `claude --continue -p` not correctly continuing sessions created by `-p` or the SDK
+- Fixed several Remote Control issues: worktrees removed on session crash, connection failures not persisting in the transcript, spurious "Disconnected" indicator in brief mode for local sessions, and `/remote-control` failing over SSH when only `CLAUDE_CODE_ORGANIZATION_UUID` is set
+- Fixed `/insights` sometimes omitting the report file link from its response
+- [VSCode] Fixed the file attachment below the chat input not clearing when the last editor tab is closed
+
 ## 2.1.98
 
 - Added interactive Google Vertex AI setup wizard accessible from the login screen when selecting "3rd-party platform", guiding you through GCP authentication, project and region configuration, credential verification, and model pinning
