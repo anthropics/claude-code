@@ -26,19 +26,6 @@ Set these environment variables (e.g., in your shell profile):
 | `CLAUDE_NOTIFICATION_SOUND_PATH` | *(auto)* | Custom `.aiff`/`.ogg`/`.wav` file path |
 | `CLAUDE_NOTIFICATION_VOLUME` | `50` | Volume 0-100 (macOS only) |
 
-### Examples
-
-```bash
-# Disable the sound
-export CLAUDE_NOTIFICATION_SOUND=0
-
-# Use a custom sound
-export CLAUDE_NOTIFICATION_SOUND_PATH="/path/to/my-sound.aiff"
-
-# Quieter on macOS
-export CLAUDE_NOTIFICATION_VOLUME=25
-```
-
 ## Installation
 
 Copy or symlink this plugin into your Claude Code plugins directory, or install from the marketplace.
