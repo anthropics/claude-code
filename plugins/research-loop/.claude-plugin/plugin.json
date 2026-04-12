@@ -1,0 +1,9 @@
+{
+  "name": "research-loop",
+  "version": "0.1.0",
+  "description": "Compatibility plugin for 10000 Mentors Research Workflow: a source-gated autonomous research loop for GitHub research repositories.",
+  "author": {
+    "name": "Da Wei",
+    "email": "wd041216-bit@users.noreply.github.com"
+  }
+}
