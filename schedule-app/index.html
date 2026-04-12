@@ -8,15 +8,25 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --blue:    #3949ab;
-      --blue-dk: #1a237e;
-      --green:   #00796b;
-      --red:     #e53935;
-      --red-dk:  #b71c1c;
-      --gray:    #78909c;
-      --bg:      #f0f2f8;
-      --white:   #ffffff;
-      --tab-h:   62px;
+      --route-color:     #1565C0;
+      --route-light:     #E3F2FD;
+      --route-mid:       #42A5F5;
+      --tt-color:        #2E7D32;
+      --tt-light:        #E8F5E9;
+      --tt-mid:          #66BB6A;
+      --work-color:      #E65100;
+      --work-light:      #FFF3E0;
+      --work-mid:        #FFA040;
+      --car-color:       #F57F17;
+      --car-light:       #FFF8E1;
+      --bg:              #F4F6FB;
+      --white:           #ffffff;
+      --text-dark:       #1a1a2e;
+      --text-mid:        #455a64;
+      --text-light:      #90a4ae;
+      --tab-h:           78px;
+      --radius-lg:       20px;
+      --radius-md:       14px;
     }
 
     html, body { height: 100%; overflow: hidden; }
@@ -24,56 +34,59 @@
     body {
       font-family: "Hiragino Sans", "Yu Gothic UI", "Meiryo", sans-serif;
       background: var(--bg);
-      color: #2c3e50;
+      color: var(--text-dark);
       display: flex;
       flex-direction: column;
     }
 
-    /* ===== Header with big clock ===== */
+    /* ===== Header ===== */
     .app-header {
-      background: linear-gradient(135deg, var(--blue-dk) 0%, #283593 55%, var(--blue) 100%);
+      background: linear-gradient(135deg, #0D47A1 0%, #1565C0 60%, #1976D2 100%);
       color: #fff;
       flex-shrink: 0;
-      padding: 12px 16px 14px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.25);
+      padding: 14px 18px 16px;
+      padding-top: calc(14px + env(safe-area-inset-top));
     }
 
     .header-top {
       display: flex;
       align-items: center;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }
-    .header-top h1 {
-      font-size: 0.88rem;
-      font-weight: 700;
-      letter-spacing: 0.04em;
-      opacity: 0.92;
+    .header-title {
+      font-size: 0.85rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      opacity: 0.9;
     }
     .header-date {
       margin-left: auto;
-      font-size: 0.75rem;
-      opacity: 0.78;
-      letter-spacing: 0.02em;
+      font-size: 0.82rem;
+      font-weight: 700;
+      opacity: 0.85;
+      background: rgba(255,255,255,0.18);
+      padding: 3px 10px;
+      border-radius: 20px;
     }
 
-    /* Big clock */
     .clock-wrap {
       display: flex;
       align-items: baseline;
-      gap: 10px;
+      gap: 8px;
     }
     #clock {
-      font-size: 3rem;
-      font-weight: 800;
-      letter-spacing: 0.04em;
+      font-size: 3.6rem;
+      font-weight: 900;
       font-variant-numeric: tabular-nums;
       line-height: 1;
-      text-shadow: 0 2px 8px rgba(0,0,0,0.25);
+      letter-spacing: 0.02em;
+      text-shadow: 0 3px 12px rgba(0,0,0,0.3);
     }
     .clock-sub {
-      font-size: 0.75rem;
+      font-size: 0.78rem;
+      font-weight: 700;
       opacity: 0.7;
-      letter-spacing: 0.04em;
+      letter-spacing: 0.05em;
     }
 
     /* ===== Screen container ===== */
@@ -87,17 +100,17 @@
       inset: 0;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
-      padding: 14px 13px 18px;
+      padding: 16px 14px 20px;
       display: none;
       flex-direction: column;
-      gap: 12px;
+      gap: 14px;
     }
     .screen.active { display: flex; }
 
-    /* ルート画面だけはスクロールなし・カードが全高を埋める */
+    /* ルート画面：スクロールなし・全高 */
     #screen-route {
       overflow-y: hidden;
-      padding: 10px 13px 10px;
+      padding: 12px 14px 12px;
       gap: 0;
     }
     #screen-route .route-card {
@@ -111,283 +124,360 @@
       display: flex;
       flex-direction: column;
       min-height: 0;
-      padding: 8px 14px 10px;
+      padding: 10px 16px 14px;
     }
 
     /* ===== Card ===== */
     .card {
       background: var(--white);
-      border-radius: 14px;
-      box-shadow: 0 2px 10px rgba(30,40,80,0.09);
+      border-radius: var(--radius-lg);
+      box-shadow: 0 3px 14px rgba(30,40,100,0.10);
       overflow: hidden;
     }
     .card-head {
       display: flex;
       align-items: center;
-      gap: 9px;
-      padding: 12px 15px 10px;
-      border-bottom: 1.5px solid #f0f2f8;
+      gap: 11px;
+      padding: 14px 16px 12px;
     }
-    .card-icon {
-      width: 26px; height: 26px;
-      border-radius: 7px;
+    .card-icon-wrap {
+      width: 44px; height: 44px;
+      border-radius: 12px;
       display: flex; align-items: center; justify-content: center;
-      font-size: 0.88rem;
+      font-size: 1.4rem;
       flex-shrink: 0;
     }
     .card-head h2 {
-      font-size: 0.87rem;
-      font-weight: 700;
+      font-size: 1.02rem;
+      font-weight: 800;
       letter-spacing: 0.03em;
     }
-    .card-body { padding: 13px 15px; }
+    .card-divider {
+      height: 3px;
+      margin: 0 14px;
+      border-radius: 2px;
+    }
+    .card-body { padding: 14px 16px; }
 
     /* ===== Screen 1: 通勤ルート ===== */
-    .route-card .card-icon { background: #e8eaf6; }
-    .route-card .card-head h2 { color: var(--blue); }
+    .route-card .card-head { background: var(--route-light); }
+    .route-card .card-icon-wrap { background: var(--route-color); }
+    .route-card .card-head h2 { color: var(--route-color); }
+    .route-card .card-divider { background: var(--route-mid); opacity: 0.4; }
 
-    /* 縦型ルート：画面いっぱいに均等配置 */
     .route-track {
       flex: 1;
       display: flex;
       flex-direction: column;
-      padding: 2px 0 2px 8px;
       min-height: 0;
     }
     .route-stop {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 14px;
       flex-shrink: 0;
     }
-    .stop-dot {
-      width: 15px; height: 15px;
+    .stop-icon-wrap {
+      width: 42px; height: 42px;
       border-radius: 50%;
-      border: 3px solid var(--blue);
-      background: var(--white);
-      flex-shrink: 0; z-index: 1;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.25rem;
+      flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
     }
-    .stop-dot.home { background: var(--blue); border-color: var(--blue-dk); }
-    .stop-dot.work { background: var(--red);  border-color: var(--red-dk); }
+    .stop-icon-wrap.home { background: var(--route-color); }
+    .stop-icon-wrap.mid  { background: var(--white); border: 3px solid var(--route-mid); }
+    .stop-icon-wrap.work { background: var(--work-color); }
 
     .stop-info { display: flex; flex-direction: column; gap: 1px; }
     .stop-name {
-      font-size: 0.9rem;
-      font-weight: 700;
-      color: #455a64;
+      font-size: 1.05rem;
+      font-weight: 800;
       line-height: 1.2;
     }
-    .stop-name.home { color: var(--blue-dk); }
-    .stop-name.work { color: var(--red-dk); }
+    .stop-name.home { color: var(--route-color); }
+    .stop-name.mid  { color: var(--text-mid); }
+    .stop-name.work { color: var(--work-color); }
     .stop-sub {
-      font-size: 0.67rem;
-      color: #90a4ae;
-      letter-spacing: 0.01em;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--text-light);
     }
 
-    /* コネクターがスペースを均等に埋める */
     .route-conn {
       flex: 1;
       display: flex;
       align-items: stretch;
-      gap: 12px;
+      gap: 14px;
       min-height: 0;
     }
     .conn-line-col {
       display: flex;
       flex-direction: column;
       align-items: center;
-      width: 15px;
+      width: 42px;
       flex-shrink: 0;
     }
     .conn-line {
-      width: 3px;
+      width: 5px;
       flex: 1;
       min-height: 0;
-      border-radius: 2px;
+      border-radius: 3px;
     }
-    .conn-line.car   { background: linear-gradient(180deg, #ff8f00, #ffa726); }
-    .conn-line.train { background: linear-gradient(180deg, var(--blue), #5c6bc0); }
+    .conn-line.car   { background: linear-gradient(180deg, var(--car-color), #FFCA28); }
+    .conn-line.train { background: linear-gradient(180deg, var(--route-color), var(--route-mid)); }
 
     .conn-label-col {
       display: flex;
       flex-direction: column;
       justify-content: center;
-      padding: 2px 0;
+      gap: 4px;
     }
     .conn-label {
-      font-size: 0.72rem;
-      font-weight: 700;
+      font-size: 0.82rem;
+      font-weight: 800;
       letter-spacing: 0.02em;
-      line-height: 1.3;
     }
-    .conn-label.car   { color: #e65100; }
-    .conn-label.train { color: var(--blue); }
+    .conn-label.car   { color: var(--car-color); }
+    .conn-label.train { color: var(--route-color); }
     .conn-badge {
-      display: inline-block;
-      font-size: 0.62rem;
-      padding: 1px 7px;
-      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.72rem;
+      padding: 3px 10px;
+      border-radius: 20px;
       font-weight: 700;
-      margin-top: 2px;
     }
-    .conn-badge.car-b   { background: #fff3e0; color: #e65100; }
-    .conn-badge.train-b { background: #e8eaf6; color: var(--blue); }
-    .conn-badge.rapid-b { background: #e0f2f1; color: #00695c; }
+    .conn-badge.car-b   { background: var(--car-light); color: var(--car-color); }
+    .conn-badge.train-b { background: var(--route-light); color: var(--route-color); }
 
-    .route-summary {
-      margin-top: 12px;
+    /* ===== Screen 2: 時刻表 ===== */
+    .tt-card .card-head { background: var(--tt-light); }
+    .tt-card .card-icon-wrap { background: var(--tt-color); }
+    .tt-card .card-head h2 { color: var(--tt-color); }
+    .tt-card .card-divider { background: var(--tt-mid); opacity: 0.4; }
+
+    .tt-section-label {
       display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-    }
-    .route-tag {
-      background: #e8eaf6;
-      color: var(--blue);
-      font-size: 0.68rem;
-      font-weight: 700;
-      padding: 3px 9px;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.78rem;
+      font-weight: 800;
+      color: var(--tt-color);
+      letter-spacing: 0.04em;
+      margin-bottom: 10px;
+      padding: 6px 10px;
+      background: var(--tt-light);
       border-radius: 10px;
     }
 
-    /* Info rows */
-    .info-card .card-icon { background: #e8eaf6; }
-    .info-card .card-head h2 { color: var(--blue); }
-    .info-row {
-      display: flex;
-      align-items: center;
-      padding: 9px 0;
-      border-bottom: 1px solid #f5f5f5;
-      gap: 10px;
-    }
-    .info-row:last-child { border-bottom: none; }
-    .info-label { font-size: 0.73rem; color: var(--gray); min-width: 70px; font-weight: 600; }
-    .info-value { font-size: 0.82rem; color: #37474f; font-weight: 600; line-height: 1.4; }
-
-    /* ===== Screen 2: 時刻表 ===== */
-    .tt-card .card-icon { background: #e0f2f1; }
-    .tt-card .card-head h2 { color: var(--green); }
-
-    .tt-sec-title {
-      font-size: 0.68rem;
-      font-weight: 700;
-      color: var(--gray);
-      letter-spacing: 0.05em;
-      margin-bottom: 8px;
-      padding-bottom: 5px;
-      border-bottom: 1px solid #eceff1;
-    }
     .tt-row {
       display: flex;
       align-items: center;
-      padding: 10px 0;
-      border-bottom: 1px solid #f5f5f5;
-      gap: 10px;
+      padding: 11px 0;
+      border-bottom: 2px solid #F1F8E9;
+      gap: 12px;
     }
     .tt-row:last-child { border-bottom: none; }
+    .tt-time-block {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 62px;
+      background: var(--tt-light);
+      border-radius: 10px;
+      padding: 6px 4px;
+    }
     .tt-time {
-      font-size: 1.15rem;
-      font-weight: 800;
-      color: var(--green);
-      min-width: 54px;
+      font-size: 1.35rem;
+      font-weight: 900;
+      color: var(--tt-color);
       font-variant-numeric: tabular-nums;
+      line-height: 1;
+    }
+    .tt-time-label {
+      font-size: 0.6rem;
+      font-weight: 700;
+      color: var(--tt-mid);
+      margin-top: 2px;
     }
     .tt-detail {
       flex: 1;
-      font-size: 0.78rem;
-      color: var(--gray);
+      font-size: 0.8rem;
+      color: var(--text-mid);
       line-height: 1.5;
     }
-    .tt-detail strong { display: block; color: #37474f; font-size: 0.83rem; }
+    .tt-detail strong { display: block; color: var(--text-dark); font-size: 0.88rem; font-weight: 800; }
     .tt-badge {
-      font-size: 0.66rem;
-      padding: 3px 9px;
-      border-radius: 10px;
-      font-weight: 700;
+      font-size: 0.7rem;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-weight: 800;
       white-space: nowrap;
     }
-    .badge-local  { background: #e8eaf6; color: var(--blue); }
-    .badge-rapid  { background: #e0f2f1; color: #00695c; }
-    .tt-gap { height: 10px; }
+    .badge-local  { background: var(--route-light); color: var(--route-color); }
+    .badge-rapid  { background: #E8F5E9; color: #1B5E20; }
+    .tt-gap { height: 14px; }
 
     /* ===== Screen 3: 仕事内容 ===== */
-    .work-card .card-icon { background: #fce4ec; }
-    .work-card .card-head h2 { color: var(--red-dk); }
+    .work-card .card-head { background: var(--work-light); }
+    .work-card .card-icon-wrap { background: var(--work-color); }
+    .work-card .card-head h2 { color: var(--work-color); }
+    .work-card .card-divider { background: var(--work-mid); opacity: 0.4; }
 
-    .work-meta { display: flex; gap: 7px; margin-bottom: 13px; flex-wrap: wrap; }
-    .meta-tag { font-size: 0.71rem; font-weight: 700; padding: 3px 11px; border-radius: 11px; letter-spacing: 0.03em; }
-    .meta-time  { background: #ffebee; color: var(--red); }
-    .meta-place { background: #f3e5f5; color: #7b1fa2; }
+    .work-time-banner {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: var(--work-light);
+      border: 2px solid #FFCC80;
+      border-radius: var(--radius-md);
+      padding: 11px 14px;
+      margin-bottom: 16px;
+      font-size: 1.1rem;
+      font-weight: 900;
+      color: var(--work-color);
+    }
 
-    .timeline { position: relative; padding-left: 6px; }
-    .timeline::before {
-      content: "";
-      position: absolute;
-      left: 21px; top: 8px; bottom: 8px;
-      width: 2px;
-      background: linear-gradient(180deg, #ef9a9a 0%, #ef5350 50%, #ef9a9a 100%);
+    .timeline { padding-left: 4px; }
+
+    .tl-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+    .tl-item:last-child { margin-bottom: 0; }
+
+    .tl-time-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      min-width: 52px;
+      flex-shrink: 0;
+    }
+    .tl-time {
+      font-size: 0.82rem;
+      font-weight: 900;
+      color: var(--work-color);
+      font-variant-numeric: tabular-nums;
+      background: var(--work-light);
+      padding: 3px 7px;
+      border-radius: 8px;
+      white-space: nowrap;
+    }
+    .tl-dot-line {
+      width: 3px;
+      flex: 1;
+      min-height: 18px;
+      background: linear-gradient(180deg, var(--work-mid), var(--work-color));
       border-radius: 2px;
     }
-    .tl-item { display: flex; align-items: flex-start; margin-bottom: 6px; }
-    .tl-item:last-child { margin-bottom: 0; }
-    .tl-time {
-      min-width: 42px;
-      font-size: 0.7rem; font-weight: 800;
-      color: var(--red);
-      padding-top: 13px; text-align: right; padding-right: 9px;
-      font-variant-numeric: tabular-nums; flex-shrink: 0;
-    }
-    .tl-dot-wrap { position: relative; z-index: 1; padding-top: 16px; margin-right: 9px; flex-shrink: 0; }
-    .tl-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--white); border: 2.5px solid var(--red); }
+
     .tl-block {
       flex: 1;
-      background: #fff8f8; border: 1.5px solid #ffcdd2;
-      border-radius: 10px; padding: 9px 11px; margin-bottom: 2px;
+      border-radius: var(--radius-md);
+      padding: 11px 13px;
+      margin-top: 2px;
     }
-    .tl-block.brk { background: #f5f5f5; border-color: #e0e0e0; }
-    .tl-block-title { font-size: 0.83rem; font-weight: 700; color: var(--red-dk); margin-bottom: 2px; }
-    .tl-block.brk .tl-block-title { color: var(--gray); }
-    .tl-block-sub { font-size: 0.71rem; color: #90a4ae; }
+    .tl-block.task { background: var(--work-light); border: 2px solid #FFCC80; }
+    .tl-block.brk  { background: #F5F5F5; border: 2px solid #E0E0E0; }
 
-    .tl-end { display: flex; align-items: center; margin-top: 6px; gap: 9px; }
-    .tl-end-time { min-width: 42px; font-size: 0.7rem; font-weight: 800; color: var(--red); text-align: right; padding-right: 9px; }
-    .tl-end-dot-wrap { z-index: 1; margin-right: 9px; }
-    .tl-end-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--red); border: 2.5px solid var(--red-dk); }
-    .tl-end-flag { font-size: 0.78rem; font-weight: 700; color: var(--red); background: #ffebee; padding: 4px 13px; border-radius: 11px; letter-spacing: 0.04em; }
+    .tl-block-icon { font-size: 1rem; margin-right: 6px; }
+    .tl-block-title {
+      font-size: 0.95rem;
+      font-weight: 800;
+      color: var(--work-color);
+      margin-bottom: 3px;
+      display: flex;
+      align-items: center;
+    }
+    .tl-block.brk .tl-block-title { color: var(--text-light); }
+    .tl-block-sub { font-size: 0.74rem; color: var(--text-light); font-weight: 600; }
+
+    .tl-end {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 4px;
+    }
+    .tl-end-time {
+      font-size: 0.82rem;
+      font-weight: 900;
+      color: var(--work-color);
+      background: var(--work-light);
+      padding: 3px 7px;
+      border-radius: 8px;
+      min-width: 52px;
+      text-align: center;
+    }
+    .tl-end-flag {
+      flex: 1;
+      font-size: 0.95rem;
+      font-weight: 900;
+      color: var(--white);
+      background: var(--work-color);
+      padding: 8px 16px;
+      border-radius: var(--radius-md);
+      text-align: center;
+      letter-spacing: 0.06em;
+    }
 
     /* ===== Tab Bar ===== */
     .tab-bar {
       height: var(--tab-h);
       background: var(--white);
-      border-top: 1px solid #dde2ee;
+      border-top: 2px solid #E8EAF0;
       display: flex;
       flex-shrink: 0;
       padding-bottom: env(safe-area-inset-bottom);
-      box-shadow: 0 -2px 10px rgba(30,40,80,0.08);
+      box-shadow: 0 -4px 16px rgba(30,40,100,0.10);
+      gap: 8px;
+      padding-left: 8px;
+      padding-right: 8px;
     }
     .tab-btn {
       flex: 1;
       display: flex; flex-direction: column;
       align-items: center; justify-content: center;
-      gap: 3px; border: none; background: transparent;
-      cursor: pointer; padding: 6px 4px;
+      gap: 4px;
+      border: none; background: transparent;
+      cursor: pointer;
+      padding: 8px 6px;
       -webkit-tap-highlight-color: transparent;
-      outline: none; position: relative;
+      outline: none;
+      border-radius: var(--radius-md);
+      margin-top: 6px;
+      margin-bottom: 4px;
+      transition: background 0.15s ease;
     }
-    .tab-btn:active { background: #f0f2f8; }
-    .tab-icon  { font-size: 1.3rem; line-height: 1; }
-    .tab-label { font-size: 0.63rem; font-weight: 700; color: #90a4ae; letter-spacing: 0.03em; white-space: nowrap; }
+    .tab-btn:active { opacity: 0.8; }
+    .tab-icon  { font-size: 1.6rem; line-height: 1; }
+    .tab-label {
+      font-size: 0.69rem;
+      font-weight: 800;
+      color: var(--text-light);
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+    }
 
-    .tab-btn.active::before {
-      content: ""; position: absolute; top: 0;
-      width: 38px; height: 3px; border-radius: 0 0 3px 3px;
+    .tab-btn[data-tab="route"].active {
+      background: var(--route-light);
     }
-    .tab-btn[data-tab="route"].active    .tab-label { color: var(--blue); }
-    .tab-btn[data-tab="route"].active::before        { background: var(--blue); }
-    .tab-btn[data-tab="timetable"].active .tab-label { color: var(--green); }
-    .tab-btn[data-tab="timetable"].active::before    { background: var(--green); }
-    .tab-btn[data-tab="work"].active     .tab-label  { color: var(--red); }
-    .tab-btn[data-tab="work"].active::before         { background: var(--red); }
+    .tab-btn[data-tab="route"].active .tab-label { color: var(--route-color); }
+
+    .tab-btn[data-tab="timetable"].active {
+      background: var(--tt-light);
+    }
+    .tab-btn[data-tab="timetable"].active .tab-label { color: var(--tt-color); }
+
+    .tab-btn[data-tab="work"].active {
+      background: var(--work-light);
+    }
+    .tab-btn[data-tab="work"].active .tab-label { color: var(--work-color); }
   </style>
 </head>
 <body>
@@ -395,7 +485,7 @@
   <!-- ===== Header ===== -->
   <header class="app-header">
     <div class="header-top">
-      <h1>📅 マイスケジュール</h1>
+      <span class="header-title">📅 マイスケジュール</span>
       <span class="header-date" id="header-date"></span>
     </div>
     <div class="clock-wrap">
@@ -412,15 +502,16 @@
 
       <div class="card route-card">
         <div class="card-head">
-          <div class="card-icon">🚃</div>
+          <div class="card-icon-wrap">🚃</div>
           <h2>今日の通勤ルート</h2>
         </div>
+        <div class="card-divider"></div>
         <div class="card-body">
           <div class="route-track">
 
             <!-- 自宅 -->
             <div class="route-stop">
-              <div class="stop-dot home"></div>
+              <div class="stop-icon-wrap home">🏠</div>
               <div class="stop-info">
                 <span class="stop-name home">自宅</span>
                 <span class="stop-sub">新潟市中央区美咲町1-26-14</span>
@@ -438,9 +529,9 @@
 
             <!-- 関屋駅 -->
             <div class="route-stop">
-              <div class="stop-dot"></div>
+              <div class="stop-icon-wrap mid">🚉</div>
               <div class="stop-info">
-                <span class="stop-name">関屋駅</span>
+                <span class="stop-name mid">関屋駅</span>
                 <span class="stop-sub">越後線 乗車</span>
               </div>
             </div>
@@ -456,9 +547,9 @@
 
             <!-- 新潟駅 -->
             <div class="route-stop">
-              <div class="stop-dot"></div>
+              <div class="stop-icon-wrap mid">🚉</div>
               <div class="stop-info">
-                <span class="stop-name">新潟駅</span>
+                <span class="stop-name mid">新潟駅</span>
                 <span class="stop-sub">白新線に乗換（徒歩2分）</span>
               </div>
             </div>
@@ -474,9 +565,9 @@
 
             <!-- 中条駅 -->
             <div class="route-stop">
-              <div class="stop-dot"></div>
+              <div class="stop-icon-wrap mid">🚉</div>
               <div class="stop-info">
-                <span class="stop-name">中条駅</span>
+                <span class="stop-name mid">中条駅</span>
                 <span class="stop-sub">駅前の駐車場へ徒歩</span>
               </div>
             </div>
@@ -492,7 +583,7 @@
 
             <!-- 職場 -->
             <div class="route-stop">
-              <div class="stop-dot work"></div>
+              <div class="stop-icon-wrap work">🏢</div>
               <div class="stop-info">
                 <span class="stop-name work">職場</span>
                 <span class="stop-sub">8:30 出勤</span>
@@ -511,33 +602,56 @@
       <!-- 行き -->
       <div class="card tt-card">
         <div class="card-head">
-          <div class="card-icon">▶️</div>
+          <div class="card-icon-wrap">▶️</div>
           <h2>行き　関屋 → 新潟 → 中条</h2>
         </div>
+        <div class="card-divider"></div>
         <div class="card-body">
 
-          <div class="tt-sec-title">越後線　関屋 → 新潟（普通）</div>
+          <div class="tt-section-label">🚃 越後線　関屋 → 新潟（普通）</div>
           <div class="tt-row">
-            <span class="tt-time">06:21</span>
-            <div class="tt-detail"><strong>関屋 発 → 新潟 着 6:31</strong>2番線・普通・新潟行（10分）</div>
+            <div class="tt-time-block">
+              <span class="tt-time">06:21</span>
+              <span class="tt-time-label">発</span>
+            </div>
+            <div class="tt-detail">
+              <strong>関屋 発 → 新潟 着 6:31</strong>
+              2番線・普通・新潟行（10分）
+            </div>
             <span class="tt-badge badge-local">普通</span>
           </div>
           <div class="tt-row">
-            <span class="tt-time">06:50</span>
-            <div class="tt-detail"><strong>関屋 発</strong>その他の便</div>
+            <div class="tt-time-block">
+              <span class="tt-time">06:50</span>
+              <span class="tt-time-label">発</span>
+            </div>
+            <div class="tt-detail">
+              <strong>関屋 発</strong>その他の便
+            </div>
             <span class="tt-badge badge-local">普通</span>
           </div>
 
           <div class="tt-gap"></div>
-          <div class="tt-sec-title">白新線→羽越本線直通　新潟 → 中条（普通・村上行）</div>
+          <div class="tt-section-label">🚃 白新線→羽越本線直通　新潟 → 中条（普通・村上行）</div>
           <div class="tt-row">
-            <span class="tt-time">06:43</span>
-            <div class="tt-detail"><strong>新潟 発 → 中条 着 7:44</strong>3番線・普通・村上行（61分）新発田で直通</div>
+            <div class="tt-time-block">
+              <span class="tt-time">06:43</span>
+              <span class="tt-time-label">発</span>
+            </div>
+            <div class="tt-detail">
+              <strong>新潟 発 → 中条 着 7:44</strong>
+              3番線・普通・村上行（61分）新発田で直通
+            </div>
             <span class="tt-badge badge-local">普通</span>
           </div>
           <div class="tt-row">
-            <span class="tt-time">07:33</span>
-            <div class="tt-detail"><strong>新潟 発</strong>その他の便・村上行</div>
+            <div class="tt-time-block">
+              <span class="tt-time">07:33</span>
+              <span class="tt-time-label">発</span>
+            </div>
+            <div class="tt-detail">
+              <strong>新潟 発</strong>その他の便・村上行
+            </div>
             <span class="tt-badge badge-local">普通</span>
           </div>
 
@@ -547,33 +661,54 @@
       <!-- 帰り -->
       <div class="card tt-card">
         <div class="card-head">
-          <div class="card-icon">◀️</div>
+          <div class="card-icon-wrap">◀️</div>
           <h2>帰り　中条 → 新潟 → 関屋</h2>
         </div>
+        <div class="card-divider"></div>
         <div class="card-body">
 
-          <div class="tt-sec-title">羽越本線　中条 → 新潟</div>
+          <div class="tt-section-label">🚃 羽越本線　中条 → 新潟</div>
           <div class="tt-row">
-            <span class="tt-time">15:39</span>
-            <div class="tt-detail"><strong>中条 発</strong>新潟 着 16:35頃</div>
+            <div class="tt-time-block">
+              <span class="tt-time">15:39</span>
+              <span class="tt-time-label">発</span>
+            </div>
+            <div class="tt-detail">
+              <strong>中条 発</strong>新潟 着 16:35頃
+            </div>
             <span class="tt-badge badge-local">普通</span>
           </div>
           <div class="tt-row">
-            <span class="tt-time">16:18</span>
-            <div class="tt-detail"><strong>中条 発</strong>新潟 着 17:08頃</div>
+            <div class="tt-time-block">
+              <span class="tt-time">16:18</span>
+              <span class="tt-time-label">発</span>
+            </div>
+            <div class="tt-detail">
+              <strong>中条 発</strong>新潟 着 17:08頃
+            </div>
             <span class="tt-badge badge-rapid">快速</span>
           </div>
 
           <div class="tt-gap"></div>
-          <div class="tt-sec-title">越後線　新潟 → 関屋</div>
+          <div class="tt-section-label">🚃 越後線　新潟 → 関屋</div>
           <div class="tt-row">
-            <span class="tt-time">16:46</span>
-            <div class="tt-detail"><strong>新潟 発</strong>関屋 着 17:00頃</div>
+            <div class="tt-time-block">
+              <span class="tt-time">16:46</span>
+              <span class="tt-time-label">発</span>
+            </div>
+            <div class="tt-detail">
+              <strong>新潟 発</strong>関屋 着 17:00頃
+            </div>
             <span class="tt-badge badge-local">普通</span>
           </div>
           <div class="tt-row">
-            <span class="tt-time">17:16</span>
-            <div class="tt-detail"><strong>新潟 発</strong>関屋 着 17:30頃</div>
+            <div class="tt-time-block">
+              <span class="tt-time">17:16</span>
+              <span class="tt-time-label">発</span>
+            </div>
+            <div class="tt-detail">
+              <strong>新潟 発</strong>関屋 着 17:30頃
+            </div>
             <span class="tt-badge badge-local">普通</span>
           </div>
 
@@ -587,50 +722,57 @@
 
       <div class="card work-card">
         <div class="card-head">
-          <div class="card-icon">💼</div>
+          <div class="card-icon-wrap">💼</div>
           <h2>今日の仕事内容</h2>
         </div>
+        <div class="card-divider"></div>
         <div class="card-body">
 
-          <div class="work-meta">
-            <span class="meta-tag meta-time">8:30 〜 15:30</span>
-            <span class="meta-tag meta-place">職場</span>
+          <div class="work-time-banner">
+            ⏰ 8:30 〜 15:30　勤務
           </div>
 
           <div class="timeline">
 
             <div class="tl-item">
-              <span class="tl-time">8:30</span>
-              <div class="tl-dot-wrap"><div class="tl-dot"></div></div>
-              <div class="tl-block">
-                <div class="tl-block-title">出勤・朝の準備</div>
+              <div class="tl-time-wrap">
+                <span class="tl-time">8:30</span>
+                <div class="tl-dot-line"></div>
+              </div>
+              <div class="tl-block task">
+                <div class="tl-block-title"><span class="tl-block-icon">🌅</span>出勤・朝の準備</div>
                 <div class="tl-block-sub">〜 9:00　連絡確認・準備</div>
               </div>
             </div>
 
             <div class="tl-item">
-              <span class="tl-time">9:00</span>
-              <div class="tl-dot-wrap"><div class="tl-dot"></div></div>
-              <div class="tl-block">
-                <div class="tl-block-title">午前の業務</div>
+              <div class="tl-time-wrap">
+                <span class="tl-time">9:00</span>
+                <div class="tl-dot-line"></div>
+              </div>
+              <div class="tl-block task">
+                <div class="tl-block-title"><span class="tl-block-icon">💻</span>午前の業務</div>
                 <div class="tl-block-sub">〜 12:00　通常業務・作業</div>
               </div>
             </div>
 
             <div class="tl-item">
-              <span class="tl-time">12:00</span>
-              <div class="tl-dot-wrap"><div class="tl-dot"></div></div>
+              <div class="tl-time-wrap">
+                <span class="tl-time">12:00</span>
+                <div class="tl-dot-line"></div>
+              </div>
               <div class="tl-block brk">
-                <div class="tl-block-title">昼休み</div>
+                <div class="tl-block-title"><span class="tl-block-icon">🍱</span>昼休み</div>
                 <div class="tl-block-sub">〜 13:00　休憩</div>
               </div>
             </div>
 
             <div class="tl-item">
-              <span class="tl-time">13:00</span>
-              <div class="tl-dot-wrap"><div class="tl-dot"></div></div>
-              <div class="tl-block">
-                <div class="tl-block-title">午後の業務</div>
+              <div class="tl-time-wrap">
+                <span class="tl-time">13:00</span>
+              </div>
+              <div class="tl-block task">
+                <div class="tl-block-title"><span class="tl-block-icon">💻</span>午後の業務</div>
                 <div class="tl-block-sub">〜 15:30　通常業務・作業</div>
               </div>
             </div>
@@ -639,8 +781,7 @@
 
           <div class="tl-end">
             <span class="tl-end-time">15:30</span>
-            <div class="tl-end-dot-wrap"><div class="tl-end-dot"></div></div>
-            <span class="tl-end-flag">退勤</span>
+            <span class="tl-end-flag">🏁 退勤</span>
           </div>
 
         </div>
