@@ -94,6 +94,26 @@
     }
     .screen.active { display: flex; }
 
+    /* ルート画面だけはスクロールなし・カードが全高を埋める */
+    #screen-route {
+      overflow-y: hidden;
+      padding: 10px 13px 10px;
+      gap: 0;
+    }
+    #screen-route .route-card {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+    #screen-route .route-card .card-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      padding: 8px 14px 10px;
+    }
+
     /* ===== Card ===== */
     .card {
       background: var(--white);
@@ -126,16 +146,19 @@
     .route-card .card-icon { background: #e8eaf6; }
     .route-card .card-head h2 { color: var(--blue); }
 
-    /* 縦型ルート */
+    /* 縦型ルート：画面いっぱいに均等配置 */
     .route-track {
+      flex: 1;
       display: flex;
       flex-direction: column;
-      padding: 2px 0 2px 10px;
+      padding: 2px 0 2px 8px;
+      min-height: 0;
     }
     .route-stop {
       display: flex;
       align-items: center;
       gap: 12px;
+      flex-shrink: 0;
     }
     .stop-dot {
       width: 15px; height: 15px;
@@ -149,23 +172,26 @@
 
     .stop-info { display: flex; flex-direction: column; gap: 1px; }
     .stop-name {
-      font-size: 0.87rem;
+      font-size: 0.9rem;
       font-weight: 700;
       color: #455a64;
+      line-height: 1.2;
     }
     .stop-name.home { color: var(--blue-dk); }
     .stop-name.work { color: var(--red-dk); }
     .stop-sub {
-      font-size: 0.68rem;
+      font-size: 0.67rem;
       color: #90a4ae;
       letter-spacing: 0.01em;
     }
 
+    /* コネクターがスペースを均等に埋める */
     .route-conn {
+      flex: 1;
       display: flex;
       align-items: stretch;
       gap: 12px;
-      padding: 0;
+      min-height: 0;
     }
     .conn-line-col {
       display: flex;
@@ -177,7 +203,7 @@
     .conn-line {
       width: 3px;
       flex: 1;
-      min-height: 28px;
+      min-height: 0;
       border-radius: 2px;
     }
     .conn-line.car   { background: linear-gradient(180deg, #ff8f00, #ffa726); }
@@ -187,10 +213,10 @@
       display: flex;
       flex-direction: column;
       justify-content: center;
-      padding: 3px 0;
+      padding: 2px 0;
     }
     .conn-label {
-      font-size: 0.7rem;
+      font-size: 0.72rem;
       font-weight: 700;
       letter-spacing: 0.02em;
       line-height: 1.3;
@@ -474,46 +500,8 @@
             </div>
 
           </div><!-- /route-track -->
-
-          <div class="route-summary">
-            <span class="route-tag">母の車 → 越後線 → 白新線/羽越本線 → 自車</span>
-            <span class="route-tag">乗換 1回（新潟駅・徒歩2分）</span>
-          </div>
         </div>
       </div><!-- /route-card -->
-
-      <div class="card info-card">
-        <div class="card-head">
-          <div class="card-icon">ℹ️</div>
-          <h2>本日の概要</h2>
-        </div>
-        <div class="card-body">
-          <div class="info-row">
-            <span class="info-label">自宅</span>
-            <span class="info-value">新潟市中央区美咲町1-26-14</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">出勤</span>
-            <span class="info-value">8:30</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">退勤</span>
-            <span class="info-value">15:30</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">勤務時間</span>
-            <span class="info-value">7時間（昼休憩 12:00〜13:00）</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">乗換駅</span>
-            <span class="info-value">新潟駅（越後線 → 白新線、徒歩2分）</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">駐車場</span>
-            <span class="info-value">中条駅前（借用）</span>
-          </div>
-        </div>
-      </div>
 
     </div><!-- /screen-route -->
 
