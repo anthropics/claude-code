@@ -1,0 +1,57 @@
+name: Agentic runtime enhancement
+description: Propose an improvement to Mythos runtime, Veriflow, or encrypted policy-pack architecture
+title: "[Agentic]: "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What is missing, weak, or hard to use today?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed enhancement
+      description: Describe the change you want.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Primary surface
+      options:
+        - Mythos runtime
+        - Veriflow host logic
+        - Policy pack / encryption
+        - Prompt templates
+        - Docs / onboarding
+        - CI / tests
+    validations:
+      required: true
+
+  - type: textarea
+    id: agentic_impact
+    attributes:
+      label: Agentic impact
+      description: How does this improve safe autonomy, verification, or observability?
+    validations:
+      required: true
+
+  - type: textarea
+    id: security_notes
+    attributes:
+      label: Security notes
+      description: Mention permissions, signatures, manifests, secrets, auditability, or approval gates.
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: What proves this change is complete?
+    validations:
+      required: true
