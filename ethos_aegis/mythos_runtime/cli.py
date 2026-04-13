@@ -57,3 +57,18 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":  # pragma: no cover
     raise SystemExit(main())
+if dry_run:
+    return {
+        "compressed": True,
+        "dry_run": True,
+        "summary": summary_payload,
+        "preserved": len(preserved),
+    }
+
+content = (
+    self.HEADER
+    + summary_event.to_markdown()
+    + "\n"
+    + "\n".join(event.to_markdown() for event in preserved)
+    + "\n"
+)
