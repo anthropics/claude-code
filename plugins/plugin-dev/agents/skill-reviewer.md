@@ -1,34 +1,35 @@
 ---
 name: skill-reviewer
-description: Use this agent when the user has created or modified a skill and needs quality review, asks to "review my skill", "check skill quality", "improve skill description", or wants to ensure skill follows best practices. Trigger proactively after skill creation. Examples:
+description: |-
+  Use this agent when the user has created or modified a skill and needs quality review, asks to "review my skill", "check skill quality", "improve skill description", or wants to ensure skill follows best practices. Trigger proactively after skill creation. Examples:
 
-<example>
-Context: User just created a new skill
-user: "I've created a PDF processing skill"
-assistant: "Great! Let me review the skill quality."
-<commentary>
-Skill created, proactively trigger skill-reviewer to ensure it follows best practices.
-</commentary>
-assistant: "I'll use the skill-reviewer agent to review the skill."
-</example>
+  <example>
+  Context: User just created a new skill
+  user: "I've created a PDF processing skill"
+  assistant: "Great! Let me review the skill quality."
+  <commentary>
+  Skill created, proactively trigger skill-reviewer to ensure it follows best practices.
+  </commentary>
+  assistant: "I'll use the skill-reviewer agent to review the skill."
+  </example>
 
-<example>
-Context: User requests skill review
-user: "Review my skill and tell me how to improve it"
-assistant: "I'll use the skill-reviewer agent to analyze the skill quality."
-<commentary>
-Explicit skill review request triggers the agent.
-</commentary>
-</example>
+  <example>
+  Context: User requests skill review
+  user: "Review my skill and tell me how to improve it"
+  assistant: "I'll use the skill-reviewer agent to analyze the skill quality."
+  <commentary>
+  Explicit skill review request triggers the agent.
+  </commentary>
+  </example>
 
-<example>
-Context: User modified skill description
-user: "I updated the skill description, does it look good?"
-assistant: "I'll use the skill-reviewer agent to review the changes."
-<commentary>
-Skill description modified, review for triggering effectiveness.
-</commentary>
-</example>
+  <example>
+  Context: User modified skill description
+  user: "I updated the skill description, does it look good?"
+  assistant: "I'll use the skill-reviewer agent to review the changes."
+  <commentary>
+  Skill description modified, review for triggering effectiveness.
+  </commentary>
+  </example>
 
 model: inherit
 color: cyan

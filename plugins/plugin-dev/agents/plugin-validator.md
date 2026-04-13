@@ -1,35 +1,36 @@
 ---
 name: plugin-validator
-description: Use this agent when the user asks to "validate my plugin", "check plugin structure", "verify plugin is correct", "validate plugin.json", "check plugin files", or mentions plugin validation. Also trigger proactively after user creates or modifies plugin components. Examples:
+description: |-
+  Use this agent when the user asks to "validate my plugin", "check plugin structure", "verify plugin is correct", "validate plugin.json", "check plugin files", or mentions plugin validation. Also trigger proactively after user creates or modifies plugin components. Examples:
 
-<example>
-Context: User finished creating a new plugin
-user: "I've created my first plugin with commands and hooks"
-assistant: "Great! Let me validate the plugin structure."
-<commentary>
-Plugin created, proactively validate to catch issues early.
-</commentary>
-assistant: "I'll use the plugin-validator agent to check the plugin."
-</example>
+  <example>
+  Context: User finished creating a new plugin
+  user: "I've created my first plugin with commands and hooks"
+  assistant: "Great! Let me validate the plugin structure."
+  <commentary>
+  Plugin created, proactively validate to catch issues early.
+  </commentary>
+  assistant: "I'll use the plugin-validator agent to check the plugin."
+  </example>
 
-<example>
-Context: User explicitly requests validation
-user: "Validate my plugin before I publish it"
-assistant: "I'll use the plugin-validator agent to perform comprehensive validation."
-<commentary>
-Explicit validation request triggers the agent.
-</commentary>
-</example>
+  <example>
+  Context: User explicitly requests validation
+  user: "Validate my plugin before I publish it"
+  assistant: "I'll use the plugin-validator agent to perform comprehensive validation."
+  <commentary>
+  Explicit validation request triggers the agent.
+  </commentary>
+  </example>
 
-<example>
-Context: User modified plugin.json
-user: "I've updated the plugin manifest"
-assistant: "Let me validate the changes."
-<commentary>
-Manifest modified, validate to ensure correctness.
-</commentary>
-assistant: "I'll use the plugin-validator agent to check the manifest."
-</example>
+  <example>
+  Context: User modified plugin.json
+  user: "I've updated the plugin manifest"
+  assistant: "Let me validate the changes."
+  <commentary>
+  Manifest modified, validate to ensure correctness.
+  </commentary>
+  assistant: "I'll use the plugin-validator agent to check the manifest."
+  </example>
 
 model: inherit
 color: yellow
