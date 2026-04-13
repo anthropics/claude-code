@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640">
+  <rect width="1280" height="640" fill="#0B1020"/>
+  <rect x="72" y="72" width="280" height="176" rx="24" fill="#275EFE"/>
+  <text x="108" y="150" font-family="Arial, Helvetica, sans-serif" font-size="54" fill="#FFFFFF">Ethos</text>
+  <text x="108" y="210" font-family="Arial, Helvetica, sans-serif" font-size="54" fill="#FFFFFF">Aegis</text>
+  <circle cx="430" cy="160" r="16" fill="#F5B700"/>
+  <text x="490" y="156" font-family="Arial, Helvetica, sans-serif" font-size="64" fill="#D1D5DB">Claude Mythos</text>
+  <text x="490" y="220" font-family="Arial, Helvetica, sans-serif" font-size="30" fill="#22D3EE">Veriflow Immune System</text>
+  <text x="78" y="420" font-family="Arial, Helvetica, sans-serif" font-size="44" fill="#D1D5DB">Host-aware verification and formula generation</text>
+  <text x="78" y="480" font-family="Arial, Helvetica, sans-serif" font-size="44" fill="#D1D5DB">for CKAN-backed and normalized data</text>
+  <text x="78" y="564" font-family="Arial, Helvetica, sans-serif" font-size="28" fill="#22D3EE">Trust the verified path.</text>
+</svg>
