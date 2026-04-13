@@ -3,7 +3,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 
-@dataclass(slots=True)
+from dataclasses import dataclass
+
+@dataclass
 class BudgetMeter:
     max_tokens: int = 500_000
     max_turns: int = 25
