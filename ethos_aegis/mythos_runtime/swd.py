@@ -150,3 +150,9 @@ class StrictWriteDiscipline:
     def _ignored(self, rel_path: Path) -> bool:
         text = str(rel_path).replace("\\", "/")
         return any(fnmatch.fnmatch(text, pattern) for pattern in self.ignore_patterns)
+
+sections = [
+    section.strip()
+    for section in text.split("## ")
+    if section.strip() and "```json" in section
+]
