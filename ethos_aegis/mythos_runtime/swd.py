@@ -9,7 +9,7 @@ from typing import Iterable
 from .memory import MemoryEvent, MemoryLedger
 
 
-@dataclass(slots=True, frozen=True)
+@dataclass(frozen=True)
 class FileSnapshot:
     path: str
     exists: bool
@@ -17,14 +17,14 @@ class FileSnapshot:
     sha256: str | None
 
 
-@dataclass(slots=True)
+@dataclass
 class ClaimedFileAction:
     path: str
     action: str
     description: str = ""
 
 
-@dataclass(slots=True)
+@dataclass
 class VerificationReport:
     ok: bool
     claimed_actions: list[ClaimedFileAction]
@@ -45,12 +45,20 @@ class StrictWriteDiscipline:
     ) -> None:
         self.root = Path(root)
         self.memory_ledger = memory_ledger
-        self.ignore_patterns = ignore_patterns or [".git/*", "__pycache__/*", "*.pyc"]
+        self.ignore_patterns = ignore_patterns or [
+            ".git/*",
+            "__pycache__/*",
+            "*.pyc",
+        ]
 
     def snapshot(self, paths: Iterable[str] | None = None) -> dict[str, FileSnapshot]:
         if paths is None:
             candidates = [path for path in self.root.rglob("*") if path.is_file()]
-            rel_paths = [str(path.relative_to(self.root)) for path in candidates if not self._ignored(path.relative_to(self.root))]
+            rel_paths = [
+                str(path.relative_to(self.root))
+                for path in candidates
+                if not self._ignored(path.relative_to(self.root))
+            ]
         else:
             rel_paths = [self._normalize(path) for path in paths]
         snapshots: dict[str, FileSnapshot] = {}
@@ -65,7 +73,12 @@ class StrictWriteDiscipline:
                     sha256=hashlib.sha256(data).hexdigest(),
                 )
             else:
-                snapshots[rel_path] = FileSnapshot(path=rel_path, exists=False, size=None, sha256=None)
+                snapshots[rel_path] = FileSnapshot(
+                    path=rel_path,
+                    exists=False,
+                    size=None,
+                    sha256=None,
+                )
         return snapshots
 
     def verify_claims(
@@ -79,11 +92,22 @@ class StrictWriteDiscipline:
         verified: list[ClaimedFileAction] = []
         mismatches: list[str] = []
         for action in claimed_actions:
-            before_state = before.get(action.path, FileSnapshot(action.path, False, None, None))
-            after_state = after.get(action.path, FileSnapshot(action.path, False, None, None))
+            before_state = before.get(
+                action.path,
+                FileSnapshot(action.path, False, None, None),
+            )
+            after_state = after.get(
+                action.path,
+                FileSnapshot(action.path, False, None, None),
+            )
             matched = (
                 (action.action == "CREATE" and not before_state.exists and after_state.exists)
-                or (action.action == "MODIFY" and before_state.exists and after_state.exists and before_state.sha256 != after_state.sha256)
+                or (
+                    action.action == "MODIFY"
+                    and before_state.exists
+                    and after_state.exists
+                    and before_state.sha256 != after_state.sha256
+                )
                 or (action.action == "DELETE" and before_state.exists and not after_state.exists)
             )
             if matched or dry_run:
@@ -104,7 +128,14 @@ class StrictWriteDiscipline:
         self._record_report(report)
         return report
 
-    def write_text(self, path: str | Path, content: str, *, description: str = "", dry_run: bool = False) -> VerificationReport:
+    def write_text(
+        self,
+        path: str | Path,
+        content: str,
+        *,
+        description: str = "",
+        dry_run: bool = False,
+    ) -> VerificationReport:
         rel_path = self._normalize(path)
         full_path = self.root / rel_path
         action = "MODIFY" if full_path.exists() else "CREATE"
@@ -113,7 +144,12 @@ class StrictWriteDiscipline:
             full_path.parent.mkdir(parents=True, exist_ok=True)
             full_path.write_text(content, encoding="utf-8")
         after = self.snapshot([rel_path]) if not dry_run else before
-        return self.verify_claims([ClaimedFileAction(rel_path, action, description)], before, after, dry_run=dry_run)
+        return self.verify_claims(
+            [ClaimedFileAction(rel_path, action, description)],
+            before,
+            after,
+            dry_run=dry_run,
+        )
 
     def _record_report(self, report: VerificationReport) -> None:
         if self.memory_ledger is None:
@@ -123,7 +159,11 @@ class StrictWriteDiscipline:
             "detail": report.detail,
             "dry_run": report.dry_run,
             "claimed_actions": [
-                {"path": action.path, "action": action.action, "description": action.description}
+                {
+                    "path": action.path,
+                    "action": action.action,
+                    "description": action.description,
+                }
                 for action in report.claimed_actions
             ],
             "verified_actions": [
@@ -131,7 +171,11 @@ class StrictWriteDiscipline:
                     "path": action.path,
                     "action": action.action,
                     "description": action.description,
-                    "after": asdict(report.after.get(action.path)) if report.after.get(action.path) else None,
+                    "after": (
+                        asdict(report.after.get(action.path))
+                        if report.after.get(action.path)
+                        else None
+                    ),
                 }
                 for action in report.verified_actions
             ],
@@ -150,9 +194,3 @@ class StrictWriteDiscipline:
     def _ignored(self, rel_path: Path) -> bool:
         text = str(rel_path).replace("\\", "/")
         return any(fnmatch.fnmatch(text, pattern) for pattern in self.ignore_patterns)
-
-sections = [
-    section.strip()
-    for section in text.split("## ")
-    if section.strip() and "```json" in section
-]
