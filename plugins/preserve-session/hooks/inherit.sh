@@ -82,67 +82,27 @@ fi
 # --- From mode ---
 
 if [[ "$MODE" == "--from" ]]; then
-  if [[ -z "$SOURCE_PATH" ]]; then
-    echo "Usage: inherit.sh --from <path>"
-    exit 1
-  fi
+  # HOTFIX (v1.1.2): `--from` copy leaves identical sessionId/cwd/parentUuid
+  # fields in the copied .jsonl files. Claude Code then treats the copy as
+  # the same session as the source, so extending the inherited session can
+  # contaminate the original source's history. Block the operation until a
+  # proper fix (sessionId + filename + cwd rewrite) is in place.
+  cat >&2 <<'HOTFIX_EOF'
+⚠️  /preserve-session:inherit --from is temporarily disabled (hotfix v1.1.2).
 
-  SOURCE_PATH=$(realpath "$SOURCE_PATH" 2>/dev/null || echo "$SOURCE_PATH")
+Reason: the current cp-based copy leaves the source session's sessionId,
+parentUuid chain, and cwd unchanged in the copied .jsonl files. Claude Code
+2.1.x tracks sessions by sessionId across all projects, so resuming or
+extending an "inherited" session can write back into the original source
+session's history — the opposite of the intended independent-copy behavior.
 
-  if [[ "$SOURCE_PATH" == "$REAL_PWD" ]]; then
-    echo "preserve-session: source and destination are the same project."
-    exit 1
-  fi
+A proper fix is being developed (rewrites sessionId, filename, and cwd so
+the copy is truly independent). Until that lands, --from is blocked to
+prevent contamination of the source session.
 
-  SOURCE_SLUG=$(path_to_slug "$SOURCE_PATH")
-  SOURCE_PROJECTS="$HOME/.claude/projects/$SOURCE_SLUG"
-
-  if [[ ! -d "$SOURCE_PROJECTS" ]]; then
-    echo "preserve-session: no sessions folder found for $SOURCE_PATH"
-    exit 1
-  fi
-
-  # Check for slug collision before copying
-  COLLISION=$(check_slug_collision "$SOURCE_PATH")
-  if [[ -n "$COLLISION" ]]; then
-    echo "preserve-session: warning — source slug collides with:"
-    while IFS= read -r line; do
-      echo "  $line"
-    done <<< "$COLLISION"
-    echo "  Sessions from these projects share the same folder."
-    echo "  Inheriting will also bring in sessions from the above project(s)."
-    if [[ "$FORCE" == false ]]; then
-      echo ""
-      echo "  To proceed anyway, run: /preserve-session:inherit --from <path> --force"
-      exit 1
-    fi
-    echo "  Proceeding with --force."
-  fi
-
-  mkdir -p "$CURRENT_PROJECTS"
-
-  COPIED=0
-  SKIPPED=0
-
-  for f in "$SOURCE_PROJECTS"/*.jsonl; do
-    [[ -e "$f" ]] || continue
-    BASENAME=$(basename "$f")
-    DEST="$CURRENT_PROJECTS/$BASENAME"
-    if [[ -f "$DEST" ]]; then
-      (( SKIPPED++ )) || true
-    else
-      cp "$f" "$DEST"
-      (( COPIED++ )) || true
-    fi
-  done
-
-  echo "Done."
-  echo "  source:  $SOURCE_PATH"
-  echo "  copied:  $COPIED session(s)"
-  [[ $SKIPPED -gt 0 ]] && echo "  skipped: $SKIPPED (already exist in destination)"
-  echo ""
-  echo "Use 'claude --resume' to browse inherited sessions."
-  exit 0
+For context: plugins/preserve-session/compass/context.md
+HOTFIX_EOF
+  exit 1
 fi
 
 echo "Usage: inherit.sh [--list | --from <path>]"

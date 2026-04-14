@@ -1,6 +1,6 @@
 {
   "name": "preserve-session",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Preserves Claude Code session history across project directory renames, moves, and copies.",
   "author": { "name": "won", "email": "wonbywondev@gmail.com" },
   "homepage": "https://github.com/wonbywondev/claude-plugins/tree/main/plugins/preserve-session",
