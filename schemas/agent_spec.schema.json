@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://goodshytgroup.github.io/ethos-aegis/schemas/agent_spec.schema.json",
+  "title": "Agent Spec",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "creator",
+    "system_role",
+    "use_case",
+    "business_goal",
+    "users",
+    "inputs",
+    "tools",
+    "responsibilities",
+    "constraints",
+    "required_output",
+    "success_criteria"
+  ],
+  "properties": {
+    "schema_version": {"type": "string"},
+    "creator": {"type": "string"},
+    "system_role": {"type": "string"},
+    "use_case": {"type": "string"},
+    "business_goal": {"type": "string"},
+    "users": {"type": "array", "items": {"type": "string"}},
+    "inputs": {
+      "oneOf": [
+        {"type": "string"},
+        {"type": "array", "items": {"type": "string"}}
+      ]
+    },
+    "tools": {
+      "oneOf": [
+        {"type": "string"},
+        {"type": "array", "items": {"type": "string"}}
+      ]
+    },
+    "responsibilities": {
+      "type": "array",
+      "items": {"type": "string"},
+      "minItems": 1
+    },
+    "memory_requirements": {
+      "type": ["string", "null"]
+    },
+    "constraints": {
+      "type": "object",
+      "required": [
+        "tech_stack",
+        "model_provider",
+        "budget",
+        "latency",
+        "security_privacy",
+        "deployment_target"
+      ],
+      "properties": {
+        "tech_stack": {"type": "string"},
+        "model_provider": {"type": "string"},
+        "budget": {"type": "string"},
+        "latency": {"type": "string"},
+        "security_privacy": {"type": "string"},
+        "deployment_target": {"type": "string"}
+      },
+      "additionalProperties": true
+    },
+    "required_output": {
+      "type": "array",
+      "items": {"type": "string"},
+      "minItems": 1
+    },
+    "success_criteria": {"type": "string"}
+  },
+  "additionalProperties": true
+}
