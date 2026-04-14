@@ -5,15 +5,21 @@ import json
 import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any
 
 from ethos_aegis.mythos_runtime.memory import MemoryEvent, MemoryLedger
 from ethos_aegis.mythos_runtime.swd import StrictWriteDiscipline
 
-from .ckan_adapter import CKANCapabilityMatrix, CKANClient, CKANIngestionResult, IngestionAttempt, SchemaField
+from .ckan_adapter import (
+    CKANCapabilityMatrix,
+    CKANClient,
+    CKANIngestionResult,
+    IngestionAttempt,
+    SchemaField,
+)
 
 
-@dataclass(slots=True)
+@dataclass
 class DatasetCacheEntry:
     resource_id: str
     digest: str
@@ -42,10 +48,19 @@ class VeriflowImmuneSystem:
         self._capability_matrix: CKANCapabilityMatrix | None = None
         self._probe_sample_resource_id = sample_resource_id
         self._persist_host_state = persist_host_state
-        self._state_dir = Path(state_dir) if state_dir is not None else Path(tempfile.gettempdir()) / "ethos_aegis_veriflow_state"
+        self._state_dir = (
+            Path(state_dir)
+            if state_dir is not None
+            else Path(tempfile.gettempdir()) / "ethos_aegis_veriflow_state"
+        )
         self._memory_ledger = MemoryLedger(self._state_dir / "MEMORY.md")
-        self._runtime_discipline = StrictWriteDiscipline(self._state_dir, memory_ledger=self._memory_ledger)
-        self._state: dict[str, Any] = self._load_state() if persist_host_state else {"resources": {}}
+        self._runtime_discipline = StrictWriteDiscipline(
+            self._state_dir,
+            memory_ledger=self._memory_ledger,
+        )
+        self._state = (
+            self._load_state() if persist_host_state else {"resources": {}}
+        )
         if probe_on_startup:
             self.bootstrap(sample_resource_id=sample_resource_id)
 
@@ -78,7 +93,11 @@ class VeriflowImmuneSystem:
         if not self._persist_host_state:
             return
         payload = json.dumps(self._state, indent=2, sort_keys=True)
-        self._runtime_discipline.write_text(self.state_file.name, payload, description="Persist host capability and resource state")
+        self._runtime_discipline.write_text(
+            self.state_file.name,
+            payload,
+            description="Persist host capability and resource state",
+        )
 
     def bootstrap(self, *, sample_resource_id: str | None = None) -> CKANCapabilityMatrix:
         sample = sample_resource_id or self._probe_sample_resource_id
@@ -94,7 +113,9 @@ class VeriflowImmuneSystem:
         if self._capability_matrix is None:
             self.bootstrap(sample_resource_id=resource_id)
         result: CKANIngestionResult = self.ckan.ingest_resource(resource_id)
-        digest = hashlib.sha256(json.dumps(result.rows, sort_keys=True).encode("utf-8")).hexdigest()
+        digest = hashlib.sha256(
+            json.dumps(result.rows, sort_keys=True).encode("utf-8")
+        ).hexdigest()
         entry = DatasetCacheEntry(
             resource_id=result.resource_id,
             digest=digest,

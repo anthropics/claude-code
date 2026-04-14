@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Mapping
+from typing import Any
 
 
-@dataclass(slots=True, frozen=True)
+@dataclass(frozen=True)
 class CKANVersion:
     raw: str
     major: int | None = None
@@ -34,10 +34,16 @@ class CKANVersion:
                 nums.append(None)
         while len(nums) < 3:
             nums.append(None)
-        return cls(raw=text, major=nums[0], minor=nums[1], patch=nums[2], prerelease=prerelease)
+        return cls(
+            raw=text,
+            major=nums[0],
+            minor=nums[1],
+            patch=nums[2],
+            prerelease=prerelease,
+        )
 
 
-@dataclass(slots=True)
+@dataclass
 class SchemaField:
     name: str
     label: str | None = None
@@ -47,14 +53,14 @@ class SchemaField:
     field_type: str = "string"
 
 
-@dataclass(slots=True)
+@dataclass
 class IngestionAttempt:
     path: str
     ok: bool
     detail: str
 
 
-@dataclass(slots=True)
+@dataclass
 class CapabilityRecord:
     name: str
     state: str
@@ -62,7 +68,7 @@ class CapabilityRecord:
     detail: str = ""
 
 
-@dataclass(slots=True)
+@dataclass
 class CKANCapabilityMatrix:
     api_base: str
     version: CKANVersion
@@ -94,7 +100,7 @@ class CKANCapabilityMatrix:
         }
 
 
-@dataclass(slots=True)
+@dataclass
 class CKANIngestionResult:
     resource_id: str
     package_id: str | None
@@ -112,7 +118,11 @@ class CKANClient:
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key
 
-    def probe_capabilities(self, *, sample_resource_id: str | None = None) -> CKANCapabilityMatrix:
+    def probe_capabilities(
+        self,
+        *,
+        sample_resource_id: str | None = None,
+    ) -> CKANCapabilityMatrix:
         return CKANCapabilityMatrix(
             api_base=f"{self.base_url}/api/3/action",
             version=CKANVersion(raw="unknown"),
@@ -120,4 +130,6 @@ class CKANClient:
         )
 
     def ingest_resource(self, resource_id: str, **_: Any) -> CKANIngestionResult:
-        raise NotImplementedError("Provide a concrete CKAN client or test double for resource ingestion.")
+        raise NotImplementedError(
+            "Provide a concrete CKAN client or test double for resource ingestion."
+        )
