@@ -27,6 +27,19 @@ if [ -f "$WORKSPACE/client/package.json" ]; then
   else
     echo "client/node_modules already exists, skipping npm install."
   fi
+  # Ensure next-env.d.ts exists so TypeScript resolves next/image-types (.webp etc.)
+  # Normally created by `next dev`/`next build`, but we create it up-front so
+  # VS Code's TS server doesn't show spurious errors before a build runs.
+  if [ ! -f "$WORKSPACE/client/next-env.d.ts" ]; then
+    echo "Generating client/next-env.d.ts..."
+    cat > "$WORKSPACE/client/next-env.d.ts" <<'EOF'
+/// <reference types="next" />
+/// <reference types="next/image-types/global" />
+
+// NOTE: This file should not be edited
+// see https://nextjs.org/docs/basic-features/typescript for more information.
+EOF
+  fi
   echo "Next.js client setup complete."
 else
   echo "No client/package.json found, skipping Next.js setup."

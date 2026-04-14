@@ -72,3 +72,35 @@ export interface SocialAuthResponse {
 	message: string;
 	user: User;
 }
+
+export interface QueryParams {
+	page?: number;
+	searchTerm?: string;
+}
+
+export interface ProfileData {
+	gender?: string;
+	occupation?: string;
+	phone_number?: string;
+	country?: string;
+	city?: string;
+	avatar?: string | File;
+}
+
+export interface Profile extends UserResponse {
+	is_tenant?: boolean;
+}
+
+export interface ProfileResponse {
+	profile: Profile;
+}
+
+export interface PaginatedResponse<T> {
+	count: number;
+	next: string | null;
+	previous: string | null;
+	results: T[];
+}
+
+export type ProfilesResponse = PaginatedResponse<Profile>;
+export type NonTenantResponse = PaginatedResponse<Profile>;
