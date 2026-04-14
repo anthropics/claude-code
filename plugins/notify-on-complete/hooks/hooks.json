@@ -1,0 +1,16 @@
+{
+  "description": "Completion notification hook for Claude Code stop events",
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/notify-on-complete.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
