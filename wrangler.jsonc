@@ -1,5 +1,5 @@
 {
-  "name": "ethos",
+  "name": "ethos-aegis-agentic-immune-veriflow",
   "compatibility_date": "2026-04-13",
   "main": "src/index.ts",
   "observability": {
