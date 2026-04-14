@@ -8,8 +8,7 @@ services:
     container_name: api
     user: root
     volumes:
-      - .:/app:z
-      - ./staticfiles:/app/staticfiles
+      - staticfiles:/app/staticfiles
     expose:
       - "8000"
     env_file:
@@ -103,7 +102,7 @@ services:
     ports:
       - "8080:80"
     volumes:
-      - ./staticfiles:/app/staticfiles
+      - staticfiles:/app/staticfiles
       - logs_store:/var/log/nginx
     depends_on:
       - api
@@ -121,4 +120,5 @@ volumes:
   mailpit_data: {}
   logs_store: {}
   redis_data: {}
+  staticfiles: {}
 

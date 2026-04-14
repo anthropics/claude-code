@@ -1,7 +1,7 @@
 {
   "tool_name": "Read",
-  "tool_input_preview": "{\"file_path\":\"/home/nakaj/Pictures/screenshot2.png\"}",
-  "error": "File does not exist. Note: your current working directory is /home/nakaj/claude-code.",
-  "timestamp": "2026-04-12T15:47:06.481Z",
+  "tool_input_preview": "{\"file_path\":\"/mnt/c/Users/nakaj/AppData/Roaming/Code/logs/20260413T214739/window1/exthost/ms-vscode-remote.remote-containers/remoteContainers-2026-04-13T15-10-41.457Z.log\"}",
+  "error": "File content (736.5KB) exceeds maximum allowed size (256KB). Use offset and limit parameters to read specific portions of the file, or search for specific content instead of reading the whole file.",
+  "timestamp": "2026-04-13T15:13:47.533Z",
   "retry_count": 1
 }

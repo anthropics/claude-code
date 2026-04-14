@@ -137,14 +137,20 @@
   "hotPaths": [
     {
       "path": ".devcontainer/Dockerfile",
-      "accessCount": 3,
-      "lastAccessed": 1776008153404,
+      "accessCount": 4,
+      "lastAccessed": 1776093170157,
+      "type": "file"
+    },
+    {
+      "path": ".devcontainer/init-firewall.sh",
+      "accessCount": 4,
+      "lastAccessed": 1776094718296,
       "type": "file"
     },
     {
       "path": ".devcontainer/devcontainer.json",
-      "accessCount": 2,
-      "lastAccessed": 1776008163019,
+      "accessCount": 3,
+      "lastAccessed": 1776093170095,
       "type": "file"
     },
     {

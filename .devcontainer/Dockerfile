@@ -45,7 +45,7 @@ RUN install -m 0755 -d /etc/apt/keyrings && \
   chmod a+r /etc/apt/keyrings/docker.asc && \
   echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian $(. /etc/os-release && echo "$VERSION_CODENAME") stable" > /etc/apt/sources.list.d/docker.list && \
   apt-get update && \
-  apt-get install -y --no-install-recommends docker-ce-cli docker-compose-plugin && \
+  apt-get install -y --no-install-recommends docker-ce-cli docker-compose-plugin docker-buildx-plugin && \
   apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Ensure default node user has access to /usr/local/share
@@ -117,3 +117,4 @@ RUN chmod +x /usr/local/bin/init-firewall.sh && \
   # Create docker group (actual GID will be fixed at start time to match host socket)
   groupadd -f docker && usermod -aG docker node
 USER node
+
