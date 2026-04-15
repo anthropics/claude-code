@@ -1,28 +1,28 @@
 ---
-description: Copy session history from another registered project into the current one
+description: (Deprecated v1.2.0) Use /preserve-session:copy or /preserve-session:move instead
 allowed-tools: Bash(bash:*)
 ---
 
-> ⚠️ **Hotfix v1.1.2 notice** — the `--from` copy mode is currently **disabled**.
-> The previous `cp`-based implementation left the source session's `sessionId`,
-> `parentUuid` chain, and `cwd` unchanged in the copied `.jsonl` files, which
-> caused Claude Code (2.1.x) to treat the copy as the same session as the source.
-> Resuming the "inherited" session could contaminate the original source's history.
-> A proper fix (sessionId + filename + cwd rewrite) is in progress. Until it lands,
-> only `--list` is available. Running the command will show the list; attempting a
-> copy will show a blocking message explaining the situation.
+> ⚠️ **Deprecated (v1.2.0)** — the `inherit` command has been split into two
+> dedicated commands with clearer semantics:
+>
+> - **`/preserve-session:copy`** — non-destructive. Creates independent session
+>   copies in the current project (new `sessionId`, new filename, rewritten `cwd`).
+>   The source project is not modified.
+> - **`/preserve-session:move`** — destructive. Migrates session files out of
+>   the source slug folder into the current one. The source project is emptied
+>   of its session history.
+>
+> The `inherit` command will be removed in a future major release.
 
-**Step 1** — List available projects:
+Tell the user that `/preserve-session:inherit` is deprecated, and ask which of
+`copy` or `move` they want to use. Do not run the deprecation stub — simply
+redirect the user to `/preserve-session:copy` or `/preserve-session:move`.
+
+If the user explicitly insists on running the stub anyway:
 
 ```bash
-bash "${CLAUDE_PLUGIN_ROOT}/hooks/inherit.sh" --list
+bash "${CLAUDE_PLUGIN_ROOT}/hooks/inherit.sh"
 ```
 
-Show the output to the user. Inform the user that **inherit copy is temporarily
-disabled** due to the hotfix above, and that listing still works as a way to see
-the available source projects. If they ask when copy will return, note that a
-proper fix is being developed (see `plugins/preserve-session/compass/context.md`
-for details).
-
-**(Copy step removed while hotfix is active.)** Do not invoke `--from`; the script
-will exit with a warning message and no files will be copied.
+(The stub will print a redirect message and exit with code 1.)
