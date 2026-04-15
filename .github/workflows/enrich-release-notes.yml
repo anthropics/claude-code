@@ -14,22 +14,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Enrich release name with changelog summary
+      - name: Enrich release title and regenerate Atom feed
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG_NAME: ${{ github.event.release.tag_name }}
         run: |
           set -euo pipefail
 
-          # Extract version number from tag (v2.1.108 -> 2.1.108)
           VERSION="${TAG_NAME#v}"
-
-          # Escape dots for awk regex (2.1.108 -> 2\.1\.108)
           VERSION_ESCAPED=$(echo "$VERSION" | sed 's/\./\\./g')
 
           # Extract this version's changelog entries from CHANGELOG.md
-          # Uses a state-machine approach: start capturing after the version
-          # header, stop at the next "## " header
           ENTRIES=$(awk "
             BEGIN { p=0 }
             /^## ${VERSION_ESCAPED}\$/ { p=1; next }
@@ -42,7 +37,7 @@ jobs:
             exit 0
           fi
 
-          # Count entries by category
+          # --- Enrich release title ---
           ADDED=$(echo "$ENTRIES" | grep -c '^- Added' || true)
           IMPROVED=$(echo "$ENTRIES" | grep -c '^- Improved' || true)
           FIXED=$(echo "$ENTRIES" | grep -c '^- Fixed' || true)
@@ -51,7 +46,6 @@ jobs:
           REMOVED=$(echo "$ENTRIES" | grep -c '^- Removed' || true)
           TOTAL=$(echo "$ENTRIES" | wc -l | tr -d ' ')
 
-          # Build a short summary string like "3 added, 5 improved, 10 fixed"
           PARTS=()
           [ "$ADDED" -gt 0 ] && PARTS+=("${ADDED} added")
           [ "$IMPROVED" -gt 0 ] && PARTS+=("${IMPROVED} improved")
@@ -72,6 +66,18 @@ jobs:
           fi
 
           echo "Updating release name to: ${NEW_NAME}"
-
-          # Update the release title via GitHub CLI
           gh release edit "$TAG_NAME" --title "$NEW_NAME"
+
+          # --- Regenerate feed.xml with full changelog content ---
+          python3 scripts/generate-feed.py
+
+          # Commit and push the updated feed
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add feed.xml
+          if git diff --cached --quiet; then
+            echo "feed.xml unchanged, skipping commit"
+          else
+            git commit -m "chore: Update feed.xml for ${TAG_NAME}"
+            git push
+          fi
