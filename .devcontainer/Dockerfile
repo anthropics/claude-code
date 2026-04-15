@@ -103,6 +103,10 @@ RUN sh -c "$(wget -O- https://github.com/deluan/zsh-in-docker/releases/download/
   -a "export PROMPT_COMMAND='history -a' && export HISTFILE=/commandhistory/.bash_history" \
   -x
 
+# zsh-in-docker の -x が en_US.UTF-8 を .zshrc に書き込むが、このイメージには
+# 当該ロケールが未生成のため bash 起動時に warning が出る。該当行を削除する。
+RUN sed -i "/^export LANG='en_US.UTF-8'$/d; /^export LANGUAGE='en_US:en'$/d; /^export LC_ALL='en_US.UTF-8'$/d" /home/node/.zshrc
+
 # Install Claude
 RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}
 
@@ -122,6 +126,11 @@ RUN bash /tmp/install-ecc-assets.sh && \
 RUN claude mcp add --scope user serena -- \
     uvx --from git+https://github.com/oraios/serena \
     serena start-mcp-server --context ide-assistant --project /workspace
+
+# Seed Claude Code user settings with Stop/Notification hooks that emit BEL
+# (paired with VS Code's terminal.integrated.enableBell=true). Goes onto the
+# named volume via seeding on first container start.
+COPY --chown=node:node claude-settings.json /home/node/.claude/settings.json
 
 
 # Copy and set up firewall script
