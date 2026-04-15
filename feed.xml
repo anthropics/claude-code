@@ -5,19 +5,19 @@
   <subtitle>Release notes for Claude Code</subtitle>
   <link rel="alternate" type="text/html" href="https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md"/>
   <link rel="self" type="application/atom+xml" href="https://raw.githubusercontent.com/anthropics/claude-code/main/feed.xml"/>
-  <updated>2026-04-15T05:05:26Z</updated>
+  <updated>2026-04-15T05:14:04Z</updated>
   <entry>
     <id>https://github.com/anthropics/claude-code/releases/tag/v2.1.109</id>
     <title>Claude Code v2.1.109</title>
     <link rel="alternate" type="text/html" href="https://github.com/anthropics/claude-code/releases/tag/v2.1.109"/>
-    <updated>2026-04-15T05:05:26Z</updated>
+    <updated>2026-04-15T04:02:09Z</updated>
     <content type="html">&lt;p&gt;• Improved the extended-thinking indicator with a rotating progress hint&lt;/p&gt;</content>
   </entry>
   <entry>
     <id>https://github.com/anthropics/claude-code/releases/tag/v2.1.108</id>
     <title>Claude Code v2.1.108</title>
     <link rel="alternate" type="text/html" href="https://github.com/anthropics/claude-code/releases/tag/v2.1.108"/>
-    <updated>2026-04-15T05:05:26Z</updated>
+    <updated>2026-04-14T19:11:56Z</updated>
     <content type="html">&lt;p&gt;• Added `ENABLE_PROMPT_CACHING_1H` env var to opt into 1-hour prompt cache TTL on API key, Bedrock, Vertex, and Foundry (`ENABLE_PROMPT_CACHING_1H_BEDROCK` is deprecated but still honored), and `FORCE_PROMPT_CACHING_5M` to force 5-minute TTL&lt;/p&gt;
 &lt;p&gt;• Added recap feature to provide context when returning to a session, configurable in /config and manually invocable with /recap; force with `CLAUDE_CODE_ENABLE_AWAY_SUMMARY` if telemetry disabled.&lt;/p&gt;
 &lt;p&gt;• The model can now discover and invoke built-in slash commands like `/init`, `/review`, and `/security-review` via the Skill tool&lt;/p&gt;
@@ -47,14 +47,14 @@
     <id>https://github.com/anthropics/claude-code/releases/tag/v2.1.107</id>
     <title>Claude Code v2.1.107</title>
     <link rel="alternate" type="text/html" href="https://github.com/anthropics/claude-code/releases/tag/v2.1.107"/>
-    <updated>2026-04-15T05:05:26Z</updated>
+    <updated>2026-04-14T06:11:15Z</updated>
     <content type="html">&lt;p&gt;• Show thinking hints sooner during long operations&lt;/p&gt;</content>
   </entry>
   <entry>
     <id>https://github.com/anthropics/claude-code/releases/tag/v2.1.105</id>
     <title>Claude Code v2.1.105</title>
     <link rel="alternate" type="text/html" href="https://github.com/anthropics/claude-code/releases/tag/v2.1.105"/>
-    <updated>2026-04-15T05:05:26Z</updated>
+    <updated>2026-04-13T21:53:07Z</updated>
     <content type="html">&lt;p&gt;• Added `path` parameter to the `EnterWorktree` tool to switch into an existing worktree of the current repository&lt;/p&gt;
 &lt;p&gt;• Added PreCompact hook support: hooks can now block compaction by exiting with code 2 or returning `{&amp;quot;decision&amp;quot;:&amp;quot;block&amp;quot;}`&lt;/p&gt;
 &lt;p&gt;• Added background monitor support for plugins via a top-level `monitors` manifest key that auto-arms at session start or on skill invoke&lt;/p&gt;
@@ -97,7 +97,7 @@
     <id>https://github.com/anthropics/claude-code/releases/tag/v2.1.101</id>
     <title>Claude Code v2.1.101</title>
     <link rel="alternate" type="text/html" href="https://github.com/anthropics/claude-code/releases/tag/v2.1.101"/>
-    <updated>2026-04-15T05:05:26Z</updated>
+    <updated>2026-04-10T19:03:35Z</updated>
     <content type="html">&lt;p&gt;• Added `/team-onboarding` command to generate a teammate ramp-up guide from your local Claude Code usage&lt;/p&gt;
 &lt;p&gt;• Added OS CA certificate store trust by default, so enterprise TLS proxies work without extra setup (set `CLAUDE_CODE_CERT_STORE=bundled` to use only bundled CAs)&lt;/p&gt;
 &lt;p&gt;• `/ultraplan` and other remote-session features now auto-create a default cloud environment instead of requiring web setup first&lt;/p&gt;
@@ -149,7 +149,7 @@
     <id>https://github.com/anthropics/claude-code/releases/tag/v2.1.98</id>
     <title>Claude Code v2.1.98</title>
     <link rel="alternate" type="text/html" href="https://github.com/anthropics/claude-code/releases/tag/v2.1.98"/>
-    <updated>2026-04-15T05:05:26Z</updated>
+    <updated>2026-04-09T19:18:23Z</updated>
     <content type="html">&lt;p&gt;• Added interactive Google Vertex AI setup wizard accessible from the login screen when selecting &amp;quot;3rd-party platform&amp;quot;, guiding you through GCP authentication, project and region configuration, credential verification, and model pinning&lt;/p&gt;
 &lt;p&gt;• Added `CLAUDE_CODE_PERFORCE_MODE` env var: when set, Edit/Write/NotebookEdit fail on read-only files with a `p4 edit` hint instead of silently overwriting them&lt;/p&gt;
 &lt;p&gt;• Added Monitor tool for streaming events from background scripts&lt;/p&gt;
@@ -212,7 +212,7 @@
     <id>https://github.com/anthropics/claude-code/releases/tag/v2.1.97</id>
     <title>Claude Code v2.1.97</title>
     <link rel="alternate" type="text/html" href="https://github.com/anthropics/claude-code/releases/tag/v2.1.97"/>
-    <updated>2026-04-15T05:05:26Z</updated>
+    <updated>2026-04-08T21:52:30Z</updated>
     <content type="html">&lt;p&gt;• Added focus view toggle (`Ctrl+O`) in `NO_FLICKER` mode showing prompt, one-line tool summary with edit diffstats, and final response&lt;/p&gt;
 &lt;p&gt;• Added `refreshInterval` status line setting to re-run the status line command every N seconds&lt;/p&gt;
 &lt;p&gt;• Added `workspace.git_worktree` to the status line JSON input, set when the current directory is inside a linked git worktree&lt;/p&gt;
@@ -264,14 +264,14 @@
     <id>https://github.com/anthropics/claude-code/releases/tag/v2.1.96</id>
     <title>Claude Code v2.1.96</title>
     <link rel="alternate" type="text/html" href="https://github.com/anthropics/claude-code/releases/tag/v2.1.96"/>
-    <updated>2026-04-15T05:05:26Z</updated>
+    <updated>2026-04-08T04:37:31Z</updated>
     <content type="html">&lt;p&gt;• Fixed Bedrock requests failing with `403 &amp;quot;Authorization header is missing&amp;quot;` when using `AWS_BEARER_TOKEN_BEDROCK` or `CLAUDE_CODE_SKIP_BEDROCK_AUTH` (regression in 2.1.94)&lt;/p&gt;</content>
   </entry>
   <entry>
     <id>https://github.com/anthropics/claude-code/releases/tag/v2.1.94</id>
     <title>Claude Code v2.1.94</title>
     <link rel="alternate" type="text/html" href="https://github.com/anthropics/claude-code/releases/tag/v2.1.94"/>
-    <updated>2026-04-15T05:05:26Z</updated>
+    <updated>2026-04-07T21:18:46Z</updated>
     <content type="html">&lt;p&gt;• Added support for Amazon Bedrock powered by Mantle, set `CLAUDE_CODE_USE_MANTLE=1`&lt;/p&gt;
 &lt;p&gt;• Changed default effort level from medium to high for API-key, Bedrock/Vertex/Foundry, Team, and Enterprise users (control this with `/effort`)&lt;/p&gt;
 &lt;p&gt;• Added compact `Slacked #channel` header with a clickable channel link for Slack MCP send-message tool calls&lt;/p&gt;
@@ -302,7 +302,7 @@
     <id>https://github.com/anthropics/claude-code/releases/tag/v2.1.92</id>
     <title>Claude Code v2.1.92</title>
     <link rel="alternate" type="text/html" href="https://github.com/anthropics/claude-code/releases/tag/v2.1.92"/>
-    <updated>2026-04-15T05:05:26Z</updated>
+    <updated>2026-04-04T00:41:56Z</updated>
     <content type="html">&lt;p&gt;• Added `forceRemoteSettingsRefresh` policy setting: when set, the CLI blocks startup until remote managed settings are freshly fetched, and exits if the fetch fails (fail-closed)&lt;/p&gt;
 &lt;p&gt;• Added interactive Bedrock setup wizard accessible from the login screen when selecting &amp;quot;3rd-party platform&amp;quot; — guides you through AWS authentication, region configuration, credential verification, and model pinning&lt;/p&gt;
 &lt;p&gt;• Added per-model and cache-hit breakdown to `/cost` for subscription users&lt;/p&gt;
@@ -329,7 +329,7 @@
     <id>https://github.com/anthropics/claude-code/releases/tag/v2.1.91</id>
     <title>Claude Code v2.1.91</title>
     <link rel="alternate" type="text/html" href="https://github.com/anthropics/claude-code/releases/tag/v2.1.91"/>
-    <updated>2026-04-15T05:05:26Z</updated>
+    <updated>2026-04-02T23:45:29Z</updated>
     <content type="html">&lt;p&gt;• Added MCP tool result persistence override via `_meta[&amp;quot;anthropic/maxResultSizeChars&amp;quot;]` annotation (up to 500K), allowing larger results like DB schemas to pass through without truncation&lt;/p&gt;
 &lt;p&gt;• Added `disableSkillShellExecution` setting to disable inline shell execution in skills, custom slash commands, and plugin commands&lt;/p&gt;
 &lt;p&gt;• Added support for multi-line prompts in `claude-cli://open?q=` deep links (encoded newlines `%0A` no longer rejected)&lt;/p&gt;
@@ -348,7 +348,7 @@
     <id>https://github.com/anthropics/claude-code/releases/tag/v2.1.90</id>
     <title>Claude Code v2.1.90</title>
     <link rel="alternate" type="text/html" href="https://github.com/anthropics/claude-code/releases/tag/v2.1.90"/>
-    <updated>2026-04-15T05:05:26Z</updated>
+    <updated>2026-04-01T23:41:27Z</updated>
     <content type="html">&lt;p&gt;• Added `/powerup` — interactive lessons teaching Claude Code features with animated demos&lt;/p&gt;
 &lt;p&gt;• Added `CLAUDE_CODE_PLUGIN_KEEP_MARKETPLACE_ON_FAILURE` env var to keep the existing marketplace cache when `git pull` fails, useful in offline environments&lt;/p&gt;
 &lt;p&gt;• Added `.husky` to protected directories (acceptEdits mode)&lt;/p&gt;
@@ -373,7 +373,7 @@
     <id>https://github.com/anthropics/claude-code/releases/tag/v2.1.89</id>
     <title>Claude Code v2.1.89</title>
     <link rel="alternate" type="text/html" href="https://github.com/anthropics/claude-code/releases/tag/v2.1.89"/>
-    <updated>2026-04-15T05:05:26Z</updated>
+    <updated>2026-04-01T01:07:02Z</updated>
     <content type="html">&lt;p&gt;• Added `&amp;quot;defer&amp;quot;` permission decision to `PreToolUse` hooks — headless sessions can pause at a tool call and resume with `-p --resume` to have the hook re-evaluate&lt;/p&gt;
 &lt;p&gt;• Added `CLAUDE_CODE_NO_FLICKER=1` environment variable to opt into flicker-free alt-screen rendering with virtualized scrollback&lt;/p&gt;
 &lt;p&gt;• Added `PermissionDenied` hook that fires after auto mode classifier denials — return `{retry: true}` to tell the model it can retry&lt;/p&gt;
@@ -431,14 +431,14 @@
     <id>https://github.com/anthropics/claude-code/releases/tag/v2.1.87</id>
     <title>Claude Code v2.1.87</title>
     <link rel="alternate" type="text/html" href="https://github.com/anthropics/claude-code/releases/tag/v2.1.87"/>
-    <updated>2026-04-15T05:05:26Z</updated>
+    <updated>2026-03-29T02:16:58Z</updated>
     <content type="html">&lt;p&gt;• Fixed messages in Cowork Dispatch not getting delivered&lt;/p&gt;</content>
   </entry>
   <entry>
     <id>https://github.com/anthropics/claude-code/releases/tag/v2.1.86</id>
     <title>Claude Code v2.1.86</title>
     <link rel="alternate" type="text/html" href="https://github.com/anthropics/claude-code/releases/tag/v2.1.86"/>
-    <updated>2026-04-15T05:05:26Z</updated>
+    <updated>2026-03-27T21:42:05Z</updated>
     <content type="html">&lt;p&gt;• Added `X-Claude-Code-Session-Id` header to API requests so proxies can aggregate requests by session without parsing the body&lt;/p&gt;
 &lt;p&gt;• Added `.jj` and `.sl` to VCS directory exclusion lists so Grep and file autocomplete don&amp;#x27;t descend into Jujutsu or Sapling metadata&lt;/p&gt;
 &lt;p&gt;• Fixed `--resume` failing with &amp;quot;tool_use ids were found without tool_result blocks&amp;quot; on sessions created before v2.1.85&lt;/p&gt;
@@ -470,7 +470,7 @@
     <id>https://github.com/anthropics/claude-code/releases/tag/v2.1.85</id>
     <title>Claude Code v2.1.85</title>
     <link rel="alternate" type="text/html" href="https://github.com/anthropics/claude-code/releases/tag/v2.1.85"/>
-    <updated>2026-04-15T05:05:26Z</updated>
+    <updated>2026-03-26T22:52:07Z</updated>
     <content type="html">&lt;p&gt;• Added `CLAUDE_CODE_MCP_SERVER_NAME` and `CLAUDE_CODE_MCP_SERVER_URL` environment variables to MCP `headersHelper` scripts, allowing one helper to serve multiple servers&lt;/p&gt;
 &lt;p&gt;• Added conditional `if` field for hooks using permission rule syntax (e.g., `Bash(git *)`) to filter when they run, reducing process spawning overhead&lt;/p&gt;
 &lt;p&gt;• Added timestamp markers in transcripts when scheduled tasks (`/loop`, `CronCreate`) fire&lt;/p&gt;
@@ -506,7 +506,7 @@
     <id>https://github.com/anthropics/claude-code/releases/tag/v2.1.84</id>
     <title>Claude Code v2.1.84</title>
     <link rel="alternate" type="text/html" href="https://github.com/anthropics/claude-code/releases/tag/v2.1.84"/>
-    <updated>2026-04-15T05:05:26Z</updated>
+    <updated>2026-03-26T00:30:53Z</updated>
     <content type="html">&lt;p&gt;• Added PowerShell tool for Windows as an opt-in preview. Learn more at https://code.claude.com/docs/en/tools-reference#powershell-tool&lt;/p&gt;
 &lt;p&gt;• Added `ANTHROPIC_DEFAULT_{OPUS,SONNET,HAIKU}_MODEL_SUPPORTS` env vars to override effort/thinking capability detection for pinned default models for 3p (Bedrock, Vertex, Foundry), and `_MODEL_NAME`/`_DESCRIPTION` to customize the `/model` picker label&lt;/p&gt;
 &lt;p&gt;• Added `CLAUDE_STREAM_IDLE_TIMEOUT_MS` env var to configure the streaming idle watchdog threshold (default 90s)&lt;/p&gt;
@@ -552,7 +552,7 @@
     <id>https://github.com/anthropics/claude-code/releases/tag/v2.1.83</id>
     <title>Claude Code v2.1.83</title>
     <link rel="alternate" type="text/html" href="https://github.com/anthropics/claude-code/releases/tag/v2.1.83"/>
-    <updated>2026-04-15T05:05:26Z</updated>
+    <updated>2026-03-25T06:08:05Z</updated>
     <content type="html">&lt;p&gt;• Added `managed-settings.d/` drop-in directory alongside `managed-settings.json`, letting separate teams deploy independent policy fragments that merge alphabetically&lt;/p&gt;
 &lt;p&gt;• Added `CwdChanged` and `FileChanged` hook events for reactive environment management (e.g., direnv)&lt;/p&gt;
 &lt;p&gt;• Added `sandbox.failIfUnavailable` setting to exit with an error when sandbox is enabled but cannot start, instead of running unsandboxed&lt;/p&gt;
@@ -634,7 +634,7 @@
     <id>https://github.com/anthropics/claude-code/releases/tag/v2.1.81</id>
     <title>Claude Code v2.1.81</title>
     <link rel="alternate" type="text/html" href="https://github.com/anthropics/claude-code/releases/tag/v2.1.81"/>
-    <updated>2026-04-15T05:05:26Z</updated>
+    <updated>2026-03-20T22:24:03Z</updated>
     <content type="html">&lt;p&gt;• Added `--bare` flag for scripted `-p` calls — skips hooks, LSP, plugin sync, and skill directory walks; requires `ANTHROPIC_API_KEY` or an `apiKeyHelper` via `--settings` (OAuth and keychain auth disabled); auto-memory fully disabled&lt;/p&gt;
 &lt;p&gt;• Added `--channels` permission relay — channel servers that declare the permission capability can forward tool approval prompts to your phone&lt;/p&gt;
 &lt;p&gt;• Fixed multiple concurrent Claude Code sessions requiring repeated re-authentication when one session refreshes its OAuth token&lt;/p&gt;
@@ -667,7 +667,7 @@
     <id>https://github.com/anthropics/claude-code/releases/tag/v2.1.80</id>
     <title>Claude Code v2.1.80</title>
     <link rel="alternate" type="text/html" href="https://github.com/anthropics/claude-code/releases/tag/v2.1.80"/>
-    <updated>2026-04-15T05:05:26Z</updated>
+    <updated>2026-03-19T22:08:02Z</updated>
     <content type="html">&lt;p&gt;• Added `rate_limits` field to statusline scripts for displaying Claude.ai rate limit usage (5-hour and 7-day windows with `used_percentage` and `resets_at`)&lt;/p&gt;
 &lt;p&gt;• Added `source: &amp;#x27;settings&amp;#x27;` plugin marketplace source — declare plugin entries inline in settings.json&lt;/p&gt;
 &lt;p&gt;• Added CLI tool usage detection to plugin tips, in addition to file pattern matching&lt;/p&gt;

@@ -7,17 +7,25 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: update-changelog-feed
+  cancel-in-progress: false
+
 jobs:
   update-feed:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: main
 
       - name: Regenerate feed.xml
         run: python3 scripts/generate-feed.py
 
       - name: Commit and push updated feed
+        env:
+          TAG_NAME: ${{ github.event.release.tag_name }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -25,6 +33,7 @@ jobs:
           if git diff --cached --quiet; then
             echo "feed.xml unchanged, skipping commit"
           else
-            git commit -m "chore: Update feed.xml for ${{ github.event.release.tag_name }}"
+            git commit -m "chore: Update feed.xml for ${TAG_NAME}"
+            git pull --rebase origin main
             git push
           fi
