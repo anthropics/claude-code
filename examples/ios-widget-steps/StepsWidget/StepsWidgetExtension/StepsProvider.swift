@@ -1,5 +1,5 @@
 import WidgetKit
-import HealthKit
+@preconcurrency import HealthKit
 
 // MARK: - Timeline Entry
 
