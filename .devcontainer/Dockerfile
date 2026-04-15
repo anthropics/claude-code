@@ -39,6 +39,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   libffi-dev \
   && apt-get clean && rm -rf /var/lib/apt/lists/*
 
+# Install uv (Python tool runner, required by serena MCP and similar tools).
+# Installed via pip from PyPI (allowed by firewall) into system site-packages.
+RUN pip3 install --break-system-packages --no-cache-dir uv
+
 # Install Docker CLI and Docker Compose plugin
 RUN install -m 0755 -d /etc/apt/keyrings && \
   curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc && \
@@ -101,6 +105,23 @@ RUN sh -c "$(wget -O- https://github.com/deluan/zsh-in-docker/releases/download/
 
 # Install Claude
 RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}
+
+# Install curated ECC assets into /home/node/.claude/.
+# At runtime the named-volume mount at /home/node/.claude/ is seeded from this
+# path on first container creation (Docker copies image content into empty
+# volumes). Existing volumes keep their state — no re-seeding. Same lifecycle
+# as the `npm install -g @anthropic-ai/claude-code` above: done once at image
+# build, no postCreate logic needed.
+COPY --chown=node:node claude-whitelist.txt claude-hooks-keep.txt claude-mcps-keep.txt install-ecc-assets.sh /tmp/
+RUN bash /tmp/install-ecc-assets.sh && \
+    rm -f /tmp/claude-whitelist.txt /tmp/claude-hooks-keep.txt /tmp/claude-mcps-keep.txt /tmp/install-ecc-assets.sh
+
+# Register serena MCP server at user scope. Writes to /home/node/.claude/.claude.json
+# which is on the named volume — seeded into fresh volumes on first container start.
+# Uses `ide-assistant` context + explicit --project so LSP features target /workspace.
+RUN claude mcp add --scope user serena -- \
+    uvx --from git+https://github.com/oraios/serena \
+    serena start-mcp-server --context ide-assistant --project /workspace
 
 
 # Copy and set up firewall script

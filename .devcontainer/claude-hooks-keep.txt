@@ -1,0 +1,52 @@
+# Hook IDs to keep from ECC's hooks/hooks.json. Others are filtered out.
+# Applied by setup-project.sh using jq. One ID per line; # comments ignored.
+#
+# Explicitly excluded (not listed here):
+#   - pre:edit-write:gateguard-fact-force  (per-PID state breaks Edit)
+#   - pre:bash:gateguard-fact-force        (per-PID state breaks Bash)
+#   - pre:observe:continuous-learning      (heavy observation overhead)
+#   - post:observe:continuous-learning     (heavy observation overhead)
+#   - pre:governance-capture               (opt-in only, unused)
+#   - post:governance-capture              (opt-in only, unused)
+#   - post:bash:build-complete             (example-only hook)
+
+# PreToolUse
+pre:bash:block-no-verify
+pre:bash:auto-tmux-dev
+pre:bash:tmux-reminder
+pre:bash:git-push-reminder
+pre:bash:commit-quality
+pre:write:doc-file-warning
+pre:edit-write:suggest-compact
+pre:config-protection
+pre:mcp-health-check
+
+# PreCompact
+pre:compact
+
+# SessionStart
+session:start
+
+# PostToolUse
+post:bash:command-log-audit
+post:bash:command-log-cost
+post:bash:pr-created
+post:quality-gate
+post:edit:design-quality-check
+post:edit:accumulator
+post:edit:console-warn
+post:session-activity-tracker
+
+# PostToolUseFailure
+post:mcp-health-check
+
+# Stop
+stop:format-typecheck
+stop:check-console-log
+stop:session-end
+stop:evaluate-session
+stop:cost-tracker
+stop:desktop-notify
+
+# SessionEnd
+session:end:marker

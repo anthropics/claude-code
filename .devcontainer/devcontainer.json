@@ -42,7 +42,7 @@
           }
         },
         "python.defaultInterpreterPath": "/workspace/.venv/bin/python",
-        "python.terminal.activateEnvironment": true,
+        "python.terminal.activateEnvironment": false,
         "[python]": {
           "editor.defaultFormatter": "ms-python.black-formatter"
         }

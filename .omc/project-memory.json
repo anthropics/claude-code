@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastScanned": 1776007772701,
+  "lastScanned": 1776266752584,
   "projectRoot": "/home/nakaj/claude-code",
   "techStack": {
     "languages": [],
@@ -28,10 +28,7 @@
       "examples",
       "scripts"
     ],
-    "gitBranches": {
-      "defaultBranch": "main",
-      "branchingStrategy": null
-    }
+    "gitBranches": null
   },
   "customNotes": [],
   "directoryMap": {
@@ -39,7 +36,7 @@
       "path": "Script",
       "purpose": null,
       "fileCount": 1,
-      "lastAccessed": 1776007772686,
+      "lastAccessed": 1776266752544,
       "keyFiles": [
         "run_devcontainer_claude_code.ps1"
       ]
@@ -48,7 +45,7 @@
       "path": "apps",
       "purpose": null,
       "fileCount": 1,
-      "lastAccessed": 1776007772687,
+      "lastAccessed": 1776266752546,
       "keyFiles": [
         "__init__.py"
       ]
@@ -56,21 +53,21 @@
     "client": {
       "path": "client",
       "purpose": null,
-      "fileCount": 10,
-      "lastAccessed": 1776007772692,
+      "fileCount": 12,
+      "lastAccessed": 1776266752548,
       "keyFiles": [
         "README.md",
         "components.json",
+        "next-env.d.ts",
         "next.config.mjs",
-        "package-lock.json",
-        "package.json"
+        "package-lock.json"
       ]
     },
     "config": {
       "path": "config",
       "purpose": "Configuration files",
       "fileCount": 5,
-      "lastAccessed": 1776007772693,
+      "lastAccessed": 1776266752551,
       "keyFiles": [
         "__init__.py",
         "asgi.py",
@@ -83,21 +80,21 @@
       "path": "docker",
       "purpose": null,
       "fileCount": 0,
-      "lastAccessed": 1776007772693,
+      "lastAccessed": 1776266752555,
       "keyFiles": []
     },
     "examples": {
       "path": "examples",
       "purpose": "Example code",
       "fileCount": 0,
-      "lastAccessed": 1776007772694,
+      "lastAccessed": 1776266752556,
       "keyFiles": []
     },
     "plugins": {
       "path": "plugins",
       "purpose": null,
       "fileCount": 1,
-      "lastAccessed": 1776007772695,
+      "lastAccessed": 1776266752556,
       "keyFiles": [
         "README.md"
       ]
@@ -106,7 +103,7 @@
       "path": "requirements",
       "purpose": null,
       "fileCount": 3,
-      "lastAccessed": 1776007772695,
+      "lastAccessed": 1776266752557,
       "keyFiles": [
         "base.txt",
         "local.txt",
@@ -117,7 +114,7 @@
       "path": "scripts",
       "purpose": "Build/utility scripts",
       "fileCount": 8,
-      "lastAccessed": 1776007772696,
+      "lastAccessed": 1776266752557,
       "keyFiles": [
         "auto-close-duplicates.ts",
         "backfill-duplicate-comments.ts",
@@ -130,35 +127,10 @@
       "path": "client/node_modules",
       "purpose": "Dependencies",
       "fileCount": 1,
-      "lastAccessed": 1776007772699,
+      "lastAccessed": 1776266752574,
       "keyFiles": []
     }
   },
-  "hotPaths": [
-    {
-      "path": ".devcontainer/Dockerfile",
-      "accessCount": 4,
-      "lastAccessed": 1776093170157,
-      "type": "file"
-    },
-    {
-      "path": ".devcontainer/init-firewall.sh",
-      "accessCount": 4,
-      "lastAccessed": 1776094718296,
-      "type": "file"
-    },
-    {
-      "path": ".devcontainer/devcontainer.json",
-      "accessCount": 3,
-      "lastAccessed": 1776093170095,
-      "type": "file"
-    },
-    {
-      "path": ".devcontainer/setup-project.sh",
-      "accessCount": 2,
-      "lastAccessed": 1776008284099,
-      "type": "file"
-    }
-  ],
+  "hotPaths": [],
   "userDirectives": []
 }

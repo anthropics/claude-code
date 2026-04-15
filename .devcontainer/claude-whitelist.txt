@@ -1,0 +1,92 @@
+# ECC asset whitelist — applied by setup-project.sh on first devcontainer setup.
+# One path per line, relative to ECC source root (/home/node/ecc-source/).
+# Directories end with /. Blank lines and lines starting with # are ignored.
+#
+# Hook entries inside hooks/hooks.json and MCP entries inside
+# mcp-configs/mcp-servers.json are NOT copied as-is — they are filtered by
+# claude-hooks-keep.txt and claude-mcps-keep.txt (see setup-project.sh).
+#
+# To re-apply after editing any of these files, delete ~/.claude/.ecc-applied
+# and re-run /usr/local/bin/setup-project.sh (or rebuild the devcontainer).
+
+# --- Agents (23) ---
+agents/a11y-architect.md
+agents/architect.md
+agents/build-error-resolver.md
+agents/code-architect.md
+agents/code-explorer.md
+agents/code-reviewer.md
+agents/code-simplifier.md
+agents/comment-analyzer.md
+agents/database-reviewer.md
+agents/doc-updater.md
+agents/docs-lookup.md
+agents/e2e-runner.md
+agents/performance-optimizer.md
+agents/planner.md
+agents/pr-test-analyzer.md
+agents/python-reviewer.md
+agents/refactor-cleaner.md
+agents/security-reviewer.md
+agents/seo-specialist.md
+agents/silent-failure-hunter.md
+agents/tdd-guide.md
+agents/type-design-analyzer.md
+agents/typescript-reviewer.md
+
+# --- Commands (20) ---
+commands/aside.md
+commands/code-review.md
+commands/docs.md
+commands/feature-dev.md
+commands/plan.md
+commands/prp-commit.md
+commands/prp-implement.md
+commands/prp-plan.md
+commands/prp-pr.md
+commands/prp-prd.md
+commands/python-review.md
+commands/refactor-clean.md
+commands/resume-session.md
+commands/review-pr.md
+commands/save-session.md
+commands/sessions.md
+commands/tdd.md
+commands/update-codemaps.md
+commands/update-docs.md
+commands/verify.md
+
+# --- Skills (20) ---
+skills/api-design/
+skills/backend-patterns/
+skills/code-tour/
+skills/coding-standards/
+skills/council/
+skills/database-migrations/
+skills/django-patterns/
+skills/django-tdd/
+skills/django-verification/
+skills/documentation-lookup/
+skills/e2e-testing/
+skills/frontend-design/
+skills/frontend-patterns/
+skills/mcp-server-patterns/
+skills/postgres-patterns/
+skills/python-patterns/
+skills/python-testing/
+skills/strategic-compact/
+skills/tdd-workflow/
+skills/verification-loop/
+
+# --- Rules (4 languages) ---
+rules/common/
+rules/python/
+rules/typescript/
+rules/web/
+
+# --- Hook runtime scripts (hooks.json filtered via claude-hooks-keep.txt) ---
+scripts/
+
+# --- MCP config templates (mcp-servers.json filtered via claude-mcps-keep.txt) ---
+# (nothing to list here — the filtered file is written to
+#  ~/.claude/mcp-configs/mcp-servers.json by setup-project.sh)

@@ -1,0 +1,154 @@
+# the name by which the project can be referenced within Serena
+project_name: "workspace"
+
+
+# list of languages for which language servers are started; choose from:
+#   al                  bash                clojure             cpp                 csharp
+#   csharp_omnisharp    dart                elixir              elm                 erlang
+#   fortran             fsharp              go                  groovy              haskell
+#   haxe                java                julia               kotlin              lua
+#   markdown
+#   matlab              nix                 pascal              perl                php
+#   php_phpactor        powershell          python              python_jedi         r
+#   rego                ruby                ruby_solargraph     rust                scala
+#   swift               terraform           toml                typescript          typescript_vts
+#   vue                 yaml                zig
+#   (This list may be outdated. For the current list, see values of Language enum here:
+#   https://github.com/oraios/serena/blob/main/src/solidlsp/ls_config.py
+#   For some languages, there are alternative language servers, e.g. csharp_omnisharp, ruby_solargraph.)
+# Note:
+#   - For C, use cpp
+#   - For JavaScript, use typescript
+#   - For Free Pascal/Lazarus, use pascal
+# Special requirements:
+#   Some languages require additional setup/installations.
+#   See here for details: https://oraios.github.io/serena/01-about/020_programming-languages.html#language-servers
+# When using multiple languages, the first language server that supports a given file will be used for that file.
+# The first language is the default language and the respective language server will be used as a fallback.
+# Note that when using the JetBrains backend, language servers are not used and this list is correspondingly ignored.
+languages:
+- typescript
+
+# the encoding used by text files in the project
+# For a list of possible encodings, see https://docs.python.org/3.11/library/codecs.html#standard-encodings
+encoding: "utf-8"
+
+# line ending convention to use when writing source files.
+# Possible values: unset (use global setting), "lf", "crlf", or "native" (platform default)
+# This does not affect Serena's own files (e.g. memories and configuration files), which always use native line endings.
+line_ending:
+
+# The language backend to use for this project.
+# If not set, the global setting from serena_config.yml is used.
+# Valid values: LSP, JetBrains
+# Note: the backend is fixed at startup. If a project with a different backend
+# is activated post-init, an error will be returned.
+language_backend:
+
+# whether to use project's .gitignore files to ignore files
+ignore_all_files_in_gitignore: true
+
+# advanced configuration option allowing to configure language server-specific options.
+# Maps the language key to the options.
+# Have a look at the docstring of the constructors of the LS implementations within solidlsp (e.g., for C# or PHP) to see which options are available.
+# No documentation on options means no options are available.
+ls_specific_settings: {}
+
+# list of additional paths to ignore in this project.
+# Same syntax as gitignore, so you can use * and **.
+# Note: global ignored_paths from serena_config.yml are also applied additively.
+ignored_paths: []
+
+# whether the project is in read-only mode
+# If set to true, all editing tools will be disabled and attempts to use them will result in an error
+# Added on 2025-04-18
+read_only: false
+
+# list of tool names to exclude.
+# This extends the existing exclusions (e.g. from the global configuration)
+#
+# Below is the complete list of tools for convenience.
+# To make sure you have the latest list of tools, and to view their descriptions, 
+# execute `uv run scripts/print_tool_overview.py`.
+#
+#  * `activate_project`: Activates a project based on the project name or path.
+#  * `check_onboarding_performed`: Checks whether project onboarding was already performed.
+#  * `create_text_file`: Creates/overwrites a file in the project directory.
+#  * `delete_memory`: Delete a memory file. Should only happen if a user asks for it explicitly,
+#       for example by saying that the information retrieved from a memory file is no longer correct
+#       or no longer relevant for the project.
+#  * `edit_memory`: Replaces content matching a regular expression in a memory.
+#  * `execute_shell_command`: Executes a shell command.
+#  * `find_file`: Finds files in the given relative paths
+#  * `find_referencing_symbols`: Finds symbols that reference the given symbol using the language server backend
+#  * `find_symbol`: Performs a global (or local) search using the language server backend.
+#  * `get_current_config`: Prints the current configuration of the agent, including the active and available projects, tools, contexts, and modes.
+#  * `get_symbols_overview`: Gets an overview of the top-level symbols defined in a given file.
+#  * `initial_instructions`: Provides instructions Serena usage (i.e. the 'Serena Instructions Manual')
+#       for clients that do not read the initial instructions when the MCP server is connected.
+#  * `insert_after_symbol`: Inserts content after the end of the definition of a given symbol.
+#  * `insert_before_symbol`: Inserts content before the beginning of the definition of a given symbol.
+#  * `list_dir`: Lists files and directories in the given directory (optionally with recursion).
+#  * `list_memories`: List available memories. Any memory can be read using the `read_memory` tool.
+#  * `onboarding`: Performs onboarding (identifying the project structure and essential tasks, e.g. for testing or building).
+#  * `read_file`: Reads a file within the project directory.
+#  * `read_memory`: Read the content of a memory file. This tool should only be used if the information
+#       is relevant to the current task. You can infer whether the information
+#       is relevant from the memory file name.
+#       You should not read the same memory file multiple times in the same conversation.
+#  * `rename_memory`: Renames or moves a memory. Moving between project and global scope is supported
+#       (e.g., renaming "global/foo" to "bar" moves it from global to project scope).
+#  * `rename_symbol`: Renames a symbol throughout the codebase using language server refactoring capabilities.
+#       For JB, we use a separate tool.
+#  * `replace_content`: Replaces content in a file (optionally using regular expressions).
+#  * `replace_symbol_body`: Replaces the full definition of a symbol using the language server backend.
+#  * `safe_delete_symbol`:
+#  * `search_for_pattern`: Performs a search for a pattern in the project.
+#  * `write_memory`: Write some information (utf-8-encoded) about this project that can be useful for future tasks to a memory in md format.
+#       The memory name should be meaningful.
+excluded_tools: []
+
+# list of tools to include that would otherwise be disabled (particularly optional tools that are disabled by default).
+# This extends the existing inclusions (e.g. from the global configuration).
+included_optional_tools: []
+
+# fixed set of tools to use as the base tool set (if non-empty), replacing Serena's default set of tools.
+# This cannot be combined with non-empty excluded_tools or included_optional_tools.
+fixed_tools: []
+
+# list of mode names to that are always to be included in the set of active modes
+# The full set of modes to be activated is base_modes + default_modes.
+# If the setting is undefined, the base_modes from the global configuration (serena_config.yml) apply.
+# Otherwise, this setting overrides the global configuration.
+# Set this to [] to disable base modes for this project.
+# Set this to a list of mode names to always include the respective modes for this project.
+base_modes:
+
+# list of mode names that are to be activated by default.
+# The full set of modes to be activated is base_modes + default_modes.
+# If the setting is undefined, the default_modes from the global configuration (serena_config.yml) apply.
+# Otherwise, this overrides the setting from the global configuration (serena_config.yml).
+# This setting can, in turn, be overridden by CLI parameters (--mode).
+default_modes:
+
+# initial prompt for the project. It will always be given to the LLM upon activating the project
+# (contrary to the memories, which are loaded on demand).
+initial_prompt: ""
+
+# time budget (seconds) per tool call for the retrieval of additional symbol information
+# such as docstrings or parameter information.
+# This overrides the corresponding setting in the global configuration; see the documentation there.
+# If null or missing, use the setting from the global configuration.
+symbol_info_budget:
+
+# list of regex patterns which, when matched, mark a memory entry as read‑only.
+# Extends the list from the global configuration, merging the two lists.
+read_only_memory_patterns: []
+
+# list of regex patterns for memories to completely ignore.
+# Matching memories will not appear in list_memories or activate_project output
+# and cannot be accessed via read_memory or write_memory.
+# To access ignored memory files, use the read_file tool on the raw file path.
+# Extends the list from the global configuration, merging the two lists.
+# Example: ["_archive/.*", "_episodes/.*"]
+ignored_memory_patterns: []
