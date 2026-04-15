@@ -5,7 +5,22 @@
   <subtitle>Release notes for Claude Code</subtitle>
   <link rel="alternate" type="text/html" href="https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md"/>
   <link rel="self" type="application/atom+xml" href="https://raw.githubusercontent.com/anthropics/claude-code/main/feed.xml"/>
-  <updated>2026-04-15T04:28:49Z</updated>
+  <updated>2026-04-15T05:00:00Z</updated>
+  <entry>
+    <id>https://github.com/anthropics/claude-code/releases/tag/v2.1.110-test</id>
+    <title>Claude Code v2.1.110</title>
+    <link rel="alternate" type="text/html" href="https://github.com/anthropics/claude-code/releases/tag/v2.1.110"/>
+    <updated>2026-04-15T05:00:00Z</updated>
+    <content type="html">&lt;ul&gt;
+  &lt;li&gt;Added multi-file drag-and-drop support for attaching context in the prompt input&lt;/li&gt;
+  &lt;li&gt;Added &lt;code&gt;--json&lt;/code&gt; flag to &lt;code&gt;claude config list&lt;/code&gt; for machine-readable output&lt;/li&gt;
+  &lt;li&gt;Improved &lt;code&gt;/doctor&lt;/code&gt; to detect and warn about stale MCP server connections&lt;/li&gt;
+  &lt;li&gt;Improved thinking indicator to show elapsed time during long tool calls&lt;/li&gt;
+  &lt;li&gt;Fixed &lt;code&gt;/resume&lt;/code&gt; picker not showing sessions from git worktrees&lt;/li&gt;
+  &lt;li&gt;Fixed Bash tool silently swallowing stderr when exit code is 0&lt;/li&gt;
+  &lt;li&gt;Fixed MCP resource subscriptions not reconnecting after a server restart&lt;/li&gt;
+&lt;/ul&gt;</content>
+  </entry>
   <entry>
     <id>https://github.com/anthropics/claude-code/releases/tag/v2.1.109</id>
     <title>Claude Code v2.1.109</title>
