@@ -1,0 +1,77 @@
+name: Enrich Release Notes
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  enrich-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Enrich release name with changelog summary
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+
+          # Extract version number from tag (v2.1.108 -> 2.1.108)
+          VERSION="${TAG_NAME#v}"
+
+          # Escape dots for awk regex (2.1.108 -> 2\.1\.108)
+          VERSION_ESCAPED=$(echo "$VERSION" | sed 's/\./\\./g')
+
+          # Extract this version's changelog entries from CHANGELOG.md
+          # Uses a state-machine approach: start capturing after the version
+          # header, stop at the next "## " header
+          ENTRIES=$(awk "
+            BEGIN { p=0 }
+            /^## ${VERSION_ESCAPED}\$/ { p=1; next }
+            /^## / { if (p) exit }
+            p
+          " CHANGELOG.md | sed '/^$/d')
+
+          if [ -z "$ENTRIES" ]; then
+            echo "No changelog entries found for version ${VERSION}, skipping"
+            exit 0
+          fi
+
+          # Count entries by category
+          ADDED=$(echo "$ENTRIES" | grep -c '^- Added' || true)
+          IMPROVED=$(echo "$ENTRIES" | grep -c '^- Improved' || true)
+          FIXED=$(echo "$ENTRIES" | grep -c '^- Fixed' || true)
+          REDUCED=$(echo "$ENTRIES" | grep -c '^- Reduced' || true)
+          CHANGED=$(echo "$ENTRIES" | grep -c '^- Changed' || true)
+          REMOVED=$(echo "$ENTRIES" | grep -c '^- Removed' || true)
+          TOTAL=$(echo "$ENTRIES" | wc -l | tr -d ' ')
+
+          # Build a short summary string like "3 added, 5 improved, 10 fixed"
+          PARTS=()
+          [ "$ADDED" -gt 0 ] && PARTS+=("${ADDED} added")
+          [ "$IMPROVED" -gt 0 ] && PARTS+=("${IMPROVED} improved")
+          [ "$FIXED" -gt 0 ] && PARTS+=("${FIXED} fixed")
+          [ "$REDUCED" -gt 0 ] && PARTS+=("${REDUCED} reduced")
+          [ "$CHANGED" -gt 0 ] && PARTS+=("${CHANGED} changed")
+          [ "$REMOVED" -gt 0 ] && PARTS+=("${REMOVED} removed")
+
+          if [ ${#PARTS[@]} -gt 0 ]; then
+            SUMMARY=$(printf '%s, ' "${PARTS[@]}" | sed 's/, $//')
+            NEW_NAME="${TAG_NAME} (${SUMMARY})"
+          else
+            if [ "$TOTAL" -eq 1 ]; then
+              NEW_NAME="${TAG_NAME} (1 change)"
+            else
+              NEW_NAME="${TAG_NAME} (${TOTAL} changes)"
+            fi
+          fi
+
+          echo "Updating release name to: ${NEW_NAME}"
+
+          # Update the release title via GitHub CLI
+          gh release edit "$TAG_NAME" --title "$NEW_NAME"
