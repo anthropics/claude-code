@@ -1,0 +1,10 @@
+{
+  "name": "Scorecard",
+  "short_name": "Scorecard",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fdfaf4",
+  "theme_color": "#fdfaf4",
+  "description": "A sleek baseball scorecard with live advanced analytics."
+}
