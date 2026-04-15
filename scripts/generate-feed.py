@@ -46,8 +46,13 @@ def parse_changelog(text: str) -> list[dict]:
 
 
 def lines_to_html(lines: list[str]) -> str:
-    """Convert markdown bullet lines to simple HTML."""
-    html_parts = ["<ul>"]
+    """Convert markdown bullet lines to HTML optimized for Slack RSS rendering.
+
+    Slack's RSS bot strips <ul>/<li> into flat indented text and drops
+    <code> tags entirely. Using <p> tags with bullet characters and
+    keeping backticks as plain text produces much better output in Slack.
+    """
+    html_parts = []
     for line in lines:
         stripped = line.strip()
         if not stripped:
@@ -55,13 +60,8 @@ def lines_to_html(lines: list[str]) -> str:
         # Remove leading "- " bullet marker
         if stripped.startswith("- "):
             stripped = stripped[2:]
-        # Escape HTML entities first, then convert backtick code spans
         escaped = html.escape(stripped)
-        escaped = re.sub(
-            r"`([^`]+)`", r"<code>\1</code>", escaped
-        )
-        html_parts.append(f"  <li>{escaped}</li>")
-    html_parts.append("</ul>")
+        html_parts.append(f"<p>• {escaped}</p>")
     return "\n".join(html_parts)
 
 
