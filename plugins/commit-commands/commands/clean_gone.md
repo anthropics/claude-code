@@ -1,5 +1,6 @@
 ---
 description: Cleans up all git branches marked as [gone] (branches that have been deleted on the remote but still exist locally), including removing associated worktrees.
+model: haiku
 ---
 
 ## Your Task
@@ -50,4 +51,3 @@ After executing these commands, you will:
 - Provide feedback on which worktrees and branches were removed
 
 If no branches are marked as [gone], report that no cleanup was needed.
-
