@@ -85,6 +85,9 @@ for domain in \
     "auth.docker.io" \
     "production.cloudflare.docker.com" \
     "docker.io" \
+    "ghcr.io" \
+    "pkg-containers.githubusercontent.com" \
+    "objects.githubusercontent.com" \
     "pypi.org" \
     "files.pythonhosted.org"; do
     echo "Resolving $domain..."

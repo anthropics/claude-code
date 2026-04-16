@@ -79,6 +79,19 @@ RUN ARCH=$(dpkg --print-architecture) && \
   sudo dpkg -i "git-delta_${GIT_DELTA_VERSION}_${ARCH}.deb" && \
   rm "git-delta_${GIT_DELTA_VERSION}_${ARCH}.deb"
 
+# Install act (run GitHub Actions locally — used for the Claude Code GHA workflow)
+ARG ACT_VERSION=0.2.80
+RUN ARCH=$(dpkg --print-architecture) && \
+  case "$ARCH" in \
+    amd64) ACT_ARCH=x86_64 ;; \
+    arm64) ACT_ARCH=arm64 ;; \
+    *) echo "Unsupported architecture for act: $ARCH" && exit 1 ;; \
+  esac && \
+  wget "https://github.com/nektos/act/releases/download/v${ACT_VERSION}/act_Linux_${ACT_ARCH}.tar.gz" -O /tmp/act.tar.gz && \
+  sudo tar -xzf /tmp/act.tar.gz -C /usr/local/bin act && \
+  sudo chmod +x /usr/local/bin/act && \
+  rm /tmp/act.tar.gz
+
 # Set up non-root user
 USER node
 

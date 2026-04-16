@@ -1,0 +1,6 @@
+{
+  "terminal.integrated.enableBell": true,
+  "accessibility.signals.terminalBell": {
+    "sound": "on"
+  }
+}
