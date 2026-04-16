@@ -1,7 +1,0 @@
-{
-  "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"ls -la ~/.claude/settings.json ~/.claude/settings.local.json /home/nakaj/claude-code/.claude/settings.json /home/nakaj/claude-code/.claude/settings.local.json 2>&1\",\"description\":\"Check fo...",
-  "error": "Exit code 2\nls: cannot access '/home/nakaj/.claude/settings.local.json': No such file or directory\nls: cannot access '/home/nakaj/claude-code/.claude/settings.json': No such file or directory\nls: cannot access '/home/nakaj/claude-code/.claude/settings.local.json': No such file or directory\n-rw-r--r-- 1 nakaj nakaj 1318 Apr 11 03:18 /home/nakaj/.claude/settings.json\n[rerun: b2]",
-  "timestamp": "2026-04-15T15:28:00.015Z",
-  "retry_count": 2
-}

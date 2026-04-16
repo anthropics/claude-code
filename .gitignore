@@ -1,6 +1,7 @@
 .vscode
 .idea
 .DS_Store
+.omc/
 staticfiles/
 .envs/*
 !.envs/.env.example
