@@ -1,3 +1,5 @@
+<!-- Updated by OpsPilot test -->
+
 # Claude Code
 
 ![](https://img.shields.io/badge/Node.js-18%2B-brightgreen?style=flat-square) [![npm]](https://www.npmjs.com/package/@anthropic-ai/claude-code)
