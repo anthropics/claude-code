@@ -16,7 +16,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   man-db \
   unzip \
   gnupg2 \
-  gh \
   iptables \
   ipset \
   iproute2 \
@@ -91,6 +90,13 @@ RUN ARCH=$(dpkg --print-architecture) && \
   sudo tar -xzf /tmp/act.tar.gz -C /usr/local/bin act && \
   sudo chmod +x /usr/local/bin/act && \
   rm /tmp/act.tar.gz
+
+# Install GitHub CLI (pinned to a specific release for reproducibility across contributors)
+ARG GH_VERSION=2.63.2
+RUN ARCH=$(dpkg --print-architecture) && \
+  wget "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_${ARCH}.deb" -O /tmp/gh.deb && \
+  sudo dpkg -i /tmp/gh.deb && \
+  rm /tmp/gh.deb
 
 # Set up non-root user
 USER node
