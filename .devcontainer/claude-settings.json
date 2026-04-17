@@ -1,4 +1,60 @@
 {
+  "permissions": {
+    "deny": [
+      "Bash(rm -rf *)",
+      "Bash(rm -fr *)",
+      "Bash(rm -Rf *)",
+      "Bash(rm -rF *)",
+      "Bash(rm -r -f *)",
+      "Bash(rm -f -r *)",
+      "Bash(rm --recursive --force *)",
+      "Bash(rm --force --recursive *)",
+      "Bash(sudo rm *)",
+
+      "Read(.env)",
+      "Read(.env.*)",
+      "Read(**/.env)",
+      "Read(**/.env.*)",
+      "Bash(cat .env*)",
+      "Bash(cat ./.env*)",
+      "Bash(cat *.env*)",
+      "Bash(head .env*)",
+      "Bash(tail .env*)",
+      "Bash(less .env*)",
+      "Bash(more .env*)",
+      "Bash(xxd .env*)",
+      "Bash(od .env*)",
+
+      "Read(**/.ssh/**)",
+      "Read(**/id_rsa)",
+      "Read(**/id_rsa.*)",
+      "Read(**/id_ed25519)",
+      "Read(**/id_ed25519.*)",
+      "Read(**/id_ecdsa)",
+      "Read(**/id_ecdsa.*)",
+      "Read(**/*.pem)",
+      "Read(**/*.key)",
+      "Read(**/*.pfx)",
+      "Read(**/*.p12)",
+
+      "Read(**/.aws/credentials)",
+      "Read(**/.aws/config)",
+      "Read(**/.config/gcloud/**)",
+      "Read(**/application_default_credentials.json)",
+      "Read(**/.kube/config)",
+      "Read(**/.azure/**)",
+
+      "Read(**/.netrc)",
+      "Read(**/_netrc)",
+      "Read(**/.npmrc)",
+      "Read(**/.pypirc)",
+      "Read(**/.docker/config.json)",
+      "Read(**/.gnupg/**)",
+      "Read(**/secrets.*)",
+      "Read(**/*.secret)",
+      "Read(**/*credentials*.json)"
+    ]
+  },
   "hooks": {
     "PreToolUse": [
       {
