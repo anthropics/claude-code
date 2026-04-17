@@ -141,13 +141,17 @@ RUN bash /tmp/install-ecc-assets.sh && \
 
 # Register MCP servers at user scope. Writes to /home/node/.claude/.claude.json
 # which is on the named volume — seeded into fresh volumes on first container start.
+# CLAUDE_CONFIG_DIR must match the runtime value in devcontainer.json; otherwise
+# `claude mcp add` writes to the default ~/.claude.json which the runtime CLI
+# (with CLAUDE_CONFIG_DIR set) never reads.
 # serena: `ide-assistant` context + explicit --project so LSP features target /workspace.
-RUN claude mcp add --scope user serena -- \
+RUN CLAUDE_CONFIG_DIR=/home/node/.claude claude mcp add --scope user serena -- \
     uvx --from git+https://github.com/oraios/serena \
-    serena start-mcp-server --context ide-assistant --project /workspace && \
-    claude mcp add --scope user context7 -- \
+    serena start-mcp-server --context ide-assistant --project /workspace \
+    --open-web-dashboard false && \
+    CLAUDE_CONFIG_DIR=/home/node/.claude claude mcp add --scope user context7 -- \
     npx -y @upstash/context7-mcp@latest && \
-    claude mcp add --scope user playwright -- \
+    CLAUDE_CONFIG_DIR=/home/node/.claude claude mcp add --scope user playwright -- \
     npx -y @playwright/mcp --browser chrome
 
 # Seed Claude Code user settings with Stop/Notification hooks that emit BEL
