@@ -53,16 +53,16 @@ If the user replies affirmatively ("예", "네", "yes", "ok", "응", "ㅇㅇ", "
 If the user replies negatively ("아니", "no", "취소", "중단" 등), say "취소되었습니다. registry와 파일이 변경되지 않았습니다." and stop.
 The `/preserve-session:cleanup` invocation itself is NOT confirmation.
 
-**Step 6** — Run the commands (in order):
+**Step 6** — Run the commands. **(b) paths MUST run first**, then (a). This ordering is load-bearing: `--remove-with-sessions` inspects the registry to detect alive siblings that share a slug; if `--remove` runs first, it could remove those alive siblings from the registry and make the guard miss them, risking deletion of a live project's session folder.
 
-If there are (a) paths:
-```bash
-bash "${CLAUDE_PLUGIN_ROOT}/hooks/cleanup.sh" --remove "<a-path-1>" "<a-path-2>" ...
-```
-
-If there are (b) paths:
+If there are (b) paths (destructive — run FIRST):
 ```bash
 bash "${CLAUDE_PLUGIN_ROOT}/hooks/cleanup.sh" --remove-with-sessions "<b-path-1>" ...
+```
+
+If there are (a) paths (registry-only — run AFTER (b)):
+```bash
+bash "${CLAUDE_PLUGIN_ROOT}/hooks/cleanup.sh" --remove "<a-path-1>" "<a-path-2>" ...
 ```
 
 Show each command's output to the user.
@@ -70,5 +70,5 @@ Show each command's output to the user.
 **Notes**
 
 - `--remove` never touches `~/.claude/projects/` (session data) or `.claude/hash.txt` (project-local).
-- `--remove-with-sessions` only deletes `~/.claude/projects/<slug>/` when the registry path is stale (project folder is gone). Symlink slug folders are always skipped.
+- `--remove-with-sessions` only deletes `~/.claude/projects/<slug>/` when the registry path is stale (project folder is gone). Symlink slug folders are always skipped. Slug folders shared with alive siblings are skipped.
 - Neither mode affects `cleanupPeriodDays` auto-cleanup — it continues to run independently.

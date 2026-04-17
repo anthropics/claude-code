@@ -187,4 +187,102 @@ HOME="$FAKE_HOME" bash "$CLEANUP_SH" --remove-with-sessions "$SYMLINK_DIR" >/dev
 [[ -f "$SYMLINK_TARGET/sid-sym.jsonl" ]] \
   || fail "symlink target file was removed — dangerous follow-symlink"
 
+# --- Assertion 6: shared-slug guard — stale entry sharing a slug with an
+#     alive entry MUST NOT trigger slug folder deletion, even with
+#     --remove-with-sessions. This mirrors the real-world Korean-path collision
+#     case where two distinct non-ASCII directories map to the same slug.
+#     Here we use the ASCII form `/foo-bar` vs `/foo/bar` which both slug to
+#     `-foo-bar` since `/` and `-` collapse to `-`.
+
+COLLIDE_ALIVE="$FAKE_HOME/colfoo-bar"       # alive
+COLLIDE_STALE="$FAKE_HOME/colfoo/bar"        # will be stale
+
+mkdir -p "$COLLIDE_ALIVE/.claude" "$COLLIDE_STALE/.claude"
+H_COL_ALIVE="55555555-5555-5555-5555-555555555555"
+H_COL_STALE="66666666-6666-6666-6666-666666666666"
+echo "$H_COL_ALIVE" > "$COLLIDE_ALIVE/.claude/hash.txt"
+echo "$H_COL_STALE" > "$COLLIDE_STALE/.claude/hash.txt"
+
+# Verify they share a slug (sanity check — if this fails the test premise is gone)
+COL_ALIVE_SLUG=$(_slug "$COLLIDE_ALIVE")
+COL_STALE_SLUG=$(_slug "$COLLIDE_STALE")
+[[ "$COL_ALIVE_SLUG" == "$COL_STALE_SLUG" ]] \
+  || fail "TEST SETUP: paths do not share a slug. alive=$COL_ALIVE_SLUG stale=$COL_STALE_SLUG"
+
+COL_PROJ="$FAKE_HOME/.claude/projects/$COL_ALIVE_SLUG"
+mkdir -p "$COL_PROJ"
+echo '{"type":"user","sessionId":"sid-alive"}'  > "$COL_PROJ/sid-alive.jsonl"
+echo '{"type":"user","sessionId":"sid-stale"}'  > "$COL_PROJ/sid-stale.jsonl"
+
+# Add both to registry
+"$PY" -c "
+import json
+d = json.load(open('$REGISTRY'))
+d['$H_COL_ALIVE'] = '$COLLIDE_ALIVE'
+d['$H_COL_STALE'] = '$COLLIDE_STALE'
+open('$REGISTRY', 'w').write(json.dumps(d, indent=2))
+"
+
+# Make stale entry stale on disk
+rm -rf "$COLLIDE_STALE"
+
+# Attempt destructive cleanup on the stale entry
+HOME="$FAKE_HOME" bash "$CLEANUP_SH" --remove-with-sessions "$COLLIDE_STALE" >/dev/null 2>&1
+
+# Slug folder MUST still exist (alive sibling needs it)
+[[ -d "$COL_PROJ" ]] \
+  || fail "shared-slug guard failed: slug folder removed while alive sibling shared it"
+# Alive sibling's .jsonl MUST still be present
+[[ -f "$COL_PROJ/sid-alive.jsonl" ]] \
+  || fail "alive sibling's session file was destroyed by cleanup of stale collision entry"
+
+# --- Assertion 7: multi-invocation flow — (b)-before-(a) ordering is
+#     load-bearing. cleanup.md mandates running --remove-with-sessions before
+#     --remove because the (b) guard inspects the registry to detect alive
+#     siblings. If --remove runs first for an alive sibling, it leaves the
+#     registry in a state where the (b) guard can no longer see the alive
+#     sibling and would delete the shared slug folder.
+#
+#     This test simulates the cleanup.md-prescribed flow: (b) first, then (a).
+#     Both the alive sibling and the stale collision entry get cleaned up,
+#     and the shared slug folder MUST survive (because (b) ran first while
+#     the alive sibling was still registered).
+
+# Re-seed state matching assertion 6: alive + stale sharing a slug, both in
+# registry, slug folder contains both .jsonl files.
+mkdir -p "$COLLIDE_STALE/.claude"           # re-create stale dir briefly
+echo "$H_COL_STALE" > "$COLLIDE_STALE/.claude/hash.txt"
+"$PY" -c "
+import json
+d = json.load(open('$REGISTRY'))
+d['$H_COL_ALIVE'] = '$COLLIDE_ALIVE'
+d['$H_COL_STALE'] = '$COLLIDE_STALE'
+open('$REGISTRY', 'w').write(json.dumps(d, indent=2))
+"
+mkdir -p "$COL_PROJ"
+echo '{"type":"user","sessionId":"alive2"}' > "$COL_PROJ/alive2.jsonl"
+echo '{"type":"user","sessionId":"stale2"}' > "$COL_PROJ/stale2.jsonl"
+rm -rf "$COLLIDE_STALE"  # make stale again
+
+# Run in the order cleanup.md mandates: (b) first, then (a)
+HOME="$FAKE_HOME" bash "$CLEANUP_SH" --remove-with-sessions "$COLLIDE_STALE" >/dev/null 2>&1
+HOME="$FAKE_HOME" bash "$CLEANUP_SH" --remove                "$COLLIDE_ALIVE" >/dev/null 2>&1
+
+# After the full flow, slug folder MUST still exist (alive sibling needed it
+# when (b) ran, and (a) never touches disk)
+[[ -d "$COL_PROJ" ]] \
+  || fail "(b)-then-(a) flow: slug folder was destroyed despite correct ordering"
+[[ -f "$COL_PROJ/alive2.jsonl" ]] \
+  || fail "(b)-then-(a) flow: alive sibling's session file was destroyed"
+
+# Both entries should be out of the registry
+POST_LEN=$("$PY" -c "
+import json
+d = json.load(open('$REGISTRY'))
+count = sum(1 for p in d.values() if p in ('$COLLIDE_ALIVE', '$COLLIDE_STALE'))
+print(count)
+")
+[[ "$POST_LEN" -eq 0 ]] \
+  || fail "(b)-then-(a) flow: both entries should be removed from registry, found $POST_LEN"
+
 echo "PASS"

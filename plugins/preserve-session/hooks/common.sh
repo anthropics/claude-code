@@ -30,6 +30,15 @@ uuidgen_cross() {
   fi
 }
 
+# nfc_normalize <path>
+# Prints <path> NFC-normalized. Needed because macOS realpath returns NFD, but
+# Claude Code / the plugin use NFC for slug computation and registry storage.
+# Comparing a freshly resolved realpath against a registry value without this
+# can produce false negatives on non-ASCII paths.
+nfc_normalize() {
+  "$PYTHON" -c "import sys, unicodedata; print(unicodedata.normalize('NFC', sys.argv[1]))" "$1"
+}
+
 # registry_write <hash> <path> [strict]
 # Atomically writes hash→path to the registry with an exclusive lock.
 # Without "strict" (default): treats missing/corrupt registry as empty — safe for
@@ -47,16 +56,29 @@ registry_write() {
   PRESERVE_REGISTRY="$REGISTRY" PRESERVE_HASH="$hash_val" PRESERVE_PATH="$real_pwd" \
   PRESERVE_STRICT="$mode" \
     "$PYTHON" - <<'PYEOF'
-import fcntl, json, os, sys, tempfile
+import fcntl, json, os, sys, tempfile, unicodedata
 
 registry_path = os.environ["PRESERVE_REGISTRY"]
 hash_val      = os.environ["PRESERVE_HASH"]
-real_pwd      = os.environ["PRESERVE_PATH"]
+real_pwd      = unicodedata.normalize('NFC', os.environ["PRESERVE_PATH"])
 strict        = os.environ.get("PRESERVE_STRICT") == "strict"
 
 lock_path = registry_path + ".lock"
 with open(lock_path, "a") as lock_f:
     fcntl.flock(lock_f, fcntl.LOCK_EX)
+    def _backup_corrupt(reason):
+        # Preserve the corrupt file so the user can inspect/recover it
+        # instead of silently resetting to {}. Used in non-strict mode
+        # (session-start / scan) where we must keep working.
+        import time
+        backup = registry_path + ".corrupt-backup." + str(int(time.time()))
+        try:
+            os.rename(registry_path, backup)
+            print(f"preserve-session: registry was {reason}, backed up to {backup}", file=sys.stderr)
+        except OSError as e:
+            # Backup failed (permissions?) — warn explicitly so the user
+            # knows the recovery guarantee didn't hold before we overwrite.
+            print(f"preserve-session: registry was {reason}, but backup to {backup} failed: {e}. The corrupt content will be overwritten.", file=sys.stderr)
     try:
         with open(registry_path) as f:
             r = json.load(f)
@@ -69,6 +91,13 @@ with open(lock_path, "a") as lock_f:
         if strict:
             print("preserve-session: registry is corrupted. Fix or delete ~/.claude/project-registry.json and retry.", file=sys.stderr)
             sys.exit(1)
+        _backup_corrupt("corrupt JSON")
+        r = {}
+    if not isinstance(r, dict):
+        if strict:
+            print("preserve-session: registry has unexpected format (not a JSON object).", file=sys.stderr)
+            sys.exit(1)
+        _backup_corrupt("not a JSON object")
         r = {}
     r[hash_val] = real_pwd
     tmp_fd, tmp_path = tempfile.mkstemp(
@@ -96,7 +125,9 @@ check_slug_collision() {
 import json, os, re, unicodedata, sys
 
 registry_path = os.environ.get("PRESERVE_REGISTRY", os.path.expanduser("~/.claude/project-registry.json"))
-check_path = os.environ["PRESERVE_CHECK_PATH"]
+# Defensive NFC normalization — callers are expected to pass NFC, but a stray
+# NFD input would otherwise cause self-exclusion (p == check_path) to miss.
+check_path = unicodedata.normalize('NFC', os.environ["PRESERVE_CHECK_PATH"])
 
 try:
     with open(registry_path) as f:
@@ -104,12 +135,20 @@ try:
 except (FileNotFoundError, json.JSONDecodeError, ValueError):
     sys.exit(0)
 
+if not isinstance(r, dict):
+    sys.exit(0)
+
 def slug(p):
     return re.sub(r'[^a-zA-Z0-9-]', '-', unicodedata.normalize('NFC', p))
 
 check_slug = slug(check_path)
 for h, p in r.items():
-    if p == check_path:
+    if not isinstance(p, str):
+        continue
+    # NFC-normalize for comparison so legacy NFD registry entries still
+    # self-exclude against an NFC check_path (avoids false positive
+    # "self-collision" reports from pre-B2 registries).
+    if unicodedata.normalize('NFC', p) == check_path:
         continue
     if slug(p) == check_slug:
         print(p)

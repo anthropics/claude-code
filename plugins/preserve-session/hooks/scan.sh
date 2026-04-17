@@ -83,6 +83,7 @@ SKIPPED=0
 
 for TARGET in "$@"; do
   TARGET=$(realpath "$TARGET" 2>/dev/null || echo "$TARGET")
+  TARGET=$(nfc_normalize "$TARGET")
 
   if [[ ! -d "$TARGET" ]]; then
     echo "  skip: $TARGET (directory not found)"

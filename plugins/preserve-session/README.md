@@ -2,102 +2,130 @@
 
 [한국어](./README.ko.md)
 
-Preserves Claude Code session history across project directory renames, moves, and copies.
+Keeps your Claude Code conversations alive when you rename, move, or copy your project folder.
 
 ## Demo
 
 https://github.com/user-attachments/assets/05a3dd4b-dfaa-4540-a2f1-e0c2bf6583af
 
-## Problem
+## Why you'd want this
 
-Claude Code identifies projects by their directory path. Renaming or moving a project directory causes all previous session history to become unreachable.
+Claude Code finds your past conversations by looking at the project folder's path. So if you rename or move the folder, those conversations disappear from `/resume`.
 
-## How it works
+## The fix (one line)
 
-Each project gets a path-independent UUID stored in `.claude/hash.txt`. A global registry (`~/.claude/project-registry.json`) maps each UUID to its current path. When the path changes, running `/preserve-session:fix` renames the internal sessions folder to match, restoring access to all previous sessions.
+Run `/preserve-session:fix` in the new location. The plugin tags each project with a unique ID and uses that to carry your conversations over to the new path.
 
-## Installation
+## Install
 
 ```
 claude plugin install preserve-session
 ```
 
-The `SessionStart` hook is included in the plugin and activated automatically on install. No manual configuration needed.
+No configuration needed — it turns itself on.
 
 **For local testing:**
 ```
 claude --plugin-dir /path/to/plugins/preserve-session
 ```
 
-## Commands
+## Which command do I need?
 
-| Command | Description |
-|---------|-------------|
-| `/preserve-session:fix` | Recover sessions after a rename or move. Also handles copy detection |
-| `/preserve-session:copy` | **(v1.2.0)** Non-destructive: create independent session copies (new `sessionId`, new filename, rewritten `cwd`). Source project is untouched. |
-| `/preserve-session:move` | **(v1.2.0)** Destructive: migrate session files to the current project. Source slug folder is emptied. `cwd` is rewritten for the Ctrl+A `/resume` picker filter. |
-| `/preserve-session:doctor` | Diagnose the current project's preserve-session state |
-| `/preserve-session:uninstall` | Permanently remove all preserve-session data (registry and hash files) |
-| ~~`/preserve-session:inherit`~~ | **Deprecated in v1.2.0** — use `copy` or `move` instead. Will be removed in a future major version. |
-| `/preserve-session:scan` | Scan a directory for unregistered projects and bulk-initialize them _(coming soon)_ |
-| `/preserve-session:cleanup` | **(v1.3.0)** List all registered projects and remove selected entries from the registry. For stale entries, optionally also delete the associated session folder under `~/.claude/projects/<slug>/`. |
+Most of the time, just `/preserve-session:fix`. The others are for specific situations.
 
-## Typical workflows
+| When | Use |
+|------|-----|
+| You renamed or moved a project and can't see old conversations | `/preserve-session:fix` |
+| You copied a project and want a **copy** of old conversations in the new one (original kept) | `/preserve-session:copy` |
+| You copied a project and want to **move** old conversations into the copy (original emptied) | `/preserve-session:move` |
+| Something feels off — check the plugin's view of things | `/preserve-session:doctor` |
+| (Optional) Tidy up old entries or free up disk space | `/preserve-session:cleanup` |
+| Uninstall and remove all plugin data | `/preserve-session:uninstall` |
 
-**After renaming a directory:**
+> **Do I need `/cleanup`?** — No, it's optional. Claude Code already auto-deletes old conversation files after 30 days. Use `/cleanup` only if you want to free up disk space sooner or keep your project list tidy. *(Added in v1.3.0, hardened in v1.3.1 for Korean-path users.)*
+
+> **Also note:**
+> - ~~`/preserve-session:inherit`~~ was split into `copy` and `move` in v1.2.0 for clearer meanings. Use `copy` or `move` going forward. (`inherit` will be removed in a future major release.)
+> - `/preserve-session:scan` (register many projects at once) is planned but not shipped yet.
+
+## Common flows
+
+**After renaming a folder:**
 ```
 cd /new/project/name
 claude
 /preserve-session:fix
 ```
 
-**After copying a project (want fresh start, protect original):**
+**After copying a project (fresh start, original kept as-is):**
 ```
-# No action needed — the copy is detected automatically on /fix
-# and registered as an independent project
-```
-
-**After copying a project (want independent copies of old sessions):**
-```
-/preserve-session:fix                          # register as independent copy first
-/preserve-session:copy                         # lists available projects; Claude asks which to copy from
+# Nothing to do — just run claude in the copy;
+# the plugin registers it as a brand-new project
 ```
 
-**After copying a project (want to migrate old sessions entirely — abandon original):**
+**After copying a project (you want a copy of old conversations too):**
 ```
-/preserve-session:fix                          # register as independent copy first
-/preserve-session:move                         # lists available projects; Claude asks which to move from
+/preserve-session:fix             # register the copy first
+/preserve-session:copy            # Claude asks which source to copy from
 ```
 
-> `copy` creates independent copies with fresh `sessionId`s; the source project keeps its sessions.
-> `move` migrates the source's `.jsonl` files into the current project and empties the source.
+**After copying a project (you want to move old conversations in, dropping the original):**
+```
+/preserve-session:fix             # register the copy first
+/preserve-session:move            # Claude asks which source to move from
+```
+
+> `copy` makes a duplicate — the original still has its conversations.
+> `move` takes the conversations out of the original — the original is emptied.
 
 **Check current state:**
 ```
 /preserve-session:doctor
 ```
 
-## Understanding doctor output
+## Reading the doctor output
 
-- **Hook not in settings.json** — the hook is still active; it does not need to appear in `settings.json` to work.
-- **Path mismatch / stale registry entry** — run `/preserve-session:fix` to update the registry to the current path and clean up stale entries.
+- `~ hook not found in settings.json` — normal. The hook is active through the plugin, no settings entry needed.
+- `✗ path mismatch` — the folder moved but wasn't re-registered. Run `/preserve-session:fix`.
+- `⚠ slug collision` — another registered project maps to the same internal folder. Common on non-ASCII paths. Workarounds in the note below.
 
-## Notes
+## Things to know
 
-- **Use the terminal, not the VS Code extension** — plugin commands and session history browsing are not fully supported in the VS Code extension. Use `claude` in a terminal for the best experience.
-- **Add `.claude/hash.txt` to `.gitignore`** — in team projects, sharing the same UUID causes registry conflicts
-- **`project-registry.json` is local only** — do not include in backups or sync tools
-- **Quit Claude Code before running `/fix`** — prevents conflicts during session folder rename. If the destination sessions folder already exists (e.g. a new session was started before running `/fix`), sessions are merged automatically and the old folder is left in place. Run `/preserve-session:cleanup` (v1.3.0) to remove stale registry entries — and optionally the leftover session folder.
-- **Use ASCII-only directory names** — Claude Code maps all non-ASCII characters to `-` when computing project slugs. Two different non-ASCII paths of the same structure (e.g. same character counts per segment) can produce identical slugs, causing their sessions to be stored in the same folder. This affects `/preserve-session:copy` and `/preserve-session:move`, which copy/migrate all sessions from the slug directory without distinguishing between projects. Run `/preserve-session:doctor` to check whether your current project path contains non-ASCII characters.
-- **macOS: non-ASCII paths work correctly** — macOS `realpath` returns NFD-normalized Unicode paths, but Claude Code uses NFC when computing project slugs. The hooks normalize paths to NFC before slug computation to ensure they match.
+- **Use the terminal, not the VS Code extension** — plugin commands don't fully work in the extension. Run `claude` in a terminal.
+- **Add `.claude/hash.txt` to `.gitignore`** — if team members share this file, your records will collide.
+- **`project-registry.json` is local only** — don't back it up or sync it across machines.
+- **Close other Claude Code sessions before running `/fix`** (the terminal you're running `/fix` in is fine) — another session open on the same project can conflict with the folder rename. If you've already started a separate new conversation in the new location, the plugin merges automatically; the leftover old folder can be cleaned up later with `/preserve-session:cleanup`.
+
+## About non-ASCII paths (CJK, Cyrillic, Arabic, accented Latin, etc.)
+
+Claude Code's internal folder name is computed by replacing every character that isn't `[a-zA-Z0-9-]` with `-`. Slashes become `-` too, so **segment boundaries disappear** after the replacement. The practical consequences:
+
+- Any two paths with the same *count* of non-ASCII characters (plus the same ASCII letters at the same positions) collide — even if the characters themselves differ, and even if the segment structure is different. For example, `~/외주/app`, `~/개인/app`, and `~/仕事/app` all become the same internal folder name.
+- Their session files are physically stored together, and `/resume` shows conversations from different projects mixed in a single list.
+
+**What this plugin does**:
+- Detects collisions on session start and via `/preserve-session:doctor`.
+- Blocks `fix`, `copy`, `move`, and `cleanup` from operations that would silently lose data during a collision.
+- Handles the macOS NFD vs NFC encoding difference internally, so Korean/CJK paths don't break for *other* reasons.
+
+**What this plugin can NOT do** (upstream Claude Code issue, tracked at [#40946](https://github.com/anthropics/claude-code/issues/40946)):
+- Prevent Claude Code from writing two colliding projects to the same folder in the first place.
+- Separate already-mixed sessions in `/resume`.
+
+**Workarounds until the upstream fix lands**:
+- Use ASCII-only names for projects where this matters.
+- Or, make the **total count** of non-ASCII characters differ between colliding projects (changing segment order or length within the same count does *not* help — `/` also becomes `-`, erasing segment boundaries).
+- Run `/preserve-session:doctor` in each non-ASCII-named project to see whether you've hit a collision.
+
+Single non-ASCII projects with no siblings sharing their slug are safe.
 
 ## Files
 
 | File | Location | Purpose |
 |------|----------|---------|
-| `hash.txt` | `<project>/.claude/hash.txt` | Project-unique UUID |
-| `project-registry.json` | `~/.claude/project-registry.json` | Maps hash → current path |
+| `hash.txt` | `<project>/.claude/hash.txt` | Per-project unique ID |
+| `project-registry.json` | `~/.claude/project-registry.json` | Maps ID → current path |
 
 ## License
 
-MIT © 2026 SEONGIL WON. See [LICENSE](https://github.com/wonbywondev/claude-plugins/blob/main/LICENSE).
+MIT © 2026 SEONGIL WON. [LICENSE](https://github.com/wonbywondev/claude-plugins/blob/main/LICENSE)

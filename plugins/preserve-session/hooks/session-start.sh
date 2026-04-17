@@ -15,6 +15,9 @@ mkdir -p "$CLAUDE_DIR"
 # shellcheck source=common.sh
 source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 
+# Normalize to NFC to match registry storage format (see common.sh nfc_normalize)
+REAL_PWD=$(nfc_normalize "$REAL_PWD")
+
 # If hash.txt already exists, verify it is also registered (re-register if not)
 if [[ -f "$HASH_FILE" ]]; then
   HASH=$(cat "$HASH_FILE")

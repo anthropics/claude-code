@@ -127,7 +127,11 @@ import fcntl, json, os, re, shutil, sys, tempfile, unicodedata
 
 registry_path = os.environ["PRESERVE_REGISTRY"]
 home = os.environ["PRESERVE_HOME"]
-paths_to_remove = set(p for p in os.environ["PRESERVE_REMOVE"].splitlines() if p)
+# NFC-normalize input paths to match registry storage (registry_write also NFC)
+paths_to_remove = {
+    unicodedata.normalize('NFC', p)
+    for p in os.environ["PRESERVE_REMOVE"].splitlines() if p
+}
 with_sessions = os.environ["PRESERVE_WITH_SESSIONS"] == "1"
 
 def slug(p):
@@ -163,7 +167,25 @@ with open(lock_path, "a") as lock_f:
     print(header)
     print("")
 
-    slug_stats = {"removed": 0, "skipped_alive": 0, "skipped_symlink": 0, "skipped_missing": 0, "failed": 0}
+    slug_stats = {"removed": 0, "skipped_alive": 0, "skipped_shared": 0, "skipped_symlink": 0, "skipped_missing": 0, "failed": 0}
+
+    # Precompute slug → [alive sibling paths] for shared-slug guard.
+    # Two distinct registry entries can map to the same slug (e.g. non-ASCII
+    # paths with identical character counts). Removing a stale one must not
+    # rmtree the slug folder if an alive sibling still uses it.
+    alive_slug_map = {}
+    for h_other, p_other in r.items():
+        if not isinstance(p_other, str):
+            continue
+        if p_other in paths_to_remove:
+            continue
+        if not os.path.isdir(p_other):
+            continue
+        try:
+            s_other = slug(p_other)
+        except Exception:
+            continue
+        alive_slug_map.setdefault(s_other, []).append(p_other)
 
     for h, p in r.items():
         if p not in paths_to_remove:
@@ -183,6 +205,12 @@ with open(lock_path, "a") as lock_f:
         except Exception as e:
             print(f"    SKIP slug: cannot compute slug for {p}: {e}", file=sys.stderr)
             slug_stats["failed"] += 1
+            continue
+
+        shared_alive = alive_slug_map.get(s, [])
+        if shared_alive:
+            print(f"    SKIP slug: shared with alive project(s) — {shared_alive[0]}")
+            slug_stats["skipped_shared"] += 1
             continue
 
         proj_dir = os.path.join(home, ".claude", "projects", s)
@@ -234,6 +262,8 @@ if with_sessions:
     parts.append(f"{slug_stats['removed']} slug folder(s) removed")
     if slug_stats["skipped_alive"] > 0:
         parts.append(f"{slug_stats['skipped_alive']} skipped (path still alive)")
+    if slug_stats["skipped_shared"] > 0:
+        parts.append(f"{slug_stats['skipped_shared']} skipped (shared slug with alive project)")
     if slug_stats["skipped_symlink"] > 0:
         parts.append(f"{slug_stats['skipped_symlink']} skipped (symlink)")
     if slug_stats["skipped_missing"] > 0:

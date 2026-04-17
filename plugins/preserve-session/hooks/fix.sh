@@ -14,6 +14,9 @@ FORCE=false
 # shellcheck source=common.sh
 source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 
+# Normalize to NFC to match registry storage format (see common.sh nfc_normalize)
+REAL_PWD=$(nfc_normalize "$REAL_PWD")
+
 # --- Checks ---
 
 if [[ ! -f "$HASH_FILE" ]]; then
@@ -47,6 +50,24 @@ PYEOF
 
 if [[ -z "$REGISTERED" ]]; then
   echo "preserve-session: hash not found in registry. Re-registering current path..."
+
+  NEW_COLLISION=$(check_slug_collision "$REAL_PWD")
+  if [[ -n "$NEW_COLLISION" ]]; then
+    echo "preserve-session: warning — slug collision detected"
+    while IFS= read -r line; do
+      echo "  this path ($REAL_PWD) shares slug with: $line"
+    done <<< "$NEW_COLLISION"
+    echo "  Sessions from this project will land in the same slug folder as"
+    echo "  the sibling above. /cleanup or /move on either project may affect"
+    echo "  sessions of both."
+    if [[ "$FORCE" == false ]]; then
+      echo ""
+      echo "  To proceed anyway, run: /preserve-session:fix --force"
+      exit 1
+    fi
+    echo "  Proceeding with --force."
+  fi
+
   registry_write "$HASH" "$REAL_PWD" strict
   echo "Done. Registered: $REAL_PWD"
   exit 0
@@ -64,6 +85,25 @@ fi
 if [[ -d "$REGISTERED" ]]; then
   # Old path still exists → copy case
   echo "preserve-session: detected copy (original still exists at $REGISTERED)"
+
+  # Guard: new path may share a slug with a sibling (collision risk)
+  NEW_COLLISION=$(check_slug_collision "$REAL_PWD")
+  if [[ -n "$NEW_COLLISION" ]]; then
+    echo "preserve-session: warning — slug collision detected"
+    while IFS= read -r line; do
+      echo "  new path ($REAL_PWD) shares slug with: $line"
+    done <<< "$NEW_COLLISION"
+    echo "  Registering this copy will cause its sessions to land in the same"
+    echo "  slug folder as the sibling above. Future /cleanup or /move on"
+    echo "  either project may affect sessions of both."
+    if [[ "$FORCE" == false ]]; then
+      echo ""
+      echo "  To proceed anyway, run: /preserve-session:fix --force"
+      exit 1
+    fi
+    echo "  Proceeding with --force."
+  fi
+
   echo "Registering as independent project..."
 
   NEW_HASH=$(uuidgen_cross)
@@ -77,7 +117,9 @@ if [[ -d "$REGISTERED" ]]; then
   echo "  path:     $REAL_PWD"
   echo "  original: $REGISTERED (untouched)"
   echo ""
-  echo "To inherit sessions from the original, run: /preserve-session:inherit"
+  echo "To bring the original's sessions here:"
+  echo "  /preserve-session:copy   (non-destructive — independent copies)"
+  echo "  /preserve-session:move   (destructive — empties the original)"
 
 else
   # Old path gone → rename/move case

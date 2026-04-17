@@ -11,7 +11,7 @@ bash "${CLAUDE_PLUGIN_ROOT}/hooks/fix.sh"
 
 If the output contains `warning — slug collision detected`, tell the user:
 
-> ASCII가 아닌 경로를 사용하고 있어서 아래 프로젝트와 같은 경로로 인식되고 있습니다. rename/move를 진행하면 해당 프로젝트의 세션과 섞일 수 있습니다. 계속하시겠습니까?
+> 이 경로가 위에 나온 다른 프로젝트와 같은 slug로 변환되어 세션 폴더를 공유합니다. (원인: 경로 내 비 ASCII 문자나 특수문자가 모두 `-`로 치환되며 발생) 진행하면 양쪽 프로젝트의 세션이 한 폴더에 섞이고, 이후 `/cleanup`/`/move`가 서로에게 영향을 줄 수 있습니다. 계속하시겠습니까?
 
 If the user confirms, run:
 

@@ -11,6 +11,9 @@ HASH_FILE="$REAL_PWD/.claude/hash.txt"
 # shellcheck source=common.sh
 source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 
+# Normalize to NFC to match registry storage format (see common.sh nfc_normalize)
+REAL_PWD=$(nfc_normalize "$REAL_PWD")
+
 OK="✓"
 FAIL="✗"
 

@@ -20,6 +20,9 @@ HASH_FILE="$REAL_PWD/.claude/hash.txt"
 # shellcheck source=common.sh
 source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 
+# Normalize to NFC to match registry storage format (see common.sh nfc_normalize)
+REAL_PWD=$(nfc_normalize "$REAL_PWD")
+
 # --- Checks ---
 
 if [[ ! -f "$HASH_FILE" ]]; then
@@ -85,6 +88,7 @@ fi
 # --- Move mode ---
 
 SOURCE_PATH=$(realpath "$MODE" 2>/dev/null || echo "$MODE")
+SOURCE_PATH=$(nfc_normalize "$SOURCE_PATH")
 
 if [[ "$SOURCE_PATH" == "$REAL_PWD" ]]; then
   echo "preserve-session: source and destination are the same project."
