@@ -135,16 +135,20 @@ RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}
 # volumes). Existing volumes keep their state — no re-seeding. Same lifecycle
 # as the `npm install -g @anthropic-ai/claude-code` above: done once at image
 # build, no postCreate logic needed.
-COPY --chown=node:node claude-whitelist.txt claude-hooks-keep.txt claude-mcps-keep.txt install-ecc-assets.sh /tmp/
+COPY --chown=node:node claude-whitelist.txt claude-hooks-keep.txt install-ecc-assets.sh /tmp/
 RUN bash /tmp/install-ecc-assets.sh && \
-    rm -f /tmp/claude-whitelist.txt /tmp/claude-hooks-keep.txt /tmp/claude-mcps-keep.txt /tmp/install-ecc-assets.sh
+    rm -f /tmp/claude-whitelist.txt /tmp/claude-hooks-keep.txt /tmp/install-ecc-assets.sh
 
-# Register serena MCP server at user scope. Writes to /home/node/.claude/.claude.json
+# Register MCP servers at user scope. Writes to /home/node/.claude/.claude.json
 # which is on the named volume — seeded into fresh volumes on first container start.
-# Uses `ide-assistant` context + explicit --project so LSP features target /workspace.
+# serena: `ide-assistant` context + explicit --project so LSP features target /workspace.
 RUN claude mcp add --scope user serena -- \
     uvx --from git+https://github.com/oraios/serena \
-    serena start-mcp-server --context ide-assistant --project /workspace
+    serena start-mcp-server --context ide-assistant --project /workspace && \
+    claude mcp add --scope user context7 -- \
+    npx -y @upstash/context7-mcp@latest && \
+    claude mcp add --scope user playwright -- \
+    npx -y @playwright/mcp --browser chrome
 
 # Seed Claude Code user settings with Stop/Notification hooks that emit BEL
 # (paired with VS Code's terminal.integrated.enableBell=true). Goes onto the

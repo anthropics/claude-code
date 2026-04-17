@@ -9,7 +9,6 @@ ECC_SRC="/tmp/ecc-source"
 DST="/home/node/.claude"
 WL="/tmp/claude-whitelist.txt"
 HK="/tmp/claude-hooks-keep.txt"
-MC="/tmp/claude-mcps-keep.txt"
 
 strip() { grep -vE '^[[:space:]]*(#|$)' "$1" | awk '{$1=$1; print}'; }
 
@@ -41,15 +40,6 @@ if [ -f "$ECC_SRC/hooks/hooks.json" ] && [ -f "$HK" ]; then
     )
   ' "$ECC_SRC/hooks/hooks.json" > "$DST/hooks/hooks.json"
   [ -f "$ECC_SRC/hooks/README.md" ] && cp "$ECC_SRC/hooks/README.md" "$DST/hooks/README.md"
-fi
-
-if [ -f "$ECC_SRC/mcp-configs/mcp-servers.json" ] && [ -f "$MC" ]; then
-  echo "[ECC] Filtering mcp-servers.json..."
-  keep=$(strip "$MC" | jq -R . | jq -s .)
-  mkdir -p "$DST/mcp-configs"
-  jq --argjson keep "$keep" '
-    .mcpServers |= with_entries(select(.key as $n | $keep | index($n) != null))
-  ' "$ECC_SRC/mcp-configs/mcp-servers.json" > "$DST/mcp-configs/mcp-servers.json"
 fi
 
 rm -rf "$ECC_SRC"

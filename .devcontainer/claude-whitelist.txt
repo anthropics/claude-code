@@ -2,9 +2,10 @@
 # One path per line, relative to ECC source root (/home/node/ecc-source/).
 # Directories end with /. Blank lines and lines starting with # are ignored.
 #
-# Hook entries inside hooks/hooks.json and MCP entries inside
-# mcp-configs/mcp-servers.json are NOT copied as-is — they are filtered by
-# claude-hooks-keep.txt and claude-mcps-keep.txt (see setup-project.sh).
+# Hook entries inside hooks/hooks.json are NOT copied as-is — they are
+# filtered by claude-hooks-keep.txt (see install-ecc-assets.sh).
+# MCP servers are NOT imported from ECC; they are registered directly via
+# `claude mcp add --scope user` in the Dockerfile.
 #
 # To re-apply after editing any of these files, delete ~/.claude/.ecc-applied
 # and re-run /usr/local/bin/setup-project.sh (or rebuild the devcontainer).
@@ -86,7 +87,3 @@ rules/web/
 
 # --- Hook runtime scripts (hooks.json filtered via claude-hooks-keep.txt) ---
 scripts/
-
-# --- MCP config templates (mcp-servers.json filtered via claude-mcps-keep.txt) ---
-# (nothing to list here — the filtered file is written to
-#  ~/.claude/mcp-configs/mcp-servers.json by setup-project.sh)
