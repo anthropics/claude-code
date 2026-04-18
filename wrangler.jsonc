@@ -1,4 +1,5 @@
 {
+{
   "name": "ethos-aegis-agentic",
   "compatibility_date": "2026-04-13",
   "main": "src/index.ts",
