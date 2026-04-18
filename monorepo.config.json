@@ -1,0 +1,25 @@
+{
+  "projects": [
+    {
+      "name": "Project A",
+      "path": "packages/project-a",
+      "language": "JavaScript",
+      "description": "This is Project A",
+      "entryPoint": "index.js"
+    },
+    {
+      "name": "Project B",
+      "path": "packages/project-b",
+      "language": "Python",
+      "description": "This is Project B",
+      "entryPoint": "main.py"
+    },
+    {
+      "name": "Project C",
+      "path": "packages/project-c",
+      "language": "Go",
+      "description": "This is Project C",
+      "entryPoint": "main.go"
+    }
+  ]
+}
