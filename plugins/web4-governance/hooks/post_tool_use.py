@@ -53,19 +53,38 @@ AUDIT_DIR = WEB4_DIR / "audit"
 
 
 def load_session(session_id):
-    """Load session state."""
+    """Load session state. Robust to corrupt files."""
     session_file = SESSION_DIR / f"{session_id}.json"
     if not session_file.exists():
         return None
-    with open(session_file) as f:
-        return json.load(f)
+    try:
+        with open(session_file) as f:
+            return json.load(f)
+    except (json.JSONDecodeError, OSError):
+        # Same defense as pre_tool_use.py: quarantine + treat as missing.
+        # A concurrent partial write from another hook can leave the file
+        # in a half-written state; rather than crash every subsequent
+        # tool call, set it aside and let the next call lazy-init.
+        try:
+            session_file.rename(session_file.with_suffix(".json.corrupt"))
+        except OSError:
+            pass
+        return None
 
 
 def save_session(session):
-    """Save session state."""
+    """Save session state atomically.
+
+    Writes to ``.tmp`` then renames. Eliminates the partial-write window
+    that produces corrupt session files when two hook invocations race
+    on the same file (the actual root cause of the corruption pre_tool_use
+    used to crash on).
+    """
     session_file = SESSION_DIR / f"{session['session_id']}.json"
-    with open(session_file, "w") as f:
+    tmp = session_file.with_suffix(".json.tmp")
+    with open(tmp, "w") as f:
         json.dump(session, f, indent=2)
+    os.replace(tmp, session_file)
 
 
 def hash_content(content):

@@ -316,9 +316,12 @@ def load_or_create_session(session_id):
         "policy_entity": policy_entity_dict,
     }
 
-    # Save immediately
-    with open(session_file, "w") as f:
+    # Save immediately — atomic write to avoid the partial-write race
+    # that can leave another concurrent reader hitting JSONDecodeError.
+    tmp = session_file.with_suffix(".json.tmp")
+    with open(tmp, "w") as f:
         json.dump(session, f, indent=2)
+    os.replace(tmp, session_file)
 
     # Initialize heartbeat for recovered session
     heartbeat = get_session_heartbeat(session_id)
@@ -336,10 +339,18 @@ def load_session(session_id):
 
 
 def save_session(session):
-    """Save session state."""
+    """Save session state atomically.
+
+    Writes to ``.tmp`` then renames. Eliminates the partial-write window
+    that produces corrupt session files when two hook invocations race
+    on the same file (the actual root cause of the corruption load_session
+    used to crash on).
+    """
     session_file = SESSION_DIR / f"{session['session_id']}.json"
-    with open(session_file, "w") as f:
+    tmp = session_file.with_suffix(".json.tmp")
+    with open(tmp, "w") as f:
         json.dump(session, f, indent=2)
+    os.replace(tmp, session_file)
 
 
 def detect_mcp_tool(tool_name: str) -> tuple:
