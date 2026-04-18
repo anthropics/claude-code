@@ -76,17 +76,6 @@
         ]
       }
     ],
-    "SessionStart": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "for t in /dev/pts/[0-9]*; do [ -w \"$t\" ] && printf '\\a' > \"$t\"; done; true"
-          }
-        ]
-      }
-    ],
     "Stop": [
       {
         "matcher": "",
