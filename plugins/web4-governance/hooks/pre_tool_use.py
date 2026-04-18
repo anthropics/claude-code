@@ -273,8 +273,20 @@ def load_or_create_session(session_id):
     session_file = SESSION_DIR / f"{session_id}.json"
 
     if session_file.exists():
-        with open(session_file) as f:
-            return json.load(f)
+        try:
+            with open(session_file) as f:
+                return json.load(f)
+        except (json.JSONDecodeError, OSError):
+            # Corrupt or unreadable session file → quarantine and re-init.
+            # Without this, every subsequent tool call hits the same decode
+            # error and the hook reports "Failed with non-blocking status
+            # code: Traceback..." on every call. Move the bad file aside so
+            # we don't lose forensic data, and fall through to lazy init.
+            try:
+                quarantine = session_file.with_suffix(".json.corrupt")
+                session_file.rename(quarantine)
+            except OSError:
+                pass
 
     # Lazy initialization for continued/recovered sessions
     prefs = {
