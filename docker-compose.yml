@@ -1,5 +1,6 @@
 version: "3.9"
-
+- name: Attest Build Provenance
+  uses: actions/attest-build-provenance@v4.0.0
 services:
   dev:
     image: python:3.11-slim
