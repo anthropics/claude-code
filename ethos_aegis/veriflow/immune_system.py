@@ -39,11 +39,15 @@ class VeriflowImmuneSystem:
         *,
         probe_on_startup: bool = True,
         sample_resource_id: str | None = None,
+        fingerprint_mode: str = "auto",
         persist_host_state: bool = True,
         state_dir: str | Path | None = None,
     ) -> None:
         self.ckan = ckan
         self.verifier = verifier
+        # Supported values: "auto" (default), "lightweight", "full".
+        # "auto" selects the best available fingerprinting strategy.
+        self.fingerprint_mode = fingerprint_mode
         self._cache: dict[str, DatasetCacheEntry] = {}
         self._capability_matrix: CKANCapabilityMatrix | None = None
         self._probe_sample_resource_id = sample_resource_id
