@@ -7,13 +7,13 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from ethos_aegis.mythos_runtime import (
+from ethos_aegis.mythos_runtime import (  # noqa: E402
     DriftDetector,
     MemoryEvent,
     MemoryLedger,
     StrictWriteDiscipline,
 )
-from ethos_aegis.veriflow.ckan_adapter import (
+from ethos_aegis.veriflow.ckan_adapter import (  # noqa: E402
     CKANCapabilityMatrix,
     CKANIngestionResult,
     CKANVersion,
@@ -21,7 +21,7 @@ from ethos_aegis.veriflow.ckan_adapter import (
     IngestionAttempt,
     SchemaField,
 )
-from ethos_aegis.veriflow.immune_system import VeriflowImmuneSystem
+from ethos_aegis.veriflow.immune_system import VeriflowImmuneSystem  # noqa: E402
 
 
 class FakeVerificationResult:
