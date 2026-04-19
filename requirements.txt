@@ -1,0 +1,3 @@
+# Python test and runtime dependencies
+pytest>=7.0,<9
+flake8>=6.0,<8

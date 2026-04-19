@@ -1,1 +1,30 @@
-{\n  "name": "ethos-aegis-agentic-immune-veriflow",\n  "private": true,\n  "version": "1.0.0",\n  "workspaces": [\n    "veriflow/*"\n  ],\n  "scripts": {\n    "install": "npm install",\n    "start-veriflow": "npm run start --workspace veriflow"\n  }\n}
+{
+  "name": "ethos-aegis-agentic-immune-veriflow",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Ethos Aegis — Agentic Immune System with Veriflow and Claude Mythos",
+  "workspaces": [
+    "veriflow/*"
+  ],
+  "scripts": {
+    "build": "tsc --noEmit",
+    "lint": "eslint src --ext .ts,.js",
+    "format": "prettier --write \"src/**/*.{ts,js,json}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,js,json}\"",
+    "typecheck": "tsc --noEmit",
+    "worker:dev": "wrangler dev",
+    "worker:deploy": "wrangler deploy",
+    "test": "echo \"No JS test suite configured\" && exit 0"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "eslint": "^8.0.0",
+    "prettier": "^3.0.0",
+    "typescript": "^5.0.0",
+    "wrangler": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

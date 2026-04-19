@@ -1,6 +1,48 @@
-.DS_Store
+# Python
 __pycache__/
 *.pyc
 *.pyo
+*.pyd
 .pytest_cache/
+.tox/
+.venv/
+venv/
+env/
+.env
+*.egg-info/
+dist/
+build/
+*.egg
+pip-wheel-metadata/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Node / TypeScript
+node_modules/
+dist/
+.wrangler/
+*.js.map
+*.d.ts
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.idea/
+*.swp
+*.swo
+*~
+
+# Secrets
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# Test artifacts
+coverage/
+.coverage
+htmlcov/
 
