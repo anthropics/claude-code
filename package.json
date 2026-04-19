@@ -6,6 +6,9 @@
   "workspaces": [
     "veriflow/*"
   ],
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20241031.0",
     "@typescript-eslint/eslint-plugin": "^7.0.0",
