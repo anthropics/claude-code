@@ -5,10 +5,7 @@
   "description": "Ethos Aegis — Agentic Immune System with Veriflow and Claude Mythos",
   "workspaces": [
     "veriflow/*"
- Add @cloudflare/workers-types to your package.json devDependencies:
-
-JSON
-{
+  ],
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20241031.0",
     "@typescript-eslint/eslint-plugin": "^7.0.0",
@@ -19,7 +16,3 @@ JSON
     "wrangler": "^4.83.0"
   }
 }
-After updating package.json, run:
-
-bash
-npm install
