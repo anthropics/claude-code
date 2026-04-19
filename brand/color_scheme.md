@@ -104,6 +104,26 @@
 | MetaMaligna | Slate Gray | #9BAAB8 |
 | SystemicMaligna | Aureate Gold | #C9A84C |
 
+## Tertiary Colors — Earth Tones
+
+### Bronze (Ancient Strength)
+- **Name:** Ancient Bronze
+- **Hex:** #8B6E2A
+- **RGB:** (139, 110, 42)
+- **Usage:** SanitasSwarm cell identity, legacy system indicators, historic audit trails
+
+### Sage (Calm Intelligence)
+- **Name:** Sage Slate
+- **Hex:** #6B7A90
+- **RGB:** (107, 122, 144)
+- **Usage:** MnemosyneCache identity, neutral observations, stable state borders
+
+### Warm Cream (Highlighted Knowledge)
+- **Name:** Warm Cream
+- **Hex:** #E8C96A
+- **RGB:** (232, 201, 106)
+- **Usage:** TaintBeacon highlights, soft emphasis, knowledge retrieval indicators
+
 ## Accessibility
 
 - **Contrast Ratios:**
