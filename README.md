@@ -1,3 +1,11 @@
+<p align="center">
+  <img src="./brand/logo.svg" alt="Ethos Aegis logo" width="420">
+</p>
+
+<p align="center">
+  <img src="./assets/social/ethos-aegis-mythos-banner.svg" alt="Ethos Aegis — Claude Mythos · Veriflow Immune System" width="100%">
+</p>
+
 # Ethos Aegis — Agentic Immune Veriflow
 
 [![Verification First](https://img.shields.io/badge/verification-first-275EFE?style=flat-square)](https://github.com/GoodshytGroup/Ethos-Aegis-Agentic-Immune-Veriflow)
@@ -25,6 +33,14 @@
 | **Claude Mythos** | Narrative + operational identity layer for the immune system |
 
 The system is built around a **verification-first doctrine**: no conclusion is drawn without provenance, no data is trusted without fingerprinting, and no capability is assumed without probing.
+
+---
+
+## 🎬 Demo
+
+<p align="center">
+  <img src="./demo.gif" alt="Ethos Aegis in action" width="100%">
+</p>
 
 ---
 
