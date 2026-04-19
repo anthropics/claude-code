@@ -10,7 +10,10 @@ from .swd import StrictWriteDiscipline
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="mythos-runtime", description="Strict write discipline and memory tools for Ethos Aegis.")
+    parser = argparse.ArgumentParser(
+        prog="mythos-runtime",
+        description="Strict write discipline and memory tools for Ethos Aegis.",
+    )
     parser.add_argument("--root", default=".", help="Project root")
     parser.add_argument("--memory", default="MEMORY.md", help="Memory ledger path relative to root")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -57,18 +60,3 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":  # pragma: no cover
     raise SystemExit(main())
-if dry_run:
-    return {
-        "compressed": True,
-        "dry_run": True,
-        "summary": summary_payload,
-        "preserved": len(preserved),
-    }
-
-content = (
-    self.HEADER
-    + summary_event.to_markdown()
-    + "\n"
-    + "\n".join(event.to_markdown() for event in preserved)
-    + "\n"
-)

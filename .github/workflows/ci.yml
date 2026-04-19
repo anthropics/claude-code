@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  python-lint-test:
+    name: Python lint + test (${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.10", "3.11"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Lint (errors only)
+        run: |
+          flake8 ethos_aegis/ tests/ \
+            --count --select=E9,F63,F7,F82 \
+            --show-source --statistics
+      - name: Lint (style)
+        run: |
+          flake8 ethos_aegis/ tests/ \
+            --count --max-complexity=10 \
+            --max-line-length=127 --statistics
+      - name: Test
+        run: pytest tests/ -q
+
+  typescript-typecheck:
+    name: TypeScript typecheck
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+      - name: Install dependencies
+        run: npm install
+      - name: Type-check
+        run: npm run typecheck

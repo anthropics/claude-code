@@ -1,0 +1,24 @@
+version: "3.9"
+
+services:
+  dev:
+    image: python:3.11-slim
+    working_dir: /app
+    volumes:
+      - .:/app
+    command: bash -c "pip install -r requirements.txt && pytest tests/ -q"
+    environment:
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+
+  worker:
+    image: node:18-alpine
+    working_dir: /app
+    volumes:
+      - .:/app
+      - /app/node_modules
+    command: sh -c "npm install && npm run worker:dev"
+    ports:
+      - "8787:8787"
+    environment:
+      - NODE_ENV=development
