@@ -1,19 +1,14 @@
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
-
-from ethos_aegis.mythos_runtime import (  # noqa: E402
+from ethos_aegis.mythos_runtime import (
     DriftDetector,
     MemoryEvent,
     MemoryLedger,
     StrictWriteDiscipline,
 )
-from ethos_aegis.veriflow.ckan_adapter import (  # noqa: E402
+from ethos_aegis.veriflow.ckan_adapter import (
     CKANCapabilityMatrix,
     CKANIngestionResult,
     CKANVersion,
@@ -21,7 +16,7 @@ from ethos_aegis.veriflow.ckan_adapter import (  # noqa: E402
     IngestionAttempt,
     SchemaField,
 )
-from ethos_aegis.veriflow.immune_system import VeriflowImmuneSystem  # noqa: E402
+from ethos_aegis.veriflow.immune_system import VeriflowImmuneSystem
 
 
 class FakeVerificationResult:
