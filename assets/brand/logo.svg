@@ -1,0 +1,5 @@
+<!-- Main Ethos Aegis logo with shield and wordmark -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+    <text x="10" y="50" font-size="20" fill="#000">Ethos Aegis</text>
+    <path d="M50 10 L90 90 L10 90 Z" fill="#B0C4DE" />
+</svg>
