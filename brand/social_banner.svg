@@ -1,0 +1,161 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640" width="1280" height="640" role="img" aria-label="Ethos Aegis social banner">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0D1117;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1C2433;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#E8C96A;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8B6E2A;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="greenGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00E57A;stop-opacity:0.15" />
+      <stop offset="100%" style="stop-color:#00E57A;stop-opacity:0" />
+    </linearGradient>
+    <radialGradient id="centerGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#C9A84C;stop-opacity:0.08" />
+      <stop offset="100%" style="stop-color:#C9A84C;stop-opacity:0" />
+    </radialGradient>
+    <pattern id="grid" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+      <circle cx="20" cy="20" r="1" fill="#C9A84C" opacity="0.12"/>
+    </pattern>
+    <!-- Clip for banner -->
+    <clipPath id="bannerClip">
+      <rect width="1280" height="640" rx="0"/>
+    </clipPath>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1280" height="640" fill="url(#bgGrad)"/>
+  <rect width="1280" height="640" fill="url(#grid)"/>
+  <rect width="1280" height="640" fill="url(#centerGlow)"/>
+
+  <!-- Left decorative column: biological cell network -->
+  <g opacity="0.18" transform="translate(0,0)">
+    <!-- Nodes -->
+    <circle cx="80" cy="160" r="28" fill="none" stroke="#C9A84C" stroke-width="1.5"/>
+    <circle cx="80" cy="160" r="14" fill="#C9A84C" opacity="0.3"/>
+    <circle cx="150" cy="320" r="20" fill="none" stroke="#00E57A" stroke-width="1.5"/>
+    <circle cx="150" cy="320" r="10" fill="#00E57A" opacity="0.3"/>
+    <circle cx="60" cy="460" r="24" fill="none" stroke="#C9A84C" stroke-width="1.5"/>
+    <circle cx="60" cy="460" r="12" fill="#C9A84C" opacity="0.2"/>
+    <circle cx="180" cy="580" r="16" fill="none" stroke="#4D9FFF" stroke-width="1.5"/>
+    <!-- Connectors -->
+    <line x1="80" y1="188" x2="150" y2="300" stroke="#C9A84C" stroke-width="1"/>
+    <line x1="150" y1="340" x2="60" y2="436" stroke="#00E57A" stroke-width="1"/>
+    <line x1="60" y1="484" x2="180" y2="564" stroke="#4D9FFF" stroke-width="1"/>
+    <!-- Hexagons representing sentinel cells -->
+    <polygon points="80,120 96,129 96,147 80,156 64,147 64,129" fill="none" stroke="#C9A84C" stroke-width="1"/>
+    <polygon points="150,290 162,297 162,311 150,318 138,311 138,297" fill="none" stroke="#00E57A" stroke-width="1"/>
+  </g>
+
+  <!-- Right decorative column: threat virus pattern -->
+  <g opacity="0.14" transform="translate(1100,0)">
+    <!-- Viral sphere nodes -->
+    <circle cx="90" cy="180" r="32" fill="none" stroke="#FF4F5E" stroke-width="1.5"/>
+    <circle cx="90" cy="180" r="16" fill="#FF4F5E" opacity="0.2"/>
+    <!-- Spike proteins -->
+    <line x1="90" y1="148" x2="90" y2="132" stroke="#FF4F5E" stroke-width="1.5"/>
+    <line x1="90" y1="212" x2="90" y2="228" stroke="#FF4F5E" stroke-width="1.5"/>
+    <line x1="122" y1="180" x2="138" y2="180" stroke="#FF4F5E" stroke-width="1.5"/>
+    <line x1="58" y1="180" x2="42" y2="180" stroke="#FF4F5E" stroke-width="1.5"/>
+    <line x1="113" y1="157" x2="124" y2="146" stroke="#FF4F5E" stroke-width="1.5"/>
+    <line x1="67" y1="203" x2="56" y2="214" stroke="#FF4F5E" stroke-width="1.5"/>
+    <line x1="67" y1="157" x2="56" y2="146" stroke="#FF4F5E" stroke-width="1.5"/>
+    <line x1="113" y1="203" x2="124" y2="214" stroke="#FF4F5E" stroke-width="1.5"/>
+    <!-- Second virus -->
+    <circle cx="60" cy="420" r="22" fill="none" stroke="#FF9A3C" stroke-width="1.5"/>
+    <line x1="60" y1="398" x2="60" y2="386" stroke="#FF9A3C" stroke-width="1.5"/>
+    <line x1="60" y1="442" x2="60" y2="454" stroke="#FF9A3C" stroke-width="1.5"/>
+    <line x1="82" y1="420" x2="94" y2="420" stroke="#FF9A3C" stroke-width="1.5"/>
+    <line x1="38" y1="420" x2="26" y2="420" stroke="#FF9A3C" stroke-width="1.5"/>
+  </g>
+
+  <!-- Top gold rule -->
+  <rect x="0" y="0" width="1280" height="3" fill="url(#goldGrad)"/>
+  <!-- Bottom gold rule -->
+  <rect x="0" y="637" width="1280" height="3" fill="url(#goldGrad)"/>
+
+  <!-- Left accent rule -->
+  <rect x="220" y="60" width="2" height="520" fill="#C9A84C" opacity="0.25"/>
+  <!-- Right accent rule -->
+  <rect x="1058" y="60" width="2" height="520" fill="#C9A84C" opacity="0.25"/>
+
+  <!-- Shield icon (center) -->
+  <g transform="translate(560, 80)">
+    <path d="M80 6 L140 30 L140 94 Q140 148 80 172 Q20 148 20 94 L20 30 Z"
+          fill="none" stroke="url(#goldGrad)" stroke-width="3" opacity="0.95"/>
+    <path d="M80 14 L132 36 L132 94 Q132 140 80 162 Q28 140 28 94 L28 36 Z"
+          fill="#0D1117" opacity="0.85"/>
+    <!-- Inner glow -->
+    <path d="M80 14 L132 36 L132 66 Q132 66 80 72 Q28 66 28 66 L28 36 Z"
+          fill="url(#greenGlow)" opacity="0.6"/>
+    <!-- Hex cell inside shield -->
+    <polygon points="80,60 96,69 96,87 80,96 64,87 64,69"
+             fill="none" stroke="#00E57A" stroke-width="2" opacity="0.9"/>
+    <!-- Checkmark -->
+    <polyline points="69,79 78,91 93,65"
+              fill="none" stroke="#00E57A" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <!-- Main title: ETHOS AEGIS -->
+  <text x="640" y="330"
+        font-family="Georgia, 'Times New Roman', serif"
+        font-size="88"
+        font-weight="700"
+        letter-spacing="10"
+        fill="#C9A84C"
+        text-anchor="middle">ETHOS AEGIS</text>
+
+  <!-- Separator line -->
+  <line x1="340" y1="352" x2="940" y2="352" stroke="#C9A84C" stroke-width="1" opacity="0.5"/>
+
+  <!-- Subtitle -->
+  <text x="640" y="390"
+        font-family="'Inter', 'Helvetica Neue', Arial, sans-serif"
+        font-size="19"
+        font-weight="400"
+        letter-spacing="7"
+        fill="#6B7A90"
+        text-anchor="middle">AGENTIC IMMUNE VERIFLOW</text>
+
+  <!-- Description tagline -->
+  <text x="640" y="440"
+        font-family="'Inter', 'Helvetica Neue', Arial, sans-serif"
+        font-size="15"
+        font-weight="300"
+        letter-spacing="2"
+        fill="#9BAAB8"
+        opacity="0.8"
+        text-anchor="middle">Biomimetic AI Trust Architecture · Sentinel Verification · Immune Pipeline Defense</text>
+
+  <!-- Bottom badge row -->
+  <!-- Sanctified badge -->
+  <rect x="390" y="490" width="110" height="30" rx="15" fill="#00E57A" opacity="0.12"/>
+  <rect x="390" y="490" width="110" height="30" rx="15" fill="none" stroke="#00E57A" stroke-width="1" opacity="0.5"/>
+  <text x="445" y="510" font-family="'JetBrains Mono', monospace" font-size="12" letter-spacing="1" fill="#00E57A" text-anchor="middle" font-weight="600">✓ SANCTIFIED</text>
+
+  <!-- Grave badge -->
+  <rect x="515" y="490" width="100" height="30" rx="15" fill="#FF9A3C" opacity="0.1"/>
+  <rect x="515" y="490" width="100" height="30" rx="15" fill="none" stroke="#FF9A3C" stroke-width="1" opacity="0.4"/>
+  <text x="565" y="510" font-family="'JetBrains Mono', monospace" font-size="12" letter-spacing="1" fill="#FF9A3C" text-anchor="middle" font-weight="600">⚠ GRAVE</text>
+
+  <!-- Condemned badge -->
+  <rect x="630" y="490" width="130" height="30" rx="15" fill="#FF4F5E" opacity="0.1"/>
+  <rect x="630" y="490" width="130" height="30" rx="15" fill="none" stroke="#FF4F5E" stroke-width="1" opacity="0.4"/>
+  <text x="695" y="510" font-family="'JetBrains Mono', monospace" font-size="12" letter-spacing="1" fill="#FF4F5E" text-anchor="middle" font-weight="600">✗ CONDEMNED</text>
+
+  <!-- Trace badge -->
+  <rect x="775" y="490" width="95" height="30" rx="15" fill="#4D9FFF" opacity="0.1"/>
+  <rect x="775" y="490" width="95" height="30" rx="15" fill="none" stroke="#4D9FFF" stroke-width="1" opacity="0.4"/>
+  <text x="822" y="510" font-family="'JetBrains Mono', monospace" font-size="12" letter-spacing="1" fill="#4D9FFF" text-anchor="middle" font-weight="600">~ TRACE</text>
+
+  <!-- Bottom credit -->
+  <text x="640" y="580"
+        font-family="'Inter', 'Helvetica Neue', Arial, sans-serif"
+        font-size="11"
+        letter-spacing="3"
+        fill="#6B7A90"
+        opacity="0.5"
+        text-anchor="middle">github.com/GoodshytGroup/Ethos-Aegis-Agentic-Immune-Veriflow</text>
+</svg>
