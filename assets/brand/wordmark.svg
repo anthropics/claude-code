@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="120" viewBox="0 0 480 120">
+  <!-- Ethos Aegis / Claude Mythos wordmark -->
+  <!-- Background: Obsidian -->
+  <rect width="480" height="120" rx="16" fill="#0B1020"/>
+  <!-- Veriflow shield motif -->
+  <path d="M32 24 L56 24 L56 72 L44 84 L32 72 Z" fill="#275EFE" opacity="0.9"/>
+  <!-- Signal pulse line through shield -->
+  <polyline points="32,52 38,44 44,60 50,36 56,52" fill="none" stroke="#22D3EE" stroke-width="2.5" stroke-linejoin="round"/>
+  <!-- Primary wordmark -->
+  <text x="76" y="58" font-family="Arial, Helvetica, sans-serif" font-size="34"
+        font-weight="bold" fill="#D1D5DB" letter-spacing="-0.5">Claude Mythos</text>
+  <!-- Subtitle: Veriflow immune system -->
+  <text x="77" y="82" font-family="Arial, Helvetica, sans-serif" font-size="14"
+        fill="#22D3EE" letter-spacing="1">VERIFLOW IMMUNE SYSTEM</text>
+</svg>
