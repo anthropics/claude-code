@@ -22,7 +22,7 @@
     "eslint": "^8.0.0",
     "prettier": "^3.0.0",
     "typescript": "^5.0.0",
-    "wrangler": "^3.0.0"
+    "wrangler": "^4.83.0"
   },
   "engines": {
     "node": ">=18"
