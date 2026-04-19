@@ -1,11 +1,16 @@
 # Ethos Aegis Branding
 
 ## Logo References
-- ![Ethos Aegis Logo](https://example.com/path/to/ethos-aegis-logo.png)
+
+![Ethos Aegis Logo](brand/logo.svg)
+
+## Social Preview Banner
+
+![Ethos Aegis Social Banner](brand/social_banner.svg)
 
 ## Brand Assets
-- [Brand Guidelines](https://example.com/path/to/brand-guidelines.pdf)
-- [Download Logo](https://example.com/path/to/ethos-aegis-logo.zip)
+- [Brand Guidelines](brand/brand_guidelines.md)
+- [Download Logo](brand/logo.svg)
 
 ## Color System Integration
 - Primary Color: #005EB8
@@ -13,6 +18,7 @@
 - Accent Color: #FFFFFF
 
 ## Styled Badges
-- ![Verified Badge](https://example.com/path/to/verified-badge.png)
+
+![Verified Badge](brand/verified_badge.svg)
 
 This document promotes a verification-first approach in branding. Ensure these assets are used consistently across all platforms to maintain brand integrity.
