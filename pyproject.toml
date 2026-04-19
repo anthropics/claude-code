@@ -13,7 +13,7 @@ dependencies = []
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=7.0",
+    "pytest>=9.0.3",
     "flake8>=6.0",
     "black>=23.0",
     "isort>=5.0",
