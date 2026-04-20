@@ -268,9 +268,16 @@ def main():
             shown_warnings.add(warning_key)
             save_state(session_id, shown_warnings)
 
-            # Output the warning to stderr and block execution
-            print(reminder, file=sys.stderr)
-            sys.exit(2)  # Block tool execution (exit code 2 for PreToolUse hooks)
+            # Output structured JSON to stdout so the model receives the warning
+            output = {
+                "hookSpecificOutput": {
+                    "hookEventName": "PreToolUse",
+                    "permissionDecision": "deny"
+                },
+                "systemMessage": reminder
+            }
+            print(json.dumps(output))
+            sys.exit(0)
 
     # Allow tool to proceed
     sys.exit(0)
