@@ -1,3 +1,4 @@
+
 <p align="center">
   <img src="./brand/logo.svg" alt="Ethos Aegis logo" width="420">
 </p>
