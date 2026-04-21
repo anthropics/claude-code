@@ -1,0 +1,47 @@
+name: Mythos feature request
+description: Propose a new capability, workflow, or partner-facing improvement for Ethos Aegis × Claude Mythos
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for evidence-led capability requests. Describe the user problem, desired system behavior, and any host-specific needs.
+  - type: input
+    id: summary
+    attributes:
+      label: Summary
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem to solve
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Include any expected impact on probing, ingestion, fingerprinting, reasoning, or partner presentation
+    validations:
+      required: true
+  - type: dropdown
+    id: domain
+    attributes:
+      label: Primary domain
+      options:
+        - CKAN capability probing
+        - ingestion and caching
+        - formula generation
+        - GitHub partner surface
+        - interactive demo
+        - documentation or onboarding
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Supporting evidence or examples
+    validations:
+      required: false
