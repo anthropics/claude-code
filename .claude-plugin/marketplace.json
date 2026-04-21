@@ -145,6 +145,17 @@
       },
       "source": "./plugins/security-guidance",
       "category": "security"
+    },
+    {
+      "name": "multi-setup",
+      "description": "Create parallel development workspaces — full git clones with shared config, each opened in a new Claude Code session",
+      "version": "1.0.0",
+      "author": {
+        "name": "Abhishek Shingadiya",
+        "email": "abhishekshingadiya2543@gmail.com"
+      },
+      "source": "./plugins/multi-setup",
+      "category": "development"
     }
   ]
 }
