@@ -1,0 +1,26 @@
+name: Docs
+description: ドキュメント作成・更新
+title: "[docs] <対象>"
+labels:
+  - type:docs
+body:
+  - type: textarea
+    id: target
+    attributes:
+      label: 対象ドキュメント
+      description: 新規作成か既存更新か、ファイルパス
+    validations:
+      required: true
+  - type: textarea
+    id: content
+    attributes:
+      label: 記載内容
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 受け入れ基準
+      value: |
+        - [ ] ドキュメント作成・更新
+        - [ ] doc-updater 承認

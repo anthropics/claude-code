@@ -1,0 +1,43 @@
+name: Infrastructure / Terraform
+description: AWS・Terraform・CI/CD 関連タスク
+title: "[infra][<area>] <短い説明>"
+labels:
+  - type:infra
+  - layer:infra
+body:
+  - type: textarea
+    id: purpose
+    attributes:
+      label: 目的
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: 対象リソース
+      description: どのモジュール / AWS サービスに触るか
+    validations:
+      required: true
+  - type: textarea
+    id: tasks
+    attributes:
+      label: 作業内容
+      value: |
+        - [ ] Terraform コード
+        - [ ] `terraform plan` 確認
+        - [ ] `terraform apply`
+    validations:
+      required: true
+  - type: textarea
+    id: cost
+    attributes:
+      label: コスト影響
+      description: 月額変動（増減）の見込み
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 受け入れ基準
+      value: |
+        - [ ] terraform plan / apply 成功
+        - [ ] architect 承認
+        - [ ] security-reviewer 承認（IAM 変更時）

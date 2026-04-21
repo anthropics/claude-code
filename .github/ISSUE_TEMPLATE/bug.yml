@@ -1,0 +1,51 @@
+name: Bug
+description: バグレポート
+title: "[bug][<area>] <症状を短く>"
+labels:
+  - type:bug
+body:
+  - type: textarea
+    id: steps
+    attributes:
+      label: 再現手順
+      value: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期待動作
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: 実際の動作
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: 環境
+      description: ブラウザ、OS、ローカル / stg / prod、Git SHA など
+    validations:
+      required: true
+  - type: textarea
+    id: sentry
+    attributes:
+      label: Sentry / CloudWatch リンク
+      description: 該当するエラーログがあれば
+  - type: dropdown
+    id: severity
+    attributes:
+      label: 深刻度
+      options:
+        - critical (サービス停止・データ損失)
+        - high (機能停止)
+        - medium (代替手段あり)
+        - low (軽微)
+    validations:
+      required: true

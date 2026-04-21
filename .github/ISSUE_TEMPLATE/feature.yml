@@ -1,0 +1,67 @@
+name: Feature / Task
+description: 仕様に基づく機能実装タスクを起票
+title: "[feature][<area>] <短い動作形の説明>"
+labels:
+  - type:feature
+body:
+  - type: textarea
+    id: purpose
+    attributes:
+      label: 目的
+      description: 何を達成したいか（1〜3 行）
+    validations:
+      required: true
+  - type: textarea
+    id: background
+    attributes:
+      label: 背景 / 仕様リンク
+      description: 仕様書のどこに該当するか（例: SPEC.md §3.2, ER.md §2.5）
+    validations:
+      required: true
+  - type: textarea
+    id: tasks
+    attributes:
+      label: 作業内容
+      description: チェックリスト形式（1 チェック = 30min〜2h 目安）
+      value: |
+        - [ ]
+        - [ ]
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 受け入れ基準
+      description: この条件が満たされれば Close
+      value: |
+        - [ ] 実装完了
+        - [ ] 単体テスト追加（カバレッジ 80%+）
+        - [ ] code-reviewer 承認
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: 依存 Issue
+      description: "`blocked by #N` または `related to #M` 形式で記述"
+  - type: dropdown
+    id: estimate
+    attributes:
+      label: 見積
+      options:
+        - "S (< 4h)"
+        - "M (4-8h)"
+        - "L (1-2d)"
+        - "XL (要分割)"
+    validations:
+      required: true
+  - type: dropdown
+    id: parallel
+    attributes:
+      label: 並列実行可否
+      options:
+        - "他 Issue と並列実装可能"
+        - "直前に完了すべき Issue あり（依存記載）"
+        - "直列（他と絶対並行不可）"
+    validations:
+      required: true
