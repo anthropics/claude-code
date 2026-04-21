@@ -17,5 +17,57 @@ django-celery-beat==2.6.0
 redis==5.0.3
 celery==5.4.0
 flower==2.0.1
-djangorestframework-simplejwt==5.3.0 
+djangorestframework-simplejwt==5.3.0
 django-cors-headers==4.3.1
+
+# --- Added in P0-01 (Phase 0: 基盤整備) ---
+# Version policy: 2026-04 時点での latest stable を基準。python-reviewer 指摘反映。
+
+# WebSocket / リアルタイム配信 (Phase 3 DM で使用)
+channels==4.3.2
+channels-redis==4.3.0
+daphne==4.1.2
+
+# 認証・ソーシャルログイン (Phase 1 Google OAuth)
+# 5.5+ で Django 4.2 向け migration + OAuth フロー修正あり
+social-auth-app-django==5.8.0
+
+# 決済 (Phase 8 プレミアム)
+# TODO(Phase 8): 実装着手時に最新メジャー (15.x 系) への移行を検討。API 破壊的変更あり。
+stripe==10.12.0
+
+# AWS / S3 ストレージ (Phase 0.5, 1+ でメディア配信)
+boto3==1.42.93
+django-storages==1.14.4
+
+# Markdown レンダリング + XSS サニタイズ (Phase 1 ツイート, Phase 6 記事)
+bleach==6.3.0
+markdown2==2.5.0
+Pygments==2.18.0
+
+# スラッグ生成 (Phase 6 記事)
+python-slugify==8.0.4
+
+# RSS フィード取得 (Phase 7 Bot)
+feedparser==6.0.11
+
+# AI API (Phase 7 Bot 要約、Phase 8 記事下書き AI)
+# TODO(Phase 7/8): SDK は頻繁にリリースされるため、実装着手時に最新安定版へバンプする。
+openai==1.42.0
+anthropic==0.34.1
+
+# GitHub API (Phase 6 記事連携 push)
+PyGithub==2.4.0
+
+# エラートラッキング (Phase 0 観測性)
+sentry-sdk[django]==2.58.0
+
+# 構造化ログ (Phase 0 観測性)
+structlog==24.4.0
+
+# レート制限 (Phase 1 スパム検知階層化)
+django-ratelimit==4.1.0
+
+# GitHub OAuth トークン暗号化 (Phase 6 記事連携)
+# CRITICAL: 43.x 系は RSA/X.509 関連 CVE 修正未適用のため 44.x 以上必須
+cryptography==44.0.3
