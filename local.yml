@@ -92,7 +92,19 @@ services:
       - "5555:5555"
     command: /start-flower
 
-  
+  # WebSocket ASGI server via Django Channels + Daphne
+  # Phase 3 (DM real-time), Phase 4A (realtime notifications) で利用
+  daphne:
+    <<: *api
+    image: daphne
+    container_name: daphne
+    # security-reviewer: api から <<: *api で継承すると user: root になるため上書き
+    # (django ベースイメージの非 root ユーザーを使用)
+    user: django
+    expose:
+      - "8001"
+    command: daphne -b 0.0.0.0 -p 8001 config.asgi:application
+
   nginx:
     build:
       context: ./docker/local/nginx
@@ -107,6 +119,7 @@ services:
     depends_on:
       - api
       - client
+      - daphne
     networks:
       - app_nw
     
