@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#0B1020"/>
+  <circle cx="256" cy="256" r="120" fill="#275EFE"/>
+  <circle cx="256" cy="256" r="56" fill="#22D3EE"/>
+  <rect x="244" y="96" width="24" height="96" fill="#F5B700"/>
+  <text x="128" y="432" font-family="Arial, Helvetica, sans-serif" font-size="44" fill="#D1D5DB">Mythos</text>
+</svg>

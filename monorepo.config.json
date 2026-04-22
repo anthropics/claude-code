@@ -1,0 +1,25 @@
+{
+  "projects": [
+    {
+      "name": "ethos-aegis-core",
+      "path": "ethos_aegis",
+      "language": "Python",
+      "description": "Core immune architecture — mythos runtime, veriflow, CKAN adapter",
+      "entryPoint": "__init__.py"
+    },
+    {
+      "name": "ethos-aegis-worker",
+      "path": "src",
+      "language": "TypeScript",
+      "description": "Cloudflare Worker entrypoint for the Ethos Aegis agentic surface",
+      "entryPoint": "index.ts"
+    },
+    {
+      "name": "veriflow-sovereign-lattice",
+      "path": "veriflow-Sovereign-Lattice",
+      "language": "Python",
+      "description": "Veriflow Sovereign Lattice — deterministic row verification and formula generation",
+      "entryPoint": "README.md"
+    }
+  ]
+}

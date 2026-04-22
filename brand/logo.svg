@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 120" width="420" height="120" role="img" aria-label="Ethos Aegis logo">
+  <defs>
+    <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#C9A84C;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8B6E2A;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="glowGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#00E57A;stop-opacity:0.6" />
+      <stop offset="100%" style="stop-color:#00E57A;stop-opacity:0" />
+    </linearGradient>
+    <!-- Subtle grid pattern -->
+    <pattern id="gridPat" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+      <circle cx="10" cy="10" r="0.8" fill="#C9A84C" opacity="0.15"/>
+    </pattern>
+  </defs>
+
+  <!-- Background -->
+  <rect width="420" height="120" rx="8" fill="#0D1117"/>
+  <!-- Subtle grid overlay -->
+  <rect width="420" height="120" rx="8" fill="url(#gridPat)"/>
+
+  <!-- Shield icon (left) -->
+  <g transform="translate(20, 10)">
+    <!-- Outer shield -->
+    <path d="M40 5 L72 18 L72 52 Q72 76 40 90 Q8 76 8 52 L8 18 Z"
+          fill="none" stroke="url(#shieldGrad)" stroke-width="2.5" opacity="0.9"/>
+    <!-- Inner shield fill -->
+    <path d="M40 10 L68 22 L68 52 Q68 72 40 84 Q12 72 12 52 L12 22 Z"
+          fill="#0D1117" opacity="0.9"/>
+    <!-- Shield inner glow stripe -->
+    <path d="M40 10 L68 22 L68 38 Q68 38 40 42 Q12 38 12 38 L12 22 Z"
+          fill="url(#glowGrad)" opacity="0.3"/>
+    <!-- Central checkmark / hex symbol -->
+    <polygon points="40,30 47,34 47,42 40,46 33,42 33,34"
+             fill="none" stroke="#00E57A" stroke-width="1.5" opacity="0.9"/>
+    <line x1="35" y1="38" x2="39" y2="43" stroke="#00E57A" stroke-width="2" stroke-linecap="round"/>
+    <line x1="39" y1="43" x2="46" y2="33" stroke="#00E57A" stroke-width="2" stroke-linecap="round"/>
+    <!-- Shield bottom accent line -->
+    <line x1="32" y1="60" x2="48" y2="60" stroke="#C9A84C" stroke-width="1" opacity="0.5"/>
+  </g>
+
+  <!-- Wordmark: ETHOS AEGIS -->
+  <text x="106" y="54"
+        font-family="Georgia, 'Times New Roman', serif"
+        font-size="32"
+        font-weight="700"
+        letter-spacing="4"
+        fill="#C9A84C">ETHOS AEGIS</text>
+
+  <!-- Separator line -->
+  <line x1="106" y1="62" x2="400" y2="62" stroke="#C9A84C" stroke-width="0.75" opacity="0.4"/>
+
+  <!-- Tagline: Agentic Immune Veriflow -->
+  <text x="106" y="80"
+        font-family="'Inter', 'Helvetica Neue', Arial, sans-serif"
+        font-size="11.5"
+        font-weight="400"
+        letter-spacing="3.5"
+        fill="#6B7A90">AGENTIC IMMUNE VERIFLOW</text>
+
+  <!-- Bottom accent dots -->
+  <circle cx="106" cy="96" r="1.5" fill="#00E57A" opacity="0.7"/>
+  <circle cx="113" cy="96" r="1.5" fill="#C9A84C" opacity="0.5"/>
+  <circle cx="120" cy="96" r="1.5" fill="#6B7A90" opacity="0.4"/>
+</svg>

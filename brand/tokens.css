@@ -1,0 +1,252 @@
+/**
+ * Ethos Aegis Design Tokens
+ * Brand color system exported as CSS custom properties.
+ *
+ * Usage:
+ *   @import url('brand/tokens.css');
+ *
+ *   .my-element { color: var(--color-primary-gold); }
+ *
+ * Dark mode is the default (dark-first design).
+ * Light mode overrides are provided in the @media block at the bottom.
+ */
+
+/* ============================================================
+   BASE TOKENS — Raw value definitions
+   ============================================================ */
+
+:root {
+  /* --- Primary Palette --- */
+  --palette-gold:        #C9A84C;
+  --palette-void:        #0D1117;
+  --palette-green:       #00E57A;
+  --palette-crimson:     #FF4F5E;
+
+  /* --- Secondary Palette --- */
+  --palette-orange:      #FF9A3C;
+  --palette-pale-gold:   #E8C96A;
+  --palette-dusty-gold:  #F5C842;
+  --palette-blue:        #4D9FFF;
+  --palette-slate:       #6B7A90;
+  --palette-gray:        #9BAAB8;
+  --palette-ink:         #1C2433;
+
+  /* --- Tertiary — Earth Tones --- */
+  --palette-bronze:      #8B6E2A;
+  /*
+   * NOTE: sage and slate share the hex value #6B7A90 as defined in the
+   * Ethos Aegis color specification (see brand/color_scheme.md). They are
+   * intentionally the same neutral-blue-grey, distinguished only by their
+   * semantic role: --palette-slate is a structural/border neutral whereas
+   * --palette-sage denotes the MnemosyneCache sentinel cell identity.
+   * Both tokens are kept so that downstream code remains semantically clear.
+   */
+  --palette-sage:        #6B7A90;
+  /*
+   * NOTE: cream and pale-gold share the hex value #E8C96A as defined in the
+   * color specification. pale-gold is the general secondary accent; cream is
+   * the warm-highlight earth-tone specifically referenced as the tertiary
+   * palette entry. Both tokens are retained for semantic clarity.
+   */
+  --palette-cream:       #E8C96A;
+}
+
+
+/* ============================================================
+   SEMANTIC COLOR TOKENS — Dark mode (default)
+   ============================================================ */
+
+:root {
+  /* Background layers */
+  --color-bg-base:           var(--palette-void);       /* #0D1117 — page background */
+  --color-bg-surface:        var(--palette-ink);        /* #1C2433 — card / panel */
+  --color-bg-elevated:       #242F3F;                   /* elevated surface, modals */
+  --color-bg-sunken:         #080D12;                   /* code blocks, inset areas */
+  --color-bg-overlay:        rgba(13, 17, 23, 0.85);   /* modal scrim */
+
+  /* Text */
+  --color-text-primary:      var(--palette-pale-gold);  /* #E8C96A — main body text on dark */
+  --color-text-secondary:    var(--palette-gray);       /* #9BAAB8 — secondary / muted text */
+  --color-text-tertiary:     var(--palette-slate);      /* #6B7A90 — placeholder, disabled */
+  --color-text-inverse:      var(--palette-void);       /* for text on light/gold backgrounds */
+  --color-text-code:         var(--palette-green);      /* #00E57A — code & monospace */
+  --color-text-link:         var(--palette-blue);       /* #4D9FFF — links */
+
+  /* Brand accents */
+  --color-primary-gold:      var(--palette-gold);       /* #C9A84C */
+  --color-primary-black:     var(--palette-void);       /* #0D1117 */
+  --color-primary-green:     var(--palette-green);      /* #00E57A */
+  --color-primary-red:       var(--palette-crimson);    /* #FF4F5E */
+
+  /* Secondary accents */
+  --color-secondary-orange:       var(--palette-orange);     /* #FF9A3C */
+  --color-secondary-pale-gold:    var(--palette-pale-gold);  /* #E8C96A */
+  --color-secondary-quarantine:   var(--palette-dusty-gold); /* #F5C842 */
+  --color-secondary-blue:         var(--palette-blue);       /* #4D9FFF */
+  --color-secondary-slate:        var(--palette-slate);      /* #6B7A90 */
+  --color-secondary-charcoal:     var(--palette-gray);       /* #9BAAB8 */
+  --color-secondary-ink:          var(--palette-ink);        /* #1C2433 */
+
+  /* Tertiary — Earth Tones */
+  --color-tertiary-bronze:   var(--palette-bronze);     /* #8B6E2A */
+  --color-tertiary-sage:     var(--palette-sage);       /* #6B7A90 */
+  --color-tertiary-cream:    var(--palette-cream);      /* #E8C96A */
+
+  /* Borders */
+  --color-border-subtle:     rgba(201, 168, 76, 0.13);  /* faint gold rule */
+  --color-border-default:    rgba(201, 168, 76, 0.25);  /* standard border */
+  --color-border-strong:     rgba(201, 168, 76, 0.55);  /* emphasized border */
+  --color-border-danger:     rgba(255, 79, 94, 0.45);   /* error border */
+  --color-border-success:    rgba(0, 229, 122, 0.45);   /* success border */
+
+  /* Interactive states */
+  --color-focus-ring:        rgba(201, 168, 76, 0.6);
+  --color-hover-overlay:     rgba(201, 168, 76, 0.06);
+  --color-active-overlay:    rgba(201, 168, 76, 0.12);
+
+  /* ---- Verdict State Colors ---- */
+  --color-verdict-sanctified:   var(--palette-green);       /* #00E57A */
+  --color-verdict-trace:        var(--palette-blue);        /* #4D9FFF */
+  --color-verdict-quarantined:  var(--palette-dusty-gold);  /* #F5C842 */
+  --color-verdict-grave:        var(--palette-orange);      /* #FF9A3C */
+  --color-verdict-condemned:    var(--palette-crimson);     /* #FF4F5E */
+
+  /* Verdict backgrounds (tinted) */
+  --color-verdict-sanctified-bg:   rgba(0, 229, 122, 0.08);
+  --color-verdict-trace-bg:        rgba(77, 159, 255, 0.08);
+  --color-verdict-quarantined-bg:  rgba(245, 200, 66, 0.08);
+  --color-verdict-grave-bg:        rgba(255, 154, 60, 0.08);
+  --color-verdict-condemned-bg:    rgba(255, 79, 94, 0.08);
+
+  /* ---- Sentinel Cell Colors ---- */
+  --color-cell-vanguard-probe:    var(--palette-gold);       /* #C9A84C */
+  --color-cell-taint-beacon:      var(--palette-cream);      /* #E8C96A */
+  --color-cell-sanitas-swarm:     var(--palette-bronze);     /* #8B6E2A */
+  --color-cell-logos-scythe:      var(--palette-gray);       /* #9BAAB8 */
+  --color-cell-mnemosyne-cache:   var(--palette-sage);       /* #6B7A90 */
+  --color-cell-entropic-watch:    var(--palette-blue);       /* #4D9FFF */
+  --color-cell-finality-forge:    var(--palette-crimson);    /* #FF4F5E */
+  --color-cell-cytokine-command:  var(--palette-gold);       /* #C9A84C */
+
+  /* ---- Threat Class Colors ---- */
+  --color-threat-moral:      var(--palette-crimson);    /* MoralMaligna     — #FF4F5E */
+  --color-threat-narcissis:  var(--palette-orange);     /* NarcissisMaligna — #FF9A3C */
+  --color-threat-parasitic:  var(--palette-dusty-gold); /* ParasiticMaligna — #F5C842 */
+  --color-threat-symbolic:   var(--palette-blue);       /* SymbolicMaligna  — #4D9FFF */
+  --color-threat-natural:    var(--palette-sage);       /* NaturalMaligna   — #6B7A90 */
+  --color-threat-meta:       var(--palette-gray);       /* MetaMaligna      — #9BAAB8 */
+  --color-threat-systemic:   var(--palette-gold);       /* SystemicMaligna  — #C9A84C */
+
+  /* ---- Semantic Utility Colors ---- */
+  --color-success:    var(--palette-green);      /* #00E57A */
+  --color-warning:    var(--palette-dusty-gold); /* #F5C842 */
+  --color-danger:     var(--palette-crimson);    /* #FF4F5E */
+  --color-info:       var(--palette-blue);       /* #4D9FFF */
+  --color-caution:    var(--palette-orange);     /* #FF9A3C */
+
+  /* ---- Decorative Grid Pattern ---- */
+  --pattern-grid-dot-color:  rgba(201, 168, 76, 0.12);
+  --pattern-grid-size:       28px;
+
+  /* ---- Typography Tokens ---- */
+  --font-serif:    'EB Garamond', 'Cormorant Garamond', Georgia, serif;
+  --font-sans:     'Inter', 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+  --font-mono:     'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+
+  --font-size-display: 3rem;       /* 48px */
+  --font-size-h1:      2.25rem;    /* 36px */
+  --font-size-h2:      1.75rem;    /* 28px */
+  --font-size-h3:      1.375rem;   /* 22px */
+  --font-size-body:    1rem;       /* 16px */
+  --font-size-small:   0.8125rem;  /* 13px */
+  --font-size-code:    0.875rem;   /* 14px */
+
+  --font-weight-normal:    400;
+  --font-weight-medium:    500;
+  --font-weight-semibold:  600;
+  --font-weight-bold:      700;
+
+  --line-height-tight:   1.25;
+  --line-height-normal:  1.6;
+  --line-height-relaxed: 1.8;
+
+  --letter-spacing-tight:  -0.01em;
+  --letter-spacing-normal:  0;
+  --letter-spacing-wide:    0.04em;
+  --letter-spacing-wider:   0.08em;
+  --letter-spacing-widest:  0.14em;
+
+  /* ---- Spacing Scale ---- */
+  --space-1:   0.25rem;   /* 4px  */
+  --space-2:   0.5rem;    /* 8px  */
+  --space-3:   0.75rem;   /* 12px */
+  --space-4:   1rem;      /* 16px */
+  --space-5:   1.25rem;   /* 20px */
+  --space-6:   1.5rem;    /* 24px */
+  --space-8:   2rem;      /* 32px */
+  --space-10:  2.5rem;    /* 40px */
+  --space-12:  3rem;      /* 48px */
+  --space-16:  4rem;      /* 64px */
+
+  /* ---- Border Radius ---- */
+  --radius-sm:    3px;
+  --radius-md:    6px;
+  --radius-lg:    12px;
+  --radius-xl:    20px;
+  --radius-pill:  9999px;
+
+  /* ---- Shadows ---- */
+  --shadow-sm:   0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-md:   0 4px 12px rgba(0, 0, 0, 0.5);
+  --shadow-lg:   0 8px 28px rgba(0, 0, 0, 0.6);
+  --shadow-gold: 0 0 20px rgba(201, 168, 76, 0.18);
+  --shadow-glow: 0 0 30px rgba(0, 229, 122, 0.15);
+
+  /* ---- Transitions ---- */
+  --transition-fast:    150ms ease;
+  --transition-normal:  250ms ease;
+  --transition-slow:    400ms ease;
+}
+
+
+/* ============================================================
+   LIGHT MODE OVERRIDES
+   Only backgrounds, text, and borders shift; accent palette
+   remains consistent but darkened for sufficient contrast.
+   ============================================================ */
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --color-bg-base:           #F5F0E8;
+    --color-bg-surface:        #EDE7D9;
+    --color-bg-elevated:       #FFFFFF;
+    --color-bg-sunken:         #E0DAD0;
+    --color-bg-overlay:        rgba(245, 240, 232, 0.9);
+
+    --color-text-primary:      #0D1117;
+    --color-text-secondary:    #1C2433;
+    --color-text-tertiary:     #4A5568;
+    --color-text-inverse:      #F5F0E8;
+    --color-text-code:         #006B3A;
+    --color-text-link:         #1A5FAA;
+
+    /* Darken accents for light backgrounds */
+    --color-primary-gold:      #8B6E2A;   /* bronze replaces gold for contrast */
+    --color-primary-green:     #00804A;
+    --color-primary-red:       #C0002A;
+
+    --color-secondary-orange:       #B55E00;
+    --color-secondary-pale-gold:    #7A5C1E;
+    --color-secondary-quarantine:   #8B7000;
+    --color-secondary-blue:         #1A5FAA;
+
+    --color-border-subtle:     rgba(139, 110, 42, 0.15);
+    --color-border-default:    rgba(139, 110, 42, 0.30);
+    --color-border-strong:     rgba(139, 110, 42, 0.60);
+
+    --pattern-grid-dot-color:  rgba(139, 110, 42, 0.10);
+
+    --shadow-gold: 0 0 20px rgba(139, 110, 42, 0.12);
+    --shadow-glow: 0 0 30px rgba(0, 128, 74, 0.10);
+  }
+}
