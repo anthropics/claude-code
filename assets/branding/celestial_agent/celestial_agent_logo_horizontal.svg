@@ -1,0 +1,19 @@
+
+<svg xmlns="http://www.w3.org/2000/svg" width="2200" height="800" viewBox="0 0 2200 800">
+  <rect width="2200" height="800" fill="#0B1020"/>
+  <g transform="translate(80,90) scale(0.605)">
+    <ellipse cx="512" cy="520" rx="330" ry="210" fill="none" stroke="#59E3FF" stroke-width="22"/>
+    <g transform="rotate(35 512 512)">
+      <ellipse cx="512" cy="512" rx="250" ry="330" fill="none" stroke="#8B6CFF" stroke-width="22"/>
+    </g>
+    <circle cx="215" cy="348" r="28" fill="#59E3FF"/>
+    <circle cx="820" cy="624" r="28" fill="#8B6CFF"/>
+    <path d="M430 430 h164 a40 40 0 0 1 40 40 v120 a40 40 0 0 1 -40 40 H430 a40 40 0 0 1 -40 -40 V470 a40 40 0 0 1 40 -40 z" fill="#A9B7D1"/>
+    <path d="M458 430 a54 54 0 0 1 108 0" fill="none" stroke="#A9B7D1" stroke-width="18" stroke-linecap="round"/>
+    <path d="M512 520 l22 46 50 6 -38 34 12 49 -46 -25 -46 25 12 -49 -38 -34 50 -6z" fill="#121A33"/>
+  </g>
+  <text x="760" y="300" font-family="Arial, Helvetica, sans-serif" font-size="110" font-weight="700" fill="#F5F8FF" letter-spacing="2">CELESTIAL</text>
+  <text x="760" y="425" font-family="Arial, Helvetica, sans-serif" font-size="110" font-weight="700" fill="#59E3FF" letter-spacing="2">AGENT</text>
+  <text x="760" y="525" font-family="Arial, Helvetica, sans-serif" font-size="42" fill="#A9B7D1">Encrypted intelligence, permissioned by design.</text>
+  <rect x="760" y="575" width="400" height="10" rx="5" fill="#59E3FF"/>
+</svg>
