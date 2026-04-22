@@ -1,0 +1,21 @@
+{
+  "name": "ethos-aegis-agentic-immune-veriflow",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Ethos Aegis — Agentic Immune System with Veriflow and Claude Mythos",
+  "workspaces": [
+    "veriflow/*"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241031.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "eslint": "^8.0.0",
+    "prettier": "^3.0.0",
+    "typescript": "^5.0.0",
+    "wrangler": "^4.83.0"
+  }
+}

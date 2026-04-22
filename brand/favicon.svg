@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Ethos Aegis favicon">
+  <defs>
+    <linearGradient id="fShield" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#C9A84C;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8B6E2A;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="fGlow" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#00E57A;stop-opacity:0.5" />
+      <stop offset="100%" style="stop-color:#00E57A;stop-opacity:0" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background circle -->
+  <circle cx="32" cy="32" r="32" fill="#0D1117"/>
+
+  <!-- Shield shape -->
+  <path d="M32 5 L54 14 L54 36 Q54 54 32 62 Q10 54 10 36 L10 14 Z"
+        fill="none" stroke="url(#fShield)" stroke-width="2.5"/>
+  <path d="M32 8 L51 16 L51 36 Q51 51 32 58 Q13 51 13 36 L13 16 Z"
+        fill="#0D1117"/>
+  <!-- Inner glow -->
+  <path d="M32 8 L51 16 L51 28 Q51 28 32 32 Q13 28 13 28 L13 16 Z"
+        fill="url(#fGlow)" opacity="0.5"/>
+
+  <!-- Inner hexagon -->
+  <polygon points="32,20 40,25 40,35 32,40 24,35 24,25"
+           fill="none" stroke="#00E57A" stroke-width="1.8" opacity="0.9"/>
+
+  <!-- Checkmark -->
+  <polyline points="26,31 31,38 39,23"
+            fill="none" stroke="#00E57A" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

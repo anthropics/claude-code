@@ -1,0 +1,88 @@
+name: Repo Health Audit
+
+on:
+  schedule:
+    - cron: '0 8 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure git author
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Generate repository health report
+        id: report
+        shell: bash
+        run: |
+          set -euo pipefail
+          TODAY=$(date -u +"%Y-%m-%d")
+          mkdir -p docs
+
+          COMMIT_COUNT=$(git rev-list --count HEAD)
+          FILE_COUNT=$(git ls-files | wc -l | tr -d ' ')
+          BRANCH_COUNT=$(git branch -r | wc -l | tr -d ' ')
+          TS_LINES=$(find . -type f \( -name '*.ts' -o -name '*.tsx' \) -not -path './node_modules/*' -print0 | xargs -0 wc -l 2>/dev/null | tail -1 | awk '{print $1}')
+          PY_LINES=$(find . -type f -name '*.py' -not -path './.venv/*' -print0 | xargs -0 wc -l 2>/dev/null | tail -1 | awk '{print $1}')
+          TS_LINES=${TS_LINES:-0}
+          PY_LINES=${PY_LINES:-0}
+          LAST_COMMIT=$(git log -1 --pretty=format:'%h — %s')
+
+          cat > docs/health-report.md <<EOF
+          # Repository Health Report
+
+          **Generated:** ${TODAY}
+          **Repository:** ${{ github.repository }}
+          **Trigger:** ${{ github.event_name }}
+
+          ## Metrics
+
+          | Metric | Value |
+          |--------|-------|
+          | Total commits | ${COMMIT_COUNT} |
+          | Tracked files | ${FILE_COUNT} |
+          | Remote branches | ${BRANCH_COUNT} |
+          | TypeScript LOC | ${TS_LINES} |
+          | Python LOC | ${PY_LINES} |
+
+          ## Last Commit
+
+          \
+          \
+          ${LAST_COMMIT}
+          \
+          \
+
+          ## Maintenance Checklist
+
+          - Weekly repo health audit is active
+          - docs/health-report.md is refreshed automatically
+          - CONTRIBUTING.md is expected for contributor onboarding
+          - CHANGELOG.md is expected for visible project history
+          EOF
+
+          echo "today=${TODAY}" >> "$GITHUB_OUTPUT"
+
+      - name: Commit report if changed
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add docs/health-report.md
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          git commit -m "chore(audit): weekly health report [${{ steps.report.outputs.today }}]"
+          git push origin HEAD:${{ github.ref_name }}
