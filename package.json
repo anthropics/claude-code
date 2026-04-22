@@ -1,0 +1,1 @@
+{\n  "name": "ethos-aegis-agentic-immune-veriflow",\n  "private": true,\n  "version": "1.0.0",\n  "workspaces": [\n    "veriflow/*"\n  ],\n  "scripts": {\n    "install": "npm install",\n    "start-veriflow": "npm run start --workspace veriflow"\n  }\n}

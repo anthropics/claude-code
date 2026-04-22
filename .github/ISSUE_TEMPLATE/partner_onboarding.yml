@@ -1,0 +1,48 @@
+name: Mythos partner onboarding
+description: Start a partner onboarding thread for Ethos Aegis × Claude Mythos
+labels:
+  - onboarding
+  - partner
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form to start a partner onboarding workflow. Keep requests specific about host environment, data surface, and desired outcomes.
+  - type: input
+    id: org_name
+    attributes:
+      label: Partner or organization name
+    validations:
+      required: true
+  - type: textarea
+    id: use_case
+    attributes:
+      label: Intended use case
+      description: Describe the data, workflow, or decision surface you want the system to support
+    validations:
+      required: true
+  - type: dropdown
+    id: host_type
+    attributes:
+      label: Primary host type
+      options:
+        - CKAN
+        - normalized local data
+        - mixed sources
+        - not sure yet
+    validations:
+      required: true
+  - type: textarea
+    id: success
+    attributes:
+      label: Success criteria
+      description: What would make this onboarding successful?
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Additional notes
+      description: Branding, compliance, rollout, or integration notes
+    validations:
+      required: false

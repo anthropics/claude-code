@@ -1,0 +1,45 @@
+Run it from the root of GoodshytGroup/Ethos-Aegis-Agentic-Immune-Veriflow:
+
+git checkout main
+git pull origin main
+chmod +x scripts/push-merge-runbook.sh
+./scripts/push-merge-runbook.sh
+
+What it should do:
+	•	verify GitHub auth
+	•	add veriflow-Sovereign-Lattice as a remote if needed
+	•	fetch both repos
+	•	create merge/veriflow-sovereign-lattice
+	•	perform the unrelated-history merge
+	•	push the branch
+	•	try to open the PR automatically
+
+If it completes cleanly, the next step is to open the merge PR in GitHub, review it, and merge it.
+
+If it stops on conflicts, run:
+
+git status
+
+Then resolve conflicts with this rule:
+	•	keep Ethos versions for runtime, workflows, Worker config, scripts, branding, and integrations
+	•	move conflicting Veriflow docs/assets into namespaced folders like:
+	•	docs/veriflow/
+	•	assets/veriflow/
+	•	packages/veriflow/
+
+Then finish with:
+
+git add .
+git commit
+git push
+
+After the PR is merged:
+
+gh repo archive GoodshytGroup/veriflow-Sovereign-Lattice --yes
+
+Then validate the merged repo:
+
+pytest tests/test_mythos_runtime.py -q
+npx wrangler versions upload
+
+Some earlier uploaded files have expired on my side. To reuse any of those again, upload them once more.
