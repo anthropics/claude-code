@@ -41,8 +41,23 @@ THIRD_PARTY_APPS=[
     "djcelery_email", 
 ]
 
-LOCAL_APPS=[
-    "apps.users"
+LOCAL_APPS = [
+    "apps.users",
+    # Phase 0 scaffold (P0-04). Models/URLs are populated in later phases
+    # — see docs/ROADMAP.md for ownership of each app.
+    "apps.tweets",
+    "apps.tags",
+    "apps.follows",
+    "apps.reactions",
+    "apps.boxes",
+    "apps.notifications",
+    "apps.dm",
+    "apps.boards",
+    "apps.articles",
+    "apps.moderation",
+    "apps.bots",
+    "apps.billing",
+    "apps.search",
 ]
 
 MIDDLEWARE = []
