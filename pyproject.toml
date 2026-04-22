@@ -1,0 +1,47 @@
+[project]
+name = "engineer-sns"
+version = "0.1.0"
+description = "Engineer-focused SNS built with Django + Next.js"
+requires-python = ">=3.12"
+
+[tool.ruff]
+# Match Django apps layout
+src = ["apps", "config"]
+line-length = 100
+target-version = "py312"
+extend-exclude = [
+    "*/migrations/*",
+    ".worktrees/*",
+    ".venv/*",
+    "client/node_modules/*",
+]
+
+[tool.ruff.lint]
+# Start narrow and widen over time — adding every rule up-front pollutes
+# the history of Phase 0.
+# - E, W:   pycodestyle
+# - F:      pyflakes
+# - I:      isort
+# - B:      flake8-bugbear
+# - UP:     pyupgrade (keep UP006 on — requires-python >= 3.12)
+# - SIM:    flake8-simplify
+# - DJ:     flake8-django
+# - RUF:    ruff-specific
+select = ["E", "W", "F", "I", "B", "UP", "SIM", "DJ", "RUF"]
+ignore = [
+    "E501",  # line length is handled by ruff-format
+    "B008",  # function calls in argument defaults (common Django pattern)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"*/settings/*.py" = ["F401", "F403", "F405"]  # settings do module-level glue
+"conftest.py" = ["F401"]
+# NOTE: `S101` (assert) ignore for tests/ will be added once `S`
+# (flake8-bandit) is enabled in `select`. See ADR backlog.
+
+[tool.ruff.lint.isort]
+known-first-party = ["apps", "config"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"

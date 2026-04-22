@@ -1,0 +1,97 @@
+# pre-commit hooks (P0-12)
+#
+# 使い方:
+#   pipx install pre-commit   # 初回のみ
+#   pre-commit install         # リポジトリ直下で一度実行すれば commit ごとに自動起動
+#   pre-commit run --all-files # すべてのファイルに対して手動実行
+#
+# CI でも `.github/workflows/ci.yml` (P0-11) から `pre-commit run --all-files`
+# を呼ぶことで、ローカルで回し忘れた場合でも PR 時に検知できる。
+# See: https://pre-commit.com/
+
+default_language_version:
+  python: python3.12
+  node: "20.11.0"
+
+default_stages: [pre-commit]
+
+repos:
+  # --- General hygiene ---
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: ^client/package-lock\.json$
+      - id: end-of-file-fixer
+        exclude: ^client/package-lock\.json$
+      - id: check-yaml
+        args: [--allow-multiple-documents]
+      - id: check-json
+      - id: check-toml
+      - id: check-added-large-files
+        args: [--maxkb=500]
+        exclude: ^(demo\.gif|client/package-lock\.json)$
+      - id: check-merge-conflict
+      - id: check-executables-have-shebangs
+      - id: check-shebang-scripts-are-executable
+      - id: detect-private-key
+      - id: mixed-line-ending
+        args: [--fix=lf]
+
+  # --- Python (Django backend) ---
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.9
+    hooks:
+      # lint + auto-fix (replaces flake8 / isort / pyupgrade)
+      - id: ruff
+        args: [--fix]
+      # format (replaces black)
+      - id: ruff-format
+
+  # --- JavaScript / TypeScript / CSS / Markdown (client & docs) ---
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v3.1.0
+    hooks:
+      - id: prettier
+        types_or: [javascript, jsx, ts, tsx, css, scss, json, yaml, markdown]
+        additional_dependencies:
+          - prettier@3.3.3 # pin to latest stable 3.x
+        exclude: |
+          (?x)(
+            ^client/package-lock\.json$
+            | ^client/\.next/
+            | ^docs/adr/.*\.md$
+          )
+
+  # ESLint は client/ 配下のみに適用
+  - repo: https://github.com/pre-commit/mirrors-eslint
+    rev: v9.11.1
+    hooks:
+      - id: eslint
+        files: ^client/src/.*\.(js|jsx|ts|tsx)$
+        additional_dependencies:
+          - eslint@^8
+          - eslint-config-next@14.1.4
+          - eslint-config-prettier@^9.1.0
+          - "@typescript-eslint/parser@^7"
+
+  # --- Secrets scanning ---
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        args: [--baseline, .secrets.baseline]
+        exclude: |
+          (?x)(
+            ^client/package-lock\.json$
+            | ^\.secrets\.baseline$
+          )
+
+  # --- Terraform (Phase 0.5 で terraform/ が増え次第自動有効化) ---
+  - repo: https://github.com/antonbabenko/pre-commit-terraform
+    rev: v1.96.1
+    hooks:
+      - id: terraform_fmt
+        files: ^terraform/.*\.(tf|tfvars)$
+      - id: terraform_validate
+        files: ^terraform/.*\.tf$
