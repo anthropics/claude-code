@@ -1,72 +1,163 @@
-# Claude Code
+# Ethos Aegis — Agentic Immune Veriflow
 
-![](https://img.shields.io/badge/Node.js-18%2B-brightgreen?style=flat-square) [![npm]](https://www.npmjs.com/package/@anthropic-ai/claude-code)
+[![Verification First](https://img.shields.io/badge/verification-first-275EFE?style=flat-square)](https://github.com/GoodshytGroup/Ethos-Aegis-Agentic-Immune-Veriflow)
+[![CKAN Aware](https://img.shields.io/badge/ckan-aware-22D3EE?style=flat-square)](https://github.com/GoodshytGroup/Ethos-Aegis-Agentic-Immune-Veriflow)
+[![Fingerprint Mode](https://img.shields.io/badge/fingerprint-auto-F5B700?style=flat-square)](https://github.com/GoodshytGroup/Ethos-Aegis-Agentic-Immune-Veriflow)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
+[![TypeScript](https://img.shields.io/badge/typescript-5.x-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![CI](https://github.com/GoodshytGroup/Ethos-Aegis-Agentic-Immune-Veriflow/actions/workflows/python-package.yml/badge.svg)](https://github.com/GoodshytGroup/Ethos-Aegis-Agentic-Immune-Veriflow/actions/workflows/python-package.yml)
+[![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)](./LICENSE)
 
-[npm]: https://img.shields.io/npm/v/@anthropic-ai/claude-code.svg?style=flat-square
+> **"Trust the verified path."**
+>
+> The Ethos Aegis is a living, adaptive digital immune architecture that maps every biological defense mechanism — from the flash-gate neutrophil to the memory vault of B-lymphocytes — into a rigorous computational framework for the purification of AI systems.
 
-Claude Code is an agentic coding tool that lives in your terminal, understands your codebase, and helps you code faster by executing routine tasks, explaining complex code, and handling git workflows -- all through natural language commands. Use it in your terminal, IDE, or tag @claude on Github.
+---
 
-**Learn more in the [official documentation](https://code.claude.com/docs/en/overview)**.
+## 🧬 What Is This?
 
-<img src="./demo.gif" />
+**Ethos Aegis** is a monorepo combining three interconnected systems:
 
-## Get started
-> [!NOTE]
-> Installation via npm is deprecated. Use one of the recommended methods below.
+| Component | Role |
+|-----------|------|
+| **Ethos Aegis** | Core immune architecture — defense-first, autonomic, schema-aware |
+| **Veriflow** | CKAN-aware data ingestion and verification pipeline |
+| **Claude Mythos** | Narrative + operational identity layer for the immune system |
 
-For more installation options, uninstall steps, and troubleshooting, see the [setup documentation](https://code.claude.com/docs/en/setup).
+The system is built around a **verification-first doctrine**: no conclusion is drawn without provenance, no data is trusted without fingerprinting, and no capability is assumed without probing.
 
-1. Install Claude Code:
+---
 
-    **MacOS/Linux (Recommended):**
-    ```bash
-    curl -fsSL https://claude.ai/install.sh | bash
-    ```
+## 🚀 Quick Start
 
-    **Homebrew (MacOS/Linux):**
-    ```bash
-    brew install --cask claude-code
-    ```
+### Python (Ethos Aegis / Veriflow)
 
-    **Windows (Recommended):**
-    ```powershell
-    irm https://claude.ai/install.ps1 | iex
-    ```
+```bash
+# Install dependencies
+pip install -r requirements.txt
 
-    **WinGet (Windows):**
-    ```powershell
-    winget install Anthropic.ClaudeCode
-    ```
+# Run the test suite
+pytest tests/ -q
 
-    **NPM (Deprecated):**
-    ```bash
-    npm install -g @anthropic-ai/claude-code
-    ```
+# Run linting
+flake8 ethos_aegis/ tests/
+```
 
-2. Navigate to your project directory and run `claude`.
+### TypeScript (Cloudflare Worker)
 
-## Plugins
+```bash
+# Install dependencies
+npm install
 
-This repository includes several Claude Code plugins that extend functionality with custom commands and agents. See the [plugins directory](./plugins/README.md) for detailed documentation on available plugins.
+# Type-check
+npm run typecheck
 
-## Reporting Bugs
+# Local dev
+npm run worker:dev
+```
 
-We welcome your feedback. Use the `/bug` command to report issues directly within Claude Code, or file a [GitHub issue](https://github.com/anthropics/claude-code/issues).
+### Using Make
 
-## Connect on Discord
+```bash
+make help          # Show all commands
+make test          # Run all tests
+make lint          # Run all linters
+make install       # Install all dependencies
+```
 
-Join the [Claude Developers Discord](https://anthropic.com/discord) to connect with other developers using Claude Code. Get help, share feedback, and discuss your projects with the community.
+---
 
-## Data collection, usage, and retention
+## 🏗️ Architecture
 
-When you use Claude Code, we collect feedback, which includes usage data (such as code acceptance or rejections), associated conversation data, and user feedback submitted via the `/bug` command.
+```
+ethos_aegis/
+├── mythos_runtime/        # Claude Mythos operating layer
+│   ├── budget.py          # Token/turn budget metering
+│   ├── drift.py           # File drift detection
+│   ├── memory.py          # Memory ledger (MEMORY.md)
+│   └── swd.py             # Strict Write Discipline verification
+└── veriflow/
+    ├── ckan_adapter.py    # CKAN host fingerprinting + ingestion
+    └── immune_system.py   # VeriflowImmuneSystem orchestration
 
-### How we use your data
+src/
+└── index.ts               # Cloudflare Worker entrypoint
 
-See our [data usage policies](https://code.claude.com/docs/en/data-usage).
+tests/
+├── test_mythos_runtime.py
+└── test_mythos_brand_contract.py
+```
 
-### Privacy safeguards
+---
 
-We have implemented several safeguards to protect your data, including limited retention periods for sensitive information, restricted access to user session data, and clear policies against using feedback for model training.
+## 🛡️ Core Principles
 
-For full details, please review our [Commercial Terms of Service](https://www.anthropic.com/legal/commercial-terms) and [Privacy Policy](https://www.anthropic.com/legal/privacy).
+- **Defense-first** — never exploit-first
+- **Verification before conclusion** — every dataset is fingerprinted
+- **Provenance before confidence** — ingestion path is always logged
+- **Autonomic monitoring** — before manual prompting
+- **Schema-aware reasoning** — graceful fallback when schema unavailable
+
+---
+
+## 📋 Runtime Doctrine (Claude Mythos)
+
+1. Probe the host
+2. Cache capabilities
+3. Select the best ingestion path
+4. Verify normalized rows
+5. Generate candidate laws and formulas
+6. Score by fit, semantics, coverage, stability, and complexity
+7. Return the answer with host profile, evidence, and ingestion provenance
+
+---
+
+## 🔌 Integration
+
+```python
+from ethos_aegis.veriflow import CKANClient, VeriflowImmuneSystem
+
+ckan = CKANClient("https://your-ckan-host")
+immune = VeriflowImmuneSystem(
+    ckan,
+    probe_on_startup=True,
+    fingerprint_mode="auto",
+)
+```
+
+---
+
+## 📦 Project Structure
+
+```
+.
+├── ethos_aegis/           # Python: core immune system
+├── src/                   # TypeScript: Cloudflare Worker
+├── tests/                 # Python test suite
+├── docs/                  # Documentation
+├── scripts/               # Utility scripts
+├── plugins/               # Claude Code plugins
+├── schemas/               # JSON/YAML schemas
+└── veriflow-Sovereign-Lattice/  # Veriflow sovereign lattice module
+```
+
+---
+
+## 🤝 Contributing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for contribution guidelines.
+
+---
+
+## 📄 License
+
+MIT — see [LICENSE](./LICENSE).
+
+---
+
+## 🔗 Related
+
+- [CLAUDE_MYTHOS.md](./CLAUDE_MYTHOS.md) — Operating contract for the Claude Mythos identity layer
+- [CHANGELOG.md](./CHANGELOG.md) — Release history
+- [SECURITY.md](./SECURITY.md) — Security policy
+
