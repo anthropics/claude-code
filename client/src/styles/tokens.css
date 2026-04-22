@@ -1,0 +1,141 @@
+/**
+ * Design tokens placeholder (P0-08).
+ *
+ * Additive to the existing shadcn/ui HSL color system in globals.css.
+ * Intentionally minimal — Claude Design の handoff bundle が届く Phase 10 で
+ * このファイルを上書き or 拡張する想定。
+ *
+ * 命名規約: --<カテゴリ>-<スケール or 意味>
+ *   - タイポ:    --text-*, --font-*, --leading-*
+ *   - 余白:      --space-*
+ *   - モーション: --duration-*, --ease-*
+ *   - シャドウ:  --shadow-*
+ *   - z-index:   --z-*
+ *
+ * カラーは globals.css の shadcn トークン (--background / --primary 等) を使用する。
+ * タイポ・スペースは fluid typography (clamp) で 320〜1440px をカバー。
+ */
+
+:root {
+  /* ---------- Typography scale (fluid: clamp(min, preferred, max)) ---------- */
+  /* 可読性ガイド (a11y-architect PR #39 レビュー):
+   *   - 本文 (段落): --text-sm 以上を使用
+   *   - --text-xs は timestamp / caption / メタ情報専用
+   *   - 本文に 12px (0.75rem) は使わない
+   */
+  --text-xs:   clamp(0.75rem, 0.72rem + 0.15vw, 0.8125rem);
+  --text-sm:   clamp(0.875rem, 0.84rem + 0.2vw, 0.9375rem);
+  --text-base: clamp(1rem, 0.96rem + 0.25vw, 1.0625rem);
+  --text-lg:   clamp(1.125rem, 1.08rem + 0.3vw, 1.25rem);
+  --text-xl:   clamp(1.25rem, 1.18rem + 0.4vw, 1.5rem);
+  --text-2xl:  clamp(1.5rem, 1.4rem + 0.5vw, 1.875rem);
+  --text-3xl:  clamp(1.875rem, 1.75rem + 0.7vw, 2.5rem);
+  --text-hero: clamp(2.5rem, 2rem + 2.5vw, 4rem);
+
+  /* ---------- Line height ---------- */
+  /* 使用指針:
+   *   - tight  : 見出し・hero 専用 (本文に使うと可読性低下)
+   *   - snug   : 大きめ見出し、サブタイトル
+   *   - normal : 本文のデフォルト (SC 1.4.12 推奨の 1.5)
+   *   - relaxed/loose : 長文記事、コードブロック周辺
+   */
+  --leading-tight:   1.2;
+  --leading-snug:    1.35;
+  --leading-normal:  1.5;
+  --leading-relaxed: 1.625;
+  --leading-loose:   1.8;
+
+  /* ---------- Font weight ---------- */
+  --font-regular: 400;
+  --font-medium:  500;
+  --font-semibold: 600;
+  --font-bold:    700;
+
+  /* ---------- Spacing scale ---------- */
+  --space-0:   0;
+  --space-1:   0.25rem;   /* 4px */
+  --space-2:   0.5rem;    /* 8px */
+  --space-3:   0.75rem;   /* 12px */
+  --space-4:   1rem;      /* 16px */
+  --space-5:   1.25rem;   /* 20px */
+  --space-6:   1.5rem;    /* 24px */
+  --space-8:   2rem;      /* 32px */
+  --space-10:  2.5rem;    /* 40px */
+  --space-12:  3rem;      /* 48px */
+  --space-16:  4rem;      /* 64px */
+  --space-20:  5rem;      /* 80px */
+  --space-24:  6rem;      /* 96px */
+  /* fluid gutter between sections */
+  --space-section: clamp(3rem, 2rem + 5vw, 8rem);
+  /* horizontal padding for page/section wrappers (SC 1.4.10 Reflow) */
+  --space-inline: clamp(1rem, 4vw, 2rem);
+
+  /* ---------- Interactive target size (SC 2.5.8) ---------- */
+  /* Phase 1 以降で Button/IconButton の min-height/min-width に適用すること */
+  --target-min: 2.75rem;   /* 44px */
+
+  /* ---------- Motion ---------- */
+  --duration-instant: 75ms;
+  --duration-fast:    150ms;
+  --duration-normal:  300ms;
+  --duration-slow:    500ms;
+
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-emphasis: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* ---------- Shadow ---------- */
+  --shadow-sm:  0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md:  0 4px 6px -1px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.06);
+  --shadow-lg:  0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+  --shadow-xl:  0 20px 25px -5px rgb(0 0 0 / 0.1),  0 8px 10px -6px rgb(0 0 0 / 0.06);
+  /* ツイートカード用の薄いハロー（後で Claude Design bundle で上書き想定）*/
+  --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.04);
+
+  /* ---------- Z-index stack ---------- */
+  --z-base:     0;
+  --z-dropdown: 1000;
+  --z-sticky:   1020;
+  --z-overlay:  1030;
+  --z-modal:    1040;
+  --z-toast:    1050;
+  --z-tooltip:  1060;
+
+  /* ---------- Accessibility ---------- */
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+  --focus-ring-color: hsl(var(--ring)); /* shadcn ring をそのまま使用 */
+}
+
+/* Dark theme shadow 調整（ライトと同じ rgb だとダーク上で浮いて見える）*/
+.dark {
+  --shadow-sm:   0 1px 2px 0 rgb(0 0 0 / 0.4);
+  --shadow-md:   0 4px 6px -1px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.4);
+  --shadow-lg:   0 10px 15px -3px rgb(0 0 0 / 0.5), 0 4px 6px -4px rgb(0 0 0 / 0.4);
+  --shadow-xl:   0 20px 25px -5px rgb(0 0 0 / 0.6), 0 8px 10px -6px rgb(0 0 0 / 0.5);
+  --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.3);
+}
+
+/* Reduced motion 設定 (SC 2.3.3 Animation from Interactions)。
+ * duration トークンの上書きだけでなく、CSS animation / keyframes /
+ * transform / scroll-behavior すべてを無効化する安全網も用意する
+ * (a11y-architect PR #39 フィードバック)。
+ * `!important` は普段避けたいが、reduced-motion は全コンポーネントを
+ * 横断的に強制したい用途のため許容する。 */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-instant: 0ms;
+    --duration-fast:    0ms;
+    --duration-normal:  0ms;
+    --duration-slow:    0ms;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -2,6 +2,8 @@ import { openSans, robotoSlab } from "@/lib/fonts";
 import "@/lib/zod/setupLocale";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+// tokens.css must import before globals.css so shadcn utilities can layer on top
+import "@/styles/tokens.css";
 import "./globals.css";
 import React from "react"
 import { ThemeProvider } from "@/components/theme-provider";

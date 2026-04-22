@@ -18,6 +18,44 @@ const config: Config = {
   			md: 'calc(var(--radius) - 2px)',
   			sm: 'calc(var(--radius) - 4px)'
   		},
+  		// Design tokens from src/styles/tokens.css (P0-08). Keep keys
+  		// stable so Claude Design handoff bundle can swap values later
+  		// without touching component code.
+  		fontSize: {
+  			xs: 'var(--text-xs)',
+  			sm: 'var(--text-sm)',
+  			base: 'var(--text-base)',
+  			lg: 'var(--text-lg)',
+  			xl: 'var(--text-xl)',
+  			'2xl': 'var(--text-2xl)',
+  			'3xl': 'var(--text-3xl)',
+  			hero: 'var(--text-hero)',
+  		},
+  		spacing: {
+  			section: 'var(--space-section)',
+  		},
+  		transitionDuration: {
+  			instant: 'var(--duration-instant)',
+  			fast: 'var(--duration-fast)',
+  			normal: 'var(--duration-normal)',
+  			slow: 'var(--duration-slow)',
+  		},
+  		transitionTimingFunction: {
+  			standard: 'var(--ease-standard)',
+  			emphasis: 'var(--ease-emphasis)',
+  			'out-expo': 'var(--ease-out-expo)',
+  		},
+  		boxShadow: {
+  			card: 'var(--shadow-card)',
+  		},
+  		zIndex: {
+  			dropdown: 'var(--z-dropdown)',
+  			sticky: 'var(--z-sticky)',
+  			overlay: 'var(--z-overlay)',
+  			modal: 'var(--z-modal)',
+  			toast: 'var(--z-toast)',
+  			tooltip: 'var(--z-tooltip)',
+  		},
   		colors: {
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
