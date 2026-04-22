@@ -1,0 +1,53 @@
+{
+  "schema_version": "1.0",
+  "creator": "TDD",
+  "system_role": "senior_ai_systems_architect",
+  "use_case": "Encrypted policy-driven local orchestrator",
+  "business_goal": "Load signed encrypted policy packs into a controlled agent runtime",
+  "users": ["operator", "developer", "reviewer"],
+  "inputs": [
+    "documents",
+    "events",
+    "tool outputs",
+    "encrypted policy packs",
+    "user instructions"
+  ],
+  "tools": [
+    "workspace runtime",
+    "file tools",
+    "code generator",
+    "policy engine",
+    "watchdog",
+    "cryptography"
+  ],
+  "responsibilities": [
+    "Break goals into steps",
+    "Choose tools when needed",
+    "Evaluate tool results",
+    "Retry if a step fails",
+    "Escalate to human when confidence is low",
+    "Stop when success criteria are met"
+  ],
+  "memory_requirements": "short-term task state plus encrypted long-term policy packs",
+  "constraints": {
+    "tech_stack": "Python",
+    "model_provider": "configurable",
+    "budget": "bounded",
+    "latency": "bounded",
+    "security_privacy": "local encrypted storage, signed manifests, no hidden access",
+    "deployment_target": "desktop/local"
+  },
+  "required_output": [
+    "System architecture",
+    "Component diagram",
+    "Folder structure",
+    "Data flow",
+    "Python starter code",
+    "Tool schema definitions",
+    "Prompt design",
+    "Safety guardrails",
+    "Evaluation checklist",
+    "Deployment steps"
+  ],
+  "success_criteria": "correct plans, auditable actions, safe execution, recoverable failures"
+}

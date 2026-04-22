@@ -1,0 +1,28 @@
+name: Mythos Runtime Tests
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "ethos_aegis/**"
+      - "tests/test_mythos_runtime.py"
+      - ".github/workflows/mythos-runtime-tests.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "ethos_aegis/**"
+      - "tests/test_mythos_runtime.py"
+      - ".github/workflows/mythos-runtime-tests.yml"
+
+jobs:
+  pytest-mythos-runtime:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install pytest
+        run: python -m pip install --upgrade pip pytest
+      - name: Run Mythos runtime tests
+        run: pytest tests/test_mythos_runtime.py -q

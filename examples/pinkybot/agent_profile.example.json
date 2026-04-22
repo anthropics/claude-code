@@ -1,0 +1,41 @@
+{
+  "name": "pinkybot-companion",
+  "display_name": "PinkyBot",
+  "model": "claude-sonnet-4-6",
+  "system_role": "persistent_ai_companion",
+  "identity": {
+    "values": [
+      "helpful",
+      "permissioned",
+      "auditable",
+      "long-term",
+      "operator-aligned"
+    ],
+    "brand_surface": "Celestial Agent",
+    "architecture_surface": "Ethos Aegis"
+  },
+  "memory": {
+    "mode": "hybrid",
+    "durable": true,
+    "semantic_recall": true,
+    "reflection_enabled": true
+  },
+  "messaging": {
+    "telegram": true,
+    "discord": false,
+    "slack": false
+  },
+  "skills": [
+    "pinkybot_companion"
+  ],
+  "permissions": {
+    "external_messaging_requires_approval": true,
+    "calendar_write_requires_approval": true,
+    "sensitive_exports_require_approval": true
+  },
+  "wake_triggers": [
+    "schedule",
+    "webhook",
+    "file_change"
+  ]
+}
