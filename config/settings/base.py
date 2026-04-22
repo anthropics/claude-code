@@ -5,6 +5,11 @@ from os import getenv,path
 from dotenv import load_dotenv
 from datetime import timedelta
 
+import sentry_sdk
+from sentry_sdk.integrations.celery import CeleryIntegration
+from sentry_sdk.integrations.django import DjangoIntegration
+from sentry_sdk.integrations.redis import RedisIntegration
+
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
 APPS_DIR = BASE_DIR / "apps"
 
@@ -12,6 +17,56 @@ local_env_file = path.join(BASE_DIR, ".envs", ".env.local")
 
 if path.isfile(local_env_file):
     load_dotenv(local_env_file)
+
+
+# --- Sentry observability (P0-06) ---
+# DSN / environment / release はすべて env 経由。未設定なら SDK を無効化する。
+# stg/prod では CI で必ず設定する（欠落は CD ワークフローで fail させる方針）。
+SENTRY_DSN = getenv("SENTRY_DSN", "")
+SENTRY_ENVIRONMENT = getenv("SENTRY_ENVIRONMENT", "local")
+SENTRY_RELEASE = getenv("SENTRY_RELEASE")  # CI で git SHA を渡す
+
+
+def _sentry_before_send(event, _hint):
+    """Strip request body / form data / query string from Sentry events.
+
+    security-reviewer (PR #38) フィードバック: DjangoIntegration は例外発生時に
+    request.data / request.query_string をコンテキストとして送信する可能性がある。
+    ツイート本文や DM 等のユーザー入力はどの API でも発生し得るため、一律で除去する。
+    """
+    request = event.get("request")
+    if request:
+        request.pop("data", None)
+        request.pop("query_string", None)
+        cookies = request.get("cookies")
+        if cookies:
+            # セッション Cookie などは PII に該当するため送らない
+            request["cookies"] = {k: "[Filtered]" for k in cookies}
+    return event
+
+
+_SENTRY_SAMPLE_RATES = {
+    "production": 0.1,
+    "stg": 0.5,
+    "local": 1.0,
+}
+
+if SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        environment=SENTRY_ENVIRONMENT,
+        release=SENTRY_RELEASE,
+        integrations=[
+            DjangoIntegration(),
+            CeleryIntegration(),
+            RedisIntegration(),
+        ],
+        # stg は prod より粗く、local はフルサンプリング。
+        traces_sample_rate=_SENTRY_SAMPLE_RATES.get(SENTRY_ENVIRONMENT, 1.0),
+        # PII は送らない。投稿本文やユーザー名が誤って Sentry に載らないようにする。
+        send_default_pii=False,
+        before_send=_sentry_before_send,
+    )
 
 
 

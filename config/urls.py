@@ -44,6 +44,14 @@ urlpatterns = [
     path("api/v1/search/", include("apps.search.urls")),
 ]
 
+# Sentry smoke test endpoint (P0-06). DEBUG=True の環境だけ URL 登録すること自体を
+# 行い、本番デプロイのルーティングテーブルに載らないようにする。
+# (security-reviewer PR #38 MEDIUM 指摘反映)
+if settings.DEBUG:
+    urlpatterns += [
+        path("debug-sentry/", include("apps.common.urls")),
+    ]
+
 admin.site.site_header = "Admin"
 admin.site.site_title = "Admin Portal"
 admin.site.index_title = "Welcome to site"
