@@ -27,10 +27,11 @@ jobs:
           $wingetPackageId = "Anthropic.ClaudeCode"
           # Get version info from release event
           $packageVersion = (${{ toJSON(github.event.release.tag_name) }}).Trim('v')
-          $installerUrl = "https://storage.googleapis.com/claude-code-dist-86c565f3-f756-42ad-8dfa-d59b1c096819/claude-code-releases/$packageVersion/win32-x64/claude.exe"
+          $x64InstallerUrl = "https://storage.googleapis.com/claude-code-dist-86c565f3-f756-42ad-8dfa-d59b1c096819/claude-code-releases/$packageVersion/win32-x64/claude.exe"
+          $arm64InstallerUrl = "https://storage.googleapis.com/claude-code-dist-86c565f3-f756-42ad-8dfa-d59b1c096819/claude-code-releases/$packageVersion/win32-arm64/claude.exe"
           # Update package using wingetcreate
           curl.exe -JLO https://aka.ms/wingetcreate/latest
           .\wingetcreate.exe update $wingetPackageId `
             --version $packageVersion `
-            --urls $installerUrl `
+            --urls $x64InstallerUrl $arm64InstallerUrl `
             --submit
