@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ethos Aegis × Claude Mythos</title>
+  <style>
+    body { font-family: Arial, Helvetica, sans-serif; background:#0B1020; color:#D1D5DB; margin:0; padding:24px; }
+    .wrap { max-width: 960px; margin: 0 auto; }
+    .hero, .card { background:#11182d; border:1px solid #223055; border-radius:18px; padding:20px; margin-bottom:18px; }
+    h1, h2 { margin-top:0; }
+    .accent { color:#22D3EE; }
+    .grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:16px; }
+    button, select { background:#275EFE; color:white; border:none; border-radius:12px; padding:10px 14px; cursor:pointer; }
+    .pill { display:inline-block; padding:6px 10px; border-radius:999px; background:#162345; margin-right:8px; }
+    code { background:#0a1328; padding:2px 6px; border-radius:6px; }
+    .out { white-space:pre-wrap; font-family: ui-monospace, monospace; background:#0a1328; padding:14px; border-radius:14px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="hero">
+      <h1>Ethos Aegis <span class="accent">×</span> Claude Mythos</h1>
+      <p>Interactive partner view for the Veriflow Immune System.</p>
+      <span class="pill">verification-first</span>
+      <span class="pill">CKAN-aware</span>
+      <span class="pill">fingerprint:auto</span>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h2>Host profile</h2>
+        <select id="profile">
+          <option value="baseline">baseline</option>
+          <option value="schema-rich">schema-rich</option>
+          <option value="schema-rich+datastore" selected>schema-rich+datastore</option>
+          <option value="schema-rich+datastore+dcat">schema-rich+datastore+dcat</option>
+        </select>
+      </div>
+      <div class="card">
+        <h2>Fingerprint mode</h2>
+        <select id="fingerprint">
+          <option value="auto" selected>auto</option>
+          <option value="metadata">metadata</option>
+          <option value="datastore_lightweight">datastore_lightweight</option>
+        </select>
+      </div>
+      <div class="card">
+        <h2>Question</h2>
+        <select id="question">
+          <option value="ctr">What law best explains click through rate?</option>
+          <option value="ratio">What formula explains conversion efficiency?</option>
+          <option value="sum">What is the total trusted signal?</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="card">
+      <button id="run">Run Mythos</button>
+    </div>
+
+    <div class="card">
+      <h2>Output</h2>
+      <div id="output" class="out">Awaiting input.</div>
+    </div>
+  </div>
+
+  <script>
+    const output = document.getElementById('output');
+    document.getElementById('run').addEventListener('click', () => {
+      const profile = document.getElementById('profile').value;
+      const fingerprint = document.getElementById('fingerprint').value;
+      const question = document.getElementById('question').value;
+
+      const answers = {
+        ctr: 'formula: ctr = clicks / impressions\nselected_law: ratio conservation',
+        ratio: 'formula: efficiency = conversions / qualified_sessions\nselected_law: constrained ratio law',
+        sum: 'formula: trusted_signal = sum(weighted_events)\nselected_law: additive evidence law'
+      };
+
+      output.textContent = [
+        'host_profile: ' + profile,
+        'fingerprint_mode: ' + fingerprint,
+        'ingestion_path: ' + (profile.includes('datastore') ? 'datastore' : 'metadata_fallback'),
+        'answer:',
+        answers[question],
+        'principle: Trust the verified path.'
+      ].join('\n');
+    });
+  </script>
+</body>
+</html>

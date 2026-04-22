@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="400" viewBox="0 0 1600 400">
+  <rect width="1600" height="400" fill="#0B1020"/>
+  <rect x="56" y="76" width="220" height="128" rx="18" fill="#275EFE"/>
+  <text x="88" y="132" font-family="Arial, Helvetica, sans-serif" font-size="38" fill="#FFFFFF">Ethos</text>
+  <text x="88" y="176" font-family="Arial, Helvetica, sans-serif" font-size="38" fill="#FFFFFF">Aegis</text>
+  <text x="356" y="154" font-family="Arial, Helvetica, sans-serif" font-size="56" fill="#D1D5DB">Claude Mythos</text>
+  <text x="356" y="212" font-family="Arial, Helvetica, sans-serif" font-size="26" fill="#22D3EE">Veriflow Immune System</text>
+  <text x="56" y="320" font-family="Arial, Helvetica, sans-serif" font-size="30" fill="#D1D5DB">Verification-first partner layer for CKAN-aware reasoning and formula generation</text>
+</svg>
