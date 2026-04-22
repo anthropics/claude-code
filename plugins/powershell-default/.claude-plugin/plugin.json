@@ -1,0 +1,8 @@
+{
+  "name": "powershell-default",
+  "version": "1.0.0",
+  "description": "Replaces the default Bash tool with PowerShell Preview (pwsh-preview) as the default shell for Claude Code. Works on any OS with PowerShell 7+ Preview installed (Windows, macOS, Linux).",
+  "author": {
+    "name": "cruzlauroiii"
+  }
+}
