@@ -1,0 +1,244 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# Workflow-level least-privilege. CI only reads source and uploads
+# artifacts; no comments, no PR write, no branch push. Each job can
+# tighten further if needed (security-reviewer PR #43 feedback).
+permissions:
+  contents: read
+
+# Cancel previous runs on the same PR. main pushes are NOT cancelled
+# so future CD steps don't lose deployment runs (security-reviewer PR #43).
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  # -----------------------------------------------------------------------
+  # Detect what changed so we only run jobs whose targets are touched.
+  # Speeds up doc-only / single-stack PRs significantly.
+  # -----------------------------------------------------------------------
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      terraform: ${{ steps.filter.outputs.terraform }}
+      pre_commit: ${{ steps.filter.outputs.pre_commit }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'apps/**'
+              - 'config/**'
+              - 'requirements/**'
+              - 'manage.py'
+              - 'pyproject.toml'
+              - 'docker/**'
+              - '.github/workflows/ci.yml'
+            frontend:
+              - 'client/**'
+              - '.github/workflows/ci.yml'
+            terraform:
+              - 'terraform/**'
+              - '.github/workflows/ci.yml'
+            # pre_commit は always-run なので filter ではなく `needs:` の if で
+            # 制御する (security-reviewer PR #43 feedback: `**` は意図不明確)。
+            pre_commit_config:
+              - '.pre-commit-config.yaml'
+
+  # -----------------------------------------------------------------------
+  # Pre-commit (delegates to .pre-commit-config.yaml from P0-12)
+  # Catches anything ruff / prettier / detect-secrets would block locally.
+  # 常時実行: contributor が `pre-commit install` を忘れていても CI で必ず弾く。
+  # -----------------------------------------------------------------------
+  pre-commit:
+    name: pre-commit
+    needs: changes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
+      - run: pip install pre-commit==3.8.0
+      - run: pre-commit run --all-files --show-diff-on-failure
+
+  # -----------------------------------------------------------------------
+  # Backend: ruff lint, mypy (when configured), pytest with coverage.
+  # -----------------------------------------------------------------------
+  backend:
+    name: Backend (Django)
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: ci
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U ci"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgres://ci:ci@localhost:5432/ci
+      REDIS_URL: redis://localhost:6379/0
+      DJANGO_SETTINGS_MODULE: config.settings.local
+      # CI 用の signing key は GitHub Actions secrets で管理する (ハルナさんが
+      # repo settings -> Secrets and variables -> Actions に DJANGO_SIGNING_KEY を登録)。
+      # 未設定時は CI 専用ダミーにフォールバックして PR の動作確認だけは通す。
+      SIGNING_KEY: ${{ secrets.DJANGO_SIGNING_KEY || 'ci-fallback-only-not-for-stg-or-prod' }}
+      DOMAIN: localhost
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements/*.txt
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements/base.txt
+          pip install ruff==0.6.9 pytest pytest-django pytest-cov coverage
+      - name: ruff (lint + format check)
+        run: |
+          ruff check .
+          ruff format --check .
+      - name: Django system check
+        run: python manage.py check --deploy --fail-level WARNING || python manage.py check
+      # TODO(Phase1): remove the `continue-on-error: true` and the `5` exit code
+      # tolerance. Phase 0 has no tests yet, so pytest exits 5 ("no tests collected").
+      # Once Phase 1 lands the first test, real failures (exit 1) must hard-fail CI.
+      # Tracking: this block must be edited together with the first pytest case.
+      - name: Run pytest with coverage
+        id: pytest
+        continue-on-error: true
+        run: |
+          pytest --cov=apps --cov=config --cov-report=xml --cov-report=term-missing --maxfail=1
+      - name: Fail when pytest reported a real failure (exit != 0 and != 5)
+        if: steps.pytest.outcome == 'failure'
+        run: |
+          # pytest exit codes: 0=ok, 1=test fail, 2=interrupted, 5=no tests collected
+          # We tolerate 5 only during Phase 0. Anything else fails the job.
+          ec=${{ steps.pytest.outputs.exit_code || '1' }}
+          if [ "$ec" = "5" ]; then
+            echo "::warning::No tests collected (Phase 0). Remove this guard once Phase 1 ships tests."
+          else
+            echo "::error::pytest failed with exit $ec"
+            exit 1
+          fi
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: coverage.xml
+          if-no-files-found: ignore
+
+  # -----------------------------------------------------------------------
+  # Frontend: eslint, tsc, prettier check, npm build.
+  # -----------------------------------------------------------------------
+  frontend:
+    name: Frontend (Next.js)
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: client
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+      - run: npm ci
+      - name: ESLint
+        run: npm run lint
+      - name: TypeScript type-check
+        run: npx tsc --noEmit --pretty false
+      - name: Prettier check
+        run: npx prettier --check "src/**/*.{ts,tsx,css,json}"
+      - name: Next.js build
+        # Skip Sentry wrapping when DSN is absent (next.config.mjs handles it)
+        env:
+          NODE_ENV: production
+        run: npm run build
+
+  # -----------------------------------------------------------------------
+  # Terraform: fmt + validate. Only runs once terraform/ exists (P0.5).
+  # -----------------------------------------------------------------------
+  terraform:
+    name: Terraform
+    needs: changes
+    if: needs.changes.outputs.terraform == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: terraform
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.5"
+      - name: Terraform fmt check
+        run: terraform fmt -check -recursive
+      - name: Terraform validate (per environment)
+        run: |
+          for env_dir in environments/*/; do
+            echo "Validating $env_dir"
+            (cd "$env_dir" && terraform init -backend=false && terraform validate)
+          done
+
+  # -----------------------------------------------------------------------
+  # Aggregate job: GitHub branch protection points at this job so all
+  # required jobs above must pass (or be skipped) before a PR can merge.
+  # -----------------------------------------------------------------------
+  ci-passed:
+    name: CI passed
+    needs: [pre-commit, backend, frontend, terraform]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify all upstream jobs succeeded or were skipped
+        run: |
+          if [[ "${{ contains(needs.*.result, 'failure') }}" == "true" ]]; then
+            echo "::error::One of the CI jobs failed"
+            exit 1
+          fi
+          if [[ "${{ contains(needs.*.result, 'cancelled') }}" == "true" ]]; then
+            echo "::error::One of the CI jobs was cancelled"
+            exit 1
+          fi
+          echo "All CI jobs OK (success or skipped)"
