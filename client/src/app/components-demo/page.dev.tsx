@@ -1,11 +1,14 @@
 /**
  * Dev-only visual smoke test for shadcn/ui core components.
  *
- * Available at /components-demo. Intentionally returns `notFound()`
- * outside of development so the route disappears from stg/prod bundles
- * once `NODE_ENV=production`. Having a Storybook replacement here
- * (per docs/issues/phase-0.md P0-09) keeps the token swap at Phase 10
- * cheap to verify visually.
+ * **F-11 で page.tsx → page.dev.tsx にリネーム**。
+ * next.config.mjs の pageExtensions が development ビルドの時だけ `dev.tsx`
+ * を含めるよう設定されているため、production build ではこのファイル自体が
+ * Next.js の page discovery 対象外になり、bundle にも含まれない。
+ *
+ * 参考: https://nextjs.org/docs/app/api-reference/next-config-js/pageExtensions
+ *
+ * ランタイムでの `notFound()` 分岐はもう不要だが、多層防御として残す。
  */
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";

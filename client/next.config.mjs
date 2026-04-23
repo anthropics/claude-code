@@ -1,7 +1,18 @@
 import { withSentryConfig } from "@sentry/nextjs";
 
+const isDevelopment = process.env.NODE_ENV === "development";
+
 /** @type {import('next').NextConfig} */
-const nextConfig = {};
+const nextConfig = {
+  // F-11: dev-only ページをバンドル含む/含まないで切り替える。
+  // `dev.tsx` / `dev.ts` 拡張子は development ビルドだけ pageExtensions に含める。
+  // production build では `page.dev.tsx` 等の dev-only ページ/ルートハンドラは
+  // そもそも Next.js の page discovery 対象外になるため、bundle にも含まれない。
+  // 詳細: https://nextjs.org/docs/app/api-reference/next-config-js/pageExtensions
+  pageExtensions: isDevelopment
+    ? ["dev.tsx", "dev.ts", "tsx", "ts", "jsx", "js"]
+    : ["tsx", "ts", "jsx", "js"],
+};
 
 // Sentry webpack plugin options. DSN やプロジェクト設定は env 経由。
 // See: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/
