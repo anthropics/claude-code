@@ -1,11 +1,10 @@
 
-from pathlib import Path
-from os import getenv,path
-
-from dotenv import load_dotenv
 from datetime import timedelta
+from os import getenv, path
+from pathlib import Path
 
 import sentry_sdk
+from dotenv import load_dotenv
 from sentry_sdk.integrations.celery import CeleryIntegration
 from sentry_sdk.integrations.django import DjangoIntegration
 from sentry_sdk.integrations.redis import RedisIntegration
@@ -83,9 +82,10 @@ DJANGO_APPS = [
     "django.contrib.sites"
 ]
 
-THIRD_PARTY_APPS=[
+THIRD_PARTY_APPS = [
     "rest_framework",
     "rest_framework_simplejwt",
+    "rest_framework_simplejwt.token_blacklist", # P1-01: BLACKLIST_AFTER_ROTATION に必要
     "corsheaders",
     "django_countries",
     "phonenumber_field",
@@ -94,6 +94,8 @@ THIRD_PARTY_APPS=[
     "taggit",
     "django_filters",
     "djcelery_email",
+    "social_django",                             # P1-01 + P1-12: Google OAuth
+    "storages",                                  # P1-01: django-storages (S3)
 ]
 
 LOCAL_APPS = [
@@ -251,11 +253,24 @@ CELERY_BEAT_SCHEDULER="django_celery_beat.schedulers:DatabaseScheduler"
 
 CELERY_WORKERS_SEND_TASKS_EVENTS =True
 
-COOKIE_NAME="access"
-COOKIE_SAMESITE="Lax"
-COOKIE_PATH="/"
-COOKIE_HTTPONLY=True
-COOKIE_SECURE= False
+# P1-01 + ADR-0003: HttpOnly Cookie で JWT を運搬する設定。
+# Secure は stg/prod で True、local では False (mailpit 等で HTTP 疎通用)。
+#
+# security-reviewer (PR #84) 指摘: stg/prod で COOKIE_SECURE が False のまま起動すると
+# Cookie が HTTP でも送信され、セッション盗聴に繋がる。環境別に fail-fast させる。
+COOKIE_NAME = "access"
+COOKIE_SAMESITE = "Lax"
+COOKIE_PATH = "/"
+COOKIE_HTTPONLY = True
+COOKIE_SECURE = getenv("COOKIE_SECURE", "False").lower() == "true"
+
+if SENTRY_ENVIRONMENT in ("stg", "production") and not COOKIE_SECURE:
+    from django.core.exceptions import ImproperlyConfigured
+
+    raise ImproperlyConfigured(
+        f"COOKIE_SECURE must be True in {SENTRY_ENVIRONMENT} — "
+        "set env COOKIE_SECURE=True (ADR-0003)."
+    )
 
 
 REST_FRAMEWORK = {
@@ -269,6 +284,9 @@ REST_FRAMEWORK = {
         "django_filters.rest_framework.DjangoFilterBackend",
     ],
     "PAGE_SIZE": 10,
+    # P1-01 + SPEC §14.5: スパム検知階層を意識した throttle 設定。
+    # user_default は既定の 500/day、post_tweet は P1-08 で ScopedRateThrottle として
+    # 個別使用し SPEC §14.5 の階層 (100/500/1000 /day) をアラート側 Celery Beat で検知する。
     "DEFAULT_THROTTLE_CLASSES": (
         "rest_framework.throttling.AnonRateThrottle",
         "rest_framework.throttling.UserRateThrottle",
@@ -276,16 +294,26 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_RATES": {
         "anon": "200/day",
         "user": "500/day",
+        "post_tweet": "500/day", # ScopedRateThrottle で個別参照
     },
 }
 
+# P1-01 + ADR-0003 準拠:
+# - ALGORITHM              : HS256 を明示 (security-reviewer PR #84 指摘)
+# - ACCESS_TOKEN_LIFETIME  : 60 min (SPEC §1.3 に合わせる、旧 30 分からアップ)
+# - REFRESH_TOKEN_LIFETIME : 14 days (SPEC §1.3 に合わせる、旧 1 day からアップ)
+# - ROTATE_REFRESH_TOKENS  : 継続使用時は自動ローテ、切断後は再ログイン
+# - BLACKLIST_AFTER_ROTATION: ローテ後の旧 refresh を blacklist 追加して再利用拒否
 SIMPLE_JWT = {
+    "ALGORITHM": "HS256",
     "SIGNING_KEY": getenv("SIGNING_KEY"),
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=14),
     "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
     "USER_ID_FIELD": "id",
     "USER_ID_CLAIM": "user_id",
+    "AUTH_HEADER_TYPES": ("Bearer",),
 }
 
 DJOSER = {
@@ -307,5 +335,109 @@ DJOSER = {
 
 
 AUTHENTICATION_BACKENDS = [
+    # P1-01 + P1-12: Google OAuth。`social-auth-app-django` の backend を追加して
+    # social auth pipeline を使用可能に。ModelBackend は email + password 経由
+    # (djoser + P1-12a) で引き続き使う。
+    "social_core.backends.google.GoogleOAuth2",
     "django.contrib.auth.backends.ModelBackend",
 ]
+
+# P1-01 + P1-12: social-auth-app-django (Google OAuth2) 設定
+SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = getenv("GOOGLE_OAUTH_CLIENT_ID", "")
+SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = getenv("GOOGLE_OAUTH_CLIENT_SECRET", "")
+SOCIAL_AUTH_GOOGLE_OAUTH2_SCOPE = [
+    "https://www.googleapis.com/auth/userinfo.email",
+    "https://www.googleapis.com/auth/userinfo.profile",
+]
+SOCIAL_AUTH_USER_MODEL = AUTH_USER_MODEL
+SOCIAL_AUTH_JSONFIELD_ENABLED = True
+# pipeline は P1-12 で JWT 発行ステップを挿入するため先に定義しておく。
+#
+# security-reviewer (PR #84) 指摘: `associate_by_email` はアカウント乗っ取りリスクが
+# あるため含めない。Google OAuth 経由でログインする際、email 一致だけで既存
+# ローカル (djoser) アカウントに紐付けると、攻撃者が他人のメールを使った Google
+# アカウントを作成することで侵入できてしまう。
+#
+# 代わりに:
+#   - 新規 Google ユーザーは `create_user` で新規作成
+#   - 既存ユーザーへの Google 連携は P1-12a で「ログイン済みユーザーが明示的に
+#     リンクする」フローを別途実装する (settings 画面 → OAuth 開始)
+SOCIAL_AUTH_PIPELINE = (
+    "social_core.pipeline.social_auth.social_details",
+    "social_core.pipeline.social_auth.social_uid",
+    "social_core.pipeline.social_auth.auth_allowed",
+    "social_core.pipeline.social_auth.social_user",
+    "social_core.pipeline.user.get_username",
+    # "social_core.pipeline.social_auth.associate_by_email",  # account takeover risk — intentionally omitted
+    "social_core.pipeline.user.create_user",
+    "social_core.pipeline.social_auth.associate_user",
+    "social_core.pipeline.social_auth.load_extra_data",
+    "social_core.pipeline.user.user_details",
+    # "apps.users.pipeline.issue_jwt_and_set_cookie",  # P1-12 で追加
+)
+
+# ---------------------------------------------------------------------------
+# P1-01 + ADR-0003: S3 / django-storages 設定。AWS_S3_BUCKET_NAME が空なら
+# local の FileSystemStorage にフォールバックする。
+# ---------------------------------------------------------------------------
+
+AWS_ACCESS_KEY_ID = getenv("AWS_ACCESS_KEY_ID", "")
+AWS_SECRET_ACCESS_KEY = getenv("AWS_SECRET_ACCESS_KEY", "")
+AWS_S3_REGION_NAME = getenv("AWS_S3_REGION_NAME", "ap-northeast-1")
+AWS_STORAGE_BUCKET_NAME = getenv("AWS_STORAGE_BUCKET_NAME", "")
+AWS_DEFAULT_ACL = None # BucketOwnerEnforced と整合 (ACL 無効化)
+AWS_S3_FILE_OVERWRITE = False # 同名ファイルは自動で suffix 付け
+AWS_S3_SIGNATURE_VERSION = "s3v4"
+AWS_S3_ADDRESSING_STYLE = "virtual"
+AWS_S3_OBJECT_PARAMETERS = {
+    "CacheControl": "max-age=86400", # 1 day; CloudFront が前段なのでここは長め OK
+}
+
+# Django 4.2 STORAGES 設定: 新しい storages API
+# https://docs.djangoproject.com/en/4.2/ref/settings/#storages
+_use_s3 = bool(AWS_STORAGE_BUCKET_NAME)
+STORAGES = {
+    "default": {
+        "BACKEND": "storages.backends.s3.S3Storage" if _use_s3 else "django.core.files.storage.FileSystemStorage",
+        "OPTIONS": {
+            "bucket_name": AWS_STORAGE_BUCKET_NAME,
+            "custom_domain": getenv("AWS_S3_CUSTOM_DOMAIN", "") or None,
+            "location": "media",
+        } if _use_s3 else {},
+    },
+    "staticfiles": {
+        # static は CloudFront + S3 (別バケット) から配信。Phase 0.5-08 の
+        # sns-stg-static に collectstatic で push。ローカルは FS に fallback。
+        "BACKEND": "storages.backends.s3.S3Storage" if _use_s3 else "django.contrib.staticfiles.storage.StaticFilesStorage",
+        "OPTIONS": {
+            "bucket_name": getenv("AWS_STATIC_BUCKET_NAME", ""),
+            "custom_domain": getenv("AWS_S3_STATIC_CUSTOM_DOMAIN", "") or None,
+            "location": "static",
+        } if _use_s3 and getenv("AWS_STATIC_BUCKET_NAME") else {},
+    },
+}
+
+# ---------------------------------------------------------------------------
+# P1-01 + SPEC §3: Markdown 描画 (markdown2 + bleach の共通設定)
+# 実際のレンダリング関数は P1-09 で apps/tweets/rendering.py に実装。
+# ---------------------------------------------------------------------------
+
+MARKDOWN_BLEACH_ALLOWED_TAGS = [
+    "a", "abbr", "acronym", "b", "blockquote", "br", "code", "del", "em",
+    "h1", "h2", "h3", "h4", "h5", "h6",
+    "hr", "i", "img", "kbd", "li", "ol", "p", "pre", "q", "s", "small",
+    "span", "strike", "strong", "sub", "sup", "table", "tbody", "td",
+    "tfoot", "th", "thead", "tr", "ul", "div", # div はシンタックスハイライトのラッパ用
+]
+# security-reviewer (PR #84) 指摘: `*` ワイルドカードで全タグに class/id を許可すると
+# XSS 経由のクラス衝突 (例: admin ボタンと同じ class 名で UI を欺瞞) を許してしまう。
+# シンタックスハイライト / コードブロック / コラプス用 div に限定して class を個別許可。
+MARKDOWN_BLEACH_ALLOWED_ATTRS = {
+    "a":    ["href", "title", "target", "rel"],
+    "img":  ["src", "alt", "title", "width", "height", "loading"],
+    "code": ["class"], # e.g. language-python (Shiki 用)
+    "pre":  ["class"],
+    "span": ["class"], # Shiki のシンタックスハイライト (style は別途拒否)
+    "div":  ["class"], # シンタックスハイライトのラッパ (highlight 等)
+}
+MARKDOWN_BLEACH_ALLOWED_PROTOCOLS = ["http", "https", "mailto"] # javascript: を弾く

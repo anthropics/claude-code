@@ -29,8 +29,9 @@ channels-redis==4.3.0
 daphne==4.1.2
 
 # 認証・ソーシャルログイン (Phase 1 Google OAuth)
-# 5.5+ で Django 4.2 向け migration + OAuth フロー修正あり
-social-auth-app-django==5.8.0
+# 5.8.0 は Django>=5.1 を要求するため、Django 4.2 と互換な最終版 5.4.3 を pin。
+# Django 5 に上げる時 (Phase 9 以降) に最新メジャーへ移行。
+social-auth-app-django==5.4.3
 
 # 決済 (Phase 8 プレミアム)
 # TODO(Phase 8): 実装着手時に最新メジャー (15.x 系) への移行を検討。API 破壊的変更あり。
