@@ -9,12 +9,13 @@ state を保存するためのリソースを Terraform で管理してしまう
 
 ## 対象リソース
 
-| リソース | 名前 (既定) | 用途 |
-|---|---|---|
-| S3 bucket | `sns-stg-tf-state` | terraform state file の保存先 |
-| DynamoDB table | `sns-stg-tf-lock` | terraform apply の排他ロック |
+| リソース       | 名前 (既定)        | 用途                          |
+| -------------- | ------------------ | ----------------------------- |
+| S3 bucket      | `sns-stg-tf-state` | terraform state file の保存先 |
+| DynamoDB table | `sns-stg-tf-lock`  | terraform apply の排他ロック  |
 
 両リソースとも:
+
 - リージョン: `ap-northeast-1`
 - 暗号化: SSE-S3 (bucket) / PAY_PER_REQUEST (table)
 - Public Access: 完全遮断
@@ -57,11 +58,11 @@ aws dynamodb describe-table --table-name sns-stg-tf-lock --query 'Table.TableSta
 
 ## トラブルシューティング
 
-| 症状 | 原因 | 対応 |
-|---|---|---|
-| `InvalidBucketName` | bucket 名が既に世界中で使用中 | `--bucket <your-prefix>-tf-state` で unique な名前を指定 |
-| `AccessDenied` | IAM 権限不足 | S3:CreateBucket / DynamoDB:CreateTable / sts:GetCallerIdentity を確認 |
-| `BucketAlreadyOwnedByYou` | 既に同じアカウントで作成済み | 正常。スクリプトは続行して設定を更新する |
+| 症状                      | 原因                          | 対応                                                                  |
+| ------------------------- | ----------------------------- | --------------------------------------------------------------------- |
+| `InvalidBucketName`       | bucket 名が既に世界中で使用中 | `--bucket <your-prefix>-tf-state` で unique な名前を指定              |
+| `AccessDenied`            | IAM 権限不足                  | S3:CreateBucket / DynamoDB:CreateTable / sts:GetCallerIdentity を確認 |
+| `BucketAlreadyOwnedByYou` | 既に同じアカウントで作成済み  | 正常。スクリプトは続行して設定を更新する                              |
 
 ## 今後の拡張
 
@@ -74,6 +75,7 @@ stg 環境を完全に破棄する際は以下の**厳密な順序**で実行す
 バケットは **全バージョン + delete markers** を個別削除しないと `BucketNotEmpty` で失敗する。
 
 ### 前提
+
 - 先に `terraform destroy` で AWS 上の stg リソースを削除済み
 - state ファイルはもう使わないことを確認
 

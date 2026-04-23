@@ -4,10 +4,11 @@ Hosts:
 - `/api/health/` — ALB/CloudFront 用の軽量ヘルスチェック (P0.5-11)
 - `/debug-sentry/` — Sentry 配線確認 (P0-06、DEBUG=True のみ)
 """
+
 from __future__ import annotations
 
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from django.conf import settings
 from django.db import connections
@@ -53,7 +54,7 @@ def health(_request: HttpRequest) -> JsonResponse:
     payload = {
         "status": "ok" if status_code == 200 else "degraded",
         "version": os.environ.get("SENTRY_RELEASE", "unknown"),
-        "time": datetime.now(timezone.utc).isoformat(),
+        "time": datetime.now(UTC).isoformat(),
         "db": db_state,
     }
     return JsonResponse(payload, status=status_code)

@@ -18,7 +18,8 @@
 
 ### 1.1 ラベル体系
 
-**type:***（種別）
+**type:\***（種別）
+
 - `type:feature` — 新機能
 - `type:bug` — バグ修正
 - `type:refactor` — リファクタリング
@@ -27,46 +28,50 @@
 - `type:ci` — GitHub Actions / pre-commit
 - `type:chore` — ビルド・依存管理
 
-**area:***（機能領域）
+**area:\***（機能領域）
+
 - `area:auth` / `area:profile` / `area:tweets` / `area:tags` / `area:timeline`
 - `area:reactions` / `area:follow` / `area:search` / `area:dm` / `area:notifications`
 - `area:boxes` / `area:moderation` / `area:boards` / `area:articles` / `area:bots`
 - `area:billing` / `area:a11y` / `area:seo`
 
-**priority:***
+**priority:\***
+
 - `priority:critical` — 即対応
 - `priority:high` — 当該 Phase 内で必須
 - `priority:medium` — 当該 Phase 内で対応
 - `priority:low` — 余裕があれば
 
-**layer:***（技術レイヤ）
+**layer:\***（技術レイヤ）
+
 - `layer:backend` — Django
 - `layer:frontend` — Next.js
 - `layer:infra` — AWS / Terraform
 - `layer:ci-cd` — GitHub Actions
 
-**status:***
+**status:\***
+
 - `status:blocked` — 依存 Issue 未完了で進行不可
 - `status:in-review` — PR レビュー中
 - `status:help-wanted` — 協力求む
 
 ### 1.2 マイルストーン
 
-| マイルストーン | 対応 Phase |
-|---|---|
-| `Phase 0: 基盤整備` | Phase 0 |
-| `Phase 0.5: 最小 stg デプロイ` | Phase 0.5 |
-| `Phase 1: 認証・プロフィール・基本ツイート` | Phase 1 |
-| `Phase 2: TL・リアクション・検索` | Phase 2 |
-| `Phase 3: DM` | Phase 3 |
-| `Phase 4A: 通知・ボックス` | Phase 4A |
-| `Phase 4B: モデレーション` | Phase 4B |
-| `Phase 5: 掲示板` | Phase 5 |
-| `Phase 6: 記事機能` | Phase 6 |
-| `Phase 7: Bot` | Phase 7 |
-| `Phase 8: プレミアム` | Phase 8 |
-| `Phase 9: 本番昇格` | Phase 9 |
-| `Phase 10: Claude Design 取り込み` | Phase 10 |
+| マイルストーン                              | 対応 Phase |
+| ------------------------------------------- | ---------- |
+| `Phase 0: 基盤整備`                         | Phase 0    |
+| `Phase 0.5: 最小 stg デプロイ`              | Phase 0.5  |
+| `Phase 1: 認証・プロフィール・基本ツイート` | Phase 1    |
+| `Phase 2: TL・リアクション・検索`           | Phase 2    |
+| `Phase 3: DM`                               | Phase 3    |
+| `Phase 4A: 通知・ボックス`                  | Phase 4A   |
+| `Phase 4B: モデレーション`                  | Phase 4B   |
+| `Phase 5: 掲示板`                           | Phase 5    |
+| `Phase 6: 記事機能`                         | Phase 6    |
+| `Phase 7: Bot`                              | Phase 7    |
+| `Phase 8: プレミアム`                       | Phase 8    |
+| `Phase 9: 本番昇格`                         | Phase 9    |
+| `Phase 10: Claude Design 取り込み`          | Phase 10   |
 
 ### 1.3 Issue タイトル規約
 
@@ -75,6 +80,7 @@
 ```
 
 例:
+
 - `[feature][tweets] Tweet モデルの基本 CRUD API を実装`
 - `[infra][ci-cd] stg 用 GitHub Actions OIDC ロールを作成`
 - `[refactor][search] pg_bigm クエリビルダーを共通化`
@@ -85,29 +91,36 @@
 
 ```markdown
 ## 目的
+
 （何を達成したいか）
 
 ## 背景
+
 （なぜ必要か、仕様書のどこに該当するか）
 関連: SPEC.md §X.Y, ER.md §Z
 
 ## 作業内容
+
 - [ ] サブタスク1
 - [ ] サブタスク2
 
 ## 受け入れ基準
+
 - [ ] 〇〇が動作する
 - [ ] テストが 80% 以上通る
 - [ ] code-reviewer / security-reviewer が承認
 
 ## 依存
+
 - blocked by #N
 - related to #M
 
 ## 見積
+
 S (< 4h) / M (4-8h) / L (1-2d) / XL (要分割)
 
 ## 並列化可否
+
 - [ ] 他 Issue と並列実装可能
 - [ ] 直前に完了すべき Issue: #N
 ```
@@ -159,14 +172,15 @@ git branch -d feature/issue-001-add-python-deps
 
 Issue が並列実行**可能**な条件:
 
-| 基準 | OK |
-|---|---|
-| 編集するファイルが被らない | ✅ |
-| DB マイグレーションが干渉しない | ✅ |
-| 依存関係（`blocked by`）がない | ✅ |
-| 共有設定ファイル（`settings.py`, `package.json`, `local.yml`）を同時編集しない | ✅ |
+| 基準                                                                           | OK  |
+| ------------------------------------------------------------------------------ | --- |
+| 編集するファイルが被らない                                                     | ✅  |
+| DB マイグレーションが干渉しない                                                | ✅  |
+| 依存関係（`blocked by`）がない                                                 | ✅  |
+| 共有設定ファイル（`settings.py`, `package.json`, `local.yml`）を同時編集しない | ✅  |
 
 **被る場合の処理**:
+
 - 依存元 Issue を先にマージ、依存先は rebase
 - もしくは 1 Issue に統合（粒度見直し）
 
@@ -174,17 +188,17 @@ Issue が並列実行**可能**な条件:
 
 **Phase 0 の並列化プラン**（3 worktree 同時進行可）:
 
-| worktree | Issue | 影響ファイル |
-|---|---|---|
-| `wt-deps-python` | [#1] Python 依存追加 | `requirements/base.txt` のみ |
-| `wt-deps-npm` | [#2] npm 依存追加 | `client/package.json`, `client/package-lock.json` のみ |
-| `wt-scaffold-apps` | [#3] 13 アプリ scaffold | `apps/*/__init__.py`, `apps/*/models.py` 等 |
+| worktree           | Issue                   | 影響ファイル                                           |
+| ------------------ | ----------------------- | ------------------------------------------------------ |
+| `wt-deps-python`   | [#1] Python 依存追加    | `requirements/base.txt` のみ                           |
+| `wt-deps-npm`      | [#2] npm 依存追加       | `client/package.json`, `client/package-lock.json` のみ |
+| `wt-scaffold-apps` | [#3] 13 アプリ scaffold | `apps/*/__init__.py`, `apps/*/models.py` 等            |
 
 上記 3 つを 3 並列で実装し、順次マージ。完了後:
 
-| worktree | Issue | 依存 |
-|---|---|---|
-| `wt-observability` | [#4] Sentry + structlog 配線 | #1 完了後 |
+| worktree           | Issue                         | 依存      |
+| ------------------ | ----------------------------- | --------- |
+| `wt-observability` | [#4] Sentry + structlog 配線  | #1 完了後 |
 | `wt-design-tokens` | [#5] デザイントークン初期配置 | #2 完了後 |
 
 ### 2.5 注意事項
@@ -209,6 +223,7 @@ Issue が並列実行**可能**な条件:
 ### PR のタイトル規約
 
 Issue タイトルと揃える:
+
 ```
 [feature][tweets] Tweet モデルの基本 CRUD API を実装 (#12)
 ```
@@ -216,6 +231,7 @@ Issue タイトルと揃える:
 ### Conventional Commits
 
 コミットメッセージ:
+
 ```
 feat(tweets): add Tweet model CRUD endpoints
 
@@ -260,6 +276,7 @@ EOF
 ### 4.2 自動レビュー
 
 PR 作成時に GitHub Actions が以下を並列実行:
+
 - Lint (ruff, mypy, eslint, tsc, prettier)
 - Test (pytest + vitest + coverage)
 - Terraform plan（インフラ変更時のみ）
@@ -295,7 +312,7 @@ PR 作成時に GitHub Actions が以下を並列実行:
 
 `docs/issues/phase-0.md` の中身は以下の形式で Issue が並ぶ:
 
-````markdown
+```markdown
 ---
 ## [feature][infra] Python 追加パッケージを requirements に導入
 
@@ -319,9 +336,11 @@ Phase 1 以降で必要となる Python 依存を一括導入する。
 ...
 
 ---
+
 ## [feature][infra] Frontend 追加パッケージを package.json に導入
+
 ...
-````
+```
 
 ### 5.3 Issue 順序の決定
 
@@ -340,7 +359,7 @@ Phase 1 以降で必要となる Python 依存を一括導入する。
 ```yaml
 - name: Security Review
   if: contains(github.event.pull_request.labels.*.name, 'area:auth') ||
-      contains(github.event.pull_request.labels.*.name, 'area:billing')
+    contains(github.event.pull_request.labels.*.name, 'area:billing')
   run: |
     claude -p "security-reviewer エージェントで PR #${{ github.event.pull_request.number }} をレビュー" \
       --permission-mode acceptEdits \
@@ -349,12 +368,12 @@ Phase 1 以降で必要となる Python 依存を一括導入する。
 
 ### 6.2 レビューの格付け
 
-| 深刻度 | ふるまい |
-|---|---|
+| 深刻度   | ふるまい                                  |
+| -------- | ----------------------------------------- |
 | CRITICAL | PR マージブロック（GitHub Check failing） |
-| HIGH | マージ可だが起票者・レビューワーで判断 |
-| MEDIUM | 情報提示のみ |
-| LOW | 参考情報 |
+| HIGH     | マージ可だが起票者・レビューワーで判断    |
+| MEDIUM   | 情報提示のみ                              |
+| LOW      | 参考情報                                  |
 
 ---
 
@@ -375,13 +394,13 @@ Phase 1 以降で必要となる Python 依存を一括導入する。
 
 ## 8. よくある失敗と回避
 
-| 失敗 | 回避策 |
-|---|---|
-| Issue が大きすぎて PR も巨大化 | 発行時に Estimate が L 以上なら分割を検討 |
-| 並列 worktree でマイグレーション番号衝突 | 先にマージされた worktree 基準で rebase |
-| settings.py の同時編集で conflict | 共有設定変更は 1 Issue に集約 |
-| サブエージェントの Critical 指摘で PR が詰まる | 最初の段階でセキュリティ観点を盛り込む |
-| stg デプロイで IAM 権限不足発覚 | Phase 0.5 で最小権限設計を検証 |
+| 失敗                                           | 回避策                                    |
+| ---------------------------------------------- | ----------------------------------------- |
+| Issue が大きすぎて PR も巨大化                 | 発行時に Estimate が L 以上なら分割を検討 |
+| 並列 worktree でマイグレーション番号衝突       | 先にマージされた worktree 基準で rebase   |
+| settings.py の同時編集で conflict              | 共有設定変更は 1 Issue に集約             |
+| サブエージェントの Critical 指摘で PR が詰まる | 最初の段階でセキュリティ観点を盛り込む    |
+| stg デプロイで IAM 権限不足発覚                | Phase 0.5 で最小権限設計を検証            |
 
 ---
 

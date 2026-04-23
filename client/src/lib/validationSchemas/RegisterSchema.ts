@@ -5,8 +5,7 @@ const usernameRegex = /^[a-zA-Z0-9_@+.-]+$/;
 export const registerUserSchema = z
 	.object({
 		username: z.string().regex(usernameRegex, {
-			message:
-				"ユーザー名は英数字、_, @, +, ., - のみ使用できます",
+			message: "ユーザー名は英数字、_, @, +, ., - のみ使用できます",
 		}),
 		first_name: z
 			.string()

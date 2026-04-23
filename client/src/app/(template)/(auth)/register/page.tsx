@@ -8,7 +8,7 @@ export default function RegisterPage() {
 	useRedirectIfAuthenticated();
 	return (
 		<div>
-            <AuthFormHeader
+			<AuthFormHeader
 				title="Sign up for an account"
 				staticText="Already have an account?"
 				linkText="Login Here"

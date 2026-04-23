@@ -5,6 +5,7 @@
 > 関連: [SPEC.md](./SPEC.md)
 >
 > v0.1 → v0.2 主要変更:
+>
 > - ArticleStatus から `UNLISTED` を削除（Q2 で限定公開を MVP から除外）
 > - Article の GitHub 連携フィールドは push-only に合わせて縮退
 
@@ -706,10 +707,23 @@ class PostedArticle(TimeStampedModel):
 
 ```json
 {
-  "primaryKey": "id",
-  "searchableAttributes": ["body", "author_display_name", "author_handle", "tag_names"],
-  "filterableAttributes": ["author_id", "author_handle", "tag_names", "type", "created_at", "has_image", "has_code"],
-  "sortableAttributes": ["created_at", "reaction_count", "repost_count"]
+	"primaryKey": "id",
+	"searchableAttributes": [
+		"body",
+		"author_display_name",
+		"author_handle",
+		"tag_names"
+	],
+	"filterableAttributes": [
+		"author_id",
+		"author_handle",
+		"tag_names",
+		"type",
+		"created_at",
+		"has_image",
+		"has_code"
+	],
+	"sortableAttributes": ["created_at", "reaction_count", "repost_count"]
 }
 ```
 
@@ -717,10 +731,16 @@ class PostedArticle(TimeStampedModel):
 
 ```json
 {
-  "primaryKey": "id",
-  "searchableAttributes": ["title", "body_plain", "author_display_name", "author_handle", "tag_names"],
-  "filterableAttributes": ["author_id", "tag_names", "status", "published_at"],
-  "sortableAttributes": ["published_at", "like_count", "view_count"]
+	"primaryKey": "id",
+	"searchableAttributes": [
+		"title",
+		"body_plain",
+		"author_display_name",
+		"author_handle",
+		"tag_names"
+	],
+	"filterableAttributes": ["author_id", "tag_names", "status", "published_at"],
+	"sortableAttributes": ["published_at", "like_count", "view_count"]
 }
 ```
 
@@ -733,15 +753,15 @@ class PostedArticle(TimeStampedModel):
 
 ## 4. Redis 利用設計
 
-| キー | 用途 | TTL |
-|---|---|---|
-| `tl:home:{user_id}` | ホーム TL キャッシュ（ZSET、score=timestamp） | 10 分 |
-| `ogp:{url_hash}` | OGP 取得キャッシュ | 24 時間 |
-| `rss:seen:{source}` | Bot の重複投稿防止 Set | 30 日 |
-| `trending:tags` | トレンドタグ Top 10 | 30 分 |
-| `who_to_follow:{user_id}` | おすすめユーザー | 60 分 |
-| `channels:*` | Django Channels のレイヤ | 管理自動 |
-| `celery:*` | Celery ブローカー | 管理自動 |
+| キー                      | 用途                                          | TTL      |
+| ------------------------- | --------------------------------------------- | -------- |
+| `tl:home:{user_id}`       | ホーム TL キャッシュ（ZSET、score=timestamp） | 10 分    |
+| `ogp:{url_hash}`          | OGP 取得キャッシュ                            | 24 時間  |
+| `rss:seen:{source}`       | Bot の重複投稿防止 Set                        | 30 日    |
+| `trending:tags`           | トレンドタグ Top 10                           | 30 分    |
+| `who_to_follow:{user_id}` | おすすめユーザー                              | 60 分    |
+| `channels:*`              | Django Channels のレイヤ                      | 管理自動 |
+| `celery:*`                | Celery ブローカー                             | 管理自動 |
 
 ---
 
@@ -774,17 +794,17 @@ class PostedArticle(TimeStampedModel):
 
 ## 7. 容量見積もり（初期 2000 ユーザー・1 年想定）
 
-| テーブル | 1レコード | 年間レコード | 容量 |
-|---|---|---|---|
-| Tweet | 2 KB | 200,000 | 400 MB |
-| Reaction | 0.2 KB | 2,000,000 | 400 MB |
-| Notification | 0.3 KB | 500,000 | 150 MB |
-| Message | 1 KB | 300,000 | 300 MB |
-| ThreadPost | 2 KB | 50,000 | 100 MB |
-| Article | 10 KB | 5,000 | 50 MB |
-| ArticleComment | 1 KB | 20,000 | 20 MB |
-| その他 | - | - | 200 MB |
-| **合計（DB）** | | | **〜1.6 GB** |
+| テーブル       | 1レコード | 年間レコード | 容量         |
+| -------------- | --------- | ------------ | ------------ |
+| Tweet          | 2 KB      | 200,000      | 400 MB       |
+| Reaction       | 0.2 KB    | 2,000,000    | 400 MB       |
+| Notification   | 0.3 KB    | 500,000      | 150 MB       |
+| Message        | 1 KB      | 300,000      | 300 MB       |
+| ThreadPost     | 2 KB      | 50,000       | 100 MB       |
+| Article        | 10 KB     | 5,000        | 50 MB        |
+| ArticleComment | 1 KB      | 20,000       | 20 MB        |
+| その他         | -         | -            | 200 MB       |
+| **合計（DB）** |           |              | **〜1.6 GB** |
 
 S3（画像・ファイル）: 年 〜50 GB 見込み
 

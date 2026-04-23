@@ -1,8 +1,8 @@
 import logging
-from typing import Optional, Tuple
+
 from django.conf import settings
 from rest_framework.request import Request
-from rest_framework_simplejwt.authentication import JWTAuthentication, AuthUser
+from rest_framework_simplejwt.authentication import AuthUser, JWTAuthentication
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import Token
 
@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 class CookieAuthentication(JWTAuthentication):
-    def authenticate(self, request: Request) -> Optional[Tuple[AuthUser, Token]]:
+    def authenticate(self, request: Request) -> tuple[AuthUser, Token] | None:
         header = self.get_header(request)
         raw_token = None
 
@@ -25,5 +25,5 @@ class CookieAuthentication(JWTAuthentication):
                 return self.get_user(validated_token), validated_token
 
             except TokenError as e:
-                logger.error(f"Token validation error: {str(e)}")
+                logger.error(f"Token validation error: {e!s}")
         return None

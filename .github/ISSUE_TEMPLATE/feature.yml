@@ -15,7 +15,7 @@ body:
     id: background
     attributes:
       label: 背景 / 仕様リンク
-      description: 仕様書のどこに該当するか（例: SPEC.md §3.2, ER.md §2.5）
+      description: "仕様書のどこに該当するか（例: SPEC.md §3.2, ER.md §2.5）"
     validations:
       required: true
   - type: textarea

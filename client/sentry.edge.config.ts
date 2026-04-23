@@ -8,10 +8,10 @@ const environment = process.env.SENTRY_ENVIRONMENT ?? "local";
 const release = process.env.SENTRY_RELEASE;
 
 Sentry.init({
-  dsn,
-  environment,
-  release,
-  tracesSampleRate: environment === "production" ? 0.1 : 1.0,
-  enabled: Boolean(dsn),
-  sendDefaultPii: false,
+	dsn,
+	environment,
+	release,
+	tracesSampleRate: environment === "production" ? 0.1 : 1.0,
+	enabled: Boolean(dsn),
+	sendDefaultPii: false,
 });

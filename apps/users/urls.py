@@ -7,7 +7,6 @@ from .views import (
     LogoutAPIView,
 )
 
-
 urlpatterns = [
     re_path(
         r"^o/(?P<provider>\S+)/$",

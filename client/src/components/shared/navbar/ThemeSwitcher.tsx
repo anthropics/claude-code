@@ -1,15 +1,20 @@
-"use client"
+"use client";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent,DropdownMenuItem,DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { MoonIcon,SunIcon } from '@radix-ui/react-icons'
-import { useTheme } from 'next-themes'
-import React from 'react'
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { MoonIcon, SunIcon } from "@radix-ui/react-icons";
+import { useTheme } from "next-themes";
+import React from "react";
 
 const themeOptions = [
-    {value:"light",label:"Light"},
-    {value:"dark",label:"Dark"},
-    {value:"system",label:"System"},
-]
+	{ value: "light", label: "Light" },
+	{ value: "dark", label: "Dark" },
+	{ value: "system", label: "System" },
+];
 export default function ThemeSwitcher() {
 	const { theme, setTheme } = useTheme();
 

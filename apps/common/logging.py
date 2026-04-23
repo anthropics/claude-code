@@ -16,6 +16,7 @@ Note (Celery worker fork):
     になるケースがある。テストで挙動を切り替える場合は `structlog.reset_defaults()`
     を呼んでからフィクスチャで再設定すること。
 """
+
 from __future__ import annotations
 
 import os
@@ -193,14 +194,18 @@ def register_celery_signals() -> None:
     log = structlog.get_logger("celery.task")
 
     def _prerun(task_id: str | None, task: Any, **_kwargs: Any) -> None:
-        structlog.contextvars.bind_contextvars(task_id=task_id, task_name=getattr(task, "name", None))
+        structlog.contextvars.bind_contextvars(
+            task_id=task_id, task_name=getattr(task, "name", None)
+        )
         log.info("task.started")
 
     def _postrun(task_id: str | None, task: Any, state: str | None = None, **_kwargs: Any) -> None:
         log.info("task.finished", state=state)
         structlog.contextvars.unbind_contextvars("task_id", "task_name")
 
-    def _failure(task_id: str | None, exception: BaseException | None = None, **_kwargs: Any) -> None:
+    def _failure(
+        task_id: str | None, exception: BaseException | None = None, **_kwargs: Any
+    ) -> None:
         # exc_info: True を渡すと sys.exc_info() を取りに行くが、
         # task_failure シグナルでは例外コンテキストが既に保たれているのでそれを利用する。
         # BaseException を直接 exc_info に渡すと structlog 実装に依存して挙動が変わるため、

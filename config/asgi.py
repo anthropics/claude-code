@@ -5,6 +5,7 @@ It exposes the ASGI callable as a module-level variable named ``application``.
 HTTP は Django の get_asgi_application、WebSocket は Channels の URLRouter に振り分ける。
 Phase 3 (DM) で websocket_urlpatterns を apps.dm.routing 等から import して拡張する。
 """
+
 from __future__ import annotations
 
 import os

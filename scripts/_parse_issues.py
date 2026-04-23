@@ -3,6 +3,7 @@
 
 create-issues.sh から呼び出される。Bash の heredoc エスケープ問題を避けるため独立ファイル化。
 """
+
 from __future__ import annotations
 
 import re
@@ -63,7 +64,7 @@ def main(issue_file: str) -> int:
         except subprocess.CalledProcessError as e:
             err = e.stderr.strip()
             if "already exists" in err.lower():
-                print(f"    ℹ️  既存、スキップ")
+                print("    ℹ️  既存、スキップ")
             else:
                 print(f"    ❌ {err}")
                 failed.append((issue_title, err))

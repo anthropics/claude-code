@@ -6,7 +6,7 @@ import { baseApiSlice } from "./features/api/baseApiSlice";
 export const makeStore = () => {
 	return configureStore({
 		reducer: rootReducer,
-        middleware: (getDefaultMiddleware) =>
+		middleware: (getDefaultMiddleware) =>
 			getDefaultMiddleware().concat(baseApiSlice.middleware),
 		devTools: process.env.NODE_ENV !== "production",
 	});

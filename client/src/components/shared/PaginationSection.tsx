@@ -24,8 +24,7 @@ const PaginationSection = ({ totalPages }: PaginationSectionProps) => {
 	};
 
 	const handleNextClick = () => {
-		if (currentPage < totalPages)
-			dispatch(setCurrentPage(currentPage + 1));
+		if (currentPage < totalPages) dispatch(setCurrentPage(currentPage + 1));
 	};
 
 	return (

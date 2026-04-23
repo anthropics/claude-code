@@ -1,4 +1,3 @@
-
 from datetime import timedelta
 from os import getenv, path
 from pathlib import Path
@@ -68,24 +67,22 @@ if SENTRY_DSN:
     )
 
 
-
-
 # Application definition
 
 DJANGO_APPS = [
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-    "django.contrib.sites"
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+    "django.contrib.sites",
 ]
 
 THIRD_PARTY_APPS = [
     "rest_framework",
     "rest_framework_simplejwt",
-    "rest_framework_simplejwt.token_blacklist", # P1-01: BLACKLIST_AFTER_ROTATION に必要
+    "rest_framework_simplejwt.token_blacklist",  # P1-01: BLACKLIST_AFTER_ROTATION に必要
     "corsheaders",
     "django_countries",
     "phonenumber_field",
@@ -94,8 +91,8 @@ THIRD_PARTY_APPS = [
     "taggit",
     "django_filters",
     "djcelery_email",
-    "social_django",                             # P1-01 + P1-12: Google OAuth
-    "storages",                                  # P1-01: django-storages (S3)
+    "social_django",  # P1-01 + P1-12: Google OAuth
+    "storages",  # P1-01: django-storages (S3)
 ]
 
 LOCAL_APPS = [
@@ -140,34 +137,34 @@ from apps.common.logging import build_logging_dict, configure_structlog  # noqa:
 configure_structlog(SENTRY_ENVIRONMENT)
 LOGGING = build_logging_dict(SENTRY_ENVIRONMENT)
 
-ROOT_URLCONF = 'config.urls'
+ROOT_URLCONF = "config.urls"
 
 TEMPLATES = [
     {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [str(APPS_DIR / "templates")],
-        'APP_DIRS': True,
-        'OPTIONS': {
-            'context_processors': [
-                'django.template.context_processors.debug',
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [str(APPS_DIR / "templates")],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.debug",
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
             ],
         },
     },
 ]
 
-WSGI_APPLICATION = 'config.wsgi.application'
+WSGI_APPLICATION = "config.wsgi.application"
 
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': getenv("POSTGRES_DB"),
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": getenv("POSTGRES_DB"),
         "USER": getenv("POSTGRES_USER"),
         "PASSWORD": getenv("POSTGRES_PASSWORD"),
         "HOST": getenv("POSTGRES_HOST"),
@@ -189,16 +186,16 @@ PASSWORD_HASHERS = [
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
     },
 ]
 
@@ -206,9 +203,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
 
-LANGUAGE_CODE = 'ja'
+LANGUAGE_CODE = "ja"
 
-TIME_ZONE = 'Asia/Tokyo'
+TIME_ZONE = "Asia/Tokyo"
 
 USE_I18N = True
 
@@ -220,14 +217,14 @@ SITE_ID = 1
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
-STATIC_URL = '/static/'
+STATIC_URL = "/static/"
 
 STATIC_ROOT = str(BASE_DIR / "staticfiles")
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 TAGGIT_CASE_INSENSITIVE = True
 
@@ -237,21 +234,21 @@ if USE_TZ:
     CELERY_TIMEZONE = TIME_ZONE
 
 CELERY_BROKER_URL = getenv("CELERY_BROKER_URL")
-CELERY_RESULT_BACKEND=getenv("CELERY_RESULT_BACKEND")
-CELERY_ACCEPT_CONTENT=['application/json']
-CELERY_TASK_SERIALIZER='json'
-CELERY_RESULT_SERIALIZER="json"
-CELERY_RESULT_BACKEND_MAX_RETRIES =10
+CELERY_RESULT_BACKEND = getenv("CELERY_RESULT_BACKEND")
+CELERY_ACCEPT_CONTENT = ["application/json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_RESULT_BACKEND_MAX_RETRIES = 10
 
-CELERY_TASK_SEND_ENENT=True
-CELERY_RESULT_EXTEND=True
+CELERY_TASK_SEND_ENENT = True
+CELERY_RESULT_EXTEND = True
 
-CELERY_RESULT_BACKEND_ALWAYS_RETRY= True
-CELERY_TASK_TIME_LIMIT=5*60
-CELERY_TASK_SOFT_TIME_LIMIT=60
-CELERY_BEAT_SCHEDULER="django_celery_beat.schedulers:DatabaseScheduler"
+CELERY_RESULT_BACKEND_ALWAYS_RETRY = True
+CELERY_TASK_TIME_LIMIT = 5 * 60
+CELERY_TASK_SOFT_TIME_LIMIT = 60
+CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 
-CELERY_WORKERS_SEND_TASKS_EVENTS =True
+CELERY_WORKERS_SEND_TASKS_EVENTS = True
 
 # P1-01 + ADR-0003: HttpOnly Cookie で JWT を運搬する設定。
 # Secure は stg/prod で True、local では False (mailpit 等で HTTP 疎通用)。
@@ -294,7 +291,7 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_RATES": {
         "anon": "200/day",
         "user": "500/day",
-        "post_tweet": "500/day", # ScopedRateThrottle で個別参照
+        "post_tweet": "500/day",  # ScopedRateThrottle で個別参照
     },
 }
 
@@ -385,12 +382,12 @@ AWS_ACCESS_KEY_ID = getenv("AWS_ACCESS_KEY_ID", "")
 AWS_SECRET_ACCESS_KEY = getenv("AWS_SECRET_ACCESS_KEY", "")
 AWS_S3_REGION_NAME = getenv("AWS_S3_REGION_NAME", "ap-northeast-1")
 AWS_STORAGE_BUCKET_NAME = getenv("AWS_STORAGE_BUCKET_NAME", "")
-AWS_DEFAULT_ACL = None # BucketOwnerEnforced と整合 (ACL 無効化)
-AWS_S3_FILE_OVERWRITE = False # 同名ファイルは自動で suffix 付け
+AWS_DEFAULT_ACL = None  # BucketOwnerEnforced と整合 (ACL 無効化)
+AWS_S3_FILE_OVERWRITE = False  # 同名ファイルは自動で suffix 付け
 AWS_S3_SIGNATURE_VERSION = "s3v4"
 AWS_S3_ADDRESSING_STYLE = "virtual"
 AWS_S3_OBJECT_PARAMETERS = {
-    "CacheControl": "max-age=86400", # 1 day; CloudFront が前段なのでここは長め OK
+    "CacheControl": "max-age=86400",  # 1 day; CloudFront が前段なのでここは長め OK
 }
 
 # Django 4.2 STORAGES 設定: 新しい storages API
@@ -398,22 +395,30 @@ AWS_S3_OBJECT_PARAMETERS = {
 _use_s3 = bool(AWS_STORAGE_BUCKET_NAME)
 STORAGES = {
     "default": {
-        "BACKEND": "storages.backends.s3.S3Storage" if _use_s3 else "django.core.files.storage.FileSystemStorage",
+        "BACKEND": "storages.backends.s3.S3Storage"
+        if _use_s3
+        else "django.core.files.storage.FileSystemStorage",
         "OPTIONS": {
             "bucket_name": AWS_STORAGE_BUCKET_NAME,
             "custom_domain": getenv("AWS_S3_CUSTOM_DOMAIN", "") or None,
             "location": "media",
-        } if _use_s3 else {},
+        }
+        if _use_s3
+        else {},
     },
     "staticfiles": {
         # static は CloudFront + S3 (別バケット) から配信。Phase 0.5-08 の
         # sns-stg-static に collectstatic で push。ローカルは FS に fallback。
-        "BACKEND": "storages.backends.s3.S3Storage" if _use_s3 else "django.contrib.staticfiles.storage.StaticFilesStorage",
+        "BACKEND": "storages.backends.s3.S3Storage"
+        if _use_s3
+        else "django.contrib.staticfiles.storage.StaticFilesStorage",
         "OPTIONS": {
             "bucket_name": getenv("AWS_STATIC_BUCKET_NAME", ""),
             "custom_domain": getenv("AWS_S3_STATIC_CUSTOM_DOMAIN", "") or None,
             "location": "static",
-        } if _use_s3 and getenv("AWS_STATIC_BUCKET_NAME") else {},
+        }
+        if _use_s3 and getenv("AWS_STATIC_BUCKET_NAME")
+        else {},
     },
 }
 
@@ -423,21 +428,56 @@ STORAGES = {
 # ---------------------------------------------------------------------------
 
 MARKDOWN_BLEACH_ALLOWED_TAGS = [
-    "a", "abbr", "acronym", "b", "blockquote", "br", "code", "del", "em",
-    "h1", "h2", "h3", "h4", "h5", "h6",
-    "hr", "i", "img", "kbd", "li", "ol", "p", "pre", "q", "s", "small",
-    "span", "strike", "strong", "sub", "sup", "table", "tbody", "td",
-    "tfoot", "th", "thead", "tr", "ul", "div", # div はシンタックスハイライトのラッパ用
+    "a",
+    "abbr",
+    "acronym",
+    "b",
+    "blockquote",
+    "br",
+    "code",
+    "del",
+    "em",
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6",
+    "hr",
+    "i",
+    "img",
+    "kbd",
+    "li",
+    "ol",
+    "p",
+    "pre",
+    "q",
+    "s",
+    "small",
+    "span",
+    "strike",
+    "strong",
+    "sub",
+    "sup",
+    "table",
+    "tbody",
+    "td",
+    "tfoot",
+    "th",
+    "thead",
+    "tr",
+    "ul",
+    "div",  # div はシンタックスハイライトのラッパ用
 ]
 # security-reviewer (PR #84) 指摘: `*` ワイルドカードで全タグに class/id を許可すると
 # XSS 経由のクラス衝突 (例: admin ボタンと同じ class 名で UI を欺瞞) を許してしまう。
 # シンタックスハイライト / コードブロック / コラプス用 div に限定して class を個別許可。
 MARKDOWN_BLEACH_ALLOWED_ATTRS = {
-    "a":    ["href", "title", "target", "rel"],
-    "img":  ["src", "alt", "title", "width", "height", "loading"],
-    "code": ["class"], # e.g. language-python (Shiki 用)
-    "pre":  ["class"],
-    "span": ["class"], # Shiki のシンタックスハイライト (style は別途拒否)
-    "div":  ["class"], # シンタックスハイライトのラッパ (highlight 等)
+    "a": ["href", "title", "target", "rel"],
+    "img": ["src", "alt", "title", "width", "height", "loading"],
+    "code": ["class"],  # e.g. language-python (Shiki 用)
+    "pre": ["class"],
+    "span": ["class"],  # Shiki のシンタックスハイライト (style は別途拒否)
+    "div": ["class"],  # シンタックスハイライトのラッパ (highlight 等)
 }
-MARKDOWN_BLEACH_ALLOWED_PROTOCOLS = ["http", "https", "mailto"] # javascript: を弾く
+MARKDOWN_BLEACH_ALLOWED_PROTOCOLS = ["http", "https", "mailto"]  # javascript: を弾く

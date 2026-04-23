@@ -4,6 +4,7 @@
 扱わない (python-reviewer PR #55 MEDIUM: 重複登録の混乱を回避)。
 `/debug-sentry/` は DEBUG=True の時だけ config/urls.py 経由で配信する。
 """
+
 from __future__ import annotations
 
 from django.urls import URLPattern, URLResolver, path

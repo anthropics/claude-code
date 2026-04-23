@@ -62,6 +62,7 @@ terraform apply                       # yes で実行
 所要時間: 20-30 分 (CloudFront 作成 + ACM 検証待ちが大半)
 
 この段階で:
+
 - VPC / subnets / SG / fck-nat が立ち上がる
 - RDS / ElastiCache が作成される
 - S3 bucket 3 本
@@ -299,12 +300,12 @@ fields @timestamp, @message, task_name
 
 `alerts@...` メールの内容別:
 
-| アラート | 一次対処 |
-|---|---|
-| ECS Service CPU > 80% (15min) | `aws ecs describe-services` でタスク数確認、手動で `desired_count` を一時増 |
-| RDS CPU > 80% | CloudWatch Performance Insights で slow query 特定、必要なら インスタンスクラス変更 |
-| RDS FreeStorage < 20% | `allocated_storage` を手動で増やす (auto-scale 有効なので通常自動) |
-| ALB 5xx Error Rate > 1% | Sentry で例外確認 → 必要なら前 revision にロールバック (§3.1) |
+| アラート                      | 一次対処                                                                            |
+| ----------------------------- | ----------------------------------------------------------------------------------- |
+| ECS Service CPU > 80% (15min) | `aws ecs describe-services` でタスク数確認、手動で `desired_count` を一時増         |
+| RDS CPU > 80%                 | CloudWatch Performance Insights で slow query 特定、必要なら インスタンスクラス変更 |
+| RDS FreeStorage < 20%         | `allocated_storage` を手動で増やす (auto-scale 有効なので通常自動)                  |
+| ALB 5xx Error Rate > 1%       | Sentry で例外確認 → 必要なら前 revision にロールバック (§3.1)                       |
 
 ### 6.2 stg が完全にダウン
 
@@ -328,6 +329,7 @@ fields @timestamp, @message, task_name
 5. CloudTrail で漏洩時刻以降のアクセス履歴を追跡
 6. **Git 履歴全体の secret スキャン** (doc-updater 指摘、`git log -p` だけでは past
    branches / deleted commits を取りこぼす):
+
    ```bash
    # detect-secrets で全 commit をスキャン
    detect-secrets scan --all-files > /tmp/detect-secrets.json
@@ -337,8 +339,10 @@ fields @timestamp, @message, task_name
    brew install gitleaks    # or: docker run -v "$PWD:/repo" zricethezav/gitleaks
    gitleaks detect --source . --log-opts="--all"
    ```
+
    検知された場合は**履歴書き換え** (`git filter-repo` または BFG) を検討。
    本当に履歴に混入していた場合、force push 後に全 contributor に clone し直しを依頼。
+
 7. `.secrets.baseline` を再生成 (`detect-secrets scan --baseline .secrets.baseline`)
    し commit。
 
@@ -375,6 +379,7 @@ terraform destroy
 ```
 
 注意:
+
 - `rds_skip_final_snapshot = false` なので final snapshot が作成される
 - S3 bucket は `force_destroy = false` なので **中身を手動削除** してから destroy
   (doc-updater 指摘、具体コマンド):
@@ -406,11 +411,11 @@ aws ce get-cost-and-usage \
 
 (doc-updater 指摘を反映):
 
-| 時期 | 想定月額 | 内訳のドライバ |
-|---|---|---|
-| Phase 0.5 直後 (最小構成、トラフィックほぼゼロ) | ¥10-15k ($70-100) | RDS + Redis + ALB + fck-nat の idle コスト |
+| 時期                                                 | 想定月額           | 内訳のドライバ                                  |
+| ---------------------------------------------------- | ------------------ | ----------------------------------------------- |
+| Phase 0.5 直後 (最小構成、トラフィックほぼゼロ)      | ¥10-15k ($70-100)  | RDS + Redis + ALB + fck-nat の idle コスト      |
 | Phase 1-5 終了時 (開発トラフィック + テストユーザー) | ¥18-23k ($120-155) | + Fargate 実稼働時間、CloudFront 少量データ転送 |
-| MVP 完成後 (初期 2000 ユーザー想定) | ¥22-28k ($150-185) | + Celery ジョブ / Bot / AI API / 画像配信 |
+| MVP 完成後 (初期 2000 ユーザー想定)                  | ¥22-28k ($150-185) | + Celery ジョブ / Bot / AI API / 画像配信       |
 
 **目標**: 月 ¥20-30k を超えないこと。
 **超過の主犯候補**: データ転送 (CloudFront Out) / NAT 料金 / Fargate vCPU。

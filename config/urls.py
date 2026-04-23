@@ -1,12 +1,11 @@
-from django.contrib import admin
 from django.conf import settings
-from django.urls import path, include
+from django.contrib import admin
+from django.urls import include, path
 from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
 from rest_framework import permissions
 
 from apps.common.views import health as health_view
-
 
 schema_view = get_schema_view(
     openapi.Info(
@@ -56,6 +55,7 @@ urlpatterns = [
 # /api/health/ は本 urlpatterns 直接登録、debug-sentry のみ apps.common.urls に残す。
 if settings.DEBUG:
     from apps.common.views import debug_sentry
+
     urlpatterns += [
         path("debug-sentry/", debug_sentry, name="debug-sentry"),
     ]

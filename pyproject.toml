@@ -14,6 +14,7 @@ extend-exclude = [
     ".worktrees/*",
     ".venv/*",
     "client/node_modules/*",
+    "plugins/*",  # 外部プラグイン (hookify 等) — 上流のコード品質はこちらでは管理しない
 ]
 
 [tool.ruff.lint]
@@ -29,13 +30,22 @@ extend-exclude = [
 # - RUF:    ruff-specific
 select = ["E", "W", "F", "I", "B", "UP", "SIM", "DJ", "RUF"]
 ignore = [
-    "E501",  # line length is handled by ruff-format
-    "B008",  # function calls in argument defaults (common Django pattern)
+    "E501",    # line length is handled by ruff-format
+    "B008",    # function calls in argument defaults (common Django pattern)
+    # 日本語コメント・docstring は当プロジェクトの公式スタイル。全角記号検知は誤検知になりやすく
+    # コード品質と無関係なので一律無効化する (F-16 CI green 復元時に合意)。
+    "RUF001",  # ambiguous unicode characters (string)
+    "RUF002",  # ambiguous unicode characters (docstring)
+    "RUF003",  # ambiguous unicode characters (comment)
+    # Django モデルの Meta 内クラス変数や admin.ModelAdmin の list_display 等は
+    # ClassVar 注釈が冗長。Django 慣習を優先して無効化。
+    "RUF012",  # Mutable class attributes should be annotated with typing.ClassVar
 ]
 
 [tool.ruff.lint.per-file-ignores]
 "*/settings/*.py" = ["F401", "F403", "F405"]  # settings do module-level glue
 "conftest.py" = ["F401"]
+"scripts/*.py" = ["E741"]  # scripts 内 `l` は 1 行 list comprehension では許容
 # NOTE: `S101` (assert) ignore for tests/ will be added once `S`
 # (flake8-bandit) is enabled in `select`. See ADR backlog.
 

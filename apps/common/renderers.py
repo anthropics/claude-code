@@ -1,5 +1,6 @@
 import json
-from typing import Any, Optional, Union
+from typing import Any
+
 from django.utils.translation import gettext_lazy as _
 from rest_framework.renderers import JSONRenderer
 
@@ -11,18 +12,14 @@ class GenericJSONRenderer(JSONRenderer):
     def render(
         self,
         data: Any,
-        accepted_media_type: Optional[str] = None,
-        renderer_context: Optional[dict] = None,
-    ) -> Union[bytes, str]:
-
+        accepted_media_type: str | None = None,
+        renderer_context: dict | None = None,
+    ) -> bytes | str:
         if renderer_context is None:
             renderer_context = {}
 
         view = renderer_context.get("view")
-        if hasattr(view, "object_label"):
-            object_label = view.object_label
-        else:
-            object_label = self.object_label
+        object_label = view.object_label if hasattr(view, "object_label") else self.object_label
 
         response = renderer_context.get("response")
 
@@ -33,8 +30,6 @@ class GenericJSONRenderer(JSONRenderer):
         errors = data.get("errors", None)
 
         if errors is not None:
-            return super(GenericJSONRenderer, self).render(data)
+            return super().render(data)
 
-        return json.dumps({"status_code": status_code, object_label: data}).encode(
-            self.charset
-        )
+        return json.dumps({"status_code": status_code, object_label: data}).encode(self.charset)

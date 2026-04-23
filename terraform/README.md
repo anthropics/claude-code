@@ -44,4 +44,5 @@ terraform apply   # ← 手動承認 (CD でも手動ステップを通す)
 ## ADR
 
 Terraform / AWS 設計に関する決定は [docs/adr/](../docs/adr/) に記録:
+
 - [ADR-0001](../docs/adr/0001-use-ecs-fargate-for-stg.md) — stg に ECS Fargate を採用

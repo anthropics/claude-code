@@ -39,10 +39,10 @@ terraform output -json route53_name_servers | jq -r '.[]'
 
 ```json
 [
-  "ns-123.awsdns-01.com",
-  "ns-456.awsdns-02.co.uk",
-  "ns-789.awsdns-03.net",
-  "ns-012.awsdns-04.org"
+	"ns-123.awsdns-01.com",
+	"ns-456.awsdns-02.co.uk",
+	"ns-789.awsdns-03.net",
+	"ns-012.awsdns-04.org"
 ]
 ```
 
@@ -55,10 +55,11 @@ terraform output -json route53_name_servers | jq -r '.[]'
 
 > **⚠ セキュリティ** (doc-updater PR #54 MEDIUM):
 > 本ステップはドメイン登録者アカウントへのログインが必要。作業前に以下を確認:
+>
 > - **2FA が有効**であること (お名前.com の「会員情報」→「2段階認証」)
 > - 不審なログイン履歴がないこと
 > - 作業完了後、必要ならパスワードローテーション
-> DNS 権限を奪われるとフィッシング・証明書乗っ取りに直結するため。
+>   DNS 権限を奪われるとフィッシング・証明書乗っ取りに直結するため。
 
 1. お名前.com の [ドメイン Navi](https://navi.onamae.com) にログイン
 2. 左サイドバー「ドメイン」→「ドメイン一覧」
@@ -67,12 +68,12 @@ terraform output -json route53_name_servers | jq -r '.[]'
 5. 「ネームサーバー変更」ボタン
 6. 「その他」タブを選び、以下のように入力:
 
-   | フィールド | 値 |
-   |---|---|
-   | プライマリネームサーバー (1) | `ns-123.awsdns-01.com` |
+   | フィールド                   | 値                       |
+   | ---------------------------- | ------------------------ |
+   | プライマリネームサーバー (1) | `ns-123.awsdns-01.com`   |
    | セカンダリネームサーバー (2) | `ns-456.awsdns-02.co.uk` |
-   | ネームサーバー (3) | `ns-789.awsdns-03.net` |
-   | ネームサーバー (4) | `ns-012.awsdns-04.org` |
+   | ネームサーバー (3)           | `ns-789.awsdns-03.net`   |
+   | ネームサーバー (4)           | `ns-012.awsdns-04.org`   |
 
    **重要**: 末尾のドット `.` はお名前.com の入力フィールドでは付けない
    (AWS の出力には付いていないのでそのまま貼り付ける)。
@@ -103,6 +104,7 @@ NS 切替が反映されたら、ACM の DNS 検証 (Route 53 に `_<hash>.examp
 CNAME が自動追加済み) が自動で通る。
 
 ACM は **リージョン別に 2 本** 発行している (edge モジュールの設計):
+
 - **ap-northeast-1**: ALB 用 (リスナーが ACM を参照するので同リージョン必須)
 - **us-east-1**: CloudFront 用 (CloudFront は us-east-1 の ACM しか受け付けない)
 
@@ -130,13 +132,13 @@ curl -I https://stg.example.com
 
 ## トラブルシューティング
 
-| 症状 | 原因 | 対処 |
-|---|---|---|
-| `dig NS` が古い NS を返し続ける | DNS キャッシュ | `1.1.1.1` や `8.8.8.8` で複数回照会。最大 48 時間は伝播待ち |
-| ACM が `PENDING_VALIDATION` のまま | Route 53 に検証 CNAME が無い | Route 53 ダッシュボードで `_<hash>` CNAME が存在することを確認、無ければ `terraform apply` を再実行 |
-| CloudFront が 403 を返す | ACM が未発行 | 上の ACM 確認手順で ISSUED を待つ |
-| CloudFront が 502/504 | ALB 側で ECS task が未起動 | `aws ecs list-tasks --cluster sns-stg-cluster` で確認 |
-| ブラウザで「保護されていません」 | 証明書が `stg.example.com` と不一致 | CloudFront の `aliases` と ACM SAN が一致するか `terraform state show module.edge.aws_cloudfront_distribution.this` で確認 |
+| 症状                               | 原因                                | 対処                                                                                                                       |
+| ---------------------------------- | ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `dig NS` が古い NS を返し続ける    | DNS キャッシュ                      | `1.1.1.1` や `8.8.8.8` で複数回照会。最大 48 時間は伝播待ち                                                                |
+| ACM が `PENDING_VALIDATION` のまま | Route 53 に検証 CNAME が無い        | Route 53 ダッシュボードで `_<hash>` CNAME が存在することを確認、無ければ `terraform apply` を再実行                        |
+| CloudFront が 403 を返す           | ACM が未発行                        | 上の ACM 確認手順で ISSUED を待つ                                                                                          |
+| CloudFront が 502/504              | ALB 側で ECS task が未起動          | `aws ecs list-tasks --cluster sns-stg-cluster` で確認                                                                      |
+| ブラウザで「保護されていません」   | 証明書が `stg.example.com` と不一致 | CloudFront の `aliases` と ACM SAN が一致するか `terraform state show module.edge.aws_cloudfront_distribution.this` で確認 |
 
 ## ロールバック
 

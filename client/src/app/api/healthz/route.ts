@@ -12,18 +12,18 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export function GET() {
-  return NextResponse.json(
-    {
-      status: "ok",
-      version: process.env.NEXT_PUBLIC_SENTRY_RELEASE ?? "unknown",
-      environment: process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT ?? "local",
-      time: new Date().toISOString(),
-    },
-    {
-      status: 200,
-      headers: {
-        "Cache-Control": "no-store, max-age=0",
-      },
-    },
-  );
+	return NextResponse.json(
+		{
+			status: "ok",
+			version: process.env.NEXT_PUBLIC_SENTRY_RELEASE ?? "unknown",
+			environment: process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT ?? "local",
+			time: new Date().toISOString(),
+		},
+		{
+			status: 200,
+			headers: {
+				"Cache-Control": "no-store, max-age=0",
+			},
+		},
+	);
 }

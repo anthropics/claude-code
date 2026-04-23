@@ -21,22 +21,26 @@ repos:
     rev: v4.6.0
     hooks:
       - id: trailing-whitespace
-        exclude: ^client/package-lock\.json$
+        exclude: ^(client/package-lock\.json|client/cache/|plugins/)
       - id: end-of-file-fixer
-        exclude: ^client/package-lock\.json$
+        exclude: ^(client/package-lock\.json|client/cache/|plugins/)
       - id: check-yaml
         args: [--allow-multiple-documents]
       - id: check-json
+        exclude: ^client/cache/
       - id: check-toml
       - id: check-added-large-files
         args: [--maxkb=500]
         exclude: ^(demo\.gif|client/package-lock\.json)$
       - id: check-merge-conflict
       - id: check-executables-have-shebangs
+        exclude: ^plugins/ # 外部プラグインの shebang は上流管理
       - id: check-shebang-scripts-are-executable
+        exclude: ^plugins/
       - id: detect-private-key
       - id: mixed-line-ending
         args: [--fix=lf]
+        exclude: ^client/cache/
 
   # --- Python (Django backend) ---
   - repo: https://github.com/astral-sh/ruff-pre-commit
@@ -56,11 +60,33 @@ repos:
         types_or: [javascript, jsx, ts, tsx, css, scss, json, yaml, markdown]
         additional_dependencies:
           - prettier@3.3.3 # pin to latest stable 3.x
+        # 除外対象:
+        #   - client/package-lock.json, .next/ — ビルド成果物
+        #   - docs/adr/*.md — ADR 表形式は手動維持
+        #   - .claude/, .claude-plugin/, .devcontainer/, .vscode/, .serena/ — エディタ/ツール設定
+        #   - plugins/ — 外部プラグイン (上流管理)
+        #   - .github/workflows/*claude*.yml — Claude Code の fork 由来ファイル (AI 管理)
+        #   - CHANGELOG.md, SECURITY.md — 上流由来ファイル
+        #   - terraform/**/README.md — terraform-docs 自動生成
         exclude: |
           (?x)(
             ^client/package-lock\.json$
             | ^client/\.next/
+            | ^client/cache/
             | ^docs/adr/.*\.md$
+            | ^\.claude/
+            | ^\.claude-plugin/
+            | ^\.devcontainer/
+            | ^\.vscode/
+            | ^\.serena/
+            | ^plugins/
+            | ^examples/
+            | ^scripts/.*\.ts$
+            | ^\.github/workflows/(claude|backfill-duplicate-comments).*\.yml$
+            | ^CHANGELOG\.md$
+            | ^SECURITY\.md$
+            | ^README\.md$
+            | ^terraform/.*/README\.md$
           )
 
   # ESLint は client/ 配下のみに適用
@@ -87,11 +113,15 @@ repos:
             | ^\.secrets\.baseline$
           )
 
-  # --- Terraform (Phase 0.5 で terraform/ が増え次第自動有効化) ---
-  - repo: https://github.com/antonbabenko/pre-commit-terraform
-    rev: v1.96.1
-    hooks:
-      - id: terraform_fmt
-        files: ^terraform/.*\.(tf|tfvars)$
-      - id: terraform_validate
-        files: ^terraform/.*\.tf$
+  # --- Terraform ---
+  # pre-commit での terraform_fmt / terraform_validate は F-17 (terraform CI 専用 PR) で
+  # 再有効化する。それまでは CI 側 (.github/workflows/ci.yml の Terraform ジョブ) で
+  # fmt/validate を実施する設計。
+  # - 単体 module validate は provider/var 未解決で必ず落ちる (設計上の制約)
+  # - CI ランナーに terraform バイナリを毎回 setup すると pre-commit キャッシュが
+  #   効かず時間を食うため、別 job に分離した方が早い
+  # - repo: https://github.com/antonbabenko/pre-commit-terraform
+  #   rev: v1.96.1
+  #   hooks:
+  #     - id: terraform_fmt
+  #       files: ^terraform/.*\.(tf|tfvars)$
