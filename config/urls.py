@@ -5,6 +5,8 @@ from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
 from rest_framework import permissions
 
+from apps.common.views import health as health_view
+
 
 schema_view = get_schema_view(
     openapi.Info(
@@ -19,6 +21,10 @@ schema_view = get_schema_view(
 )
 
 urlpatterns = [
+    # ALB target group の health check が叩くエンドポイント (P0.5-11)。
+    # /api/v1/ より短い /api/health/ に置き、ALB listener rule の /api/* が
+    # app target group に流した時にそのまま 200 を返す。
+    path("api/health/", health_view, name="api-health"),
     path(
         "redoc/",
         schema_view.with_ui("redoc", cache_timeout=0),
@@ -47,9 +53,11 @@ urlpatterns = [
 # Sentry smoke test endpoint (P0-06). DEBUG=True の環境だけ URL 登録すること自体を
 # 行い、本番デプロイのルーティングテーブルに載らないようにする。
 # (security-reviewer PR #38 MEDIUM 指摘反映)
+# /api/health/ は本 urlpatterns 直接登録、debug-sentry のみ apps.common.urls に残す。
 if settings.DEBUG:
+    from apps.common.views import debug_sentry
     urlpatterns += [
-        path("debug-sentry/", include("apps.common.urls")),
+        path("debug-sentry/", debug_sentry, name="debug-sentry"),
     ]
 
 admin.site.site_header = "Admin"
