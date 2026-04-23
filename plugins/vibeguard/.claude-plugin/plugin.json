@@ -1,0 +1,8 @@
+{
+  "name": "vibeguard",
+  "version": "0.1.0",
+  "description": "Protect secrets/PII in Claude Code by blocking prompts and showing VibeGuard-style placeholders (no MITM)",
+  "author": {
+    "name": "inkdust2021"
+  }
+}
