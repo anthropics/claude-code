@@ -41,7 +41,7 @@ skill-name/
 
 #### SKILL.md (required)
 
-**Metadata Quality:** The `name` and `description` in YAML frontmatter determine when Claude will use the skill. Be specific about what the skill does and when to use it. Use the third-person (e.g. "This skill should be used when..." instead of "Use this skill when...").
+**Metadata Quality:** The `name` and `description` in YAML frontmatter determine when Claude will use the skill. Use a lowercase, hyphenated identifier for `name` (for example, `my-skill`) so the skill name matches the directory and stays easy to reference. Be specific about what the skill does and when to use it. Use the third-person (e.g. "This skill should be used when..." instead of "Use this skill when...").
 
 #### Bundled Resources (optional)
 
@@ -163,7 +163,7 @@ Also, delete any example files and directories not needed for the skill. Create 
 
 ```yaml
 ---
-name: Skill Name
+name: skill-name
 description: This skill should be used when the user asks to "specific phrase 1", "specific phrase 2", "specific phrase 3". Include exact phrases users would say that should trigger this skill. Be concrete and specific.
 version: 0.1.0
 ---
@@ -419,6 +419,7 @@ Before finalizing a skill:
 **Structure:**
 - [ ] SKILL.md file exists with valid YAML frontmatter
 - [ ] Frontmatter has `name` and `description` fields
+- [ ] `name` uses lowercase hyphens and matches the skill directory name
 - [ ] Markdown body is present and substantial
 - [ ] Referenced files actually exist
 
