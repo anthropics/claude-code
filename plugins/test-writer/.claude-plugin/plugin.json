@@ -1,0 +1,9 @@
+{
+  "name": "test-writer",
+  "description": "Write comprehensive, idiomatic tests for any codebase. Auto-detects the testing framework, fills coverage gaps, and validates tests run green.",
+  "version": "1.0.0",
+  "author": {
+    "name": "nawazxz",
+    "email": ""
+  }
+}
