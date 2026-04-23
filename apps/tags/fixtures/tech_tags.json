@@ -1,0 +1,552 @@
+[
+	{
+		"model": "tags.tag",
+		"fields": {
+			"name": "python",
+			"display_name": "Python",
+			"description": "General-purpose programming language widely used for web, data, and AI.",
+			"is_approved": true,
+			"created_by": null,
+			"usage_count": 0
+		}
+	},
+	{
+		"model": "tags.tag",
+		"fields": {
+			"name": "typescript",
+			"display_name": "TypeScript",
+			"description": "Strongly-typed superset of JavaScript that compiles to plain JS.",
+			"is_approved": true,
+			"created_by": null,
+			"usage_count": 0
+		}
+	},
+	{
+		"model": "tags.tag",
+		"fields": {
+			"name": "javascript",
+			"display_name": "JavaScript",
+			"description": "High-level, dynamic language that powers the web.",
+			"is_approved": true,
+			"created_by": null,
+			"usage_count": 0
+		}
+	},
+	{
+		"model": "tags.tag",
+		"fields": {
+			"name": "go",
+			"display_name": "Go",
+			"description": "Statically-typed, compiled language designed at Google.",
+			"is_approved": true,
+			"created_by": null,
+			"usage_count": 0
+		}
+	},
+	{
+		"model": "tags.tag",
+		"fields": {
+			"name": "rust",
+			"display_name": "Rust",
+			"description": "Memory-safe systems programming language.",
+			"is_approved": true,
+			"created_by": null,
+			"usage_count": 0
+		}
+	},
+	{
+		"model": "tags.tag",
+		"fields": {
+			"name": "react",
+			"display_name": "React",
+			"description": "JavaScript library for building user interfaces.",
+			"is_approved": true,
+			"created_by": null,
+			"usage_count": 0
+		}
+	},
+	{
+		"model": "tags.tag",
+		"fields": {
+			"name": "nextjs",
+			"display_name": "Next.js",
+			"description": "React framework for production with SSR and file-based routing.",
+			"is_approved": true,
+			"created_by": null,
+			"usage_count": 0
+		}
+	},
+	{
+		"model": "tags.tag",
+		"fields": {
+			"name": "vue",
+			"display_name": "Vue",
+			"description": "Progressive JavaScript framework for building UIs.",
+			"is_approved": true,
+			"created_by": null,
+			"usage_count": 0
+		}
+	},
+	{
+		"model": "tags.tag",
+		"fields": {
+			"name": "svelte",
+			"display_name": "Svelte",
+			"description": "Compiler-based frontend framework that shifts work to build time.",
+			"is_approved": true,
+			"created_by": null,
+			"usage_count": 0
+		}
+	},
+	{
+		"model": "tags.tag",
+		"fields": {
+			"name": "django",
+			"display_name": "Django",
+			"description": "Python web framework with batteries included.",
+			"is_approved": true,
+			"created_by": null,
+			"usage_count": 0
+		}
+	},
+	{
+		"model": "tags.tag",
+		"fields": {
+			"name": "fastapi",
+			"display_name": "FastAPI",
+			"description": "Modern, fast Python framework for building APIs with type hints.",
+			"is_approved": true,
+			"created_by": null,
+			"usage_count": 0
+		}
+	},
+	{
+		"model": "tags.tag",
+		"fields": {
+			"name": "rails",
+			"display_name": "Rails",
+			"description": "Ruby on Rails — MVC web framework written in Ruby.",
+			"is_approved": true,
+			"created_by": null,
+			"usage_count": 0
+		}
+	},
+	{
+		"model": "tags.tag",
+		"fields": {
+			"name": "laravel",
+			"display_name": "Laravel",
+			"description": "PHP web application framework with expressive syntax.",
+			"is_approved": true,
+			"created_by": null,
+			"usage_count": 0
+		}
+	},
+	{
+		"model": "tags.tag",
+		"fields": {
+			"name": "spring",
+			"display_name": "Spring",
+			"description": "Java application framework and inversion-of-control container.",
+			"is_approved": true,
+			"created_by": null,
+			"usage_count": 0
+		}
+	},
+	{
+		"model": "tags.tag",
+		"fields": {
+			"name": "aspnet",
+			"display_name": "ASP.NET",
+			"description": "Microsoft web framework for building modern web apps and services.",
+			"is_approved": true,
+			"created_by": null,
+			"usage_count": 0
+		}
+	},
+	{
+		"model": "tags.tag",
+		"fields": {
+			"name": "aws",
+			"display_name": "AWS",
+			"description": "Amazon Web Services — cloud computing platform.",
+			"is_approved": true,
+			"created_by": null,
+			"usage_count": 0
+		}
+	},
+	{
+		"model": "tags.tag",
+		"fields": {
+			"name": "gcp",
+			"display_name": "GCP",
+			"description": "Google Cloud Platform — cloud computing services by Google.",
+			"is_approved": true,
+			"created_by": null,
+			"usage_count": 0
+		}
+	},
+	{
+		"model": "tags.tag",
+		"fields": {
+			"name": "azure",
+			"display_name": "Azure",
+			"description": "Microsoft cloud computing platform.",
+			"is_approved": true,
+			"created_by": null,
+			"usage_count": 0
+		}
+	},
+	{
+		"model": "tags.tag",
+		"fields": {
+			"name": "docker",
+			"display_name": "Docker",
+			"description": "Platform for developing, shipping, and running applications in containers.",
+			"is_approved": true,
+			"created_by": null,
+			"usage_count": 0
+		}
+	},
+	{
+		"model": "tags.tag",
+		"fields": {
+			"name": "kubernetes",
+			"display_name": "Kubernetes",
+			"description": "Open-source container orchestration system.",
+			"is_approved": true,
+			"created_by": null,
+			"usage_count": 0
+		}
+	},
+	{
+		"model": "tags.tag",
+		"fields": {
+			"name": "terraform",
+			"display_name": "Terraform",
+			"description": "Infrastructure-as-code tool by HashiCorp.",
+			"is_approved": true,
+			"created_by": null,
+			"usage_count": 0
+		}
+	},
+	{
+		"model": "tags.tag",
+		"fields": {
+			"name": "ansible",
+			"display_name": "Ansible",
+			"description": "Agentless IT automation and configuration management.",
+			"is_approved": true,
+			"created_by": null,
+			"usage_count": 0
+		}
+	},
+	{
+		"model": "tags.tag",
+		"fields": {
+			"name": "github",
+			"display_name": "GitHub",
+			"description": "Git hosting, code collaboration, and CI/CD platform.",
+			"is_approved": true,
+			"created_by": null,
+			"usage_count": 0
+		}
+	},
+	{
+		"model": "tags.tag",
+		"fields": {
+			"name": "gitlab",
+			"display_name": "GitLab",
+			"description": "DevOps platform with built-in CI/CD and Git hosting.",
+			"is_approved": true,
+			"created_by": null,
+			"usage_count": 0
+		}
+	},
+	{
+		"model": "tags.tag",
+		"fields": {
+			"name": "linux",
+			"display_name": "Linux",
+			"description": "Open-source Unix-like operating system kernel and ecosystem.",
+			"is_approved": true,
+			"created_by": null,
+			"usage_count": 0
+		}
+	},
+	{
+		"model": "tags.tag",
+		"fields": {
+			"name": "macos",
+			"display_name": "macOS",
+			"description": "Apple's desktop operating system.",
+			"is_approved": true,
+			"created_by": null,
+			"usage_count": 0
+		}
+	},
+	{
+		"model": "tags.tag",
+		"fields": {
+			"name": "windows",
+			"display_name": "Windows",
+			"description": "Microsoft's desktop operating system family.",
+			"is_approved": true,
+			"created_by": null,
+			"usage_count": 0
+		}
+	},
+	{
+		"model": "tags.tag",
+		"fields": {
+			"name": "postgresql",
+			"display_name": "PostgreSQL",
+			"description": "Powerful open-source relational database system.",
+			"is_approved": true,
+			"created_by": null,
+			"usage_count": 0
+		}
+	},
+	{
+		"model": "tags.tag",
+		"fields": {
+			"name": "mysql",
+			"display_name": "MySQL",
+			"description": "Popular open-source relational database system.",
+			"is_approved": true,
+			"created_by": null,
+			"usage_count": 0
+		}
+	},
+	{
+		"model": "tags.tag",
+		"fields": {
+			"name": "sqlite",
+			"display_name": "SQLite",
+			"description": "Embedded, single-file SQL database engine.",
+			"is_approved": true,
+			"created_by": null,
+			"usage_count": 0
+		}
+	},
+	{
+		"model": "tags.tag",
+		"fields": {
+			"name": "mongodb",
+			"display_name": "MongoDB",
+			"description": "Document-oriented NoSQL database.",
+			"is_approved": true,
+			"created_by": null,
+			"usage_count": 0
+		}
+	},
+	{
+		"model": "tags.tag",
+		"fields": {
+			"name": "redis",
+			"display_name": "Redis",
+			"description": "In-memory data store used as cache, broker, and database.",
+			"is_approved": true,
+			"created_by": null,
+			"usage_count": 0
+		}
+	},
+	{
+		"model": "tags.tag",
+		"fields": {
+			"name": "elasticsearch",
+			"display_name": "Elasticsearch",
+			"description": "Distributed search and analytics engine built on Lucene.",
+			"is_approved": true,
+			"created_by": null,
+			"usage_count": 0
+		}
+	},
+	{
+		"model": "tags.tag",
+		"fields": {
+			"name": "kafka",
+			"display_name": "Kafka",
+			"description": "Distributed event streaming platform.",
+			"is_approved": true,
+			"created_by": null,
+			"usage_count": 0
+		}
+	},
+	{
+		"model": "tags.tag",
+		"fields": {
+			"name": "rabbitmq",
+			"display_name": "RabbitMQ",
+			"description": "Open-source message broker implementing AMQP.",
+			"is_approved": true,
+			"created_by": null,
+			"usage_count": 0
+		}
+	},
+	{
+		"model": "tags.tag",
+		"fields": {
+			"name": "graphql",
+			"display_name": "GraphQL",
+			"description": "Query language and runtime for APIs.",
+			"is_approved": true,
+			"created_by": null,
+			"usage_count": 0
+		}
+	},
+	{
+		"model": "tags.tag",
+		"fields": {
+			"name": "rest",
+			"display_name": "REST",
+			"description": "Representational State Transfer — architectural style for HTTP APIs.",
+			"is_approved": true,
+			"created_by": null,
+			"usage_count": 0
+		}
+	},
+	{
+		"model": "tags.tag",
+		"fields": {
+			"name": "grpc",
+			"display_name": "gRPC",
+			"description": "High-performance RPC framework built on HTTP/2 and Protobuf.",
+			"is_approved": true,
+			"created_by": null,
+			"usage_count": 0
+		}
+	},
+	{
+		"model": "tags.tag",
+		"fields": {
+			"name": "websocket",
+			"display_name": "WebSocket",
+			"description": "Full-duplex communication protocol over a single TCP connection.",
+			"is_approved": true,
+			"created_by": null,
+			"usage_count": 0
+		}
+	},
+	{
+		"model": "tags.tag",
+		"fields": {
+			"name": "oauth",
+			"display_name": "OAuth",
+			"description": "Open authorization standard for delegated access.",
+			"is_approved": true,
+			"created_by": null,
+			"usage_count": 0
+		}
+	},
+	{
+		"model": "tags.tag",
+		"fields": {
+			"name": "jwt",
+			"display_name": "JWT",
+			"description": "JSON Web Token — compact, self-contained token format.",
+			"is_approved": true,
+			"created_by": null,
+			"usage_count": 0
+		}
+	},
+	{
+		"model": "tags.tag",
+		"fields": {
+			"name": "tailwind",
+			"display_name": "Tailwind",
+			"description": "Utility-first CSS framework.",
+			"is_approved": true,
+			"created_by": null,
+			"usage_count": 0
+		}
+	},
+	{
+		"model": "tags.tag",
+		"fields": {
+			"name": "bootstrap",
+			"display_name": "Bootstrap",
+			"description": "Popular HTML/CSS/JS framework for responsive design.",
+			"is_approved": true,
+			"created_by": null,
+			"usage_count": 0
+		}
+	},
+	{
+		"model": "tags.tag",
+		"fields": {
+			"name": "sass",
+			"display_name": "Sass",
+			"description": "CSS preprocessor adding variables, mixins, and nesting.",
+			"is_approved": true,
+			"created_by": null,
+			"usage_count": 0
+		}
+	},
+	{
+		"model": "tags.tag",
+		"fields": {
+			"name": "css",
+			"display_name": "CSS",
+			"description": "Cascading Style Sheets — the styling language for the web.",
+			"is_approved": true,
+			"created_by": null,
+			"usage_count": 0
+		}
+	},
+	{
+		"model": "tags.tag",
+		"fields": {
+			"name": "html",
+			"display_name": "HTML",
+			"description": "HyperText Markup Language — the structure of web pages.",
+			"is_approved": true,
+			"created_by": null,
+			"usage_count": 0
+		}
+	},
+	{
+		"model": "tags.tag",
+		"fields": {
+			"name": "webassembly",
+			"display_name": "WebAssembly",
+			"description": "Portable binary instruction format for the web (Wasm).",
+			"is_approved": true,
+			"created_by": null,
+			"usage_count": 0
+		}
+	},
+	{
+		"model": "tags.tag",
+		"fields": {
+			"name": "llm",
+			"display_name": "LLM",
+			"description": "Large Language Models and related tooling.",
+			"is_approved": true,
+			"created_by": null,
+			"usage_count": 0
+		}
+	},
+	{
+		"model": "tags.tag",
+		"fields": {
+			"name": "ai",
+			"display_name": "AI",
+			"description": "Artificial Intelligence — broad topic covering ML, DL, and related fields.",
+			"is_approved": true,
+			"created_by": null,
+			"usage_count": 0
+		}
+	},
+	{
+		"model": "tags.tag",
+		"fields": {
+			"name": "machine-learning",
+			"display_name": "Machine Learning",
+			"description": "Methods and tooling for training predictive models from data.",
+			"is_approved": true,
+			"created_by": null,
+			"usage_count": 0
+		}
+	}
+]
