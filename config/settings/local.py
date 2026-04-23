@@ -41,7 +41,7 @@ LOGGING={
             "class":"logging.StreamHandler",
             "formatter":"verbose",
             }
-            
+
     },
     "root": {"level":"INFO","handlers":["console"]},
 }

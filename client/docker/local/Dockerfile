@@ -30,4 +30,3 @@ RUN chown -R nextjs:nodejs ${APP_HOME}
 USER nextjs
 
 CMD [ "npm","run","dev" ]
-

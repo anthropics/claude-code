@@ -42,13 +42,13 @@ services:
     ports:
       - "8025:8025"
       - "1025:1025"
-    volumes:  
+    volumes:
       - mailpit_data:/data
     environment:
       MP_MAX_MESSAGES: 5000
       MP_DATA_FILE: /data/mailpit.db
       MP_SMTP_AUTH_ACCEPT_ANY: 1
-      MP_SMTP_AUTH_ALLOW_INSECURE: 1  
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
     networks:
       - app_nw
 
@@ -122,7 +122,7 @@ services:
       - daphne
     networks:
       - app_nw
-    
+
 
 networks:
   app_nw:
@@ -134,4 +134,3 @@ volumes:
   logs_store: {}
   redis_data: {}
   staticfiles: {}
-

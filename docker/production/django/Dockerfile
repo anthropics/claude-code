@@ -28,7 +28,7 @@ ENV BUILD_ENV ${BUILD_ENVIRONMENT}
 
 WORKDIR ${APP_HOME}
 
-RUN apt-get update && apt-get install --no-install-recommends -y \  
+RUN apt-get update && apt-get install --no-install-recommends -y \
   sudo git bash-completion nano ssh
 
 RUN addgroup --system django && \
@@ -76,5 +76,3 @@ RUN chown django:django ${APP_HOME}
 USER django
 
 ENTRYPOINT [ "/entrypoint" ]
-
-

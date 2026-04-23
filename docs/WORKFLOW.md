@@ -339,7 +339,7 @@ Phase 1 以降で必要となる Python 依存を一括導入する。
 
 ```yaml
 - name: Security Review
-  if: contains(github.event.pull_request.labels.*.name, 'area:auth') || 
+  if: contains(github.event.pull_request.labels.*.name, 'area:auth') ||
       contains(github.event.pull_request.labels.*.name, 'area:billing')
   run: |
     claude -p "security-reviewer エージェントで PR #${{ github.event.pull_request.number }} をレビュー" \

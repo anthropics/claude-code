@@ -174,4 +174,3 @@ RUN chmod +x /usr/local/bin/init-firewall.sh && \
   # Create docker group (actual GID will be fixed at start time to match host socket)
   groupadd -f docker && usermod -aG docker node
 USER node
-

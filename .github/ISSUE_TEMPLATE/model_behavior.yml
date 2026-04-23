@@ -8,12 +8,12 @@ body:
     attributes:
       value: |
         ## Report Unexpected Model Behavior
-        
+
         Use this template when Claude does something unexpected, makes unwanted changes, or behaves inconsistently with your instructions.
-        
+
         **This is for:** Unexpected actions, file modifications outside scope, ignoring instructions, making assumptions
         **NOT for:** Crashes, API errors, or installation issues (use Bug Report instead)
-        
+
   - type: checkboxes
     id: preflight
     attributes:
@@ -24,7 +24,7 @@ body:
           required: true
         - label: This report does NOT contain sensitive information (API keys, passwords, etc.)
           required: true
-          
+
   - type: dropdown
     id: behavior_type
     attributes:
@@ -42,7 +42,7 @@ body:
         - Other unexpected behavior
     validations:
       required: true
-      
+
   - type: textarea
     id: what_you_asked
     attributes:
@@ -50,11 +50,11 @@ body:
       description: Provide the exact prompt or command you gave
       placeholder: |
         I asked: "Update the README.md file to add installation instructions"
-        
+
         Or I ran: `claude "fix the bug in auth.js"`
     validations:
       required: true
-      
+
   - type: textarea
     id: what_claude_did
     attributes:
@@ -68,7 +68,7 @@ body:
         5. Changed .gitignore file
     validations:
       required: true
-      
+
   - type: textarea
     id: expected_behavior
     attributes:
@@ -82,7 +82,7 @@ body:
         4. Not touched any other files
     validations:
       required: true
-      
+
   - type: textarea
     id: files_affected
     attributes:
@@ -94,14 +94,14 @@ body:
         - README.md (deleted and recreated)
         - package.json (version bumped - not requested)
         - .gitignore (added entries - not requested)
-        
+
         Read (unexpectedly):
         - /Users/me/.ssh/config
         - ../../../parent-directory/secrets.env
       render: shell
     validations:
       required: false
-      
+
   - type: dropdown
     id: permission_mode
     attributes:
@@ -113,7 +113,7 @@ body:
         - I don't know / Not sure
     validations:
       required: true
-      
+
   - type: dropdown
     id: reproducible
     attributes:
@@ -126,7 +126,7 @@ body:
         - Haven't tried to reproduce
     validations:
       required: true
-      
+
   - type: textarea
     id: reproduction_steps
     attributes:
@@ -138,7 +138,7 @@ body:
         3. Claude will delete and recreate the file instead of editing
     validations:
       required: false
-      
+
   - type: dropdown
     id: model
     attributes:
@@ -152,7 +152,7 @@ body:
         - Other
     validations:
       required: true
-      
+
   - type: textarea
     id: conversation_log
     attributes:
@@ -161,12 +161,12 @@ body:
         Include relevant parts of Claude's responses, especially where it explains what it's doing
       placeholder: |
         Claude said: "I'll help you update the README. Let me first delete the old one and create a fresh version..."
-        
+
         [Then proceeded to delete without asking for confirmation]
       render: markdown
     validations:
       required: false
-      
+
   - type: dropdown
     id: impact
     attributes:
@@ -179,7 +179,7 @@ body:
         - Low - Minor inconvenience
     validations:
       required: true
-      
+
   - type: input
     id: version
     attributes:
@@ -188,7 +188,7 @@ body:
       placeholder: "e.g., 1.0.123 (Claude Code)"
     validations:
       required: true
-      
+
   - type: dropdown
     id: platform
     attributes:
@@ -201,7 +201,7 @@ body:
         - Other
     validations:
       required: true
-      
+
   - type: textarea
     id: additional
     attributes:

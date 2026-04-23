@@ -13,7 +13,7 @@ You need to execute the following bash commands to clean up stale local branches
    ```bash
    git branch -v
    ```
-   
+
    Note: Branches with a '+' prefix have associated worktrees and must have their worktrees removed before deletion.
 
 2. **Next, identify worktrees that need to be removed for [gone] branches**
@@ -50,4 +50,3 @@ After executing these commands, you will:
 - Provide feedback on which worktrees and branches were removed
 
 If no branches are marked as [gone], report that no cleanup was needed.
-

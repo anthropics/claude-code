@@ -91,7 +91,7 @@ Environment Variables:
   const dryRun = process.env.DRY_RUN !== "false";
   const maxIssueNumber = parseInt(process.env.MAX_ISSUE_NUMBER || "4050", 10);
   const minIssueNumber = parseInt(process.env.MIN_ISSUE_NUMBER || "1", 10);
-  
+
   console.log(`[DEBUG] Repository: ${owner}/${repo}`);
   console.log(`[DEBUG] Dry run mode: ${dryRun}`);
   console.log(`[DEBUG] Looking at issues between #${minIssueNumber} and #${maxIssueNumber}`);
@@ -100,21 +100,21 @@ Environment Variables:
   const allIssues: GitHubIssue[] = [];
   let page = 1;
   const perPage = 100;
-  
+
   while (true) {
     const pageIssues: GitHubIssue[] = await githubRequest(
       `/repos/${owner}/${repo}/issues?state=all&per_page=${perPage}&page=${page}&sort=created&direction=desc`,
       token
     );
-    
+
     if (pageIssues.length === 0) break;
-    
+
     // Filter to only include issues within the specified range
-    const filteredIssues = pageIssues.filter(issue => 
+    const filteredIssues = pageIssues.filter(issue =>
       issue.number >= minIssueNumber && issue.number < maxIssueNumber
     );
     allIssues.push(...filteredIssues);
-    
+
     // If the oldest issue in this page is still above our minimum, we need to continue
     // but if the oldest issue is below our minimum, we can stop
     const oldestIssueInPage = pageIssues[pageIssues.length - 1];
@@ -126,16 +126,16 @@ Environment Variables:
     } else if (filteredIssues.length === 0 && pageIssues.length > 0) {
       console.log(`[DEBUG] No issues in page #${page} are in range #${minIssueNumber}-#${maxIssueNumber}, continuing...`);
     }
-    
+
     page++;
-    
+
     // Safety limit to avoid infinite loops
     if (page > 200) {
       console.log("[DEBUG] Reached page limit, stopping pagination");
       break;
     }
   }
-  
+
   console.log(`[DEBUG] Found ${allIssues.length} issues between #${minIssueNumber} and #${maxIssueNumber}`);
 
   let processedCount = 0;
@@ -179,13 +179,13 @@ Environment Variables:
 
     candidateCount++;
     const issueUrl = `https://github.com/${owner}/${repo}/issues/${issue.number}`;
-    
+
     try {
       console.log(
         `[INFO] ${dryRun ? '[DRY RUN] ' : ''}Triggering dedupe workflow for issue #${issue.number}: ${issueUrl}`
       );
       await triggerDedupeWorkflow(owner, repo, issue.number, token, dryRun);
-      
+
       if (!dryRun) {
         console.log(
           `[SUCCESS] Successfully triggered dedupe workflow for issue #${issue.number}`

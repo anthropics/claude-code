@@ -8,10 +8,10 @@ body:
     attributes:
       value: |
         ## Thanks for suggesting a feature!
-        
+
         We love hearing ideas from our community. Please help us understand your use case by filling out the sections below.
         Before submitting, please check if this feature has already been requested.
-        
+
   - type: checkboxes
     id: preflight
     attributes:
@@ -21,7 +21,7 @@ body:
           required: true
         - label: This is a single feature request (not multiple features)
           required: true
-          
+
   - type: textarea
     id: problem
     attributes:
@@ -31,13 +31,13 @@ body:
         Focus on the problem, not the solution. Help us understand your workflow.
       placeholder: |
         I often need to work with multiple projects simultaneously, but Claude Code doesn't support...
-        
+
         When I'm debugging code, I find it difficult to...
-        
+
         The current workflow requires me to manually...
     validations:
       required: true
-      
+
   - type: textarea
     id: solution
     attributes:
@@ -47,13 +47,13 @@ body:
         Be specific about how you'd interact with this feature.
       placeholder: |
         I'd like to be able to run `claude --workspace project1,project2` to...
-        
+
         There should be a command or setting that allows...
-        
+
         The interface should show...
     validations:
       required: true
-      
+
   - type: textarea
     id: alternatives
     attributes:
@@ -63,13 +63,13 @@ body:
         Are there workarounds you're currently using?
       placeholder: |
         I've tried using multiple terminal windows but...
-        
+
         Currently I work around this by...
-        
+
         Other tools solve this by...
     validations:
       required: false
-      
+
   - type: dropdown
     id: priority
     attributes:
@@ -82,7 +82,7 @@ body:
         - Low - Nice to have
     validations:
       required: true
-      
+
   - type: dropdown
     id: category
     attributes:
@@ -101,7 +101,7 @@ body:
         - Other
     validations:
       required: true
-      
+
   - type: textarea
     id: use_case
     attributes:
@@ -117,7 +117,7 @@ body:
         4. This would save me time because...
     validations:
       required: false
-      
+
   - type: textarea
     id: additional
     attributes:

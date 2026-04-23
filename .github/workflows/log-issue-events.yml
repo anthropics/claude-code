@@ -21,7 +21,7 @@ jobs:
         run: |
           # All values are now safely passed via environment variables
           # No direct templating in the shell script to prevent injection attacks
-          
+
           curl -X POST "https://events.statsigapi.net/v1/log_event" \
             -H "Content-Type: application/json" \
             -H "statsig-api-key: $STATSIG_API_KEY" \

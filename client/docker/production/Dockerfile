@@ -55,5 +55,3 @@ USER nextjs
 ENV PORT 3000
 
 CMD HOSTNAME=client node server.js
-
-

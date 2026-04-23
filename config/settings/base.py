@@ -89,11 +89,11 @@ THIRD_PARTY_APPS=[
     "corsheaders",
     "django_countries",
     "phonenumber_field",
-    "drf_yasg", 
-    "djoser", 
-    "taggit", 
-    "django_filters", 
-    "djcelery_email", 
+    "drf_yasg",
+    "djoser",
+    "taggit",
+    "django_filters",
+    "djcelery_email",
 ]
 
 LOCAL_APPS = [

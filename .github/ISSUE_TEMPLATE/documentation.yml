@@ -8,9 +8,9 @@ body:
     attributes:
       value: |
         ## Help us improve our documentation!
-        
+
         Good documentation is crucial for a great developer experience. Please let us know what's missing or confusing.
-        
+
   - type: dropdown
     id: doc_type
     attributes:
@@ -26,7 +26,7 @@ body:
         - Other
     validations:
       required: true
-      
+
   - type: input
     id: location
     attributes:
@@ -35,7 +35,7 @@ body:
       placeholder: "e.g., https://docs.anthropic.com/en/docs/claude-code/getting-started"
     validations:
       required: false
-      
+
   - type: input
     id: section
     attributes:
@@ -44,22 +44,22 @@ body:
       placeholder: "e.g., MCP Server Configuration section"
     validations:
       required: true
-      
+
   - type: textarea
     id: current
     attributes:
       label: Current Documentation
       description: |
-        What does the documentation currently say? 
+        What does the documentation currently say?
         Quote the specific text if applicable.
       placeholder: |
         The docs currently say:
         "To configure MCP servers, add them to your configuration..."
-        
+
         But it doesn't explain...
     validations:
       required: false
-      
+
   - type: textarea
     id: issue
     attributes:
@@ -70,11 +70,11 @@ body:
         - Configure multiple MCP servers
         - Handle authentication
         - Debug connection issues
-        
+
         The example code doesn't work because...
     validations:
       required: true
-      
+
   - type: textarea
     id: suggested
     attributes:
@@ -82,16 +82,16 @@ body:
       description: How should the documentation be improved? Provide suggested text if possible
       placeholder: |
         The documentation should include:
-        
+
         1. A complete example showing...
         2. Explanation of common errors like...
         3. Step-by-step guide for...
-        
+
         Suggested text:
         "To configure multiple MCP servers, create an array in your settings..."
     validations:
       required: true
-      
+
   - type: dropdown
     id: impact
     attributes:
@@ -103,7 +103,7 @@ body:
         - Low - Minor confusion or inconvenience
     validations:
       required: true
-          
+
   - type: textarea
     id: additional
     attributes:

@@ -41,12 +41,12 @@ jobs:
         run: |
           ISSUE_NUMBER=${{ github.event.issue.number || inputs.issue_number }}
           REPO=${{ github.repository }}
-          
+
           if [ -z "$STATSIG_API_KEY" ]; then
             echo "STATSIG_API_KEY not found, skipping Statsig logging"
             exit 0
           fi
-          
+
           # Prepare the event payload
           EVENT_PAYLOAD=$(jq -n \
             --arg issue_number "$ISSUE_NUMBER" \
@@ -65,18 +65,18 @@ jobs:
                 time: (now | floor | tostring)
               }]
             }')
-          
+
           # Send to Statsig API
           echo "Logging duplicate comment event to Statsig for issue #${ISSUE_NUMBER}"
-          
+
           RESPONSE=$(curl -s -w "\n%{http_code}" -X POST https://events.statsigapi.net/v1/log_event \
             -H "Content-Type: application/json" \
             -H "STATSIG-API-KEY: ${STATSIG_API_KEY}" \
             -d "$EVENT_PAYLOAD")
-          
+
           HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
           BODY=$(echo "$RESPONSE" | head -n-1)
-          
+
           if [ "$HTTP_CODE" -eq 200 ] || [ "$HTTP_CODE" -eq 202 ]; then
             echo "Successfully logged duplicate comment event for issue #${ISSUE_NUMBER}"
           else

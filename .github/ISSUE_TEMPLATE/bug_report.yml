@@ -8,12 +8,12 @@ body:
     attributes:
       value: |
         Thanks for taking the time to report this bug! Please fill out the sections below to help us understand and fix the issue.
-        
+
         Before submitting, please check:
-        - You're using the [latest version](https://www.npmjs.com/package/@anthropic-ai/claude-code?activeTab=versions) of Claude Code (`claude --version`) 
+        - You're using the [latest version](https://www.npmjs.com/package/@anthropic-ai/claude-code?activeTab=versions) of Claude Code (`claude --version`)
         - This issue hasn't already been reported by searching [existing issues](https://github.com/anthropics/claude-code/issues?q=is%3Aissue%20state%3Aopen%20label%3Abug).
         - This is a bug, not a feature request or support question
-        
+
   - type: checkboxes
     id: preflight
     attributes:
@@ -26,7 +26,7 @@ body:
           required: true
         - label: I am using the latest version of Claude Code
           required: true
-          
+
   - type: textarea
     id: actual
     attributes:
@@ -34,11 +34,11 @@ body:
       description: Describe what's happening that shouldn't be
       placeholder: |
         When I try to create a Python file, Claude shows an error "EACCES: permission denied" and the file isn't created.
-        
+
         The command fails immediately after accepting the file write permission...
     validations:
       required: true
-      
+
   - type: textarea
     id: expected
     attributes:
@@ -47,7 +47,7 @@ body:
       placeholder: Claude should create a Python script file successfully without errors
     validations:
       required: true
-      
+
   - type: textarea
     id: error_output
     attributes:
@@ -59,7 +59,7 @@ body:
       render: shell
     validations:
       required: false
-      
+
   - type: textarea
     id: reproduction
     attributes:
@@ -77,11 +77,11 @@ body:
         2. Run `claude "add type hints to test.py"`
         3. When prompted for file access, accept
         4. Error appears: "Unable to parse..."
-        
+
         Note: The bug only happens with Python files containing...
     validations:
       required: true
-      
+
   - type: dropdown
     id: model
     attributes:
@@ -94,19 +94,19 @@ body:
         - Other
     validations:
       required: false
-      
+
   - type: dropdown
     id: regression
     attributes:
       label: Is this a regression?
-      description: Did this work in a previous version? 
+      description: Did this work in a previous version?
       options:
         - "Yes, this worked in a previous version"
         - "No, this never worked"
         - "I don't know"
     validations:
       required: true
-      
+
   - type: input
     id: working_version
     attributes:
@@ -115,7 +115,7 @@ body:
       placeholder: "e.g., 1.0.100"
     validations:
       required: false
-      
+
   - type: input
     id: version
     attributes:
@@ -124,7 +124,7 @@ body:
       placeholder: "e.g., 1.0.123 (Claude Code)"
     validations:
       required: true
-      
+
   - type: dropdown
     id: platform
     attributes:
@@ -137,7 +137,7 @@ body:
         - Other
     validations:
       required: true
-      
+
   - type: dropdown
     id: os
     attributes:
@@ -150,7 +150,7 @@ body:
         - Other
     validations:
       required: true
-      
+
   - type: dropdown
     id: terminal
     attributes:
@@ -164,7 +164,7 @@ body:
         - IntelliJ IDEA terminal
         - VS Code integrated terminal
         - PyCharm terminal
-        - Windows Terminal        
+        - Windows Terminal
         - PowerShell
         - WSL (Windows Subsystem for Linux)
         - Xterm
@@ -172,7 +172,7 @@ body:
         - Other
     validations:
       required: true
-      
+
   - type: textarea
     id: additional
     attributes:

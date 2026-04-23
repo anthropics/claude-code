@@ -21,7 +21,7 @@ jobs:
         with:
           script: |
             console.log(`Removing autoclose label from issue #${context.issue.number} due to new comment from ${context.payload.comment.user.login}`);
-            
+
             try {
               // Remove the autoclose label
               await github.rest.issues.removeLabel({
@@ -30,7 +30,7 @@ jobs:
                 issue_number: context.issue.number,
                 name: 'autoclose'
               });
-              
+
               console.log(`Successfully removed autoclose label from issue #${context.issue.number}`);
             } catch (error) {
               // If the label was already removed or doesn't exist, that's fine

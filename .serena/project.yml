@@ -68,7 +68,7 @@ read_only: false
 # This extends the existing exclusions (e.g. from the global configuration)
 #
 # Below is the complete list of tools for convenience.
-# To make sure you have the latest list of tools, and to view their descriptions, 
+# To make sure you have the latest list of tools, and to view their descriptions,
 # execute `uv run scripts/print_tool_overview.py`.
 #
 #  * `activate_project`: Activates a project based on the project name or path.
