@@ -115,11 +115,9 @@ LOCAL_APPS = [
     "apps.search",
 ]
 
-MIDDLEWARE = []
+INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
-INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS+LOCAL_APPS
-
-MIDDLEWARE =[
+MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -128,7 +126,17 @@ MIDDLEWARE =[
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    # P0-10: inject request_id / user_id / path into structlog contextvars
+    "apps.common.logging.RequestContextMiddleware",
 ]
+
+# --- Structured logging (P0-10) ---
+# structlog を標準 logging に噛ませる。ローカルは色付き ConsoleRenderer、
+# stg/prod は JSONRenderer に切替える。詳細は apps/common/logging.py。
+from apps.common.logging import build_logging_dict, configure_structlog  # noqa: E402
+
+configure_structlog(SENTRY_ENVIRONMENT)
+LOGGING = build_logging_dict(SENTRY_ENVIRONMENT)
 
 ROOT_URLCONF = 'config.urls'
 
