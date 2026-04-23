@@ -1,0 +1,12 @@
+{
+  "name": "agent-session-commit",
+  "version": "0.1.0",
+  "description": "Capture session learnings to AGENTS.md for cross-tool AI interoperability",
+  "author": {
+    "name": "Daniel Olshansky",
+    "url": "https://github.com/olshansky"
+  },
+  "repository": "https://github.com/anthropics/claude-code",
+  "license": "MIT",
+  "keywords": ["agents", "claude-md", "session", "learnings", "interoperability"]
+}
