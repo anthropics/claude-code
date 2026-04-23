@@ -220,3 +220,17 @@ client/next-env.d.ts
 
 # git worktrees (parallel branches)
 .worktrees/
+
+# Terraform (P0.5-07)
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfvars
+!**/terraform.tfvars.example
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraform.lock.hcl

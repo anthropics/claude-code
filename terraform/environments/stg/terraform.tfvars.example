@@ -1,0 +1,27 @@
+# コピーして terraform.tfvars に保存し、実値を埋める
+# (terraform.tfvars は .gitignore されるので secret を書いても良い)。
+
+# お名前.com で取得した apex ドメイン
+domain_name = "example.com"
+
+# アラート送信先 (SNS topic subscription 確認メールが届く → 承認リンクをクリック)
+alert_email = "alerts@example.com"
+
+# デフォルト値を上書きしたい場合だけ記述:
+# app_subdomain             = "stg"
+# webhook_subdomain         = "webhook"
+# aws_region                = "ap-northeast-1"
+# rds_instance_class        = "db.t4g.small"  # 本番昇格の準備
+# rds_multi_az              = true
+# rds_skip_final_snapshot   = true            # teardown を頻繁に行う場合
+# redis_node_type           = "cache.t4g.small"
+# enable_vpc_endpoints      = false           # コスト削減 ($35/月)
+
+# ---------- 二段階 apply ----------
+# 初回 apply 時は以下 2 つを**空のまま**にする。
+# edge モジュール作成後に
+#   terraform output -raw cloudfront_distribution_arn
+#   terraform output -raw acm_alb_arn
+# の値をコピペして再 apply する。
+# cloudfront_distribution_arn_override = ""
+# alb_certificate_arn_override         = ""
