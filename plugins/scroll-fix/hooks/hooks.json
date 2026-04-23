@@ -1,0 +1,16 @@
+{
+  "description": "Scroll fix plugin — notifies when the scroll-to-top fix is active",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/check-scroll-fix.js",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}
