@@ -141,37 +141,32 @@ jobs:
           # Python 3.12 は setuptools 同梱なし。drf-yasg 1.21.7 が pkg_resources を
           # 要求するが、setuptools 81 以降では pkg_resources が削除されているため 80 系を pin。
           pip install "setuptools<81"
-          # local.txt = base + psycopg2-binary + watchfiles + black。CI では Django
-          # system check / migrations に psycopg2 が必須なので local.txt を使う。
+          # local.txt = base + psycopg2-binary + watchfiles + black + テスト基盤
+          # (pytest / pytest-django / pytest-cov / pytest-mock / factory-boy / freezegun)。
+          # CI では Django system check / migrations に psycopg2 が必須なので local.txt を使う。
           pip install -r requirements/local.txt
-          pip install ruff==0.6.9 pytest pytest-django pytest-cov coverage
+          pip install ruff==0.6.9
       - name: ruff (lint + format check)
         run: |
           ruff check .
           ruff format --check .
       - name: Django system check
         run: python manage.py check --deploy --fail-level WARNING || python manage.py check
-      # TODO(Phase1): remove the `continue-on-error: true` and the `5` exit code
-      # tolerance. Phase 0 has no tests yet, so pytest exits 5 ("no tests collected").
-      # Once Phase 1 lands the first test, real failures (exit 1) must hard-fail CI.
-      # Tracking: this block must be edited together with the first pytest case.
+      # P1-21: Phase 0 で暫定入れていた `continue-on-error: true` と exit code 5 許容を外し、
+      # 本配線に切り替え。`--cov-fail-under` で最低カバレッジを CI gate に。
+      #
+      # 段階的引き上げ方針:
+      # - P1-21 merge 時点: Phase 0 コードに対してテスト 4 件のみ (≈ 65%)、閾値 60% で緑に
+      # - Phase 1 Backend 実装 (P1-02 / P1-05 / P1-07 / P1-08 ...) が入ると徐々に上昇
+      # - Phase 1 完了時 (P1-22) に閾値を 80% に引き上げて SPEC の要求を達成する
+      # - 引き上げ PR は必ず新規テスト追加とセットで入れる (閾値だけ下げる逆行は禁止)
+      #
+      # CI では `--create-db` を付けて pytest-django の `--reuse-db` (pyproject.toml の既定)
+      # を打ち消す。service container の Postgres は毎回真っさらなので reuse しても意味がなく、
+      # むしろ race condition で落ちる。
       - name: Run pytest with coverage
-        id: pytest
-        continue-on-error: true
         run: |
-          pytest --cov=apps --cov=config --cov-report=xml --cov-report=term-missing --maxfail=1
-      - name: Fail when pytest reported a real failure (exit != 0 and != 5)
-        if: steps.pytest.outcome == 'failure'
-        run: |
-          # pytest exit codes: 0=ok, 1=test fail, 2=interrupted, 5=no tests collected
-          # We tolerate 5 only during Phase 0. Anything else fails the job.
-          ec=${{ steps.pytest.outputs.exit_code || '1' }}
-          if [ "$ec" = "5" ]; then
-            echo "::warning::No tests collected (Phase 0). Remove this guard once Phase 1 ships tests."
-          else
-            echo "::error::pytest failed with exit $ec"
-            exit 1
-          fi
+          pytest --create-db --cov-fail-under=60 --maxfail=1
       - name: Upload coverage
         if: always()
         uses: actions/upload-artifact@v4

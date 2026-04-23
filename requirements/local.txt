@@ -3,3 +3,17 @@
 psycopg2-binary==2.9.9
 watchfiles==0.21.0
 black==24.3.0
+
+# --- テスト基盤 (P1-21 で本配線) ---
+# pytest: base.txt には無いのでここで pin。8.3.x 系は Python 3.12 サポート済み。
+pytest==8.3.3
+# Django との統合 (settings 自動読み込み / django_db / reuse-db 等)
+pytest-django==4.9.0
+# カバレッジ計測 (coverage.py の pytest プラグイン)
+pytest-cov==5.0.0
+# mocker fixture (unittest.mock を pytest style で使う)
+pytest-mock==3.14.0
+# factory-boy: DB fixture 生成の標準
+factory-boy==3.3.1
+# freezegun: 時刻固定テスト用
+freezegun==1.5.1

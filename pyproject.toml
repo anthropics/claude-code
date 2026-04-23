@@ -4,6 +4,26 @@ version = "0.1.0"
 description = "Engineer-focused SNS built with Django + Next.js"
 requires-python = ">=3.12"
 
+# -----------------------------------------------------------------------------
+# pytest / pytest-django 設定 (P1-21 で本配線)
+# -----------------------------------------------------------------------------
+# - DJANGO_SETTINGS_MODULE は local を使う。CI でも local を使っており、Postgres
+#   (psycopg2-binary) を要求するので service container が必須。
+# - --reuse-db は高速化のための既定。CI では --create-db を明示して打ち消す。
+# - --cov=apps --cov=config で apps/ と config/ 双方をカバレッジ対象にする。
+#   まだレポートを生成するだけで gate にはしない (CI 側で --cov-fail-under=80)。
+# - filterwarnings は Django / DRF 内部の DeprecationWarning を抑制するだけ。
+#   プロジェクト自前コードの warning は握りつぶさない (default のまま表示)。
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.local"
+python_files = ["tests.py", "test_*.py", "*_tests.py"]
+addopts = "--reuse-db --cov=apps --cov=config --cov-report=term-missing --cov-report=xml"
+testpaths = ["apps", "config"]
+filterwarnings = [
+    "ignore::DeprecationWarning:django.*",
+    "ignore::DeprecationWarning:rest_framework.*",
+]
+
 [tool.ruff]
 # Match Django apps layout
 src = ["apps", "config"]
