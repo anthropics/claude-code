@@ -40,7 +40,9 @@ locals {
     next = {
       port     = 3000
       protocol = "HTTP"
-      health   = "/"
+      # F-10: 軽量 /api/healthz route handler を叩く。SSR フルレンダを 30s ごとに
+      # 起動しないため ALB 側のコストも Next.js 側の負荷も下がる。
+      health   = "/api/healthz"
       sticky   = false
     }
     daphne = {
@@ -195,9 +197,7 @@ resource "aws_lb_target_group" "this" {
 
   # architect PR #51 MEDIUM: matcher を "200" に絞り、リダイレクトを
   # 健全状態と誤認しないようにする。
-  # TODO(Phase1): Next.js 側で軽量な /api/healthz route handler を用意し、
-  # next target group の health path を / から /api/healthz に差し替える。
-  # 現状 / は SSR をフルレンダするので 30s 間隔でコストが嵩む。
+  # F-10 で next tg の health path を "/" -> "/api/healthz" に差し替え済み。
   health_check {
     path                = each.value.health
     interval            = 30
