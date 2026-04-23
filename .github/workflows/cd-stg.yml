@@ -1,0 +1,235 @@
+name: CD stg
+
+# main ブランチへの push で stg へデプロイ。
+# 認証は IAM OIDC (terraform/modules/github_oidc で作成される Role)。
+# 事前に GitHub repository の Variables に以下を設定 (settings -> Secrets and variables -> Actions -> Variables):
+#   AWS_REGION              = ap-northeast-1
+#   AWS_DEPLOY_ROLE_ARN     = <sns-stg-github-actions の role_arn>
+#   ECR_BACKEND_REPOSITORY  = <account>.dkr.ecr.ap-northeast-1.amazonaws.com/sns-stg-backend
+#   ECR_FRONTEND_REPOSITORY = <account>.dkr.ecr.ap-northeast-1.amazonaws.com/sns-stg-frontend
+#   ECR_NGINX_REPOSITORY    = <account>.dkr.ecr.ap-northeast-1.amazonaws.com/sns-stg-nginx
+#   ECS_CLUSTER             = sns-stg-cluster
+#   SMOKE_URL               = https://stg.<your-domain>
+# Secrets 側には機密が必要な場合のみ (現状は役立つ secret なし、Slack webhook を
+# 追加する時に SLACK_WEBHOOK_URL を足す)。
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "デプロイする git SHA (省略時は HEAD)"
+        required: false
+        type: string
+
+concurrency:
+  group: cd-stg
+  cancel-in-progress: false # main の連続 push を順番にデプロイ
+
+# OIDC で sts:AssumeRoleWithWebIdentity を呼べるように
+permissions:
+  id-token: write # OIDC
+  contents: read
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION || 'ap-northeast-1' }}
+  IMAGE_TAG: stg-${{ github.event.inputs.image_tag || github.sha }}
+
+jobs:
+  # -----------------------------------------------------------------------
+  # 1. Docker イメージをビルドして ECR へ push
+  # -----------------------------------------------------------------------
+  build:
+    name: Build & push images
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ env.IMAGE_TAG }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: gha-cd-stg-${{ github.run_id }}
+
+      - name: Login to Amazon ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # ---------- Backend (Django) ----------
+      # buildcache tag に環境サフィックスを付けて、将来 CI (PR build) や
+      # prod CD が同一 ECR リポジトリを使っても干渉しないようにする
+      # (security-reviewer PR #58 MEDIUM)。
+      - name: Build & push backend
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./docker/production/django/Dockerfile
+          push: true
+          tags: |
+            ${{ vars.ECR_BACKEND_REPOSITORY }}:${{ env.IMAGE_TAG }}
+            ${{ vars.ECR_BACKEND_REPOSITORY }}:stg-latest
+          cache-from: type=registry,ref=${{ vars.ECR_BACKEND_REPOSITORY }}:buildcache-stg
+          cache-to: type=registry,ref=${{ vars.ECR_BACKEND_REPOSITORY }}:buildcache-stg,mode=max
+          provenance: false
+
+      # ---------- Frontend (Next.js) ----------
+      - name: Build & push frontend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./client
+          file: ./client/docker/production/Dockerfile
+          push: true
+          tags: |
+            ${{ vars.ECR_FRONTEND_REPOSITORY }}:${{ env.IMAGE_TAG }}
+            ${{ vars.ECR_FRONTEND_REPOSITORY }}:stg-latest
+          cache-from: type=registry,ref=${{ vars.ECR_FRONTEND_REPOSITORY }}:buildcache-stg
+          cache-to: type=registry,ref=${{ vars.ECR_FRONTEND_REPOSITORY }}:buildcache-stg,mode=max
+          provenance: false
+          build-args: |
+            NEXT_PUBLIC_SENTRY_DSN=${{ secrets.NEXT_PUBLIC_SENTRY_DSN }}
+            NEXT_PUBLIC_SENTRY_ENVIRONMENT=stg
+            NEXT_PUBLIC_SENTRY_RELEASE=${{ env.IMAGE_TAG }}
+
+      # ---------- Nginx ----------
+      - name: Build & push nginx
+        uses: docker/build-push-action@v6
+        with:
+          context: ./docker/production/nginx
+          file: ./docker/production/nginx/Dockerfile
+          push: true
+          tags: |
+            ${{ vars.ECR_NGINX_REPOSITORY }}:${{ env.IMAGE_TAG }}
+            ${{ vars.ECR_NGINX_REPOSITORY }}:stg-latest
+          cache-from: type=registry,ref=${{ vars.ECR_NGINX_REPOSITORY }}:buildcache-stg
+          cache-to: type=registry,ref=${{ vars.ECR_NGINX_REPOSITORY }}:buildcache-stg,mode=max
+          provenance: false
+
+  # -----------------------------------------------------------------------
+  # 2. DB マイグレーション (ECS run-task)
+  # -----------------------------------------------------------------------
+  migrate:
+    name: Run migrations
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: gha-cd-stg-migrate-${{ github.run_id }}
+
+      # Phase 0.5 では django / celery の task definition がまだ ECS に登録
+      # されていないため、`|| true` でスキップしてもパイプラインは進める。
+      # Phase 1 で aws_ecs_service が作られた後、以下を有効化する:
+      #
+      # - name: Trigger migration task
+      #   run: |
+      #     aws ecs run-task \
+      #       --cluster ${{ vars.ECS_CLUSTER }} \
+      #       --task-definition sns-stg-django-migrate \
+      #       --launch-type FARGATE \
+      #       --network-configuration "awsvpcConfiguration={subnets=[${{ vars.ECS_PRIVATE_SUBNETS }}],securityGroups=[${{ vars.ECS_SECURITY_GROUP }}]}" \
+      #       --wait
+      - name: Placeholder — migration not yet wired
+        run: |
+          echo "::warning::Phase 0.5: migration step is a placeholder until Phase 1 wires aws_ecs_service"
+
+  # -----------------------------------------------------------------------
+  # 3. ECS サービス更新 (Rolling Update)
+  # -----------------------------------------------------------------------
+  deploy:
+    name: Update ECS services
+    runs-on: ubuntu-latest
+    needs: migrate
+    steps:
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: gha-cd-stg-deploy-${{ github.run_id }}
+
+      # Phase 0.5 時点では aws_ecs_service が未定義。Phase 1 で追加される
+      # サービスに対して下記のような update-service を実行する。
+      - name: Placeholder — services not yet wired
+        run: |
+          echo "::warning::Phase 0.5: ECS service rolling update is a placeholder until Phase 1 defines aws_ecs_service for django/next/daphne/celery-worker/celery-beat"
+
+      # 有効化する時のテンプレ:
+      # - name: Force new deployment
+      #   run: |
+      #     for service in django next daphne celery-worker celery-beat; do
+      #       aws ecs update-service \
+      #         --cluster ${{ vars.ECS_CLUSTER }} \
+      #         --service "sns-stg-$service" \
+      #         --force-new-deployment \
+      #         --no-cli-pager
+      #     done
+
+  # -----------------------------------------------------------------------
+  # 4. Smoke test
+  # -----------------------------------------------------------------------
+  smoke-test:
+    name: Smoke test
+    runs-on: ubuntu-latest
+    needs: deploy
+    steps:
+      - name: curl /api/health/
+        # TODO(Phase1): `continue-on-error: true` を外して smoke 失敗で job を
+        # 落とすこと。Phase 0.5 では SMOKE_URL 未設定 + ECS サービス未配線で
+        # 常時失敗するので warning 止まりにしている。追跡 Issue: Phase 1 着手
+        # 時の `[P1-XX] Harden cd-stg.yml smoke test` で対応。
+        if: vars.SMOKE_URL != ''
+        run: |
+          url="${{ vars.SMOKE_URL }}/api/health/"
+          echo "Hitting $url"
+          for i in 1 2 3 4 5; do
+            if curl -fsSL --max-time 10 "$url" > /tmp/health.json; then
+              cat /tmp/health.json
+              exit 0
+            fi
+            echo "Attempt $i failed, retrying in 20s..."
+            sleep 20
+          done
+          echo "::error::Health check failed after 5 attempts"
+          exit 1
+        continue-on-error: true
+      - name: Smoke test skipped notice
+        if: vars.SMOKE_URL == ''
+        run: |
+          echo "::warning::SMOKE_URL is not set; skipping smoke test. Configure it in repo Variables before Phase 1."
+
+  # -----------------------------------------------------------------------
+  # 5. Sentry release
+  # `secrets.SENTRY_AUTH_TOKEN` は `if:` 内で参照できないため、設定済みか
+  # どうかは Variables 側 (`vars.SENTRY_ORG`) で判定する
+  # (security-reviewer PR #58 LOW)。vars.SENTRY_ORG を入れる運用 =
+  # Sentry 連携を有効化する運用、という合意で揃える。
+  # -----------------------------------------------------------------------
+  sentry-release:
+    name: Sentry release
+    runs-on: ubuntu-latest
+    needs: smoke-test
+    if: vars.SENTRY_ORG != ''
+    env:
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+      SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+      SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
+    steps:
+      - uses: actions/checkout@v4
+      # サードパーティ Action は SHA pin で供給元の書換え攻撃を防ぐ
+      # (security-reviewer PR #58 MEDIUM)。バージョン注釈のコメントを併記。
+      - name: Create Sentry release
+        uses: getsentry/action-release@586b62368a1c6b5dffb12d55a1a7edfd2263ad3c # v1.7.0
+        with:
+          environment: stg
+          version: ${{ env.IMAGE_TAG }}
+          ignore_missing: true
