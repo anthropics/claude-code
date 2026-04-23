@@ -36,3 +36,13 @@ output "backup_bucket_id" {
 output "backup_bucket_arn" {
   value = aws_s3_bucket.this["backup"].arn
 }
+
+# ALB access logs (F-02): compute モジュールの var.alb_access_logs_bucket に渡す
+output "alb_logs_bucket_id" {
+  description = "ALB access logs を保存する S3 bucket 名 (compute モジュール alb_access_logs_bucket に渡す)"
+  value       = aws_s3_bucket.this["alb_logs"].id
+}
+
+output "alb_logs_bucket_arn" {
+  value = aws_s3_bucket.this["alb_logs"].arn
+}

@@ -24,10 +24,15 @@ locals {
   )
 
   buckets = {
-    media   = { name = "${local.prefix}-media", purpose = "user-uploaded content (avatars, tweet images, DM attachments)" }
-    static  = { name = "${local.prefix}-static", purpose = "Next.js static assets via CloudFront" }
-    backup  = { name = "${local.prefix}-backup", purpose = "RDS / Meilisearch / app-level backups" }
+    media    = { name = "${local.prefix}-media", purpose = "user-uploaded content (avatars, tweet images, DM attachments)" }
+    static   = { name = "${local.prefix}-static", purpose = "Next.js static assets via CloudFront" }
+    backup   = { name = "${local.prefix}-backup", purpose = "RDS / Meilisearch / app-level backups" }
+    alb_logs = { name = "${local.prefix}-alb-logs", purpose = "ALB access logs (F-02)" }
   }
+
+  # ap-northeast-1 Elastic Load Balancing service account (AWS 公式 account ID)。
+  # https://docs.aws.amazon.com/elasticloadbalancing/latest/application/enable-access-logging.html
+  elb_service_account_ap_northeast_1 = "582318560864"
 }
 
 resource "aws_s3_bucket" "this" {
@@ -172,6 +177,68 @@ resource "aws_s3_bucket_lifecycle_configuration" "static" {
       days_after_initiation = 7
     }
   }
+}
+
+# alb_logs: 最長 90 日で削除。ALB の access logs は stg では検証用途で、
+# 長期保持は prod で検討する (F-02)。
+resource "aws_s3_bucket_lifecycle_configuration" "alb_logs" {
+  bucket = aws_s3_bucket.this["alb_logs"].id
+
+  rule {
+    id     = "expire-alb-logs"
+    status = "Enabled"
+
+    filter {}
+
+    expiration {
+      days = 90
+    }
+
+    noncurrent_version_expiration {
+      noncurrent_days = 7
+    }
+
+    abort_incomplete_multipart_upload {
+      days_after_initiation = 1
+    }
+  }
+}
+
+# ALB の access logs 書き込みを許可する bucket policy (F-02):
+# ELB サービスアカウント (ap-northeast-1 = 582318560864) に s3:PutObject のみ許可。
+# 参考: https://docs.aws.amazon.com/elasticloadbalancing/latest/application/enable-access-logging.html
+data "aws_iam_policy_document" "alb_logs_write" {
+  statement {
+    sid     = "AllowELBServiceAccountPutObject"
+    effect  = "Allow"
+    actions = ["s3:PutObject"]
+    # prefix は compute モジュールで alb/<env>/... と指定されるのでワイルドカード
+    resources = ["${aws_s3_bucket.this["alb_logs"].arn}/alb/*"]
+
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:aws:iam::${local.elb_service_account_ap_northeast_1}:root"]
+    }
+  }
+
+  # ELB が ACL "bucket-owner-full-control" を付けて PutObject するケースの許可
+  statement {
+    sid     = "AllowELBLoggingDeliveryAcl"
+    effect  = "Allow"
+    actions = ["s3:GetBucketAcl"]
+
+    resources = [aws_s3_bucket.this["alb_logs"].arn]
+
+    principals {
+      type        = "Service"
+      identifiers = ["logdelivery.elasticloadbalancing.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_s3_bucket_policy" "alb_logs" {
+  bucket = aws_s3_bucket.this["alb_logs"].id
+  policy = data.aws_iam_policy_document.alb_logs_write.json
 }
 
 # ---------------------------------------------------------------------------

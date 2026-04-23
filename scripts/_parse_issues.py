@@ -15,9 +15,10 @@ def main(issue_file: str) -> int:
     path = Path(issue_file)
     content = path.read_text(encoding="utf-8")
 
-    # `\n---\n` 区切りで Issue ブロックを分割、`## P` で始まるブロックのみ採用
+    # `\n---\n` 区切りで Issue ブロックを分割、`## P` or `## F` で始まるブロックを採用
+    # (F-XX は Phase 横断の followup 用、例: phase-0.5-followups.md)
     blocks = re.split(r"\n---\n+", content)
-    issues = [b for b in blocks if re.search(r"^## P[0-9]", b, re.MULTILINE)]
+    issues = [b for b in blocks if re.search(r"^## (P[0-9]|F-[0-9])", b, re.MULTILINE)]
 
     print(f"📋 {len(issues)} 件の Issue を検出")
 
@@ -25,7 +26,7 @@ def main(issue_file: str) -> int:
     failed: list[tuple[str, str]] = []
 
     for idx, block in enumerate(issues, 1):
-        title_match = re.search(r"^## (P[\d.\-]+[^\n]*)", block, re.MULTILINE)
+        title_match = re.search(r"^## ((?:P|F)[\d.\-]+[^\n]*)", block, re.MULTILINE)
         if not title_match:
             print(f"⚠️  Issue {idx}: タイトル抽出失敗、スキップ")
             continue

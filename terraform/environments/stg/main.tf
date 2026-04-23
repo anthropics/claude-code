@@ -121,6 +121,10 @@ module "compute" {
 
   alb_idle_timeout_seconds = 3600
   enable_fargate_spot      = true
+
+  # F-02: ALB access logs を storage の専用バケットに書き出す。
+  # prefix は compute モジュール側で "alb/<env>" 固定。
+  alb_access_logs_bucket = module.storage.alb_logs_bucket_id
 }
 
 # ---------------------------------------------------------------------------
