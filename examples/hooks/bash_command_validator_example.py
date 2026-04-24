@@ -6,6 +6,10 @@ This hook runs as a PreToolUse hook for the Bash tool.
 It validates bash commands against a set of rules before execution.
 In this case it changes grep calls to using rg.
 
+It also demonstrates how to read the new agent context fields
+(agent_id, agent_type) added natively in Claude Code
+to tailor messages for main agent vs subagent callers.
+
 Read more about hooks here: https://docs.anthropic.com/en/docs/claude-code/hooks
 
 Make sure to change your path to your actual script.
@@ -25,6 +29,10 @@ Make sure to change your path to your actual script.
     ]
   }
 }
+
+All PreToolUse hook payloads include these agent context fields:
+  - agent_id      (str)  Unique agent identifier; omitted or empty for main agent
+  - agent_type    (str)  Subagent name/type; empty string for main agent
 
 """
 
@@ -71,10 +79,22 @@ def main():
     if not command:
         sys.exit(0)
 
+    # ── Agent context fields (available in all hook events) ────────────────
+    # agent_id    – Unique identifier for subagent; omitted/empty for main agent
+    # agent_type  – Subagent name; empty string for the main agent
+    agent_id = input_data.get("agent_id")
+    agent_type = input_data.get("agent_type", "")
+    is_subagent = bool(agent_id)
+
     issues = _validate_command(command)
     if issues:
         for message in issues:
-            print(f"• {message}", file=sys.stderr)
+            # Tailor the message prefix based on agent context
+            if is_subagent:
+                prefix = f"[Subagent '{agent_type or 'unknown'}']"
+            else:
+                prefix = "[Main agent]"
+            print(f"{prefix} • {message}", file=sys.stderr)
         # Exit code 2 blocks tool call and shows stderr to Claude
         sys.exit(2)
 
