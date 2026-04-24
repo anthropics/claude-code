@@ -10,14 +10,19 @@ from rest_framework.parsers import JSONParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
-from rest_framework.throttling import AnonRateThrottle
+from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
 from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from apps.common.cookie_auth import CookieAuthentication, CSRFEnforcingAuthentication
-from apps.users.serializers import CustomUserSerializer, PublicProfileSerializer
+from apps.users.s3_presign import generate_presigned_upload_url
+from apps.users.serializers import (
+    CustomUserSerializer,
+    PublicProfileSerializer,
+    UploadUrlRequestSerializer,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +38,19 @@ class LoginRateThrottle(AnonRateThrottle):
     """
 
     scope = "login"
+
+
+class AvatarUploadRateThrottle(UserRateThrottle):
+    """avatar / header presigned URL 発行用の dedicated throttle.
+
+    code-reviewer (PR #139 HIGH #1) 指摘: /users/me/{avatar,header}-upload-url/ は
+    既定の "user" scope (500/day) に乗っていたが、画像 upload URL 発行は少なくとも
+    分単位の高頻度抑制が必要 (短時間の大量発行で S3 上に孤立オブジェクトが量産される
+    / credentials rotation 前の大量署名リスク)。settings.base の
+    DEFAULT_THROTTLE_RATES に ``avatar_upload: "10/minute"`` を入れてここで参照する。
+    """
+
+    scope = "avatar_upload"
 
 
 def set_auth_cookies(
@@ -429,3 +447,71 @@ class PublicProfileView(RetrieveAPIView):
         obj = get_object_or_404(queryset, username__iexact=username)
         self.check_object_permissions(self.request, obj)
         return obj
+
+
+# ---------------------------------------------------------------------------
+# P1-04: avatar / header 画像 S3 アップロード URL 発行 (SPEC §2)
+# ---------------------------------------------------------------------------
+
+
+class _BaseUploadUrlView(APIView):
+    """avatar / header で共通する presigned URL 発行ロジック.
+
+    サブクラスは ``kind`` を上書きするだけ。重複したコードを避けるため
+    本体の ``post()`` をここに置き、サブクラスは `kind` 属性のみ持つ。
+
+    認証 / CSRF / Throttle:
+      - ``CSRFEnforcingAuthentication``: 未認証でも unsafe method に CSRF を強制。
+      - ``CookieAuthentication``: Cookie 経由で JWT を読み、user を解決 + enforce CSRF。
+      - ``IsAuthenticated``: 自分のアップロード先 URL を発行するため認証必須。
+      - ``AvatarUploadRateThrottle``: 既定の "user" scope から分離した dedicated
+        throttle (10/minute)。孤立オブジェクト量産や署名濫用を抑制する
+        (code-reviewer PR #139 HIGH #1)。
+    """
+
+    # サブクラスで "avatar" or "header" に上書きする。
+    kind: str = ""
+
+    authentication_classes = [CSRFEnforcingAuthentication, CookieAuthentication]
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [AvatarUploadRateThrottle]
+    http_method_names = ["post", "head", "options"]
+
+    def post(self, request: Request, *args, **kwargs) -> Response:
+        # 1. body validation (content_type / content_length)。
+        request_serializer = UploadUrlRequestSerializer(data=request.data)
+        request_serializer.is_valid(raise_exception=True)
+
+        # 2. presigned URL 発行。s3_presign 側で ValidationError が上がった場合は
+        #    DRF の標準 exception handler で 400 になる。
+        result = generate_presigned_upload_url(
+            user_id=request.user.pk,
+            kind=self.kind,
+            content_type=request_serializer.validated_data["content_type"],
+            content_length=request_serializer.validated_data["content_length"],
+        )
+
+        # 3. 監査ログ (code-reviewer PR #139 MEDIUM #3)。署名された upload_url 本体は
+        #    機密扱い (クエリに credential が含まれる) なので object_key のみ残す。
+        #    孤立オブジェクト調査や濫用検知に使える最小情報。
+        logger.info(
+            "Presigned upload URL issued: user_id=%s kind=%s object_key=%s",
+            request.user.pk,
+            self.kind,
+            result.object_key,
+        )
+
+        # 4. object_key / upload_url / expires_at / public_url を返す。
+        return Response(result.to_dict(), status=status.HTTP_200_OK)
+
+
+class AvatarUploadUrlView(_BaseUploadUrlView):
+    """``POST /api/v1/users/me/avatar-upload-url/``: avatar 用 presigned URL 発行."""
+
+    kind = "avatar"
+
+
+class HeaderUploadUrlView(_BaseUploadUrlView):
+    """``POST /api/v1/users/me/header-upload-url/``: header 用 presigned URL 発行."""
+
+    kind = "header"

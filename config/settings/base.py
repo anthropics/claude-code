@@ -309,6 +309,10 @@ REST_FRAMEWORK = {
         # code-reviewer (PR #131 HIGH #2) 指摘: login ブルートフォース対策。
         # apps.users.views.LoginRateThrottle が scope="login" で参照する。
         "login": "5/minute",
+        # code-reviewer (PR #139 HIGH #1) 指摘: avatar / header の presigned URL 発行も
+        # 低頻度用の dedicated throttle を持たせ、既定の "user" rate (500/day) から分離する。
+        # apps.users.views.AvatarUploadRateThrottle が scope="avatar_upload" で参照する。
+        "avatar_upload": "10/minute",
         # code-reviewer (PR #135 HIGH #2) 指摘: タグ新規提案は find_similar_tags で
         # 全 approved タグを Python 側で走査するため、既定 user レート (500/day) より
         # 厳しい scope="tag_propose" を用意し DoS 的な連投を抑制する。
@@ -436,6 +440,19 @@ AWS_S3_ADDRESSING_STYLE = "virtual"
 AWS_S3_OBJECT_PARAMETERS = {
     "CacheControl": "max-age=86400",  # 1 day; CloudFront が前段なのでここは長め OK
 }
+
+# code-reviewer (PR #139 HIGH #2) 指摘: avatar_url / header_url を PATCH で自由に
+# 書き換えられると SSRF / phishing / tracking pixel 化 (例: https://evil.com/track.jpg)
+# のリスクがある。サーバー側で「許可された S3 / CloudFront ドメインのみ」を white list
+# として enforce する。空要素は list comprehension で除外して local 開発
+# (AWS_STORAGE_BUCKET_NAME 未設定) では実質 no-op になる。
+ALLOWED_MEDIA_DOMAINS = [
+    getenv("AWS_S3_CUSTOM_DOMAIN", ""),  # CloudFront カスタムドメイン
+    f"{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com"
+    if AWS_STORAGE_BUCKET_NAME
+    else "",  # S3 virtual-host 形式
+]
+ALLOWED_MEDIA_DOMAINS = [d for d in ALLOWED_MEDIA_DOMAINS if d]  # 空要素除外
 
 # Django 4.2 STORAGES 設定: 新しい storages API
 # https://docs.djangoproject.com/en/4.2/ref/settings/#storages

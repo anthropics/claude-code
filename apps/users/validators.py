@@ -13,7 +13,9 @@ SPEC §2 の要件:
 from __future__ import annotations
 
 import re
+from urllib.parse import urlparse
 
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
@@ -105,4 +107,41 @@ def validate_handle(value: str) -> None:
         raise ValidationError(
             _("This handle is reserved and cannot be used."),
             code="reserved_handle",
+        )
+
+
+def validate_media_url(value: str) -> None:
+    """avatar_url / header_url を許可ドメインの https URL のみに制限する.
+
+    code-reviewer (PR #139 HIGH #2) 指摘:
+      ``PATCH /api/v1/users/me/`` で ``avatar_url`` / ``header_url`` を任意の
+      外部ドメインに書き換えられると、他サイトの tracking pixel をアバターに
+      設定して閲覧者の IP を収集したり、phishing 用に偽サイト画像を埋め込んだり
+      できてしまう。許可ドメイン (CloudFront カスタムドメイン / S3 virtual host)
+      以外を reject することで、メディア URL は必ず自分たちが管理する bucket
+      配下に落ちることを enforce する。
+
+    Args:
+        value: 検証対象の URL 文字列。空文字は許容する (アバター未設定状態)。
+
+    Raises:
+        ValidationError: scheme が https でない、またはホストが
+            ``settings.ALLOWED_MEDIA_DOMAINS`` に含まれない場合。
+    """
+    if not value:
+        # 空文字はアバター未設定を表すので許容する (blank=True と整合)。
+        return
+
+    parsed = urlparse(value)
+    if parsed.scheme != "https":
+        raise ValidationError(
+            _("Media URL must use https scheme."),
+            code="invalid_media_scheme",
+        )
+
+    allowed = getattr(settings, "ALLOWED_MEDIA_DOMAINS", None) or []
+    if allowed and parsed.netloc not in allowed:
+        raise ValidationError(
+            _("Media URL host '%(host)s' is not allowed.") % {"host": parsed.netloc},
+            code="invalid_media_host",
         )

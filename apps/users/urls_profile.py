@@ -5,18 +5,36 @@
 管理する。
 
 ルーティング:
-- ``GET/PATCH /api/v1/users/me/``    → MeView (自分のプロフィール)
-- ``GET       /api/v1/users/<handle>/`` → PublicProfileView (他人の公開プロフィール)
+- ``GET/PATCH /api/v1/users/me/``                    → MeView
+- ``POST      /api/v1/users/me/avatar-upload-url/``  → AvatarUploadUrlView (P1-04)
+- ``POST      /api/v1/users/me/header-upload-url/``  → HeaderUploadUrlView (P1-04)
+- ``GET       /api/v1/users/<handle>/``              → PublicProfileView
 
-NOTE: ``<str:username>`` は greedy に ``me`` もマッチしてしまうため、``me/`` を
-先に定義して優先させる。
+NOTE: ``<str:username>`` は greedy に ``me`` にもマッチしてしまうため、
+``me/`` 配下のエンドポイントは public profile より先に定義して優先させる。
 """
 
 from django.urls import path
 
-from .views import MeView, PublicProfileView
+from .views import (
+    AvatarUploadUrlView,
+    HeaderUploadUrlView,
+    MeView,
+    PublicProfileView,
+)
 
 urlpatterns = [
     path("me/", MeView.as_view(), name="users-me"),
+    # P1-04: avatar / header 画像 S3 presigned URL 発行。
+    path(
+        "me/avatar-upload-url/",
+        AvatarUploadUrlView.as_view(),
+        name="users-me-avatar-upload-url",
+    ),
+    path(
+        "me/header-upload-url/",
+        HeaderUploadUrlView.as_view(),
+        name="users-me-header-upload-url",
+    ),
     path("<str:username>/", PublicProfileView.as_view(), name="users-public-profile"),
 ]

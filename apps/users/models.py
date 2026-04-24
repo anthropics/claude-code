@@ -8,7 +8,7 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from apps.users.managers import UserManager
-from apps.users.validators import validate_handle
+from apps.users.validators import validate_handle, validate_media_url
 
 # SNS / アバター / ヘッダー URL には https のみ許容する (security-reviewer HIGH)。
 # ftp:// / http:// を拒否する URLValidator を使い回す。
@@ -69,12 +69,14 @@ class User(AbstractUser):
         default="",
         help_text=_("Plain text only. Markdown is NOT rendered."),
     )
+    # code-reviewer (PR #139 HIGH #2): avatar_url / header_url は許可ドメインに制限。
+    # validate_media_url は model validation (full_clean / admin) でも効く。
     avatar_url = models.URLField(
         verbose_name=_("Avatar URL"),
         max_length=500,
         blank=True,
         default="",
-        validators=[_HTTPS_URL_VALIDATOR],
+        validators=[_HTTPS_URL_VALIDATOR, validate_media_url],
         help_text=_("S3 URL to the user's avatar image. Must be https://."),
     )
     header_url = models.URLField(
@@ -82,7 +84,7 @@ class User(AbstractUser):
         max_length=500,
         blank=True,
         default="",
-        validators=[_HTTPS_URL_VALIDATOR],
+        validators=[_HTTPS_URL_VALIDATOR, validate_media_url],
         help_text=_("S3 URL to the user's header image. Must be https://."),
     )
 
