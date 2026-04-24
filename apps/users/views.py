@@ -6,17 +6,33 @@ from django.shortcuts import get_object_or_404
 from djoser.social.views import ProviderAuthView
 from rest_framework import status
 from rest_framework.generics import RetrieveAPIView
+from rest_framework.parsers import JSONParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.throttling import AnonRateThrottle
 from rest_framework.views import APIView
+from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
+from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
+from apps.common.cookie_auth import CookieAuthentication, CSRFEnforcingAuthentication
 from apps.users.serializers import CustomUserSerializer, PublicProfileSerializer
 
 logger = logging.getLogger(__name__)
 
 User = get_user_model()
+
+
+class LoginRateThrottle(AnonRateThrottle):
+    """login ブルートフォース対策 scope.
+
+    code-reviewer (PR #131 HIGH #2) 指摘: /cookie/create/ は throttle が効いていない
+    (DEFAULT_THROTTLE_RATES に相当 scope が無く、`throttle_classes` 未指定)。
+    settings.base の DEFAULT_THROTTLE_RATES に `login: "5/minute"` を入れてここで参照する。
+    """
+
+    scope = "login"
 
 
 def set_auth_cookies(
@@ -30,17 +46,42 @@ def set_auth_cookies(
         "samesite": settings.COOKIE_SAMESITE,
         "max_age": access_token_lifetime,
     }
-    response.set_cookie("access", access_token, **cookie_settings)
+    response.set_cookie(settings.COOKIE_NAME, access_token, **cookie_settings)
 
     if refresh_token:
         refresh_token_lifetime = settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"].total_seconds()
         refresh_cookie_settings = cookie_settings.copy()
         refresh_cookie_settings["max_age"] = refresh_token_lifetime
-        response.set_cookie("refresh", refresh_token, **refresh_cookie_settings)
+        response.set_cookie(
+            settings.REFRESH_COOKIE_NAME,
+            refresh_token,
+            **refresh_cookie_settings,
+        )
 
     logged_in_cookie_settings = cookie_settings.copy()
     logged_in_cookie_settings["httponly"] = False
     response.set_cookie("logged_in", "true", **logged_in_cookie_settings)
+
+
+def _delete_auth_cookie(response: Response, name: str) -> None:
+    """Cookie を `samesite` / `secure` 属性込みで期限切れに設定する.
+
+    code-reviewer (PR #131 MEDIUM #3) 指摘: Django の `HttpResponse.delete_cookie` は
+    Django 4.2 で `samesite` を受けるが、`secure` 属性は Cookie 設定時の属性と
+    揃っていないと一部ブラウザ (特に Safari) で削除が反映されない。
+    `set_cookie` に max_age=0 + expires 過去 を使い、設定と一致した属性で明示的に
+    delete 指示する。
+    """
+
+    response.set_cookie(
+        name,
+        "",
+        max_age=0,
+        path=settings.COOKIE_PATH,
+        secure=settings.COOKIE_SECURE,
+        httponly=settings.COOKIE_HTTPONLY,
+        samesite=settings.COOKIE_SAMESITE,
+    )
 
 
 class CustomTokenObtainPairView(TokenObtainPairView):
@@ -131,11 +172,191 @@ class CustomProviderAuthView(ProviderAuthView):
 
 
 class LogoutAPIView(APIView):
+    """旧 logout view (ADR-0003 移行期間中の互換目的).
+
+    code-reviewer (PR #131 LOW) 指摘: 旧 view も新 `LogoutView` と同じく refresh を
+    blacklist に登録しておく。これで旧クライアントが混在する移行期間中に blacklist が
+    揃わず rotation 済みトークンが検知できない、というずれを防ぐ。
+    新規 frontend / 自動テストは `/cookie/logout/` (LogoutView) を使うこと。
+    """
+
+    # code-reviewer (PR #131 HIGH #1) 指摘対応: CookieAuthentication が Cookie 経由で
+    # 認証されたときに自ら enforce_csrf を呼ぶため、ここで追加のクラスは不要だが、
+    # 未認証 state 変更 POST でも CSRF token を必須にするため CSRFEnforcingAuthentication
+    # を前段に置いておく。
+    authentication_classes = [CSRFEnforcingAuthentication, CookieAuthentication]
+
     def post(self, request: Request, *args, **kwargs):
+        refresh_token = request.COOKIES.get(settings.REFRESH_COOKIE_NAME)
+        if refresh_token:
+            try:
+                token = RefreshToken(refresh_token)
+                token.blacklist()
+            except TokenError as exc:
+                logger.warning("Legacy logout called with invalid refresh token: %s", exc)
+
         response = Response(status=status.HTTP_204_NO_CONTENT)
-        response.delete_cookie("access")
-        response.delete_cookie("refresh")
-        response.delete_cookie("logged_in")
+        _delete_auth_cookie(response, settings.COOKIE_NAME)
+        _delete_auth_cookie(response, settings.REFRESH_COOKIE_NAME)
+        _delete_auth_cookie(response, "logged_in")
+        return response
+
+
+# ---------------------------------------------------------------------------
+# P1-12a: HttpOnly Cookie 専用の login / refresh / logout (ADR-0003 準拠)
+#
+# security-reviewer (PR #83 HIGH) 指摘:
+#   djoser の /users/activation/ は email 経由のリンクから叩かれる可能性があり、
+#   activation endpoint 自体で JWT を発行すると CSRF / メール転送でログイン状態を
+#   奪取できるリスクがある。よって activation と login は明示的に分け、login は
+#   必ず email + password (+ CSRF token) の POST で行うフローとする。
+#
+# 既存の CustomTokenObtainPairView / CustomTokenRefreshView / LogoutAPIView は
+# ADR-0003 移行期間中の互換目的で残すが、新しい frontend / 試験はこちらを使う。
+#
+# code-reviewer (PR #131 HIGH #1) 指摘:
+#   DRF の `APIView.as_view()` は内部で `@csrf_exempt` を付与しており、
+#   `JWTAuthentication` / `CookieAuthentication` は `enforce_csrf()` を呼ばない。
+#   そのため、Cookie ベース認証のエンドポイントに対して CSRF 保護が実質機能しない。
+#   対策:
+#     1. 認証済みリクエストは `CookieAuthentication` 自身が Cookie 経由で JWT を
+#        読めた場合に `enforce_csrf()` を呼ぶように修正 (apps/common/cookie_auth.py)。
+#     2. 未認証のまま状態変更する /cookie/create/ /cookie/refresh/ には
+#        `CSRFEnforcingAuthentication` を前段に置き、unsafe method 時にのみ
+#        CSRF token を検証する。
+# ---------------------------------------------------------------------------
+
+
+class CookieTokenObtainView(TokenObtainPairView):
+    """email + password で Cookie に JWT を載せる login view.
+
+    レスポンス body に access/refresh を含めない (JS から JWT を読めないようにする)。
+    """
+
+    # CSRF enforcement のために CSRFEnforcingAuthentication を追加 (code-reviewer HIGH #1)。
+    # SessionAuthentication は「認証済み session user」があるときしか enforce_csrf を
+    # 走らせないため、未ログイン state 変更 POST に CSRF token を強制できない。
+    authentication_classes = [CSRFEnforcingAuthentication]
+    # ブルートフォース対策 (code-reviewer HIGH #2): 5/minute。
+    throttle_classes = [LoginRateThrottle]
+
+    def post(self, request: Request, *args, **kwargs) -> Response:
+        token_res = super().post(request, *args, **kwargs)
+
+        if token_res.status_code != status.HTTP_200_OK:
+            return token_res
+
+        access_token = token_res.data.get("access")
+        refresh_token = token_res.data.get("refresh")
+
+        if not (access_token and refresh_token):
+            logger.error("Access or refresh token not found in login response data")
+            return token_res
+
+        response = Response(
+            {"detail": "Login successful"},
+            status=status.HTTP_200_OK,
+        )
+        set_auth_cookies(
+            response,
+            access_token=access_token,
+            refresh_token=refresh_token,
+        )
+        return response
+
+
+class CookieTokenRefreshView(TokenRefreshView):
+    """Cookie から refresh token を読み、ローテ後の新 access/refresh を Cookie に再 set する.
+
+    `ROTATE_REFRESH_TOKENS=True` + `BLACKLIST_AFTER_ROTATION=True` なので、旧 refresh は
+    blacklist に追加され再利用不可。
+
+    code-reviewer (PR #131 MEDIUM #7) 指摘:
+      元実装は `request.data["refresh"] = ...` で引数を上書きしていたが、
+      multipart/form-data リクエストでは `request.data` が immutable な `QueryDict`
+      で `TypeError` が発生し得る。Cookie 経由の JWT フローは常に JSON のみを使う
+      仕様 (frontend も fetch で `Content-Type: application/json` を送る) なので、
+      parser を JSON のみに限定し、さらに超えて dict を新規生成して serializer に
+      渡すことで immutable/mutable 問題自体を回避する。
+    """
+
+    # CSRF enforcement のために CSRFEnforcingAuthentication を追加 (code-reviewer HIGH #1)。
+    authentication_classes = [CSRFEnforcingAuthentication]
+    # Cookie 経由の JWT refresh は JSON ボディ専用にする (MEDIUM #7)。
+    parser_classes = [JSONParser]
+
+    def post(self, request: Request, *args, **kwargs) -> Response:
+        refresh_token = request.COOKIES.get(settings.REFRESH_COOKIE_NAME)
+
+        if refresh_token is None:
+            # Cookie が無い場合のみ parent に委譲 (parent が 400 を返す)。
+            return super().post(request, *args, **kwargs)
+
+        # simplejwt の serializer を直接叩いて `request.data` を汚染しない。
+        # blacklist 済 / 期限切れ / 不正 token は `TokenError` で上がってくるので、
+        # 親 view と同じ挙動 (401 InvalidToken) に揃える。
+        serializer = self.get_serializer(data={"refresh": refresh_token})
+        try:
+            serializer.is_valid(raise_exception=True)
+        except TokenError as exc:
+            raise InvalidToken(exc.args[0]) from exc
+
+        access_token = serializer.validated_data.get("access")
+        new_refresh_token = serializer.validated_data.get("refresh")
+
+        if not access_token:
+            logger.error("Access token not found in refresh response data")
+            return Response(
+                {"detail": "Access token not issued"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        response = Response(
+            {"detail": "Token refreshed"},
+            status=status.HTTP_200_OK,
+        )
+        set_auth_cookies(
+            response,
+            access_token=access_token,
+            refresh_token=new_refresh_token,
+        )
+        return response
+
+
+class LogoutView(APIView):
+    """認証済みユーザーのみ logout を許可し、refresh を blacklist に登録する.
+
+    - permission_classes = [IsAuthenticated]: 未ログイン状態でログアウトを叩くのは
+      操作として無意味、かつ refresh cookie が偽物だった場合は blacklist 処理が
+      不要 (むしろ攻撃ベクタになり得る) ため。
+    - Cookie は max_age=0 で削除。
+    - refresh は blacklist に追加 (rotation 以降の再利用も防ぐ)。
+    """
+
+    # code-reviewer (PR #131 HIGH #1): CookieAuthentication 自身が Cookie 経由認証時に
+    # CSRF enforcement を走らせる。追加で前段に CSRFEnforcingAuthentication を置くことで、
+    # Cookie が無い (既に失効した) 状態の POST にも CSRF 保護を行き届かせる。
+    authentication_classes = [CSRFEnforcingAuthentication, CookieAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request: Request, *args, **kwargs) -> Response:
+        refresh_token = request.COOKIES.get(settings.REFRESH_COOKIE_NAME)
+
+        if refresh_token:
+            try:
+                token = RefreshToken(refresh_token)
+                token.blacklist()
+            except TokenError as exc:
+                # 期限切れ / 不正 token は既にログアウト相当なので握り潰さず warn に留める。
+                logger.warning("Logout called with invalid refresh token: %s", exc)
+
+        response = Response(
+            {"detail": "Logged out"},
+            status=status.HTTP_200_OK,
+        )
+        _delete_auth_cookie(response, settings.COOKIE_NAME)
+        _delete_auth_cookie(response, settings.REFRESH_COOKIE_NAME)
+        _delete_auth_cookie(response, "logged_in")
         return response
 
 

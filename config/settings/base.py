@@ -256,6 +256,10 @@ CELERY_WORKERS_SEND_TASKS_EVENTS = True
 # security-reviewer (PR #84) 指摘: stg/prod で COOKIE_SECURE が False のまま起動すると
 # Cookie が HTTP でも送信され、セッション盗聴に繋がる。環境別に fail-fast させる。
 COOKIE_NAME = "access"
+# P1-12a + ADR-0003: refresh token も HttpOnly Cookie に載せる。access (COOKIE_NAME)
+# とはキー名を分けることで、CookieTokenRefreshView が refresh のみを読み、他 API
+# のリクエストに不必要な refresh cookie を送らない設計を取れる。
+REFRESH_COOKIE_NAME = "refresh"
 COOKIE_SAMESITE = "Lax"
 COOKIE_PATH = "/"
 COOKIE_HTTPONLY = True
@@ -296,13 +300,15 @@ REST_FRAMEWORK = {
         "user": "500/day",
         # legacy: P1-08 以前に scope="post_tweet" で指定されていた互換用。
         # P1-11 時点で ``throttle_scope = "post_tweet"`` を直接指定している view は
-        # 存在せず、実質 dead entry。ただし削除は破壊的変更になり得るため本 PR では
-        # 据え置き、別 PR (後続の cleanup チケット) で削除する方針。
+        # 存在せず、実質 dead entry。削除は破壊的変更になり得るため据え置き。
         # TODO(Phase2): post_tweet_tier_* へ全面移行済みの確認後、削除する。
         "post_tweet": "500/day",
         "post_tweet_tier_1": "100/day",  # 通常ユーザー
         "post_tweet_tier_2": "500/day",  # アクティブユーザー (Phase 2 で自動昇格)
         "post_tweet_tier_3": "1000/day",  # プレミアム (User.is_premium)
+        # code-reviewer (PR #131 HIGH #2) 指摘: login ブルートフォース対策。
+        # apps.users.views.LoginRateThrottle が scope="login" で参照する。
+        "login": "5/minute",
     },
 }
 
@@ -312,9 +318,30 @@ REST_FRAMEWORK = {
 # - REFRESH_TOKEN_LIFETIME : 14 days (SPEC §1.3 に合わせる、旧 1 day からアップ)
 # - ROTATE_REFRESH_TOKENS  : 継続使用時は自動ローテ、切断後は再ログイン
 # - BLACKLIST_AFTER_ROTATION: ローテ後の旧 refresh を blacklist 追加して再利用拒否
+#
+# code-reviewer (PR #131 MEDIUM #5) 指摘:
+#   SIGNING_KEY が None fallback されていた (getenv("SIGNING_KEY") が None になると
+#   simplejwt は内部で SECRET_KEY を使う側に倒れるが、これは「prod で SIGNING_KEY を
+#   設定し忘れた」事故を検出できない)。stg/production では env 未設定なら起動時に
+#   ImproperlyConfigured を投げる (fail-fast)。local のみ SECRET_KEY fallback を
+#   明示的に許容する。
+_signing_key = getenv("SIGNING_KEY")
+if SENTRY_ENVIRONMENT in ("stg", "production") and not _signing_key:
+    from django.core.exceptions import ImproperlyConfigured
+
+    raise ImproperlyConfigured("SIGNING_KEY env var must be set in stg/production (ADR-0003).")
+
+# local では DJANGO_SECRET_KEY に fallback することを明示する。SECRET_KEY 自体は
+# 環境別 settings (local.py / stg.py / production.py) で定義されるため、ここでは
+# 環境変数から直接取得して fallback を評価する (base.py 単独インポートでも不整合なし)。
+# simplejwt は未指定なら settings.SECRET_KEY に自動 fallback するが、「local のみ
+# fallback が発生する」ことを明示的な値で示すために DJANGO_SECRET_KEY からも拾う。
+# 空値のときは dict から SIGNING_KEY キー自体を省き、simplejwt の default
+# (settings.SECRET_KEY) を使わせる。
+_signing_key_fallback = _signing_key or getenv("DJANGO_SECRET_KEY") or None
+
 SIMPLE_JWT = {
     "ALGORITHM": "HS256",
-    "SIGNING_KEY": getenv("SIGNING_KEY"),
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=14),
     "ROTATE_REFRESH_TOKENS": True,
@@ -323,6 +350,10 @@ SIMPLE_JWT = {
     "USER_ID_CLAIM": "user_id",
     "AUTH_HEADER_TYPES": ("Bearer",),
 }
+if _signing_key_fallback:
+    # truthy 値のときだけ明示する。空のときは simplejwt の default (settings.SECRET_KEY)
+    # をそのまま使わせる (None を書き込むと encoding が壊れるため)。
+    SIMPLE_JWT["SIGNING_KEY"] = _signing_key_fallback
 
 DJOSER = {
     "USER_ID_FIELD": "id",
