@@ -288,10 +288,21 @@ REST_FRAMEWORK = {
         "rest_framework.throttling.AnonRateThrottle",
         "rest_framework.throttling.UserRateThrottle",
     ),
+    # P1-11 (#97) + SPEC §14.5: 階層 throttle の rate 定義。
+    # 実際に階層を切り替える責務は ``apps.common.throttling.PostTweetThrottle``。
+    # このマップは DRF が scope 名から rate を引くだけのテーブルに徹する。
     "DEFAULT_THROTTLE_RATES": {
         "anon": "200/day",
         "user": "500/day",
-        "post_tweet": "500/day",  # ScopedRateThrottle で個別参照
+        # legacy: P1-08 以前に scope="post_tweet" で指定されていた互換用。
+        # P1-11 時点で ``throttle_scope = "post_tweet"`` を直接指定している view は
+        # 存在せず、実質 dead entry。ただし削除は破壊的変更になり得るため本 PR では
+        # 据え置き、別 PR (後続の cleanup チケット) で削除する方針。
+        # TODO(Phase2): post_tweet_tier_* へ全面移行済みの確認後、削除する。
+        "post_tweet": "500/day",
+        "post_tweet_tier_1": "100/day",  # 通常ユーザー
+        "post_tweet_tier_2": "500/day",  # アクティブユーザー (Phase 2 で自動昇格)
+        "post_tweet_tier_3": "1000/day",  # プレミアム (User.is_premium)
     },
 }
 
