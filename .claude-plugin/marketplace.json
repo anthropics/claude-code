@@ -12,7 +12,8 @@
       "name": "agent-sdk-dev",
       "description": "Development kit for working with the Claude Agent SDK",
       "source": "./plugins/agent-sdk-dev",
-      "category": "development"
+      "category": "development",
+      "tags": ["sdk", "agent", "scaffolding", "typescript", "python", "verification"]
     },
     {
       "name": "claude-opus-4-5-migration",
@@ -23,7 +24,8 @@
         "email": "whu@anthropic.com"
       },
       "source": "./plugins/claude-opus-4-5-migration",
-      "category": "development"
+      "category": "development",
+      "tags": ["migration", "model", "opus", "sonnet", "upgrade", "prompt"]
     },
     {
       "name": "code-review",
@@ -34,7 +36,8 @@
         "email": "boris@anthropic.com"
       },
       "source": "./plugins/code-review",
-      "category": "productivity"
+      "category": "productivity",
+      "tags": ["pr", "pull-request", "review", "quality", "automation", "git", "multi-agent"]
     },
     {
       "name": "commit-commands",
@@ -45,7 +48,8 @@
         "email": "support@anthropic.com"
       },
       "source": "./plugins/commit-commands",
-      "category": "productivity"
+      "category": "productivity",
+      "tags": ["git", "commit", "push", "pr", "workflow", "automation"]
     },
     {
       "name": "explanatory-output-style",
@@ -56,7 +60,8 @@
         "email": "dickson@anthropic.com"
       },
       "source": "./plugins/explanatory-output-style",
-      "category": "learning"
+      "category": "learning",
+      "tags": ["education", "learning", "explanation", "patterns", "output-style"]
     },
     {
       "name": "feature-dev",
@@ -67,7 +72,8 @@
         "email": "sbidasaria@anthropic.com"
       },
       "source": "./plugins/feature-dev",
-      "category": "development"
+      "category": "development",
+      "tags": ["feature", "workflow", "architecture", "exploration", "multi-agent", "planning"]
     },
     {
       "name": "frontend-design",
@@ -78,7 +84,8 @@
         "email": "prithvi@anthropic.com"
       },
       "source": "./plugins/frontend-design",
-      "category": "development"
+      "category": "development",
+      "tags": ["frontend", "ui", "design", "css", "react", "styling", "animation"]
     },
     {
       "name": "hookify",
@@ -89,7 +96,8 @@
         "email": "daisy@anthropic.com"
       },
       "source": "./plugins/hookify",
-      "category": "productivity"
+      "category": "productivity",
+      "tags": ["hooks", "rules", "automation", "behavior", "patterns", "no-code"]
     },
     {
       "name": "learning-output-style",
@@ -100,7 +108,8 @@
         "email": "boris@anthropic.com"
       },
       "source": "./plugins/learning-output-style",
-      "category": "learning"
+      "category": "learning",
+      "tags": ["education", "learning", "interactive", "teaching", "output-style"]
     },
     {
       "name": "plugin-dev",
@@ -111,7 +120,8 @@
         "email": "daisy@anthropic.com"
       },
       "source": "./plugins/plugin-dev",
-      "category": "development"
+      "category": "development",
+      "tags": ["plugin", "development", "toolkit", "hooks", "mcp", "commands", "agents"]
     },
     {
       "name": "pr-review-toolkit",
@@ -122,7 +132,8 @@
         "email": "support@anthropic.com"
       },
       "source": "./plugins/pr-review-toolkit",
-      "category": "productivity"
+      "category": "productivity",
+      "tags": ["pr", "review", "testing", "quality", "types", "refactoring", "multi-agent"]
     },
     {
       "name": "ralph-wiggum",
@@ -133,7 +144,8 @@
         "email": "daisy@anthropic.com"
       },
       "source": "./plugins/ralph-wiggum",
-      "category": "development"
+      "category": "development",
+      "tags": ["iteration", "loop", "autonomous", "self-referential", "continuous"]
     },
     {
       "name": "security-guidance",
@@ -144,7 +156,8 @@
         "email": "dworken@anthropic.com"
       },
       "source": "./plugins/security-guidance",
-      "category": "security"
+      "category": "security",
+      "tags": ["security", "xss", "injection", "vulnerability", "warning", "hooks"]
     }
   ]
 }
