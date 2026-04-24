@@ -2,12 +2,12 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<title>Tavşanların Sihirli Sayıları - Fibonacci Oyunu</title>
+<title>Ejderha Vadisinin Sihirli Sayıları - Fibonacci Oyunu</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     font-family: 'Comic Sans MS', 'Trebuchet MS', sans-serif;
-    background: linear-gradient(135deg, #ffe9a7 0%, #ffb6d9 50%, #b6e2ff 100%);
+    background: linear-gradient(135deg, #1a0033 0%, #4a148c 30%, #d84315 70%, #ffab40 100%);
     min-height: 100vh;
     padding: 20px;
     color: #333;
@@ -15,36 +15,41 @@
   .container {
     max-width: 900px;
     margin: 0 auto;
-    background: white;
+    background: rgba(255, 255, 255, 0.97);
     border-radius: 30px;
     padding: 30px;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+    border: 4px solid #ff6f00;
   }
   h1 {
     text-align: center;
-    color: #d63384;
+    color: #c62828;
     font-size: 2.2em;
     margin-bottom: 10px;
-    text-shadow: 2px 2px 0 #fff3a0;
+    text-shadow: 2px 2px 0 #ffd54f, 4px 4px 0 #ff6f00;
   }
   .subtitle {
     text-align: center;
-    color: #6f42c1;
+    color: #6a1b9a;
     font-size: 1.1em;
     margin-bottom: 25px;
+    font-weight: bold;
   }
   .level-badge {
     display: inline-block;
-    background: #ffd166;
+    background: linear-gradient(135deg, #ff6f00, #ffd54f);
     padding: 6px 16px;
     border-radius: 20px;
     font-weight: bold;
-    color: #6b4423;
+    color: #4a148c;
+    border: 2px solid #c62828;
   }
   .stars {
     text-align: right;
     font-size: 1.4em;
     margin-bottom: 15px;
+    font-weight: bold;
+    color: #6a1b9a;
   }
   .screen {
     display: none;
@@ -55,36 +60,43 @@
     from { opacity: 0; transform: translateY(10px); }
     to   { opacity: 1; transform: translateY(0); }
   }
-  @keyframes bounce {
-    0%, 100% { transform: translateY(0); }
-    50%      { transform: translateY(-12px); }
+  @keyframes fly {
+    0%, 100% { transform: translateY(0) rotate(-5deg); }
+    50%      { transform: translateY(-15px) rotate(5deg); }
   }
   @keyframes pop {
-    0%   { transform: scale(0); }
-    60%  { transform: scale(1.2); }
-    100% { transform: scale(1); }
+    0%   { transform: scale(0) rotate(-180deg); }
+    60%  { transform: scale(1.3) rotate(10deg); }
+    100% { transform: scale(1) rotate(0); }
+  }
+  @keyframes flame {
+    0%, 100% { filter: hue-rotate(0deg); }
+    50%      { filter: hue-rotate(30deg) brightness(1.2); }
   }
   .story {
-    background: #fff8e1;
-    border: 3px dashed #ffb74d;
+    background: linear-gradient(135deg, #fff3e0, #ffe0b2);
+    border: 3px dashed #e65100;
     border-radius: 20px;
     padding: 20px;
     font-size: 1.15em;
     line-height: 1.6;
     margin-bottom: 20px;
   }
-  .rabbits {
+  .dragons {
     text-align: center;
     font-size: 2.5em;
     margin: 20px 0;
     min-height: 60px;
     line-height: 1.4;
+    background: radial-gradient(circle, #fff3e0 0%, transparent 70%);
+    border-radius: 20px;
+    padding: 10px;
   }
-  .rabbit {
+  .dragon {
     display: inline-block;
     animation: pop 0.5s ease-out;
   }
-  .rabbit.hop { animation: bounce 1s ease-in-out infinite; }
+  .dragon.fly { animation: fly 1.5s ease-in-out infinite; }
   .month-cards {
     display: flex;
     flex-wrap: wrap;
@@ -93,43 +105,51 @@
     margin: 20px 0;
   }
   .month-card {
-    background: #e3f2fd;
-    border: 3px solid #64b5f6;
+    background: linear-gradient(135deg, #e1bee7, #ce93d8);
+    border: 3px solid #6a1b9a;
     border-radius: 16px;
     padding: 12px;
     min-width: 110px;
     text-align: center;
     animation: pop 0.4s ease-out;
+    box-shadow: 0 4px 0 #4a148c;
   }
   .month-card.highlight {
-    background: #fff59d;
-    border-color: #fbc02d;
+    background: linear-gradient(135deg, #ffecb3, #ffd54f);
+    border-color: #e65100;
+    box-shadow: 0 4px 0 #c62828;
+    animation: flame 1s ease-in-out infinite;
   }
-  .month-card .label { font-size: 0.85em; color: #555; }
-  .month-card .bunnies { font-size: 1.5em; margin: 4px 0; }
+  .month-card .label { font-size: 0.85em; color: #4a148c; font-weight: bold; }
+  .month-card .creatures { font-size: 1.5em; margin: 4px 0; }
   .month-card .number {
     font-size: 1.8em;
     font-weight: bold;
-    color: #1976d2;
+    color: #c62828;
   }
   .question {
-    background: #f3e5f5;
+    background: linear-gradient(135deg, #4a148c, #6a1b9a);
+    color: white;
     border-radius: 20px;
     padding: 20px;
     text-align: center;
     margin: 20px 0;
+    box-shadow: 0 6px 0 #311b92;
   }
   .question h2 {
-    color: #6a1b9a;
+    color: #ffd54f;
     margin-bottom: 15px;
+    text-shadow: 2px 2px 0 #311b92;
   }
   .hint {
-    background: #e1f5fe;
+    background: linear-gradient(135deg, #fff9c4, #ffeb3b);
     padding: 10px 15px;
     border-radius: 12px;
-    color: #01579b;
+    color: #4a148c;
     font-size: 0.95em;
     margin: 10px 0;
+    font-weight: bold;
+    border: 2px solid #f57f17;
   }
   .options {
     display: flex;
@@ -139,48 +159,51 @@
     margin: 20px 0;
   }
   button.choice {
-    background: linear-gradient(135deg, #ff9a9e, #fecfef);
-    border: none;
+    background: linear-gradient(135deg, #ff6f00, #ffab40);
+    border: 3px solid #ffd54f;
     border-radius: 50px;
     padding: 16px 30px;
     font-size: 1.5em;
     font-weight: bold;
     color: white;
     cursor: pointer;
-    box-shadow: 0 4px 0 #c2185b;
+    box-shadow: 0 5px 0 #c62828;
     transition: all 0.15s;
     font-family: inherit;
     min-width: 80px;
+    text-shadow: 2px 2px 0 #c62828;
   }
   button.choice:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 0 #c2185b;
+    box-shadow: 0 7px 0 #c62828;
   }
   button.choice:active {
     transform: translateY(2px);
-    box-shadow: 0 2px 0 #c2185b;
+    box-shadow: 0 2px 0 #c62828;
   }
   button.choice.correct {
     background: linear-gradient(135deg, #43e97b, #38f9d7);
     box-shadow: 0 4px 0 #2e7d32;
+    text-shadow: 2px 2px 0 #2e7d32;
   }
   button.choice.wrong {
-    background: linear-gradient(135deg, #ff6a6a, #ee0979);
-    box-shadow: 0 4px 0 #b71c1c;
+    background: linear-gradient(135deg, #b71c1c, #424242);
+    box-shadow: 0 4px 0 #212121;
   }
   button.primary {
     display: block;
     margin: 20px auto;
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    border: none;
+    background: linear-gradient(135deg, #c62828, #ff6f00);
+    border: 3px solid #ffd54f;
     border-radius: 50px;
     padding: 16px 40px;
     font-size: 1.3em;
     font-weight: bold;
     color: white;
     cursor: pointer;
-    box-shadow: 0 4px 0 #3f51b5;
+    box-shadow: 0 5px 0 #4a148c;
     font-family: inherit;
+    text-shadow: 2px 2px 0 #4a148c;
   }
   button.primary:hover { transform: translateY(-2px); }
   .feedback {
@@ -190,33 +213,36 @@
     margin: 15px 0;
     min-height: 40px;
   }
-  .feedback.good { color: #2e7d32; }
-  .feedback.bad  { color: #c62828; }
+  .feedback.good { color: #ffd54f; text-shadow: 2px 2px 0 #c62828; }
+  .feedback.bad  { color: #ffab40; }
   .progress {
-    background: #eee;
+    background: #ddd;
     border-radius: 20px;
     height: 20px;
     overflow: hidden;
     margin: 15px 0;
+    border: 2px solid #6a1b9a;
   }
   .progress-bar {
     height: 100%;
-    background: linear-gradient(90deg, #f093fb, #f5576c);
+    background: linear-gradient(90deg, #ff6f00, #ffd54f, #c62828);
     transition: width 0.4s;
   }
   .pattern-box {
-    background: #fffde7;
+    background: linear-gradient(135deg, #fff3e0, #ffd54f);
     border-radius: 16px;
     padding: 20px;
     text-align: center;
     font-size: 1.3em;
     margin: 15px 0;
+    border: 3px solid #e65100;
   }
   .pattern-box .seq {
     font-size: 1.8em;
     font-weight: bold;
-    color: #6a1b9a;
+    color: #c62828;
     letter-spacing: 4px;
+    text-shadow: 2px 2px 0 #ffd54f;
   }
   .add-demo {
     display: flex;
@@ -226,19 +252,22 @@
     font-size: 1.6em;
     font-weight: bold;
     margin: 15px 0;
+    flex-wrap: wrap;
   }
   .add-demo .num {
-    background: #b3e5fc;
+    background: linear-gradient(135deg, #4a148c, #6a1b9a);
     border-radius: 12px;
     padding: 8px 16px;
-    color: #01579b;
+    color: white;
+    text-shadow: 2px 2px 0 #311b92;
   }
-  .add-demo .equals { color: #ad1457; }
+  .add-demo .equals { color: #c62828; font-size: 1.3em; }
   .add-demo .answer {
-    background: #fff59d;
+    background: linear-gradient(135deg, #ff6f00, #ffd54f);
     border-radius: 12px;
     padding: 8px 16px;
-    color: #f57f17;
+    color: white;
+    text-shadow: 2px 2px 0 #c62828;
   }
   .victory {
     text-align: center;
@@ -246,13 +275,14 @@
   }
   .victory h2 {
     font-size: 2.5em;
-    color: #d63384;
+    color: #c62828;
     margin-bottom: 20px;
+    text-shadow: 3px 3px 0 #ffd54f;
   }
-  .big-emoji { font-size: 4em; animation: bounce 1.5s ease-in-out infinite; }
+  .big-emoji { font-size: 4em; animation: fly 2s ease-in-out infinite; display: inline-block; }
   .restart {
-    background: linear-gradient(135deg, #ffd166, #f5576c);
-    border: none;
+    background: linear-gradient(135deg, #6a1b9a, #c62828);
+    border: 3px solid #ffd54f;
     border-radius: 50px;
     padding: 14px 32px;
     font-size: 1.2em;
@@ -261,43 +291,46 @@
     cursor: pointer;
     margin-top: 20px;
     font-family: inherit;
+    text-shadow: 2px 2px 0 #4a148c;
   }
 </style>
 </head>
 <body>
 <div class="container">
-  <div class="stars" id="stars">⭐ 0</div>
-  <h1>🐰 Tavşanların Sihirli Sayıları 🐰</h1>
-  <p class="subtitle">Fibonacci'nin Eğlenceli Dünyasına Hoş Geldin!</p>
+  <div class="stars" id="stars">💎 0</div>
+  <h1>🐉 Ejderha Vadisinin Sihirli Sayıları 🔥</h1>
+  <p class="subtitle">Fibonacci Hazinesini Bulmak İçin Hazır Mısın?</p>
 
   <div class="progress"><div class="progress-bar" id="progressBar" style="width:0%"></div></div>
 
   <!-- Bölüm 1: Hikaye -->
   <div class="screen active" id="screen-intro">
-    <span class="level-badge">📖 1. Bölüm: Hikaye</span>
+    <span class="level-badge">📜 1. Bölüm: Sihirli Hikaye</span>
     <div class="story">
-      <p>Selam matematik kaşifi! 👋</p>
+      <p>Selam ejderha kaşifi! 👋🔥</p>
       <br>
-      <p>Bir zamanlar sihirli bir ormanda yaşayan iki minik tavşan varmış: <b>Pıtırcık</b> 🐰 ve <b>Şıpşık</b> 🐰.</p>
+      <p>Çok uzaklarda, bulutların üzerinde, <b>Sihirli Ejderha Vadisi</b> diye bir yer varmış. 🏔️</p>
       <br>
-      <p>Bu tavşanlar çok özelmiş çünkü her ay <b>çok eğlenceli bir kuralla</b> çoğalıyorlarmış.</p>
+      <p>Bu vadide iki muhteşem ejderha yaşarmış: <b>Ateş</b> 🐉 ve <b>Alev</b> 🐉</p>
       <br>
-      <p>Bu kuralı keşfetmek ister misin? 🌟</p>
+      <p>Vadinin altında <b>SİHİRLİ BİR HAZİNE</b> 💎 saklıymış. Hazineyi bulmak için ejderhaların <b>gizli sayı kuralını</b> çözmek gerekirmiş!</p>
+      <br>
+      <p>Bu sırrı keşfetmek ister misin? 🌟</p>
     </div>
-    <button class="primary" onclick="goTo('screen-month1')">Hadi Başlayalım! 🚀</button>
+    <button class="primary" onclick="goTo('screen-month1')">Maceraya Atıl! 🚀</button>
   </div>
 
-  <!-- Bölüm 2: Ay ay tavşanlar -->
+  <!-- Bölüm 2: Ay ay ejderhalar -->
   <div class="screen" id="screen-month1">
-    <span class="level-badge">🌱 2. Bölüm: Tavşanları Sayalım</span>
+    <span class="level-badge">🥚 2. Bölüm: Ejderhaları Say</span>
     <div class="story">
-      <b>1. Ay:</b> Ormanda sadece <b>1</b> çift tavşan var.
+      <b>1. Ay:</b> Vadiye <b>1</b> ejderha geldi! Yumurtadan yeni çıktı. 🥚→🐉
     </div>
-    <div class="rabbits"><span class="rabbit hop">🐰</span></div>
+    <div class="dragons"><span class="dragon fly">🐉</span></div>
     <div class="month-cards">
       <div class="month-card highlight">
         <div class="label">1. Ay</div>
-        <div class="bunnies">🐰</div>
+        <div class="creatures">🐉</div>
         <div class="number">1</div>
       </div>
     </div>
@@ -305,39 +338,39 @@
   </div>
 
   <div class="screen" id="screen-month2">
-    <span class="level-badge">🌿 2. Bölüm: Tavşanları Sayalım</span>
+    <span class="level-badge">🥚 2. Bölüm: Ejderhaları Say</span>
     <div class="story">
-      <b>2. Ay:</b> Hala <b>1</b> çift tavşan var. (Henüz büyüyorlar! 🌱)
+      <b>2. Ay:</b> Hala <b>1</b> ejderha var. Kanatları büyüyor! 🪽
     </div>
-    <div class="rabbits"><span class="rabbit hop">🐰</span></div>
+    <div class="dragons"><span class="dragon fly">🐉</span></div>
     <div class="month-cards">
       <div class="month-card">
-        <div class="label">1. Ay</div><div class="bunnies">🐰</div><div class="number">1</div>
+        <div class="label">1. Ay</div><div class="creatures">🐉</div><div class="number">1</div>
       </div>
       <div class="month-card highlight">
-        <div class="label">2. Ay</div><div class="bunnies">🐰</div><div class="number">1</div>
+        <div class="label">2. Ay</div><div class="creatures">🐉</div><div class="number">1</div>
       </div>
     </div>
     <button class="primary" onclick="goTo('screen-month3')">Sonraki Ay ➡️</button>
   </div>
 
   <div class="screen" id="screen-month3">
-    <span class="level-badge">🌷 2. Bölüm: Tavşanları Sayalım</span>
+    <span class="level-badge">🔥 2. Bölüm: Ejderhaları Say</span>
     <div class="story">
-      <b>3. Ay:</b> Tavşanlar büyüdü ve bir bebek tavşan oldu! Şimdi <b>2</b> çift tavşan var. 🎉
+      <b>3. Ay:</b> BOOM! 💥 Yeni bir yumurta çatladı! Şimdi <b>2</b> ejderha var. 🎉
     </div>
-    <div class="rabbits">
-      <span class="rabbit">🐰</span><span class="rabbit">🐰</span>
+    <div class="dragons">
+      <span class="dragon">🐉</span><span class="dragon">🐲</span>
     </div>
     <div class="month-cards">
       <div class="month-card">
-        <div class="label">1. Ay</div><div class="bunnies">🐰</div><div class="number">1</div>
+        <div class="label">1. Ay</div><div class="creatures">🐉</div><div class="number">1</div>
       </div>
       <div class="month-card">
-        <div class="label">2. Ay</div><div class="bunnies">🐰</div><div class="number">1</div>
+        <div class="label">2. Ay</div><div class="creatures">🐉</div><div class="number">1</div>
       </div>
       <div class="month-card highlight">
-        <div class="label">3. Ay</div><div class="bunnies">🐰🐰</div><div class="number">2</div>
+        <div class="label">3. Ay</div><div class="creatures">🐉🐲</div><div class="number">2</div>
       </div>
     </div>
     <div class="hint">💡 Bak şuna: <b>1 + 1 = 2</b>. İlk iki ayı topladık!</div>
@@ -345,30 +378,32 @@
   </div>
 
   <div class="screen" id="screen-month4">
-    <span class="level-badge">🌸 2. Bölüm: Tavşanları Sayalım</span>
+    <span class="level-badge">🔥 2. Bölüm: Ejderhaları Say</span>
     <div class="story">
-      <b>4. Ay:</b> Bir bebek daha! Şimdi <b>3</b> çift tavşan var. 🥕
+      <b>4. Ay:</b> Bir yumurta daha çatladı! Şimdi <b>3</b> ejderha vadiyi koruyor. 🛡️
     </div>
-    <div class="rabbits">
-      <span class="rabbit">🐰</span><span class="rabbit">🐰</span><span class="rabbit">🐰</span>
+    <div class="dragons">
+      <span class="dragon">🐉</span><span class="dragon">🐲</span><span class="dragon">🐉</span>
     </div>
     <div class="add-demo">
       <span class="num">1</span><span>+</span><span class="num">2</span>
       <span class="equals">=</span><span class="answer">3</span>
     </div>
-    <div class="hint">💡 Önceki iki ayın tavşanlarını topladık: <b>1 + 2 = 3</b>!</div>
+    <div class="hint">💡 Önceki iki ayın ejderhalarını topladık: <b>1 + 2 = 3</b>!</div>
     <button class="primary" onclick="goTo('screen-pattern')">Sırrı Keşfet 🔍</button>
   </div>
 
   <!-- Bölüm 3: Kalıbı keşfet -->
   <div class="screen" id="screen-pattern">
-    <span class="level-badge">🔍 3. Bölüm: Sihirli Kural</span>
+    <span class="level-badge">🔮 3. Bölüm: Sihirli Kural</span>
     <div class="story">
-      <b>Vay canına!</b> 🤩 Bir sır keşfettin!
+      <b>VAY CANINA!</b> 🤩✨ Sırrı çözdün!
       <br><br>
-      Her ayın tavşan sayısı, <b>önceki iki ayın toplamı</b>na eşit!
+      Her ayın ejderha sayısı, <b>önceki iki ayın toplamı</b>na eşit!
       <br><br>
-      Bu sihirli sayılara <b>FIBONACCI sayıları</b> denir. Bu ismi 800 yıl önce yaşamış Leonardo Fibonacci adında bir matematikçi bulmuş! 👨‍🏫
+      Bu sihirli sayıların özel bir adı var: <b>FIBONACCI sayıları</b>! 🔥
+      <br><br>
+      Bu ismi 800 yıl önce yaşamış <b>Leonardo Fibonacci</b> adında bir matematikçi bulmuş. O zamanlar ejderha yokmuş ama o yine de bu sırrı çözmüş! 👨‍🏫
     </div>
     <div class="pattern-box">
       <div>İşte sihirli dizilim:</div>
@@ -382,14 +417,14 @@
       <span class="num">1</span><span>+</span><span class="num">2</span>
       <span class="equals">=</span><span class="answer">3</span>
     </div>
-    <button class="primary" onclick="startQuiz()">Hadi Oyun Zamanı! 🎮</button>
+    <button class="primary" onclick="startQuiz()">Hazine Avı Başlasın! 💎</button>
   </div>
 
   <!-- Bölüm 4: Quiz -->
   <div class="screen" id="screen-quiz">
-    <span class="level-badge">🎯 4. Bölüm: Sıradaki Sayı Ne?</span>
+    <span class="level-badge">⚔️ 4. Bölüm: Hazine Bulmacası</span>
     <div class="pattern-box">
-      <div>Önceki iki sayıyı topla, sıradaki sayıyı bul!</div>
+      <div>🐉 Önceki iki sayıyı topla, sıradaki sayıyı bul!</div>
       <div class="seq" id="quizSeq"></div>
     </div>
     <div class="question">
@@ -403,17 +438,18 @@
   <!-- Zafer ekranı -->
   <div class="screen" id="screen-victory">
     <div class="victory">
-      <div class="big-emoji">🏆</div>
-      <h2>Tebrikler Şampiyon!</h2>
-      <p style="font-size:1.3em; margin:15px 0;">Fibonacci sayılarının sırrını çözdün! 🎉</p>
+      <div class="big-emoji">🐉</div>
+      <h2>HAZİNE SENİN!</h2>
+      <p style="font-size:1.3em; margin:15px 0;">💎🏆💎 Tebrikler şampiyon! 💎🏆💎</p>
+      <p style="font-size:1.2em; margin:15px 0;">Ejderhaların sihirli sırrını çözdün! 🔥</p>
       <div class="pattern-box">
         <div>Bütün sihirli sayılar:</div>
         <div class="seq">1, 1, 2, 3, 5, 8, 13, 21</div>
       </div>
       <div class="story" style="text-align:left;">
-        <b>Süper bir bilgi:</b> 🌻
+        <b>🌟 Süper Bilgi:</b>
         <br><br>
-        Fibonacci sayılarını doğada da görebilirsin!
+        Fibonacci sayılarını <b>gerçek dünyada</b> da görebilirsin!
         <br>
         🌻 Ayçiçeklerinin tohumlarında
         <br>
@@ -422,8 +458,10 @@
         🌲 Çam kozalaklarında
         <br>
         🌹 Çiçeklerin yapraklarında
+        <br>
+        🌌 Galaksilerin kollarında
         <br><br>
-        Doğa matematiği çok seviyor! 💖
+        Yani Fibonacci sayıları her yerde gizli! 🔍✨
       </div>
       <div id="finalStars" style="font-size:2em; margin:15px 0;"></div>
       <button class="restart" onclick="restart()">🔄 Tekrar Oyna</button>
@@ -436,15 +474,10 @@
   const totalSteps = 9;
   let currentStep = 0;
 
-  const screens = [
-    'screen-intro','screen-month1','screen-month2','screen-month3',
-    'screen-month4','screen-pattern','screen-quiz','screen-victory'
-  ];
-
   function updateProgress() {
     const pct = Math.min(100, (currentStep / totalSteps) * 100);
     document.getElementById('progressBar').style.width = pct + '%';
-    document.getElementById('stars').textContent = '⭐ ' + stars;
+    document.getElementById('stars').textContent = '💎 ' + stars;
   }
 
   function goTo(id) {
@@ -455,7 +488,6 @@
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  // Quiz: tavşan emojileri ile görsel ipucu
   const fib = [1, 1, 2, 3, 5, 8, 13, 21];
   const quizQuestions = [
     { idx: 4, options: [4, 5, 6], hint: '💡 İpucu: 2 + 3 = ?' },
@@ -502,12 +534,12 @@
       btn.classList.add('correct');
       stars++;
       updateProgress();
-      fb.textContent = '🎉 Harikasın! Çok doğru!';
+      fb.textContent = '🔥 MUHTEŞEM! Doğru cevap! 💎';
       fb.className = 'feedback good';
       setTimeout(nextQuestion, 1400);
     } else {
       btn.classList.add('wrong');
-      fb.textContent = '🤔 Hmm, tekrar dene! Önceki iki sayıyı topla.';
+      fb.textContent = '🐲 Hmm, tekrar dene! Önceki iki sayıyı topla.';
       fb.className = 'feedback bad';
       setTimeout(() => {
         btn.classList.remove('wrong');
@@ -527,7 +559,7 @@
       currentStep = totalSteps;
       goTo('screen-victory');
       const fs = document.getElementById('finalStars');
-      fs.textContent = '⭐'.repeat(stars) + '  (' + stars + ' yıldız!)';
+      fs.textContent = '💎'.repeat(stars) + '  (' + stars + ' elmas!)';
     }
   }
 
