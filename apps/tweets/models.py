@@ -23,6 +23,7 @@ from django.db import models, transaction
 from django.db.models import F, Q
 from django.utils import timezone
 
+from apps.tweets.char_count import TWEET_MAX_CHARS, count_tweet_chars
 from apps.tweets.managers import TweetManager
 
 if TYPE_CHECKING:
@@ -106,6 +107,23 @@ class Tweet(models.Model):
     def __str__(self) -> str:  # pragma: no cover - 表示用
         return f"Tweet(id={self.pk}, author={self.author_id})"
 
+    # ---------- バリデーション ----------
+
+    def clean(self) -> None:
+        """SPEC §3.3 に従う「見た目の文字数」上限を検証する (P1-10)。
+
+        CharField(max_length=180) によって **raw 文字列長** は DB / full_clean
+        双方で強制されるが、本プロジェクトでは URL を 23 字換算し Markdown
+        記号を除外した「見た目の文字数」も 180 字以下でなければならない。
+        ここではその後者を検証する (raw 上限は CharField が担当)。
+        """
+
+        super().clean()
+        if self.body and count_tweet_chars(self.body) > TWEET_MAX_CHARS:
+            raise ValidationError(
+                {"body": (f"本文は URL / Markdown 換算で {TWEET_MAX_CHARS} 字以内にしてください。")}
+            )
+
     # ---------- ドメインメソッド ----------
 
     def soft_delete(self) -> None:
@@ -156,9 +174,21 @@ class Tweet(models.Model):
           インスタンスに読み戻す。
         """
 
-        # new_body の長さは常に検証する (CharField にしたが record_edit は save() を使わないため)
+        # new_body の長さは常に検証する (CharField にしたが record_edit は save() を使わないため)。
+        # code-reviewer MEDIUM: ValidationError の形式を ``{field: message}`` 辞書に
+        # 統一する (clean() 側と揃えて DRF レイヤーでも field-level エラーとして返せる)。
         if len(new_body) > TWEET_BODY_MAX_LENGTH:
-            raise ValidationError(f"本文は {TWEET_BODY_MAX_LENGTH} 字以内で入力してください。")
+            raise ValidationError(
+                {"body": f"本文は {TWEET_BODY_MAX_LENGTH} 字以内で入力してください。"}
+            )
+
+        # P1-10: URL 換算 / Markdown 記号除外 ベースの「見た目の文字数」も検証する。
+        # raw 文字数が 180 以下でも見た目が 180 を超えるケース (長い URL を
+        # 1 字扱いしてコードブロックで装飾等) を拒否する。
+        if count_tweet_chars(new_body) > TWEET_MAX_CHARS:
+            raise ValidationError(
+                {"body": f"本文は URL / Markdown 換算で {TWEET_MAX_CHARS} 字以内にしてください。"}
+            )
 
         # 行ロックを取り、ロック後にもう一度 can_edit を評価することで
         # TOCTOU (can_edit と save の間で別トランザクションが挿入) を排除する
