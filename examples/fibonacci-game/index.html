@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Tavşanların Sihirli Sayıları - Fibonacci Oyunu</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Comic Sans MS', 'Trebuchet MS', sans-serif;
+    background: linear-gradient(135deg, #ffe9a7 0%, #ffb6d9 50%, #b6e2ff 100%);
+    min-height: 100vh;
+    padding: 20px;
+    color: #333;
+  }
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 30px;
+    padding: 30px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+  }
+  h1 {
+    text-align: center;
+    color: #d63384;
+    font-size: 2.2em;
+    margin-bottom: 10px;
+    text-shadow: 2px 2px 0 #fff3a0;
+  }
+  .subtitle {
+    text-align: center;
+    color: #6f42c1;
+    font-size: 1.1em;
+    margin-bottom: 25px;
+  }
+  .level-badge {
+    display: inline-block;
+    background: #ffd166;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-weight: bold;
+    color: #6b4423;
+  }
+  .stars {
+    text-align: right;
+    font-size: 1.4em;
+    margin-bottom: 15px;
+  }
+  .screen {
+    display: none;
+    animation: fadeIn 0.4s ease-in;
+  }
+  .screen.active { display: block; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-12px); }
+  }
+  @keyframes pop {
+    0%   { transform: scale(0); }
+    60%  { transform: scale(1.2); }
+    100% { transform: scale(1); }
+  }
+  .story {
+    background: #fff8e1;
+    border: 3px dashed #ffb74d;
+    border-radius: 20px;
+    padding: 20px;
+    font-size: 1.15em;
+    line-height: 1.6;
+    margin-bottom: 20px;
+  }
+  .rabbits {
+    text-align: center;
+    font-size: 2.5em;
+    margin: 20px 0;
+    min-height: 60px;
+    line-height: 1.4;
+  }
+  .rabbit {
+    display: inline-block;
+    animation: pop 0.5s ease-out;
+  }
+  .rabbit.hop { animation: bounce 1s ease-in-out infinite; }
+  .month-cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+    margin: 20px 0;
+  }
+  .month-card {
+    background: #e3f2fd;
+    border: 3px solid #64b5f6;
+    border-radius: 16px;
+    padding: 12px;
+    min-width: 110px;
+    text-align: center;
+    animation: pop 0.4s ease-out;
+  }
+  .month-card.highlight {
+    background: #fff59d;
+    border-color: #fbc02d;
+  }
+  .month-card .label { font-size: 0.85em; color: #555; }
+  .month-card .bunnies { font-size: 1.5em; margin: 4px 0; }
+  .month-card .number {
+    font-size: 1.8em;
+    font-weight: bold;
+    color: #1976d2;
+  }
+  .question {
+    background: #f3e5f5;
+    border-radius: 20px;
+    padding: 20px;
+    text-align: center;
+    margin: 20px 0;
+  }
+  .question h2 {
+    color: #6a1b9a;
+    margin-bottom: 15px;
+  }
+  .hint {
+    background: #e1f5fe;
+    padding: 10px 15px;
+    border-radius: 12px;
+    color: #01579b;
+    font-size: 0.95em;
+    margin: 10px 0;
+  }
+  .options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+    margin: 20px 0;
+  }
+  button.choice {
+    background: linear-gradient(135deg, #ff9a9e, #fecfef);
+    border: none;
+    border-radius: 50px;
+    padding: 16px 30px;
+    font-size: 1.5em;
+    font-weight: bold;
+    color: white;
+    cursor: pointer;
+    box-shadow: 0 4px 0 #c2185b;
+    transition: all 0.15s;
+    font-family: inherit;
+    min-width: 80px;
+  }
+  button.choice:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 0 #c2185b;
+  }
+  button.choice:active {
+    transform: translateY(2px);
+    box-shadow: 0 2px 0 #c2185b;
+  }
+  button.choice.correct {
+    background: linear-gradient(135deg, #43e97b, #38f9d7);
+    box-shadow: 0 4px 0 #2e7d32;
+  }
+  button.choice.wrong {
+    background: linear-gradient(135deg, #ff6a6a, #ee0979);
+    box-shadow: 0 4px 0 #b71c1c;
+  }
+  button.primary {
+    display: block;
+    margin: 20px auto;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border: none;
+    border-radius: 50px;
+    padding: 16px 40px;
+    font-size: 1.3em;
+    font-weight: bold;
+    color: white;
+    cursor: pointer;
+    box-shadow: 0 4px 0 #3f51b5;
+    font-family: inherit;
+  }
+  button.primary:hover { transform: translateY(-2px); }
+  .feedback {
+    text-align: center;
+    font-size: 1.4em;
+    font-weight: bold;
+    margin: 15px 0;
+    min-height: 40px;
+  }
+  .feedback.good { color: #2e7d32; }
+  .feedback.bad  { color: #c62828; }
+  .progress {
+    background: #eee;
+    border-radius: 20px;
+    height: 20px;
+    overflow: hidden;
+    margin: 15px 0;
+  }
+  .progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #f093fb, #f5576c);
+    transition: width 0.4s;
+  }
+  .pattern-box {
+    background: #fffde7;
+    border-radius: 16px;
+    padding: 20px;
+    text-align: center;
+    font-size: 1.3em;
+    margin: 15px 0;
+  }
+  .pattern-box .seq {
+    font-size: 1.8em;
+    font-weight: bold;
+    color: #6a1b9a;
+    letter-spacing: 4px;
+  }
+  .add-demo {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    font-size: 1.6em;
+    font-weight: bold;
+    margin: 15px 0;
+  }
+  .add-demo .num {
+    background: #b3e5fc;
+    border-radius: 12px;
+    padding: 8px 16px;
+    color: #01579b;
+  }
+  .add-demo .equals { color: #ad1457; }
+  .add-demo .answer {
+    background: #fff59d;
+    border-radius: 12px;
+    padding: 8px 16px;
+    color: #f57f17;
+  }
+  .victory {
+    text-align: center;
+    padding: 30px;
+  }
+  .victory h2 {
+    font-size: 2.5em;
+    color: #d63384;
+    margin-bottom: 20px;
+  }
+  .big-emoji { font-size: 4em; animation: bounce 1.5s ease-in-out infinite; }
+  .restart {
+    background: linear-gradient(135deg, #ffd166, #f5576c);
+    border: none;
+    border-radius: 50px;
+    padding: 14px 32px;
+    font-size: 1.2em;
+    font-weight: bold;
+    color: white;
+    cursor: pointer;
+    margin-top: 20px;
+    font-family: inherit;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="stars" id="stars">⭐ 0</div>
+  <h1>🐰 Tavşanların Sihirli Sayıları 🐰</h1>
+  <p class="subtitle">Fibonacci'nin Eğlenceli Dünyasına Hoş Geldin!</p>
+
+  <div class="progress"><div class="progress-bar" id="progressBar" style="width:0%"></div></div>
+
+  <!-- Bölüm 1: Hikaye -->
+  <div class="screen active" id="screen-intro">
+    <span class="level-badge">📖 1. Bölüm: Hikaye</span>
+    <div class="story">
+      <p>Selam matematik kaşifi! 👋</p>
+      <br>
+      <p>Bir zamanlar sihirli bir ormanda yaşayan iki minik tavşan varmış: <b>Pıtırcık</b> 🐰 ve <b>Şıpşık</b> 🐰.</p>
+      <br>
+      <p>Bu tavşanlar çok özelmiş çünkü her ay <b>çok eğlenceli bir kuralla</b> çoğalıyorlarmış.</p>
+      <br>
+      <p>Bu kuralı keşfetmek ister misin? 🌟</p>
+    </div>
+    <button class="primary" onclick="goTo('screen-month1')">Hadi Başlayalım! 🚀</button>
+  </div>
+
+  <!-- Bölüm 2: Ay ay tavşanlar -->
+  <div class="screen" id="screen-month1">
+    <span class="level-badge">🌱 2. Bölüm: Tavşanları Sayalım</span>
+    <div class="story">
+      <b>1. Ay:</b> Ormanda sadece <b>1</b> çift tavşan var.
+    </div>
+    <div class="rabbits"><span class="rabbit hop">🐰</span></div>
+    <div class="month-cards">
+      <div class="month-card highlight">
+        <div class="label">1. Ay</div>
+        <div class="bunnies">🐰</div>
+        <div class="number">1</div>
+      </div>
+    </div>
+    <button class="primary" onclick="goTo('screen-month2')">Sonraki Ay ➡️</button>
+  </div>
+
+  <div class="screen" id="screen-month2">
+    <span class="level-badge">🌿 2. Bölüm: Tavşanları Sayalım</span>
+    <div class="story">
+      <b>2. Ay:</b> Hala <b>1</b> çift tavşan var. (Henüz büyüyorlar! 🌱)
+    </div>
+    <div class="rabbits"><span class="rabbit hop">🐰</span></div>
+    <div class="month-cards">
+      <div class="month-card">
+        <div class="label">1. Ay</div><div class="bunnies">🐰</div><div class="number">1</div>
+      </div>
+      <div class="month-card highlight">
+        <div class="label">2. Ay</div><div class="bunnies">🐰</div><div class="number">1</div>
+      </div>
+    </div>
+    <button class="primary" onclick="goTo('screen-month3')">Sonraki Ay ➡️</button>
+  </div>
+
+  <div class="screen" id="screen-month3">
+    <span class="level-badge">🌷 2. Bölüm: Tavşanları Sayalım</span>
+    <div class="story">
+      <b>3. Ay:</b> Tavşanlar büyüdü ve bir bebek tavşan oldu! Şimdi <b>2</b> çift tavşan var. 🎉
+    </div>
+    <div class="rabbits">
+      <span class="rabbit">🐰</span><span class="rabbit">🐰</span>
+    </div>
+    <div class="month-cards">
+      <div class="month-card">
+        <div class="label">1. Ay</div><div class="bunnies">🐰</div><div class="number">1</div>
+      </div>
+      <div class="month-card">
+        <div class="label">2. Ay</div><div class="bunnies">🐰</div><div class="number">1</div>
+      </div>
+      <div class="month-card highlight">
+        <div class="label">3. Ay</div><div class="bunnies">🐰🐰</div><div class="number">2</div>
+      </div>
+    </div>
+    <div class="hint">💡 Bak şuna: <b>1 + 1 = 2</b>. İlk iki ayı topladık!</div>
+    <button class="primary" onclick="goTo('screen-month4')">Devam Et ➡️</button>
+  </div>
+
+  <div class="screen" id="screen-month4">
+    <span class="level-badge">🌸 2. Bölüm: Tavşanları Sayalım</span>
+    <div class="story">
+      <b>4. Ay:</b> Bir bebek daha! Şimdi <b>3</b> çift tavşan var. 🥕
+    </div>
+    <div class="rabbits">
+      <span class="rabbit">🐰</span><span class="rabbit">🐰</span><span class="rabbit">🐰</span>
+    </div>
+    <div class="add-demo">
+      <span class="num">1</span><span>+</span><span class="num">2</span>
+      <span class="equals">=</span><span class="answer">3</span>
+    </div>
+    <div class="hint">💡 Önceki iki ayın tavşanlarını topladık: <b>1 + 2 = 3</b>!</div>
+    <button class="primary" onclick="goTo('screen-pattern')">Sırrı Keşfet 🔍</button>
+  </div>
+
+  <!-- Bölüm 3: Kalıbı keşfet -->
+  <div class="screen" id="screen-pattern">
+    <span class="level-badge">🔍 3. Bölüm: Sihirli Kural</span>
+    <div class="story">
+      <b>Vay canına!</b> 🤩 Bir sır keşfettin!
+      <br><br>
+      Her ayın tavşan sayısı, <b>önceki iki ayın toplamı</b>na eşit!
+      <br><br>
+      Bu sihirli sayılara <b>FIBONACCI sayıları</b> denir. Bu ismi 800 yıl önce yaşamış Leonardo Fibonacci adında bir matematikçi bulmuş! 👨‍🏫
+    </div>
+    <div class="pattern-box">
+      <div>İşte sihirli dizilim:</div>
+      <div class="seq">1, 1, 2, 3, ...</div>
+    </div>
+    <div class="add-demo">
+      <span class="num">1</span><span>+</span><span class="num">1</span>
+      <span class="equals">=</span><span class="answer">2</span>
+    </div>
+    <div class="add-demo">
+      <span class="num">1</span><span>+</span><span class="num">2</span>
+      <span class="equals">=</span><span class="answer">3</span>
+    </div>
+    <button class="primary" onclick="startQuiz()">Hadi Oyun Zamanı! 🎮</button>
+  </div>
+
+  <!-- Bölüm 4: Quiz -->
+  <div class="screen" id="screen-quiz">
+    <span class="level-badge">🎯 4. Bölüm: Sıradaki Sayı Ne?</span>
+    <div class="pattern-box">
+      <div>Önceki iki sayıyı topla, sıradaki sayıyı bul!</div>
+      <div class="seq" id="quizSeq"></div>
+    </div>
+    <div class="question">
+      <h2 id="quizQuestion"></h2>
+      <div class="hint" id="quizHint"></div>
+      <div class="options" id="quizOptions"></div>
+      <div class="feedback" id="quizFeedback"></div>
+    </div>
+  </div>
+
+  <!-- Zafer ekranı -->
+  <div class="screen" id="screen-victory">
+    <div class="victory">
+      <div class="big-emoji">🏆</div>
+      <h2>Tebrikler Şampiyon!</h2>
+      <p style="font-size:1.3em; margin:15px 0;">Fibonacci sayılarının sırrını çözdün! 🎉</p>
+      <div class="pattern-box">
+        <div>Bütün sihirli sayılar:</div>
+        <div class="seq">1, 1, 2, 3, 5, 8, 13, 21</div>
+      </div>
+      <div class="story" style="text-align:left;">
+        <b>Süper bir bilgi:</b> 🌻
+        <br><br>
+        Fibonacci sayılarını doğada da görebilirsin!
+        <br>
+        🌻 Ayçiçeklerinin tohumlarında
+        <br>
+        🐚 Salyangozların kabuklarında
+        <br>
+        🌲 Çam kozalaklarında
+        <br>
+        🌹 Çiçeklerin yapraklarında
+        <br><br>
+        Doğa matematiği çok seviyor! 💖
+      </div>
+      <div id="finalStars" style="font-size:2em; margin:15px 0;"></div>
+      <button class="restart" onclick="restart()">🔄 Tekrar Oyna</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  let stars = 0;
+  const totalSteps = 9;
+  let currentStep = 0;
+
+  const screens = [
+    'screen-intro','screen-month1','screen-month2','screen-month3',
+    'screen-month4','screen-pattern','screen-quiz','screen-victory'
+  ];
+
+  function updateProgress() {
+    const pct = Math.min(100, (currentStep / totalSteps) * 100);
+    document.getElementById('progressBar').style.width = pct + '%';
+    document.getElementById('stars').textContent = '⭐ ' + stars;
+  }
+
+  function goTo(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    currentStep++;
+    updateProgress();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // Quiz: tavşan emojileri ile görsel ipucu
+  const fib = [1, 1, 2, 3, 5, 8, 13, 21];
+  const quizQuestions = [
+    { idx: 4, options: [4, 5, 6], hint: '💡 İpucu: 2 + 3 = ?' },
+    { idx: 5, options: [7, 8, 9], hint: '💡 İpucu: 3 + 5 = ?' },
+    { idx: 6, options: [11, 12, 13], hint: '💡 İpucu: 5 + 8 = ?' },
+    { idx: 7, options: [20, 21, 22], hint: '💡 İpucu: 8 + 13 = ?' }
+  ];
+  let qIndex = 0;
+
+  function startQuiz() {
+    qIndex = 0;
+    goTo('screen-quiz');
+    showQuestion();
+  }
+
+  function showQuestion() {
+    const q = quizQuestions[qIndex];
+    const seqShown = fib.slice(0, q.idx).join(', ') + ', ?';
+    document.getElementById('quizSeq').textContent = seqShown;
+    document.getElementById('quizQuestion').textContent =
+      'Soru ' + (qIndex + 1) + ' / ' + quizQuestions.length + ': Sıradaki sayı kaç?';
+    document.getElementById('quizHint').innerHTML = q.hint;
+    document.getElementById('quizFeedback').textContent = '';
+
+    const optsDiv = document.getElementById('quizOptions');
+    optsDiv.innerHTML = '';
+    const correct = fib[q.idx];
+    const shuffled = [...q.options].sort(() => Math.random() - 0.5);
+    shuffled.forEach(opt => {
+      const btn = document.createElement('button');
+      btn.className = 'choice';
+      btn.textContent = opt;
+      btn.onclick = () => answer(btn, opt, correct);
+      optsDiv.appendChild(btn);
+    });
+  }
+
+  function answer(btn, opt, correct) {
+    const allBtns = document.querySelectorAll('#quizOptions .choice');
+    allBtns.forEach(b => b.disabled = true);
+    const fb = document.getElementById('quizFeedback');
+
+    if (opt === correct) {
+      btn.classList.add('correct');
+      stars++;
+      updateProgress();
+      fb.textContent = '🎉 Harikasın! Çok doğru!';
+      fb.className = 'feedback good';
+      setTimeout(nextQuestion, 1400);
+    } else {
+      btn.classList.add('wrong');
+      fb.textContent = '🤔 Hmm, tekrar dene! Önceki iki sayıyı topla.';
+      fb.className = 'feedback bad';
+      setTimeout(() => {
+        btn.classList.remove('wrong');
+        allBtns.forEach(b => b.disabled = false);
+        fb.textContent = '';
+      }, 1500);
+    }
+  }
+
+  function nextQuestion() {
+    qIndex++;
+    if (qIndex < quizQuestions.length) {
+      currentStep++;
+      updateProgress();
+      showQuestion();
+    } else {
+      currentStep = totalSteps;
+      goTo('screen-victory');
+      const fs = document.getElementById('finalStars');
+      fs.textContent = '⭐'.repeat(stars) + '  (' + stars + ' yıldız!)';
+    }
+  }
+
+  function restart() {
+    stars = 0;
+    currentStep = 0;
+    qIndex = 0;
+    updateProgress();
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('screen-intro').classList.add('active');
+  }
+
+  updateProgress();
+</script>
+</body>
+</html>
