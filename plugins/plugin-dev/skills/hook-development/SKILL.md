@@ -339,46 +339,50 @@ Available in all command hooks:
 
 ## Plugin Hook Configuration
 
-In plugins, define hooks in `hooks/hooks.json`:
+In plugins, define hooks in `hooks/hooks.json` using the **wrapper format**:
 
 ```json
 {
-  "PreToolUse": [
-    {
-      "matcher": "Write|Edit",
-      "hooks": [
-        {
-          "type": "prompt",
-          "prompt": "Validate file write safety"
-        }
-      ]
-    }
-  ],
-  "Stop": [
-    {
-      "matcher": "*",
-      "hooks": [
-        {
-          "type": "prompt",
-          "prompt": "Verify task completion"
-        }
-      ]
-    }
-  ],
-  "SessionStart": [
-    {
-      "matcher": "*",
-      "hooks": [
-        {
-          "type": "command",
-          "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/load-context.sh",
-          "timeout": 10
-        }
-      ]
-    }
-  ]
+  "description": "Plugin hooks for validation and context loading",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "Validate file write safety"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "Verify task completion"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/load-context.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
 }
 ```
+
+**Important:** Plugin hooks.json must use the wrapper format (`{"hooks": {...}}`), not the direct format used in settings files. The `matcher` field is optional for SessionStart, SessionEnd, PreCompact, and Notification events.
 
 Plugin hooks merge with user's hooks and run in parallel.
 
