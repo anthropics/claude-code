@@ -309,6 +309,11 @@ REST_FRAMEWORK = {
         # code-reviewer (PR #131 HIGH #2) 指摘: login ブルートフォース対策。
         # apps.users.views.LoginRateThrottle が scope="login" で参照する。
         "login": "5/minute",
+        # code-reviewer (PR #135 HIGH #2) 指摘: タグ新規提案は find_similar_tags で
+        # 全 approved タグを Python 側で走査するため、既定 user レート (500/day) より
+        # 厳しい scope="tag_propose" を用意し DoS 的な連投を抑制する。
+        # apps.tags.views.TagProposeThrottle が参照する。
+        "tag_propose": "20/hour",
     },
 }
 
@@ -437,30 +442,38 @@ AWS_S3_OBJECT_PARAMETERS = {
 _use_s3 = bool(AWS_STORAGE_BUCKET_NAME)
 STORAGES = {
     "default": {
-        "BACKEND": "storages.backends.s3.S3Storage"
-        if _use_s3
-        else "django.core.files.storage.FileSystemStorage",
-        "OPTIONS": {
-            "bucket_name": AWS_STORAGE_BUCKET_NAME,
-            "custom_domain": getenv("AWS_S3_CUSTOM_DOMAIN", "") or None,
-            "location": "media",
-        }
-        if _use_s3
-        else {},
+        "BACKEND": (
+            "storages.backends.s3.S3Storage"
+            if _use_s3
+            else "django.core.files.storage.FileSystemStorage"
+        ),
+        "OPTIONS": (
+            {
+                "bucket_name": AWS_STORAGE_BUCKET_NAME,
+                "custom_domain": getenv("AWS_S3_CUSTOM_DOMAIN", "") or None,
+                "location": "media",
+            }
+            if _use_s3
+            else {}
+        ),
     },
     "staticfiles": {
         # static は CloudFront + S3 (別バケット) から配信。Phase 0.5-08 の
         # sns-stg-static に collectstatic で push。ローカルは FS に fallback。
-        "BACKEND": "storages.backends.s3.S3Storage"
-        if _use_s3
-        else "django.contrib.staticfiles.storage.StaticFilesStorage",
-        "OPTIONS": {
-            "bucket_name": getenv("AWS_STATIC_BUCKET_NAME", ""),
-            "custom_domain": getenv("AWS_S3_STATIC_CUSTOM_DOMAIN", "") or None,
-            "location": "static",
-        }
-        if _use_s3 and getenv("AWS_STATIC_BUCKET_NAME")
-        else {},
+        "BACKEND": (
+            "storages.backends.s3.S3Storage"
+            if _use_s3
+            else "django.contrib.staticfiles.storage.StaticFilesStorage"
+        ),
+        "OPTIONS": (
+            {
+                "bucket_name": getenv("AWS_STATIC_BUCKET_NAME", ""),
+                "custom_domain": getenv("AWS_S3_STATIC_CUSTOM_DOMAIN", "") or None,
+                "location": "static",
+            }
+            if _use_s3 and getenv("AWS_STATIC_BUCKET_NAME")
+            else {}
+        ),
     },
 }
 
