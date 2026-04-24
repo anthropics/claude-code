@@ -488,7 +488,11 @@ MARKDOWN_BLEACH_ALLOWED_ATTRS = {
     "img": ["src", "alt", "title", "width", "height", "loading"],
     "code": ["class"],  # e.g. language-python (Shiki 用)
     "pre": ["class"],
-    "span": ["class"],  # Shiki のシンタックスハイライト (style は別途拒否)
+    # security-reviewer (PR #134) 指摘: Shiki のシンタックスハイライト span は
+    # クライアント側の JS が描画する (サーバー入力ではない) ため、サーバー側の
+    # bleach allowlist に ``span[class]`` を残しておく必要はない。
+    # クラス衝突による UI 欺瞞 (例: admin-only bedge クラスを悪用) のリスクを
+    # 避けるため、ここからは削除する。
     "div": ["class"],  # シンタックスハイライトのラッパ (highlight 等)
 }
 MARKDOWN_BLEACH_ALLOWED_PROTOCOLS = ["http", "https", "mailto"]  # javascript: を弾く
