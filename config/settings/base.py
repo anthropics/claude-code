@@ -421,8 +421,21 @@ SOCIAL_AUTH_PIPELINE = (
     "social_core.pipeline.social_auth.associate_user",
     "social_core.pipeline.social_auth.load_extra_data",
     "social_core.pipeline.user.user_details",
-    # "apps.users.pipeline.issue_jwt_and_set_cookie",  # P1-12 で追加
+    # P1-12: 新規ユーザーに needs_onboarding=True を明示的に設定 (SPEC §1.2)。
+    # User モデルの default が将来変わっても onboarding flow が確実に起動するよう
+    # pipeline 内で立てる。既存ユーザーには干渉しない (is_new=True のみ動作)。
+    "apps.users.social_pipeline.set_needs_onboarding",
 )
+
+# code-reviewer (PR #138 LOW) 指摘対応:
+#   djoser の ``ProviderAuthSerializer`` は ``redirect_uri`` を受け取り、
+#   ``SOCIAL_AUTH_ALLOWED_REDIRECT_URIS`` 内に含まれるもののみ許可する。
+#   明示的に登録することで、任意 URL への redirect 漏洩 (open redirect) を
+#   防止する。local は localhost:3000 を既定値、stg/prod は env で frontend
+#   URL を上書きする。
+SOCIAL_AUTH_ALLOWED_REDIRECT_URIS = [
+    getenv("SOCIAL_AUTH_ALLOWED_REDIRECT_URI", "http://localhost:3000/auth/google"),
+]
 
 # ---------------------------------------------------------------------------
 # P1-01 + ADR-0003: S3 / django-storages 設定。AWS_S3_BUCKET_NAME が空なら
