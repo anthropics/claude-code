@@ -85,7 +85,7 @@ class CookieAuthentication(JWTAuthentication):
             validated_token = self.get_validated_token(raw_token)
             user = self.get_user(validated_token)
         except TokenError as e:
-            logger.error(f"Token validation error: {e!s}")
+            logger.error("Token validation error: %s", e)
             return None
 
         if from_cookie:
