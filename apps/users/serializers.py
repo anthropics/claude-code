@@ -1,9 +1,15 @@
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.core.validators import URLValidator
 from djoser.serializers import UserCreateSerializer, UserSerializer
 from rest_framework import serializers
 
 from apps.users.validators import validate_handle
+
+# Serializer レベルで URL のスキームを https に限定する validator。
+# djoser UserSerializer を継承している都合で model validators が拾われないため、
+# extra_kwargs で再注入する (apps/users/models.py の _HTTPS_URL_VALIDATOR と同等)。
+_HTTPS_URL_VALIDATOR = URLValidator(schemes=["https"])
 
 User = get_user_model()
 
@@ -23,9 +29,10 @@ class CreateUserSerializer(UserCreateSerializer):
 
 
 class CustomUserSerializer(UserSerializer):
-    """プロフィール表示/更新用。
+    """プロフィール表示/更新用 (self view)。
 
     SPEC §2 に従い username は read_only (= 変更不可) として公開する。
+    ``GET /api/v1/users/me/`` および ``PATCH /api/v1/users/me/`` で使用する。
     """
 
     full_name = serializers.ReadOnlyField()
@@ -54,10 +61,63 @@ class CustomUserSerializer(UserSerializer):
             "date_joined",
         ]
         # username / email / is_premium は変更不可 (is_premium は Stripe webhook でのみ更新)。
+        # needs_onboarding もクライアント側からは変更不可 — オンボーディング完了判定は
+        # サーバー側 (signal / dedicated endpoint) でのみ更新する (P1-03 review MEDIUM 対応)。
         read_only_fields = [
             "id",
             "email",
             "username",
             "is_premium",
+            "needs_onboarding",
             "date_joined",
         ]
+        # djoser UserSerializer 継承時 model field の URLValidator(schemes=["https"]) が
+        # 自動取り込みされないため、extra_kwargs で各 SNS URL に明示的に再注入する
+        # (security-reviewer #131 既知問題の類似パターン対応)。
+        extra_kwargs = {
+            "github_url": {"validators": [_HTTPS_URL_VALIDATOR]},
+            "x_url": {"validators": [_HTTPS_URL_VALIDATOR]},
+            "zenn_url": {"validators": [_HTTPS_URL_VALIDATOR]},
+            "qiita_url": {"validators": [_HTTPS_URL_VALIDATOR]},
+            "note_url": {"validators": [_HTTPS_URL_VALIDATOR]},
+            "linkedin_url": {"validators": [_HTTPS_URL_VALIDATOR]},
+            "avatar_url": {"validators": [_HTTPS_URL_VALIDATOR]},
+            "header_url": {"validators": [_HTTPS_URL_VALIDATOR]},
+        }
+
+
+class PublicProfileSerializer(serializers.ModelSerializer):
+    """公開プロフィール用 serializer (SPEC §2.2)。
+
+    ``GET /api/v1/users/<handle>/`` で使用。未ログインでも閲覧可能。
+
+    公開する: display_name, bio, avatar_url, header_url, SNS URL 6 種,
+              @handle (username), full_name, date_joined
+    公開しない: id, email, is_premium, needs_onboarding, first_name, last_name
+    (= 内部 flag / PII を漏らさない)
+    """
+
+    full_name = serializers.ReadOnlyField()
+
+    class Meta:
+        model = User
+        fields = [
+            "username",
+            "display_name",
+            "bio",
+            "avatar_url",
+            "header_url",
+            "github_url",
+            "x_url",
+            "zenn_url",
+            "qiita_url",
+            "note_url",
+            "linkedin_url",
+            "full_name",
+            "date_joined",
+        ]
+        # 公開 API はすべて read_only (PATCH は /me/ 経由のみ)。
+        # ``fields`` と同じ list を参照させると、DRF 内部で片方に mutate が走った
+        # ときに他方まで壊れる可能性がある。独立コピーを持たせる
+        # (P1-03 review HIGH 対応)。
+        read_only_fields = list(fields)

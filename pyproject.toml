@@ -19,6 +19,12 @@ DJANGO_SETTINGS_MODULE = "config.settings.local"
 python_files = ["tests.py", "test_*.py", "*_tests.py"]
 addopts = "--reuse-db --cov=apps --cov=config --cov-report=term-missing --cov-report=xml"
 testpaths = ["apps", "config"]
+# カスタムマーカー。未登録だと `PytestUnknownMarkWarning` が出て `-W error` 環境で
+# 詰まるため、ここで明示しておく (P1-03 review HIGH 対応)。
+markers = [
+    "unit: unit tests",
+    "integration: integration tests",
+]
 filterwarnings = [
     "ignore::DeprecationWarning:django.*",
     "ignore::DeprecationWarning:rest_framework.*",
