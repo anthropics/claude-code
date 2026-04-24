@@ -1,0 +1,9 @@
+{
+  "name": "remote-control",
+  "description": "Set up and launch Claude Code Remote Control to continue your local session from any browser or mobile device",
+  "version": "1.0.0",
+  "author": {
+    "name": "Anthropic",
+    "email": "support@anthropic.com"
+  }
+}

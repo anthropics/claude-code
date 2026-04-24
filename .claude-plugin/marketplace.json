@@ -136,6 +136,17 @@
       "category": "development"
     },
     {
+      "name": "remote-control",
+      "description": "Set up and launch Claude Code Remote Control to continue your local session from any browser or mobile device",
+      "version": "1.0.0",
+      "author": {
+        "name": "Anthropic",
+        "email": "support@anthropic.com"
+      },
+      "source": "./plugins/remote-control",
+      "category": "productivity"
+    },
+    {
       "name": "security-guidance",
       "description": "Security reminder hook that warns about potential security issues when editing files, including command injection, XSS, and unsafe code patterns",
       "version": "1.0.0",
