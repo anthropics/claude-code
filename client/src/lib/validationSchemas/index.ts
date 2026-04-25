@@ -12,3 +12,6 @@ export type {
 	TRegisterUserSchema,
 	TRregisterUserSchema,
 } from "./RegisterSchema";
+
+export { onboardingSchema } from "./OnboardingSchema";
+export type { TOnboardingSchema } from "./OnboardingSchema";

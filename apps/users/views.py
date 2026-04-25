@@ -4,7 +4,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from djoser.social.views import ProviderAuthView
-from rest_framework import status
+from rest_framework import serializers, status
 from rest_framework.generics import RetrieveAPIView
 from rest_framework.parsers import JSONParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -67,7 +67,9 @@ def set_auth_cookies(
     response.set_cookie(settings.COOKIE_NAME, access_token, **cookie_settings)
 
     if refresh_token:
-        refresh_token_lifetime = settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"].total_seconds()
+        refresh_token_lifetime = settings.SIMPLE_JWT[
+            "REFRESH_TOKEN_LIFETIME"
+        ].total_seconds()
         refresh_cookie_settings = cookie_settings.copy()
         refresh_cookie_settings["max_age"] = refresh_token_lifetime
         response.set_cookie(
@@ -156,7 +158,9 @@ class CustomTokenRefreshView(TokenRefreshView):
                 refresh_res.data["message"] = (
                     "Access or refresh tokens not found in refresh response data"
                 )
-                logger.error("Access or refresh token not found in refresh response data")
+                logger.error(
+                    "Access or refresh token not found in refresh response data"
+                )
 
         return refresh_res
 
@@ -184,7 +188,9 @@ class CustomProviderAuthView(ProviderAuthView):
                 provider_res.data["message"] = (
                     "Access or refresh token not found in provider response"
                 )
-                logger.error("Access or refresh token not found in provider response data")
+                logger.error(
+                    "Access or refresh token not found in provider response data"
+                )
 
         return provider_res
 
@@ -276,7 +282,9 @@ class LogoutAPIView(APIView):
                 token = RefreshToken(refresh_token)
                 token.blacklist()
             except TokenError as exc:
-                logger.warning("Legacy logout called with invalid refresh token: %s", exc)
+                logger.warning(
+                    "Legacy logout called with invalid refresh token: %s", exc
+                )
 
         response = Response(status=status.HTTP_204_NO_CONTENT)
         _delete_auth_cookie(response, settings.COOKIE_NAME)
@@ -473,6 +481,47 @@ class MeView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class CompleteOnboardingView(APIView):
+    """POST /api/v1/users/me/complete_onboarding/ — SPA wizard の submit 先 (P1-14).
+
+    ``needs_onboarding`` は ``CustomUserSerializer`` で read-only に固定してある
+    ため、PATCH /users/me/ から直接 False に倒すことはできない。ウィザード完了
+    経路だけが ``needs_onboarding=False`` を書ける、というのが SPEC §1.2 と
+    P1-03 review MEDIUM の指針。
+
+    受け取るのは ``display_name`` (必須) と ``bio`` (任意 160 字) のみ。skill /
+    interest タグの永続化は UserSkillTag / UserInterestTag M2M (Phase 1 延長課題)
+    実装後に本 View を拡張する。
+
+    認証/CSRF は Cookie 経路の state-changing POST 標準に揃える。
+    """
+
+    authentication_classes = [CSRFEnforcingAuthentication, CookieAuthentication]
+    permission_classes = [IsAuthenticated]
+    http_method_names = ["post", "options"]
+
+    class _Serializer(serializers.Serializer):
+        display_name = serializers.CharField(
+            max_length=50, required=True, allow_blank=False, trim_whitespace=True
+        )
+        bio = serializers.CharField(
+            max_length=160, required=False, allow_blank=True, default=""
+        )
+
+    def post(self, request: Request, *args, **kwargs) -> Response:
+        serializer = self._Serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user = request.user
+        user.display_name = serializer.validated_data["display_name"]
+        user.bio = serializer.validated_data.get("bio", "")
+        user.needs_onboarding = False
+        user.save(update_fields=["display_name", "bio", "needs_onboarding"])
+
+        out = CustomUserSerializer(user)
+        return Response(out.data, status=status.HTTP_200_OK)
 
 
 class PublicProfileView(RetrieveAPIView):

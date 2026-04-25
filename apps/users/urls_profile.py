@@ -18,6 +18,7 @@ from django.urls import path
 
 from .views import (
     AvatarUploadUrlView,
+    CompleteOnboardingView,
     HeaderUploadUrlView,
     MeView,
     PublicProfileView,
@@ -35,6 +36,13 @@ urlpatterns = [
         "me/header-upload-url/",
         HeaderUploadUrlView.as_view(),
         name="users-me-header-upload-url",
+    ),
+    # P1-14: オンボーディング完了 (needs_onboarding=False に遷移)。
+    # ``me/<username>/`` パターンとの競合を避けるため PublicProfileView より前。
+    path(
+        "me/complete_onboarding/",
+        CompleteOnboardingView.as_view(),
+        name="users-me-complete-onboarding",
     ),
     path("<str:username>/", PublicProfileView.as_view(), name="users-public-profile"),
 ]
