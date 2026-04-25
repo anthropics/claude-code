@@ -1,0 +1,17 @@
+{
+  "description": "Model router hook that recommends the optimal Claude model before each prompt is processed",
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/model_router_hook.py",
+            "timeout": 10,
+            "statusMessage": "Routing to optimal model..."
+          }
+        ]
+      }
+    ]
+  }
+}
