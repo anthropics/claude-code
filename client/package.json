@@ -9,7 +9,9 @@
 		"lint": "next lint",
 		"test": "vitest run",
 		"test:watch": "vitest",
-		"test:coverage": "vitest run --coverage"
+		"test:coverage": "vitest run --coverage",
+		"test:e2e": "playwright test",
+		"test:e2e:install": "playwright install chromium --with-deps"
 	},
 	"dependencies": {
 		"@heroicons/react": "^2.2.0",
@@ -51,6 +53,7 @@
 		"zod": "^3.22.4"
 	},
 	"devDependencies": {
+		"@playwright/test": "^1.59.1",
 		"@types/node": "^20",
 		"@types/react": "^18",
 		"@types/react-dom": "^18",
