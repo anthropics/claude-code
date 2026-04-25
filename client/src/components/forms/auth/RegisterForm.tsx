@@ -1,30 +1,31 @@
 "use client";
-import * as z from "zod";
+
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Contact2Icon, MailIcon, UserCheck2 } from "lucide-react";
-import { useRegisterUserMutation } from "@/lib/redux/features/auth/authApiSlice";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
+import { toast } from "react-toastify";
+
+import Spinner from "@/components/shared/Spinner";
+import { FormFieldComponent } from "@/components/forms/FormFieldComponent";
+import { FormSummaryError } from "@/components/forms/auth/FormSummaryError";
+import { Button } from "@/components/ui/button";
+import { useAuthMutation } from "@/hooks/useAuthMutation";
+import { registerAccount } from "@/lib/api/auth";
 import {
 	registerUserSchema,
-	TRregisterUserSchema,
+	type TRegisterUserSchema,
 } from "@/lib/validationSchemas";
-import { extractErrorMessage } from "@/utils";
-import { toast } from "react-toastify";
-import { FormFieldComponent } from "@/components/forms/FormFieldComponent";
-import { Button } from "@/components/ui/button";
-import Spinner from "@/components/shared/Spinner";
 
+/**
+ * Sign-up form (P1-13). Posts to djoser ``/auth/users/`` which sends the
+ * activation mail; the actual ``/login`` redirect is deferred until the user
+ * clicks the activation link.
+ */
 export default function RegisterForm() {
-	const [registerUser, { isLoading }] = useRegisterUserMutation();
 	const router = useRouter();
 
-	const {
-		register,
-		handleSubmit,
-		reset,
-		formState: { errors },
-	} = useForm<TRregisterUserSchema>({
+	const form = useForm<TRegisterUserSchema>({
 		resolver: zodResolver(registerUserSchema),
 		mode: "all",
 		defaultValues: {
@@ -34,91 +35,124 @@ export default function RegisterForm() {
 			email: "",
 			password: "",
 			re_password: "",
+			terms: false as unknown as true,
 		},
 	});
 
-	const onSubmit = async (values: z.infer<typeof registerUserSchema>) => {
-		try {
-			await registerUser(values).unwrap();
+	const { isSubmitting, summaryError, submit } = useAuthMutation({
+		form,
+		mutate: async (values) => {
+			// terms はクライアント側だけの validation 用フィールドなので送信しない。
+			const { terms: _terms, ...payload } = values;
+			await registerAccount(payload);
+		},
+		onSuccess: (values) => {
 			toast.success(
-				"An Email with an activation link has been sent to your email address. Please check your email and activate your account.",
+				"確認メールを送信しました。メールに記載されたリンクからアカウントを有効化してください。",
 			);
-			router.push("/login");
-			reset();
-		} catch (e) {
-			const errorMessage = extractErrorMessage(e);
-			toast.error(errorMessage || "An error occurred");
-		}
-	};
+			const search = new URLSearchParams({ email: values.email });
+			router.push(`/login?${search.toString()}`);
+		},
+	});
 
 	return (
-		<main>
-			<form
-				noValidate
-				onSubmit={handleSubmit(onSubmit)}
-				className="flex w-full max-w-md flex-col gap-4"
-			>
-				<FormFieldComponent
-					label="Username"
-					name="username"
-					register={register}
-					errors={errors}
-					placeholder="Username"
-					startIcon={<UserCheck2 className="dark:text-babyPowder size-8" />}
-				/>
+		<form
+			noValidate
+			onSubmit={form.handleSubmit(submit)}
+			className="flex w-full max-w-md flex-col gap-4"
+		>
+			<FormSummaryError message={summaryError} />
+			<FormFieldComponent
+				label="ハンドル (@handle)"
+				name="username"
+				register={form.register}
+				errors={form.formState.errors}
+				placeholder="alice"
+				startIcon={<UserCheck2 className="dark:text-babyPowder size-8" />}
+			/>
+			<FormFieldComponent
+				label="名"
+				name="first_name"
+				register={form.register}
+				errors={form.formState.errors}
+				placeholder="太郎"
+				startIcon={<Contact2Icon className="dark:text-babyPowder size-8" />}
+			/>
+			<FormFieldComponent
+				label="姓"
+				name="last_name"
+				register={form.register}
+				errors={form.formState.errors}
+				placeholder="山田"
+				startIcon={<Contact2Icon className="dark:text-babyPowder size-8" />}
+			/>
+			<FormFieldComponent
+				label="メールアドレス"
+				name="email"
+				register={form.register}
+				errors={form.formState.errors}
+				placeholder="you@example.com"
+				type="email"
+				startIcon={<MailIcon className="dark:text-babyPowder size-8" />}
+			/>
+			<FormFieldComponent
+				label="パスワード"
+				name="password"
+				register={form.register}
+				errors={form.formState.errors}
+				placeholder="8文字以上"
+				isPassword
+			/>
+			<FormFieldComponent
+				label="パスワード (確認)"
+				name="re_password"
+				register={form.register}
+				errors={form.formState.errors}
+				placeholder="もう一度入力"
+				isPassword
+			/>
 
-				<FormFieldComponent
-					label="First Name"
-					name="first_name"
-					register={register}
-					errors={errors}
-					placeholder="First Name"
-					startIcon={<Contact2Icon className="dark:text-babyPowder size-8" />}
+			<label className="flex items-start gap-2 text-sm">
+				<input
+					type="checkbox"
+					{...form.register("terms")}
+					className="mt-1 size-4"
+					aria-describedby="terms-error"
 				/>
-
-				<FormFieldComponent
-					label="Last Name"
-					name="last_name"
-					register={register}
-					errors={errors}
-					placeholder="Last Name"
-					startIcon={<Contact2Icon className="dark:text-babyPowder size-8" />}
-				/>
-
-				<FormFieldComponent
-					label="Email Address"
-					name="email"
-					register={register}
-					errors={errors}
-					placeholder="Email Address"
-					startIcon={<MailIcon className="dark:text-babyPowder size-8" />}
-				/>
-
-				<FormFieldComponent
-					label="Password"
-					name="password"
-					register={register}
-					errors={errors}
-					placeholder="Password"
-					isPassword={true}
-				/>
-
-				<FormFieldComponent
-					label="Password Confirm"
-					name="re_password"
-					register={register}
-					errors={errors}
-					placeholder="Confirm Password"
-					isPassword={true}
-				/>
-				<Button
-					type="submit"
-					className="h4-semibold bg-eerieBlack dark:bg-pumpkin w-full text-white"
-					disabled={isLoading}
+				<span className="dark:text-babyPowder">
+					<a
+						href="/terms"
+						className="underline hover:text-indigo-500 dark:hover:text-lime-400"
+					>
+						利用規約
+					</a>
+					と
+					<a
+						href="/privacy"
+						className="underline hover:text-indigo-500 dark:hover:text-lime-400"
+					>
+						プライバシーポリシー
+					</a>
+					に同意します
+				</span>
+			</label>
+			{form.formState.errors.terms?.message && (
+				<span
+					id="terms-error"
+					className="-mt-3 text-sm text-red-500"
+					role="alert"
 				>
-					{isLoading ? <Spinner size="sm" /> : `Submit`}
-				</Button>
-			</form>
-		</main>
+					{form.formState.errors.terms.message}
+				</span>
+			)}
+
+			<Button
+				type="submit"
+				className="h4-semibold bg-eerieBlack dark:bg-pumpkin w-full text-white"
+				disabled={isSubmitting}
+			>
+				{isSubmitting ? <Spinner size="sm" /> : "アカウント作成"}
+			</Button>
+		</form>
 	);
 }

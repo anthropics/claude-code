@@ -8,4 +8,7 @@ export { passwordResetRequestSchema } from "./PasswordResetRequestSchema";
 export type { TPasswordResetRequestSchema } from "./PasswordResetRequestSchema";
 
 export { registerUserSchema } from "./RegisterSchema";
-export type { TRregisterUserSchema } from "./RegisterSchema";
+export type {
+	TRegisterUserSchema,
+	TRregisterUserSchema,
+} from "./RegisterSchema";

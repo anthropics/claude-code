@@ -1,9 +1,9 @@
 "use client";
 
-import Spinner from "@/components/shared/Spinner";
-import { useSocialAuth } from "@/hooks";
-import { useSocialAuthenticationMutation } from "@/lib/redux/features/auth/authApiSlice";
 import { Suspense } from "react";
+
+import Spinner from "@/components/shared/Spinner";
+import useSocialAuth from "@/hooks/useSocialAuth";
 
 export default function GoogleLoginPage() {
 	return (
@@ -20,7 +20,19 @@ export default function GoogleLoginPage() {
 }
 
 function GoogleLoginContent() {
-	const [googleAuthenticate] = useSocialAuthenticationMutation();
-	useSocialAuth(googleAuthenticate, "google-oauth2");
-	return null;
+	const status = useSocialAuth();
+	return (
+		<div
+			className="flex-center pt-32 flex-col gap-4"
+			role="status"
+			aria-live="polite"
+		>
+			<Spinner size="xl" />
+			<p className="text-sm dark:text-platinum">
+				{status === "error"
+					? "Google ログインに失敗しました。ログインページに戻ります…"
+					: "Google アカウントを確認しています…"}
+			</p>
+		</div>
+	);
 }
