@@ -1,6 +1,6 @@
 # Security Guidance Plugin
 
-A security reminder hook that warns about potential vulnerabilities when editing files. Monitors 9 common security patterns and blocks dangerous edits with contextual guidance.
+A security reminder hook that warns about potential vulnerabilities when editing files. Monitors 11 common security patterns and blocks dangerous edits with contextual guidance.
 
 ## Overview
 
@@ -21,6 +21,8 @@ Warnings are shown once per file per pattern per session to avoid repetition.
 | `.innerHTML =` | Unsafe HTML insertion | XSS |
 | `pickle` | Python deserialization | Arbitrary code execution |
 | `os.system` | Python shell commands | Command injection |
+| `f"SELECT ..."` | SQL string interpolation | SQL injection |
+| `password = "..."` | Hardcoded secrets in code | Secret leakage |
 
 ## How It Works
 
