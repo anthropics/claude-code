@@ -5,6 +5,7 @@ from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
 from rest_framework import permissions
 
+from apps.common.views import csrf_token as csrf_token_view
 from apps.common.views import health as health_view
 
 schema_view = get_schema_view(
@@ -30,6 +31,10 @@ urlpatterns = [
         name="schema-redoc",
     ),
     path(settings.ADMIN_URL, admin.site.urls),
+    # P1-13a: SPA が state-changing POST を送る前に csrftoken cookie を種付け
+    # する bootstrap。djoser / apps.users.urls より前に登録して、include 先の
+    # include が同名 path を上書きしないことを保証する (URLResolver は登録順)。
+    path("api/v1/auth/csrf/", csrf_token_view, name="api-csrf"),
     path("api/v1/auth/", include("djoser.urls")),
     path("api/v1/auth/", include("apps.users.urls")),
     # P1-03 #89: プロフィール API (SPEC §2)。

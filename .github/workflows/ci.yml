@@ -176,7 +176,7 @@ jobs:
           if-no-files-found: ignore
 
   # -----------------------------------------------------------------------
-  # Frontend: eslint, tsc, prettier check, npm build.
+  # Frontend: eslint, tsc, prettier check, vitest, npm build.
   # -----------------------------------------------------------------------
   frontend:
     name: Frontend (Next.js)
@@ -200,6 +200,17 @@ jobs:
         run: npx tsc --noEmit --pretty false
       - name: Prettier check
         run: npx prettier --check "src/**/*.{ts,tsx,css,json}"
+      - name: Vitest (unit + coverage)
+        # P1-13a: 新しくテスト対象になったモジュールは vitest.config.ts の
+        # coverage.include に追加し、80% gate をこちらで enforce する。
+        run: npm run test:coverage
+      - name: Upload frontend coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage
+          path: client/coverage
+          if-no-files-found: ignore
       - name: Next.js build
         # Skip Sentry wrapping when DSN is absent (next.config.mjs handles it)
         env:

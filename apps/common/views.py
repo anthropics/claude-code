@@ -2,6 +2,7 @@
 
 Hosts:
 - `/api/health/` — ALB/CloudFront 用の軽量ヘルスチェック (P0.5-11)
+- `/api/v1/auth/csrf/` — SPA 用 csrftoken cookie bootstrap (P1-13a)
 - `/debug-sentry/` — Sentry 配線確認 (P0-06、DEBUG=True のみ)
 """
 
@@ -15,6 +16,7 @@ from django.db import connections
 from django.db.utils import DatabaseError
 from django.http import Http404, HttpRequest, JsonResponse
 from django.views.decorators.cache import never_cache
+from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_GET
 
 
@@ -58,6 +60,21 @@ def health(_request: HttpRequest) -> JsonResponse:
         "db": db_state,
     }
     return JsonResponse(payload, status=status_code)
+
+
+@require_GET
+@never_cache
+@ensure_csrf_cookie
+def csrf_token(_request: HttpRequest) -> JsonResponse:
+    """CSRF cookie bootstrap endpoint for the SPA (P1-13a).
+
+    SPA は最初の state-changing POST (``/auth/cookie/create/`` 等) を送る前に
+    このエンドポイントを GET して ``csrftoken`` cookie を取得する必要がある。
+    Django の ``CsrfViewMiddleware`` は ``get_token()`` が呼ばれた view でしか
+    cookie を set しないため、``@ensure_csrf_cookie`` で明示的に cookie を発行
+    する。認証不要・副作用なし・軽量。
+    """
+    return JsonResponse({"detail": "CSRF cookie set"})
 
 
 def debug_sentry(_request: HttpRequest) -> JsonResponse:
