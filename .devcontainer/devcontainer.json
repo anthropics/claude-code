@@ -8,6 +8,7 @@
       "GIT_DELTA_VERSION": "0.18.2",
       "ACT_VERSION": "0.2.80",
       "GH_VERSION": "2.63.2",
+      "AWS_CLI_VERSION": "2.18.0",
       "ZSH_IN_DOCKER_VERSION": "1.2.0"
     }
   },

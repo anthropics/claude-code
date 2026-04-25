@@ -71,6 +71,41 @@ while read -r cidr; do
     ipset add allowed-domains "$cidr" -exist
 done < <(echo "$gh_ranges" | jq -r '(.web + .api + .git)[]' | aggregate -q)
 
+# Fetch AWS IP ranges and allow ap-northeast-1 + GLOBAL service endpoints.
+# Required so the bundled `aws` CLI can reach STS / EC2 / S3 / ECS / ECR /
+# IAM / Route53 / CloudFront / etc. for terraform plan/apply and ECS ops.
+# Source: https://docs.aws.amazon.com/general/latest/gr/aws-ip-ranges.html
+#
+# AWS_REGIONS_ALLOWED can be overridden at firewall-init time by setting
+# the env var (comma-separated). Defaults to ap-northeast-1 (this project's
+# stg/prod region) plus GLOBAL (region-less services like IAM / Route53).
+AWS_REGIONS_ALLOWED="${AWS_REGIONS_ALLOWED:-ap-northeast-1,GLOBAL}"
+echo "Fetching AWS IP ranges (regions: ${AWS_REGIONS_ALLOWED})..."
+aws_ranges=""
+for attempt in 1 2 3; do
+    aws_ranges=$(curl -s --retry 2 --connect-timeout 10 https://ip-ranges.amazonaws.com/ip-ranges.json)
+    if [ -n "$aws_ranges" ] && echo "$aws_ranges" | jq -e '.prefixes' >/dev/null 2>&1; then
+        break
+    fi
+    echo "Attempt $attempt failed, retrying..."
+    sleep 2
+done
+if [ -z "$aws_ranges" ]; then
+    echo "WARNING: Failed to fetch AWS IP ranges; aws CLI calls will be blocked"
+else
+    region_filter=$(echo "$AWS_REGIONS_ALLOWED" | tr ',' '\n' | jq -R . | jq -s .)
+    while read -r cidr; do
+        if [[ ! "$cidr" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/[0-9]{1,2}$ ]]; then
+            continue
+        fi
+        ipset add allowed-domains "$cidr" -exist
+    done < <(echo "$aws_ranges" | jq --argjson r "$region_filter" -r \
+        '.prefixes[] | select(.region as $reg | $r | index($reg)) | .ip_prefix' | aggregate -q)
+    aws_count=$(echo "$aws_ranges" | jq --argjson r "$region_filter" \
+        '[.prefixes[] | select(.region as $reg | $r | index($reg))] | length')
+    echo "Added $aws_count AWS prefixes for regions: ${AWS_REGIONS_ALLOWED}"
+fi
+
 # Resolve and add other allowed domains
 for domain in \
     "registry.npmjs.org" \
@@ -155,4 +190,15 @@ if ! curl --connect-timeout 5 https://api.github.com/zen >/dev/null 2>&1; then
     exit 1
 else
     echo "Firewall verification passed - able to reach https://api.github.com as expected"
+fi
+
+# Verify AWS STS reachability (only if AWS CLI is installed and ranges were
+# loaded). STS is region-prefixed; ap-northeast-1 endpoint is the canonical
+# probe target for this project.
+if command -v aws >/dev/null 2>&1; then
+    if curl --connect-timeout 5 -sI https://sts.ap-northeast-1.amazonaws.com >/dev/null 2>&1; then
+        echo "Firewall verification passed - able to reach AWS STS (ap-northeast-1)"
+    else
+        echo "WARNING: aws CLI is installed but STS endpoint is unreachable"
+    fi
 fi

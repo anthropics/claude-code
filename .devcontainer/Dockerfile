@@ -98,6 +98,23 @@ RUN ARCH=$(dpkg --print-architecture) && \
   sudo dpkg -i /tmp/gh.deb && \
   rm /tmp/gh.deb
 
+# Install AWS CLI v2 (used for Terraform plan/apply, ECS operations, secret
+# management against the stg/prod AWS account). Pinned per the same convention
+# as gh / act so contributors get the same version. Bumping AWS_CLI_VERSION
+# in devcontainer.json triggers a rebuild on next "Reopen in Container".
+ARG AWS_CLI_VERSION=2.18.0
+RUN ARCH=$(dpkg --print-architecture) && \
+  case "$ARCH" in \
+    amd64) AWS_ARCH=x86_64 ;; \
+    arm64) AWS_ARCH=aarch64 ;; \
+    *) echo "Unsupported architecture for aws-cli: $ARCH" && exit 1 ;; \
+  esac && \
+  curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-${AWS_ARCH}-${AWS_CLI_VERSION}.zip" -o /tmp/awscliv2.zip && \
+  unzip -q /tmp/awscliv2.zip -d /tmp/ && \
+  sudo /tmp/aws/install --bin-dir /usr/local/bin --install-dir /usr/local/aws-cli && \
+  rm -rf /tmp/awscliv2.zip /tmp/aws && \
+  aws --version
+
 # Set up non-root user
 USER node
 
