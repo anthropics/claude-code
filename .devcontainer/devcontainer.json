@@ -57,6 +57,12 @@
   "mounts": [
     "source=claude-code-bashhistory-${devcontainerId},target=/commandhistory,type=volume",
     "source=claude-code-config-${devcontainerId},target=/home/node/.claude,type=volume",
+    // AWS credentials の永続化用 named volume。`${devcontainerId}` を意図的に
+    // 含めず固定名にしているため、devcontainer.json を編集してリビルドしても
+    // `aws configure` で入れた IAM access key / secret は保持される。
+    // 別 PC でこのレポジトリを開いた場合は、その PC で 1 度だけ
+    // `aws configure` を打ち直す必要がある (volume はホストごとに独立)。
+    "source=claude-code-aws,target=/home/node/.aws,type=volume",
     "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
   ],
   "containerEnv": {
