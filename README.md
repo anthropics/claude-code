@@ -70,3 +70,11 @@ See our [data usage policies](https://code.claude.com/docs/en/data-usage).
 We have implemented several safeguards to protect your data, including limited retention periods for sensitive information, restricted access to user session data, and clear policies against using feedback for model training.
 
 For full details, please review our [Commercial Terms of Service](https://www.anthropic.com/legal/commercial-terms) and [Privacy Policy](https://www.anthropic.com/legal/privacy).
+
+## 💰 Bounty Contribution
+
+- **Task:** [Refund] silent-degradation: 5 weeks of model training produced worse output tha
+- **Reward:** $70
+- **Source:** GitHub-Paid
+- **Date:** 2026-04-27
+
