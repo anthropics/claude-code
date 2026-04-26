@@ -182,8 +182,9 @@ def save_state(session_id, shown_warnings):
 
 def check_patterns(file_path, content):
     """Check if file path or content matches any security patterns."""
-    # Normalize path by removing leading slashes
-    normalized_path = file_path.lstrip("/")
+    # Normalize path: remove leading slashes and convert backslashes to forward slashes
+    # (Windows paths use backslashes, but path_check lambdas use forward slashes)
+    normalized_path = file_path.lstrip("/").replace("\\", "/")
 
     for pattern in SECURITY_PATTERNS:
         # Check path-based patterns
