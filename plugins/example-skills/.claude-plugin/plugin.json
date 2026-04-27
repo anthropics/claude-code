@@ -1,0 +1,9 @@
+{
+  "name": "example-skills",
+  "version": "1.0.0",
+  "description": "Example skills demonstrating various Claude capabilities including visual design, algorithmic art, internal communications, web testing, and more",
+  "author": {
+    "name": "Spencer Brenchley",
+    "email": "s.j.brenchley89@gmail.com"
+  }
+}
