@@ -1,0 +1,9 @@
+{
+  "name": "buddy-customizer",
+  "version": "0.1.0",
+  "description": "Customize your coding buddy — rename, adjust personality, track stats, and earn achievements through gamified coding milestones",
+  "author": {
+    "name": "Umang Dabhi",
+    "email": "ud30104@gmail.com"
+  }
+}
