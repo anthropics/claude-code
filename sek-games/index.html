@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#7c3aed" />
+<meta name="description" content="Sek Games — çocuklar için eğlenceli, ücretsiz tarayıcı oyunları." />
+<title>Sek Games — Eğlenceli Oyunlar</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg-1: #6d28d9;
+    --bg-2: #ec4899;
+    --bg-3: #f59e0b;
+    --card: #ffffff;
+    --text: #1f2937;
+    --muted: #6b7280;
+    --accent: #7c3aed;
+    --shadow: 0 10px 25px rgba(0,0,0,0.18);
+  }
+  html, body {
+    min-height: 100%;
+    font-family: "Nunito", "Segoe UI", system-ui, -apple-system, sans-serif;
+    color: var(--text);
+    background:
+      radial-gradient(1200px 600px at 10% 0%, #fde68a 0%, transparent 60%),
+      radial-gradient(900px 600px at 90% 10%, #f9a8d4 0%, transparent 55%),
+      linear-gradient(160deg, var(--bg-1) 0%, var(--bg-2) 50%, var(--bg-3) 100%);
+    background-attachment: fixed;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    background: rgba(255, 255, 255, 0.65);
+    border-bottom: 1px solid rgba(255,255,255,0.5);
+  }
+  .header-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 900;
+    font-size: 26px;
+    letter-spacing: -0.5px;
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .logo-mark {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #7c3aed, #ec4899);
+    display: grid;
+    place-items: center;
+    color: #fff;
+    font-size: 22px;
+    box-shadow: var(--shadow);
+  }
+  .search {
+    flex: 1;
+    max-width: 420px;
+    position: relative;
+  }
+  .search input {
+    width: 100%;
+    padding: 12px 16px 12px 44px;
+    border: 2px solid rgba(124, 58, 237, 0.15);
+    border-radius: 999px;
+    background: #fff;
+    font-size: 15px;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .search input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 4px rgba(124,58,237,0.15);
+  }
+  .search::before {
+    content: "🔍";
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 16px;
+    pointer-events: none;
+  }
+
+  main { max-width: 1200px; margin: 0 auto; padding: 28px 20px 80px; }
+
+  .hero {
+    background: rgba(255,255,255,0.92);
+    border-radius: 24px;
+    padding: 28px 28px;
+    box-shadow: var(--shadow);
+    margin-bottom: 28px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .hero h1 {
+    font-size: 32px;
+    line-height: 1.1;
+    margin-bottom: 6px;
+    letter-spacing: -0.5px;
+  }
+  .hero p { color: var(--muted); font-size: 16px; }
+  .hero-emoji { font-size: 64px; line-height: 1; }
+
+  .section-title {
+    color: #fff;
+    font-size: 22px;
+    font-weight: 900;
+    letter-spacing: -0.3px;
+    margin: 8px 4px 16px;
+    text-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section-title .badge {
+    background: rgba(255,255,255,0.25);
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  /* Categories (placeholder for future) */
+  .categories {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 22px;
+    overflow-x: auto;
+    padding: 4px 4px 12px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .categories::-webkit-scrollbar { display: none; }
+  .chip {
+    flex-shrink: 0;
+    padding: 9px 18px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.85);
+    color: var(--text);
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: transform 0.1s, box-shadow 0.1s, border-color 0.1s;
+    user-select: none;
+  }
+  .chip:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+  .chip.active {
+    background: #fff;
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 18px;
+  }
+  @media (min-width: 700px) {
+    .grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 22px; }
+  }
+
+  .card {
+    background: var(--card);
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    position: relative;
+  }
+  .card:hover {
+    transform: translateY(-6px) scale(1.02);
+    box-shadow: 0 18px 36px rgba(0,0,0,0.25);
+  }
+  .card:active { transform: translateY(-2px) scale(1.0); }
+  .card.coming-soon { cursor: default; opacity: 0.85; }
+  .card.coming-soon:hover { transform: none; }
+
+  .thumb {
+    aspect-ratio: 1 / 1;
+    display: grid;
+    place-items: center;
+    font-size: 64px;
+    color: #fff;
+    text-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    position: relative;
+    overflow: hidden;
+  }
+  .thumb::after {
+    content: "";
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse at top, rgba(255,255,255,0.25), transparent 60%);
+    pointer-events: none;
+  }
+  .badge-new {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: #ef4444;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 900;
+    padding: 4px 10px;
+    border-radius: 999px;
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 10px rgba(239,68,68,0.5);
+    z-index: 2;
+  }
+  .badge-soon {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(0,0,0,0.55);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 900;
+    padding: 4px 10px;
+    border-radius: 999px;
+    letter-spacing: 0.5px;
+    z-index: 2;
+  }
+
+  .card-body { padding: 14px 16px 16px; }
+  .card-title {
+    font-size: 16px;
+    font-weight: 800;
+    line-height: 1.2;
+    margin-bottom: 4px;
+    letter-spacing: -0.2px;
+  }
+  .card-desc {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.4;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
+  .empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 48px 20px;
+    color: rgba(255,255,255,0.9);
+    font-size: 16px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 20px;
+    border: 2px dashed rgba(255,255,255,0.4);
+  }
+
+  footer {
+    text-align: center;
+    color: rgba(255,255,255,0.85);
+    font-size: 13px;
+    padding: 24px 20px 40px;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  }
+</style>
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <a class="logo" href="./">
+        <span class="logo-mark">🎮</span>
+        <span>Sek Games</span>
+      </a>
+      <div class="search">
+        <input id="searchInput" type="search" placeholder="Oyun ara..." aria-label="Oyun ara" />
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-emoji">🎉</div>
+      <div>
+        <h1>Hoş geldin!</h1>
+        <p>Eğlenceli ve ücretsiz tarayıcı oyunları — istediğin zaman oyna.</p>
+      </div>
+    </section>
+
+    <div class="categories" id="categories">
+      <button class="chip active" data-category="all">🌟 Tümü</button>
+      <button class="chip" data-category="action">🏃 Aksiyon</button>
+      <button class="chip" data-category="puzzle">🧩 Bulmaca</button>
+      <button class="chip" data-category="arcade">👾 Arcade</button>
+    </div>
+
+    <h2 class="section-title">
+      Oyunlar
+      <span class="badge" id="gameCount">0</span>
+    </h2>
+
+    <div class="grid" id="gameGrid"></div>
+  </main>
+
+  <footer>
+    Sek Games · Daha fazla oyun yakında 🚀
+  </footer>
+
+<script>
+  // Yeni oyun eklemek için bu listeye bir nesne ekleyin.
+  // Gerekli: id, title, emoji, gradient, url, category, description
+  // İsteğe bağlı: isNew (kırmızı YENİ rozeti), comingSoon (kilitli kart)
+  const GAMES = [
+    {
+      id: "pixel-dash",
+      title: "Pixel Dash",
+      emoji: "🏃",
+      gradient: "linear-gradient(135deg, #f97316 0%, #ec4899 100%)",
+      url: "games/pixel-dash/index.html",
+      category: "action",
+      description: "Engellerden kaç, altın topla, canavardan uzak dur!",
+      isNew: true,
+    },
+    // Sonraki oyunlar buraya:
+    // { id: "...", title: "...", emoji: "🎯", gradient: "linear-gradient(...)", url: "games/.../index.html", category: "puzzle", description: "..." },
+  ];
+
+  const grid = document.getElementById("gameGrid");
+  const gameCountEl = document.getElementById("gameCount");
+  const searchInput = document.getElementById("searchInput");
+  const categoryButtons = document.querySelectorAll("#categories .chip");
+
+  let activeCategory = "all";
+  let searchQuery = "";
+
+  function render() {
+    const q = searchQuery.trim().toLowerCase();
+    const filtered = GAMES.filter(g => {
+      const matchCategory = activeCategory === "all" || g.category === activeCategory;
+      const matchSearch = !q || g.title.toLowerCase().includes(q) || (g.description || "").toLowerCase().includes(q);
+      return matchCategory && matchSearch;
+    });
+
+    gameCountEl.textContent = filtered.length;
+    grid.innerHTML = "";
+
+    if (filtered.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "empty-state";
+      empty.innerHTML = q
+        ? `🔍 "<b>${escapeHtml(searchQuery)}</b>" için sonuç yok.`
+        : "Bu kategoride henüz oyun yok. Yakında! 🎈";
+      grid.appendChild(empty);
+      return;
+    }
+
+    for (const g of filtered) {
+      grid.appendChild(buildCard(g));
+    }
+  }
+
+  function buildCard(g) {
+    const isLocked = !!g.comingSoon;
+    const el = document.createElement(isLocked ? "div" : "a");
+    el.className = "card" + (isLocked ? " coming-soon" : "");
+    if (!isLocked) el.href = g.url;
+
+    const thumb = document.createElement("div");
+    thumb.className = "thumb";
+    thumb.style.background = g.gradient || "linear-gradient(135deg, #7c3aed, #ec4899)";
+    thumb.textContent = g.emoji || "🎮";
+
+    if (g.isNew && !isLocked) {
+      const b = document.createElement("span");
+      b.className = "badge-new";
+      b.textContent = "YENİ";
+      thumb.appendChild(b);
+    }
+    if (isLocked) {
+      const b = document.createElement("span");
+      b.className = "badge-soon";
+      b.textContent = "YAKINDA";
+      thumb.appendChild(b);
+    }
+
+    const body = document.createElement("div");
+    body.className = "card-body";
+    const title = document.createElement("div");
+    title.className = "card-title";
+    title.textContent = g.title;
+    const desc = document.createElement("div");
+    desc.className = "card-desc";
+    desc.textContent = g.description || "";
+    body.appendChild(title);
+    body.appendChild(desc);
+
+    el.appendChild(thumb);
+    el.appendChild(body);
+    return el;
+  }
+
+  function escapeHtml(s) {
+    return s.replace(/[&<>"']/g, c => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    }[c]));
+  }
+
+  categoryButtons.forEach(btn => {
+    btn.addEventListener("click", () => {
+      categoryButtons.forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      activeCategory = btn.dataset.category;
+      render();
+    });
+  });
+
+  searchInput.addEventListener("input", e => {
+    searchQuery = e.target.value;
+    render();
+  });
+
+  render();
+</script>
+</body>
+</html>

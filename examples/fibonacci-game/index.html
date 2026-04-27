@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Ejderha Vadisinin Sihirli Sayıları - Fibonacci Oyunu</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Comic Sans MS', 'Trebuchet MS', sans-serif;
+    background: linear-gradient(135deg, #1a0033 0%, #4a148c 30%, #d84315 70%, #ffab40 100%);
+    min-height: 100vh;
+    padding: 20px;
+    color: #333;
+  }
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    background: rgba(255, 255, 255, 0.97);
+    border-radius: 30px;
+    padding: 30px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+    border: 4px solid #ff6f00;
+  }
+  h1 {
+    text-align: center;
+    color: #c62828;
+    font-size: 2.2em;
+    margin-bottom: 10px;
+    text-shadow: 2px 2px 0 #ffd54f, 4px 4px 0 #ff6f00;
+  }
+  .subtitle {
+    text-align: center;
+    color: #6a1b9a;
+    font-size: 1.1em;
+    margin-bottom: 25px;
+    font-weight: bold;
+  }
+  .level-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, #ff6f00, #ffd54f);
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-weight: bold;
+    color: #4a148c;
+    border: 2px solid #c62828;
+  }
+  .stars {
+    text-align: right;
+    font-size: 1.4em;
+    margin-bottom: 15px;
+    font-weight: bold;
+    color: #6a1b9a;
+  }
+  .screen {
+    display: none;
+    animation: fadeIn 0.4s ease-in;
+  }
+  .screen.active { display: block; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fly {
+    0%, 100% { transform: translateY(0) rotate(-5deg); }
+    50%      { transform: translateY(-15px) rotate(5deg); }
+  }
+  @keyframes pop {
+    0%   { transform: scale(0) rotate(-180deg); }
+    60%  { transform: scale(1.3) rotate(10deg); }
+    100% { transform: scale(1) rotate(0); }
+  }
+  @keyframes flame {
+    0%, 100% { filter: hue-rotate(0deg); }
+    50%      { filter: hue-rotate(30deg) brightness(1.2); }
+  }
+  .story {
+    background: linear-gradient(135deg, #fff3e0, #ffe0b2);
+    border: 3px dashed #e65100;
+    border-radius: 20px;
+    padding: 20px;
+    font-size: 1.15em;
+    line-height: 1.6;
+    margin-bottom: 20px;
+  }
+  .dragons {
+    text-align: center;
+    font-size: 2.5em;
+    margin: 20px 0;
+    min-height: 60px;
+    line-height: 1.4;
+    background: radial-gradient(circle, #fff3e0 0%, transparent 70%);
+    border-radius: 20px;
+    padding: 10px;
+  }
+  .dragon {
+    display: inline-block;
+    animation: pop 0.5s ease-out;
+  }
+  .dragon.fly { animation: fly 1.5s ease-in-out infinite; }
+  .month-cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+    margin: 20px 0;
+  }
+  .month-card {
+    background: linear-gradient(135deg, #e1bee7, #ce93d8);
+    border: 3px solid #6a1b9a;
+    border-radius: 16px;
+    padding: 12px;
+    min-width: 110px;
+    text-align: center;
+    animation: pop 0.4s ease-out;
+    box-shadow: 0 4px 0 #4a148c;
+  }
+  .month-card.highlight {
+    background: linear-gradient(135deg, #ffecb3, #ffd54f);
+    border-color: #e65100;
+    box-shadow: 0 4px 0 #c62828;
+    animation: flame 1s ease-in-out infinite;
+  }
+  .month-card .label { font-size: 0.85em; color: #4a148c; font-weight: bold; }
+  .month-card .creatures { font-size: 1.5em; margin: 4px 0; }
+  .month-card .number {
+    font-size: 1.8em;
+    font-weight: bold;
+    color: #c62828;
+  }
+  .question {
+    background: linear-gradient(135deg, #4a148c, #6a1b9a);
+    color: white;
+    border-radius: 20px;
+    padding: 20px;
+    text-align: center;
+    margin: 20px 0;
+    box-shadow: 0 6px 0 #311b92;
+  }
+  .question h2 {
+    color: #ffd54f;
+    margin-bottom: 15px;
+    text-shadow: 2px 2px 0 #311b92;
+  }
+  .hint {
+    background: linear-gradient(135deg, #fff9c4, #ffeb3b);
+    padding: 10px 15px;
+    border-radius: 12px;
+    color: #4a148c;
+    font-size: 0.95em;
+    margin: 10px 0;
+    font-weight: bold;
+    border: 2px solid #f57f17;
+  }
+  .options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+    margin: 20px 0;
+  }
+  button.choice {
+    background: linear-gradient(135deg, #ff6f00, #ffab40);
+    border: 3px solid #ffd54f;
+    border-radius: 50px;
+    padding: 16px 30px;
+    font-size: 1.5em;
+    font-weight: bold;
+    color: white;
+    cursor: pointer;
+    box-shadow: 0 5px 0 #c62828;
+    transition: all 0.15s;
+    font-family: inherit;
+    min-width: 80px;
+    text-shadow: 2px 2px 0 #c62828;
+  }
+  button.choice:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 7px 0 #c62828;
+  }
+  button.choice:active {
+    transform: translateY(2px);
+    box-shadow: 0 2px 0 #c62828;
+  }
+  button.choice.correct {
+    background: linear-gradient(135deg, #43e97b, #38f9d7);
+    box-shadow: 0 4px 0 #2e7d32;
+    text-shadow: 2px 2px 0 #2e7d32;
+  }
+  button.choice.wrong {
+    background: linear-gradient(135deg, #b71c1c, #424242);
+    box-shadow: 0 4px 0 #212121;
+  }
+  button.primary {
+    display: block;
+    margin: 20px auto;
+    background: linear-gradient(135deg, #c62828, #ff6f00);
+    border: 3px solid #ffd54f;
+    border-radius: 50px;
+    padding: 16px 40px;
+    font-size: 1.3em;
+    font-weight: bold;
+    color: white;
+    cursor: pointer;
+    box-shadow: 0 5px 0 #4a148c;
+    font-family: inherit;
+    text-shadow: 2px 2px 0 #4a148c;
+  }
+  button.primary:hover { transform: translateY(-2px); }
+  .feedback {
+    text-align: center;
+    font-size: 1.4em;
+    font-weight: bold;
+    margin: 15px 0;
+    min-height: 40px;
+  }
+  .feedback.good { color: #ffd54f; text-shadow: 2px 2px 0 #c62828; }
+  .feedback.bad  { color: #ffab40; }
+  .progress {
+    background: #ddd;
+    border-radius: 20px;
+    height: 20px;
+    overflow: hidden;
+    margin: 15px 0;
+    border: 2px solid #6a1b9a;
+  }
+  .progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #ff6f00, #ffd54f, #c62828);
+    transition: width 0.4s;
+  }
+  .pattern-box {
+    background: linear-gradient(135deg, #fff3e0, #ffd54f);
+    border-radius: 16px;
+    padding: 20px;
+    text-align: center;
+    font-size: 1.3em;
+    margin: 15px 0;
+    border: 3px solid #e65100;
+  }
+  .pattern-box .seq {
+    font-size: 1.8em;
+    font-weight: bold;
+    color: #c62828;
+    letter-spacing: 4px;
+    text-shadow: 2px 2px 0 #ffd54f;
+  }
+  .add-demo {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    font-size: 1.6em;
+    font-weight: bold;
+    margin: 15px 0;
+    flex-wrap: wrap;
+  }
+  .add-demo .num {
+    background: linear-gradient(135deg, #4a148c, #6a1b9a);
+    border-radius: 12px;
+    padding: 8px 16px;
+    color: white;
+    text-shadow: 2px 2px 0 #311b92;
+  }
+  .add-demo .equals { color: #c62828; font-size: 1.3em; }
+  .add-demo .answer {
+    background: linear-gradient(135deg, #ff6f00, #ffd54f);
+    border-radius: 12px;
+    padding: 8px 16px;
+    color: white;
+    text-shadow: 2px 2px 0 #c62828;
+  }
+  .victory {
+    text-align: center;
+    padding: 30px;
+  }
+  .victory h2 {
+    font-size: 2.5em;
+    color: #c62828;
+    margin-bottom: 20px;
+    text-shadow: 3px 3px 0 #ffd54f;
+  }
+  .big-emoji { font-size: 4em; animation: fly 2s ease-in-out infinite; display: inline-block; }
+  .restart {
+    background: linear-gradient(135deg, #6a1b9a, #c62828);
+    border: 3px solid #ffd54f;
+    border-radius: 50px;
+    padding: 14px 32px;
+    font-size: 1.2em;
+    font-weight: bold;
+    color: white;
+    cursor: pointer;
+    margin-top: 20px;
+    font-family: inherit;
+    text-shadow: 2px 2px 0 #4a148c;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="stars" id="stars">💎 0</div>
+  <h1>🐉 Ejderha Vadisinin Sihirli Sayıları 🔥</h1>
+  <p class="subtitle">Fibonacci Hazinesini Bulmak İçin Hazır Mısın?</p>
+
+  <div class="progress"><div class="progress-bar" id="progressBar" style="width:0%"></div></div>
+
+  <!-- Bölüm 1: Hikaye -->
+  <div class="screen active" id="screen-intro">
+    <span class="level-badge">📜 1. Bölüm: Sihirli Hikaye</span>
+    <div class="story">
+      <p>Selam ejderha kaşifi! 👋🔥</p>
+      <br>
+      <p>Çok uzaklarda, bulutların üzerinde, <b>Sihirli Ejderha Vadisi</b> diye bir yer varmış. 🏔️</p>
+      <br>
+      <p>Bu vadide iki muhteşem ejderha yaşarmış: <b>Ateş</b> 🐉 ve <b>Alev</b> 🐉</p>
+      <br>
+      <p>Vadinin altında <b>SİHİRLİ BİR HAZİNE</b> 💎 saklıymış. Hazineyi bulmak için ejderhaların <b>gizli sayı kuralını</b> çözmek gerekirmiş!</p>
+      <br>
+      <p>Bu sırrı keşfetmek ister misin? 🌟</p>
+    </div>
+    <button class="primary" onclick="goTo('screen-month1')">Maceraya Atıl! 🚀</button>
+  </div>
+
+  <!-- Bölüm 2: Ay ay ejderhalar -->
+  <div class="screen" id="screen-month1">
+    <span class="level-badge">🥚 2. Bölüm: Ejderhaları Say</span>
+    <div class="story">
+      <b>1. Ay:</b> Vadiye <b>1</b> ejderha geldi! Yumurtadan yeni çıktı. 🥚→🐉
+    </div>
+    <div class="dragons"><span class="dragon fly">🐉</span></div>
+    <div class="month-cards">
+      <div class="month-card highlight">
+        <div class="label">1. Ay</div>
+        <div class="creatures">🐉</div>
+        <div class="number">1</div>
+      </div>
+    </div>
+    <button class="primary" onclick="goTo('screen-month2')">Sonraki Ay ➡️</button>
+  </div>
+
+  <div class="screen" id="screen-month2">
+    <span class="level-badge">🥚 2. Bölüm: Ejderhaları Say</span>
+    <div class="story">
+      <b>2. Ay:</b> Hala <b>1</b> ejderha var. Kanatları büyüyor! 🪽
+    </div>
+    <div class="dragons"><span class="dragon fly">🐉</span></div>
+    <div class="month-cards">
+      <div class="month-card">
+        <div class="label">1. Ay</div><div class="creatures">🐉</div><div class="number">1</div>
+      </div>
+      <div class="month-card highlight">
+        <div class="label">2. Ay</div><div class="creatures">🐉</div><div class="number">1</div>
+      </div>
+    </div>
+    <button class="primary" onclick="goTo('screen-month3')">Sonraki Ay ➡️</button>
+  </div>
+
+  <div class="screen" id="screen-month3">
+    <span class="level-badge">🔥 2. Bölüm: Ejderhaları Say</span>
+    <div class="story">
+      <b>3. Ay:</b> BOOM! 💥 Yeni bir yumurta çatladı! Şimdi <b>2</b> ejderha var. 🎉
+    </div>
+    <div class="dragons">
+      <span class="dragon">🐉</span><span class="dragon">🐲</span>
+    </div>
+    <div class="month-cards">
+      <div class="month-card">
+        <div class="label">1. Ay</div><div class="creatures">🐉</div><div class="number">1</div>
+      </div>
+      <div class="month-card">
+        <div class="label">2. Ay</div><div class="creatures">🐉</div><div class="number">1</div>
+      </div>
+      <div class="month-card highlight">
+        <div class="label">3. Ay</div><div class="creatures">🐉🐲</div><div class="number">2</div>
+      </div>
+    </div>
+    <div class="hint">💡 Bak şuna: <b>1 + 1 = 2</b>. İlk iki ayı topladık!</div>
+    <button class="primary" onclick="goTo('screen-month4')">Devam Et ➡️</button>
+  </div>
+
+  <div class="screen" id="screen-month4">
+    <span class="level-badge">🔥 2. Bölüm: Ejderhaları Say</span>
+    <div class="story">
+      <b>4. Ay:</b> Bir yumurta daha çatladı! Şimdi <b>3</b> ejderha vadiyi koruyor. 🛡️
+    </div>
+    <div class="dragons">
+      <span class="dragon">🐉</span><span class="dragon">🐲</span><span class="dragon">🐉</span>
+    </div>
+    <div class="add-demo">
+      <span class="num">1</span><span>+</span><span class="num">2</span>
+      <span class="equals">=</span><span class="answer">3</span>
+    </div>
+    <div class="hint">💡 Önceki iki ayın ejderhalarını topladık: <b>1 + 2 = 3</b>!</div>
+    <button class="primary" onclick="goTo('screen-pattern')">Sırrı Keşfet 🔍</button>
+  </div>
+
+  <!-- Bölüm 3: Kalıbı keşfet -->
+  <div class="screen" id="screen-pattern">
+    <span class="level-badge">🔮 3. Bölüm: Sihirli Kural</span>
+    <div class="story">
+      <b>VAY CANINA!</b> 🤩✨ Sırrı çözdün!
+      <br><br>
+      Her ayın ejderha sayısı, <b>önceki iki ayın toplamı</b>na eşit!
+      <br><br>
+      Bu sihirli sayıların özel bir adı var: <b>FIBONACCI sayıları</b>! 🔥
+      <br><br>
+      Bu ismi 800 yıl önce yaşamış <b>Leonardo Fibonacci</b> adında bir matematikçi bulmuş. O zamanlar ejderha yokmuş ama o yine de bu sırrı çözmüş! 👨‍🏫
+    </div>
+    <div class="pattern-box">
+      <div>İşte sihirli dizilim:</div>
+      <div class="seq">1, 1, 2, 3, ...</div>
+    </div>
+    <div class="add-demo">
+      <span class="num">1</span><span>+</span><span class="num">1</span>
+      <span class="equals">=</span><span class="answer">2</span>
+    </div>
+    <div class="add-demo">
+      <span class="num">1</span><span>+</span><span class="num">2</span>
+      <span class="equals">=</span><span class="answer">3</span>
+    </div>
+    <button class="primary" onclick="startQuiz()">Hazine Avı Başlasın! 💎</button>
+  </div>
+
+  <!-- Bölüm 4: Quiz -->
+  <div class="screen" id="screen-quiz">
+    <span class="level-badge">⚔️ 4. Bölüm: Hazine Bulmacası</span>
+    <div class="pattern-box">
+      <div>🐉 Önceki iki sayıyı topla, sıradaki sayıyı bul!</div>
+      <div class="seq" id="quizSeq"></div>
+    </div>
+    <div class="question">
+      <h2 id="quizQuestion"></h2>
+      <div class="hint" id="quizHint"></div>
+      <div class="options" id="quizOptions"></div>
+      <div class="feedback" id="quizFeedback"></div>
+    </div>
+  </div>
+
+  <!-- Zafer ekranı -->
+  <div class="screen" id="screen-victory">
+    <div class="victory">
+      <div class="big-emoji">🐉</div>
+      <h2>HAZİNE SENİN!</h2>
+      <p style="font-size:1.3em; margin:15px 0;">💎🏆💎 Tebrikler şampiyon! 💎🏆💎</p>
+      <p style="font-size:1.2em; margin:15px 0;">Ejderhaların sihirli sırrını çözdün! 🔥</p>
+      <div class="pattern-box">
+        <div>Bütün sihirli sayılar:</div>
+        <div class="seq">1, 1, 2, 3, 5, 8, 13, 21</div>
+      </div>
+      <div class="story" style="text-align:left;">
+        <b>🌟 Süper Bilgi:</b>
+        <br><br>
+        Fibonacci sayılarını <b>gerçek dünyada</b> da görebilirsin!
+        <br>
+        🌻 Ayçiçeklerinin tohumlarında
+        <br>
+        🐚 Salyangozların kabuklarında
+        <br>
+        🌲 Çam kozalaklarında
+        <br>
+        🌹 Çiçeklerin yapraklarında
+        <br>
+        🌌 Galaksilerin kollarında
+        <br><br>
+        Yani Fibonacci sayıları her yerde gizli! 🔍✨
+      </div>
+      <div id="finalStars" style="font-size:2em; margin:15px 0;"></div>
+      <button class="restart" onclick="restart()">🔄 Tekrar Oyna</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  let stars = 0;
+  const totalSteps = 9;
+  let currentStep = 0;
+
+  function updateProgress() {
+    const pct = Math.min(100, (currentStep / totalSteps) * 100);
+    document.getElementById('progressBar').style.width = pct + '%';
+    document.getElementById('stars').textContent = '💎 ' + stars;
+  }
+
+  function goTo(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    currentStep++;
+    updateProgress();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  const fib = [1, 1, 2, 3, 5, 8, 13, 21];
+  const quizQuestions = [
+    { idx: 4, options: [4, 5, 6], hint: '💡 İpucu: 2 + 3 = ?' },
+    { idx: 5, options: [7, 8, 9], hint: '💡 İpucu: 3 + 5 = ?' },
+    { idx: 6, options: [11, 12, 13], hint: '💡 İpucu: 5 + 8 = ?' },
+    { idx: 7, options: [20, 21, 22], hint: '💡 İpucu: 8 + 13 = ?' }
+  ];
+  let qIndex = 0;
+
+  function startQuiz() {
+    qIndex = 0;
+    goTo('screen-quiz');
+    showQuestion();
+  }
+
+  function showQuestion() {
+    const q = quizQuestions[qIndex];
+    const seqShown = fib.slice(0, q.idx).join(', ') + ', ?';
+    document.getElementById('quizSeq').textContent = seqShown;
+    document.getElementById('quizQuestion').textContent =
+      'Soru ' + (qIndex + 1) + ' / ' + quizQuestions.length + ': Sıradaki sayı kaç?';
+    document.getElementById('quizHint').innerHTML = q.hint;
+    document.getElementById('quizFeedback').textContent = '';
+
+    const optsDiv = document.getElementById('quizOptions');
+    optsDiv.innerHTML = '';
+    const correct = fib[q.idx];
+    const shuffled = [...q.options].sort(() => Math.random() - 0.5);
+    shuffled.forEach(opt => {
+      const btn = document.createElement('button');
+      btn.className = 'choice';
+      btn.textContent = opt;
+      btn.onclick = () => answer(btn, opt, correct);
+      optsDiv.appendChild(btn);
+    });
+  }
+
+  function answer(btn, opt, correct) {
+    const allBtns = document.querySelectorAll('#quizOptions .choice');
+    allBtns.forEach(b => b.disabled = true);
+    const fb = document.getElementById('quizFeedback');
+
+    if (opt === correct) {
+      btn.classList.add('correct');
+      stars++;
+      updateProgress();
+      fb.textContent = '🔥 MUHTEŞEM! Doğru cevap! 💎';
+      fb.className = 'feedback good';
+      setTimeout(nextQuestion, 1400);
+    } else {
+      btn.classList.add('wrong');
+      fb.textContent = '🐲 Hmm, tekrar dene! Önceki iki sayıyı topla.';
+      fb.className = 'feedback bad';
+      setTimeout(() => {
+        btn.classList.remove('wrong');
+        allBtns.forEach(b => b.disabled = false);
+        fb.textContent = '';
+      }, 1500);
+    }
+  }
+
+  function nextQuestion() {
+    qIndex++;
+    if (qIndex < quizQuestions.length) {
+      currentStep++;
+      updateProgress();
+      showQuestion();
+    } else {
+      currentStep = totalSteps;
+      goTo('screen-victory');
+      const fs = document.getElementById('finalStars');
+      fs.textContent = '💎'.repeat(stars) + '  (' + stars + ' elmas!)';
+    }
+  }
+
+  function restart() {
+    stars = 0;
+    currentStep = 0;
+    qIndex = 0;
+    updateProgress();
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('screen-intro').classList.add('active');
+  }
+
+  updateProgress();
+</script>
+</body>
+</html>
