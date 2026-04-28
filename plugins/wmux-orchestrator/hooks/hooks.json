@@ -1,0 +1,45 @@
+{
+  "description": "wmux-orchestrator: multi-agent orchestration tracking and wave transitions",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash|Read|Write|Edit|Grep|Glob|Agent",
+        "hooks": [{
+          "type": "command",
+          "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/on-tool-use.sh\"",
+          "timeout": 5
+        }]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "",
+        "hooks": [{
+          "type": "command",
+          "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/on-agent-stop.sh\"",
+          "timeout": 15
+        }]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [{
+          "type": "command",
+          "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/on-stop.sh\"",
+          "timeout": 15
+        }]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [{
+          "type": "command",
+          "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/on-session-start.sh\"",
+          "timeout": 5
+        }]
+      }
+    ]
+  }
+}
