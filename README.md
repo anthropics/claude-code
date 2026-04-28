@@ -49,6 +49,16 @@ For more installation options, uninstall steps, and troubleshooting, see the [se
 
 This repository includes several Claude Code plugins that extend functionality with custom commands and agents. See the [plugins directory](./plugins/README.md) for detailed documentation on available plugins.
 
+## Local slash command discovery
+
+This repository includes a local slash command: `/list-slash-commands`.
+
+It reports **detected slash commands in the current workspace** from:
+- project commands in `.claude/commands`
+- bundled plugin commands in `plugins/*/commands`
+
+It does **not** guarantee a complete runtime list of all Claude Code commands. In particular, this local command does not introspect built-in runtime commands or MCP-backed prompts/commands that are only available through the Claude Code runtime.
+
 ## Reporting Bugs
 
 We welcome your feedback. Use the `/bug` command to report issues directly within Claude Code, or file a [GitHub issue](https://github.com/anthropics/claude-code/issues).
