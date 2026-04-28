@@ -242,7 +242,7 @@ For tokens that change or expire, use a helper script:
 
 **Script (get-headers.sh):**
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 # Generate dynamic authentication headers
 
 # Fetch fresh token
@@ -482,7 +482,7 @@ Some enterprise services require client certificates.
 Generate JWT tokens dynamically with headers helper:
 
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 # generate-jwt.sh
 
 # Generate JWT (using library or API call)
@@ -502,7 +502,7 @@ echo "{\"Authorization\": \"Bearer $JWT\"}"
 For APIs requiring request signing:
 
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 # generate-hmac.sh
 
 TIMESTAMP=$(date -Iseconds)
