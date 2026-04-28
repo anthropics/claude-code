@@ -20,10 +20,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Run Claude Code slash command
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@bee87b3258c251f9279e5371b0cc3660f37f3f77 # v1.0.83
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CLAUDE_CODE_SCRIPT_CAPS: '{"comment-on-duplicates.sh":1}'
