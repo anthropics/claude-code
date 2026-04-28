@@ -1,0 +1,9 @@
+{
+  "name": "spinner-customization",
+  "version": "1.0.0",
+  "description": "Switch between spinner verb modes (quirky, plain, minimal, none) without manually editing settings.json",
+  "author": {
+    "name": "Ignoramuss",
+    "email": ""
+  }
+}
