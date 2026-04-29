@@ -196,19 +196,26 @@ def extract_frontmatter(content: str) -> tuple[Dict[str, Any], str]:
 
 
 def load_rules(event: Optional[str] = None) -> List[Rule]:
-    """Load all hookify rules from .claude directory.
+    """Load all hookify rules from project-local and global locations.
 
     Args:
         event: Optional event filter ("bash", "file", "stop", etc.)
 
     Returns:
         List of enabled Rule objects matching the event.
+        Project-local rules override global rules with the same name.
     """
-    rules = []
+    # Load from both <cwd>/.claude/ (project-local) and ~/.claude/ (global).
+    # Same-named rules: project-local wins (loaded last into the dedupe dict).
+    project_pattern = os.path.join('.claude', 'hookify.*.local.md')
+    global_pattern = os.path.expanduser(os.path.join('~', '.claude', 'hookify.*.local.md'))
+    project_files = glob.glob(project_pattern)
+    project_abs = {os.path.abspath(p) for p in project_files}
+    # When CWD == $HOME the two globs hit the same files; skip those from the global set.
+    global_files = [f for f in glob.glob(global_pattern) if os.path.abspath(f) not in project_abs]
+    files = global_files + project_files
 
-    # Find all hookify.*.local.md files
-    pattern = os.path.join('.claude', 'hookify.*.local.md')
-    files = glob.glob(pattern)
+    seen_names: Dict[str, Rule] = {}
 
     for file_path in files:
         try:
@@ -221,9 +228,9 @@ def load_rules(event: Optional[str] = None) -> List[Rule]:
                 if rule.event != 'all' and rule.event != event:
                     continue
 
-            # Only include enabled rules
+            # Only include enabled rules; project-local overrides global by name.
             if rule.enabled:
-                rules.append(rule)
+                seen_names[rule.name] = rule
 
         except (IOError, OSError, PermissionError) as e:
             # File I/O errors - log and continue
@@ -238,7 +245,7 @@ def load_rules(event: Optional[str] = None) -> List[Rule]:
             print(f"Warning: Unexpected error loading {file_path} ({type(e).__name__}): {e}", file=sys.stderr)
             continue
 
-    return rules
+    return list(seen_names.values())
 
 
 def load_rule_file(file_path: str) -> Optional[Rule]:
