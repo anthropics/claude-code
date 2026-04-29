@@ -73,6 +73,8 @@ Without arguments, hookify analyzes recent conversation to find behaviors you wa
 - **`/hookify:help`** - Show this help (what you're reading now)
 - **`/hookify:list`** - List all configured hooks
 - **`/hookify:configure`** - Enable/disable existing hooks interactively
+- **`/hookify:test`** - Test a specific rule against sample input
+- **`/hookify:doctor`** - Diagnose rule files for parse, regex, and naming issues
 
 ## Example Use Cases
 
@@ -147,6 +149,8 @@ Use Python regex syntax:
 - Confirm pattern is valid regex
 - Test pattern: `python3 -c "import re; print(re.search('your_pattern', 'test_text'))"`
 - Rules take effect immediately - no restart needed
+- Run `/hookify:doctor` to catch invalid regex, duplicate names, and parse problems
+- Run `/hookify:test` to replay a rule against sample hook input
 
 **Import errors:**
 - Check Python 3 is available: `python3 --version`
