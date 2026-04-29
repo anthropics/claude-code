@@ -1,5 +1,97 @@
 # Changelog
 
+## 2.1.123
+
+- Fixed OAuth authentication failing with a 401 retry loop when `CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS=1` is set
+
+## 2.1.122
+
+- Added `ANTHROPIC_BEDROCK_SERVICE_TIER` environment variable to select a Bedrock service tier (`default`, `flex`, or `priority`), sent as the `X-Amzn-Bedrock-Service-Tier` header
+- Pasting a PR URL into the `/resume` search box now finds the session that created that PR (GitHub, GitHub Enterprise, GitLab, and Bitbucket)
+- `/mcp` now shows claude.ai connectors hidden by a manually-added server with the same URL, with a hint to remove the duplicate
+- Clarified the `/mcp` message shown when an MCP server is still unauthorized after the browser sign-in flow
+- OpenTelemetry: numeric attributes on `api_request`/`api_error` log events are now emitted as numbers, not strings
+- OpenTelemetry: added `claude_code.at_mention` log event for `@`-mention resolution
+- Fixed `/branch` producing forks that fail with "tool_use ids were found without tool_result blocks" when the source session contained entries from rewound timelines
+- Fixed `/model` not showing the Effort option for Bedrock application inference profile ARNs, and those ARNs not receiving `output_config.effort`
+- Fixed Vertex AI / Bedrock returning `invalid_request_error: output_config: Extra inputs are not permitted` on session-title generation and other structured-output queries
+- Fixed Vertex AI `count_tokens` endpoint returning 400 errors for users behind proxy gateways
+- Fixed `spinnerTipsOverride.excludeDefault` not suppressing the time-based spinner tips
+- Fixed ToolSearch missing MCP tools that connected after session start in nonblocking mode
+- Fixed `!exit` / `!quit` in bash mode terminating the CLI instead of running as a shell command
+- Fixed images sent to newer models being resized to 2576px per side instead of the correct 2000px maximum
+- Fixed remote control session idle status redrawing twice per second, which could flood `tmux -CC` control pipes and pause the terminal
+- Fixed assistant messages appearing blank in some sessions due to a stale view preference
+- Fixed a malformed hooks entry in `settings.json` no longer invalidating the entire file
+- Voice mode: keybindings bound to Caps Lock now show an error since terminals don't deliver Caps Lock as a key event
+
+## 2.1.121
+
+- Added `alwaysLoad` option to MCP server config — when `true`, all tools from that server skip tool-search deferral and are always available
+- Added `claude plugin prune` to remove orphaned auto-installed plugin dependencies; `plugin uninstall --prune` cascades
+- Added a type-to-filter search box to `/skills` so you can find a skill in long lists without scrolling
+- PostToolUse hooks can now replace tool output for all tools via `hookSpecificOutput.updatedToolOutput` (previously MCP-only)
+- Fullscreen mode: typing into the prompt no longer jumps scroll back to the bottom after you've scrolled up to read earlier output
+- Dialogs that overflow the terminal are now scrollable with arrow keys, PgUp/PgDn, home/end, and mouse wheel in both fullscreen and non-fullscreen modes
+- Clicking any line of a long URL that wraps across rows in fullscreen mode now opens the full URL
+- SDK and `claude -p`: `CLAUDE_CODE_FORK_SUBAGENT=1` now works in non-interactive sessions
+- `--dangerously-skip-permissions` no longer prompts for writes to `.claude/skills/`, `.claude/agents/`, and `.claude/commands/`
+- `/terminal-setup` now enables iTerm2's "Applications in terminal may access clipboard" setting so `/copy` works, including from tmux
+- MCP servers that hit a transient error during startup now auto-retry up to 3 times instead of staying disconnected
+- The terminal tab session title is now generated in your configured `language` setting
+- Claude.ai connectors with the same upstream URL are now deduplicated instead of appearing as duplicates
+- Vertex AI: support X.509 certificate-based Workload Identity Federation (mTLS ADC)
+- Faster startup after upgrading: removed the Recent Activity panel from the release-notes splash
+- LSP diagnostic summaries now expand on click/ctrl+o and show the expand hint
+- SDK: `mcp_authenticate` now supports `redirectUri` for custom scheme completion and claude.ai connectors
+- OpenTelemetry: added `stop_reason`, `gen_ai.response.finish_reasons`, and `user_system_prompt` (gated behind `OTEL_LOG_USER_PROMPTS`) to LLM request spans
+- [VSCode] Voice dictation now respects the `accessibility.voice.speechLanguage` setting when no Claude Code language is configured
+- [VSCode] `/context` now opens a native token usage dialog
+- Fixed unbounded memory growth (multi-GB RSS) when processing many images in a session
+- Fixed `/usage` leaking up to ~2GB of memory on machines with large transcript histories
+- Fixed memory leak when long-running tools fail to emit a clear progress event
+- Fixed Bash tool becoming permanently unusable when the directory Claude was started in is deleted or moved mid-session
+- Fixed `--resume` crashing on startup in external builds
+- Fixed `--resume` failing on large sessions when a transcript line was corrupted by an unclean shutdown — the corrupt line is now skipped
+- Fixed `thinking.type.enabled is not supported` error when using Bedrock application inference profile ARNs
+- Fixed Microsoft 365 MCP OAuth failing with duplicate or unsupported `prompt` parameter
+- Fixed scrollback duplication when pressing Ctrl+L or triggering a redraw in non-fullscreen mode on tmux, GNOME Terminal, Windows Terminal, and Konsole
+- Fixed claude.ai MCP connectors silently disappearing when the connector-list fetch hits a transient auth error at startup
+- Fixed "Always allow" rules for built-in tools in remote sessions not surviving worker restarts
+- Fixed `NO_PROXY` not being respected for all HTTP clients when set via `managed-settings.json` under the native build
+- Fixed managed settings approval prompt exiting the session even when accepted — now applies settings and continues
+- Fixed `/usage` returning "rate limited" after a stale OAuth token — now refreshes automatically
+- Fixed invalid legacy enum values in `settings.json` invalidating the entire settings file
+- Fixed `/usage` dialog content being clipped when no-flicker mode is off
+- Fixed `/focus` showing "Unknown command" when the fullscreen renderer is off — now explains how to enable it
+- Fixed embedded grep/find/rg shell wrappers failing when the running binary is deleted mid-session — now falls back to installed tools
+- Reduced peak file descriptor usage during `find` in the Bash tool on large directory trees
+
+## 2.1.120
+
+- Windows: Git for Windows (Git Bash) is no longer required — when absent, Claude Code uses PowerShell as the shell tool
+- Added `claude ultrareview [target]` subcommand to run `/ultrareview` non-interactively from CI or scripts — prints findings to stdout (`--json` for raw output) and exits 0 on completion or 1 on failure
+- Skills can now reference the current effort level with `${CLAUDE_EFFORT}` in their content
+- Set `AI_AGENT` environment variable for subprocesses so `gh` can attribute traffic to Claude Code
+- Spinner tips that recommend installing the desktop app or creating skills/agents are now hidden when you already have them
+- Show a "use PgUp/PgDn to scroll" hint when the terminal sends arrow keys instead of scroll events
+- Faster session start when you have many claude.ai connectors configured but not authorized
+- The auto mode denial message now links to the configuration docs
+- `claude plugin validate` now accepts `$schema`, `version`, and `description` at the top level of `marketplace.json` and `$schema` in `plugin.json`
+- Auto-compact in auto mode now displays `auto` (lowercase, no token count) instead of a misleading token value
+- Fixed pressing Esc during a stdio MCP tool call closing the entire server connection (regression in 2.1.105)
+- Fixed `/rewind` and other interactive overlays not responding to keyboard input after launching with `claude --resume`
+- Fixed terminal scrollback duplication in non-fullscreen mode (resize, dialog dismiss, long sessions)
+- Fixed `DISABLE_TELEMETRY` / `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` not suppressing usage metrics telemetry for API and enterprise users
+- Fixed false-positive "Dangerous rm operation" permission prompts in auto mode for multi-line bash commands containing both a pipe and a redirect
+- Fixed long selection menus clipping below the terminal in fullscreen mode — the focused option now stays on screen as you scroll
+- Fixed Write tool output collapsing instead of expanding when clicking "+N lines" in fullscreen
+- Fixed slash command picker jumping while typing, and improved highlight to only match contiguous substrings in blue
+- Fixed `/plugin` marketplace failing to load when one entry uses an unrecognized source format — that entry is shown but installing it prompts you to update
+- [VSCode] `/usage` now opens the native Account & Usage dialog instead of returning plain-text session cost
+- [VSCode] Voice dictation now respects the `language` setting in `~/.claude/settings.json`
+- Fixed `find` in the Bash tool exhausting open file descriptors on large directory trees, causing host-wide crashes (macOS/Linux native builds)
+
 ## 2.1.119
 
 - `/config` settings (theme, editor mode, verbose, etc.) now persist to `~/.claude/settings.json` and participate in project/local/policy override precedence
