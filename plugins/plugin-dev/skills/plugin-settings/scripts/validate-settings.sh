@@ -74,7 +74,9 @@ done
 
 # Check 7: Validate common boolean fields
 for field in enabled strict_mode; do
-  VALUE=$(echo "$FRONTMATTER" | grep "^${field}:" | sed "s/${field}: *//" || true)
+  # Escape regex metacharacters in field name before using in sed
+  escaped_field=$(printf '%s\n' "$field" | sed 's/[[\.*^$()+?{|]/\\&/g')
+  VALUE=$(echo "$FRONTMATTER" | grep "^${field}:" | sed "s/${escaped_field}: *//" || true)
   if [ -n "$VALUE" ]; then
     if [ "$VALUE" != "true" ] && [ "$VALUE" != "false" ]; then
       echo "⚠️  Field '$field' should be boolean (true/false), got: $VALUE"
