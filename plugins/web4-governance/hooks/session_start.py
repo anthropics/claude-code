@@ -19,11 +19,13 @@ For hardware-bound identity and enterprise features, see Hardbound.
 
 import json
 import os
+import socket
 import sys
 import uuid
 import hashlib
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Optional
 
 # Import heartbeat tracker
 from heartbeat import get_session_heartbeat
@@ -80,6 +82,67 @@ def load_preferences():
     }
 
 
+def discover_host_lct():
+    """
+    Look for a Web4 host LCT for this machine (Phase 1 fleet identity).
+
+    Each fleet machine may bootstrap a host-level LCT at
+    `~/.web4/{hostname}/lct.json` via `web4_fleet_bootstrap.py`. When present,
+    sessions that start on this host can record a reverse witness statement
+    against it — "session X started under host LCT Y."
+
+    This is the *reverse* of the host LCT's own scan that records
+    sibling identity systems present on the same host. Together they form
+    a bidirectional witness graph; multi-factor identity emerges from
+    cross-system convergence.
+
+    Returns the parsed host LCT dict, or None if no host LCT is bootstrapped.
+    """
+    hostname = socket.gethostname().lower().split(".")[0].strip()
+    if not hostname:
+        return None
+    host_lct_file = WEB4_DIR / hostname / "lct.json"
+    if not host_lct_file.exists():
+        return None
+    try:
+        return json.loads(host_lct_file.read_text())
+    except (json.JSONDecodeError, OSError):
+        return None
+
+
+def witness_host_lct(session_id: str, host_lct: dict) -> Optional[dict]:
+    """
+    Record session→host_LCT observation in the witness graph.
+
+    Returns a small witness summary (lct_id + fingerprint) suitable for
+    embedding in the session JSON, or None if the registry isn't available.
+    """
+    if not GOVERNANCE_AVAILABLE or PolicyRegistry is None:
+        return None
+    lct_id = host_lct.get("lct_id")
+    fingerprint = host_lct.get("fingerprint", "")
+    if not lct_id:
+        return None
+    try:
+        registry = PolicyRegistry()
+        registry.witness_host_lct(
+            session_id=session_id,
+            host_lct_id=lct_id,
+            host_lct_fingerprint=fingerprint,
+            salience_axis="host-lct fingerprint at observation time",
+        )
+        return {
+            "lct_id": lct_id,
+            "fingerprint": fingerprint,
+            "machine": host_lct.get("machine", ""),
+            "entity_type": host_lct.get("entity_type", ""),
+            "observed_at": datetime.now(timezone.utc).isoformat() + "Z",
+        }
+    except Exception as e:
+        print(f"[Web4] Host LCT witness failed: {e}", file=sys.stderr)
+        return None
+
+
 def register_policy_entity(session_id: str, prefs: dict):
     """
     Register policy as a first-class entity in the trust network.
@@ -129,6 +192,14 @@ def initialize_session(session_id):
     # Register policy as first-class entity (hash-tracked, witnessable)
     policy_entity_id, policy_entity_dict = register_policy_entity(session_id, prefs)
 
+    # Discover and witness the host LCT (Phase 1 fleet identity), if present.
+    # This is reverse-direction witnessing: each session records that it saw
+    # the host LCT it started under. Combined with the host LCT's own scan
+    # (which records sibling identity systems present on disk), this forms
+    # a bidirectional witness graph for multi-factor identity.
+    host_lct = discover_host_lct()
+    host_lct_witness = witness_host_lct(session_id, host_lct) if host_lct else None
+
     session = {
         "session_id": session_id,
         "token": token,
@@ -144,6 +215,8 @@ def initialize_session(session_id):
         # Policy entity (society's law - hash-tracked in chain)
         "policy_entity_id": policy_entity_id,
         "policy_entity": policy_entity_dict,
+        # Host LCT witness (Web4 fleet identity, Phase 1.5) — None if not bootstrapped
+        "host_lct_witness": host_lct_witness,
     }
 
     session_file = SESSION_DIR / f"{session_id}.json"

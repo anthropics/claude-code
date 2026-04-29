@@ -1,6 +1,6 @@
 {
   "name": "web4-governance",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Lightweight AI governance with R6 workflow formalism and audit trails. Every tool call becomes a structured request with verifiable provenance.",
   "author": {
     "name": "Web4 Contributors",
