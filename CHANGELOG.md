@@ -1191,7 +1191,7 @@
 
 - Fixed tool search to activate even with `ANTHROPIC_BASE_URL` as long as `ENABLE_TOOL_SEARCH` is set.
 - Added `w` key in `/copy` to write the focused selection directly to a file, bypassing the clipboard (useful over SSH)
-- Added optional description argument to `/plan` (e.g., `/plan fix the auth bug`) that enters plan mode and immediately starts
+- Added optional description argument to `/plan` (e.g., `/plan fix the auth bug`) that enters plan mode and immediately starts planning from that prompt
 - Added `ExitWorktree` tool to leave an `EnterWorktree` session
 - Added `CLAUDE_CODE_DISABLE_CRON` environment variable to immediately stop scheduled cron jobs mid-session
 - Added `lsof`, `pgrep`, `tput`, `ss`, `fd`, and `fdfind` to the bash auto-approval allowlist, reducing permission prompts for common read-only operations
