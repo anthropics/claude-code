@@ -86,9 +86,29 @@ class RuleEngine:
         # If only warnings, show them but allow operation
         if warning_rules:
             messages = [f"**[{r.name}]**\n{r.message}" for r in warning_rules]
-            return {
-                "systemMessage": "\n\n".join(messages)
-            }
+            combined_message = "\n\n".join(messages)
+
+            if hook_event == 'PreToolUse':
+                return {
+                    "hookSpecificOutput": {
+                        "hookEventName": hook_event,
+                        "permissionDecision": "allow",
+                        "additionalContext": combined_message
+                    },
+                    "systemMessage": combined_message
+                }
+            elif hook_event == 'PostToolUse':
+                return {
+                    "hookSpecificOutput": {
+                        "hookEventName": hook_event,
+                        "additionalContext": combined_message
+                    },
+                    "systemMessage": combined_message
+                }
+            else:
+                return {
+                    "systemMessage": combined_message
+                }
 
         # No matches - allow operation
         return {}
