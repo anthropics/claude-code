@@ -48,6 +48,20 @@
       "category": "productivity"
     },
     {
+      "name": "enhanced-statusline",
+      "description": "Enhanced status line for Claude Code with session duration, token tracking, git status, and cost monitoring",
+      "version": "1.0.0",
+      "author": {
+        "name": "Deepan Kumar",
+        "email": "deepan.ppgit@gmail.com"
+      },
+      "source": "./plugins/enhanced-statusline",
+      "category": "productivity",
+      "keywords": ["statusline", "theme", "customization", "git", "monitoring"],
+      "repository": "https://github.com/deepan-g2/claude-statusline-plugin",
+      "homepage": "https://github.com/deepan-g2/claude-statusline-plugin#readme"
+    },
+    {
       "name": "explanatory-output-style",
       "description": "Adds educational insights about implementation choices and codebase patterns (mimics the deprecated Explanatory output style)",
       "version": "1.0.0",
