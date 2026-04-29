@@ -308,6 +308,58 @@ class TestPolicyWitnessing:
         trust = registry.get_policy_trust(entity.entity_id)
         assert "session:session-123" in trust.has_witnessed
 
+    def test_witness_host_lct(self, temp_storage):
+        """Test session witnessing a host LCT (reverse direction of fleet bootstrap scan)."""
+        import json
+        registry = PolicyRegistry(temp_storage)
+
+        registry.witness_host_lct(
+            session_id="session-abc",
+            host_lct_id="83810b44-2289-4c14-854f-ae5114f747cf",
+            host_lct_fingerprint="3d13e0dd2d426e9f",
+            salience_axis="host-lct fingerprint at observation time",
+        )
+
+        host_entity = "lct:web4:host:83810b44-2289-4c14-854f-ae5114f747cf"
+        session_entity = "session:session-abc"
+
+        # Bidirectional graph: session is recorded as a witness of the host LCT
+        assert session_entity in registry.get_witnessed_by(host_entity)
+        assert host_entity in registry.get_has_witnessed(session_entity)
+
+        # Persistence: a registry rebuilt from disk preserves the relationship
+        registry2 = PolicyRegistry(temp_storage)
+        assert session_entity in registry2.get_witnessed_by(host_entity)
+
+        # And the JSONL line carries the salience-aware fields
+        records = [json.loads(l) for l in (temp_storage / "witnesses.jsonl").read_text().splitlines() if l.strip()]
+        host_records = [r for r in records if r.get("type") == "host_lct_witness"]
+        assert len(host_records) == 1
+        r = host_records[0]
+        assert r["entity"] == host_entity
+        assert r["witness"] == session_entity
+        assert r["host_lct_fingerprint"] == "3d13e0dd2d426e9f"
+        assert r["salience_axis"] == "host-lct fingerprint at observation time"
+
+    def test_witness_host_lct_multiple_sessions(self, temp_storage):
+        """Multiple sessions on the same host all witness the same host LCT — convergence is the trust signal."""
+        registry = PolicyRegistry(temp_storage)
+        host_lct_id = "83810b44-2289-4c14-854f-ae5114f747cf"
+
+        for sid in ("session-1", "session-2", "session-3"):
+            registry.witness_host_lct(
+                session_id=sid,
+                host_lct_id=host_lct_id,
+                host_lct_fingerprint="3d13e0dd2d426e9f",
+            )
+
+        host_entity = f"lct:web4:host:{host_lct_id}"
+        witnesses = registry.get_witnessed_by(host_entity)
+        assert len(witnesses) == 3
+        assert "session:session-1" in witnesses
+        assert "session:session-2" in witnesses
+        assert "session:session-3" in witnesses
+
 
 class TestPolicyRegistry:
     """Tests for PolicyRegistry."""

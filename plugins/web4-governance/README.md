@@ -16,6 +16,26 @@ This plugin adds structured governance to Claude Code sessions:
 
 No external dependencies. No network calls. Just structured, auditable AI actions.
 
+## What's New in v1.1
+
+- **Host LCT witnessing** — when a Web4 host LCT is bootstrapped via
+  `web4_fleet_bootstrap.py` at `~/.web4/{hostname}/lct.json`, every session
+  records a `host_lct_witness` entry on session-start. Sessions running on
+  the same host all witness the same host LCT; cross-session convergence
+  is the trust signal, divergence is diagnostic. Bidirectional with the
+  fleet bootstrap's own scan (which records sibling identity systems
+  present on the host) — together they form the multi-factor identity graph.
+- **`PolicyRegistry.witness_host_lct(session_id, host_lct_id, fingerprint, salience_axis)`**
+  is the new method. Adds `host_lct_witness` records to the existing
+  `~/.web4/witnesses.jsonl` log alongside `session_witness` and
+  `decision_witness`.
+- **Salience-aware fingerprints** in `host_lct_witness` records. The
+  fingerprint hashes over what's *salient* (the host LCT's identity-stable
+  fields), not what's available — routine ticks don't drift, only real
+  identity changes do.
+- Backward-compat: when no host LCT is bootstrapped (most installs), the
+  `host_lct_witness` field is `None`. Sessions still work normally.
+
 ## What's New in v0.2
 
 - **Agent Governance** - Claude Code agents map to Web4 role entities

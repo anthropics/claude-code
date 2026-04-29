@@ -240,12 +240,14 @@ class PolicyEntity:
 @dataclass
 class WitnessRecord:
     """Record of a witnessing relationship (persisted to JSONL)."""
-    type: str  # "session_witness" or "decision_witness"
+    type: str  # "session_witness", "decision_witness", or "host_lct_witness"
     entity: str
     witness: str
     timestamp: str
     tool: Optional[str] = None  # For decision witnesses
     decision: Optional[str] = None  # For decision witnesses
+    host_lct_fingerprint: Optional[str] = None  # For host_lct witnesses — salient identifier
+    salience_axis: Optional[str] = None  # For host_lct witnesses — what the fingerprint hashes over
 
 
 class PolicyRegistry:
@@ -344,6 +346,10 @@ class PolicyRegistry:
                 record_dict["tool"] = record.tool
             if record.decision:
                 record_dict["decision"] = record.decision
+            if record.host_lct_fingerprint:
+                record_dict["host_lct_fingerprint"] = record.host_lct_fingerprint
+            if record.salience_axis:
+                record_dict["salience_axis"] = record.salience_axis
 
             with open(self._witness_file_path, "a") as f:
                 f.write(json.dumps(record_dict) + "\n")
@@ -547,6 +553,51 @@ class PolicyRegistry:
             timestamp=now,
             tool=tool_name,
             decision=decision,
+        )
+        self._apply_witness_record(record)
+        self._persist_witness_record(record)
+
+    def witness_host_lct(
+        self,
+        session_id: str,
+        host_lct_id: str,
+        host_lct_fingerprint: Optional[str] = None,
+        salience_axis: Optional[str] = None,
+    ) -> None:
+        """
+        Record that a session observed a host LCT on session-start.
+
+        This is the *reverse* of the host LCT's own scan that observes sibling
+        identity systems on the host. Together they form a bidirectional
+        witness graph: the host LCT sees the session-token system exists, and
+        each session sees the host LCT it started under.
+
+        Witness != vouch. The session is recording observation, not endorsement.
+        Cross-system convergence (multiple sessions agreeing on the same host
+        LCT id + fingerprint) is the trust signal; divergence between sessions
+        is diagnostic.
+
+        Args:
+            session_id: ID of the session observing the host LCT.
+            host_lct_id: UUID of the host LCT.
+            host_lct_fingerprint: Stable per-host fingerprint (salience-aware
+                — see web4_fleet_bootstrap.py for how the host computes it).
+            salience_axis: Documentation of what the fingerprint hashes over.
+        """
+        session_entity = f"session:{session_id}"
+        host_entity = f"lct:web4:host:{host_lct_id}"
+
+        # Session witnesses the host LCT (I started under this host identity)
+        self._trust_store.witness(host_entity, session_entity, success=True)
+
+        now = datetime.now(timezone.utc).isoformat() + "Z"
+        record = WitnessRecord(
+            type="host_lct_witness",
+            entity=host_entity,
+            witness=session_entity,
+            timestamp=now,
+            host_lct_fingerprint=host_lct_fingerprint,
+            salience_axis=salience_axis,
         )
         self._apply_witness_record(record)
         self._persist_witness_record(record)
