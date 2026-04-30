@@ -1084,6 +1084,7 @@
 
 ## 2.1.76
 
+- Added `CLAUDE_CODE_GIT_BASH_PATH` environment variable to override the Git Bash executable path on Windows (useful when Git Bash is installed in a non-standard location)
 - Added MCP elicitation support — MCP servers can now request structured input mid-task via an interactive dialog (form fields or browser URL)
 - Added new `Elicitation` and `ElicitationResult` hooks to intercept and override responses before they're sent back
 - Added `-n` / `--name <name>` CLI flag to set a display name for the session at startup
