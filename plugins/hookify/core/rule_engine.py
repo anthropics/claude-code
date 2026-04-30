@@ -180,7 +180,7 @@ class RuleEngine:
             return False
 
     def _extract_field(self, field: str, tool_name: str,
-                      tool_input: Dict[str, Any], input_data: Dict[str, Any] = None) -> Optional[str]:
+                      tool_input: Dict[str, Any], input_data: Optional[Dict[str, Any]] = None) -> Optional[str]:
         """Extract field value from tool input or hook input data.
 
         Args:
