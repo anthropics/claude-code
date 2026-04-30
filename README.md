@@ -25,7 +25,7 @@ For more installation options, uninstall steps, and troubleshooting, see the [se
 
     **Homebrew (MacOS/Linux):**
     ```bash
-    brew install --cask claude-code
+    brew install claude-code
     ```
 
     **Windows (Recommended):**
