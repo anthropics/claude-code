@@ -1,0 +1,9 @@
+{
+  "name": "notify-on-complete",
+  "description": "Plays a sound, shows a desktop notification, or speaks aloud when Claude finishes responding. Configurable via environment variables, cross-platform (macOS/Linux).",
+  "version": "1.0.0",
+  "author": {
+    "name": "Rush"
+  },
+  "license": "MIT"
+}

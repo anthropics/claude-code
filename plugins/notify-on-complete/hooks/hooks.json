@@ -1,0 +1,16 @@
+{
+  "description": "Plays a sound, shows a desktop notification, or speaks aloud when Claude finishes responding",
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/notify.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}
