@@ -23,5 +23,14 @@ Notes (be sure to tell this to your agents, too):
   - `./scripts/gh.sh issue view 123 --comments` — view with comments
   - `./scripts/gh.sh issue list --state open --limit 20` — list issues
   - `./scripts/gh.sh search issues "query" --limit 10` — search for issues
+- Hard candidate constraints (required):
+  - Candidate issue must be `open`.
+  - Candidate issue must be older than the base issue.
+  - Candidate issue must NOT be labeled `duplicate`.
+  - Candidate issue must NOT be the base issue itself.
+  - If no candidates satisfy all constraints, do not post a duplicate comment.
+- Prefer canonical candidates:
+  - Prefer issues without lifecycle labels that indicate pending closure (`stale`, `autoclose`).
+  - Prefer issues with clearer reproduction detail and stable discussion context.
 - Do not use other tools, beyond `./scripts/gh.sh` and the comment script (eg. don't use other MCP servers, file edit, etc.)
 - Make a todo list first
