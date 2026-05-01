@@ -1,0 +1,16 @@
+{
+  "description": "Deny tool calls with reasons from .claude/deny-reasons.yaml",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse.py",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}
