@@ -27,10 +27,9 @@
 - Fixed `Ctrl+L` clearing the prompt input — it now only forces a screen redraw, matching readline behavior
 - Fixed deferred tools (WebSearch, WebFetch, etc.) not being available to skills with `context: fork` and other subagents on their first turn
 - Fixed plan-mode tools being unavailable in interactive sessions launched with `--channels`
-- Fixed blank remote-session transcript when certain messaging tools are unavailable
 - Fixed `/plugin` Uninstall reporting "Enabled" instead of "Uninstalled"
 - Bounded total size of file-modified reminders when a linter touches many files at once
-- Fixed `/remote-control` retries appearing stuck on "connecting…" — each retry now shows its result, and unenrolled trusted-device failures are caught up-front
+- Fixed `/remote-control` retries appearing stuck on "connecting…" — each retry now shows its result
 - Fixed Remote Control failure notification not showing the error reason for initial connection failures
 - Windows: clipboard writes no longer expose copied content in process command-line arguments visible to EDR/SIEM telemetry; also fixes >22KB selections not reaching the clipboard
 - PowerShell tool: bare `--` (e.g. `git diff -- file`) is no longer mis-flagged as the `--%` stop-parsing token
