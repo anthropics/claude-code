@@ -1,13 +1,21 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import type { Market } from "@/lib/types";
 import { SPORT_TABS } from "@/lib/polymarket";
 import MarketCard from "@/components/MarketCard";
 import SportsTabs from "@/components/SportsTabs";
 import SkeletonCard from "@/components/SkeletonCard";
 
-const REFRESH_INTERVAL = 30; // seconds
+const REFRESH_INTERVAL = 30;
+
+type SortKey = "volume" | "liquidity" | "time";
+
+const SORT_OPTIONS: { value: SortKey; label: string }[] = [
+  { value: "volume", label: "Volume" },
+  { value: "liquidity", label: "Liquidity" },
+  { value: "time", label: "Closing soon" },
+];
 
 export default function DashboardPage() {
   const [sport, setSport] = useState("all");
@@ -16,8 +24,9 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(REFRESH_INTERVAL);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState<SortKey>("volume");
 
-  // Ref so the countdown effect always has the latest sport without re-registering
   const sportRef = useRef(sport);
   sportRef.current = sport;
 
@@ -38,12 +47,10 @@ export default function DashboardPage() {
     }
   }, []);
 
-  // Fetch on sport change
   useEffect(() => {
     fetchMarkets(sport);
   }, [sport, fetchMarkets]);
 
-  // Countdown + auto-refresh
   useEffect(() => {
     const interval = setInterval(() => {
       setCountdown((s) => {
@@ -60,7 +67,29 @@ export default function DashboardPage() {
   const handleSportChange = (slug: string) => {
     setSport(slug);
     setCountdown(REFRESH_INTERVAL);
+    setSearch("");
   };
+
+  const displayedMarkets = useMemo(() => {
+    let result = markets;
+
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      result = result.filter((m) => m.question.toLowerCase().includes(q));
+    }
+
+    result = [...result].sort((a, b) => {
+      if (sortBy === "volume") return b.volume - a.volume;
+      if (sortBy === "liquidity") return b.liquidity - a.liquidity;
+      // "time": nulls last, then ascending end date
+      if (!a.endDate && !b.endDate) return 0;
+      if (!a.endDate) return 1;
+      if (!b.endDate) return -1;
+      return new Date(a.endDate).getTime() - new Date(b.endDate).getTime();
+    });
+
+    return result;
+  }, [markets, search, sortBy]);
 
   return (
     <div className="min-h-screen bg-gray-950">
@@ -107,7 +136,7 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-4">
         {/* Sport filter tabs */}
         <SportsTabs
           tabs={SPORT_TABS}
@@ -115,12 +144,57 @@ export default function DashboardPage() {
           onChange={handleSportChange}
         />
 
+        {/* Search + sort row */}
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm pointer-events-none">
+              🔍
+            </span>
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search markets…"
+              className="w-full bg-gray-900 border border-gray-800 rounded-lg pl-8 pr-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-indigo-600 transition-colors"
+            />
+            {search && (
+              <button
+                onClick={() => setSearch("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 hover:text-gray-400 transition-colors text-xs"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-xs text-gray-600">Sort:</span>
+            <div className="flex gap-1">
+              {SORT_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => setSortBy(opt.value)}
+                  className={`px-3 py-2 rounded-lg text-xs font-medium transition-all duration-150 ${
+                    sortBy === opt.value
+                      ? "bg-indigo-600 text-white"
+                      : "bg-gray-900 text-gray-400 hover:bg-gray-800 hover:text-white border border-gray-800"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
         {/* Market count */}
         {!loading && !error && (
           <p className="text-xs text-gray-600">
-            {markets.length === 0
-              ? "No active markets"
-              : `${markets.length} active market${markets.length !== 1 ? "s" : ""}`}
+            {displayedMarkets.length === 0
+              ? search
+                ? `No results for "${search}"`
+                : "No active markets"
+              : `${displayedMarkets.length}${search ? ` of ${markets.length}` : ""} active market${displayedMarkets.length !== 1 ? "s" : ""}`}
           </p>
         )}
 
@@ -142,20 +216,31 @@ export default function DashboardPage() {
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {loading
             ? Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)
-            : markets.map((market) => (
+            : displayedMarkets.map((market) => (
                 <MarketCard key={market.id} market={market} />
               ))}
         </div>
 
         {/* Empty state */}
-        {!loading && !error && markets.length === 0 && (
+        {!loading && !error && displayedMarkets.length === 0 && (
           <div className="py-20 text-center">
-            <p className="text-4xl mb-3">🔍</p>
+            <p className="text-4xl mb-3">{search ? "🔍" : "📭"}</p>
             <p className="text-gray-400 font-medium">
-              No active markets for this sport right now
+              {search
+                ? `No markets matching "${search}"`
+                : "No active markets for this sport right now"}
             </p>
             <p className="text-gray-600 text-sm mt-1">
-              Check back later or try another sport
+              {search ? (
+                <button
+                  onClick={() => setSearch("")}
+                  className="underline hover:no-underline"
+                >
+                  Clear search
+                </button>
+              ) : (
+                "Check back later or try another sport"
+              )}
             </p>
           </div>
         )}
