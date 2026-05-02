@@ -134,12 +134,14 @@ class RuleEngine:
         Returns:
             True if matches
         """
+        matcher = matcher.strip()
         if matcher == '*':
             return True
 
-        # Split on | for OR matching
-        patterns = matcher.split('|')
-        return tool_name in patterns
+        # Split on | for OR matching and normalize whitespace/case.
+        # Example: "Edit | Write" should match tool_name "Write".
+        patterns = [p.strip().lower() for p in matcher.split('|') if p.strip()]
+        return tool_name.lower() in patterns
 
     def _check_condition(self, condition: Condition, tool_name: str,
                         tool_input: Dict[str, Any], input_data: Dict[str, Any] = None) -> bool:
