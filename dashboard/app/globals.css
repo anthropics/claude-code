@@ -1,0 +1,8 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Hide scrollbar cross-browser for tab row */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
