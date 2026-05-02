@@ -9,7 +9,9 @@ a small SessionStart context block that names the available plugins +
 gives one-line use-case hints keyed to cwd.
 
 Output goes to stdout as plain text and gets injected into Claude's
-session-start context (same channel as engram's getSessionBriefing).
+session-start context (same channel as SNARC's getSessionBriefing —
+the on-disk directory is `engram/` for legacy reasons; the project
+itself is named SNARC).
 
 Designed to stay short (under 300 tokens). The point isn't to teach;
 it's to remind. The discoverability problem is "I forgot it exists,"
