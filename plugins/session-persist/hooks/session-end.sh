@@ -12,11 +12,10 @@ if [ -f "$SESSION_FILE" ] && command -v python3 &>/dev/null; then
     python3 - "${SESSION_FILE}" <<'EOF'
 import json, sys, datetime
 path = sys.argv[1]
-try:
-    with open(path) as f:
-        d = json.load(f)
-except Exception:
-    d = {}
+with open(path) as f:
+    d = json.load(f)
+if not isinstance(d, dict):
+    raise SystemExit(f"Refusing to update non-object session file: {path}")
 d["ended_at"] = datetime.datetime.utcnow().isoformat() + "Z"
 with open(path, "w") as f:
     json.dump(d, f, indent=2)
