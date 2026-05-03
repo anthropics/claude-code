@@ -553,7 +553,7 @@ Review results and report findings.
 
 ```markdown
 # Execute plugin script
-!`bash ${CLAUDE_PLUGIN_ROOT}/scripts/script.sh`
+!`bash "${CLAUDE_PLUGIN_ROOT}/scripts/script.sh"`
 
 # Load plugin configuration
 @${CLAUDE_PLUGIN_ROOT}/config/settings.json
@@ -635,9 +635,9 @@ description: Complete build workflow
 allowed-tools: Bash(*)
 ---
 
-Build: !`bash ${CLAUDE_PLUGIN_ROOT}/scripts/build.sh`
-Test: !`bash ${CLAUDE_PLUGIN_ROOT}/scripts/test.sh`
-Package: !`bash ${CLAUDE_PLUGIN_ROOT}/scripts/package.sh`
+Build: !`bash "${CLAUDE_PLUGIN_ROOT}/scripts/build.sh"`
+Test: !`bash "${CLAUDE_PLUGIN_ROOT}/scripts/test.sh"`
+Package: !`bash "${CLAUDE_PLUGIN_ROOT}/scripts/package.sh"`
 
 Review outputs and report workflow status.
 ```
@@ -796,8 +796,8 @@ allowed-tools: Bash(test:*)
 ---
 
 Validate plugin setup:
-- Script: !`test -x ${CLAUDE_PLUGIN_ROOT}/bin/analyze && echo "✓" || echo "✗"`
-- Config: !`test -f ${CLAUDE_PLUGIN_ROOT}/config.json && echo "✓" || echo "✗"`
+- Script: !`test -x "${CLAUDE_PLUGIN_ROOT}/bin/analyze" && echo "✓" || echo "✗"`
+- Config: !`test -f "${CLAUDE_PLUGIN_ROOT}/config.json" && echo "✓" || echo "✗"`
 
 If all checks pass, run analysis.
 Otherwise, report missing components.
@@ -811,7 +811,7 @@ description: Build with error handling
 allowed-tools: Bash(*)
 ---
 
-Execute build: !`bash ${CLAUDE_PLUGIN_ROOT}/scripts/build.sh 2>&1 || echo "BUILD_FAILED"`
+Execute build: !`bash "${CLAUDE_PLUGIN_ROOT}/scripts/build.sh" 2>&1 || echo "BUILD_FAILED"`
 
 If build succeeded:
   Report success and output location
