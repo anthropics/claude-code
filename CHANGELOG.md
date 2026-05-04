@@ -1,5 +1,45 @@
 # Changelog
 
+## 2.1.128
+
+- Bare `/color` (no args) now picks a random session color
+- `/mcp` now shows the tool count for connected servers and flags servers that connected with 0 tools
+- `--plugin-dir` now accepts `.zip` plugin archives in addition to directories
+- `--channels` now works with console (API key) authentication — console orgs with managed settings must set `channelsEnabled: true` to enable
+- Updated `/model` picker: collapsed duplicate Opus 4.7 entries, and current Opus now shows as "Opus" instead of "Opus 4.7"
+- Subprocesses (Bash, hooks, MCP, LSP) no longer inherit `OTEL_*` environment variables, so OTEL-instrumented apps run via the Bash tool no longer pick up the CLI's own OTLP endpoint
+- MCP: `workspace` is now a reserved server name — existing servers with that name will be skipped with a warning
+- Reconnecting MCP servers no longer flood the conversation with full tool-name lists on every reconnect — re-announced tools are summarized by server prefix
+- SDK hosts now receive a persistent `localSettings` suggestion for Bash permission prompts, so "Always allow" writes to `.claude/settings.local.json`
+- `EnterWorktree` now creates the new branch from local HEAD as documented, instead of `origin/<default-branch>` — unpushed commits are no longer dropped
+- Auto mode: when the classifier can't evaluate an action, the error now includes a hint (retry, `/compact`, or run with `--debug`)
+- Fixed focus mode briefly dimming the previous response when submitting a new prompt
+- Fixed stray "4;0;" desktop notification on every `/exit` in Kitty and other terminals that interpret OSC 9 as a notification
+- Fixed Remote Control showing an empty "Opening your options…" message on rate limit instead of actionable upsell options
+- Fixed drag-and-drop image upload hanging on "Pasting text…" when the image read fails
+- Fixed crash loop when piping very large input (>10 MB) to `claude -p` via stdin
+- Fixed long URLs not being individually clickable on every wrapped row in fullscreen mode
+- Fixed `/plugin` Components panel showing "Marketplace 'inline' not found" for plugins loaded via `--plugin-dir`
+- Fixed MCP tool results dropping images when the server returns both structured content and content blocks
+- Fixed fenced code blocks inside list items carrying leading whitespace into the clipboard on copy-paste
+- Fixed tab navigation in `/config` stranding focus — the tab header now stays focused so arrows and Esc keep working
+- Fixed markdown link labels being lost on terminals without OSC 8 hyperlink support — links now render as `label (url)` instead of just the URL
+- Fixed sessions on 1M-context models with a smaller autocompact window being falsely blocked with "Prompt is too long" before reaching the actual API limit
+- Fixed parallel shell tool calls: a failing read-only command (grep, git diff, ls) no longer cancels sibling calls
+- Fixed banner showing "with X effort" on models that don't support effort
+- Fixed `/fast` on 3P providers fuzzy-matching to an unrelated skill instead of showing "not available"
+- Fixed Bedrock default model resolving to `global.*` instead of the region-appropriate prefix
+- Fixed vim mode: `Space` in NORMAL mode now moves the cursor right, matching standard vi/vim behavior
+- Fixed terminal progress indicator (OSC 9;4) flickering off between tool calls — stays visible across the full turn
+- Fixed `/rename` without args failing on resumed sessions whose last entry is a compact boundary
+- Fixed stale "remote-control is active" status lines from prior sessions appearing after `--resume`/`--continue`
+- Fixed stale `installed_plugins.json` entries pointing at deleted cache directories polluting PATH
+- Fixed MCP stdio servers receiving corrupted arguments when `CLAUDE_CODE_SHELL_PREFIX` is set and an argument contains spaces or shell metacharacters
+- Fixed sub-agent progress summaries missing the prompt cache (~3× `cache_creation` reduction)
+- Fixed `/plugin update` never detecting new versions of npm-sourced plugins
+- Fixed sub-agent summaries firing repeatedly while a sub-agent's transcript is static, capping worst-case token cost on idle sub-agents
+- Headless `--output-format stream-json`: `init.plugin_errors` now includes `--plugin-dir` load failures in addition to dependency demotions
+
 ## 2.1.126
 
 - The `/model` picker now lists models from your gateway's `/v1/models` endpoint when `ANTHROPIC_BASE_URL` points at an Anthropic-compatible gateway
