@@ -1,0 +1,25 @@
+{
+  "name": "dependency-audit",
+  "version": "1.0.0",
+  "description": "Comprehensive dependency security auditing, vulnerability scanning, license compliance checking, and smart update strategies for npm, pip, cargo, maven, and composer",
+  "author": {
+    "name": "Rajesh Kumar",
+    "email": "kakumanurajeshkumar@gmail.com"
+  },
+  "keywords": [
+    "security",
+    "dependencies",
+    "vulnerabilities",
+    "cve",
+    "audit",
+    "npm",
+    "pip",
+    "cargo",
+    "maven",
+    "license",
+    "compliance",
+    "supply-chain",
+    "sca"
+  ],
+  "license": "MIT"
+}
