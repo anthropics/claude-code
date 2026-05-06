@@ -1,5 +1,35 @@
 # Changelog
 
+## 2.1.129
+
+- Added `--plugin-url <url>` flag to fetch a plugin `.zip` archive from a URL for the current session
+- Added `CLAUDE_CODE_FORCE_SYNC_OUTPUT=1` env var to force-enable synchronized output on terminals that auto-detection misses (e.g. Emacs `eat`)
+- Added `CLAUDE_CODE_PACKAGE_MANAGER_AUTO_UPDATE`: when set on Homebrew or WinGet installations, Claude Code runs the upgrade command in the background and prompts to restart
+- Plugin manifests: `themes` and `monitors` should now be declared under `"experimental": { ... }`. Top-level declarations still work but `claude plugin validate` will warn
+- Gateway `/v1/models` discovery for the `/model` picker is now opt-in via `CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY=1` (was automatic in 2.1.126–2.1.128)
+- Ctrl+R history picker now defaults to searching all prompts across all projects, matching pre-2.1.124 behavior. Press Ctrl+S to narrow to the current project or session
+- Third-party deployments (Bedrock, Vertex, Foundry, or `ANTHROPIC_BASE_URL` gateway) no longer see spinner tips pointing at first-party Anthropic surfaces
+- `skillOverrides` setting now works: `off` hides from model and `/`, `user-invocable-only` hides from model only, `name-only` collapses description
+- The `claude_code.pull_request.count` OTel metric now counts PRs/MRs created via MCP tools, not just shell commands
+- Policy refusal error messages now include the API Request ID for easier support debugging
+- Fixed API errors with unrecognized 400 status codes showing raw JSON instead of the underlying error message
+- Fixed `/clear` not resetting the terminal tab title after a conversation
+- Fixed session title chip from `/rename` disappearing while a permission or other dialog is active
+- Fixed agent panel below the prompt being hidden when subagents are running (regression in 2.1.122)
+- Fixed external-editor handoff (Ctrl+G) blanking the conversation history above the prompt
+- Fixed `/context` dumping its rendered ASCII visualization grid into the conversation, wasting ~1.6k tokens per call
+- Fixed `/agents` Library list arrow-key navigation: the highlighted agent now stays visible when the list exceeds the viewport
+- Fixed `/branch` success message not including the new branch's session id for `/resume`
+- Fixed bold headers with keycap/ZWJ/skin-tone emoji losing trailing characters in fullscreen mode
+- Fixed server-managed settings policy not applying for enterprise/team users whose stored OAuth credentials lacked the `user:inference` scope
+- Fixed OAuth refresh race after wake-from-sleep that could log out all running sessions
+- Fixed 1-hour prompt cache TTL being silently downgraded to 5 minutes
+- Fixed cache-miss warning appearing spuriously after `/clear` or compaction when changing `/effort` or `/model`
+- Fixed `Bash(mkdir *)`, `Bash(touch *)` and similar allow rules not being honored for in-project paths
+- Fixed `deniedMcpServers` patterns with a `*://` scheme wildcard not matching mixed-case hostnames
+- Fixed harmless WebSocket warning being logged as an error in `--debug` during voice mode
+- [VSCode] Fixed `/clear` not clearing the conversation context and displayed transcript
+
 ## 2.1.128
 
 - Bare `/color` (no args) now picks a random session color
