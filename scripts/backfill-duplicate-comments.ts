@@ -150,7 +150,7 @@ Environment Variables:
 
     console.log(`[DEBUG] Fetching comments for issue #${issue.number}...`);
     const comments: GitHubComment[] = await githubRequest(
-      `/repos/${owner}/${repo}/issues/${issue.number}/comments`,
+      `/repos/${owner}/${repo}/issues/${issue.number}/comments?per_page=100`,
       token
     );
     console.log(
