@@ -1,0 +1,8 @@
+{
+  "name": "lean-agents",
+  "version": "1.0.0",
+  "description": "Lightweight subagent replacements for users with many MCP servers. Provides context-efficient Explore, Plan, and general-purpose agents that avoid the 'prompt too long' error caused by inherited MCP tool schemas.",
+  "author": {
+    "name": "moxer_mmh"
+  }
+}
