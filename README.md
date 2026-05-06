@@ -49,6 +49,40 @@ For more installation options, uninstall steps, and troubleshooting, see the [se
 
 This repository includes several Claude Code plugins that extend functionality with custom commands and agents. See the [plugins directory](./plugins/README.md) for detailed documentation on available plugins.
 
+## Environment Variables
+
+Claude Code supports a number of environment variables to control its behavior. Set them in your shell before launching `claude`, or configure them in [`settings.json`](https://code.claude.com/docs/en/settings) under the `env` key to apply them to every session.
+
+For the full list, see the [environment variables reference](https://code.claude.com/docs/en/env-vars).
+
+### `FORCE_HYPERLINK`
+
+Controls whether Claude Code emits [OSC 8 terminal hyperlinks](https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda) (clickable links in supported terminals).
+
+| Value | Behavior |
+|-------|----------|
+| `1` | Always emit hyperlinks, even if auto-detection thinks the terminal does not support them. |
+| `0` | Never emit hyperlinks, even if auto-detection thinks the terminal supports them. |
+| *(unset)* | Auto-detect terminal hyperlink support (default). |
+
+Use this when the automatic detection gives the wrong answer for your terminal — for example, inside `tmux`, `screen`, or a custom terminal emulator.
+
+**Shell:**
+
+```bash
+FORCE_HYPERLINK=1 claude
+```
+
+**`settings.json`:**
+
+```json
+{
+  "env": {
+    "FORCE_HYPERLINK": "1"
+  }
+}
+```
+
 ## Reporting Bugs
 
 We welcome your feedback. Use the `/bug` command to report issues directly within Claude Code, or file a [GitHub issue](https://github.com/anthropics/claude-code/issues).
