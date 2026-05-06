@@ -1,0 +1,25 @@
+{
+  "description": "Plays a notification sound when Claude finishes processing and is waiting for user input",
+  "hooks": {
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/notification_sound.py"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/notification_sound.py"
+          }
+        ]
+      }
+    ]
+  }
+}
