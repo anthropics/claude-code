@@ -1,0 +1,7 @@
+{
+  "name": "flappy-claude",
+  "version": "1.0.0",
+  "description": "Play Flappy Bird in your terminal with a Claude-themed sprite",
+  "author": "Junhyuk Lee",
+  "license": "MIT"
+}
