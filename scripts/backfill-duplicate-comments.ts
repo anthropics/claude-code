@@ -72,7 +72,7 @@ async function triggerDedupeWorkflow(
 async function backfillDuplicateComments(): Promise<void> {
   console.log("[DEBUG] Starting backfill duplicate comments script");
 
-  const token = process.env.GITHUB_TOKEN;
+  const token = process.env.GITHUB_TOKEN?.trim();
   if (!token) {
     throw new Error(`GITHUB_TOKEN environment variable is required
 
@@ -84,7 +84,7 @@ Environment Variables:
   DRY_RUN - Set to "false" to actually trigger workflows (default: true for safety)
   MAX_ISSUE_NUMBER - Only process issues with numbers less than this value (default: 4050)`);
   }
-  console.log("[DEBUG] GitHub token found");
+  console.log("[DEBUG] GitHub token present");
 
   const owner = "anthropics";
   const repo = "claude-code";
