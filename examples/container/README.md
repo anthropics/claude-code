@@ -1,0 +1,159 @@
+# Running Claude Code in a Container
+
+Run Claude Code inside a Podman container for isolation instead of the built-in sandbox.
+
+## Why a container?
+
+Claude Code's built-in sandbox restricts which commands can run. A container flips this model: Claude gets broad permissions *inside* the container, while the container limits access to the host. This gives Claude freedom to work productively while keeping your system safe.
+
+The guard hook works standalone (no container needed) and catches destructive git commands even with `--dangerously-skip-permissions`.
+
+## Quick start — guard hook only
+
+The guard hook intercepts destructive git commands (force push, hard reset, branch -D, rm -rf) and prompts for confirmation. It works with or without a container.
+
+1. Copy [`guard-destructive-git`](./guard-destructive-git) to `~/.claude/bin/` and make it executable:
+   ```bash
+   mkdir -p ~/.claude/bin
+   cp guard-destructive-git ~/.claude/bin/
+   chmod +x ~/.claude/bin/guard-destructive-git
+   ```
+
+2. Add the hook to your `~/.claude/settings.json` (or `settings.local.json`):
+   ```json
+   {
+     "hooks": {
+       "PreToolUse": [
+         {
+           "matcher": "Bash",
+           "hooks": [
+             {
+               "type": "command",
+               "command": "$HOME/.claude/bin/guard-destructive-git"
+             }
+           ]
+         }
+       ]
+     }
+   }
+   ```
+
+3. Verify it works:
+   ```bash
+   echo '{"tool_input":{"command":"git push --force origin main"}}' | ~/.claude/bin/guard-destructive-git
+   # Expected: JSON with "permissionDecision": "ask"
+   ```
+
+## Full container setup
+
+### Prerequisites
+
+- Podman (required — the wrapper uses `--userns=keep-id` and `--passwd-entry` which are Podman-specific)
+- `claude` CLI installed on the host
+- `gh` CLI (optional, for GitHub integration)
+
+### Steps
+
+1. Copy and customize the files from this directory:
+   ```bash
+   mkdir -p ~/.claude/docker
+   cp Dockerfile              ~/.claude/docker/
+   cp settings.container.json ~/.claude/docker/
+   cp container-rules.md      ~/.claude/docker/
+   cp claude-wrapper.sh       ~/.claude/bin/claude
+   chmod +x ~/.claude/bin/claude
+   ```
+
+2. Add `~/.claude/bin` to the front of your PATH (in `.bashrc`/`.zshrc`):
+   ```bash
+   export PATH="$HOME/.claude/bin:$PATH"
+   ```
+
+3. Set up secrets — the wrapper reads from a file (default: `/tmp/claude-secrets.env`):
+   ```bash
+   cat > /tmp/claude-secrets.env << 'EOF'
+   ANTHROPIC_API_KEY=sk-ant-...
+   GITHUB_TOKEN=ghp_...
+   EOF
+   ```
+   Or set `CLAUDE_SECRETS_FILE` to point elsewhere.
+
+4. Build and run:
+   ```bash
+   CLAUDE_DOCKER_REBUILD=1 claude  # first run builds the image
+   claude                          # subsequent runs reuse it
+   ```
+
+## Security model
+
+The container replaces Claude Code's built-in sandbox. Podman rootless provides the isolation boundary.
+
+### What the container prevents
+
+| Threat | How |
+|--------|-----|
+| **Settings escalation** | `settings.json` overlaid read-only from `settings.container.json`. `settings.local.json` blocked via `/dev/null:ro` — Claude cannot grant itself additional permissions. |
+| **Host binary tampering** | Claude, gh, git config, and SSH keys are mounted read-only. |
+| **Privilege escalation** | `--cap-drop=ALL`, `--security-opt=no-new-privileges`, Podman rootless user namespace. |
+| **Destructive git commands** | Guard hook intercepts force push, hard reset, branch -D, rm -rf, and PR merges — prompts for confirmation. |
+
+### What the container does NOT prevent
+
+| Risk | Mitigation |
+|------|------------|
+| **Network access** | Full outbound (needed for git push, API calls). Restrict with `CLAUDE_DOCKER_EXTRA="--network=none"`. |
+| **SSH agent access** | Socket mounted for git auth. Scoped by your SSH agent's own approval mechanism. |
+| **Repo writes** | Claude can modify files in mounted directories — that's the point. Guard hook catches destructive git ops. |
+| **Secrets in env vars** | API keys are visible inside the container. Use short-lived tokens where possible. |
+
+## FAQ
+
+**Why not just use the built-in sandbox?**
+
+In practice, the sandbox doesn't stay out of the way. Shell expansion, pipes, and compound commands trigger permission prompts even when the underlying operation is safe. You end up approving things constantly, which defeats the purpose of autonomous operation. A container flips the model: Claude runs `--dangerously-skip-permissions` and can do anything *inside* the container, but the container itself limits what reaches the host. No prompts, no flow interruption.
+
+**Why not just configure permissions carefully?**
+
+You can — and the guard hook works without a container for exactly this. But permissions are allow-lists: you're always one missed pattern away from an unexpected prompt. The container is a deny-by-default boundary. Even if Claude finds a creative way to combine allowed tools, it can't escape the container. The two approaches complement each other — the container handles the "unknown unknowns."
+
+**What about outgoing network access?**
+
+The container does NOT restrict outgoing network access. Claude has full outbound connectivity — needed for git push, API calls, package installs, etc. The risk: a compromised model could exfiltrate secrets injected into the container (your Claude API key, GitHub token, SSH agent access). For most users this is an acceptable trade-off — these credentials are already exposed to any process on your host. If you need stricter isolation, add `--network=none` via `CLAUDE_DOCKER_EXTRA`, but expect git and API operations to fail. A middle ground (allowlist proxy or DNS filtering) is possible but not included here.
+
+**Why not Docker?**
+
+The wrapper uses Podman-specific flags (`--userns=keep-id`, `--passwd-entry`) for rootless UID mapping. Docker doesn't support these. You can adapt the setup for Docker (see [Docker notes](#docker-non-podman-notes) below), but Podman's rootless mode is a better security fit — no daemon running as root.
+
+**Does this replace the permission system entirely?**
+
+No. The container settings overlay (`settings.container.json`) still controls what Claude *thinks* it's allowed to do. The guard hook still catches destructive git commands. The container adds a third layer: even if both the permission system and the hook miss something, the container limits blast radius.
+
+## Customization
+
+| Env var | Purpose |
+|---------|---------|
+| `CLAUDE_DOCKER_IMAGE` | Image name (default: `claude-code`) |
+| `CLAUDE_DOCKER_EXTRA` | Extra podman/docker args (e.g. `-v /extra:/extra:ro`) |
+| `CLAUDE_DOCKER_REBUILD` | Set to `1` to force image rebuild |
+| `CLAUDE_SECRETS_FILE` | Path to secrets env file (default: `/tmp/claude-secrets.env`) |
+
+### Tool manager integration
+
+If you use mise, asdf, nix, or another tool manager, you can inject host toolchains into the container instead of installing them in the image. Run your tool manager's env export on the host and pass the results as `-e` flags:
+
+```bash
+# Example for mise — add to the wrapper script before the `exec` line:
+while IFS= read -r line; do
+  line="${line#export }"
+  key="${line%%=*}"; value="${line#*=}"; value="${value#\'}"; value="${value%\'}"
+  EXTRA_ENV+=(-e "$key=$value")
+done < <(mise env 2>/dev/null | grep "^export " || true)
+```
+
+Then mount the toolchain directories read-only (e.g. `~/.local/share/mise/installs`).
+
+### Docker (non-Podman) notes
+
+The wrapper requires Podman. To adapt for Docker manually:
+- Replace `--userns=keep-id` with `--user "$(id -u):$(id -g)"`
+- Remove `--passwd-entry` (Podman-specific) — use a bind-mounted `/etc/passwd` entry instead if home directory resolution is needed
