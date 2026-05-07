@@ -123,6 +123,42 @@ Only use exec() if you absolutely need shell features and the input is guarantee
         "substrings": ["os.system", "from os import system"],
         "reminder": "⚠️ Security Warning: This code appears to use os.system. This should only be used with static arguments and never with arguments that could be user-controlled.",
     },
+    {
+        "ruleName": "hardcoded_github_token",
+        "substrings": ["ghp_", "github_pat_", "gho_"],
+        "reminder": "⚠️ Security Warning: This content appears to contain a GitHub token. Never hardcode tokens in source files. Use environment variables or a secrets manager instead.",
+    },
+    {
+        "ruleName": "hardcoded_aws_key",
+        "substrings": ["AKIA"],
+        "reminder": "⚠️ Security Warning: This content appears to contain an AWS access key ID (starts with AKIA). Never hardcode AWS credentials in source files. Use environment variables, IAM roles, or AWS credentials files instead.",
+    },
+    {
+        "ruleName": "hardcoded_anthropic_key",
+        "substrings": ["sk-ant-"],
+        "reminder": "⚠️ Security Warning: This content appears to contain an Anthropic API key. Never hardcode API keys in source files. Use environment variables or a secrets manager instead.",
+    },
+    {
+        "ruleName": "hardcoded_openai_key",
+        "substrings": ["sk-proj-"],
+        "reminder": "⚠️ Security Warning: This content appears to contain an OpenAI API key. Never hardcode API keys in source files. Use environment variables or a secrets manager instead.",
+    },
+    {
+        "ruleName": "hardcoded_private_key",
+        "substrings": [
+            "-----BEGIN RSA PRIVATE KEY-----",
+            "-----BEGIN OPENSSH PRIVATE KEY-----",
+            "-----BEGIN EC PRIVATE KEY-----",
+            "-----BEGIN DSA PRIVATE KEY-----",
+            "-----BEGIN PRIVATE KEY-----",
+        ],
+        "reminder": "⚠️ Security Warning: This content appears to contain a private key. Never commit private keys to source files. Use a secrets manager or mount them at runtime instead.",
+    },
+    {
+        "ruleName": "hardcoded_generic_secret",
+        "substrings": ["sk-live_", "rk-live_", "whsec_", "pypi-AgEIcHlwaS5vcmc"],
+        "reminder": "⚠️ Security Warning: This content appears to contain a hardcoded secret or API key. Never commit secrets to source files. Use environment variables or a secrets manager instead.",
+    },
 ]
 
 
