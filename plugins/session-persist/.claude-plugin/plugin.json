@@ -1,0 +1,9 @@
+{
+  "name": "session-persist",
+  "version": "1.0.0",
+  "description": "Client-side session state persistence. Tracks a session ID across runs, lets you checkpoint context with /session-save, and restores it in future sessions via /session-resume.",
+  "author": {
+    "name": "Sanskaar Undale",
+    "email": "sanskaarundale@gmail.com"
+  }
+}
