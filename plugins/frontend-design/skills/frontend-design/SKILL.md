@@ -8,6 +8,25 @@ This skill guides creation of distinctive, production-grade frontend interfaces 
 
 The user provides frontend requirements: a component, page, application, or interface to build. They may include context about the purpose, audience, or technical constraints.
 
+## Process Gate
+
+<HARD-GATE>
+Do NOT write any code, scaffold any project, or commit to an aesthetic direction until you have completed every step in this checklist and the user has approved the design. This applies to every request regardless of perceived simplicity.
+</HARD-GATE>
+
+Complete these steps in order before any implementation:
+
+1. **Explore context** — scan existing files, design system, component library, and recent commits before asking anything
+2. **Ask clarifying questions** — one at a time: who is the audience, what is the core purpose, what technical constraints exist, are there existing brand references or style guidelines?
+3. **Propose 2–3 aesthetic directions** — each with a distinct visual identity, concrete trade-offs, and your recommendation; let the user choose before proceeding
+4. **Present design direction** — in short focused sections (component architecture, color/typography, motion, layout), confirm approval after each section before continuing
+5. **Write design doc** — save to `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md`, run a quick self-check (no TODOs, no contradictions, scope is focused), then ask the user to review before proceeding
+6. **Create implementation plan** — break into 2–5 minute tasks, each with exact file paths, the minimal code change required, and a concrete verification step
+7. **Implement with visual TDD** — for each task: write the component test or visual snapshot first, confirm it fails, implement the minimal code to pass it, commit; do not bundle multiple tasks into one commit
+8. **Review before delivering** — verify each task against the plan, open the result in a browser and walk the golden path, confirm no regressions before declaring done
+
+Only after completing all 8 steps should you present the final implementation.
+
 ## Design Thinking
 
 Before coding, understand the context and commit to a BOLD aesthetic direction:
