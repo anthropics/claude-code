@@ -19,9 +19,14 @@ export default function EnquiryForm() {
     setForm({ ...form, [e.target.name]: e.target.value })
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // In production, wire to your preferred form service (e.g. Formspree, Netlify Forms, or backend API)
+    const body = new URLSearchParams({ 'form-name': 'supply-brief', ...form })
+    await fetch('/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body.toString(),
+    })
     setSubmitted(true)
   }
 
@@ -38,7 +43,15 @@ export default function EnquiryForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
+    <form
+      name="supply-brief"
+      data-netlify="true"
+      data-netlify-honeypot="bot-field"
+      onSubmit={handleSubmit}
+      className="space-y-5"
+    >
+      <input type="hidden" name="form-name" value="supply-brief" />
+      <input type="hidden" name="bot-field" />
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
         <div>
           <label className="block text-sm font-semibold text-navy mb-1.5" htmlFor="name">Full Name *</label>
