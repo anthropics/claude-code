@@ -1,7 +1,10 @@
 [build]
   base    = "source-build-australia"
-  command = "npm run build"
+  command = "npm install && npm run build"
   publish = "out"
+
+[build.environment]
+  NODE_VERSION = "20"
 
 [[redirects]]
   from   = "/*"
