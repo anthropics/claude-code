@@ -1,0 +1,15 @@
+{
+  "description": "Injects current local time as context on every user prompt",
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"const d=new Date();const off=-d.getTimezoneOffset();const sign=off>=0?'+':'-';const pad=n=>String(Math.abs(n)).padStart(2,'0');const tz=sign+pad(Math.floor(off/60))+':'+pad(off%60);const iso=d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds())+tz;console.log('The current local time is: '+iso+'. This is the latest source of truth for time; do not attempt to get the time any other way.')\""
+          }
+        ]
+      }
+    ]
+  }
+}
