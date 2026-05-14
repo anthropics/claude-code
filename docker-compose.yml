@@ -1,0 +1,36 @@
+# FNBA overlay compose for the forked anthropics/claude-code devcontainer.
+# Builds .devcontainer/Dockerfile locally; no registry pull.
+# All user-specific values come from .env (populated by scripts/wsl-up.sh).
+
+services:
+  claude:
+    build:
+      # Context is repo root so the Dockerfile can COPY fnba-bootstrap/ in.
+      context: .
+      dockerfile: .devcontainer/Dockerfile
+      args:
+        HOST_UID: ${HOST_UID}
+        HOST_GID: ${HOST_GID}
+        HOST_USER: ${HOST_USER}
+    container_name: claude-${HOST_USER}
+    hostname: claude-${HOST_USER}
+    user: "${HOST_UID}:${HOST_GID}"
+    environment:
+      - HOME=/home/${HOST_USER}
+      - USER=${HOST_USER}
+      - CLAUDE_CONFIG_DIR=/home/${HOST_USER}/.claude
+      - DEVCONTAINER=true
+      # Bypass cert validation for FNBA's TLS-intercepting proxy. Matches the
+      # existing fnba-claude-docker-dist setup. Long-term, swap this for
+      # NODE_EXTRA_CA_CERTS pointing at a baked-in FNBA root CA bundle.
+      - NODE_TLS_REJECT_UNAUTHORIZED=0
+    volumes:
+      # Homebase: WSL home is the single source of persistent state
+      # (.claude config, .gitconfig, .ssh, cloned repos, shell history).
+      - ${HOST_HOME}:/home/${HOST_USER}:cached
+      # Sibling-container access: repo stacks run as their own containers
+      # on the WSL Docker daemon, not inside this one.
+      - /var/run/docker.sock:/var/run/docker.sock
+    working_dir: /home/${HOST_USER}
+    command: sleep infinity
+    init: true
