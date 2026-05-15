@@ -4,7 +4,7 @@
 
 [npm]: https://img.shields.io/npm/v/@anthropic-ai/claude-code.svg?style=flat-square
 
-Claude Code is an agentic coding tool that lives in your terminal, understands your codebase, and helps you code faster by executing routine tasks, explaining complex code, and handling git workflows -- all through natural language commands. Use it in your terminal, IDE, or tag @claude on Github.
+Claude Code is an agentic coding tool that lives in your terminal, understands your codebase, and helps you code faster by executing routine tasks, explaining complex code, and handling git workflows -- all through natural language commands. Use it in your terminal, IDE, or tag @claude on GitHub.
 
 **Learn more in the [official documentation](https://code.claude.com/docs/en/overview)**.
 
@@ -18,12 +18,12 @@ For more installation options, uninstall steps, and troubleshooting, see the [se
 
 1. Install Claude Code:
 
-    **MacOS/Linux (Recommended):**
+    **macOS/Linux (Recommended):**
     ```bash
     curl -fsSL https://claude.ai/install.sh | bash
     ```
 
-    **Homebrew (MacOS/Linux):**
+    **Homebrew (macOS/Linux):**
     ```bash
     brew install --cask claude-code
     ```
