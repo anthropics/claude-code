@@ -7,6 +7,13 @@
     "name": "Anthropic",
     "email": "support@anthropic.com"
   },
+  "marketplaces": [
+    {
+      "name": "ruflo",
+      "source": "ruvnet/ruflo",
+      "url": "https://github.com/ruvnet/ruflo"
+    }
+  ],
   "plugins": [
     {
       "name": "agent-sdk-dev",
@@ -150,6 +157,54 @@
       },
       "source": "./plugins/security-guidance",
       "category": "security"
+    },
+    {
+      "name": "ruflo-core",
+      "description": "Foundation plugin — registers the ruflo MCP server (300+ tools across memory/agentdb/embeddings/hooks/aidefence/neural/autopilot/browser/agent/swarm), provides 3 generalist agents (coder/researcher/reviewer), 3 first-run skills, and a curated plugin-discovery catalog",
+      "version": "0.2.2",
+      "author": {
+        "name": "ruvnet",
+        "url": "https://github.com/ruvnet"
+      },
+      "source": "./plugins/ruflo-core",
+      "category": "development",
+      "marketplace": "ruflo"
+    },
+    {
+      "name": "ruflo-swarm",
+      "description": "Agent teams, swarm coordination, Monitor streams, and worktree isolation — wraps 4 swarm_* + 8 agent_* MCP tools (12 total) plus 6 topologies (hierarchical / mesh / hierarchical-mesh / ring / star / adaptive)",
+      "version": "0.2.0",
+      "author": {
+        "name": "ruvnet",
+        "url": "https://github.com/ruvnet"
+      },
+      "source": "./plugins/ruflo-swarm",
+      "category": "development",
+      "marketplace": "ruflo"
+    },
+    {
+      "name": "ruflo-autopilot",
+      "description": "Autonomous /loop-driven task completion with learning, prediction, and progress tracking — wraps 10 autopilot_* MCP tools (status/enable/disable/config/reset/log/progress/learn/history/predict)",
+      "version": "0.2.0",
+      "author": {
+        "name": "ruvnet",
+        "url": "https://github.com/ruvnet"
+      },
+      "source": "./plugins/ruflo-autopilot",
+      "category": "development",
+      "marketplace": "ruflo"
+    },
+    {
+      "name": "ruflo-federation",
+      "description": "Cross-installation agent federation with zero-trust security, peer discovery, consensus-based task routing, and per-call budget circuit breaker (ADR-097)",
+      "version": "0.2.0",
+      "author": {
+        "name": "ruvnet",
+        "url": "https://github.com/ruvnet"
+      },
+      "source": "./plugins/ruflo-federation",
+      "category": "development",
+      "marketplace": "ruflo"
     }
   ]
 }
