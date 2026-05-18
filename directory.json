@@ -473,6 +473,22 @@
       "homepage": "https://github.com/anthropics/claude-plugins-official/tree/main/plugins/claude-md-management"
     },
     {
+      "name": "claude-flow",
+      "description": "AI agent orchestration for Claude Code using claude-flow (RuFlo). Coordinate swarms of specialized agents, run hive-mind consensus sessions, and automate complex multi-step workflows.",
+      "author": {
+        "name": "ruvnet",
+        "url": "https://github.com/ruvnet"
+      },
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/ruvnet/claude-flow.git",
+        "path": "plugins/claude-flow",
+        "ref": "main"
+      },
+      "category": "productivity",
+      "homepage": "https://github.com/ruvnet/claude-flow"
+    },
+    {
       "name": "clickhouse",
       "description": "Connect Claude Code directly to your ClickHouse Cloud databases for hands-on database work — explore schemas, write optimized SQL, debug queries, and manage distributed database clusters.",
       "author": {
