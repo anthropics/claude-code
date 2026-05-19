@@ -54,8 +54,8 @@ if [[ $MAX_ITERATIONS -gt 0 ]] && [[ $ITERATION -ge $MAX_ITERATIONS ]]; then
   exit 0
 fi
 
-# Get transcript path from hook input
-TRANSCRIPT_PATH=$(echo "$HOOK_INPUT" | jq -r '.transcript_path')
+# Get transcript path from hook input (no jq dependency)
+TRANSCRIPT_PATH=$(python3 -c "import sys,json; print(json.load(sys.stdin).get('transcript_path',''))" <<< "$HOOK_INPUT")
 
 if [[ ! -f "$TRANSCRIPT_PATH" ]]; then
   echo "⚠️  Ralph loop: Transcript file not found" >&2
@@ -86,15 +86,19 @@ if [[ -z "$LAST_LINE" ]]; then
   exit 0
 fi
 
-# Parse JSON with error handling
-LAST_OUTPUT=$(echo "$LAST_LINE" | jq -r '
-  .message.content |
-  map(select(.type == "text")) |
-  map(.text) |
-  join("\n")
-' 2>&1)
+# Parse JSON with error handling (no jq dependency)
+LAST_OUTPUT=$(python3 -c "
+import sys, json
+try:
+    data = json.loads(sys.stdin.read())
+    texts = [b['text'] for b in data.get('message',{}).get('content',[]) if b.get('type')=='text']
+    print('\n'.join(texts))
+except Exception as e:
+    print(str(e), file=sys.stderr)
+    sys.exit(1)
+" <<< "$LAST_LINE" 2>&1)
 
-# Check if jq succeeded
+# Check if parsing succeeded
 if [[ $? -ne 0 ]]; then
   echo "⚠️  Ralph loop: Failed to parse assistant message JSON" >&2
   echo "   Error: $LAST_OUTPUT" >&2
@@ -164,14 +168,14 @@ fi
 
 # Output JSON to block the stop and feed prompt back
 # The "reason" field contains the prompt that will be sent back to Claude
-jq -n \
-  --arg prompt "$PROMPT_TEXT" \
-  --arg msg "$SYSTEM_MSG" \
-  '{
-    "decision": "block",
-    "reason": $prompt,
-    "systemMessage": $msg
-  }'
+python3 -c "
+import json, sys
+print(json.dumps({
+    'decision': 'block',
+    'reason': sys.argv[1],
+    'systemMessage': sys.argv[2]
+}))
+" "$PROMPT_TEXT" "$SYSTEM_MSG"
 
 # Exit 0 for successful hook execution
 exit 0
