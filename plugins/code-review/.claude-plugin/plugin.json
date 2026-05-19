@@ -5,6 +5,15 @@
   "author": {
     "name": "Boris Cherny",
     "email": "boris@anthropic.com"
+  },
+  "components": {
+    "agents": [],
+    "commands": ["code-review"],
+    "skills": [],
+    "hooks": [],
+    "mcpServers": []
+  },
+  "metadata": {
+    "tags": ["code-review", "pull-request", "quality"]
   }
 }
-

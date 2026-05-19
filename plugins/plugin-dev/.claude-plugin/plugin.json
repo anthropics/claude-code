@@ -1,0 +1,19 @@
+{
+  "name": "plugin-dev",
+  "version": "1.0.0",
+  "description": "Comprehensive toolkit for developing Claude Code plugins with expert skills and AI-assisted creation",
+  "author": {
+    "name": "Anthropic",
+    "email": "support@anthropic.com"
+  },
+  "components": {
+    "agents": ["agent-creator", "plugin-validator", "skill-reviewer"],
+    "commands": ["create-plugin"],
+    "skills": ["agent-development", "command-development", "hook-development", "mcp-integration", "plugin-settings", "plugin-structure", "skill-development"],
+    "hooks": [],
+    "mcpServers": []
+  },
+  "metadata": {
+    "tags": ["plugin", "development", "tooling", "sdk"]
+  }
+}

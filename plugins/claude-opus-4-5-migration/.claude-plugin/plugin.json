@@ -5,5 +5,15 @@
   "author": {
     "name": "William Hu",
     "email": "whu@anthropic.com"
+  },
+  "components": {
+    "agents": [],
+    "commands": [],
+    "skills": ["claude-opus-4-5-migration"],
+    "hooks": [],
+    "mcpServers": []
+  },
+  "metadata": {
+    "tags": ["migration", "opus", "upgrade"]
   }
 }
