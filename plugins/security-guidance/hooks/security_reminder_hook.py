@@ -239,6 +239,7 @@ def main():
     session_id = input_data.get("session_id", "default")
     tool_name = input_data.get("tool_name", "")
     tool_input = input_data.get("tool_input", {})
+    hook_event_name = input_data.get("hook_event_name", "PreToolUse")
 
     # Check if this is a relevant tool
     if tool_name not in ["Edit", "Write", "MultiEdit"]:
@@ -268,9 +269,16 @@ def main():
             shown_warnings.add(warning_key)
             save_state(session_id, shown_warnings)
 
-            # Output the warning to stderr and block execution
-            print(reminder, file=sys.stderr)
-            sys.exit(2)  # Block tool execution (exit code 2 for PreToolUse hooks)
+            # Return explicit deny decision for PreToolUse
+            output = {
+                "hookSpecificOutput": {
+                    "hookEventName": hook_event_name,
+                    "permissionDecision": "deny",
+                },
+                "systemMessage": reminder,
+            }
+            print(json.dumps(output))
+            sys.exit(0)
 
     # Allow tool to proceed
     sys.exit(0)
