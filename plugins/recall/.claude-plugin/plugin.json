@@ -1,0 +1,8 @@
+{
+  "name": "recall",
+  "version": "1.0.0",
+  "description": "Recover conversation context when Claude loses track, with interactive browsing and observability logging",
+  "author": {
+    "name": "bledden"
+  }
+}

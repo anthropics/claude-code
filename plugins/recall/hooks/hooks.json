@@ -1,0 +1,17 @@
+{
+  "description": "Context recall hooks - saves context snapshots and logs recall events",
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/save_context_snapshot.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
