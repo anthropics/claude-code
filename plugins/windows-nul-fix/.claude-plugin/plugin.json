@@ -1,0 +1,9 @@
+{
+  "name": "windows-nul-fix",
+  "version": "1.0.0",
+  "description": "Automatically removes 'nul' files created by Claude Code on Windows when using Git Bash or other Unix-like shells",
+  "author": "Anthropic Community",
+  "homepage": "https://github.com/anthropics/claude-code/issues/4928",
+  "keywords": ["windows", "nul", "fix", "bash", "git-bash"],
+  "platforms": ["windows"]
+}
