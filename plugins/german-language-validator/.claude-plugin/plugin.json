@@ -1,0 +1,10 @@
+{
+  "name": "german-language-validator",
+  "version": "1.0.0",
+  "description": "Validates German text for correct umlaut usage (ä, ö, ü, ß) in Write/Edit operations",
+  "author": "Community",
+  "license": "MIT",
+  "keywords": ["german", "umlaut", "validation", "i18n", "localization"],
+  "repository": "https://github.com/anthropics/claude-code",
+  "hooks": "hooks/hooks.json"
+}
