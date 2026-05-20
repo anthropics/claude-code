@@ -1,0 +1,5 @@
+{
+  "name": "update-checker",
+  "version": "1.0.0",
+  "description": "Installation-method-aware update checker that detects false-positive update banners for Homebrew and WinGet installations"
+}
