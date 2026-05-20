@@ -1,5 +1,81 @@
 # Changelog
 
+## 2.1.145
+
+- Added `claude agents --json` to list live Claude sessions as JSON for scripting (tmux-resurrect, status bars, session pickers)
+- Added `agent_id` and `parent_agent_id` attributes to `claude_code.tool` OTEL spans, and fixed trace parenting so background subagent spans nest under the dispatching Agent tool span
+- Status line JSON input now includes GitHub repo and PR information when detected
+- `/plugin` Discover and Browse screens now show a plugin's commands, agents, skills, hooks, and MCP/LSP servers before installation
+- `claude agents` terminal tab title now shows the awaiting-input count so an alt-tabbed window tells you when an agent needs attention
+- Slash command and @-mention suggestion list now supports mouse hover and click in fullscreen mode
+- Stop and SubagentStop hook input now includes `background_tasks` and `session_crons` fields
+- Fixed a permission-prompt bypass where bare variable assignments to non-allowlisted environment variables in Bash commands were auto-approved
+- Fixed MCP prompt slash commands showing raw server validation errors when a required argument is omitted — the error now names the missing argument and shows expected usage
+- Fixed the spinner and elapsed-time display freezing until a keypress after the terminal was resized or refocused
+- Fixed the cross-project resume hint failing in default Windows PowerShell 5.1 — Windows now uses `;` as the command separator
+- Fixed voice push-to-talk not working in the agent view's reply pane
+- Fixed task lists rendering in random order when several tasks are created at once
+- Fixed stale "Failed to install Anthropic marketplace" banner showing when the marketplace is already installed
+- Fixed the PR badge in the footer not updating immediately after `gh pr create` and other PR-state-changing commands run in-session
+- Fixed Agent Teams teammates with non-ASCII names failing every API call due to invalid header encoding
+- Fixed `/review` using a deprecated `projectCards` GraphQL query that errored on repos with Classic Projects
+- Fixed `claude plugin validate` not flagging `skills:` entries that point at a file instead of a directory — the error now suggests the parent directory
+- Fixed an infinite loop where a skill using `context: fork` could repeatedly re-invoke itself instead of running
+- Improved the Read tool to return a truncated first page with a "PARTIAL view" notice instead of a hard error when a whole-file read exceeds the token limit
+
+## 2.1.144
+
+- Added `/resume` support for background sessions — sessions started via `claude --bg` or agent view now appear alongside interactive ones, marked with `bg`
+- Added elapsed duration to background subagent completion notifications (e.g. "Agent completed · 3h 2m 5s")
+- The `/plugin` browse and discover panes now show when a plugin was last updated
+- `/model` now changes the model for the current session only; press `d` in the model picker to set a default for new sessions
+- Renamed "extra usage" to "usage credits" across CLI copy; `/extra-usage` is now `/usage-credits` (old name still works)
+- Fixed startup hanging up to 75s when `api.anthropic.com` is unreachable (captive portal, firewall, VPN issues) — side-channel API calls now time out after 15s
+- Fixed garbled terminal output after a missed window-resize event (e.g. dragging a VS Code split-pane divider) — now self-heals on the next frame instead of requiring Ctrl+L
+- Fixed progressive terminal display corruption (stale/garbled glyphs) that could appear in very long sessions and only cleared on terminal resize or restart
+- Reduced terminal rendering glitches in VS Code by reducing spinner animation color count
+- Fixed macOS background sessions crashing with "exit 1 before init" when the project lives under a Full Disk Access-protected folder (regression in 2.1.143)
+- Fixed an unrecoverable conversation when reading a file whose image extension doesn't match its contents (e.g. HTML saved as .png) — now falls back to text
+- Fewer spurious tool errors during search: `head`/`tail` file views now satisfy the read-before-edit check, and a "no matches" result (exit code 1) from `egrep`, `fgrep`, `git grep`, or `git diff` is no longer reported as a command failure
+- Fixed `/branch` failing with "No conversation to branch" after entering a worktree or in some background sessions
+- Fixed pressing Escape in the AskUserQuestion notes field aborting the turn instead of returning to answer selection
+- Fixed model selection not applying when changed via the IDE model picker or `applyFlagSettings` after startup
+- Resumed sessions now keep the model they were using instead of picking up another session's `/model` choice
+- Fixed Bedrock and Vertex users unable to select "Opus (1M context)" from the `/model` picker (regression in v2.1.129)
+- Fixed remote-session login failing with "Can't access this organization" for users with `forceLoginMethod` and `forceLoginOrgUUID` set
+- Fixed MCP servers with paginated `tools/list` responses only returning the first page, silently dropping tools
+- Fixed MCP images with unsupported MIME types (e.g. SVG) breaking the conversation — now saved to disk and referenced in the tool result
+- Fixed file descriptor exhaustion when a build runs inside a skill directory — non-`.md` files no longer trigger skill reloads
+- Fixed session title being generated from plugin monitor output instead of the user's first prompt
+- Fixed Skill tool failing with permission error in headless mode (regression in v2.1.141)
+- Fixed plugins enabled in your own settings showing "not cached" errors after first load on a fresh machine; plugins enabled only by a project's `.claude/settings.json` now show an actionable `claude plugin install` hint
+- Fixed `claude mcp list` silently reporting no servers when `.mcp.json` can't be parsed (e.g. using VS Code's `"servers"` key instead of `"mcpServers"`) — now shows configuration errors
+- Fixed background side-queries on custom `ANTHROPIC_BASE_URL` setups and Bedrock Mantle not using Haiku — now falls back correctly when a first-party API key is configured or no Haiku model is set
+- Fixed scrolling in attached background sessions on Windows — PgUp/PgDn, mouse wheel, and Ctrl+O transcript navigation now work
+- Fixed a crash when closing the terminal while attached to a background session
+- Fixed on Windows, pressing ← in `claude agents` leaving the list unresponsive to keyboard input
+- Fixed ghost characters at the left edge when switching panes in Agent View on Windows Terminal with CJK content
+- `/bg` and `←`-detach now preserve directories added via `/add-dir`
+- Fixed Edit/Write refusing with "background session hasn't isolated its changes yet" right after detaching a session that was already editing in place
+- Fixed `claude respawn <id>` on a stopped background session showing "stopped" instead of running
+- Fixed `/resume` picker not showing sessions forked from a background session
+- Fixed opening a session from `claude agents` or running `claude logs <id>` hanging when the background service is unresponsive — now times out after 10s with a recovery hint
+- Fixed background Bash tasks spawned by subagents staying "Running" in SDK task panels after the process exits
+- Fixed completed or stopped background sessions briefly failing to wake being permanently marked as a startup crash
+- Fixed markdown links in `claude agents` attached sessions rendering as plain text instead of clickable hyperlinks
+- Fixed custom `spinnerVerbs` applying to the post-turn duration message — past-tense built-ins like "Worked for 5s" are restored there
+- `claude agents` / `--bg` rejection messages now name the specific gate (non-TTY, env var, or setting) instead of a generic message
+- `claude --bg --name <label>` now echoes the name in the post-spawn confirmation
+- `claude agents`: renaming a background session with Ctrl+R now updates the attached session's banner immediately
+- Background session worktree isolation guard now applies for non-git VCS users with `WorktreeCreate` hooks configured
+- Plugin marketplace add/update now respects `CLAUDE_CODE_PLUGIN_PREFER_HTTPS`
+- `/plugin` now returns to the Installed list after enabling, disabling, or uninstalling a plugin
+- `/doctor` now shows an exec-form example when a command hook is missing the `command` field
+- Skill-listing truncation is no longer shown as a startup notification — run `/doctor` for the full breakdown
+- Improved recovery from rare pre-response stream stalls — now retries streaming once instead of falling back to a slower non-streaming request
+- Improved SDK/headless MCP startup: pre-wait now overlaps startup instead of blocking before the first turn (up to 2s faster with slow MCP servers)
+- The post-survey follow-up hint now appears after every non-dismiss survey response with context-aware copy, making it easier to share more detail via /feedback.
+
 ## 2.1.143
 
 - Added plugin dependency enforcement: `claude plugin disable` now refuses when another enabled plugin depends on the target (with a copy-pasteable disable-chain hint), and `claude plugin enable` force-enables transitive dependencies
