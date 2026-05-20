@@ -1,15 +1,13 @@
 {
-  "description": "Learning mode hook that adds interactive learning instructions",
-  "hooks": {
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks-handlers/session-start.sh"
-          }
-        ]
-      }
-    ]
-  }
+  "SessionStart": [
+    {
+      "matcher": "*",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "${CLAUDE_PLUGIN_ROOT}/hooks-handlers/session-start.sh"
+        }
+      ]
+    }
+  ]
 }
