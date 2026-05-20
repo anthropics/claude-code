@@ -132,28 +132,18 @@ Link to plugin documentation or landing page.
 
 #### repository
 
-**Type**: String (URL) or Object
+**Type**: String (URL)
 **Example**: `"https://github.com/user/plugin-name"`
 
 Source code repository location.
 
-**String format**:
 ```json
 {
   "repository": "https://github.com/user/plugin-name"
 }
 ```
 
-**Object format** (detailed):
-```json
-{
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/user/plugin-name.git",
-    "directory": "packages/plugin-name"
-  }
-}
-```
+The `repository` field accepts a plain URL string only. The npm-style object form (`{"type": "git", "url": "..."}`) is not supported and fails manifest validation with `repository: Invalid input: expected string, received object`.
 
 **Use cases**:
 - Source code access
@@ -495,10 +485,7 @@ Full configuration with all features:
     "url": "https://company.com/devops"
   },
   "homepage": "https://docs.company.com/plugins/devops",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/company/devops-plugin.git"
-  },
+  "repository": "https://github.com/company/devops-plugin",
   "license": "Apache-2.0",
   "keywords": [
     "devops",
