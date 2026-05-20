@@ -59,8 +59,12 @@ while read -r cidr; do
         echo "ERROR: Invalid CIDR range from GitHub meta: $cidr"
         exit 1
     fi
-    echo "Adding GitHub range $cidr"
-    ipset add allowed-domains "$cidr"
+    if ! ipset test allowed-domains "$cidr" 2>/dev/null; then
+        echo "Adding GitHub range $cidr"
+        ipset add allowed-domains "$cidr"
+    else
+        echo "GitHub range $cidr already exists, skipping"
+    fi
 done < <(echo "$gh_ranges" | jq -r '(.web + .api + .git)[]' | aggregate -q)
 
 # Resolve and add other allowed domains
@@ -85,8 +89,12 @@ for domain in \
             echo "ERROR: Invalid IP from DNS for $domain: $ip"
             exit 1
         fi
-        echo "Adding $ip for $domain"
-        ipset add allowed-domains "$ip"
+        if ! ipset test allowed-domains "$ip" 2>/dev/null; then
+            echo "Adding $ip for $domain"
+            ipset add allowed-domains "$ip"
+        else
+            echo "IP $ip for $domain already exists, skipping"
+        fi
     done < <(echo "$ips")
 done
 
