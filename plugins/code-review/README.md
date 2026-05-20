@@ -26,11 +26,12 @@ Performs automated code review on a pull request using multiple specialized agen
 
 **Usage:**
 ```bash
-/code-review [--comment]
+/code-review [--comment] [--model haiku|sonnet|opus]
 ```
 
 **Options:**
 - `--comment`: Post the review as a comment on the pull request (default: outputs to terminal only)
+- `--model <value>`: Override the model used for all agents. Valid values: `haiku`, `sonnet`, `opus`. Default uses per-step model selection (Haiku for lightweight tasks, Sonnet for compliance, Opus for bug detection).
 
 **Example workflow:**
 ```bash
