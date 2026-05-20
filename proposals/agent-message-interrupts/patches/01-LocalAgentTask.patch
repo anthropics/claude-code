@@ -1,0 +1,19 @@
+--- a/src/tasks/LocalAgentTask/LocalAgentTask.tsx
++++ b/src/tasks/LocalAgentTask/LocalAgentTask.tsx
+@@ -161,6 +161,17 @@ export function queuePendingMessage(taskId: string, msg: string, setAppState: (f
+   }));
+ }
+
++/**
++ * Non-draining peek: returns true if the agent has pending messages waiting.
++ * Used by tool orchestration to check between serial tool calls without
++ * consuming the messages (the normal attachment phase handles that).
++ */
++export function hasPendingMessages(taskId: string, getAppState: () => AppState): boolean {
++  const task = getAppState().tasks[taskId];
++  return isLocalAgentTask(task) && task.pendingMessages.length > 0;
++}
++
+ export function drainPendingMessages(taskId: string, getAppState: () => AppState, setAppState: (f: (prev: AppState) => AppState) => void): string[] {
+   const task = getAppState().tasks[taskId];
+   if (!isLocalAgentTask(task) || task.pendingMessages.length === 0) {
