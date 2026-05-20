@@ -1,0 +1,9 @@
+{
+  "name": "usage-transparency",
+  "version": "0.1.0",
+  "description": "Add slash commands for explaining Claude Code rate limits, quota exhaustion, auth conflicts, organization restrictions, and subscription-related access failures",
+  "author": {
+    "name": "Anthropic",
+    "email": "support@anthropic.com"
+  }
+}
