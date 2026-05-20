@@ -56,9 +56,49 @@ Note: Still review Claude generated PR's.
 
 6. Filter out any issues that were not validated in step 5. This step will give us our list of high signal issues for our review.
 
+   After filtering, update the pattern store:
+
+   a. Read `.claude/review-patterns.json` from the repo root. If it does not exist, initialize it as `{"version": 1, "patterns": []}`.
+
+   b. For each validated issue, search the store for a semantically similar pattern — same category of problem regardless of specific file names, variable names, or line numbers (e.g. "missing error handling in async functions" matches whether it appears in auth.ts or api.ts). If a match exists, append a new occurrence with: PR number, PR title, files affected, full issue description, and current ISO timestamp. If no match exists, create a new pattern entry with a concise one-line summary.
+
+   c. Write the updated store to `.claude/review-patterns.json`, creating the `.claude/` directory if it does not exist. If `.claude/review-patterns.json` is not listed in the repo root `.gitignore`, append it.
+
+   d. Identify patterns where 3 or more of the last 5 distinct PR numbers in the occurrence list had this pattern. For each such pattern, read the CLAUDE.md files from step 2 and determine:
+      - If an existing rule already addresses this pattern: draft a strengthened or clarified replacement for that rule.
+      - If no rule covers it: draft a new rule.
+      Store these as "pattern suggestions" to be shown in step 7.
+
 7. Output a summary of the review findings to the terminal:
    - If issues were found, list each issue with a brief description.
    - If no issues were found, state: "No issues found. Checked for bugs and CLAUDE.md compliance."
+
+   After the main findings, if any pattern suggestions exist from step 6d, show each one sequentially using this format:
+
+   ```
+   Recurring pattern — seen in {n} of last 5 PRs
+
+     Pattern   {one-line summary}
+     Seen in   PR #{n}, PR #{n}, PR #{n}
+
+     [If existing rule covers it:]
+     Existing rule in {CLAUDE.md path}:
+       "{current rule text}"
+     This rule keeps being violated — suggested update:
+       "{strengthened rule text}"
+
+     Update this rule? [y/n]
+
+     [If no existing rule:]
+     No existing CLAUDE.md rule covers this.
+     Suggested rule: "{drafted rule text}"
+
+     Add to {CLAUDE.md path}? [y/n]
+   ```
+
+   If y: read the target CLAUDE.md file, add the new rule or replace the existing rule at the appropriate location, write the file back, and print:
+     `✓ rule added    {CLAUDE.md path}` or `✓ rule updated  {CLAUDE.md path}`
+   If n: skip and move to the next pattern suggestion.
 
    If `--comment` argument was NOT provided, stop here. Do not post any GitHub comments.
 
