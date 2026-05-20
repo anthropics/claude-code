@@ -1,7 +1,7 @@
 {
   "name": "security-guidance",
-  "version": "1.0.0",
-  "description": "Security reminder hook that warns about potential security issues when editing files, including command injection, XSS, and unsafe code patterns",
+  "version": "1.1.0",
+  "description": "Security reminder hook that detects 14 vulnerability patterns (OWASP Top 10 coverage) with severity-based responses: block (prevents execution) and warn (provides guidance while allowing execution)",
   "author": {
     "name": "David Dworken",
     "email": "dworken@anthropic.com"

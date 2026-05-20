@@ -28,9 +28,13 @@ def debug_log(message):
 # State file to track warnings shown (session-scoped using session ID)
 
 # Security patterns configuration
+# Each pattern has a "severity" field:
+#   "block" - blocks tool execution (exit code 2), outputs reminder to stderr
+#   "warn"  - allows tool execution (exit code 0), sends reminder as systemMessage via JSON stdout
 SECURITY_PATTERNS = [
     {
         "ruleName": "github_actions_workflow",
+        "severity": "block",
         "path_check": lambda path: ".github/workflows/" in path
         and (path.endswith(".yml") or path.endswith(".yaml")),
         "reminder": """You are editing a GitHub Actions workflow file. Be aware of these security risks:
@@ -68,6 +72,7 @@ Other risky inputs to be careful with:
     },
     {
         "ruleName": "child_process_exec",
+        "severity": "warn",
         "substrings": ["child_process.exec", "exec(", "execSync("],
         "reminder": """⚠️ Security Warning: Using child_process.exec() can lead to command injection vulnerabilities.
 
@@ -90,38 +95,112 @@ Only use exec() if you absolutely need shell features and the input is guarantee
     },
     {
         "ruleName": "new_function_injection",
+        "severity": "warn",
         "substrings": ["new Function"],
         "reminder": "⚠️ Security Warning: Using new Function() with dynamic strings can lead to code injection vulnerabilities. Consider alternative approaches that don't evaluate arbitrary code. Only use new Function() if you truly need to evaluate arbitrary dynamic code.",
     },
     {
         "ruleName": "eval_injection",
+        "severity": "block",
         "substrings": ["eval("],
         "reminder": "⚠️ Security Warning: eval() executes arbitrary code and is a major security risk. Consider using JSON.parse() for data parsing or alternative design patterns that don't require code evaluation. Only use eval() if you truly need to evaluate arbitrary code.",
     },
     {
         "ruleName": "react_dangerously_set_html",
+        "severity": "warn",
         "substrings": ["dangerouslySetInnerHTML"],
         "reminder": "⚠️ Security Warning: dangerouslySetInnerHTML can lead to XSS vulnerabilities if used with untrusted content. Ensure all content is properly sanitized using an HTML sanitizer library like DOMPurify, or use safe alternatives.",
     },
     {
         "ruleName": "document_write_xss",
+        "severity": "warn",
         "substrings": ["document.write"],
         "reminder": "⚠️ Security Warning: document.write() can be exploited for XSS attacks and has performance issues. Use DOM manipulation methods like createElement() and appendChild() instead.",
     },
     {
         "ruleName": "innerHTML_xss",
+        "severity": "warn",
         "substrings": [".innerHTML =", ".innerHTML="],
         "reminder": "⚠️ Security Warning: Setting innerHTML with untrusted content can lead to XSS vulnerabilities. Use textContent for plain text or safe DOM methods for HTML content. If you need HTML support, consider using an HTML sanitizer library such as DOMPurify.",
     },
     {
         "ruleName": "pickle_deserialization",
+        "severity": "warn",
         "substrings": ["pickle"],
         "reminder": "⚠️ Security Warning: Using pickle with untrusted content can lead to arbitrary code execution. Consider using JSON or other safe serialization formats instead. Only use pickle if it is explicitly needed or requested by the user.",
     },
     {
         "ruleName": "os_system_injection",
+        "severity": "warn",
         "substrings": ["os.system", "from os import system"],
         "reminder": "⚠️ Security Warning: This code appears to use os.system. This should only be used with static arguments and never with arguments that could be user-controlled.",
+    },
+    {
+        "ruleName": "sql_injection",
+        "severity": "block",
+        "substrings": [
+            '"SELECT " +', '"INSERT " +', '"UPDATE " +', '"DELETE " +',
+            "'SELECT ' +", "'INSERT ' +", "'UPDATE ' +", "'DELETE ' +",
+            'f"SELECT ', 'f"INSERT ', 'f"UPDATE ', 'f"DELETE ',
+            "f'SELECT ", "f'INSERT ", "f'UPDATE ", "f'DELETE ",
+        ],
+        "reminder": "⚠️ Security Warning: Building SQL queries with string concatenation or f-strings can lead to SQL injection vulnerabilities. Use parameterized queries (prepared statements) instead. For example, use `cursor.execute('SELECT * FROM users WHERE id = ?', (user_id,))` instead of string formatting.",
+    },
+    {
+        "ruleName": "hardcoded_secrets",
+        "severity": "block",
+        "substrings": [
+            'AWS_SECRET_ACCESS_KEY = "', "AWS_SECRET_ACCESS_KEY = '",
+            'AWS_ACCESS_KEY_ID = "', "AWS_ACCESS_KEY_ID = '",
+            'PRIVATE_KEY = "', "PRIVATE_KEY = '",
+            'api_key = "', "api_key = '", 'apiKey = "', "apiKey = '",
+            'api_secret = "', "api_secret = '", 'apiSecret = "', "apiSecret = '",
+            'secret_key = "', "secret_key = '", 'secretKey = "', "secretKey = '",
+            'password = "', "password = '",
+            'GITHUB_TOKEN = "', "GITHUB_TOKEN = '",
+            'OPENAI_API_KEY = "', "OPENAI_API_KEY = '",
+            'ANTHROPIC_API_KEY = "', "ANTHROPIC_API_KEY = '",
+            '-----BEGIN RSA PRIVATE KEY-----',
+            '-----BEGIN PRIVATE KEY-----',
+            '-----BEGIN EC PRIVATE KEY-----',
+        ],
+        "reminder": "⚠️ Security Warning: Hardcoded secrets (API keys, passwords, private keys) detected. Never commit secrets to source code. Use environment variables or a secrets manager instead. For example, use `os.environ['API_KEY']` or `process.env.API_KEY`.",
+    },
+    {
+        "ruleName": "path_traversal",
+        "severity": "warn",
+        "substrings": [
+            "path.join(req.", "path.join(request.",
+            "path.resolve(req.", "path.resolve(request.",
+            "readFile(req.", "readFile(request.",
+            "readFileSync(req.", "readFileSync(request.",
+            "createReadStream(req.", "createReadStream(request.",
+            "open(request.",
+        ],
+        "reminder": "⚠️ Security Warning: Constructing file paths from user input can lead to path traversal attacks. Always validate and sanitize file paths. Use `path.basename()` to strip directory components and verify the resolved path stays within the intended directory.",
+    },
+    {
+        "ruleName": "insecure_deserialization",
+        "severity": "warn",
+        "substrings": [
+            "node-serialize",
+            "serialize.unserialize(",
+            "ObjectInputStream(",
+            ".readObject(",
+            "yaml.load(",
+            "yaml.unsafe_load(",
+        ],
+        "reminder": "⚠️ Security Warning: Unsafe deserialization can lead to remote code execution. Use safe alternatives: `yaml.safe_load()` instead of `yaml.load()`, avoid `node-serialize`, and validate serialized data before deserializing.",
+    },
+    {
+        "ruleName": "unsafe_deprecated_apis",
+        "severity": "warn",
+        "substrings": [
+            "createHash('md5')", 'createHash("md5")',
+            "createHash('sha1')", 'createHash("sha1")',
+            "new Buffer(",
+        ],
+        "reminder": "⚠️ Security Warning: Using deprecated or cryptographically weak APIs. MD5 and SHA1 are vulnerable to collision attacks — use SHA-256 or stronger. `new Buffer()` is deprecated due to security issues — use `Buffer.from()` or `Buffer.alloc()` instead.",
     },
 ]
 
@@ -181,22 +260,27 @@ def save_state(session_id, shown_warnings):
 
 
 def check_patterns(file_path, content):
-    """Check if file path or content matches any security patterns."""
+    """Check if file path or content matches any security patterns.
+
+    Returns:
+        Tuple of (rule_name, reminder, severity) if a pattern matches,
+        or (None, None, None) if no match.
+    """
     # Normalize path by removing leading slashes
     normalized_path = file_path.lstrip("/")
 
     for pattern in SECURITY_PATTERNS:
         # Check path-based patterns
         if "path_check" in pattern and pattern["path_check"](normalized_path):
-            return pattern["ruleName"], pattern["reminder"]
+            return pattern["ruleName"], pattern["reminder"], pattern["severity"]
 
         # Check content-based patterns
         if "substrings" in pattern and content:
             for substring in pattern["substrings"]:
                 if substring in content:
-                    return pattern["ruleName"], pattern["reminder"]
+                    return pattern["ruleName"], pattern["reminder"], pattern["severity"]
 
-    return None, None
+    return None, None, None
 
 
 def extract_content_from_input(tool_name, tool_input):
@@ -253,7 +337,7 @@ def main():
     content = extract_content_from_input(tool_name, tool_input)
 
     # Check for security patterns
-    rule_name, reminder = check_patterns(file_path, content)
+    rule_name, reminder, severity = check_patterns(file_path, content)
 
     if rule_name and reminder:
         # Create unique warning key
@@ -268,9 +352,15 @@ def main():
             shown_warnings.add(warning_key)
             save_state(session_id, shown_warnings)
 
-            # Output the warning to stderr and block execution
-            print(reminder, file=sys.stderr)
-            sys.exit(2)  # Block tool execution (exit code 2 for PreToolUse hooks)
+            if severity == "block":
+                # Block: output to stderr and block tool execution
+                print(reminder, file=sys.stderr)
+                sys.exit(2)
+            else:
+                # Warn: send reminder as systemMessage via JSON stdout, allow tool execution
+                result = json.dumps({"systemMessage": reminder, "suppressOutput": True})
+                print(result)
+                sys.exit(0)
 
     # Allow tool to proceed
     sys.exit(0)
