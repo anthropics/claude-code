@@ -1,0 +1,8 @@
+{
+  "name": "usage-monitor",
+  "version": "1.0.0",
+  "description": "SwiftBar-backed Claude Code usage monitor for macOS with an installer command and cached usage fetcher",
+  "author": {
+    "name": "Codex"
+  }
+}
