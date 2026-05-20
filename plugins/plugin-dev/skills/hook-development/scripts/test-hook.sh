@@ -92,8 +92,8 @@ EOF
 EOF
       ;;
     *)
-      echo "Unknown event type: $event_type"
-      echo "Valid types: PreToolUse, PostToolUse, Stop, SubagentStop, UserPromptSubmit, SessionStart, SessionEnd"
+      echo "Unknown event type: $event_type" >&2
+      echo "Valid types: PreToolUse, PostToolUse, Stop, SubagentStop, UserPromptSubmit, SessionStart, SessionEnd" >&2
       exit 1
       ;;
   esac
@@ -127,8 +127,8 @@ while [ $# -gt 0 ]; do
 done
 
 if [ $# -ne 2 ]; then
-  echo "Error: Missing required arguments"
-  echo ""
+  echo "Error: Missing required arguments" >&2
+  echo "" >&2
   show_usage
 fi
 
@@ -137,27 +137,29 @@ TEST_INPUT="$2"
 
 # Validate inputs
 if [ ! -f "$HOOK_SCRIPT" ]; then
-  echo "❌ Error: Hook script not found: $HOOK_SCRIPT"
+  echo "❌ Error: Hook script not found: $HOOK_SCRIPT" >&2
   exit 1
 fi
 
 if [ ! -x "$HOOK_SCRIPT" ]; then
   echo "⚠️  Warning: Hook script is not executable. Attempting to run with bash..."
-  HOOK_SCRIPT="bash $HOOK_SCRIPT"
+  HOOK_CMD=(bash "$HOOK_SCRIPT")
+else
+  HOOK_CMD=("$HOOK_SCRIPT")
 fi
 
 if [ ! -f "$TEST_INPUT" ]; then
-  echo "❌ Error: Test input not found: $TEST_INPUT"
+  echo "❌ Error: Test input not found: $TEST_INPUT" >&2
   exit 1
 fi
 
 # Validate test input JSON
 if ! jq empty "$TEST_INPUT" 2>/dev/null; then
-  echo "❌ Error: Test input is not valid JSON"
+  echo "❌ Error: Test input is not valid JSON" >&2
   exit 1
 fi
 
-echo "🧪 Testing hook: $HOOK_SCRIPT"
+echo "🧪 Testing hook: ${HOOK_CMD[*]}"
 echo "📥 Input: $TEST_INPUT"
 echo ""
 
@@ -187,7 +189,7 @@ echo ""
 start_time=$(date +%s)
 
 set +e
-output=$(timeout "$TIMEOUT" bash -c "cat '$TEST_INPUT' | $HOOK_SCRIPT" 2>&1)
+output=$(timeout "$TIMEOUT" "${HOOK_CMD[@]}" < "$TEST_INPUT" 2>&1)
 exit_code=$?
 set -e
 
@@ -202,7 +204,7 @@ echo "Exit Code: $exit_code"
 echo "Duration: ${duration}s"
 echo ""
 
-case $exit_code in
+case "$exit_code" in
   0)
     echo "✅ Hook approved/succeeded"
     ;;
@@ -243,10 +245,10 @@ fi
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-if [ $exit_code -eq 0 ] || [ $exit_code -eq 2 ]; then
+if [ "$exit_code" -eq 0 ] || [ "$exit_code" -eq 2 ]; then
   echo "✅ Test completed successfully"
   exit 0
 else
-  echo "❌ Test failed"
+  echo "❌ Test failed" >&2
   exit 1
 fi
