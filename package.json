@@ -1,0 +1,18 @@
+{
+  "name": "@anthropic-ai/claude-code",
+  "version": "0.0.0",
+  "description": "Claude Code CLI build configuration",
+  "type": "module",
+  "scripts": {
+    "build": "bun scripts/build-bundle.ts",
+    "build:watch": "bun scripts/build-bundle.ts --watch",
+    "build:prod": "bun scripts/build-bundle.ts --minify"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "typescript": "^5.7.0"
+  },
+  "engines": {
+    "bun": ">=1.1.0"
+  }
+}
