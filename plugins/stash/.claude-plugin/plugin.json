@@ -1,0 +1,9 @@
+{
+  "name": "stash",
+  "description": "Git-stash-like message storage with push, pop, apply, and list operations. Persists messages to disk in a JSONL stack so they survive crashes and session changes.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Leonardo Cardoso",
+    "url": "https://github.com/LeonardoCardoso"
+  }
+}
