@@ -14,7 +14,7 @@ Combine command and prompt hooks for layered validation:
       "hooks": [
         {
           "type": "command",
-          "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/quick-check.sh",
+          "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/quick-check.sh\"",
           "timeout": 5
         },
         {
