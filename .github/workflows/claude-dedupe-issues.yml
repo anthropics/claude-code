@@ -47,7 +47,7 @@ jobs:
             echo "STATSIG_API_KEY not found, skipping Statsig logging"
             exit 0
           fi
-          
+
           # Prepare the event payload
           EVENT_PAYLOAD=$(jq -n \
             --arg issue_number "$ISSUE_NUMBER" \
