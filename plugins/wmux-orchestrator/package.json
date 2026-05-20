@@ -1,0 +1,7 @@
+{
+  "name": "wmux-orchestrator",
+  "version": "0.1.0",
+  "description": "Multi-agent task orchestration for Claude Code with wmux visual panes",
+  "author": "amirlehmam",
+  "license": "MIT"
+}
