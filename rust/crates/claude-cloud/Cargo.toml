@@ -1,0 +1,36 @@
+[package]
+name = "claude-cloud"
+version = "0.1.0"
+edition = "2021"
+authors = ["Claude Code Contributors"]
+description = "Cloud sync, OAuth, and team collaboration"
+
+[dependencies]
+# Core
+claude-core = { path = "../claude-core" }
+
+# Async
+tokio = { workspace = true }
+
+# HTTP client
+reqwest = { version = "0.12", features = ["json"] }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# UUID generation
+uuid = { version = "1.10", features = ["v4", "serde"] }
+
+# URL encoding
+urlencoding = "2.1"
+
+# Random state generation
+rand = "0.8"
+
+# Error handling
+thiserror = { workspace = true }
+
+# Tracing
+tracing = { workspace = true }
+
