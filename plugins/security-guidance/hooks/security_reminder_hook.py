@@ -12,6 +12,15 @@ from datetime import datetime
 
 # Debug log file
 DEBUG_LOG_FILE = "/tmp/security-warnings-log.txt"
+DOC_LIKE_EXTENSIONS = {
+    ".adoc",
+    ".asciidoc",
+    ".markdown",
+    ".md",
+    ".mdx",
+    ".rst",
+    ".txt",
+}
 
 
 def debug_log(message):
@@ -180,10 +189,17 @@ def save_state(session_id, shown_warnings):
         pass  # Fail silently if we can't save state
 
 
+def is_doc_like_path(file_path):
+    """Return True for documentation/plaintext files that should skip code heuristics."""
+    _, extension = os.path.splitext(file_path)
+    return extension.lower() in DOC_LIKE_EXTENSIONS
+
+
 def check_patterns(file_path, content):
     """Check if file path or content matches any security patterns."""
     # Normalize path by removing leading slashes
     normalized_path = file_path.lstrip("/")
+    skip_content_rules = is_doc_like_path(normalized_path)
 
     for pattern in SECURITY_PATTERNS:
         # Check path-based patterns
@@ -191,7 +207,7 @@ def check_patterns(file_path, content):
             return pattern["ruleName"], pattern["reminder"]
 
         # Check content-based patterns
-        if "substrings" in pattern and content:
+        if "substrings" in pattern and content and not skip_content_rules:
             for substring in pattern["substrings"]:
                 if substring in content:
                     return pattern["ruleName"], pattern["reminder"]
