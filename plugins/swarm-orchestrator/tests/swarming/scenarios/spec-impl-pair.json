@@ -1,0 +1,28 @@
+{
+  "name": "spec-impl-pair",
+  "description": "One teammate writes pytest, another implements; tests DAG dependency (impl blocked-by spec).",
+  "primitives_tested": ["dag-dependency"],
+  "max_duration_minutes": 1,
+  "deterministic": true,
+  "setup": {
+    "fixtures": "../fixtures/spec-impl-pair",
+    "seed": 42,
+    "git_init": true
+  },
+  "teammates": [
+    {"name": "spec-writer", "head": "Builder", "task_ids": ["spec"]},
+    {"name": "impl-writer", "head": "Builder", "task_ids": ["impl"]}
+  ],
+  "tasks": [
+    {"id": "spec", "subject": "write pytest for increment()", "head": "Builder"},
+    {"id": "impl", "subject": "implement increment()", "depends_on": ["spec"], "head": "Builder"}
+  ],
+  "expected": {
+    "tasks_completed": 2,
+    "files_present": ["test_increment.py", "increment.py"],
+    "file_contains": [
+      {"path": "test_increment.py", "substring": "test_increment"},
+      {"path": "increment.py", "substring": "def increment"}
+    ]
+  }
+}

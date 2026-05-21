@@ -1,0 +1,24 @@
+{
+  "name": "conflict-resolution-drill",
+  "description": "Deliberate file overlap to verify merge pipeline rebases / rejects.",
+  "primitives_tested": ["merge-rebase", "atomic-merge"],
+  "max_duration_minutes": 1,
+  "deterministic": true,
+  "setup": {
+    "fixtures": "../fixtures/conflict-resolution-drill",
+    "seed": 42,
+    "git_init": true
+  },
+  "teammates": [
+    {"name": "team-a-builder", "head": "Builder", "task_ids": ["a"]},
+    {"name": "team-b-builder", "head": "Builder", "task_ids": ["b"]}
+  ],
+  "expected": {
+    "tasks_completed": 2,
+    "branches_in_master": ["feature/team-a", "feature/team-b"],
+    "file_contains": [
+      {"path": "shared.py", "substring": "team_a_line"},
+      {"path": "shared.py", "substring": "team_b_line"}
+    ]
+  }
+}
