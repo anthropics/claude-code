@@ -69,6 +69,29 @@ Other risky inputs to be careful with:
     {
         "ruleName": "child_process_exec",
         "substrings": ["child_process.exec", "exec(", "execSync("],
+        # Bare "exec(" matches many unrelated APIs (sqlite db.exec, prepared
+        # statements, regex .exec, Python's builtin exec, doc/code-fence
+        # mentions). Exclude common non-shell shapes to cut false positives
+        # without losing coverage of aliased `const { exec } = require('child_process')`.
+        "exclude_substrings": [
+            "db.exec(",
+            "this.db.exec(",
+            ".exec(/",  # regex.exec(/pattern/)
+            "stmt.exec(",
+            "statement.exec(",
+            "cursor.exec(",
+            "session.exec(",
+            "tx.exec(",
+            "trx.exec(",
+            "conn.exec(",
+            "connection.exec(",
+            "`exec(",  # markdown/code-fence: `exec(...)`
+            "'exec('",
+            '"exec("',
+            "# exec(",  # python/shell comment lines
+            "// exec(",  # js/ts comment lines
+            "* exec(",  # jsdoc/block comment lines
+        ],
         "reminder": """⚠️ Security Warning: Using child_process.exec() can lead to command injection vulnerabilities.
 
 This codebase provides a safer alternative: src/utils/execFileNoThrow.ts
@@ -91,11 +114,29 @@ Only use exec() if you absolutely need shell features and the input is guarantee
     {
         "ruleName": "new_function_injection",
         "substrings": ["new Function"],
+        # "new Function" matches identifier prefixes like "new Functionality",
+        # "new FunctionComponent" (React), "new FunctionDeclaration" (AST libs).
+        # The real risk shape is the constructor call: `new Function(`.
+        "exclude_substrings": [
+            "new Functionality",
+            "new FunctionComponent",
+            "new FunctionDeclaration",
+            "new FunctionExpression",
+            "new FunctionType",
+        ],
         "reminder": "⚠️ Security Warning: Using new Function() with dynamic strings can lead to code injection vulnerabilities. Consider alternative approaches that don't evaluate arbitrary code. Only use new Function() if you truly need to evaluate arbitrary dynamic code.",
     },
     {
         "ruleName": "eval_injection",
         "substrings": ["eval("],
+        # ast.literal_eval is the Python stdlib safe alternative to eval and
+        # should not be flagged. Each excluded substring must be the only
+        # match in the content — see _exclude_covers_all_matches below.
+        "exclude_substrings": [
+            "ast.literal_eval(",
+            "literal_eval(",
+            "safe_eval(",
+        ],
         "reminder": "⚠️ Security Warning: eval() executes arbitrary code and is a major security risk. Consider using JSON.parse() for data parsing or alternative design patterns that don't require code evaluation. Only use eval() if you truly need to evaluate arbitrary code.",
     },
     {
@@ -116,6 +157,21 @@ Only use exec() if you absolutely need shell features and the input is guarantee
     {
         "ruleName": "pickle_deserialization",
         "substrings": ["pickle"],
+        # Bare "pickle" matches identifiers like "pickled", "pickle_jar",
+        # variable/file names, and prose. The actual risk is calls to
+        # pickle.load / pickle.loads. Exclude common non-risky shapes that
+        # don't perform deserialization.
+        "exclude_substrings": [
+            "import pickle",
+            "from pickle",
+            "pickled",
+            "pickle_jar",
+            "# pickle",
+            "// pickle",
+            "pickle.dump",  # serialization (write) is not the deserialization risk
+            "pickle.HIGHEST_PROTOCOL",
+            "pickle.DEFAULT_PROTOCOL",
+        ],
         "reminder": "⚠️ Security Warning: Using pickle with untrusted content can lead to arbitrary code execution. Consider using JSON or other safe serialization formats instead. Only use pickle if it is explicitly needed or requested by the user.",
     },
     {
@@ -180,6 +236,35 @@ def save_state(session_id, shown_warnings):
         pass  # Fail silently if we can't save state
 
 
+def _exclude_covers_all_matches(content, substring, exclude_substrings):
+    """Return True if every occurrence of `substring` in `content` is part of
+    some entry in `exclude_substrings`. Used to suppress known false-positive
+    shapes (e.g. `ast.literal_eval(` for the `eval(` trigger) without losing
+    real matches that appear in the same file alongside an excluded one.
+    """
+    if not exclude_substrings:
+        return False
+
+    start = 0
+    while True:
+        idx = content.find(substring, start)
+        if idx == -1:
+            return True
+        covered = False
+        for exclude in exclude_substrings:
+            ex_idx = content.find(exclude)
+            while ex_idx != -1:
+                if ex_idx <= idx and idx + len(substring) <= ex_idx + len(exclude):
+                    covered = True
+                    break
+                ex_idx = content.find(exclude, ex_idx + 1)
+            if covered:
+                break
+        if not covered:
+            return False
+        start = idx + 1
+
+
 def check_patterns(file_path, content):
     """Check if file path or content matches any security patterns."""
     # Normalize path by removing leading slashes
@@ -192,9 +277,13 @@ def check_patterns(file_path, content):
 
         # Check content-based patterns
         if "substrings" in pattern and content:
+            exclude_substrings = pattern.get("exclude_substrings", [])
             for substring in pattern["substrings"]:
-                if substring in content:
-                    return pattern["ruleName"], pattern["reminder"]
+                if substring not in content:
+                    continue
+                if _exclude_covers_all_matches(content, substring, exclude_substrings):
+                    continue
+                return pattern["ruleName"], pattern["reminder"]
 
     return None, None
 
