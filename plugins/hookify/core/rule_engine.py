@@ -69,6 +69,13 @@ class RuleEngine:
                     "reason": combined_message,
                     "systemMessage": combined_message
                 }
+            elif hook_event == 'StopFailure':
+                # The turn already failed; surface the message to the user.
+                # Include reason for consistency with the Stop event format.
+                return {
+                    "reason": combined_message,
+                    "systemMessage": combined_message
+                }
             elif hook_event in ['PreToolUse', 'PostToolUse']:
                 return {
                     "hookSpecificOutput": {
