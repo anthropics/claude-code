@@ -5,25 +5,17 @@ This hook checks for security patterns in file edits and warns about potential v
 """
 
 import json
+import logging
 import os
 import random
+import re
 import sys
+import logging
 from datetime import datetime
 
-# Debug log file
-DEBUG_LOG_FILE = "/tmp/security-warnings-log.txt"
-
-
-def debug_log(message):
-    """Append debug message to log file with timestamp."""
-    try:
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
-        with open(DEBUG_LOG_FILE, "a") as f:
-            f.write(f"[{timestamp}] {message}\n")
-    except Exception as e:
-        # Silently ignore logging errors to avoid disrupting the hook
-        pass
-
+# Setup standard logging
+logger = logging.getLogger(__name__)
+logging.basicConfig(stream=sys.stderr, level=logging.INFO)
 
 # State file to track warnings shown (session-scoped using session ID)
 
@@ -125,10 +117,26 @@ Only use exec() if you absolutely need shell features and the input is guarantee
     },
 ]
 
+# Pre-compile regexes for faster content checking
+for pattern in SECURITY_PATTERNS:
+    if "substrings" in pattern:
+        pattern["_compiled_regex"] = re.compile(
+            "|".join(map(re.escape, pattern["substrings"]))
+        )
+
 
 def get_state_file(session_id):
     """Get session-specific state file path."""
-    return os.path.expanduser(f"~/.claude/security_warnings_state_{session_id}.json")
+    # Sanitize session_id to prevent path traversal
+    safe_session_id = os.path.basename(str(session_id))
+    # Only allow alphanumeric and dashes/underscores
+    safe_session_id = re.sub(r"[^a-zA-Z0-9_-]", "", safe_session_id)
+    if not safe_session_id:
+        safe_session_id = "default"
+
+    return os.path.expanduser(
+        f"~/.claude/security_warnings_state_{safe_session_id}.json"
+    )
 
 
 def cleanup_old_state_files():
@@ -141,17 +149,19 @@ def cleanup_old_state_files():
         current_time = datetime.now().timestamp()
         thirty_days_ago = current_time - (30 * 24 * 60 * 60)
 
-        for filename in os.listdir(state_dir):
-            if filename.startswith("security_warnings_state_") and filename.endswith(
-                ".json"
-            ):
-                file_path = os.path.join(state_dir, filename)
-                try:
-                    file_mtime = os.path.getmtime(file_path)
-                    if file_mtime < thirty_days_ago:
-                        os.remove(file_path)
-                except (OSError, IOError):
-                    pass  # Ignore errors for individual file cleanup
+        with os.scandir(state_dir) as entries:
+            for entry in entries:
+                if (
+                    entry.is_file()
+                    and entry.name.startswith("security_warnings_state_")
+                    and entry.name.endswith(".json")
+                ):
+                    try:
+                        file_mtime = entry.stat().st_mtime
+                        if file_mtime < thirty_days_ago:
+                            os.remove(entry.path)
+                    except (OSError, IOError):
+                        pass  # Ignore errors for individual file cleanup
     except Exception:
         pass  # Silently ignore cleanup errors
 
@@ -176,7 +186,7 @@ def save_state(session_id, shown_warnings):
         with open(state_file, "w") as f:
             json.dump(list(shown_warnings), f)
     except IOError as e:
-        debug_log(f"Failed to save state file: {e}")
+        logger.debug(f"Failed to save state file: {e}")
         pass  # Fail silently if we can't save state
 
 
@@ -190,10 +200,12 @@ def check_patterns(file_path, content):
         if "path_check" in pattern and pattern["path_check"](normalized_path):
             return pattern["ruleName"], pattern["reminder"]
 
-        # Check content-based patterns
-        if "substrings" in pattern and content:
-            for substring in pattern["substrings"]:
-                if substring in content:
+    # Only check content if it exists
+    if content:
+        for pattern in SECURITY_PATTERNS:
+            # Check content-based patterns using compiled regex
+            if "_compiled_regex" in pattern:
+                if pattern["_compiled_regex"].search(content):
                     return pattern["ruleName"], pattern["reminder"]
 
     return None, None
@@ -232,7 +244,7 @@ def main():
         raw_input = sys.stdin.read()
         input_data = json.loads(raw_input)
     except json.JSONDecodeError as e:
-        debug_log(f"JSON decode error: {e}")
+        logger.debug(f"JSON decode error: {e}")
         sys.exit(0)  # Allow tool to proceed if we can't parse input
 
     # Extract session ID and tool information from the hook input
