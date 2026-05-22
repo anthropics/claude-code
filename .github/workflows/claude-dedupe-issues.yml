@@ -17,6 +17,8 @@ jobs:
     permissions:
       contents: read
       issues: write
+      # Required to mint the OIDC token exchanged for a Claude API access token (Workload Identity Federation)
+      id-token: write
 
     steps:
       - name: Checkout repository
@@ -31,7 +33,13 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           allowed_non_write_users: "*"
           prompt: "/dedupe ${{ github.repository }}/issues/${{ github.event.issue.number || inputs.issue_number }}"
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Authenticate to the Claude API via Workload Identity Federation
+          # (the workflow's OIDC token is exchanged for a short-lived access
+          # token) instead of a static API key.
+          anthropic_federation_rule_id: ${{ vars.ANTHROPIC_FEDERATION_RULE_ID }}
+          anthropic_organization_id: ${{ vars.ANTHROPIC_ORGANIZATION_ID }}
+          anthropic_service_account_id: ${{ vars.ANTHROPIC_SERVICE_ACCOUNT_ID }}
+          anthropic_workspace_id: ${{ vars.ANTHROPIC_WORKSPACE_ID }}
           claude_args: "--model claude-sonnet-4-5-20250929"
 
       - name: Log duplicate comment event to Statsig
