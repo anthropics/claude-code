@@ -10,6 +10,15 @@
           }
         ],
         "matcher": "Edit|Write|MultiEdit"
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/pre_commit_credential_scanner.py"
+          }
+        ],
+        "matcher": "Bash"
       }
     ]
   }
