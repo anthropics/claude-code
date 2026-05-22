@@ -1,0 +1,8 @@
+Fix: Multiple server-side flags incorrectly restricting Pro user features: auto mode, skills dashboard, permission friction
+File: cowork-enabled-cli-ops.json
+
+Requirements:
+
+
+Implementation:
+TODO: Implement based on requirements above
