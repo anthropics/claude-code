@@ -6,7 +6,14 @@
   <author><name>Anthropic</name></author>
   <link rel="alternate" type="text/html" href="https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md"/>
   <link rel="self" type="application/atom+xml" href="https://raw.githubusercontent.com/anthropics/claude-code/main/feed.xml"/>
-  <updated>2026-05-22T22:09:22Z</updated>
+  <updated>2026-05-23T04:03:45Z</updated>
+  <entry>
+    <id>https://github.com/anthropics/claude-code/releases/tag/v2.1.150</id>
+    <title>Claude Code v2.1.150</title>
+    <link rel="alternate" type="text/html" href="https://github.com/anthropics/claude-code/releases/tag/v2.1.150"/>
+    <updated>2026-05-23T04:03:45Z</updated>
+    <content type="html">&lt;p&gt;• Internal infrastructure improvements (no user-facing changes)&lt;/p&gt;</content>
+  </entry>
   <entry>
     <id>https://github.com/anthropics/claude-code/releases/tag/v2.1.149</id>
     <title>Claude Code v2.1.149</title>
@@ -628,12 +635,5 @@
 &lt;p&gt;• Windows: clipboard writes no longer expose copied content in process command-line arguments visible to EDR/SIEM telemetry; also fixes &amp;gt;22KB selections not reaching the clipboard&lt;/p&gt;
 &lt;p&gt;• PowerShell tool: bare -- (e.g. git diff -- file) is no longer mis-flagged as the --% stop-parsing token&lt;/p&gt;
 &lt;p&gt;• Fixed Agent SDK hang when the model emits a malformed tool name in a parallel tool call batch&lt;/p&gt;</content>
-  </entry>
-  <entry>
-    <id>https://github.com/anthropics/claude-code/releases/tag/v2.1.123</id>
-    <title>Claude Code v2.1.123</title>
-    <link rel="alternate" type="text/html" href="https://github.com/anthropics/claude-code/releases/tag/v2.1.123"/>
-    <updated>2026-05-18T01:52:01Z</updated>
-    <content type="html">&lt;p&gt;• Fixed OAuth authentication failing with a 401 retry loop when CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS=1 is set&lt;/p&gt;</content>
   </entry>
 </feed>

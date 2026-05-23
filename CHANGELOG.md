@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.1.150
+
+- Internal infrastructure improvements (no user-facing changes)
+
 ## 2.1.149
 
 - `/usage` now shows a per-category breakdown of what's driving your limits usage — skills, subagents, plugins, and per-MCP-server cost
