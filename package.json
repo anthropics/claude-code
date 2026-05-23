@@ -1,0 +1,8 @@
+{
+  "private": true,
+  "scripts": {
+    "build": "npm install --prefix debate-module && npm run build --prefix debate-module",
+    "dev": "npm run dev --prefix debate-module",
+    "start": "npm run start --prefix debate-module"
+  }
+}
