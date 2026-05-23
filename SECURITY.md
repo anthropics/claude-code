@@ -1,5 +1,14 @@
 # Security Policy
+
 Thank you for helping us keep Claude Code secure!
+
+## Supported Packages
+
+| Package | Supported |
+|---------|-----------|
+| `@anthropic-ai/claude-code` (npm) | :white_check_mark: |
+| Claude Code CLI (standalone install) | :white_check_mark: |
+| Claude Code GitHub Action | :white_check_mark: |
 
 ## Reporting Security Issues
 
@@ -10,3 +19,12 @@ Our security program is managed on HackerOne and we ask that any validated vulne
 ## Anthropic Bug Bounty
 
 Our Bug Bounty Program Guidelines are defined on our [HackerOne program page](https://hackerone.com/anthropic).
+
+## Disclosure Policy
+
+When following responsible disclosure, we commit to:
+
+- Acknowledge receipt of vulnerability reports promptly
+- Provide an estimated timeline for resolution
+- Notify researchers when the vulnerability is resolved
+- Publicly acknowledge researchers (with consent) in release notes
