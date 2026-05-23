@@ -1,6 +1,6 @@
 # Settings Examples
 
-Example Claude Code settings files, primarily intended for organization-wide deployments. Use these as starting points — adjust them to fit your needs.
+Example Claude Code settings files, primarily intended for organization-wide deployments. Use these as starting points - adjust them to fit your needs.
 
 These may be applied at any level of the [settings hierarchy](https://code.claude.com/docs/en/settings#settings-files), though certain properties only take effect if specified in enterprise settings (e.g. `strictKnownMarketplaces`, `allowManagedHooksOnly`, `allowManagedPermissionRulesOnly`).
 
@@ -12,13 +12,13 @@ These may be applied at any level of the [settings hierarchy](https://code.claud
 
 | Setting | [`settings-lax.json`](./settings-lax.json) | [`settings-strict.json`](./settings-strict.json) | [`settings-bash-sandbox.json`](./settings-bash-sandbox.json) |
 |---------|:---:|:---:|:---:|
-| Disable `--dangerously-skip-permissions` | ✅ | ✅ | |
-| Block plugin marketplaces | ✅ | ✅ | |
-| Block user and project-defined permission `allow` / `ask` / `deny` | | ✅ | ✅ |
-| Block user and project-defined hooks | | ✅ | |
-| Deny web fetch and search tools | | ✅ | |
-| Bash tool requires approval | | ✅ | |
-| Bash tool must run inside of sandbox | | | ✅ |
+| Disable `--dangerously-skip-permissions` | ? | ? | |
+| Block plugin marketplaces | ? | ? | |
+| Block user and project-defined permission `allow` / `ask` / `deny` | | ? | ? |
+| Block user and project-defined hooks | | ? | |
+| Deny web fetch and search tools | | ? | |
+| Bash tool requires approval | | ? | |
+| Bash tool must run inside of sandbox | | | ? |
 
 ## Tips
 - Consider merging snippets of the above examples to reach your desired configuration
@@ -33,3 +33,11 @@ To distribute these settings as enterprise-managed policy through Jamf, Iru (Kan
 ## Full Documentation
 
 See https://code.claude.com/docs/en/settings for complete documentation on all available managed settings.
+
+## Troubleshooting
+
+### Context window meter shows 200K for Sonnet 4.6 (should be 1M)
+
+The status bar context window meter shows 200K when using `claude-sonnet-4-6`, but Sonnet 4.6 actually supports a 1M token context window. This is a display bug in the CLI — the internal model capabilities config has the wrong `max_input_tokens` value for this model. The actual API requests use the full 1M window; only the meter display is affected.
+
+**No workaround available.** This requires a CLI update to correct the hardcoded model config.
