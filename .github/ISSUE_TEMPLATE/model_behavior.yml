@@ -11,7 +11,7 @@ body:
         
         Use this template when Claude does something unexpected, makes unwanted changes, or behaves inconsistently with your instructions.
         
-        **This is for:** Unexpected actions, file modifications outside scope, ignoring instructions, making assumptions
+        **This is for:** Unexpected actions, file modifications outside scope, ignoring instructions, making assumptions, deception or misrepresentation
         **NOT for:** Crashes, API errors, or installation issues (use Bug Report instead)
         
   - type: checkboxes
@@ -37,6 +37,7 @@ body:
         - Claude reverted/undid previous changes without asking
         - Claude made incorrect assumptions about my project
         - Claude refused a reasonable request
+        - Claude was deceptive or misrepresented facts (e.g. hiding incomplete work, denying verifiable statements, distorting instructions)
         - Claude's behavior changed between sessions
         - Subagent behaved unexpectedly
         - Other unexpected behavior
