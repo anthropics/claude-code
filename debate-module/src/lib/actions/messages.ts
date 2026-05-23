@@ -66,7 +66,7 @@ export async function toggleReaction(messageId: string, type: 'like' | 'insightf
     .eq('message_id', messageId)
     .eq('user_id', user.id)
     .eq('type', type)
-    .single()
+    .maybeSingle()
 
   if (existing) {
     await supabase.from('reactions').delete().eq('id', existing.id)

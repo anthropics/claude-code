@@ -15,7 +15,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     .select('role')
     .eq('user_id', user.id)
     .eq('role', 'admin')
-    .single()
+    .maybeSingle()
 
   if (!role) redirect('/debates')
 

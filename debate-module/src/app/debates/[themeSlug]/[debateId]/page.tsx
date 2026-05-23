@@ -51,7 +51,7 @@ export default async function DebatePage({ params }: Props) {
       .select('role')
       .eq('user_id', user.id)
       .in('role', ['admin', 'moderator'])
-      .single()
+      .maybeSingle()
     isAdmin = !!role
   }
 
