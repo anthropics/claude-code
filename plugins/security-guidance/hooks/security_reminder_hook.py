@@ -123,6 +123,44 @@ Only use exec() if you absolutely need shell features and the input is guarantee
         "substrings": ["os.system", "from os import system"],
         "reminder": "⚠️ Security Warning: This code appears to use os.system. This should only be used with static arguments and never with arguments that could be user-controlled.",
     },
+    {
+        "ruleName": "sql_injection",
+        "substrings": [
+            'f"SELECT ', 'f"INSERT ', 'f"UPDATE ', 'f"DELETE ',
+            "f'SELECT ", "f'INSERT ", "f'UPDATE ", "f'DELETE ",
+        ],
+        "reminder": """⚠️ Security Warning: This code appears to construct SQL queries using string interpolation or concatenation, which can lead to SQL injection vulnerabilities.
+
+Instead of:
+  query = f"SELECT * FROM users WHERE name = '{user_input}'"
+
+Use parameterized queries:
+  cursor.execute("SELECT * FROM users WHERE name = ?", (user_input,))  # SQLite
+  cursor.execute("SELECT * FROM users WHERE name = %s", (user_input,))  # PostgreSQL/MySQL
+
+Or use an ORM/query builder that handles escaping automatically.""",
+    },
+    {
+        "ruleName": "hardcoded_secret",
+        "substrings": [
+            'password = "', "password = '",
+            'api_key = "', "api_key = '",
+            'apiKey = "', "apiKey = '",
+            'API_KEY = "', "API_KEY = '",
+            'SECRET_KEY = "', "SECRET_KEY = '",
+        ],
+        "reminder": """⚠️ Security Warning: This code appears to contain a hardcoded secret (API key, password, or private key). Hardcoded secrets can be leaked through version control and are difficult to rotate.
+
+Instead of:
+  api_key = "sk-1234567890abcdef"
+
+Use environment variables:
+  import os
+  api_key = os.environ["API_KEY"]  # Python
+  const apiKey = process.env.API_KEY;  // JavaScript
+
+Or use a secrets manager (AWS Secrets Manager, HashiCorp Vault, etc.).""",
+    },
 ]
 
 
