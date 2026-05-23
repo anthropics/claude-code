@@ -30,6 +30,29 @@ These may be applied at any level of the [settings hierarchy](https://code.claud
 
 To distribute these settings as enterprise-managed policy through Jamf, Iru (Kandji), Intune, or Group Policy, see the deployment templates in [`../mdm`](../mdm).
 
+## Troubleshooting
+
+### Stats cache `lastComputedDate` not advancing
+
+If `/usage` or the stats dashboard shows stale data and
+`~/.claude/stats-cache.json` has an old `lastComputedDate`, the
+incremental recompute may be silently failing on a session file.
+
+**Check**:
+```bash
+jq -r '.lastComputedDate' ~/.claude/stats-cache.json
+```
+
+**Fix** (force a full rebuild):
+```bash
+rm ~/.claude/stats-cache.json
+# Restart Claude Code — cache will rebuild from all session files.
+```
+
+**Known triggers**: unknown model IDs (models released after your
+cache froze), multi-day sessions, or corrupt session files.
+See issue [#61686](https://github.com/anthropics/claude-code/issues/61686).
+
 ## Full Documentation
 
 See https://code.claude.com/docs/en/settings for complete documentation on all available managed settings.
