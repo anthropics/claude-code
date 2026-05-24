@@ -45,6 +45,7 @@ or Bedrock, where model IDs like `claude-opus-4-7` may not be recognized.
 - Select a different model in the model picker (e.g. `claude-sonnet-4-6`)
 - Clear settings: delete `settings.json` from the app config directory
 - If using Bedrock, verify region prefix: `apac.` / `eu.` / `us.`
+- If `AWS_REGION` / `CLAUDE_CODE_USE_BEDROCK` env vars are set, unset them — they cause the model resolver to pick up Bedrock region prefixes while the desktop auth flow calls the direct Anthropic API, rejecting the prefixed model ID with 400
 
 See issue [#61707](https://github.com/anthropics/claude-code/issues/61707).
 
