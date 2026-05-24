@@ -5,5 +5,15 @@
   "author": {
     "name": "Sid Bidasaria",
     "email": "sbidasaria@anthropic.com"
+  },
+  "components": {
+    "agents": ["code-explorer", "code-architect", "code-reviewer"],
+    "commands": ["feature-dev"],
+    "skills": [],
+    "hooks": [],
+    "mcpServers": []
+  },
+  "metadata": {
+    "tags": ["feature-development", "architecture", "workflow"]
   }
 }
