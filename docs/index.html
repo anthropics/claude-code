@@ -146,7 +146,7 @@ function LoginPage() {
   async function submit(e) {
     e.preventDefault();
     setLoading(true); setError(null);
-    const redirectTo = location.href.split('#')[0] + '#/';
+    const redirectTo = location.href.split('#')[0];
     const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: redirectTo } });
     setLoading(false);
     if (error) setError(error.message);
@@ -649,10 +649,16 @@ function App() {
   const { user, isAdmin, loading } = useAuth();
   const hash = useRoute();
 
-  // Handle magic link auth callback
+  // Handle magic link auth callback (token arrives in hash or query string)
   useEffect(() => {
-    if (hash.includes('access_token') || hash.includes('error_description')) {
-      sb.auth.getSession().then(() => navigate('#/'));
+    const h = location.hash;
+    const q = location.search;
+    if (h.includes('access_token') || h.includes('error_description') ||
+        q.includes('code=') || q.includes('error=')) {
+      sb.auth.getSession().then(() => {
+        history.replaceState(null, '', location.pathname);
+        navigate('#/');
+      });
     }
   }, []);
 
