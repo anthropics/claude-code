@@ -1,0 +1,17 @@
+{
+  "description": "Scans file writes for hardcoded credentials (API keys, tokens, private keys) and blocks them before they reach disk or version control",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/credential_guard.py",
+            "timeout": 10
+          }
+        ],
+        "matcher": "Edit|Write|MultiEdit|Bash"
+      }
+    ]
+  }
+}
