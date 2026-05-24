@@ -82,8 +82,24 @@ Both products adopt the same `.jsonl` schema and storage location. The desktop a
 - On session exit (batch, for history)
 - On explicit `/sync` command (on-demand)
 
+## Working Implementation
+
+A reference implementation is available as a Claude Code plugin at [`plugins/desktop-session-sync/`](/plugins/desktop-session-sync/).
+
+This plugin implements **Option B (Local Storage Bridge)** as a practical, immediately-usable solution:
+
+| Component | File | Purpose |
+|-----------|------|---------|
+| Python sync script | `hooks/sync_sessions.py` | Walks `~/.claude/projects/`, creates `local_<uuid>.json` metadata files in the desktop app's session directory |
+| PostToolUse hook | `hooks/hooks.json` | Auto-syncs after transcript writes during active sessions |
+| Slash command | `commands/sync-desktop-sessions.md` | On-demand full sync via `/sync-desktop-sessions` |
+| Standalone usage | — | Run `python3 sync_sessions.py` independently of the plugin system |
+
+The script derives a deterministic session ID from each transcript's relative path, extracts metadata (title, model, timestamps, message count) from the JSONL content, and writes a `local_<uuid>.json` payload that the desktop app's session list rendering code consumes natively. No modifications to the desktop app are required.
+
 ## Related Issues
 
 - #61967 (this feature request)
 - #61742 (Agent View cwd selection — session metadata tracking precedent)
 - #61546 (Agent View cwd — session context features)
+- #56172 (Community bridge script by BasedGPT — inspiration for the plugin approach)
