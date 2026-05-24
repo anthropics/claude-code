@@ -24,13 +24,28 @@ jobs:
       issues: read
       id-token: write
     steps:
+      - name: Verify @claude trigger is at a word boundary
+        id: trigger_check
+        env:
+          BODY: ${{ github.event.comment.body || github.event.review.body || github.event.issue.body }}
+          TITLE: ${{ github.event.issue.title }}
+        run: |
+          if printf '%s\n%s' "$BODY" "$TITLE" | grep -Pq '@claude(?![a-zA-Z0-9_-])'; then
+            echo "matched=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "matched=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Substring '@claude' found but not at a word boundary (e.g. @claude-plugins-official) — skipping Claude Code job."
+          fi
+
       - name: Checkout repository
+        if: steps.trigger_check.outputs.matched == 'true'
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4
         with:
           fetch-depth: 1
 
       - name: Run Claude Code
         id: claude
+        if: steps.trigger_check.outputs.matched == 'true'
         uses: anthropics/claude-code-action@v1
         with:
           # Authenticate to the Claude API via Workload Identity Federation
