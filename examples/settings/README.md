@@ -36,7 +36,7 @@ To distribute these settings as enterprise-managed policy through Jamf, Iru (Kan
 
 If `/usage` or the stats dashboard shows stale data and
 `~/.claude/stats-cache.json` has an old `lastComputedDate`, the
-incremental recompute may be silently failing on a session file.
+incremental recompute may be silently failing.
 
 **Check**:
 ```bash
@@ -49,9 +49,15 @@ rm ~/.claude/stats-cache.json
 # Restart Claude Code — cache will rebuild from all session files.
 ```
 
-**Known triggers**: unknown model IDs (models released after your
-cache froze), multi-day sessions, or corrupt session files.
-See issue [#61686](https://github.com/anthropics/claude-code/issues/61686).
+**Root cause**: three compounding bugs in the stats recompute pipeline:
+1. Cache serialization fails on unknown model IDs (e.g. new models released after the cache froze) — `modelUsage` schema has no key for them
+2. No error handling in incremental recompute — a single failure aborts the entire pass and `lastComputedDate` never advances
+3. No staleness cap — once frozen, the cache stays frozen permanently with no forced full-rebuild fallback
+
+**Proposed fix** (from community analysis, see [#61686](https://github.com/anthropics/claude-code/issues/61686)):
+- Add a cache version field with auto-migration for schema changes
+- Wrap per-session processing in try/catch — skip bad files, advance the cursor
+- Force full rebuild if `lastComputedDate` is >30 days behind
 
 ## Full Documentation
 
