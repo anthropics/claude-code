@@ -68,6 +68,7 @@ Other risky inputs to be careful with:
     },
     {
         "ruleName": "child_process_exec",
+        "file_extensions": [".js", ".ts", ".tsx", ".jsx", ".cjs", ".mjs"],
         "substrings": ["child_process.exec", "exec(", "execSync("],
         "reminder": """⚠️ Security Warning: Using child_process.exec() can lead to command injection vulnerabilities.
 
@@ -180,10 +181,20 @@ def save_state(session_id, shown_warnings):
         pass  # Fail silently if we can't save state
 
 
+def _path_extension(normalized_path):
+    """Return lowercase file extension including the leading dot, or empty string."""
+    dot = normalized_path.rfind(".")
+    slash = normalized_path.rfind("/")
+    if dot <= slash or dot == -1:
+        return ""
+    return normalized_path[dot:].lower()
+
+
 def check_patterns(file_path, content):
     """Check if file path or content matches any security patterns."""
     # Normalize path by removing leading slashes
     normalized_path = file_path.lstrip("/")
+    extension = _path_extension(normalized_path)
 
     for pattern in SECURITY_PATTERNS:
         # Check path-based patterns
@@ -192,6 +203,14 @@ def check_patterns(file_path, content):
 
         # Check content-based patterns
         if "substrings" in pattern and content:
+            # Optional extension scope — skip the rule when it explicitly
+            # declares which extensions it applies to and the current file
+            # isn't one of them. Rules without `file_extensions` keep
+            # legacy behavior (apply to all files).
+            allowed_exts = pattern.get("file_extensions")
+            if allowed_exts and extension not in allowed_exts:
+                continue
+
             for substring in pattern["substrings"]:
                 if substring in content:
                     return pattern["ruleName"], pattern["reminder"]
