@@ -10,7 +10,7 @@
             "timeout": 10
           }
         ],
-        "matcher": "Edit|Write|MultiEdit|Bash"
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit|Bash"
       }
     ]
   }

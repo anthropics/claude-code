@@ -95,12 +95,6 @@ CREDENTIAL_PATTERNS = [
         "pattern": re.compile(r"(?:sk|rk)_(?:live|test)_[A-Za-z0-9]{20,}"),
         "suggestion": "Use $STRIPE_SECRET_KEY environment variable",
     },
-    {
-        "name": "stripe_restricted_key",
-        "label": "Stripe Restricted Key",
-        "pattern": re.compile(r"rk_(?:live|test)_[A-Za-z0-9]{20,}"),
-        "suggestion": "Use $STRIPE_API_KEY environment variable",
-    },
     # ── Slack ─────────────────────────────────────────────────────────────
     {
         "name": "slack_token",
@@ -140,6 +134,7 @@ CREDENTIAL_PATTERNS = [
         "name": "twilio_api_key",
         "label": "Twilio API Key",
         "pattern": re.compile(r"SK[0-9a-fA-F]{32}"),
+        "guard": lambda content, m: _near_twilio_context(content, m),
         "suggestion": "Use $TWILIO_API_KEY environment variable",
     },
     # ── SendGrid ──────────────────────────────────────────────────────────
@@ -255,6 +250,13 @@ def _near_heroku_context(content, match):
     ])
 
 
+def _near_twilio_context(content, match):
+    window = _context_window(content, match)
+    return any(kw in window for kw in [
+        "twilio", "account_sid", "auth_token", "sms", "messaging",
+    ])
+
+
 # ---------------------------------------------------------------------------
 # Allowlist — paths where credentials are expected / safe
 # ---------------------------------------------------------------------------
@@ -351,6 +353,11 @@ def _extract_content(tool_name, tool_input):
         edits = tool_input.get("edits", [])
         combined = " ".join(e.get("new_string", "") for e in edits)
         return tool_input.get("file_path", ""), combined
+    elif tool_name == "NotebookEdit":
+        # Notebook cells can contain credentials too
+        new_source = tool_input.get("new_source", "")
+        file_path = tool_input.get("notebook_path", tool_input.get("file_path", ""))
+        return file_path, new_source
     elif tool_name == "Bash":
         command = tool_input.get("command", "")
         if _bash_writes_to_file(command):
