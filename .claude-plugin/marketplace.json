@@ -49,6 +49,17 @@
       "category": "development"
     },
     {
+      "name": "business-agent",
+      "description": "Manage the business-agent managed-agent lifecycle: setup, run, and update sessions via the Claude Agent SDK",
+      "version": "1.0.0",
+      "author": {
+        "name": "sjbrenchley89",
+        "email": "9turnbull@gmail.com"
+      },
+      "source": "./plugins/business-agent",
+      "category": "development"
+    },
+    {
       "name": "claude-opus-4-5-migration",
       "description": "Migrate your code and prompts from Sonnet 4.x and Opus 4.1 to Opus 4.5.",
       "version": "1.0.0",
@@ -182,7 +193,7 @@
     },
     {
       "name": "ruflo-core",
-      "description": "Foundation plugin — registers the ruflo MCP server (300+ tools across memory/agentdb/embeddings/hooks/aidefence/neural/autopilot/browser/agent/swarm), provides 3 generalist agents (coder/researcher/reviewer), 3 first-run skills, and a curated plugin-discovery catalog",
+      "description": "Foundation plugin \u2014 registers the ruflo MCP server (300+ tools across memory/agentdb/embeddings/hooks/aidefence/neural/autopilot/browser/agent/swarm), provides 3 generalist agents (coder/researcher/reviewer), 3 first-run skills, and a curated plugin-discovery catalog",
       "version": "0.2.2",
       "author": {
         "name": "ruvnet",
@@ -194,7 +205,7 @@
     },
     {
       "name": "ruflo-swarm",
-      "description": "Agent teams, swarm coordination, Monitor streams, and worktree isolation — wraps 4 swarm_* + 8 agent_* MCP tools (12 total) plus 6 topologies (hierarchical / mesh / hierarchical-mesh / ring / star / adaptive)",
+      "description": "Agent teams, swarm coordination, Monitor streams, and worktree isolation \u2014 wraps 4 swarm_* + 8 agent_* MCP tools (12 total) plus 6 topologies (hierarchical / mesh / hierarchical-mesh / ring / star / adaptive)",
       "version": "0.2.0",
       "author": {
         "name": "ruvnet",
@@ -206,7 +217,7 @@
     },
     {
       "name": "ruflo-autopilot",
-      "description": "Autonomous /loop-driven task completion with learning, prediction, and progress tracking — wraps 10 autopilot_* MCP tools (status/enable/disable/config/reset/log/progress/learn/history/predict)",
+      "description": "Autonomous /loop-driven task completion with learning, prediction, and progress tracking \u2014 wraps 10 autopilot_* MCP tools (status/enable/disable/config/reset/log/progress/learn/history/predict)",
       "version": "0.2.0",
       "author": {
         "name": "ruvnet",
