@@ -25,7 +25,7 @@
     },
     {
       "name": "adobe-for-creativity",
-      "description": "Harness Adobe's creative AI-powered tools to edit images, automate design workflows, and bring creative visions to life — from background removal to vectorization and professional retouching.",
+      "description": "Harness Adobe's creative AI-powered tools to edit images, automate design workflows, and bring creative visions to life \u2014 from background removal to vectorization and professional retouching.",
       "author": {
         "name": "Adobe"
       },
@@ -51,8 +51,17 @@
       "homepage": "https://github.com/anthropics/claude-plugins-public/tree/main/plugins/agent-sdk-dev"
     },
     {
+      "name": "business-agent",
+      "description": "Manage the business-agent managed-agent lifecycle: setup, run, and update sessions via the Claude Agent SDK",
+      "author": {
+        "name": "sjbrenchley89"
+      },
+      "source": "./plugins/business-agent",
+      "category": "development"
+    },
+    {
       "name": "agentforce-adlc",
-      "description": "Agentforce Agent Development Life Cycle — author, discover, scaffold, deploy, test, and optimize .agent files",
+      "description": "Agentforce Agent Development Life Cycle \u2014 author, discover, scaffold, deploy, test, and optimize .agent files",
       "category": "development",
       "source": {
         "source": "url",
@@ -73,7 +82,7 @@
     },
     {
       "name": "aikido",
-      "description": "Aikido Security scanning for Claude Code — SAST, secrets, and IaC vulnerability detection powered by the Aikido MCP server.",
+      "description": "Aikido Security scanning for Claude Code \u2014 SAST, secrets, and IaC vulnerability detection powered by the Aikido MCP server.",
       "source": {
         "source": "url",
         "url": "https://github.com/AikidoSec/aikido-claude-plugin.git",
@@ -83,7 +92,7 @@
     },
     {
       "name": "airtable",
-      "description": "Airtable is the database and operations layer for your agents — whether running product, marketing, sales, ops, HR, or a custom business app. It combines structured data with multiplayer visual surfaces (grid, kanban, calendar, gallery, timeline) humans and agents share — plus sync integrations to Jira, Salesforce, Zendesk, Google Drive, Databricks, and the rest of your stack, all backed by enterprise governance. This plugin makes Claude fluent in Airtable: creating bases and schema, working with records, and sharing UI for collaboration. Bundles the official Airtable MCP server.",
+      "description": "Airtable is the database and operations layer for your agents \u2014 whether running product, marketing, sales, ops, HR, or a custom business app. It combines structured data with multiplayer visual surfaces (grid, kanban, calendar, gallery, timeline) humans and agents share \u2014 plus sync integrations to Jira, Salesforce, Zendesk, Google Drive, Databricks, and the rest of your stack, all backed by enterprise governance. This plugin makes Claude fluent in Airtable: creating bases and schema, working with records, and sharing UI for collaboration. Bundles the official Airtable MCP server.",
       "author": {
         "name": "Airtable"
       },
@@ -133,13 +142,13 @@
         "ref": "main",
         "sha": "e9b4e15193666e1b513b5652ded23fab160bdc4e"
       },
-      "description": "Use Amplitude as an expert analyst — instrument Amplitude, discover product opportunities, analyze charts, create dashboards, manage experiments, and understand users and accounts.",
+      "description": "Use Amplitude as an expert analyst \u2014 instrument Amplitude, discover product opportunities, analyze charts, create dashboards, manage experiments, and understand users and accounts.",
       "category": "monitoring",
       "homepage": "https://github.com/amplitude/mcp-marketplace"
     },
     {
       "name": "apollo",
-      "description": "Prospect, enrich leads, load outreach sequences, and query sales analytics with Apollo.io — one-click MCP server integration for Claude Code and Cowork.",
+      "description": "Prospect, enrich leads, load outreach sequences, and query sales analytics with Apollo.io \u2014 one-click MCP server integration for Claude Code and Cowork.",
       "author": {
         "name": "Apollo.io"
       },
@@ -207,7 +216,7 @@
     },
     {
       "name": "auth0",
-      "description": "Add authentication to any app with Auth0. This plugin detects your framework, scaffolds the right Auth0 SDK integration, and guides you through login, logout, sessions, and protected routes — using current SDK patterns.",
+      "description": "Add authentication to any app with Auth0. This plugin detects your framework, scaffolds the right Auth0 SDK integration, and guides you through login, logout, sessions, and protected routes \u2014 using current SDK patterns.",
       "author": {
         "name": "Auth0"
       },
@@ -284,7 +293,7 @@
     },
     {
       "name": "aws-dev-toolkit",
-      "description": "AWS development toolkit — 34 skills, 11 agents, and 3 MCP servers for building, migrating, and performing architecture reviews on AWS.",
+      "description": "AWS development toolkit \u2014 34 skills, 11 agents, and 3 MCP servers for building, migrating, and performing architecture reviews on AWS.",
       "author": {
         "name": "aws-samples"
       },
@@ -329,7 +338,7 @@
         "url": "https://github.com/AzureCosmosDB/cosmosdb-claude-code-plugin.git",
         "sha": "23c168856e4435793bd27a72d4714f022a3a1e90"
       },
-      "description": "Expert assistant for Azure Cosmos DB — data modeling, query optimization, performance tuning, and best practices.",
+      "description": "Expert assistant for Azure Cosmos DB \u2014 data modeling, query optimization, performance tuning, and best practices.",
       "category": "database",
       "homepage": "https://github.com/AzureCosmosDB/cosmosdb-claude-code-plugin"
     },
@@ -362,7 +371,7 @@
     },
     {
       "name": "box",
-      "description": "Work with your Box content directly from Claude Code — search files, organize folders, collaborate with your team, and use Box AI to answer questions, summarize documents, and extract data without leaving your workflow.",
+      "description": "Work with your Box content directly from Claude Code \u2014 search files, organize folders, collaborate with your team, and use Box AI to answer questions, summarize documents, and extract data without leaving your workflow.",
       "category": "productivity",
       "source": {
         "source": "url",
@@ -490,7 +499,7 @@
     },
     {
       "name": "clickhouse",
-      "description": "Connect Claude Code directly to your ClickHouse Cloud databases for hands-on database work — explore schemas, write optimized SQL, debug queries, and manage distributed database clusters.",
+      "description": "Connect Claude Code directly to your ClickHouse Cloud databases for hands-on database work \u2014 explore schemas, write optimized SQL, debug queries, and manage distributed database clusters.",
       "author": {
         "name": "ClickHouse"
       },
@@ -539,7 +548,7 @@
     },
     {
       "name": "cockroachdb",
-      "description": "Connect Claude Code directly to your CockroachDB clusters for hands-on database work — explore schemas, write optimized SQL, debug queries, and manage distributed database clusters.",
+      "description": "Connect Claude Code directly to your CockroachDB clusters for hands-on database work \u2014 explore schemas, write optimized SQL, debug queries, and manage distributed database clusters.",
       "author": {
         "name": "Cockroach Labs"
       },
@@ -586,7 +595,7 @@
     },
     {
       "name": "coderabbit",
-      "description": "Your code review partner. CodeRabbit provides external validation using a specialized AI architecture and 40+ integrated static analyzers—offering a different perspective that catches bugs, security vulnerabilities, logic errors, and edge cases.",
+      "description": "Your code review partner. CodeRabbit provides external validation using a specialized AI architecture and 40+ integrated static analyzers\u2014offering a different perspective that catches bugs, security vulnerabilities, logic errors, and edge cases.",
       "category": "productivity",
       "source": {
         "source": "url",
@@ -652,7 +661,7 @@
     },
     {
       "name": "cwc-makers",
-      "description": "Onboard a Code-with-Claude Makers Cardputer with one /maker-setup command — clones the build-with-claude repo, flashes UIFlow firmware, and installs the Claude Buddy app bundle.",
+      "description": "Onboard a Code-with-Claude Makers Cardputer with one /maker-setup command \u2014 clones the build-with-claude repo, flashes UIFlow firmware, and installs the Claude Buddy app bundle.",
       "version": "1.0.0",
       "author": {
         "name": "Anthropic",
@@ -740,7 +749,7 @@
     },
     {
       "name": "datarobot-agent-skills",
-      "description": "DataRobot skills for AI/ML workflows — model training, deployment, predictions, feature engineering, monitoring, explainability, data preparation, App Framework CI/CD, and external agent monitoring.",
+      "description": "DataRobot skills for AI/ML workflows \u2014 model training, deployment, predictions, feature engineering, monitoring, explainability, data preparation, App Framework CI/CD, and external agent monitoring.",
       "author": {
         "name": "DataRobot"
       },
@@ -754,7 +763,7 @@
     },
     {
       "name": "dataverse",
-      "description": "Agent skills for building on, analyzing, and managing Microsoft Dataverse — with Dataverse MCP, PAC CLI, and Python SDK.",
+      "description": "Agent skills for building on, analyzing, and managing Microsoft Dataverse \u2014 with Dataverse MCP, PAC CLI, and Python SDK.",
       "category": "database",
       "source": {
         "source": "git-subdir",
@@ -1280,7 +1289,7 @@
     },
     {
       "name": "netlify-skills",
-      "description": "Netlify platform skills for Claude Code — functions, edge functions, blobs, database, image CDN, forms, config, CLI, frameworks, caching, AI gateway, and deployment.",
+      "description": "Netlify platform skills for Claude Code \u2014 functions, edge functions, blobs, database, image CDN, forms, config, CLI, frameworks, caching, AI gateway, and deployment.",
       "category": "development",
       "source": {
         "source": "url",
@@ -1291,7 +1300,7 @@
     },
     {
       "name": "netsuite-suitecloud",
-      "description": "NetSuite agent skills from Oracle — authoring guidance for SuiteCloud Development Framework (SDF) objects and UIF single-page-app components, plus runtime guidance for the NetSuite AI Service Connector.",
+      "description": "NetSuite agent skills from Oracle \u2014 authoring guidance for SuiteCloud Development Framework (SDF) objects and UIF single-page-app components, plus runtime guidance for the NetSuite AI Service Connector.",
       "author": {
         "name": "Oracle NetSuite"
       },
@@ -1323,7 +1332,7 @@
     },
     {
       "name": "nimble",
-      "description": "Nimble web data toolkit — search, extract, map, crawl the web and work with structured data agents",
+      "description": "Nimble web data toolkit \u2014 search, extract, map, crawl the web and work with structured data agents",
       "source": {
         "source": "url",
         "url": "https://github.com/Nimbleway/agent-skills.git",
@@ -1446,7 +1455,7 @@
     },
     {
       "name": "playground",
-      "description": "Creates interactive HTML playgrounds — self-contained single-file explorers with visual controls, live preview, and prompt output with copy button.",
+      "description": "Creates interactive HTML playgrounds \u2014 self-contained single-file explorers with visual controls, live preview, and prompt output with copy button.",
       "author": {
         "name": "Anthropic",
         "email": "support@anthropic.com"
@@ -1590,7 +1599,7 @@
     },
     {
       "name": "qt-development-skills",
-      "description": "Agentic engineering skills for Qt software development — Qt C++/QML code review, QML coding, and Qt C++/QML code documentation.",
+      "description": "Agentic engineering skills for Qt software development \u2014 Qt C++/QML code review, QML coding, and Qt C++/QML code documentation.",
       "author": {
         "name": "Qt Group"
       },
@@ -1766,7 +1775,7 @@
     },
     {
       "name": "sap-mdk-server",
-      "description": "MCP server for SAP Mobile Development Kit (MDK). Build and modify MDK applications with AI assistance — schema lookups, action validation, rule editing, and project scaffolding.",
+      "description": "MCP server for SAP Mobile Development Kit (MDK). Build and modify MDK applications with AI assistance \u2014 schema lookups, action validation, rule editing, and project scaffolding.",
       "author": {
         "name": "SAP SE",
         "email": "ospo@sap.com",
@@ -1842,7 +1851,7 @@
     },
     {
       "name": "session-report",
-      "description": "Generate an explorable HTML report of Claude Code session usage — tokens, cache efficiency, subagents, skills, and the most expensive prompts.",
+      "description": "Generate an explorable HTML report of Claude Code session usage \u2014 tokens, cache efficiency, subagents, skills, and the most expensive prompts.",
       "author": {
         "name": "Anthropic",
         "email": "support@anthropic.com"
@@ -1853,7 +1862,7 @@
     },
     {
       "name": "shopify",
-      "description": "Shopify developer tools for Claude Code — search Shopify docs, generate and validate GraphQL, Liquid, and UI extension code",
+      "description": "Shopify developer tools for Claude Code \u2014 search Shopify docs, generate and validate GraphQL, Liquid, and UI extension code",
       "author": {
         "name": "Shopify"
       },
@@ -1919,7 +1928,7 @@
     },
     {
       "name": "sonarqube",
-      "description": "Automatically enforce SonarQube code quality and security in the agent coding loop — 7,000+ rules, secrets scanning, agentic analysis, and quality gates across 40+ languages.",
+      "description": "Automatically enforce SonarQube code quality and security in the agent coding loop \u2014 7,000+ rules, secrets scanning, agentic analysis, and quality gates across 40+ languages.",
       "author": {
         "name": "SonarSource"
       },
@@ -1955,7 +1964,7 @@
     },
     {
       "name": "spotify-ads-api",
-      "description": "Manage Spotify ad campaigns with natural language. Create campaigns, ad sets, ads, pull reports, and handle OAuth — all through conversation.",
+      "description": "Manage Spotify ad campaigns with natural language. Create campaigns, ad sets, ads, pull reports, and handle OAuth \u2014 all through conversation.",
       "category": "productivity",
       "source": {
         "source": "url",
@@ -2049,7 +2058,7 @@
     },
     {
       "name": "twilio-developer-kit",
-      "description": "Twilio Skills provide procedural knowledge for AI coding agents — which APIs to use, in what order, and what to avoid. Covers SMS, Voice, WhatsApp, Verify, SendGrid, Compliance, and 30+ products.",
+      "description": "Twilio Skills provide procedural knowledge for AI coding agents \u2014 which APIs to use, in what order, and what to avoid. Covers SMS, Voice, WhatsApp, Verify, SendGrid, Compliance, and 30+ products.",
       "author": {
         "name": "Twilio"
       },
