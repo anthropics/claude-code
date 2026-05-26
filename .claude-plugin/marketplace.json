@@ -16,6 +16,17 @@
   ],
   "plugins": [
     {
+      "name": "claude-flow",
+      "description": "AI agent orchestration using claude-flow (RuFlo) — coordinate swarms of specialized agents, hive-mind consensus, and persistent task automation within Claude Code",
+      "version": "1.0.0",
+      "author": {
+        "name": "Anthropic",
+        "email": "support@anthropic.com"
+      },
+      "source": "./plugins/claude-flow",
+      "category": "development"
+    },
+    {
       "name": "anthropic-mcp",
       "description": "Registers the official Anthropic MCP server, giving Claude Code direct access to Claude models and the Anthropic API",
       "version": "1.0.0",
