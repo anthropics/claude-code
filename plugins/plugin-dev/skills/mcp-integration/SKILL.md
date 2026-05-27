@@ -187,6 +187,10 @@ All MCP configurations support environment variable substitution:
 
 **Best practice:** Document all required environment variables in plugin README.
 
+### Per-session identity (workaround)
+
+Stdio MCP servers receive `CLAUDE_PLUGIN_ROOT`, `CLAUDE_PLUGIN_DATA`, and `CLAUDE_PROJECT_DIR` automatically. They do **not** currently receive `CLAUDE_CODE_SESSION_ID` (tracked at [#61752](https://github.com/anthropics/claude-code/issues/61752)). Plugins that need per-session identity for routing, sidecars, or per-session state can use an env-bridge from a controlling spawner — see [SESSION-ID-ENV-BRIDGE.md](./SESSION-ID-ENV-BRIDGE.md) for the pattern and trade-offs.
+
 ## MCP Tool Naming
 
 When MCP servers provide tools, they're automatically prefixed:
