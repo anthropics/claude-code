@@ -56,34 +56,32 @@ function slugify(t) {
 function cn(...args) { return args.filter(Boolean).join(' '); }
 
 // ─── Auth Hook ───────────────────────────────────────────────────────────────
+async function fetchRoles(userId) {
+  const { data } = await sb.from('user_roles').select('role').eq('user_id', userId).in('role',['admin','moderator']);
+  return data?.map(r => r.role) ?? [];
+}
+
 function useAuth() {
   const [user, setUser] = useState(null);
   const [role, setRole] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    sb.auth.getUser().then(({ data }) => {
-      setUser(data.user ?? null);
+    // Load user AND roles before clearing the loading gate so AdminPage
+    // never flashes "Acesso restrito" for a logged-in admin.
+    sb.auth.getUser().then(async ({ data }) => {
+      const u = data.user ?? null;
+      setUser(u);
+      if (u) setRole(await fetchRoles(u.id));
       setLoading(false);
     });
     const { data: { subscription } } = sb.auth.onAuthStateChange(async (_e, session) => {
       const u = session?.user ?? null;
       setUser(u);
-      if (u) {
-        const { data } = await sb.from('user_roles').select('role').eq('user_id', u.id).in('role',['admin','moderator']);
-        setRole(data?.map(r => r.role) ?? []);
-      } else {
-        setRole(null);
-      }
+      setRole(u ? await fetchRoles(u.id) : null);
     });
     return () => subscription.unsubscribe();
   }, []);
-
-  useEffect(() => {
-    if (!user) return;
-    sb.from('user_roles').select('role').eq('user_id', user.id)
-      .then(({ data }) => setRole(data?.map(r => r.role) ?? []));
-  }, [user?.id]);
 
   const isAdmin = role?.includes('admin') || role?.includes('moderator');
   return { user, role, isAdmin, loading };
@@ -197,7 +195,7 @@ function ThemesPage() {
       (d ?? []).forEach(row => { c[row.theme_id] = (c[row.theme_id] || 0) + 1; });
       setCounts(c);
       setLoading(false);
-    });
+    }).catch(() => setLoading(false));
   }, []);
 
   if (loading) return React.createElement('div', { className: 'max-w-5xl mx-auto px-4 py-12 text-center text-zinc-400' }, 'Carregando...');
@@ -250,7 +248,7 @@ function DebatesPage({ slug }) {
         (m ?? []).forEach(row => { c[row.debate_id] = (c[row.debate_id] || 0) + 1; });
         setMsgCounts(c);
         setLoading(false);
-      });
+      }).catch(() => setLoading(false));
   }, [slug]);
 
   if (loading) return React.createElement('div', { className: 'max-w-3xl mx-auto px-4 py-12 text-center text-zinc-400' }, 'Carregando...');
@@ -330,17 +328,21 @@ function DebateRoomPage({ debateId, user, isAdmin }) {
   }, [debateId]);
 
   useEffect(() => {
-    if (!debate) return;
-    channelRef.current = sb.channel(`debate:${debateId}`)
+    // Depend on debateId (the prop), not debate?.id (derived state), so the old
+    // channel is unsubscribed synchronously when the user navigates away — before
+    // any new messages can be appended to the wrong debate's list.
+    const channel = sb.channel(`debate:${debateId}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `debate_id=eq.${debateId}` },
         async payload => {
+          // Skip messages that are already hidden at insert time (e.g. spam triggers)
+          if (payload.new.is_hidden || payload.new.deleted_at) return;
           const { data: profile } = await sb.from('profiles').select('*').eq('id', payload.new.user_id).single();
           setMessages(prev => [...prev, { ...payload.new, profiles: profile }]);
         }
       )
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages', filter: `debate_id=eq.${debateId}` },
         payload => {
-          if (payload.new.is_hidden) setMessages(prev => prev.filter(m => m.id !== payload.new.id));
+          if (payload.new.is_hidden || payload.new.deleted_at) setMessages(prev => prev.filter(m => m.id !== payload.new.id));
           else setMessages(prev => prev.map(m => m.id === payload.new.id ? { ...m, ...payload.new } : m));
         }
       )
@@ -351,8 +353,9 @@ function DebateRoomPage({ debateId, user, isAdmin }) {
         payload => setReactions(prev => prev.filter(r => r.id !== payload.old.id))
       )
       .subscribe();
-    return () => channelRef.current?.unsubscribe();
-  }, [debate?.id]);
+    channelRef.current = channel;
+    return () => channel.unsubscribe();
+  }, [debateId]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -369,8 +372,17 @@ function DebateRoomPage({ debateId, user, isAdmin }) {
   async function toggleReaction(messageId, type) {
     if (!user) return;
     const existing = reactions.find(r => r.message_id === messageId && r.user_id === user.id && r.type === type);
-    if (existing) await sb.from('reactions').delete().eq('id', existing.id);
-    else await sb.from('reactions').insert({ message_id: messageId, user_id: user.id, type });
+    if (existing) {
+      // Optimistically remove before awaiting so a rapid second click
+      // sees the updated state and won't issue a duplicate INSERT.
+      setReactions(prev => prev.filter(r => r.id !== existing.id));
+      await sb.from('reactions').delete().eq('id', existing.id);
+    } else {
+      const tempId = `tmp-${Date.now()}`;
+      setReactions(prev => [...prev, { id: tempId, message_id: messageId, user_id: user.id, type }]);
+      const { error } = await sb.from('reactions').insert({ message_id: messageId, user_id: user.id, type });
+      if (error) setReactions(prev => prev.filter(r => r.id !== tempId));
+    }
   }
 
   async function hideMsg(id) {
@@ -655,10 +667,17 @@ function App() {
     const q = location.search;
     if (h.includes('access_token') || h.includes('error_description') ||
         q.includes('code=') || q.includes('error=')) {
-      sb.auth.getSession().then(() => {
-        history.replaceState(null, '', location.pathname);
-        navigate('#/');
-      });
+      sb.auth.getSession()
+        .then(() => {
+          history.replaceState(null, '', location.pathname);
+          navigate('#/');
+        })
+        .catch(() => {
+          // Even on failure, clean the auth fragment so the user isn't stuck
+          // on an unrecognised route with token params in the URL bar.
+          history.replaceState(null, '', location.pathname);
+          navigate('#/login');
+        });
     }
   }, []);
 
