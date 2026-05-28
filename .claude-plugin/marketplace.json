@@ -145,6 +145,17 @@
       },
       "source": "./plugins/security-guidance",
       "category": "security"
+    },
+    {
+      "name": "side-threads",
+      "description": "Side-thread commands (/thread and /back) for branching conversations Slack-style.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Yihao Liang",
+        "email": "yl3058@princeton.edu"
+      },
+      "source": "./plugins/side-threads",
+      "category": "productivity"
     }
   ]
 }

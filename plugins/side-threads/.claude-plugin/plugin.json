@@ -1,0 +1,11 @@
+{
+  "name": "side-threads",
+  "version": "1.0.0",
+  "description": "Branch the conversation into a side thread with /thread; resume with /back. Slack-style threading for Claude Code.",
+  "author": {
+    "name": "Yihao Liang",
+    "email": "yl3058@princeton.edu"
+  },
+  "license": "MIT",
+  "keywords": ["thread", "conversation", "branching", "productivity"]
+}
