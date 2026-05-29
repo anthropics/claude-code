@@ -27,7 +27,7 @@ export const lifecycle = [
   },
   {
     label: "autoclose",
-    days: 14,
+    days: 90,
     reason: "inactive for too long",
     nudge: "This issue has been marked for automatic closure.",
   },
