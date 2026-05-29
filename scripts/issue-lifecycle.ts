@@ -21,7 +21,7 @@ export const lifecycle = [
   },
   {
     label: "stale",
-    days: 14,
+    days: 90,
     reason: "inactive for too long",
     nudge: "This issue has been automatically marked as stale due to inactivity.",
   },
