@@ -79,8 +79,24 @@ See `plugins/example-plugin/` for a reference implementation. All plugins listed
 
 ---
 
-## Directory Manifest
+## Adding a New Local Plugin
 
-`directory.json` is the root marketplace manifest (`$schema: anthropic.com/claude-code/marketplace.schema.json`). Each entry has `name`, `description`, `author`, `category`, and `source`. Local plugins use `"source": "./plugins/<name>"`. External plugins use a git-subdir or URL source with a pinned `sha`.
+When adding a new plugin to `plugins/`, update **both** manifests or CI will fail:
 
-When adding a new local plugin, add a corresponding entry to `directory.json`.
+1. **`directory.json`** (root) — the public marketplace manifest. Add an entry with `name`, `description`, `author`, `category`, and `"source": "./plugins/<name>"`.
+
+2. **`.claude-plugin/marketplace.json`** — the bundled plugin registry. Add an entry with the same fields **plus** `version` and `author.email`. The "Validate plugin JSON" CI check enforces this.
+
+Required `marketplace.json` entry shape:
+```json
+{
+  "name": "plugin-name",
+  "description": "...",
+  "version": "1.0.0",
+  "author": { "name": "...", "email": "..." },
+  "source": "./plugins/plugin-name",
+  "category": "development"
+}
+```
+
+External plugins (git-subdir or URL source) go in `directory.json` only, with a pinned `sha`.
