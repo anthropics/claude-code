@@ -1,0 +1,26 @@
+{
+  "_comment": "Example stdio MCP server configuration for local file system access",
+  "filesystem": {
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-filesystem", "${CLAUDE_PROJECT_DIR}"],
+    "env": {
+      "LOG_LEVEL": "info"
+    }
+  },
+  "database": {
+    "command": "${CLAUDE_PLUGIN_ROOT}/servers/db-server.js",
+    "args": ["--config", "${CLAUDE_PLUGIN_ROOT}/config/db.json"],
+    "env": {
+      "DATABASE_URL": "${DATABASE_URL}",
+      "DB_POOL_SIZE": "10"
+    }
+  },
+  "custom-tools": {
+    "command": "python",
+    "args": ["-m", "my_mcp_server", "--port", "8080"],
+    "env": {
+      "API_KEY": "${CUSTOM_API_KEY}",
+      "DEBUG": "false"
+    }
+  }
+}

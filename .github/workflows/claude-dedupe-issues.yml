@@ -1,0 +1,94 @@
+name: Claude Issue Dedupe
+description: Automatically dedupe GitHub issues using Claude Code
+on:
+  issues:
+    types: [opened]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: 'Issue number to process for duplicate detection'
+        required: true
+        type: string
+
+jobs:
+  claude-dedupe-issues:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+      # Required to mint the OIDC token exchanged for a Claude API access token (Workload Identity Federation)
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Claude Code slash command
+        uses: anthropics/claude-code-action@v1
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CLAUDE_CODE_SCRIPT_CAPS: '{"comment-on-duplicates.sh":1}'
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          allowed_non_write_users: "*"
+          prompt: "/dedupe ${{ github.repository }}/issues/${{ github.event.issue.number || inputs.issue_number }}"
+          # Authenticate to the Claude API via Workload Identity Federation
+          # (the workflow's OIDC token is exchanged for a short-lived access
+          # token) instead of a static API key.
+          anthropic_federation_rule_id: ${{ vars.ANTHROPIC_FEDERATION_RULE_ID }}
+          anthropic_organization_id: ${{ vars.ANTHROPIC_ORGANIZATION_ID }}
+          anthropic_service_account_id: ${{ vars.ANTHROPIC_SERVICE_ACCOUNT_ID }}
+          anthropic_workspace_id: ${{ vars.ANTHROPIC_WORKSPACE_ID }}
+          claude_args: "--model claude-sonnet-4-5-20250929"
+
+      - name: Log duplicate comment event to Statsig
+        if: always()
+        env:
+          STATSIG_API_KEY: ${{ secrets.STATSIG_API_KEY }}
+          ISSUE_NUMBER: ${{ github.event.issue.number || inputs.issue_number }}
+          REPO: ${{ github.repository }}
+          TRIGGERED_BY: ${{ github.event_name }}
+          WORKFLOW_RUN_ID: ${{ github.run_id }}
+        run: |
+          if [ -z "$STATSIG_API_KEY" ]; then
+            echo "STATSIG_API_KEY not found, skipping Statsig logging"
+            exit 0
+          fi
+          
+          # Prepare the event payload
+          EVENT_PAYLOAD=$(jq -n \
+            --arg issue_number "$ISSUE_NUMBER" \
+            --arg repo "$REPO" \
+            --arg triggered_by "$TRIGGERED_BY" \
+            --arg workflow_run_id "$WORKFLOW_RUN_ID" \
+            '{
+              events: [{
+                eventName: "github_duplicate_comment_added",
+                value: 1,
+                metadata: {
+                  repository: $repo,
+                  issue_number: ($issue_number | tonumber),
+                  triggered_by: $triggered_by,
+                  workflow_run_id: $workflow_run_id
+                },
+                time: (now | floor | tostring)
+              }]
+            }')
+          
+          # Send to Statsig API
+          echo "Logging duplicate comment event to Statsig for issue #${ISSUE_NUMBER}"
+          
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST https://events.statsigapi.net/v1/log_event \
+            -H "Content-Type: application/json" \
+            -H "STATSIG-API-KEY: ${STATSIG_API_KEY}" \
+            -d "$EVENT_PAYLOAD")
+          
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | head -n-1)
+          
+          if [ "$HTTP_CODE" -eq 200 ] || [ "$HTTP_CODE" -eq 202 ]; then
+            echo "Successfully logged duplicate comment event for issue #${ISSUE_NUMBER}"
+          else
+            echo "Failed to log duplicate comment event for issue #${ISSUE_NUMBER}. HTTP ${HTTP_CODE}: ${BODY}"
+          fi

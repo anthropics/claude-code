@@ -1,0 +1,8 @@
+{
+  "name": "claude-flow",
+  "version": "1.0.0",
+  "description": "AI agent orchestration using claude-flow (RuFlo) — coordinate swarms of specialized agents, hive-mind consensus, and persistent task automation within Claude Code",
+  "author": {
+    "name": "Anthropic"
+  }
+}
