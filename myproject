@@ -1,0 +1,18 @@
+
+myproject/
+├── manage.py
+├── requirements.txt
+├── .env
+├── .env.example
+├── myproject/
+│   ├── __init__.py
+│   ├── settings/
+│   │   ├── __init__.py
+│   │   ├── base.py
+│   │   ├── development.py
+│   │   ├── production.py
+│   │   └── testing.py
+│   ├── urls.py
+│   └── wsgi.py
+└── apps/
+    └── blog/
