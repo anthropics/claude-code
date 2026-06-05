@@ -1,22 +1,28 @@
 #!/usr/bin/env bash
 #
 # Comments on a GitHub issue with a list of potential duplicates.
-# Usage: ./comment-on-duplicates.sh --base-issue 123 --potential-duplicates 456 789 101
+# Usage: ./comment-on-duplicates.sh --potential-duplicates 456 789 101
+#
+# The base issue number is read from the workflow event payload.
 #
 
 set -euo pipefail
 
 REPO="anthropics/claude-code"
-BASE_ISSUE=""
+
+# Read from event payload so the issue number is bound to the triggering event.
+# Falls back to workflow_dispatch inputs for manual runs.
+BASE_ISSUE=$(jq -r '.issue.number // .inputs.issue_number // empty' "${GITHUB_EVENT_PATH:?GITHUB_EVENT_PATH not set}")
+if ! [[ "$BASE_ISSUE" =~ ^[0-9]+$ ]]; then
+  echo "Error: no issue number in event payload" >&2
+  exit 1
+fi
+
 DUPLICATES=()
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
   case $1 in
-    --base-issue)
-      BASE_ISSUE="$2"
-      shift 2
-      ;;
     --potential-duplicates)
       shift
       while [[ $# -gt 0 && ! "$1" =~ ^-- ]]; do
@@ -25,22 +31,11 @@ while [[ $# -gt 0 ]]; do
       done
       ;;
     *)
-      echo "Unknown option: $1" >&2
+      echo "Error: unknown argument (only --potential-duplicates is accepted)" >&2
       exit 1
       ;;
   esac
 done
-
-# Validate base issue
-if [[ -z "$BASE_ISSUE" ]]; then
-  echo "Error: --base-issue is required" >&2
-  exit 1
-fi
-
-if ! [[ "$BASE_ISSUE" =~ ^[0-9]+$ ]]; then
-  echo "Error: --base-issue must be a number, got: $BASE_ISSUE" >&2
-  exit 1
-fi
 
 # Validate duplicates
 if [[ ${#DUPLICATES[@]} -eq 0 ]]; then
