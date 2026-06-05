@@ -1,9 +1,0 @@
-{
-  "buildCommand": "npm install --prefix debate-module && npm run build --prefix debate-module",
-  "outputDirectory": "debate-module/.next",
-  "installCommand": "echo 'dependencies installed in build step'",
-  "framework": "nextjs",
-  "env": {
-    "NEXT_TELEMETRY_DISABLED": "1"
-  }
-}
