@@ -49,24 +49,10 @@ For more installation options, uninstall steps, and troubleshooting, see the [se
 
 This repository includes several Claude Code plugins that extend functionality with custom commands and agents. See the [plugins directory](./plugins/README.md) for detailed documentation on available plugins.
 
-## Reporting Bugs
+## Reporting Bugs and Security Vulnerabilities
 
-We welcome your feedback. Use the `/bug` command to report issues directly within Claude Code, or file a [GitHub issue](https://github.com/anthropics/claude-code/issues).
+We welcome your feedback. If you've found a legitimate security vulnerability in Claude Code itself, please report it responsibly through Anthropic's [security reporting process](https://www.anthropic.com/security). For other issues, use the `/bug` command to report them directly within Claude Code, or file a [GitHub issue](https://github.com/anthropics/claude-code/issues). Note that Claude Code is not designed to assist with bug bounty programs or security testing.
 
 ## Connect on Discord
 
-Join the [Claude Developers Discord](https://anthropic.com/discord) to connect with other developers using Claude Code. Get help, share feedback, and discuss your projects with the community.
-
-## Data collection, usage, and retention
-
-When you use Claude Code, we collect feedback, which includes usage data (such as code acceptance or rejections), associated conversation data, and user feedback submitted via the `/bug` command.
-
-### How we use your data
-
-See our [data usage policies](https://code.claude.com/docs/en/data-usage).
-
-### Privacy safeguards
-
-We have implemented several safeguards to protect your data, including limited retention periods for sensitive information, restricted access to user session data, and clear policies against using feedback for model training.
-
-For full details, please review our [Commercial Terms of Service](https://www.anthropic.com/legal/commercial-terms) and [Privacy Policy](https://www.anthropic.com/legal/privacy).
+Join the [Claude Developers Discord](https://anthropic.com/discord) to 
