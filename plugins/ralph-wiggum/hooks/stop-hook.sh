@@ -118,9 +118,11 @@ if [[ "$COMPLETION_PROMISE" != "null" ]] && [[ -n "$COMPLETION_PROMISE" ]]; then
   # .*? is non-greedy (takes FIRST tag), whitespace normalized
   PROMISE_TEXT=$(echo "$LAST_OUTPUT" | perl -0777 -pe 's/.*?<promise>(.*?)<\/promise>.*/$1/s; s/^\s+|\s+$//g; s/\s+/ /g' 2>/dev/null || echo "")
 
-  # Use = for literal string comparison (not pattern matching)
-  # == in [[ ]] does glob pattern matching which breaks with *, ?, [ characters
-  if [[ -n "$PROMISE_TEXT" ]] && [[ "$PROMISE_TEXT" = "$COMPLETION_PROMISE" ]]; then
+  # Normalize and lowercase both sides for case-insensitive, whitespace-tolerant matching
+  # Uses tr for portability (${var,,} requires Bash 4+ but macOS ships Bash 3)
+  PROMISE_LOWER=$(echo "$PROMISE_TEXT" | tr '[:upper:]' '[:lower:]')
+  EXPECTED_LOWER=$(echo "$COMPLETION_PROMISE" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//; s/[[:space:]]\{1,\}/ /g' | tr '[:upper:]' '[:lower:]')
+  if [[ -n "$PROMISE_TEXT" ]] && [[ "$PROMISE_LOWER" = "$EXPECTED_LOWER" ]]; then
     echo "✅ Ralph loop: Detected <promise>$COMPLETION_PROMISE</promise>"
     rm "$RALPH_STATE_FILE"
     exit 0
