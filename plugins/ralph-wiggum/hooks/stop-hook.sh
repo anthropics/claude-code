@@ -116,7 +116,10 @@ if [[ "$COMPLETION_PROMISE" != "null" ]] && [[ -n "$COMPLETION_PROMISE" ]]; then
   # Extract text from <promise> tags using Perl for multiline support
   # -0777 slurps entire input, s flag makes . match newlines
   # .*? is non-greedy (takes FIRST tag), whitespace normalized
-  PROMISE_TEXT=$(echo "$LAST_OUTPUT" | perl -0777 -pe 's/.*?<promise>(.*?)<\/promise>.*/$1/s; s/^\s+|\s+$//g; s/\s+/ /g' 2>/dev/null || echo "")
+  # Control characters (U+0000-U+0008, U+000E-U+001F, U+007F) are stripped
+  # before comparison so a stray terminal escape code in the transcript cannot
+  # prevent a valid promise from matching.
+  PROMISE_TEXT=$(echo "$LAST_OUTPUT" | perl -0777 -pe 's/.*?<promise>(.*?)<\/promise>.*/$1/s; s/[[:cntrl:]]//g; s/^\s+|\s+$//g; s/\s+/ /g' 2>/dev/null || echo "")
 
   # Use = for literal string comparison (not pattern matching)
   # == in [[ ]] does glob pattern matching which breaks with *, ?, [ characters
