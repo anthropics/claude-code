@@ -41,7 +41,7 @@ jobs:
                 page: page
               });
               
-              if (issues.length === 0) {
+              if (issues.length < 100) {
                 hasMore = false;
                 break;
               }
