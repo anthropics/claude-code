@@ -126,7 +126,7 @@ async function autoCloseDuplicates(): Promise<void> {
       token
     );
     
-    if (pageIssues.length === 0) break;
+    if (pageIssues.length < perPage) break;
     
     // Filter for issues created more than 3 days ago
     const oldEnoughIssues = pageIssues.filter(issue => 
