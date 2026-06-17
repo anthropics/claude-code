@@ -87,7 +87,7 @@ jobs:
           HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
           BODY=$(echo "$RESPONSE" | head -n-1)
           
-          if [ "$HTTP_CODE" -eq 200 ] || [ "$HTTP_CODE" -eq 202 ]; then
+          if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
             echo "Successfully logged duplicate comment event for issue #${ISSUE_NUMBER}"
           else
             echo "Failed to log duplicate comment event for issue #${ISSUE_NUMBER}. HTTP ${HTTP_CODE}: ${BODY}"
