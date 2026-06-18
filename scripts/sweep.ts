@@ -42,13 +42,13 @@ async function githubRequest<T>(
 
 // --
 
-async function fetchAllPages<T>(baseEndpoint: string): Promise<T[]> {
+async function fetchAllPages<T>(baseEndpoint: string, perPage = 100): Promise<T[]> {
   const all: T[] = [];
   for (let page = 1; ; page++) {
     const sep = baseEndpoint.includes("?") ? "&" : "?";
     const items = await githubRequest<T[]>(`${baseEndpoint}${sep}page=${page}`);
     all.push(...items);
-    if (items.length < 100) break;
+    if (items.length < perPage) break;
   }
   return all;
 }
@@ -125,7 +125,7 @@ async function closeExpired(owner: string, repo: string) {
 
         const base = `/repos/${owner}/${repo}/issues/${issue.number}`;
 
-        const events = await fetchAllPages<any>(`${base}/events?per_page=100`);
+        const events = await fetchAllPages<any>(`${base}/events?per_page=100`, 100);
 
         const labeledAt = events
           .filter((e) => e.event === "labeled" && e.label?.name === label)
@@ -138,7 +138,8 @@ async function closeExpired(owner: string, repo: string) {
         // The triage workflow should remove lifecycle labels on human
         // activity, but check here too as a safety net.
         const comments = await fetchAllPages<any>(
-          `${base}/comments?since=${labeledAt.toISOString()}&per_page=100`
+          `${base}/comments?since=${labeledAt.toISOString()}&per_page=100`,
+          100
         );
         const hasHumanComment = comments.some(
           (c) => c.user && c.user.type !== "Bot"
