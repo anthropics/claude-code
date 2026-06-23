@@ -14,7 +14,7 @@ This plugin adds structured governance to Claude Code sessions:
 - **Heartbeat Coherence** - Timing-based session health tracking
 - **Audit Trail** - Verifiable chain of actions with provenance
 
-No external dependencies. No network calls. Just structured, auditable AI actions.
+Minimal dependencies (`cryptography` for Ed25519 signing — see `requirements.txt`). No third-party governance services or SaaS dependencies. Local-only operation, except for an opt-in `git fetch` during git-push divergence checks.
 
 ## What's New in v1.1
 

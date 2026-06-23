@@ -26,6 +26,7 @@ jobs:
         uses: anthropics/claude-code-action@v1
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CLAUDE_CODE_SCRIPT_CAPS: '{"comment-on-duplicates.sh":1}'
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           allowed_non_write_users: "*"
@@ -37,10 +38,11 @@ jobs:
         if: always()
         env:
           STATSIG_API_KEY: ${{ secrets.STATSIG_API_KEY }}
+          ISSUE_NUMBER: ${{ github.event.issue.number || inputs.issue_number }}
+          REPO: ${{ github.repository }}
+          TRIGGERED_BY: ${{ github.event_name }}
+          WORKFLOW_RUN_ID: ${{ github.run_id }}
         run: |
-          ISSUE_NUMBER=${{ github.event.issue.number || inputs.issue_number }}
-          REPO=${{ github.repository }}
-          
           if [ -z "$STATSIG_API_KEY" ]; then
             echo "STATSIG_API_KEY not found, skipping Statsig logging"
             exit 0
@@ -50,7 +52,8 @@ jobs:
           EVENT_PAYLOAD=$(jq -n \
             --arg issue_number "$ISSUE_NUMBER" \
             --arg repo "$REPO" \
-            --arg triggered_by "${{ github.event_name }}" \
+            --arg triggered_by "$TRIGGERED_BY" \
+            --arg workflow_run_id "$WORKFLOW_RUN_ID" \
             '{
               events: [{
                 eventName: "github_duplicate_comment_added",
@@ -59,7 +62,7 @@ jobs:
                   repository: $repo,
                   issue_number: ($issue_number | tonumber),
                   triggered_by: $triggered_by,
-                  workflow_run_id: "${{ github.run_id }}"
+                  workflow_run_id: $workflow_run_id
                 },
                 time: (now | floor | tostring)
               }]
