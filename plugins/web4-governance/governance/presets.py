@@ -97,6 +97,28 @@ class PresetDefinition:
 
 # Safety rules shared between 'safety' and 'audit-only' presets
 SAFETY_RULES = [
+    # Whitelist (mirrors hestia core/src/policy/presets.rs): allow `rm` with
+    # flags when every target is an absolute /tmp path. Priority 0 -> wins over
+    # the destructive-deny (priority 1) via first-match. Guards: regex permits
+    # ONLY /tmp/... absolute args; command_must_not_contain rejects ".." (escape)
+    # and shell metacharacters (chaining). Relative paths, non-/tmp roots,
+    # escapes, and chained commands all still hit the deny. Flagless `rm /tmp/x`
+    # falls through to the plain-rm warn.
+    PolicyRule(
+        id="allow-rm-whitelisted-scratch",
+        name="Allow rm in whitelisted scratch dirs (/tmp)",
+        priority=0,
+        decision="allow",
+        reason="rm confined to whitelisted scratch dir (/tmp) - permitted",
+        match=PolicyMatch(
+            tools=["Bash"],
+            command_patterns=[
+                r"^\s*rm\s+(-{1,2}[A-Za-z]+\s+)+/tmp/[^\s;&|`$()]+(\s+/tmp/[^\s;&|`$()]+)*\s*$",
+            ],
+            command_patterns_are_regex=True,
+            command_must_not_contain=["..", ";", "&", "|", "`", "$("],
+        ),
+    ),
     PolicyRule(
         id="deny-destructive-commands",
         name="Block destructive shell commands",
