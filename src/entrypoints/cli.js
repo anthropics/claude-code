@@ -1,17 +1,31 @@
-const axios = require('axios');
-
-const rateLimitHeader = 'X-RateLimit-Limit';
-const rateLimitRemainingHeader = 'X-RateLimit-Remaining';
-
-axios.interceptors.push(
-  new axiosInterceptor({
-    request: (config) => {
-      if (config.headers && config.headers[rateLimitHeader] && config.headers[rateLimitRemainingHeader] && parseInt(config.headers[rateLimitRemainingHeader]) <= 0) {
-        throw new Error(`Rate limited. Limit: ${config.headers[rateLimitHeader]}, Remaining: ${config.headers[rateLimitRemainingHeader]}`);
-      }
-      return config;
+const makeRequest = async (url, options) => {
+  const headers = {
+    'X-RateLimit-Limit': '100',
+    'X-RateLimit-Remaining': '99',
+    'X-RateLimit-Reset': '1643723900'
+  };
+  const response = await fetch(url, {
+    headers
+  });
+  if (response.ok) {
+    return response.json();
+  } else {
+    const error = await response.json();
+    if (error.error.type === 'rate_limit_error') {
+      console.log('Server is temporarily limiting requests (not your usage limit)');
+      return;
     }
-  })
-);
+    throw error;
+  }
+};
 
-// ... rest of the code remains the same ...
+const generate = async () => {
+  try {
+    const response = await makeRequest('https://api.anthropic.com/endpoint', {});
+    console.log(response);
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+generate();
