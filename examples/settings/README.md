@@ -30,6 +30,20 @@ These may be applied at any level of the [settings hierarchy](https://code.claud
 
 To distribute these settings as enterprise-managed policy through Jamf, Iru (Kandji), Intune, or Group Policy, see the deployment templates in [`../mdm`](../mdm).
 
+## Troubleshooting
+
+### 1M context silently downgraded to 200K after visiting agents panel
+
+Navigating to the agents/sessions side panel (`→` key) and returning
+to the main session may silently drop the model from `[1m]` (1M) to
+bare (200K) context. The `[1m]` suffix is stripped during session
+save/restore when entering/exiting the panel.
+
+**Workaround**: run `/model` and re-select the 1M model after
+returning from the agents panel.
+
+See issue [#61730](https://github.com/anthropics/claude-code/issues/61730).
+
 ## Full Documentation
 
 See https://code.claude.com/docs/en/settings for complete documentation on all available managed settings.
