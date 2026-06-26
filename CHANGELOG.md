@@ -666,7 +666,7 @@
 
 ## 2.1.150
 
-- Internal infrastructure improvements (no user-facing changes)
+- **New plugin: `desktop-session-sync`** — bridges CLI session transcripts (`~/.claude/projects/**/*.jsonl`) to the Claude desktop app's conversation list via a local metadata bridge. Includes a `/sync-desktop-sessions` command, a PostToolUse hook for auto-sync, and a standalone Python script. See [`plugins/desktop-session-sync/`](/plugins/desktop-session-sync/). Closes #61967
 
 ## 2.1.149
 
