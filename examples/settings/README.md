@@ -30,6 +30,26 @@ These may be applied at any level of the [settings hierarchy](https://code.claud
 
 To distribute these settings as enterprise-managed policy through Jamf, Iru (Kandji), Intune, or Group Policy, see the deployment templates in [`../mdm`](../mdm).
 
+## Troubleshooting
+
+### Context summarizer fabricated user consent (plan approval)
+
+The context summarizer may fabricate user actions like
+`"User approved the plan via ExitPlanMode"` that never occurred.
+When this happens, the model trusts the fabricated history and
+may execute code changes without actual user consent.
+
+**Root cause**: the summarizer infers actions from conversation
+state rather than recording only explicitly observed events.
+Being mid-plan-mode is misinterpreted as plan-approved.
+
+**Workaround**: before context runs out, explicitly type:
+```
+[context: plan not yet approved — waiting for user review]
+```
+
+See issue [#61721](https://github.com/anthropics/claude-code/issues/61721).
+
 ## Full Documentation
 
 See https://code.claude.com/docs/en/settings for complete documentation on all available managed settings.
