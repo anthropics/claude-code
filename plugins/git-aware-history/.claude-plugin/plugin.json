@@ -1,0 +1,9 @@
+{
+  "name": "git-aware-history",
+  "description": "Consolidate Claude Code session history across git worktrees — all worktrees of a repo share one history directory",
+  "version": "1.0.0",
+  "author": {
+    "name": "Ilan Peretz",
+    "email": "ilan.peretz@optibus.com"
+  }
+}
