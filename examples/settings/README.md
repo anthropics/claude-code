@@ -1,6 +1,6 @@
 # Settings Examples
 
-Example Claude Code settings files, primarily intended for organization-wide deployments. Use these as starting points — adjust them to fit your needs.
+Example Claude Code settings files, primarily intended for organization-wide deployments. Use these as starting points - adjust them to fit your needs.
 
 These may be applied at any level of the [settings hierarchy](https://code.claude.com/docs/en/settings#settings-files), though certain properties only take effect if specified in enterprise settings (e.g. `strictKnownMarketplaces`, `allowManagedHooksOnly`, `allowManagedPermissionRulesOnly`).
 
@@ -12,13 +12,13 @@ These may be applied at any level of the [settings hierarchy](https://code.claud
 
 | Setting | [`settings-lax.json`](./settings-lax.json) | [`settings-strict.json`](./settings-strict.json) | [`settings-bash-sandbox.json`](./settings-bash-sandbox.json) |
 |---------|:---:|:---:|:---:|
-| Disable `--dangerously-skip-permissions` | ✅ | ✅ | |
-| Block plugin marketplaces | ✅ | ✅ | |
-| Block user and project-defined permission `allow` / `ask` / `deny` | | ✅ | ✅ |
-| Block user and project-defined hooks | | ✅ | |
-| Deny web fetch and search tools | | ✅ | |
-| Bash tool requires approval | | ✅ | |
-| Bash tool must run inside of sandbox | | | ✅ |
+| Disable `--dangerously-skip-permissions` | ? | ? | |
+| Block plugin marketplaces | ? | ? | |
+| Block user and project-defined permission `allow` / `ask` / `deny` | | ? | ? |
+| Block user and project-defined hooks | | ? | |
+| Deny web fetch and search tools | | ? | |
+| Bash tool requires approval | | ? | |
+| Bash tool must run inside of sandbox | | | ? |
 
 ## Tips
 - Consider merging snippets of the above examples to reach your desired configuration
@@ -33,3 +33,11 @@ To distribute these settings as enterprise-managed policy through Jamf, Iru (Kan
 ## Full Documentation
 
 See https://code.claude.com/docs/en/settings for complete documentation on all available managed settings.
+
+## Troubleshooting
+
+### Cowork removes Claude for PowerPoint/Excel add-in after each session
+
+After Cowork modifies an Office file, the Claude for PowerPoint add-in disappears from the ribbon, and the Excel add-in triggers "Microsoft 365 has been configured to prevent individual acquisition and execution of Office Store Add-ins." This is caused by Cowork's COM/OLE automation altering the add-in trust context.
+
+**Workaround:** Re-deploy the add-in from Microsoft 365 Admin Center (Settings > Integrated apps) after each Cowork session. Avoid modifying PowerPoint files in Cowork sessions if the add-in is needed.
