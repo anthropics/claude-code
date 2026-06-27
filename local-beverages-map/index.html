@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Local Sips — Beers &amp; Wines by City</title>
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand">
+      <h1>Local Sips</h1>
+      <p class="tagline">Discover local beers &amp; wines, with ratings and where to find them.</p>
+    </div>
+    <div class="controls">
+      <label for="city-select">City</label>
+      <select id="city-select" aria-label="Choose a city"></select>
+      <div class="filters" role="tablist" aria-label="Beverage filter">
+        <button type="button" class="filter-btn active" data-filter="all" role="tab" aria-selected="true">All</button>
+        <button type="button" class="filter-btn" data-filter="beer" role="tab" aria-selected="false">Beer</button>
+        <button type="button" class="filter-btn" data-filter="wine" role="tab" aria-selected="false">Wine</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="app-main">
+    <section class="sidebar" aria-label="Beverage list">
+      <div class="city-meta">
+        <h2 id="city-name">—</h2>
+        <p id="city-blurb"></p>
+      </div>
+      <div id="beverage-list" class="beverage-list"></div>
+    </section>
+    <section class="map-container" aria-label="Map">
+      <div id="map"></div>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <span>Map data &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors</span>
+    <span>Ratings are illustrative.</span>
+  </footer>
+
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
