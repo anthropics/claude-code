@@ -235,7 +235,7 @@ The agent has access to:
 - Security checklist: ${CLAUDE_PLUGIN_ROOT}/checklists/security.md
 - Performance guidelines: ${CLAUDE_PLUGIN_ROOT}/docs/performance.md
 
-Note: This uses the Task tool to launch the plugin's code-reviewer agent for thorough analysis.
+Note: This uses the Agent tool to launch the plugin's code-reviewer agent for thorough analysis.
 ```
 
 **Key features:**
