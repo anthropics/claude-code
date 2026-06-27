@@ -1,0 +1,16 @@
+{
+  "description": "Cleans up orphaned subagent processes at session start",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/cleanup.py",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}
