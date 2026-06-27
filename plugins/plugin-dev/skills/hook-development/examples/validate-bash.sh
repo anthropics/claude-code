@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Example PreToolUse hook for validating Bash commands
 # This script demonstrates bash command validation patterns
 
