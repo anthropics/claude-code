@@ -1,0 +1,17 @@
+{
+  "description": "Validates file content integrity on session resume to detect stale cached data",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/session-resume-validator.py",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}
