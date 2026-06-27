@@ -1,0 +1,5 @@
+{
+  "name": "worktree-guardian",
+  "version": "1.0.0",
+  "description": "Detects orphaned agent worktrees with uncommitted or unpushed work at session start, preventing silent data loss from stale cleanup"
+}
