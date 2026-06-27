@@ -1,0 +1,15 @@
+{
+  "description": "Agent Status: captures session ID on start for agent status lookups",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/on_session_start.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
