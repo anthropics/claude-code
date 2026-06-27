@@ -12,6 +12,19 @@ from typing import List, Optional, Dict, Any
 from dataclasses import dataclass, field
 
 
+def normalize_action(action: Any) -> str:
+    """Normalize user-facing action aliases."""
+    if not isinstance(action, str):
+        return "warn"
+
+    normalized = action.strip().lower()
+    if normalized == "confirm":
+        return "ask"
+    if normalized in {"warn", "ask", "block"}:
+        return normalized
+    return "warn"
+
+
 @dataclass
 class Condition:
     """A single condition for matching."""
@@ -37,7 +50,7 @@ class Rule:
     event: str  # "bash", "file", "stop", "all", etc.
     pattern: Optional[str] = None  # Simple pattern (legacy)
     conditions: List[Condition] = field(default_factory=list)
-    action: str = "warn"  # "warn" or "block" (future)
+    action: str = "warn"  # "warn", "ask", or "block"
     tool_matcher: Optional[str] = None  # Override tool matching
     message: str = ""  # Message body from markdown
 
@@ -78,7 +91,7 @@ class Rule:
             event=frontmatter.get('event', 'all'),
             pattern=simple_pattern,
             conditions=conditions,
-            action=frontmatter.get('action', 'warn'),
+            action=normalize_action(frontmatter.get('action', 'warn')),
             tool_matcher=frontmatter.get('tool_matcher'),
             message=message.strip()
         )

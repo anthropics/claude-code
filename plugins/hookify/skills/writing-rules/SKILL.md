@@ -47,6 +47,7 @@ Can include markdown formatting, warnings, suggestions, etc.
 
 **action** (optional): What to do when rule matches
 - `warn`: Show message but allow operation (default)
+- `ask`: Prompt for approval before the tool runs (PreToolUse only; `confirm` also works)
 - `block`: Prevent operation (PreToolUse) or stop session (Stop events)
 - If omitted, defaults to `warn`
 
