@@ -11,6 +11,11 @@
     {
       "name": "agent-sdk-dev",
       "description": "Development kit for working with the Claude Agent SDK",
+      "version": "1.0.0",
+      "author": {
+        "name": "Ashwin Bhat",
+        "email": "ashwin@anthropic.com"
+      },
       "source": "./plugins/agent-sdk-dev",
       "category": "development"
     },
