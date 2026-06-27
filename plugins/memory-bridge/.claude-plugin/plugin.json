@@ -1,0 +1,8 @@
+{
+  "name": "memory-bridge",
+  "description": "Structured context consolidation at session boundaries — prevents knowledge loss across sessions",
+  "version": "1.0.0",
+  "author": {
+    "name": "Jing Liang"
+  }
+}
