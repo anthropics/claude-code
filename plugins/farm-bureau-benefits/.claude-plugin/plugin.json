@@ -1,0 +1,9 @@
+{
+  "name": "farm-bureau-benefits",
+  "version": "1.0.0",
+  "description": "Personalized Louisiana Farm Bureau benefits discovery system — asks smart questions and generates tailored benefit recommendations for prospective members",
+  "author": {
+    "name": "Garrett Gardner",
+    "email": "ggardner@sfbcic.com"
+  }
+}
