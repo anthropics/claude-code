@@ -1,0 +1,27 @@
+{
+  "description": "Blocks Claude from modifying its own hooks, settings, and safety infrastructure via any write vector (Edit, Write, MultiEdit, Bash).",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/guard.py",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/guard.py",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}
