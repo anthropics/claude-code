@@ -207,7 +207,10 @@ Environment Variables:
   );
 }
 
-backfillDuplicateComments().catch(console.error);
+backfillDuplicateComments().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});
 
 // Make it a module
 export {};
