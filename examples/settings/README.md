@@ -30,6 +30,27 @@ These may be applied at any level of the [settings hierarchy](https://code.claud
 
 To distribute these settings as enterprise-managed policy through Jamf, Iru (Kandji), Intune, or Group Policy, see the deployment templates in [`../mdm`](../mdm).
 
+## Troubleshooting
+
+### VS Code extension: large input covers Claude's answer
+
+If you paste a message of 50+ lines, the input balloon expands
+past the viewport and covers Claude's response. The input cannot
+be minimized.
+
+**Workarounds**:
+- Split large inputs into smaller messages (under ~20 lines)
+- Use the CLI instead for large multiline inputs:
+  ```bash
+  claude "your long message here"
+  ```
+- Submit quickly with Ctrl+Enter immediately after pasting
+
+**Fix needed**: the input component needs `max-height` + overflow
+scroll and auto-collapse on response.
+
+See issue [#61717](https://github.com/anthropics/claude-code/issues/61717).
+
 ## Full Documentation
 
 See https://code.claude.com/docs/en/settings for complete documentation on all available managed settings.
