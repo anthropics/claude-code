@@ -22,6 +22,9 @@ import json
 import os
 import re
 import sys
+import ipaddress
+import socket
+import urllib.parse
 import urllib.request
 from typing import Optional, Tuple, Dict, Any, List
 
@@ -96,7 +99,19 @@ def _anthropic_base_url() -> str:
     gateway. Defaults to https://api.anthropic.com. Always returns a string
     with no trailing slash so callers can safely append /v1/messages etc.
     """
-    return os.environ.get("ANTHROPIC_BASE_URL", "https://api.anthropic.com").rstrip("/")
+    url = os.environ.get("ANTHROPIC_BASE_URL", "https://api.anthropic.com").rstrip("/")
+    parsed = urllib.parse.urlparse(url)
+    if parsed.scheme not in ("http", "https"):
+        raise ValueError(f"ANTHROPIC_BASE_URL has invalid scheme: {parsed.scheme!r}")
+    hostname = (parsed.hostname or "").rstrip(".").lower()
+    try:
+        for _fam, _type, _proto, _cname, sockaddr in socket.getaddrinfo(hostname, None):
+            ip = ipaddress.ip_address(sockaddr[0])
+            if ip.is_loopback or ip.is_private or ip.is_link_local:
+                raise ValueError(f"ANTHROPIC_BASE_URL resolves to a disallowed address: {ip}")
+    except socket.gaierror:
+        pass  # DNS failure will surface at request time
+    return url
 
 
 def _probe_anthropic(timeout: float = 5.0) -> bool:
