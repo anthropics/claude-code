@@ -1,0 +1,8 @@
+{
+  "name": "question-optimizer",
+  "version": "1.0.0",
+  "description": "Detects simple questions and follow-up queries to optimize response time by suggesting faster model usage",
+  "author": {
+    "name": "Performance Optimization Team"
+  }
+}

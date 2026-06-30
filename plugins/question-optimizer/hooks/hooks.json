@@ -1,0 +1,6 @@
+{
+  "userPromptSubmit": {
+    "script": "./question_optimizer_hook.py",
+    "description": "Analyzes user input to detect simple questions and suggests faster model usage"
+  }
+}
