@@ -135,7 +135,7 @@ Run a comprehensive pull request review using multiple specialized agents, each 
 - Rates type design quality
 
 **code-reviewer**:
-- Checks CLAUDE.md compliance
+- Checks CLAUDE.md and AGENTS.md compliance
 - Detects bugs and issues
 - Reviews general code quality
 

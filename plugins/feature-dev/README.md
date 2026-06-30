@@ -297,7 +297,7 @@ Suggested next steps:
 **Purpose**: Reviews code for bugs, quality issues, and project conventions
 
 **Focus areas:**
-- Project guideline compliance (CLAUDE.md)
+- Project guideline compliance (CLAUDE.md and AGENTS.md)
 - Bug detection
 - Code quality issues
 - Confidence-based filtering (only reports high-confidence issues ≥80)
