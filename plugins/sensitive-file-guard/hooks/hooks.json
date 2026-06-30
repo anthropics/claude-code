@@ -1,0 +1,16 @@
+{
+  "description": "Protects sensitive infrastructure files from accidental overwrites",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/sensitive_file_guard_hook.py"
+          }
+        ],
+        "matcher": "Write|Edit|MultiEdit"
+      }
+    ]
+  }
+}
