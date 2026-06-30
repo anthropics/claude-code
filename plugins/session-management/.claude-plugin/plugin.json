@@ -1,0 +1,9 @@
+{
+  "name": "session-management",
+  "description": "Fork or move Claude Code conversations to a different working directory, preserving full conversation history",
+  "version": "1.0.0",
+  "author": {
+    "name": "Mostagir Bhuiyan",
+    "email": "mmostagirbhuiyan@users.noreply.github.com"
+  }
+}
