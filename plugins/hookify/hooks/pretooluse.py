@@ -42,11 +42,14 @@ def main():
         # For PreToolUse, we use tool_name to determine "bash" vs "file" event
         tool_name = input_data.get('tool_name', '')
 
-        event = None
         if tool_name == 'Bash':
             event = 'bash'
         elif tool_name in ['Edit', 'Write', 'MultiEdit']:
             event = 'file'
+        else:
+            # Unknown tool: only evaluate event=all rules to avoid
+            # bash/file-specific rules running on unrelated tools.
+            event = 'all'
 
         # Load rules
         rules = load_rules(event=event)

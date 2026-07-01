@@ -69,7 +69,8 @@ class RuleEngine:
                     "reason": combined_message,
                     "systemMessage": combined_message
                 }
-            elif hook_event in ['PreToolUse', 'PostToolUse']:
+            elif hook_event == 'PreToolUse':
+                # PreToolUse can deny the tool before it executes
                 return {
                     "hookSpecificOutput": {
                         "hookEventName": hook_event,
@@ -78,7 +79,7 @@ class RuleEngine:
                     "systemMessage": combined_message
                 }
             else:
-                # For other events, just show message
+                # PostToolUse and other events: tool already ran, can only inject a message
                 return {
                     "systemMessage": combined_message
                 }

@@ -42,6 +42,19 @@ async function githubRequest<T>(
 
 // --
 
+async function fetchAllPages<T>(baseEndpoint: string, perPage = 100): Promise<T[]> {
+  const all: T[] = [];
+  for (let page = 1; ; page++) {
+    const sep = baseEndpoint.includes("?") ? "&" : "?";
+    const items = await githubRequest<T[]>(`${baseEndpoint}${sep}page=${page}`);
+    all.push(...items);
+    if (items.length < perPage) break;
+  }
+  return all;
+}
+
+// --
+
 async function markStale(owner: string, repo: string) {
   const staleDays = lifecycle.find((l) => l.label === "stale")!.days;
   const cutoff = new Date();
@@ -55,7 +68,7 @@ async function markStale(owner: string, repo: string) {
     const issues = await githubRequest<any[]>(
       `/repos/${owner}/${repo}/issues?state=open&sort=updated&direction=asc&per_page=100&page=${page}`
     );
-    if (issues.length === 0) break;
+    if (issues.length < 100) break;
 
     for (const issue of issues) {
       if (issue.pull_request) continue;
@@ -101,7 +114,7 @@ async function closeExpired(owner: string, repo: string) {
       const issues = await githubRequest<any[]>(
         `/repos/${owner}/${repo}/issues?state=open&labels=${label}&sort=updated&direction=asc&per_page=100&page=${page}`
       );
-      if (issues.length === 0) break;
+      if (issues.length < 100) break;
 
       for (const issue of issues) {
         if (issue.pull_request) continue;
@@ -112,7 +125,7 @@ async function closeExpired(owner: string, repo: string) {
 
         const base = `/repos/${owner}/${repo}/issues/${issue.number}`;
 
-        const events = await githubRequest<any[]>(`${base}/events?per_page=100`);
+        const events = await fetchAllPages<any>(`${base}/events?per_page=100`, 100);
 
         const labeledAt = events
           .filter((e) => e.event === "labeled" && e.label?.name === label)
@@ -124,8 +137,9 @@ async function closeExpired(owner: string, repo: string) {
         // Skip if a non-bot user commented after the label was applied.
         // The triage workflow should remove lifecycle labels on human
         // activity, but check here too as a safety net.
-        const comments = await githubRequest<any[]>(
-          `${base}/comments?since=${labeledAt.toISOString()}&per_page=100`
+        const comments = await fetchAllPages<any>(
+          `${base}/comments?since=${labeledAt.toISOString()}&per_page=100`,
+          100
         );
         const hasHumanComment = comments.some(
           (c) => c.user && c.user.type !== "Bot"
