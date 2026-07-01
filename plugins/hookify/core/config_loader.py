@@ -60,14 +60,14 @@ class Rule:
             # Infer field from event
             event = frontmatter.get('event', 'all')
             if event == 'bash':
-                field = 'command'
+                field_name = 'command'
             elif event == 'file':
-                field = 'new_text'
+                field_name = 'new_text'
             else:
-                field = 'content'
+                field_name = 'content'
 
             conditions = [Condition(
-                field=field,
+                field=field_name,
                 operator='regex_match',
                 pattern=simple_pattern
             )]
@@ -163,8 +163,12 @@ def extract_frontmatter(content: str) -> tuple[Dict[str, Any], str]:
             # Check if this is an inline dict (key: value on same line)
             if ':' in item_text and ',' in item_text:
                 # Inline comma-separated dict: "- field: command, operator: regex_match"
+                # Split only on commas that are followed by a key (word chars then colon),
+                # so commas inside quoted values or regex patterns are preserved.
                 item_dict = {}
-                for part in item_text.split(','):
+                import re as _re
+                parts = _re.split(r',\s*(?=\w[\w\s]*:)', item_text)
+                for part in parts:
                     if ':' in part:
                         k, v = part.split(':', 1)
                         item_dict[k.strip()] = v.strip().strip('"').strip("'")
