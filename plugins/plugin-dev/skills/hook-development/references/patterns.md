@@ -68,7 +68,7 @@ Load project-specific context at session start:
 
 **Example script (load-context.sh):**
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 cd "$CLAUDE_PROJECT_DIR" || exit 1
 
 # Detect project type
@@ -193,7 +193,7 @@ Run linters or formatters on file edits:
 
 **Example script (check-quality.sh):**
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 input=$(cat)
 file_path=$(echo "$input" | jq -r '.tool_input.file_path')
 
@@ -263,7 +263,7 @@ This provides multi-layered protection and automation.
 Create hooks that only run when explicitly enabled via flag files:
 
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 # Hook only active when flag file exists
 FLAG_FILE="$CLAUDE_PROJECT_DIR/.enable-security-scan"
 
@@ -302,7 +302,7 @@ rm .enable-security-scan
 Use JSON configuration to control hook behavior:
 
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 CONFIG_FILE="$CLAUDE_PROJECT_DIR/.claude/my-plugin.local.json"
 
 # Read configuration
