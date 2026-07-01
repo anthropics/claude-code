@@ -23,19 +23,19 @@ fi
 
 # Check for destructive operations
 if [[ "$command" == *"rm -rf"* ]] || [[ "$command" == *"rm -fr"* ]]; then
-  echo '{"hookSpecificOutput": {"permissionDecision": "deny"}, "systemMessage": "Dangerous command detected: rm -rf"}' >&2
+  echo '{"hookSpecificOutput": {"permissionDecision": "deny"}, "systemMessage": "Dangerous command detected: rm -rf"}'
   exit 2
 fi
 
 # Check for other dangerous commands
 if [[ "$command" == *"dd if="* ]] || [[ "$command" == *"mkfs"* ]] || [[ "$command" == *"> /dev/"* ]]; then
-  echo '{"hookSpecificOutput": {"permissionDecision": "deny"}, "systemMessage": "Dangerous system operation detected"}' >&2
+  echo '{"hookSpecificOutput": {"permissionDecision": "deny"}, "systemMessage": "Dangerous system operation detected"}'
   exit 2
 fi
 
-# Check for privilege escalation
-if [[ "$command" == sudo* ]] || [[ "$command" == su* ]]; then
-  echo '{"hookSpecificOutput": {"permissionDecision": "ask"}, "systemMessage": "Command requires elevated privileges"}' >&2
+# Check for privilege escalation — match "su" / "su -" / "su <user>" but not submodule, subl, etc.
+if [[ "$command" == sudo* ]] || [[ "$command" =~ ^su([[:space:]]|-|$) ]]; then
+  echo '{"hookSpecificOutput": {"permissionDecision": "ask"}, "systemMessage": "Command requires elevated privileges"}'
   exit 2
 fi
 
