@@ -197,7 +197,9 @@ This plugin is included in the Claude Code repository. The commands are automati
 **Issue**: `gh pr create` command fails
 
 **Solution**:
-- Install GitHub CLI: `brew install gh` (macOS) or see [GitHub CLI installation](https://cli.github.com/)
+- Install GitHub CLI — see [GitHub CLI installation](https://cli.github.com/) for all platforms, or use a quick method:
+  - **macOS/Linux:** `brew install gh`
+  - **Windows:** `winget install --id GitHub.cli`
 - Authenticate: `gh auth login`
 - Ensure repository has a GitHub remote
 
