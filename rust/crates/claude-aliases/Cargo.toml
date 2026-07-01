@@ -1,0 +1,25 @@
+[package]
+name = "claude-aliases"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description = "Tool Alias DSL parser and executor for custom tool shortcuts"
+
+[dependencies]
+# Parsing
+nom = "7.1"
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Error handling
+thiserror = { workspace = true }
+
+[dev-dependencies]
+# Testing
+serde_test = "1.0"
+
