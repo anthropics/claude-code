@@ -63,7 +63,8 @@ Five reports come back clean. The `purge_cache.py` worker's report:
 > **Outcome**: Done — flag added, all three criteria verified.
 > **Work performed**: scripts/purge_cache.py:34 (arg parser), :58-61 (gate before `os.remove`).
 > **Evidence**: Criterion 1 — ran with `--dry-run` against the seeded fixture, diffed before/after, byte-identical (confidence: 92 — pinned method followed exactly, reproducible). Criterion 2 — ran without the flag, all 5 dummy files removed as before (confidence: 95). Criterion 3 — log line emitted per file (confidence: 68 — checked stdout manually for the 5-file case, didn't test the zero-file or single-file edge case).
-> **Risks and open questions**: criterion 3's confidence is capped because only the 5-file case was exercised.
+> **Deviations from briefing**: None.
+> **Risks and open questions**: criterion 3's confidence is capped because only the 5-file case was exercised — that's the highest-value next check.
 
 *(This notification arrives in a fresh turn. Per "Staying Pinned Across Turns," the orchestrator re-invokes the `orchestrate` skill before reviewing, to reapply the Fable 5 / max-effort pin for this turn.)*
 
@@ -81,7 +82,7 @@ All six scripts accept `--dry-run` with the same flag name and logging shape (ch
 
 ## 7. Deliver
 
-> Added `--dry-run` to all 6 destructive scripts in `scripts/`, each verified against a seeded fixture for both dry-run (zero deletes) and normal (unchanged) behavior. Deployed as 6 parallel team-workers; no rework needed — the one below-threshold claim was spot-checked directly and confirmed correct. Full test suite passes.
+> Your request — add `--dry-run` to every script in `scripts/` that performs a destructive filesystem action — is done: all 6 identified scripts. No assumptions needed correcting; which scripts count as "destructive" was unambiguous from a direct scan. Verified per script against a seeded fixture (dry-run: zero deletes; normal: unchanged behavior), with the load-bearing claims confirmed directly rather than trusted on confidence alone, and the project's full test suite passes across the batch. To check it yourself: run any script with `--dry-run` against a scratch directory and confirm nothing is removed. (Team: 6 parallel team-workers, one per script; no rework needed.)
 
 ## Beyond Code Sweeps
 

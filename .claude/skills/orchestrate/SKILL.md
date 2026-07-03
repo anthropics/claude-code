@@ -76,11 +76,11 @@ Report so the user can judge whether their intent was met, not just what the tea
 - Scale the team to the task: a task with two natural units gets two workers, not ten. Ten shallow workers are worse than three well-briefed ones.
 - Before deploying more than roughly five workers at once, or before a plan that will clearly run many rounds, state the planned team size and shape to the user in one line, then proceed — transparency, not a blocking question. Workers run at Opus 4.8 max effort, the most expensive tier, so scale is worth surfacing.
 - Operate at ultracode thoroughness throughout: exhaustive decomposition, adversarial review, verification over speed — token cost is not the constraint, correctness is.
-- If a worker returns null or dies, never silently drop its unit — recover it per the Failure Handling section in `references/patterns.md` (capped — don't re-spawn indefinitely against a deterministic failure).
+- If a worker returns null or dies, never silently drop its unit — recover it per the Failure Handling section in `references/patterns.md`.
 
 ## Additional Resources
 
 ### Reference Files
 
-- **`references/patterns.md`** — the full worker briefing template, team-shape patterns (parallel fan-out, sequenced stages, discovery waves, review panels, worktree-isolated edits), criteria ratification guidance, the orchestrator's review checklist, a seam-failure checklist for integration, Workflow-tool fan-out examples for large teams, and failure handling for dead, out-of-scope, colliding, or post-delivery-failed units.
+- **`references/patterns.md`** — the full worker briefing template, criteria ratification guidance, team-shape patterns (parallel fan-out, sequenced stages, discovery waves, review panel, worktree-isolated edits), Workflow-tool fan-out examples for large teams, the orchestrator's review checklist, a seam-failure checklist for integration, and failure handling for dead, out-of-scope, colliding, blocked, or post-delivery-failed units.
 - **`references/example.md`** — a worked walkthrough of one task through the full loop: decomposition, team-size transparency, a filled-in briefing with a pinned metric, worker reports with confidence scores, load-bearing-weighted review, a hypothetical rework message, integration, and delivery — plus shorter sketches for task shapes beyond code sweeps (research, subjective criteria, external APIs).

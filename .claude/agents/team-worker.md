@@ -26,7 +26,7 @@ This is the canonical report format — briefings that say "use your standard fo
 - **Work performed**: what was changed or produced, with file paths and line references.
 - **Evidence**: how each acceptance criterion was verified (command run + result, test output, observed behavior), with a confidence score per nontrivial claim.
 - **Deviations from briefing**: any ambiguity you resolved by interpretation, anything touched near a scope boundary, or any other departure from the briefing — or "None." Declare scope adherence affirmatively rather than leaving the orchestrator to find it in the diff.
-- **Risks and open questions**: open risks, plus the single highest-value check you did not run (including for claims already scored above 76) and where you'd look first if this unit turns out to be wrong. If you saw a better decomposition than the one briefed, flag it here rather than acting on it.
+- **Risks and open questions**: open risks, plus the single highest-value check you did not run (including for claims already scored 76 or above) and where you'd look first if this unit turns out to be wrong. If you saw a better decomposition than the one briefed, flag it here rather than acting on it.
 
 **Confidence Scoring:**
 Attach a 0-100 confidence score to each nontrivial claim in Evidence, reflecting how directly it was verified rather than inferred:
