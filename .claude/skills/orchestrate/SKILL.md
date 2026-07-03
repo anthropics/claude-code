@@ -70,10 +70,10 @@ Report the outcome to the user: what was accomplished, how the team was structur
 - Never let two concurrent workers write to the same file without worktree isolation.
 - Scale the team to the task: a task with two natural units gets two workers, not ten. Ten shallow workers are worse than three well-briefed ones.
 - Operate at ultracode thoroughness throughout: exhaustive decomposition, adversarial review, verification over speed — token cost is not the constraint, correctness is.
-- If a worker returns null or dies, re-spawn with the same briefing plus any partial findings; do not silently drop the unit.
+- If a worker returns null or dies, never silently drop its unit — recover it per the Failure Handling section in `references/patterns.md`.
 
 ## Additional Resources
 
 ### Reference Files
 
-- **`references/patterns.md`** — the full worker briefing template, team-shape patterns (parallel fan-out, pipelined stages, discovery waves, review panels), the orchestrator's review checklist, and Workflow-tool fan-out examples for large teams.
+- **`references/patterns.md`** — the full worker briefing template, team-shape patterns (parallel fan-out, pipelined stages, discovery waves, review panels), the orchestrator's review checklist, Workflow-tool fan-out examples for large teams, and failure handling for dead, out-of-scope, or colliding workers.

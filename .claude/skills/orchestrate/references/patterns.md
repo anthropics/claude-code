@@ -104,7 +104,7 @@ Rework message format: quote the failed criterion, state what was observed vs. r
 
 ## Failure Handling
 
-- **Worker returns null / dies**: re-spawn with the same briefing; if it died mid-edit in a shared tree, inspect and clean the partial state first.
+- **Worker returns null / dies**: if it died mid-edit in a shared tree, inspect and clean the partial state first; then re-spawn with the same briefing plus any salvaged partial findings.
 - **Worker went out of scope**: revert the out-of-scope edits, accept the in-scope work if it stands alone, and tighten the boundary language in future briefings.
 - **Two workers collided**: stop, resolve the tree state, then re-sequence — collisions mean the decomposition was wrong, not the workers.
 - **Repeated rework failures (2+ rounds)**: stop delegating that unit; the briefing or the decomposition is the problem. Re-scout, re-plan, re-brief fresh.
