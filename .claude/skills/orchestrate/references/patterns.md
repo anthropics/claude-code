@@ -103,7 +103,7 @@ Apply to every worker report before accepting it:
 - [ ] **Scope (mechanical)**: for any unit that edited files, run `git diff --name-only` (in the worker's worktree if isolated) and compare against the briefed in-scope set — any path outside it is an automatic violation, no judgment required. Cross-check against the worker's own "Deviations from briefing" field. Reserve manual reading for whether the in-scope edits are correct, not whether they're in scope.
 - [ ] **Load-bearing verification**: verify directly (1) the single most load-bearing claim — the one that, if false, means the unit failed — regardless of its confidence score, since a confidently-wrong claim is exactly what a confidence-only trigger misses; and (2) any other claim that is both load-bearing and scored below 76. A sub-76 claim that gates nothing may be carried as residual risk instead of re-verified. Verifying a pinned-metric claim means re-running the exact stated command.
 - [ ] **Seams**: does this unit's output still fit the units already accepted (interfaces, naming, assumptions)? See the Seam-Failure Checklist below for concrete patterns.
-- [ ] **Risks**: every risk or open question in the report either resolved now or carried into the final delivery — never dropped, including the worker's own "what I'd verify next" pointer.
+- [ ] **Risks**: every risk or open question in the report either resolved now or carried into the final delivery — never dropped, including the worker's own highest-value-next-check pointer.
 
 Rework message format: quote the failed criterion, state what was observed vs. required, and restate the acceptance bar. Specific rework converges in one round; vague rework ("improve this") does not.
 
