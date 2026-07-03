@@ -23,7 +23,7 @@ Execute a large task as a coordinated team: one orchestrator that plans, delegat
 
 The orchestrator does **not** do worker-scale execution itself. Its hands-on work is limited to scouting (quick reads to inform decomposition), reviewing, integrating, and verifying.
 
-**Workers** — `team-worker` subagents, pinned by `.claude/agents/team-worker.md` to `claude-opus-4-8` at `effort: max`. Each worker executes exactly one assignment and returns a structured report in the format that file defines, with confidence-scored evidence. Workers do not spawn their own teams.
+**Workers** — `team-worker` subagents, pinned by their agent definition to `claude-opus-4-8` at `effort: max`. Each worker executes exactly one assignment and returns a structured report in the format that definition specifies, with confidence-scored evidence. Workers do not spawn their own teams.
 
 ## Staying Pinned Across Turns
 

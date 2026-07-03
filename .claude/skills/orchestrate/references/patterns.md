@@ -27,7 +27,7 @@ One paragraph: what this assignment produces and why the team needs it.
 Each criterion must be verifiable from the report plus the artifacts. For any criterion that is a metric (a count, a word count, a percentage), pin the exact measurement method (e.g., "word count via `wc -w` on the body, frontmatter excluded") — an unpinned metric lets the worker and the orchestrator compute two different, equally defensible numbers and turns a real pass into a false rework round.
 
 ## Report format
-Use your standard format (see `.claude/agents/team-worker.md` — that file is the canonical spec), unless this assignment needs a different structure — state that explicitly and describe it here.
+Use your standard format (see the `team-worker` agent definition — it is the canonical spec), unless this assignment needs a different structure — state that explicitly and describe it here.
 ```
 
 Briefing quality checklist before sending:
