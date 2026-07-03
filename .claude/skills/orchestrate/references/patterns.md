@@ -24,15 +24,16 @@ One paragraph: what this assignment produces and why the team needs it.
 ## Acceptance criteria
 1. <observable, checkable criterion>
 2. <...>
-Each criterion must be verifiable from the report plus the artifacts.
+Each criterion must be verifiable from the report plus the artifacts. For any criterion that is a metric (a count, a word count, a percentage), pin the exact measurement method (e.g., "word count via `wc -w` on the body, frontmatter excluded") — an unpinned metric lets the worker and the orchestrator compute two different, equally defensible numbers and turns a real pass into a false rework round.
 
 ## Report format
-Outcome / Work performed (with file:line refs) / Evidence per criterion / Risks and open questions.
+Use your standard format (see `.claude/agents/team-worker.md` — that file is the canonical spec), unless this assignment needs a different structure — state that explicitly and describe it here.
 ```
 
 Briefing quality checklist before sending:
 - [ ] Could a competent engineer with no other context complete this from the briefing alone?
 - [ ] Does every acceptance criterion have an obvious verification method?
+- [ ] Does every metric criterion pin its exact measurement method?
 - [ ] Are scope boundaries explicit enough that two parallel workers cannot collide?
 - [ ] Is the context section facts-only (no vague "improve quality" directives)?
 
@@ -96,7 +97,7 @@ Apply to every worker report before accepting it:
 
 - [ ] **Criteria**: every acceptance criterion addressed, each with concrete evidence (command + output, test result, observed behavior) — not assertions.
 - [ ] **Scope**: the diff/artifacts stay inside the assigned boundaries; no drive-by edits.
-- [ ] **Spot-check**: independently verify at least the most load-bearing claim (run the test, read the diff hunk, exercise the flow).
+- [ ] **Confidence-weighted spot-check**: verify directly anything the worker scored below 76; above that, spot-check is optional but still worth doing on the single most load-bearing claim.
 - [ ] **Seams**: does this unit's output still fit the units already accepted (interfaces, naming, assumptions)?
 - [ ] **Risks**: every risk or open question in the report either resolved now or carried into the final delivery — never dropped.
 

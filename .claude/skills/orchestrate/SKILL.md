@@ -23,7 +23,11 @@ Execute a large task as a coordinated team: one orchestrator that plans, delegat
 
 The orchestrator does **not** do worker-scale execution itself. Its hands-on work is limited to scouting (quick reads to inform decomposition), reviewing, integrating, and verifying.
 
-**Workers** — `team-worker` subagents, pinned by `.claude/agents/team-worker.md` to `claude-opus-4-8` at `effort: max`. Each worker executes exactly one assignment and returns a structured report (outcome, work performed, evidence, risks). Workers do not spawn their own teams.
+**Workers** — `team-worker` subagents, pinned by `.claude/agents/team-worker.md` to `claude-opus-4-8` at `effort: max`. Each worker executes exactly one assignment and returns a structured report (outcome, work performed, evidence with confidence scores, risks). Workers do not spawn their own teams.
+
+## Staying Pinned Across Turns
+
+The frontmatter's `model`/`effort` override lasts only for the turn that triggers it — the session model resumes on the next prompt, and that includes the turn where a background worker's or Workflow's completion notification arrives. Because orchestration inherently spans turns (deploy now, results land later), re-invoke this skill at the start of every turn that does orchestrator judgment — before reviewing a batch of reports, before integrating, before final delivery — to reapply the pin for that turn. Skip re-invocation only for turns that are pure waiting, with no orchestrator judgment happening yet.
 
 ## The Orchestration Loop
 
@@ -69,6 +73,7 @@ Report the outcome to the user: what was accomplished, how the team was structur
 - Independent assignments launch in one message, in parallel. Dependent assignments wait for their inputs to be accepted, not merely reported.
 - Never let two concurrent workers write to the same file without worktree isolation.
 - Scale the team to the task: a task with two natural units gets two workers, not ten. Ten shallow workers are worse than three well-briefed ones.
+- Before deploying more than roughly five workers at once, or before a plan that will clearly run many rounds, state the planned team size and shape to the user in one line, then proceed — transparency, not a blocking question. Workers run at Opus 4.8 max effort, the most expensive tier, so scale is worth surfacing.
 - Operate at ultracode thoroughness throughout: exhaustive decomposition, adversarial review, verification over speed — token cost is not the constraint, correctness is.
 - If a worker returns null or dies, never silently drop its unit — recover it per the Failure Handling section in `references/patterns.md`.
 
@@ -76,4 +81,5 @@ Report the outcome to the user: what was accomplished, how the team was structur
 
 ### Reference Files
 
-- **`references/patterns.md`** — the full worker briefing template, team-shape patterns (parallel fan-out, pipelined stages, discovery waves, review panels), the orchestrator's review checklist, Workflow-tool fan-out examples for large teams, and failure handling for dead, out-of-scope, or colliding workers.
+- **`references/patterns.md`** — the full worker briefing template, team-shape patterns (parallel fan-out, sequenced stages, discovery waves, review panels, worktree-isolated edits), the orchestrator's review checklist, Workflow-tool fan-out examples for large teams, and failure handling for dead, out-of-scope, or colliding workers.
+- **`references/example.md`** — a worked walkthrough of one task through the full loop: decomposition, team-size transparency, a filled-in briefing with a pinned metric, worker reports with confidence scores, confidence-weighted review, rework, integration, and delivery.
