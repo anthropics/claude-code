@@ -24,7 +24,7 @@ One paragraph: what this assignment produces and why the team needs it.
 ## Acceptance criteria
 1. <observable, checkable criterion>
 2. <...>
-Each criterion must be verifiable from the report plus the artifacts. For any criterion that is a metric (a count, a word count, a percentage), pin the exact measurement method (e.g., "word count via `wc -w` on the body, frontmatter excluded") — an unpinned metric lets the worker and the orchestrator compute two different, equally defensible numbers and turns a real pass into a false rework round.
+Each criterion must be verifiable from the report plus the artifacts. For any load-bearing criterion, name the exact command or observation that decides pass/fail — not just for metrics. An unpinned metric (a count, a word count, a percentage) lets the worker and the orchestrator compute two different, equally defensible numbers; an unpinned non-metric criterion lets them verify it two different ways and disagree just as easily. Either way, a real pass turns into a false rework round — the single most expensive event in this loop, since rework re-runs a full worker turn at Opus 4.8 max effort.
 
 ## Report format
 Use your standard format (see the `team-worker` agent definition — it is the canonical spec), unless this assignment needs a different structure — state that explicitly and describe it here.
@@ -33,9 +33,13 @@ Use your standard format (see the `team-worker` agent definition — it is the c
 Briefing quality checklist before sending:
 - [ ] Could a competent engineer with no other context complete this from the briefing alone?
 - [ ] Does every acceptance criterion have an obvious verification method?
-- [ ] Does every metric criterion pin its exact measurement method?
+- [ ] Does every load-bearing criterion pin its exact pass/fail check, not only metric criteria?
 - [ ] Are scope boundaries explicit enough that two parallel workers cannot collide?
 - [ ] Is the context section facts-only (no vague "improve quality" directives)?
+
+## Criteria Ratification
+
+When acceptance criteria are invented by the orchestrator rather than quoted from the user's request, or the task's success is inherently subjective ("make it feel polished," "improve the error messages"), echo the criteria to the user in one block before deploying: "Here is what I will treat as done — correct me before I spend the team." Proceed unless corrected. Skip this for tasks whose criteria are objective and drawn directly from the request — the checkpoint exists to catch a misread target while it's still free to fix, not to add a confirmation round-trip to every task.
 
 ## Team Shapes
 
@@ -83,29 +87,41 @@ const results = await pipeline(
   u => agent(u, { agentType: 'team-worker', phase: 'Execute' }),
   (report, u, i) => agent(
     `Adversarially review this worker report against its briefing. Briefing:\n${u}\n\nReport:\n${report}\n\nReturn PASS or a list of specific failures.`,
-    { phase: 'Review' },
+    { phase: 'Review' },                        // inherits the orchestrator's own model — decide deliberately, don't leave it implicit
   ).then(verdict => ({ unit: i, report, verdict })),
 )
 return results.filter(Boolean)
 ```
 
-The orchestrator still performs final review and integration on the returned results — the script parallelizes execution and first-pass review; it does not replace orchestrator judgment.
+The orchestrator still performs final review and integration on the returned results — the script parallelizes execution and first-pass review; it does not replace orchestrator judgment. The review phase doubles the agent-call count (2N for N units); it's optional — for cost-sensitive fan-outs, drop it and rely on the orchestrator's own review of each returned report instead, and keep it only when per-report review at scale is worth the extra calls.
 
 ## Orchestrator Review Checklist
 
 Apply to every worker report before accepting it:
 
-- [ ] **Criteria**: every acceptance criterion addressed, each with concrete evidence (command + output, test result, observed behavior) — not assertions.
-- [ ] **Scope**: the diff/artifacts stay inside the assigned boundaries; no drive-by edits.
-- [ ] **Confidence-weighted spot-check**: verify directly anything the worker scored below 76; above that, spot-check is optional but still worth doing on the single most load-bearing claim.
-- [ ] **Seams**: does this unit's output still fit the units already accepted (interfaces, naming, assumptions)?
-- [ ] **Risks**: every risk or open question in the report either resolved now or carried into the final delivery — never dropped.
+- [ ] **Criteria**: every acceptance criterion addressed, each with concrete evidence (command + output, test result, observed behavior) — not assertions. Check that the evidence actually entails the claim: the command output matches what's asserted, cited file:line and artifacts exist as described, and numbers in the report don't contradict each other. A plausible-looking claim is not the same as a true one.
+- [ ] **Scope (mechanical)**: for any unit that edited files, run `git diff --name-only` (in the worker's worktree if isolated) and compare against the briefed in-scope set — any path outside it is an automatic violation, no judgment required. Cross-check against the worker's own "Deviations from briefing" field. Reserve manual reading for whether the in-scope edits are correct, not whether they're in scope.
+- [ ] **Load-bearing verification**: verify directly (1) the single most load-bearing claim — the one that, if false, means the unit failed — regardless of its confidence score, since a confidently-wrong claim is exactly what a confidence-only trigger misses; and (2) any other claim that is both load-bearing and scored below 76. A sub-76 claim that gates nothing may be carried as residual risk instead of re-verified. Verifying a pinned-metric claim means re-running the exact stated command.
+- [ ] **Seams**: does this unit's output still fit the units already accepted (interfaces, naming, assumptions)? See the Seam-Failure Checklist below for concrete patterns.
+- [ ] **Risks**: every risk or open question in the report either resolved now or carried into the final delivery — never dropped, including the worker's own "what I'd verify next" pointer.
 
 Rework message format: quote the failed criterion, state what was observed vs. required, and restate the acceptance bar. Specific rework converges in one round; vague rework ("improve this") does not.
 
+## Seam-Failure Checklist
+
+Concrete failure modes to check during "Integrate and verify end-to-end," beyond running the test suite:
+- **Interface/format mismatches** between units — one unit's output doesn't match what another assumed.
+- **Convention drift** — the same concept implemented inconsistently because two workers made independent stylistic choices.
+- **Duplicated or conflicting logic** introduced independently by two units solving overlapping sub-problems.
+- **Aggregate-level invariants** — each unit is fine alone, but the combined set violates a global limit (total runtime, combined output size, a shared rate limit).
+- **Omission** — the decomposition dropped a needed unit entirely; every deployed unit and the test suite pass, but something the user asked for was never assigned to anyone. Catch this by re-reading the original request against the integrated result, not by re-running per-unit checks.
+
+With no test suite (research, docs, config, or other non-code artifacts), "exercise the complete flow" means tracing the request end-to-end through the produced artifacts and confirming each asked-for element exists and is internally consistent.
+
 ## Failure Handling
 
-- **Worker returns null / dies**: if it died mid-edit in a shared tree, inspect and clean the partial state first; then re-spawn with the same briefing plus any salvaged partial findings.
+- **Worker returns null / dies**: if it died mid-edit in a shared tree, inspect and clean the partial state first; then re-spawn with the same briefing plus any salvaged partial findings — but at most once. If the re-spawned worker dies again on the same briefing, treat it like repeated rework failure: stop, diagnose whether the unit is too large or the briefing itself triggers the crash, and re-decompose or shrink it before any further attempt.
 - **Worker went out of scope**: revert the out-of-scope edits, accept the in-scope work if it stands alone, and tighten the boundary language in future briefings.
 - **Two workers collided**: stop, resolve the tree state, then re-sequence — collisions mean the decomposition was wrong, not the workers.
 - **Repeated rework failures (2+ rounds)**: stop delegating that unit; the briefing or the decomposition is the problem. Re-scout, re-plan, re-brief fresh.
+- **User reports the delivered result doesn't work, post-delivery**: the highest-priority failure — the user is the final acceptance authority and the whole delivery just failed. It arrives in a fresh turn, so re-invoke the skill first to reapply the pin. Then diagnose in order: (1) *Intent* — the wrong thing was built (a misread request, a bad assumption). Don't patch the symptom; re-scout intent with the user, then re-decompose from the corrected intent — the old decomposition is invalid. (2) *Integration* — units were individually fine but jointly wrong, and end-to-end verification missed it. Reproduce the exact failing flow and return to that step. (3) *Unit* — one unit is defective. Rework it via the standard rework path, with the user's failing case as the new acceptance criterion. In every case, add the failing scenario as a permanent acceptance criterion so re-delivery can't regress it.

@@ -1,6 +1,6 @@
 # Worked Example
 
-A single task carried through the full orchestration loop, illustrating team-size transparency, a metric with a pinned measurement method, confidence-scored worker reports, confidence-weighted review, a hypothetical rework message, and integration. Load this when the abstract loop in SKILL.md needs a concrete anchor.
+A single task carried through the full orchestration loop, illustrating team-size transparency, a metric with a pinned measurement method, confidence-scored worker reports, confidence-weighted review, a hypothetical rework message, and integration. Load this when the abstract loop in SKILL.md needs a concrete anchor. Includes contrasting sketches for task shapes beyond code sweeps at the end.
 
 ## Task
 
@@ -82,3 +82,13 @@ All six scripts accept `--dry-run` with the same flag name and logging shape (ch
 ## 7. Deliver
 
 > Added `--dry-run` to all 6 destructive scripts in `scripts/`, each verified against a seeded fixture for both dry-run (zero deletes) and normal (unchanged) behavior. Deployed as 6 parallel team-workers; no rework needed — the one below-threshold claim was spot-checked directly and confirmed correct. Full test suite passes.
+
+## Beyond Code Sweeps
+
+The walkthrough above is a homogeneous, hermetic code sweep — identical-shape units, objective criteria, a scratch fixture, a test suite. Other task shapes need different handling:
+
+**Pure research (no code changes).** Criteria can't be "diff the fixture" — they're source quality, claim verification, and coverage. Brief each worker with what counts as a credible source and how many independent sources a claim needs; the worker's "measurement method" for a criterion like "answer is well-supported" is naming which sources it checked and how they corroborate. Step 5's "run the full test suite" becomes: trace each part of the request through the returned findings and confirm every part is answered and internally consistent.
+
+**Subjective or undefined-upfront criteria** ("make the onboarding feel polished," "improve the error messages"). Use Criteria Ratification (in this file's companion, `references/patterns.md`) before deploying: turn the subjective goal into the orchestrator's best concrete operationalization, echo it to the user, and only decompose once it's confirmed or corrected — guessing here is the single most expensive place to guess wrong, since it invalidates every downstream unit.
+
+**External APIs or side effects.** The dry-run example above is safe to re-run and produces no side effects outside a scratch fixture; real external calls aren't. "Non-overlapping" needs to extend beyond files: two workers hitting the same API can collide on a shared rate-limit budget or non-idempotent writes with no file overlap at all. Partition by resource or quota, not just by file, and treat non-idempotent calls (an email send, a payment, a remote delete) as scope requiring explicit sequencing, never parallel workers guessing they won't collide.

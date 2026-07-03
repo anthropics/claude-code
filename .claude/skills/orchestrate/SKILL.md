@@ -27,16 +27,19 @@ The orchestrator does **not** do worker-scale execution itself. Its hands-on wor
 
 ## Staying Pinned Across Turns
 
-The frontmatter's `model`/`effort` override lasts only for the turn that triggers it — the session model resumes on the next prompt, and that includes the turn where a background worker's or Workflow's completion notification arrives. Because orchestration inherently spans turns (deploy now, results land later), re-invoke this skill at the start of every turn that does orchestrator judgment — before reviewing a batch of reports, before integrating, before final delivery — to reapply the pin for that turn. Skip re-invocation only for turns that are pure waiting, with no orchestrator judgment happening yet.
+The frontmatter's `model`/`effort` override lasts only for the turn that triggers it — the session model resumes on the next prompt, and that includes the turn where a background worker's or Workflow's completion notification arrives. Because orchestration inherently spans turns (deploy now, results land later), re-invoke this skill before any turn in which you will act as orchestrator: call the Agent tool, send rework, verify a result, integrate, or write the delivery. Skip re-invocation only when the turn will do nothing but acknowledge a notification and keep waiting — no action, no pin needed. When several completions arrive close together, re-invoke once and review them as a batch rather than once per notification.
 
 ## The Orchestration Loop
 
 ### 1. Understand and decompose
 
-Scout the relevant code or material directly (fast reads, searches) until the task's real shape is clear. Then split it into work units that are:
+Scout the relevant code or material directly (fast reads, searches) until the task's real shape is clear. Scouting resolves *structural* unknowns (where the code lives, how it's organized) but not *intent* unknowns (which of several defensible readings the user wants, unstated scope or success criteria) — those can't be read out of the codebase. If the request admits materially different decompositions depending on intent, ask the user one round of targeted clarifying questions, offering the concrete options being chosen between, before decomposing — this is the one point in the loop where a blocking question to the user is correct, since workers can't ask mid-flight and a wrong intent guess makes every downstream step pass locally while the delivered whole is still wrong.
+
+Then split it into work units that are:
 - **Self-contained**: completable from the briefing alone, without mid-flight coordination
 - **Verifiable**: with acceptance criteria the orchestrator can check from the report and the artifacts
 - **Non-overlapping**: two parallel workers must never edit the same files
+- **Collectively exhaustive**: the units together cover the whole task — name which unit owns each part, and confirm no responsibility falls in the seam where each of two workers assumes the other owns it
 
 Record the plan as a task list (TaskCreate) so the user can watch team progress.
 
@@ -46,10 +49,11 @@ Decide worker count from the decomposition, not from a quota: one worker per ind
 - Few large independent units → one worker each, spawned in parallel
 - Many similar small units (migrations, sweeps) → consider the Workflow tool with `agentType: 'team-worker'` for deterministic fan-out, when available
 - Unknown-size discovery (find all X) → waves of finders until a wave returns nothing new
+- Exactly one unit → no team to design; skip straight to briefing. Step 5's seam-resolution and cross-unit integration-defect hunting are no-ops with nothing to integrate against — verify the single unit's own correctness instead.
 
 ### 3. Brief and deploy
 
-Every briefing must contain: objective, context (relevant files, constraints, decisions already made), scope boundaries (what NOT to touch), acceptance criteria, and the required report format. A worker cannot ask questions mid-flight — an under-specified briefing produces rework, not clarification. Use the full template in `references/patterns.md`.
+Every briefing must contain: objective, context (relevant files, constraints, decisions already made), scope boundaries (what NOT to touch), acceptance criteria, and the required report format. A worker cannot ask questions mid-flight — an under-specified briefing produces rework, not clarification. Use the full template in `references/patterns.md`. When acceptance criteria had to be invented rather than taken verbatim from the request, or success is inherently subjective, echo them to the user in one line before deploying — see Criteria Ratification in `references/patterns.md` — since correcting a wrong target is free before the team runs and costly after.
 
 Deploy with the Agent tool, `subagent_type: team-worker`. Spawn independent workers in a single message so they run concurrently. When parallel workers must edit files, either redesign the split so they touch disjoint files, or use `isolation: "worktree"` and let the orchestrator merge.
 
@@ -61,25 +65,22 @@ On failure, send rework with specific findings: what failed, where, and what acc
 
 ### 5. Integrate and verify end-to-end
 
-Combine the accepted work, resolve any seams between units, and verify the whole — not just the parts. Run the full test suite or exercise the complete flow. Integration defects (two units individually correct but jointly wrong) are the orchestrator's responsibility alone; no worker could have seen them.
+Combine the accepted work, resolve any seams between units, and verify the whole — not just the parts. Run the full test suite or exercise the complete flow, then re-read the user's original request and confirm every part of it is present in the integrated result: a green test suite proves nothing broke, not that everything asked-for was included, and a decomposition can omit a needed unit even when every deployed unit and the suite pass. Integration defects (two units individually correct but jointly wrong, or a unit missing from the decomposition entirely) are the orchestrator's responsibility alone; no worker could have seen them. See the seam-failure checklist in `references/patterns.md` for concrete failure modes to check.
 
 ### 6. Deliver
 
-Report the outcome to the user: what was accomplished, how the team was structured, what each worker contributed, what was verified and how, and any open risks. Lead with the outcome, not the process.
+Report so the user can judge whether their intent was met, not just what the team did. Lead with the original request restated, each part marked done, partial, or not done — then any assumption or interpretation made on the user's behalf (an ambiguous-intent call, an invented acceptance criterion) as an explicit, correctable statement, not buried under risks. Follow with what was verified and how, and the concrete way the user can check the result themselves (a command to run, a flow to try). Team structure and per-worker contribution come last, if at all — they matter to the orchestrator's own record, not to whether the user got what they asked for.
 
 ## Rules
 
-- The orchestrator reviews everything; workers verify their own work first, but self-verification never substitutes for orchestrator review.
-- Independent assignments launch in one message, in parallel. Dependent assignments wait for their inputs to be accepted, not merely reported.
-- Never let two concurrent workers write to the same file without worktree isolation.
 - Scale the team to the task: a task with two natural units gets two workers, not ten. Ten shallow workers are worse than three well-briefed ones.
 - Before deploying more than roughly five workers at once, or before a plan that will clearly run many rounds, state the planned team size and shape to the user in one line, then proceed — transparency, not a blocking question. Workers run at Opus 4.8 max effort, the most expensive tier, so scale is worth surfacing.
 - Operate at ultracode thoroughness throughout: exhaustive decomposition, adversarial review, verification over speed — token cost is not the constraint, correctness is.
-- If a worker returns null or dies, never silently drop its unit — recover it per the Failure Handling section in `references/patterns.md`.
+- If a worker returns null or dies, never silently drop its unit — recover it per the Failure Handling section in `references/patterns.md` (capped — don't re-spawn indefinitely against a deterministic failure).
 
 ## Additional Resources
 
 ### Reference Files
 
-- **`references/patterns.md`** — the full worker briefing template, team-shape patterns (parallel fan-out, sequenced stages, discovery waves, review panels, worktree-isolated edits), the orchestrator's review checklist, Workflow-tool fan-out examples for large teams, and failure handling for dead, out-of-scope, or colliding workers.
-- **`references/example.md`** — a worked walkthrough of one task through the full loop: decomposition, team-size transparency, a filled-in briefing with a pinned metric, worker reports with confidence scores, confidence-weighted review, a hypothetical rework message, integration, and delivery.
+- **`references/patterns.md`** — the full worker briefing template, team-shape patterns (parallel fan-out, sequenced stages, discovery waves, review panels, worktree-isolated edits), criteria ratification guidance, the orchestrator's review checklist, a seam-failure checklist for integration, Workflow-tool fan-out examples for large teams, and failure handling for dead, out-of-scope, colliding, or post-delivery-failed units.
+- **`references/example.md`** — a worked walkthrough of one task through the full loop: decomposition, team-size transparency, a filled-in briefing with a pinned metric, worker reports with confidence scores, confidence-weighted review, a hypothetical rework message, integration, and delivery — plus shorter sketches for task shapes beyond code sweeps (research, subjective criteria, external APIs).
