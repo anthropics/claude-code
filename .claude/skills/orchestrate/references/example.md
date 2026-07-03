@@ -1,6 +1,6 @@
 # Worked Example
 
-A single task carried through the full orchestration loop, illustrating team-size transparency, a metric with a pinned measurement method, confidence-scored worker reports, confidence-weighted review, one rework round, and integration. Load this when the abstract loop in SKILL.md needs a concrete anchor.
+A single task carried through the full orchestration loop, illustrating team-size transparency, a metric with a pinned measurement method, confidence-scored worker reports, confidence-weighted review, a hypothetical rework message, and integration. Load this when the abstract loop in SKILL.md needs a concrete anchor.
 
 ## Task
 
@@ -60,23 +60,25 @@ All six briefings are sent in a single message so the workers run concurrently.
 
 Five reports come back clean. The `purge_cache.py` worker's report:
 
-> **Outcome**: Done — flag added, both criteria verified.
+> **Outcome**: Done — flag added, all three criteria verified.
 > **Work performed**: scripts/purge_cache.py:34 (arg parser), :58-61 (gate before `os.remove`).
 > **Evidence**: Criterion 1 — ran with `--dry-run` against the seeded fixture, diffed before/after, byte-identical (confidence: 92 — pinned method followed exactly, reproducible). Criterion 2 — ran without the flag, all 5 dummy files removed as before (confidence: 95). Criterion 3 — log line emitted per file (confidence: 68 — checked stdout manually for the 5-file case, didn't test the zero-file or single-file edge case).
-> **Risks**: criterion 3's confidence is capped because only the 5-file case was exercised.
+> **Risks and open questions**: criterion 3's confidence is capped because only the 5-file case was exercised.
 
 *(This notification arrives in a fresh turn. Per "Staying Pinned Across Turns," the orchestrator re-invokes the `orchestrate` skill before reviewing, to reapply the Fable 5 / max-effort pin for this turn.)*
 
 Applying the confidence-weighted review checklist: criteria 1 and 2 score above 76, so a spot-check is optional (the orchestrator skims the diff anyway, since it's cheap). Criterion 3 scores 68 — below the threshold — so the orchestrator verifies directly: runs the script against a fixture with zero matching files. The log call sits inside the same loop as the delete, so it correctly emits nothing — criterion 3 holds, but the orchestrator now has first-hand evidence instead of a capped-confidence claim.
 
-## 5. Rework example (hypothetical continuation)
+## 5. Rework round (hypothetical — not part of this run)
 
-Suppose instead the zero-file check had revealed a crash (the logging call assumed a non-empty list). The orchestrator would send rework to the same worker via SendMessage, quoting the exact failure: "Criterion 3, zero-file case: `scripts/purge_cache.py` raises `IndexError` at line 60 when no files match. Fix the empty case; re-verify with a zero-file fixture before re-reporting." This is one specific, checkable ask — not "make it more robust."
+This run had no rework: the direct check in step 4 found `purge_cache.py`'s zero-file case already correct. To illustrate what rework looks like, suppose instead the check had revealed a crash (the logging call assumed a non-empty list). The orchestrator would send rework to the same worker via SendMessage, quoting the exact failure: "Criterion 3, zero-file case: `scripts/purge_cache.py` raises `IndexError` at line 60 when no files match. Fix the empty case; re-verify with a zero-file fixture before re-reporting." This is one specific, checkable ask — not "make it more robust." The real narrative resumes below, unaffected by this aside.
 
 ## 6. Integrate and verify end-to-end
+
+Review, integration, and delivery below all happen in the same turn as step 4 — no further async wait occurs, so the pin from that turn's re-invocation still covers them; a second re-invocation is only needed if a new turn starts first.
 
 All six scripts accept `--dry-run` with the same flag name and logging shape (checked for consistency across the six reports — a seam an individual worker couldn't see). The orchestrator runs the project's existing test suite once across the whole batch to confirm nothing else broke, rather than trusting six isolated per-script runs to add up to a working whole.
 
 ## 7. Deliver
 
-> Added `--dry-run` to all 6 destructive scripts in `scripts/`, each verified against a seeded fixture for both dry-run (zero deletes) and normal (unchanged) behavior. Deployed as 6 parallel team-workers; one rework round on `purge_cache.py`'s zero-file edge case. Full test suite passes.
+> Added `--dry-run` to all 6 destructive scripts in `scripts/`, each verified against a seeded fixture for both dry-run (zero deletes) and normal (unchanged) behavior. Deployed as 6 parallel team-workers; no rework needed — the one below-threshold claim was spot-checked directly and confirmed correct. Full test suite passes.

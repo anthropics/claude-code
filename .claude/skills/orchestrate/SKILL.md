@@ -23,7 +23,7 @@ Execute a large task as a coordinated team: one orchestrator that plans, delegat
 
 The orchestrator does **not** do worker-scale execution itself. Its hands-on work is limited to scouting (quick reads to inform decomposition), reviewing, integrating, and verifying.
 
-**Workers** — `team-worker` subagents, pinned by `.claude/agents/team-worker.md` to `claude-opus-4-8` at `effort: max`. Each worker executes exactly one assignment and returns a structured report (outcome, work performed, evidence with confidence scores, risks). Workers do not spawn their own teams.
+**Workers** — `team-worker` subagents, pinned by `.claude/agents/team-worker.md` to `claude-opus-4-8` at `effort: max`. Each worker executes exactly one assignment and returns a structured report in the format that file defines, with confidence-scored evidence. Workers do not spawn their own teams.
 
 ## Staying Pinned Across Turns
 
@@ -82,4 +82,4 @@ Report the outcome to the user: what was accomplished, how the team was structur
 ### Reference Files
 
 - **`references/patterns.md`** — the full worker briefing template, team-shape patterns (parallel fan-out, sequenced stages, discovery waves, review panels, worktree-isolated edits), the orchestrator's review checklist, Workflow-tool fan-out examples for large teams, and failure handling for dead, out-of-scope, or colliding workers.
-- **`references/example.md`** — a worked walkthrough of one task through the full loop: decomposition, team-size transparency, a filled-in briefing with a pinned metric, worker reports with confidence scores, confidence-weighted review, rework, integration, and delivery.
+- **`references/example.md`** — a worked walkthrough of one task through the full loop: decomposition, team-size transparency, a filled-in briefing with a pinned metric, worker reports with confidence scores, confidence-weighted review, a hypothetical rework message, integration, and delivery.
