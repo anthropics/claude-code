@@ -41,7 +41,7 @@ Then split it into work units that are:
 - **Non-overlapping**: two parallel workers must never edit the same files
 - **Collectively exhaustive**: the units together cover the whole task — name which unit owns each part, and confirm no responsibility falls in the seam where each of two workers assumes the other owns it
 
-Record the plan as a task list (TaskCreate) so the user can watch team progress.
+Record the plan as a task list (TaskCreate, or this environment's task-list tool), mapping each part of the request to the unit that owns it — this mapping is what step 5 checks the integrated result against — so the user can watch team progress.
 
 ### 2. Design the team
 
@@ -61,11 +61,11 @@ Deploy with the Agent tool, `subagent_type: team-worker`. Spawn independent work
 
 Review every report — never rubber-stamp. For each acceptance criterion, check the evidence in the report; for anything load-bearing, verify directly (run the tests, read the diff, exercise the behavior). A worker's claim is an input to review, not a conclusion.
 
-On failure, send rework with specific findings: what failed, where, and what acceptance now requires. Continue the same worker via SendMessage when its context is still valuable; spawn a fresh worker when the approach itself was wrong.
+On failure, send rework with specific findings: what failed, where, and what acceptance now requires. Continue the same worker via SendMessage when its context is still valuable; spawn a fresh worker when the approach itself was wrong. Dispatch rework for independent units in one message, as with initial deployment.
 
 ### 5. Integrate and verify end-to-end
 
-Combine the accepted work, resolve any seams between units, and verify the whole — not just the parts. Run the full test suite or exercise the complete flow, then re-read the user's original request and confirm every part of it is present in the integrated result: a green test suite proves nothing broke, not that everything asked-for was included, and a decomposition can omit a needed unit even when every deployed unit and the suite pass. Integration defects (two units individually correct but jointly wrong, or a unit missing from the decomposition entirely) are the orchestrator's responsibility alone; no worker could have seen them. See the seam-failure checklist in `references/patterns.md` for concrete failure modes to check.
+Combine the accepted work, resolve any seams between units, and verify the whole — not just the parts. Run the full test suite or exercise the complete flow, then check the integrated result against the request-to-unit mapping recorded at decomposition — and re-read the original request for anything the mapping itself missed: a green test suite proves nothing broke, not that everything asked-for was included, and a decomposition can omit a needed unit even when every deployed unit and the suite pass. Integration defects (two units individually correct but jointly wrong, or a unit missing from the decomposition entirely) are the orchestrator's responsibility alone; no worker could have seen them. See the seam-failure checklist in `references/patterns.md` for concrete failure modes to check.
 
 ### 6. Deliver
 
@@ -82,5 +82,5 @@ Report so the user can judge whether their intent was met, not just what the tea
 
 ### Reference Files
 
-- **`references/patterns.md`** — the full worker briefing template, criteria ratification guidance, team-shape patterns (parallel fan-out, sequenced stages, discovery waves, review panel, worktree-isolated edits), Workflow-tool fan-out examples for large teams, the orchestrator's review checklist, a seam-failure checklist for integration, and failure handling for dead, out-of-scope, colliding, blocked, or post-delivery-failed units.
-- **`references/example.md`** — a worked walkthrough of one task through the full loop: decomposition, team-size transparency, a filled-in briefing with a pinned metric, worker reports with confidence scores, load-bearing-weighted review, a hypothetical rework message, integration, and delivery — plus shorter sketches for task shapes beyond code sweeps (research, subjective criteria, external APIs).
+- **`references/patterns.md`** — the worker briefing template, criteria ratification, team-shape patterns, Workflow-tool fan-out examples, the review and seam-failure checklists, and failure handling.
+- **`references/example.md`** — a worked walkthrough of one task through the full loop, plus sketches for task shapes beyond code sweeps (research, subjective criteria, external APIs).

@@ -34,6 +34,7 @@ Briefing quality checklist before sending:
 - [ ] Could a competent engineer with no other context complete this from the briefing alone?
 - [ ] Does every acceptance criterion have an obvious verification method?
 - [ ] Does every load-bearing criterion pin its exact pass/fail check, not only metric criteria?
+- [ ] Are the facts asserted in Context/Decisions verified directly against the code, not just recalled from earlier scouting? A false premise costs a full worker turn to discover downstream.
 - [ ] Are scope boundaries explicit enough that two parallel workers cannot collide?
 - [ ] Is the context section facts-only (no vague "improve quality" directives)?
 
@@ -93,16 +94,16 @@ const results = await pipeline(
 return results.filter(Boolean)
 ```
 
-The orchestrator still performs final review and integration on the returned results — the script parallelizes execution and first-pass review; it does not replace orchestrator judgment. The review phase doubles the agent-call count (2N for N units); it's optional — for cost-sensitive fan-outs, drop it and rely on the orchestrator's own review of each returned report instead, and keep it only when per-report review at scale is worth the extra calls.
+The orchestrator still performs final review and integration on the returned results — the script parallelizes execution and first-pass review; it does not replace orchestrator judgment. The review phase doubles the agent-call count (2N for N units); it's optional — for cost-sensitive fan-outs, drop it and rely on the orchestrator's own review of each returned report instead. When a unit does arrive with a PASS from this phase, the checklist's Criteria bullet may lean on that verdict; Scope and Load-bearing verification still run in full — they exist to catch exactly what an automated pass misses.
 
 ## Orchestrator Review Checklist
 
 Apply to every worker report before accepting it:
 
 - [ ] **Criteria**: every acceptance criterion addressed, each with concrete evidence (command + output, test result, observed behavior) — not assertions. Check that the evidence actually entails the claim: the command output matches what's asserted, cited file:line and artifacts exist as described, and numbers in the report don't contradict each other. A plausible-looking claim is not the same as a true one.
-- [ ] **Scope (mechanical)**: for any unit that edited files, run `git diff --name-only` (in the worker's worktree if isolated) and compare against the briefed in-scope set — any path outside it is an automatic violation, no judgment required. Cross-check against the worker's own "Deviations from briefing" field. Reserve manual reading for whether the in-scope edits are correct, not whether they're in scope.
+- [ ] **Scope (mechanical)**: for units that edited files, run `git diff --name-only` once per tree (once per worktree when isolated, once total for a shared tree) and partition the changed paths against each unit's briefed in-scope set — any path no unit owns is an automatic violation, no judgment required. Cross-check against each worker's own "Deviations from briefing" field. Reserve manual reading for whether the in-scope edits are correct, not whether they're in scope.
 - [ ] **Load-bearing verification**: verify directly (1) the single most load-bearing claim — the one that, if false, means the unit failed — regardless of its confidence score, since a confidently-wrong claim is exactly what a confidence-only trigger misses; and (2) any other claim that is both load-bearing and scored below 76. A sub-76 claim that gates nothing may be carried as residual risk instead of re-verified. Verifying a pinned-metric claim means re-running the exact stated command.
-- [ ] **Seams**: does this unit's output still fit the units already accepted (interfaces, naming, assumptions)? See the Seam-Failure Checklist below for concrete patterns.
+- [ ] **Seams**: does this unit's output still fit the units already accepted? See the Seam-Failure Checklist below.
 - [ ] **Risks**: every risk or open question in the report either resolved now or carried into the final delivery — never dropped, including the worker's own single highest-value-check-not-run pointer.
 
 Rework message format: quote the failed criterion, state what was observed vs. required, and restate the acceptance bar. Specific rework converges in one round; vague rework ("improve this") does not.
@@ -119,6 +120,8 @@ Concrete failure modes to check during "Integrate and verify end-to-end," beyond
 With no test suite (research, docs, config, or other non-code artifacts), "exercise the complete flow" means tracing the request end-to-end through the produced artifacts and confirming each asked-for element exists and is internally consistent.
 
 ## Failure Handling
+
+Any break in the happy path — missing output, a policy violation, non-convergence, or post-hoc failure — means stop and re-diagnose the plan rather than mechanically continuing. The entries below are the common instances, not an exhaustive list; handle an unlisted failure by the same principle.
 
 - **Worker returns null / dies**: if it died mid-edit in a shared tree, inspect and clean the partial state first; then re-spawn with the same briefing plus any salvaged partial findings — but at most once. If the re-spawned worker dies again on the same briefing, treat it like repeated rework failure: stop, diagnose whether the unit is too large or the briefing itself triggers the crash, and re-decompose or shrink it before any further attempt.
 - **Worker went out of scope**: revert the out-of-scope edits, accept the in-scope work if it stands alone, and tighten the boundary language in future briefings.
