@@ -40,7 +40,7 @@ Briefing quality checklist before sending:
 
 ## Criteria Ratification
 
-When acceptance criteria are invented by the orchestrator rather than quoted from the user's request, or the task's success is inherently subjective ("make it feel polished," "improve the error messages"), echo the criteria to the user in one line before deploying: "Here is what I will treat as done — correct me before I spend the team." Proceed unless corrected. Skip this for tasks whose criteria are objective and drawn directly from the request — the checkpoint exists to catch a misread target while it's still free to fix, not to add a confirmation round-trip to every task.
+When acceptance criteria are invented by the orchestrator rather than quoted from the user's request, or the task's success is inherently subjective ("make it feel polished," "improve the error messages"), echo the criteria to the user in one line before deploying: "Here is what I will treat as done — correct me before I spend the team." Ask via AskUserQuestion, or end the turn after echoing — the checkpoint only works if the user can actually reply before the team runs; echoing and deploying in the same turn defeats it. Skip this for tasks whose criteria are objective and drawn directly from the request — the checkpoint exists to catch a misread target while it's still free to fix, not to add a confirmation round-trip to every task.
 
 ## Team Shapes
 
@@ -71,7 +71,7 @@ For high-stakes acceptance (a risky migration, a security-sensitive change), spa
 
 ### Worktree-isolated parallel edits
 
-When a clean file split is impossible and workers must edit overlapping areas concurrently, spawn each with `isolation: "worktree"`. Each worker gets its own git worktree; the orchestrator merges the results and owns conflict resolution. Prefer redesigning the split — merging is orchestrator time that briefing discipline would have saved.
+When a clean file split is impossible and workers must edit overlapping areas concurrently, spawn each with `isolation: "worktree"`. Each worker gets its own git worktree; the orchestrator merges the results and owns conflict resolution, then deletes each worker's worktree and branch — auto-cleanup only removes worktrees left unchanged. Prefer redesigning the split — merging is orchestrator time that briefing discipline would have saved.
 
 ## Large Fan-outs with the Workflow Tool
 
@@ -91,17 +91,19 @@ const results = await pipeline(
     { phase: 'Review' },                        // inherits the orchestrator's own model — decide deliberately, don't leave it implicit
   ).then(verdict => ({ unit: i, report, verdict })),
 )
-return results.filter(Boolean)
+// a falsy slot is a unit whose agent() died — surface it for Failure Handling, never silently drop it
+const dropped = results.flatMap((r, i) => (r ? [] : [i]))
+return { reviewed: results.filter(Boolean), dropped }
 ```
 
-The orchestrator still performs final review and integration on the returned results — the script parallelizes execution and first-pass review; it does not replace orchestrator judgment. The review phase doubles the agent-call count (2N for N units); it's optional — for cost-sensitive fan-outs, drop it and rely on the orchestrator's own review of each returned report instead. When a unit does arrive with a PASS from this phase, the checklist's Criteria bullet may lean on that verdict; Scope and Load-bearing verification still run in full — they exist to catch exactly what an automated pass misses.
+The orchestrator still performs final review and integration on the returned results (recovering any `dropped` units per Failure Handling) — the script parallelizes execution and first-pass review; it does not replace orchestrator judgment. The review phase doubles the agent-call count (2N for N units); it's optional — for cost-sensitive fan-outs, drop it and rely on the orchestrator's own review of each returned report instead. When a unit does arrive with a PASS from this phase, the checklist's Criteria bullet may lean on that verdict; Scope and Load-bearing verification still run in full — they exist to catch exactly what an automated pass misses. One hard rule: any `agent()` call that performs execution work must pin `agentType: 'team-worker'` — an unpinned call is acceptable only for lightweight review like the one above, never for work, or it silently runs at an ungoverned model tier.
 
 ## Orchestrator Review Checklist
 
 Apply to every worker report before accepting it:
 
 - [ ] **Criteria**: every acceptance criterion addressed, each with concrete evidence (command + output, test result, observed behavior) — not assertions. Check that the evidence actually entails the claim: the command output matches what's asserted, cited file:line and artifacts exist as described, and numbers in the report don't contradict each other. A plausible-looking claim is not the same as a true one.
-- [ ] **Scope (mechanical)**: for units that edited files, run `git diff --name-only` once per tree (once per worktree when isolated, once total for a shared tree) and partition the changed paths against each unit's briefed in-scope set — any path no unit owns is an automatic violation, no judgment required. Cross-check against each worker's own "Deviations from briefing" field. Reserve manual reading for whether the in-scope edits are correct, not whether they're in scope.
+- [ ] **Scope (mechanical)**: for units that edited files, run `git diff --name-only` once per tree (once per worktree when isolated, once total for a shared tree) and partition the changed paths against each unit's briefed in-scope set — any path no unit owns is an automatic violation, no judgment required. Cross-check against each worker's own "Deviations from briefing" and "Work performed" fields — in a shared tree, the pooled diff alone can't attribute a path to a specific worker. Reserve manual reading for whether the in-scope edits are correct, not whether they're in scope.
 - [ ] **Load-bearing verification**: verify directly (1) the single most load-bearing claim — the one that, if false, means the unit failed — regardless of its confidence score, since a confidently-wrong claim is exactly what a confidence-only trigger misses; and (2) any other claim that is both load-bearing and scored below 76. A sub-76 claim that gates nothing may be carried as residual risk instead of re-verified. Verifying a pinned-metric claim means re-running the exact stated command.
 - [ ] **Seams**: does this unit's output still fit the units already accepted? See the Seam-Failure Checklist below.
 - [ ] **Risks**: every risk or open question in the report either resolved now or carried into the final delivery — never dropped, including the worker's own single highest-value-check-not-run pointer.
@@ -123,7 +125,8 @@ With no test suite (research, docs, config, or other non-code artifacts), "exerc
 
 Any break in the happy path — missing output, a policy violation, non-convergence, or post-hoc failure — means stop and re-diagnose the plan rather than mechanically continuing. The entries below are the common instances, not an exhaustive list; handle an unlisted failure by the same principle.
 
-- **Worker returns null / dies**: if it died mid-edit in a shared tree, inspect and clean the partial state first; then re-spawn with the same briefing plus any salvaged partial findings — but at most once. If the re-spawned worker dies again on the same briefing, treat it like repeated rework failure: stop, diagnose whether the unit is too large or the briefing itself triggers the crash, and re-decompose or shrink it before any further attempt.
+- **Worker returns null / dies**: re-spawn with the same briefing plus any salvaged partial findings — at most once, whatever the cause; if it died mid-edit in a shared tree, inspect and clean the partial state before re-spawning. If the re-spawned worker dies again on the same briefing, treat it like repeated rework failure: stop, diagnose whether the unit is too large or the briefing itself triggers the crash, and re-decompose or shrink it before any further attempt.
+- **Worker hangs (running but never completes)**: neither done nor dead — check its progress via the environment's task monitor; if it's looping or stalled, cancel it (e.g. TaskStop) and then handle it as a death.
 - **Worker went out of scope**: revert the out-of-scope edits, accept the in-scope work if it stands alone, and tighten the boundary language in future briefings.
 - **Two workers collided**: stop, resolve the tree state, then re-sequence — collisions mean the decomposition was wrong, not the workers.
 - **Repeated rework failures (2+ rounds)**: stop delegating that unit; the briefing or the decomposition is the problem. Re-scout, re-plan, re-brief fresh.
