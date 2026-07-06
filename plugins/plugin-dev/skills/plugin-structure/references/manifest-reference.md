@@ -297,6 +297,8 @@ Hook configuration location or inline definition.
 
 #### mcpServers
 
+Defines MCP server configurations bundled with the plugin, or points to a plugin-local MCP configuration file. This field is separate from Claude Code's user-level MCP allow/deny list settings in `~/.claude.json`, such as `enabledMcpServers` and `disabledMcpServers`.
+
 **Type**: String (path to JSON file) or Object (inline configuration)
 **Default**: `./.mcp.json`
 
