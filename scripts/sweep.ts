@@ -69,10 +69,17 @@ async function markStale(owner: string, repo: string) {
   // reorders the listing underneath the pagination. Ask the search API for
   // exactly the labelable set instead (same approach as lock-closed-issues).
   const query = buildStaleQuery(owner, repo, cutoff);
-  const searchPage = (page: number) =>
-    githubRequest<{ items?: (SweepIssue & { title?: string })[] }>(
+  const searchPage = async (page: number) => {
+    // Pace search requests: the search API's secondary rate limit rejects
+    // rapid bursts well before the 30-requests/minute primary limit.
+    if (page > 1) await sleep(2000);
+    const result = await githubRequest<{
+      items?: (SweepIssue & { title?: string })[];
+    }>(
       `/search/issues?q=${encodeURIComponent(query)}&sort=updated&order=asc&per_page=100&page=${page}`
-    ).then((r) => r.items ?? []);
+    );
+    return result.items ?? [];
+  };
   const processed = new Set<number>();
 
   // Labeling removes an issue from the query results, so each round the
