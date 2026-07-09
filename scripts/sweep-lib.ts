@@ -39,6 +39,27 @@ export function isStaleCandidate(
   return new Date(issue.updated_at) < cutoff;
 }
 
+// GitHub's secondary rate limits reject bursts with 403/429 and ask callers
+// to pause before retrying. Back off attempt×60s (the docs say "wait a few
+// minutes") for those; anything else propagates immediately.
+export async function withRateLimitRetry<T>(
+  fn: () => Promise<T>,
+  opts: { attempts?: number; sleeper?: (ms: number) => Promise<void> } = {}
+): Promise<T> {
+  const attempts = opts.attempts ?? 3;
+  const sleeper =
+    opts.sleeper ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (attempt >= attempts || !/GitHub API (403|429)/.test(String(err))) throw err;
+      console.log(`rate limited — waiting ${attempt}min before retrying`);
+      await sleeper(attempt * 60_000);
+    }
+  }
+}
+
 // Snapshot a paginated listing in full BEFORE acting on it. Offset pagination
 // over a listing that the loop itself is mutating (labeling reorders the
 // updated-sort; closing removes items) skips one item per mutation at every

@@ -5,6 +5,7 @@ import {
   buildStaleQuery,
   collectPages,
   isStaleCandidate,
+  withRateLimitRetry,
   type SweepIssue,
 } from "./sweep-lib.ts";
 
@@ -73,10 +74,10 @@ async function markStale(owner: string, repo: string) {
     // Pace search requests: the search API's secondary rate limit rejects
     // rapid bursts well before the 30-requests/minute primary limit.
     if (page > 1) await sleep(2000);
-    const result = await githubRequest<{
-      items?: (SweepIssue & { title?: string })[];
-    }>(
-      `/search/issues?q=${encodeURIComponent(query)}&sort=updated&order=asc&per_page=100&page=${page}`
+    const result = await withRateLimitRetry(() =>
+      githubRequest<{ items?: (SweepIssue & { title?: string })[] }>(
+        `/search/issues?q=${encodeURIComponent(query)}&sort=updated&order=asc&per_page=100&page=${page}`
+      )
     );
     return result.items ?? [];
   };
