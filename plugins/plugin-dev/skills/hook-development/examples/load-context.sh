@@ -47,7 +47,7 @@ else
 fi
 
 # Check for CI configuration
-if [ -f ".github/workflows" ] || [ -f ".gitlab-ci.yml" ] || [ -f ".circleci/config.yml" ]; then
+if [ -d ".github/workflows" ] || [ -f ".gitlab-ci.yml" ] || [ -f ".circleci/config.yml" ]; then
   echo "export HAS_CI=true" >> "$CLAUDE_ENV_FILE"
 fi
 
