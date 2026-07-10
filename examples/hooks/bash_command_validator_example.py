@@ -40,6 +40,10 @@ import re
 import shlex
 import sys
 
+# This scanner is a naive approximation of Bash grammar and can over- or
+# under-match. It does not detect constructs such as process substitution or a
+# background `&`; users should tune these example rules for their environment.
+
 # Define validation rules as a list of (regex pattern, message) tuples
 _VALIDATION_RULES = [
     (
@@ -54,6 +58,7 @@ _VALIDATION_RULES = [
 
 # Some users may choose to allow pipes whose right-hand command only filters
 # output. Keep this off by default, and review the list for your environment.
+# This intentionally supersedes the original grep rule's exemption for pipes.
 _ALLOW_READ_ONLY_PIPES = False
 _READ_ONLY_PIPE_TARGETS = {"head", "tail", "wc", "sort", "uniq"}
 
@@ -136,6 +141,46 @@ def _mask_quoted_text(command: str) -> str:
     return "".join(result)
 
 
+def _plain_redirect_target(command: str, index: int, operator: str) -> str:
+    """Return a plain filename target, excluding file-descriptor redirects."""
+    if index > 0 and (command[index - 1].isdigit() or command[index - 1] == "&"):
+        return ""
+
+    target_start = index + len(operator)
+    if target_start < len(command) and command[target_start] == "&":
+        return ""
+
+    tokens = _shell_tokens(command[target_start:])
+    if not tokens:
+        return ""
+    target = tokens[0]
+    if (
+        target.startswith("#")
+        or any(character.isspace() for character in target)
+        or any(character in "$`;&|<>()*?[]{}" for character in target)
+    ):
+        return ""
+    return target
+
+
+def _command_around_operator(command: str, index: int, operator: str) -> tuple[str, str]:
+    """Return compact left and right command fragments for a steer message."""
+
+    def meaningful_lines(fragment: str) -> list[str]:
+        return [
+            line.strip()
+            for line in fragment.splitlines()
+            if line.strip() and not line.lstrip().startswith("#")
+        ]
+
+    left = meaningful_lines(command[:index])
+    right = meaningful_lines(command[index + len(operator) :])
+    return (
+        left[-1] if left else "the first command",
+        right[0] if right else "the next command",
+    )
+
+
 def _shell_constructs(command: str) -> list[tuple[str, int, str]]:
     """Find unquoted shell operators and active command substitutions."""
     constructs = []
@@ -163,7 +208,7 @@ def _shell_constructs(command: str) -> list[tuple[str, int, str]]:
             index == 0 or command[index - 1].isspace()
         ):
             newline = command.find("\n", index)
-            index = len(command) if newline == -1 else newline + 1
+            index = len(command) if newline == -1 else newline
             continue
 
         if command.startswith("$(", index) and not command.startswith("$((", index):
@@ -176,6 +221,13 @@ def _shell_constructs(command: str) -> list[tuple[str, int, str]]:
             continue
 
         if quote is None:
+            if character == "\n":
+                left, right = _command_around_operator(command, index, "\n")
+                if left != "the first command" and right != "the next command":
+                    constructs.append(("newline chaining", index, "\n"))
+                index += 1
+                continue
+
             for operator, name in (
                 ("&&", "&& chaining"),
                 ("||", "|| chaining"),
@@ -185,7 +237,11 @@ def _shell_constructs(command: str) -> list[tuple[str, int, str]]:
                 (">", "> redirection"),
             ):
                 if command.startswith(operator, index):
-                    constructs.append((name, index, operator))
+                    if name.endswith("redirection"):
+                        if _plain_redirect_target(command, index, operator):
+                            constructs.append((name, index, operator))
+                    else:
+                        constructs.append((name, index, operator))
                     index += len(operator)
                     break
             else:
@@ -195,16 +251,6 @@ def _shell_constructs(command: str) -> list[tuple[str, int, str]]:
         index += 1
 
     return constructs
-
-
-def _command_around_operator(command: str, index: int, operator: str) -> tuple[str, str]:
-    """Return compact left and right command fragments for a steer message."""
-    left = command[:index].strip().splitlines()
-    right = command[index + len(operator) :].strip().splitlines()
-    return (
-        left[-1].strip() if left else "the first command",
-        right[0].strip() if right else "the next command",
-    )
 
 
 def _pipe_target(command: str, index: int) -> str:
@@ -294,9 +340,10 @@ def _compound_command_issues(
                 "separate Bash calls, then use the captured result explicitly."
             )
         else:
-            left, right = _command_around_operator(source, index, operator)
+            left, _ = _command_around_operator(source, index, operator)
+            target = _plain_redirect_target(source, index, operator)
             issues.append(
-                f"Detected {name}. Run `{left}` first, then write to `{right}`; "
+                f"Detected {name}. Run `{left}` first, then write to `{target}`; "
                 "use separate Bash calls."
             )
 
