@@ -1136,18 +1136,15 @@ def agentic_review(
             "disk than in the diff, trust the diff.\n"
         )
 
+    capped_diff_files = _cap_files_for_prompt(diff_files)
     diff_text = "\n\n".join(
-        f"=== DIFF: {fp} ===\n{content}" for fp, content in _cap_files_for_prompt(diff_files)
+        f"=== DIFF: {fp} ===\n{content}" for fp, content in capped_diff_files
     )
-    user_prompt = (
-        "Review this change for security vulnerabilities.\n\n"
-        f"Changed files (you may Read these and any other file in the repo):\n"
-        + "\n".join(f"  - {p}" for p in touched_paths[:50])
-        + context_note
-        + "\n\nUnified diff (only + lines are new):\n\n"
-        + diff_text
-        + "\n\nInvestigate per the method in your instructions, then return "
-        "the findings list."
+    user_prompt = review_api.build_investigate_prompt(
+        touched_paths,
+        capped_diff_files,
+        repo_root=context_dir,
+        context_note=context_note,
     )
 
     # Always prefer the user's installed `claude` over the SDK's bundled CLI.
@@ -1694,4 +1691,3 @@ Respond with JSON."""
         lines.append("")
 
     return "\n".join(lines)
-

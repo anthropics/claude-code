@@ -116,6 +116,11 @@ is "critical", "high", or "medium". Return findings:[] ONLY after you have
 Read every changed file in full and traced every new sink to a trusted
 source.
 
+OUTPUT FORMAT: Return exactly one JSON object with a `findings` key.
+findings MUST always be a JSON array. For one finding, return a one-item
+array, never a single object. For no findings, return {"findings": []}.
+Do not nest `findings` under another wrapper object.
+
 BUDGET: you have at most ~15 tool calls. Spend them reading the changed files first, then 3-5 targeted Greps for callers/sinks. Do NOT exhaustively explore the repo — once you can name source→sink for each candidate (or rule it out), STOP. Partial findings are better than none."""
 
 
@@ -124,6 +129,10 @@ FINDINGS_SCHEMA = {
     "properties": {
         "findings": {
             "type": "array",
+            "description": (
+                "Always a JSON array: [] for none, [object] for one, and "
+                "[object, ...] for multiple findings. Never return a single object."
+            ),
             "items": {
                 "type": "object",
                 "properties": {
@@ -153,20 +162,96 @@ FINDINGS_SCHEMA = {
 }
 
 
+def normalize_review_paths(
+    repo_root: str, touched_paths: list[str]
+) -> tuple[list[str], list[str]]:
+    """Return (readable absolute paths, paths absent from this checkout).
+
+    Git normally supplies repo-relative paths. Some imported diffs instead
+    carry root-anchored repo paths or absolute paths from another checkout.
+    Resolve those by the longest suffix that exists under ``repo_root`` and
+    never put an unresolved or out-of-worktree path in the reviewer's Read
+    allowlist.
+    """
+    root = os.path.realpath(os.path.abspath(repo_root))
+    readable: list[str] = []
+    missing: list[str] = []
+    seen_readable: set[str] = set()
+    seen_missing: set[str] = set()
+
+    def _readable_in_repo(candidate: str) -> str | None:
+        resolved = os.path.realpath(candidate)
+        try:
+            in_repo = os.path.commonpath((root, resolved)) == root
+        except ValueError:
+            in_repo = False
+        if in_repo and os.path.isfile(resolved):
+            return resolved
+        return None
+
+    for raw_path in touched_paths:
+        if not isinstance(raw_path, str) or not raw_path:
+            continue
+
+        resolved = None
+        if not os.path.isabs(raw_path):
+            resolved = _readable_in_repo(os.path.join(root, raw_path))
+        else:
+            resolved = _readable_in_repo(raw_path)
+            # A leading slash may mean "from the repo root" rather than the
+            # host filesystem root. Foreign checkout paths can also be
+            # recovered when a trailing repo-relative suffix exists here.
+            parts = [p for p in raw_path.replace("\\", "/").split("/") if p]
+            if resolved is None and ".." not in parts:
+                for index in range(len(parts)):
+                    resolved = _readable_in_repo(os.path.join(root, *parts[index:]))
+                    if resolved is not None:
+                        break
+
+        if resolved is not None:
+            if resolved not in seen_readable:
+                seen_readable.add(resolved)
+                readable.append(resolved)
+        elif raw_path not in seen_missing:
+            seen_missing.add(raw_path)
+            missing.append(raw_path)
+
+    return readable, missing
+
+
 def build_investigate_prompt(
     touched_paths: list[str],
     diff_files: list[tuple[str, str]],
     *,
+    repo_root: str | None = None,
     context_note: str = "",
 ) -> str:
+    root = os.path.realpath(os.path.abspath(repo_root or os.getcwd()))
+    readable_paths, missing_paths = normalize_review_paths(root, touched_paths[:50])
     capped, _ = cap_diff_for_prompt(diff_files)
     diff_text = "\n\n".join(
         f"=== DIFF: {fp} ===\n{content}" for fp, content in capped
     )
+    readable_text = "\n".join(f"  - {path}" for path in readable_paths) or "  (none)"
+    missing_text = ""
+    if missing_paths:
+        missing_text = (
+            "\n\nChanged paths not present in this checkout "
+            "(do not Read these paths):\n"
+            + "\n".join(
+                f"  - {path} (not present in this checkout)"
+                for path in missing_paths
+            )
+        )
     return (
         "Review this change for security vulnerabilities.\n\n"
-        "Changed files (you may Read these and any other file in the repo):\n"
-        + "\n".join(f"  - {p}" for p in touched_paths[:50])
+        f"Repository root: {root}\n"
+        "All readable changed-file paths below are absolute and inside this "
+        "checkout. Use them directly; do not guess a different checkout root.\n\n"
+        "Changed files present in this checkout "
+        "(you may Read these and any other file in the repo):\n"
+        + readable_text
+        + missing_text
         + context_note
         + "\n\nUnified diff (only + lines are new):\n\n"
         + diff_text
