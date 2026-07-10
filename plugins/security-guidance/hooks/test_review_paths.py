@@ -10,6 +10,7 @@ if HOOKS_DIR not in sys.path:
     sys.path.insert(0, HOOKS_DIR)
 
 import review_api
+import llm
 
 
 class ReviewPathNormalizationTest(unittest.TestCase):
@@ -69,6 +70,37 @@ class ReviewPathNormalizationTest(unittest.TestCase):
         )
         self.assertEqual(missing, [])
 
+    def test_foreign_path_does_not_map_by_bare_basename(self):
+        with open(
+            os.path.join(self.repo_root, "Config.swift"),
+            "w",
+            encoding="utf-8",
+        ) as fixture:
+            fixture.write("// unrelated fixture\n")
+
+        foreign_path = "/other/vendor/Config.swift"
+        readable, missing = review_api.normalize_review_paths(
+            self.repo_root, [foreign_path]
+        )
+        prompt = review_api.build_investigate_prompt(
+            [foreign_path],
+            [(foreign_path, "@@ -0,0 +1 @@\n+// foreign fixture")],
+            repo_root=self.repo_root,
+        )
+
+        self.assertEqual(readable, [])
+        self.assertEqual(missing, [foreign_path])
+        self.assertIn(
+            f"  - {foreign_path} (not present in this checkout)", prompt
+        )
+        self.assertNotIn(
+            "All readable changed-file paths below are absolute", prompt
+        )
+        self.assertIn(
+            "No changed-file path below could be resolved inside this checkout",
+            prompt,
+        )
+
     def test_prompt_contains_repo_root_and_guarded_paths(self):
         prompt = review_api.build_investigate_prompt(
             ["/TaxEngine/Package.swift", "/home/user/App/missing.py"],
@@ -98,6 +130,15 @@ class FindingsContractTest(unittest.TestCase):
         findings_schema = review_api.FINDINGS_SCHEMA["properties"]["findings"]
         self.assertEqual(findings_schema["type"], "array")
         self.assertIn("Always a JSON array", findings_schema["description"])
+
+    def test_single_finding_object_is_normalized_to_list(self):
+        finding = {
+            "filePath": "src/auth.py",
+            "category": "Authorization",
+            "severity": "high",
+        }
+
+        self.assertEqual(llm._findings_list({"findings": finding}), [finding])
 
 
 if __name__ == "__main__":

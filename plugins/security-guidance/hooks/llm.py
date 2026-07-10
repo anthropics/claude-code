@@ -1009,6 +1009,14 @@ _FINDINGS_SCHEMA = review_api.FINDINGS_SCHEMA
 _SURVIVED_SCHEMA = review_api.SURVIVED_SCHEMA
 
 
+def _findings_list(result: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Return findings as a list, tolerating the common singleton shape."""
+    findings = (result or {}).get("findings") or []
+    if isinstance(findings, dict):
+        return [findings]
+    return findings if isinstance(findings, list) else []
+
+
 def _agentic_spawn_env() -> Dict[str, str]:
     """opts.env for the SDK-spawned inner `claude` CLI.
 
@@ -1318,7 +1326,7 @@ def agentic_review(
     # before refute drops most real findings; the eval-validated config keeps
     # mediums through to the final output.
     candidates = [
-        f for f in (inv.get("findings") or [])
+        f for f in _findings_list(inv)
         if isinstance(f, dict) and f.get("severity") in ("critical", "high", "medium")
     ]
     metrics["pass1_candidates"] = len(candidates)
@@ -1362,7 +1370,7 @@ def agentic_review(
             )
             if inv2:
                 seen = {(c.get("filePath"), c.get("category")) for c in candidates}
-                for f in (inv2.get("findings") or []):
+                for f in _findings_list(inv2):
                     if not isinstance(f, dict):
                         continue
                     if f.get("severity") not in ("critical", "high", "medium"):

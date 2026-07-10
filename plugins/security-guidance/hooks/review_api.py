@@ -203,7 +203,11 @@ def normalize_review_paths(
             # recovered when a trailing repo-relative suffix exists here.
             parts = [p for p in raw_path.replace("\\", "/").split("/") if p]
             if resolved is None and ".." not in parts:
-                for index in range(len(parts)):
+                # Never recover a foreign path from its basename alone: an
+                # unrelated root-level file with the same name is not evidence
+                # that it is the file named by the diff. Require a suffix with
+                # at least two path components.
+                for index in range(max(0, len(parts) - 1)):
                     resolved = _readable_in_repo(os.path.join(root, *parts[index:]))
                     if resolved is not None:
                         break
@@ -233,6 +237,13 @@ def build_investigate_prompt(
         f"=== DIFF: {fp} ===\n{content}" for fp, content in capped
     )
     readable_text = "\n".join(f"  - {path}" for path in readable_paths) or "  (none)"
+    path_instruction = (
+        "All readable changed-file paths below are absolute and inside this "
+        "checkout. Use them directly; do not guess a different checkout root."
+        if readable_paths
+        else "No changed-file path below could be resolved inside this checkout. "
+        "Do not guess a different checkout root."
+    )
     missing_text = ""
     if missing_paths:
         missing_text = (
@@ -246,8 +257,8 @@ def build_investigate_prompt(
     return (
         "Review this change for security vulnerabilities.\n\n"
         f"Repository root: {root}\n"
-        "All readable changed-file paths below are absolute and inside this "
-        "checkout. Use them directly; do not guess a different checkout root.\n\n"
+        + path_instruction
+        + "\n\n"
         "Changed files present in this checkout "
         "(you may Read these and any other file in the repo):\n"
         + readable_text
