@@ -28,6 +28,10 @@ GIT_CMD = [
     "-c", "core.hooksPath=/dev/null",
 ]
 
+# Allowlist for git ref arguments: prevents option-injection (refs must not
+# start with '-') while permitting SHAs, branch names, and symbolic refs.
+_SAFE_GIT_REF_RE = re.compile(r'^[0-9a-zA-Z._/:@^~{}][0-9a-zA-Z._/:@^~{}-]*$')
+
 
 def _git_rev_parse_head(cwd):
     """Return the current HEAD SHA, or None if not a git repo / no commits."""
@@ -178,6 +182,8 @@ def _git_dir(repo_root):
 
 def _git_rev_list_range(repo_root, base, head="HEAD"):
     """Shas in `base..head`, oldest→newest. Empty list on error."""
+    if not (_SAFE_GIT_REF_RE.match(base) and _SAFE_GIT_REF_RE.match(head)):
+        return []
     try:
         r = subprocess.run(
             [*GIT_CMD, "rev-list", "--reverse", f"{base}..{head}"],
@@ -198,6 +204,8 @@ def _git_diff_range(repo_root, base, head="HEAD"):
     but on failure (timeout, non-zero exit, missing git) it must NOT mark
     them reviewed — otherwise unreviewed commits get permanently silenced.
     """
+    if not (_SAFE_GIT_REF_RE.match(base) and _SAFE_GIT_REF_RE.match(head)):
+        return None
     try:
         r = subprocess.run(
             [*GIT_CMD, "diff", "-p", "--no-color", "--no-ext-diff", base, head],
