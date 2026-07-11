@@ -8,7 +8,11 @@
 
 set -euo pipefail
 
-REPO="anthropics/claude-code"
+REPO="${GITHUB_REPOSITORY:?GITHUB_REPOSITORY not set}"
+if ! [[ "$REPO" =~ ^[^/]+/[^/]+$ ]]; then
+  echo "Error: GITHUB_REPOSITORY must use owner/repo format" >&2
+  exit 1
+fi
 
 # Read from event payload so the issue number is bound to the triggering event.
 # Falls back to workflow_dispatch inputs for manual runs.
@@ -48,17 +52,55 @@ if [[ ${#DUPLICATES[@]} -gt 3 ]]; then
   exit 1
 fi
 
+canonical_issue_number() {
+  local number="$1"
+  while [[ ${#number} -gt 1 && "${number:0:1}" == "0" ]]; do
+    number="${number:1}"
+  done
+  printf '%s\n' "$number"
+}
+
+BASE_ISSUE_CANONICAL=$(canonical_issue_number "$BASE_ISSUE")
+VALIDATED_DUPLICATES=()
 for dup in "${DUPLICATES[@]}"; do
   if ! [[ "$dup" =~ ^[0-9]+$ ]]; then
     echo "Error: duplicate issue must be a number, got: $dup" >&2
     exit 1
   fi
+  canonical_dup=$(canonical_issue_number "$dup")
+  if [[ "$canonical_dup" == "$BASE_ISSUE_CANONICAL" ]]; then
+    echo "Error: duplicate issue #$dup cannot reference the base issue itself" >&2
+    exit 1
+  fi
+  if [[ ${#VALIDATED_DUPLICATES[@]} -gt 0 ]]; then
+    for existing in "${VALIDATED_DUPLICATES[@]}"; do
+      if [[ "$canonical_dup" == "$existing" ]]; then
+        echo "Error: duplicate issue number was repeated: $dup" >&2
+        exit 1
+      fi
+    done
+  fi
+  VALIDATED_DUPLICATES+=("$canonical_dup")
 done
+DUPLICATES=("${VALIDATED_DUPLICATES[@]}")
 
 # Validate that base issue exists
 if ! gh issue view "$BASE_ISSUE" --repo "$REPO" &>/dev/null; then
   echo "Error: issue #$BASE_ISSUE does not exist in $REPO" >&2
   exit 1
+fi
+
+# Workflow dispatch is at-least-once. A stable marker keeps retries from
+# posting duplicate reports after a successful earlier run. Only this
+# workflow's bot is trusted; an issue author can reproduce the hidden marker.
+DEDUPE_BOT_LOGIN="${DEDUPE_BOT_LOGIN:-github-actions[bot]}"
+EXISTING_REPORT=$(gh api --paginate --slurp \
+  "repos/$REPO/issues/$BASE_ISSUE/comments?per_page=100" \
+  | jq -r --arg bot "$DEDUPE_BOT_LOGIN" \
+    'flatten[] | select(.user.type == "Bot" and .user.login == $bot and (.body | contains("<!-- claude-dedupe-report -->"))) | .id')
+if [[ -n "$EXISTING_REPORT" ]]; then
+  echo "Duplicate report already exists on issue #$BASE_ISSUE, skipping"
+  exit 0
 fi
 
 # Validate that all duplicate issues exist
@@ -78,6 +120,7 @@ else
 fi
 
 BODY="$HEADER"$'\n\n'
+BODY+="<!-- claude-dedupe-report -->"$'\n'
 INDEX=1
 for dup in "${DUPLICATES[@]}"; do
   BODY+="$INDEX. https://github.com/$REPO/issues/$dup"$'\n'

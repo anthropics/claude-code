@@ -17,6 +17,19 @@ on:
         options:
           - 'true'
           - 'false'
+      min_issue_number:
+        description: 'Lowest issue number to process (inclusive)'
+        required: false
+        default: '1'
+        type: string
+      max_issue_number:
+        description: 'Highest issue number to process (inclusive); leave blank for no upper limit'
+        required: false
+        type: string
+
+concurrency:
+  group: backfill-duplicate-comments
+  cancel-in-progress: false
 
 jobs:
   backfill-duplicate-comments:
@@ -34,11 +47,15 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: "1.3.7"
       
       - name: Backfill duplicate comments
         run: bun run scripts/backfill-duplicate-comments.ts
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
           DAYS_BACK: ${{ inputs.days_back }}
           DRY_RUN: ${{ inputs.dry_run }}
+          MIN_ISSUE_NUMBER: ${{ inputs.min_issue_number }}
+          MAX_ISSUE_NUMBER: ${{ inputs.max_issue_number }}

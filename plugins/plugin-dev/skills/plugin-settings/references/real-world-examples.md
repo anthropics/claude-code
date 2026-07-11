@@ -52,21 +52,19 @@ Report status to 'team-leader' session.
 set -euo pipefail
 
 SWARM_STATE_FILE=".claude/multi-agent-swarm.local.md"
+PARSER="${CLAUDE_PLUGIN_ROOT}/skills/plugin-settings/scripts/parse-frontmatter.sh"
 
 # Quick exit if no swarm active
 if [[ ! -f "$SWARM_STATE_FILE" ]]; then
   exit 0
 fi
 
-# Parse frontmatter
-FRONTMATTER=$(sed -n '/^---$/,/^---$/{ /^---$/d; p; }' "$SWARM_STATE_FILE")
-
 # Extract configuration
-COORDINATOR_SESSION=$(echo "$FRONTMATTER" | grep '^coordinator_session:' | sed 's/coordinator_session: *//' | sed 's/^"\(.*\)"$/\1/')
-AGENT_NAME=$(echo "$FRONTMATTER" | grep '^agent_name:' | sed 's/agent_name: *//' | sed 's/^"\(.*\)"$/\1/')
-TASK_NUMBER=$(echo "$FRONTMATTER" | grep '^task_number:' | sed 's/task_number: *//' | sed 's/^"\(.*\)"$/\1/')
-PR_NUMBER=$(echo "$FRONTMATTER" | grep '^pr_number:' | sed 's/pr_number: *//' | sed 's/^"\(.*\)"$/\1/')
-ENABLED=$(echo "$FRONTMATTER" | grep '^enabled:' | sed 's/enabled: *//')
+COORDINATOR_SESSION=$("$PARSER" "$SWARM_STATE_FILE" coordinator_session)
+AGENT_NAME=$("$PARSER" "$SWARM_STATE_FILE" agent_name)
+TASK_NUMBER=$("$PARSER" "$SWARM_STATE_FILE" task_number)
+PR_NUMBER=$("$PARSER" "$SWARM_STATE_FILE" pr_number)
+ENABLED=$("$PARSER" "$SWARM_STATE_FILE" enabled 2>/dev/null || printf 'false')
 
 # Check if enabled
 if [[ "$ENABLED" != "true" ]]; then
@@ -158,19 +156,17 @@ Document any changes needed in CLAUDE.md.
 set -euo pipefail
 
 RALPH_STATE_FILE=".claude/ralph-loop.local.md"
+PARSER="${CLAUDE_PLUGIN_ROOT}/skills/plugin-settings/scripts/parse-frontmatter.sh"
 
 # Quick exit if no active loop
 if [[ ! -f "$RALPH_STATE_FILE" ]]; then
   exit 0
 fi
 
-# Parse frontmatter
-FRONTMATTER=$(sed -n '/^---$/,/^---$/{ /^---$/d; p; }' "$RALPH_STATE_FILE")
-
 # Extract configuration
-ITERATION=$(echo "$FRONTMATTER" | grep '^iteration:' | sed 's/iteration: *//')
-MAX_ITERATIONS=$(echo "$FRONTMATTER" | grep '^max_iterations:' | sed 's/max_iterations: *//')
-COMPLETION_PROMISE=$(echo "$FRONTMATTER" | grep '^completion_promise:' | sed 's/completion_promise: *//' | sed 's/^"\(.*\)"$/\1/')
+ITERATION=$("$PARSER" "$RALPH_STATE_FILE" iteration)
+MAX_ITERATIONS=$("$PARSER" "$RALPH_STATE_FILE" max_iterations)
+COMPLETION_PROMISE=$("$PARSER" "$RALPH_STATE_FILE" completion_promise 2>/dev/null || printf 'null')
 
 # Check max iterations
 if [[ $MAX_ITERATIONS -gt 0 ]] && [[ $ITERATION -ge $MAX_ITERATIONS ]]; then
@@ -197,8 +193,8 @@ fi
 # Continue loop - increment iteration
 NEXT_ITERATION=$((ITERATION + 1))
 
-# Extract prompt from markdown body
-PROMPT_TEXT=$(awk '/^---$/{i++; next} i>=2' "$RALPH_STATE_FILE")
+# Extract prompt from markdown body and preserve later horizontal rules.
+PROMPT_TEXT=$(awk 'NR == 1 { next } !closed && $0 == "---" { closed = 1; next } closed { print }' "$RALPH_STATE_FILE")
 
 # Update iteration counter
 TEMP_FILE="${RALPH_STATE_FILE}.tmp.$$"
@@ -336,7 +332,8 @@ fi
 FILE="/Users/alice/.claude/my-plugin.local.md"
 
 # GOOD
-FILE=".claude/my-plugin.local.md"
+PROJECT_ROOT="${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel)}"
+FILE="$PROJECT_ROOT/.claude/my-plugin.local.md"
 ```
 
 ### ❌ Unquoted Variables
@@ -376,11 +373,11 @@ MAX=${MAX:-10}
 ### ❌ Ignoring Edge Cases
 
 ```bash
-# BAD: Assumes exactly 2 --- markers
-sed -n '/^---$/,/^---$/{ /^---$/d; p; }'
+# BAD: A range parser can restart when markdown contains another marker pair.
+# Do not parse frontmatter with an unbounded marker range.
 
-# GOOD: Handles --- in body
-awk '/^---$/{i++; next} i>=2'  # For body
+# GOOD: The shared parser stops at the first closing marker.
+"$PARSER" "$FILE"
 ```
 
 ## Conclusion

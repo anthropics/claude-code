@@ -427,30 +427,32 @@ See language-specific guides for:
 
 ```json
 {
-  "PreToolUse": [
-    {
-      "matcher": "Write|Edit",
-      "hooks": [
-        {
-          "type": "prompt",
-          "prompt": "Before modifying code, verify it meets our coding standards from the code-standards skill. Check formatting, naming conventions, and documentation. If standards aren't met, suggest improvements.",
-          "timeout": 30
-        }
-      ]
-    }
-  ],
-  "Stop": [
-    {
-      "matcher": ".*",
-      "hooks": [
-        {
-          "type": "command",
-          "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/validate-commit.sh",
-          "timeout": 45
-        }
-      ]
-    }
-  ]
+  "description": "Code standards hooks",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "Before modifying code, verify it meets our coding standards from the code-standards skill. Check formatting, naming conventions, and documentation. If standards aren't met, suggest improvements.",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/validate-commit.sh",
+            "timeout": 45
+          }
+        ]
+      }
+    ]
+  }
 }
 ```
 
@@ -460,46 +462,38 @@ See language-specific guides for:
 #!/bin/bash
 # Validate code quality before task completion
 
-set -e
-
-# Check if there are any uncommitted changes
-if [[ -z $(git status -s) ]]; then
-  echo '{"systemMessage": "No changes to validate. Task complete."}'
-  exit 0
-fi
-
-# Run linter on changed files
-CHANGED_FILES=$(git diff --name-only --cached | grep -E '\.(js|ts|py)$' || true)
-
-if [[ -z "$CHANGED_FILES" ]]; then
-  echo '{"systemMessage": "No code files changed. Validation passed."}'
-  exit 0
-fi
+set -euo pipefail
 
 # Run appropriate linters
 ISSUES=0
+CHECKED_FILES=0
 
-for file in $CHANGED_FILES; do
+while IFS= read -r -d '' file; do
   case "$file" in
     *.js|*.ts)
+      CHECKED_FILES=$((CHECKED_FILES + 1))
       if ! npx eslint "$file" --quiet; then
         ISSUES=$((ISSUES + 1))
       fi
       ;;
     *.py)
+      CHECKED_FILES=$((CHECKED_FILES + 1))
       if ! python -m pylint "$file" --errors-only; then
         ISSUES=$((ISSUES + 1))
       fi
       ;;
   esac
-done
+done < <(git diff --cached --name-only --diff-filter=ACMR -z)
 
-if [[ $ISSUES -gt 0 ]]; then
-  echo "{\"systemMessage\": \"Found $ISSUES code quality issues. Please fix before completing.\"}"
-  exit 1
+if [[ $CHECKED_FILES -eq 0 ]]; then
+  exit 0
 fi
 
-echo '{"systemMessage": "Code quality checks passed. Ready to commit."}'
+if [[ $ISSUES -gt 0 ]]; then
+  printf '{"decision":"block","reason":"Found %d code quality issues. Please fix before completing."}\n' "$ISSUES"
+  exit 0
+fi
+
 exit 0
 ```
 

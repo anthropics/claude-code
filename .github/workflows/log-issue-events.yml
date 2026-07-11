@@ -10,31 +10,50 @@ jobs:
     permissions:
       issues: read
     steps:
-      - name: Log issue creation to Statsig
+      - name: Log issue event to Statsig
         env:
           STATSIG_API_KEY: ${{ secrets.STATSIG_API_KEY }}
+          EVENT_ACTION: ${{ github.event.action }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
           REPO: ${{ github.repository }}
           ISSUE_TITLE: ${{ github.event.issue.title }}
           AUTHOR: ${{ github.event.issue.user.login }}
           CREATED_AT: ${{ github.event.issue.created_at }}
         run: |
-          # All values are now safely passed via environment variables
-          # No direct templating in the shell script to prevent injection attacks
-          
-          curl -X POST "https://events.statsigapi.net/v1/log_event" \
+          if [ -z "$STATSIG_API_KEY" ]; then
+            echo "STATSIG_API_KEY not found, skipping Statsig logging"
+            exit 0
+          fi
+
+          case "$EVENT_ACTION" in
+            opened) EVENT_NAME="github_issue_created" ;;
+            closed) EVENT_NAME="github_issue_closed" ;;
+            *) echo "Unsupported issue action: $EVENT_ACTION" >&2; exit 1 ;;
+          esac
+
+          EVENT_PAYLOAD=$(jq -n \
+            --arg event_name "$EVENT_NAME" \
+            --arg issue_number "$ISSUE_NUMBER" \
+            --arg repository "$REPO" \
+            --arg title "$ISSUE_TITLE" \
+            --arg author "$AUTHOR" \
+            --arg created_at "$CREATED_AT" \
+            '{
+              events: [{
+                eventName: $event_name,
+                metadata: {
+                  issue_number: ($issue_number | tonumber),
+                  repository: $repository,
+                  title: $title,
+                  author: $author,
+                  created_at: $created_at
+                },
+                time: (now * 1000 | floor)
+              }]
+            }')
+
+          curl --fail-with-body --silent --show-error --retry 3 \
+            -X POST "https://events.statsigapi.net/v1/log_event" \
             -H "Content-Type: application/json" \
             -H "statsig-api-key: $STATSIG_API_KEY" \
-            -d '{
-              "events": [{
-                "eventName": "github_issue_created",
-                "metadata": {
-                  "issue_number": "'"$ISSUE_NUMBER"'",
-                  "repository": "'"$REPO"'",
-                  "title": "'"$(echo "$ISSUE_TITLE" | sed "s/\"/\\\\\"/g")"'",
-                  "author": "'"$AUTHOR"'",
-                  "created_at": "'"$CREATED_AT"'"
-                },
-                "time": '"$(date +%s)000"'
-              }]
-            }'
+            -d "$EVENT_PAYLOAD"

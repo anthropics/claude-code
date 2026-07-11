@@ -27,33 +27,71 @@ fi
 FILE="$1"
 FIELD="${2:-}"
 
-# Validate file
 if [ ! -f "$FILE" ]; then
   echo "Error: File not found: $FILE" >&2
   exit 1
 fi
 
-# Extract frontmatter
-FRONTMATTER=$(sed -n '/^---$/,/^---$/{ /^---$/d; p; }' "$FILE")
-
-if [ -z "$FRONTMATTER" ]; then
-  echo "Error: No frontmatter found in $FILE" >&2
+if ! command -v ruby >/dev/null 2>&1; then
+  echo "Error: ruby is required to parse YAML frontmatter" >&2
   exit 1
 fi
 
-# If no field specified, output all frontmatter
-if [ -z "$FIELD" ]; then
-  echo "$FRONTMATTER"
-  exit 0
-fi
+exec ruby -rjson -rpsych - "$FILE" "$FIELD" <<'RUBY'
+file, field = ARGV
 
-# Extract specific field
-VALUE=$(echo "$FRONTMATTER" | grep "^${FIELD}:" | sed "s/${FIELD}: *//" | sed 's/^"\(.*\)"$/\1/' | sed "s/^'\\(.*\\)'$/\\1/")
+begin
+  lines = File.readlines(file, chomp: true, encoding: "UTF-8")
+  unless lines.first == "---"
+    warn "Error: Frontmatter must start on the first line of #{file}"
+    exit 1
+  end
 
-if [ -z "$VALUE" ]; then
-  echo "Error: Field '$FIELD' not found in frontmatter" >&2
+  closing_offset = lines.drop(1).index("---")
+  unless closing_offset
+    warn "Error: No closing frontmatter marker found in #{file}"
+    exit 1
+  end
+
+  frontmatter = lines[1, closing_offset].join("\n")
+  if frontmatter.strip.empty?
+    warn "Error: Empty frontmatter in #{file}"
+    exit 1
+  end
+
+  metadata = Psych.safe_load(
+    frontmatter,
+    [],
+    [],
+    false,
+    filename: file
+  )
+  unless metadata.is_a?(Hash)
+    warn "Error: Frontmatter must be a YAML mapping in #{file}"
+    exit 1
+  end
+
+  if field.empty?
+    puts frontmatter
+    exit 0
+  end
+
+  unless metadata.key?(field)
+    warn "Error: Field '#{field}' not found in frontmatter"
+    exit 1
+  end
+
+  value = metadata[field]
+  case value
+  when String, Numeric, TrueClass, FalseClass
+    puts value
+  when NilClass
+    puts "null"
+  else
+    puts JSON.generate(value)
+  end
+rescue Psych::Exception, ArgumentError, EncodingError => error
+  warn "Error: Invalid YAML frontmatter in #{file}: #{error.message}"
   exit 1
-fi
-
-echo "$VALUE"
-exit 0
+end
+RUBY

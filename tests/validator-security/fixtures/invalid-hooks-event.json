@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "BogusEvent": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true"
+          }
+        ]
+      }
+    ]
+  }
+}

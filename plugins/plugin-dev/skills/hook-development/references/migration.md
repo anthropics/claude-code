@@ -63,7 +63,7 @@ fi
       "hooks": [
         {
           "type": "prompt",
-          "prompt": "Command: $TOOL_INPUT.command. Analyze for: 1) Destructive operations (rm -rf, dd, mkfs, etc) 2) Privilege escalation (sudo) 3) Network operations without user consent. Return 'approve' or 'deny' with explanation.",
+          "prompt": "Analyze the Bash hook input in $ARGUMENTS for destructive operations, privilege escalation, and unexpected network access. Return {\"ok\": true} when safe or {\"ok\": false, \"reason\": \"...\"} when unsafe.",
           "timeout": 15
         }
       ]
@@ -109,13 +109,13 @@ file_path=$(echo "$input" | jq -r '.tool_input.file_path')
 
 # Check for path traversal
 if [[ "$file_path" == *".."* ]]; then
-  echo '{"decision": "deny", "reason": "Path traversal detected"}' >&2
+  echo "Path traversal detected" >&2
   exit 2
 fi
 
 # Check for system paths
 if [[ "$file_path" == "/etc/"* ]] || [[ "$file_path" == "/sys/"* ]]; then
-  echo '{"decision": "deny", "reason": "System file"}' >&2
+  echo "System file" >&2
   exit 2
 fi
 ```
@@ -137,7 +137,7 @@ fi
       "hooks": [
         {
           "type": "prompt",
-          "prompt": "File path: $TOOL_INPUT.file_path. Content preview: $TOOL_INPUT.content (first 200 chars). Verify: 1) Not system directories (/etc, /sys, /usr) 2) Not credentials (.env, tokens, secrets) 3) No path traversal 4) Content doesn't expose secrets. Return 'approve' or 'deny'."
+          "prompt": "Analyze the file-write hook input in $ARGUMENTS for system paths, credentials, path traversal, and exposed secrets. Return {\"ok\": true} when safe or {\"ok\": false, \"reason\": \"...\"} when unsafe."
         }
       ]
     }
@@ -165,7 +165,7 @@ file_path=$(echo "$input" | jq -r '.tool_input.file_path')
 size=$(stat -f%z "$file_path" 2>/dev/null || stat -c%s "$file_path" 2>/dev/null)
 
 if [ "$size" -gt 10000000 ]; then
-  echo '{"decision": "deny", "reason": "File too large"}' >&2
+  echo "File too large" >&2
   exit 2
 fi
 ```
@@ -219,7 +219,7 @@ Combine both for multi-stage validation:
         },
         {
           "type": "prompt",
-          "prompt": "Deep analysis of bash command: $TOOL_INPUT",
+          "prompt": "Analyze the Bash hook input in $ARGUMENTS. Return {\"ok\": true} when safe or {\"ok\": false, \"reason\": \"...\"} when unsafe.",
           "timeout": 15
         }
       ]
@@ -303,7 +303,6 @@ my-plugin/
   ],
   "Stop": [
     {
-      "matcher": "*",
       "hooks": [
         {
           "type": "prompt",

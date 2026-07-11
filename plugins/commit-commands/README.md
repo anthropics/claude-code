@@ -14,11 +14,12 @@ Creates a git commit with an automatically generated commit message based on sta
 
 **What it does:**
 1. Analyzes current git status
-2. Reviews both staged and unstaged changes
-3. Examines recent commit messages to match your repository's style
-4. Drafts an appropriate commit message
-5. Stages relevant files
-6. Creates the commit
+2. Enumerates tracked, staged, and untracked files
+3. Blocks sensitive paths before reading contents, then inspects each remaining candidate individually
+4. Examines recent commit messages to match your repository's style
+5. Drafts an appropriate commit message
+6. Stages relevant files by explicit path
+7. Creates the commit
 
 **Usage:**
 ```bash
@@ -41,8 +42,10 @@ Creates a git commit with an automatically generated commit message based on sta
 **Features:**
 - Automatically drafts commit messages that match your repo's style
 - Follows conventional commit practices
-- Avoids committing files with secrets (.env, credentials.json)
-- Includes Claude Code attribution in commit message
+- Lists untracked files explicitly and inspects every non-sensitive candidate before staging
+- Refuses `.env`, credentials, keys, and any file whose safety cannot be confirmed
+- Avoids expanding a full diff before sensitive path names have been filtered
+- Never uses repository-wide staging commands such as `git add .` or `git add -A`
 
 ### `/commit-push-pr`
 
@@ -50,10 +53,11 @@ Complete workflow command that commits, pushes, and creates a pull request in on
 
 **What it does:**
 1. Creates a new branch (if currently on main)
-2. Stages and commits changes with an appropriate message
-3. Pushes the branch to origin
-4. Creates a pull request using `gh pr create`
-5. Provides the PR URL
+2. Applies the same per-file inspection and sensitive-file gate as `/commit`
+3. Stages explicit paths and commits changes with an appropriate message
+4. Pushes the branch to origin
+5. Creates a pull request using `gh pr create`
+6. Provides the PR URL
 
 **Usage:**
 ```bash
@@ -79,7 +83,7 @@ Complete workflow command that commits, pushes, and creates a pull request in on
 - Creates comprehensive PR descriptions with:
   - Summary of changes (1-3 bullet points)
   - Test plan checklist
-  - Claude Code attribution
+- Excludes sensitive or safety-unconfirmed candidates and refuses to continue if one is already staged
 - Handles branch creation automatically
 - Uses GitHub CLI (`gh`) for PR creation
 
@@ -92,10 +96,11 @@ Complete workflow command that commits, pushes, and creates a pull request in on
 Cleans up local branches that have been deleted from the remote repository.
 
 **What it does:**
-1. Lists all local branches to identify [gone] status
-2. Identifies and removes worktrees associated with [gone] branches
-3. Deletes all branches marked as [gone]
-4. Provides feedback on removed branches
+1. Uses Git tracking metadata to identify branches whose upstream is gone
+2. Preserves the current branch, worktrees with tracked/untracked/ignored files, and branches with commits not merged into the current `HEAD`
+3. Removes only clean associated worktrees for fully merged branches
+4. Deletes only fully merged eligible branches with non-force deletion
+5. Reports every removed and skipped branch
 
 **Usage:**
 ```bash
@@ -108,15 +113,16 @@ Cleans up local branches that have been deleted from the remote repository.
 /clean_gone
 
 # Claude will:
-# - Find all branches marked as [gone]
-# - Remove any associated worktrees
-# - Delete the stale local branches
-# - Report what was cleaned up
+# - Find branches whose configured upstream is gone
+# - Preserve branches with unique commits or any local worktree files
+# - Remove only clean worktrees and fully merged eligible branches
+# - Report what was removed or skipped
 ```
 
 **Features:**
-- Handles both regular branches and worktree branches
-- Safely removes worktrees before deleting branches
+- Uses structured Git tracking and worktree metadata instead of matching display text
+- Refuses to remove worktrees with tracked, untracked, or ignored files, or branches with unmerged commits
+- Removes clean worktrees before non-force branch deletion
 - Shows clear feedback about what was removed
 - Reports if no cleanup was needed
 
@@ -133,6 +139,7 @@ This plugin is included in the Claude Code repository. The commands are automati
 
 ### Using `/commit`
 - Review the staged changes before committing
+- Keep unrelated untracked files out of the requested commit
 - Let Claude analyze your changes and match your repo's commit style
 - Trust the automated message, but verify it's accurate
 - Use for routine commits during development
@@ -147,7 +154,7 @@ This plugin is included in the Claude Code repository. The commands are automati
 ### Using `/clean_gone`
 - Run periodically to keep your branch list clean
 - Especially useful after merging multiple PRs
-- Safe to run - only removes branches already deleted remotely
+- Uses conservative safety checks in addition to requiring a gone upstream
 - Helps maintain a tidy local repository
 
 ## Workflow Integration
@@ -222,4 +229,4 @@ Anthropic (support@anthropic.com)
 
 ## Version
 
-1.0.0
+1.0.1

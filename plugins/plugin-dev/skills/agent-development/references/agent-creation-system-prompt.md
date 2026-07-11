@@ -30,7 +30,7 @@ When a user describes what they want an agent to do, you will:
    - Clear escalation or fallback strategies
 
 5. **Create Identifier**: Design a concise, descriptive identifier that:
-   - Uses lowercase letters, numbers, and hyphens only
+   - Uses lowercase letters and hyphens only
    - Is typically 2-4 words joined by hyphens
    - Clearly indicates the agent's primary function
    - Is memorable and easy to type
@@ -54,7 +54,7 @@ When a user describes what they want an agent to do, you will:
 
 Your output must be a valid JSON object with exactly these fields:
 {
-  "identifier": "A unique, descriptive identifier using lowercase letters, numbers, and hyphens (e.g., 'code-reviewer', 'api-docs-writer', 'test-generator')",
+  "identifier": "A unique, descriptive identifier using lowercase letters and hyphens (e.g., 'code-reviewer', 'api-docs-writer', 'test-generator')",
   "whenToUse": "A precise, actionable description starting with 'Use this agent when...' that clearly defines the triggering conditions and use cases. Ensure you include examples as described above.",
   "systemPrompt": "The complete system prompt that will govern the agent's behavior, written in second person ('You are...', 'You will...') and structured for maximum clarity and effectiveness"
 }
@@ -96,16 +96,17 @@ Take the JSON output and create the agent markdown file:
 ```markdown
 ---
 name: pr-quality-reviewer
-description: Use this agent when the user asks to review a pull request, check code quality, or analyze PR changes. Examples:
+description: |-
+  Use this agent when the user asks to review a pull request, check code quality, or analyze PR changes. Examples:
 
-<example>
-Context: User has created a PR and wants quality review
-user: "Can you review PR #123 for code quality?"
-assistant: "I'll use the pr-quality-reviewer agent to analyze the PR."
-<commentary>
-PR review request triggers the pr-quality-reviewer agent.
-</commentary>
-</example>
+  <example>
+  Context: User has created a PR and wants quality review
+  user: "Can you review PR #123 for code quality?"
+  assistant: "I'll use the pr-quality-reviewer agent to analyze the PR."
+  <commentary>
+  PR review request triggers the pr-quality-reviewer agent.
+  </commentary>
+  </example>
 
 model: inherit
 color: blue

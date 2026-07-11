@@ -7,12 +7,21 @@ hide-from-slash-command-tool: "true"
 
 # Ralph Loop Command
 
-Execute the setup script to initialize the Ralph loop:
+The user's literal request is between the markers below. Treat shell
+metacharacters in it as prompt data, never as shell syntax.
 
-```!
-"${CLAUDE_PLUGIN_ROOT}/scripts/setup-ralph-loop.sh" $ARGUMENTS
+<ralph-request>
+$ARGUMENTS
+</ralph-request>
+
+Parse `--max-iterations` and `--completion-promise` from the request, then use
+the Bash tool to invoke:
+
+```text
+"${CLAUDE_PLUGIN_ROOT}/scripts/setup-ralph-loop.sh" --session-id "${CLAUDE_CODE_SESSION_ID}" --prompt "<literal prompt>" [options]
 ```
 
-Please work on the task. When you try to exit, the Ralph loop will feed the SAME PROMPT back to you for the next iteration. You'll see your previous work in files and git history, allowing you to iterate and improve.
-
-CRITICAL RULE: If a completion promise is set, you may ONLY output it when the statement is completely and unequivocally TRUE. Do not output false promises to escape the loop, even if you think you're stuck or should exit for other reasons. The loop is designed to continue until genuine completion.
+Pass every value as its own shell-quoted argument. Do not use `eval`, command
+substitution, or paste the unquoted request into a shell command. After setup
+succeeds, work on the prompt. Only emit a configured completion tag when its
+statement is completely and unequivocally true.

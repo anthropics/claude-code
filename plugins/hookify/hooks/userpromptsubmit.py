@@ -8,19 +8,17 @@ It reads .claude/hookify.*.local.md files and evaluates rules.
 import os
 import sys
 import json
+from pathlib import Path
 
-# CRITICAL: Add plugin root to Python path for imports
-PLUGIN_ROOT = os.environ.get('CLAUDE_PLUGIN_ROOT')
-if PLUGIN_ROOT:
-    parent_dir = os.path.dirname(PLUGIN_ROOT)
-    if parent_dir not in sys.path:
-        sys.path.insert(0, parent_dir)
-    if PLUGIN_ROOT not in sys.path:
-        sys.path.insert(0, PLUGIN_ROOT)
+PLUGIN_ROOT = Path(
+    os.environ.get('CLAUDE_PLUGIN_ROOT') or Path(__file__).resolve().parents[1]
+).resolve()
+if str(PLUGIN_ROOT) not in sys.path:
+    sys.path.insert(0, str(PLUGIN_ROOT))
 
 try:
-    from hookify.core.config_loader import load_rules
-    from hookify.core.rule_engine import RuleEngine
+    from core.config_loader import load_rules
+    from core.rule_engine import RuleEngine
 except ImportError as e:
     error_msg = {"systemMessage": f"Hookify import error: {e}"}
     print(json.dumps(error_msg), file=sys.stdout)
@@ -34,7 +32,7 @@ def main():
         input_data = json.load(sys.stdin)
 
         # Load user prompt rules
-        rules = load_rules(event='prompt')
+        rules = load_rules(event='prompt', root_dir=input_data.get('cwd'))
 
         # Evaluate rules
         engine = RuleEngine()

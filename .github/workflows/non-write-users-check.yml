@@ -1,6 +1,9 @@
 name: Non-write Users Check
 on:
-  pull_request:
+  # This workflow never checks out or executes pull-request code. Running the
+  # base-branch workflow in pull_request_target gives fork PRs the declared
+  # permission needed to post the warning comment.
+  pull_request_target:
     paths:
       - ".github/**"
 
@@ -15,7 +18,7 @@ jobs:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - run: |
-          DIFF=$(gh pr diff "$PR_NUMBER" -R "$REPO" || true)
+          DIFF=$(gh pr diff "$PR_NUMBER" -R "$REPO")
 
           if ! echo "$DIFF" | grep -qE '^diff --git a/\.github/.*\.ya?ml'; then
             exit 0
@@ -27,10 +30,8 @@ jobs:
             exit 0
           fi
 
-          EXISTING=$(gh pr view "$PR_NUMBER" -R "$REPO" --json comments --jq '.comments[].body' \
-            | grep -c "<!-- non-write-users-check -->" || true)
-
-          if [ "$EXISTING" -gt 0 ]; then
+          COMMENTS=$(gh pr view "$PR_NUMBER" -R "$REPO" --json comments --jq '.comments[].body')
+          if echo "$COMMENTS" | grep -q "<!-- non-write-users-check -->"; then
             exit 0
           fi
 

@@ -1,6 +1,6 @@
 {
   "name": "learning-output-style",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Interactive learning mode that requests meaningful code contributions at decision points (mimics the unshipped Learning output style)",
   "author": {
     "name": "Boris Cherny",

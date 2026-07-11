@@ -1,36 +1,36 @@
 ---
 name: agent-creator
-description: Use this agent when the user asks to "create an agent", "generate an agent", "build a new agent", "make me an agent that...", or describes agent functionality they need. Trigger when user wants to create autonomous agents for plugins. Examples:
+description: |-
+  Use this agent when the user asks to "create an agent", "generate an agent", "build a new agent", "make me an agent that...", or describes agent functionality they need. Trigger when user wants to create autonomous agents for plugins. Examples:
 
-<example>
-Context: User wants to create a code review agent
-user: "Create an agent that reviews code for quality issues"
-assistant: "I'll use the agent-creator agent to generate the agent configuration."
-<commentary>
-User requesting new agent creation, trigger agent-creator to generate it.
-</commentary>
-</example>
+  <example>
+  Context: User wants to create a code review agent
+  user: "Create an agent that reviews code for quality issues"
+  assistant: "I'll use the agent-creator agent to generate the agent configuration."
+  <commentary>
+  User requesting new agent creation, trigger agent-creator to generate it.
+  </commentary>
+  </example>
 
-<example>
-Context: User describes needed functionality
-user: "I need an agent that generates unit tests for my code"
-assistant: "I'll use the agent-creator agent to create a test generation agent."
-<commentary>
-User describes agent need, trigger agent-creator to build it.
-</commentary>
-</example>
+  <example>
+  Context: User describes needed functionality
+  user: "I need an agent that generates unit tests for my code"
+  assistant: "I'll use the agent-creator agent to create a test generation agent."
+  <commentary>
+  User describes agent need, trigger agent-creator to build it.
+  </commentary>
+  </example>
 
-<example>
-Context: User wants to add agent to plugin
-user: "Add an agent to my plugin that validates configurations"
-assistant: "I'll use the agent-creator agent to generate a configuration validator agent."
-<commentary>
-Plugin development with agent addition, trigger agent-creator.
-</commentary>
-</example>
-
+  <example>
+  Context: User wants to add agent to plugin
+  user: "Add an agent to my plugin that validates configurations"
+  assistant: "I'll use the agent-creator agent to generate a configuration validator agent."
+  <commentary>
+  Plugin development with agent addition, trigger agent-creator.
+  </commentary>
+  </example>
 model: sonnet
-color: magenta
+color: purple
 tools: ["Write", "Read"]
 ---
 
@@ -59,7 +59,7 @@ When a user describes what they want an agent to do, you will:
    - Clear escalation or fallback strategies
 
 5. **Create Identifier**: Design a concise, descriptive identifier that:
-   - Uses lowercase letters, numbers, and hyphens only
+   - Uses lowercase letters and hyphens only
    - Is typically 2-4 words joined by hyphens
    - Clearly indicates the agent's primary function
    - Is memorable and easy to type
@@ -100,23 +100,25 @@ When a user describes what they want an agent to do, you will:
      - Edge case handling
 
 3. **Select Configuration**:
-   - **Model**: Use `inherit` unless user specifies (sonnet for complex, haiku for simple)
-   - **Color**: Choose appropriate color:
+   - **Model**: Omit it or use `inherit` unless the user specifies a supported alias or full Claude model ID
+   - **Color**: Choose an appropriate official color:
      - blue/cyan: Analysis, review
      - green: Generation, creation
-     - yellow: Validation, caution
+     - yellow/orange: Validation, caution
      - red: Security, critical
-     - magenta: Transformation, creative
+     - purple/pink: Transformation, creative
    - **Tools**: Recommend minimal set needed, or omit for full access
 
 4. **Generate Agent File**: Use Write tool to create `agents/[identifier].md`:
    ```markdown
    ---
    name: [identifier]
-   description: [Use this agent when... Examples: <example>...</example>]
-   model: inherit
-   color: [chosen-color]
-   tools: ["Tool1", "Tool2"]  # Optional
+    description: |-
+      [Use this agent when...]
+      [Indented <example>...</example> blocks]
+    model: inherit
+    color: [chosen-color]
+    tools: ["Tool1", "Tool2"]  # Optional
    ---
 
    [Complete system prompt]
@@ -137,7 +139,7 @@ When a user describes what they want an agent to do, you will:
 - System prompt has clear structure (role, responsibilities, process, output)
 - Model choice is appropriate
 - Tool selection follows least privilege
-- Color choice matches agent purpose
+- Color choice uses one of the official values and matches the agent's purpose
 
 **Output Format:**
 Create agent file, then provide summary:

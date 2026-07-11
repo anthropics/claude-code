@@ -21,7 +21,7 @@ This plugin implements Ralph using a **Stop hook** that intercepts Claude's exit
 # 2. Tries to exit
 # 3. Stop hook blocks exit
 # 4. Stop hook feeds the SAME prompt back
-# 5. Repeat until completion
+# 5. Repeat until completion, the plugin limit, or the runtime safety cap
 ```
 
 The loop happens **inside your current session** - you don't need external bash loops. The Stop hook in `hooks/stop-hook.sh` creates the self-referential feedback loop by blocking normal session exit.
@@ -35,7 +35,7 @@ This creates a **self-referential feedback loop** where:
 ## Quick Start
 
 ```bash
-/ralph-loop "Build a REST API for todos. Requirements: CRUD operations, input validation, tests. Output <promise>COMPLETE</promise> when done." --completion-promise "COMPLETE" --max-iterations 50
+/ralph-loop "Build a REST API for todos. Requirements: CRUD operations, input validation, tests. Output <promise>COMPLETE</promise> when done." --completion-promise "COMPLETE" --max-iterations 8
 ```
 
 Claude will:
@@ -57,12 +57,45 @@ Start a Ralph loop in your current session.
 ```
 
 **Options:**
-- `--max-iterations <n>` - Stop after N iterations (default: unlimited)
+- `--max-iterations <n>` - Stop at iteration N; accepts 0 through 2147483647, where 0 means no plugin-defined limit
 - `--completion-promise <text>` - Phrase that signals completion
+
+### Stop-hook State Lifecycle
+
+Ralph stores `iteration: 1` when a loop starts. Before each continuation, the
+Stop hook writes the next iteration to the state file and returns a blocking
+decision. For example, a limit of 3 produces two continuations (iterations 2
+and 3); the following Stop sees that the limit is reached, removes the state
+file, and allows the session to stop.
+
+Claude Code marks a repeated Stop invocation with `stop_hook_active: true`.
+Ralph processes that invocation normally so it can detect a completion tag or
+reach the configured maximum. The state file is removed only when an exact
+completion tag is found, the plugin iteration limit is reached, or
+`/cancel-ralph` is run.
+
+For current Stop payloads, Ralph checks the non-empty
+`last_assistant_message` field directly, so the just-produced completion tag
+does not depend on transcript write timing. Older payloads without that field
+fall back to parsing the complete JSONL transcript; a missing or malformed
+fallback transcript blocks safely and preserves the loop state.
+
+Independently, the Claude Code runtime permits at most 8 consecutive Stop-hook
+continuations. This runtime cap still applies when `--max-iterations` is 0 or
+greater than 8. If the runtime ends the continuation chain before Ralph reaches
+its own exit condition, the Ralph state file remains for explicit cancellation
+with `/cancel-ralph`.
 
 ### /cancel-ralph
 
-Cancel the active Ralph loop.
+Cancel the active Ralph loop for the current Claude Code session. Each session
+uses its own
+`${CLAUDE_CONFIG_DIR:-$HOME/.claude}/ralph-loop/${CLAUDE_CODE_SESSION_ID}.local.md`
+state file, so prompts stay outside the repository and parallel sessions do not
+overwrite or cancel one another. The directory is private to the current user.
+The project root is still resolved from `CLAUDE_PROJECT_DIR`, then the Git
+top-level directory, so changing the session's working directory does not
+detach the hook from its project safety boundary.
 
 **Usage:**
 ```bash
@@ -118,14 +151,15 @@ Implement feature X following TDD:
 
 ### 4. Escape Hatches
 
-Always use `--max-iterations` as a safety net to prevent infinite loops on impossible tasks:
+Always use `--max-iterations` as a safety net for impossible tasks. Claude Code
+also force-stops a chain after 8 consecutive Stop-hook continuations:
 
 ```bash
 # Recommended: Always set a reasonable iteration limit
-/ralph-loop "Try to implement feature X" --max-iterations 20
+/ralph-loop "Try to implement feature X" --max-iterations 8
 
 # In your prompt, include what to do if stuck:
-# "After 15 iterations, if not complete:
+# "After 6 iterations, if not complete:
 #  - Document what's blocking progress
 #  - List what was attempted
 #  - Suggest alternative approaches"

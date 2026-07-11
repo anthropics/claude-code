@@ -1,7 +1,7 @@
 ---
 description: "Comprehensive PR review using specialized agents"
 argument-hint: "[review-aspects]"
-allowed-tools: ["Bash", "Glob", "Grep", "Read", "Task"]
+allowed-tools: ["Bash(git diff:*)", "Bash(git status:*)", "Bash(gh pr view:*)", "Glob", "Grep", "Read", "Agent"]
 ---
 
 # Comprehensive PR Review
@@ -24,8 +24,13 @@ Run a comprehensive pull request review using multiple specialized agents, each 
    - **errors** - Check error handling for silent failures
    - **types** - Analyze type design and invariants (if new types added)
    - **code** - General code review for project guidelines
-   - **simplify** - Simplify code for clarity and maintainability
-   - **all** - Run all applicable reviews (default)
+   - **simplify** - Simplify code for clarity and maintainability. This is the only mutating aspect and runs only when the user explicitly includes `simplify`.
+   - **all** - Run all applicable read-only reviews (default). This never includes `simplify`.
+
+   Treat an empty argument list and `all` as strictly read-only. Do not launch
+   `code-simplifier`, edit files, or run any command that changes the worktree in
+   those modes. A request for `parallel` changes scheduling only; it does not
+   authorize edits.
 
 3. **Identify Changed Files**
    - Run `git diff --name-only` to see modified files
@@ -40,9 +45,15 @@ Run a comprehensive pull request review using multiple specialized agents, each 
    - **If comments/docs added**: comment-analyzer
    - **If error handling changed**: silent-failure-hunter
    - **If types added/modified**: type-design-analyzer
-   - **After passing review**: code-simplifier (polish and refine)
+   - **Only when `simplify` is explicitly present in `$ARGUMENTS`**: code-simplifier (polish and refine; may edit files)
 
 5. **Launch Review Agents**
+
+   Launch only the selected read-only review agents for the default, `all`, or
+   named review-aspect modes. Launch `code-simplifier` only for an explicit
+   `simplify` request. If `simplify` is combined with review aspects, complete
+   and report the read-only review first, then run the simplifier so findings
+   are not obscured by edits.
 
    **Sequential approach** (one at a time):
    - Easier to understand and act on
@@ -109,7 +120,7 @@ Run a comprehensive pull request review using multiple specialized agents, each 
 **Parallel review:**
 ```
 /pr-review-toolkit:review-pr all parallel
-# Launches all agents in parallel
+# Launches all applicable read-only review agents in parallel
 ```
 
 ## Agent Descriptions:
@@ -144,6 +155,7 @@ Run a comprehensive pull request review using multiple specialized agents, each 
 - Improves clarity and readability
 - Applies project standards
 - Preserves functionality
+- May edit files, so it is excluded from the default and `all` modes
 
 ## Tips:
 

@@ -40,19 +40,23 @@ Can include markdown formatting, warnings, suggestions, etc.
 
 **event** (required): Which hook event to trigger on
 - `bash`: Bash tool commands
-- `file`: Edit, Write, MultiEdit tools
+- `file`: Edit, Write, MultiEdit, NotebookEdit tools
 - `stop`: When agent wants to stop
 - `prompt`: When user submits a prompt
-- `all`: All events
+- `all`: All supported events. In the simple `pattern` format, this checks the
+  Bash command, new Write/Edit/MultiEdit/NotebookEdit content, submitted prompt,
+  or Stop transcript for the current event.
 
 **action** (optional): What to do when rule matches
 - `warn`: Show message but allow operation (default)
-- `block`: Prevent operation (PreToolUse) or stop session (Stop events)
+- `block`: Prevent PreToolUse/UserPromptSubmit input or return blocking
+  feedback for PostToolUse/Stop
 - If omitted, defaults to `warn`
 
 **pattern** (simple format): Regex pattern to match
 - Used for simple single-condition rules
-- Matches against command (bash) or new_text (file)
+- Matches against command (bash), new text (file), submitted text (prompt),
+  or transcript content (stop)
 - Python regex syntax
 
 **Example:**
@@ -86,6 +90,10 @@ You're adding an API key to a .env file. Ensure this file is in .gitignore!
 - `field`: Which field to check
   - For bash: `command`
   - For file: `file_path`, `new_text`, `old_text`, `content`
+  - For prompt: `prompt`
+  - For stop: `transcript`, `bash_tool_commands`
+    - Use `bash_tool_commands` when a rule must ignore command names merely
+      mentioned in user or assistant text.
 - `operator`: How to match
   - `regex_match`: Regex pattern matching
   - `contains`: Substring check
@@ -208,7 +216,7 @@ Match user prompt content (advanced):
 ---
 event: prompt
 conditions:
-  - field: user_prompt
+  - field: prompt
     operator: contains
     pattern: deploy to production
 ---
@@ -360,15 +368,17 @@ Warning message
 
 **Event types:**
 - `bash` - Bash commands
-- `file` - File edits
+- `file` - File edits from Edit, Write, MultiEdit, or NotebookEdit
 - `stop` - Completion checks
 - `prompt` - User input
-- `all` - All events
+- `all` - All supported events using normalized command, new content, prompt,
+  or transcript text for simple patterns
 
 **Field options:**
 - Bash: `command`
 - File: `file_path`, `new_text`, `old_text`, `content`
-- Prompt: `user_prompt`
+- Prompt: `prompt`
+- Stop: `transcript`, `bash_tool_commands` (assistant Bash tool calls only)
 
 **Operators:**
 - `regex_match`, `contains`, `equals`, `not_contains`, `starts_with`, `ends_with`

@@ -1,213 +1,267 @@
 #!/usr/bin/env bun
 
-declare global {
-  var process: {
-    env: Record<string, string | undefined>;
+import {
+  githubGraphql,
+  githubPaginate,
+  githubRequest,
+} from "./github-api.ts";
+
+interface RepositoryIssue {
+  number: number;
+  title: string;
+  createdAt: string;
+  comments: {
+    totalCount: number;
+    nodes: GitHubComment[];
   };
 }
 
-interface GitHubIssue {
-  number: number;
-  title: string;
-  state: string;
-  state_reason?: string;
-  user: { id: number };
-  created_at: string;
-  closed_at?: string;
-}
-
 interface GitHubComment {
-  id: number;
   body: string;
-  created_at: string;
-  user: { type: string; id: number };
+  user: { type?: string; login: string; __typename?: string } | null;
 }
 
-async function githubRequest<T>(endpoint: string, token: string, method: string = 'GET', body?: any): Promise<T> {
-  const response = await fetch(`https://api.github.com${endpoint}`, {
-    method,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: "application/vnd.github.v3+json",
-      "User-Agent": "backfill-duplicate-comments-script",
-      ...(body && { "Content-Type": "application/json" }),
-    },
-    ...(body && { body: JSON.stringify(body) }),
-  });
+interface IssuePage {
+  repository: {
+    issues: {
+      nodes: RepositoryIssue[];
+      pageInfo: { hasNextPage: boolean; endCursor: string | null };
+    };
+  } | null;
+}
 
-  if (!response.ok) {
+const ISSUES_QUERY = `
+  query BackfillIssues($owner: String!, $repo: String!, $cursor: String) {
+    repository(owner: $owner, name: $repo) {
+      issues(
+        first: 100
+        after: $cursor
+        states: OPEN
+        orderBy: { field: CREATED_AT, direction: DESC }
+      ) {
+        nodes {
+          number
+          title
+          createdAt
+          comments(last: 1) {
+            totalCount
+            nodes {
+              body
+              user: author { login __typename }
+            }
+          }
+        }
+        pageInfo { hasNextPage endCursor }
+      }
+    }
+  }
+`;
+
+function parseInteger(name: string, fallback: number, allowZero = false): number {
+  const raw = process.env[name];
+  if (raw === undefined || raw === "") return fallback;
+  if (!/^\d+$/.test(raw)) throw new Error(`${name} must be a positive integer`);
+  const value = Number.parseInt(raw, 10);
+  if (!Number.isSafeInteger(value) || value < (allowZero ? 0 : 1)) {
     throw new Error(
-      `GitHub API request failed: ${response.status} ${response.statusText}`
+      `${name} must be a ${allowZero ? "non-negative" : "positive"} safe integer`
     );
   }
+  return value;
+}
 
-  return response.json();
+function repositoryFromEnvironment(): { owner: string; repo: string } {
+  const combined = process.env.GITHUB_REPOSITORY;
+  if (combined) {
+    const match = combined.match(/^([^/]+)\/([^/]+)$/);
+    if (!match) throw new Error("GITHUB_REPOSITORY must use owner/repo format");
+    return { owner: match[1], repo: match[2] };
+  }
+
+  const owner = process.env.GITHUB_REPOSITORY_OWNER;
+  const repo = process.env.GITHUB_REPOSITORY_NAME;
+  if (!owner || !repo) {
+    throw new Error(
+      "GITHUB_REPOSITORY or GITHUB_REPOSITORY_OWNER/GITHUB_REPOSITORY_NAME is required"
+    );
+  }
+  return { owner, repo };
+}
+
+function hasTrustedDedupeComment(comments: GitHubComment[]): boolean {
+  const expectedLogin = process.env.DEDUPE_BOT_LOGIN || "github-actions[bot]";
+  return comments.some(
+    (comment) =>
+      (comment.user?.type === "Bot" || comment.user?.__typename === "Bot") &&
+      comment.user.login === expectedLogin &&
+      /^Found \d+ possible duplicate issues?:/m.test(comment.body) &&
+      comment.body.includes(
+        "This issue will be automatically closed as a duplicate in 3 days."
+      )
+  );
+}
+
+async function fetchIssues(
+  owner: string,
+  repo: string,
+  token: string,
+  cutoff: Date
+): Promise<RepositoryIssue[]> {
+  const issues: RepositoryIssue[] = [];
+  const cursors = new Set<string>();
+  let cursor: string | null = null;
+  let reachedCutoff = false;
+
+  do {
+    const data = await githubGraphql<IssuePage>(
+      ISSUES_QUERY,
+      { owner, repo, cursor },
+      token
+    );
+    if (!data.repository) throw new Error(`Repository ${owner}/${repo} not found`);
+    const connection = data.repository.issues;
+
+    for (const issue of connection.nodes) {
+      if (new Date(issue.createdAt) < cutoff) {
+        reachedCutoff = true;
+        break;
+      }
+      issues.push(issue);
+    }
+
+    if (reachedCutoff || !connection.pageInfo.hasNextPage) break;
+    if (!connection.pageInfo.endCursor) {
+      throw new Error("GitHub returned hasNextPage without an endCursor");
+    }
+    if (cursors.has(connection.pageInfo.endCursor)) {
+      throw new Error("GitHub returned a repeated issue cursor");
+    }
+    cursors.add(connection.pageInfo.endCursor);
+    cursor = connection.pageInfo.endCursor;
+  } while (cursor);
+
+  return issues;
+}
+
+async function resolveDefaultBranch(
+  owner: string,
+  repo: string,
+  token: string
+): Promise<string> {
+  if (process.env.GITHUB_DEFAULT_BRANCH) return process.env.GITHUB_DEFAULT_BRANCH;
+  const repository = await githubRequest<{ default_branch: string }>(
+    `/repos/${owner}/${repo}`,
+    token
+  );
+  if (!repository.default_branch) {
+    throw new Error(`Could not resolve the default branch for ${owner}/${repo}`);
+  }
+  return repository.default_branch;
 }
 
 async function triggerDedupeWorkflow(
   owner: string,
   repo: string,
   issueNumber: number,
+  defaultBranch: string,
   token: string,
-  dryRun: boolean = true
+  dryRun: boolean
 ): Promise<void> {
   if (dryRun) {
-    console.log(`[DRY RUN] Would trigger dedupe workflow for issue #${issueNumber}`);
+    console.log(`[DRY RUN] Would trigger dedupe for issue #${issueNumber}`);
     return;
   }
 
-  await githubRequest(
+  // A successful workflow dispatch is HTTP 204 with no response body.
+  await githubRequest<void>(
     `/repos/${owner}/${repo}/actions/workflows/claude-dedupe-issues.yml/dispatches`,
     token,
-    'POST',
+    "POST",
     {
-      ref: 'main',
-      inputs: {
-        issue_number: issueNumber.toString()
-      }
+      ref: defaultBranch,
+      inputs: { issue_number: issueNumber.toString() },
     }
   );
 }
 
-async function backfillDuplicateComments(): Promise<void> {
-  console.log("[DEBUG] Starting backfill duplicate comments script");
-
+export async function backfillDuplicateComments(): Promise<void> {
   const token = process.env.GITHUB_TOKEN;
-  if (!token) {
-    throw new Error(`GITHUB_TOKEN environment variable is required
+  if (!token) throw new Error("GITHUB_TOKEN environment variable is required");
 
-Usage:
-  GITHUB_TOKEN=your_token bun run scripts/backfill-duplicate-comments.ts
-
-Environment Variables:
-  GITHUB_TOKEN - GitHub personal access token with repo and actions permissions (required)
-  DRY_RUN - Set to "false" to actually trigger workflows (default: true for safety)
-  MAX_ISSUE_NUMBER - Only process issues with numbers less than this value (default: 4050)`);
-  }
-  console.log("[DEBUG] GitHub token found");
-
-  const owner = "anthropics";
-  const repo = "claude-code";
+  const { owner, repo } = repositoryFromEnvironment();
   const dryRun = process.env.DRY_RUN !== "false";
-  const maxIssueNumber = parseInt(process.env.MAX_ISSUE_NUMBER || "4050", 10);
-  const minIssueNumber = parseInt(process.env.MIN_ISSUE_NUMBER || "1", 10);
-  
-  console.log(`[DEBUG] Repository: ${owner}/${repo}`);
-  console.log(`[DEBUG] Dry run mode: ${dryRun}`);
-  console.log(`[DEBUG] Looking at issues between #${minIssueNumber} and #${maxIssueNumber}`);
-
-  console.log(`[DEBUG] Fetching issues between #${minIssueNumber} and #${maxIssueNumber}...`);
-  const allIssues: GitHubIssue[] = [];
-  let page = 1;
-  const perPage = 100;
-  
-  while (true) {
-    const pageIssues: GitHubIssue[] = await githubRequest(
-      `/repos/${owner}/${repo}/issues?state=all&per_page=${perPage}&page=${page}&sort=created&direction=desc`,
-      token
-    );
-    
-    if (pageIssues.length === 0) break;
-    
-    // Filter to only include issues within the specified range
-    const filteredIssues = pageIssues.filter(issue => 
-      issue.number >= minIssueNumber && issue.number < maxIssueNumber
-    );
-    allIssues.push(...filteredIssues);
-    
-    // If the oldest issue in this page is still above our minimum, we need to continue
-    // but if the oldest issue is below our minimum, we can stop
-    const oldestIssueInPage = pageIssues[pageIssues.length - 1];
-    if (oldestIssueInPage && oldestIssueInPage.number >= maxIssueNumber) {
-      console.log(`[DEBUG] Oldest issue in page #${page} is #${oldestIssueInPage.number}, continuing...`);
-    } else if (oldestIssueInPage && oldestIssueInPage.number < minIssueNumber) {
-      console.log(`[DEBUG] Oldest issue in page #${page} is #${oldestIssueInPage.number}, below minimum, stopping`);
-      break;
-    } else if (filteredIssues.length === 0 && pageIssues.length > 0) {
-      console.log(`[DEBUG] No issues in page #${page} are in range #${minIssueNumber}-#${maxIssueNumber}, continuing...`);
-    }
-    
-    page++;
-    
-    // Safety limit to avoid infinite loops
-    if (page > 200) {
-      console.log("[DEBUG] Reached page limit, stopping pagination");
-      break;
-    }
+  const daysBack = parseInteger("DAYS_BACK", 90);
+  const minIssueNumber = parseInteger("MIN_ISSUE_NUMBER", 1);
+  // An omitted upper bound must include future issues as the repository grows.
+  const maxIssueNumber = parseInteger(
+    "MAX_ISSUE_NUMBER",
+    Number.MAX_SAFE_INTEGER
+  );
+  if (minIssueNumber > maxIssueNumber) {
+    throw new Error("MIN_ISSUE_NUMBER must not exceed MAX_ISSUE_NUMBER");
   }
-  
-  console.log(`[DEBUG] Found ${allIssues.length} issues between #${minIssueNumber} and #${maxIssueNumber}`);
 
-  let processedCount = 0;
+  const cutoff = new Date();
+  cutoff.setUTCDate(cutoff.getUTCDate() - daysBack);
+  const defaultBranch = await resolveDefaultBranch(owner, repo, token);
+  const issues = (await fetchIssues(owner, repo, token, cutoff)).filter(
+    (issue) =>
+      issue.number >= minIssueNumber && issue.number <= maxIssueNumber
+  );
+
+  console.log(
+    `[DEBUG] Found ${issues.length} issues in ${owner}/${repo} since ${cutoff.toISOString()}`
+  );
+
   let candidateCount = 0;
   let triggeredCount = 0;
+  const failures: string[] = [];
+  const delayMs = parseInteger("DISPATCH_DELAY_MS", 0, true);
 
-  for (const issue of allIssues) {
-    processedCount++;
-    console.log(
-      `[DEBUG] Processing issue #${issue.number} (${processedCount}/${allIssues.length}): ${issue.title}`
-    );
-
-    console.log(`[DEBUG] Fetching comments for issue #${issue.number}...`);
-    const comments: GitHubComment[] = await githubRequest(
-      `/repos/${owner}/${repo}/issues/${issue.number}/comments`,
-      token
-    );
-    console.log(
-      `[DEBUG] Issue #${issue.number} has ${comments.length} comments`
-    );
-
-    // Look for existing duplicate detection comments (from the dedupe bot)
-    const dupeDetectionComments = comments.filter(
-      (comment) =>
-        comment.body.includes("Found") &&
-        comment.body.includes("possible duplicate") &&
-        comment.user.type === "Bot"
-    );
-
-    console.log(
-      `[DEBUG] Issue #${issue.number} has ${dupeDetectionComments.length} duplicate detection comments`
-    );
-
-    // Skip if there's already a duplicate detection comment
-    if (dupeDetectionComments.length > 0) {
-      console.log(
-        `[DEBUG] Issue #${issue.number} already has duplicate detection comment, skipping`
-      );
-      continue;
-    }
-
-    candidateCount++;
-    const issueUrl = `https://github.com/${owner}/${repo}/issues/${issue.number}`;
-    
+  for (const issue of issues) {
     try {
-      console.log(
-        `[INFO] ${dryRun ? '[DRY RUN] ' : ''}Triggering dedupe workflow for issue #${issue.number}: ${issueUrl}`
-      );
-      await triggerDedupeWorkflow(owner, repo, issue.number, token, dryRun);
-      
-      if (!dryRun) {
-        console.log(
-          `[SUCCESS] Successfully triggered dedupe workflow for issue #${issue.number}`
+      if (hasTrustedDedupeComment(issue.comments.nodes)) continue;
+      if (issue.comments.totalCount > 0) {
+        const comments = await githubPaginate<GitHubComment>(
+          `/repos/${owner}/${repo}/issues/${issue.number}/comments`,
+          token
         );
+        if (hasTrustedDedupeComment(comments)) continue;
       }
-      triggeredCount++;
-    } catch (error) {
-      console.error(
-        `[ERROR] Failed to trigger workflow for issue #${issue.number}: ${error}`
-      );
-    }
 
-    // Add a delay between workflow triggers to avoid overwhelming the system
-    await new Promise(resolve => setTimeout(resolve, 1000));
+      candidateCount += 1;
+      await triggerDedupeWorkflow(
+        owner,
+        repo,
+        issue.number,
+        defaultBranch,
+        token,
+        dryRun
+      );
+      triggeredCount += 1;
+      if (!dryRun && delayMs > 0) {
+        await Bun.sleep(delayMs);
+      }
+    } catch (error) {
+      const message = `issue #${issue.number}: ${String(error)}`;
+      failures.push(message);
+      console.error(`[ERROR] ${message}`);
+    }
   }
 
   console.log(
-    `[DEBUG] Script completed. Processed ${processedCount} issues, found ${candidateCount} candidates without duplicate comments, ${dryRun ? 'would trigger' : 'triggered'} ${triggeredCount} workflows`
+    `[DEBUG] Processed ${issues.length}; candidates ${candidateCount}; ${
+      dryRun ? "would dispatch" : "dispatched"
+    } ${triggeredCount}`
   );
+  if (failures.length > 0) {
+    throw new Error(`Failed to process ${failures.length} issue(s)`);
+  }
 }
 
-backfillDuplicateComments().catch(console.error);
-
-// Make it a module
-export {};
+if (import.meta.main) {
+  backfillDuplicateComments().catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  });
+}

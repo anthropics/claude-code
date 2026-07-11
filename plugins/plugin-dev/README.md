@@ -387,7 +387,7 @@ This plugin is part of the claude-code-marketplace. To contribute improvements:
 
 ## Version
 
-0.1.0 - Initial release with seven comprehensive skills and three validation agents
+0.1.1 - Validation and documentation fixes across the seven skills and three validation agents
 
 ## Author
 

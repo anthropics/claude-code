@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -euo pipefail
+
 # Output the explanatory mode instructions as additionalContext
 # This mimics the deprecated Explanatory output style
 

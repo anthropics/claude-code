@@ -65,8 +65,8 @@ Based on the user's answers, create a plan that includes:
 
    - Create project directory (if it doesn't exist)
    - Initialize package manager:
-     - TypeScript: `npm init -y` and setup `package.json` with type: "module" and scripts (include a "typecheck" script)
-     - Python: Create `requirements.txt` or use `poetry init`
+     - TypeScript: `npm init -y` and set up `package.json` with `"type": "module"` plus working `start`, `build`, and `typecheck` scripts
+     - Python: First verify that the selected interpreter is Python 3.10 or newer, then create `requirements.txt` or use `poetry init`. If using `pyproject.toml`, set `requires-python = ">=3.10"`.
    - Add necessary configuration files:
      - TypeScript: Create `tsconfig.json` with proper settings for the SDK
      - Python: Optionally create config files if needed
@@ -80,7 +80,8 @@ Based on the user's answers, create a plan that includes:
 
 3. **SDK Installation**:
 
-   - TypeScript: `npm install @anthropic-ai/claude-agent-sdk@latest` (or specify latest version)
+   - TypeScript runtime dependency: `npm install @anthropic-ai/claude-agent-sdk@latest` (or specify the verified latest version)
+   - TypeScript development dependencies: `npm install --save-dev typescript ts-node @types/node`
    - Python: `pip install claude-agent-sdk` (pip installs latest by default)
    - After installation, verify the installed version:
      - TypeScript: Check package.json or run `npm list @anthropic-ai/claude-agent-sdk`
@@ -92,6 +93,24 @@ Based on the user's answers, create a plan that includes:
    - Python: Create a `main.py` with a basic query example
    - Include proper imports and basic error handling
    - Use modern, up-to-date syntax and patterns from the latest SDK version
+
+   For TypeScript, make the generated `package.json` runnable without relying on
+   globally installed tools. Include these equivalent scripts (adapt the entry
+   path if necessary):
+
+   ```json
+   {
+     "type": "module",
+     "scripts": {
+       "start": "node --loader ts-node/esm src/index.ts",
+       "build": "tsc",
+       "typecheck": "tsc --noEmit"
+     }
+   }
+   ```
+
+   Configure `tsconfig.json` for Node ES modules (for example, `module` and
+   `moduleResolution` set to `NodeNext`) and include the generated source path.
 
 5. **Environment setup**:
 
@@ -116,11 +135,14 @@ After gathering requirements and getting user confirmation on the plan:
 7. Add helpful comments in the code explaining what each part does
 8. **VERIFY THE CODE WORKS BEFORE FINISHING**:
    - For TypeScript:
-     - Run `npx tsc --noEmit` to check for type errors
+     - Confirm `@anthropic-ai/claude-agent-sdk` is in `dependencies`
+     - Confirm `typescript`, `ts-node`, and `@types/node` are in `devDependencies`
+     - Run `npm run typecheck` to check for type errors through the generated script
      - Fix ALL type errors until types pass completely
-     - Ensure imports and types are correct
+     - Ensure `npm start` resolves the local `ts-node` runner and the configured entry point
      - Only proceed when type checking passes with no errors
    - For Python:
+     - Run the selected interpreter's version command and stop if it is older than Python 3.10
      - Verify imports are correct
      - Check for basic syntax errors
    - **DO NOT consider the setup complete until the code verifies successfully**
@@ -142,7 +164,7 @@ Once setup is complete and verified, provide the user with:
 
    - How to set their API key
    - How to run their agent:
-     - TypeScript: `npm start` or `node --loader ts-node/esm index.ts`
+     - TypeScript: `npm start`
      - Python: `python main.py`
 
 2. **Useful resources**:
@@ -161,11 +183,12 @@ Once setup is complete and verified, provide the user with:
 
 - **ALWAYS USE LATEST VERSIONS**: Before installing any packages, check for the latest versions using WebSearch or by checking npm/PyPI directly
 - **VERIFY CODE RUNS CORRECTLY**:
-  - For TypeScript: Run `npx tsc --noEmit` and fix ALL type errors before finishing
+  - For TypeScript: Run `npm run typecheck` and fix ALL type errors before finishing
   - For Python: Verify syntax and imports are correct
   - Do NOT consider the task complete until the code passes verification
 - Verify the installed version after installation and inform the user
-- Check the official documentation for any version-specific requirements (Node.js version, Python version, etc.)
+- Require Python 3.10 or newer for Python Agent SDK projects; do not scaffold against an older interpreter
+- Check the official documentation for any other version-specific requirements (Node.js version, etc.)
 - Always check if directories/files already exist before creating them
 - Use the user's preferred package manager (npm, yarn, pnpm for TypeScript; pip, poetry for Python)
 - Ensure all code examples are functional and include proper error handling

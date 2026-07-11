@@ -16,7 +16,7 @@ The hookify plugin makes it easy to create custom hooks that prevent unwanted be
 ### 1. Hook System
 
 Hookify installs generic hooks that run on these events:
-- **PreToolUse**: Before any tool executes (Bash, Edit, Write, etc.)
+- **PreToolUse**: Before any tool executes (Bash, Edit, Write, NotebookEdit, etc.)
 - **PostToolUse**: After a tool executes
 - **Stop**: When Claude wants to stop working
 - **UserPromptSubmit**: When user submits a prompt
@@ -47,6 +47,10 @@ This command could delete important files. Please verify the path.
 - `pattern`: Regex pattern to match
 
 The message body is what Claude sees when the rule triggers.
+
+For a simple rule with `event: all`, the pattern checks the Bash command, new
+Write/Edit/MultiEdit/NotebookEdit content, submitted prompt, or Stop transcript
+for the current event.
 
 ### 3. Creating Rules
 

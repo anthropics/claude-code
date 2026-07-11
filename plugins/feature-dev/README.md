@@ -307,8 +307,7 @@ Suggested next steps:
 - Can be invoked manually after writing code
 
 **Output:**
-- Critical issues (confidence 75-100)
-- Important issues (confidence 50-74)
+- Critical and important issues with confidence scores of 80-100
 - Specific fixes with file:line references
 - Project guideline references
 
@@ -409,4 +408,4 @@ Sid Bidasaria (sbidasaria@anthropic.com)
 
 ## Version
 
-1.0.0
+1.0.1

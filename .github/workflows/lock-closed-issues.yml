@@ -23,70 +23,250 @@ jobs:
             const sevenDaysAgo = new Date();
             sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-            const lockComment = `This issue has been automatically locked since it was closed and has not had any activity for 7 days. If you're experiencing a similar issue, please file a new issue and reference this one if it's relevant.`;
+            const marker = '<!-- automatic-lock-comment -->';
+            const expectedBotLogin = 'github-actions[bot]';
+            const lockComment = `${marker}\nThis issue has been automatically locked since it was closed and has not had any activity for 7 days. If you're experiencing a similar issue, please file a new issue and reference this one if it's relevant.`;
+            const hasExactMarker = body =>
+              typeof body === 'string' &&
+              (body === marker || body.startsWith(`${marker}\n`));
+            const isTrustedGraphqlMarker = comment =>
+              comment?.author?.__typename === 'Bot' &&
+              comment.author.login === expectedBotLogin &&
+              hasExactMarker(comment.body);
+            const isTrustedRestMarker = comment =>
+              comment?.user?.type === 'Bot' &&
+              comment.user.login === expectedBotLogin &&
+              hasExactMarker(comment.body);
+            const nonMarkerCommentSnapshot = comments =>
+              comments
+                .filter(comment => !isTrustedRestMarker(comment))
+                .map(comment => ({
+                  id: comment.id ?? null,
+                  body: comment.body ?? null,
+                  created_at: comment.created_at ?? null,
+                  user_type: comment.user?.type ?? null,
+                  user_login: comment.user?.login ?? null
+                }));
+            const hasSameNonMarkerComments = (previousSnapshot, current) =>
+              JSON.stringify(previousSnapshot) ===
+              JSON.stringify(nonMarkerCommentSnapshot(current));
+            const issueMetadataSnapshot = issue => JSON.stringify({
+              title: issue?.title ?? null,
+              body: issue?.body ?? null,
+              state_reason: issue?.state_reason ?? null,
+              labels: Array.isArray(issue?.labels)
+                ? issue.labels
+                    .map(label => typeof label === 'string' ? label : label?.name)
+                    .filter(name => typeof name === 'string')
+                    .sort()
+                : null,
+              assignees: Array.isArray(issue?.assignees)
+                ? issue.assignees
+                    .map(assignee => typeof assignee === 'string'
+                      ? assignee
+                      : assignee?.login)
+                    .filter(login => typeof login === 'string')
+                    .sort()
+                : null,
+              milestone: issue?.milestone
+                ? {
+                    number: issue.milestone.number ?? null,
+                    title: issue.milestone.title ?? null,
+                    state: issue.milestone.state ?? null
+                  }
+                : null
+            });
+            const candidates = [];
+            const cursors = new Set();
+            let cursor = null;
 
-            let page = 1;
-            let hasMore = true;
-            let totalLocked = 0;
-
-            while (hasMore) {
-              // Get closed issues (pagination)
-              const { data: issues } = await github.rest.issues.listForRepo({
+            // Snapshot candidates with cursor pagination before comments mutate
+            // updatedAt. repository.issues excludes pull requests.
+            do {
+              const data = await github.graphql(`
+                query ClosedIssues($owner: String!, $repo: String!, $cursor: String) {
+                  repository(owner: $owner, name: $repo) {
+                    issues(
+                      first: 100
+                      after: $cursor
+                      states: [CLOSED]
+                      orderBy: { field: UPDATED_AT, direction: ASC }
+                    ) {
+                      nodes {
+                        number
+                        title
+                        updatedAt
+                        locked
+                        comments(last: 1) {
+                          nodes {
+                            body
+                            createdAt
+                            author { login __typename }
+                          }
+                        }
+                      }
+                      pageInfo { hasNextPage endCursor }
+                    }
+                  }
+                }
+              `, {
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                state: 'closed',
-                sort: 'updated',
-                direction: 'asc',
-                per_page: 100,
-                page: page
+                cursor
               });
-              
-              if (issues.length === 0) {
-                hasMore = false;
-                break;
-              }
-              
-              for (const issue of issues) {
-                // Skip if already locked
+              const connection = data.repository.issues;
+              for (const issue of connection.nodes) {
                 if (issue.locked) continue;
-                
-                // Skip pull requests
-                if (issue.pull_request) continue;
-                
-                // Check if updated more than 7 days ago
-                const updatedAt = new Date(issue.updated_at);
-                if (updatedAt > sevenDaysAgo) {
-                  // Since issues are sorted by updated_at ascending, 
-                  // once we hit a recent issue, all remaining will be recent too
-                  hasMore = false;
-                  break;
+
+                const updatedAt = Date.parse(issue.updatedAt);
+                if (!Number.isFinite(updatedAt)) {
+                  console.warn(`Skipping issue #${issue.number} with invalid updatedAt`);
+                  continue;
                 }
-                
-                try {
-                  // Add comment before locking
+                const oldEnough = updatedAt <= sevenDaysAgo.getTime();
+                const latestComment = issue.comments?.nodes?.[0];
+                const markerCreatedAt = Date.parse(latestComment?.createdAt ?? '');
+                const retryFromTrustedMarker =
+                  !oldEnough &&
+                  isTrustedGraphqlMarker(latestComment) &&
+                  Number.isFinite(markerCreatedAt) &&
+                  updatedAt === markerCreatedAt;
+
+                if (oldEnough || retryFromTrustedMarker) {
+                  candidates.push({
+                    ...issue,
+                    retryFromTrustedMarker
+                  });
+                }
+              }
+              if (
+                connection.pageInfo.hasNextPage &&
+                !connection.pageInfo.endCursor
+              ) {
+                throw new Error('GitHub returned hasNextPage without an endCursor');
+              }
+              if (connection.pageInfo.endCursor && cursors.has(connection.pageInfo.endCursor)) {
+                throw new Error('GitHub returned a repeated issue cursor');
+              }
+              if (connection.pageInfo.endCursor) cursors.add(connection.pageInfo.endCursor);
+              cursor = connection.pageInfo.hasNextPage
+                ? connection.pageInfo.endCursor
+                : null;
+            } while (cursor);
+
+            let totalLocked = 0;
+            const failures = [];
+            for (const issue of candidates) {
+              try {
+                const comments = await github.paginate(
+                  github.rest.issues.listComments,
+                  {
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: issue.number,
+                    per_page: 100,
+                    sort: 'created',
+                    direction: 'asc'
+                  }
+                );
+                const hasTrustedMarker = comments.some(isTrustedRestMarker);
+                const refreshed = await github.rest.issues.get({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number
+                });
+                const refreshedUpdatedAt = Date.parse(refreshed.data.updated_at ?? '');
+
+                if (
+                  refreshed.data.state !== 'closed' ||
+                  refreshed.data.locked !== false ||
+                  !Number.isFinite(refreshedUpdatedAt)
+                ) {
+                  console.log(`Skipping issue #${issue.number}: issue is no longer eligible for locking`);
+                  continue;
+                }
+
+                // A failed lock leaves our marker as the issue's latest activity.
+                // Revalidate every candidate immediately before mutating it so later
+                // user, bot, label, or metadata activity postpones the lock.
+                if (issue.retryFromTrustedMarker) {
+                  const latestComment = comments.at(-1);
+                  const latestCommentCreatedAt = Date.parse(latestComment?.created_at ?? '');
+                  if (
+                    !isTrustedRestMarker(latestComment) ||
+                    !Number.isFinite(latestCommentCreatedAt) ||
+                    refreshedUpdatedAt !== latestCommentCreatedAt
+                  ) {
+                    console.log(`Skipping issue #${issue.number}: activity changed after the lock marker`);
+                    continue;
+                  }
+                } else if (refreshedUpdatedAt > sevenDaysAgo.getTime()) {
+                  console.log(`Skipping issue #${issue.number}: activity changed after the candidate snapshot`);
+                  continue;
+                }
+
+                if (!hasTrustedMarker) {
+                  const commentsBeforeMarker = nonMarkerCommentSnapshot(comments);
+                  const metadataBeforeMarker = issueMetadataSnapshot(refreshed.data);
                   await github.rest.issues.createComment({
                     owner: context.repo.owner,
                     repo: context.repo.repo,
                     issue_number: issue.number,
                     body: lockComment
                   });
-                  
-                  // Lock the issue
-                  await github.rest.issues.lock({
+
+                  // Our own marker advances updated_at and opens another race
+                  // window. Re-read comments and state, ignoring only the exact
+                  // trusted marker, before performing the irreversible lock.
+                  const postMarkerComments = await github.paginate(
+                    github.rest.issues.listComments,
+                    {
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      issue_number: issue.number,
+                      per_page: 100,
+                      sort: 'created',
+                      direction: 'asc'
+                    }
+                  );
+                  const postMarkerIssue = await github.rest.issues.get({
                     owner: context.repo.owner,
                     repo: context.repo.repo,
-                    issue_number: issue.number,
-                    lock_reason: 'resolved'
+                    issue_number: issue.number
                   });
-                  
-                  totalLocked++;
-                  console.log(`Locked issue #${issue.number}: ${issue.title}`);
-                } catch (error) {
-                  console.error(`Failed to lock issue #${issue.number}: ${error.message}`);
+                  const postMarkerUpdatedAt = Date.parse(
+                    postMarkerIssue.data.updated_at ?? ''
+                  );
+                  if (
+                    postMarkerIssue.data.state !== 'closed' ||
+                    postMarkerIssue.data.locked !== false ||
+                    !Number.isFinite(postMarkerUpdatedAt) ||
+                    metadataBeforeMarker !==
+                      issueMetadataSnapshot(postMarkerIssue.data) ||
+                    !hasSameNonMarkerComments(
+                      commentsBeforeMarker,
+                      postMarkerComments
+                    )
+                  ) {
+                    console.log(`Skipping issue #${issue.number}: activity changed after the lock marker`);
+                    continue;
+                  }
                 }
+                await github.rest.issues.lock({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  lock_reason: 'resolved'
+                });
+                totalLocked++;
+                console.log(`Locked issue #${issue.number}: ${issue.title}`);
+              } catch (error) {
+                failures.push(`#${issue.number}: ${error.message}`);
+                console.error(`Failed to lock issue #${issue.number}: ${error.message}`);
               }
-              
-              page++;
             }
 
             console.log(`Total issues locked: ${totalLocked}`);
+            if (failures.length > 0) {
+              throw new Error(`Failed to lock ${failures.length} issue(s): ${failures.join('; ')}`);
+            }

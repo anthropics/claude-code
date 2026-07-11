@@ -1,53 +1,116 @@
 ---
-description: Cleans up all git branches marked as [gone] (branches that have been deleted on the remote but still exist locally), including removing associated worktrees.
+description: Safely removes local branches whose configured upstream is gone, without discarding work or unique commits.
 ---
 
 ## Your Task
 
-You need to execute the following bash commands to clean up stale local branches that have been deleted from the remote repository.
+Clean up branches whose configured upstream no longer exists. Candidate
+selection must use Git's tracking metadata, not commit subjects or formatted
+`git branch -v` output. Never force-remove a worktree or force-delete a branch.
 
-## Commands to Execute
+Run the following script from the repository to inspect and safely remove only
+eligible branches:
 
-1. **First, list branches to identify any with [gone] status**
-   Execute this command:
-   ```bash
-   git branch -v
-   ```
-   
-   Note: Branches with a '+' prefix have associated worktrees and must have their worktrees removed before deletion.
+```bash
+set -euo pipefail
 
-2. **Next, identify worktrees that need to be removed for [gone] branches**
-   Execute this command:
-   ```bash
-   git worktree list
-   ```
+repo_root=$(git rev-parse --show-toplevel)
+current_branch=$(git symbolic-ref --quiet --short HEAD || true)
+removed=0
+skipped=0
+found=0
 
-3. **Finally, remove worktrees and delete [gone] branches (handles both regular and worktree branches)**
-   Execute this command:
-   ```bash
-   # Process all [gone] branches, removing '+' prefix if present
-   git branch -v | grep '\[gone\]' | sed 's/^[+* ]//' | awk '{print $1}' | while read branch; do
-     echo "Processing branch: $branch"
-     # Find and remove worktree if it exists
-     worktree=$(git worktree list | grep "\\[$branch\\]" | awk '{print $1}')
-     if [ ! -z "$worktree" ] && [ "$worktree" != "$(git rev-parse --show-toplevel)" ]; then
-       echo "  Removing worktree: $worktree"
-       git worktree remove --force "$worktree"
-     fi
-     # Delete the branch
-     echo "  Deleting branch: $branch"
-     git branch -D "$branch"
-   done
-   ```
+find_branch_worktree() {
+  local branch_ref="refs/heads/$1"
+  local path=""
+  local line
 
-## Expected Behavior
+  while IFS= read -r line; do
+    case "$line" in
+      "worktree "*) path=${line#worktree } ;;
+      "branch $branch_ref")
+        printf '%s\n' "$path"
+        return 0
+        ;;
+      "") path="" ;;
+    esac
+  done < <(git worktree list --porcelain)
 
-After executing these commands, you will:
+  return 1
+}
 
-- See a list of all local branches with their status
-- Identify and remove any worktrees associated with [gone] branches
-- Delete all branches marked as [gone]
-- Provide feedback on which worktrees and branches were removed
+while IFS=$'\t' read -r branch tracking_state; do
+  [[ "$tracking_state" = "[gone]" ]] || continue
+  found=$((found + 1))
+  printf 'Inspecting gone-upstream branch: %s\n' "$branch"
 
-If no branches are marked as [gone], report that no cleanup was needed.
+  if [[ "$branch" = "$current_branch" ]]; then
+    echo "  SKIP: the branch is checked out in the current worktree"
+    skipped=$((skipped + 1))
+    continue
+  fi
 
+  worktree_path=$(find_branch_worktree "$branch" || true)
+
+  if [[ -n "$worktree_path" ]]; then
+    if [[ ! -d "$worktree_path" ]]; then
+      echo "  SKIP: associated worktree path is unavailable: $worktree_path"
+      skipped=$((skipped + 1))
+      continue
+    fi
+
+    # `git status` deliberately hides paths carrying assume-unchanged or
+    # skip-worktree. Removing such a worktree can therefore discard local
+    # edits that look clean. Treat either index visibility flag as local state.
+    index_visibility_flags=$(git -C "$worktree_path" ls-files -v | awk '
+      substr($0, 1, 1) == "S" { skip_worktree = 1 }
+      substr($0, 1, 1) ~ /^[a-z]$/ { assume_unchanged = 1 }
+      END {
+        if (assume_unchanged && skip_worktree) print "assume-unchanged and skip-worktree"
+        else if (assume_unchanged) print "assume-unchanged"
+        else if (skip_worktree) print "skip-worktree"
+      }
+    ')
+    if [[ -n "$index_visibility_flags" ]]; then
+      echo "  SKIP: associated worktree has index visibility flags ($index_visibility_flags): $worktree_path"
+      skipped=$((skipped + 1))
+      continue
+    fi
+
+    if [[ -n "$(git -C "$worktree_path" status --porcelain --untracked-files=all --ignored=matching)" ]]; then
+      echo "  SKIP: associated worktree has tracked, untracked, or ignored files: $worktree_path"
+      skipped=$((skipped + 1))
+      continue
+    fi
+  fi
+
+  # Match `git branch -d` safety before removing an associated worktree. A
+  # branch with a commit not reachable from the current HEAD is preserved.
+  if ! git -C "$repo_root" merge-base --is-ancestor "$branch" HEAD; then
+    echo "  SKIP: branch contains commits not merged into the current HEAD"
+    skipped=$((skipped + 1))
+    continue
+  fi
+
+  if [[ -n "$worktree_path" ]]; then
+    echo "  Removing clean worktree: $worktree_path"
+    git worktree remove "$worktree_path"
+  fi
+
+  echo "  Deleting fully merged branch: $branch"
+  git branch -d -- "$branch"
+  removed=$((removed + 1))
+done < <(LC_ALL=C git for-each-ref \
+  --format='%(refname:short)%09%(upstream:track)' \
+  refs/heads/)
+
+if [[ $found -eq 0 ]]; then
+  echo "No branches with gone upstreams were found."
+else
+  printf 'Cleanup complete: %d removed, %d skipped.\n' "$removed" "$skipped"
+fi
+```
+
+Report every removed and skipped branch with the reason printed by the script.
+Do not retry skipped branches with `--force`, `git branch -D`, or manual file
+deletion.

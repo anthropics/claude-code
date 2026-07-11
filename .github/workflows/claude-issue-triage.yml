@@ -11,10 +11,16 @@ jobs:
     timeout-minutes: 10
     if: >-
       github.event_name == 'issues' ||
-      (github.event_name == 'issue_comment' && !github.event.issue.pull_request && github.event.comment.user.type != 'Bot')
+      (github.event_name == 'issue_comment' &&
+       !github.event.issue.pull_request &&
+       github.event.comment.user.type != 'Bot' &&
+       (contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association) ||
+        github.event.comment.user.login == github.event.issue.user.login))
     concurrency:
+      # Reporter comments queue behind opened triage so initial classification
+      # completes. Trusted comments rerun the model and cancel a stale snapshot.
       group: issue-triage-${{ github.event.issue.number }}
-      cancel-in-progress: true
+      cancel-in-progress: ${{ github.event_name == 'issue_comment' && contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association) }}
     permissions:
       contents: read
       issues: write
@@ -24,6 +30,10 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run Claude Code for Issue Triage
+        if: >-
+          github.event_name == 'issues' ||
+          (github.event_name == 'issue_comment' &&
+           contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association))
         timeout-minutes: 5
         uses: anthropics/claude-code-action@v1
         env:
@@ -37,3 +47,41 @@ jobs:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           claude_args: |
             --model claude-opus-4-6
+
+      - name: Clear requested-information labels after reporter activity
+        if: >-
+          github.event_name == 'issue_comment' &&
+          github.event.comment.user.login == github.event.issue.user.login &&
+          !contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const removableLabels = ['needs-info', 'needs-repro'];
+            const { data: issue } = await github.rest.issues.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number
+            });
+            if (issue.state !== 'open') {
+              console.log(`Issue #${context.issue.number} is no longer open; skipping label cleanup`);
+              return;
+            }
+
+            const currentLabels = new Set(
+              (issue.labels ?? [])
+                .map(label => typeof label === 'string' ? label : label.name)
+                .filter(name => typeof name === 'string')
+            );
+            for (const name of removableLabels) {
+              if (!currentLabels.has(name)) continue;
+              try {
+                await github.rest.issues.removeLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  name
+                });
+              } catch (error) {
+                if (error.status !== 404) throw error;
+              }
+            }

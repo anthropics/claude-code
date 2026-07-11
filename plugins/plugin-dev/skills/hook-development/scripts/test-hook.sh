@@ -6,6 +6,8 @@ set -euo pipefail
 
 # Usage
 show_usage() {
+  local exit_code="${1:-0}"
+
   echo "Usage: $0 [options] <hook-script> <test-input.json>"
   echo ""
   echo "Options:"
@@ -19,7 +21,7 @@ show_usage() {
   echo ""
   echo "Creates sample test input with:"
   echo "  $0 --create-sample <event-type>"
-  exit 0
+  exit "$exit_code"
 }
 
 # Create sample input
@@ -33,7 +35,7 @@ create_sample() {
   "session_id": "test-session",
   "transcript_path": "/tmp/transcript.txt",
   "cwd": "/tmp/test-project",
-  "permission_mode": "ask",
+  "permission_mode": "default",
   "hook_event_name": "PreToolUse",
   "tool_name": "Write",
   "tool_input": {
@@ -49,22 +51,46 @@ EOF
   "session_id": "test-session",
   "transcript_path": "/tmp/transcript.txt",
   "cwd": "/tmp/test-project",
-  "permission_mode": "ask",
+  "permission_mode": "default",
   "hook_event_name": "PostToolUse",
   "tool_name": "Bash",
-  "tool_result": "Command executed successfully"
+  "tool_input": {
+    "command": "printf 'sample'"
+  },
+  "tool_response": {
+    "stdout": "sample",
+    "stderr": "",
+    "interrupted": false
+  }
 }
 EOF
       ;;
-    Stop|SubagentStop)
+    Stop)
       cat <<'EOF'
 {
   "session_id": "test-session",
   "transcript_path": "/tmp/transcript.txt",
   "cwd": "/tmp/test-project",
-  "permission_mode": "ask",
+  "permission_mode": "default",
   "hook_event_name": "Stop",
-  "reason": "Task appears complete"
+  "stop_hook_active": false,
+  "last_assistant_message": "The requested task is complete."
+}
+EOF
+      ;;
+    SubagentStop)
+      cat <<'EOF'
+{
+  "session_id": "test-session",
+  "transcript_path": "/tmp/transcript.txt",
+  "cwd": "/tmp/test-project",
+  "permission_mode": "default",
+  "hook_event_name": "SubagentStop",
+  "stop_hook_active": false,
+  "agent_id": "test-agent-id",
+  "agent_type": "test-agent",
+  "agent_transcript_path": "/tmp/agent-transcript.jsonl",
+  "last_assistant_message": "The delegated task is complete."
 }
 EOF
       ;;
@@ -74,26 +100,51 @@ EOF
   "session_id": "test-session",
   "transcript_path": "/tmp/transcript.txt",
   "cwd": "/tmp/test-project",
-  "permission_mode": "ask",
+  "permission_mode": "default",
   "hook_event_name": "UserPromptSubmit",
-  "user_prompt": "Test user prompt"
+  "prompt": "Test user prompt"
 }
 EOF
       ;;
-    SessionStart|SessionEnd)
+    SessionStart)
       cat <<'EOF'
 {
   "session_id": "test-session",
   "transcript_path": "/tmp/transcript.txt",
   "cwd": "/tmp/test-project",
-  "permission_mode": "ask",
-  "hook_event_name": "SessionStart"
+  "permission_mode": "default",
+  "hook_event_name": "SessionStart",
+  "source": "startup"
+}
+EOF
+      ;;
+    Setup)
+      cat <<'EOF'
+{
+  "session_id": "test-session",
+  "transcript_path": "/tmp/transcript.txt",
+  "cwd": "/tmp/test-project",
+  "permission_mode": "default",
+  "hook_event_name": "Setup",
+  "trigger": "init"
+}
+EOF
+      ;;
+    SessionEnd)
+      cat <<'EOF'
+{
+  "session_id": "test-session",
+  "transcript_path": "/tmp/transcript.txt",
+  "cwd": "/tmp/test-project",
+  "permission_mode": "default",
+  "hook_event_name": "SessionEnd",
+  "reason": "other"
 }
 EOF
       ;;
     *)
       echo "Unknown event type: $event_type"
-      echo "Valid types: PreToolUse, PostToolUse, Stop, SubagentStop, UserPromptSubmit, SessionStart, SessionEnd"
+      echo "Valid types: PreToolUse, PostToolUse, Stop, SubagentStop, UserPromptSubmit, SessionStart, Setup, SessionEnd"
       exit 1
       ;;
   esac
@@ -106,17 +157,25 @@ TIMEOUT=60
 while [ $# -gt 0 ]; do
   case "$1" in
     -h|--help)
-      show_usage
+      show_usage 0
       ;;
     -v|--verbose)
       VERBOSE=true
       shift
       ;;
     -t|--timeout)
+      if [ $# -lt 2 ]; then
+        echo "Error: --timeout requires a positive integer"
+        exit 1
+      fi
       TIMEOUT="$2"
       shift 2
       ;;
     --create-sample)
+      if [ $# -lt 2 ]; then
+        echo "Error: --create-sample requires an event type"
+        exit 1
+      fi
       create_sample "$2"
       exit 0
       ;;
@@ -126,10 +185,15 @@ while [ $# -gt 0 ]; do
   esac
 done
 
+if ! [[ "$TIMEOUT" =~ ^[1-9][0-9]*$ ]]; then
+  echo "Error: Timeout must be a positive integer: $TIMEOUT"
+  exit 1
+fi
+
 if [ $# -ne 2 ]; then
   echo "Error: Missing required arguments"
   echo ""
-  show_usage
+  show_usage 1
 fi
 
 HOOK_SCRIPT="$1"
@@ -141,9 +205,11 @@ if [ ! -f "$HOOK_SCRIPT" ]; then
   exit 1
 fi
 
-if [ ! -x "$HOOK_SCRIPT" ]; then
+if [ -x "$HOOK_SCRIPT" ]; then
+  HOOK_COMMAND=("$HOOK_SCRIPT")
+else
   echo "⚠️  Warning: Hook script is not executable. Attempting to run with bash..."
-  HOOK_SCRIPT="bash $HOOK_SCRIPT"
+  HOOK_COMMAND=(bash "$HOOK_SCRIPT")
 fi
 
 if [ ! -f "$TEST_INPUT" ]; then
@@ -157,7 +223,16 @@ if ! jq empty "$TEST_INPUT" 2>/dev/null; then
   exit 1
 fi
 
-echo "🧪 Testing hook: $HOOK_SCRIPT"
+if command -v timeout >/dev/null 2>&1; then
+  TIMEOUT_COMMAND=(timeout)
+elif command -v gtimeout >/dev/null 2>&1; then
+  TIMEOUT_COMMAND=(gtimeout)
+else
+  echo "❌ Error: test-hook.sh requires 'timeout' or 'gtimeout' (GNU coreutils)"
+  exit 1
+fi
+
+echo "🧪 Testing hook: ${HOOK_COMMAND[*]}"
 echo "📥 Input: $TEST_INPUT"
 echo ""
 
@@ -168,9 +243,45 @@ if [ "$VERBOSE" = true ]; then
 fi
 
 # Set up environment
-export CLAUDE_PROJECT_DIR="${CLAUDE_PROJECT_DIR:-/tmp/test-project}"
 export CLAUDE_PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$(pwd)}"
-export CLAUDE_ENV_FILE="${CLAUDE_ENV_FILE:-/tmp/test-env-$$}"
+
+# Caller-provided project and environment paths belong to the caller and must
+# never be removed by this helper. Keep all defaults under one private runtime
+# directory and clean up only that directory.
+TEST_RUNTIME_DIR=""
+cleanup_test_environment() {
+  case "${TEST_RUNTIME_DIR:-}" in
+    ""|/)
+      return
+      ;;
+  esac
+  rm -rf -- "$TEST_RUNTIME_DIR"
+}
+ensure_test_runtime_directory() {
+  if [ -z "$TEST_RUNTIME_DIR" ]; then
+    TEST_RUNTIME_DIR=$(mktemp -d "${TMPDIR:-/tmp}/claude-hook-test.XXXXXX")
+    chmod 700 "$TEST_RUNTIME_DIR"
+  fi
+}
+trap cleanup_test_environment EXIT
+trap 'exit 129' HUP
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
+if [ -z "${CLAUDE_PROJECT_DIR:-}" ]; then
+  ensure_test_runtime_directory
+  export CLAUDE_PROJECT_DIR="$TEST_RUNTIME_DIR/project"
+  mkdir -m 700 -- "$CLAUDE_PROJECT_DIR"
+else
+  export CLAUDE_PROJECT_DIR
+fi
+
+if [ -z "${CLAUDE_ENV_FILE:-}" ]; then
+  ensure_test_runtime_directory
+  export CLAUDE_ENV_FILE="$TEST_RUNTIME_DIR/claude-env"
+else
+  export CLAUDE_ENV_FILE
+fi
 
 if [ "$VERBOSE" = true ]; then
   echo "Environment:"
@@ -187,7 +298,7 @@ echo ""
 start_time=$(date +%s)
 
 set +e
-output=$(timeout "$TIMEOUT" bash -c "cat '$TEST_INPUT' | $HOOK_SCRIPT" 2>&1)
+output=$("${TIMEOUT_COMMAND[@]}" "$TIMEOUT" "${HOOK_COMMAND[@]}" < "$TEST_INPUT" 2>&1)
 exit_code=$?
 set -e
 
@@ -237,7 +348,6 @@ if [ -f "$CLAUDE_ENV_FILE" ]; then
   echo ""
   echo "Environment file created:"
   cat "$CLAUDE_ENV_FILE"
-  rm -f "$CLAUDE_ENV_FILE"
 fi
 
 echo ""

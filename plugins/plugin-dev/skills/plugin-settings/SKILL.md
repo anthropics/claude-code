@@ -67,20 +67,19 @@ Contact @team-lead with questions.
 #!/bin/bash
 set -euo pipefail
 
-# Define state file path
-STATE_FILE=".claude/my-plugin.local.md"
+# Resolve from the project root because hooks may run in a subdirectory.
+PROJECT_ROOT="${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel)}"
+STATE_FILE="$PROJECT_ROOT/.claude/my-plugin.local.md"
+PARSER="${CLAUDE_PLUGIN_ROOT}/skills/plugin-settings/scripts/parse-frontmatter.sh"
 
 # Quick exit if file doesn't exist
 if [[ ! -f "$STATE_FILE" ]]; then
   exit 0  # Plugin not configured, skip
 fi
 
-# Parse YAML frontmatter (between --- markers)
-FRONTMATTER=$(sed -n '/^---$/,/^---$/{ /^---$/d; p; }' "$STATE_FILE")
-
-# Extract individual fields
-ENABLED=$(echo "$FRONTMATTER" | grep '^enabled:' | sed 's/enabled: *//' | sed 's/^"\(.*\)"$/\1/')
-STRICT_MODE=$(echo "$FRONTMATTER" | grep '^strict_mode:' | sed 's/strict_mode: *//' | sed 's/^"\(.*\)"$/\1/')
+# Extract individual fields. Optional fields need explicit defaults under set -e.
+ENABLED=$("$PARSER" "$STATE_FILE" enabled 2>/dev/null || printf 'false')
+STRICT_MODE=$("$PARSER" "$STATE_FILE" strict_mode 2>/dev/null || printf 'false')
 
 # Check if enabled
 if [[ "$ENABLED" != "true" ]]; then
@@ -138,26 +137,27 @@ If present, parse YAML frontmatter and adapt behavior according to:
 ### Extract Frontmatter
 
 ```bash
-# Extract everything between --- markers
-FRONTMATTER=$(sed -n '/^---$/,/^---$/{ /^---$/d; p; }' "$FILE")
+# Validate and extract the leading frontmatter block only.
+PARSER="${CLAUDE_PLUGIN_ROOT}/skills/plugin-settings/scripts/parse-frontmatter.sh"
+FRONTMATTER=$("$PARSER" "$FILE")
 ```
 
 ### Read Individual Fields
 
 **String fields:**
 ```bash
-VALUE=$(echo "$FRONTMATTER" | grep '^field_name:' | sed 's/field_name: *//' | sed 's/^"\(.*\)"$/\1/')
+VALUE=$("$PARSER" "$FILE" field_name)
 ```
 
 **Boolean fields:**
 ```bash
-ENABLED=$(echo "$FRONTMATTER" | grep '^enabled:' | sed 's/enabled: *//')
+ENABLED=$("$PARSER" "$FILE" enabled)
 # Compare: if [[ "$ENABLED" == "true" ]]; then
 ```
 
 **Numeric fields:**
 ```bash
-MAX=$(echo "$FRONTMATTER" | grep '^max_value:' | sed 's/max_value: *//')
+MAX=$("$PARSER" "$FILE" max_value)
 # Use: if [[ $MAX -gt 100 ]]; then
 ```
 
@@ -166,8 +166,8 @@ MAX=$(echo "$FRONTMATTER" | grep '^max_value:' | sed 's/max_value: *//')
 Extract content after second `---`:
 
 ```bash
-# Get everything after closing ---
-BODY=$(awk '/^---$/{i++; next} i>=2' "$FILE")
+# Get everything after the first closing marker and preserve later --- lines.
+BODY=$(awk 'NR == 1 { next } !closed && $0 == "---" { closed = 1; next } closed { print }' "$FILE")
 ```
 
 ## Common Patterns
@@ -179,6 +179,7 @@ Use settings file to control hook activation:
 ```bash
 #!/bin/bash
 STATE_FILE=".claude/security-scan.local.md"
+PARSER="${CLAUDE_PLUGIN_ROOT}/skills/plugin-settings/scripts/parse-frontmatter.sh"
 
 # Quick exit if not configured
 if [[ ! -f "$STATE_FILE" ]]; then
@@ -186,8 +187,7 @@ if [[ ! -f "$STATE_FILE" ]]; then
 fi
 
 # Read enabled flag
-FRONTMATTER=$(sed -n '/^---$/,/^---$/{ /^---$/d; p; }' "$STATE_FILE")
-ENABLED=$(echo "$FRONTMATTER" | grep '^enabled:' | sed 's/enabled: *//')
+ENABLED=$("$PARSER" "$STATE_FILE" enabled 2>/dev/null || printf 'false')
 
 if [[ "$ENABLED" != "true" ]]; then
   exit 0  # Disabled
@@ -227,8 +227,9 @@ Implement JWT authentication for the API.
 Read from hooks to coordinate agents:
 
 ```bash
-AGENT_NAME=$(echo "$FRONTMATTER" | grep '^agent_name:' | sed 's/agent_name: *//')
-COORDINATOR=$(echo "$FRONTMATTER" | grep '^coordinator_session:' | sed 's/coordinator_session: *//')
+PARSER="${CLAUDE_PLUGIN_ROOT}/skills/plugin-settings/scripts/parse-frontmatter.sh"
+AGENT_NAME=$("$PARSER" "$STATE_FILE" agent_name)
+COORDINATOR=$("$PARSER" "$STATE_FILE" coordinator_session)
 
 # Send notification to coordinator
 tmux send-keys -t "$COORDINATOR" "Agent $AGENT_NAME completed task" Enter
@@ -254,7 +255,7 @@ All writes validated against security policies.
 Use in hooks or commands:
 
 ```bash
-LEVEL=$(echo "$FRONTMATTER" | grep '^validation_level:' | sed 's/validation_level: *//')
+LEVEL=$("$PARSER" "$STATE_FILE" validation_level)
 
 case "$LEVEL" in
   strict)
@@ -355,7 +356,7 @@ fi
 Validate settings values:
 
 ```bash
-MAX=$(echo "$FRONTMATTER" | grep '^max_value:' | sed 's/max_value: *//')
+MAX=$("$PARSER" "$STATE_FILE" max_value 2>/dev/null || printf '10')
 
 # Validate numeric range
 if ! [[ "$MAX" =~ ^[0-9]+$ ]] || [[ $MAX -lt 1 ]] || [[ $MAX -gt 100 ]]; then
@@ -405,7 +406,7 @@ EOF
 If settings contain file paths:
 
 ```bash
-FILE_PATH=$(echo "$FRONTMATTER" | grep '^data_file:' | sed 's/data_file: *//')
+FILE_PATH=$("$PARSER" "$STATE_FILE" data_file)
 
 # Check for path traversal
 if [[ "$FILE_PATH" == *".."* ]]; then
@@ -483,18 +484,17 @@ project-root/
 ### Frontmatter Parsing
 
 ```bash
-# Extract frontmatter
-FRONTMATTER=$(sed -n '/^---$/,/^---$/{ /^---$/d; p; }' "$FILE")
-
-# Read field
-VALUE=$(echo "$FRONTMATTER" | grep '^field:' | sed 's/field: *//' | sed 's/^"\(.*\)"$/\1/')
+# Validate/extract frontmatter and read one field.
+PARSER="${CLAUDE_PLUGIN_ROOT}/skills/plugin-settings/scripts/parse-frontmatter.sh"
+FRONTMATTER=$("$PARSER" "$FILE")
+VALUE=$("$PARSER" "$FILE" field)
 ```
 
 ### Body Parsing
 
 ```bash
-# Extract body (after second ---)
-BODY=$(awk '/^---$/{i++; next} i>=2' "$FILE")
+# Extract body after the first closing marker.
+BODY=$(awk 'NR == 1 { next } !closed && $0 == "---" { closed = 1; next } closed { print }' "$FILE")
 ```
 
 ### Quick Exit Pattern

@@ -158,10 +158,11 @@ Use the current working directory (where Claude Code was started) as the base pa
 ## Event Types Reference
 
 - **bash**: Matches Bash tool commands
-- **file**: Matches Edit, Write, MultiEdit tools
+- **file**: Matches Edit, Write, MultiEdit, NotebookEdit tools
 - **stop**: Matches when agent wants to stop (use for completion checks)
 - **prompt**: Matches when user submits prompts
-- **all**: Matches all events
+- **all**: Matches all supported events. Simple patterns check the current Bash
+  command, new file/notebook content, submitted prompt, or Stop transcript.
 
 ## Pattern Writing Tips
 

@@ -1,217 +1,197 @@
 #!/bin/bash
 # Agent File Validator
-# Validates agent markdown files for correct structure and content
+# Parses YAML frontmatter with Ruby's standard Psych parser before validating it.
 
 set -euo pipefail
 
-# Usage
 if [ $# -eq 0 ]; then
   echo "Usage: $0 <path/to/agent.md>"
   echo ""
-  echo "Validates agent file for:"
-  echo "  - YAML frontmatter structure"
-  echo "  - Required fields (name, description, model, color)"
-  echo "  - Field formats and constraints"
+  echo "Validates agent files for:"
+  echo "  - Strictly parseable YAML frontmatter"
+  echo "  - Required name and description fields"
+  echo "  - Official optional frontmatter field formats"
   echo "  - System prompt presence and length"
-  echo "  - Example blocks in description"
   exit 1
 fi
 
 AGENT_FILE="$1"
 
-echo "🔍 Validating agent file: $AGENT_FILE"
-echo ""
-
-# Check 1: File exists
 if [ ! -f "$AGENT_FILE" ]; then
   echo "❌ File not found: $AGENT_FILE"
   exit 1
 fi
-echo "✅ File exists"
 
-# Check 2: Starts with ---
-FIRST_LINE=$(head -1 "$AGENT_FILE")
-if [ "$FIRST_LINE" != "---" ]; then
-  echo "❌ File must start with YAML frontmatter (---)"
+if ! command -v ruby >/dev/null 2>&1; then
+  echo "❌ Ruby is required to parse YAML frontmatter"
   exit 1
 fi
-echo "✅ Starts with frontmatter"
 
-# Check 3: Has closing ---
-if ! tail -n +2 "$AGENT_FILE" | grep -q '^---$'; then
-  echo "❌ Frontmatter not closed (missing second ---)"
+exec ruby -rpsych - "$AGENT_FILE" <<'RUBY'
+agent_file = ARGV.fetch(0)
+lines = File.readlines(agent_file, encoding: "UTF-8")
+
+puts "🔍 Validating agent file: #{agent_file}"
+puts
+
+unless lines.first&.strip == "---"
+  warn "❌ File must start with YAML frontmatter (---)"
   exit 1
-fi
-echo "✅ Frontmatter properly closed"
+end
 
-# Extract frontmatter and system prompt
-FRONTMATTER=$(sed -n '/^---$/,/^---$/{ /^---$/d; p; }' "$AGENT_FILE")
-SYSTEM_PROMPT=$(awk '/^---$/{i++; next} i>=2' "$AGENT_FILE")
+closing_index = (1...lines.length).find { |index| lines[index].strip == "---" }
+unless closing_index
+  warn "❌ Frontmatter not closed (missing second ---)"
+  exit 1
+end
 
-# Check 4: Required fields
-echo ""
-echo "Checking required fields..."
+frontmatter = lines[1...closing_index].join
+system_prompt = (lines[(closing_index + 1)..-1] || []).join.strip
 
-error_count=0
-warning_count=0
+begin
+  metadata = Psych.safe_load(frontmatter, [], [], false)
+rescue Psych::Exception => error
+  warn "❌ Invalid YAML frontmatter: #{error.message.lines.first.strip}"
+  exit 1
+end
 
-# Check name field
-NAME=$(echo "$FRONTMATTER" | grep '^name:' | sed 's/name: *//' | sed 's/^"\(.*\)"$/\1/')
+unless metadata.is_a?(Hash)
+  warn "❌ YAML frontmatter must be a mapping"
+  exit 1
+end
 
-if [ -z "$NAME" ]; then
-  echo "❌ Missing required field: name"
-  ((error_count++))
+errors = []
+warnings = []
+
+supported_fields = %w[
+  name description model effort maxTurns tools disallowedTools skills memory
+  background isolation color initialPrompt
+]
+(metadata.keys - supported_fields).sort.each do |field|
+  errors << "#{field} is not supported in plugin agent frontmatter"
+end
+
+valid_tool_list = lambda do |value|
+  case value
+  when String
+    entries = value.split(",", -1).map(&:strip)
+    !entries.empty? && entries.all? { |entry| !entry.empty? }
+  when Array
+    !value.empty? && value.all? { |entry| entry.is_a?(String) && !entry.strip.empty? }
+  else
+    false
+  end
+end
+
+name = metadata["name"]
+if !name.is_a?(String) || name.empty?
+  errors << "Missing required string field: name"
 else
-  echo "✅ name: $NAME"
+  unless name.match?(/\A[a-z](?:[a-z-]*[a-z])?\z/)
+    errors << "name must start/end with a lowercase letter and contain only lowercase letters and hyphens"
+  end
+  errors << "name too short (minimum 3 characters)" if name.length < 3
+  errors << "name too long (maximum 50 characters)" if name.length > 50
+  warnings << "name is too generic: #{name}" if %w[helper assistant agent tool].include?(name)
+end
 
-  # Validate name format
-  if ! [[ "$NAME" =~ ^[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]$ ]]; then
-    echo "❌ name must start/end with alphanumeric and contain only letters, numbers, hyphens"
-    ((error_count++))
-  fi
-
-  # Validate name length
-  name_length=${#NAME}
-  if [ $name_length -lt 3 ]; then
-    echo "❌ name too short (minimum 3 characters)"
-    ((error_count++))
-  elif [ $name_length -gt 50 ]; then
-    echo "❌ name too long (maximum 50 characters)"
-    ((error_count++))
-  fi
-
-  # Check for generic names
-  if [[ "$NAME" =~ ^(helper|assistant|agent|tool)$ ]]; then
-    echo "⚠️  name is too generic: $NAME"
-    ((warning_count++))
-  fi
-fi
-
-# Check description field
-DESCRIPTION=$(echo "$FRONTMATTER" | grep '^description:' | sed 's/description: *//')
-
-if [ -z "$DESCRIPTION" ]; then
-  echo "❌ Missing required field: description"
-  ((error_count++))
+description = metadata["description"]
+if !description.is_a?(String) || description.strip.empty?
+  errors << "Missing required string field: description"
 else
-  desc_length=${#DESCRIPTION}
-  echo "✅ description: ${desc_length} characters"
+  warnings << "description too short (minimum 10 characters recommended)" if description.length < 10
+  warnings << "description very long (over 5,000 characters)" if description.length > 5_000
+  warnings << "description should include <example> blocks for triggering" unless description.include?("<example>")
+  warnings << "description should start with 'Use this agent when...'" unless description.match?(/use this agent when/i)
+end
 
-  if [ $desc_length -lt 10 ]; then
-    echo "⚠️  description too short (minimum 10 characters recommended)"
-    ((warning_count++))
-  elif [ $desc_length -gt 5000 ]; then
-    echo "⚠️  description very long (over 5000 characters)"
-    ((warning_count++))
-  fi
+if metadata.key?("model")
+  model = metadata["model"]
+  if !model.is_a?(String) || model.empty?
+    errors << "model must be a non-empty string when present"
+  elsif !%w[inherit sonnet opus haiku fable].include?(model) &&
+        !model.match?(/\Aclaude-[a-z0-9][a-z0-9.-]*\z/)
+    warnings << "Unknown model: #{model}"
+  end
+end
 
-  # Check for example blocks
-  if ! echo "$DESCRIPTION" | grep -q '<example>'; then
-    echo "⚠️  description should include <example> blocks for triggering"
-    ((warning_count++))
-  fi
+if metadata.key?("tools")
+  unless valid_tool_list.call(metadata["tools"])
+    errors << "tools must be a comma-separated string or an array of non-empty strings when present"
+  end
+end
 
-  # Check for "Use this agent when" pattern
-  if ! echo "$DESCRIPTION" | grep -qi 'use this agent when'; then
-    echo "⚠️  description should start with 'Use this agent when...'"
-    ((warning_count++))
-  fi
-fi
+if metadata.key?("disallowedTools") && !valid_tool_list.call(metadata["disallowedTools"])
+  errors << "disallowedTools must be a comma-separated string or an array of non-empty strings when present"
+end
 
-# Check model field
-MODEL=$(echo "$FRONTMATTER" | grep '^model:' | sed 's/model: *//')
+if metadata.key?("maxTurns") &&
+   (!metadata["maxTurns"].is_a?(Integer) || metadata["maxTurns"] <= 0)
+  errors << "maxTurns must be a positive integer"
+end
 
-if [ -z "$MODEL" ]; then
-  echo "❌ Missing required field: model"
-  ((error_count++))
+if metadata.key?("skills")
+  skills = metadata["skills"]
+  unless skills.is_a?(Array) && skills.all? { |skill| skill.is_a?(String) && !skill.strip.empty? }
+    errors << "skills must be an array of non-empty strings when present"
+  end
+end
+
+if metadata.key?("memory") && !%w[user project local].include?(metadata["memory"])
+  errors << "memory must be one of: user, project, local"
+end
+
+if metadata.key?("background") && metadata["background"] != true && metadata["background"] != false
+  errors << "background must be a boolean"
+end
+
+if metadata.key?("effort") && !%w[low medium high xhigh max].include?(metadata["effort"])
+  errors << "effort must be one of: low, medium, high, xhigh, max"
+end
+
+if metadata.key?("isolation") && metadata["isolation"] != "worktree"
+  errors << "isolation must be 'worktree' when present"
+end
+
+if metadata.key?("color") &&
+   !%w[red blue green yellow purple orange pink cyan].include?(metadata["color"])
+  errors << "color must be one of: red, blue, green, yellow, purple, orange, pink, cyan"
+end
+
+if metadata.key?("initialPrompt") &&
+   (!metadata["initialPrompt"].is_a?(String) || metadata["initialPrompt"].strip.empty?)
+  errors << "initialPrompt must be a non-empty string when present"
+end
+
+if system_prompt.empty?
+  errors << "System prompt is empty"
+elsif system_prompt.length < 20
+  errors << "System prompt too short (minimum 20 characters)"
 else
-  echo "✅ model: $MODEL"
+  warnings << "System prompt very long (over 10,000 characters)" if system_prompt.length > 10_000
+  warnings << "System prompt should use second person (You are..., You will..., Your...)" unless system_prompt.match?(/\b(?:You are|You will|Your)\b/)
+end
 
-  case "$MODEL" in
-    inherit|sonnet|opus|haiku)
-      # Valid model
-      ;;
-    *)
-      echo "⚠️  Unknown model: $MODEL (valid: inherit, sonnet, opus, haiku)"
-      ((warning_count++))
-      ;;
-  esac
-fi
+puts "✅ YAML frontmatter parsed"
+puts "✅ name: #{name}" if name.is_a?(String) && !name.empty?
+puts "✅ description: #{description.length} characters" if description.is_a?(String)
+puts "✅ model: #{metadata['model']}" if metadata.key?("model")
+puts "💡 model: not specified (optional)" unless metadata.key?("model")
+puts "✅ System prompt: #{system_prompt.length} characters" unless system_prompt.empty?
 
-# Check color field
-COLOR=$(echo "$FRONTMATTER" | grep '^color:' | sed 's/color: *//')
+warnings.each { |message| puts "⚠️  #{message}" }
+errors.each { |message| puts "❌ #{message}" }
 
-if [ -z "$COLOR" ]; then
-  echo "❌ Missing required field: color"
-  ((error_count++))
-else
-  echo "✅ color: $COLOR"
-
-  case "$COLOR" in
-    blue|cyan|green|yellow|magenta|red)
-      # Valid color
-      ;;
-    *)
-      echo "⚠️  Unknown color: $COLOR (valid: blue, cyan, green, yellow, magenta, red)"
-      ((warning_count++))
-      ;;
-  esac
-fi
-
-# Check tools field (optional)
-TOOLS=$(echo "$FRONTMATTER" | grep '^tools:' | sed 's/tools: *//')
-
-if [ -n "$TOOLS" ]; then
-  echo "✅ tools: $TOOLS"
-else
-  echo "💡 tools: not specified (agent has access to all tools)"
-fi
-
-# Check 5: System prompt
-echo ""
-echo "Checking system prompt..."
-
-if [ -z "$SYSTEM_PROMPT" ]; then
-  echo "❌ System prompt is empty"
-  ((error_count++))
-else
-  prompt_length=${#SYSTEM_PROMPT}
-  echo "✅ System prompt: $prompt_length characters"
-
-  if [ $prompt_length -lt 20 ]; then
-    echo "❌ System prompt too short (minimum 20 characters)"
-    ((error_count++))
-  elif [ $prompt_length -gt 10000 ]; then
-    echo "⚠️  System prompt very long (over 10,000 characters)"
-    ((warning_count++))
-  fi
-
-  # Check for second person
-  if ! echo "$SYSTEM_PROMPT" | grep -q "You are\|You will\|Your"; then
-    echo "⚠️  System prompt should use second person (You are..., You will...)"
-    ((warning_count++))
-  fi
-
-  # Check for structure
-  if ! echo "$SYSTEM_PROMPT" | grep -qi "responsibilities\|process\|steps"; then
-    echo "💡 Consider adding clear responsibilities or process steps"
-  fi
-
-  if ! echo "$SYSTEM_PROMPT" | grep -qi "output"; then
-    echo "💡 Consider defining output format expectations"
-  fi
-fi
-
-echo ""
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-
-if [ $error_count -eq 0 ] && [ $warning_count -eq 0 ]; then
-  echo "✅ All checks passed!"
+puts
+puts "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+if errors.empty? && warnings.empty?
+  puts "✅ All checks passed!"
   exit 0
-elif [ $error_count -eq 0 ]; then
-  echo "⚠️  Validation passed with $warning_count warning(s)"
+elsif errors.empty?
+  puts "⚠️  Validation passed with #{warnings.length} warning(s)"
   exit 0
 else
-  echo "❌ Validation failed with $error_count error(s) and $warning_count warning(s)"
+  puts "❌ Validation failed with #{errors.length} error(s) and #{warnings.length} warning(s)"
   exit 1
-fi
+end
+RUBY

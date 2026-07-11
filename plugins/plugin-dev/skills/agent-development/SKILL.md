@@ -15,7 +15,7 @@ Agents are autonomous subprocesses that handle complex, multi-step tasks indepen
 - Markdown file format with YAML frontmatter
 - Triggering via description field with examples
 - System prompt defines agent behavior
-- Model and color customization
+- Model, color, and tool customization
 
 ## Agent File Structure
 
@@ -24,20 +24,21 @@ Agents are autonomous subprocesses that handle complex, multi-step tasks indepen
 ```markdown
 ---
 name: agent-identifier
-description: Use this agent when [triggering conditions]. Examples:
+description: |-
+  Use this agent when [triggering conditions]. Examples:
 
-<example>
-Context: [Situation description]
-user: "[User request]"
-assistant: "[How assistant should respond and use this agent]"
-<commentary>
-[Why this agent should be triggered]
-</commentary>
-</example>
+  <example>
+  Context: [Situation description]
+  user: "[User request]"
+  assistant: "[How assistant should respond and use this agent]"
+  <commentary>
+  [Why this agent should be triggered]
+  </commentary>
+  </example>
 
-<example>
-[Additional example...]
-</example>
+  <example>
+  [Additional example...]
+  </example>
 
 model: inherit
 color: blue
@@ -63,9 +64,9 @@ You are [agent role description]...
 
 Agent identifier used for namespacing and invocation.
 
-**Format:** lowercase, numbers, hyphens only
+**Format:** lowercase letters and hyphens only
 **Length:** 3-50 characters
-**Pattern:** Must start and end with alphanumeric
+**Pattern:** Must start and end with a lowercase letter
 
 **Good examples:**
 - `code-reviewer`
@@ -112,7 +113,7 @@ assistant: "[How Claude should respond]"
 - Explain reasoning in commentary
 - Be specific about when NOT to use the agent
 
-### model (required)
+### model (optional)
 
 Which model the agent should use.
 
@@ -121,31 +122,30 @@ Which model the agent should use.
 - `sonnet` - Claude Sonnet (balanced)
 - `opus` - Claude Opus (most capable, expensive)
 - `haiku` - Claude Haiku (fast, cheap)
+- `fable` - Claude Fable
+- A full Claude model ID such as `claude-sonnet-4-5-20250929`
 
-**Recommendation:** Use `inherit` unless agent needs specific model capabilities.
+**Default:** If omitted, the agent inherits the parent model. Use `inherit`
+explicitly when that intent should be visible in the file.
 
-### color (required)
+### color (optional)
 
-Visual identifier for agent in UI.
+Visual identifier for the agent in the user interface.
 
-**Options:** `blue`, `cyan`, `green`, `yellow`, `magenta`, `red`
+**Options:** `red`, `blue`, `green`, `yellow`, `purple`, `orange`, `pink`, `cyan`
 
-**Guidelines:**
-- Choose distinct colors for different agents in same plugin
-- Use consistent colors for similar agent types
-- Blue/cyan: Analysis, review
-- Green: Success-oriented tasks
-- Yellow: Caution, validation
-- Red: Critical, security
-- Magenta: Creative, generation
+Choose a distinct color when it helps users distinguish agents in the same
+plugin. Omit the field when no visual identifier is needed.
 
 ### tools (optional)
 
 Restrict agent to specific tools.
 
-**Format:** Array of tool names
+**Format:** A comma-separated scalar or an array of tool names
 
 ```yaml
+tools: Read, Write, Grep, Bash
+# or
 tools: ["Read", "Write", "Grep", "Bash"]
 ```
 
@@ -252,7 +252,7 @@ See `examples/agent-creation-prompt.md` for complete template.
 1. Choose agent identifier (3-50 chars, lowercase, hyphens)
 2. Write description with examples
 3. Select model (usually `inherit`)
-4. Choose color for visual identification
+4. Choose an optional color for visual identification
 5. Define tools (if restricting access)
 6. Write system prompt with structure above
 7. Save as `agents/agent-name.md`
@@ -262,14 +262,14 @@ See `examples/agent-creation-prompt.md` for complete template.
 ### Identifier Validation
 
 ```
-✅ Valid: code-reviewer, test-gen, api-analyzer-v2
+✅ Valid: code-reviewer, test-gen, api-analyzer
 ❌ Invalid: ag (too short), -start (starts with hyphen), my_agent (underscore)
 ```
 
 **Rules:**
 - 3-50 characters
-- Lowercase letters, numbers, hyphens only
-- Must start and end with alphanumeric
+- Lowercase letters and hyphens only
+- Must start and end with a lowercase letter
 - No underscores, spaces, or special characters
 
 ### Description Validation
@@ -332,7 +332,9 @@ Ensure system prompt is complete:
 ```markdown
 ---
 name: simple-agent
-description: Use this agent when... Examples: <example>...</example>
+description: |-
+  Use this agent when...
+  <example>...</example>
 model: inherit
 color: blue
 ---
@@ -352,9 +354,16 @@ Output: [What to provide]
 |-------|----------|--------|---------|
 | name | Yes | lowercase-hyphens | code-reviewer |
 | description | Yes | Text + examples | Use when... <example>... |
-| model | Yes | inherit/sonnet/opus/haiku | inherit |
-| color | Yes | Color name | blue |
-| tools | No | Array of tool names | ["Read", "Grep"] |
+| model | No | inherit/sonnet/opus/haiku/fable or full model ID | inherit |
+| color | No | red/blue/green/yellow/purple/orange/pink/cyan | blue |
+| tools | No | Comma-separated scalar or string array | Read, Grep |
+| disallowedTools | No | Comma-separated scalar or string array | Write, Edit |
+| effort | No | Supported effort level | high |
+| maxTurns | No | Positive integer | 10 |
+| skills | No | String array | [testing-conventions] |
+| memory | No | user/project/local | project |
+| background | No | Boolean | false |
+| isolation | No | worktree | worktree |
 
 ### Best Practices
 
@@ -369,7 +378,7 @@ Output: [What to provide]
 **DON'T:**
 - ❌ Use generic descriptions without examples
 - ❌ Omit triggering conditions
-- ❌ Give all agents same color
+- ❌ Use an unsupported color value
 - ❌ Grant unnecessary tool access
 - ❌ Write vague system prompts
 - ❌ Skip testing

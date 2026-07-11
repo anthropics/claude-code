@@ -1,10 +1,10 @@
 # Code Review Plugin
 
-Automated code review for pull requests using multiple specialized agents with confidence-based scoring to filter false positives.
+Automated code review for pull requests using multiple specialized agents and independent validation to filter false positives.
 
 ## Overview
 
-The Code Review Plugin automates pull request review by launching multiple agents in parallel to independently audit changes from different perspectives. It uses confidence scoring to filter out false positives, ensuring only high-quality, actionable feedback is posted.
+The Code Review Plugin automates pull request review by launching multiple agents in parallel to independently audit changes from different perspectives. Every candidate finding then passes through the same independent validation gate, ensuring only high-quality, actionable feedback is posted.
 
 ## Commands
 
@@ -20,8 +20,8 @@ Performs automated code review on a pull request using multiple specialized agen
    - **Agents #1 & #2**: Audit for CLAUDE.md compliance
    - **Agent #3**: Scan for obvious bugs in changes
    - **Agent #4**: Analyze git blame/history for context-based issues
-5. Scores each issue 0-100 for confidence level
-6. Filters out issues below 80 confidence threshold
+5. Independently validates every candidate from all four review agents
+6. Filters out every candidate that the validator cannot confirm
 7. Outputs review (to terminal by default, or as PR comment with `--comment` flag)
 
 **Usage:**
@@ -42,14 +42,14 @@ Performs automated code review on a pull request using multiple specialized agen
 
 # Claude will:
 # - Launch 4 review agents in parallel
-# - Score each issue for confidence
-# - Output issues ≥80 confidence (to terminal or PR depending on flag)
-# - Skip if no high-confidence issues found
+# - Validate every candidate finding independently
+# - Output only confirmed issues (to terminal or PR depending on flag)
+# - Skip if no validated issues are found
 ```
 
 **Features:**
 - Multiple independent agents for comprehensive review
-- Confidence-based scoring reduces false positives (threshold: 80)
+- Independent validation of every candidate reduces false positives
 - CLAUDE.md compliance checking with explicit guideline verification
 - Bug detection focused on changes (not pre-existing issues)
 - Historical context analysis via git blame
@@ -75,12 +75,12 @@ https://github.com/owner/repo/blob/abc123.../src/auth.ts#L88-L95
 https://github.com/owner/repo/blob/abc123.../src/utils.ts#L23-L28
 ```
 
-**Confidence scoring:**
-- **0**: Not confident, false positive
-- **25**: Somewhat confident, might be real
-- **50**: Moderately confident, real but minor
-- **75**: Highly confident, real and important
-- **100**: Absolutely certain, definitely real
+**Validation gate:**
+- Candidates from both CLAUDE.md compliance agents and both bug agents are deduplicated
+- Every candidate is checked by a separate validator with the PR context and relevant diff
+- CLAUDE.md findings must include the exact rule and prove that it applies to the changed file
+- Bug findings must be confirmed as real and introduced by the pull request
+- Unvalidated candidates are discarded regardless of which review agent produced them
 
 **False positives filtered:**
 - Pre-existing issues not introduced in PR
@@ -98,7 +98,7 @@ This plugin is included in the Claude Code repository. The command is automatica
 
 ### Using `/code-review`
 - Maintain clear CLAUDE.md files for better compliance checking
-- Trust the 80+ confidence threshold - false positives are filtered
+- Trust the validation gate - unconfirmed candidates are filtered
 - Run on all non-trivial pull requests
 - Review agent findings as a starting point for human review
 - Update CLAUDE.md based on recurring review patterns
@@ -162,7 +162,7 @@ This plugin is included in the Claude Code repository. The command is automatica
 **Issue**: Review flags issues that aren't real
 
 **Solution**:
-- Default threshold is 80 (already filters most false positives)
+- Every candidate is checked by an independent validator before it is reported
 - Make CLAUDE.md more specific about what matters
 - Consider if the flagged issue is actually valid
 
@@ -176,7 +176,7 @@ Check if:
 - PR is draft (reviews skipped)
 - PR is trivial/automated (reviews skipped)
 - PR already has review (reviews skipped)
-- No issues scored ≥80 (no comment needed)
+- No candidate issues passed validation (no comment needed)
 
 ### Link formatting broken
 
@@ -204,21 +204,19 @@ https://github.com/owner/repo/blob/[full-sha]/path/file.ext#L[start]-L[end]
 
 - **Write specific CLAUDE.md files**: Clear guidelines = better reviews
 - **Include context in PRs**: Helps agents understand intent
-- **Use confidence scores**: Issues ≥80 are usually correct
+- **Require validation**: Only independently confirmed issues are reported
 - **Iterate on guidelines**: Update CLAUDE.md based on patterns
 - **Review automatically**: Set up as part of PR workflow
-- **Trust the filtering**: Threshold prevents noise
+- **Trust the filtering**: The validation gate prevents unconfirmed findings from creating noise
 
 ## Configuration
 
-### Adjusting confidence threshold
+### Adjusting the validation policy
 
-The default threshold is 80. To adjust, modify the command file at `commands/code-review.md`:
-```markdown
-Filter out any issues with a score less than 80.
-```
-
-Change `80` to your preferred threshold (0-100).
+The command intentionally applies one validation gate to findings from all four
+review agents. To tune strictness, edit the validation criteria in
+`commands/code-review.md`; do not exempt an agent or finding category from the
+gate.
 
 ### Customizing review focus
 
@@ -233,14 +231,14 @@ Edit `commands/code-review.md` to add or modify agent tasks:
 ### Agent architecture
 - **2x CLAUDE.md compliance agents**: Redundancy for guideline checks
 - **1x bug detector**: Focused on obvious bugs in changes only
-- **1x history analyzer**: Context from git blame and history
-- **Nx confidence scorers**: One per issue for independent scoring
+- **2x bug detectors**: Independent checks for concrete problems introduced by the diff
+- **Nx validators**: One per deduplicated candidate issue
 
-### Scoring system
-- Each issue independently scored 0-100
-- Scoring considers evidence strength and verification
-- Threshold (default 80) filters low-confidence issues
-- For CLAUDE.md issues: verifies guideline explicitly mentions it
+### Validation system
+- Each deduplicated candidate is independently validated
+- Validation checks the evidence against the relevant diff and repository context
+- CLAUDE.md candidates must prove both rule scope and an actual violation
+- Only validated issues reach the final review
 
 ### GitHub integration
 Uses `gh` CLI for:
@@ -255,4 +253,4 @@ Boris Cherny (boris@anthropic.com)
 
 ## Version
 
-1.0.0
+1.0.1

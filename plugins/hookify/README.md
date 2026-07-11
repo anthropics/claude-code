@@ -92,7 +92,8 @@ This command could delete important files. Please:
 
 **Action field:**
 - `warn`: Shows warning but allows operation (default)
-- `block`: Prevents operation from executing (PreToolUse) or stops session (Stop events)
+- `block`: Prevents PreToolUse/UserPromptSubmit input or returns blocking
+  feedback for PostToolUse/Stop
 
 ### Advanced Rule (Multiple Conditions)
 
@@ -122,10 +123,12 @@ Ensure credentials are not hardcoded and file is in .gitignore.
 ## Event Types
 
 - **`bash`**: Triggers on Bash tool commands
-- **`file`**: Triggers on Edit, Write, MultiEdit tools
+- **`file`**: Triggers on Edit, Write, MultiEdit, NotebookEdit tools
 - **`stop`**: Triggers when Claude wants to stop (for completion checks)
 - **`prompt`**: Triggers on user prompt submission
-- **`all`**: Triggers on all events
+- **`all`**: Triggers on every supported event. A simple `pattern` checks the
+  Bash command, new Write/Edit/MultiEdit/NotebookEdit content, submitted prompt,
+  or Stop transcript, depending on the current event.
 
 ## Pattern Syntax
 
@@ -195,17 +198,26 @@ enabled: false
 event: stop
 action: block
 conditions:
-  - field: transcript
+  - field: bash_tool_commands
     operator: not_contains
-    pattern: npm test|pytest|cargo test
+    pattern: npm test
+  - field: bash_tool_commands
+    operator: not_contains
+    pattern: pytest
+  - field: bash_tool_commands
+    operator: not_contains
+    pattern: cargo test
 ---
 
-**Tests not detected in transcript!**
+**No test command was invoked through Bash!**
 
 Before stopping, please run tests to verify your changes work correctly.
 ```
 
-**This blocks Claude from stopping** if no test commands appear in the session transcript. Enable only when you want strict enforcement.
+On the first Stop attempt, this blocks once if no supported test command appears
+in an assistant Bash tool call. A continued Stop attempt is allowed to prevent
+hook loops, so treat this as a one-time reminder rather than proof that tests
+ran successfully.
 
 ## Advanced Usage
 
@@ -253,10 +265,12 @@ Use environment variables instead of hardcoded values.
 - `content`: File content (Write only)
 
 **For prompt events:**
-- `user_prompt`: The user's submitted prompt text
+- `prompt`: The user's submitted prompt text
 
 **For stop events:**
-- Use general matching on session state
+- `transcript`: The session transcript content
+- `bash_tool_commands`: Commands from assistant Bash tool calls in the session
+  transcript; conversation text is excluded
 
 ## Management
 

@@ -14,7 +14,7 @@ Block dangerous file writes using prompt-based hooks:
       "hooks": [
         {
           "type": "prompt",
-          "prompt": "File path: $TOOL_INPUT.file_path. Verify: 1) Not in /etc or system directories 2) Not .env or credentials 3) Path doesn't contain '..' traversal. Return 'approve' or 'deny'."
+          "prompt": "Analyze the file-write hook input in $ARGUMENTS for system directories, credentials, and path traversal. Return {\"ok\": true} when safe or {\"ok\": false, \"reason\": \"...\"} when unsafe."
         }
       ]
     }
@@ -32,7 +32,6 @@ Ensure tests run before stopping:
 {
   "Stop": [
     {
-      "matcher": "*",
       "hooks": [
         {
           "type": "prompt",
@@ -117,7 +116,7 @@ Monitor and validate MCP tool usage:
       "hooks": [
         {
           "type": "prompt",
-          "prompt": "Deletion operation detected. Verify: Is this deletion intentional? Can it be undone? Are there backups? Return 'approve' only if safe."
+          "prompt": "Analyze the deletion hook input in $ARGUMENTS. Return {\"ok\": true} only when the deletion is intentional and safe; otherwise return {\"ok\": false, \"reason\": \"...\"}."
         }
       ]
     }
@@ -135,7 +134,6 @@ Ensure project builds after code changes:
 {
   "Stop": [
     {
-      "matcher": "*",
       "hooks": [
         {
           "type": "prompt",
@@ -160,8 +158,8 @@ Ask user before dangerous operations:
       "matcher": "Bash",
       "hooks": [
         {
-          "type": "prompt",
-          "prompt": "Command: $TOOL_INPUT.command. If command contains 'rm', 'delete', 'drop', or other destructive operations, return 'ask' to confirm with user. Otherwise 'approve'."
+          "type": "command",
+          "command": "bash ${CLAUDE_PLUGIN_ROOT}/examples/validate-bash.sh"
         }
       ]
     }
@@ -233,7 +231,6 @@ Combine multiple patterns for comprehensive protection:
   ],
   "Stop": [
     {
-      "matcher": "*",
       "hooks": [
         {
           "type": "prompt",
@@ -325,7 +322,7 @@ input=$(cat)
 file_size=$(echo "$input" | jq -r '.tool_input.content | length')
 
 if [ "$file_size" -gt "$max_file_size" ]; then
-  echo '{"decision": "deny", "reason": "File exceeds configured size limit"}' >&2
+  echo "File exceeds configured size limit" >&2
   exit 2
 fi
 ```

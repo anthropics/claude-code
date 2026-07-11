@@ -1,0 +1,42 @@
+{
+  "description": "Current hook schema fixture",
+  "hooks": {
+    "Setup": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "printf setup"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "printf command"
+          },
+          {
+            "type": "http",
+            "url": "https://example.invalid/hook"
+          },
+          {
+            "type": "mcp_tool",
+            "server": "policy",
+            "tool": "check"
+          },
+          {
+            "type": "prompt",
+            "prompt": "Check whether this tool call is safe."
+          },
+          {
+            "type": "agent",
+            "prompt": "Investigate whether this tool call is safe."
+          }
+        ]
+      }
+    ]
+  }
+}

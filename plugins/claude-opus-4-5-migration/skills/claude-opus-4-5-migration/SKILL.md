@@ -12,7 +12,7 @@ One-shot migration from Sonnet 4.0, Sonnet 4.5, or Opus 4.1 to Opus 4.5.
 1. Search codebase for model strings and API calls
 2. Update model strings to Opus 4.5 (see platform-specific strings below)
 3. Remove unsupported beta headers
-4. Add effort parameter set to `"high"` (see `references/effort.md`)
+4. Preserve the existing effort behavior. Configure `output_config.effort` only when the user explicitly requests an effort level (see `references/effort.md`)
 5. Summarize all changes made
 6. Tell the user: "If you encounter any issues with Opus 4.5, let me know and I can help adjust your prompts."
 
@@ -43,7 +43,7 @@ Remove the `context-1m-2025-08-07` beta header if present—it is not yet suppor
 |--------------|-------------------|-------------|------------------|
 | Sonnet 4.0 | `claude-sonnet-4-20250514` | `anthropic.claude-sonnet-4-20250514-v1:0` | `claude-sonnet-4@20250514` |
 | Sonnet 4.5 | `claude-sonnet-4-5-20250929` | `anthropic.claude-sonnet-4-5-20250929-v1:0` | `claude-sonnet-4-5@20250929` |
-| Opus 4.1 | `claude-opus-4-1-20250422` | `anthropic.claude-opus-4-1-20250422-v1:0` | `claude-opus-4-1@20250422` |
+| Opus 4.1 | `claude-opus-4-1-20250805` | `anthropic.claude-opus-4-1-20250805-v1:0` | `claude-opus-4-1@20250805` |
 
 **Do NOT migrate**: Any Haiku models (e.g., `claude-haiku-4-5-20251001`).
 

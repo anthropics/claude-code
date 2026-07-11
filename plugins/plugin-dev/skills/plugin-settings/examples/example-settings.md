@@ -117,14 +117,18 @@ Experimental mode is OFF (stable features only).
 These templates can be read by hooks:
 
 ```bash
+# Resolve from the project root because hooks may run in a subdirectory.
+PROJECT_ROOT="${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel)}"
+SETTINGS_FILE="$PROJECT_ROOT/.claude/my-plugin.local.md"
+PARSER="${CLAUDE_PLUGIN_ROOT}/skills/plugin-settings/scripts/parse-frontmatter.sh"
+
 # Check if plugin is configured
-if [[ ! -f ".claude/my-plugin.local.md" ]]; then
+if [[ ! -f "$SETTINGS_FILE" ]]; then
   exit 0  # Not configured, skip hook
 fi
 
 # Read settings
-FRONTMATTER=$(sed -n '/^---$/,/^---$/{ /^---$/d; p; }' ".claude/my-plugin.local.md")
-ENABLED=$(echo "$FRONTMATTER" | grep '^enabled:' | sed 's/enabled: *//')
+ENABLED=$("$PARSER" "$SETTINGS_FILE" enabled 2>/dev/null || printf 'false')
 
 # Apply settings
 if [[ "$ENABLED" == "true" ]]; then

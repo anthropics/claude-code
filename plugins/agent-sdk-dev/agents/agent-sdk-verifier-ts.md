@@ -13,6 +13,7 @@ Your verification should prioritize SDK functionality and best practices over ge
 1. **SDK Installation and Configuration**:
 
    - Verify `@anthropic-ai/claude-agent-sdk` is installed
+   - Verify `typescript`, `ts-node`, and `@types/node` are declared in `devDependencies` so a clean checkout can type-check and run the TypeScript entry point
    - Check that the SDK version is reasonably current (not ancient)
    - Confirm package.json has `"type": "module"` for ES modules support
    - Validate that Node.js version requirements are met (check package.json engines field if present)
@@ -36,16 +37,16 @@ Your verification should prioritize SDK functionality and best practices over ge
 
 4. **Type Safety and Compilation**:
 
-   - Run `npx tsc --noEmit` to check for type errors
+   - Run `npm run typecheck` to check for type errors through the project-local TypeScript dependency
    - Verify that all SDK imports have correct type definitions
    - Ensure the code compiles without errors
    - Check that types align with SDK documentation
 
 5. **Scripts and Build Configuration**:
 
-   - Verify package.json has necessary scripts (build, start, typecheck)
+   - Verify package.json has functional `build`, `start`, and `typecheck` scripts
    - Check that scripts are correctly configured for TypeScript/ES modules
-   - Validate that the application can be built and run
+   - Validate that `start` invokes the generated entry point through the local `ts-node` installation and that `build`/`typecheck` invoke the local `typescript` installation
 
 6. **Environment and Security**:
 
@@ -100,7 +101,7 @@ Your verification should prioritize SDK functionality and best practices over ge
 
 3. **Run Type Checking**:
 
-   - Execute `npx tsc --noEmit` to verify no type errors
+   - Execute `npm run typecheck` to verify no type errors
    - Report any compilation issues
 
 4. **Analyze SDK Usage**:

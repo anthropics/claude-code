@@ -7,9 +7,23 @@ Loads and parses .claude/hookify.*.local.md files.
 import os
 import sys
 import glob
+import json
 import re
+import subprocess
 from typing import List, Optional, Dict, Any
 from dataclasses import dataclass, field
+
+
+VALID_RULE_EVENTS = ('bash', 'file', 'stop', 'prompt', 'all')
+VALID_RULE_ACTIONS = ('warn', 'block')
+VALID_CONDITION_OPERATORS = (
+    'regex_match',
+    'contains',
+    'equals',
+    'not_contains',
+    'starts_with',
+    'ends_with',
+)
 
 
 @dataclass
@@ -22,10 +36,30 @@ class Condition:
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'Condition':
         """Create Condition from dict."""
+        if not isinstance(data, dict):
+            raise ValueError('each condition must be a mapping')
+
+        field_name = data.get('field', '')
+        operator = data.get('operator', 'regex_match')
+        pattern = data.get('pattern', '')
+        for key, value in (
+            ('field', field_name),
+            ('operator', operator),
+            ('pattern', pattern),
+        ):
+            if not isinstance(value, str):
+                raise ValueError(f"condition '{key}' must be a string")
+        if operator not in VALID_CONDITION_OPERATORS:
+            allowed = ', '.join(VALID_CONDITION_OPERATORS)
+            raise ValueError(
+                "condition 'operator' must be one of "
+                f"{allowed}; got {operator!r}"
+            )
+
         return cls(
-            field=data.get('field', ''),
-            operator=data.get('operator', 'regex_match'),
-            pattern=data.get('pattern', '')
+            field=field_name,
+            operator=operator,
+            pattern=pattern,
         )
 
 
@@ -40,29 +74,69 @@ class Rule:
     action: str = "warn"  # "warn" or "block" (future)
     tool_matcher: Optional[str] = None  # Override tool matching
     message: str = ""  # Message body from markdown
+    invalid_reason: Optional[str] = None
 
     @classmethod
     def from_dict(cls, frontmatter: Dict[str, Any], message: str) -> 'Rule':
         """Create Rule from frontmatter dict and message body."""
+        if not isinstance(frontmatter, dict):
+            raise ValueError('frontmatter must be a mapping')
+
+        name = frontmatter.get('name', 'unnamed')
+        enabled = frontmatter.get('enabled', True)
+        event = frontmatter.get('event', 'all')
+        action = frontmatter.get('action', 'warn')
+        tool_matcher = frontmatter.get('tool_matcher')
+        simple_pattern = frontmatter.get('pattern')
+
+        for key, value in (
+            ('name', name),
+            ('event', event),
+            ('action', action),
+        ):
+            if not isinstance(value, str):
+                raise ValueError(f"'{key}' must be a string")
+        if event not in VALID_RULE_EVENTS:
+            allowed = ', '.join(VALID_RULE_EVENTS)
+            raise ValueError(
+                f"'event' must be one of {allowed}; got {event!r}"
+            )
+        if action not in VALID_RULE_ACTIONS:
+            allowed = ', '.join(VALID_RULE_ACTIONS)
+            raise ValueError(
+                f"'action' must be one of {allowed}; got {action!r}"
+            )
+        if not isinstance(enabled, bool):
+            raise ValueError("'enabled' must be a boolean")
+        if tool_matcher is not None and not isinstance(tool_matcher, str):
+            raise ValueError("'tool_matcher' must be a string")
+        if simple_pattern is not None and not isinstance(simple_pattern, str):
+            raise ValueError("'pattern' must be a string")
+
         # Handle both simple pattern and complex conditions
         conditions = []
 
         # New style: explicit conditions list
         if 'conditions' in frontmatter:
             cond_list = frontmatter['conditions']
-            if isinstance(cond_list, list):
-                conditions = [Condition.from_dict(c) for c in cond_list]
+            if not isinstance(cond_list, list):
+                raise ValueError("'conditions' must be a list")
+            conditions = [Condition.from_dict(condition) for condition in cond_list]
 
         # Legacy style: simple pattern field
-        simple_pattern = frontmatter.get('pattern')
         if simple_pattern and not conditions:
             # Convert simple pattern to condition
             # Infer field from event
-            event = frontmatter.get('event', 'all')
             if event == 'bash':
                 field = 'command'
             elif event == 'file':
                 field = 'new_text'
+            elif event == 'prompt':
+                field = 'prompt'
+            elif event == 'stop':
+                field = 'transcript'
+            elif event == 'all':
+                field = 'event_content'
             else:
                 field = 'content'
 
@@ -72,16 +146,103 @@ class Rule:
                 pattern=simple_pattern
             )]
 
+        invalid_reason = None
+        for condition in conditions:
+            if condition.operator != 'regex_match':
+                continue
+            try:
+                re.compile(condition.pattern, re.IGNORECASE)
+            except re.error as error:
+                invalid_reason = (
+                    f"invalid regular expression {condition.pattern!r}: {error}"
+                )
+                break
+
         return cls(
-            name=frontmatter.get('name', 'unnamed'),
-            enabled=frontmatter.get('enabled', True),
-            event=frontmatter.get('event', 'all'),
+            name=name,
+            enabled=enabled,
+            event=event,
             pattern=simple_pattern,
             conditions=conditions,
-            action=frontmatter.get('action', 'warn'),
-            tool_matcher=frontmatter.get('tool_matcher'),
-            message=message.strip()
+            action=action,
+            tool_matcher=tool_matcher,
+            message=message.strip(),
+            invalid_reason=invalid_reason,
         )
+
+
+def _strip_inline_comment(value: str) -> str:
+    """Remove a YAML-style inline comment outside a quoted scalar."""
+    quote = None
+    index = 0
+    scalar_started = False
+
+    while index < len(value):
+        character = value[index]
+
+        if not scalar_started and not character.isspace():
+            if character == '#':
+                return value[:index].rstrip()
+            scalar_started = True
+            if character in ('"', "'"):
+                quote = character
+            index += 1
+            continue
+
+        if quote == '"':
+            if character == '\\':
+                index += 2
+                continue
+            if character == '"':
+                quote = None
+        elif quote == "'":
+            if (
+                character == "'"
+                and index + 1 < len(value)
+                and value[index + 1] == "'"
+            ):
+                index += 2
+                continue
+            if character == "'":
+                quote = None
+        elif character == '#' and (
+            index == 0 or value[index - 1].isspace()
+        ):
+            return value[:index].rstrip()
+
+        index += 1
+
+    return value.rstrip()
+
+
+def _parse_scalar(value: str) -> Any:
+    """Parse the scalar subset supported by Hookify frontmatter."""
+    scalar = _strip_inline_comment(value).strip()
+    if not scalar:
+        return ''
+
+    if scalar.startswith('"'):
+        try:
+            parsed = json.loads(scalar)
+        except json.JSONDecodeError as error:
+            raise ValueError(
+                f'invalid double-quoted YAML scalar: {error.msg}'
+            ) from error
+        if not isinstance(parsed, str):
+            raise ValueError('double-quoted YAML scalar must be a string')
+        return parsed
+
+    if scalar.startswith("'"):
+        if len(scalar) < 2 or not scalar.endswith("'"):
+            raise ValueError('unterminated single-quoted YAML scalar')
+        return scalar[1:-1].replace("''", "'")
+
+    lowered = scalar.lower()
+    if lowered == 'true':
+        return True
+    if lowered == 'false':
+        return False
+    return scalar
 
 
 def extract_frontmatter(content: str) -> tuple[Dict[str, Any], str]:
@@ -91,16 +252,26 @@ def extract_frontmatter(content: str) -> tuple[Dict[str, Any], str]:
 
     Supports multi-line dictionary items in lists by preserving indentation.
     """
-    if not content.startswith('---'):
+    lines_with_endings = content.splitlines(keepends=True)
+    if (
+        not lines_with_endings
+        or lines_with_endings[0].rstrip('\r\n') != '---'
+    ):
         return {}, content
 
-    # Split on --- markers
-    parts = content.split('---', 2)
-    if len(parts) < 3:
+    closing_index = next(
+        (
+            index
+            for index, line in enumerate(lines_with_endings[1:], start=1)
+            if line.rstrip('\r\n') == '---'
+        ),
+        None,
+    )
+    if closing_index is None:
         return {}, content
 
-    frontmatter_text = parts[1]
-    message = parts[2].strip()
+    frontmatter_text = ''.join(lines_with_endings[1:closing_index])
+    message = ''.join(lines_with_endings[closing_index + 1:]).strip()
 
     # Simple YAML parser that handles indented list items
     frontmatter = {}
@@ -144,12 +315,7 @@ def extract_frontmatter(content: str) -> tuple[Dict[str, Any], str]:
                 current_list = []
             else:
                 # Simple key-value pair
-                value = value.strip('"').strip("'")
-                if value.lower() == 'true':
-                    value = True
-                elif value.lower() == 'false':
-                    value = False
-                frontmatter[key] = value
+                frontmatter[key] = _parse_scalar(value)
 
         # List item (starts with -)
         elif stripped.startswith('-') and in_list:
@@ -167,24 +333,24 @@ def extract_frontmatter(content: str) -> tuple[Dict[str, Any], str]:
                 for part in item_text.split(','):
                     if ':' in part:
                         k, v = part.split(':', 1)
-                        item_dict[k.strip()] = v.strip().strip('"').strip("'")
+                        item_dict[k.strip()] = _parse_scalar(v)
                 current_list.append(item_dict)
                 in_dict_item = False
             elif ':' in item_text:
                 # Start of multi-line dict item: "- field: command"
                 in_dict_item = True
                 k, v = item_text.split(':', 1)
-                current_dict = {k.strip(): v.strip().strip('"').strip("'")}
+                current_dict = {k.strip(): _parse_scalar(v)}
             else:
                 # Simple list item
-                current_list.append(item_text.strip('"').strip("'"))
+                current_list.append(_parse_scalar(item_text))
                 in_dict_item = False
 
         # Continuation of dict item (indented under list item)
         elif indent > 2 and in_dict_item and ':' in line:
             # This is a field of the current dict item
             k, v = stripped.split(':', 1)
-            current_dict[k.strip()] = v.strip().strip('"').strip("'")
+            current_dict[k.strip()] = _parse_scalar(v)
 
     # Save final list/dict if any
     if in_list and current_key:
@@ -195,11 +361,51 @@ def extract_frontmatter(content: str) -> tuple[Dict[str, Any], str]:
     return frontmatter, message
 
 
-def load_rules(event: Optional[str] = None) -> List[Rule]:
+def _valid_directory(path: Optional[str]) -> Optional[str]:
+    """Return an absolute directory path, or None for an invalid candidate."""
+    if not path:
+        return None
+    try:
+        candidate = os.path.abspath(os.path.expanduser(os.fspath(path)))
+    except (TypeError, ValueError):
+        return None
+    return candidate if os.path.isdir(candidate) else None
+
+
+def _resolve_project_root(root_dir: Optional[str]) -> str:
+    """Resolve the project root using the Claude, Git, then cwd contract."""
+    project_dir = _valid_directory(os.environ.get('CLAUDE_PROJECT_DIR'))
+    if project_dir:
+        return project_dir
+
+    payload_cwd = _valid_directory(root_dir) or os.getcwd()
+    try:
+        completed = subprocess.run(
+            ['git', '-C', payload_cwd, 'rev-parse', '--show-toplevel'],
+            text=True,
+            capture_output=True,
+            check=False,
+            timeout=2,
+        )
+    except (OSError, subprocess.SubprocessError):
+        completed = None
+
+    if completed and completed.returncode == 0:
+        git_root = _valid_directory(completed.stdout.strip())
+        if git_root:
+            return git_root
+
+    return payload_cwd
+
+
+def load_rules(event: Optional[str] = None, root_dir: Optional[str] = None) -> List[Rule]:
     """Load all hookify rules from .claude directory.
 
     Args:
         event: Optional event filter ("bash", "file", "stop", etc.)
+        root_dir: Project directory from the hook input. Defaults to the
+            hook process's current working directory for backwards
+            compatibility with direct library callers.
 
     Returns:
         List of enabled Rule objects matching the event.
@@ -207,7 +413,8 @@ def load_rules(event: Optional[str] = None) -> List[Rule]:
     rules = []
 
     # Find all hookify.*.local.md files
-    pattern = os.path.join('.claude', 'hookify.*.local.md')
+    rules_root = _resolve_project_root(root_dir)
+    pattern = os.path.join(rules_root, '.claude', 'hookify.*.local.md')
     files = glob.glob(pattern)
 
     for file_path in files:
@@ -264,7 +471,7 @@ def load_rule_file(file_path: str) -> Optional[Rule]:
         print(f"Error: Cannot read {file_path}: {e}", file=sys.stderr)
         return None
     except (ValueError, KeyError, AttributeError, TypeError) as e:
-        print(f"Error: Malformed rule file {file_path}: {e}", file=sys.stderr)
+        print(f"Warning: Malformed rule file {file_path}: {e}", file=sys.stderr)
         return None
     except UnicodeDecodeError as e:
         print(f"Error: Invalid encoding in {file_path}: {e}", file=sys.stderr)

@@ -26,12 +26,14 @@ Use LLM-driven decision making for context-aware validation:
 ```json
 {
   "type": "prompt",
-  "prompt": "Evaluate if this tool use is appropriate: $TOOL_INPUT",
+  "prompt": "Evaluate the hook input in $ARGUMENTS. Return {\"ok\": true} when appropriate or {\"ok\": false, \"reason\": \"...\"} when it must be blocked.",
   "timeout": 30
 }
 ```
 
-**Supported events:** Stop, SubagentStop, UserPromptSubmit, PreToolUse
+**Supported events:** PermissionDenied, PermissionRequest, PostToolBatch,
+PostToolUse, PostToolUseFailure, PreToolUse, Stop, SubagentStop, TaskCompleted,
+TaskCreated, TeammateIdle, UserPromptExpansion, and UserPromptSubmit
 
 **Benefits:**
 - Context-aware decisions based on natural language reasoning
@@ -56,6 +58,13 @@ Execute bash commands for deterministic checks:
 - File system operations
 - External tool integrations
 - Performance-critical checks
+
+### HTTP, MCP Tool, and Agent Hooks
+
+Current hook configurations also support `http`, `mcp_tool`, and `agent`
+handlers. HTTP handlers require `url`; MCP tool handlers require `server` and
+`tool`; agent handlers require `prompt`. Event support varies, so validate the
+configuration with `scripts/validate-hook-schema.sh`.
 
 ## Hook Configuration Formats
 
@@ -99,24 +108,28 @@ Execute bash commands for deterministic checks:
 }
 ```
 
-### Settings Format (Direct)
+### Settings Format
 
-**For user settings** in `.claude/settings.json`, use direct format:
+**For user settings** in `.claude/settings.json`, place event maps under the
+top-level `hooks` field:
 
 ```json
 {
-  "PreToolUse": [...],
-  "Stop": [...],
-  "SessionStart": [...]
+  "hooks": {
+    "PreToolUse": [...],
+    "Stop": [...],
+    "SessionStart": [...]
+  }
 }
 ```
 
 **Key points:**
-- No wrapper - events directly at top level
-- No description field
+- The top-level `hooks` field is required
+- `description` is not used in settings
 - This is the **settings format**
 
-**Important:** The examples below show the hook event structure that goes inside either format. For plugin hooks.json, wrap these in `{"hooks": {...}}`.
+**Important:** The examples below are event-map fragments. Put them inside the
+top-level `hooks` field in either format.
 
 ## Hook Events
 
@@ -133,7 +146,7 @@ Execute before any tool runs. Use to approve, deny, or modify tool calls.
       "hooks": [
         {
           "type": "prompt",
-          "prompt": "Validate file write safety. Check: system paths, credentials, path traversal, sensitive content. Return 'approve' or 'deny'."
+          "prompt": "Validate the hook input in $ARGUMENTS for file write safety. Return {\"ok\": true} when safe or {\"ok\": false, \"reason\": \"...\"} when unsafe."
         }
       ]
     }
@@ -145,10 +158,11 @@ Execute before any tool runs. Use to approve, deny, or modify tool calls.
 ```json
 {
   "hookSpecificOutput": {
+    "hookEventName": "PreToolUse",
     "permissionDecision": "allow|deny|ask",
+    "permissionDecisionReason": "Explanation",
     "updatedInput": {"field": "modified_value"}
-  },
-  "systemMessage": "Explanation for Claude"
+  }
 }
 ```
 
@@ -175,8 +189,8 @@ Execute after tool completes. Use to react to results, provide feedback, or log.
 
 **Output behavior:**
 - Exit 0: stdout shown in transcript
-- Exit 2: stderr fed back to Claude
-- systemMessage included in context
+- Exit 2: stdout is ignored and plain stderr becomes the blocking reason
+- Structured JSON decisions must be written to stdout with exit code 0
 
 ### Stop
 
@@ -187,11 +201,10 @@ Execute when main agent considers stopping. Use to validate completeness.
 {
   "Stop": [
     {
-      "matcher": "*",
       "hooks": [
         {
           "type": "prompt",
-          "prompt": "Verify task completion: tests run, build succeeded, questions answered. Return 'approve' to stop or 'block' with reason to continue."
+          "prompt": "Verify task completion: tests run, build succeeded, questions answered. Return {\"ok\": true} to stop or {\"ok\": false, \"reason\": \"...\"} to continue."
         }
       ]
     }
@@ -202,11 +215,13 @@ Execute when main agent considers stopping. Use to validate completeness.
 **Decision output:**
 ```json
 {
-  "decision": "approve|block",
-  "reason": "Explanation",
-  "systemMessage": "Additional context"
+  "decision": "block",
+  "reason": "Explanation"
 }
 ```
+
+To allow stopping, produce no output and exit 0. There is no `approve`
+decision for command-based Stop hooks.
 
 ### SubagentStop
 
@@ -223,7 +238,6 @@ Execute when user submits a prompt. Use to add context, validate, or block promp
 {
   "UserPromptSubmit": [
     {
-      "matcher": "*",
       "hooks": [
         {
           "type": "prompt",
@@ -283,13 +297,13 @@ Execute when Claude sends notifications. Use to react to user notifications.
 {
   "continue": true,
   "suppressOutput": false,
-  "systemMessage": "Message for Claude"
+  "systemMessage": "Warning shown to the user"
 }
 ```
 
 - `continue`: If false, halt processing (default true)
 - `suppressOutput`: Hide output from transcript (default false)
-- `systemMessage`: Message shown to Claude
+- `systemMessage`: Warning message shown to the user
 
 ### Exit Codes
 
@@ -313,11 +327,13 @@ All hooks receive JSON via stdin with common fields:
 
 **Event-specific fields:**
 
-- **PreToolUse/PostToolUse:** `tool_name`, `tool_input`, `tool_result`
-- **UserPromptSubmit:** `user_prompt`
-- **Stop/SubagentStop:** `reason`
+- **PreToolUse:** `tool_name`, `tool_input`
+- **PostToolUse:** `tool_name`, `tool_input`, `tool_response`
+- **UserPromptSubmit:** `prompt`
+- **Stop/SubagentStop:** `stop_hook_active`, `last_assistant_message`
 
-Access fields in prompts using `$TOOL_INPUT`, `$TOOL_RESULT`, `$USER_PROMPT`, etc.
+Command hooks read these fields from stdin. Prompt and agent hook prompts can
+reference the full input with `$ARGUMENTS`.
 
 ## Environment Variables
 
@@ -343,40 +359,41 @@ In plugins, define hooks in `hooks/hooks.json`:
 
 ```json
 {
-  "PreToolUse": [
-    {
-      "matcher": "Write|Edit",
-      "hooks": [
-        {
-          "type": "prompt",
-          "prompt": "Validate file write safety"
-        }
-      ]
-    }
-  ],
-  "Stop": [
-    {
-      "matcher": "*",
-      "hooks": [
-        {
-          "type": "prompt",
-          "prompt": "Verify task completion"
-        }
-      ]
-    }
-  ],
-  "SessionStart": [
-    {
-      "matcher": "*",
-      "hooks": [
-        {
-          "type": "command",
-          "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/load-context.sh",
-          "timeout": 10
-        }
-      ]
-    }
-  ]
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "Validate file write safety"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "Verify task completion"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/load-context.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
 }
 ```
 
@@ -439,8 +456,8 @@ tool_name=$(echo "$input" | jq -r '.tool_name')
 
 # Validate tool name format
 if [[ ! "$tool_name" =~ ^[a-zA-Z0-9_]+$ ]]; then
-  echo '{"decision": "deny", "reason": "Invalid tool name"}' >&2
-  exit 2
+  jq -n '{hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: "Invalid tool name"}}'
+  exit 0
 fi
 ```
 
@@ -453,14 +470,14 @@ file_path=$(echo "$input" | jq -r '.tool_input.file_path')
 
 # Deny path traversal
 if [[ "$file_path" == *".."* ]]; then
-  echo '{"decision": "deny", "reason": "Path traversal detected"}' >&2
-  exit 2
+  jq -n '{hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: "Path traversal detected"}}'
+  exit 0
 fi
 
 # Deny sensitive files
 if [[ "$file_path" == *".env"* ]]; then
-  echo '{"decision": "deny", "reason": "Sensitive file"}' >&2
-  exit 2
+  jq -n '{hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: "Sensitive file"}}'
+  exit 0
 fi
 ```
 

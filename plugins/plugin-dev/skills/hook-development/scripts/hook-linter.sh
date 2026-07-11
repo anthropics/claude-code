@@ -103,12 +103,12 @@ check_script() {
     ((warnings++))
   fi
 
-  # Check 12: Error messages to stderr
-  if grep -q 'echo.*".*error\|Error\|denied\|Denied' "$script"; then
-    if ! grep -q '>&2' "$script"; then
-      echo "⚠️  Error messages should be written to stderr (>&2)"
-      ((warnings++))
-    fi
+  # Check 12: Structured decisions must use stdout with exit 0. Claude Code
+  # ignores stdout (including JSON) when a hook exits 2.
+  if grep -E 'permissionDecision.*>&2|>&2.*permissionDecision' "$script" >/dev/null; then
+    echo "⚠️  Structured permissionDecision JSON must be written to stdout"
+    echo "   Exit 0 for structured decisions; use plain stderr only with exit 2"
+    ((warnings++))
   fi
 
   # Check 13: Input validation

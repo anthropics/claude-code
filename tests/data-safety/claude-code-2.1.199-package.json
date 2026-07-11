@@ -1,0 +1,8 @@
+{
+  "name": "@anthropic-ai/claude-code",
+  "version": "2.1.199",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "metadataSource": "https://registry.npmjs.org/@anthropic-ai/claude-code/2.1.199"
+}

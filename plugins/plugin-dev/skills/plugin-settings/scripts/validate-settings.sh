@@ -19,6 +19,8 @@ if [ $# -eq 0 ]; then
 fi
 
 SETTINGS_FILE="$1"
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+PARSER="$SCRIPT_DIR/parse-frontmatter.sh"
 
 echo "🔍 Validating settings file: $SETTINGS_FILE"
 echo ""
@@ -37,53 +39,48 @@ if [ ! -r "$SETTINGS_FILE" ]; then
 fi
 echo "✅ File is readable"
 
-# Check 3: Has frontmatter markers
-MARKER_COUNT=$(grep -c '^---$' "$SETTINGS_FILE" 2>/dev/null || echo "0")
-
-if [ "$MARKER_COUNT" -lt 2 ]; then
-  echo "❌ Invalid frontmatter: found $MARKER_COUNT '---' markers (need at least 2)"
-  echo "   Expected format:"
-  echo "   ---"
-  echo "   field: value"
-  echo "   ---"
-  echo "   Content..."
+# Check 3: Parse the leading YAML frontmatter with the shared helper.
+if ! FRONTMATTER=$("$PARSER" "$SETTINGS_FILE" 2>&1); then
+  echo "❌ Invalid YAML frontmatter"
+  echo "   $FRONTMATTER"
   exit 1
 fi
 echo "✅ Frontmatter markers present"
-
-# Check 4: Extract and validate frontmatter
-FRONTMATTER=$(sed -n '/^---$/,/^---$/{ /^---$/d; p; }' "$SETTINGS_FILE")
-
-if [ -z "$FRONTMATTER" ]; then
-  echo "❌ Empty frontmatter (nothing between --- markers)"
-  exit 1
-fi
 echo "✅ Frontmatter not empty"
+echo "✅ Frontmatter is valid YAML"
 
-# Check 5: Frontmatter has valid YAML-like structure
-if ! echo "$FRONTMATTER" | grep -q ':'; then
-  echo "⚠️  Warning: Frontmatter has no key:value pairs"
-fi
-
-# Check 6: Look for common fields
+# Check 4: Look for common fields
 echo ""
 echo "Detected fields:"
-echo "$FRONTMATTER" | grep '^[a-z_][a-z0-9_]*:' | while IFS=':' read -r key value; do
+while IFS=':' read -r key value; do
+  [ -n "$key" ] || continue
   echo "  - $key: ${value:0:50}"
-done
+done < <(printf '%s\n' "$FRONTMATTER" | awk '/^[a-z_][a-z0-9_]*:/')
 
-# Check 7: Validate common boolean fields
+# Check 5: Validate common boolean fields by their YAML types.
+invalid_boolean=0
 for field in enabled strict_mode; do
-  VALUE=$(echo "$FRONTMATTER" | grep "^${field}:" | sed "s/${field}: *//" || true)
-  if [ -n "$VALUE" ]; then
-    if [ "$VALUE" != "true" ] && [ "$VALUE" != "false" ]; then
-      echo "⚠️  Field '$field' should be boolean (true/false), got: $VALUE"
-    fi
+  RAW_VALUE=$(printf '%s\n' "$FRONTMATTER" | awk -v key="$field" '
+    index($0, key ":") == 1 {
+      print substr($0, length(key) + 2)
+      exit
+    }
+  ')
+  if [ -n "$RAW_VALUE" ] && ! [[ "$RAW_VALUE" =~ ^[[:space:]]*(true|false)([[:space:]]*#.*)?$ ]]; then
+    echo "❌ Field '$field' must be a YAML boolean (true/false), got:${RAW_VALUE}"
+    invalid_boolean=1
   fi
 done
+if [ "$invalid_boolean" -ne 0 ]; then
+  exit 1
+fi
 
-# Check 8: Check body exists
-BODY=$(awk '/^---$/{i++; next} i>=2' "$SETTINGS_FILE")
+# Check 6: Check body exists, preserving later markdown horizontal rules.
+BODY=$(awk '
+  NR == 1 { next }
+  !closed && $0 == "---" { closed = 1; next }
+  closed { print }
+' "$SETTINGS_FILE")
 
 echo ""
 if [ -n "$BODY" ]; then

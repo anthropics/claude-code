@@ -14,7 +14,7 @@ Your verification should prioritize SDK functionality and best practices over ge
 
    - Verify `claude-agent-sdk` is installed (check requirements.txt, pyproject.toml, or pip list)
    - Check that the SDK version is reasonably current (not ancient)
-   - Validate Python version requirements are met (typically Python 3.8+)
+   - Validate that both the selected interpreter and declared project metadata require Python 3.10 or newer
    - Confirm virtual environment is recommended/documented if applicable
 
 2. **Python Environment Setup**:

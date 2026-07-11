@@ -21,8 +21,10 @@ jobs:
           TARGET_REPO: ${{ secrets.ISSUE_OPENED_DISPATCH_TARGET_REPO }}
           GH_TOKEN: ${{ secrets.ISSUE_OPENED_DISPATCH_TOKEN }}
         run: |
-          gh api repos/${TARGET_REPO}/dispatches \
+          if ! [[ "$TARGET_REPO" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]; then
+            echo "Invalid target repository" >&2
+            exit 1
+          fi
+          gh api "repos/$TARGET_REPO/dispatches" \
             -f event_type=issue_opened \
-            -f client_payload[issue_url]="${ISSUE_URL}" || {
-              exit 0
-            }
+            -f "client_payload[issue_url]=$ISSUE_URL"

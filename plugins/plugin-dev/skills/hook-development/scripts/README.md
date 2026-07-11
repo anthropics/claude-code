@@ -15,7 +15,10 @@ Validates `hooks.json` configuration files for correct structure and common issu
 - Valid JSON syntax
 - Required fields present
 - Valid hook event names
-- Proper hook types (command/prompt)
+- Proper hook types (command/http/mcp_tool/prompt/agent)
+- Optional matcher and event compatibility
+- Common and type-specific field types
+- Fields that would be ignored for the selected hook type or configuration source
 - Timeout values in valid ranges
 - Hardcoded path detection
 - Prompt hook event compatibility
@@ -59,6 +62,10 @@ Tests individual hook scripts with sample input before deploying to Claude Code.
 - Shows exit codes and their meanings
 - Captures environment file output
 
+**Requirements:**
+- `jq`
+- GNU `timeout`; on macOS, GNU coreutils provides the compatible `gtimeout` command
+
 ## hook-linter.sh
 
 Checks hook scripts for common issues and best practices violations.
@@ -77,7 +84,7 @@ Checks hook scripts for common issues and best practices violations.
 - Exit code usage
 - Hardcoded paths
 - Long-running code detection
-- Error output to stderr
+- Blocking exit-2 reasons on stderr and structured decisions on stdout
 - Input validation
 
 **Example:**
@@ -153,7 +160,8 @@ Check:
 ### Hook fails silently
 
 - Check exit codes (should be 0 or 2)
-- Ensure errors go to stderr (`>&2`)
+- For exit 2, write a plain blocking reason to stderr; stdout is ignored
+- For structured decisions, write JSON to stdout and exit 0
 - Validate JSON output structure
 
 ### Injection vulnerabilities

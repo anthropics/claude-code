@@ -1,0 +1,12 @@
+{
+  "PostToolUse": [
+    {
+      "hooks": [
+        {
+          "type": "http",
+          "url": "https://example.invalid/post-tool"
+        }
+      ]
+    }
+  ]
+}

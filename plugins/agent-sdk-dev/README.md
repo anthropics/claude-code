@@ -16,6 +16,8 @@ Interactive command that guides you through creating a new Claude Agent SDK appl
 - Asks clarifying questions about your project (language, name, agent type, starting point)
 - Checks for and installs the latest SDK version
 - Creates all necessary project files and configuration
+- For TypeScript, installs `typescript`, `ts-node`, and `@types/node` locally and creates working `start`, `build`, and `typecheck` scripts
+- For Python, requires Python 3.10 or newer
 - Sets up proper environment files (.env.example, .gitignore)
 - Provides a working example tailored to your use case
 - Runs type checking (TypeScript) or syntax validation (Python)
@@ -160,7 +162,7 @@ This plugin is included in the Claude Code repository. To use it:
 - **Verify before deploying**: Run the verifier agent before deploying to production
 - **Keep API keys secure**: Never commit `.env` files or hardcode API keys
 - **Follow SDK documentation**: The verifier agents check against official patterns
-- **Type check TypeScript projects**: Run `npx tsc --noEmit` regularly
+- **Type check TypeScript projects**: Run `npm run typecheck` regularly
 - **Test your agents**: Create test cases for your agent's functionality
 
 ## Resources
@@ -205,4 +207,4 @@ Ashwin Bhat (ashwin@anthropic.com)
 
 ## Version
 
-1.0.0
+1.0.1

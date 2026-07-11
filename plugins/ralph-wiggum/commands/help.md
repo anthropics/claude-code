@@ -37,21 +37,31 @@ Start a Ralph loop in your current session.
 
 **Usage:**
 ```
-/ralph-loop "Refactor the cache layer" --max-iterations 20
+/ralph-loop "Refactor the cache layer" --max-iterations 8
 /ralph-loop "Add tests" --completion-promise "TESTS COMPLETE"
 ```
 
 **Options:**
-- `--max-iterations <n>` - Max iterations before auto-stop
+- `--max-iterations <n>` - Stop at iteration N (0 through 2147483647; 0 disables the plugin-defined limit)
 - `--completion-promise <text>` - Promise phrase to signal completion
 
 **How it works:**
-1. Creates `.claude/.ralph-loop.local.md` state file
+1. Creates `${CLAUDE_CONFIG_DIR:-$HOME/.claude}/ralph-loop/${CLAUDE_CODE_SESSION_ID}.local.md` in the private user configuration directory, outside the repository
 2. You work on the task
-3. When you try to exit, stop hook intercepts
+3. When you try to exit, the Stop hook advances the persisted iteration and intercepts the Stop
 4. Same prompt fed back
-5. You see your previous work
-6. Continues until promise detected or max iterations
+5. Later invocations, including `stop_hook_active: true`, process the transcript and state again
+6. Continues until the promise is detected, the plugin limit is reached, or the runtime safety cap ends the chain
+
+The state starts at iteration 1. With `--max-iterations 3`, the first two Stops
+continue as iterations 2 and 3; the third Stop removes the state and exits. An
+exact completion tag removes the state immediately on any invocation.
+
+Current Stop payloads provide the latest response in
+`last_assistant_message`; Ralph treats that non-empty string as the primary
+completion source. Only older payloads that omit the field fall back to the
+complete JSONL transcript. A missing or malformed fallback transcript blocks
+the Stop and preserves state for recovery or `/cancel-ralph`.
 
 ---
 
@@ -65,8 +75,8 @@ Cancel an active Ralph loop (removes the loop state file).
 ```
 
 **How it works:**
-- Checks for active loop state file
-- Removes `.claude/.ralph-loop.local.md`
+- Checks for the current session's loop state file
+- Removes only `${CLAUDE_CONFIG_DIR:-$HOME/.claude}/ralph-loop/${CLAUDE_CODE_SESSION_ID}.local.md`
 - Reports cancellation with iteration count
 
 ---
@@ -81,7 +91,12 @@ To signal completion, Claude must output a `<promise>` tag:
 <promise>TASK COMPLETE</promise>
 ```
 
-The stop hook looks for this specific tag. Without it (or `--max-iterations`), Ralph runs infinitely.
+The stop hook looks for this exact tag. Without it (or `--max-iterations`),
+Ralph has no plugin-defined iteration limit. Independently, Claude Code
+force-stops a chain after 8 consecutive Stop-hook continuations, even when the
+plugin limit is 0 or greater than 8. If that runtime cap ends the chain first,
+the state file remains; run `/cancel-ralph` to remove it. Ralph otherwise
+removes state only for an exact completion tag or a reached plugin limit.
 
 ### Self-Reference Mechanism
 
@@ -96,7 +111,7 @@ The "loop" doesn't mean Claude talks to itself. It means:
 ### Interactive Bug Fix
 
 ```
-/ralph-loop "Fix the token refresh logic in auth.ts. Output <promise>FIXED</promise> when all tests pass." --completion-promise "FIXED" --max-iterations 10
+/ralph-loop "Fix the token refresh logic in auth.ts. Output <promise>FIXED</promise> when all tests pass." --completion-promise "FIXED" --max-iterations 8
 ```
 
 You'll see Ralph:

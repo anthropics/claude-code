@@ -1,6 +1,6 @@
-# Effort Parameter (Beta)
+# Effort Parameter
 
-**Add effort set to `"high"` during migration.** This is the default configuration for best performance with Opus 4.5.
+Configure effort only when the user explicitly requests an effort level. A model-string migration by itself must not add or change effort. Opus 4.5 already defaults to `high`, so explicitly adding `high` without a request is redundant and changes the request payload unnecessarily.
 
 ## Overview
 
@@ -14,18 +14,17 @@ Effort controls how eagerly Claude spends tokens. It affects all tokens: thinkin
 
 ## Implementation
 
-Requires beta flag `effort-2025-11-24` in API calls.
+Use `output_config.effort`. Effort is generally available for Opus 4.5 and does not require a beta header.
 
 **Python SDK:**
 ```python
 response = client.messages.create(
     model="claude-opus-4-5-20251101",
     max_tokens=1024,
-    betas=["effort-2025-11-24"],
     output_config={
-        "effort": "high"  # or "medium" or "low"
+        "effort": "medium"  # or "high" or "low"
     },
-    messages=[...]
+    messages=[{"role": "user", "content": "Hello"}]
 )
 ```
 
@@ -34,11 +33,10 @@ response = client.messages.create(
 const response = await client.messages.create({
   model: "claude-opus-4-5-20251101",
   max_tokens: 1024,
-  betas: ["effort-2025-11-24"],
   output_config: {
-    effort: "high"  // or "medium" or "low"
+    effort: "medium"  // or "high" or "low"
   },
-  messages: [...]
+  messages: [{ role: "user", content: "Hello" }]
 });
 ```
 
@@ -47,11 +45,10 @@ const response = await client.messages.create({
 {
   "model": "claude-opus-4-5-20251101",
   "max_tokens": 1024,
-  "anthropic-beta": "effort-2025-11-24",
   "output_config": {
-    "effort": "high"
+    "effort": "medium"
   },
-  "messages": [...]
+  "messages": [{"role": "user", "content": "Hello"}]
 }
 ```
 
@@ -64,7 +61,8 @@ Effort is independent of thinking budget:
 
 ## Recommendations
 
-1. First determine effort level, then set thinking budget
-2. Best performance: high effort + high thinking budget
-3. Cost/latency optimization: medium effort
-4. Simple high-volume queries: low effort
+1. Do not add or change effort unless the user explicitly asks for it
+2. When requested, determine the effort level before setting a thinking budget
+3. Best performance: high effort + high thinking budget
+4. Cost/latency optimization: medium effort
+5. Simple high-volume queries: low effort

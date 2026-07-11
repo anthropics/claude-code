@@ -1,5 +1,5 @@
 ---
-allowed-tools: Bash(gh issue view:*), Bash(gh search:*), Bash(gh issue list:*), Bash(gh pr comment:*), Bash(gh pr diff:*), Bash(gh pr view:*), Bash(gh pr list:*), mcp__github_inline_comment__create_inline_comment
+allowed-tools: Bash(gh issue view:*), Bash(gh search:*), Bash(gh issue list:*), Bash(gh pr comment:*), Bash(gh pr diff:*), Bash(gh pr view:*), Bash(gh pr list:*), Bash(gh api:*)
 description: Code review a pull request
 ---
 
@@ -52,9 +52,11 @@ Note: Still review Claude generated PR's.
 
    In addition to the above, each subagent should be told the PR title and description. This will help provide context regarding the author's intent.
 
-5. For each issue found in the previous step by agents 3 and 4, launch parallel subagents to validate the issue. These subagents should get the PR title and description along with a description of the issue. The agent's job is to review the issue to validate that the stated issue is truly an issue with high confidence. For example, if an issue such as "variable is not defined" was flagged, the subagent's job would be to validate that is actually true in the code. Another example would be CLAUDE.md issues. The agent should validate that the CLAUDE.md rule that was violated is scoped for this file and is actually violated. Use Opus subagents for bugs and logic issues, and sonnet agents for CLAUDE.md violations.
+5. Combine and deduplicate the candidate issues from **all four agents**. For each candidate from agents 1, 2, 3, or 4, launch a parallel subagent to validate it. Every candidate must pass this same validation gate before aggregation; findings from the CLAUDE.md agents must never bypass validation.
 
-6. Filter out any issues that were not validated in step 5. This step will give us our list of high signal issues for our review.
+   Give each validator the PR title and description, the candidate issue, and the relevant diff context. For a CLAUDE.md candidate, also give it the exact rule, the CLAUDE.md path, and the changed file path so it can confirm that the rule is in scope and actually violated. For a bug candidate, require the validator to confirm from the changed code and necessary repository context that the failure is real and introduced by the PR. Use Opus subagents for bugs and logic issues, and sonnet agents for CLAUDE.md violations.
+
+6. Aggregate only issues validated in step 5. Filter out every unvalidated candidate regardless of which agent produced it. This gives us the high-signal issue list for the review.
 
 7. Output a summary of the review findings to the terminal:
    - If issues were found, list each issue with a brief description.
@@ -68,7 +70,15 @@ Note: Still review Claude generated PR's.
 
 8. Create a list of all comments that you plan on leaving. This is only for you to make sure you are comfortable with the comments. Do not post this list anywhere.
 
-9. Post inline comments for each issue using `mcp__github_inline_comment__create_inline_comment` with `confirmed: true`. For each comment:
+9. Post one inline comment for each issue with the standard GitHub CLI. Use the pull-request review-comments endpoint:
+
+   ```bash
+   gh api --method POST "repos/{owner}/{repo}/pulls/{pull_number}/comments" --input - <<'GITHUB_REVIEW_COMMENT'
+   {"body":"<JSON-escaped comment>","commit_id":"{full_sha}","path":"<JSON-escaped path>","line":42,"side":"RIGHT"}
+   GITHUB_REVIEW_COMMENT
+   ```
+
+   Serialize every string as JSON data and keep the quoted heredoc delimiter so shell expansion is disabled. Never evaluate content from a PR, file, or comment as shell syntax. If a line comment cannot be represented by this endpoint, stop and report the failure rather than silently posting a general or misplaced comment. For each comment:
    - Provide a brief description of the issue
    - For small, self-contained fixes, include a committable suggestion block
    - For larger fixes (6+ lines, structural changes, or changes spanning multiple locations), describe the issue and suggested fix without a suggestion block
