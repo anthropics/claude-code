@@ -88,7 +88,15 @@ else
 fi
 
 # Check description field
-DESCRIPTION=$(echo "$FRONTMATTER" | grep '^description:' | sed 's/description: *//')
+# Extract the full (possibly multi-line) description block: from the
+# `description:` line up to the next known frontmatter key. A plain
+# `grep '^description:'` would capture only the first line, hiding the
+# <example> blocks that live on the continuation lines.
+DESCRIPTION=$(echo "$FRONTMATTER" | awk '
+  /^description:/ { found = 1; sub(/^description: */, ""); print; next }
+  found && /^(name|model|color|tools):/ { found = 0 }
+  found { print }
+')
 
 if [ -z "$DESCRIPTION" ]; then
   echo "❌ Missing required field: description"
