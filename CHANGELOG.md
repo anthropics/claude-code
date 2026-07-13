@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Fixed Hookify file rules missing content written with Write and prompt rules missing the submitted prompt
+
 ## 2.1.207
 
 - Auto mode is now available without `CLAUDE_CODE_ENABLE_AUTO_MODE` opt-in on Bedrock, Vertex AI, and Foundry; disable via `disableAutoMode` in settings
