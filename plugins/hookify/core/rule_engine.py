@@ -223,9 +223,9 @@ class RuleEngine:
                     except UnicodeDecodeError as e:
                         print(f"Warning: Encoding error in transcript {transcript_path}: {e}", file=sys.stderr)
                         return ''
-            elif field == 'user_prompt':
+            elif field in ('prompt', 'user_prompt'):
                 # For UserPromptSubmit events
-                return input_data.get('user_prompt', '')
+                return input_data.get('prompt') or input_data.get('user_prompt', '')
 
         # Handle special cases by tool type
         if tool_name == 'Bash':
@@ -237,7 +237,8 @@ class RuleEngine:
                 # Write uses 'content', Edit has 'new_string'
                 return tool_input.get('content') or tool_input.get('new_string', '')
             elif field == 'new_text' or field == 'new_string':
-                return tool_input.get('new_string', '')
+                # New text is supplied as content for Write and new_string for Edit.
+                return tool_input.get('new_string') or tool_input.get('content', '')
             elif field == 'old_text' or field == 'old_string':
                 return tool_input.get('old_string', '')
             elif field == 'file_path':

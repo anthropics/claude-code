@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Fixed Hookify file rules missing content written with Write and prompt rules missing the submitted prompt
+
 ## 2.1.209
 
 - Fixed /model and other dialogs being blocked in `claude agents` background sessions (reverts an overly broad guard)
