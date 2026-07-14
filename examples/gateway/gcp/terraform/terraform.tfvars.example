@@ -1,0 +1,26 @@
+# Copy to terraform.tfvars and edit. terraform.tfvars is gitignored (see .gitignore).
+
+project_id = "your-gcp-project-id"
+region     = "us-east5"
+
+image_tag = "<version>" # REQUIRED — the Claude Code release version you build and push as linux/amd64 (see README Deploy)
+
+# Public access at the Cloud Run IAM layer (the gateway runs its own OIDC):
+#   Preferred — disable the invoker check: no allUsers binding, works under Domain
+#   Restricted Sharing. Needs google provider >= 6.8 and the feature enabled for your org:
+# invoker_iam_disabled = true
+#   Fallback — grant allUsers (fine on a normal org; Domain Restricted Sharing rejects it,
+#   so there prefer invoker_iam_disabled, or use a DRS exception / GKE):
+allow_unauthenticated = true
+
+# Network reachability — a separate axis from the IAM choice above. Default is internal-only:
+# no public URL (Claude Code's /login only accepts gateway hosts on private addresses, so
+# public ingress cannot serve clients); corp on-prem reaches run.app via a PSC endpoint +
+# private run.app DNS — see README "Private access" for the prerequisites. The only
+# alternative to the internal-only default:
+# ingress = "INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER"   # only if you front it with your OWN internal ALB (custom hostname/cert; not provisioned here)
+
+# Google OAuth client secret: REQUIRED — uncomment and set it (Terraform creates the
+# secret version; the Cloud Run service mounts `latest`, so without a version the
+# deploy fails). Leave empty only if you add the secret version out-of-band.
+# oidc_client_secret = "GOCSPX-..."
