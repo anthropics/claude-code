@@ -92,6 +92,7 @@ This command could delete important files. Please:
 
 **Action field:**
 - `warn`: Shows warning but allows operation (default)
+- `ask`: Prompts for approval before the tool runs (PreToolUse only; `confirm` also works)
 - `block`: Prevents operation from executing (PreToolUse) or stops session (Stop events)
 
 ### Advanced Rule (Multiple Conditions)
