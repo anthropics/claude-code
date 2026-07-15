@@ -30,6 +30,31 @@ These may be applied at any level of the [settings hierarchy](https://code.claud
 
 To distribute these settings as enterprise-managed policy through Jamf, Iru (Kandji), Intune, or Group Policy, see the deployment templates in [`../mdm`](../mdm).
 
+## Troubleshooting
+
+### Background tasks silently relaunched as duplicates
+
+If background tasks (via Agent tool or `run_in_background`) are silently
+duplicated after ~90–120 seconds while the original is still running,
+this is a regression of a previously-fixed bug (CHANGELOG v2.1.78 line 1452):
+*"Fixed background subagents becoming invisible after context compaction,
+which could cause duplicate agents to be spawned"*.
+
+**Workaround options**:
+
+1. **Disable backgrounding entirely** (only if you don't need parallelism):
+   ```bash
+   export CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1
+   ```
+
+2. **Batch sequential checks inside a single task** (preserves parallelism for
+   independent work while avoiding duplicates for heavy commands):
+   ```bash
+   npx tsc --noEmit && pnpm lint
+   ```
+
+See issue [#61689](https://github.com/anthropics/claude-code/issues/61689) for details.
+
 ## Full Documentation
 
 See https://code.claude.com/docs/en/settings for complete documentation on all available managed settings.
