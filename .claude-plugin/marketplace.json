@@ -145,6 +145,17 @@
       },
       "source": "./plugins/security-guidance",
       "category": "security"
+    },
+    {
+      "name": "session-persist",
+      "description": "Client-side session state persistence. Tracks a session ID per run, lets you checkpoint context with /session-save, and restores it in a future session via /session-resume or an auto-resume file.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Sanskaar Undale",
+        "email": "sanskaarundale@gmail.com"
+      },
+      "source": "./plugins/session-persist",
+      "category": "productivity"
     }
   ]
 }
