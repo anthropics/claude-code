@@ -1,0 +1,9 @@
+{
+  "name": "planwith",
+  "description": "Combine /plan and your prompt into a single command",
+  "version": "1.0.0",
+  "author": {
+    "name": "Anthropic",
+    "email": "support@anthropic.com"
+  }
+}
