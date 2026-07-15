@@ -33,6 +33,7 @@ plugin-name/
 ├── hooks/
 │   └── hooks.json           # Event handler configuration
 ├── .mcp.json                # MCP server definitions
+├── bin/                     # Executables available as Bash bare commands
 └── scripts/                 # Helper scripts and utilities
 ```
 
@@ -41,7 +42,8 @@ plugin-name/
 1. **Manifest location**: The `plugin.json` manifest MUST be in `.claude-plugin/` directory
 2. **Component locations**: All component directories (commands, agents, skills, hooks) MUST be at plugin root level, NOT nested inside `.claude-plugin/`
 3. **Optional components**: Only create directories for components the plugin actually uses
-4. **Naming convention**: Use kebab-case for all directory and file names
+4. **Executable files**: Files in `bin/` must be executable on the target platform to run as bare Bash commands
+5. **Naming convention**: Use kebab-case for all directory and file names
 
 ## Plugin Manifest (plugin.json)
 
@@ -275,6 +277,19 @@ Use `${CLAUDE_PLUGIN_ROOT}` environment variable for all intra-plugin path refer
 - MCP server command arguments
 - Script execution references
 - Resource file paths
+
+### Bundled Executables (`bin/`)
+
+Put command-line tools that users should invoke directly from the Bash tool in
+`bin/`. While the plugin is enabled, executable files in this directory are
+added to Bash command lookup, so a file such as `bin/my-tool` can be run as
+`my-tool --help` without spelling out `${CLAUDE_PLUGIN_ROOT}/bin/my-tool`.
+
+Use `scripts/` for helper scripts that are called by hooks, MCP servers, or
+commands through explicit `${CLAUDE_PLUGIN_ROOT}` paths. Use `bin/` for
+standalone tools intended to behave like commands. If you ship platform-specific
+binaries or scripts, include the right executable permissions and packaging for
+each supported platform.
 
 **Never use**:
 - Hardcoded absolute paths (`/Users/name/plugins/...`)
