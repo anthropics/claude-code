@@ -1,0 +1,471 @@
+#!/bin/bash
+# claude-batch v5.5 — tmux-isolated parallel claude -p
+#
+# Strategy: PREVENT REFRESH, DON'T FIX RACE
+# (6/6 consilium APPROVE, 5-agent red team validated)
+#
+# 1. Pre-batch force refresh → fresh 8h token
+# 2. Token gate: 2h minimum → no refresh during batch
+# 3. tmux isolation → Extension never kicked out
+# 4. Jitter in retry → prevent thundering herd
+# 5. Per-job hard timeout → kill hung workers
+# 6. Prompt via temp file → no shell arg overflow
+# 7. Idempotent retry → skip existing results
+#
+# Usage:
+#   claude-batch -p "prompt" --model sonnet              # drop-in single call
+#   claude-batch batch -f prompts_dir/ -p 10 -m sonnet   # batch from files
+#   claude-batch check                                     # check token health
+#   claude-batch restore                                   # restore credentials
+
+set -euo pipefail
+
+# --- Config ---
+DEFAULT_PARALLEL=10
+MAX_PARALLEL=15
+MAX_RETRIES=3
+RETRY_BASE_DELAY=5               # seconds, exponential + jitter
+MIN_TOKEN_LIFETIME_SEC=7200      # 2h minimum (consilium: prevent refresh)
+JOB_TIMEOUT=600                  # 10 min per job (was 5min, Sonnet needs >5min for 260 niches × 10 apps)
+KEYCHAIN_SERVICE="Claude Code-credentials"
+CREDS_FILE="$HOME/.claude/.credentials.json"
+JOB_BASE="/tmp/claude-batch-jobs"
+TMUX_PREFIX="cb"
+
+# --- Colors ---
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
+
+log()  { echo -e "${GREEN}[batch]${NC} $*" >&2; }
+warn() { echo -e "${YELLOW}[batch]${NC} $*" >&2; }
+err()  { echo -e "${RED}[batch]${NC} $*" >&2; }
+
+# --- Token Operations ---
+
+get_token_lifetime() {
+    local raw=""
+    [ -f "$CREDS_FILE" ] && raw=$(cat "$CREDS_FILE") || \
+        raw=$(security find-generic-password -a "$USER" -w -s "$KEYCHAIN_SERVICE" 2>/dev/null) || true
+    [ -z "$raw" ] && echo "0" && return
+    echo "$raw" | python3 -c "
+import json, sys, time
+data = json.loads(sys.stdin.read())
+expires = data.get('claudeAiOauth', {}).get('expiresAt', 0)
+print(max(0, int(expires/1000 - time.time())) if expires else 0)
+" 2>/dev/null || echo "0"
+}
+
+check_token() {
+    local lifetime
+    lifetime=$(get_token_lifetime)
+    local mins=$((lifetime / 60))
+    local hours=$((lifetime / 3600))
+    if [ "$lifetime" -eq 0 ]; then
+        err "No token found"; return 1
+    elif [ "$lifetime" -lt "$MIN_TOKEN_LIFETIME_SEC" ]; then
+        warn "Token expires in ${mins}min — below ${MIN_TOKEN_LIFETIME_SEC}s gate"; return 2
+    else
+        log "Token OK: ${hours}h ${mins}min remaining"; return 0
+    fi
+}
+
+force_refresh() {
+    # Pre-batch single-process refresh (consilium #1)
+    log "Force refreshing token (single process)..."
+    tmux new-session -d -s "${TMUX_PREFIX}-refresh" \
+        "claude -p 'ping' --model haiku > /dev/null 2>&1; echo \$? > /tmp/claude-batch-refresh-rc"
+    local elapsed=0
+    while [ ! -f /tmp/claude-batch-refresh-rc ] && [ "$elapsed" -lt 30 ]; do
+        sleep 1; elapsed=$((elapsed + 1))
+    done
+    tmux kill-session -t "${TMUX_PREFIX}-refresh" 2>/dev/null || true
+    rm -f /tmp/claude-batch-refresh-rc
+    log "Token refreshed."
+}
+
+ensure_token_fresh() {
+    # Consilium #1 + #2: force refresh if token < 2h
+    local lifetime
+    lifetime=$(get_token_lifetime)
+    if [ "$lifetime" -lt "$MIN_TOKEN_LIFETIME_SEC" ]; then
+        warn "Token lifetime ${lifetime}s < gate ${MIN_TOKEN_LIFETIME_SEC}s. Refreshing..."
+        force_refresh
+        sleep 2  # let Keychain propagate
+        lifetime=$(get_token_lifetime)
+        if [ "$lifetime" -lt "$MIN_TOKEN_LIFETIME_SEC" ]; then
+            err "Token still ${lifetime}s after refresh. Cannot guarantee no mid-batch refresh."
+            err "Aborting to prevent auth kickout. Try again when token is fresh."
+            return 1
+        fi
+        log "Token refreshed: $((lifetime/60))min remaining"
+    else
+        log "Token fresh: $((lifetime/60))min remaining (gate: $((MIN_TOKEN_LIFETIME_SEC/60))min)"
+    fi
+}
+
+restore_credentials() {
+    local has_keychain=false has_file=false
+    security find-generic-password -a "$USER" -s "$KEYCHAIN_SERVICE" > /dev/null 2>&1 && has_keychain=true
+    [ -f "$CREDS_FILE" ] && has_file=true
+    if $has_keychain && $has_file; then log "Credentials intact"; return 0; fi
+    if $has_keychain && ! $has_file; then
+        security find-generic-password -a "$USER" -w -s "$KEYCHAIN_SERVICE" > "$CREDS_FILE" 2>/dev/null
+        chmod 600 "$CREDS_FILE"; log "File restored from Keychain"; return 0
+    fi
+    if ! $has_keychain && $has_file; then
+        security delete-generic-password -a "$USER" -s "$KEYCHAIN_SERVICE" 2>/dev/null || true
+        security add-generic-password -a "$USER" -s "$KEYCHAIN_SERVICE" -w "$(cat "$CREDS_FILE")" 2>/dev/null
+        log "Keychain restored from file"; return 0
+    fi
+    err "Both missing — manual re-login needed"; return 1
+}
+
+# --- tmux ---
+
+tmux_available() { command -v tmux > /dev/null 2>&1; }
+
+# --- Prompt handling (red team #6: large prompts via file) ---
+
+write_prompt_file() {
+    local prompt_content="$1"
+    local prompt_file="$2"
+    echo "$prompt_content" > "$prompt_file"
+}
+
+# --- Jitter (red team #3: prevent thundering herd) ---
+
+jitter_delay() {
+    local base=$1
+    # Add 0-50% random jitter
+    local jitter=$(( RANDOM % (base / 2 + 1) ))
+    echo $(( base + jitter ))
+}
+
+# --- Commands ---
+
+cmd_check() {
+    check_token
+    echo ""
+    security find-generic-password -a "$USER" -s "$KEYCHAIN_SERVICE" > /dev/null 2>&1 \
+        && log "Keychain: OK" || warn "Keychain: MISSING"
+    [ -f "$CREDS_FILE" ] \
+        && log "Credentials file: OK ($(wc -c < "$CREDS_FILE" | tr -d ' ')b)" \
+        || warn "Credentials file: MISSING"
+    tmux_available && log "tmux: $(tmux -V)" || warn "tmux: NOT FOUND"
+}
+
+cmd_restore() { restore_credentials; }
+
+cmd_run() {
+    tmux_available || { err "tmux not found. Install: brew install tmux"; exit 1; }
+
+    local job_id="run-$$-$(date +%s)"
+    local job_dir="$JOB_BASE/$job_id"
+    # Ensure fresh job dir (no stale files)
+    rm -r "$job_dir" 2>/dev/null || true
+    mkdir -p "$job_dir"
+    local session_name="${TMUX_PREFIX}-${job_id}"
+
+    # Detect -p flag and extract prompt to temp file (handles large prompts)
+    local prompt_in_file=false
+    local args=()
+    local i=0
+    while [ $# -gt 0 ]; do
+        if [ "$1" = "-p" ] && [ $# -gt 1 ]; then
+            # Write prompt to temp file, replace with stdin pipe
+            echo "$2" > "$job_dir/prompt.txt"
+            prompt_in_file=true
+            shift 2
+        else
+            args+=("$1")
+            shift
+        fi
+    done
+
+    local cmd
+    if $prompt_in_file; then
+        # Pipe prompt via stdin — handles any size
+        local quoted_rest=""
+        for arg in "${args[@]+"${args[@]}"}"; do
+            quoted_rest+=" $(printf '%q' "$arg")"
+        done
+        cmd="cat '$job_dir/prompt.txt' | claude -p${quoted_rest} > '$job_dir/stdout.log' 2>'$job_dir/stderr.log'; echo \$? > '$job_dir/exit_code'"
+    else
+        # No -p flag, pass args directly
+        local quoted_args=""
+        for arg in "${args[@]+"${args[@]}"}"; do
+            quoted_args+=" $(printf '%q' "$arg")"
+        done
+        cmd="claude${quoted_args} > '$job_dir/stdout.log' 2>'$job_dir/stderr.log'; echo \$? > '$job_dir/exit_code'"
+    fi
+
+    tmux kill-session -t "$session_name" 2>/dev/null || true
+    tmux new-session -d -s "$session_name" "$cmd" 2>/dev/null || {
+        err "Failed to create tmux session"; exit 1
+    }
+
+    # Wait with hard timeout
+    local elapsed=0
+    while [ ! -f "$job_dir/exit_code" ] && [ "$elapsed" -lt "$JOB_TIMEOUT" ]; do
+        sleep 0.5; elapsed=$((elapsed + 1))
+    done
+
+    # Read results before cleanup
+    local rc=0
+    [ -f "$job_dir/exit_code" ] && rc=$(cat "$job_dir/exit_code" 2>/dev/null || echo 1)
+    [ -f "$job_dir/stdout.log" ] && cat "$job_dir/stdout.log"
+
+    # Cleanup
+    tmux kill-session -t "$session_name" 2>/dev/null || true
+    rm -r "$job_dir" 2>/dev/null || true
+    return "$rc"
+}
+
+cmd_batch() {
+    tmux_available || { err "tmux not found. Install: brew install tmux"; exit 1; }
+
+    # Parse args
+    local prompts_dir="" parallel=$DEFAULT_PARALLEL model="sonnet" output_dir=""
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            -f|--from) prompts_dir="$2"; shift 2 ;;
+            -p|--parallel) parallel="$2"; shift 2 ;;
+            -m|--model) model="$2"; shift 2 ;;
+            -o|--output) output_dir="$2"; shift 2 ;;
+            *) err "Unknown: $1"; exit 1 ;;
+        esac
+    done
+    [ -z "$prompts_dir" ] && { err "Usage: claude-batch batch -f <dir> [-p N] [-m model] [-o dir]"; exit 1; }
+    [ "$parallel" -gt "$MAX_PARALLEL" ] && { warn "Capping to $MAX_PARALLEL"; parallel=$MAX_PARALLEL; }
+    [ -z "$output_dir" ] && output_dir="${prompts_dir}_results"
+    mkdir -p "$output_dir"
+
+    # === PRE-FLIGHT (consilium #1, #2) ===
+    log "=== Pre-flight ==="
+    ensure_token_fresh || exit 1
+
+    # Clean stale job dirs (Issue 3), but NOT dirs from running batches (Issue 6)
+    if [ -d "$JOB_BASE" ]; then
+        local cleaned=0
+        for stale_dir in "$JOB_BASE"/batch-*; do
+            [ -d "$stale_dir" ] || continue
+            # Extract PID from dir name (batch-PID-TIMESTAMP-...)
+            local dir_pid
+            dir_pid=$(basename "$stale_dir" | cut -d- -f2)
+            # Skip if that PID is still alive (running batch)
+            if [ -n "$dir_pid" ] && kill -0 "$dir_pid" 2>/dev/null; then
+                continue
+            fi
+            # Only remove if older than 30 min
+            local dir_age
+            dir_age=$(find "$stale_dir" -maxdepth 0 -mmin +30 2>/dev/null)
+            if [ -n "$dir_age" ]; then
+                rm -r "$stale_dir" 2>/dev/null && cleaned=$((cleaned + 1))
+            fi
+        done
+        [ "$cleaned" -gt 0 ] && log "Cleaned $cleaned stale job dirs"
+    fi
+
+    # Collect prompts
+    local prompt_files=()
+    for f in "$prompts_dir"/*; do [ -f "$f" ] && prompt_files+=("$f"); done
+    local total=${#prompt_files[@]}
+    [ "$total" -eq 0 ] && { err "No prompt files in $prompts_dir"; exit 1; }
+
+    # Estimate batch duration, warn if tight
+    local est_seconds=$(( (total / parallel + 1) * 30 ))
+    local token_life
+    token_life=$(get_token_lifetime)
+    local margin=$(( token_life - est_seconds ))
+    log "Estimated batch: ~$((est_seconds/60))min. Token margin: ~$((margin/60))min"
+    [ "$margin" -lt 600 ] && warn "Tight margin! Consider reducing parallel or batch size."
+
+    # Cleanup stale sessions (|| true: grep returns 1 when no match, pipefail kills script)
+    tmux list-sessions 2>/dev/null | grep "^${TMUX_PREFIX}-" | cut -d: -f1 | while read -r s; do
+        tmux kill-session -t "$s" 2>/dev/null || true
+    done || true
+
+    local batch_id="batch-$$-$(date +%s)"
+    trap '_cleanup_batch' EXIT INT TERM
+
+    log "Found $total prompts, parallel=$parallel, model=$model"
+    log "Output: $output_dir"
+
+    # === EXECUTE ===
+    local ok_count=0 fail_count=0 skip_count=0
+    local active_jobs=()
+
+    for prompt_file in "${prompt_files[@]}"; do
+        local wid
+        wid=$(basename "$prompt_file" | sed 's/\.[^.]*$//')
+        local result_file="$output_dir/result_${wid}.json"
+
+        # Idempotent skip — validate JSON, not just file size (red team fix #1)
+        if [ -f "$result_file" ]; then
+            if python3 -c "import json,sys; json.loads(open(sys.argv[1]).read())" "$result_file" 2>/dev/null || \
+               [ "$(wc -c < "$result_file" | tr -d ' ')" -gt 100 ]; then
+                skip_count=$((skip_count + 1)); continue
+            else
+                warn "Corrupt result for $wid, re-running"
+            fi
+        fi
+
+        # Wait if at capacity
+        while [ ${#active_jobs[@]} -ge "$parallel" ]; do
+            _reap_finished_jobs
+            [ ${#active_jobs[@]} -ge "$parallel" ] && sleep 0.5
+        done
+
+        # Launch worker
+        local job_id="${batch_id}-${wid}"
+        local job_dir="$JOB_BASE/$job_id"
+        mkdir -p "$job_dir"
+        local session_name="${TMUX_PREFIX}-${job_id}"
+
+        # Write prompt to temp file (red team #6: avoid shell arg overflow)
+        local prompt_tmp="$job_dir/prompt.txt"
+        cat "$prompt_file" > "$prompt_tmp"
+
+        # tmux command reads prompt from file, not inline arg
+        tmux kill-session -t "$session_name" 2>/dev/null || true
+        tmux new-session -d -s "$session_name" \
+            "claude -p \"\$(cat '$prompt_tmp')\" --model $model > '$job_dir/stdout.log' 2>'$job_dir/stderr.log'; echo \$? > '$job_dir/exit_code'" 2>/dev/null || {
+            session_name="${session_name}-${RANDOM}"
+            tmux new-session -d -s "$session_name" \
+                "claude -p \"\$(cat '$prompt_tmp')\" --model $model > '$job_dir/stdout.log' 2>'$job_dir/stderr.log'; echo \$? > '$job_dir/exit_code'" 2>/dev/null || {
+                warn "Failed to create tmux session for $wid"
+                fail_count=$((fail_count + 1)); continue
+            }
+        }
+
+        # Track: session|jobdir|wid|resultfile|promptfile|retries|start_time
+        active_jobs+=("${session_name}|${job_dir}|${wid}|${result_file}|${prompt_file}|0|$(date +%s)")
+    done
+
+    # Wait for remaining
+    log "Waiting for ${#active_jobs[@]} remaining jobs..."
+    local wait_cycles=0
+    while [ ${#active_jobs[@]} -gt 0 ] && [ "$wait_cycles" -lt 600 ]; do
+        _reap_finished_jobs
+        [ ${#active_jobs[@]} -gt 0 ] && { sleep 1; wait_cycles=$((wait_cycles + 1)); }
+    done
+
+    # Kill stragglers
+    for entry in "${active_jobs[@]+"${active_jobs[@]}"}"; do
+        IFS='|' read -r sess jdir wid _ _ _ _ <<< "$entry"
+        tmux kill-session -t "$sess" 2>/dev/null || true
+        warn "[TIMEOUT] $wid"; fail_count=$((fail_count + 1))
+    done
+
+    # Summary
+    log "=== Complete ==="
+    log "OK=$ok_count FAIL=$fail_count SKIP=$skip_count TOTAL=$total"
+    log "Results: $output_dir"
+    [ "$fail_count" -eq 0 ] && return 0 || return 1
+}
+
+# --- Cleanup trap ---
+_cleanup_batch() {
+    if [ -n "${batch_id:-}" ]; then
+        warn "Cleaning up batch $batch_id..."
+        tmux list-sessions 2>/dev/null | grep "^${TMUX_PREFIX}-${batch_id}" | cut -d: -f1 | while read -r s; do
+            tmux kill-session -t "$s" 2>/dev/null
+        done
+    fi
+}
+
+# --- Reap finished jobs ---
+_reap_finished_jobs() {
+    local new_active=()
+    for entry in "${active_jobs[@]+"${active_jobs[@]}"}"; do
+        [ -z "$entry" ] && continue
+        IFS='|' read -r sess jdir wid rfile pfile retries start_ts <<< "$entry"
+        retries=${retries:-0}
+        start_ts=${start_ts:-$(date +%s)}
+
+        # Hard timeout check (red team #5)
+        local now
+        now=$(date +%s)
+        local elapsed=$(( now - start_ts ))
+        if [ "$elapsed" -gt "$JOB_TIMEOUT" ] && [ ! -f "$jdir/exit_code" ]; then
+            warn "[TIMEOUT] $wid (${elapsed}s > ${JOB_TIMEOUT}s)"
+            tmux kill-session -t "$sess" 2>/dev/null || true
+            echo "124" > "$jdir/exit_code"  # timeout exit code
+        fi
+
+        if [ -f "$jdir/exit_code" ]; then
+            local rc
+            rc=$(cat "$jdir/exit_code")
+            local stdout_size=0
+            [ -f "$jdir/stdout.log" ] && stdout_size=$(wc -c < "$jdir/stdout.log" | tr -d ' ')
+
+            if [ "$rc" = "0" ] && [ "$stdout_size" -gt 1 ]; then
+                cp "$jdir/stdout.log" "$rfile"
+                log "[OK] $wid (${stdout_size}b)"
+                ok_count=$((ok_count + 1))
+                tmux kill-session -t "$sess" 2>/dev/null || true
+                rm -r "$jdir" 2>/dev/null || true
+            elif [ "$retries" -lt "$MAX_RETRIES" ]; then
+                local next_retry=$((retries + 1))
+                local base_delay=$(( RETRY_BASE_DELAY * (1 << retries) ))
+                local delay
+                delay=$(jitter_delay "$base_delay")  # red team #3: jitter
+                warn "[RETRY $next_retry/$MAX_RETRIES] $wid (rc=$rc, delay=${delay}s)"
+
+                tmux kill-session -t "$sess" 2>/dev/null || true
+                rm -r "$jdir" 2>/dev/null || true
+
+                sleep "$delay"
+
+                local retry_id="${batch_id}-${wid}-r${next_retry}"
+                local retry_dir="$JOB_BASE/$retry_id"
+                mkdir -p "$retry_dir"
+                local retry_sess="${TMUX_PREFIX}-${retry_id}"
+
+                # Copy prompt file to retry dir
+                cp "$pfile" "$retry_dir/prompt.txt"
+
+                tmux kill-session -t "$retry_sess" 2>/dev/null || true
+                tmux new-session -d -s "$retry_sess" \
+                    "claude -p \"\$(cat '$retry_dir/prompt.txt')\" --model $model > '$retry_dir/stdout.log' 2>'$retry_dir/stderr.log'; echo \$? > '$retry_dir/exit_code'" 2>/dev/null
+
+                new_active+=("${retry_sess}|${retry_dir}|${wid}|${rfile}|${pfile}|${next_retry}|$(date +%s)")
+            else
+                warn "[FAIL] $wid (rc=$rc, ${stdout_size}b, retries exhausted)"
+                [ -f "$jdir/stderr.log" ] && [ -s "$jdir/stderr.log" ] && \
+                    warn "  stderr: $(head -1 "$jdir/stderr.log" | cut -c1-100)"
+                fail_count=$((fail_count + 1))
+                tmux kill-session -t "$sess" 2>/dev/null || true
+                rm -r "$jdir" 2>/dev/null || true
+            fi
+        else
+            new_active+=("$entry")
+        fi
+    done
+    active_jobs=("${new_active[@]+"${new_active[@]}"}")
+}
+
+# --- Main ---
+case "${1:-}" in
+    batch) shift; cmd_batch "$@" ;;
+    check) cmd_check ;;
+    restore) cmd_restore ;;
+    "")
+        cat >&2 << 'USAGE'
+claude-batch v5 — tmux-isolated parallel claude -p
+
+Strategy: prevent refresh during batch (no race = no kickout)
+
+Drop-in:  claude-batch -p "prompt" --model sonnet
+Batch:    claude-batch batch -f prompts/ -p 10 -m sonnet -o results/
+Check:    claude-batch check
+Restore:  claude-batch restore
+
+Safety: 2h token gate, per-job 5min timeout, retry with jitter,
+prompt via file, tmux isolation, scoped cleanup.
+USAGE
+        exit 1 ;;
+    *) cmd_run "$@" ;;  # drop-in mode
+esac
