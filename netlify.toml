@@ -1,0 +1,7 @@
+[build]
+  publish = "source-build-australia/out"
+
+[[redirects]]
+  from   = "/*"
+  to     = "/index.html"
+  status = 200
