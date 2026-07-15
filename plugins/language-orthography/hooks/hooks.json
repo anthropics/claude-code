@@ -1,0 +1,15 @@
+{
+  "description": "Injects orthographic enforcement instructions at session start based on the user's language setting",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks-handlers/session-start.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
