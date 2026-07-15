@@ -38,6 +38,9 @@ For more installation options, uninstall steps, and troubleshooting, see the [se
     winget install Anthropic.ClaudeCode
     ```
 
+    > [!NOTE]
+    > Windows users: Background agent outputs may silently fail without Developer Mode. Enable [Developer Mode](https://learn.microsoft.com/en-us/windows/advanced-settings/developer-mode) if you encounter issues.
+
     **NPM (Deprecated):**
     ```bash
     npm install -g @anthropic-ai/claude-code
