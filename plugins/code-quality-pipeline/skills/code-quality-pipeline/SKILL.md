@@ -25,6 +25,8 @@ This skill **orchestrates external review tools; it does not bundle them.** Each
 
 All of the above are available from Anthropic's official marketplace (`anthropics/claude-code`); substitute equivalents from any other marketplace if you prefer.
 
+> **How to install:** see [INSTALL.md](../../INSTALL.md) for step-by-step instructions to install these dependency plugins.
+
 ---
 
 ## Gate A — per-file pipeline (after implementation, before e2e)
