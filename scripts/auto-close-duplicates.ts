@@ -70,6 +70,16 @@ async function closeIssueAsDuplicate(
   duplicateOfNumber: number,
   token: string
 ): Promise<void> {
+  // Fetch existing labels so we can preserve them when adding "duplicate"
+  const issue: { labels: Array<{ name: string }> } = await githubRequest(
+    `/repos/${owner}/${repo}/issues/${issueNumber}`,
+    token
+  );
+  const existingLabels = issue.labels.map(l => l.name);
+  if (!existingLabels.includes('duplicate')) {
+    existingLabels.push('duplicate');
+  }
+
   await githubRequest(
     `/repos/${owner}/${repo}/issues/${issueNumber}`,
     token,
@@ -77,7 +87,7 @@ async function closeIssueAsDuplicate(
     {
       state: 'closed',
       state_reason: 'duplicate',
-      labels: ['duplicate']
+      labels: existingLabels
     }
   );
 
