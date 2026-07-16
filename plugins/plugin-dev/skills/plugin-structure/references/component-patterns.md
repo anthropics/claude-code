@@ -303,13 +303,16 @@ hooks/
     └── load-context.sh
 ```
 
-**hooks.json**:
+**hooks.json** (plugin wrapper format):
 ```json
 {
-  "PreToolUse": [...],
-  "PostToolUse": [...],
-  "Stop": [...],
-  "SessionStart": [...]
+  "description": "Plugin hooks",
+  "hooks": {
+    "PreToolUse": [...],
+    "PostToolUse": [...],
+    "Stop": [...],
+    "SessionStart": [...]
+  }
 }
 ```
 
