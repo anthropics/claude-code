@@ -18,7 +18,10 @@ allow_unauthenticated = true
 # public ingress cannot serve clients); corp on-prem reaches run.app via a PSC endpoint +
 # private run.app DNS — see README "Private access" for the prerequisites. The only
 # alternative to the internal-only default:
-# ingress = "INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER"   # only if you front it with your OWN internal ALB (custom hostname/cert; not provisioned here)
+# ingress = "INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER"   # only if you front it with an internal ALB (custom hostname/cert)
+# Optional: have this module provision the internal ALB (see README "Internal ALB"):
+# internal_alb_enabled = true
+# lb_hostname          = "claude-gateway.gw.example.com"
 
 # Google OAuth client secret: REQUIRED — uncomment and set it (Terraform creates the
 # secret version; the Cloud Run service mounts `latest`, so without a version the
