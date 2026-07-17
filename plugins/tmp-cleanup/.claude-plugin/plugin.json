@@ -1,0 +1,9 @@
+{
+  "name": "tmp-cleanup",
+  "version": "1.0.0",
+  "description": "Automatically prunes oversized task .output files and stale cwd tracking files from /tmp to prevent unbounded disk usage",
+  "author": {
+    "name": "ZVN DEV",
+    "email": "78920650+zvndev@users.noreply.github.com"
+  }
+}
