@@ -2,6 +2,10 @@
 
 Implementation of the Ralph Wiggum technique for iterative, self-referential AI development loops in Claude Code.
 
+> **Status:** Experimental. This plugin is kept in-tree for local experimentation
+> and is not listed in the bundled plugin marketplace. Do not use it for
+> unattended merge, publish, deploy, or production decisions.
+
 ## What is Ralph?
 
 Ralph is a development methodology based on continuous AI agent loops. As Geoffrey Huntley describes it: **"Ralph is a Bash loop"** - a simple `while true` that repeatedly feeds an AI agent a prompt file, allowing it to iteratively improve its work until completion.
@@ -35,7 +39,7 @@ This creates a **self-referential feedback loop** where:
 ## Quick Start
 
 ```bash
-/ralph-loop "Build a REST API for todos. Requirements: CRUD operations, input validation, tests. Output <promise>COMPLETE</promise> when done." --completion-promise "COMPLETE" --max-iterations 50
+/ralph-loop "Build a REST API for todos. Requirements: CRUD operations, input validation, tests. Output <promise>COMPLETE</promise> when done." --completion-promise "COMPLETE" --max-iterations 5
 ```
 
 Claude will:
@@ -57,7 +61,7 @@ Start a Ralph loop in your current session.
 ```
 
 **Options:**
-- `--max-iterations <n>` - Stop after N iterations (default: unlimited)
+- `--max-iterations <n>` - Stop after N iterations (default: 5)
 - `--completion-promise <text>` - Phrase that signals completion
 
 ### /cancel-ralph
@@ -118,10 +122,10 @@ Implement feature X following TDD:
 
 ### 4. Escape Hatches
 
-Always use `--max-iterations` as a safety net to prevent infinite loops on impossible tasks:
+Always use `--max-iterations` as a safety net to prevent runaway work on impossible tasks:
 
 ```bash
-# Recommended: Always set a reasonable iteration limit
+# Recommended: Keep iteration limits small
 /ralph-loop "Try to implement feature X" --max-iterations 20
 
 # In your prompt, include what to do if stuck:
@@ -131,7 +135,7 @@ Always use `--max-iterations` as a safety net to prevent infinite loops on impos
 #  - Suggest alternative approaches"
 ```
 
-**Note**: The `--completion-promise` uses exact string matching, so you cannot use it for multiple completion conditions (like "SUCCESS" vs "BLOCKED"). Always rely on `--max-iterations` as your primary safety mechanism.
+**Note**: The `--completion-promise` uses exact string matching, so you cannot use it for multiple completion conditions (like "SUCCESS" vs "BLOCKED"). Always rely on `--max-iterations` as your primary safety mechanism. For production workflows, prefer an external verifier that runs tests and checks the diff instead of relying on a model-written promise.
 
 ## Philosophy
 
