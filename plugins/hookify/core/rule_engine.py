@@ -165,6 +165,10 @@ class RuleEngine:
 
         if operator == 'regex_match':
             return self._regex_match(pattern, field_value)
+        elif operator in ('regex_not_match', 'not_regex_match'):
+            # Negated regex: True when the pattern does NOT match the field.
+            # Both spellings are accepted (not_regex_match mirrors not_contains).
+            return not self._regex_match(pattern, field_value)
         elif operator == 'contains':
             return pattern in field_value
         elif operator == 'equals':
