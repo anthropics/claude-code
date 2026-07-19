@@ -80,17 +80,17 @@ if [[ "$CMD" == "search issues" ]]; then
     echo "Error: search query must not contain repo:, org:, or user: qualifiers (e.g., ./scripts/gh.sh search issues \"bug report\" --limit 10)" >&2
     exit 1
   fi
-  gh "$SUB1" "$SUB2" "$QUERY" --repo "$REPO" "${FLAGS[@]}"
+  gh "$SUB1" "$SUB2" "$QUERY" --repo "$REPO" ${FLAGS[@]+"${FLAGS[@]}"}
 elif [[ "$CMD" == "issue view" ]]; then
   if [[ ${#POSITIONAL[@]} -ne 1 ]] || ! [[ "${POSITIONAL[0]}" =~ ^[0-9]+$ ]]; then
     echo "Error: issue view requires exactly one numeric issue number (e.g., ./scripts/gh.sh issue view 123)" >&2
     exit 1
   fi
-  gh "$SUB1" "$SUB2" "${POSITIONAL[0]}" "${FLAGS[@]}"
+  gh "$SUB1" "$SUB2" "${POSITIONAL[0]}" ${FLAGS[@]+"${FLAGS[@]}"}
 else
   if [[ ${#POSITIONAL[@]} -ne 0 ]]; then
     echo "Error: issue list and label list do not accept positional arguments (e.g., ./scripts/gh.sh issue list --state open, ./scripts/gh.sh label list --limit 100)" >&2
     exit 1
   fi
-  gh "$SUB1" "$SUB2" "${FLAGS[@]}"
+  gh "$SUB1" "$SUB2" ${FLAGS[@]+"${FLAGS[@]}"}
 fi
