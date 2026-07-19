@@ -43,9 +43,9 @@ jobs:
           claude_args: "--model claude-sonnet-4-5-20250929"
 
       - name: Log duplicate comment event to Statsig
-        if: always()
         env:
           STATSIG_API_KEY: ${{ secrets.STATSIG_API_KEY }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ISSUE_NUMBER: ${{ github.event.issue.number || inputs.issue_number }}
           REPO: ${{ github.repository }}
           TRIGGERED_BY: ${{ github.event_name }}
@@ -55,7 +55,18 @@ jobs:
             echo "STATSIG_API_KEY not found, skipping Statsig logging"
             exit 0
           fi
-          
+
+          # Only log the event if this run actually posted a duplicate comment.
+          # The /dedupe command bails without commenting when the issue is
+          # closed, already deduped, or has no surviving duplicates.
+          RUN_STARTED_AT=$(gh run view "$WORKFLOW_RUN_ID" --repo "$REPO" --json createdAt --jq .createdAt)
+          MARKER_COUNT=$(gh api "repos/${REPO}/issues/${ISSUE_NUMBER}/comments?since=${RUN_STARTED_AT}&per_page=100" \
+            --jq '[.[] | select(.user.type == "Bot" and (.body | contains("possible duplicate")))] | length')
+          if [ "$MARKER_COUNT" -eq 0 ]; then
+            echo "No duplicate comment posted by this run, skipping Statsig logging"
+            exit 0
+          fi
+
           # Prepare the event payload
           EVENT_PAYLOAD=$(jq -n \
             --arg issue_number "$ISSUE_NUMBER" \
