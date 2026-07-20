@@ -225,15 +225,14 @@ async function autoCloseDuplicates(): Promise<void> {
       `[DEBUG] Issue #${issue.number} - duplicate comment has ${reactions.length} reactions`
     );
 
-    const authorThumbsDown = reactions.some(
-      (reaction) =>
-        reaction.user.id === issue.user.id && reaction.content === "-1"
+    const anyThumbsDown = reactions.some(
+      (reaction) => reaction.content === "-1"
     );
     console.log(
-      `[DEBUG] Issue #${issue.number} - author thumbs down reaction: ${authorThumbsDown}`
+      `[DEBUG] Issue #${issue.number} - any user thumbs down reaction: ${anyThumbsDown}`
     );
 
-    if (authorThumbsDown) {
+    if (anyThumbsDown) {
       console.log(
         `[DEBUG] Issue #${issue.number} - author disagreed with duplicate detection, skipping`
       );
