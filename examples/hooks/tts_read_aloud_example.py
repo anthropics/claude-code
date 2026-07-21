@@ -118,6 +118,31 @@ def read_transcript(transcript_path: str) -> str | None:
     return last_text
 
 
+def select_message(data: dict) -> str | None:
+    """Return the assistant message that just finished.
+
+    Prefers `last_assistant_message` from the hook's stdin payload. The Stop
+    hook can fire before the finished message is flushed to the transcript, so
+    parsing the transcript intermittently returns the *previous* turn. For a
+    read-aloud hook that means speaking a stale answer, which is actively
+    disorienting for screen-reader users who have no other channel.
+    See anthropics/claude-code#74340.
+
+    Falls back to the transcript for builds that don't supply the field.
+    """
+    message = data.get('last_assistant_message')
+    if message and message.strip():
+        return message
+
+    transcript_path = data.get('transcript_path', '')
+    if not transcript_path or not Path(transcript_path).exists():
+        return None
+
+    # Racy by nature; the short wait gives the writer a chance to flush.
+    time.sleep(0.3)
+    return read_transcript(transcript_path)
+
+
 def speak_piper(text: str, config: dict) -> None:
     """Speak text using Piper (offline TTS)."""
     piper_dir = Path(config.get('pipeDir', '~/.local/share/piper')).expanduser()
@@ -219,14 +244,8 @@ def main():
         sys.exit(0)
 
     config = data.get('config', {})
-    transcript_path = data.get('transcript_path', '')
 
-    if not transcript_path or not Path(transcript_path).exists():
-        sys.exit(0)
-
-    time.sleep(0.3)
-
-    last_text = read_transcript(transcript_path)
+    last_text = select_message(data)
     if not last_text:
         sys.exit(0)
 

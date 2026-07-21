@@ -8,7 +8,24 @@ Or without pytest: python3 test_tts_read_aloud.py
 
 import sys
 import re
+import json
+import tempfile
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent))
+from tts_read_aloud_example import select_message  # noqa: E402
+
+
+def _transcript(*messages: str) -> str:
+    """Write a throwaway transcript containing the given assistant messages."""
+    path = Path(tempfile.mkdtemp()) / 'transcript.jsonl'
+    with open(path, 'w', encoding='utf-8') as f:
+        for m in messages:
+            f.write(json.dumps({
+                'type': 'assistant',
+                'message': {'content': [{'type': 'text', 'text': m}]},
+            }) + '\n')
+    return str(path)
 
 
 def strip_markdown(text: str) -> str:
@@ -182,7 +199,7 @@ def test_code_response_threshold():
     stripped = strip_markdown(response)
     threshold = 0.3
     should_skip = len(stripped) < len(response) * threshold
-    assert should_skip == True
+    assert should_skip
     print("✅ test_code_response_threshold passed")
 
 
@@ -190,17 +207,55 @@ def test_short_response_minimum_length():
     response = "OK"
     min_length = 10
     should_skip = len(response) < min_length
-    assert should_skip == True
+    assert should_skip
     print("✅ test_short_response_minimum_length passed")
 
 
 def test_reasonable_response():
-    response = "Here's your detailed answer with multiple sentences. It contains enough content to read aloud."
+    response = ("Here's your detailed answer with multiple sentences. "
+                "It contains enough content to read aloud.")
     min_length = 10
     code_threshold = 0.3
     assert len(response) > min_length
     assert len(response) > len(response) * code_threshold
     print("✅ test_reasonable_response passed")
+
+
+def test_select_message_prefers_stdin_field_over_stale_transcript():
+    """The regression from #74340: transcript lags a turn behind."""
+    data = {
+        'last_assistant_message': 'current turn',
+        'transcript_path': _transcript('previous turn'),
+    }
+    assert select_message(data) == 'current turn'
+    print("✅ test_select_message_prefers_stdin_field_over_stale_transcript passed")
+
+
+def test_select_message_falls_back_to_transcript():
+    data = {'transcript_path': _transcript('older', 'newest')}
+    assert select_message(data) == 'newest'
+    print("✅ test_select_message_falls_back_to_transcript passed")
+
+
+def test_select_message_ignores_blank_stdin_field():
+    data = {
+        'last_assistant_message': '   ',
+        'transcript_path': _transcript('from transcript'),
+    }
+    assert select_message(data) == 'from transcript'
+    print("✅ test_select_message_ignores_blank_stdin_field passed")
+
+
+def test_select_message_without_transcript_returns_none():
+    assert select_message({'transcript_path': '/nonexistent/path.jsonl'}) is None
+    assert select_message({}) is None
+    print("✅ test_select_message_without_transcript_returns_none passed")
+
+
+def test_select_message_works_with_no_transcript_when_field_present():
+    """A missing transcript must not block the race-free path."""
+    assert select_message({'last_assistant_message': 'spoken'}) == 'spoken'
+    print("✅ test_select_message_works_with_no_transcript_when_field_present passed")
 
 
 if __name__ == "__main__":
@@ -224,6 +279,11 @@ if __name__ == "__main__":
         test_code_response_threshold()
         test_short_response_minimum_length()
         test_reasonable_response()
+        test_select_message_prefers_stdin_field_over_stale_transcript()
+        test_select_message_falls_back_to_transcript()
+        test_select_message_ignores_blank_stdin_field()
+        test_select_message_without_transcript_returns_none()
+        test_select_message_works_with_no_transcript_when_field_present()
 
         print("\n" + "="*60)
         print("✅ All tests passed!")
