@@ -1,0 +1,296 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: #1a1a2e;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---- Top bar ---- */
+#top-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 12px;
+  background: rgba(10, 10, 40, 0.95);
+  border-bottom: 1px solid #333366;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+#clock-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: bold;
+}
+
+#stat-day   { color: #88ccff; }
+#stat-time  { color: #ffcc88; min-width: 42px; }
+#stat-season { color: #88ffaa; font-size: 13px; }
+
+.speed-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.speed-group label {
+  font-size: 11px;
+  color: #aaa;
+  margin-right: 2px;
+}
+
+button {
+  background: #2a2a4a;
+  border: 1px solid #445;
+  color: #ccc;
+  padding: 3px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background 0.1s;
+}
+button:hover { background: #3a3a5a; }
+button.active { background: #4466aa; border-color: #88aaff; color: white; }
+
+/* ---- Main layout ---- */
+#app {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ---- Canvas ---- */
+#canvas-container {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+  background: #0a0a2e;
+}
+
+#townCanvas {
+  display: block;
+  cursor: crosshair;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/* Pause overlay */
+#pause-indicator {
+  display: none;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  font-size: 32px;
+  font-weight: bold;
+  padding: 20px 40px;
+  border-radius: 12px;
+  pointer-events: none;
+  letter-spacing: 4px;
+}
+
+/* ---- Sidebar ---- */
+#sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background: rgba(10, 10, 35, 0.97);
+  border-left: 1px solid #333366;
+  overflow: hidden;
+}
+
+/* ---- Stats panel ---- */
+#stats-panel {
+  padding: 10px;
+  border-bottom: 1px solid #333366;
+}
+
+#stats-panel h3 {
+  font-size: 12px;
+  color: #88aaff;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+}
+
+.stat-line {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  padding: 2px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.stat-line .label { color: #aaa; }
+.stat-line .value { color: #ddd; font-weight: bold; }
+
+/* ---- Inspector panel ---- */
+#inspector {
+  padding: 10px;
+  border-bottom: 1px solid #333366;
+  font-size: 12px;
+  overflow-y: auto;
+}
+
+#inspector.hidden { display: none; }
+
+.inspector-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.inspector-icon { font-size: 24px; }
+
+.inspector-header strong { font-size: 13px; color: #eee; }
+.inspector-sub { font-size: 11px; color: #aaa; margin-top: 2px; }
+
+.inspector-close {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0 2px;
+  flex-shrink: 0;
+}
+.inspector-close:hover { color: #fff; }
+
+.stat-rows { margin-bottom: 8px; }
+.stat-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 3px;
+}
+
+.stat-label { width: 60px; font-size: 10px; color: #aaa; flex-shrink: 0; }
+.stat-track {
+  flex: 1;
+  height: 6px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.stat-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s;
+}
+.stat-val { width: 24px; text-align: right; font-size: 10px; color: #ccc; }
+
+.inspector-info {
+  margin-bottom: 8px;
+  padding: 6px;
+  background: rgba(255,255,255,0.04);
+  border-radius: 4px;
+}
+
+.inspector-info div { margin-bottom: 3px; line-height: 1.4; }
+.lbl { color: #888; }
+
+.inspector-traits { font-size: 10px; }
+.trait-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 3px;
+}
+.trait-row span { width: 70px; color: #aaa; }
+.trait-bar {
+  height: 4px;
+  background: #4488ff;
+  border-radius: 2px;
+  max-width: 60px;
+}
+
+.open-tag  { color: #44cc44; font-weight: bold; font-size: 10px; }
+.closed-tag { color: #cc4444; font-weight: bold; font-size: 10px; }
+.fire-warn { color: #ff4400; font-weight: bold; margin-top: 4px; }
+
+.occ-tag {
+  display: inline-block;
+  background: rgba(68, 136, 255, 0.2);
+  border: 1px solid rgba(68, 136, 255, 0.3);
+  border-radius: 3px;
+  padding: 1px 4px;
+  font-size: 10px;
+  margin: 1px;
+}
+
+/* ---- Legend ---- */
+#legend {
+  padding: 8px 10px;
+  border-bottom: 1px solid #333366;
+  font-size: 10px;
+}
+#legend h3 { font-size: 11px; color: #88aaff; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; }
+.legend-row { display: flex; align-items: center; gap: 5px; margin-bottom: 3px; }
+.legend-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  flex-shrink: 0;
+}
+.legend-text { color: #aaa; }
+
+/* ---- Event log ---- */
+#event-log {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 8px 10px;
+}
+
+#event-log h3 {
+  font-size: 11px;
+  color: #88aaff;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 6px;
+  flex-shrink: 0;
+}
+
+#event-log-list {
+  flex: 1;
+  overflow-y: auto;
+  font-size: 10px;
+}
+
+#event-log-list::-webkit-scrollbar { width: 4px; }
+#event-log-list::-webkit-scrollbar-track { background: transparent; }
+#event-log-list::-webkit-scrollbar-thumb { background: #444; border-radius: 2px; }
+
+.log-entry {
+  padding: 3px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  line-height: 1.4;
+}
+
+.log-time { color: #5566aa; margin-right: 4px; font-size: 9px; }
+.log-msg  { color: #bbb; }
+
+/* ---- Help bar ---- */
+#help-bar {
+  font-size: 10px;
+  color: #556;
+  padding: 4px 10px;
+  text-align: center;
+  border-top: 1px solid #222244;
+  flex-shrink: 0;
+}
