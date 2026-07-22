@@ -16,7 +16,9 @@ session and every prompt, outlive both.
 |---------|------|-------|
 | Spec | `specs/<name>-spec.md` | Requirements and use cases — the why and what |
 | Plan | `agents/<name>-plan.md` | Outline-numbered TDD work units with checkboxes |
-| Focus stack | `agents/state/<clone-id>/focus.md` | LIFO of attention: what's being worked, what to resume |
+| Focus stack | `agents/state/focus.md` | LIFO of attention: what's being worked, what to resume |
+
+Locations are configurable — see **Configuration** below.
 
 Every work request is classified into a tier first: **feature** (new capability →
 full spec + plan), **increment** (small change → plan line item), or
@@ -26,9 +28,31 @@ classification.
 Stack entries are one line — `<plan>:<outline-id>`, a whole `<plan>` (commit to
 finishing it), or `[explore: <what>]` — stamped with their push date. The stack
 records departures from plan order only; an empty stack means "follow the plan."
-It is per working copy (`<hostname>-<path>` clone-id), so parallel work in git
-worktrees gets independent stacks, and it survives any number of session starts
-and stops.
+It survives any number of session starts and stops.
+
+## Configuration — `.twilight`
+
+A `KEY=VALUE` file at the project root, written by the design skill after
+agreeing locations with you:
+
+| Key | Meaning | Default |
+|-----|---------|---------|
+| `SPECS_DIR` | Specs and the INDEX | `specs` |
+| `PLANS_DIR` | Plans | `agents` |
+| `STATE_DIR` | Focus stack state | `<PLANS_DIR>/state` |
+| `MULTI_CLONE` | `1` keys stacks per working copy (`<STATE_DIR>/<clone-id>/`) for git worktrees / multiple checkouts | `0` |
+
+## Format contracts
+
+The scripts parse these formats — keep to them:
+
+- **File naming**: `<name>-spec.md` and `<name>-plan.md` in the configured dirs.
+- **Plan checkboxes**: one line item per line, either `- <outline-id> [ ] <text>`
+  or `- [ ] <outline-id> <text>`. States: `[ ]` open, `[x]` done, `[~]` blocked
+  (nonstandard markdown — renders as text in most viewers).
+- **INDEX rows**: any line naming `<name>-plan` and containing the word `active`
+  marks that plan active; the default is a `| Spec | Plan | Status |` table.
+- **Stack entries**: written only via the CLI; one line, entry + push date.
 
 ## What the hooks do
 

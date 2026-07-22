@@ -14,7 +14,7 @@ setup() {
 EOF
   cd "$PROJ"
   CID="$(hostname)-$(pwd | sed 's|^/||; s|/|-|g')"
-  STATE="agents/state/$CID"
+  STATE="agents/state"
 }
 
 # 2.1.1

@@ -34,8 +34,8 @@ PLUGIN_ROOT="$BATS_TEST_DIRNAME/.."
 }
 
 # 6.1.2
-@test "bundled td-project-workflow.md present with dated entry format" {
-  f="$PLUGIN_ROOT/skills/design/td-project-workflow.md"
+@test "bundled twilight-workflow.md present with dated entry format" {
+  f="$PLUGIN_ROOT/skills/design/twilight-workflow.md"
   [ -f "$f" ]
   grep -q 'focus.md' "$f"
   grep -q 'YYYY-MM-DD' "$f"
