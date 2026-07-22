@@ -1,0 +1,9 @@
+{
+  "name": "code-quality-pipeline",
+  "version": "1.0.0",
+  "description": "Quality gates between 'code written' and 'code merged': a 4-step per-file review pipeline plus a holistic pre-merge diff review",
+  "author": {
+    "name": "Ron Mizrahi",
+    "email": "ronmizr@gmail.com"
+  }
+}
