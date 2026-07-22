@@ -1,0 +1,37 @@
+import * as React from 'react';
+import { useMemoryUsage } from '../hooks/useMemoryUsage.js';
+import { Box, Text } from '../ink.js';
+import { formatFileSize } from '../utils/format.js';
+export function MemoryUsageIndicator(): React.ReactNode {
+  // Ant-only: the /heapdump link is an internal debugging aid. Gating before
+  // the hook means the 10s polling interval is never set up in external builds.
+  // USER_TYPE is a build-time constant, so the hook call below is either always
+  // reached or dead-code-eliminated — never conditional at runtime.
+  if ("external" !== 'ant') {
+    return null;
+  }
+
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  // biome-ignore lint/correctness/useHookAtTopLevel: USER_TYPE is a build-time constant
+  const memoryUsage = useMemoryUsage();
+  if (!memoryUsage) {
+    return null;
+  }
+  const {
+    heapUsed,
+    status
+  } = memoryUsage;
+
+  // Only show indicator when memory usage is high or critical
+  if (status === 'normal') {
+    return null;
+  }
+  const formattedSize = formatFileSize(heapUsed);
+  const color = status === 'critical' ? 'error' : 'warning';
+  return <Box>
+      <Text color={color} wrap="truncate">
+        High memory usage ({formattedSize}) · /heapdump
+      </Text>
+    </Box>;
+}
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJuYW1lcyI6WyJSZWFjdCIsInVzZU1lbW9yeVVzYWdlIiwiQm94IiwiVGV4dCIsImZvcm1hdEZpbGVTaXplIiwiTWVtb3J5VXNhZ2VJbmRpY2F0b3IiLCJSZWFjdE5vZGUiLCJtZW1vcnlVc2FnZSIsImhlYXBVc2VkIiwic3RhdHVzIiwiZm9ybWF0dGVkU2l6ZSIsImNvbG9yIl0sInNvdXJjZXMiOlsiTWVtb3J5VXNhZ2VJbmRpY2F0b3IudHN4Il0sInNvdXJjZXNDb250ZW50IjpbImltcG9ydCAqIGFzIFJlYWN0IGZyb20gJ3JlYWN0J1xuaW1wb3J0IHsgdXNlTWVtb3J5VXNhZ2UgfSBmcm9tICcuLi9ob29rcy91c2VNZW1vcnlVc2FnZS5qcydcbmltcG9ydCB7IEJveCwgVGV4dCB9IGZyb20gJy4uL2luay5qcydcbmltcG9ydCB7IGZvcm1hdEZpbGVTaXplIH0gZnJvbSAnLi4vdXRpbHMvZm9ybWF0LmpzJ1xuXG5leHBvcnQgZnVuY3Rpb24gTWVtb3J5VXNhZ2VJbmRpY2F0b3IoKTogUmVhY3QuUmVhY3ROb2RlIHtcbiAgLy8gQW50LW9ubHk6IHRoZSAvaGVhcGR1bXAgbGluayBpcyBhbiBpbnRlcm5hbCBkZWJ1Z2dpbmcgYWlkLiBHYXRpbmcgYmVmb3JlXG4gIC8vIHRoZSBob29rIG1lYW5zIHRoZSAxMHMgcG9sbGluZyBpbnRlcnZhbCBpcyBuZXZlciBzZXQgdXAgaW4gZXh0ZXJuYWwgYnVpbGRzLlxuICAvLyBVU0VSX1RZUEUgaXMgYSBidWlsZC10aW1lIGNvbnN0YW50LCBzbyB0aGUgaG9vayBjYWxsIGJlbG93IGlzIGVpdGhlciBhbHdheXNcbiAgLy8gcmVhY2hlZCBvciBkZWFkLWNvZGUtZWxpbWluYXRlZCDigJQgbmV2ZXIgY29uZGl0aW9uYWwgYXQgcnVudGltZS5cbiAgaWYgKFwiZXh0ZXJuYWxcIiAhPT0gJ2FudCcpIHtcbiAgICByZXR1cm4gbnVsbFxuICB9XG5cbiAgLy8gZXNsaW50LWRpc2FibGUtbmV4dC1saW5lIHJlYWN0LWhvb2tzL3J1bGVzLW9mLWhvb2tzXG4gIC8vIGJpb21lLWlnbm9yZSBsaW50L2NvcnJlY3RuZXNzL3VzZUhvb2tBdFRvcExldmVsOiBVU0VSX1RZUEUgaXMgYSBidWlsZC10aW1lIGNvbnN0YW50XG4gIGNvbnN0IG1lbW9yeVVzYWdlID0gdXNlTWVtb3J5VXNhZ2UoKVxuXG4gIGlmICghbWVtb3J5VXNhZ2UpIHtcbiAgICByZXR1cm4gbnVsbFxuICB9XG5cbiAgY29uc3QgeyBoZWFwVXNlZCwgc3RhdHVzIH0gPSBtZW1vcnlVc2FnZVxuXG4gIC8vIE9ubHkgc2hvdyBpbmRpY2F0b3Igd2hlbiBtZW1vcnkgdXNhZ2UgaXMgaGlnaCBvciBjcml0aWNhbFxuICBpZiAoc3RhdHVzID09PSAnbm9ybWFsJykge1xuICAgIHJldHVybiBudWxsXG4gIH1cblxuICBjb25zdCBmb3JtYXR0ZWRTaXplID0gZm9ybWF0RmlsZVNpemUoaGVhcFVzZWQpXG4gIGNvbnN0IGNvbG9yID0gc3RhdHVzID09PSAnY3JpdGljYWwnID8gJ2Vycm9yJyA6ICd3YXJuaW5nJ1xuXG4gIHJldHVybiAoXG4gICAgPEJveD5cbiAgICAgIDxUZXh0IGNvbG9yPXtjb2xvcn0gd3JhcD1cInRydW5jYXRlXCI+XG4gICAgICAgIEhpZ2ggbWVtb3J5IHVzYWdlICh7Zm9ybWF0dGVkU2l6ZX0pIMK3IC9oZWFwZHVtcFxuICAgICAgPC9UZXh0PlxuICAgIDwvQm94PlxuICApXG59XG4iXSwibWFwcGluZ3MiOiJBQUFBLE9BQU8sS0FBS0EsS0FBSyxNQUFNLE9BQU87QUFDOUIsU0FBU0MsY0FBYyxRQUFRLDRCQUE0QjtBQUMzRCxTQUFTQyxHQUFHLEVBQUVDLElBQUksUUFBUSxXQUFXO0FBQ3JDLFNBQVNDLGNBQWMsUUFBUSxvQkFBb0I7QUFFbkQsT0FBTyxTQUFTQyxvQkFBb0JBLENBQUEsQ0FBRSxFQUFFTCxLQUFLLENBQUNNLFNBQVMsQ0FBQztFQUN0RDtFQUNBO0VBQ0E7RUFDQTtFQUNBLElBQUksVUFBVSxLQUFLLEtBQUssRUFBRTtJQUN4QixPQUFPLElBQUk7RUFDYjs7RUFFQTtFQUNBO0VBQ0EsTUFBTUMsV0FBVyxHQUFHTixjQUFjLENBQUMsQ0FBQztFQUVwQyxJQUFJLENBQUNNLFdBQVcsRUFBRTtJQUNoQixPQUFPLElBQUk7RUFDYjtFQUVBLE1BQU07SUFBRUMsUUFBUTtJQUFFQztFQUFPLENBQUMsR0FBR0YsV0FBVzs7RUFFeEM7RUFDQSxJQUFJRSxNQUFNLEtBQUssUUFBUSxFQUFFO0lBQ3ZCLE9BQU8sSUFBSTtFQUNiO0VBRUEsTUFBTUMsYUFBYSxHQUFHTixjQUFjLENBQUNJLFFBQVEsQ0FBQztFQUM5QyxNQUFNRyxLQUFLLEdBQUdGLE1BQU0sS0FBSyxVQUFVLEdBQUcsT0FBTyxHQUFHLFNBQVM7RUFFekQsT0FDRSxDQUFDLEdBQUc7QUFDUixNQUFNLENBQUMsSUFBSSxDQUFDLEtBQUssQ0FBQyxDQUFDRSxLQUFLLENBQUMsQ0FBQyxJQUFJLENBQUMsVUFBVTtBQUN6QywyQkFBMkIsQ0FBQ0QsYUFBYSxDQUFDO0FBQzFDLE1BQU0sRUFBRSxJQUFJO0FBQ1osSUFBSSxFQUFFLEdBQUcsQ0FBQztBQUVWIiwiaWdub3JlTGlzdCI6W119
