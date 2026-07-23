@@ -77,8 +77,16 @@ async function closeIssueAsDuplicate(
     {
       state: 'closed',
       state_reason: 'duplicate',
-      labels: ['duplicate']
     }
+  );
+
+  // Add the duplicate label additively — PATCH with `labels` replaces the
+  // entire label set, which would erase platform/area/priority metadata.
+  await githubRequest(
+    `/repos/${owner}/${repo}/issues/${issueNumber}/labels`,
+    token,
+    'POST',
+    { labels: ['duplicate'] }
   );
 
   await githubRequest(
