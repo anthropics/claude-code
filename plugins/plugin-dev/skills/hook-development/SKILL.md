@@ -19,6 +19,18 @@ Hooks are event-driven automation scripts that execute in response to Claude Cod
 
 ## Hook Types
 
+There are five hook handler types. Each object in a `hooks` array is one handler:
+
+| Type | Field(s) required | Runs |
+|------|-------------------|------|
+| `command` | `command` | A shell command |
+| `prompt` | `prompt` | An LLM evaluation in the current session |
+| `http` | `url` | An HTTP POST to an endpoint |
+| `mcp_tool` | `server`, `tool` | A tool on a configured MCP server |
+| `agent` | `prompt` | A spawned subagent (experimental) |
+
+All types also accept the common fields `timeout`, `statusMessage`, `if`, and `once`.
+
 ### Prompt-Based Hooks (Recommended)
 
 Use LLM-driven decision making for context-aware validation:
@@ -56,6 +68,51 @@ Execute bash commands for deterministic checks:
 - File system operations
 - External tool integrations
 - Performance-critical checks
+
+### HTTP Hooks
+
+Send the hook payload as an HTTP POST to an external endpoint:
+
+```json
+{
+  "type": "http",
+  "url": "http://localhost:8080/hooks/pre-tool-use",
+  "headers": { "Authorization": "Bearer $MY_TOKEN" },
+  "allowedEnvVars": ["MY_TOKEN"],
+  "timeout": 30
+}
+```
+
+**Use for:** delegating decisions to an out-of-process service. `url` is required; `headers` and `allowedEnvVars` are optional.
+
+### MCP Tool Hooks
+
+Invoke a tool on a configured MCP server:
+
+```json
+{
+  "type": "mcp_tool",
+  "server": "my_server",
+  "tool": "security_scan",
+  "input": { "file_path": "${tool_input.file_path}" }
+}
+```
+
+**Use for:** reusing validation logic already exposed by an MCP server. `server` and `tool` are required; `input` is optional. For a plugin-bundled server, use the scoped name: `"server": "plugin:my-plugin:db"`.
+
+### Agent Hooks (Experimental)
+
+Spawn a subagent to evaluate the event:
+
+```json
+{
+  "type": "agent",
+  "prompt": "Review the changes in $ARGUMENTS and return approval",
+  "model": "claude-opus-4-1-20250805"
+}
+```
+
+**Use for:** multi-step reasoning that benefits from its own agent context. `prompt` is required; `model` is optional. Use `$ARGUMENTS` as the placeholder for the hook input JSON. Agent hooks are experimental and may change.
 
 ## Hook Configuration Formats
 
