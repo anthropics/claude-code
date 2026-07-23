@@ -6,6 +6,8 @@ Automated code review for pull requests using multiple specialized agents with c
 
 The Code Review Plugin automates pull request review by launching multiple agents in parallel to independently audit changes from different perspectives. It uses confidence scoring to filter out false positives, ensuring only high-quality, actionable feedback is posted.
 
+> **Note:** Claude Code also ships a separate, bundled `/code-review` skill that is available out of the box, without installing this plugin. The bundled skill reviews your current *local working diff* at selectable effort levels (`low` through `ultra`, including a cloud-based `ultra` review), and supports `--fix` and `--comment`. This plugin instead reviews an already-open *pull request* end-to-end via the `gh` CLI, using 4 parallel agents with confidence-based scoring, and — once installed — is invoked as its own namespaced command (shown in the skills list as `code-review:code-review`) to avoid colliding with the bundled skill. If you're unsure which to use: reach for the bundled `/code-review` skill to review your own changes before opening a PR, and use this plugin once a PR already exists and you want an automated review posted against it.
+
 ## Commands
 
 ### `/code-review`
@@ -92,7 +94,7 @@ https://github.com/owner/repo/blob/abc123.../src/utils.ts#L23-L28
 
 ## Installation
 
-This plugin is included in the Claude Code repository. The command is automatically available when using Claude Code.
+This plugin ships as part of the official `claude-plugins-official` marketplace and is included in this repository as source, but it is **not enabled by default**. Install it explicitly (via `/plugin`, or by configuring it in your project's `.claude/settings.json`) to get its `/code-review:code-review` command. See [Overview](#overview) above for how this differs from the bundled `/code-review` skill, which requires no installation.
 
 ## Best Practices
 
