@@ -4,7 +4,7 @@
     "enabled": true,
     "autoAllowBashIfSandboxed": false,
     "allowUnsandboxedCommands": false,
-    "excludedCommands": [],
+    "excludedCommands": ["docker:*"],
     "network": {
       "allowUnixSockets": [],
       "allowAllUnixSockets": false,
