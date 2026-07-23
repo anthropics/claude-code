@@ -42,6 +42,19 @@ async function githubRequest<T>(
 
 // --
 
+async function fetchAllPages<T>(baseEndpoint: string, perPage = 100): Promise<T[]> {
+  const all: T[] = [];
+  for (let page = 1; ; page++) {
+    const sep = baseEndpoint.includes("?") ? "&" : "?";
+    const items = await githubRequest<T[]>(`${baseEndpoint}${sep}page=${page}`);
+    all.push(...items);
+    if (items.length < perPage) break;
+  }
+  return all;
+}
+
+// --
+
 async function markStale(owner: string, repo: string) {
   const staleDays = lifecycle.find((l) => l.label === "stale")!.days;
   const cutoff = new Date();
@@ -51,39 +64,37 @@ async function markStale(owner: string, repo: string) {
 
   console.log(`\n=== marking stale (${staleDays}d inactive) ===`);
 
-  for (let page = 1; page <= 10; page++) {
-    const issues = await githubRequest<any[]>(
-      `/repos/${owner}/${repo}/issues?state=open&sort=updated&direction=asc&per_page=100&page=${page}`
+  const issues = await fetchAllPages<any>(
+    `/repos/${owner}/${repo}/issues?state=open&sort=updated&direction=asc&per_page=100`,
+    100
+  );
+
+  for (const issue of issues) {
+    if (issue.pull_request) continue;
+    if (issue.locked) continue;
+    if (issue.assignees?.length > 0) continue;
+
+    const updatedAt = new Date(issue.updated_at);
+    if (updatedAt > cutoff) return labeled;
+
+    const alreadyStale = issue.labels?.some(
+      (l: any) => l.name === "stale" || l.name === "autoclose"
     );
-    if (issues.length === 0) break;
+    if (alreadyStale) continue;
 
-    for (const issue of issues) {
-      if (issue.pull_request) continue;
-      if (issue.locked) continue;
-      if (issue.assignees?.length > 0) continue;
+    const thumbsUp = issue.reactions?.["+1"] ?? 0;
+    if (thumbsUp >= STALE_UPVOTE_THRESHOLD) continue;
 
-      const updatedAt = new Date(issue.updated_at);
-      if (updatedAt > cutoff) return labeled;
+    const base = `/repos/${owner}/${repo}/issues/${issue.number}`;
 
-      const alreadyStale = issue.labels?.some(
-        (l: any) => l.name === "stale" || l.name === "autoclose"
-      );
-      if (alreadyStale) continue;
-
-      const thumbsUp = issue.reactions?.["+1"] ?? 0;
-      if (thumbsUp >= STALE_UPVOTE_THRESHOLD) continue;
-
-      const base = `/repos/${owner}/${repo}/issues/${issue.number}`;
-
-      if (DRY_RUN) {
-        const age = Math.floor((Date.now() - updatedAt.getTime()) / 86400000);
-        console.log(`#${issue.number}: would label stale (${age}d inactive) — ${issue.title}`);
-      } else {
-        await githubRequest(`${base}/labels`, "POST", { labels: ["stale"] });
-        console.log(`#${issue.number}: labeled stale — ${issue.title}`);
-      }
-      labeled++;
+    if (DRY_RUN) {
+      const age = Math.floor((Date.now() - updatedAt.getTime()) / 86400000);
+      console.log(`#${issue.number}: would label stale (${age}d inactive) — ${issue.title}`);
+    } else {
+      await githubRequest(`${base}/labels`, "POST", { labels: ["stale"] });
+      console.log(`#${issue.number}: labeled stale — ${issue.title}`);
     }
+    labeled++;
   }
 
   return labeled;
@@ -97,56 +108,52 @@ async function closeExpired(owner: string, repo: string) {
     cutoff.setDate(cutoff.getDate() - days);
     console.log(`\n=== ${label} (${days}d timeout) ===`);
 
-    for (let page = 1; page <= 10; page++) {
-      const issues = await githubRequest<any[]>(
-        `/repos/${owner}/${repo}/issues?state=open&labels=${label}&sort=updated&direction=asc&per_page=100&page=${page}`
+    const issues = await fetchAllPages<any>(
+      `/repos/${owner}/${repo}/issues?state=open&labels=${label}&sort=updated&direction=asc&per_page=100`,
+      100
+    );
+
+    for (const issue of issues) {
+      if (issue.pull_request) continue;
+      if (issue.locked) continue;
+
+      const thumbsUp = issue.reactions?.["+1"] ?? 0;
+      if (thumbsUp >= STALE_UPVOTE_THRESHOLD) continue;
+
+      const base = `/repos/${owner}/${repo}/issues/${issue.number}`;
+
+      const events = await fetchAllPages<any>(`${base}/events?per_page=100`, 100);
+
+      const labeledAt = events
+        .filter((e) => e.event === "labeled" && e.label?.name === label)
+        .map((e) => new Date(e.created_at))
+        .pop();
+
+      if (!labeledAt || labeledAt > cutoff) continue;
+
+      const comments = await fetchAllPages<any>(
+        `${base}/comments?since=${labeledAt.toISOString()}&per_page=100`,
+        100
       );
-      if (issues.length === 0) break;
-
-      for (const issue of issues) {
-        if (issue.pull_request) continue;
-        if (issue.locked) continue;
-
-        const thumbsUp = issue.reactions?.["+1"] ?? 0;
-        if (thumbsUp >= STALE_UPVOTE_THRESHOLD) continue;
-
-        const base = `/repos/${owner}/${repo}/issues/${issue.number}`;
-
-        const events = await githubRequest<any[]>(`${base}/events?per_page=100`);
-
-        const labeledAt = events
-          .filter((e) => e.event === "labeled" && e.label?.name === label)
-          .map((e) => new Date(e.created_at))
-          .pop();
-
-        if (!labeledAt || labeledAt > cutoff) continue;
-
-        // Skip if a non-bot user commented after the label was applied.
-        // The triage workflow should remove lifecycle labels on human
-        // activity, but check here too as a safety net.
-        const comments = await githubRequest<any[]>(
-          `${base}/comments?since=${labeledAt.toISOString()}&per_page=100`
+      const hasHumanComment = comments.some(
+        (c) => c.user && c.user.type !== "Bot"
+      );
+      if (hasHumanComment) {
+        console.log(
+          `#${issue.number}: skipping (human activity after ${label} label)`
         );
-        const hasHumanComment = comments.some(
-          (c) => c.user && c.user.type !== "Bot"
-        );
-        if (hasHumanComment) {
-          console.log(
-            `#${issue.number}: skipping (human activity after ${label} label)`
-          );
-          continue;
-        }
-
-        if (DRY_RUN) {
-          const age = Math.floor((Date.now() - labeledAt.getTime()) / 86400000);
-          console.log(`#${issue.number}: would close (${label}, ${age}d old) — ${issue.title}`);
-        } else {
-          await githubRequest(`${base}/comments`, "POST", { body: CLOSE_MESSAGE(reason) });
-          await githubRequest(base, "PATCH", { state: "closed", state_reason: "not_planned" });
-          console.log(`#${issue.number}: closed (${label})`);
-        }
-        closed++;
+        continue;
       }
+
+      if (DRY_RUN) {
+        const age = Math.floor((Date.now() - labeledAt.getTime()) / 86400000);
+        console.log(`#${issue.number}: would close (${label}, ${age}d old) — ${issue.title}`);
+      } else {
+        await githubRequest(`${base}/comments`, "POST", { body: CLOSE_MESSAGE(reason) });
+        await githubRequest(base, "PATCH", { state: "closed", state_reason: "not_planned" });
+        console.log(`#${issue.number}: closed (${label})`);
+      }
+      closed++;
     }
   }
 
