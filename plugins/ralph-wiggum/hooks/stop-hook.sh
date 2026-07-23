@@ -87,15 +87,17 @@ if [[ -z "$LAST_LINE" ]]; then
 fi
 
 # Parse JSON with error handling
+# Guard the assignment so set -e doesn't abort before the error branch below
+JQ_EXIT=0
 LAST_OUTPUT=$(echo "$LAST_LINE" | jq -r '
   .message.content |
   map(select(.type == "text")) |
   map(.text) |
   join("\n")
-' 2>&1)
+' 2>&1) || JQ_EXIT=$?
 
 # Check if jq succeeded
-if [[ $? -ne 0 ]]; then
+if [[ $JQ_EXIT -ne 0 ]]; then
   echo "⚠️  Ralph loop: Failed to parse assistant message JSON" >&2
   echo "   Error: $LAST_OUTPUT" >&2
   echo "   This may indicate a transcript format issue" >&2
