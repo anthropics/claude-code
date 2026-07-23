@@ -165,6 +165,8 @@ class RuleEngine:
 
         if operator == 'regex_match':
             return self._regex_match(pattern, field_value)
+        elif operator == 'not_regex_match':
+            return not self._regex_match(pattern, field_value)
         elif operator == 'contains':
             return pattern in field_value
         elif operator == 'equals':
