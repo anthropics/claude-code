@@ -18,19 +18,19 @@ fi
 
 # Check for path traversal
 if [[ "$file_path" == *".."* ]]; then
-  echo '{"hookSpecificOutput": {"permissionDecision": "deny"}, "systemMessage": "Path traversal detected in: '"$file_path"'"}' >&2
+  jq -n --arg p "$file_path" '{"hookSpecificOutput": {"permissionDecision": "deny"}, "systemMessage": ("Path traversal detected in: " + $p)}'
   exit 2
 fi
 
 # Check for system directories
 if [[ "$file_path" == /etc/* ]] || [[ "$file_path" == /sys/* ]] || [[ "$file_path" == /usr/* ]]; then
-  echo '{"hookSpecificOutput": {"permissionDecision": "deny"}, "systemMessage": "Cannot write to system directory: '"$file_path"'"}' >&2
+  jq -n --arg p "$file_path" '{"hookSpecificOutput": {"permissionDecision": "deny"}, "systemMessage": ("Cannot write to system directory: " + $p)}'
   exit 2
 fi
 
 # Check for sensitive files
 if [[ "$file_path" == *.env ]] || [[ "$file_path" == *secret* ]] || [[ "$file_path" == *credentials* ]]; then
-  echo '{"hookSpecificOutput": {"permissionDecision": "ask"}, "systemMessage": "Writing to potentially sensitive file: '"$file_path"'"}' >&2
+  jq -n --arg p "$file_path" '{"hookSpecificOutput": {"permissionDecision": "ask"}, "systemMessage": ("Writing to potentially sensitive file: " + $p)}'
   exit 2
 fi
 
