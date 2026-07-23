@@ -31,7 +31,7 @@ probe() {
 for cmd in "python3" "python" "py -3"; do
     # Word-split intentionally so `py -3` works
     # shellcheck disable=SC2086
-    v=$(probe $cmd) || continue
+    v=$(probe $cmd | tr -d '\r') || continue
     if [ "$v" = "3" ]; then
         # shellcheck disable=SC2086
         exec $cmd "$@"
