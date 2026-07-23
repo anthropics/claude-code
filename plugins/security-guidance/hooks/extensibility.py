@@ -102,11 +102,35 @@ def _config_paths(cwd: Optional[str], basename: str) -> List[Tuple[str, str]]:
     return paths
 
 
+def _resolve_safe(path: str) -> Optional[str]:
+    """Resolve symlinks and verify the real path stays within its parent directory.
+
+    Prevents a malicious repo from committing a symlink that points outside
+    .claude/ (e.g. to ~/.ssh/id_rsa), which would cause the plugin to read and
+    send that file's content to the Anthropic API as project security guidance.
+    Returns the real path when safe, or None if the file escapes its boundary.
+    """
+    try:
+        real = os.path.realpath(path)
+        boundary = os.path.realpath(os.path.dirname(path))
+        if not (real == boundary or real.startswith(boundary + os.sep)):
+            debug_log(
+                f"extensibility: skipping {path}: symlink escapes {boundary} → {real}"
+            )
+            return None
+        return real
+    except OSError:
+        return None
+
+
 def _load_guidance(cwd: Optional[str]) -> str:
     parts = []
     for label, path in _config_paths(cwd, GUIDANCE_BASENAME):
+        real = _resolve_safe(path)
+        if real is None:
+            continue
         try:
-            with open(path, encoding="utf-8") as f:
+            with open(real, encoding="utf-8") as f:
                 txt = f.read().strip()
         except OSError:
             continue
@@ -170,8 +194,11 @@ def _load_user_patterns(cwd: Optional[str]) -> List[Dict[str, Any]]:
 
 def _read_config(path: str) -> Optional[Dict[str, Any]]:
     """Read a YAML or JSON config file. Returns None on missing/malformed."""
+    real = _resolve_safe(path)
+    if real is None:
+        return None
     try:
-        with open(path, encoding="utf-8") as f:
+        with open(real, encoding="utf-8") as f:
             raw = f.read()
     except OSError:
         return None
