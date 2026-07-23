@@ -10,6 +10,56 @@ PROMPT_PARTS=()
 MAX_ITERATIONS=0
 COMPLETION_PROMISE="null"
 
+set_max_iterations() {
+  local value="$1"
+
+  if [[ -z "$value" ]]; then
+    echo "❌ Error: --max-iterations requires a number argument" >&2
+    echo "" >&2
+    echo "   Valid examples:" >&2
+    echo "     --max-iterations 10" >&2
+    echo "     --max-iterations=10" >&2
+    echo "     --max-iterations 0  (unlimited)" >&2
+    echo "" >&2
+    echo "   You provided: --max-iterations (with no number)" >&2
+    exit 1
+  fi
+
+  if ! [[ "$value" =~ ^[0-9]+$ ]]; then
+    echo "❌ Error: --max-iterations must be a positive integer or 0, got: $value" >&2
+    echo "" >&2
+    echo "   Valid examples:" >&2
+    echo "     --max-iterations 10" >&2
+    echo "     --max-iterations=10" >&2
+    echo "     --max-iterations 0  (unlimited)" >&2
+    echo "" >&2
+    echo "   Invalid: decimals (10.5), negative numbers (-5), text" >&2
+    exit 1
+  fi
+
+  MAX_ITERATIONS="$value"
+}
+
+set_completion_promise() {
+  local value="$1"
+
+  if [[ -z "$value" ]]; then
+    echo "❌ Error: --completion-promise requires a text argument" >&2
+    echo "" >&2
+    echo "   Valid examples:" >&2
+    echo "     --completion-promise 'DONE'" >&2
+    echo "     --completion-promise='DONE'" >&2
+    echo "     --completion-promise 'TASK COMPLETE'" >&2
+    echo "" >&2
+    echo "   You provided: --completion-promise (with no text)" >&2
+    echo "" >&2
+    echo "   Note: Multi-word promises must be quoted!" >&2
+    exit 1
+  fi
+
+  COMPLETION_PROMISE="$value"
+}
+
 # Parse options and positional arguments
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -25,7 +75,9 @@ ARGUMENTS:
 
 OPTIONS:
   --max-iterations <n>           Maximum iterations before auto-stop (default: unlimited)
+  --max-iterations=<n>           Same as above, using equals-sign syntax
   --completion-promise '<text>'  Promise phrase (USE QUOTES for multi-word)
+  --completion-promise='<text>'  Same as above, using equals-sign syntax
   -h, --help                     Show this help message
 
 DESCRIPTION:
@@ -41,6 +93,7 @@ DESCRIPTION:
 
 EXAMPLES:
   /ralph-loop Build a todo API --completion-promise 'DONE' --max-iterations 20
+  /ralph-loop Build a todo API --completion-promise='DONE' --max-iterations=20
   /ralph-loop --max-iterations 10 Fix the auth bug
   /ralph-loop Refactor cache layer  (runs forever)
   /ralph-loop --completion-promise 'TASK COMPLETE' Create a REST API
@@ -59,47 +112,20 @@ HELP_EOF
       exit 0
       ;;
     --max-iterations)
-      if [[ -z "${2:-}" ]]; then
-        echo "❌ Error: --max-iterations requires a number argument" >&2
-        echo "" >&2
-        echo "   Valid examples:" >&2
-        echo "     --max-iterations 10" >&2
-        echo "     --max-iterations 50" >&2
-        echo "     --max-iterations 0  (unlimited)" >&2
-        echo "" >&2
-        echo "   You provided: --max-iterations (with no number)" >&2
-        exit 1
-      fi
-      if ! [[ "$2" =~ ^[0-9]+$ ]]; then
-        echo "❌ Error: --max-iterations must be a positive integer or 0, got: $2" >&2
-        echo "" >&2
-        echo "   Valid examples:" >&2
-        echo "     --max-iterations 10" >&2
-        echo "     --max-iterations 50" >&2
-        echo "     --max-iterations 0  (unlimited)" >&2
-        echo "" >&2
-        echo "   Invalid: decimals (10.5), negative numbers (-5), text" >&2
-        exit 1
-      fi
-      MAX_ITERATIONS="$2"
+      set_max_iterations "${2:-}"
       shift 2
       ;;
+    --max-iterations=*)
+      set_max_iterations "${1#*=}"
+      shift
+      ;;
     --completion-promise)
-      if [[ -z "${2:-}" ]]; then
-        echo "❌ Error: --completion-promise requires a text argument" >&2
-        echo "" >&2
-        echo "   Valid examples:" >&2
-        echo "     --completion-promise 'DONE'" >&2
-        echo "     --completion-promise 'TASK COMPLETE'" >&2
-        echo "     --completion-promise 'All tests passing'" >&2
-        echo "" >&2
-        echo "   You provided: --completion-promise (with no text)" >&2
-        echo "" >&2
-        echo "   Note: Multi-word promises must be quoted!" >&2
-        exit 1
-      fi
-      COMPLETION_PROMISE="$2"
+      set_completion_promise "${2:-}"
       shift 2
+      ;;
+    --completion-promise=*)
+      set_completion_promise "${1#*=}"
+      shift
       ;;
     *)
       # Non-option argument - collect all as prompt parts
