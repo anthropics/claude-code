@@ -1,0 +1,14 @@
+{
+  "name": "enhanced-statusline",
+  "version": "1.0.0",
+  "description": "Enhanced status line for Claude Code with session duration, token tracking, git status, and cost monitoring",
+  "author": {
+    "name": "Deepan Kumar",
+    "email": "deepan.ppgit@gmail.com",
+    "url": "https://github.com/deepan-g2"
+  },
+  "keywords": ["statusline", "theme", "customization", "git", "monitoring"],
+  "license": "MIT",
+  "repository": "https://github.com/deepan-g2/claude-statusline-plugin",
+  "homepage": "https://github.com/deepan-g2/claude-statusline-plugin#readme"
+}
