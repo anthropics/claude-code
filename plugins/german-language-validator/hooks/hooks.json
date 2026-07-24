@@ -1,0 +1,24 @@
+{
+  "PreToolUse": [
+    {
+      "matcher": "Write",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "python3 $PLUGIN_DIR/hooks/umlaut_validator.py",
+          "statusMessage": "Validating German umlauts..."
+        }
+      ]
+    },
+    {
+      "matcher": "Edit",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "python3 $PLUGIN_DIR/hooks/umlaut_validator.py",
+          "statusMessage": "Validating German umlauts..."
+        }
+      ]
+    }
+  ]
+}
