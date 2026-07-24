@@ -201,7 +201,9 @@ async function autoCloseDuplicates(): Promise<void> {
     );
 
     const commentsAfterDupe = comments.filter(
-      (comment) => new Date(comment.created_at) > dupeCommentDate
+      (comment) =>
+        new Date(comment.created_at) > dupeCommentDate &&
+        comment.user.type !== "Bot"
     );
     console.log(
       `[DEBUG] Issue #${issue.number} - ${commentsAfterDupe.length} comments after duplicate detection`
@@ -209,7 +211,7 @@ async function autoCloseDuplicates(): Promise<void> {
 
     if (commentsAfterDupe.length > 0) {
       console.log(
-        `[DEBUG] Issue #${issue.number} - has activity after duplicate comment, skipping`
+        `[DEBUG] Issue #${issue.number} - has human activity after duplicate comment, skipping`
       );
       continue;
     }
