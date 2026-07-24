@@ -140,7 +140,7 @@ Checks hook scripts for common issues and best practices violations.
 ### Hook doesn't execute
 
 Check:
-- Script has shebang (`#!/bin/bash`)
+- Script has shebang (`#!/usr/bin/env bash`)
 - Script is executable (`chmod +x`)
 - Path in hooks.json is correct (use `${CLAUDE_PLUGIN_ROOT}`)
 
