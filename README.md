@@ -18,7 +18,7 @@ For more installation options, uninstall steps, and troubleshooting, see the [se
 
 1. Install Claude Code:
 
-    **MacOS/Linux (Recommended):**
+    **MacOS/Linux/WSL (Recommended):**
     ```bash
     curl -fsSL https://claude.ai/install.sh | bash
     ```
