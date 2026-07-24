@@ -145,6 +145,17 @@
       },
       "source": "./plugins/security-guidance",
       "category": "security"
+    },
+    {
+      "name": "voice-to-claude",
+      "description": "High-quality voice dictation for Claude Code using whisper.cpp with local on-device processing",
+      "version": "0.1.0",
+      "author": {
+        "name": "Enes Basbug",
+        "email": "enesbasbugeng@gmail.com"
+      },
+      "source": "./plugins/voice-to-claude",
+      "category": "accessibility"
     }
   ]
 }
