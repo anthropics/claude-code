@@ -468,7 +468,7 @@ plugin/
 
 **Usage in components**:
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 source "${CLAUDE_PLUGIN_ROOT}/lib/test-utils.sh"
 run_tests
 ```
