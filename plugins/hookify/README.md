@@ -123,6 +123,7 @@ Ensure credentials are not hardcoded and file is in .gitignore.
 
 - **`bash`**: Triggers on Bash tool commands
 - **`file`**: Triggers on Edit, Write, MultiEdit tools
+- **`read`**: Triggers on Read, Glob, Grep, LS tools (file reads, not modifications)
 - **`stop`**: Triggers when Claude wants to stop (for completion checks)
 - **`prompt`**: Triggers on user prompt submission
 - **`all`**: Triggers on all events
