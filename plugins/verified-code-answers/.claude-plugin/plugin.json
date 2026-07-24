@@ -1,0 +1,9 @@
+{
+  "name": "verified-code-answers",
+  "version": "1.0.0",
+  "description": "Ensures Claude reads source files before answering factual questions about code behavior, and explicitly caveats any unverified assertions. Addresses issue #29753.",
+  "author": {
+    "name": "HarshalJain-cs",
+    "email": ""
+  }
+}
