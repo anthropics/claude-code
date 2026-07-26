@@ -1,22 +1,27 @@
 #!/usr/bin/env bash
 #
 # Edits labels on a GitHub issue.
-# Usage: ./edit-issue-labels.sh --issue 123 --add-label bug --add-label needs-triage --remove-label untriaged
+# Usage: ./edit-issue-labels.sh --add-label bug --add-label needs-triage --remove-label untriaged
+#
+# The issue number is read from the workflow event payload.
 #
 
 set -euo pipefail
 
-ISSUE=""
+# Read from event payload so the issue number is bound to the triggering event.
+# Falls back to workflow_dispatch inputs for manual runs.
+ISSUE=$(jq -r '.issue.number // .inputs.issue_number // empty' "${GITHUB_EVENT_PATH:?GITHUB_EVENT_PATH not set}")
+if ! [[ "$ISSUE" =~ ^[0-9]+$ ]]; then
+  echo "Error: no issue number in event payload" >&2
+  exit 1
+fi
+
 ADD_LABELS=()
 REMOVE_LABELS=()
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
   case $1 in
-    --issue)
-      ISSUE="$2"
-      shift 2
-      ;;
     --add-label)
       ADD_LABELS+=("$2")
       shift 2
@@ -26,19 +31,11 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     *)
+      echo "Error: unknown argument (only --add-label and --remove-label are accepted)" >&2
       exit 1
       ;;
   esac
 done
-
-# Validate issue number
-if [[ -z "$ISSUE" ]]; then
-  exit 1
-fi
-
-if ! [[ "$ISSUE" =~ ^[0-9]+$ ]]; then
-  exit 1
-fi
 
 if [[ ${#ADD_LABELS[@]} -eq 0 && ${#REMOVE_LABELS[@]} -eq 0 ]]; then
   exit 1

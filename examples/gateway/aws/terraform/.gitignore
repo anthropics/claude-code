@@ -1,0 +1,19 @@
+# Never commit state (contains secrets) or local var files
+*.tfstate
+*.tfstate.*
+.terraform/
+terraform.tfvars
+*.auto.tfvars
+crash.log
+
+# The lock file holds no secrets. It's ignored here so consumers who copy this
+# example into their own repo generate (and commit) their own platform-complete
+# lock at first init — committing one from this repo would carry only one
+# platform's provider hashes. In your copy, drop this line and commit the lock
+# produced by:
+#   terraform providers lock -platform=linux_amd64 -platform=linux_arm64 \
+#     -platform=darwin_amd64 -platform=darwin_arm64 -platform=windows_amd64
+# versions.tf pins by range only, so without a committed lock the registry
+# serves the newest in-range build; a platform-complete lock gives hash
+# continuity across machines/CI and makes provider upgrades reviewable diffs.
+.terraform.lock.hcl
