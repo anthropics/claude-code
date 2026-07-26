@@ -32,7 +32,7 @@ Combine command and prompt hooks for layered validation:
 
 **Example quick-check.sh:**
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 input=$(cat)
 command=$(echo "$input" | jq -r '.tool_input.command')
 
@@ -52,7 +52,7 @@ The command hook quickly approves obviously safe commands, while the prompt hook
 Execute hooks based on environment or context:
 
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 # Only run in CI environment
 if [ -z "$CI" ]; then
   echo '{"continue": true}' # Skip in non-CI
@@ -71,7 +71,7 @@ input=$(cat)
 
 **Example: Skip certain checks for trusted users:**
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 # Skip detailed checks for admin users
 if [ "$USER" = "admin" ]; then
   exit 0
@@ -88,7 +88,7 @@ Share state between hooks using temporary files:
 
 ```bash
 # Hook 1: Analyze and save state
-#!/bin/bash
+#!/usr/bin/env bash
 input=$(cat)
 command=$(echo "$input" | jq -r '.tool_input.command')
 
@@ -101,7 +101,7 @@ exit 0
 
 ```bash
 # Hook 2: Use saved state
-#!/bin/bash
+#!/usr/bin/env bash
 risk_level=$(cat /tmp/hook-state-$$ 2>/dev/null || echo "unknown")
 
 if [ "$risk_level" = "high" ]; then
@@ -117,7 +117,7 @@ fi
 Modify hook behavior based on project configuration:
 
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 cd "$CLAUDE_PROJECT_DIR" || exit 1
 
 # Read project-specific config
@@ -170,7 +170,7 @@ The LLM can read the transcript file and make context-aware decisions.
 ### Caching Validation Results
 
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 input=$(cat)
 file_path=$(echo "$input" | jq -r '.tool_input.file_path')
 cache_key=$(echo -n "$file_path" | md5sum | cut -d' ' -f1)
@@ -232,7 +232,7 @@ Coordinate hooks across different events:
 
 **SessionStart - Set up tracking:**
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 # Initialize session tracking
 echo "0" > /tmp/test-count-$$
 echo "0" > /tmp/build-count-$$
@@ -240,7 +240,7 @@ echo "0" > /tmp/build-count-$$
 
 **PostToolUse - Track events:**
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 input=$(cat)
 tool_name=$(echo "$input" | jq -r '.tool_name')
 
@@ -255,7 +255,7 @@ fi
 
 **Stop - Verify based on tracking:**
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 test_count=$(cat /tmp/test-count-$$ 2>/dev/null || echo "0")
 
 if [ "$test_count" -eq 0 ]; then
@@ -269,7 +269,7 @@ fi
 ### Slack Notifications
 
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 input=$(cat)
 tool_name=$(echo "$input" | jq -r '.tool_name')
 decision="blocked"
@@ -287,7 +287,7 @@ exit 2
 ### Database Logging
 
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 input=$(cat)
 
 # Log to database
@@ -300,7 +300,7 @@ exit 0
 ### Metrics Collection
 
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 input=$(cat)
 tool_name=$(echo "$input" | jq -r '.tool_name')
 
@@ -315,7 +315,7 @@ exit 0
 ### Rate Limiting
 
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 input=$(cat)
 command=$(echo "$input" | jq -r '.tool_input.command')
 
@@ -349,7 +349,7 @@ exit 0
 ### Audit Logging
 
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 input=$(cat)
 tool_name=$(echo "$input" | jq -r '.tool_name')
 timestamp=$(date -Iseconds)
@@ -363,7 +363,7 @@ exit 0
 ### Secret Detection
 
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 input=$(cat)
 content=$(echo "$input" | jq -r '.tool_input.content')
 
@@ -382,7 +382,7 @@ exit 0
 
 ```bash
 # test-hook.sh
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Test 1: Approve safe command
 result=$(echo '{"tool_input": {"command": "ls"}}' | bash validate-bash.sh)
@@ -407,7 +407,7 @@ Create test scenarios that exercise the full hook workflow:
 
 ```bash
 # integration-test.sh
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Set up test environment
 export CLAUDE_PROJECT_DIR="/tmp/test-project"
