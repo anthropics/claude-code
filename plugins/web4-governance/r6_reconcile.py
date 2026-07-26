@@ -80,15 +80,29 @@ def scan_r6_day(path):
 
 
 def audit_index():
-    """Index the whole audit store once: {day: Counter({session: outcomes})}.
+    """Index the whole audit store once.
 
     Built once and reused across days — the store is 1,700+ files, so scanning
     it per requested day made --all quadratic enough to discourage running it,
     and a check nobody runs is the defect this script exists to fix.
+
+    Returns (by_day, by_id, health):
+      by_day  {day: Counter({session: outcomes})}  — session-grain, kept for the
+              per-session table only.
+      by_id   Counter({r6_request_id: outcomes})   — the real join. Every audit
+              record carries the pre hook's own r6 id, so decisions and outcomes
+              join per call, not per session. An earlier version of this script
+              claimed no per-call key existed; it was in the schema all along
+              (kimi-code, 2026-07-26). Session-grain counting is both blind to
+              cross-midnight outcomes and masked from below by duplicate
+              records, so it understates the gap.
+      health  aggregate degeneracy counters — see report_health().
     """
     by_day = {}
+    by_id = Counter()
+    health = {"records": 0, "status": Counter(), "null_output": 0, "no_key": 0}
     if not AUDIT_DIR.is_dir():
-        return by_day
+        return by_day, by_id, health
     for path in AUDIT_DIR.glob("*.jsonl"):
         session = path.stem
         for line in path.read_text(encoding="utf-8", errors="replace").split("\n"):
@@ -102,10 +116,56 @@ def audit_index():
                 continue
             day = str(rec.get("timestamp", ""))[:10]
             by_day.setdefault(day, Counter())[session] += 1
-    return by_day
+            key = rec.get("r6_request_id")
+            if key:
+                by_id[key] += 1
+            else:
+                health["no_key"] += 1
+            result = rec.get("result", {})
+            health["records"] += 1
+            health["status"][result.get("status", "?")] += 1
+            if result.get("output_hash") in (None, "null"):
+                health["null_output"] += 1
+    return by_day, by_id, health
 
 
-def reconcile(day, audit_by_day):
+def report_health(health):
+    """Flag outcome fields that never vary.
+
+    A constant is not evidence. The audit store recorded status="success" for
+    76,292 of 76,292 records over six months — not because nothing failed, but
+    because the post hook read `tool_output`/`tool_error`, keys Claude Code does
+    not send (it sends `tool_response`). The store looked healthy the whole time:
+    every record present, every record "success". Nothing checked whether the
+    outcome field could take a second value, so nothing noticed the R6 Result was
+    hardcoded by accident. This check is that missing question.
+    """
+    n = health["records"]
+    if not n:
+        return True
+    ok = True
+    print("=== audit store health ===")
+    print(f"audit records         : {n}")
+    print(f"   status values      : {dict(health['status'])}")
+    if len(health["status"]) < 2:
+        only = next(iter(health["status"]), "?")
+        print(f"   DEGENERATE: status is always {only!r} — the outcome field "
+              "carries no information")
+        ok = False
+    pct = 100.0 * health["null_output"] / n
+    print(f"   null output_hash   : {health['null_output']} ({pct:.1f}%)")
+    if pct > 99.0:
+        print("   DEGENERATE: output is essentially never hashed — audit records "
+              "attest that a hook ran, not what the tool did")
+        ok = False
+    if health["no_key"]:
+        print(f"   MISSING JOIN KEY   : {health['no_key']} records without "
+              "r6_request_id (cannot be joined to a decision)")
+        ok = False
+    return ok
+
+
+def reconcile(day, audit_by_day, audit_by_id):
     path = R6_DIR / f"{day}.jsonl"
     if not path.exists():
         print(f"{day}: no r6 store")
@@ -128,25 +188,52 @@ def reconcile(day, audit_by_day):
         print("   NOTE: a whole-line parser reports "
               f"{len(records) - sum(len(c) for _, c, _ in torn)} records here.")
 
-    # Decisions are written by the pre hook, outcomes by the post hook. They can
-    # only be joined on session_id today; there is no per-call join key.
+    # Decisions come from the pre hook, outcomes from the post hook, and every
+    # audit record carries the decision's own id — so join per call. Unlike the
+    # session-count join this is day-independent (an outcome written after
+    # midnight still matches) and immune to duplicate outcomes inflating a
+    # session's total. What remains unmatched is exactly "no outcome with this
+    # id exists anywhere in the store".
     decisions = Counter(
         r.get("reference", {}).get("session_id", "?") for r in records
     )
     outcomes = audit_by_day.get(day, Counter())
-    print(f"outcomes recorded     : {sum(outcomes.values())}")
+    print(f"outcomes recorded     : {sum(outcomes.values())}  "
+          f"(same-day, session-grain)")
 
-    gap_total = 0
-    rows = []
-    for session, n_dec in decisions.most_common():
-        n_out = outcomes.get(session, 0)
-        has_file = (AUDIT_DIR / f"{session}.jsonl").exists()
-        gap = n_dec - n_out
-        gap_total += max(gap, 0)
-        rows.append((session, n_dec, n_out, gap, has_file))
+    missing = [r for r in records if not audit_by_id.get(r.get("id"))]
+    gap_total = len(missing)
+    dup = [(r.get("id"), audit_by_id[r.get("id")]) for r in records
+           if audit_by_id.get(r.get("id"), 0) > 1]
+    print(f"unmatched decisions   : {gap_total}  (no outcome with this id, "
+          f"anywhere)")
+    if dup:
+        print(f"duplicated outcomes   : {len(dup)} ids with more than one audit "
+              f"record ({sum(n - 1 for _, n in dup)} extra)")
+
+    # Same-instant decisions in one session contend for the session file's single
+    # `pending_r6` slot: last writer wins, and the losers can never be completed.
+    # Reported next to the gap because it is the leading candidate mechanism.
+    by_session = {}
+    for r in records:
+        by_session.setdefault(
+            r.get("reference", {}).get("session_id", "?"), []
+        ).append(r)
+    collisions = 0
+    for sess_records in by_session.values():
+        seen = Counter(r.get("role", {}).get("action_index") for r in sess_records)
+        collisions += sum(n - 1 for n in seen.values() if n > 1)
+    if collisions:
+        print(f"action_index reuse    : {collisions}  (concurrent pre hooks lost "
+              f"an update to the session file)")
+
     if gap_total:
-        print(f"unmatched decisions   : {gap_total}  (decision with no outcome)")
         print("   session                                dec  out  gap  audit-file")
+        rows = []
+        for session, n_dec in decisions.most_common():
+            n_out = outcomes.get(session, 0)
+            has_file = (AUDIT_DIR / f"{session}.jsonl").exists()
+            rows.append((session, n_dec, n_out, n_dec - n_out, has_file))
         for session, n_dec, n_out, gap, has_file in rows:
             mark = "" if has_file else "  <== NO AUDIT FILE"
             print(f"   {session:38s} {n_dec:4d} {n_out:4d} {gap:4d}  "
@@ -164,11 +251,12 @@ def main(argv):
         days = [a for a in argv[1:] if not a.startswith("-")] or [
             datetime.now(timezone.utc).strftime("%Y-%m-%d")
         ]
-    audit_by_day = audit_index()
+    audit_by_day, audit_by_id, health = audit_index()
     ok = True
     for day in days:
-        ok = reconcile(day, audit_by_day) and ok
+        ok = reconcile(day, audit_by_day, audit_by_id) and ok
         print()
+    ok = report_health(health) and ok
     return 0 if ok else 1
 
 

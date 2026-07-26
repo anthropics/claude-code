@@ -160,6 +160,38 @@ def store_audit_record(session, record):
         f.write(json.dumps(record) + "\n")
 
 
+def extract_outcome(input_data):
+    """
+    Pull (output, error) out of a PostToolUse payload.
+
+    Claude Code sends the result under `tool_response`; this hook originally read
+    `tool_output`/`tool_error`, keys the harness never sends. The effect was silent
+    and total: every audit record since 2026-01-30 carried
+    status="success" / output_hash="null", including for calls that failed, and the
+    same always-True flag was handed to AgentGovernance.on_agent_complete(). Sibling
+    hooks on this event (snarc's post-tool-use.js, hestia's witness.py) already read
+    `tool_response` — the disagreement was the tell. Fallbacks are kept so a payload
+    using the old key still works.
+    """
+    response = input_data.get("tool_response")
+    if response is None:
+        response = input_data.get("tool_result")
+    if response is None:
+        response = input_data.get("tool_output")
+
+    error = input_data.get("tool_error")
+    if error is None and isinstance(response, dict):
+        if response.get("is_error") or response.get("isError"):
+            error = (
+                response.get("error")
+                or response.get("message")
+                or response.get("content")
+                or "tool error"
+            )
+
+    return response, error
+
+
 def main():
     """Post-tool-use hook entry point."""
     try:
@@ -169,8 +201,7 @@ def main():
         sys.exit(0)
 
     session_id = input_data.get("session_id", "default")
-    tool_output = input_data.get("tool_output")
-    tool_error = input_data.get("tool_error")
+    tool_output, tool_error = extract_outcome(input_data)
 
     # Load session
     session = load_session(session_id)
