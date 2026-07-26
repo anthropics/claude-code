@@ -28,7 +28,7 @@ Usage:
 import json
 import sys
 from collections import Counter
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 R6_DIR = Path.home() / ".web4" / "r6"
@@ -164,7 +164,10 @@ def audit_index():
                 # one, and collapsing them is how a branch that never executed
                 # reads as healthy silence.
                 row.append(repr(node) if found else ABSENT)
-            samples.append((day, tuple(row)))
+            # Full timestamp, not the day: sorting by day alone makes the
+            # newest-N fallback newest only at day granularity, so within the
+            # boundary day the selection would be glob order (kimi-code, id=145).
+            samples.append((str(rec.get("timestamp", "")), tuple(row)))
     return by_day, by_id, (samples, no_key)
 
 
@@ -203,18 +206,37 @@ def report_health(health):
     if not samples:
         return True
 
-    # Sorted by day so the record-count fallback below really is the *newest* N;
-    # the store is one file per session, so glob order is arbitrary in time.
+    # Sorted by timestamp so the record-count fallback below really is the
+    # *newest* N; the store is one file per session, so glob order is arbitrary
+    # in time.
     samples.sort(key=lambda s: s[0])
-    days = sorted({day for day, _ in samples if day})
-    cutoff = days[-min(len(days), WINDOW_DAYS)] if days else ""
-    window = [row for day, row in samples if day >= cutoff]
-    mode = f"last {WINDOW_DAYS}d, from {cutoff}"
+
+    # CALENDAR cutoff, not the 14 most recent days *present in the store*.
+    # The earlier version took days[-14], which denominates the window in
+    # activity and labels it as time: on this store that reached 2026-05-11,
+    # 76 calendar days back, because the store is sparse (108 active days over
+    # six months, with a 40-day hole in June). A field that died two months ago
+    # would still pass "varied in the last 14 days" — the poison pill returning
+    # diluted rather than seeded (kimi-code, id=145).
+    #
+    # A calendar cutoff can leave too few records, and that is the point: the
+    # newest-N fallback below already exists to say so out loud. Better to
+    # confess the sparsity than to relabel it as recency.
+    cutoff = (datetime.now(timezone.utc).date()
+              - timedelta(days=WINDOW_DAYS)).isoformat()
+    window = [row for stamp, row in samples if stamp[:10] >= cutoff]
+    mode = f"last {WINDOW_DAYS} calendar days, since {cutoff}"
     if len(window) < MIN_WINDOW_RECORDS:
         # A quiet store still deserves an answer: widen to the newest N records
         # rather than reporting "insufficient data" on every field forever.
-        window = [row for _, row in samples[-MIN_WINDOW_RECORDS:]]
-        mode = f"newest {len(window)} records; {WINDOW_DAYS}d held too few"
+        # The span is printed because the fallback is only honest if the reader
+        # can see how far back "newest N" actually had to reach.
+        tail = samples[-MIN_WINDOW_RECORDS:]
+        window = [row for _, row in tail]
+        span = f"{tail[0][0][:10]}..{tail[-1][0][:10]}" if tail else "empty"
+        mode = (f"newest {len(window)} records spanning {span}; "
+                f"only {sum(1 for s, _ in samples if s[:10] >= cutoff)} in the "
+                f"last {WINDOW_DAYS} calendar days")
 
     ok = True
     print("=== audit store health ===")
