@@ -35,6 +35,32 @@ R6_DIR = Path.home() / ".web4" / "r6"
 AUDIT_DIR = Path.home() / ".web4" / "audit"
 
 _DECODER = json.JSONDecoder()
+ABSENT = "<absent>"
+
+# Fields governance CONSUMES — each is a value some component reads to decide
+# something, not merely a field the record happens to carry. A degenerate field
+# nobody reads is a curiosity; a live field read as a constant is the 2026-01-30
+# bug (kimi-code, 2026-07-26). The consumer is named so a failure says who was
+# misled, not just which key was flat.
+GOVERNED_FIELDS = [
+    ("result.status", "the R6 Result verdict itself"),
+    ("result.output_hash", "what the audit record attests the tool produced"),
+    ("policy_witnessed.success", "PolicyRegistry.witness_decision(success=)"),
+    ("policy_witnessed.decision", "the policy verdict being witnessed"),
+    ("mcp_witnessed.success", "EntityTrustStore.witness(success=)"),
+    ("agent_completion.success", "AgentGovernance.on_agent_complete(success=)"),
+    ("heartbeat.status", "timing coherence classification"),
+]
+
+# A trailing window, not a census. A census asks "did this field ever vary",
+# which the day-one seed record defeats: output_hash has two distinct values
+# all-time — "null" and one real sha256 written 2026-01-30 during a manual test —
+# so an all-time distinct count certifies it as alive. Worse, a census would
+# certify a store that died yesterday, as long as it once lived, and dying-after-
+# working is the failure mode this fleet actually gets.
+WINDOW_DAYS = 14
+MIN_WINDOW_RECORDS = 200   # below this, fall back to the newest N records
+MIN_FIELD_SAMPLES = 30     # below this, a field is under-sampled, not degenerate
 
 
 def scan_r6_day(path):
@@ -96,13 +122,16 @@ def audit_index():
               (kimi-code, 2026-07-26). Session-grain counting is both blind to
               cross-midnight outcomes and masked from below by duplicate
               records, so it understates the gap.
-      health  aggregate degeneracy counters — see report_health().
+      samples one (day, value-tuple) row per record for the windowed health
+              check — tracked fields only, so this stays small.
     """
     by_day = {}
     by_id = Counter()
-    health = {"records": 0, "status": Counter(), "null_output": 0, "no_key": 0}
+    samples = []
+    no_key = 0
     if not AUDIT_DIR.is_dir():
-        return by_day, by_id, health
+        return by_day, by_id, (samples, no_key)
+    paths = [field.split(".") for field, _ in GOVERNED_FIELDS]
     for path in AUDIT_DIR.glob("*.jsonl"):
         session = path.stem
         for line in path.read_text(encoding="utf-8", errors="replace").split("\n"):
@@ -120,17 +149,27 @@ def audit_index():
             if key:
                 by_id[key] += 1
             else:
-                health["no_key"] += 1
-            result = rec.get("result", {})
-            health["records"] += 1
-            health["status"][result.get("status", "?")] += 1
-            if result.get("output_hash") in (None, "null"):
-                health["null_output"] += 1
-    return by_day, by_id, health
+                no_key += 1
+            row = []
+            for parts in paths:
+                node, found = rec, True
+                for part in parts:
+                    if isinstance(node, dict) and part in node:
+                        node = node[part]
+                    else:
+                        found = False
+                        break
+                # ABSENT distinguishes "field not written" from "field written as
+                # null". The first is a dead code path, the second is a flat live
+                # one, and collapsing them is how a branch that never executed
+                # reads as healthy silence.
+                row.append(repr(node) if found else ABSENT)
+            samples.append((day, tuple(row)))
+    return by_day, by_id, (samples, no_key)
 
 
 def report_health(health):
-    """Flag outcome fields that never vary.
+    """Flag governance-consumed fields that do not vary *recently*.
 
     A constant is not evidence. The audit store recorded status="success" for
     76,292 of 76,292 records over six months — not because nothing failed, but
@@ -139,27 +178,70 @@ def report_health(health):
     every record present, every record "success". Nothing checked whether the
     outcome field could take a second value, so nothing noticed the R6 Result was
     hardcoded by accident. This check is that missing question.
+
+    It asks it over a trailing window rather than the whole history, because the
+    whole history has a poison pill in it (kimi-code, 2026-07-26): the store's
+    day-one manual test wrote the only real output_hash it has ever contained, so
+    `output_hash` has two distinct values all-time and a census-style variance
+    check waves it through. The same census would certify a field that worked
+    once in January and died in February. Recency is the property that matters,
+    so recency is what gets measured — and the all-time count is printed beside
+    the window count so "varied, but not since the seed" stays legible instead of
+    being quietly excluded.
+
+    Three verdicts, deliberately distinct:
+      DEGENERATE      — written often enough to judge, and never varies. The bug.
+      NEVER WRITTEN   — the branch that writes it did not run. A dead code path
+                        reads as silence, and silence is exactly what this store
+                        returned for `agent_completion.success`: 794 Task calls,
+                        every on_agent_spawn throwing on a stale ledger schema,
+                        zero completions recorded, and nothing said a word.
+      under-sampled   — too few writes in the window to conclude. Not a failure;
+                        calling it one trains the operator to ignore the run.
     """
-    n = health["records"]
-    if not n:
+    samples, no_key = health
+    if not samples:
         return True
+
+    # Sorted by day so the record-count fallback below really is the *newest* N;
+    # the store is one file per session, so glob order is arbitrary in time.
+    samples.sort(key=lambda s: s[0])
+    days = sorted({day for day, _ in samples if day})
+    cutoff = days[-min(len(days), WINDOW_DAYS)] if days else ""
+    window = [row for day, row in samples if day >= cutoff]
+    mode = f"last {WINDOW_DAYS}d, from {cutoff}"
+    if len(window) < MIN_WINDOW_RECORDS:
+        # A quiet store still deserves an answer: widen to the newest N records
+        # rather than reporting "insufficient data" on every field forever.
+        window = [row for _, row in samples[-MIN_WINDOW_RECORDS:]]
+        mode = f"newest {len(window)} records; {WINDOW_DAYS}d held too few"
+
     ok = True
     print("=== audit store health ===")
-    print(f"audit records         : {n}")
-    print(f"   status values      : {dict(health['status'])}")
-    if len(health["status"]) < 2:
-        only = next(iter(health["status"]), "?")
-        print(f"   DEGENERATE: status is always {only!r} — the outcome field "
-              "carries no information")
-        ok = False
-    pct = 100.0 * health["null_output"] / n
-    print(f"   null output_hash   : {health['null_output']} ({pct:.1f}%)")
-    if pct > 99.0:
-        print("   DEGENERATE: output is essentially never hashed — audit records "
-              "attest that a hook ran, not what the tool did")
-        ok = False
-    if health["no_key"]:
-        print(f"   MISSING JOIN KEY   : {health['no_key']} records without "
+    print(f"audit records         : {len(samples)} all-time, {len(window)} in "
+          f"window ({mode})")
+    for i, (field, consumer) in enumerate(GOVERNED_FIELDS):
+        win = Counter(row[i] for row in window if row[i] != ABSENT)
+        present = sum(win.values())
+        alltime = len({row[i] for _, row in samples if row[i] != ABSENT})
+        print(f"   {field:26s} n={present:<6d} distinct={len(win)} "
+              f"(all-time {alltime})  {dict(win.most_common(3))}")
+        if present == 0:
+            print(f"      NEVER WRITTEN: nothing produced this field in the "
+                  f"window — {consumer} is not running")
+            ok = False
+        elif present < MIN_FIELD_SAMPLES:
+            print(f"      under-sampled: {present} < {MIN_FIELD_SAMPLES} writes, "
+                  f"not judged")
+        elif len(win) < 2:
+            only = next(iter(win), "?")
+            extra = (f"; {alltime} values all-time, so its variation predates the "
+                     f"window — a seed, not a signal" if alltime > 1 else "")
+            print(f"      DEGENERATE: always {only} across {present} records — "
+                  f"{consumer} is reading a constant{extra}")
+            ok = False
+    if no_key:
+        print(f"   MISSING JOIN KEY   : {no_key} records without "
               "r6_request_id (cannot be joined to a decision)")
         ok = False
     return ok
