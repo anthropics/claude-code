@@ -36,10 +36,43 @@ echo "  Done"
 echo ""
 echo "=== Hook Configuration ==="
 echo ""
+
+# VERIFY BEFORE ADVERTISING. This script used to print a config pointing at
+# $CLAUDE_PROJECT_DIR/web4/claude-code-plugin/hooks/ — a path that has not existed
+# since the plugin moved to claude-code/plugins/web4-governance/. It printed it
+# unconditionally and then said "Deployment complete". An operator who pasted it got
+# a project whose settings.json names three hooks that are not there: Claude Code
+# runs nothing, reports nothing, and the project reads as governed on every
+# inventory. A dead hook is not a broken gate, it is an ABSENT one wearing a gate's
+# name, which is worse than never having installed it.
+MISSING=0
+for h in session_start pre_tool_use post_tool_use; do
+    if [[ ! -x "$SCRIPT_DIR/hooks/$h.py" ]]; then
+        echo "  !! MISSING or not executable: $SCRIPT_DIR/hooks/$h.py"
+        MISSING=1
+    fi
+done
+if [[ $MISSING -eq 1 ]]; then
+    echo ""
+    echo "  Refusing to print a hook configuration for files that are not there."
+    echo "  Fix the install before wiring anything to it."
+    exit 1
+fi
+
+if [[ -f "$SCRIPT_DIR/hooks/hooks.json" ]]; then
+    echo "This plugin ships hooks/hooks.json. If you installed it AS A PLUGIN,"
+    echo "that manifest already wires these three hooks and you need no settings"
+    echo "edit at all — adding them again double-fires every hook."
+    echo ""
+    echo "The block below is for a MANUAL (non-plugin) install only."
+    echo ""
+fi
+
 echo "Add this to your project's .claude/settings.local.json:"
-echo "(Uses \$CLAUDE_PROJECT_DIR for portability across machines)"
+echo "(paths resolved from this checkout, so they are correct on THIS machine;"
+echo " a different machine must re-run deploy.sh rather than copy them)"
 echo ""
-cat << 'EOF'
+cat <<EOF
 {
   "hooks": {
     "SessionStart": [
@@ -47,7 +80,7 @@ cat << 'EOF'
         "hooks": [
           {
             "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/web4/claude-code-plugin/hooks/session_start.py"
+            "command": "$SCRIPT_DIR/hooks/session_start.py"
           }
         ]
       }
@@ -58,7 +91,7 @@ cat << 'EOF'
         "hooks": [
           {
             "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/web4/claude-code-plugin/hooks/pre_tool_use.py"
+            "command": "$SCRIPT_DIR/hooks/pre_tool_use.py"
           }
         ]
       }
@@ -69,7 +102,7 @@ cat << 'EOF'
         "hooks": [
           {
             "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/web4/claude-code-plugin/hooks/post_tool_use.py"
+            "command": "$SCRIPT_DIR/hooks/post_tool_use.py"
           }
         ]
       }
