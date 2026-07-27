@@ -7,11 +7,56 @@
     "name": "Anthropic",
     "email": "support@anthropic.com"
   },
+  "marketplaces": [
+    {
+      "name": "ruflo",
+      "source": "ruvnet/ruflo",
+      "url": "https://github.com/ruvnet/ruflo"
+    }
+  ],
   "plugins": [
+    {
+      "name": "claude-flow",
+      "description": "AI agent orchestration using claude-flow (RuFlo) — coordinate swarms of specialized agents, hive-mind consensus, and persistent task automation within Claude Code",
+      "version": "1.0.0",
+      "author": {
+        "name": "Anthropic",
+        "email": "support@anthropic.com"
+      },
+      "source": "./plugins/claude-flow",
+      "category": "development"
+    },
+    {
+      "name": "anthropic-mcp",
+      "description": "Registers the official Anthropic MCP server, giving Claude Code direct access to Claude models and the Anthropic API",
+      "version": "1.0.0",
+      "author": {
+        "name": "Anthropic",
+        "email": "support@anthropic.com"
+      },
+      "source": "./plugins/anthropic-mcp",
+      "category": "development"
+    },
     {
       "name": "agent-sdk-dev",
       "description": "Development kit for working with the Claude Agent SDK",
+      "version": "1.0.0",
+      "author": {
+        "name": "Ashwin Bhat",
+        "email": "ashwin@anthropic.com"
+      },
       "source": "./plugins/agent-sdk-dev",
+      "category": "development"
+    },
+    {
+      "name": "business-agent",
+      "description": "Manage the business-agent managed-agent lifecycle: setup, run, and update sessions via the Claude Agent SDK",
+      "version": "1.0.0",
+      "author": {
+        "name": "sjbrenchley89",
+        "email": "9turnbull@gmail.com"
+      },
+      "source": "./plugins/business-agent",
       "category": "development"
     },
     {
@@ -145,6 +190,54 @@
       },
       "source": "./plugins/security-guidance",
       "category": "security"
+    },
+    {
+      "name": "ruflo-core",
+      "description": "Foundation plugin \u2014 registers the ruflo MCP server (300+ tools across memory/agentdb/embeddings/hooks/aidefence/neural/autopilot/browser/agent/swarm), provides 3 generalist agents (coder/researcher/reviewer), 3 first-run skills, and a curated plugin-discovery catalog",
+      "version": "0.2.2",
+      "author": {
+        "name": "ruvnet",
+        "url": "https://github.com/ruvnet"
+      },
+      "source": "./plugins/ruflo-core",
+      "category": "development",
+      "marketplace": "ruflo"
+    },
+    {
+      "name": "ruflo-swarm",
+      "description": "Agent teams, swarm coordination, Monitor streams, and worktree isolation \u2014 wraps 4 swarm_* + 8 agent_* MCP tools (12 total) plus 6 topologies (hierarchical / mesh / hierarchical-mesh / ring / star / adaptive)",
+      "version": "0.2.0",
+      "author": {
+        "name": "ruvnet",
+        "url": "https://github.com/ruvnet"
+      },
+      "source": "./plugins/ruflo-swarm",
+      "category": "development",
+      "marketplace": "ruflo"
+    },
+    {
+      "name": "ruflo-autopilot",
+      "description": "Autonomous /loop-driven task completion with learning, prediction, and progress tracking \u2014 wraps 10 autopilot_* MCP tools (status/enable/disable/config/reset/log/progress/learn/history/predict)",
+      "version": "0.2.0",
+      "author": {
+        "name": "ruvnet",
+        "url": "https://github.com/ruvnet"
+      },
+      "source": "./plugins/ruflo-autopilot",
+      "category": "development",
+      "marketplace": "ruflo"
+    },
+    {
+      "name": "ruflo-federation",
+      "description": "Cross-installation agent federation with zero-trust security, peer discovery, consensus-based task routing, and per-call budget circuit breaker (ADR-097)",
+      "version": "0.2.0",
+      "author": {
+        "name": "ruvnet",
+        "url": "https://github.com/ruvnet"
+      },
+      "source": "./plugins/ruflo-federation",
+      "category": "development",
+      "marketplace": "ruflo"
     }
   ]
 }

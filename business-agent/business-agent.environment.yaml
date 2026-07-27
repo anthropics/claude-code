@@ -1,0 +1,5 @@
+name: business-agent-env
+config:
+  type: cloud
+  networking:
+    type: unrestricted

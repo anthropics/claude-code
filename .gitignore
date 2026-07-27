@@ -1,2 +1,4 @@
 .DS_Store
-
+.netlify/
+source-build-australia/out/
+source-build-australia/.next/
