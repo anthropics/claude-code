@@ -1,0 +1,9 @@
+{
+  "name": "plugin-dev",
+  "version": "0.1.0",
+  "description": "Comprehensive toolkit for developing Claude Code plugins. Includes skills, agents, and commands for plugin creation and validation.",
+  "author": {
+    "name": "Daisy Hollman",
+    "email": "daisy@anthropic.com"
+  }
+}
