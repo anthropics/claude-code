@@ -128,6 +128,63 @@ WEB4_DIR = Path.home() / ".web4"
 SESSION_DIR = WEB4_DIR / "sessions"
 R6_LOG_DIR = WEB4_DIR / "r6"
 
+# Instrument-only mode: record, never enforce.
+#
+# Why this exists (measured 2026-07-27, see
+# forum/cbp-r6-instrument-death-and-the-vacuous-acceptance-test-2026-07-27.py):
+# this hook is not wired to PreToolUse directly. It is reachable only as
+# ``invoke_legacy_fallback`` inside hestia's gate, which returns its own verdict
+# first and calls the fallback ONLY when the policy daemon fails to settle. So
+# the r6 record -- this system's entire record of intent -- is written if and
+# only if the policy engine is DOWN. Both ~/.web4 stores fell ~99% on
+# 2026-05-17, the day after that gate was installed, and the 91,881-record
+# corpus every analysis in this thread rests on is a window that closed then.
+# Confirmed by A/B probe: identical payload, daemon reachable -> 0 r6 records,
+# daemon unreachable -> 1.
+#
+# The naive repair -- wire this hook as its own PreToolUse entry -- would run a
+# second, older enforcement engine beside hestia's, with no arbitration between
+# them. So enforcement is what gets dropped, not the recording. Under
+# WEB4_R6_INSTRUMENT_ONLY=1 the three terminal deny paths below record their
+# verdict and continue instead of blocking.
+#
+# The would-be verdict is recorded as ``status: "would_block"``, deliberately
+# NOT ``"blocked"``: kimi verified data-side that all 768 ``blocked`` records
+# have no audit record (structural, since a blocked tool never runs and
+# PostToolUse never fires). An unenforced verdict DOES get an audit record, so
+# reusing the label would break a confirmed invariant and silently corrupt the
+# denial floor. A new class gets a new name, and the pair (hestia's enforced
+# verdict, this engine's advisory one) becomes a measurable disagreement rate.
+INSTRUMENT_ONLY = os.environ.get("WEB4_R6_INSTRUMENT_ONLY") == "1"
+
+
+def block_or_observe(r6, reason, rule_id, label):
+    """Terminal deny, or -- in instrument-only mode -- a recorded non-event.
+
+    Returns True when the caller should continue to the normal recording path.
+    Never returns in enforcing mode: it logs, emits the deny, and exits.
+    """
+    if INSTRUMENT_ONLY:
+        verdict = {
+            "status": "would_block",
+            "reason": reason,
+            "rule_id": rule_id,
+            "enforced": False,
+            "engine": "web4-governance",
+        }
+        # Accumulate: a call can trip more than one advisory rule now that none
+        # of them are terminal, and keeping only the last would make the rule
+        # mix a function of check order rather than of the call.
+        r6.setdefault("advisory_denials", []).append(verdict)
+        r6.setdefault("result", verdict)
+        return True
+
+    r6["result"] = {"status": "blocked", "reason": reason, "rule_id": rule_id}
+    log_r6(r6)
+    print(f"[Web4/{label}] BLOCKED: {reason}", file=sys.stderr)
+    print(json.dumps({"decision": "deny", "reason": reason}))
+    sys.exit(0)
+
 
 def check_git_push_divergence(command: str) -> tuple:
     """
@@ -558,18 +615,10 @@ def main():
         should_block, divergence_reason = check_git_push_divergence(full_command)
         if should_block:
             r6["git_check"] = {
-                "blocked": True,
+                "blocked": not INSTRUMENT_ONLY,
                 "reason": divergence_reason,
             }
-            r6["result"] = {
-                "status": "blocked",
-                "reason": divergence_reason,
-                "rule_id": "git-divergence-check",
-            }
-            log_r6(r6)
-            print(f"[Web4/Git] BLOCKED: {divergence_reason}", file=sys.stderr)
-            print(json.dumps({"decision": "deny", "reason": divergence_reason}))
-            sys.exit(0)
+            block_or_observe(r6, divergence_reason, "git-divergence-check", "Git")
 
     decision, policy_eval = evaluate_policy(session, tool_name, category, target, full_command)
 
@@ -580,15 +629,15 @@ def main():
     # Handle policy decision
     if decision == "deny" and policy_eval and policy_eval.get("enforced", True):
         # Policy blocks this action
-        r6["result"] = {
-            "status": "blocked",
-            "reason": policy_eval.get("reason", "Blocked by policy"),
-            "rule_id": policy_eval.get("rule_id"),
-        }
-        log_r6(r6)
+        reason = policy_eval.get("reason", "Blocked by policy")
 
-        # Witness the policy decision (policy witnesses a deny)
-        if GOVERNANCE_AVAILABLE and PolicyRegistry:
+        # Witness the policy decision (policy witnesses a deny).
+        #
+        # Skipped in instrument-only mode: an advisory verdict that did not stop
+        # the tool is not a deny this policy entity actually made, and
+        # witnessing it would train trust on an enforcement that never happened
+        # -- the same class as the audit `result` field that was a constant.
+        if not INSTRUMENT_ONLY and GOVERNANCE_AVAILABLE and PolicyRegistry:
             try:
                 registry = PolicyRegistry()
                 policy_entity_id = session.get("policy_entity_id")
@@ -599,14 +648,10 @@ def main():
             except Exception:
                 pass  # Don't fail hook on witnessing error
 
-        # Output block message
-        print(f"[Web4/Policy] BLOCKED: {policy_eval.get('reason', 'Blocked by policy')}", file=sys.stderr)
-
-        # Exit with non-zero to signal Claude Code to block the tool
-        # Note: Claude Code hooks expect specific exit codes or JSON output
-        # Exit 0 = allow, non-zero = deny (or output {"decision": "deny"})
-        print(json.dumps({"decision": "deny", "reason": policy_eval.get("reason")}))
-        sys.exit(0)  # Exit 0 but with deny decision in stdout
+        # Terminal in enforcing mode (exit 0 with a deny decision on stdout --
+        # Claude Code reads the decision, not the exit code). Recorded and
+        # non-terminal under WEB4_R6_INSTRUMENT_ONLY=1.
+        block_or_observe(r6, reason, policy_eval.get("rule_id"), "Policy")
 
     elif decision == "warn":
         # Log warning but allow — don't print to stderr (Claude Code treats any stderr as "hook error")
@@ -628,27 +673,29 @@ def main():
             if not cap_check.get("allowed", True):
                 # Agent lacks trust for this tool
                 r6["capability"] = {
-                    "blocked": True,
+                    "blocked": not INSTRUMENT_ONLY,
                     "agent": active_agent,
                     "required": cap_check.get("required"),
                     "trust_level": cap_check.get("trust_level"),
                     "error": cap_check.get("error"),
                 }
-                r6["result"] = {
-                    "status": "blocked",
-                    "reason": cap_check.get("error", "Insufficient trust"),
+                block_or_observe(
+                    r6,
+                    cap_check.get("error", "Insufficient trust"),
+                    "capability-trust",
+                    "Trust",
+                )
+            else:
+                # Must be an `else`, not a fall-through. In enforcing mode the
+                # branch above never returns, so an unguarded assignment here
+                # was correct; instrument-only mode makes it reachable, and it
+                # would overwrite the recorded refusal with "allowed": True --
+                # an instrument that erases the event it just observed.
+                r6["capability"] = {
+                    "allowed": True,
+                    "agent": active_agent,
+                    "trust_level": cap_check.get("trust_level", "unknown"),
                 }
-                log_r6(r6)
-
-                print(f"[Web4/Trust] BLOCKED: {cap_check.get('error')} (agent: {active_agent})", file=sys.stderr)
-                print(json.dumps({"decision": "deny", "reason": cap_check.get("error")}))
-                sys.exit(0)
-
-            r6["capability"] = {
-                "allowed": True,
-                "agent": active_agent,
-                "trust_level": cap_check.get("trust_level", "unknown"),
-            }
         except Exception as e:
             r6["capability"] = {"error": str(e)}
 
