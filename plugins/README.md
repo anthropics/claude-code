@@ -69,6 +69,7 @@ When adding new plugins to this directory:
 3. Add plugin metadata in `.claude-plugin/plugin.json`
 4. Document all commands and agents
 5. Provide usage examples
+6. Run `./scripts/validate-marketplace.sh` before submitting changes to `.claude-plugin/marketplace.json` or `plugins/`
 
 ## Learn More
 
