@@ -44,12 +44,24 @@ def print_section(title):
     print(f"{'='*60}")
 
 
+# Sub-assertion failures recorded by print_result, for the current test case.
+#
+# This list exists because print_result used to only PRINT. The runner marks a case
+# passed unless the case RAISES, so every one of the ~80 checks in this file was
+# decorative: on 2026-07-27 the suite reported "Results: 7/7 tests passed" while
+# printing four "✗ FAIL" lines in that same output. A suite that can detect crashes
+# but not wrong behaviour is worse than no suite, because it is quoted as evidence.
+_FAILURES = []
+
+
 def print_result(name, success, details=""):
-    """Print test result."""
+    """Print test result, and RECORD a failure so the runner can see it."""
     status = "✓ PASS" if success else "✗ FAIL"
     print(f"  {status}: {name}")
     if details and not success:
         print(f"         {details}")
+    if not success:
+        _FAILURES.append((name, details))
 
 
 def create_test_session(session_id: str) -> dict:
@@ -352,12 +364,19 @@ def main():
 
     results = []
     for name, test_fn in tests:
+        before = len(_FAILURES)
         try:
-            result = test_fn()
-            results.append((name, True, None))
+            test_fn()
         except Exception as e:
             results.append((name, False, str(e)))
             print(f"\n  ERROR: {e}")
+            continue
+        # A case that ran to completion still fails if any of its checks did.
+        failed = _FAILURES[before:]
+        if failed:
+            results.append((name, False, "; ".join(n for n, _ in failed)))
+        else:
+            results.append((name, True, None))
 
     # Summary
     print_section("Test Summary")
