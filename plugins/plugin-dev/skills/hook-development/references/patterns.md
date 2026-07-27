@@ -58,7 +58,7 @@ Load project-specific context at session start:
       "hooks": [
         {
           "type": "command",
-          "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/load-context.sh"
+          "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/load-context.sh\""
         }
       ]
     }
@@ -95,7 +95,7 @@ Log all notifications for audit or analysis:
       "hooks": [
         {
           "type": "command",
-          "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/log-notification.sh"
+          "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/log-notification.sh\""
         }
       ]
     }
@@ -183,7 +183,7 @@ Run linters or formatters on file edits:
       "hooks": [
         {
           "type": "command",
-          "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/check-quality.sh"
+          "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/check-quality.sh\""
         }
       ]
     }
@@ -248,7 +248,7 @@ Combine multiple patterns for comprehensive protection:
       "hooks": [
         {
           "type": "command",
-          "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/load-context.sh"
+          "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/load-context.sh\""
         }
       ]
     }
