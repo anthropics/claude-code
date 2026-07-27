@@ -154,7 +154,7 @@ async function autoCloseDuplicates(): Promise<void> {
 
     console.log(`[DEBUG] Fetching comments for issue #${issue.number}...`);
     const comments: GitHubComment[] = await githubRequest(
-      `/repos/${owner}/${repo}/issues/${issue.number}/comments`,
+      `/repos/${owner}/${repo}/issues/${issue.number}/comments?per_page=100`,
       token
     );
     console.log(
@@ -218,7 +218,7 @@ async function autoCloseDuplicates(): Promise<void> {
       `[DEBUG] Issue #${issue.number} - checking reactions on duplicate comment...`
     );
     const reactions: GitHubReaction[] = await githubRequest(
-      `/repos/${owner}/${repo}/issues/comments/${lastDupeComment.id}/reactions`,
+      `/repos/${owner}/${repo}/issues/comments/${lastDupeComment.id}/reactions?per_page=100`,
       token
     );
     console.log(
