@@ -1,0 +1,8 @@
+{
+  "name": "parallel-batch-safe",
+  "version": "1.0.0",
+  "description": "Run parallel claude -p batch jobs without losing VS Code/Cursor extension authentication. Uses tmux isolation and token refresh prevention.",
+  "author": {
+    "name": "LARIkoz"
+  }
+}
