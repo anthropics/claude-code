@@ -33,9 +33,14 @@ This creates a verifiable chain of actions with structured intent.
 import json
 import os
 import sys
+import time
 import hashlib
 from datetime import datetime, timezone
 from pathlib import Path
+
+# Import the pre->post correlation channel (per-call map + lock + logged expiry)
+sys.path.insert(0, str(Path(__file__).parent))
+import slot_channel
 
 # Import agent governance
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -73,18 +78,18 @@ def load_session(session_id):
 
 
 def save_session(session):
-    """Save session state atomically.
+    """Save session state atomically (per-process tmp, then rename).
 
-    Writes to ``.tmp`` then renames. Eliminates the partial-write window
-    that produces corrupt session files when two hook invocations race
-    on the same file (the actual root cause of the corruption pre_tool_use
-    used to crash on).
+    This function was the top frame of the most common crash under
+    concurrency: with a fixed ``<session>.json.tmp`` shared by all hook
+    processes, the loser of a staging race raised FileNotFoundError out of
+    ``os.replace``. 8 of 180 invocations at 6-way concurrency on git HEAD, all
+    of them in this hook -- and a PostToolUse that dies leaves an r6 record
+    with no audit record, i.e. it lands in the same 16,455-record gap the
+    channel fix is aimed at, by a completely different mechanism. See
+    slot_channel.save_atomic.
     """
-    session_file = SESSION_DIR / f"{session['session_id']}.json"
-    tmp = session_file.with_suffix(".json.tmp")
-    with open(tmp, "w") as f:
-        json.dump(session, f, indent=2)
-    os.replace(tmp, session_file)
+    slot_channel.save_atomic(session)
 
 
 def hash_content(content):
@@ -98,7 +103,7 @@ def hash_content(content):
     return hashlib.sha256(content.encode()).hexdigest()[:16]
 
 
-def create_audit_record(session, r6_request, tool_output, tool_error):
+def create_audit_record(session, r6_request, tool_output, tool_error, channel=None):
     """
     Create audit record completing the R6 workflow.
 
@@ -111,9 +116,6 @@ def create_audit_record(session, r6_request, tool_output, tool_error):
     else:
         status = "success"
         result_hash = hash_content(tool_output)
-
-    # Chain link for provenance
-    prev_hash = session["audit_chain"][-1] if session["audit_chain"] else "genesis"
 
     record = {
         "record_id": r6_request["id"].replace("r6:", "audit:"),
@@ -134,18 +136,42 @@ def create_audit_record(session, r6_request, tool_output, tool_error):
         # Heartbeat timing (from R6 request)
         "heartbeat": r6_request.get("heartbeat", {}),
 
-        # Provenance chain
+        # How this record found its intent. Recorded rather than assumed: the
+        # correlation key is derived from tool_name + tool_input, and whether
+        # the harness hands both hooks byte-identical input is a claim about
+        # someone else's serializer. ``match_mode == "fifo_fallback"`` means it
+        # does not, and this field is how that becomes measurable instead of
+        # invisible. See slot_channel.match_and_pop.
+        "channel": channel or {},
+
+        # Provenance chain. prev_record_hash is filled by finalize_record()
+        # under the session lock, immediately before the append -- read here it
+        # would come from a copy that a concurrent post-hook has already
+        # extended, and two records would claim the same predecessor.
         "provenance": {
             "session_id": session["session_id"],
             "session_token": session["token"]["token_id"],
             "action_index": r6_request["role"]["action_index"],
-            "prev_record_hash": prev_hash
         }
     }
 
-    # Compute this record's hash for chain
-    record["record_hash"] = hash_content(record)
+    return record
 
+
+def finalize_record(record, prev_hash):
+    """Seal the record: link it to its predecessor, then hash it.
+
+    ``hash_covers`` is stamped because this changed. Until 2026-07-26
+    ``record_hash`` was computed in create_audit_record, *before*
+    ``agent_completion`` / ``mcp_witnessed`` / ``policy_witnessed`` were
+    attached -- so no stored record's hash covered its own witnessing
+    evidence. Hashing later fixes that, and puts the rule in the record so a
+    verifier can tell which one applies without consulting a changelog:
+    absent field = pre-2026-07-26 subset hash.
+    """
+    record["provenance"]["prev_record_hash"] = prev_hash
+    record["hash_covers"] = "full_record"
+    record["record_hash"] = hash_content(record)
     return record
 
 
@@ -153,11 +179,10 @@ def store_audit_record(session, record):
     """Store audit record to session log."""
     AUDIT_DIR.mkdir(parents=True, exist_ok=True)
 
-    # Session-specific audit log
+    # Session-specific audit log. Single-write append (slot_channel.append_jsonl)
+    # so a concurrent writer cannot splice a record and make it uncountable.
     audit_file = AUDIT_DIR / f"{session['session_id']}.jsonl"
-
-    with open(audit_file, "a") as f:
-        f.write(json.dumps(record) + "\n")
+    slot_channel.append_jsonl(audit_file, record)
 
 
 def extract_outcome(input_data):
@@ -201,22 +226,69 @@ def main():
         sys.exit(0)
 
     session_id = input_data.get("session_id", "default")
+    tool_name_in = input_data.get("tool_name", "unknown")
+    tool_input_in = input_data.get("tool_input", {})
+    tool_use_id = input_data.get("tool_use_id")
     tool_output, tool_error = extract_outcome(input_data)
 
-    # Load session
-    session = load_session(session_id)
-    if not session:
-        sys.exit(0)
+    # Claim this call's pending entry under the session lock.
+    #
+    # The pop has to be atomic with respect to other PostToolUse invocations,
+    # and that is not a hypothetical: 1,460 record_ids in ~/.web4/audit appear
+    # more than once, with identical output hashes and a p50 separation of
+    # 6.4 ms, while the corresponding r6 records are NOT duplicated. The
+    # pre-hook ran once; two post-hooks both read the single slot before
+    # either cleared it. Under the lock the second one finds nothing and says
+    # so in the channel log, instead of writing a second audit record.
+    lock = slot_channel.session_lock(session_id)
+    with lock as locked:
+        session = load_session(session_id)
+        if not session:
+            sys.exit(0)
 
-    # Get pending R6 request
-    r6_request = session.get("pending_r6")
-    if not r6_request:
-        sys.exit(0)
+        entry, match_mode = slot_channel.match_and_pop(
+            session, tool_name_in, tool_input_in, tool_use_id=tool_use_id
+        )
+        if entry is None:
+            # Nothing outstanding for this call. Either a duplicate PostToolUse
+            # (see above), or a tool whose PreToolUse never enqueued -- both are
+            # worth counting, neither is worth an audit record.
+            slot_channel.log_channel_event(
+                "unmatched_post", session_id,
+                {
+                    "tool": tool_name_in,
+                    "tool_use_id": tool_use_id,
+                    "key": slot_channel.call_key(tool_name_in, tool_input_in),
+                    "lock": lock.state,
+                },
+            )
+            sys.exit(0)
+
+        r6_request = entry.get("r6")
+        if not r6_request:
+            sys.exit(0)
+
+        pending_mcp = entry.get("mcp") or session.get("pending_mcp")
+        channel = {
+            "match_mode": match_mode,
+            "lock": lock.state,
+            "pending_depth_after": slot_channel.pending_depth(session),
+            "tool_use_id": tool_use_id,
+        }
+        if entry.get("enqueued_ts"):
+            channel["queued_seconds"] = round(time.time() - entry["enqueued_ts"], 4)
+        # Publish the pop before doing any governance work below: the entry is
+        # claimed the moment we decide to use it, so a concurrent post-hook
+        # cannot claim it while we are still witnessing trust stores.
+        slot_channel.save_atomic(session)
 
     # Create audit record
-    record = create_audit_record(session, r6_request, tool_output, tool_error)
+    record = create_audit_record(
+        session, r6_request, tool_output, tool_error, channel=channel
+    )
 
     # Handle agent completion (Task tool = agent delegation)
+    clear_active_agent = False
     if r6_request["request"]["tool"] == "Task" and GOVERNANCE_AVAILABLE:
         agent_name = session.get("active_agent")
         if agent_name:
@@ -232,14 +304,16 @@ def main():
                     "trust_updated": trust_update.get("trust_updated", {})
                 }
 
-                # Clear active agent
-                session["active_agent"] = None
+                # Clear active agent (applied under the lock below)
+                clear_active_agent = True
 
             except Exception as e:
                 record["agent_completion"] = {"error": str(e)}
 
-    # Handle MCP tool completion - witness the MCP server
-    pending_mcp = session.get("pending_mcp")
+    # Handle MCP tool completion - witness the MCP server.
+    # pending_mcp comes off *this call's* channel entry (falling back to the
+    # legacy session field for pre-migration sessions), so a concurrent
+    # non-MCP call can no longer consume or misattribute the witness.
     if pending_mcp and GOVERNANCE_AVAILABLE and EntityTrustStore:
         try:
             store = EntityTrustStore()
@@ -262,9 +336,6 @@ def main():
                 "trust_level": target_trust.trust_level(),
                 "action_count": target_trust.action_count
             }
-
-            # Clear pending MCP
-            session["pending_mcp"] = None
 
         except Exception as e:
             record["mcp_witnessed"] = {"error": str(e)}
@@ -299,14 +370,38 @@ def main():
         except Exception as e:
             record["policy_witnessed"] = {"error": str(e)}
 
-    # Store audit record
-    store_audit_record(session, record)
+    # Seal and store the record, then commit the session, under the lock.
+    #
+    # Second locked phase rather than one long one: the witnessing above does
+    # trust-store I/O, and holding an exclusive session lock across it would
+    # push concurrent hooks into their fail-open path. The chain link is read
+    # and written inside this phase, so the read-then-append is atomic even
+    # though the record was built outside it.
+    lock2 = slot_channel.session_lock(session_id)
+    with lock2 as locked2:
+        fresh = slot_channel.load_raw(session_id) or session
+        fresh["session_id"] = session["session_id"]
+        chain = fresh.get("audit_chain")
+        if not isinstance(chain, list):
+            chain = []
+        prev_hash = chain[-1] if chain else "genesis"
+        record["channel"]["commit_lock"] = lock2.state
+        finalize_record(record, prev_hash)
 
-    # Update session
-    session["r6_requests"].append(r6_request["id"])
-    session["audit_chain"].append(record["record_hash"])
-    session["pending_r6"] = None
-    save_session(session)
+        store_audit_record(session, record)
+
+        requests = fresh.get("r6_requests")
+        if not isinstance(requests, list):
+            requests = []
+        fresh["r6_requests"] = requests + [r6_request["id"]]
+        fresh["audit_chain"] = chain + [record["record_hash"]]
+        if clear_active_agent:
+            fresh["active_agent"] = None
+        # Legacy single slots: retired, and cleared so a stale value can never
+        # be matched to an unrelated future call by the legacy_slot fallback.
+        fresh["pending_r6"] = None
+        fresh["pending_mcp"] = None
+        slot_channel.save_atomic(fresh)
 
     sys.exit(0)
 

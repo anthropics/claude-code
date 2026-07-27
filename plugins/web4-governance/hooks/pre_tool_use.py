@@ -41,6 +41,10 @@ from pathlib import Path
 # Import heartbeat tracker
 from heartbeat import get_session_heartbeat
 
+# Import the pre->post correlation channel (per-call map + lock + logged expiry).
+# See slot_channel.py for what the single unlocked ``pending_r6`` slot cost.
+import slot_channel
+
 # Import agent governance
 sys.path.insert(0, str(Path(__file__).parent.parent))
 try:
@@ -318,14 +322,17 @@ def load_or_create_session(session_id):
 
     # Save immediately — atomic write to avoid the partial-write race
     # that can leave another concurrent reader hitting JSONDecodeError.
-    tmp = session_file.with_suffix(".json.tmp")
-    with open(tmp, "w") as f:
-        json.dump(session, f, indent=2)
-    os.replace(tmp, session_file)
+    # Via slot_channel.save_atomic for the per-process tmp name; see
+    # save_session below for what the shared tmp name cost.
+    slot_channel.save_atomic(session)
 
-    # Initialize heartbeat for recovered session
-    heartbeat = get_session_heartbeat(session_id)
-    heartbeat.record("session_recovered", 0)
+    # Initialize heartbeat for recovered session. Wrapped for the same reason
+    # as the heartbeat call in main(): a locked ledger must not cost a session.
+    try:
+        heartbeat = get_session_heartbeat(session_id)
+        heartbeat.record("session_recovered", 0)
+    except Exception:
+        pass
 
     # Session recovered - logging removed to avoid Claude Code "hook error" warnings
     # (Claude Code displays any stderr output as "hook error" even for informational messages)
@@ -341,16 +348,19 @@ def load_session(session_id):
 def save_session(session):
     """Save session state atomically.
 
-    Writes to ``.tmp`` then renames. Eliminates the partial-write window
-    that produces corrupt session files when two hook invocations race
-    on the same file (the actual root cause of the corruption load_session
-    used to crash on).
+    Writes to a per-process tmp then renames.
+
+    The tmp name used to be a fixed ``<session>.json.tmp``, shared by every
+    concurrent hook process. That made the *publish* atomic and left the
+    *staging* unisolated, so two savers raced on one tmp file: the loser's
+    ``os.replace`` hit FileNotFoundError (8 of 180 invocations at 6-way
+    concurrency, measured 2026-07-26 against git HEAD) and the interleavings
+    that did not crash silently published one process's stale copy over the
+    other's update. Fixing corruption by making the write atomic was right and
+    incomplete -- atomicity is not isolation. The pid suffix supplies the
+    isolation; the lock in slot_channel supplies the serialization.
     """
-    session_file = SESSION_DIR / f"{session['session_id']}.json"
-    tmp = session_file.with_suffix(".json.tmp")
-    with open(tmp, "w") as f:
-        json.dump(session, f, indent=2)
-    os.replace(tmp, session_file)
+    slot_channel.save_atomic(session)
 
 
 def detect_mcp_tool(tool_name: str) -> tuple:
@@ -492,14 +502,25 @@ def create_r6_request(session, tool_name, tool_input):
 
 
 def log_r6(r6_request):
-    """Log R6 request for audit trail."""
+    """Log R6 request for audit trail.
+
+    ``timestamp`` is stamped in ``create_r6_request`` and this append happens
+    later in the same process, so the record's own timestamp *leads* its
+    write. That lead is not measurable from the record, which is why
+    ``written_at`` is stamped here: both quantities in one store, no
+    cross-store join needed to see the aperture.
+    """
     R6_LOG_DIR.mkdir(parents=True, exist_ok=True)
 
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     log_file = R6_LOG_DIR / f"{today}.jsonl"
 
-    with open(log_file, "a") as f:
-        f.write(json.dumps(r6_request) + "\n")
+    record = dict(r6_request)
+    record["written_at"] = datetime.now(timezone.utc).isoformat() + "Z"
+
+    # Single-write append: this store already contains one torn line spliced
+    # from two records. See slot_channel.append_jsonl.
+    slot_channel.append_jsonl(log_file, record)
 
 
 def main():
@@ -513,6 +534,9 @@ def main():
     session_id = input_data.get("session_id", "default")
     tool_name = input_data.get("tool_name", "unknown")
     tool_input = input_data.get("tool_input", {})
+    # Present on PreToolUse payloads; not documented for PostToolUse, so it is
+    # a tiebreaker inside a key, never the key itself (slot_channel.match_and_pop).
+    tool_use_id = input_data.get("tool_use_id")
 
     # Load session
     session = load_session(session_id)
@@ -630,6 +654,8 @@ def main():
 
     # Handle agent spawn (Task tool = agent delegation)
     agent_context = None
+    spawned_agent = None
+    pending_mcp = None
     if tool_name == "Task" and GOVERNANCE_AVAILABLE:
         agent_name = tool_input.get("subagent_type", tool_input.get("description", "unknown"))
         try:
@@ -645,7 +671,9 @@ def main():
                 "capabilities": agent_context.get("capabilities", {})
             }
 
-            # Track active agent in session
+            # Track active agent in session (applied to the freshly-loaded
+            # copy under the lock below, so a concurrent writer cannot drop it)
+            spawned_agent = agent_name
             session["active_agent"] = agent_name
 
         except Exception as e:
@@ -670,8 +698,12 @@ def main():
                 "action_count": mcp_trust.action_count
             }
 
-            # Track pending MCP call in session for witnessing on complete
-            session["pending_mcp"] = {
+            # Track the pending MCP call *on this call's channel entry*, not on
+            # a session-level slot: the session-level field had the same
+            # single-cell defect as pending_r6, so a concurrent non-MCP call
+            # could clear it or an MCP witness could be attributed to the
+            # wrong tool. Carried into the entry below.
+            pending_mcp = {
                 "server": mcp_server,
                 "entity_id": mcp_entity_id,
                 "tool": mcp_tool
@@ -680,27 +712,99 @@ def main():
         except Exception as e:
             r6["mcp"] = {"server": mcp_server, "error": str(e)}
 
-    # Log for audit
+    # Record heartbeat for timing coherence tracking.
+    #
+    # Wrapped, because this was an uncaught crash path: heartbeat opens the
+    # shared sqlite ledger, and 8 concurrent PreToolUse hooks reproduced
+    # ``OperationalError: database is locked`` here, which killed the hook
+    # *before* the r6 record was written. That is a worse loss than the one
+    # this whole section exists to fix -- a slot loss leaves an r6 record with
+    # no audit record, so it can at least be counted, while a dead hook leaves
+    # nothing in either store and is invisible by construction. Instrumentation
+    # is not allowed to cost the record it instruments.
+    timing_coherence = None
+    hb_error = None
+    try:
+        heartbeat = get_session_heartbeat(session_id)
+        hb_entry = heartbeat.record(tool_name, session["action_count"])
+        timing_coherence = heartbeat.timing_coherence()
+
+        # Attach heartbeat info to R6 request
+        r6["heartbeat"] = {
+            "sequence": hb_entry["sequence"],
+            "status": hb_entry["status"],
+            "delta_seconds": hb_entry["delta_seconds"],
+            "timing_coherence": timing_coherence
+        }
+    except Exception as e:
+        hb_error = "%s: %s" % (type(e).__name__, e)
+        r6["heartbeat"] = {"error": hb_error}
+        slot_channel.log_channel_event(
+            "heartbeat_unavailable", session_id,
+            {"tool": tool_name, "error": hb_error},
+        )
+
+    # Publish this call on the channel, under an exclusive lock.
+    #
+    # Everything above this point is either read-only against the session or
+    # local to this call; the session copy loaded at the top of main() may be
+    # seconds stale by now, and blindly writing it back is how concurrent
+    # hooks lost each other's updates. So: re-load fresh inside the lock,
+    # apply only the fields this call actually owns, publish atomically.
+    channel = {}
+    with slot_channel.session_lock(session_id) as locked:
+        fresh = slot_channel.load_raw(session_id) or session
+        # A quarantine or lazy re-init between our load and now would give us a
+        # different session identity; ours is the authoritative id for this call.
+        fresh["session_id"] = session["session_id"]
+        fresh.setdefault("token", session.get("token"))
+        fresh.setdefault("r6_requests", session.get("r6_requests", []))
+        fresh.setdefault("audit_chain", session.get("audit_chain", []))
+        fresh.setdefault("preferences", session.get("preferences", {}))
+
+        # action_index is re-stamped from the authoritative count: the value
+        # computed at create_r6_request time came from a possibly stale copy,
+        # which is how two concurrent calls could claim the same index.
+        fresh_count = fresh.get("action_count", session.get("action_count", 0))
+        if not isinstance(fresh_count, int):
+            fresh_count = 0
+        r6["role"]["action_index"] = fresh_count
+        r6["reference"]["chain_length"] = len(fresh.get("r6_requests") or [])
+
+        if spawned_agent:
+            fresh["active_agent"] = spawned_agent
+
+        slot_channel.sweep(fresh)
+        slot_channel.enqueue(
+            fresh, r6, tool_name, tool_input,
+            tool_use_id=tool_use_id, mcp=pending_mcp,
+        )
+        # The single-slot field is retired. Clearing it (rather than leaving a
+        # stale value) keeps post_tool_use's legacy fallback from matching a
+        # months-old r6 record to some unrelated future tool call.
+        fresh["pending_r6"] = None
+        fresh["pending_mcp"] = None
+        fresh["action_count"] = fresh_count + 1
+        if timing_coherence is not None:
+            fresh["timing_coherence"] = timing_coherence
+
+        # Stamped before the write so the enqueued copy carries it too — the
+        # map holds this same dict by reference, so the r6 store and the
+        # channel entry stay one object, not two versions of one.
+        channel = {
+            "lock": "held" if locked else "timeout",
+            "pending_depth": slot_channel.pending_depth(fresh),
+            "tool_use_id": tool_use_id,
+        }
+        r6["channel"] = channel
+        slot_channel.save_atomic(fresh)
+
+    # Log for audit. Deliberately after the heartbeat block is attached and
+    # after the action_index is re-stamped: this append used to happen at the
+    # top of the section above, which is why 0 of 91,992 stored r6 records
+    # carry a heartbeat while 76,293 of 76,293 audit records do. The two
+    # stores were holding different versions of the same object.
     log_r6(r6)
-
-    # Record heartbeat for timing coherence tracking
-    heartbeat = get_session_heartbeat(session_id)
-    hb_entry = heartbeat.record(tool_name, session["action_count"])
-    timing_coherence = heartbeat.timing_coherence()
-
-    # Attach heartbeat info to R6 request
-    r6["heartbeat"] = {
-        "sequence": hb_entry["sequence"],
-        "status": hb_entry["status"],
-        "delta_seconds": hb_entry["delta_seconds"],
-        "timing_coherence": timing_coherence
-    }
-
-    # Update session
-    session["pending_r6"] = r6
-    session["action_count"] += 1
-    session["timing_coherence"] = timing_coherence
-    save_session(session)
 
     # Verbose R6 status removed - stderr output causes Claude Code "hook error" warnings
     # R6 data is still logged to r6_log/ for audit purposes

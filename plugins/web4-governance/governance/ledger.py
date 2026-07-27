@@ -44,18 +44,36 @@ class Ledger:
         self._init_db()
 
     def _get_connection(self):
-        """Get a database connection with proper settings for concurrency."""
+        """Get a database connection with proper settings for concurrency.
+
+        This method existed and was called from nowhere: every other site in
+        this file opened a bare ``sqlite3.connect(self.db_path)`` on the 5-second
+        default timeout, so the 30-second busy_timeout written here applied to
+        no query in the system. Found 2026-07-26 when 8 concurrent PreToolUse
+        hooks raised ``sqlite3.OperationalError: database is locked`` out of
+        _init_db and killed the hook -- which loses the r6 record *and* the
+        audit record, a loss class neither store can count because neither ever
+        sees a row. A mitigation nothing calls is the same defect as an alarm
+        written to a directory nobody reads.
+        """
         conn = sqlite3.connect(self.db_path, timeout=30.0)
         conn.execute("PRAGMA busy_timeout = 30000")  # 30 second wait on locks
         return conn
 
     def _init_db(self):
         """Initialize database schema with concurrency support."""
-        with sqlite3.connect(self.db_path) as conn:
-            # Enable WAL mode for better concurrent read/write access
-            # This allows multiple readers and one writer simultaneously
-            conn.execute("PRAGMA journal_mode=WAL")
-            conn.execute("PRAGMA busy_timeout = 30000")
+        with self._get_connection() as conn:
+            # Enable WAL mode for better concurrent read/write access.
+            # Ordered after busy_timeout (set in _get_connection) because a
+            # journal_mode change needs a brief exclusive lock, and tolerant of
+            # failure because WAL is a persistent property of the file: if a
+            # concurrent process is mid-transaction on a database that is
+            # already WAL, not being the one to set it is not an error worth a
+            # dead hook.
+            try:
+                conn.execute("PRAGMA journal_mode=WAL")
+            except sqlite3.OperationalError:
+                pass
 
             conn.executescript("""
                 -- Identities (soft LCT)
@@ -150,7 +168,7 @@ class Ledger:
         """Register a new identity (soft LCT)."""
         now = datetime.now(timezone.utc).isoformat() + "Z"
 
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             try:
                 conn.execute("""
                     INSERT INTO identities (lct_id, machine_hash, user_hash, binding, created_at, metadata)
@@ -164,7 +182,7 @@ class Ledger:
 
     def get_identity(self, lct_id: str) -> Optional[Dict]:
         """Get identity by LCT ID."""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             conn.row_factory = sqlite3.Row
             row = conn.execute(
                 "SELECT * FROM identities WHERE lct_id = ?", (lct_id,)
@@ -181,7 +199,7 @@ class Ledger:
         """
         now = datetime.now(timezone.utc).isoformat() + "Z"
 
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             # Try to increment existing
             cursor = conn.execute("""
                 UPDATE session_sequence
@@ -213,7 +231,7 @@ class Ledger:
         """
         now = datetime.now(timezone.utc).isoformat() + "Z"
 
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             row = conn.execute(
                 "SELECT last_session_number FROM session_sequence WHERE project = ?",
                 (project,)
@@ -245,7 +263,7 @@ class Ledger:
         """Start a new session."""
         now = datetime.now(timezone.utc).isoformat() + "Z"
 
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             conn.execute("""
                 INSERT INTO sessions
                 (session_id, lct_id, project, session_number, started_at, atp_budget, metadata)
@@ -267,7 +285,7 @@ class Ledger:
         """End a session."""
         now = datetime.now(timezone.utc).isoformat() + "Z"
 
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             cursor = conn.execute("""
                 UPDATE sessions SET ended_at = ?, status = ?
                 WHERE session_id = ?
@@ -276,7 +294,7 @@ class Ledger:
 
     def get_session(self, session_id: str) -> Optional[Dict]:
         """Get session by ID."""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             conn.row_factory = sqlite3.Row
             row = conn.execute(
                 "SELECT * FROM sessions WHERE session_id = ?", (session_id,)
@@ -295,7 +313,7 @@ class Ledger:
 
         ATP = Allocation Transfer Packet (action budget)
         """
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             conn.execute("""
                 UPDATE sessions SET atp_consumed = atp_consumed + ?
                 WHERE session_id = ?
@@ -317,7 +335,7 @@ class Ledger:
         content_hash = hashlib.sha256(content.encode()).hexdigest()[:16] if content else None
         product_id = f"wp:{hashlib.sha256(f'{session_id}:{now}'.encode()).hexdigest()[:12]}"
 
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             conn.execute("""
                 INSERT INTO work_products
                 (product_id, session_id, product_type, path, content_hash, created_at, metadata)
@@ -329,7 +347,7 @@ class Ledger:
 
     def get_session_work_products(self, session_id: str) -> List[Dict]:
         """Get all work products for a session."""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             conn.row_factory = sqlite3.Row
             rows = conn.execute(
                 "SELECT * FROM work_products WHERE session_id = ? ORDER BY created_at",
@@ -354,7 +372,7 @@ class Ledger:
         """
         now = datetime.now(timezone.utc).isoformat() + "Z"
 
-        with sqlite3.connect(self.db_path, timeout=30.0) as conn:
+        with self._get_connection() as conn:
             conn.execute("PRAGMA busy_timeout = 30000")
 
             # Get previous record for chain linking
@@ -396,7 +414,7 @@ class Ledger:
 
     def get_last_audit_record(self, session_id: str) -> Optional[Dict]:
         """Get the most recent audit record for chain verification."""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             conn.row_factory = sqlite3.Row
             row = conn.execute("""
                 SELECT * FROM audit_trail
@@ -438,7 +456,7 @@ class Ledger:
 
     def get_session_audit_trail(self, session_id: str) -> List[Dict]:
         """Get audit trail for a session, ordered by sequence (witnessing order)."""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             conn.row_factory = sqlite3.Row
             rows = conn.execute(
                 "SELECT * FROM audit_trail WHERE session_id = ? ORDER BY sequence ASC",
@@ -454,7 +472,7 @@ class Ledger:
         if not session:
             return None
 
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             audit_count = conn.execute(
                 "SELECT COUNT(*) FROM audit_trail WHERE session_id = ?", (session_id,)
             ).fetchone()[0]
@@ -499,7 +517,7 @@ class Ledger:
         Returns:
             Row ID of inserted heartbeat
         """
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             cursor = conn.execute("""
                 INSERT INTO heartbeats
                 (session_id, sequence, timestamp, status, delta_seconds,
@@ -511,7 +529,7 @@ class Ledger:
 
     def get_last_heartbeat(self, session_id: str) -> Optional[Dict]:
         """Get the most recent heartbeat for a session."""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             conn.row_factory = sqlite3.Row
             row = conn.execute("""
                 SELECT * FROM heartbeats
@@ -522,7 +540,7 @@ class Ledger:
 
     def get_heartbeats(self, session_id: str, limit: Optional[int] = None) -> List[Dict]:
         """Get heartbeats for a session."""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             conn.row_factory = sqlite3.Row
             if limit:
                 rows = conn.execute("""
@@ -542,7 +560,7 @@ class Ledger:
 
     def get_heartbeat_count(self, session_id: str) -> int:
         """Get total heartbeat count for a session."""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             row = conn.execute(
                 "SELECT COUNT(*) FROM heartbeats WHERE session_id = ?",
                 (session_id,)
@@ -551,7 +569,7 @@ class Ledger:
 
     def get_heartbeat_status_distribution(self, session_id: str) -> Dict[str, int]:
         """Get distribution of heartbeat statuses for a session."""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             rows = conn.execute("""
                 SELECT status, COUNT(*) as count
                 FROM heartbeats
@@ -610,7 +628,7 @@ class Ledger:
 
         where_clause = " AND ".join(conditions) if conditions else "1=1"
 
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             conn.row_factory = sqlite3.Row
             rows = conn.execute(f"""
                 SELECT * FROM audit_trail
@@ -689,7 +707,7 @@ class Ledger:
         condition = "WHERE session_id = ?" if session_id else ""
         params = (session_id,) if session_id else ()
 
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             # Tool counts
             tool_rows = conn.execute(f"""
                 SELECT tool_name, COUNT(*) as count
@@ -715,7 +733,7 @@ class Ledger:
 
         # Category counts require parsing r6_data
         category_counts: Dict[str, int] = {}
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             rows = conn.execute(f"""
                 SELECT r6_data FROM audit_trail {condition}
             """, params).fetchall()
