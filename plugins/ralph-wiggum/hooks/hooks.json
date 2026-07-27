@@ -1,6 +1,16 @@
 {
-  "description": "Ralph Wiggum plugin stop hook for self-referential loops",
+  "description": "Ralph Wiggum plugin hooks for self-referential loops",
   "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/session-start-hook.sh"
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [

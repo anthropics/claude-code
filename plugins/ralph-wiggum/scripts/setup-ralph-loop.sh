@@ -50,11 +50,11 @@ STOPPING:
   No manual stop - Ralph runs infinitely by default!
 
 MONITORING:
-  # View current iteration:
-  grep '^iteration:' .claude/ralph-loop.local.md
+  # View current iteration (for current session):
+  grep '^iteration:' .claude/ralph-loop.*.local.md
 
   # View full state:
-  head -10 .claude/ralph-loop.local.md
+  head -10 .claude/ralph-loop.*.local.md
 HELP_EOF
       exit 0
       ;;
@@ -127,8 +127,20 @@ if [[ -z "$PROMPT" ]]; then
   exit 1
 fi
 
+# Determine session ID for session-specific state file
+if [[ -n "${CLAUDE_SESSION_ID:-}" ]]; then
+  SESSION_ID="$CLAUDE_SESSION_ID"
+else
+  # Fallback: generate a random ID (SessionStart hook may not have fired)
+  SESSION_ID=$(date +%s%N | md5sum | cut -c1-12)
+  echo "⚠️  CLAUDE_SESSION_ID not available, using generated ID: $SESSION_ID" >&2
+fi
+
 # Create state file for stop hook (markdown with YAML frontmatter)
 mkdir -p .claude
+
+# Clean up any existing ralph-loop state files for THIS session
+rm -f .claude/ralph-loop."$SESSION_ID".local.md
 
 # Quote completion promise for YAML if it contains special chars or is not null
 if [[ -n "$COMPLETION_PROMISE" ]] && [[ "$COMPLETION_PROMISE" != "null" ]]; then
@@ -137,7 +149,8 @@ else
   COMPLETION_PROMISE_YAML="null"
 fi
 
-cat > .claude/ralph-loop.local.md <<EOF
+RALPH_STATE_FILE=".claude/ralph-loop.${SESSION_ID}.local.md"
+cat > "$RALPH_STATE_FILE" <<EOF
 ---
 active: true
 iteration: 1
@@ -157,11 +170,13 @@ Iteration: 1
 Max iterations: $(if [[ $MAX_ITERATIONS -gt 0 ]]; then echo $MAX_ITERATIONS; else echo "unlimited"; fi)
 Completion promise: $(if [[ "$COMPLETION_PROMISE" != "null" ]]; then echo "${COMPLETION_PROMISE//\"/} (ONLY output when TRUE - do not lie!)"; else echo "none (runs forever)"; fi)
 
+Session ID: $SESSION_ID
+
 The stop hook is now active. When you try to exit, the SAME PROMPT will be
 fed back to you. You'll see your previous work in files, creating a
 self-referential loop where you iteratively improve on the same task.
 
-To monitor: head -10 .claude/ralph-loop.local.md
+To monitor: head -10 $RALPH_STATE_FILE
 
 ⚠️  WARNING: This loop cannot be stopped manually! It will run infinitely
     unless you set --max-iterations or --completion-promise.
