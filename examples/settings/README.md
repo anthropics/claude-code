@@ -30,6 +30,23 @@ These may be applied at any level of the [settings hierarchy](https://code.claud
 
 To distribute these settings as enterprise-managed policy through Jamf, Iru (Kandji), Intune, or Group Policy, see the deployment templates in [`../mdm`](../mdm).
 
+## Troubleshooting
+
+### `<system-reminder>` blocks leaking into WebFetch results (v2.1.150)
+
+In Claude Code **v2.1.150**, `<system-reminder>` blocks (TaskCreate/TaskUpdate nudges,
+tool-availability reminders) are incorrectly appended to `WebFetch` tool result content
+instead of being delivered as separate system messages. This is a routing regression
+introduced by internal refactoring in v2.1.150.
+
+**Workaround**: downgrade to v2.1.149:
+
+```bash
+npm install -g @anthropic-ai/claude-code@2.1.149
+```
+
+See issue [#61690](https://github.com/anthropics/claude-code/issues/61690) for details.
+
 ## Full Documentation
 
 See https://code.claude.com/docs/en/settings for complete documentation on all available managed settings.
