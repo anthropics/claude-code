@@ -24,5 +24,6 @@ jobs:
           gh api repos/${TARGET_REPO}/dispatches \
             -f event_type=issue_opened \
             -f client_payload[issue_url]="${ISSUE_URL}" || {
+              echo "::warning::Failed to dispatch issue_opened event for issue #${ISSUE_NUMBER} to ${TARGET_REPO:-<not set>}"
               exit 0
             }
