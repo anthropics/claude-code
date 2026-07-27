@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kate and Jack's Walks</title>
+  <style>
+    :root {
+      --ocean: #2b6777;
+      --ocean-light: #3d8a9e;
+      --sand: #f2e8d5;
+      --moss: #52796f;
+      --moss-light: #6b9a8f;
+      --sunset: #e8856e;
+      --sunset-dark: #d46b52;
+      --fog: #c8d8e4;
+      --white: #ffffff;
+      --text: #2d3436;
+      --text-light: #636e72;
+      --shadow: rgba(43, 103, 119, 0.15);
+      --pink: #e8a0bf;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--sand);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    header {
+      background: linear-gradient(135deg, var(--ocean), var(--moss));
+      color: var(--white);
+      padding: 2rem 1rem;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    header::before {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      right: 0;
+      height: 30px;
+      background: var(--sand);
+      border-radius: 50% 50% 0 0;
+    }
+
+    header h1 {
+      font-size: 2.2rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      margin-bottom: 0.25rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .title-hearts { color: var(--pink); font-size: 0.85em; }
+
+    .floating-hearts {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      pointer-events: none; overflow: hidden;
+    }
+    .floating-hearts span {
+      position: absolute; font-size: 1.2rem; opacity: 0.15;
+      animation: floatHeart 12s infinite ease-in-out;
+    }
+    .floating-hearts span:nth-child(1) { left: 5%; animation-delay: 0s; animation-duration: 10s; }
+    .floating-hearts span:nth-child(2) { left: 15%; animation-delay: 2s; animation-duration: 14s; font-size: 0.9rem; }
+    .floating-hearts span:nth-child(3) { left: 30%; animation-delay: 4s; animation-duration: 11s; }
+    .floating-hearts span:nth-child(4) { left: 50%; animation-delay: 1s; animation-duration: 13s; font-size: 1.5rem; }
+    .floating-hearts span:nth-child(5) { left: 65%; animation-delay: 3s; animation-duration: 10s; font-size: 0.8rem; }
+    .floating-hearts span:nth-child(6) { left: 80%; animation-delay: 5s; animation-duration: 12s; }
+    .floating-hearts span:nth-child(7) { left: 92%; animation-delay: 2.5s; animation-duration: 15s; }
+
+    @keyframes floatHeart {
+      0% { transform: translateY(100px) rotate(0deg) scale(1); opacity: 0; }
+      10% { opacity: 0.15; }
+      50% { opacity: 0.2; }
+      90% { opacity: 0.1; }
+      100% { transform: translateY(-200px) rotate(25deg) scale(0.6); opacity: 0; }
+    }
+
+    header p {
+      font-size: 1rem;
+      opacity: 0.85;
+    }
+
+    .stats-bar {
+      display: flex;
+      justify-content: center;
+      gap: 2rem;
+      margin-top: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .stat {
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      opacity: 0.8;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    main {
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 1.5rem 1rem 3rem;
+    }
+
+    .add-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      width: 100%;
+      padding: 1rem;
+      background: var(--ocean);
+      color: var(--white);
+      border: none;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin-bottom: 1.5rem;
+    }
+
+    .add-btn:hover { background: var(--ocean-light); }
+
+    /* Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+
+    .modal-overlay.active { display: flex; }
+
+    .modal {
+      background: var(--white);
+      border-radius: 16px;
+      padding: 2rem;
+      width: 100%;
+      max-width: 500px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+
+    .modal h2 {
+      color: var(--ocean);
+      margin-bottom: 1.5rem;
+      font-size: 1.3rem;
+    }
+
+    .form-group {
+      margin-bottom: 1.25rem;
+    }
+
+    .form-group label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 0.4rem;
+      color: var(--text);
+      font-size: 0.9rem;
+    }
+
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+      width: 100%;
+      padding: 0.7rem 0.9rem;
+      border: 2px solid var(--fog);
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-family: inherit;
+      transition: border-color 0.2s;
+    }
+
+    .form-group input:focus,
+    .form-group textarea:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: var(--ocean);
+    }
+
+    .form-group textarea { resize: vertical; min-height: 70px; }
+    .form-group .hint { font-size: 0.78rem; color: var(--text-light); margin-top: 0.25rem; }
+
+    .rating-input {
+      display: flex;
+      gap: 0.35rem;
+      flex-direction: row-reverse;
+      justify-content: flex-end;
+    }
+
+    .rating-input input { display: none; }
+
+    .rating-input label {
+      font-size: 1.8rem;
+      cursor: pointer;
+      color: var(--fog);
+      transition: color 0.15s;
+      margin-bottom: 0;
+      font-weight: normal;
+    }
+
+    .rating-input label:hover,
+    .rating-input label:hover ~ label,
+    .rating-input input:checked ~ label {
+      color: #f0b429;
+    }
+
+    .raters {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    .rater-box {
+      background: var(--sand);
+      border-radius: 10px;
+      padding: 0.8rem;
+    }
+
+    .rater-box h4 {
+      font-size: 0.8rem;
+      color: var(--text-light);
+      margin-bottom: 0.4rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .form-actions {
+      display: flex;
+      gap: 0.75rem;
+      margin-top: 1.5rem;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 0.75rem;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+    }
+
+    .btn:active { transform: scale(0.98); }
+    .btn-primary { background: var(--ocean); color: var(--white); }
+    .btn-primary:hover { background: var(--ocean-light); }
+    .btn-danger { background: var(--sunset); color: var(--white); }
+    .btn-danger:hover { background: var(--sunset-dark); }
+    .btn-secondary { background: var(--fog); color: var(--text); }
+    .btn-secondary:hover { background: #b5c7d3; }
+
+    /* Sort / Filter Bar */
+    .toolbar {
+      display: flex;
+      gap: 0.75rem;
+      margin-bottom: 1.25rem;
+      flex-wrap: wrap;
+    }
+
+    .toolbar select {
+      padding: 0.5rem 0.75rem;
+      border: 2px solid var(--fog);
+      border-radius: 8px;
+      font-size: 0.85rem;
+      background: var(--white);
+      font-family: inherit;
+      cursor: pointer;
+    }
+
+    .toolbar input {
+      flex: 1;
+      min-width: 150px;
+      padding: 0.5rem 0.75rem;
+      border: 2px solid var(--fog);
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-family: inherit;
+    }
+
+    .toolbar input:focus,
+    .toolbar select:focus {
+      outline: none;
+      border-color: var(--ocean);
+    }
+
+    /* Walk Cards */
+    .walks-list { display: flex; flex-direction: column; gap: 1rem; }
+
+    .walk-card {
+      background: var(--white);
+      border-radius: 14px;
+      padding: 1.25rem;
+      box-shadow: 0 2px 12px var(--shadow);
+      transition: transform 0.15s, box-shadow 0.15s;
+      position: relative;
+    }
+
+    .walk-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px var(--shadow);
+    }
+
+    .walk-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 0.5rem;
+    }
+
+    .walk-name {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--ocean);
+    }
+
+    .walk-date {
+      font-size: 0.8rem;
+      color: var(--text-light);
+      white-space: nowrap;
+      margin-left: 0.75rem;
+    }
+
+    .walk-location {
+      font-size: 0.85rem;
+      color: var(--moss);
+      margin-bottom: 0.6rem;
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    .walk-ratings {
+      display: flex;
+      gap: 1.25rem;
+      margin-bottom: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .walk-rating {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .walk-rating-name {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-light);
+      font-weight: 600;
+    }
+
+    .walk-rating-stars {
+      color: #f0b429;
+      font-size: 1rem;
+      letter-spacing: 1px;
+    }
+
+    .walk-avg {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      background: linear-gradient(135deg, var(--ocean), var(--moss));
+      color: var(--white);
+      padding: 0.2rem 0.6rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
+
+    .walk-notes {
+      font-size: 0.85rem;
+      color: var(--text-light);
+      margin-top: 0.4rem;
+      line-height: 1.5;
+      font-style: italic;
+    }
+
+    .photo-upload-btn {
+      display: inline-flex; align-items: center; gap: 0.35rem; cursor: pointer;
+      padding: 0.5rem 1rem; background: var(--ocean); color: var(--white);
+      border-radius: 8px; font-size: 0.9rem; font-weight: 600;
+      transition: background 0.2s;
+    }
+    .photo-upload-btn:hover { background: var(--ocean-light); }
+
+    .photo-preview {
+      display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem;
+    }
+    .photo-preview-item {
+      position: relative; width: 70px; height: 70px; border-radius: 8px; overflow: hidden;
+    }
+    .photo-preview-item img {
+      width: 100%; height: 100%; object-fit: cover;
+    }
+    .photo-preview-item .remove-photo {
+      position: absolute; top: 2px; right: 2px; width: 20px; height: 20px;
+      background: rgba(0,0,0,0.6); color: white; border: none; border-radius: 50%;
+      font-size: 0.7rem; cursor: pointer; display: flex; align-items: center;
+      justify-content: center; line-height: 1;
+    }
+
+    .walk-photos {
+      display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem;
+    }
+    .walk-photo {
+      width: 80px; height: 80px; object-fit: cover; border-radius: 8px;
+      cursor: pointer; transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .walk-photo:hover { transform: scale(1.05); box-shadow: 0 3px 12px var(--shadow); }
+
+    .photo-lightbox {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+      z-index: 200; align-items: center; justify-content: center; padding: 1rem;
+    }
+    .photo-lightbox.active { display: flex; }
+    .photo-lightbox img { max-width: 95%; max-height: 90vh; border-radius: 8px; }
+    .photo-lightbox-close {
+      position: absolute; top: 1rem; right: 1rem; background: rgba(255,255,255,0.2);
+      color: white; border: none; font-size: 1.5rem; width: 40px; height: 40px;
+      border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    }
+
+    .walk-map-link {
+      display: inline-flex; align-items: center; gap: 0.35rem; margin-top: 0.5rem;
+      padding: 0.3rem 0.7rem; background: linear-gradient(135deg, #5b63d3, #7c5bbf);
+      color: var(--white); border-radius: 20px; font-size: 0.78rem; font-weight: 600;
+      text-decoration: none; transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .walk-map-link:hover { transform: translateY(-1px); box-shadow: 0 3px 10px rgba(91,99,211,0.3); }
+
+    .walk-tags {
+      display: flex;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+      margin-top: 0.5rem;
+    }
+
+    .tag {
+      background: var(--fog);
+      color: var(--text);
+      padding: 0.15rem 0.55rem;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+
+    .walk-card-actions {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+      padding-top: 0.75rem;
+      border-top: 1px solid var(--fog);
+    }
+
+    .walk-card-actions button {
+      padding: 0.35rem 0.75rem;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .btn-edit { background: var(--fog); color: var(--text); }
+    .btn-edit:hover { background: #b5c7d3; }
+    .btn-delete { background: #fde8e8; color: #c0392b; }
+    .btn-delete:hover { background: #f5c6c6; }
+
+    .empty-state {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: var(--text-light);
+    }
+
+    .empty-state .icon { font-size: 3rem; margin-bottom: 0.75rem; }
+    .empty-state h3 { color: var(--ocean); margin-bottom: 0.5rem; }
+
+    .names-setup {
+      background: var(--white);
+      border-radius: 14px;
+      padding: 1.5rem;
+      box-shadow: 0 2px 12px var(--shadow);
+      margin-bottom: 1.5rem;
+    }
+
+    .names-setup h3 {
+      color: var(--ocean);
+      margin-bottom: 1rem;
+    }
+
+    .names-setup .form-actions { margin-top: 1rem; }
+
+    .names-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    footer { text-align: center; padding: 1.5rem 1rem 2rem; color: var(--text-light); font-size: 0.8rem; }
+    .footer-hearts { color: var(--pink); font-size: 1rem; letter-spacing: 3px; margin-bottom: 0.3rem; }
+
+    @media (max-width: 500px) {
+      header h1 { font-size: 1.5rem; }
+      .raters, .names-row { grid-template-columns: 1fr; }
+      .walk-ratings { flex-direction: column; gap: 0.5rem; }
+      .stats-bar { gap: 1rem; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="floating-hearts">
+      <span>&#10084;</span><span>&#10084;</span><span>&#10084;</span>
+      <span>&#10084;</span><span>&#10084;</span><span>&#10084;</span><span>&#10084;</span>
+    </div>
+    <h1><span class="title-hearts">&#10084;</span> Kate and Jack's Walks <span class="title-hearts">&#10084;</span></h1>
+    <p>Our trail adventures, rated together</p>
+    <div class="stats-bar">
+      <div class="stat">
+        <div class="stat-value" id="totalWalks">0</div>
+        <div class="stat-label">Walks</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value" id="avgRating">-</div>
+        <div class="stat-label">Avg Rating</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value" id="topRated">-</div>
+        <div class="stat-label">Top Rated</div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- Names setup (shown once) -->
+    <div class="names-setup" id="namesSetup" style="display:none;">
+      <h3>Welcome! Who's walking?</h3>
+      <p style="color:var(--text-light); margin-bottom:1rem; font-size:0.9rem;">Enter both your names so we can track your ratings separately.</p>
+      <div class="names-row">
+        <div class="form-group">
+          <label for="name1Input">Person 1</label>
+          <input type="text" id="name1Input" placeholder="e.g. Kate">
+        </div>
+        <div class="form-group">
+          <label for="name2Input">Person 2</label>
+          <input type="text" id="name2Input" placeholder="e.g. Jack">
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" onclick="saveNames()">Let's Go!</button>
+      </div>
+    </div>
+
+    <button class="add-btn" id="addBtn" onclick="openModal()" style="display:none;">+ Log a New Walk</button>
+
+    <div class="toolbar" id="toolbar" style="display:none;">
+      <input type="text" id="searchInput" placeholder="Search walks..." oninput="renderWalks()">
+      <select id="sortSelect" onchange="renderWalks()">
+        <option value="date-desc">Newest First</option>
+        <option value="date-asc">Oldest First</option>
+        <option value="rating-desc">Highest Rated</option>
+        <option value="rating-asc">Lowest Rated</option>
+        <option value="name-asc">Name A-Z</option>
+      </select>
+    </div>
+
+    <div class="walks-list" id="walksList"></div>
+  </main>
+
+  <footer>
+    <div class="footer-hearts">&#10084; &#10084; &#10084;</div>
+    <p>Made with love in Nova Scotia</p>
+  </footer>
+
+  <!-- Add/Edit Modal -->
+  <div class="modal-overlay" id="modalOverlay" onclick="closeModalOutside(event)">
+    <div class="modal">
+      <h2 id="modalTitle">Log a New Walk</h2>
+      <input type="hidden" id="editId">
+
+      <div class="form-group">
+        <label for="walkName">Walk / Trail Name *</label>
+        <input type="text" id="walkName" placeholder="e.g. Cape Split Trail">
+      </div>
+
+      <div class="form-group">
+        <label for="walkLocation">Location</label>
+        <input type="text" id="walkLocation" placeholder="e.g. Scots Bay, Kings County">
+      </div>
+
+      <div class="form-group">
+        <label for="walkDate">Date</label>
+        <input type="date" id="walkDate">
+      </div>
+
+      <div class="form-group">
+        <label for="walkDistance">Distance (km)</label>
+        <input type="number" id="walkDistance" step="0.1" min="0" placeholder="e.g. 8.5">
+      </div>
+
+      <div class="form-group">
+        <label for="walkDifficulty">Difficulty</label>
+        <select id="walkDifficulty">
+          <option value="">Select...</option>
+          <option value="Easy">Easy</option>
+          <option value="Moderate">Moderate</option>
+          <option value="Hard">Hard</option>
+          <option value="Very Hard">Very Hard</option>
+        </select>
+      </div>
+
+      <div class="raters">
+        <div class="rater-box">
+          <h4 id="rater1Label">Person 1</h4>
+          <div class="rating-input" id="rating1">
+            <input type="radio" id="r1-5" name="rating1" value="5"><label for="r1-5">&#9733;</label>
+            <input type="radio" id="r1-4" name="rating1" value="4"><label for="r1-4">&#9733;</label>
+            <input type="radio" id="r1-3" name="rating1" value="3"><label for="r1-3">&#9733;</label>
+            <input type="radio" id="r1-2" name="rating1" value="2"><label for="r1-2">&#9733;</label>
+            <input type="radio" id="r1-1" name="rating1" value="1"><label for="r1-1">&#9733;</label>
+          </div>
+        </div>
+        <div class="rater-box">
+          <h4 id="rater2Label">Person 2</h4>
+          <div class="rating-input" id="rating2">
+            <input type="radio" id="r2-5" name="rating2" value="5"><label for="r2-5">&#9733;</label>
+            <input type="radio" id="r2-4" name="rating2" value="4"><label for="r2-4">&#9733;</label>
+            <input type="radio" id="r2-3" name="rating2" value="3"><label for="r2-3">&#9733;</label>
+            <input type="radio" id="r2-2" name="rating2" value="2"><label for="r2-2">&#9733;</label>
+            <input type="radio" id="r2-1" name="rating2" value="1"><label for="r2-1">&#9733;</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-top:1rem;">
+        <label for="walkRunkeeper">RunKeeper Map Link</label>
+        <input type="url" id="walkRunkeeper" placeholder="e.g. https://runkeeper.com/user/...">
+        <div class="hint">Paste your RunKeeper activity URL to attach the route map</div>
+      </div>
+
+      <div class="form-group">
+        <label>Photos</label>
+        <label class="photo-upload-btn" for="walkPhotos">&#128247; Add Photos</label>
+        <input type="file" id="walkPhotos" accept="image/*" multiple style="display:none" onchange="handlePhotoUpload(event)">
+        <div class="hint">Tap to add photos from your walk (stored locally)</div>
+        <div class="photo-preview" id="photoPreview"></div>
+      </div>
+
+      <div class="form-group">
+        <label for="walkNotes">Notes</label>
+        <textarea id="walkNotes" placeholder="How was the walk? Any highlights?"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="walkTags">Tags (comma separated)</label>
+        <input type="text" id="walkTags" placeholder="e.g. coastal, waterfall, dog-friendly">
+      </div>
+
+      <div class="form-actions">
+        <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveWalk()">Save Walk</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Photo Lightbox -->
+  <div class="photo-lightbox" id="photoLightbox" onclick="closeLightbox()">
+    <button class="photo-lightbox-close" onclick="closeLightbox()">&times;</button>
+    <img id="lightboxImg" src="" alt="Walk photo">
+  </div>
+
+  <script>
+    // ---- Data layer (localStorage) ----
+    function getData() {
+      return JSON.parse(localStorage.getItem('nsWalks') || '{"names":[],"walks":[]}');
+    }
+    function setData(d) {
+      localStorage.setItem('nsWalks', JSON.stringify(d));
+    }
+
+    // ---- Init ----
+    function init() {
+      const data = getData();
+      if (data.names.length < 2) {
+        document.getElementById('namesSetup').style.display = 'block';
+        document.getElementById('addBtn').style.display = 'none';
+        document.getElementById('toolbar').style.display = 'none';
+      } else {
+        document.getElementById('namesSetup').style.display = 'none';
+        document.getElementById('addBtn').style.display = 'flex';
+        document.getElementById('rater1Label').textContent = data.names[0];
+        document.getElementById('rater2Label').textContent = data.names[1];
+        renderWalks();
+        updateStats();
+      }
+    }
+
+    // ---- Names ----
+    function saveNames() {
+      const n1 = document.getElementById('name1Input').value.trim();
+      const n2 = document.getElementById('name2Input').value.trim();
+      if (!n1 || !n2) { alert('Please enter both names!'); return; }
+      const data = getData();
+      data.names = [n1, n2];
+      setData(data);
+      init();
+    }
+
+    // ---- Modal ----
+    function openModal(editId) {
+      const data = getData();
+      document.getElementById('modalTitle').textContent = editId ? 'Edit Walk' : 'Log a New Walk';
+      document.getElementById('editId').value = editId || '';
+
+      if (editId) {
+        const w = data.walks.find(w => w.id === editId);
+        if (!w) return;
+        document.getElementById('walkName').value = w.name;
+        document.getElementById('walkLocation').value = w.location || '';
+        document.getElementById('walkDate').value = w.date || '';
+        document.getElementById('walkDistance').value = w.distance || '';
+        document.getElementById('walkDifficulty').value = w.difficulty || '';
+        document.getElementById('walkNotes').value = w.notes || '';
+        document.getElementById('walkRunkeeper').value = w.runkeeper || '';
+        document.getElementById('walkTags').value = (w.tags || []).join(', ');
+        setRating('rating1', w.rating1);
+        setRating('rating2', w.rating2);
+        currentPhotos = w.photos ? [...w.photos] : [];
+        renderPhotoPreview();
+      } else {
+        document.getElementById('walkName').value = '';
+        document.getElementById('walkLocation').value = '';
+        document.getElementById('walkDate').value = new Date().toISOString().split('T')[0];
+        document.getElementById('walkDistance').value = '';
+        document.getElementById('walkDifficulty').value = '';
+        document.getElementById('walkNotes').value = '';
+        document.getElementById('walkRunkeeper').value = '';
+        document.getElementById('walkTags').value = '';
+        clearRating('rating1');
+        clearRating('rating2');
+        currentPhotos = [];
+        renderPhotoPreview();
+      }
+
+      document.getElementById('modalOverlay').classList.add('active');
+    }
+
+    function closeModal() {
+      document.getElementById('modalOverlay').classList.remove('active');
+    }
+
+    function closeModalOutside(e) {
+      if (e.target === document.getElementById('modalOverlay')) closeModal();
+    }
+
+    function setRating(groupId, value) {
+      if (!value) { clearRating(groupId); return; }
+      const radio = document.querySelector(`#${groupId} input[value="${value}"]`);
+      if (radio) radio.checked = true;
+    }
+
+    function clearRating(groupId) {
+      document.querySelectorAll(`#${groupId} input`).forEach(r => r.checked = false);
+    }
+
+    function getRating(name) {
+      const checked = document.querySelector(`input[name="${name}"]:checked`);
+      return checked ? parseInt(checked.value) : 0;
+    }
+
+    // ---- Save ----
+    function saveWalk() {
+      const name = document.getElementById('walkName').value.trim();
+      if (!name) { alert('Please enter a walk name!'); return; }
+
+      const r1 = getRating('rating1');
+      const r2 = getRating('rating2');
+
+      const walk = {
+        id: document.getElementById('editId').value || Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+        name,
+        location: document.getElementById('walkLocation').value.trim(),
+        date: document.getElementById('walkDate').value,
+        distance: parseFloat(document.getElementById('walkDistance').value) || null,
+        difficulty: document.getElementById('walkDifficulty').value,
+        rating1: r1,
+        rating2: r2,
+        notes: document.getElementById('walkNotes').value.trim(),
+        runkeeper: document.getElementById('walkRunkeeper').value.trim(),
+        photos: currentPhotos,
+        tags: document.getElementById('walkTags').value.split(',').map(t => t.trim()).filter(Boolean),
+      };
+
+      const data = getData();
+      const editId = document.getElementById('editId').value;
+      if (editId) {
+        const idx = data.walks.findIndex(w => w.id === editId);
+        if (idx !== -1) data.walks[idx] = walk;
+      } else {
+        data.walks.push(walk);
+      }
+      setData(data);
+      closeModal();
+      renderWalks();
+      updateStats();
+    }
+
+    // ---- Delete ----
+    function deleteWalk(id) {
+      if (!confirm('Delete this walk?')) return;
+      const data = getData();
+      data.walks = data.walks.filter(w => w.id !== id);
+      setData(data);
+      renderWalks();
+      updateStats();
+    }
+
+    // ---- Stars helper ----
+    function starsHTML(n) {
+      if (!n) return '<span style="color:var(--text-light)">Not rated</span>';
+      return '<span class="walk-rating-stars">' + '&#9733;'.repeat(n) + '&#9734;'.repeat(5 - n) + '</span>';
+    }
+
+    // ---- Render ----
+    function renderWalks() {
+      const data = getData();
+      let walks = [...data.walks];
+      const search = (document.getElementById('searchInput')?.value || '').toLowerCase();
+      const sort = document.getElementById('sortSelect')?.value || 'date-desc';
+
+      if (search) {
+        walks = walks.filter(w =>
+          w.name.toLowerCase().includes(search) ||
+          (w.location || '').toLowerCase().includes(search) ||
+          (w.tags || []).some(t => t.toLowerCase().includes(search)) ||
+          (w.notes || '').toLowerCase().includes(search)
+        );
+      }
+
+      const avg = w => {
+        const ratings = [w.rating1, w.rating2].filter(Boolean);
+        return ratings.length ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 0;
+      };
+
+      walks.sort((a, b) => {
+        switch (sort) {
+          case 'date-asc': return (a.date || '').localeCompare(b.date || '');
+          case 'date-desc': return (b.date || '').localeCompare(a.date || '');
+          case 'rating-desc': return avg(b) - avg(a);
+          case 'rating-asc': return avg(a) - avg(b);
+          case 'name-asc': return a.name.localeCompare(b.name);
+          default: return 0;
+        }
+      });
+
+      const list = document.getElementById('walksList');
+      const toolbar = document.getElementById('toolbar');
+
+      if (data.walks.length === 0) {
+        toolbar.style.display = 'none';
+        list.innerHTML = `
+          <div class="empty-state">
+            <div class="icon">&#127795;</div>
+            <h3>No walks yet!</h3>
+            <p>Hit the button above to log your first Nova Scotia adventure.</p>
+          </div>`;
+        return;
+      }
+
+      toolbar.style.display = 'flex';
+
+      if (walks.length === 0) {
+        list.innerHTML = '<div class="empty-state"><p>No walks match your search.</p></div>';
+        return;
+      }
+
+      list.innerHTML = walks.map(w => {
+        const a = avg(w);
+        const dateStr = w.date ? new Date(w.date + 'T12:00:00').toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+        const meta = [w.difficulty, w.distance ? w.distance + ' km' : ''].filter(Boolean).join(' &middot; ');
+
+        return `
+          <div class="walk-card">
+            <div class="walk-card-header">
+              <span class="walk-name">${esc(w.name)}</span>
+              <span class="walk-date">${dateStr}</span>
+            </div>
+            ${w.location ? `<div class="walk-location">&#128205; ${esc(w.location)}</div>` : ''}
+            ${meta ? `<div style="font-size:0.82rem;color:var(--text-light);margin-bottom:0.4rem;">${meta}</div>` : ''}
+            <div class="walk-ratings">
+              <div class="walk-rating">
+                <span class="walk-rating-name">${esc(data.names[0])}</span>
+                ${starsHTML(w.rating1)}
+              </div>
+              <div class="walk-rating">
+                <span class="walk-rating-name">${esc(data.names[1])}</span>
+                ${starsHTML(w.rating2)}
+              </div>
+              ${a ? `<div class="walk-avg">&#9733; ${a.toFixed(1)}</div>` : ''}
+            </div>
+            ${w.notes ? `<div class="walk-notes">"${esc(w.notes)}"</div>` : ''}
+            ${w.runkeeper ? `<a class="walk-map-link" href="${esc(w.runkeeper)}" target="_blank" rel="noopener">&#128506; View Route Map</a>` : ''}
+            ${w.photos && w.photos.length ? `<div class="walk-photos">${w.photos.map((p,i) => `<img src="${p}" alt="Walk photo" class="walk-photo" onclick="viewPhoto('${w.id}',${i})">`).join('')}</div>` : ''}
+            ${w.tags && w.tags.length ? `<div class="walk-tags">${w.tags.map(t => `<span class="tag">${esc(t)}</span>`).join('')}</div>` : ''}
+            <div class="walk-card-actions">
+              <button class="btn-edit" onclick="openModal('${w.id}')">Edit</button>
+              <button class="btn-delete" onclick="deleteWalk('${w.id}')">Delete</button>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    // ---- Stats ----
+    function updateStats() {
+      const data = getData();
+      const walks = data.walks;
+      document.getElementById('totalWalks').textContent = walks.length;
+
+      if (walks.length === 0) {
+        document.getElementById('avgRating').textContent = '-';
+        document.getElementById('topRated').textContent = '-';
+        return;
+      }
+
+      const allRatings = walks.flatMap(w => [w.rating1, w.rating2].filter(Boolean));
+      const overallAvg = allRatings.length ? (allRatings.reduce((a, b) => a + b, 0) / allRatings.length).toFixed(1) : '-';
+      document.getElementById('avgRating').textContent = overallAvg;
+
+      const avg = w => {
+        const ratings = [w.rating1, w.rating2].filter(Boolean);
+        return ratings.length ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 0;
+      };
+
+      const top = walks.reduce((best, w) => avg(w) > avg(best) ? w : best, walks[0]);
+      const topName = top.name.length > 18 ? top.name.slice(0, 16) + '...' : top.name;
+      document.getElementById('topRated').textContent = topName;
+    }
+
+    // ---- Escape HTML ----
+    function esc(s) {
+      const d = document.createElement('div');
+      d.textContent = s;
+      return d.innerHTML;
+    }
+
+    // ---- Photos ----
+    let currentPhotos = [];
+
+    function handlePhotoUpload(event) {
+      const files = Array.from(event.target.files);
+      files.forEach(file => {
+        if (!file.type.startsWith('image/')) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          // Resize to save localStorage space
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const maxSize = 600;
+            let w = img.width, h = img.height;
+            if (w > maxSize || h > maxSize) {
+              if (w > h) { h = Math.round(h * maxSize / w); w = maxSize; }
+              else { w = Math.round(w * maxSize / h); h = maxSize; }
+            }
+            canvas.width = w; canvas.height = h;
+            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+            currentPhotos.push(canvas.toDataURL('image/jpeg', 0.7));
+            renderPhotoPreview();
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+      event.target.value = '';
+    }
+
+    function renderPhotoPreview() {
+      const container = document.getElementById('photoPreview');
+      if (!container) return;
+      container.innerHTML = currentPhotos.map((p, i) =>
+        `<div class="photo-preview-item">
+          <img src="${p}" alt="Photo ${i+1}">
+          <button class="remove-photo" onclick="removePhoto(${i})">&times;</button>
+        </div>`
+      ).join('');
+    }
+
+    function removePhoto(index) {
+      currentPhotos.splice(index, 1);
+      renderPhotoPreview();
+    }
+
+    function viewPhoto(walkId, photoIndex) {
+      const data = getData();
+      const walk = data.walks.find(w => w.id === walkId);
+      if (!walk || !walk.photos || !walk.photos[photoIndex]) return;
+      document.getElementById('lightboxImg').src = walk.photos[photoIndex];
+      document.getElementById('photoLightbox').classList.add('active');
+    }
+
+    function closeLightbox() {
+      document.getElementById('photoLightbox').classList.remove('active');
+    }
+
+    // ---- Keyboard ----
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') closeModal();
+    });
+
+    // ---- Start ----
+    init();
+  </script>
+</body>
+</html>
