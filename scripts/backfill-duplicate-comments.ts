@@ -82,19 +82,36 @@ Usage:
 Environment Variables:
   GITHUB_TOKEN - GitHub personal access token with repo and actions permissions (required)
   DRY_RUN - Set to "false" to actually trigger workflows (default: true for safety)
-  MAX_ISSUE_NUMBER - Only process issues with numbers less than this value (default: 4050)`);
+  DAYS_BACK - Only process issues created in the last N days (default: no date filter)
+  MAX_ISSUE_NUMBER - Only process issues with numbers less than this value (default: 4050, or no cap when DAYS_BACK is set)`);
   }
   console.log("[DEBUG] GitHub token found");
 
   const owner = "anthropics";
   const repo = "claude-code";
   const dryRun = process.env.DRY_RUN !== "false";
-  const maxIssueNumber = parseInt(process.env.MAX_ISSUE_NUMBER || "4050", 10);
+
+  let cutoffTime: number | undefined;
+  if (process.env.DAYS_BACK) {
+    const daysBack = parseInt(process.env.DAYS_BACK, 10);
+    if (!Number.isInteger(daysBack) || daysBack <= 0) {
+      throw new Error(`DAYS_BACK must be a positive integer (got: "${process.env.DAYS_BACK}")`);
+    }
+    cutoffTime = Date.now() - daysBack * 24 * 60 * 60 * 1000;
+  }
+
+  // The issue-number cap is a legacy default from the original backfill run;
+  // don't apply it when the caller asked for a date window instead
+  const defaultMaxIssueNumber = cutoffTime === undefined ? "4050" : `${Number.MAX_SAFE_INTEGER}`;
+  const maxIssueNumber = parseInt(process.env.MAX_ISSUE_NUMBER || defaultMaxIssueNumber, 10);
   const minIssueNumber = parseInt(process.env.MIN_ISSUE_NUMBER || "1", 10);
-  
+
   console.log(`[DEBUG] Repository: ${owner}/${repo}`);
   console.log(`[DEBUG] Dry run mode: ${dryRun}`);
   console.log(`[DEBUG] Looking at issues between #${minIssueNumber} and #${maxIssueNumber}`);
+  if (cutoffTime !== undefined) {
+    console.log(`[DEBUG] Only processing issues created after ${new Date(cutoffTime).toISOString()} (DAYS_BACK=${process.env.DAYS_BACK})`);
+  }
 
   console.log(`[DEBUG] Fetching issues between #${minIssueNumber} and #${maxIssueNumber}...`);
   const allIssues: GitHubIssue[] = [];
@@ -110,14 +127,20 @@ Environment Variables:
     if (pageIssues.length === 0) break;
     
     // Filter to only include issues within the specified range
-    const filteredIssues = pageIssues.filter(issue => 
-      issue.number >= minIssueNumber && issue.number < maxIssueNumber
+    const filteredIssues = pageIssues.filter(issue =>
+      issue.number >= minIssueNumber && issue.number < maxIssueNumber &&
+      (cutoffTime === undefined || new Date(issue.created_at).getTime() >= cutoffTime)
     );
     allIssues.push(...filteredIssues);
-    
+
     // If the oldest issue in this page is still above our minimum, we need to continue
     // but if the oldest issue is below our minimum, we can stop
     const oldestIssueInPage = pageIssues[pageIssues.length - 1];
+    // Pages are sorted by created desc, so once we're past the date cutoff we're done
+    if (oldestIssueInPage && cutoffTime !== undefined && new Date(oldestIssueInPage.created_at).getTime() < cutoffTime) {
+      console.log(`[DEBUG] Oldest issue in page #${page} (#${oldestIssueInPage.number}) is older than the DAYS_BACK cutoff, stopping`);
+      break;
+    }
     if (oldestIssueInPage && oldestIssueInPage.number >= maxIssueNumber) {
       console.log(`[DEBUG] Oldest issue in page #${page} is #${oldestIssueInPage.number}, continuing...`);
     } else if (oldestIssueInPage && oldestIssueInPage.number < minIssueNumber) {
