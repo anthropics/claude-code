@@ -145,6 +145,16 @@
       },
       "source": "./plugins/security-guidance",
       "category": "security"
+    },
+    {
+      "name": "snipara",
+      "description": "Context optimization + safe code execution - Query docs with 90% token reduction and execute code with Docker isolation via RLM Runtime",
+      "version": "1.0.0",
+      "author": {
+        "name": "Snipara Team"
+      },
+      "source": "./plugins/snipara",
+      "category": "productivity"
     }
   ]
 }
