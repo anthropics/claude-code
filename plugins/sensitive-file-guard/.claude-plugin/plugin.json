@@ -1,0 +1,9 @@
+{
+  "name": "sensitive-file-guard",
+  "version": "1.0.0",
+  "description": "PreToolUse hook that protects sensitive infrastructure files (.env, lockfiles, CI configs, Docker configs, SSH keys) from accidental overwrites",
+  "author": {
+    "name": "teee32",
+    "email": "3318867918@qq.com"
+  }
+}
