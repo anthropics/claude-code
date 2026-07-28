@@ -1,0 +1,16 @@
+{
+  "description": "Data protection hook that protects ML checkpoints and training data from accidental overwrites",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/data_protection_hook.py"
+          }
+        ],
+        "matcher": "Write"
+      }
+    ]
+  }
+}
