@@ -1,0 +1,5 @@
+{
+  "name": "session-file-validator",
+  "version": "1.0.0",
+  "description": "Validates file content on session resume to detect stale cached data. Warns about images and files that have changed since they were originally read."
+}
