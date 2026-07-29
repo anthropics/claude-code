@@ -5,7 +5,9 @@ import { errorResult, formatCount, formatTimestamp, respond, truncateText } from
 import { afterParam, instagramIdParam, limitParam, responseFormatParam } from "../schemas.js";
 import type { CommentObject, GraphListResponse } from "../types.js";
 
-const COMMENT_FIELDS = "id,text,timestamp,username,like_count,hidden";
+// `username` alone comes back empty on the Instagram Login path — the author is
+// only populated via the `from` expansion. Request both so either shape works.
+const COMMENT_FIELDS = "id,text,timestamp,username,like_count,hidden,from{id,username}";
 
 interface CommentRow {
   id: string;

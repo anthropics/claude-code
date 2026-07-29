@@ -116,9 +116,16 @@ Not: feed 4:5–1.91:1 en-boy aralığı istiyor, story bu kısıtı uygulamıyo
 `instagram_reply_to_comment` **doğrulanmadı** — yanıt vermek için bir yorum
 ID'si gerekiyor, yorum ucu ise ID döndürmüyor (aşağıya bak).
 
-Canlı kullanımdan iki not: insights metrik başlıkları hesabın diline göre
-yerelleştirilmiş geliyor (`name` sabit, `title`/`description` değil), ve bir
-gönderinin `comments_count` değeri yorum ucundan okunabilenden fazla olabiliyor.
+Canlı kullanımdan iki not:
+
+**Uygulama Development modundayken canlı veri okunamıyor** ve bunu söyleyen bir
+hata da çıkmıyor — yorum ucu HTTP 200 ile boş `data` döndürüyor. Yazma işlemleri
+çalışmaya devam ettiği için kurulum yarı bozuk görünüyor ve insan izin sorunu
+sanıyor. App Dashboard'daki **Publish** düğmesiyle Live moda geçince aynı çağrı
+anında veriyi döndürüyor. Bunu bulmak en pahalı adım oldu.
+
+Insights metrik başlıkları hesabın diline göre yerelleştirilmiş geliyor —
+`name` sabit, `title`/`description` değil.
 
 **İki araç herkese açık ve geri alınamaz yazma yapar:** `instagram_publish_post`
 ve `instagram_reply_to_comment`. Çağrı başarılı olduğu anda içerik canlı hesapta

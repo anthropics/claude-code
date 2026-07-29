@@ -17,7 +17,7 @@ professional accounts. Speaks stdio.
 | `instagram_get_media_insights` | per-post reach and engagement |
 | `instagram_get_account_insights` | account metrics over a period |
 | `instagram_get_publishing_limit` | quota usage |
-| `instagram_list_comments` | returns cleanly; see the note below |
+| `instagram_list_comments` | comment text, likes, timestamps, IDs |
 | `instagram_publish_post` | image story published to a live account |
 
 One practical constraint found the hard way: **feed posts require an aspect
@@ -45,30 +45,29 @@ Two observations from live use worth knowing:
 - **Insight metric names and descriptions come back localized** to the
   account's language, not in English. The metric `name` field stays stable;
   `title` and `description` do not.
-- **`comments_count` can exceed what the comments edge returns — cause
-  unknown.** A carousel reporting `comments_count: 2` returns
-  `{"data":[],"paging":{"cursors":{...}}}` from `/<media-id>/comments`, and
-  requesting `comments{...}` as a nested field drops the field from the
-  response entirely. Neither produces an error, so the call looks successful.
+- **An app in Development mode reads no live data, and says nothing about it.**
+  This is the single most expensive thing to not know. While the app is in
+  Development mode, `/<media-id>/comments` returns
+  `{"data":[],"paging":{"cursors":{...}}}` — HTTP 200, no error — on a post
+  whose `comments_count` is non-zero, and requesting `comments{...}` as a
+  nested field drops the field from the response entirely. Switching the app to
+  Live (the **Publish** button in the App Dashboard) makes the same call return
+  the comments immediately.
 
-  Note the cursors: Meta returns `before`/`after` values pointing at content it
-  will not hand over, and on a post with exactly one comment the two cursors
-  are identical. The data is there; the response omits it.
+  The tell is the cursors: Meta mints `before`/`after` values pointing at
+  content it then withholds, and on a post with exactly one comment the two are
+  identical. A genuinely empty collection does not produce that.
 
-  Ruled out by testing, so do not spend time on these:
+  Writes are unaffected — publishing worked in Development mode — so a setup
+  can look half-broken in a way that suggests a permissions problem. It is not.
+  These were each ruled out before the real cause was found: the token's scopes
+  (verified granted at issue time), `is_comment_enabled` (true), the client
+  (bare `curl` behaved identically), and the comments being replies or the
+  owner's own (confirmed top-level, by other people, in the app).
 
-  - **Not the token's scopes.** Persists on a token whose granted list was
-    verified at issue time to include `instagram_business_manage_comments`.
-  - **Not comments being disabled.** `is_comment_enabled` is `true`.
-  - **Not this client.** A bare `curl` against the edge, with no field
-    selection, returns the same empty payload.
-  - **Not replies miscounted as top-level comments**, and not the account
-    owner's own comments — the comments were confirmed in the Instagram app to
-    be top-level comments written by other people.
-
-  What is left is something on Meta's side about which comment content it will
-  serve. Treat `comments_count` as an upper bound, and do not present an empty
-  comment list to a user as "this post has no comments".
+- **Comment authors need the `from` expansion.** On the Instagram Login path the
+  `username` field on a comment comes back empty; the author is only populated
+  through `from{id,username}`. The client requests both.
 
 ## Setup
 
@@ -95,7 +94,11 @@ to look either up by hand.
 3. An app registered in the Meta App Dashboard, with the **Instagram** product
    added.
 4. An access token with the right scopes.
-5. **App Review**, only if the app will serve accounts you do not own. Standard
+5. **The app switched to Live mode** — the **Publish** button in the App
+   Dashboard. In Development mode every read of live data returns empty without
+   an error, which is by far the most confusing failure here. See the notes at
+   the end.
+6. **App Review**, only if the app will serve accounts you do not own. Standard
    Access covers accounts you own and have added in the App Dashboard.
 
 ### Getting a token
