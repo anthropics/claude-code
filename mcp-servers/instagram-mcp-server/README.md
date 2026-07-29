@@ -34,18 +34,30 @@ Two observations from live use worth knowing:
 - **Insight metric names and descriptions come back localized** to the
   account's language, not in English. The metric `name` field stays stable;
   `title` and `description` do not.
-- **`comments_count` can exceed what the comments edge returns, and the cause
-  is not (only) permissions.** A carousel reporting `comments_count: 2` returns
+- **`comments_count` can exceed what the comments edge returns — cause
+  unknown.** A carousel reporting `comments_count: 2` returns
   `{"data":[],"paging":{"cursors":{...}}}` from `/<media-id>/comments`, and
   requesting `comments{...}` as a nested field drops the field from the
-  response entirely. Neither produces an error. This persists on a token that
-  demonstrably holds `instagram_business_manage_comments` — the granted scope
-  list was checked at issue time — so a narrow token is not the explanation,
-  and the real cause is still open. Treat `comments_count` as an upper bound.
+  response entirely. Neither produces an error, so the call looks successful.
 
-  A narrow token does produce the same symptom, though, so rule that out
-  first: `authorize.mjs` prints the granted permissions when it issues a
-  token, which is the cheapest way to check.
+  Note the cursors: Meta returns `before`/`after` values pointing at content it
+  will not hand over, and on a post with exactly one comment the two cursors
+  are identical. The data is there; the response omits it.
+
+  Ruled out by testing, so do not spend time on these:
+
+  - **Not the token's scopes.** Persists on a token whose granted list was
+    verified at issue time to include `instagram_business_manage_comments`.
+  - **Not comments being disabled.** `is_comment_enabled` is `true`.
+  - **Not this client.** A bare `curl` against the edge, with no field
+    selection, returns the same empty payload.
+  - **Not replies miscounted as top-level comments**, and not the account
+    owner's own comments — the comments were confirmed in the Instagram app to
+    be top-level comments written by other people.
+
+  What is left is something on Meta's side about which comment content it will
+  serve. Treat `comments_count` as an upper bound, and do not present an empty
+  comment list to a user as "this post has no comments".
 
 ## Setup
 

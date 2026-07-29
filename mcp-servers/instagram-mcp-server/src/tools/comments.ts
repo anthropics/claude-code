@@ -109,9 +109,21 @@ Error Handling:
 
         const comments = (data.data ?? []).map(toCommentRow);
         if (!comments.length) {
+          // Meta can return pagination cursors while withholding the comments
+          // they point at. Reporting that as "no comments" would be a false
+          // negative, and an agent would then tell the user the post has none.
+          const withheld = Boolean(data.paging?.cursors?.after);
           return {
             content: [
-              { type: "text" as const, text: `Post ${params.media_id} has no comments on this page.` },
+              {
+                type: "text" as const,
+                text: withheld
+                  ? `Post ${params.media_id} returned no comment content, but the API returned ` +
+                    `pagination cursors, which means comments exist and are being withheld rather ` +
+                    `than absent. Do not report this as "no comments" — the count on the media ` +
+                    `object is the reliable figure. See the server README.`
+                  : `Post ${params.media_id} has no comments on this page.`,
+              },
             ],
           };
         }
