@@ -24,15 +24,33 @@ export class GraphApiError extends Error {
 }
 
 function apiVersion(): string {
-  return process.env.INSTAGRAM_API_VERSION ?? DEFAULT_API_VERSION;
+  return readEnv("INSTAGRAM_API_VERSION") ?? DEFAULT_API_VERSION;
 }
 
 function apiHost(): string {
-  return process.env.INSTAGRAM_API_HOST ?? DEFAULT_HOST;
+  return readEnv("INSTAGRAM_API_HOST") ?? DEFAULT_HOST;
+}
+
+/**
+ * Read an environment variable, treating an unexpanded `${VAR}` placeholder as
+ * absent.
+ *
+ * A project-scoped .mcp.json passes credentials through as `"${VAR}"`. When the
+ * variable is undefined in the client's environment, that literal string can
+ * reach the server intact — non-empty, so a plain falsy check passes it
+ * through, and it then gets sent as the credential. Meta answers with code 190,
+ * which this client used to report as an expired token: exactly the wrong fix
+ * for an unset variable.
+ */
+export function readEnv(name: string): string | undefined {
+  const value = process.env[name];
+  if (!value) return undefined;
+  if (/^\$\{.*\}$/.test(value.trim())) return undefined;
+  return value;
 }
 
 function requireToken(): string {
-  const token = process.env.INSTAGRAM_ACCESS_TOKEN;
+  const token = readEnv("INSTAGRAM_ACCESS_TOKEN");
   if (!token) {
     throw new GraphApiError(
       401,
@@ -48,7 +66,7 @@ function requireToken(): string {
 
 /** The Instagram professional account ID all account-scoped calls hang off. */
 export function requireAccountId(): string {
-  const id = process.env.INSTAGRAM_ACCOUNT_ID;
+  const id = readEnv("INSTAGRAM_ACCOUNT_ID");
   if (!id) {
     throw new GraphApiError(
       400,

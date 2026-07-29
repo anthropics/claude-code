@@ -13,6 +13,7 @@ import { registerEngagementTools } from "./tools/engagement.js";
 import { registerTranscriptTool } from "./tools/transcript.js";
 import { registerVideoTools } from "./tools/videos.js";
 import { oauthConfigured } from "./services/oauth.js";
+import { readEnv } from "./services/client.js";
 
 const server = new McpServer({
   name: "youtube-mcp-server",
@@ -25,7 +26,7 @@ registerEngagementTools(server);
 registerTranscriptTool(server);
 
 async function main(): Promise<void> {
-  if (!process.env.YOUTUBE_API_KEY) {
+  if (!readEnv("YOUTUBE_API_KEY")) {
     // Warn rather than exit: the client shows a server that failed to start as
     // a connection fault, which sends people debugging the wrong layer. Staying
     // up lets each tool return the message that names the actual fix.

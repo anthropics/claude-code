@@ -18,8 +18,25 @@ export class YouTubeApiError extends Error {
   }
 }
 
+/**
+ * Read an environment variable, treating an unexpanded `${VAR}` placeholder as
+ * absent.
+ *
+ * A project-scoped .mcp.json passes credentials through as `"${VAR}"`. When the
+ * variable is undefined in the client's environment, that literal string can
+ * reach the server intact — non-empty, so a plain falsy check passes it through
+ * and it gets sent as the credential. The API then rejects it as invalid, which
+ * sends the operator looking for a bad key instead of an unset variable.
+ */
+export function readEnv(name: string): string | undefined {
+  const value = process.env[name];
+  if (!value) return undefined;
+  if (/^\$\{.*\}$/.test(value.trim())) return undefined;
+  return value;
+}
+
 function requireApiKey(): string {
-  const key = process.env.YOUTUBE_API_KEY;
+  const key = readEnv("YOUTUBE_API_KEY");
   if (!key) {
     throw new YouTubeApiError(
       401,

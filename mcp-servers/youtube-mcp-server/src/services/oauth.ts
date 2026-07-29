@@ -1,5 +1,5 @@
 import { REQUEST_TIMEOUT_MS, TOKEN_URL } from "../constants.js";
-import { YouTubeApiError } from "./client.js";
+import { YouTubeApiError, readEnv } from "./client.js";
 
 /**
  * Scope required by captions.download. The read-only youtube.readonly scope is
@@ -15,11 +15,7 @@ interface CachedToken {
 let cached: CachedToken | undefined;
 
 export function oauthConfigured(): boolean {
-  return Boolean(
-    process.env.YOUTUBE_OAUTH_CLIENT_ID &&
-      process.env.YOUTUBE_OAUTH_CLIENT_SECRET &&
-      process.env.YOUTUBE_OAUTH_REFRESH_TOKEN,
-  );
+  return missingOAuthVars().length === 0;
 }
 
 /** Names of whichever OAuth variables are missing, for error messages. */
@@ -28,7 +24,7 @@ export function missingOAuthVars(): string[] {
     "YOUTUBE_OAUTH_CLIENT_ID",
     "YOUTUBE_OAUTH_CLIENT_SECRET",
     "YOUTUBE_OAUTH_REFRESH_TOKEN",
-  ].filter((name) => !process.env[name]);
+  ].filter((name) => !readEnv(name));
 }
 
 /**
@@ -55,9 +51,9 @@ export async function getAccessToken(): Promise<string> {
 
   const body = new URLSearchParams({
     grant_type: "refresh_token",
-    refresh_token: process.env.YOUTUBE_OAUTH_REFRESH_TOKEN as string,
-    client_id: process.env.YOUTUBE_OAUTH_CLIENT_ID as string,
-    client_secret: process.env.YOUTUBE_OAUTH_CLIENT_SECRET as string,
+    refresh_token: readEnv("YOUTUBE_OAUTH_REFRESH_TOKEN") as string,
+    client_id: readEnv("YOUTUBE_OAUTH_CLIENT_ID") as string,
+    client_secret: readEnv("YOUTUBE_OAUTH_CLIENT_SECRET") as string,
   });
 
   const controller = new AbortController();

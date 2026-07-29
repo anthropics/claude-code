@@ -36,10 +36,15 @@ const EXPECTED_TOOLS = [
   "instagram_reply_to_comment",
 ];
 
-// Run with credentials explicitly stripped so the auth guard is what fires.
+// Run with credentials set to the literal placeholders a project-scoped
+// .mcp.json produces when the variable is undefined in the client's
+// environment. This is the harder case than simply unsetting them: the strings
+// are non-empty, so a naive check passes them through and they get sent as
+// credentials, drawing an "invalid token" rejection that points the operator at
+// the wrong problem entirely.
 const env = { ...process.env };
-delete env.INSTAGRAM_ACCESS_TOKEN;
-delete env.INSTAGRAM_ACCOUNT_ID;
+env.INSTAGRAM_ACCESS_TOKEN = "${INSTAGRAM_ACCESS_TOKEN}";
+env.INSTAGRAM_ACCOUNT_ID = "${INSTAGRAM_ACCOUNT_ID}";
 
 const child = spawn("node", [serverPath], { stdio: ["pipe", "pipe", "pipe"], env });
 child.stderr.on("data", () => {}); // startup warnings are expected here
