@@ -18,12 +18,23 @@ professional accounts. Speaks stdio.
 | `instagram_get_account_insights` | account metrics over a period |
 | `instagram_get_publishing_limit` | quota usage |
 | `instagram_list_comments` | returns cleanly; see the note below |
+| `instagram_publish_post` | image story published to a live account |
 
-**The two write tools are deliberately unverified.** `instagram_publish_post`
-and `instagram_reply_to_comment` produce public, irreversible content on a live
-account, so testing them means actually posting. Their request construction
-follows the same verified client path as the read tools, but the calls
-themselves have never been made.
+One practical constraint found the hard way: **feed posts require an aspect
+ratio between 4:5 and 1.91:1**, and a 784×1168 image (0.67) is outside it.
+Stories accept the taller shape, which makes them the better first test as well
+as the safer one.
+
+`instagram_publish_post` is **verified for image stories**: container creation,
+the status check, `media_publish`, and the permalink lookup all ran against a
+live account and produced a story visible on the profile. Not exercised by that
+run, and still unverified: the asynchronous transcode polling that video and
+reel containers need (an image container is `FINISHED` immediately), and feed
+posts, which impose an aspect-ratio range stories do not.
+
+`instagram_reply_to_comment` remains **unverified**. It needs a comment ID to
+reply to, and the comments edge does not return any — see the note below. Even
+if it did, testing it means posting a public reply under someone's comment.
 
 `node test/protocol.mjs` (25/25) covers what needs no credentials: tool
 registration, annotation correctness, schema validation, and every local

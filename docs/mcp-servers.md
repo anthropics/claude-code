@@ -108,9 +108,13 @@ doğrulandı:** hesap profili, medya listesi (cursor sayfalama, carousel/reel
 ayrımı), tekil gönderi, post ve hesap insights, yayınlama limiti, yorumlar.
 Protokol katmanı ayrıca 25/25 geçiyor.
 
-**İki yazma aracı kasten denenmedi** — `instagram_publish_post` ve
-`instagram_reply_to_comment` canlı hesapta herkese açık ve geri alınamaz içerik
-üretiyor, yani test etmek gerçekten paylaşmak demek.
+`instagram_publish_post` **görsel story için doğrulandı** — container, durum
+kontrolü, yayınlama ve permalink zinciri canlı hesapta çalıştı. Video/reel'in
+gerektirdiği asenkron transcode beklemesi ve feed gönderileri henüz denenmedi.
+Not: feed 4:5–1.91:1 en-boy aralığı istiyor, story bu kısıtı uygulamıyor.
+
+`instagram_reply_to_comment` **doğrulanmadı** — yanıt vermek için bir yorum
+ID'si gerekiyor, yorum ucu ise ID döndürmüyor (aşağıya bak).
 
 Canlı kullanımdan iki not: insights metrik başlıkları hesabın diline göre
 yerelleştirilmiş geliyor (`name` sabit, `title`/`description` değil), ve bir
