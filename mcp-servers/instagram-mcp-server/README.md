@@ -34,19 +34,18 @@ Two observations from live use worth knowing:
 - **Insight metric names and descriptions come back localized** to the
   account's language, not in English. The metric `name` field stays stable;
   `title` and `description` do not.
-- **A missing permission reads as empty data, not as an error.** On a token
-  without `instagram_business_manage_comments`, a post with `comments_count: 2`
-  returned `{"data":[],"paging":{"cursors":{...}}}` from the comments edge, and
-  requesting `comments{...}` as a nested field on the media object dropped the
-  field from the response entirely — no error in either case. Two signatures
-  give it away: pagination cursors alongside an empty `data` array (Meta does
-  not mint cursors for a genuinely empty collection), and a requested field
-  silently absent from the response. If a read returns nothing where you expect
-  something, check the token's scopes before looking for a bug.
+- **`comments_count` can exceed what the comments edge returns, and the cause
+  is not (only) permissions.** A carousel reporting `comments_count: 2` returns
+  `{"data":[],"paging":{"cursors":{...}}}` from `/<media-id>/comments`, and
+  requesting `comments{...}` as a nested field drops the field from the
+  response entirely. Neither produces an error. This persists on a token that
+  demonstrably holds `instagram_business_manage_comments` — the granted scope
+  list was checked at issue time — so a narrow token is not the explanation,
+  and the real cause is still open. Treat `comments_count` as an upper bound.
 
-  Dashboard-generated tokens carry only the permissions ticked in **Instagram →
-  API setup with Instagram business login**, and an existing token never gains
-  new scopes — you have to tick the box and generate a fresh one.
+  A narrow token does produce the same symptom, though, so rule that out
+  first: `authorize.mjs` prints the granted permissions when it issues a
+  token, which is the cheapest way to check.
 
 ## Setup
 
