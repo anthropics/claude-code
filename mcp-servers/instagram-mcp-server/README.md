@@ -4,29 +4,40 @@ MCP server for the Instagram Graph API, covering profile and media reads,
 comment moderation, insights, and content publishing for Instagram
 professional accounts. Speaks stdio.
 
-## Verification status — read this first
+## Verification status
 
-**The Graph API calls in this server have never been executed against Meta.**
+**Every read tool has been run against a live Instagram professional account**
+(Graph API `v25.0`, Instagram Login path). Confirmed working:
 
-It was written from Meta's published reference (Graph API `v25.0`, current as
-of 2026-02-18) with endpoint paths, parameters, permissions, and error codes
-taken from the official Content Publishing, Comment Moderation, and Insights
-guides. But the development sandbox blocks `graph.instagram.com`, and Meta
-credentials require a Business account, a linked Facebook Page, a registered
-app, and App Review — none of which can be stood up from here.
+| Tool | Verified |
+|---|---|
+| `instagram_get_account` | profile, follower counts, both ID forms |
+| `instagram_list_media` | feed listing, cursor pagination, carousel/reel typing |
+| `instagram_get_media` | single post including carousel children |
+| `instagram_get_media_insights` | per-post reach and engagement |
+| `instagram_get_account_insights` | account metrics over a period |
+| `instagram_get_publishing_limit` | quota usage |
+| `instagram_list_comments` | returns cleanly; see the note below |
 
-What **is** tested (`node test/protocol.mjs`, 25/25 passing):
+**The two write tools are deliberately unverified.** `instagram_publish_post`
+and `instagram_reply_to_comment` produce public, irreversible content on a live
+account, so testing them means actually posting. Their request construction
+follows the same verified client path as the read tools, but the calls
+themselves have never been made.
 
-- All 9 tools register with descriptions, schemas, and annotations
-- `readOnlyHint` is correct on every tool — false only on the two that write
-- A missing token produces a clean, actionable error rather than a crash
-- A missing account ID is reported as a distinct failure
-- Zod rejects malformed Instagram IDs before any network call
-- Publishing with no media, or with both an image and a video, is caught locally
+`node test/protocol.mjs` (25/25) covers what needs no credentials: tool
+registration, annotation correctness, schema validation, and every local
+pre-flight error path. It deliberately does not talk to the Graph API.
 
-What is **not** tested: every actual request and response. Treat the first live
-run as a smoke test, and expect to adjust field lists — Meta deprecates metric
-names between versions more often than it changes endpoint paths.
+Two observations from live use worth knowing:
+
+- **Insight metric names and descriptions come back localized** to the
+  account's language, not in English. The metric `name` field stays stable;
+  `title` and `description` do not.
+- **`comments_count` on a media object can exceed what the comments edge
+  returns.** A post reporting one comment returned an empty list. The call
+  succeeds either way, so treat `comments_count` as an upper bound rather than
+  a promise of what you can read back.
 
 ## Setup
 

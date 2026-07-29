@@ -6,7 +6,7 @@ Bu repo iki MCP sunucusu içerir. İkisi de TypeScript, stdio üzerinden çalı�
 | Sunucu | Durum | Kaynak |
 |---|---|---|
 | `youtube` | Canlı API'ye karşı test edildi (smoke 13/13, ayrıştırıcı 14/14, OAuth transcript elle doğrulandı) | `mcp-servers/youtube-mcp-server/` |
-| `instagram` | Yalnızca protokol testi (25/25); Graph API çağrıları doğrulanmadı | `mcp-servers/instagram-mcp-server/` |
+| `instagram` | Okuma araçları canlı hesapta doğrulandı; yazma araçları kasten denenmedi | `mcp-servers/instagram-mcp-server/` |
 
 Her sunucunun kendi README'si var ve asıl ayrıntı orada — bu sayfa kurulumu
 anlatır.
@@ -103,11 +103,18 @@ export INSTAGRAM_ACCOUNT_ID="17841..."   # instagram_get_account ile bulunur
 Hesap ID'sini bilmiyorsan `instagram_get_account` aracını `account_id="me"` ile
 çağır; ID'yi döndürür.
 
-**Bu sunucunun Graph API çağrıları canlıya karşı hiç çalıştırılmadı.** Meta'nın
-resmi belgelerinden (Graph API v25.0) yazıldı, ama geliştirme ortamı
-`graph.instagram.com`'u engelliyor. Protokol katmanı test edildi (25/25):
-araç kaydı, şema doğrulama, hata yolları. İlk canlı kullanımı bir duman testi
-gibi ele al.
+**Okuma araçlarının tamamı canlı bir Instagram professional hesabına karşı
+doğrulandı:** hesap profili, medya listesi (cursor sayfalama, carousel/reel
+ayrımı), tekil gönderi, post ve hesap insights, yayınlama limiti, yorumlar.
+Protokol katmanı ayrıca 25/25 geçiyor.
+
+**İki yazma aracı kasten denenmedi** — `instagram_publish_post` ve
+`instagram_reply_to_comment` canlı hesapta herkese açık ve geri alınamaz içerik
+üretiyor, yani test etmek gerçekten paylaşmak demek.
+
+Canlı kullanımdan iki not: insights metrik başlıkları hesabın diline göre
+yerelleştirilmiş geliyor (`name` sabit, `title`/`description` değil), ve bir
+gönderinin `comments_count` değeri yorum ucundan okunabilenden fazla olabiliyor.
 
 **İki araç herkese açık ve geri alınamaz yazma yapar:** `instagram_publish_post`
 ve `instagram_reply_to_comment`. Çağrı başarılı olduğu anda içerik canlı hesapta
