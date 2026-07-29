@@ -118,6 +118,23 @@ async function main() {
   const tools = list.result.tools.map((tool) => tool.name).sort();
   console.log(`${tools.length} tools: ${tools.join(", ")}\n`);
 
+  // Pinned so the surface cannot drift unnoticed. Note the absence of a
+  // transcript tool: caption text is not retrievable for videos this server
+  // does not own, and a tool that always fails is worse than none.
+  const EXPECTED = [
+    "youtube_get_channel",
+    "youtube_get_trending_videos",
+    "youtube_get_video_details",
+    "youtube_list_caption_tracks",
+    "youtube_list_channel_videos",
+    "youtube_list_playlist_items",
+    "youtube_list_video_comments",
+    "youtube_search_videos",
+  ];
+  const surfaceMatches = JSON.stringify(tools) === JSON.stringify(EXPECTED);
+  results.push({ label: "tool surface matches expectation", failure: surfaceMatches ? null : tools.join(",") });
+  console.log(`${surfaceMatches ? "ok   " : "FAIL "} tool surface matches expectation\n`);
+
   await check("search_videos", "youtube_search_videos", {
     query: "model context protocol",
     limit: 2,

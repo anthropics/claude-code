@@ -29,7 +29,6 @@ every API enabled on the project if it leaks.
 | `youtube_list_playlist_items` | 1 | Videos in a public playlist |
 | `youtube_list_video_comments` | 1 | Top-level comments, by relevance or recency |
 | `youtube_list_caption_tracks` | 50 | Which caption languages a video publishes |
-| `youtube_get_transcript` | 0 | Transcript text as timestamped cues |
 
 The `+1` is the optional `include_statistics` follow-up call. Every tool
 accepts `response_format` (`markdown` by default, `json` for the full payload)
@@ -48,45 +47,51 @@ design choices worth knowing about:
   batched `videos.list` call (1 unit for the whole page), rather than making
   the agent issue a second round trip.
 
-## Transcripts are not part of the Data API
+## There is no transcript tool, and that is deliberate
 
-`youtube_get_transcript` does **not** use the Data API, and this is a genuine
-limitation rather than an implementation shortcut:
+Caption **text** cannot be retrieved by this server for videos it does not own.
+Both available routes were tested against the live API and both are closed:
 
-- `captions.list` (used by `youtube_list_caption_tracks`) returns track
-  *metadata* with an API key. That works, and is tested.
-- `captions.download` returns the actual text, but requires an OAuth token from
-  the video's owner. An API key cannot call it for someone else's video.
+**The official endpoint rejects API keys.** `captions.list` returns track
+metadata with a key (HTTP 200), but `captions.download` returns HTTP 401:
 
-So `youtube_get_transcript` reads the caption track from the public watch page,
-the same approach every transcript library uses. That endpoint is undocumented
-and can break whenever YouTube changes its player payload, or return HTTP 403
-from networks that YouTube treats as automated.
+> API keys are not supported by this API. Expected OAuth2 access token or other
+> authentication credentials that assert a principal.
 
-**This tool's success path is unverified, and it is known to fail in at least
-one real environment.** It was written against the documented player payload
-format but could not be exercised during development: the sandbox's egress proxy
-refuses CONNECT to `youtube.com`, so every attempt there fails with a 403 that
-says nothing about YouTube's actual behaviour. A first real-world test also
-failed. Its *failure* path is tested and returns a clean in-band error.
+A key identifies an *application*; that endpoint requires a *principal*. And
+adding OAuth would not open this up — `captions.download` serves text only to
+the video's owner, so OAuth buys transcripts for your own uploads and nothing
+else.
 
-To find out why it fails on a given machine, run the diagnostic — it bypasses
-MCP and reports what YouTube returns at each stage:
+**The unofficial route now returns empty.** The caption URLs embedded in the
+public watch page used to work. Today the watch page still loads (HTTP 200,
+~1.2MB, `captionTracks` present with a `baseUrl`), but fetching that URL returns
+**HTTP 200 with a zero-byte body** — YouTube gates it behind a proof-of-origin
+token bound to a real player session.
 
-```bash
-node test/diagnose-transcript.mjs [videoId]
-```
+An earlier version of this server shipped a `youtube_get_transcript` tool built
+on that second route. It never worked. It has been removed rather than left in
+place, because a tool that always fails is worse than no tool: an agent reads
+the name, tries it, burns a turn, and may then be tempted to invent a summary
+from the title and description. `youtube_list_caption_tracks` now reports
+`text_retrievable: false` and says so in its output for the same reason.
 
-It distinguishes the cases that need different fixes: a refused watch page, a
-consent or bot-check interstitial, a payload whose shape changed, a caption URL
-gated behind a proof-of-origin token, and a stale build. Paste its full output
-when reporting a transcript problem.
+To actually read a transcript:
 
-If YouTube is serving bot mitigation, no plain HTTP client can get past it, and
-the realistic options are an OAuth-authorized `captions.download` (your own
-videos only), a real browser session, or a third-party transcript service.
+- **Someone else's video** — use a browser session. YouTube's own transcript
+  panel is right there, and a browser is a real player session by definition.
+- **Your own uploads** — add OAuth and call `captions.download`. This is
+  legitimate and supported; it is simply a different auth model than this
+  server implements.
+- **At scale** — use a dedicated transcript service, which solves the
+  bot-mitigation problem as its actual product.
 
-Everything else in the table above is covered by the smoke test.
+Logging in with a Google username and password is not a fourth option: Google
+blocks programmatic password authentication outright, and ownership — not
+being signed in — is what gates `captions.download`.
+
+`test/diagnose-transcript.mjs` reproduces the whole investigation on any machine
+with real network access, and will report if YouTube's behaviour ever changes.
 
 ## Tests
 
@@ -94,13 +99,12 @@ Everything else in the table above is covered by the smoke test.
 YOUTUBE_API_KEY=... node test/smoke.mjs
 ```
 
-Spawns a real server process, speaks JSON-RPC over stdio, and calls every
-Data API tool against live YouTube — plus two negative cases covering an
-unknown channel ID and a malformed video ID. All calls are read-only. The
-suite exits non-zero on any failure.
+Spawns a real server process, speaks JSON-RPC over stdio, and calls every tool
+against live YouTube — plus a pinned check on the tool surface and two negative
+cases covering an unknown channel ID and a malformed video ID. All calls are
+read-only. The suite exits non-zero on any failure.
 
-Current status: 11/11 passing, `youtube_get_transcript` excluded for the reason
-above.
+Current status: 12/12 passing, with every tool covered.
 
 ## Design notes
 

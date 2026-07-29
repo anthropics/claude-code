@@ -1,6 +1,5 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { REQUEST_TIMEOUT_MS } from "../constants.js";
 import { describeError, ytRequest } from "../services/client.js";
 import {
   errorResult,
@@ -9,105 +8,10 @@ import {
   respond,
   stripHtml,
   truncateText,
-  videoUrl,
 } from "../services/format.js";
 import { limitParam, pageTokenParam, responseFormatParam, videoIdParam } from "../schemas.js";
-import type { ApiListResponse, CaptionItem, CommentThreadItem, TranscriptCue } from "../types.js";
+import type { ApiListResponse, CaptionItem, CommentThreadItem } from "../types.js";
 
-/** Render seconds as m:ss / h:mm:ss for transcript cue timestamps. */
-function stamp(seconds: number): string {
-  const total = Math.floor(seconds);
-  const h = Math.floor(total / 3600);
-  const m = Math.floor((total % 3600) / 60);
-  const s = total % 60;
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
-}
-
-/**
- * Fetch a caption track by scraping the watch page for its `baseUrl`.
- *
- * The Data API cannot do this: `captions.download` requires an OAuth token from
- * the video's owner, so an API key alone can only *list* tracks. Every
- * transcript tool in the ecosystem therefore relies on this unofficial
- * endpoint, and it can break whenever YouTube changes its player payload.
- */
-async function fetchTranscript(
-  videoId: string,
-  language: string | undefined,
-): Promise<{ cues: TranscriptCue[]; language: string }> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-
-  try {
-    const page = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
-      signal: controller.signal,
-      headers: {
-        // Without a browser-like UA and language header YouTube serves a
-        // consent interstitial that carries no caption payload.
-        "User-Agent":
-          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0 Safari/537.36",
-        "Accept-Language": language ?? "en",
-      },
-    });
-
-    if (!page.ok) {
-      throw new Error(`watch page returned HTTP ${page.status}`);
-    }
-
-    const html = await page.text();
-    const match = /"captionTracks":(\[.*?\])/.exec(html);
-    if (!match?.[1]) {
-      throw new Error(
-        "no caption tracks in the player payload — the video may have captions disabled, " +
-          "or YouTube served a consent/bot-check page instead",
-      );
-    }
-
-    const tracks = JSON.parse(match[1]) as Array<{
-      baseUrl?: string;
-      languageCode?: string;
-      kind?: string;
-    }>;
-    if (!tracks.length) throw new Error("the video has no caption tracks");
-
-    const chosen =
-      (language ? tracks.find((track) => track.languageCode === language) : undefined) ??
-      tracks[0];
-    if (!chosen?.baseUrl) {
-      throw new Error(
-        language
-          ? `no '${language}' caption track (available: ${tracks
-              .map((t) => t.languageCode)
-              .join(", ")})`
-          : "caption track carried no download URL",
-      );
-    }
-
-    const xml = await (
-      await fetch(`${chosen.baseUrl}&fmt=json3`, { signal: controller.signal })
-    ).text();
-
-    const parsed = JSON.parse(xml) as {
-      events?: Array<{ tStartMs?: number; dDurationMs?: number; segs?: Array<{ utf8?: string }> }>;
-    };
-
-    const cues: TranscriptCue[] = [];
-    for (const event of parsed.events ?? []) {
-      const text = (event.segs ?? []).map((seg) => seg.utf8 ?? "").join("").trim();
-      if (!text) continue;
-      cues.push({
-        start: (event.tStartMs ?? 0) / 1000,
-        duration: (event.dDurationMs ?? 0) / 1000,
-        text,
-      });
-    }
-
-    return { cues, language: chosen.languageCode ?? language ?? "unknown" };
-  } finally {
-    clearTimeout(timer);
-  }
-}
 
 export function registerEngagementTools(server: McpServer): void {
   server.registerTool(
@@ -253,7 +157,12 @@ Error Handling:
       title: "List Caption Tracks",
       description: `List the caption tracks published on a video — which languages exist, and whether each is auto-generated or human-authored.
 
-Costs 50 quota units. This returns track *metadata* only. The Data API cannot return caption text without an OAuth token from the video's owner, so use youtube_get_transcript to read the actual words.
+Costs 50 quota units. Returns track METADATA ONLY. There is no tool here that returns caption text, and that is a hard limit rather than a gap: this server cannot retrieve transcripts for videos it does not own. Do not attempt to work around it.
+
+  - captions.download rejects API keys outright ("API keys are not supported by this API. Expected OAuth2 access token ... that assert a principal") and, even with OAuth, serves text only to the video's owner.
+  - The caption URLs embedded in the public watch page now return HTTP 200 with an empty body unless the request carries a proof-of-origin token bound to a real player session.
+
+Both were verified against this API. To actually read a transcript: use a browser session for someone else's video, add OAuth for your own uploads, or use a dedicated transcript service.
 
 Args:
   - video_id (string): 11-character video ID
@@ -263,6 +172,7 @@ Returns JSON of shape:
   {
     "video_id": string,
     "count": number,
+    "text_retrievable": false,   // Always false — see above
     "tracks": [
       {
         "id": string,
@@ -280,7 +190,7 @@ Returns JSON of shape:
 Examples:
   - "Does this video have Turkish subtitles?" -> video_id="..."
   - "Are the captions auto-generated?" -> video_id="..." then read kind/is_auto_generated
-  - Don't use when: you want the transcript text — use youtube_get_transcript
+  - "Summarize this video" -> this tool cannot help; say the transcript is not retrievable rather than inferring content from the title and description
 
 Error Handling:
   - Returns an empty track list rather than an error when the video has no captions`,
@@ -313,7 +223,14 @@ Error Handling:
           last_updated: item.snippet?.lastUpdated ?? "",
         }));
 
-        const payload = { video_id: params.video_id, count: tracks.length, tracks };
+        // Stated in the payload as well as the description: an agent that reads
+        // "a track exists" should not conclude the words are within reach.
+        const payload = {
+          video_id: params.video_id,
+          count: tracks.length,
+          text_retrievable: false,
+          tracks,
+        };
 
         return respond(
           payload,
@@ -328,6 +245,12 @@ Error Handling:
                 }${track.is_closed_caption ? ", closed captions" : ""} · ${track.status}`,
               );
             }
+            lines.push(
+              "",
+              "_Track metadata only — the caption text is not retrievable through this server " +
+                "for videos it does not own. Do not infer the video's content from its title " +
+                "or description; say the transcript is unavailable instead._",
+            );
             return lines.join("\n");
           },
           params.response_format,
@@ -339,119 +262,4 @@ Error Handling:
     },
   );
 
-  server.registerTool(
-    "youtube_get_transcript",
-    {
-      title: "Get Video Transcript",
-      description: `Fetch the spoken text of a video as timestamped cues.
-
-Costs no API quota — but it does NOT use the Data API. YouTube's captions.download endpoint requires an OAuth token from the video's owner, so this tool reads the caption track from the public watch page instead. That endpoint is undocumented and can break without notice; treat a failure here as an upstream change rather than a configuration problem.
-
-Args:
-  - video_id (string): 11-character video ID
-  - language (string): Preferred BCP-47 language code, e.g. 'en', 'tr'. Falls back to the video's first available track.
-  - include_timestamps (boolean): Prefix each line with its timecode (default: true)
-  - max_cues (number): Cap the number of cues returned, 1-2000 (default: 500)
-  - response_format ('markdown' | 'json'): Output format (default: 'markdown')
-
-Returns JSON of shape:
-  {
-    "video_id": string,
-    "language": string,           // Language actually returned, which may differ from the request
-    "cue_count": number,
-    "duration_seconds": number,   // End of the last cue
-    "truncated": boolean,         // True when max_cues clipped the transcript
-    "cues": [
-      { "start": number, "duration": number, "text": string }   // seconds
-    ],
-    "url": string
-  }
-
-Examples:
-  - "Summarize this video" -> video_id="...", then summarize the returned text
-  - "What did they say about pricing?" -> video_id="...", then search the cues
-  - Don't use when: you only need to know which languages exist — use youtube_list_caption_tracks (cheaper to reason about, official API)
-
-Error Handling:
-  - "no caption tracks in the player payload" when captions are disabled, or when YouTube served a bot-check page
-  - "no '<lang>' caption track" lists the languages that do exist`,
-      inputSchema: {
-        video_id: videoIdParam,
-        language: z
-          .string()
-          .min(2, "language must be a BCP-47 code such as 'en' or 'tr'")
-          .max(10)
-          .optional()
-          .describe("Preferred caption language code; falls back to the first available track"),
-        include_timestamps: z
-          .boolean()
-          .default(true)
-          .describe("Prefix each markdown line with its timecode"),
-        max_cues: z
-          .number()
-          .int()
-          .min(1)
-          .max(2000)
-          .default(500)
-          .describe("Maximum cues to return before truncating"),
-        response_format: responseFormatParam,
-      },
-      annotations: {
-        readOnlyHint: true,
-        destructiveHint: false,
-        idempotentHint: true,
-        openWorldHint: true,
-      },
-    },
-    async (params) => {
-      try {
-        const { cues, language } = await fetchTranscript(params.video_id, params.language);
-        if (!cues.length) {
-          return errorResult(
-            `No transcript cues for ${params.video_id}. Call youtube_list_caption_tracks to check whether the video publishes captions at all.`,
-          );
-        }
-
-        const clipped = cues.slice(0, params.max_cues);
-        const last = clipped[clipped.length - 1];
-
-        const payload = {
-          video_id: params.video_id,
-          language,
-          cue_count: clipped.length,
-          duration_seconds: last ? Math.round(last.start + last.duration) : 0,
-          truncated: cues.length > clipped.length,
-          cues: clipped,
-          url: videoUrl(params.video_id),
-        };
-
-        return respond(
-          payload,
-          (p) => {
-            const lines = [
-              `# Transcript — ${p.video_id} (${p.language})`,
-              "",
-              `${p.cue_count} cues · ${stamp(p.duration_seconds)}`,
-              "",
-            ];
-            for (const cue of p.cues) {
-              lines.push(params.include_timestamps ? `[${stamp(cue.start)}] ${cue.text}` : cue.text);
-            }
-            if (p.truncated) {
-              lines.push("", `_Truncated at ${p.cue_count} cues — raise max_cues for more._`);
-            }
-            return lines.join("\n");
-          },
-          params.response_format,
-          "cues",
-        );
-      } catch (error) {
-        return errorResult(
-          `Error: Could not fetch the transcript for ${params.video_id}: ${
-            error instanceof Error ? error.message : String(error)
-          }. This tool depends on YouTube's undocumented caption endpoint, which is not part of the Data API — see the server README.`,
-        );
-      }
-    },
-  );
 }

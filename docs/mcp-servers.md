@@ -46,14 +46,23 @@ Doğrulama:
 cd mcp-servers/youtube-mcp-server && YOUTUBE_API_KEY=$YOUTUBE_API_KEY node test/smoke.mjs
 ```
 
-Dokuz araç: arama, video detayı, trendler, kanal, kanal videoları, playlist,
-yorumlar, altyazı listesi, transcript. Kota günlük 10.000 birim — arama 100,
-diğerleri 1 birim. Ayrıntı ve tasarım gerekçeleri sunucunun README'sinde.
+Sekiz araç: arama, video detayı, trendler, kanal, kanal videoları, playlist,
+yorumlar, altyazı listesi. Kota günlük 10.000 birim — arama 100, diğerleri
+1 birim. Ayrıntı ve tasarım gerekçeleri sunucunun README'sinde.
 
-**Transcript aracı bir istisna:** YouTube'un `captions.download` endpoint'i video
-sahibinden OAuth istediği için, transcript aracı Data API yerine herkese açık
-izleme sayfasını okur. Bu yol belgelenmemiştir ve kırılabilir. Hata yolu test
-edildi, başarı yolu **doğrulanmadı** — ilk kullanımda kendin teyit et.
+**Transcript aracı yok, bilerek.** Sahibi olmadığın videoların altyazı *metni*
+bu sunucuyla alınamıyor; iki yol da canlı olarak test edildi ve ikisi de kapalı:
+
+- `captions.download` API anahtarını reddediyor (HTTP 401, *"Expected OAuth2
+  access token ... that assert a principal"*). OAuth eklesek bile bu uç metni
+  yalnızca videonun sahibine verir.
+- İzleme sayfasındaki altyazı URL'i artık **HTTP 200 + 0 bayt** dönüyor —
+  YouTube gerçek bir oynatıcı oturumuna bağlı proof-of-origin token istiyor.
+
+Önce bu ikinci yola dayanan bir `youtube_get_transcript` aracı yazılmıştı; hiç
+çalışmadı ve kaldırıldı. Her zaman başarısız olan bir araç, hiç olmamasından
+kötüdür. Transcript için: başkasının videosunda tarayıcı oturumu, kendi
+videolarında OAuth, ölçekli iş için özel bir transcript servisi.
 
 ## Instagram
 
