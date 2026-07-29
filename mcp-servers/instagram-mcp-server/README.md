@@ -42,17 +42,48 @@ export INSTAGRAM_API_VERSION="v25.0"
 node dist/index.js
 ```
 
-Call `instagram_get_account` with `account_id="me"` first — it returns the
-numeric account ID that every other tool defaults to.
+`scripts/authorize.mjs` prints both variables at the end, so you should not need
+to look either up by hand.
 
 ### What Meta requires before any of this works
 
 1. An Instagram **Business or Creator** account. Personal accounts have no API.
-2. A Facebook Page linked to that account (required for the Facebook Login path).
-3. An app registered in the Meta App Dashboard.
+2. A Facebook Page linked to that account — only for the Facebook Login path.
+   The Instagram Login path this server defaults to does not need one.
+3. An app registered in the Meta App Dashboard, with the **Instagram** product
+   added.
 4. An access token with the right scopes.
-5. **App Review**, if the app will serve accounts you do not own. Standard
+5. **App Review**, only if the app will serve accounts you do not own. Standard
    Access covers accounts you own and have added in the App Dashboard.
+
+### Getting a token
+
+```bash
+export INSTAGRAM_APP_ID="..."       # App Dashboard > Instagram > API setup with Instagram login
+export INSTAGRAM_APP_SECRET="..."
+node scripts/authorize.mjs                              # prints the authorization URL
+node scripts/authorize.mjs --code "<paste redirect URL>" # exchanges it for a 60-day token
+```
+
+The flow is two steps rather than the single-command loopback used by the
+YouTube server, and the reason is worth knowing before you fight it: **Meta
+validates redirect URIs by fetching them from its own servers**, so it rejects
+plain `http://` URIs — including `http://localhost`. Register
+`https://localhost:8573/callback` instead (App Dashboard → Instagram → API setup
+with Instagram login → Business login settings → OAuth redirect URIs). Nothing
+serves TLS there, so after authorizing the browser lands on an SSL error page —
+that is expected. The authorization code is in the address bar; paste the whole
+URL into `--code` and the script strips the `#_` trailer Meta appends.
+
+Codes are single-use and expire in an hour. On a failed exchange, reopen the
+authorization URL for a fresh one rather than retrying the same code.
+
+Long-lived tokens last 60 days and can be extended without repeating the browser
+flow:
+
+```bash
+node scripts/authorize.mjs --refresh
+```
 
 ### Two login flows
 
