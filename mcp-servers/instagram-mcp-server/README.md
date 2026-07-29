@@ -78,17 +78,15 @@ to look either up by hand.
 
 ### Getting a token
 
-For a single account — which is the usual case here — skip OAuth entirely. The
-App Dashboard issues a **long-lived, 60-day token** directly:
+**Use the OAuth flow, not the Dashboard button.** The App Dashboard's
+**Generate token** is quicker and issues a 60-day token directly, but it grants
+only the permissions currently ticked in the app's use-case configuration —
+which in practice meant a token that could read the profile and media but
+silently returned nothing for comments. The OAuth flow requests scopes
+explicitly in the authorization URL, so what you ask for is what you get, and
+the script prints the granted list back so you can check rather than assume.
 
-> App Dashboard → **Instagram → API setup with Instagram business login** →
-> **Generate token** next to the account → log in → copy.
-
-Export that as `INSTAGRAM_ACCESS_TOKEN` and you are done. No redirect URI, no
-code exchange, no tester invite.
-
-The OAuth flow below exists for the case where the app authorizes *other*
-people's accounts, and issues a one-hour token that must then be exchanged:
+The Dashboard button is still fine when you only need profile and media reads.
 
 ```bash
 export INSTAGRAM_APP_ID="..."       # App Dashboard > Instagram > API setup with Instagram login
@@ -109,6 +107,11 @@ URL into `--code` and the script strips the `#_` trailer Meta appends.
 
 Codes are single-use and expire in an hour. On a failed exchange, reopen the
 authorization URL for a fresh one rather than retrying the same code.
+
+The whole flow is verified against a live account: the code exchange, the
+short-to-long-lived upgrade, and the `/me` lookup that resolves the account ID
+all work, and the script reports the granted permissions so a narrow token is
+visible immediately rather than showing up later as an empty result.
 
 Long-lived tokens last 60 days and can be extended without repeating the browser
 flow:
