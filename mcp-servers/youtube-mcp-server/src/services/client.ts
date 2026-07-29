@@ -151,6 +151,12 @@ export function describeError(error: unknown): string {
         return "Error: Comments are disabled on this video, so none can be listed.";
       case "timeout":
       case "networkError":
+      // These already carry a full explanation from the OAuth layer; wrapping
+      // them in "YouTube API returned N" would only bury it.
+      case "oauthNotConfigured":
+      case "refreshTokenRejected":
+      case "tokenExchangeFailed":
+      case "notVideoOwner":
         return `Error: ${error.message}`;
       default:
         return `Error: YouTube API returned ${error.status} (${error.reason}): ${error.message}`;

@@ -46,23 +46,41 @@ Doğrulama:
 cd mcp-servers/youtube-mcp-server && YOUTUBE_API_KEY=$YOUTUBE_API_KEY node test/smoke.mjs
 ```
 
-Sekiz araç: arama, video detayı, trendler, kanal, kanal videoları, playlist,
-yorumlar, altyazı listesi. Kota günlük 10.000 birim — arama 100, diğerleri
-1 birim. Ayrıntı ve tasarım gerekçeleri sunucunun README'sinde.
+Dokuz araç: arama, video detayı, trendler, kanal, kanal videoları, playlist,
+yorumlar, altyazı listesi, transcript. Kota günlük 10.000 birim — arama 100,
+diğerleri 1 birim. Ayrıntı ve tasarım gerekçeleri sunucunun README'sinde.
 
-**Transcript aracı yok, bilerek.** Sahibi olmadığın videoların altyazı *metni*
-bu sunucuyla alınamıyor; iki yol da canlı olarak test edildi ve ikisi de kapalı:
+### Transcript yalnızca kendi videolarında
+
+`youtube_get_transcript` çalışıyor ama **sunucuyu yetkilendiren Google hesabının
+kendi yüklediği** videolarda. Bu API'nin sınırı, implementasyonun değil:
 
 - `captions.download` API anahtarını reddediyor (HTTP 401, *"Expected OAuth2
-  access token ... that assert a principal"*). OAuth eklesek bile bu uç metni
-  yalnızca videonun sahibine verir.
-- İzleme sayfasındaki altyazı URL'i artık **HTTP 200 + 0 bayt** dönüyor —
-  YouTube gerçek bir oynatıcı oturumuna bağlı proof-of-origin token istiyor.
+  access token ... that assert a principal"*). Anahtar bir uygulamayı tanımlar,
+  bu uç bir kişi ister.
+- OAuth kimlik doğrulamayı çözer, **sahipliği çözmez**. Token'la bile bu uç metni
+  yalnızca videonun sahibine verir; başka hesap HTTP 403 alır. Bunu değiştiren
+  bir scope ya da ayar yok.
+- İzleme sayfasındaki gayriresmi yol da kapandı: **HTTP 200 + 0 bayt** —
+  `json3`, `srv3`, `vtt` ve düz XML'de, User-Agent'tan bağımsız. Bu yola dayanan
+  ilk sürüm hiç çalışmadı ve kaldırıldı.
 
-Önce bu ikinci yola dayanan bir `youtube_get_transcript` aracı yazılmıştı; hiç
-çalışmadı ve kaldırıldı. Her zaman başarısız olan bir araç, hiç olmamasından
-kötüdür. Transcript için: başkasının videosunda tarayıcı oturumu, kendi
-videolarında OAuth, ölçekli iş için özel bir transcript servisi.
+Başkasının videosu için tarayıcı oturumu kullan — YouTube'un kendi transcript
+paneli zaten orada.
+
+Kurulum: Google Cloud Console'da **Credentials → OAuth client ID → Desktop app**
+oluştur, sonra sunucu dizininde:
+
+```bash
+node scripts/authorize.mjs
+```
+
+Tarayıcıda onay sayfasını açar, loopback portundan yanıtı yakalar ve üç export
+basar. Scope `youtube.force-ssl`. Consent screen **Testing** modundaysa refresh
+token 7 günde bir dolar — uygulamayı yayınlarsan uzun ömürlü olur.
+
+Bu değişkenler yoksa araç hangilerinin eksik olduğunu söyleyen bir hata döndürür;
+diğer sekiz araç etkilenmez.
 
 ## Instagram
 

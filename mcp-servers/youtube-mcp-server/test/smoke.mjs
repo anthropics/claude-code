@@ -118,11 +118,12 @@ async function main() {
   const tools = list.result.tools.map((tool) => tool.name).sort();
   console.log(`${tools.length} tools: ${tools.join(", ")}\n`);
 
-  // Pinned so the surface cannot drift unnoticed. Note the absence of a
-  // transcript tool: caption text is not retrievable for videos this server
-  // does not own, and a tool that always fails is worse than none.
+  // Pinned so the surface cannot drift unnoticed. youtube_get_transcript is
+  // OAuth-only and works solely on the authorizing account's own uploads; the
+  // API-key path cannot download caption text at all.
   const EXPECTED = [
     "youtube_get_channel",
+    "youtube_get_transcript",
     "youtube_get_trending_videos",
     "youtube_get_video_details",
     "youtube_list_caption_tracks",
@@ -172,6 +173,33 @@ async function main() {
   const badIdFailed = Boolean(toolFailed(badId));
   results.push({ label: "get_channel (unknown id rejected)", failure: badIdFailed ? null : "expected an error" });
   console.log(`${badIdFailed ? "ok   " : "FAIL "} get_channel (unknown id rejected)`);
+
+  // Without OAuth the transcript tool must name the missing variables rather
+  // than failing generically — that message is the whole setup instruction.
+  const noOauth = await send("tools/call", {
+    name: "youtube_get_transcript",
+    arguments: { video_id: VIDEO_ID },
+  });
+  const noOauthText = noOauth.result?.content?.[0]?.text ?? "";
+  const oauthWasConfigured = Boolean(process.env.YOUTUBE_OAUTH_REFRESH_TOKEN);
+  const oauthMessageOk =
+    oauthWasConfigured ||
+    (noOauth.result?.isError === true &&
+      noOauthText.includes("YOUTUBE_OAUTH_CLIENT_ID") &&
+      noOauthText.includes("authorize.mjs"));
+  results.push({
+    label: oauthWasConfigured
+      ? "transcript tool reachable (OAuth configured, result not asserted)"
+      : "transcript without OAuth names the missing variables",
+    failure: oauthMessageOk ? null : noOauthText.slice(0, 160),
+  });
+  console.log(
+    `${oauthMessageOk ? "ok   " : "FAIL "} ${
+      oauthWasConfigured
+        ? "transcript tool reachable (OAuth configured)"
+        : "transcript without OAuth names the missing variables"
+    }`,
+  );
 
   const badSchema = await send("tools/call", {
     name: "youtube_get_video_details",

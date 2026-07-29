@@ -10,7 +10,9 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { registerChannelTools } from "./tools/channels.js";
 import { registerEngagementTools } from "./tools/engagement.js";
+import { registerTranscriptTool } from "./tools/transcript.js";
 import { registerVideoTools } from "./tools/videos.js";
+import { oauthConfigured } from "./services/oauth.js";
 
 const server = new McpServer({
   name: "youtube-mcp-server",
@@ -20,6 +22,7 @@ const server = new McpServer({
 registerVideoTools(server);
 registerChannelTools(server);
 registerEngagementTools(server);
+registerTranscriptTool(server);
 
 async function main(): Promise<void> {
   if (!process.env.YOUTUBE_API_KEY) {
@@ -29,6 +32,13 @@ async function main(): Promise<void> {
     console.error(
       "WARNING: YOUTUBE_API_KEY is not set. Every tool will return an authentication " +
         "error until it is exported.",
+    );
+  }
+
+  if (!oauthConfigured()) {
+    console.error(
+      "NOTE: OAuth is not configured, so youtube_get_transcript is unavailable. It only " +
+        "ever works on your own uploads — run scripts/authorize.mjs to enable it.",
     );
   }
 

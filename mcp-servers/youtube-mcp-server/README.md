@@ -29,6 +29,7 @@ every API enabled on the project if it leaks.
 | `youtube_list_playlist_items` | 1 | Videos in a public playlist |
 | `youtube_list_video_comments` | 1 | Top-level comments, by relevance or recency |
 | `youtube_list_caption_tracks` | 50 | Which caption languages a video publishes |
+| `youtube_get_transcript` | 250 | Caption text — **your own uploads only**, needs OAuth |
 
 The `+1` is the optional `include_statistics` follow-up call. Every tool
 accepts `response_format` (`markdown` by default, `json` for the full payload)
@@ -47,51 +48,64 @@ design choices worth knowing about:
   batched `videos.list` call (1 unit for the whole page), rather than making
   the agent issue a second round trip.
 
-## There is no transcript tool, and that is deliberate
+## Transcripts: your own uploads only
 
-Caption **text** cannot be retrieved by this server for videos it does not own.
-Both available routes were tested against the live API and both are closed:
+`youtube_get_transcript` works, but only on videos uploaded by the Google
+account that authorized this server. That is a limit of the API, not of this
+implementation, and it is worth understanding before you set OAuth up.
 
-**The official endpoint rejects API keys.** `captions.list` returns track
+**An API key cannot download captions at all.** `captions.list` returns track
 metadata with a key (HTTP 200), but `captions.download` returns HTTP 401:
 
 > API keys are not supported by this API. Expected OAuth2 access token or other
 > authentication credentials that assert a principal.
 
-A key identifies an *application*; that endpoint requires a *principal*. And
-adding OAuth would not open this up — `captions.download` serves text only to
-the video's owner, so OAuth buys transcripts for your own uploads and nothing
-else.
+A key identifies an *application*; the endpoint requires a *principal*.
 
-**The unofficial route now returns empty.** The caption URLs embedded in the
-public watch page used to work. Today the watch page still loads (HTTP 200,
-~1.2MB, `captionTracks` present with a `baseUrl`), but fetching that URL returns
-**HTTP 200 with a zero-byte body** — YouTube gates it behind a proof-of-origin
-token bound to a real player session.
+**OAuth fixes authentication, not ownership.** With a token, `captions.download`
+still serves text only to the video's owner — any other account gets HTTP 403.
+No scope, consent screen, or setting changes that. So OAuth buys transcripts for
+your own channel and nothing else.
 
-An earlier version of this server shipped a `youtube_get_transcript` tool built
-on that second route. It never worked. It has been removed rather than left in
-place, because a tool that always fails is worse than no tool: an agent reads
-the name, tries it, burns a turn, and may then be tempted to invent a summary
-from the title and description. `youtube_list_caption_tracks` now reports
-`text_retrievable: false` and says so in its output for the same reason.
+**The unofficial route is closed too.** The caption URLs embedded in the public
+watch page used to work. Today the watch page still loads (HTTP 200, ~1.2MB,
+`captionTracks` present with a `baseUrl`), but fetching that URL returns
+**HTTP 200 with a zero-byte body** — verified across `json3`, `srv3`, `vtt`, and
+bare XML, and regardless of User-Agent. YouTube gates it behind a
+proof-of-origin token bound to a real player session. An earlier version of this
+server was built on that route; it never worked and was removed.
 
-To actually read a transcript:
+For someone else's video, use a browser session — YouTube's own transcript panel
+is right there, and a browser is a real player session by definition.
 
-- **Someone else's video** — use a browser session. YouTube's own transcript
-  panel is right there, and a browser is a real player session by definition.
-- **Your own uploads** — add OAuth and call `captions.download`. This is
-  legitimate and supported; it is simply a different auth model than this
-  server implements.
-- **At scale** — use a dedicated transcript service, which solves the
-  bot-mitigation problem as its actual product.
+### Setting up OAuth
 
-Logging in with a Google username and password is not a fourth option: Google
-blocks programmatic password authentication outright, and ownership — not
-being signed in — is what gates `captions.download`.
+1. In Google Cloud Console, **APIs & Services → Credentials → Create
+   credentials → OAuth client ID**, application type **Desktop app**.
+2. Run the authorization flow, signing in as the account that owns the videos:
 
-`test/diagnose-transcript.mjs` reproduces the whole investigation on any machine
-with real network access, and will report if YouTube's behaviour ever changes.
+   ```bash
+   node scripts/authorize.mjs
+   ```
+
+   It opens a consent page, catches the redirect on a loopback port, and prints
+   three exports. Nothing is written to disk — a refresh token is a credential
+   and belongs in your shell profile or secret store, not in the repo.
+
+3. Export what it prints:
+
+   ```bash
+   export YOUTUBE_OAUTH_CLIENT_ID="..."
+   export YOUTUBE_OAUTH_CLIENT_SECRET="..."
+   export YOUTUBE_OAUTH_REFRESH_TOKEN="..."
+   ```
+
+The scope is `youtube.force-ssl`; the read-only scope is not sufficient for
+caption download. If the consent screen is left in **Testing** mode, refresh
+tokens expire after 7 days — publish the app for a long-lived one.
+
+Without these variables the tool returns an error naming exactly which are
+missing, and the other eight tools are unaffected.
 
 ## Tests
 
@@ -99,12 +113,26 @@ with real network access, and will report if YouTube's behaviour ever changes.
 YOUTUBE_API_KEY=... node test/smoke.mjs
 ```
 
-Spawns a real server process, speaks JSON-RPC over stdio, and calls every tool
-against live YouTube — plus a pinned check on the tool surface and two negative
-cases covering an unknown channel ID and a malformed video ID. All calls are
-read-only. The suite exits non-zero on any failure.
+Spawns a real server process, speaks JSON-RPC over stdio, and calls every
+API-key tool against live YouTube — plus a pinned check on the tool surface and
+negative cases covering an unknown channel ID, a malformed video ID, and the
+transcript tool's behaviour with OAuth absent. All calls are read-only.
 
-Current status: 12/12 passing, with every tool covered.
+```bash
+npm run build && node test/srt.test.mjs
+```
+
+Unit tests for the caption parser: SRT and WebVTT, multi-line cues, CRLF, cue
+settings, inline styling tags, NOTE blocks, and every degenerate input that must
+return no cues instead of throwing.
+
+Current status: smoke 13/13, parser 14/14.
+
+**Not covered:** the caption download itself. It needs OAuth credentials for an
+account that owns a video, which cannot be provisioned in CI or in the sandbox
+this server was developed in. The parser it feeds is tested directly, and the
+tool's no-OAuth path is asserted in the smoke test, but the first real download
+is yours to verify.
 
 ## Design notes
 

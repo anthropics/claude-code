@@ -1,7 +1,7 @@
 export const API_BASE_URL = "https://www.googleapis.com/youtube/v3";
 
-/** Unofficial caption endpoint. Not part of the Data API — see README. */
-export const TIMEDTEXT_URL = "https://www.youtube.com/api/timedtext";
+/** Google's OAuth 2.0 token endpoint, used to refresh access tokens. */
+export const TOKEN_URL = "https://oauth2.googleapis.com/token";
 
 /** Maximum characters in a single tool response before truncation kicks in. */
 export const CHARACTER_LIMIT = 25_000;
