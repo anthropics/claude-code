@@ -58,6 +58,18 @@ to look either up by hand.
 
 ### Getting a token
 
+For a single account — which is the usual case here — skip OAuth entirely. The
+App Dashboard issues a **long-lived, 60-day token** directly:
+
+> App Dashboard → **Instagram → API setup with Instagram business login** →
+> **Generate token** next to the account → log in → copy.
+
+Export that as `INSTAGRAM_ACCESS_TOKEN` and you are done. No redirect URI, no
+code exchange, no tester invite.
+
+The OAuth flow below exists for the case where the app authorizes *other*
+people's accounts, and issues a one-hour token that must then be exchanged:
+
 ```bash
 export INSTAGRAM_APP_ID="..."       # App Dashboard > Instagram > API setup with Instagram login
 export INSTAGRAM_APP_SECRET="..."

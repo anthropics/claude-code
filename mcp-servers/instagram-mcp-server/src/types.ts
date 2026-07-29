@@ -4,7 +4,10 @@ export enum ResponseFormat {
 }
 
 export interface AccountProfile {
+  /** App-scoped ID. Not usable in path-scoped endpoints. */
   id?: string;
+  /** The Instagram professional account ID used by /<IG_ID>/... endpoints. */
+  user_id?: string;
   username?: string;
   name?: string;
   biography?: string;

@@ -6,8 +6,13 @@ import { errorResult, formatCount, respond, truncateText } from "../services/for
 import { responseFormatParam } from "../schemas.js";
 import type { AccountProfile, GraphListResponse } from "../types.js";
 
+// `id` is the app-scoped ID; `user_id` is the Instagram professional account ID
+// that path-scoped endpoints such as /<IG_ID>/media expect. They are different
+// values, and using the app-scoped one in a path fails — so request both and
+// report user_id as the account ID.
 const PROFILE_FIELDS = [
   "id",
+  "user_id",
   "username",
   "name",
   "biography",
@@ -75,7 +80,11 @@ Error Handling:
         });
 
         const payload = {
-          id: profile.id ?? "",
+          // Export this one as INSTAGRAM_ACCOUNT_ID — it is what path-scoped
+          // endpoints accept. Fall back to the app-scoped id only if the API
+          // omitted user_id, which happens on the Facebook Login path.
+          id: profile.user_id ?? profile.id ?? "",
+          app_scoped_id: profile.id ?? "",
           username: profile.username ?? "",
           name: profile.name ?? "",
           biography: profile.biography ?? "",

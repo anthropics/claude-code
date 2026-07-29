@@ -71,7 +71,9 @@ async function readJson(response) {
 /** Fetch the account's id and username so the user does not have to look them up. */
 async function describeAccount(token) {
   const url = new URL(`${GRAPH_URL}/me`);
-  url.searchParams.set("fields", "id,username,account_type");
+  // user_id is the Instagram professional account ID used by path-scoped
+  // endpoints; id is only app-scoped and fails when used in a path.
+  url.searchParams.set("fields", "id,user_id,username,account_type");
   url.searchParams.set("access_token", token);
   const response = await fetch(url);
   const body = await readJson(response);
@@ -87,7 +89,8 @@ async function describeAccount(token) {
 function printExports(token, account, expiresInSeconds) {
   console.log("\nAdd these to your shell profile:\n");
   console.log(`export INSTAGRAM_ACCESS_TOKEN="${token}"`);
-  if (account?.id) console.log(`export INSTAGRAM_ACCOUNT_ID="${account.id}"`);
+  const accountId = account?.user_id ?? account?.id;
+  if (accountId) console.log(`export INSTAGRAM_ACCOUNT_ID="${accountId}"`);
   if (account?.username) console.log(`\n# account: @${account.username} (${account.account_type ?? "unknown type"})`);
   if (expiresInSeconds) {
     const days = Math.round(expiresInSeconds / 86400);
