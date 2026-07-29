@@ -17,6 +17,10 @@
  * or pass them as --app-id / --app-secret / --redirect-uri.
  */
 
+import { appendFileSync, existsSync, readFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
+
 const AUTHORIZE_URL = "https://www.instagram.com/oauth/authorize";
 const TOKEN_URL = "https://api.instagram.com/oauth/access_token";
 const GRAPH_URL = "https://graph.instagram.com";
@@ -86,12 +90,59 @@ async function describeAccount(token) {
   return body;
 }
 
+/**
+ * Pick the profile the caller's login shell reads, from $SHELL.
+ *
+ * Do not test $ZSH_VERSION/$BASH_VERSION: this runs under node, so neither is
+ * set, and on macOS the login shell has been zsh since Catalina.
+ */
+function profilePath() {
+  const shell = (process.env.SHELL ?? "/bin/sh").split("/").pop();
+  if (shell === "zsh") return join(homedir(), ".zshrc");
+  if (shell === "bash") {
+    const macProfile = join(homedir(), ".bash_profile");
+    return process.platform === "darwin" && existsSync(macProfile)
+      ? macProfile
+      : join(homedir(), ".bashrc");
+  }
+  return join(homedir(), ".profile");
+}
+
+/**
+ * Append the exports to the shell profile.
+ *
+ * Printing alone makes persistence a manual copy step, and a token that only
+ * ever reached stdout dies with the terminal window — which is exactly how a
+ * completed authorization ends up looking like a broken one later.
+ */
+function writeToProfile(lines) {
+  const target = profilePath();
+  const existing = existsSync(target) ? readFileSync(target, "utf8") : "";
+  if (existing.includes("INSTAGRAM_ACCESS_TOKEN")) {
+    console.log(
+      `\n${target} already sets INSTAGRAM_ACCESS_TOKEN. Not touching it — update that line by hand.`,
+    );
+    return;
+  }
+  appendFileSync(target, `\n# instagram-mcp-server\n${lines.join("\n")}\n`);
+  console.log(`\nWritten to ${target}. Run: source ${target}`);
+  console.log("Then restart Claude Code — MCP servers read the environment at startup.");
+}
+
 function printExports(token, account, expiresInSeconds) {
-  console.log("\nAdd these to your shell profile:\n");
-  console.log(`export INSTAGRAM_ACCESS_TOKEN="${token}"`);
   const accountId = account?.user_id ?? account?.id;
-  if (accountId) console.log(`export INSTAGRAM_ACCOUNT_ID="${accountId}"`);
-  if (account?.username) console.log(`\n# account: @${account.username} (${account.account_type ?? "unknown type"})`);
+  const lines = [`export INSTAGRAM_ACCESS_TOKEN="${token}"`];
+  if (accountId) lines.push(`export INSTAGRAM_ACCOUNT_ID="${accountId}"`);
+
+  if (has("write")) {
+    writeToProfile(lines);
+  } else {
+    console.log("\nAdd these to your shell profile (or re-run with --write):\n");
+    for (const line of lines) console.log(line);
+  }
+  if (account?.username) {
+    console.log(`\naccount: @${account.username} (${account.account_type ?? "unknown type"})`);
+  }
   if (expiresInSeconds) {
     const days = Math.round(expiresInSeconds / 86400);
     console.log(

@@ -20,6 +20,9 @@
 import { createServer } from "node:http";
 import { createInterface } from "node:readline/promises";
 import { spawn } from "node:child_process";
+import { appendFileSync, existsSync, readFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
 
 const SCOPE = "https://www.googleapis.com/auth/youtube.force-ssl";
 const AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
@@ -106,10 +109,36 @@ if (!response.ok || !payload.refresh_token) {
   process.exit(1);
 }
 
-console.log("\nAdd these to your shell profile:\n");
-console.log(`export YOUTUBE_OAUTH_CLIENT_ID="${clientId}"`);
-console.log(`export YOUTUBE_OAUTH_CLIENT_SECRET="${clientSecret}"`);
-console.log(`export YOUTUBE_OAUTH_REFRESH_TOKEN="${payload.refresh_token}"`);
+const exports = [
+  `export YOUTUBE_OAUTH_CLIENT_ID="${clientId}"`,
+  `export YOUTUBE_OAUTH_CLIENT_SECRET="${clientSecret}"`,
+  `export YOUTUBE_OAUTH_REFRESH_TOKEN="${payload.refresh_token}"`,
+];
+
+if (process.argv.includes("--write")) {
+  // Printing alone leaves persistence to a manual copy, and a refresh token
+  // that only reached stdout dies with the terminal window — after which a
+  // completed authorization looks like a broken one.
+  const shell = (process.env.SHELL ?? "/bin/sh").split("/").pop();
+  const target =
+    shell === "zsh"
+      ? join(homedir(), ".zshrc")
+      : shell === "bash"
+        ? join(homedir(), ".bashrc")
+        : join(homedir(), ".profile");
+
+  const existing = existsSync(target) ? readFileSync(target, "utf8") : "";
+  if (existing.includes("YOUTUBE_OAUTH_REFRESH_TOKEN")) {
+    console.log(`\n${target} already sets YOUTUBE_OAUTH_REFRESH_TOKEN. Update that line by hand.`);
+  } else {
+    appendFileSync(target, `\n# youtube-mcp-server OAuth\n${exports.join("\n")}\n`);
+    console.log(`\nWritten to ${target}. Run: source ${target}`);
+    console.log("Then restart Claude Code — MCP servers read the environment at startup.");
+  }
+} else {
+  console.log("\nAdd these to your shell profile (or re-run with --write):\n");
+  for (const line of exports) console.log(line);
+}
 console.log(
   "\nIf the OAuth consent screen is still in Testing mode, this refresh token expires in 7 days.\n" +
     "Publish the app in Google Cloud Console to get a long-lived one.\n",
