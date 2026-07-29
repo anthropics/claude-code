@@ -1,0 +1,177 @@
+#!/usr/bin/env node
+/**
+ * End-to-end smoke test for youtube-mcp-server.
+ *
+ * Speaks JSON-RPC over stdio to a real server process and calls every tool
+ * against the live YouTube Data API, so a pass means the tool actually works
+ * rather than merely compiling.
+ *
+ *   YOUTUBE_API_KEY=... node test/smoke.mjs
+ *
+ * Exits non-zero if any case fails. Every call is read-only.
+ */
+
+import { spawn } from "node:child_process";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
+
+const here = dirname(fileURLToPath(import.meta.url));
+const serverPath = join(here, "..", "dist", "index.js");
+
+// Stable, long-lived public references. "Me at the zoo" is the first YouTube
+// video and is not going anywhere; the channel is YouTube's own.
+const VIDEO_ID = "jNQXAC9IVRw";
+const CHANNEL_HANDLE = "@YouTube";
+
+if (!process.env.YOUTUBE_API_KEY) {
+  console.error("YOUTUBE_API_KEY is not set — the Data API cases would all fail.");
+  process.exit(2);
+}
+
+const child = spawn("node", [serverPath], {
+  stdio: ["pipe", "pipe", "pipe"],
+  env: process.env,
+});
+
+child.stderr.on("data", (chunk) => {
+  const line = String(chunk).trim();
+  if (line && !line.includes("running on stdio")) console.error(`[server] ${line}`);
+});
+
+let buffer = "";
+const pending = new Map();
+
+child.stdout.on("data", (chunk) => {
+  buffer += chunk;
+  let index;
+  while ((index = buffer.indexOf("\n")) !== -1) {
+    const line = buffer.slice(0, index).trim();
+    buffer = buffer.slice(index + 1);
+    if (!line) continue;
+    let message;
+    try {
+      message = JSON.parse(line);
+    } catch {
+      continue;
+    }
+    const resolve = pending.get(message.id);
+    if (resolve) {
+      pending.delete(message.id);
+      resolve(message);
+    }
+  }
+});
+
+let nextId = 1;
+function send(method, params) {
+  const id = nextId++;
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      pending.delete(id);
+      reject(new Error(`${method} timed out after 60s`));
+    }, 60_000);
+    pending.set(id, (message) => {
+      clearTimeout(timer);
+      resolve(message);
+    });
+    child.stdin.write(`${JSON.stringify({ jsonrpc: "2.0", id, method, params })}\n`);
+  });
+}
+
+/** A tool result counts as a failure when it sets isError or returns "Error:" text. */
+function toolFailed(message) {
+  if (message.error) return message.error.message ?? "protocol error";
+  const result = message.result ?? {};
+  if (result.isError) return result.content?.[0]?.text ?? "isError with no text";
+  const text = result.content?.[0]?.text ?? "";
+  if (text.startsWith("Error:")) return text;
+  return null;
+}
+
+function preview(message) {
+  const text = message.result?.content?.[0]?.text ?? "";
+  return text.replace(/\s+/g, " ").slice(0, 110);
+}
+
+const results = [];
+async function check(label, toolName, args) {
+  const message = await send("tools/call", { name: toolName, arguments: args });
+  const failure = toolFailed(message);
+  results.push({ label, failure });
+  if (failure) {
+    console.log(`FAIL  ${label}\n      ${failure.replace(/\s+/g, " ").slice(0, 200)}`);
+  } else {
+    console.log(`ok    ${label}\n      ${preview(message)}`);
+  }
+}
+
+async function main() {
+  const init = await send("initialize", {
+    protocolVersion: "2024-11-05",
+    capabilities: {},
+    clientInfo: { name: "smoke", version: "1.0.0" },
+  });
+  console.log(`server: ${init.result.serverInfo.name} v${init.result.serverInfo.version}\n`);
+  child.stdin.write(`${JSON.stringify({ jsonrpc: "2.0", method: "notifications/initialized" })}\n`);
+
+  const list = await send("tools/list", {});
+  const tools = list.result.tools.map((tool) => tool.name).sort();
+  console.log(`${tools.length} tools: ${tools.join(", ")}\n`);
+
+  await check("search_videos", "youtube_search_videos", {
+    query: "model context protocol",
+    limit: 2,
+  });
+  await check("search_videos (no stats)", "youtube_search_videos", {
+    query: "claude code",
+    limit: 2,
+    include_statistics: false,
+    response_format: "json",
+  });
+  await check("get_video_details", "youtube_get_video_details", { video_ids: [VIDEO_ID] });
+  await check("get_video_details (missing id)", "youtube_get_video_details", {
+    video_ids: [VIDEO_ID, "aaaaaaaaaaa"],
+  });
+  await check("get_trending_videos (TR)", "youtube_get_trending_videos", {
+    region_code: "TR",
+    limit: 3,
+  });
+  await check("get_channel (handle)", "youtube_get_channel", { channel: CHANNEL_HANDLE });
+  await check("list_channel_videos", "youtube_list_channel_videos", {
+    channel: CHANNEL_HANDLE,
+    limit: 3,
+  });
+  await check("list_video_comments", "youtube_list_video_comments", {
+    video_id: VIDEO_ID,
+    limit: 3,
+  });
+  await check("list_caption_tracks", "youtube_list_caption_tracks", { video_id: VIDEO_ID });
+
+  // Negative cases: these must fail cleanly with a useful message, not crash.
+  const badId = await send("tools/call", {
+    name: "youtube_get_channel",
+    arguments: { channel: "UCzzzzzzzzzzzzzzzzzzzzzz" },
+  });
+  const badIdFailed = Boolean(toolFailed(badId));
+  results.push({ label: "get_channel (unknown id rejected)", failure: badIdFailed ? null : "expected an error" });
+  console.log(`${badIdFailed ? "ok   " : "FAIL "} get_channel (unknown id rejected)`);
+
+  const badSchema = await send("tools/call", {
+    name: "youtube_get_video_details",
+    arguments: { video_ids: ["too-short"] },
+  });
+  const schemaRejected = Boolean(badSchema.error || badSchema.result?.isError);
+  results.push({ label: "schema rejects malformed id", failure: schemaRejected ? null : "expected validation to reject" });
+  console.log(`${schemaRejected ? "ok   " : "FAIL "} schema rejects malformed id`);
+
+  const failures = results.filter((entry) => entry.failure);
+  console.log(`\n${results.length - failures.length}/${results.length} passed`);
+  child.kill();
+  process.exit(failures.length ? 1 : 0);
+}
+
+main().catch((error) => {
+  console.error(error);
+  child.kill();
+  process.exit(1);
+});

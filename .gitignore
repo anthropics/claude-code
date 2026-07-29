@@ -4,3 +4,7 @@
 .env
 .env.local
 
+# MCP server build output and dependencies
+mcp-servers/*/node_modules/
+mcp-servers/*/dist/
+
