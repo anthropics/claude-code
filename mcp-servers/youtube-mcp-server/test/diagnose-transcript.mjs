@@ -14,6 +14,12 @@
  * Paste the whole output when reporting a transcript problem.
  */
 
+// A closed stdout is normal when piping to `head` or `grep -m`. Without this,
+// Node raises an unhandled EPIPE that looks like a failure of the thing under test.
+process.stdout.on("error", (error) => {
+  if (error.code === "EPIPE") process.exit(0);
+});
+
 const videoId = process.argv[2] ?? "kkBFmwkDzdo";
 const UA =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0 Safari/537.36";

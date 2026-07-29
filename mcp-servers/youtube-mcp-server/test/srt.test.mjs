@@ -11,6 +11,12 @@
 
 import { parseCaptions } from "../dist/services/srt.js";
 
+// A closed stdout is normal when piping to `head` or `grep -m`. Without this,
+// Node raises an unhandled EPIPE that looks like a test failure.
+process.stdout.on("error", (error) => {
+  if (error.code === "EPIPE") process.exit(0);
+});
+
 let failures = 0;
 function check(label, actual, expected) {
   const ok = JSON.stringify(actual) === JSON.stringify(expected);

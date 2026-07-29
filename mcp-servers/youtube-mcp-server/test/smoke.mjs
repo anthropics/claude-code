@@ -15,6 +15,12 @@ import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
+// A closed stdout is normal when piping to `head` or `grep -m`. Without this,
+// Node raises an unhandled EPIPE that looks like a test failure.
+process.stdout.on("error", (error) => {
+  if (error.code === "EPIPE") process.exit(0);
+});
+
 const here = dirname(fileURLToPath(import.meta.url));
 const serverPath = join(here, "..", "dist", "index.js");
 
