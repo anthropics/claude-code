@@ -94,12 +94,27 @@ export async function ytRequest<T>(
   return (await response.json()) as T;
 }
 
+const KEY_INVALID_MESSAGE =
+  "Error: The API key was rejected. Check YOUTUBE_API_KEY — a Google API key is " +
+  "39 characters and starts with 'AIza', so a truncated paste or a placeholder " +
+  "left in a shell profile is the usual cause. If the value looks right, confirm " +
+  "that YouTube Data API v3 is enabled for the key's project and that the key's " +
+  "API restrictions allow it.";
+
 /**
  * Turn any thrown value into an operator-facing message that says what to do
  * next. Every branch names a concrete fix rather than restating the status.
  */
 export function describeError(error: unknown): string {
   if (error instanceof YouTubeApiError) {
+    // A rejected key does not reliably arrive as reason "keyInvalid" — an empty
+    // or malformed key comes back as a generic "badRequest", so match the
+    // message too rather than falling through to an unhelpful default. This is
+    // the first error anyone with a misconfigured key hits.
+    if (/API key not valid|API key is invalid/i.test(error.message)) {
+      return KEY_INVALID_MESSAGE;
+    }
+
     switch (error.reason) {
       case "missingApiKey":
         return `Error: ${error.message}`;
@@ -114,11 +129,7 @@ export function describeError(error: unknown): string {
       case "userRateLimitExceeded":
         return "Error: Sending requests too quickly. Wait a few seconds and retry.";
       case "keyInvalid":
-        return (
-          "Error: The API key is not valid. Check YOUTUBE_API_KEY for stray " +
-          "whitespace or truncation — a Google API key is 39 characters and " +
-          "starts with 'AIza'."
-        );
+        return KEY_INVALID_MESSAGE;
       case "ipRefererBlocked":
         return (
           "Error: The API key's restrictions rejected this request. In Google Cloud " +
