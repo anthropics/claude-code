@@ -17,7 +17,7 @@ professional accounts. Speaks stdio.
 | `instagram_get_media_insights` | per-post reach and engagement |
 | `instagram_get_account_insights` | account metrics over a period |
 | `instagram_get_publishing_limit` | quota usage |
-| `instagram_list_comments` | comment text, likes, timestamps, IDs |
+| `instagram_list_comments` | text, author, likes, timestamps, IDs |
 | `instagram_publish_post` | image story published to a live account |
 
 One practical constraint found the hard way: **feed posts require an aspect
@@ -32,9 +32,10 @@ run, and still unverified: the asynchronous transcode polling that video and
 reel containers need (an image container is `FINISHED` immediately), and feed
 posts, which impose an aspect-ratio range stories do not.
 
-`instagram_reply_to_comment` remains **unverified**. It needs a comment ID to
-reply to, and the comments edge does not return any — see the note below. Even
-if it did, testing it means posting a public reply under someone's comment.
+`instagram_reply_to_comment` is the one tool never called. Testing it means
+posting a public reply under a real person's comment on a live account, which
+is not something to do to tick a box. It shares the verified client and error
+handling with everything else; only the endpoint itself is unexercised.
 
 `node test/protocol.mjs` (25/25) covers what needs no credentials: tool
 registration, annotation correctness, schema validation, and every local
