@@ -63,17 +63,28 @@ the same approach every transcript library uses. That endpoint is undocumented
 and can break whenever YouTube changes its player payload, or return HTTP 403
 from networks that YouTube treats as automated.
 
-**This tool's success path is unverified.** It was written against the known
-player payload format but could not be exercised here — the sandbox this server
-was developed in blocks `youtube.com`, so the call returns 403 by construction.
-Its *failure* path is tested and returns a clean in-band error. Verify the happy
-path on a normal network before relying on it:
+**This tool's success path is unverified, and it is known to fail in at least
+one real environment.** It was written against the documented player payload
+format but could not be exercised during development: the sandbox's egress proxy
+refuses CONNECT to `youtube.com`, so every attempt there fails with a 403 that
+says nothing about YouTube's actual behaviour. A first real-world test also
+failed. Its *failure* path is tested and returns a clean in-band error.
+
+To find out why it fails on a given machine, run the diagnostic — it bypasses
+MCP and reports what YouTube returns at each stage:
 
 ```bash
-YOUTUBE_API_KEY=... node -e '
-  /* or simply call the tool through Claude Code once connected */
-' && echo "use the tool from Claude Code and check for cues"
+node test/diagnose-transcript.mjs [videoId]
 ```
+
+It distinguishes the cases that need different fixes: a refused watch page, a
+consent or bot-check interstitial, a payload whose shape changed, a caption URL
+gated behind a proof-of-origin token, and a stale build. Paste its full output
+when reporting a transcript problem.
+
+If YouTube is serving bot mitigation, no plain HTTP client can get past it, and
+the realistic options are an OAuth-authorized `captions.download` (your own
+videos only), a real browser session, or a third-party transcript service.
 
 Everything else in the table above is covered by the smoke test.
 
