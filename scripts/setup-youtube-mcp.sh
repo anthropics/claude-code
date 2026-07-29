@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Writes YOUTUBE_API_KEY into your shell profile so the project-scoped
-# YouTube MCP server in .mcp.json can read it.
+# Builds the in-repo MCP servers and writes YOUTUBE_API_KEY into your shell
+# profile so the project-scoped servers in .mcp.json can read it.
 #
 #   ./scripts/setup-youtube-mcp.sh              # prompts for the key
 #   ./scripts/setup-youtube-mcp.sh <api-key>    # takes it as an argument
@@ -8,6 +8,8 @@
 # Run this on your own machine, not in a remote/web session container.
 
 set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 KEY="${1:-}"
 LANG_PREF="${YOUTUBE_TRANSCRIPT_LANG:-tr}"
@@ -60,7 +62,20 @@ export YOUTUBE_TRANSCRIPT_LANG="${LANG_PREF}"
 EOF
 
 echo "Eklendi: $RC"
+
+# The servers run from compiled output, and dist/ is not tracked in git, so a
+# fresh clone needs this before .mcp.json can start anything.
+for server in youtube-mcp-server instagram-mcp-server; do
+  dir="$REPO_ROOT/mcp-servers/$server"
+  [ -d "$dir" ] || continue
+  echo
+  echo "Derleniyor: $server"
+  (cd "$dir" && npm install --silent && npm run build --silent)
+done
+
 echo
 echo "Simdi:"
 echo "  source $RC"
 echo "  claude mcp list      # youtube -> Connected bekleniyor"
+echo
+echo "Instagram sunucusu ayrica INSTAGRAM_ACCESS_TOKEN ister; docs/mcp-servers.md'ye bak."

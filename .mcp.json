@@ -1,11 +1,20 @@
 {
   "mcpServers": {
     "youtube": {
-      "command": "npx",
-      "args": ["-y", "youtube-data-mcp-server"],
+      "command": "node",
+      "args": ["${CLAUDE_PROJECT_DIR:-.}/mcp-servers/youtube-mcp-server/dist/index.js"],
       "env": {
-        "YOUTUBE_API_KEY": "${YOUTUBE_API_KEY}",
-        "YOUTUBE_TRANSCRIPT_LANG": "${YOUTUBE_TRANSCRIPT_LANG:-en}"
+        "YOUTUBE_API_KEY": "${YOUTUBE_API_KEY}"
+      }
+    },
+    "instagram": {
+      "command": "node",
+      "args": ["${CLAUDE_PROJECT_DIR:-.}/mcp-servers/instagram-mcp-server/dist/index.js"],
+      "env": {
+        "INSTAGRAM_ACCESS_TOKEN": "${INSTAGRAM_ACCESS_TOKEN}",
+        "INSTAGRAM_ACCOUNT_ID": "${INSTAGRAM_ACCOUNT_ID}",
+        "INSTAGRAM_API_HOST": "${INSTAGRAM_API_HOST:-graph.instagram.com}",
+        "INSTAGRAM_API_VERSION": "${INSTAGRAM_API_VERSION:-v25.0}"
       }
     }
   }
