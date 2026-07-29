@@ -23,11 +23,12 @@ registerEngagementTools(server);
 
 async function main(): Promise<void> {
   if (!process.env.YOUTUBE_API_KEY) {
-    // Warn but keep serving: youtube_get_transcript does not use the Data API,
-    // and failing fast here would make the whole server look broken.
+    // Warn rather than exit: the client shows a server that failed to start as
+    // a connection fault, which sends people debugging the wrong layer. Staying
+    // up lets each tool return the message that names the actual fix.
     console.error(
-      "WARNING: YOUTUBE_API_KEY is not set. Every tool except youtube_get_transcript will " +
-        "return an authentication error until it is.",
+      "WARNING: YOUTUBE_API_KEY is not set. Every tool will return an authentication " +
+        "error until it is exported.",
     );
   }
 
