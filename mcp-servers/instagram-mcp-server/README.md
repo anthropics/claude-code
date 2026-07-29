@@ -85,6 +85,32 @@ flow:
 node scripts/authorize.mjs --refresh
 ```
 
+### When authorization fails
+
+**`Insufficient Developer Role`** — being an Admin on the app is not enough. The
+Instagram account itself needs the **Instagram Tester** role, which is a
+different thing from the plain "Tester" role in the same dialog:
+
+1. App Dashboard → **App roles → Roles** → **Add People** → select **Instagram
+   Tester** → enter the Instagram username → Add.
+2. Sign in as that account and accept at
+   <https://www.instagram.com/accounts/manage_access/> → **Tester Invites** →
+   **Accept**. The dashboard status goes from `Pending` to `Active`.
+
+Three other things produce the same or a similarly opaque failure:
+
+- **The account is private.** Tokens are only issued for public profiles.
+- **The account is still personal.** Only professional (Business or Creator)
+  accounts can hold the tester role.
+- **The browser is signed in as a different Instagram account.** Authorization
+  follows the current session, so with several accounts the fix is usually an
+  incognito window signed into the right one.
+
+**`Error saving redirect URLs`** in the dashboard — Meta fetches the URI to
+check it resolves, so `http://localhost` is rejected. Use
+`https://localhost:8573/callback`, or `https://127.0.0.1:8573/callback` if that
+is also refused; accounts differ on which one they accept.
+
 ### Two login flows
 
 | | Instagram Login | Facebook Login |
