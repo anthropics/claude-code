@@ -1,2 +1,6 @@
 .DS_Store
 
+# Local secrets — never commit API keys
+.env
+.env.local
+
