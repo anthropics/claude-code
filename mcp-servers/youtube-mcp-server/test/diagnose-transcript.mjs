@@ -47,19 +47,31 @@ try {
 }
 
 // Stage 2 — did YouTube serve a real player page, or an interstitial?
-const markers = {
-  ytInitialPlayerResponse: html.includes("ytInitialPlayerResponse"),
-  captionTracks: html.includes("captionTracks"),
-  consentPage: /consent\.youtube\.com|CONSENT_FLOW|before you continue/i.test(html),
-  botCheck: /captcha|unusual traffic|verify you are human|not a robot/i.test(html),
-  signInWall: /sign in to confirm|confirm you.{0,5}re not a bot/i.test(html),
+//
+// Substring checks alone are useless here: a served player page is over a
+// megabyte of bundled JS and i18n strings, and words like "captcha" appear in
+// it as a matter of course. So the player payload decides, and the block
+// phrases only matter when that payload is missing.
+const hasPlayer = html.includes("ytInitialPlayerResponse");
+const hasCaptions = html.includes("captionTracks");
+const looksLikeRealPage = hasPlayer && html.length > 100_000;
+
+const blockPhrases = {
+  consentPage: /consent\.youtube\.com\/m\?|CONSENT_FLOW_INTERSTITIAL/i.test(html),
+  unusualTraffic: /our systems have detected unusual traffic/i.test(html),
+  signInWall: /sign in to confirm you.{0,5}re not a bot/i.test(html),
 };
+
 console.log("");
-for (const [name, present] of Object.entries(markers)) {
+line("ytInitialPlayerResponse", hasPlayer ? "PRESENT" : "absent");
+line("captionTracks", hasCaptions ? "PRESENT" : "absent");
+line("looks like real page", looksLikeRealPage ? "yes" : "NO");
+for (const [name, present] of Object.entries(blockPhrases)) {
   line(name, present ? "PRESENT" : "absent");
 }
 
-if (markers.consentPage || markers.botCheck || markers.signInWall) {
+const blocked = Object.values(blockPhrases).some(Boolean);
+if (!looksLikeRealPage && blocked) {
   console.log(
     "\nDIAGNOSIS: YouTube served an interstitial rather than the player page.\n" +
       "This is the bot-mitigation path — a plain HTTP client cannot get past it.\n" +
@@ -68,7 +80,14 @@ if (markers.consentPage || markers.botCheck || markers.signInWall) {
   process.exit(1);
 }
 
-if (!markers.captionTracks) {
+if (blocked && looksLikeRealPage) {
+  console.log(
+    "\nNOTE: a block phrase matched, but the player payload is present and the page\n" +
+      "is full size — treating this as a real page and continuing.",
+  );
+}
+
+if (!hasCaptions) {
   console.log(
     "\nDIAGNOSIS: the page loaded but carries no captionTracks.\n" +
       "Either the video publishes no captions, or YouTube moved them out of the\n" +
