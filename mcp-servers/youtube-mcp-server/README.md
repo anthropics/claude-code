@@ -50,9 +50,10 @@ design choices worth knowing about:
 
 ## Transcripts: your own uploads only
 
-`youtube_get_transcript` works, but only on videos uploaded by the Google
-account that authorized this server. That is a limit of the API, not of this
-implementation, and it is worth understanding before you set OAuth up.
+`youtube_get_transcript` works — verified against a real channel owner's video —
+but only on videos uploaded by the Google account that authorized this server.
+That is a limit of the API, not of this implementation, and it is worth
+understanding before you set OAuth up.
 
 **An API key cannot download captions at all.** `captions.list` returns track
 metadata with a key (HTTP 200), but `captions.download` returns HTTP 401:
@@ -128,11 +129,12 @@ return no cues instead of throwing.
 
 Current status: smoke 13/13, parser 14/14.
 
-**Not covered:** the caption download itself. It needs OAuth credentials for an
-account that owns a video, which cannot be provisioned in CI or in the sandbox
-this server was developed in. The parser it feeds is tested directly, and the
-tool's no-OAuth path is asserted in the smoke test, but the first real download
-is yours to verify.
+**The OAuth download path is verified end to end**, against a channel owner's
+own video: `captions.list` resolved the track, `captions.download` returned SRT
+over OAuth, and the parser produced timestamped cues. It is not part of the
+automated suites, because it needs credentials for an account that owns a video
+and those cannot be provisioned in CI. Re-verify it manually after changing
+anything in `src/tools/transcript.ts` or `src/services/oauth.ts`.
 
 ## Design notes
 

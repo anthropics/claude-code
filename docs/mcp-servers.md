@@ -5,7 +5,7 @@ Bu repo iki MCP sunucusu içerir. İkisi de TypeScript, stdio üzerinden çalı�
 
 | Sunucu | Durum | Kaynak |
 |---|---|---|
-| `youtube` | Canlı API'ye karşı test edildi (11/11) | `mcp-servers/youtube-mcp-server/` |
+| `youtube` | Canlı API'ye karşı test edildi (smoke 13/13, ayrıştırıcı 14/14, OAuth transcript elle doğrulandı) | `mcp-servers/youtube-mcp-server/` |
 | `instagram` | Yalnızca protokol testi (25/25); Graph API çağrıları doğrulanmadı | `mcp-servers/instagram-mcp-server/` |
 
 Her sunucunun kendi README'si var ve asıl ayrıntı orada — bu sayfa kurulumu
@@ -52,8 +52,9 @@ diğerleri 1 birim. Ayrıntı ve tasarım gerekçeleri sunucunun README'sinde.
 
 ### Transcript yalnızca kendi videolarında
 
-`youtube_get_transcript` çalışıyor ama **sunucuyu yetkilendiren Google hesabının
-kendi yüklediği** videolarda. Bu API'nin sınırı, implementasyonun değil:
+`youtube_get_transcript` çalışıyor — gerçek bir kanal sahibinin videosunda uçtan
+uca doğrulandı — ama yalnızca **sunucuyu yetkilendiren Google hesabının kendi
+yüklediği** videolarda. Bu API'nin sınırı, implementasyonun değil:
 
 - `captions.download` API anahtarını reddediyor (HTTP 401, *"Expected OAuth2
   access token ... that assert a principal"*). Anahtar bir uygulamayı tanımlar,
