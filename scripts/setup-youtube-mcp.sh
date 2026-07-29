@@ -39,14 +39,25 @@ if [[ "$code" != "200" ]]; then
 fi
 echo "HTTP 200"
 
-# Pick the profile the user's current interactive shell actually loads.
-if [[ -n "${ZSH_VERSION:-}" ]]; then
-  RC="$HOME/.zshrc"
-elif [[ -n "${BASH_VERSION:-}" ]]; then
-  RC="$HOME/.bashrc"
-else
-  RC="$HOME/.profile"
-fi
+# Pick the profile the caller's LOGIN shell loads, from $SHELL.
+#
+# Do not test ZSH_VERSION/BASH_VERSION here: this script always runs under
+# bash because of its shebang, so BASH_VERSION is set no matter what the user
+# actually types in. That mistake sends the exports to .bashrc for zsh users,
+# where they are never sourced — and macOS has defaulted to zsh since Catalina.
+case "$(basename "${SHELL:-/bin/sh}")" in
+  zsh) RC="$HOME/.zshrc" ;;
+  bash)
+    # bash reads .bash_profile for login shells on macOS and .bashrc elsewhere;
+    # prefer whichever already exists so we append where the user is looking.
+    if [[ "$(uname -s)" == "Darwin" && -f "$HOME/.bash_profile" ]]; then
+      RC="$HOME/.bash_profile"
+    else
+      RC="$HOME/.bashrc"
+    fi
+    ;;
+  *) RC="$HOME/.profile" ;;
+esac
 
 if grep -q 'YOUTUBE_API_KEY' "$RC" 2>/dev/null; then
   echo "$RC icinde zaten bir YOUTUBE_API_KEY satiri var."
