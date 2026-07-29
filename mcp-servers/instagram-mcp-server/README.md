@@ -34,10 +34,19 @@ Two observations from live use worth knowing:
 - **Insight metric names and descriptions come back localized** to the
   account's language, not in English. The metric `name` field stays stable;
   `title` and `description` do not.
-- **`comments_count` on a media object can exceed what the comments edge
-  returns.** A post reporting one comment returned an empty list. The call
-  succeeds either way, so treat `comments_count` as an upper bound rather than
-  a promise of what you can read back.
+- **A missing permission reads as empty data, not as an error.** On a token
+  without `instagram_business_manage_comments`, a post with `comments_count: 2`
+  returned `{"data":[],"paging":{"cursors":{...}}}` from the comments edge, and
+  requesting `comments{...}` as a nested field on the media object dropped the
+  field from the response entirely — no error in either case. Two signatures
+  give it away: pagination cursors alongside an empty `data` array (Meta does
+  not mint cursors for a genuinely empty collection), and a requested field
+  silently absent from the response. If a read returns nothing where you expect
+  something, check the token's scopes before looking for a bug.
+
+  Dashboard-generated tokens carry only the permissions ticked in **Instagram →
+  API setup with Instagram business login**, and an existing token never gains
+  new scopes — you have to tick the box and generate a fresh one.
 
 ## Setup
 
