@@ -53,7 +53,8 @@ eklerken bu attribute'u kopyalamayı atlamayın.
 
 | İngilizce | Kullanılan | Kullanılmayan |
 |---|---|---|
-| quantisation | kuantumlanma | ~~kuantalanma~~, ~~nicemlenme~~ |
+| quantisation | kuantizasyon | ~~kuantalanma~~, ~~nicemlenme~~ |
+| quantized | kuantize | — |
 | energy level | enerji düzeyi | ~~enerji seviyesi~~ |
 | potential barrier | potansiyel bariyer | ~~engel~~ |
 | transmitted wave | iletilen dalga | ~~geçen dalga~~ |
@@ -62,15 +63,12 @@ eklerken bu attribute'u kopyalamayı atlamayın.
 
 Ölçüt "Türkçesi en arı olan" değil, **Türk fizik bölümlerinin kendi ders
 materyallerinde geçen** karşılık. `nicemlenme` gerçek bir TDK terimi ve
-dilbilgisi olarak doğru (edilgen çatı, enerjinin kendi özelliği için doğrusu),
-ama üniversite notlarında `kuantumlanmış` ve `kuantizasyon` kullanılıyor —
-Çukurova'nın kuantum laboratuvarı notları "enerji düzeyleri kuantumlanmış",
-Boğaziçi'nin ders tanımları "enerjinin kuantizasyonu" diyor. Birebir çeviri ile
-özleştirme aynı hatanın iki yönü: ikisi de literatürün fiilen ne kullandığını
-sormuyor.
+dilbilgisi olarak da doğru, ama ders dilinde kullanılmıyor. Aday iki biçim
+`kuantumlanma` ve `kuantizasyon`; bölümün tercihi **kuantizasyon** oldu
+(Boğaziçi'nin ders tanımları da böyle diyor). Birebir çeviri ile özleştirme
+aynı hatanın iki yönü — ikisi de literatürün fiilen ne kullandığını sormuyor.
 
-Bölümün kendi ders dilinde farklı bir tercih varsa o kazanır — iki dosyada
-üç kelime, `kuantumlanma` yerine ne kullanıyorsanız onu yazın.
+Bir terimde tereddüt varsa bölümün kendi ders diline bakın, sözlüğe değil.
 
 Nobel gerekçesinin İngilizce özgün hâli 2. sayfada küçük puntoyla duruyor:
 çeviri bir terim tercihi içeriyor ve o tercihi gizlemek yerine yanına
