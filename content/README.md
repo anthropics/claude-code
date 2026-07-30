@@ -113,12 +113,34 @@ Sırasıyla şunlara bakıyor:
 Her iki konumdaki görseller `.gitignore`'da — telifli fotoğrafın kazara commit
 edilmesi mümkün değil.
 
-Sıra yanlışsa üçünü istediğin sırayla verebilirsin — script çıktısında gerçek
-dosya adlarıyla hazır komutu basıyor:
+### Kim hangisi — `eslesme.txt`
+
+Dosya sırası kişi sırası değil. Nobel portrellerinin adları medya numarası
+taşıyor (`186053-portrait-medium.jpg.webp`) ve sayısal sıra ödül sahiplerinin
+sırasıyla ilgisiz — buna güvenmek bir kez yanlış atama üretti, üstelik sessizce:
+render başarılı çıkıyor, kartta yanlış yüz duruyor.
+
+O yüzden eşleşme `photos/eslesme.txt` içinde yazılı:
+
+```
+clarke      188476
+devoret     186711
+martinis    186053
+```
+
+Sağdaki değer dosya adının içinde geçen herhangi bir parça olabilir. Dosya
+varsa `indir.sh` sıralamaya hiç bakmıyor. Eşleşmediği durumda ada göre
+sıralamaya düşüyor ama bunu **söylüyor** — "SIRA DOĞRULANMADI".
+
+Sıra yanlışsa tek satır düzeltmek yeterli; alternatif olarak üç dosyayı
+istediğin sırayla da verebilirsin:
 
 ```bash
 ./indir.sh IMG_4823.jpg IMG_4821.jpg IMG_4822.jpg
 ```
+
+Yanlış etiketlenmiş bir ödül sahibi, boş çerçeveden çok daha kötü. Render
+sonrası 2. sayfada yüzleri isimlerle bir kez karşılaştır.
 
 Uzantı önemli değil (`.png`, `.webp`, `.avif` de olur) — tarayıcı görsel türünü
 içerikten anlıyor, uzantı adından değil.

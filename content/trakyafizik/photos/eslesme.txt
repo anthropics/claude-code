@@ -1,0 +1,17 @@
+# Nobel medya numarası -> hangi ödül sahibi
+#
+# Bu dosya var olduğu sürece indir.sh dosya sırasına GÜVENMEZ, buradaki
+# eşleşmeyi kullanır. Sıralamaya dayanmak bir kez yanlış atama üretti:
+# dosya adları sayısal sırada (186053, 186711, 188476) ama kişiler o sırada
+# değil. Bilgi bir kez doğrulandı, artık burada duruyor.
+#
+# Doğrulama: gözlüksüz / turuncu düz kravatlı portre Martinis (186053),
+# en yaşlı görünen / beyaz seyrek saçlı / gözlüklü portre Clarke (188476).
+#
+# Yeni bir gönderi için farklı kişiler gerekiyorsa satırları değiştir;
+# sağdaki değer dosya adının içinde geçen herhangi bir parça olabilir.
+#
+# isim      dosya adında geçen parça
+clarke      188476
+devoret     186711
+martinis    186053

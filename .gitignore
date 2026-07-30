@@ -14,6 +14,7 @@ content/out/
 content/*/photos/*
 !content/*/photos/.gitkeep
 !content/*/photos/*.sh
+!content/*/photos/eslesme.txt
 
 # Gönderi klasörüne bırakılan görseller de telifli olabilir — indir.sh oradan
 # da okuyor, dolayısıyla oraya düşmeleri olağan.

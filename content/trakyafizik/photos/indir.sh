@@ -98,20 +98,60 @@ if [ "$#" -eq 0 ]; then
     fi
 
     echo "Dosyalar bulundu: $found_in"
-    echo "Ada göre sıralanıp isimlendiriliyor:"
-    echo
-    i=0
-    while IFS= read -r src; do
-      cp "$src" "$dest/${names[$i]}.jpg"
-      echo "✓ ${names[$i]}.jpg  ←  $(basename "$src")"
-      i=$((i + 1))
-    done <<< "$strays"
+
+    # eslesme.txt varsa sıralamaya hiç güvenilmiyor. Dosya adları sayısal
+    # sırada olabilir ama kişiler o sırada değil — bir kez yanlış atama bu
+    # yüzden oldu. Doğrulanmış bilgi dosyada duruyor, her seferinde yeniden
+    # türetilmiyor.
+    map_file="$dest/eslesme.txt"
+    used_map=0
+
+    if [ -f "$map_file" ]; then
+      resolved=""
+      for target in "${names[@]}"; do
+        token=$(awk -v n="$target" '$1 == n && $1 !~ /^#/ { print $2; exit }' "$map_file")
+        hit=""
+        [ -n "$token" ] && hit=$(printf '%s\n' "$strays" | grep -F -- "$token" | head -1)
+        [ -z "$hit" ] && { resolved=""; break; }
+        resolved="$resolved$target|$hit"$'\n'
+      done
+
+      if [ -n "$resolved" ]; then
+        echo "Eşleşme eslesme.txt'den okundu (dosya sırasına bakılmadı):"
+        echo
+        printf '%s' "$resolved" | while IFS='|' read -r target src; do
+          [ -z "$target" ] && continue
+          cp "$src" "$dest/$target.jpg"
+          echo "✓ $target.jpg  ←  $(basename "$src")"
+        done
+        used_map=1
+      else
+        echo "eslesme.txt var ama dosya adlarıyla eşleşmedi; ada göre sıralanıyor."
+      fi
+    fi
+
+    if [ "$used_map" -eq 0 ]; then
+      echo "Ada göre sıralanıp isimlendiriliyor — SIRA DOĞRULANMADI, render'da"
+      echo "yüzleri isimlerle karşılaştır:"
+      echo
+      i=0
+      while IFS= read -r src; do
+        cp "$src" "$dest/${names[$i]}.jpg"
+        echo "✓ ${names[$i]}.jpg  ←  $(basename "$src")"
+        i=$((i + 1))
+      done <<< "$strays"
+    fi
 
     echo
-    echo "Sıra yanlışsa üçünü istediğin sırayla ver:"
-    printf '  ./indir.sh'
-    while IFS= read -r src; do printf ' %s' "$src"; done <<< "$strays"
-    echo
+    if [ "$used_map" -eq 1 ]; then
+      echo "Eşleşme yanlışsa eslesme.txt'yi düzelt — orada tek satır değiştirmek"
+      echo "yeterli, bir daha uğraşmak gerekmiyor."
+    else
+      echo "Sıra yanlışsa üçünü istediğin sırayla ver:"
+      printf '  ./indir.sh'
+      while IFS= read -r src; do printf ' %s' "$src"; done <<< "$strays"
+      echo
+    fi
     echo
     echo "Sonra:  node ../../render.mjs ../nobel-2025.html"
     exit 0
