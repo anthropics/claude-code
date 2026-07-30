@@ -9,9 +9,13 @@
 #    Sırasıyla clarke, devoret, martinis olur. Hangisinin hangisi olduğunu
 #    ekrana basar; yanlışsa iki dosyanın adını takas etmek yeterli.
 #
-# 2) Ada göre ara — dosya adında soyisim geçiyorsa:
+# 2) Argümansız çalıştır — hiçbir şey yazmadan:
 #
-#      ./indir.sh                    # ~/Downloads ve ~/Desktop içinde arar
+#      ./indir.sh
+#
+#    Önce bu klasöre bakar: dosyaları buraya kendin attıysan, adları ne olursa
+#    olsun ada göre sıralayıp clarke/devoret/martinis yapar. Burada yoksa
+#    ~/Downloads ve ~/Desktop içinde adında soyisim geçen görselleri arar.
 #      ./indir.sh ~/başka/klasör
 #
 # Uzantı önemli değil (.jpg .jpeg .png .webp .avif); .jpg olarak kopyalanıyor,
@@ -53,7 +57,50 @@ if [ "$#" -gt 0 ] && [ -f "$1" ]; then
   exit 0
 fi
 
-# --- Mod 2: ada göre ara ------------------------------------------------------
+img_args=(-iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.webp' -o -iname '*.avif')
+
+# --- Mod 2: dosyalar zaten bu klasörde --------------------------------------
+#
+# Argümansız çalıştırıldığında ilk bakılan yer burası. Kullanıcı dosyaları
+# kendisi buraya attıysa yapacak iş sadece isimlendirme — dışarıda aramanın
+# anlamı yok. Hedef isimlerden farklı adı olan görseller "yabancı" sayılıyor.
+
+if [ "$#" -eq 0 ]; then
+  strays=$(find "$dest" -maxdepth 1 -type f \( "${img_args[@]}" \) 2>/dev/null \
+    | grep -Ev '/(clarke|devoret|martinis)\.jpg$' | sort)
+
+  if [ -n "$strays" ]; then
+    count=$(printf '%s\n' "$strays" | wc -l | tr -d ' ')
+    if [ "$count" -gt 3 ]; then
+      echo "Bu klasörde $count görsel var, hangisinin hangisi olduğu belirsiz:" >&2
+      printf '%s\n' "$strays" | sed "s|$dest/|  |" >&2
+      echo >&2
+      echo "Üç tanesini sırayla vererek çalıştır:" >&2
+      echo "  ./indir.sh birinci.jpg ikinci.jpg ucuncu.jpg" >&2
+      exit 1
+    fi
+
+    echo "Dosyalar bu klasörde bulundu, ada göre sıralanıp isimlendiriliyor:"
+    echo
+    i=0
+    while IFS= read -r src; do
+      cp "$src" "$dest/${names[$i]}.jpg"
+      echo "✓ ${names[$i]}.jpg  ←  $(basename "$src")"
+      i=$((i + 1))
+    done <<< "$strays"
+
+    echo
+    echo "Sıra yanlışsa üçünü istediğin sırayla ver:"
+    printf '  ./indir.sh'
+    while IFS= read -r src; do printf ' %s' "$(basename "$src")"; done <<< "$strays"
+    echo
+    echo
+    echo "Sonra:  node ../../render.mjs ../nobel-2025.html"
+    exit 0
+  fi
+fi
+
+# --- Mod 3: ada göre ara ------------------------------------------------------
 
 if [ "$#" -gt 0 ]; then
   dirs=("$1")

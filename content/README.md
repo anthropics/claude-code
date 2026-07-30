@@ -95,18 +95,26 @@ trakyafizik/photos/martinis.jpg
 Dosya yoksa çerçeve baş harfleri gösteriyor — tasarım bozulmuyor. Fotoğrafları
 koyup yeniden render alınca kendiliğinden yerine oturuyorlar.
 
-İndirdiğin dosyaları yerleştirmek için `indir.sh`, iki modu var:
+Dosyaları isimlendirmek için `indir.sh` — argümansız çalıştırmak yeterli:
 
 ```bash
-cd content/trakyafizik/photos
-
-./indir.sh foto1.jpg foto2.jpg foto3.jpg   # sırayla clarke, devoret, martinis
-./indir.sh                                 # ~/Downloads ve ~/Desktop'ta ada göre arar
+cd content/trakyafizik/photos && ./indir.sh
 ```
 
-Birinci mod dosya adına hiç bakmıyor — `IMG_4821.jpg` gibi adlarda tek çalışan
-yol bu. İkinci mod dosya adında soyisim geçiyorsa işe yarıyor; bulamazsa
-klasördeki görselleri listeleyip birinci modu öneriyor.
+Sırasıyla şunlara bakıyor:
+
+1. **Bu klasör.** Dosyaları buraya kendin attıysan, adları ne olursa olsun
+   (`IMG_4821.jpg` gibi) ada göre sıralayıp clarke/devoret/martinis yapıyor ve
+   hangisinin hangisi olduğunu yazıyor. Üçten fazla görsel varsa belirsiz
+   olduğunu söyleyip duruyor.
+2. **`~/Downloads` ve `~/Desktop`.** Dosya adında soyisim geçiyorsa bulur.
+
+Sıra yanlışsa üçünü istediğin sırayla verebilirsin — script çıktısında gerçek
+dosya adlarıyla hazır komutu basıyor:
+
+```bash
+./indir.sh IMG_4823.jpg IMG_4821.jpg IMG_4822.jpg
+```
 
 Uzantı önemli değil (`.png`, `.webp`, `.avif` de olur) — tarayıcı görsel türünü
 içerikten anlıyor, uzantı adından değil.
