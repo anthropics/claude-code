@@ -8,28 +8,72 @@
 //   node render.mjs nobel-2025.html            # -> out/nobel-2025-01.png, -02, ...
 //   node render.mjs nobel-2025.html --out dist
 //
-// Chromium comes from PLAYWRIGHT_BROWSERS_PATH when set, otherwise from
-// playwright's own resolution.
+// Tarayıcı: playwright'ın kendi Chromium'u varsa o, yoksa sistemde kurulu
+// Chrome. İkincisi sayesinde 140MB'lık indirme zorunlu değil.
 
 import { execSync } from "node:child_process";
 import { mkdir, readdir, rm } from "node:fs/promises";
 import { basename, extname, resolve, join } from "node:path";
 import { pathToFileURL } from "node:url";
 
-// playwright is usually installed globally rather than as a dependency of this
-// directory, and ESM ignores NODE_PATH — so fall back to the global root by
-// path. Keeps `node render.mjs` working with no local node_modules.
+const INSTALL_HINT = `
+playwright kurulu değil. Tek seferlik kurulum:
+
+    npm i -g playwright
+
+Bu kadarı yeterli — script sistemdeki Google Chrome'u kullanıyor.
+Chrome yoksa playwright'ın kendi tarayıcısını da indirebilirsin:
+
+    npx playwright install chromium
+`;
+
+// playwright genelde bu dizinin bağımlılığı değil, global kurulu oluyor; ESM de
+// NODE_PATH'i yok sayıyor. Bu yüzden global köke elle bakıyoruz.
 async function loadPlaywright() {
   try {
     return await import("playwright");
   } catch (error) {
     if (error.code !== "ERR_MODULE_NOT_FOUND") throw error;
-    const root = execSync("npm root -g", { encoding: "utf8" }).trim();
-    return import(pathToFileURL(join(root, "playwright", "index.mjs")).href);
+  }
+  try {
+    const root = execSync("npm root -g", { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
+    return await import(pathToFileURL(join(root, "playwright", "index.mjs")).href);
+  } catch {
+    // Yığın izi burada işe yaramıyor; kullanıcının ihtiyacı olan tek şey
+    // hangi komutu çalıştıracağı.
+    console.error(INSTALL_HINT);
+    process.exit(1);
   }
 }
 
 const { chromium } = await loadPlaywright();
+
+/**
+ * Tarayıcıyı başlat: önce playwright'ın kendi Chromium'u, o indirilmemişse
+ * sistemde kurulu Chrome.
+ *
+ * `npm i -g playwright` tarayıcıyı beraberinde getirmiyor, dolayısıyla temiz
+ * bir kurulumda ilk deneme "Executable doesn't exist" ile düşüyor. Chrome
+ * zaten kuruluysa o hatayı kullanıcıya göstermenin anlamı yok.
+ */
+async function launchBrowser() {
+  try {
+    return await chromium.launch();
+  } catch (error) {
+    if (!/Executable doesn't exist|Failed to launch/i.test(String(error.message))) throw error;
+    try {
+      const browser = await chromium.launch({ channel: "chrome" });
+      console.error("(playwright'ın Chromium'u yok, sistemdeki Chrome kullanılıyor)");
+      return browser;
+    } catch {
+      console.error(
+        "\nNe playwright'ın Chromium'u ne de sistemde Chrome bulundu. Biri gerekiyor:\n\n" +
+          "    npx playwright install chromium\n",
+      );
+      process.exit(1);
+    }
+  }
+}
 
 const args = process.argv.slice(2);
 const input = args.find((a) => !a.startsWith("--"));
@@ -55,7 +99,7 @@ for (const name of await readdir(outDir)) {
   }
 }
 
-const browser = await chromium.launch();
+const browser = await launchBrowser();
 const page = await browser.newPage({ deviceScaleFactor: scale });
 await page.goto(pathToFileURL(file).href, { waitUntil: "load" });
 await page.evaluate(() => document.fonts.ready);

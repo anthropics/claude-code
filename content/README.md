@@ -9,8 +9,16 @@ node render.mjs mindsetblunt/reel-covers.html
 node render.mjs trakyafizik/nobel-2025.html --scale 2   # 2x çözünürlük
 ```
 
-`playwright` global kurulu olsa da çalışıyor; script bulamazsa `npm root -g`
-üzerinden kendisi çözüyor. Chromium'u indirmeye çalışmaz.
+Tek gereksinim playwright:
+
+```bash
+npm i -g playwright
+```
+
+Tarayıcı olarak sistemde kurulu Google Chrome'u kullanıyor, yani playwright'ın
+140MB'lık Chromium'unu indirmek zorunda değilsin. Chrome yoksa
+`npx playwright install chromium` de çalışır. Script global kurulumu
+`npm root -g` üzerinden kendisi buluyor, bu dizinde `node_modules` gerekmiyor.
 
 | Dosya | Hesap | Ölçü | Sayfa |
 |---|---|---|---|
@@ -86,6 +94,16 @@ trakyafizik/photos/martinis.jpg
 
 Dosya yoksa çerçeve baş harfleri gösteriyor — tasarım bozulmuyor. Fotoğrafları
 koyup yeniden render alınca kendiliğinden yerine oturuyorlar.
+
+İndirdiğin dosyaları isim tahmin etmeden yerleştirmek için:
+
+```bash
+cd content/trakyafizik/photos && ./indir.sh        # ~/Downloads içinde arar
+```
+
+Adında soyisim geçen görselleri bulup doğru isimle kopyalıyor, bulamadığını
+söylüyor. Uzantı önemli değil (`.png`, `.webp` de olur) — tarayıcı görsel
+türünü içerikten anlıyor.
 
 Fotoğraflar bu depoya girmiyor (`.gitignore`), çünkü telifleri başkasına ait.
 Resmî portreler `nobelprize.org/prizes/physics/2025/<soyisim>/facts/`

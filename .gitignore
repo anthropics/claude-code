@@ -13,4 +13,5 @@ mcp-servers/*/dist/
 content/out/
 content/*/photos/*
 !content/*/photos/.gitkeep
+!content/*/photos/*.sh
 
