@@ -103,11 +103,15 @@ cd content/trakyafizik/photos && ./indir.sh
 
 Sırasıyla şunlara bakıyor:
 
-1. **Bu klasör.** Dosyaları buraya kendin attıysan, adları ne olursa olsun
-   (`IMG_4821.jpg` gibi) ada göre sıralayıp clarke/devoret/martinis yapıyor ve
-   hangisinin hangisi olduğunu yazıyor. Üçten fazla görsel varsa belirsiz
-   olduğunu söyleyip duruyor.
+1. **`photos/` ve bir üstündeki gönderi klasörü** (`trakyafizik/`). Dosyaları
+   ikisinden birine attıysan, adları ne olursa olsun (`IMG_4821.jpg` gibi) ada
+   göre sıralayıp clarke/devoret/martinis yapıyor ve hangisinin hangisi olduğunu
+   yazıyor. Üçten fazla görsel varsa rastgele seçmiyor, belirsiz olduğunu
+   söyleyip duruyor.
 2. **`~/Downloads` ve `~/Desktop`.** Dosya adında soyisim geçiyorsa bulur.
+
+Her iki konumdaki görseller `.gitignore`'da — telifli fotoğrafın kazara commit
+edilmesi mümkün değil.
 
 Sıra yanlışsa üçünü istediğin sırayla verebilirsin — script çıktısında gerçek
 dosya adlarıyla hazır komutu basıyor:

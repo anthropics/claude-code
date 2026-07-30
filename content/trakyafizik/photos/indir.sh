@@ -13,9 +13,10 @@
 #
 #      ./indir.sh
 #
-#    Önce bu klasöre bakar: dosyaları buraya kendin attıysan, adları ne olursa
-#    olsun ada göre sıralayıp clarke/devoret/martinis yapar. Burada yoksa
-#    ~/Downloads ve ~/Desktop içinde adında soyisim geçen görselleri arar.
+#    Önce bu klasöre, sonra bir üstündeki gönderi klasörüne bakar: dosyaları
+#    ikisinden birine attıysan, adları ne olursa olsun ada göre sıralayıp
+#    clarke/devoret/martinis yapar. İkisinde de yoksa ~/Downloads ve ~/Desktop
+#    içinde adında soyisim geçen görselleri arar.
 #      ./indir.sh ~/başka/klasör
 #
 # Uzantı önemli değil (.jpg .jpeg .png .webp .avif); .jpg olarak kopyalanıyor,
@@ -66,21 +67,38 @@ img_args=(-iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.webp'
 # anlamı yok. Hedef isimlerden farklı adı olan görseller "yabancı" sayılıyor.
 
 if [ "$#" -eq 0 ]; then
-  strays=$(find "$dest" -maxdepth 1 -type f \( "${img_args[@]}" \) 2>/dev/null \
-    | grep -Ev '/(clarke|devoret|martinis)\.jpg$' | sort)
+  # Hem bu klasör hem bir üstü (gönderi klasörü) taranıyor: dosyaları
+  # content/trakyafizik/ altına bırakmak en az photos/ altına bırakmak kadar
+  # doğal, ve ikisi arasındaki farkı kullanıcıya ödetmenin anlamı yok.
+  strays=""
+  found_in=""
+  for scan in "$dest" "$(cd "$dest/.." && pwd)"; do
+    hit=$(find "$scan" -maxdepth 1 -type f \( "${img_args[@]}" \) 2>/dev/null \
+      | grep -Ev '/(clarke|devoret|martinis)\.jpg$' | sort)
+    if [ -n "$hit" ]; then
+      strays="$hit"
+      found_in="$scan"
+      break
+    fi
+  done
 
   if [ -n "$strays" ]; then
     count=$(printf '%s\n' "$strays" | wc -l | tr -d ' ')
     if [ "$count" -gt 3 ]; then
-      echo "Bu klasörde $count görsel var, hangisinin hangisi olduğu belirsiz:" >&2
-      printf '%s\n' "$strays" | sed "s|$dest/|  |" >&2
+      echo "$found_in içinde $count görsel var, hangisinin hangisi olduğu belirsiz:" >&2
+      printf '%s\n' "$strays" | sed "s|$found_in/|  |" >&2
       echo >&2
-      echo "Üç tanesini sırayla vererek çalıştır:" >&2
-      echo "  ./indir.sh birinci.jpg ikinci.jpg ucuncu.jpg" >&2
+      echo "Üç tanesini sırayla vererek çalıştır, örneğin:" >&2
+      printf '  ./indir.sh' >&2
+      printf '%s\n' "$strays" | head -3 | while IFS= read -r s; do
+        printf ' %s' "$(basename "$s")" >&2
+      done
+      echo >&2
       exit 1
     fi
 
-    echo "Dosyalar bu klasörde bulundu, ada göre sıralanıp isimlendiriliyor:"
+    echo "Dosyalar bulundu: $found_in"
+    echo "Ada göre sıralanıp isimlendiriliyor:"
     echo
     i=0
     while IFS= read -r src; do
@@ -92,7 +110,7 @@ if [ "$#" -eq 0 ]; then
     echo
     echo "Sıra yanlışsa üçünü istediğin sırayla ver:"
     printf '  ./indir.sh'
-    while IFS= read -r src; do printf ' %s' "$(basename "$src")"; done <<< "$strays"
+    while IFS= read -r src; do printf ' %s' "$src"; done <<< "$strays"
     echo
     echo
     echo "Sonra:  node ../../render.mjs ../nobel-2025.html"

@@ -15,3 +15,11 @@ content/*/photos/*
 !content/*/photos/.gitkeep
 !content/*/photos/*.sh
 
+# Gönderi klasörüne bırakılan görseller de telifli olabilir — indir.sh oradan
+# da okuyor, dolayısıyla oraya düşmeleri olağan.
+content/*/*.jpg
+content/*/*.jpeg
+content/*/*.png
+content/*/*.webp
+content/*/*.avif
+
