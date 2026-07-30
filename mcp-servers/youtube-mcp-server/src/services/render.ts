@@ -65,6 +65,14 @@ export function renderVideoList(
  * The id lives in three different places depending on the endpoint: a bare
  * string on `videos.list`, `id.videoId` on `search.list`, and
  * `contentDetails.videoId` on `playlistItems.list`.
+ *
+ * `contentDetails.videoId` must be checked FIRST. On `playlistItems.list` both
+ * it and the bare `item.id` are populated, but `item.id` identifies the playlist
+ * *entry* — a long base64 string — not the video. Reading `item.id` first
+ * therefore never falls through, and every URL built from it is dead. Leading
+ * with contentDetails is safe for the other two endpoints: `videos.list` fills
+ * contentDetails with duration and friends but no videoId, and `search.list`
+ * omits the part entirely.
  */
 export function toVideoRow(item: VideoItem): VideoRow {
   const snippet = item.snippet ?? {};
@@ -72,8 +80,8 @@ export function toVideoRow(item: VideoItem): VideoRow {
   const contentDetails = item.contentDetails ?? {};
 
   const id =
-    (typeof item.id === "string" ? item.id : item.id?.videoId) ??
     contentDetails.videoId ??
+    (typeof item.id === "string" ? item.id : item.id?.videoId) ??
     "";
 
   return {

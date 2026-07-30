@@ -100,9 +100,24 @@ function preview(message) {
 }
 
 const results = [];
+
+/**
+ * Every video row must carry a real 11-character video ID.
+ *
+ * Without this, a tool can return well-formed output whose IDs and URLs are
+ * useless — which is exactly what happened when playlistItems' entry ID was
+ * mistaken for the video ID. The response looked correct; every link was dead.
+ */
+function badVideoIds(message) {
+  const rows = message.result?.structuredContent?.videos;
+  if (!Array.isArray(rows)) return null;
+  const bad = rows.map((row) => row.id).filter((id) => !/^[A-Za-z0-9_-]{11}$/.test(id ?? ""));
+  return bad.length ? `malformed video ids: ${bad.slice(0, 3).join(", ")}` : null;
+}
+
 async function check(label, toolName, args) {
   const message = await send("tools/call", { name: toolName, arguments: args });
-  const failure = toolFailed(message);
+  const failure = toolFailed(message) ?? badVideoIds(message);
   results.push({ label, failure });
   if (failure) {
     console.log(`FAIL  ${label}\n      ${failure.replace(/\s+/g, " ").slice(0, 200)}`);
