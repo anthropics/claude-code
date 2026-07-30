@@ -53,12 +53,24 @@ eklerken bu attribute'u kopyalamayı atlamayın.
 
 | İngilizce | Kullanılan | Kullanılmayan |
 |---|---|---|
-| quantisation | nicemlenme | ~~kuantalanma~~ |
+| quantisation | kuantumlanma | ~~kuantalanma~~, ~~nicemlenme~~ |
 | energy level | enerji düzeyi | ~~enerji seviyesi~~ |
 | potential barrier | potansiyel bariyer | ~~engel~~ |
 | transmitted wave | iletilen dalga | ~~geçen dalga~~ |
 | discrete | kesikli | — |
 | tunnelling | tünelleme / tünellemesi | — |
+
+Ölçüt "Türkçesi en arı olan" değil, **Türk fizik bölümlerinin kendi ders
+materyallerinde geçen** karşılık. `nicemlenme` gerçek bir TDK terimi ve
+dilbilgisi olarak doğru (edilgen çatı, enerjinin kendi özelliği için doğrusu),
+ama üniversite notlarında `kuantumlanmış` ve `kuantizasyon` kullanılıyor —
+Çukurova'nın kuantum laboratuvarı notları "enerji düzeyleri kuantumlanmış",
+Boğaziçi'nin ders tanımları "enerjinin kuantizasyonu" diyor. Birebir çeviri ile
+özleştirme aynı hatanın iki yönü: ikisi de literatürün fiilen ne kullandığını
+sormuyor.
+
+Bölümün kendi ders dilinde farklı bir tercih varsa o kazanır — iki dosyada
+üç kelime, `kuantumlanma` yerine ne kullanıyorsanız onu yazın.
 
 Nobel gerekçesinin İngilizce özgün hâli 2. sayfada küçük puntoyla duruyor:
 çeviri bir terim tercihi içeriyor ve o tercihi gizlemek yerine yanına
