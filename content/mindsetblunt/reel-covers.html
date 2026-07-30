@@ -22,12 +22,29 @@
 -->
 
 <style>
+  /* Font repodan geliyor, sistemden değil — aynı dosya her makinede aynı
+     görseli üretsin diye. content/fonts/build.sh üretiyor. */
+  @font-face {
+    font-family: "DV Sans";
+    src: url("../fonts/dejavu-sans.woff2") format("woff2");
+    font-weight: normal;
+    font-style: normal;
+    font-display: block;
+  }
+  @font-face {
+    font-family: "DV Sans";
+    src: url("../fonts/dejavu-sans-bold.woff2") format("woff2");
+    font-weight: bold;
+    font-style: normal;
+    font-display: block;
+  }
+
   :root {
     --black: #0C0C0D;
     --white: #F2F0EC;
     --dim: rgba(242, 240, 236, 0.5);
     --hot: #FF5B29;
-    --sans: "DejaVu Sans", "Liberation Sans", Helvetica, Arial, sans-serif;
+    --sans: "DV Sans", "DejaVu Sans", Helvetica, Arial, sans-serif;
     --pad: 96px;
   }
 

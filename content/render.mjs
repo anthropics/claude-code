@@ -104,6 +104,30 @@ const page = await browser.newPage({ deviceScaleFactor: scale });
 await page.goto(pathToFileURL(file).href, { waitUntil: "load" });
 await page.evaluate(() => document.fonts.ready);
 
+// Font yüklenmezse tarayıcı sessizce sistem fontuna düşüyor: görsel çıkıyor,
+// "hata" yok, ama tipografi ve satır sonları benim ölçtüğüm yerde değil. Bu tam
+// olarak macOS'ta bir kez başımıza geldi, o yüzden artık denetleniyor.
+const fontProblems = await page.evaluate(() => {
+  const bad = [];
+  for (const face of document.fonts) {
+    if (face.status === "error") bad.push(`${face.family} ${face.weight}: yüklenemedi`);
+  }
+  // Beyan edilmiş bir aile hiç yüklenmemişse ya kullanılmıyor ya da yolu yanlış;
+  // ikisi de bilinmeye değer.
+  const declared = new Set([...document.fonts].map((f) => f.family));
+  for (const family of declared) {
+    const faces = [...document.fonts].filter((f) => f.family === family);
+    if (faces.every((f) => f.status === "unloaded")) {
+      bad.push(`${family}: beyan edilmiş ama hiç kullanılmamış`);
+    }
+  }
+  return bad;
+});
+
+if (fontProblems.length) {
+  console.error(`UYARI — font sorunu:\n  ${fontProblems.join("\n  ")}\n`);
+}
+
 const selector =
   (await page.evaluate(
     () => document.querySelector('meta[name="hz:slide-selector"]')?.content,

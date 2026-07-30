@@ -136,6 +136,38 @@ olanlar sağdan taşar. Yeni kart eklerken sağ kenarı kontrol edin.
 
 ## Fontlar
 
-Sistem fontları: gövde **DejaVu Sans**, başlık **DejaVu Serif**. İkisi de
-Türkçe'nin tamamını kapsıyor (ı İ ğ ş ç ö ü) ve harici bir istek
-gerektirmiyor — dosyalar tek başına, ağ erişimi olmadan render alıyor.
+Gövde **DejaVu Sans**, başlık **DejaVu Serif** — ama sistemden değil,
+`fonts/` altındaki woff2 dosyalarından. Sebebi somut: sistem fontuna
+güvenmek aynı dosyanın iki makinede iki farklı görsel üretmesi demek.
+macOS'ta DejaVu kurulu değil, tarayıcı Georgia + Helvetica'ya düşüyor ve
+elle ayarlanmış satır sonları kayıyor. Daha sinsisi: **DejaVu Serif'in
+italik yüzü hiç yok**, Linux'ta tarayıcı gövdeyi eğerek uyduruyor, macOS'ta
+gerçek Georgia Italic çıkıyor. Aynı HTML, iki ayrı tipografi.
+
+O yüzden alıntıda italik de kullanılmıyor — alıntı olduğunu tırnaklar ve
+soldaki altın çizgi söylüyor.
+
+Fontları yeniden üretmek (kaynak fontlar ve `pip install fonttools brotli`
+gerekiyor):
+
+```bash
+cd content/fonts && ./build.sh
+```
+
+Dört yüz, Türkçe + Batı Avrupa karakterlerine indirilmiş, toplam 52 KB.
+Lisans `fonts/LICENSE` içinde (Bitstream Vera / DejaVu — dağıtıma izin
+veriyor, telif ve izin metninin eşlik etmesi koşuluyla).
+
+`render.mjs` her çalıştırmada fontların yüklendiğini denetliyor. Yüklenmezse
+tarayıcı sessizce sistem fontuna düşer — görsel çıkar, hata çıkmaz, tipografi
+yanlıştır. Onun yerine uyarı basıyor:
+
+```
+UYARI — font sorunu:
+  DV Serif bold: yüklenemedi
+```
+
+**Adobe Express'e aktarım için not:** font yolları göreli (`../fonts/...`),
+yani HTML tek başına taşınırsa fontlar gelmez. Express'e aktarım gerekirse
+woff2'leri base64 olarak gömmek gerekiyor — PNG akışı için gerekmediği için
+yapılmadı.
