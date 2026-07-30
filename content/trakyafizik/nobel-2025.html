@@ -215,7 +215,18 @@
     overflow: hidden;
   }
 
-  .frame img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  /* Resmî Nobel portreleri 2:3 (492x738); çerçeve 280x340 daha geniş oranlı,
+     yani cover 80px dikey fazlalık bırakıyor. Varsayılan ortalama bunu yarı
+     yarıya bölüp özgün görselin tepesinden 70px kesiyor — saç 95px'te
+     başladığı için kıl payı. %20 ile üstten 28px kesiliyor, kalan fazlalık
+     kravattan gidiyor: baş tam, boşluk yukarıda. */
+  .frame img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 20%;
+    display: block;
+  }
 
   /* Fotoğraf yüklenmediğinde çerçeve boş kalmasın: baş harfler ve bir not.
      img'nin onerror'u .no-photo ekliyor. */
