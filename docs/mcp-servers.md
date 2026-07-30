@@ -1,7 +1,8 @@
 # MCP sunucuları
 
-Bu repo iki MCP sunucusu içerir. İkisi de TypeScript, stdio üzerinden çalışır ve
-`.mcp.json` ile proje kapsamında tanımlıdır.
+Bu repo iki MCP sunucusu içerir — biri YouTube, biri Instagram. Instagram
+sunucusu üç ayrı hesap için üç kez çalışıyor, aynı derlemeyle. Hepsi TypeScript,
+stdio üzerinden ve `.mcp.json` ile proje kapsamında tanımlı.
 
 | Sunucu | Durum | Kaynak |
 |---|---|---|
@@ -64,24 +65,7 @@ değiştirdiğinde yt-dlp güncellenene kadar araç durur. Ayrıca Data API'nin
 şartları dışında kalıyor — kişisel kullanımda pratik bir mesele değil, ama
 paylaşılan bir kurulumda bilerek karar vermek gerekir.
 
-### Transcript yalnızca kendi videolarında
-
-`youtube_get_transcript` çalışıyor — gerçek bir kanal sahibinin videosunda uçtan
-uca doğrulandı — ama yalnızca **sunucuyu yetkilendiren Google hesabının kendi
-yüklediği** videolarda. Bu API'nin sınırı, implementasyonun değil:
-
-- `captions.download` API anahtarını reddediyor (HTTP 401, *"Expected OAuth2
-  access token ... that assert a principal"*). Anahtar bir uygulamayı tanımlar,
-  bu uç bir kişi ister.
-- OAuth kimlik doğrulamayı çözer, **sahipliği çözmez**. Token'la bile bu uç metni
-  yalnızca videonun sahibine verir; başka hesap HTTP 403 alır. Bunu değiştiren
-  bir scope ya da ayar yok.
-- İzleme sayfasındaki gayriresmi yol da kapandı: **HTTP 200 + 0 bayt** —
-  `json3`, `srv3`, `vtt` ve düz XML'de, User-Agent'tan bağımsız. Bu yola dayanan
-  ilk sürüm hiç çalışmadı ve kaldırıldı.
-
-Başkasının videosu için tarayıcı oturumu kullan — YouTube'un kendi transcript
-paneli zaten orada.
+### OAuth kurulumu (yedek yol)
 
 Kurulum: Google Cloud Console'da **Credentials → OAuth client ID → Desktop app**
 oluştur, sonra sunucu dizininde:
@@ -94,8 +78,9 @@ Tarayıcıda onay sayfasını açar, loopback portundan yanıtı yakalar ve üç
 basar. Scope `youtube.force-ssl`. Consent screen **Testing** modundaysa refresh
 token 7 günde bir dolar — uygulamayı yayınlarsan uzun ömürlü olur.
 
-Bu değişkenler yoksa araç hangilerinin eksik olduğunu söyleyen bir hata döndürür;
-diğer sekiz araç etkilenmez.
+Bu değişkenler yoksa transcript aracı yt-dlp yoluna düşer; diğer sekiz araç
+etkilenmez. OAuth yalnızca yt-dlp yoksa ve video senin kendi yüklediğinse devreye
+giriyor.
 
 ## Instagram
 
@@ -155,8 +140,8 @@ kontrolü, yayınlama ve permalink zinciri canlı hesapta çalıştı. Video/ree
 gerektirdiği asenkron transcode beklemesi ve feed gönderileri henüz denenmedi.
 Not: feed 4:5–1.91:1 en-boy aralığı istiyor, story bu kısıtı uygulamıyor.
 
-`instagram_reply_to_comment` **doğrulanmadı** — yanıt vermek için bir yorum
-ID'si gerekiyor, yorum ucu ise ID döndürmüyor (aşağıya bak).
+`instagram_reply_to_comment` **doğrulanmadı** — ve bilerek. Test etmek gerçek bir
+insanın yorumunun altına canlı hesapta herkese açık bir yanıt yazmak demek.
 
 Canlı kullanımdan iki not:
 
