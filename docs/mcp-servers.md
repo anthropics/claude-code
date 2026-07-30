@@ -8,6 +8,7 @@ Bu repo iki MCP sunucusu içerir. İkisi de TypeScript, stdio üzerinden çalı�
 | `youtube` | Canlı API'ye karşı test edildi (smoke 13/13, ayrıştırıcı 14/14, OAuth transcript elle doğrulandı) | `mcp-servers/youtube-mcp-server/` |
 | `instagram` | Okuma araçları canlı hesapta doğrulandı; story yayınlama da | `mcp-servers/instagram-mcp-server/` |
 | `instagram-alt` | Aynı sunucu, ikinci hesap için ayrı kimlik bilgileriyle | `mcp-servers/instagram-mcp-server/` |
+| `instagram-fizik` | Aynı sunucu, üçüncü hesap | `mcp-servers/instagram-mcp-server/` |
 
 Her sunucunun kendi README'si var ve asıl ayrıntı orada — bu sayfa kurulumu
 anlatır.
@@ -104,16 +105,28 @@ export INSTAGRAM_ACCOUNT_ID="17841..."   # instagram_get_account ile bulunur
 Hesap ID'sini bilmiyorsan `instagram_get_account` aracını `account_id="me"` ile
 çağır; ID'yi döndürür.
 
-### İkinci hesap
+### Çoklu hesap
 
-Aynı derleme, ayrı kimlik bilgileriyle ikinci bir sunucu olarak çalışır — kodda
-çoklu hesap desteğine gerek yok, çünkü araçlar sunucu adıyla ayrışıyor
-(`instagram` / `instagram-alt`). İkinci hesap için:
+Aynı derleme, ayrı kimlik bilgileriyle ek sunucu olarak çalışır — kodda çoklu
+hesap desteğine gerek yok, çünkü araçlar sunucu adıyla ayrışıyor. Hangi sunucu
+hangi hesap:
+
+| Sunucu | Ortam değişkeni öneki |
+|---|---|
+| `instagram` | `INSTAGRAM_` |
+| `instagram-alt` | `INSTAGRAM_ALT_` |
+| `instagram-fizik` | `INSTAGRAM_FIZIK_` |
 
 ```bash
 export INSTAGRAM_ALT_ACCESS_TOKEN="..."
 export INSTAGRAM_ALT_ACCOUNT_ID="..."
+export INSTAGRAM_FIZIK_ACCESS_TOKEN="..."
+export INSTAGRAM_FIZIK_ACCOUNT_ID="..."
 ```
+
+Her sunucu dokuz araç kaydettiği için üç hesap 27 Instagram aracı demek. Aktif
+kullanmadığın bir hesabı `.mcp.json`'dan geçici olarak çıkarmak oturumdaki araç
+listesini kısaltır.
 
 Token'ı almak için `authorize.mjs` akışını **gizli sekmede** çalıştır ve o hesapla
 giriş yap; normal sekmede tarayıcı mevcut oturumu kullanır ve yanlış hesabı

@@ -26,6 +26,16 @@
         "INSTAGRAM_API_HOST": "${INSTAGRAM_API_HOST:-graph.instagram.com}",
         "INSTAGRAM_API_VERSION": "${INSTAGRAM_API_VERSION:-v25.0}"
       }
+    },
+    "instagram-fizik": {
+      "command": "node",
+      "args": ["${CLAUDE_PROJECT_DIR:-.}/mcp-servers/instagram-mcp-server/dist/index.js"],
+      "env": {
+        "INSTAGRAM_ACCESS_TOKEN": "${INSTAGRAM_FIZIK_ACCESS_TOKEN}",
+        "INSTAGRAM_ACCOUNT_ID": "${INSTAGRAM_FIZIK_ACCOUNT_ID}",
+        "INSTAGRAM_API_HOST": "${INSTAGRAM_API_HOST:-graph.instagram.com}",
+        "INSTAGRAM_API_VERSION": "${INSTAGRAM_API_VERSION:-v25.0}"
+      }
     }
   }
 }
