@@ -52,6 +52,18 @@ Dokuz araç: arama, video detayı, trendler, kanal, kanal videoları, playlist,
 yorumlar, altyazı listesi, transcript. Kota günlük 10.000 birim — arama 100,
 diğerleri 1 birim. Ayrıntı ve tasarım gerekçeleri sunucunun README'sinde.
 
+**Transcript herkese açık her videoda çalışıyor**, ama iki farklı yoldan.
+Öncelikli yol `yt-dlp` — kota harcamıyor, herhangi bir videoyu okuyor, ama
+PATH'te `yt-dlp` ve bir JS runtime gerektiriyor (`brew install yt-dlp` ikisini
+birden kuruyor). Yedek yol OAuth'lu `captions.download`, o da yalnızca kendi
+yüklediğin videolarda çalışıyor çünkü uç kimlik doğrulamaya değil sahipliğe
+bakıyor. Yanıttaki `source` alanı hangisinin cevapladığını söylüyor.
+
+yt-dlp yolu YouTube'un bot challenge'ını çözerek çalışıyor; YouTube o mekanizmayı
+değiştirdiğinde yt-dlp güncellenene kadar araç durur. Ayrıca Data API'nin
+şartları dışında kalıyor — kişisel kullanımda pratik bir mesele değil, ama
+paylaşılan bir kurulumda bilerek karar vermek gerekir.
+
 ### Transcript yalnızca kendi videolarında
 
 `youtube_get_transcript` çalışıyor — gerçek bir kanal sahibinin videosunda uçtan

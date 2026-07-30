@@ -29,7 +29,7 @@ every API enabled on the project if it leaks.
 | `youtube_list_playlist_items` | 1 | Videos in a public playlist |
 | `youtube_list_video_comments` | 1 | Top-level comments, by relevance or recency |
 | `youtube_list_caption_tracks` | 50 | Which caption languages a video publishes |
-| `youtube_get_transcript` | 250 | Caption text — **your own uploads only**, needs OAuth |
+| `youtube_get_transcript` | 0 / 250 | Captions for any public video via yt-dlp; OAuth fallback for own uploads |
 
 The `+1` is the optional `include_statistics` follow-up call. Every tool
 accepts `response_format` (`markdown` by default, `json` for the full payload)
@@ -48,36 +48,53 @@ design choices worth knowing about:
   batched `videos.list` call (1 unit for the whole page), rather than making
   the agent issue a second round trip.
 
-## Transcripts: your own uploads only
+## Transcripts
 
-`youtube_get_transcript` works — verified against a real channel owner's video —
-but only on videos uploaded by the Google account that authorized this server.
-That is a limit of the API, not of this implementation, and it is worth
-understanding before you set OAuth up.
+`youtube_get_transcript` reads any public video's captions, and reports which of
+two paths produced the text in the payload's `source` field.
 
-**An API key cannot download captions at all.** `captions.list` returns track
-metadata with a key (HTTP 200), but `captions.download` returns HTTP 401:
+**yt-dlp — preferred, any public video, no quota cost.** Needs `yt-dlp` on PATH
+plus a JS runtime for YouTube's challenge step; `brew install yt-dlp` supplies
+both, since deno arrives as a dependency. Without the JS runtime yt-dlp never
+writes the subtitle file, so prefer Homebrew over pip unless you are supplying
+deno or node to yt-dlp yourself.
 
-> API keys are not supported by this API. Expected OAuth2 access token or other
-> authentication credentials that assert a principal.
+**captions.download via OAuth — fallback, your own uploads only.** Used when
+yt-dlp is unavailable. Costs 250 quota units and returns 403 for any video the
+authorizing account does not own, because that endpoint enforces ownership
+rather than authentication: an API key is rejected outright ("API keys are not
+supported by this API. Expected OAuth2 access token ... that assert a
+principal"), and OAuth only widens it as far as your own channel.
 
-A key identifies an *application*; the endpoint requires a *principal*.
+### Why the official route is not enough
 
-**OAuth fixes authentication, not ownership.** With a token, `captions.download`
-still serves text only to the video's owner — any other account gets HTTP 403.
-No scope, consent screen, or setting changes that. So OAuth buys transcripts for
-your own channel and nothing else.
+Neither documented path reaches someone else's captions, which is what makes
+yt-dlp the primary one rather than a convenience:
 
-**The unofficial route is closed too.** The caption URLs embedded in the public
-watch page used to work. Today the watch page still loads (HTTP 200, ~1.2MB,
-`captionTracks` present with a `baseUrl`), but fetching that URL returns
-**HTTP 200 with a zero-byte body** — verified across `json3`, `srv3`, `vtt`, and
-bare XML, and regardless of User-Agent. YouTube gates it behind a
-proof-of-origin token bound to a real player session. An earlier version of this
-server was built on that route; it never worked and was removed.
+- `captions.download` gates on ownership, as above.
+- The timedtext URL embedded in the watch page answers **HTTP 200 with an empty
+  body** unless the request carries an *attested* proof-of-origin token. A
+  cold-start token is not sufficient.
+- InnerTube's `get_transcript` returns 400 `failedPrecondition` on the WEB
+  context, and the ANDROID/IOS/TV contexts now fail before reaching captions.
 
-For someone else's video, use a browser session — YouTube's own transcript panel
-is right there, and a browser is a real player session by definition.
+yt-dlp solves that challenge and tracks YouTube's changes upstream, which is the
+argument for shelling out to it instead of reimplementing BotGuard here.
+
+### What to expect
+
+- **It will break periodically.** When YouTube changes the challenge, the tool
+  fails until yt-dlp ships a fix. That is inherent to the approach rather than a
+  defect here — `source` says which path answered, so diagnosis is quick.
+- **It sits outside the Data API's terms.** Automated access to watch pages is
+  not what the API sanctions. For personal use against public captions that is a
+  terms question rather than a technical one, but it is worth knowing before
+  running this on someone else's behalf or in a shared deployment.
+- **A publisher's own track beats a machine translation.** Asking for `tr` on an
+  English video yields the English track rather than YouTube's translation of an
+  ASR transcript, since those error rates compound. `language` reports what
+  actually arrived, so a caller can see the substitution and translate
+  downstream with full context.
 
 ### Setting up OAuth
 
@@ -105,8 +122,9 @@ The scope is `youtube.force-ssl`; the read-only scope is not sufficient for
 caption download. If the consent screen is left in **Testing** mode, refresh
 tokens expire after 7 days — publish the app for a long-lived one.
 
-Without these variables the tool returns an error naming exactly which are
-missing, and the other eight tools are unaffected.
+Without these variables the transcript tool falls back to yt-dlp, and the other
+eight tools are unaffected. OAuth only matters when yt-dlp is unavailable and the
+video is your own.
 
 ## Tests
 
@@ -120,21 +138,24 @@ negative cases covering an unknown channel ID, a malformed video ID, and the
 transcript tool's behaviour with OAuth absent. All calls are read-only.
 
 ```bash
-npm run build && node test/srt.test.mjs
+npm run build
+node test/srt.test.mjs     # SRT/WebVTT parser
+node test/ytdlp.test.mjs   # json3 parser, both track kinds, from real fixtures
 ```
 
-Unit tests for the caption parser: SRT and WebVTT, multi-line cues, CRLF, cue
-settings, inline styling tags, NOTE blocks, and every degenerate input that must
-return no cues instead of throwing.
+The parsers carry the weight, so they are tested directly: the two caption
+formats do not share a shape, and an ASR track in particular pads with empty
+events and splits text at the word level.
 
-Current status: smoke 13/13, parser 14/14.
+Current status: smoke 13/13, all unit suites passing.
 
 **The OAuth download path is verified end to end**, against a channel owner's
 own video: `captions.list` resolved the track, `captions.download` returned SRT
-over OAuth, and the parser produced timestamped cues. It is not part of the
-automated suites, because it needs credentials for an account that owns a video
-and those cannot be provisioned in CI. Re-verify it manually after changing
-anything in `src/tools/transcript.ts` or `src/services/oauth.ts`.
+over OAuth, and the parser produced timestamped cues. Neither transcript path is
+in the automated suites — one needs credentials for an account that owns a video,
+the other needs yt-dlp and network access to YouTube. Re-verify both by hand
+after touching `src/tools/transcript.ts`, `src/services/oauth.ts`, or
+`src/services/ytdlp.ts`.
 
 ## Design notes
 
