@@ -139,13 +139,18 @@ transcript tool's behaviour with OAuth absent. All calls are read-only.
 
 ```bash
 npm run build
-node test/srt.test.mjs     # SRT/WebVTT parser
-node test/ytdlp.test.mjs   # json3 parser, both track kinds, from real fixtures
+node test/srt.test.mjs        # SRT/WebVTT parser
+node test/ytdlp.test.mjs     # json3 parser, both track kinds, from real fixtures
+node test/video-row.test.mjs # id extraction across all three endpoint shapes
 ```
 
 The parsers carry the weight, so they are tested directly: the two caption
 formats do not share a shape, and an ASR track in particular pads with empty
 events and splits text at the word level.
+
+`video-row` exists because a video's id lives somewhere different on each
+endpoint, and getting the precedence wrong produced rows that looked valid while
+every URL in them was dead.
 
 Current status: smoke 13/13, all unit suites passing.
 
