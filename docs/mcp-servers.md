@@ -6,7 +6,8 @@ Bu repo iki MCP sunucusu içerir. İkisi de TypeScript, stdio üzerinden çalı�
 | Sunucu | Durum | Kaynak |
 |---|---|---|
 | `youtube` | Canlı API'ye karşı test edildi (smoke 13/13, ayrıştırıcı 14/14, OAuth transcript elle doğrulandı) | `mcp-servers/youtube-mcp-server/` |
-| `instagram` | Okuma araçları canlı hesapta doğrulandı; yazma araçları kasten denenmedi | `mcp-servers/instagram-mcp-server/` |
+| `instagram` | Okuma araçları canlı hesapta doğrulandı; story yayınlama da | `mcp-servers/instagram-mcp-server/` |
+| `instagram-alt` | Aynı sunucu, ikinci hesap için ayrı kimlik bilgileriyle | `mcp-servers/instagram-mcp-server/` |
 
 Her sunucunun kendi README'si var ve asıl ayrıntı orada — bu sayfa kurulumu
 anlatır.
@@ -102,6 +103,22 @@ export INSTAGRAM_ACCOUNT_ID="17841..."   # instagram_get_account ile bulunur
 
 Hesap ID'sini bilmiyorsan `instagram_get_account` aracını `account_id="me"` ile
 çağır; ID'yi döndürür.
+
+### İkinci hesap
+
+Aynı derleme, ayrı kimlik bilgileriyle ikinci bir sunucu olarak çalışır — kodda
+çoklu hesap desteğine gerek yok, çünkü araçlar sunucu adıyla ayrışıyor
+(`instagram` / `instagram-alt`). İkinci hesap için:
+
+```bash
+export INSTAGRAM_ALT_ACCESS_TOKEN="..."
+export INSTAGRAM_ALT_ACCOUNT_ID="..."
+```
+
+Token'ı almak için `authorize.mjs` akışını **gizli sekmede** çalıştır ve o hesapla
+giriş yap; normal sekmede tarayıcı mevcut oturumu kullanır ve yanlış hesabı
+yetkilendirir. Script çıktısındaki `account:` satırı hangi hesabın bağlandığını
+söylüyor — devam etmeden önce ona bak.
 
 **Okuma araçlarının tamamı canlı bir Instagram professional hesabına karşı
 doğrulandı:** hesap profili, medya listesi (cursor sayfalama, carousel/reel
