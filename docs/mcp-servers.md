@@ -121,7 +121,7 @@ export INSTAGRAM_FIZIK_ACCESS_TOKEN="..."
 export INSTAGRAM_FIZIK_ACCOUNT_ID="..."
 ```
 
-Her sunucu dokuz araç kaydettiği için üç hesap 27 Instagram aracı demek. Aktif
+Her sunucu on araç kaydettiği için üç hesap 30 Instagram aracı demek. Aktif
 kullanmadığın bir hesabı `.mcp.json`'dan geçici olarak çıkarmak oturumdaki araç
 listesini kısaltır.
 
@@ -133,12 +133,22 @@ söylüyor — devam etmeden önce ona bak.
 **Okuma araçlarının tamamı canlı bir Instagram professional hesabına karşı
 doğrulandı:** hesap profili, medya listesi (cursor sayfalama, carousel/reel
 ayrımı), tekil gönderi, post ve hesap insights, yayınlama limiti, yorumlar.
-Protokol katmanı ayrıca 25/25 geçiyor.
+Protokol katmanı ayrıca 30/30 geçiyor.
 
 `instagram_publish_post` **görsel story için doğrulandı** — container, durum
 kontrolü, yayınlama ve permalink zinciri canlı hesapta çalıştı. Video/reel'in
 gerektirdiği asenkron transcode beklemesi ve feed gönderileri henüz denenmedi.
 Not: feed 4:5–1.91:1 en-boy aralığı istiyor, story bu kısıtı uygulamıyor.
+
+`instagram_publish_carousel` 2–10 görseli tek kaydırmalı gönderi yapıyor:
+her görsel için `is_carousel_item` container'ı, sonra çocukları listeleyen
+`CAROUSEL` container'ı, sonra yayınlama. Item container'ları **tek tek** ve
+sırayla oluşuyor, böylece hata hangi görselden geldiğini söylüyor.
+**Graph API'ye karşı doğrulanmadı** — uçlar Meta'nın dokümanından, istemci ve
+hata eşlemesi doğrulanmış tek görsel yoluyla paylaşımlı, ama carousel uçları
+hiç çalıştırılmadı. İlk gerçek denemede en olası hata **PNG**: Instagram
+yalnızca JPEG kabul ediyor ve container `ERROR` durumuna düşerken biçimden hiç
+söz etmiyor. `render.mjs --jpeg` bunun için var.
 
 `instagram_reply_to_comment` **doğrulanmadı** — ve bilerek. Test etmek gerçek bir
 insanın yorumunun altına canlı hesapta herkese açık bir yanıt yazmak demek.
@@ -154,7 +164,8 @@ anında veriyi döndürüyor. Bunu bulmak en pahalı adım oldu.
 Insights metrik başlıkları hesabın diline göre yerelleştirilmiş geliyor —
 `name` sabit, `title`/`description` değil.
 
-**İki araç herkese açık ve geri alınamaz yazma yapar:** `instagram_publish_post`
+**Üç araç herkese açık ve geri alınamaz yazma yapar:** `instagram_publish_post`,
+`instagram_publish_carousel`
 ve `instagram_reply_to_comment`. Çağrı başarılı olduğu anda içerik canlı hesapta
 görünür ve bu sunucu onu silemez.
 

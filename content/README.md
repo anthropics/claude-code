@@ -7,7 +7,15 @@ her sayfa (`.slide`) bir kare. `render.mjs` sayfaları tek tek PNG'ye çeviriyor
 node render.mjs trakyafizik/nobel-2025.html      # -> out/nobel-2025-01.png ...
 node render.mjs mindsetblunt/reel-covers.html
 node render.mjs trakyafizik/nobel-2025.html --scale 2   # 2x çözünürlük
+node render.mjs trakyafizik/nobel-2025.html --jpeg      # -> .jpg
 ```
+
+`--jpeg` yalnızca API ile paylaşım için gerekiyor: Instagram Graph API
+görsellerde **yalnızca JPEG** kabul ediyor, PNG'yi reddediyor ve reddederken
+biçimden hiç söz etmiyor — container `ERROR` durumuna düşüyor, o kadar.
+Uygulamadan elle paylaşırken PNG sorun değil. Kalite 92; Instagram zaten
+yeniden sıkıştırıyor, daha yükseği dosyayı büyütüp görünür bir şey
+kazandırmıyor, daha düşüğü koyu zeminlerde bantlanma yapıyor.
 
 Tek gereksinim playwright:
 

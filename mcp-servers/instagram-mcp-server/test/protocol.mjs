@@ -32,6 +32,7 @@ const EXPECTED_TOOLS = [
   "instagram_get_publishing_limit",
   "instagram_list_comments",
   "instagram_list_media",
+  "instagram_publish_carousel",
   "instagram_publish_post",
   "instagram_reply_to_comment",
 ];
@@ -115,7 +116,11 @@ async function main() {
     );
   }
 
-  const writeTools = ["instagram_publish_post", "instagram_reply_to_comment"];
+  const writeTools = [
+    "instagram_publish_post",
+    "instagram_publish_carousel",
+    "instagram_reply_to_comment",
+  ];
   for (const tool of tools) {
     const expectReadOnly = !writeTools.includes(tool.name);
     assert(
@@ -186,6 +191,48 @@ async function main() {
     "publish with both image and video is rejected locally",
     bothMedia.result?.isError === true && bothText.includes("exactly one"),
     bothText.slice(0, 120),
+  );
+
+  // A one-image carousel is not a carousel. Caught by the schema, so no
+  // credentials and no network are involved.
+  const oneItem = await send("tools/call", {
+    name: "instagram_publish_carousel",
+    arguments: { image_urls: ["https://example.com/a.jpg"] },
+  });
+  assert(
+    "carousel with one image is rejected locally",
+    Boolean(oneItem.error) || oneItem.result?.isError === true,
+    JSON.stringify(oneItem).slice(0, 120),
+  );
+
+  // Instagram's ceiling is 10; the schema holds the line rather than letting the
+  // API reject it after the first containers have already been created.
+  const tooMany = await send("tools/call", {
+    name: "instagram_publish_carousel",
+    arguments: {
+      image_urls: Array.from({ length: 11 }, (_, i) => `https://example.com/${i}.jpg`),
+    },
+  });
+  assert(
+    "carousel with eleven images is rejected locally",
+    Boolean(tooMany.error) || tooMany.result?.isError === true,
+    JSON.stringify(tooMany).slice(0, 120),
+  );
+
+  // The single-image tool must now point at the carousel tool rather than
+  // saying carousels are unimplemented.
+  const bothAgain = await send("tools/call", {
+    name: "instagram_publish_post",
+    arguments: {
+      image_url: "https://example.com/a.jpg",
+      video_url: "https://example.com/a.mp4",
+    },
+  });
+  const bothAgainText = bothAgain.result?.content?.[0]?.text ?? "";
+  assert(
+    "publish_post points at instagram_publish_carousel for multiple images",
+    bothAgainText.includes("instagram_publish_carousel"),
+    bothAgainText.slice(0, 140),
   );
 
   const failures = results.filter((entry) => !entry.ok);

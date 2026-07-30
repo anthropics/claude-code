@@ -19,6 +19,7 @@ professional accounts. Speaks stdio.
 | `instagram_get_publishing_limit` | quota usage |
 | `instagram_list_comments` | text, author, likes, timestamps, IDs |
 | `instagram_publish_post` | image story published to a live account |
+| `instagram_publish_carousel` | **not verified** — schema and local paths only |
 
 One practical constraint found the hard way: **feed posts require an aspect
 ratio between 4:5 and 1.91:1**, and a 784×1168 image (0.67) is outside it.
@@ -32,14 +33,36 @@ run, and still unverified: the asynchronous transcode polling that video and
 reel containers need (an image container is `FINISHED` immediately), and feed
 posts, which impose an aspect-ratio range stories do not.
 
+`instagram_publish_carousel` implements Instagram's three-step album flow: one
+container per image flagged `is_carousel_item`, then a `CAROUSEL` container
+listing those children and carrying the caption, then `media_publish`. Item
+containers are created **one at a time**, so a failure can name which image
+caused it — with five URLs, "item 3 of 5" is worth more than five simultaneous
+errors in arbitrary order.
+
+**It has not been run against the Graph API.** The endpoints and parameter
+names come from Meta's documentation, and it shares the client, container
+polling, and error mapping with the verified single-image path — but the
+carousel endpoints themselves are unexercised. Two things to expect on the
+first real run:
+
+- **JPEG only.** Instagram rejects PNG, and most render pipelines emit PNG by
+  default. This is the likeliest first failure, and it surfaces as a container
+  ending in `ERROR` rather than as anything mentioning the format.
+- **Every URL must be publicly fetchable by Meta's servers**, not merely by
+  your browser. A host that blocks unknown user agents fails here while looking
+  fine in a tab.
+
 `instagram_reply_to_comment` is the one tool never called. Testing it means
 posting a public reply under a real person's comment on a live account, which
 is not something to do to tick a box. It shares the verified client and error
 handling with everything else; only the endpoint itself is unexercised.
 
-`node test/protocol.mjs` (25/25) covers what needs no credentials: tool
+`node test/protocol.mjs` (30/30) covers what needs no credentials: tool
 registration, annotation correctness, schema validation, and every local
-pre-flight error path. It deliberately does not talk to the Graph API.
+pre-flight error path — including a one-image carousel and an eleven-image one,
+both rejected before any container is created. It deliberately does not talk to
+the Graph API.
 
 Two observations from live use worth knowing:
 
@@ -195,17 +218,20 @@ and the token. The default is the Instagram Login path.
 | `instagram_list_media` | | Published posts, newest first, cursor-paginated |
 | `instagram_get_media` | | One post in full, including carousel children |
 | `instagram_publish_post` | **yes** | Publish an image, video, reel, or story |
+| `instagram_publish_carousel` | **yes** | Publish 2-10 images as one swipeable post |
 | `instagram_list_comments` | | Comments on a post |
 | `instagram_reply_to_comment` | **yes** | Public reply to a comment |
 | `instagram_get_media_insights` | | Per-post metrics |
 | `instagram_get_account_insights` | | Account metrics over a period |
 
-### The two write tools publish publicly and immediately
+### The three write tools publish publicly and immediately
 
-`instagram_publish_post` and `instagram_reply_to_comment` produce content that
-is visible to everyone the moment the call succeeds, and neither can undo it.
-Both say so in their tool descriptions so an agent reading the schema sees the
-warning. Confirm exact wording and media with the user before calling either.
+`instagram_publish_post`, `instagram_publish_carousel`, and
+`instagram_reply_to_comment` produce content that is visible to everyone the
+moment the call succeeds, and none of them can undo it. All three say so in
+their tool descriptions so an agent reading the schema sees the warning. Confirm
+exact wording, media, and — for a carousel — the order of the images with the
+user before calling.
 
 ## Limits Meta enforces
 

@@ -7,6 +7,11 @@
 //
 //   node render.mjs nobel-2025.html            # -> out/nobel-2025-01.png, -02, ...
 //   node render.mjs nobel-2025.html --out dist
+//   node render.mjs nobel-2025.html --jpeg     # -> .jpg, Instagram API için şart
+//
+// --jpeg neden var: Instagram Graph API görsellerde yalnızca JPEG kabul ediyor,
+// PNG'yi reddediyor. Uygulamadan elle paylaşırken PNG sorun değil, API ile
+// paylaşırken tek çalışan biçim JPEG.
 //
 // Tarayıcı: playwright'ın kendi Chromium'u varsa o, yoksa sistemde kurulu
 // Chrome. İkincisi sayesinde 140MB'lık indirme zorunlu değil.
@@ -78,7 +83,7 @@ async function launchBrowser() {
 const args = process.argv.slice(2);
 const input = args.find((a) => !a.startsWith("--"));
 if (!input) {
-  console.error("usage: node render.mjs <file.html> [--out DIR] [--scale N]");
+  console.error("usage: node render.mjs <file.html> [--out DIR] [--scale N] [--jpeg]");
   process.exit(1);
 }
 
@@ -86,15 +91,19 @@ const outFlag = args.indexOf("--out");
 const outDir = resolve(outFlag === -1 ? "out" : args[outFlag + 1]);
 const scaleFlag = args.indexOf("--scale");
 const scale = scaleFlag === -1 ? 1 : Number(args[scaleFlag + 1]);
+const jpeg = args.includes("--jpeg");
+const ext = jpeg ? "jpg" : "png";
 
 const file = resolve(input);
 const stem = basename(file, extname(file));
 
 await mkdir(outDir, { recursive: true });
 // Clear this file's previous output only, so rendering one deck does not wipe
-// another's PNGs out of the same directory.
+// another's output out of the same directory. Both extensions are cleared, so
+// switching between --jpeg and PNG does not leave a stale set behind that could
+// be picked up and published by mistake.
 for (const name of await readdir(outDir)) {
-  if (name.startsWith(`${stem}-`) && name.endsWith(".png")) {
+  if (name.startsWith(`${stem}-`) && (name.endsWith(".png") || name.endsWith(".jpg"))) {
     await rm(join(outDir, name));
   }
 }
@@ -166,8 +175,11 @@ for (const [index, slide] of slides.entries()) {
   // a viewport smaller than the element still works, but lazy/viewport-relative
   // CSS resolves against the viewport, so matching them keeps vh units honest.
   await page.setViewportSize({ width: box.w, height: box.h });
-  const path = join(outDir, `${stem}-${String(index + 1).padStart(2, "0")}.png`);
-  await slide.screenshot({ path });
+  const path = join(outDir, `${stem}-${String(index + 1).padStart(2, "0")}.${ext}`);
+  // quality 92: Instagram yeniden sıkıştırıyor, daha yükseği dosyayı büyütüp
+  // görünür bir şey kazandırmıyor; daha düşüğü koyu zeminlerdeki yumuşak
+  // geçişlerde bantlanma yapıyor.
+  await slide.screenshot(jpeg ? { path, type: "jpeg", quality: 92 } : { path });
   written.push(`${basename(path)}  ${box.w}x${box.h}${scale === 1 ? "" : ` @${scale}x`}`);
 }
 

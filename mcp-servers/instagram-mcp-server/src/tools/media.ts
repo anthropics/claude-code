@@ -361,7 +361,8 @@ Error Handling:
         }
         if (params.image_url && params.video_url) {
           return errorResult(
-            "Error: Provide exactly one of image_url or video_url. To publish several items as a carousel, that requires a separate carousel flow this tool does not implement.",
+            "Error: Provide exactly one of image_url or video_url. To publish several images as one " +
+              "swipeable post, use instagram_publish_carousel.",
           );
         }
 
@@ -409,6 +410,170 @@ Error Handling:
           (p) =>
             [
               "# Published",
+              "",
+              `- **Media ID**: ${p.media_id}`,
+              `- **Container ID**: ${p.container_id}`,
+              ...(p.permalink ? [`- ${p.permalink}`] : []),
+            ].join("\n"),
+          params.response_format,
+        );
+      } catch (error) {
+        return errorResult(describeError(error));
+      }
+    },
+  );
+
+  server.registerTool(
+    "instagram_publish_carousel",
+    {
+      title: "Publish Instagram Carousel",
+      description: `Publish 2-10 images as one swipeable feed post. THIS POSTS PUBLICLY AND IMMEDIATELY — the post appears on the live account as soon as the call succeeds, and this tool cannot delete it afterwards. Confirm every image URL, their order, and the caption with the user before calling.
+
+Three-step flow, per Instagram's carousel API:
+  1. One container per image, each flagged is_carousel_item
+  2. One CAROUSEL container listing those children, carrying the caption
+  3. Publish the carousel container
+
+Item containers are created in order, one at a time, so a failure names which image caused it. Containers already created stay valid for 24 hours, so a retry does not have to redo the successful ones — but this tool does not resume; it starts over.
+
+Requirements Instagram enforces:
+  - 2-10 items. One image is not a carousel; use instagram_publish_post
+  - Every image must be JPEG on a publicly reachable HTTPS URL. PNG is rejected — this is the most common failure, since most render pipelines emit PNG by default
+  - The caption belongs to the carousel, not to the items; per-image captions do not exist
+  - Counts as ONE post against the 100-per-24-hours limit, however many items it has
+
+Args:
+  - image_urls (string[]): 2-10 public HTTPS URLs of JPEGs, in the order they should appear
+  - caption (string): Post caption, up to 2200 characters
+  - account_id (string): Numeric account ID (defaults to INSTAGRAM_ACCOUNT_ID)
+  - response_format ('markdown' | 'json'): Output format (default: 'markdown')
+
+Returns JSON of shape:
+  {
+    "published": true,
+    "media_id": string,           // ID of the live post
+    "container_id": string,       // The carousel container
+    "item_container_ids": string[],
+    "item_count": number,
+    "permalink": string           // Public URL, when the API returns it
+  }
+
+Examples:
+  - "Post these five slides as a carousel" -> image_urls=["https://...01.jpg", ...], caption="..."
+  - Don't use when: there is one image (use instagram_publish_post), or the files are PNG (convert first)
+
+Error Handling:
+  - "Item 3 of 5 failed" names the offending URL; the usual causes are PNG data, a 404, or a host that blocks Instagram's fetcher
+  - Container ERROR on the carousel step after all items succeeded usually means one URL became unreachable mid-flow
+  - "The publishing limit is exhausted" when 100 posts have been published in 24 hours`,
+      inputSchema: {
+        image_urls: z
+          .array(z.string().url("each entry of image_urls must be an absolute URL"))
+          .min(2, "a carousel needs at least 2 images; use instagram_publish_post for one")
+          .max(10, "Instagram allows at most 10 items in a carousel")
+          .describe("Public HTTPS URLs of JPEG images, in display order"),
+        caption: z
+          .string()
+          .max(2200, "Instagram captions are capped at 2200 characters")
+          .optional()
+          .describe("Caption for the carousel as a whole"),
+        account_id: z.string().optional().describe("Numeric account ID; defaults to INSTAGRAM_ACCOUNT_ID"),
+        response_format: responseFormatParam,
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: true,
+      },
+    },
+    async (params) => {
+      try {
+        const accountId = params.account_id ?? requireAccountId();
+        const itemIds: string[] = [];
+
+        // Sequential on purpose. Parallel would be faster, but when one of five
+        // URLs is wrong the useful output is "item 3 failed", not five
+        // simultaneous errors with no ordering.
+        for (const [index, url] of params.image_urls.entries()) {
+          const position = `Item ${index + 1} of ${params.image_urls.length}`;
+          let itemId: string | undefined;
+
+          try {
+            const item = await graphPost<{ id?: string }>(`${accountId}/media`, {
+              image_url: url,
+              is_carousel_item: true,
+            });
+            itemId = item.id;
+          } catch (error) {
+            return errorResult(
+              `Error: ${position} could not be prepared (${url}). ${describeError(error).replace(/^Error: /, "")}`,
+            );
+          }
+
+          if (!itemId) {
+            return errorResult(
+              `Error: ${position} was accepted but the Graph API returned no container ID (${url}).`,
+            );
+          }
+
+          try {
+            await awaitContainer(itemId);
+          } catch (error) {
+            return errorResult(
+              `Error: ${position} failed while processing (${url}). ${describeError(error).replace(/^Error: /, "")} ` +
+                "Instagram rejects PNG — confirm the file is really JPEG, not a PNG with a .jpg name.",
+            );
+          }
+
+          itemIds.push(itemId);
+        }
+
+        const carousel = await graphPost<{ id?: string }>(`${accountId}/media`, {
+          media_type: "CAROUSEL",
+          children: itemIds.join(","),
+          caption: params.caption,
+        });
+
+        const containerId = carousel.id;
+        if (!containerId) {
+          return errorResult(
+            "Error: All items were prepared but the Graph API returned no carousel container ID. " +
+              `The item containers (${itemIds.join(", ")}) stay valid for 24 hours.`,
+          );
+        }
+
+        await awaitContainer(containerId);
+
+        const published = await graphPost<{ id?: string }>(`${accountId}/media_publish`, {
+          creation_id: containerId,
+        });
+
+        const mediaId = published.id ?? "";
+        let permalink = "";
+        if (mediaId) {
+          try {
+            const media = await graphGet<MediaObject>(mediaId, { fields: "permalink" });
+            permalink = media.permalink ?? "";
+          } catch {
+            // The post is already live; a missing permalink is not worth failing over.
+          }
+        }
+
+        const payload = {
+          published: true,
+          media_id: mediaId,
+          container_id: containerId,
+          item_container_ids: itemIds,
+          item_count: itemIds.length,
+          ...(permalink ? { permalink } : {}),
+        };
+
+        return respond(
+          payload,
+          (p) =>
+            [
+              `# Published — carousel, ${p.item_count} items`,
               "",
               `- **Media ID**: ${p.media_id}`,
               `- **Container ID**: ${p.container_id}`,
