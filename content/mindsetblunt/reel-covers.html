@@ -1,0 +1,173 @@
+<meta charset="utf-8">
+<title>Reel kapakları — @mindsetblunt</title>
+<meta name="hz:slide-selector" content=".slide">
+<meta name="hz:canvas-width" content="1080">
+<meta name="hz:canvas-height" content="1920">
+
+<!--
+  @mindsetblunt — 5 Reel için kapak/hook karesi. 1080x1920 (9:16).
+
+      node ../render.mjs reel-covers.html
+
+  Bunlar Reel'in ilk karesi olarak kullanılır: videonun üstüne bindirilecek
+  hook metni. Kapak olarak da ayrı yüklenebilir.
+
+  GÜVENLİ ALAN: Instagram Reels arayüzü üstte ~120px, altta ~330px alanı
+  kaplıyor (beğeni sayıları, caption, ses adı). Metnin tamamı 200-1560px
+  arasında duruyor — o yüzden dikey ortalama yok, blok alta yakın sabit.
+
+  @trakyafizik'ten bilinçli olarak farklı: serif yok, altın yok, süs yok.
+  Sadece siyah zemin, kalın sans ve tek bir turuncu çizgi. İki hesap aynı
+  kişiye ait ama aynı görünmemeleri gerekiyor.
+-->
+
+<style>
+  :root {
+    --black: #0C0C0D;
+    --white: #F2F0EC;
+    --dim: rgba(242, 240, 236, 0.5);
+    --hot: #FF5B29;
+    --sans: "DejaVu Sans", "Liberation Sans", Helvetica, Arial, sans-serif;
+    --pad: 96px;
+  }
+
+  body { margin: 0; background: #2a2a2a; }
+
+  .slide {
+    position: relative;
+    width: 1080px;
+    height: 1920px;
+    overflow: hidden;
+    background: var(--black);
+    color: var(--white);
+    font-family: var(--sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .slide + .slide { margin-top: 40px; }
+
+  /* Alttan yukarı çok hafif bir aydınlanma — düz siyah kare video üstünde
+     yavan duruyor, bu onu bir çekim karesine yaklaştırıyor. */
+  .slide::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(140% 80% at 50% 108%, rgba(255, 91, 41, 0.16) 0%, transparent 62%);
+  }
+
+  .plate { position: absolute; left: var(--pad); width: calc(1080px - 2 * var(--pad)); z-index: 2; }
+
+  /* Arkadaki büyük sayı: konuyu tek bakışta veriyor, okunması gerekmiyor. */
+  .ghost {
+    position: absolute;
+    left: 72px;
+    top: 560px;
+    font-size: 300px;
+    font-weight: bold;
+    line-height: 0.82;
+    letter-spacing: -0.04em;
+    color: rgba(242, 240, 236, 0.07);
+    z-index: 1;
+    white-space: nowrap;
+  }
+
+  .kicker {
+    font-size: 26px;
+    font-weight: bold;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--hot);
+  }
+
+  /* Hook bloğu alttan sabitli, üstten değil: satır sayısı karttan karta
+     değişiyor (4 ya da 5) ve üstten sabitlersen uzun olan @mindsetblunt
+     satırının üstüne biniyor. Alttan sabitleyince yukarı doğru büyüyor. */
+  .hookblock { bottom: 400px; }
+
+  .hook {
+    font-size: 92px;
+    font-weight: bold;
+    line-height: 1.07;
+    letter-spacing: -0.025em;
+    margin: 0;
+  }
+
+  .hook em { font-style: normal; color: var(--hot); }
+
+  .bar {
+    height: 6px;
+    width: 120px;
+    background: var(--hot);
+    border: 0;
+    margin: 0 0 40px;
+  }
+
+  .handle {
+    position: absolute;
+    left: var(--pad);
+    bottom: 296px;
+    font-size: 28px;
+    font-weight: bold;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--dim);
+    z-index: 2;
+  }
+</style>
+
+<!-- 1 — The whole workout -->
+<section class="slide" data-canvas-width="1080" data-canvas-height="1920">
+  <div class="ghost">45:00</div>
+  <div class="plate" style="top: 200px"><div class="kicker">Reel 01 · The whole workout</div></div>
+  <div class="plate hookblock">
+    <hr class="bar">
+    <p class="hook">I'm 44.<br>I have a<br>two-year-old.<br><em>This is the<br>entire workout.</em></p>
+  </div>
+  <div class="handle">@mindsetblunt</div>
+</section>
+
+<!-- 2 — What it costs -->
+<section class="slide" data-canvas-width="1080" data-canvas-height="1920">
+  <div class="ghost" style="font-size: 260px">TUE</div>
+  <div class="plate" style="top: 200px"><div class="kicker">Reel 02 · What it costs</div></div>
+  <div class="plate hookblock">
+    <hr class="bar">
+    <p class="hook">Discipline is<br>mostly boring.<br><em>Nobody<br>sells that.</em></p>
+  </div>
+  <div class="handle">@mindsetblunt</div>
+</section>
+
+<!-- 3 — 30 vs 44 -->
+<section class="slide" data-canvas-width="1080" data-canvas-height="1920">
+  <!-- Ghost boyutu karakter sayısına göre elle ayarlı: 300px yalnızca 5
+       karaktere kadar sığıyor, uzun olanlar sağdan taşıyor. -->
+  <div class="ghost" style="font-size: 225px">30→44</div>
+  <div class="plate" style="top: 200px"><div class="kicker">Reel 03 · Thirty versus forty-four</div></div>
+  <div class="plate hookblock">
+    <hr class="bar">
+    <p class="hook">At 30 I<br>trained hard.<br><em>At 44 I train<br>recovered.</em></p>
+  </div>
+  <div class="handle">@mindsetblunt</div>
+</section>
+
+<!-- 4 — He's watching -->
+<section class="slide" data-canvas-width="1080" data-canvas-height="1920">
+  <div class="ghost" style="font-size: 270px">2 YRS</div>
+  <div class="plate" style="top: 200px"><div class="kicker">Reel 04 · He's watching</div></div>
+  <div class="plate hookblock">
+    <hr class="bar">
+    <p class="hook">He doesn't listen<br>to a word I say.<br><em>He copies<br>everything I do.</em></p>
+  </div>
+  <div class="handle">@mindsetblunt</div>
+</section>
+
+<!-- 5 — HYROX baseline -->
+<section class="slide" data-canvas-width="1080" data-canvas-height="1920">
+  <div class="ghost" style="font-size: 196px">WEEK 1</div>
+  <div class="plate" style="top: 200px"><div class="kicker">Reel 05 · Baseline</div></div>
+  <div class="plate hookblock">
+    <hr class="bar">
+    <p class="hook">First HYROX<br>at 44.<br><em>Week one,<br>untrained.</em></p>
+  </div>
+  <div class="handle">@mindsetblunt</div>
+</section>

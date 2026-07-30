@@ -8,3 +8,9 @@
 mcp-servers/*/node_modules/
 mcp-servers/*/dist/
 
+# Rendered görseller HTML'den yeniden üretilebiliyor; kaynak HTML commit'li,
+# PNG'ler değil. Portreler ise başkasının telifi — repoya girmiyor.
+content/out/
+content/*/photos/*
+!content/*/photos/.gitkeep
+
