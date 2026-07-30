@@ -128,6 +128,22 @@ if (fontProblems.length) {
   console.error(`UYARI — font sorunu:\n  ${fontProblems.join("\n  ")}\n`);
 }
 
+// Eksik görsel de sessiz düşüyor: portre yuvası boş çerçeveye dönüyor, render
+// başarılı görünüyor ve kart yer tutucuyla paylaşılabiliyor. Fontla aynı sınıf.
+const missingImages = await page.evaluate(() =>
+  [...document.images]
+    .filter((img) => !img.complete || img.naturalWidth === 0)
+    .map((img) => img.getAttribute("src")),
+);
+
+if (missingImages.length) {
+  console.error(
+    `UYARI — ${missingImages.length} görsel yüklenmedi, yerine yer tutucu çizildi:\n` +
+      missingImages.map((src) => `  ${src}`).join("\n") +
+      "\n",
+  );
+}
+
 const selector =
   (await page.evaluate(
     () => document.querySelector('meta[name="hz:slide-selector"]')?.content,

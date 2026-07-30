@@ -95,15 +95,21 @@ trakyafizik/photos/martinis.jpg
 Dosya yoksa çerçeve baş harfleri gösteriyor — tasarım bozulmuyor. Fotoğrafları
 koyup yeniden render alınca kendiliğinden yerine oturuyorlar.
 
-İndirdiğin dosyaları isim tahmin etmeden yerleştirmek için:
+İndirdiğin dosyaları yerleştirmek için `indir.sh`, iki modu var:
 
 ```bash
-cd content/trakyafizik/photos && ./indir.sh        # ~/Downloads içinde arar
+cd content/trakyafizik/photos
+
+./indir.sh foto1.jpg foto2.jpg foto3.jpg   # sırayla clarke, devoret, martinis
+./indir.sh                                 # ~/Downloads ve ~/Desktop'ta ada göre arar
 ```
 
-Adında soyisim geçen görselleri bulup doğru isimle kopyalıyor, bulamadığını
-söylüyor. Uzantı önemli değil (`.png`, `.webp` de olur) — tarayıcı görsel
-türünü içerikten anlıyor.
+Birinci mod dosya adına hiç bakmıyor — `IMG_4821.jpg` gibi adlarda tek çalışan
+yol bu. İkinci mod dosya adında soyisim geçiyorsa işe yarıyor; bulamazsa
+klasördeki görselleri listeleyip birinci modu öneriyor.
+
+Uzantı önemli değil (`.png`, `.webp`, `.avif` de olur) — tarayıcı görsel türünü
+içerikten anlıyor, uzantı adından değil.
 
 Fotoğraflar bu depoya girmiyor (`.gitignore`), çünkü telifleri başkasına ait.
 Resmî portreler `nobelprize.org/prizes/physics/2025/<soyisim>/facts/`

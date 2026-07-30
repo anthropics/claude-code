@@ -201,12 +201,17 @@
 
   .person { width: 280px; }
 
+  /* box-sizing şart: content-box'ta 2px kenarlık dış ölçüyü 284'e çıkarıyor,
+     3x284 + 2x32 = 916 > 904 oluyor ve flex üçünü birden sıkıştırıyor.
+     Kenarlık opaklığı 0.6, çünkü 0.45 açık bir fotoğrafın üstünde kayboluyor —
+     boş çerçevenin koyu zemininde yeterliydi. */
   .frame {
     position: relative;
+    box-sizing: border-box;
     width: 280px;
     height: 340px;
     background: var(--ink-2);
-    border: 2px solid rgba(201, 162, 39, 0.45);
+    border: 2px solid rgba(201, 162, 39, 0.6);
     overflow: hidden;
   }
 
