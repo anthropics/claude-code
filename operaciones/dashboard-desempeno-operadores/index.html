@@ -1,0 +1,545 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GP · Desempeño de operadores de limpieza</title>
+<style>
+  /* ---- Paleta (dataviz reference instance) + chrome, tema claro/oscuro ---- */
+  :root {
+    color-scheme: light;
+    --plane:        #f9f9f7;
+    --surface:      #fcfcfb;
+    --ink:          #0b0b0b;
+    --ink-2:        #52514e;
+    --muted:        #898781;
+    --grid:         #e1e0d9;
+    --axis:         #c3c2b7;
+    --border:       rgba(11,11,11,0.10);
+    --good:         #0ca30c;
+    --warning:      #fab219;
+    --serious:      #ec835a;
+    --critical:     #d03b3b;
+    --good-text:    #006300;
+    /* categorical: 1 Alberto, 2 Emmanuel, 3 Meñito, 4 Juan Pablo */
+    --op-1: #2a78d6;  --op-2: #eb6834;  --op-3: #1baf7a;  --op-4: #eda100;
+    --shadow: 0 1px 2px rgba(11,11,11,.04), 0 4px 16px rgba(11,11,11,.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      color-scheme: dark;
+      --plane:#0d0d0d; --surface:#1a1a19; --ink:#fff; --ink-2:#c3c2b7;
+      --muted:#898781; --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,0.10);
+      --good-text:#0ca30c;
+      --op-1:#3987e5; --op-2:#d95926; --op-3:#199e70; --op-4:#c98500;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 4px 16px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --plane:#0d0d0d; --surface:#1a1a19; --ink:#fff; --ink-2:#c3c2b7;
+    --muted:#898781; --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,0.10);
+    --good-text:#0ca30c;
+    --op-1:#3987e5; --op-2:#d95926; --op-3:#199e70; --op-4:#c98500;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 4px 16px rgba(0,0,0,.35);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--plane); color: var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 15px; line-height: 1.45; -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1160px; margin: 0 auto; padding: 24px 20px 64px; }
+
+  header.top { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end;
+    justify-content: space-between; margin-bottom: 20px; }
+  header.top h1 { font-size: 22px; margin: 0 0 2px; letter-spacing: -0.01em; }
+  header.top p  { margin: 0; color: var(--ink-2); font-size: 13.5px; }
+  .src {
+    display: inline-flex; align-items: center; gap: 6px; font-size: 12px;
+    color: var(--ink-2); border: 1px solid var(--border); border-radius: 999px;
+    padding: 4px 11px; background: var(--surface); white-space: nowrap;
+  }
+  .src .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--warning); }
+  .src.live .dot { background: var(--good); }
+
+  /* ---- Filtros ---- */
+  .filters { display: flex; flex-wrap: wrap; gap: 18px; margin-bottom: 22px; }
+  .fgroup { display: flex; flex-direction: column; gap: 6px; }
+  .fgroup .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+  .chips { display: flex; gap: 6px; }
+  .chip {
+    font: inherit; font-size: 13px; cursor: pointer; border: 1px solid var(--border);
+    background: var(--surface); color: var(--ink-2); border-radius: 8px; padding: 6px 12px;
+    transition: .12s;
+  }
+  .chip:hover { border-color: var(--axis); }
+  .chip[aria-pressed="true"] { background: var(--ink); color: var(--plane); border-color: var(--ink); font-weight: 600; }
+
+  /* ---- KPI hero tiles ---- */
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 22px; }
+  .tile {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+    padding: 16px 16px 15px; box-shadow: var(--shadow); position: relative;
+  }
+  .tile .k { font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+  .tile .v { font-size: 32px; font-weight: 650; letter-spacing: -0.02em; margin: 6px 0 2px; line-height: 1; }
+  .tile .v small { font-size: 16px; font-weight: 600; color: var(--ink-2); }
+  .tile .sub { font-size: 12.5px; color: var(--ink-2); display: flex; align-items: center; gap: 8px; }
+  .delta { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .delta.up { color: var(--good-text); }
+  .delta.down { color: var(--critical); }
+  .delta.flat { color: var(--muted); }
+  .metabadge { font-size: 11px; padding: 2px 7px; border-radius: 999px; font-weight: 600; }
+  .metabadge.ok   { background: color-mix(in srgb, var(--good) 16%, transparent); color: var(--good-text); }
+  .metabadge.warn { background: color-mix(in srgb, var(--warning) 26%, transparent); color: var(--ink-2); }
+  .metabadge.bad  { background: color-mix(in srgb, var(--critical) 16%, transparent); color: var(--critical); }
+
+  /* ---- Cards / charts ---- */
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+    padding: 18px; box-shadow: var(--shadow); margin-bottom: 16px;
+  }
+  .card h2 { font-size: 14.5px; margin: 0 0 3px; }
+  .card .hint { font-size: 12px; color: var(--muted); margin: 0 0 14px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12.5px; color: var(--ink-2); margin-top: 12px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend i { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
+
+  svg { display: block; width: 100%; overflow: visible; }
+  .axislbl { fill: var(--muted); font-size: 11px; }
+  .vallbl  { fill: var(--ink); font-size: 11.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .gridline { stroke: var(--grid); stroke-width: 1; }
+  .baseline { stroke: var(--axis); stroke-width: 1; }
+  .metaline { stroke: var(--ink-2); stroke-width: 1.5; stroke-dasharray: 4 4; opacity: .8; }
+  .metatxt { fill: var(--ink-2); font-size: 10.5px; font-weight: 600; }
+
+  /* ---- Ranking table (vista de tabla accesible) ---- */
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th, td { text-align: right; padding: 9px 10px; border-bottom: 1px solid var(--border); font-variant-numeric: tabular-nums; }
+  th:first-child, td:first-child { text-align: left; }
+  th { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-weight: 600; border-bottom: 1px solid var(--axis); }
+  td.op { display: flex; align-items: center; gap: 9px; font-weight: 600; }
+  td.op i { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+  .pill { font-size: 11px; padding: 1px 8px; border-radius: 999px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .pill.ok   { background: color-mix(in srgb, var(--good) 16%, transparent); color: var(--good-text); }
+  .pill.warn { background: color-mix(in srgb, var(--warning) 26%, transparent); color: var(--ink-2); }
+  .pill.bad  { background: color-mix(in srgb, var(--critical) 16%, transparent); color: var(--critical); }
+  .tblwrap { overflow-x: auto; }
+
+  /* ---- Tooltip ---- */
+  .tt {
+    position: fixed; pointer-events: none; z-index: 50; opacity: 0; transition: opacity .1s;
+    background: var(--ink); color: var(--plane); font-size: 12px; padding: 8px 10px;
+    border-radius: 8px; box-shadow: var(--shadow); max-width: 240px; line-height: 1.4;
+  }
+  .tt b { font-weight: 700; }
+  .tt .muted { color: color-mix(in srgb, var(--plane) 55%, var(--ink)); }
+
+  .foot { margin-top: 26px; font-size: 12px; color: var(--muted); }
+  .foot code { background: var(--surface); border: 1px solid var(--border); padding: 1px 5px; border-radius: 5px; }
+  @media (max-width: 820px) {
+    .kpis { grid-template-columns: repeat(2, 1fr); }
+    .grid2 { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div>
+      <h1>Desempeño de operadores de limpieza</h1>
+      <p>Grupo Portátil · Monterrey &amp; Querétaro — puntualidad, servicios completados y calidad de ejecución</p>
+    </div>
+    <div id="srcBadge" class="src"><span class="dot"></span><span id="srcTxt">Datos demo</span></div>
+  </header>
+
+  <div class="filters">
+    <div class="fgroup">
+      <span class="lbl">Plaza</span>
+      <div class="chips" id="fPlaza">
+        <button class="chip" data-v="Todas" aria-pressed="true">Todas</button>
+        <button class="chip" data-v="MTY" aria-pressed="false">Monterrey</button>
+        <button class="chip" data-v="QRO" aria-pressed="false">Querétaro</button>
+      </div>
+    </div>
+    <div class="fgroup">
+      <span class="lbl">Periodo</span>
+      <div class="chips" id="fPeriodo">
+        <button class="chip" data-v="1" aria-pressed="false">Última semana</button>
+        <button class="chip" data-v="4" aria-pressed="true">Últimas 4 semanas</button>
+        <button class="chip" data-v="0" aria-pressed="false">Todo (8 sem)</button>
+      </div>
+    </div>
+  </div>
+
+  <section class="kpis" id="kpis"></section>
+
+  <div class="card">
+    <h2>Ranking del periodo</h2>
+    <p class="hint">Ordenado por servicios completados. Metas GP: puntualidad ≥ 90%, calidad ≥ 85.</p>
+    <div class="tblwrap"><table id="ranking">
+      <thead><tr>
+        <th>Operador</th><th>Plaza</th><th>Servicios</th><th>Realizados</th>
+        <th>Puntualidad</th><th>Calidad</th><th>Calif. cliente</th><th>Retrabajos</th>
+      </tr></thead>
+      <tbody></tbody>
+    </table></div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h2>Servicios completados</h2>
+      <p class="hint">Total del periodo por operador.</p>
+      <div id="chartServicios"></div>
+    </div>
+    <div class="card">
+      <h2>Puntualidad</h2>
+      <p class="hint">% de servicios dentro de tolerancia (15 min). Línea = meta 90%.</p>
+      <div id="chartPuntualidad"></div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h2>Calidad de ejecución</h2>
+      <p class="hint">Score 0-100: 50% checklist · 30% calif. cliente · 20% sin retrabajo. Línea = meta 85.</p>
+      <div id="chartCalidad"></div>
+    </div>
+    <div class="card">
+      <h2>Tendencia semanal</h2>
+      <p class="hint">Servicios completados por semana.</p>
+      <div id="chartTrend"></div>
+      <div class="legend" id="trendLegend"></div>
+    </div>
+  </div>
+
+  <p class="foot">
+    Fuente: vista <code>vista_desempeno_operadores</code> (Supabase). Configura <code>SUPABASE_URL</code>
+    y <code>SUPABASE_ANON_KEY</code> en <code>index.html</code> para datos en vivo; sin ellas se muestran
+    datos demo. Refresco automático vía n8n — ver <code>automatizacion/n8n-flujo.md</code>.
+  </p>
+</div>
+
+<div class="tt" id="tt"></div>
+
+<script>
+/* ==========================================================================
+ * CONFIGURACIÓN — pega credenciales de Supabase para datos en vivo.
+ * (La anon key es pública/segura para el navegador si la vista tiene RLS.)
+ * ========================================================================== */
+const SUPABASE_URL      = "";   // ej: "https://xxxx.supabase.co"
+const SUPABASE_ANON_KEY = "";   // anon/publishable key
+const VIEW              = "vista_desempeno_operadores";
+
+/* Metadatos de operadores (color categórico fijo: el color sigue a la entidad) */
+const OPS = {
+  "Alberto":    { plaza: "MTY", color: "var(--op-1)" },
+  "Emmanuel":   { plaza: "MTY", color: "var(--op-2)" },
+  "Meñito":     { plaza: "MTY", color: "var(--op-3)" },
+  "Juan Pablo": { plaza: "QRO", color: "var(--op-4)" },
+};
+const META = { puntualidad: 90, calidad: 85, realizados: 95 };
+
+/* ==========================================================================
+ * DATOS DEMO — misma forma que devuelve la vista de Supabase.
+ * tupla: [operador, plaza, semana, inicio, prog, comp, nr, atiempo, checkin,
+ *         ck_ok, ck_tot, calif, retr, inc, min]
+ * ========================================================================== */
+const T = [
+  ["Alberto","MTY","2026-W24","2026-06-08",40,38,2,34,38,438,456,4.5,2,1,29],
+  ["Alberto","MTY","2026-W25","2026-06-15",41,39,2,35,39,450,468,4.5,1,1,28],
+  ["Alberto","MTY","2026-W26","2026-06-22",42,40,2,37,40,465,480,4.6,1,1,28],
+  ["Alberto","MTY","2026-W27","2026-06-29",44,43,1,40,43,500,516,4.7,1,0,27],
+  ["Alberto","MTY","2026-W28","2026-07-06",40,39,1,37,39,455,468,4.6,0,1,29],
+  ["Alberto","MTY","2026-W29","2026-07-13",46,45,1,43,45,525,540,4.8,1,0,26],
+  ["Alberto","MTY","2026-W30","2026-07-20",45,44,1,41,44,510,528,4.7,0,1,28],
+  ["Alberto","MTY","2026-W31","2026-07-27",43,42,1,40,42,492,504,4.7,1,0,27],
+
+  ["Emmanuel","MTY","2026-W24","2026-06-08",27,26,1,22,26,306,312,4.7,1,1,35],
+  ["Emmanuel","MTY","2026-W25","2026-06-15",26,25,1,22,25,296,300,4.7,0,1,34],
+  ["Emmanuel","MTY","2026-W26","2026-06-22",28,27,1,24,27,320,324,4.8,0,1,34],
+  ["Emmanuel","MTY","2026-W27","2026-06-29",26,26,0,24,26,308,312,4.9,0,0,33],
+  ["Emmanuel","MTY","2026-W28","2026-07-06",30,29,1,25,29,344,348,4.7,1,1,35],
+  ["Emmanuel","MTY","2026-W29","2026-07-13",27,27,0,25,27,322,324,4.8,0,0,32],
+  ["Emmanuel","MTY","2026-W30","2026-07-20",29,28,1,25,28,330,336,4.8,0,1,34],
+  ["Emmanuel","MTY","2026-W31","2026-07-27",28,28,0,26,28,334,336,4.9,0,0,33],
+
+  ["Meñito","MTY","2026-W24","2026-06-08",44,40,4,31,40,448,480,4.2,4,3,23],
+  ["Meñito","MTY","2026-W25","2026-06-15",46,42,4,33,42,470,504,4.2,3,2,22],
+  ["Meñito","MTY","2026-W26","2026-06-22",46,43,3,35,43,486,516,4.3,3,2,22],
+  ["Meñito","MTY","2026-W27","2026-06-29",48,45,3,37,45,510,540,4.4,2,1,21],
+  ["Meñito","MTY","2026-W28","2026-07-06",44,42,2,36,42,478,504,4.3,3,2,23],
+  ["Meñito","MTY","2026-W29","2026-07-13",47,44,3,38,44,500,528,4.5,2,1,22],
+  ["Meñito","MTY","2026-W30","2026-07-20",49,46,3,39,46,520,552,4.4,3,2,21],
+  ["Meñito","MTY","2026-W31","2026-07-27",45,43,2,37,43,490,516,4.4,2,1,22],
+
+  ["Juan Pablo","QRO","2026-W24","2026-06-08",23,22,1,19,22,254,264,4.4,1,1,31],
+  ["Juan Pablo","QRO","2026-W25","2026-06-15",24,23,1,20,23,264,276,4.5,1,1,30],
+  ["Juan Pablo","QRO","2026-W26","2026-06-22",24,23,1,21,23,268,276,4.5,1,1,30],
+  ["Juan Pablo","QRO","2026-W27","2026-06-29",26,25,1,23,25,292,300,4.6,1,0,29],
+  ["Juan Pablo","QRO","2026-W28","2026-07-06",22,22,0,20,22,258,264,4.6,0,1,31],
+  ["Juan Pablo","QRO","2026-W29","2026-07-13",25,24,1,22,24,282,288,4.7,1,0,30],
+  ["Juan Pablo","QRO","2026-W30","2026-07-20",26,25,1,23,25,294,300,4.6,0,1,29],
+  ["Juan Pablo","QRO","2026-W31","2026-07-27",24,24,0,22,24,284,288,4.7,1,0,30],
+];
+const COLS = ["operador","plaza","semana","semana_inicio","servicios_programados",
+  "servicios_completados","servicios_no_realizados","servicios_a_tiempo","servicios_con_checkin",
+  "checklist_ok","checklist_total","calif_cliente_prom","retrabajos","incidencias","minutos_prom"];
+const DEMO = T.map(t => Object.fromEntries(COLS.map((c,i)=>[c,t[i]])));
+
+/* ========================================================================== */
+let ROWS = [];
+let state = { plaza: "Todas", periodo: "4" };
+const $ = s => document.querySelector(s);
+const tt = $("#tt");
+
+async function load() {
+  if (SUPABASE_URL && SUPABASE_ANON_KEY) {
+    try {
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/${VIEW}?select=*`, {
+        headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` }
+      });
+      if (!r.ok) throw new Error(r.status);
+      ROWS = await r.json();
+      $("#srcBadge").classList.add("live");
+      $("#srcTxt").textContent = "Supabase · en vivo";
+    } catch (e) {
+      ROWS = DEMO;
+      $("#srcTxt").textContent = "Datos demo (sin conexión)";
+    }
+  } else {
+    ROWS = DEMO;
+  }
+  wireFilters();
+  render();
+}
+
+function wireFilters() {
+  $("#fPlaza").addEventListener("click", e => {
+    const b = e.target.closest(".chip"); if (!b) return;
+    state.plaza = b.dataset.v; setPressed("#fPlaza", b); render();
+  });
+  $("#fPeriodo").addEventListener("click", e => {
+    const b = e.target.closest(".chip"); if (!b) return;
+    state.periodo = b.dataset.v; setPressed("#fPeriodo", b); render();
+  });
+}
+function setPressed(sel, btn) {
+  document.querySelectorAll(`${sel} .chip`).forEach(c => c.setAttribute("aria-pressed", c === btn));
+}
+
+/* ---- selección de semanas y ventana previa (para deltas) ---- */
+function weeksAsc() { return [...new Set(ROWS.map(r => r.semana))].sort(); }
+function windowWeeks(n) {
+  const w = weeksAsc();
+  if (n === 0) return { cur: w, prev: [] };
+  const cur = w.slice(-n);
+  const prev = w.slice(-2 * n, -n);
+  return { cur, prev: prev.length === n ? prev : [] };
+}
+
+function filterRows(weeks) {
+  return ROWS.filter(r =>
+    weeks.includes(r.semana) &&
+    (state.plaza === "Todas" || r.plaza === state.plaza));
+}
+
+/* ---- agregación de KPIs a partir de sumas crudas (no promedia %) ---- */
+function agg(rows) {
+  const s = (k) => rows.reduce((a, r) => a + (+r[k] || 0), 0);
+  const comp = s("servicios_completados"), prog = s("servicios_programados");
+  const aTiempo = s("servicios_a_tiempo"), checkin = s("servicios_con_checkin");
+  const ckOk = s("checklist_ok"), ckTot = s("checklist_total"), retr = s("retrabajos");
+  const califW = rows.reduce((a, r) => a + (+r.calif_cliente_prom || 0) * (+r.servicios_completados || 0), 0);
+  const calif = comp ? califW / comp : 0;
+  const checklistPct = ckTot ? 100 * ckOk / ckTot : 0;
+  const puntualidad = checkin ? 100 * aTiempo / checkin : 0;
+  const calidad = 0.5 * checklistPct + 0.3 * (calif / 5 * 100) + 0.2 * (100 - (comp ? 100 * retr / comp : 0));
+  const realizados = prog ? 100 * comp / prog : 0;
+  return { comp, prog, puntualidad, calidad, realizados, calif, retr, incid: s("incidencias") };
+}
+
+function byOperator(weeks) {
+  return Object.keys(OPS)
+    .map(op => ({ op, ...agg(filterRows(weeks).filter(r => r.operador === op)),
+                  plaza: OPS[op].plaza, color: OPS[op].color }))
+    .filter(o => (state.plaza === "Todas" || o.plaza === state.plaza) && o.prog > 0)
+    .sort((a, b) => b.comp - a.comp);
+}
+
+/* ---- render principal ---- */
+function render() {
+  const { cur, prev } = windowWeeks(+state.periodo);
+  const now = agg(filterRows(cur));
+  const before = prev.length ? agg(filterRows(prev)) : null;
+  renderKpis(now, before);
+
+  const ops = byOperator(cur);
+  renderRanking(ops);
+  barChart("#chartServicios", ops.map(o => ({ label: o.op, value: Math.round(o.comp), color: o.color })), { unit: "" });
+  barChart("#chartPuntualidad", ops.map(o => ({ label: o.op, value: +o.puntualidad.toFixed(1), color: o.color })),
+    { unit: "%", max: 100, meta: META.puntualidad, metaLabel: "Meta 90%" });
+  barChart("#chartCalidad", ops.map(o => ({ label: o.op, value: +o.calidad.toFixed(1), color: o.color })),
+    { unit: "", max: 100, meta: META.calidad, metaLabel: "Meta 85" });
+  trendChart(cur);
+}
+
+function statusClass(val, meta, warnBand = 5) {
+  if (val >= meta) return "ok";
+  if (val >= meta - warnBand) return "warn";
+  return "bad";
+}
+
+function renderKpis(n, b) {
+  const delta = (cur, prev, digits = 1) => {
+    if (b == null || prev == null || !isFinite(prev) || prev === 0) return `<span class="delta flat">—</span>`;
+    const d = cur - prev; const cls = d > 0.05 ? "up" : d < -0.05 ? "down" : "flat";
+    const arrow = d > 0.05 ? "▲" : d < -0.05 ? "▼" : "▬";
+    return `<span class="delta ${cls}">${arrow} ${Math.abs(d).toFixed(digits)}</span>`;
+  };
+  const tiles = [
+    { k: "Servicios completados", v: Math.round(n.comp), suf: "",
+      sub: `${delta(n.comp, b?.comp, 0)} vs. periodo previo` },
+    { k: "Puntualidad promedio", v: n.puntualidad.toFixed(1), suf: "%",
+      badge: statusClass(n.puntualidad, META.puntualidad),
+      sub: `${delta(n.puntualidad, b?.puntualidad)} pts · meta ${META.puntualidad}%` },
+    { k: "Calidad de ejecución", v: n.calidad.toFixed(1), suf: "",
+      badge: statusClass(n.calidad, META.calidad),
+      sub: `${delta(n.calidad, b?.calidad)} pts · meta ${META.calidad}` },
+    { k: "Servicios realizados", v: n.realizados.toFixed(1), suf: "%",
+      badge: statusClass(n.realizados, META.realizados),
+      sub: `${delta(n.realizados, b?.realizados)} pts · ${Math.round(n.comp)}/${Math.round(n.prog)}` },
+  ];
+  $("#kpis").innerHTML = tiles.map(t => {
+    const badge = t.badge ? `<span class="metabadge ${t.badge === "ok" ? "ok" : t.badge === "warn" ? "warn" : "bad"}">${t.badge === "ok" ? "En meta" : t.badge === "warn" ? "Cerca" : "Bajo meta"}</span>` : "";
+    return `<div class="tile">
+      <div class="k">${t.k}</div>
+      <div class="v">${t.v}<small>${t.suf}</small></div>
+      <div class="sub">${t.sub}${badge ? " " + badge : ""}</div>
+    </div>`;
+  }).join("");
+}
+
+function renderRanking(ops) {
+  const pill = (v, meta, unit = "", digits = 1) => {
+    const c = statusClass(v, meta);
+    return `<span class="pill ${c}">${v.toFixed(digits)}${unit}</span>`;
+  };
+  $("#ranking tbody").innerHTML = ops.map(o => `
+    <tr>
+      <td class="op"><i style="background:${o.color}"></i>${o.op}</td>
+      <td>${o.plaza}</td>
+      <td>${Math.round(o.comp)}</td>
+      <td>${o.realizados.toFixed(0)}%</td>
+      <td>${pill(o.puntualidad, META.puntualidad, "%")}</td>
+      <td>${pill(o.calidad, META.calidad)}</td>
+      <td>${o.calif.toFixed(2)}</td>
+      <td>${o.retr}</td>
+    </tr>`).join("");
+}
+
+/* ================= Charts (SVG, con hover) ================= */
+function showTT(html, ev) {
+  tt.innerHTML = html; tt.style.opacity = 1;
+  const pad = 14, w = tt.offsetWidth, h = tt.offsetHeight;
+  let x = ev.clientX + pad, y = ev.clientY + pad;
+  if (x + w > innerWidth) x = ev.clientX - w - pad;
+  if (y + h > innerHeight) y = ev.clientY - h - pad;
+  tt.style.left = x + "px"; tt.style.top = y + "px";
+}
+function hideTT() { tt.style.opacity = 0; }
+
+function barChart(sel, data, opts = {}) {
+  const el = $(sel); if (!data.length) { el.innerHTML = ""; return; }
+  const W = 520, H = 230, mL = 46, mR = 14, mT = 12, mB = 40;
+  const iw = W - mL - mR, ih = H - mT - mB;
+  const max = opts.max || Math.max(...data.map(d => d.value)) * 1.15 || 1;
+  const y = v => mT + ih - (v / max) * ih;
+  const bw = Math.min(70, iw / data.length * 0.6);
+  const step = iw / data.length;
+  const ticks = 4;
+  let g = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Gráfica de barras">`;
+  for (let i = 0; i <= ticks; i++) {
+    const val = max * i / ticks, yy = y(val);
+    g += `<line class="gridline" x1="${mL}" y1="${yy}" x2="${W - mR}" y2="${yy}"/>`;
+    g += `<text class="axislbl" x="${mL - 8}" y="${yy + 4}" text-anchor="end">${Math.round(val)}${opts.unit || ""}</text>`;
+  }
+  data.forEach((d, i) => {
+    const cx = mL + step * i + step / 2, x = cx - bw / 2, yy = y(d.value), bh = mT + ih - yy;
+    g += `<rect x="${x}" y="${yy}" width="${bw}" height="${Math.max(0, bh)}" rx="4" fill="${d.color || 'var(--op-1)'}"
+             tabindex="0" style="cursor:pointer"
+             data-tt="<b>${d.label}</b><br>${d.value}${opts.unit || ''}"/>`;
+    g += `<text class="vallbl" x="${cx}" y="${yy - 6}" text-anchor="middle">${d.value}${opts.unit || ""}</text>`;
+    g += `<text class="axislbl" x="${cx}" y="${H - mB + 18}" text-anchor="middle">${d.label}</text>`;
+  });
+  if (opts.meta != null) {
+    const my = y(opts.meta);
+    g += `<line class="metaline" x1="${mL}" y1="${my}" x2="${W - mR}" y2="${my}"/>`;
+    g += `<text class="metatxt" x="${mL + 6}" y="${my - 5}" text-anchor="start">${opts.metaLabel || ''}</text>`;
+  }
+  g += `<line class="baseline" x1="${mL}" y1="${mT + ih}" x2="${W - mR}" y2="${mT + ih}"/></svg>`;
+  el.innerHTML = g;
+  el.querySelectorAll("rect[data-tt]").forEach(r => {
+    r.addEventListener("mousemove", e => showTT(r.dataset.tt, e));
+    r.addEventListener("mouseleave", hideTT);
+    r.addEventListener("focus", e => { const b = r.getBoundingClientRect(); showTT(r.dataset.tt, { clientX: b.left + b.width / 2, clientY: b.top }); });
+    r.addEventListener("blur", hideTT);
+  });
+}
+
+function trendChart(weeks) {
+  const el = $("#chartTrend");
+  const wk = weeks.slice();
+  const series = Object.keys(OPS)
+    .filter(op => state.plaza === "Todas" || OPS[op].plaza === state.plaza)
+    .map(op => ({
+      op, color: OPS[op].color,
+      pts: wk.map(w => {
+        const r = ROWS.find(x => x.operador === op && x.semana === w);
+        return r ? +r.servicios_completados : 0;
+      })
+    }));
+  if (!wk.length || !series.length) { el.innerHTML = ""; $("#trendLegend").innerHTML = ""; return; }
+  const W = 520, H = 230, mL = 40, mR = 16, mT = 12, mB = 40;
+  const iw = W - mL - mR, ih = H - mT - mB;
+  const max = Math.max(1, ...series.flatMap(s => s.pts)) * 1.12;
+  const x = i => mL + (wk.length === 1 ? iw / 2 : iw * i / (wk.length - 1));
+  const y = v => mT + ih - (v / max) * ih;
+  const ticks = 4;
+  let g = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Tendencia semanal">`;
+  for (let i = 0; i <= ticks; i++) {
+    const val = max * i / ticks, yy = y(val);
+    g += `<line class="gridline" x1="${mL}" y1="${yy}" x2="${W - mR}" y2="${yy}"/>`;
+    g += `<text class="axislbl" x="${mL - 8}" y="${yy + 4}" text-anchor="end">${Math.round(val)}</text>`;
+  }
+  wk.forEach((w, i) => {
+    g += `<text class="axislbl" x="${x(i)}" y="${H - mB + 18}" text-anchor="middle">${w.replace('2026-', '')}</text>`;
+  });
+  series.forEach(s => {
+    const dpath = s.pts.map((v, i) => `${i ? "L" : "M"}${x(i)},${y(v)}`).join(" ");
+    g += `<path d="${dpath}" fill="none" stroke="${s.color}" stroke-width="2" stroke-linejoin="round"/>`;
+    s.pts.forEach((v, i) => {
+      g += `<circle cx="${x(i)}" cy="${y(v)}" r="4" fill="${s.color}" stroke="var(--surface)" stroke-width="2"
+               tabindex="0" style="cursor:pointer" data-tt="<b>${s.op}</b> · ${wk[i].replace('2026-', '')}<br>${v} servicios"/>`;
+    });
+  });
+  g += `<line class="baseline" x1="${mL}" y1="${mT + ih}" x2="${W - mR}" y2="${mT + ih}"/></svg>`;
+  el.innerHTML = g;
+  el.querySelectorAll("circle[data-tt]").forEach(c => {
+    c.addEventListener("mousemove", e => showTT(c.dataset.tt, e));
+    c.addEventListener("mouseleave", hideTT);
+    c.addEventListener("focus", e => { const b = c.getBoundingClientRect(); showTT(c.dataset.tt, { clientX: b.left, clientY: b.top }); });
+    c.addEventListener("blur", hideTT);
+  });
+  $("#trendLegend").innerHTML = series.map(s =>
+    `<span><i style="background:${s.color}"></i>${s.op}</span>`).join("");
+}
+
+load();
+</script>
+</body>
+</html>
