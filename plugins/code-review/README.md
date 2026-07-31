@@ -26,11 +26,12 @@ Performs automated code review on a pull request using multiple specialized agen
 
 **Usage:**
 ```bash
-/code-review [--comment]
+/code-review [--comment] [--threshold <n>]
 ```
 
 **Options:**
 - `--comment`: Post the review as a comment on the pull request (default: outputs to terminal only)
+- `--threshold <n>`: Only ship issues with a confidence score of `<n>` or higher (default: `80`). `<n>` is an integer from 0 to 100.
 
 **Example workflow:**
 ```bash
@@ -42,8 +43,8 @@ Performs automated code review on a pull request using multiple specialized agen
 
 # Claude will:
 # - Launch 4 review agents in parallel
-# - Score each issue for confidence
-# - Output issues ≥80 confidence (to terminal or PR depending on flag)
+# - Score each issue for confidence (0-100)
+# - Output issues ≥ threshold (default 80, to terminal or PR depending on flag)
 # - Skip if no high-confidence issues found
 ```
 
@@ -76,11 +77,18 @@ https://github.com/owner/repo/blob/abc123.../src/utils.ts#L23-L28
 ```
 
 **Confidence scoring:**
-- **0**: Not confident, false positive
-- **25**: Somewhat confident, might be real
-- **50**: Moderately confident, real but minor
-- **75**: Highly confident, real and important
-- **100**: Absolutely certain, definitely real
+
+Each validated issue is scored 0–100 by a subagent that verifies the issue against the actual code/diff. The score reflects the issue's severity, backed by concrete evidence the subagent personally checked.
+
+| Score | Meaning | Example |
+|--------|---------|---------|
+| 0 | False positive / not real | "variable is not defined" → actually is imported |
+| 25 | Real but trivial or out of scope | Style nit a senior engineer would not flag |
+| 50 | Real, minor — would not block merge | Missing test for a small change |
+| 75 | Real, important — should fix before merge | Missing error handling on a non-critical path |
+| 100 | Absolutely certain, definite bug / violation | Syntax error; `==` vs `=` in a condition; CLAUDE.md rule quoted verbatim and unambiguously broken |
+
+Only issues with `verdict: real` **and** a score at or above the threshold are shipped.
 
 **False positives filtered:**
 - Pre-existing issues not introduced in PR
@@ -213,12 +221,17 @@ https://github.com/owner/repo/blob/[full-sha]/path/file.ext#L[start]-L[end]
 
 ### Adjusting confidence threshold
 
-The default threshold is 80. To adjust, modify the command file at `commands/code-review.md`:
-```markdown
-Filter out any issues with a score less than 80.
+The default threshold is 80. To adjust, pass `--threshold <n>`:
+
+```bash
+# Only ship definite bugs/violations
+/code-review --threshold 100
+
+# Ship all real issues (no severity floor)
+/code-review --threshold 0
 ```
 
-Change `80` to your preferred threshold (0-100).
+`<n>` must be an integer from 0 to 100. Values outside that range are rejected before the review runs.
 
 ### Customizing review focus
 
