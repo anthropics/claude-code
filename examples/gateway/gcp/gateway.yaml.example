@@ -1,0 +1,156 @@
+# gateway.yaml.example — Claude Gateway config template, GCP-shaped (walkthrough §6).
+#
+# Google Workspace IdP + Agent Platform (formerly Vertex AI) upstream, following
+# the walkthrough at https://code.claude.com/docs/en/claude-apps-gateway-on-gcp.
+# The active sections
+# below are a strict subset of the full configuration reference at
+# https://code.claude.com/docs/en/claude-apps-gateway; optional keys are included
+# commented-out.
+#
+# USAGE — this is the shippable TEMPLATE. Copy it to gateway.yaml and fill it in:
+#     cp gateway.yaml.example gateway.yaml
+#   setup.sh and terraform/ read gateway.yaml (your filled-in copy, which is
+#   gitignored). It is published as the Secret Manager secret `gateway-config`
+#   (§6) and mounted at /etc/claude/gateway.yaml — the container ENTRYPOINT runs
+#   `claude gateway --config /etc/claude/gateway.yaml`.
+#
+# Secret expansion: ${ENV_VAR} reads an env var; ${file:/path} reads a mounted file.
+# On Cloud Run, setup.sh injects the JWT / OIDC / Postgres secrets as ENV VARS
+# (Cloud Run can't mount multiple secrets into a single directory), and mounts
+# only gateway.yaml itself as a file at /etc/claude. On GKE you may use file mounts.
+#
+# BEFORE DEPLOY — replace every REPLACE_ME placeholder below (setup.sh refuses to
+# publish the config secret while any remain), and create the referenced secrets:
+#   gateway-jwt-secret           (setup.sh generates this)
+#   gateway-oidc-client-secret   (from the Google Cloud Console OAuth client)
+#   gateway-postgres-url         (setup.sh generates this)
+
+# ── Listener ─────────────────────────────────────────────────────────────────
+listen:
+  host: 0.0.0.0
+  port: 8080                      # Cloud Run sets PORT=8080; leave as-is
+  # Required. Fixes the IdP redirect_uri, the OIDC discovery doc, and the
+  # gateway-token issuer so none are derived from the client-controlled Host
+  # header (X-Forwarded-Host/-Proto are likewise never trusted). On Cloud Run
+  # the run.app URL is only assigned on the first deploy, so this starts as a
+  # placeholder for the provisioning-only first pass (login does NOT work until
+  # the real URL is set). After the first deploy, setup.sh prints the run.app
+  # URL: set it here (or your LB hostname) and re-run; setup.sh republishes the
+  # config and redeploys. Register the same host's /oauth/callback on the
+  # Google OAuth client.
+  public_url: https://set-after-first-deploy.invalid
+  # Register this exact redirect URI on the Google OAuth client:
+  #   https://<public_url host>/oauth/callback
+  #
+  # On Cloud Run (or behind any L7 LB) every request arrives via Google's front
+  # end, so the gateway sees one peer IP for all developers — set trusted_proxies
+  # so X-Forwarded-For from those proxies is trusted and per-IP rate limiting /
+  # audit IPs record the real client. 169.254.0.0/16 is Cloud Run's fixed
+  # link-local serving range; the proxy-only subnet is the one your internal ALB
+  # uses in this VPC.
+  # trusted_proxies:
+  #   - 169.254.0.0/16              # Cloud Run serving proxy (link-local peer)
+  #   - <proxy-only-subnet-cidr>    # add if fronted by your internal ALB (its proxy-only subnet)
+  #
+  # Alternative — terminate TLS in the gateway itself instead of at a proxy:
+  # tls:
+  #   cert: /certs/gateway.crt
+  #   key:  /certs/gateway.key
+
+# ── Identity provider — Google Workspace ─────────────────────────────────────
+oidc:
+  issuer: https://accounts.google.com
+  client_id: REPLACE_ME                              # Google OAuth client ID (not secret; from Cloud Console)
+  client_secret: ${OIDC_CLIENT_SECRET}
+  allowed_email_domains: [REPLACE_ME]                # e.g. [example.com] — reject id_tokens outside your org
+  # Google ignores the default offline_access scope; these two are what actually
+  # yield refresh tokens (silent renewal + the deprovision leash) from Google.
+  scopes: [openid, profile, email]
+  extra_auth_params: { access_type: offline, prompt: consent }
+  # NOTE: Google id_tokens carry NO groups claim. For group-based RBAC with
+  # Google as IdP, set `google_groups` (below) and the gateway fetches each
+  # user's Workspace groups at login via the Admin SDK Directory API.
+  # Otherwise, use email_domain matching (see managed.policies below).
+  # google_groups:
+  #   service_account_json_path: /secrets/google-sa.json  # SA with domain-wide delegation on admin.directory.group.readonly
+  #   admin_email: admin@example.com                       # a Workspace admin the SA impersonates
+  # groups_claim: groups          # Okta=groups, Entra app roles=roles — NOT Google
+  # ca_cert_pem: ${file:/secrets/idp-ca.pem}   # only for an IdP behind a private CA
+
+# ── Sessions ─────────────────────────────────────────────────────────────────
+session:
+  jwt_secret: ${GATEWAY_JWT_SECRET}   # >= 32 bytes; openssl rand -base64 32
+  # Google issues refresh tokens (above), so sessions renew silently and this
+  # mainly bounds deprovision latency. 8 is a sane default; lower toward 1 for
+  # tighter revocation. Array form rotates keys: [new, old] (index 0 signs, all verify).
+  ttl_hours: 8
+
+# ── Store (REQUIRED — the gateway refuses to boot without it) ─────────────────
+store:
+  postgres_url: ${GATEWAY_POSTGRES_URL}   # private-IP Cloud SQL; built with ?sslmode=require by setup.sh
+
+# ── Upstreams — Agent Platform ───────────────────────────────────────────────
+upstreams:
+  - provider: vertex
+    region: us-east5              # a region where the Claude models you need are published in Model Garden
+    project_id: REPLACE_ME        # your GCP project ID for Agent Platform access
+    auth: {}                      # ADC via Cloud Run SA / GKE Workload Identity (preferred — no static keys)
+    # base_url: https://us-east5-aiplatform.p.googleapis.com   # Private Service Connect endpoint
+  # Add more upstreams for failover (tried top→bottom on 5xx/timeout/501): a
+  # second region, or an anthropic/bedrock fallback. See
+  # https://code.claude.com/docs/en/claude-apps-gateway.
+
+# ── Telemetry fan-out (OPTIONAL) ─────────────────────────────────────────────
+# The CLI sends OTLP/HTTP to the gateway; the gateway fans out, stamping
+# user.id/user.email/user.groups server-side. On GCP, point at an OpenTelemetry
+# Collector with the googlecloud exporter (-> Cloud Trace / Managed Prometheus).
+# Takes effect after the second pass (once public_url is the real URL, not the
+# placeholder): when forward_to and public_url are both configured the gateway pushes
+# CLAUDE_CODE_ENABLE_TELEMETRY and the OTEL exporter selectors to every client
+# automatically — no per-developer config needed.
+# telemetry:
+#   forward_to:
+#     - url: https://otel-collector.internal.example.com:4318
+#       headers:
+#         Authorization: ${file:/secrets/otlp-token}
+#       metrics: true     # safe aggregate counters (default)
+#       logs: false       # carries bash commands / tool inputs — opt in deliberately
+#       traces: false
+
+# ── RBAC + managed settings (OPTIONAL; first-match-wins, top -> bottom) ───────
+# With Google as IdP, match on email_domain, or on group email addresses
+# (e.g. eng@example.com) once oidc.google_groups is configured above.
+# managed:
+#   policies:
+#     - match: { email_domain: example.com }
+#       cli:
+#         availableModels: [claude-opus-4-8, claude-sonnet-4-6, claude-haiku-4-5]
+#         permissions: { deny: ["Read(./.env)", "Read(./secrets/**)"] }
+#     - match: {}        # catch-all floor — keep LAST
+#       cli:
+#         availableModels: [claude-sonnet-4-6, claude-haiku-4-5]
+
+# ── Admin API (OPTIONAL — enables db-mode runtime config + spend caps) ───────
+# admin_groups needs a groups claim — with Google as IdP, set
+# oidc.google_groups (above) so Workspace group email addresses populate the
+# claim, or use the bootstrap keys below instead. Named keys for
+# attribution in the audit log; 32-char minimum on key values. On Cloud Run add
+# these as env vars to --set-secrets (or terraform env value_source blocks),
+# same as the JWT/OIDC/Postgres secrets above; on GKE you may use ${file:...}.
+# admin:
+#   write_keys:
+#     - id: terraform
+#       key: ${GATEWAY_ADMIN_WRITE_KEY}
+#   read_keys:
+#     - id: reporting
+#       key: ${GATEWAY_ADMIN_READ_KEY}
+#   # admin_groups: [platform-finops@example.com]   # group emails via oidc.google_groups, or any groups-capable IdP
+
+# ── Model catalog (OPTIONAL) ─────────────────────────────────────────────────
+# Default true: every built-in Claude model is exposed and auto-translated per
+# upstream. Set false + a models: list to pin IDs (e.g. provisioned throughput).
+# auto_include_builtin_models: true
+# models:
+#   - id: claude-opus-4-8
+#     label: Claude Opus 4.8
+#     upstream_model: { vertex: claude-opus-4-8 }

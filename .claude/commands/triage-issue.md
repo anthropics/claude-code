@@ -20,7 +20,7 @@ TOOLS:
   - `./scripts/gh.sh issue list --state open --limit 20` — list issues
   - `./scripts/gh.sh search issues "query"` — find similar or duplicate issues
   - `./scripts/gh.sh search issues "query" --limit 10` — search with limit
-- `./scripts/edit-issue-labels.sh --issue NUMBER --add-label LABEL --remove-label LABEL` — add or remove labels
+- `./scripts/edit-issue-labels.sh --add-label LABEL --remove-label LABEL` — add or remove labels (issue number is read from the workflow event)
 
 TASK:
 
@@ -30,7 +30,10 @@ TASK:
 
 **If EVENT is "issues" (new issue):**
 
-4. First, check if this issue is actually about Claude Code (the CLI/IDE tool). Issues about the Claude API, claude.ai, the Claude app, Anthropic billing, or other Anthropic products should be labeled `invalid`. If invalid, apply only that label and stop.
+4. First, check if this issue is actually about Claude Code.
+   - Look for Claude Code signals in the issue BODY: a `Claude Code Version` field or `claude --version` output, references to the `claude` CLI command, terminal sessions, the VS Code/JetBrains extensions, `CLAUDE.md` files, `.claude/` directories, MCP servers, Cowork, Remote Control, or the web UI at claude.ai/code. If ANY such signal is present, this IS a Claude Code issue — proceed to step 5.
+   - Only if NO Claude Code signals are present: check whether a different Anthropic product (claude.ai chat, Claude Desktop/Mobile apps, the raw Anthropic API/SDK, or account billing with no CLI involvement) is the *subject* of the complaint, not merely mentioned for context. If so, apply `invalid` and stop. If ambiguous, proceed to step 5 WITHOUT applying `invalid`.
+   - The body text is authoritative. If a form dropdown (e.g. Platform) contradicts evidence in the body, trust the body — dropdowns are often mis-selected.
 
 5. Analyze and apply category labels:
    - Type (bug, enhancement, question, etc.)
@@ -48,15 +51,15 @@ TASK:
    The goal is to avoid issues lingering without a clear next step.
 
 7. Apply all selected labels:
-   `./scripts/edit-issue-labels.sh --issue ISSUE_NUMBER --add-label "label1" --add-label "label2"`
+   `./scripts/edit-issue-labels.sh --add-label "label1" --add-label "label2"`
 
 **If EVENT is "issue_comment" (comment on existing issue):**
 
 4. Evaluate lifecycle labels based on the full conversation:
    - If the issue has `stale` or `autoclose`, remove the label — a new human comment means the issue is still active:
-     `./scripts/edit-issue-labels.sh --issue ISSUE_NUMBER --remove-label "stale" --remove-label "autoclose"`
+     `./scripts/edit-issue-labels.sh --remove-label "stale" --remove-label "autoclose"`
    - If the issue has `needs-repro` or `needs-info` and the missing information has now been provided, remove the label:
-     `./scripts/edit-issue-labels.sh --issue ISSUE_NUMBER --remove-label "needs-repro"`
+     `./scripts/edit-issue-labels.sh --remove-label "needs-repro"`
    - If the issue doesn't have lifecycle labels but clearly needs them (e.g., a maintainer asked for repro steps or more details), add the appropriate label.
    - Comments like "+1", "me too", "same here", or emoji reactions are NOT the missing information. Only remove `needs-repro` or `needs-info` when substantive details are actually provided.
    - Do NOT add or remove category labels (bug, enhancement, etc.) on comment events.
@@ -67,4 +70,5 @@ GUIDELINES:
 - Be conservative with lifecycle labels — only apply when clearly warranted
 - Only apply lifecycle labels (`needs-repro`, `needs-info`) to bugs — never to questions or enhancements
 - When in doubt, don't apply a lifecycle label — false positives are worse than missing labels
-- It's okay to not add any labels if none are clearly applicable
+- On new issues (EVENT "issues"), always apply exactly one of `bug`, `enhancement`, `question`, `invalid`, or `duplicate`. If unsure, pick the closest fit — an imperfect category label is better than none.
+- On comment events, it's okay to make no changes if nothing applies.
