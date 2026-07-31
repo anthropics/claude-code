@@ -1,0 +1,12 @@
+# Local, environment-specific config — copy gateway.yaml.example -> gateway.yaml
+# (gateway.yaml.example IS committed; your filled-in gateway.yaml is not)
+gateway.yaml
+
+# Secrets / credentials — never commit
+secrets/
+client_secret_*.json
+*.pem
+
+# Release binary and pinned version — setup.sh downloads/writes these per release
+claude
+.claude-version
