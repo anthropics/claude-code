@@ -60,7 +60,7 @@ Note: Still review Claude generated PR's.
 
    Each subagent must verify the issue against the actual code/diff and return a result with this structure:
    - `verdict`: `real` or `false_positive`
-   - `score`: an integer 0–100 (only meaningful when `verdict` is `real`)
+   - `score`: one of `0`, `25`, `50`, `75`, `100` (set to `0` when `verdict` is `false_positive`; otherwise pick the closest rubric bucket below)
    - `evidence`: a concrete description of what the subagent checked to verify the issue (e.g. "confirmed `userApi` is not imported in this file or any parent scope")
    - `rule_citation`: for CLAUDE.md issues, the quoted rule text and the scoped CLAUDE.md file path; `null` for non-CLAUDE.md issues
 
