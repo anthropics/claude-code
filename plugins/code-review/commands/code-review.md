@@ -79,7 +79,7 @@ Note: Still review Claude generated PR's.
 6. Filter the issues: keep only those where `verdict` is `real` **and** `score` is greater than or equal to the `--threshold` value (default `80`). This is the final list of high-signal issues for the review.
 
 7. Output a summary of the review findings to the terminal:
-   - If issues were found, list each issue with a brief description and its score in parentheses, e.g. `1. Missing error handling for OAuth callback (score 90)`.
+   - If issues were found, list each issue with a brief description and its score in parentheses, e.g. `1. `==` used instead of `===` in a condition (score 100)`.
    - If no issues were found, state: "No issues found. Checked for bugs and CLAUDE.md compliance."
 
    If `--comment` argument was NOT provided, stop here. Do not post any GitHub comments.
