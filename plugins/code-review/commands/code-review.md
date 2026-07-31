@@ -9,6 +9,10 @@ Provide a code review for the given pull request.
 - All tools are functional and will work without error. Do not test tools or make exploratory calls. Make sure this is clear to every subagent that is launched.
 - Only call a tool if it is required to complete the task. Every tool call should have a clear purpose.
 
+**Arguments:**
+- `--comment`: Post the review as a comment on the pull request (default: outputs to terminal only).
+- `--threshold <n>`: Only ship issues with a confidence score of `n` or higher (default: `80`). `<n>` must be an integer from 0 to 100. If `--threshold` is given with a value below 0, above 100, or non-integer, stop immediately and print: `Invalid --threshold value. Must be an integer between 0 and 100.` Do not run the review.
+
 To do this, follow these steps precisely:
 
 1. Launch a haiku agent to check if any of the following are true:
