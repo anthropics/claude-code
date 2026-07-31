@@ -43,7 +43,7 @@ Performs automated code review on a pull request using multiple specialized agen
 
 # Claude will:
 # - Launch 4 review agents in parallel
-# - Score each issue for confidence (0-100)
+# - Score each issue for confidence (0/25/50/75/100)
 # - Output issues ≥ threshold (default 80, to terminal or PR depending on flag)
 # - Skip if no high-confidence issues found
 ```
@@ -78,7 +78,7 @@ https://github.com/owner/repo/blob/abc123.../src/utils.ts#L23-L28
 
 **Confidence scoring:**
 
-Each validated issue is scored 0–100 by a subagent that verifies the issue against the actual code/diff. The score reflects the issue's severity, backed by concrete evidence the subagent personally checked.
+Each validated issue is assigned one of five scores — 0, 25, 50, 75, or 100 — by a subagent that verifies the issue against the actual code/diff. The score reflects how real and how severe the issue is, backed by concrete evidence the subagent personally checked.
 
 | Score | Meaning | Example |
 |--------|---------|---------|
