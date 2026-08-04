@@ -1,0 +1,16 @@
+{
+  "description": "Verifies file edits applied correctly by checking the new content exists in the file after an Edit operation",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/post_edit_verify.py"
+          }
+        ],
+        "matcher": "Edit"
+      }
+    ]
+  }
+}
