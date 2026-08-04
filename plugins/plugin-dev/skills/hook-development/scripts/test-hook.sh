@@ -187,7 +187,7 @@ echo ""
 start_time=$(date +%s)
 
 set +e
-output=$(timeout "$TIMEOUT" bash -c "cat '$TEST_INPUT' | $HOOK_SCRIPT" 2>&1)
+output=$(timeout "$TIMEOUT" bash -c "$HOOK_SCRIPT" < "$TEST_INPUT" 2>&1)
 exit_code=$?
 set -e
 
