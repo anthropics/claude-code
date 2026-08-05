@@ -1048,11 +1048,18 @@ def _agentic_spawn_env() -> Dict[str, str]:
     if os.environ.get("ANTHROPIC_API_KEY"):
         # API key present → blank the OAuth token so API-key auth wins.
         env["ANTHROPIC_AUTH_TOKEN"] = ""
-        return env
-    # No API key — forward the OAuth token from the parent process so the
-    # SDK grandchild has credentials. Empty string is fine (the SDK will
-    # use whatever auth path is left).
-    env["ANTHROPIC_AUTH_TOKEN"] = os.environ.get("ANTHROPIC_AUTH_TOKEN") or ""
+    else:
+        # No API key — forward the OAuth token from the parent process so the
+        # SDK grandchild has credentials. Empty string is fine (the SDK will
+        # use whatever auth path is left).
+        env["ANTHROPIC_AUTH_TOKEN"] = os.environ.get("ANTHROPIC_AUTH_TOKEN") or ""
+
+    # Forward ANTHROPIC_BASE_URL to support proxy/gateway endpoints.
+    # Without this, the SDK-spawned child CLI defaults to https://api.anthropic.com
+    # and fails when using proxy keys with custom base URLs (LiteLLM, Bifrost, etc.).
+    if os.environ.get("ANTHROPIC_BASE_URL"):
+        env["ANTHROPIC_BASE_URL"] = os.environ["ANTHROPIC_BASE_URL"]
+
     return env
 
 
