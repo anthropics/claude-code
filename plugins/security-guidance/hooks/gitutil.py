@@ -153,6 +153,50 @@ def _git_toplevel(cwd):
         return None
 
 
+def _is_isolated_worktree(cwd):
+    """Return True only if `cwd` is a REAL, isolated git worktree.
+
+    A directory created as a worktree that lacks a `.git` link (or was not
+    registered via `git worktree add`) silently resolves git operations to
+    the PARENT repository. That lets a spawn-time `git checkout -b` flip the
+    shared main checkout for every parallel session. We guard against that by
+    asserting the resolved toplevel equals `cwd` AND the resolved git-dir is
+    NOT the shared common-dir (i.e. it is a per-worktree gitdir).
+
+    Returns False on any error so callers fail loudly rather than mutate the
+    parent repo.
+    """
+    try:
+        top = subprocess.run(
+            [*GIT_CMD, "rev-parse", "--show-toplevel"],
+            cwd=cwd, capture_output=True, text=True, timeout=5,
+        )
+        if top.returncode != 0:
+            return False
+        toplevel = os.path.realpath(top.stdout.strip())
+        if toplevel != os.path.realpath(cwd):
+            return False
+        gd = subprocess.run(
+            [*GIT_CMD, "rev-parse", "--git-dir"],
+            cwd=cwd, capture_output=True, text=True, timeout=5,
+        )
+        cd = subprocess.run(
+            [*GIT_CMD, "rev-parse", "--git-common-dir"],
+            cwd=cwd, capture_output=True, text=True, timeout=5,
+        )
+        if gd.returncode != 0 or cd.returncode != 0:
+            return False
+        git_dir = gd.stdout.strip()
+        common_dir = cd.stdout.strip()
+        if not os.path.isabs(git_dir):
+            git_dir = os.path.join(cwd, git_dir)
+        if not os.path.isabs(common_dir):
+            common_dir = os.path.join(cwd, common_dir)
+        return os.path.realpath(git_dir) != os.path.realpath(common_dir)
+    except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
+        return False
+
+
 def _git_dir(repo_root):
     """Absolute shared `.git` directory for repo_root.
 
