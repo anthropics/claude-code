@@ -248,6 +248,31 @@ async function autoCloseDuplicates(): Promise<void> {
       continue;
     }
 
+    // Verify the target issue is still open and not itself a duplicate
+    try {
+      const targetIssue: GitHubIssue & { state: string; state_reason?: string } = await githubRequest(
+        `/repos/${owner}/${repo}/issues/${duplicateIssueNumber}`,
+        token
+      );
+      if (targetIssue.state !== "open") {
+        console.log(
+          `[DEBUG] Issue #${issue.number} - target #${duplicateIssueNumber} is not open (state: ${targetIssue.state}), skipping`
+        );
+        continue;
+      }
+      if (targetIssue.state_reason === "duplicate") {
+        console.log(
+          `[DEBUG] Issue #${issue.number} - target #${duplicateIssueNumber} is itself marked as duplicate, skipping`
+        );
+        continue;
+      }
+    } catch {
+      console.log(
+        `[DEBUG] Issue #${issue.number} - could not verify target #${duplicateIssueNumber}, skipping`
+      );
+      continue;
+    }
+
     candidateCount++;
     const issueUrl = `https://github.com/${owner}/${repo}/issues/${issue.number}`;
     
