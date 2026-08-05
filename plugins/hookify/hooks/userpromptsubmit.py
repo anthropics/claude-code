@@ -21,6 +21,7 @@ if PLUGIN_ROOT:
 try:
     from hookify.core.config_loader import load_rules
     from hookify.core.rule_engine import RuleEngine
+    from hookify.hooks import safe_json_load
 except ImportError as e:
     error_msg = {"systemMessage": f"Hookify import error: {e}"}
     print(json.dumps(error_msg), file=sys.stdout)
@@ -30,8 +31,8 @@ except ImportError as e:
 def main():
     """Main entry point for UserPromptSubmit hook."""
     try:
-        # Read input from stdin
-        input_data = json.load(sys.stdin)
+        # Read input from stdin (with Windows path backslash tolerance)
+        input_data = safe_json_load(sys.stdin)
 
         # Load user prompt rules
         rules = load_rules(event='prompt')
