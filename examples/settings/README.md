@@ -30,6 +30,33 @@ These may be applied at any level of the [settings hierarchy](https://code.claud
 
 To distribute these settings as enterprise-managed policy through Jamf, Iru (Kandji), Intune, or Group Policy, see the deployment templates in [`../mdm`](../mdm).
 
+## Troubleshooting
+
+### False "usage limit reached" when plan quota is available
+
+If Claude shows "usage limit reached" but your plan dashboard
+shows plenty of quota remaining, the real cause is likely
+**context overflow misattributed as a usage limit**.
+
+**The actual chain**:
+1. Context grows past the model's window (e.g. 200k tokens)
+2. `/compact` fails: "Extra usage is required for 1M context"
+3. The error surfaces to the user as "usage limit reached"
+
+**Workaround**:
+```bash
+# Switch to a 1M context model, compact, then switch back
+/model         # select a 1M model
+/compact       # compact succeeds on 1M tier
+/model         # switch back to your preferred model
+```
+
+Or start a new session.
+
+**Root cause**: the client maps the `/compact` failure to the wrong
+error message. See issues [#50321](https://github.com/anthropics/claude-code/issues/50321)
+and [#61703](https://github.com/anthropics/claude-code/issues/61703).
+
 ## Full Documentation
 
 See https://code.claude.com/docs/en/settings for complete documentation on all available managed settings.
