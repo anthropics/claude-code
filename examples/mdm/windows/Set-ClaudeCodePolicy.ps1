@@ -12,7 +12,9 @@ deployed settings; see https://code.claude.com/docs/en/settings for available ke
 
 $ErrorActionPreference = 'Stop'
 
-$dir = Join-Path $env:ProgramFiles 'ClaudeCode'
+# ProgramW6432, not ProgramFiles: in the 32-bit PowerShell host (Intune's default)
+# ProgramFiles is C:\Program Files (x86), a path Claude Code never reads.
+$dir = Join-Path $env:ProgramW6432 'ClaudeCode'
 New-Item -ItemType Directory -Path $dir -Force | Out-Null
 
 $json = @'
