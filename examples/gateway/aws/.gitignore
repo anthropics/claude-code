@@ -1,0 +1,18 @@
+# Local, environment-specific config — copy gateway.yaml.example -> gateway.yaml
+# (gateway.yaml.example IS committed; your filled-in gateway.yaml is not)
+gateway.yaml
+
+# Secrets / credentials — never commit. Also covers rds-global-bundle.pem:
+# not a secret, but downloaded by setup.sh when absent (delete it to refresh
+# after an RDS CA rotation), so it stays out of git.
+secrets/
+*.pem
+
+# Scratch IAM policy documents written by setup.sh (no secrets, but generated)
+*.iam.json
+
+# Vendored release binary — download per release (see setup.sh DIST_URL).
+# claude.bad is a checksum-mismatched binary that setup.sh set aside.
+claude
+claude.download
+claude.bad
