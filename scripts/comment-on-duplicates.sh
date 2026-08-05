@@ -53,6 +53,10 @@ for dup in "${DUPLICATES[@]}"; do
     echo "Error: duplicate issue must be a number, got: $dup" >&2
     exit 1
   fi
+  if [[ "$dup" == "$BASE_ISSUE" ]]; then
+    echo "Error: issue #$BASE_ISSUE cannot be marked as a duplicate of itself" >&2
+    exit 1
+  fi
 done
 
 # Validate that base issue exists
