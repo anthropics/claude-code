@@ -1,0 +1,39 @@
+name: Plugin Checks
+
+on:
+  pull_request:
+    paths:
+      - ".claude-plugin/**"
+      - ".github/workflows/plugin-checks.yml"
+      - ".gitignore"
+      - "plugins/**"
+
+permissions:
+  contents: read
+
+jobs:
+  plugin-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      - name: Validate plugin JSON
+        run: |
+          python3 -m json.tool .claude-plugin/marketplace.json >/dev/null
+          find plugins -path '*/.claude-plugin/plugin.json' -print0 \
+            | xargs -0 -n1 python3 -m json.tool >/dev/null
+          find plugins -path '*/hooks/hooks.json' -print0 \
+            | xargs -0 -n1 python3 -m json.tool >/dev/null
+
+      - name: Check shell hooks
+        run: |
+          find plugins -type f -name '*.sh' -print0 \
+            | xargs -0 -n1 bash -n
+          if command -v shellcheck >/dev/null 2>&1; then
+            find plugins/ralph-wiggum -type f -name '*.sh' -print0 \
+              | xargs -0 shellcheck
+          fi
+
+      - name: Ralph smoke tests
+        run: plugins/ralph-wiggum/tests/smoke.sh
