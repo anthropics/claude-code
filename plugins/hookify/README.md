@@ -235,6 +235,7 @@ Use environment variables instead of hardcoded values.
 ### Operators Reference
 
 - `regex_match`: Pattern must match (most common)
+- `regex_not_match` (alias `not_regex_match`): Regex pattern must NOT match
 - `contains`: String must contain pattern
 - `equals`: Exact string match
 - `not_contains`: String must NOT contain pattern
