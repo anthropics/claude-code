@@ -145,6 +145,17 @@
       },
       "source": "./plugins/security-guidance",
       "category": "security"
+    },
+    {
+      "name": "teach",
+      "version": "1.0.0",
+      "description": "Incrementally teach Claude Code about your project's conventions, patterns, and architecture. Claude actively explores the codebase and saves what it learns to CLAUDE.md.",
+      "author": {
+        "name": "LvienOeria",
+        "email": "120090440@link.cuhk.edu.cn"
+      },
+      "source": "./plugins/teach",
+      "category": "learning"
     }
   ]
 }
