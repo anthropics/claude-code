@@ -41,10 +41,12 @@ shift 2
 POSITIONAL=()
 FLAGS=()
 skip_next=false
+pending_value_flag=""
 for arg in "$@"; do
   if [[ "$skip_next" == true ]]; then
     FLAGS+=("$arg")
     skip_next=false
+    pending_value_flag=""
   elif [[ "$arg" == -* ]]; then
     flag="${arg%%=*}"
     matched=false
@@ -64,6 +66,7 @@ for arg in "$@"; do
       for vflag in "${FLAGS_WITH_VALUES[@]}"; do
         if [[ "$flag" == "$vflag" ]]; then
           skip_next=true
+          pending_value_flag="$flag"
           break
         fi
       done
@@ -72,6 +75,11 @@ for arg in "$@"; do
     POSITIONAL+=("$arg")
   fi
 done
+
+if [[ "$skip_next" == true ]]; then
+  echo "Error: $pending_value_flag requires a value" >&2
+  exit 1
+fi
 
 if [[ "$CMD" == "search issues" ]]; then
   QUERY="${POSITIONAL[0]:-}"
