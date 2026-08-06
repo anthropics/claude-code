@@ -63,32 +63,70 @@ while read -r cidr; do
     ipset add allowed-domains "$cidr"
 done < <(echo "$gh_ranges" | jq -r '(.web + .api + .git)[]' | aggregate -q)
 
-# Resolve and add other allowed domains
-for domain in \
-    "registry.npmjs.org" \
-    "api.anthropic.com" \
-    "sentry.io" \
-    "statsig.anthropic.com" \
-    "statsig.com" \
-    "marketplace.visualstudio.com" \
-    "vscode.blob.core.windows.net" \
-    "update.code.visualstudio.com"; do
+# Resolve and add other allowed domains.
+#
+# Domains listed in REQUIRED_DOMAINS must resolve - without them the container
+# cannot do its job, so failing loudly is correct. Everything else is
+# best-effort: telemetry and marketplace endpoints come and go, and a single
+# NXDOMAIN there used to abort the whole script and leave the container
+# unusable. Those are now skipped with a warning.
+REQUIRED_DOMAINS=(
+    "api.anthropic.com"
+    "registry.npmjs.org"
+)
+
+OPTIONAL_DOMAINS=(
+    "sentry.io"
+    "statsig.anthropic.com"
+    "statsig.com"
+    "marketplace.visualstudio.com"
+    "vscode.blob.core.windows.net"
+    "update.code.visualstudio.com"
+)
+
+skipped_domains=()
+
+for domain in "${REQUIRED_DOMAINS[@]}" "${OPTIONAL_DOMAINS[@]}"; do
+    required=false
+    for req in "${REQUIRED_DOMAINS[@]}"; do
+        if [ "$domain" = "$req" ]; then
+            required=true
+            break
+        fi
+    done
+
     echo "Resolving $domain..."
-    ips=$(dig +noall +answer A "$domain" | awk '$4 == "A" {print $5}')
+    ips=$(dig +noall +answer A "$domain" | awk '$4 == "A" {print $5}' || true)
     if [ -z "$ips" ]; then
-        echo "ERROR: Failed to resolve $domain"
-        exit 1
+        if [ "$required" = true ]; then
+            echo "ERROR: Failed to resolve required domain $domain"
+            exit 1
+        fi
+        echo "WARNING: Failed to resolve $domain - skipping (not required)"
+        skipped_domains+=("$domain")
+        continue
     fi
-    
+
     while read -r ip; do
         if [[ ! "$ip" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
-            echo "ERROR: Invalid IP from DNS for $domain: $ip"
-            exit 1
+            if [ "$required" = true ]; then
+                echo "ERROR: Invalid IP from DNS for $domain: $ip"
+                exit 1
+            fi
+            echo "WARNING: Invalid IP from DNS for $domain: $ip - skipping"
+            continue
         fi
         echo "Adding $ip for $domain"
         ipset add allowed-domains "$ip"
     done < <(echo "$ips")
 done
+
+if [ ${#skipped_domains[@]} -gt 0 ]; then
+    echo "NOTE: ${#skipped_domains[@]} optional domain(s) could not be resolved and were not allowlisted:"
+    for domain in "${skipped_domains[@]}"; do
+        echo "  - $domain"
+    done
+fi
 
 # Get host IP from default route
 HOST_IP=$(ip route | grep default | cut -d" " -f3)
