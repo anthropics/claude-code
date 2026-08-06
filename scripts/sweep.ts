@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 
 import { lifecycle, STALE_UPVOTE_THRESHOLD } from "./issue-lifecycle.ts";
+import { shouldClose, type LabelEvent } from "./label-events.ts";
 
 // --
 
@@ -38,6 +39,25 @@ async function githubRequest<T>(
   }
 
   return response.json();
+}
+
+// Grab every labeled/unlabeled event for an issue. The events endpoint pages at
+// 100 per request and returns them oldest-first, so on a busy issue the lifecycle
+// label (applied late by triage) sits on a later page. The old code read only
+// page 1 and missed it, so those issues never closed. Walk the pages to the end.
+// The 10-page cap matches the issue-list loops above and is well past any real
+// issue's event count.
+async function fetchLabelEvents(base: string): Promise<LabelEvent[]> {
+  const events: LabelEvent[] = [];
+  for (let page = 1; page <= 10; page++) {
+    const pageEvents = await githubRequest<any[]>(
+      `${base}/events?per_page=100&page=${page}`
+    );
+    if (!Array.isArray(pageEvents) || pageEvents.length === 0) break;
+    events.push(...pageEvents);
+    if (pageEvents.length < 100) break;
+  }
+  return events;
 }
 
 // --
@@ -112,14 +132,15 @@ async function closeExpired(owner: string, repo: string) {
 
         const base = `/repos/${owner}/${repo}/issues/${issue.number}`;
 
-        const events = await githubRequest<any[]>(`${base}/events?per_page=100`);
-
-        const labeledAt = events
-          .filter((e) => e.event === "labeled" && e.label?.name === label)
-          .map((e) => new Date(e.created_at))
-          .pop();
-
-        if (!labeledAt || labeledAt > cutoff) continue;
+        // Work out the label's current state from its full event history. Only
+        // close if the label is still on the issue and was last applied before
+        // the cutoff. This covers labels applied on a later events page, and
+        // labels that were removed and re-applied (which restarts the grace
+        // period).
+        const events = await fetchLabelEvents(base);
+        const { close, appliedAt } = shouldClose(events, label, cutoff);
+        if (!close || !appliedAt) continue;
+        const labeledAt = appliedAt;
 
         // Skip if a non-bot user commented after the label was applied.
         // The triage workflow should remove lifecycle labels on human
