@@ -1,0 +1,15 @@
+{
+  "name": "api-fallback",
+  "version": "1.0.0",
+  "description": "Provides manual switching between API key and subscription authentication methods. Interim solution for issue #2944 while awaiting core implementation.",
+  "author": {
+    "name": "Nicholas Ferraz",
+    "email": "git-contributions@nickferraz.com"
+  },
+  "keywords": ["authentication", "api", "subscription", "fallback", "billing"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/anthropics/claude-code"
+  },
+  "license": "MIT"
+}
