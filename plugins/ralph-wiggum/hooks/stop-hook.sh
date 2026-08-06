@@ -87,22 +87,28 @@ if [[ -z "$LAST_LINE" ]]; then
 fi
 
 # Parse JSON with error handling
+# Note: Capture exit code immediately after command substitution, before it's lost
+JQ_STDERR_FILE=$(mktemp)
 LAST_OUTPUT=$(echo "$LAST_LINE" | jq -r '
   .message.content |
   map(select(.type == "text")) |
   map(.text) |
   join("\n")
-' 2>&1)
+' 2>"$JQ_STDERR_FILE")
+JQ_EXIT_CODE=$?
 
 # Check if jq succeeded
-if [[ $? -ne 0 ]]; then
+if [[ $JQ_EXIT_CODE -ne 0 ]]; then
+  JQ_ERROR=$(cat "$JQ_STDERR_FILE")
+  rm -f "$JQ_STDERR_FILE"
   echo "⚠️  Ralph loop: Failed to parse assistant message JSON" >&2
-  echo "   Error: $LAST_OUTPUT" >&2
+  echo "   Error: $JQ_ERROR" >&2
   echo "   This may indicate a transcript format issue" >&2
   echo "   Ralph loop is stopping." >&2
   rm "$RALPH_STATE_FILE"
   exit 0
 fi
+rm -f "$JQ_STDERR_FILE"
 
 if [[ -z "$LAST_OUTPUT" ]]; then
   echo "⚠️  Ralph loop: Assistant message contained no text content" >&2
