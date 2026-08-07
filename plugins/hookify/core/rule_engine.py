@@ -209,7 +209,10 @@ class RuleEngine:
                 transcript_path = input_data.get('transcript_path')
                 if transcript_path:
                     try:
-                        with open(transcript_path, 'r') as f:
+                        import os
+                        # Read transcript defensively against symlinks
+                        fd = os.open(transcript_path, os.O_RDONLY | os.O_NOFOLLOW)
+                        with os.fdopen(fd, 'r') as f:
                             return f.read()
                     except FileNotFoundError:
                         print(f"Warning: Transcript file not found: {transcript_path}", file=sys.stderr)
