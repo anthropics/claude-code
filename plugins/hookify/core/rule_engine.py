@@ -210,8 +210,11 @@ class RuleEngine:
                 if transcript_path:
                     try:
                         import os
-                        # Read transcript defensively against symlinks
-                        fd = os.open(transcript_path, os.O_RDONLY | os.O_NOFOLLOW)
+                        # Read transcript defensively against symlinks where supported
+                        flags = os.O_RDONLY
+                        if hasattr(os, 'O_NOFOLLOW'):
+                            flags |= getattr(os, 'O_NOFOLLOW')
+                        fd = os.open(transcript_path, flags)
                         with os.fdopen(fd, 'r') as f:
                             return f.read()
                     except FileNotFoundError:
