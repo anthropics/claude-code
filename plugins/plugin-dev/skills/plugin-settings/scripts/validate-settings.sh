@@ -68,7 +68,7 @@ fi
 # Check 6: Look for common fields
 echo ""
 echo "Detected fields:"
-echo "$FRONTMATTER" | grep '^[a-z_][a-z0-9_]*:' | while IFS=':' read -r key value; do
+echo "$FRONTMATTER" | { grep '^[a-z_][a-z0-9_]*:' || true; } | while IFS=':' read -r key value; do
   echo "  - $key: ${value:0:50}"
 done
 
