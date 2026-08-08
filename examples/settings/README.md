@@ -31,5 +31,5 @@ These may be applied at any level of the [settings hierarchy](https://code.claud
 To distribute these settings as enterprise-managed policy through Jamf, Iru (Kandji), Intune, or Group Policy, see the deployment templates in [`../mdm`](../mdm).
 
 ## Full Documentation
-
+ok
 See https://code.claude.com/docs/en/settings for complete documentation on all available managed settings.
