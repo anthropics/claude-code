@@ -1,0 +1,11 @@
+{
+  "name": "swarm-orchestrator",
+  "version": "0.1.0",
+  "description": "DAG-based multi-agent swarm orchestration on top of vanilla Teams: dependency-aware task graphs, role-specific subagents (Scanner/Reviewer/Builder/Merger), abort-marker contract, worktree GC, and an opt-in reviewer-checkpoint hook.",
+  "author": {
+    "name": "Kushal Jaligama",
+    "email": "kjaligusa@gmail.com"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/anthropics/claude-code/tree/main/plugins/swarm-orchestrator"
+}

@@ -1,0 +1,23 @@
+{
+  "name": "abort-marker-test",
+  "description": "Spawn a teammate, drop the abort marker mid-run, verify clean WIP commit.",
+  "primitives_tested": ["abort-marker"],
+  "max_duration_minutes": 1,
+  "deterministic": true,
+  "setup": {
+    "fixtures": "../fixtures/abort-marker-test",
+    "seed": 42,
+    "git_init": true
+  },
+  "teammates": [
+    {"name": "renamer-1", "head": "Builder", "task_ids": ["loop"]}
+  ],
+  "inject": {
+    "abort_after_seconds": 0.05
+  },
+  "expected": {
+    "tasks_aborted": 1,
+    "abort_wip_commit_present": true,
+    "files_present": ["long_running_output.txt"]
+  }
+}
