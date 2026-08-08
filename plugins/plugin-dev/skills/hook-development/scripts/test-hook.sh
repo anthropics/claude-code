@@ -12,10 +12,12 @@ show_usage() {
   echo "  -h, --help      Show this help message"
   echo "  -v, --verbose   Show detailed execution information"
   echo "  -t, --timeout N Set timeout in seconds (default: 60)"
+  echo "  -e, --expect D  Require decision D: allow, deny, or ask"
   echo ""
   echo "Examples:"
   echo "  $0 validate-bash.sh test-input.json"
   echo "  $0 -v -t 30 validate-write.sh write-input.json"
+  echo "  $0 --expect deny validate-write.sh write-input.json"
   echo ""
   echo "Creates sample test input with:"
   echo "  $0 --create-sample <event-type>"
@@ -102,6 +104,7 @@ EOF
 # Parse arguments
 VERBOSE=false
 TIMEOUT=60
+EXPECTED_DECISION=""
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -114,6 +117,22 @@ while [ $# -gt 0 ]; do
       ;;
     -t|--timeout)
       TIMEOUT="$2"
+      shift 2
+      ;;
+    -e|--expect)
+      if [ $# -lt 2 ]; then
+        echo "Error: --expect requires allow, deny, or ask"
+        exit 1
+      fi
+      case "$2" in
+        allow|deny|ask)
+          EXPECTED_DECISION="$2"
+          ;;
+        *)
+          echo "Error: Invalid expected decision '$2' (valid: allow, deny, ask)"
+          exit 1
+          ;;
+      esac
       shift 2
       ;;
     --create-sample)
@@ -194,12 +213,35 @@ set -e
 end_time=$(date +%s)
 duration=$((end_time - start_time))
 
+# Determine the hook decision. Exit code 2 means deny unless structured
+# output refines it to ask.
+permission_decision=""
+if [ -n "$output" ] && echo "$output" | jq empty 2>/dev/null; then
+  permission_decision=$(echo "$output" | jq -r '.hookSpecificOutput.permissionDecision // empty')
+fi
+
+case "$permission_decision" in
+  allow|deny|ask)
+    actual_decision="$permission_decision"
+    ;;
+  *)
+    case "$exit_code" in
+      0) actual_decision="allow" ;;
+      2) actual_decision="deny" ;;
+      *) actual_decision="" ;;
+    esac
+    ;;
+esac
+
 # Analyze results
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "Results:"
 echo ""
 echo "Exit Code: $exit_code"
 echo "Duration: ${duration}s"
+if [ -n "$actual_decision" ]; then
+  echo "Decision: $actual_decision"
+fi
 echo ""
 
 case $exit_code in
@@ -243,10 +285,18 @@ fi
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-if [ $exit_code -eq 0 ] || [ $exit_code -eq 2 ]; then
-  echo "✅ Test completed successfully"
-  exit 0
-else
+if [ $exit_code -ne 0 ] && [ $exit_code -ne 2 ]; then
   echo "❌ Test failed"
   exit 1
 fi
+
+if [ -n "$EXPECTED_DECISION" ]; then
+  if [ "$actual_decision" != "$EXPECTED_DECISION" ]; then
+    echo "❌ Expected decision '$EXPECTED_DECISION', got '$actual_decision'"
+    exit 1
+  fi
+  echo "✅ Decision matched expected '$EXPECTED_DECISION'"
+fi
+
+echo "✅ Test completed successfully"
+exit 0
