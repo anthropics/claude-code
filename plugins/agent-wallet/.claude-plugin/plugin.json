@@ -1,0 +1,9 @@
+{
+  "name": "agent-wallet",
+  "version": "1.0.0",
+  "description": "Give AI agents non-custodial wallets with x402 payments, multi-chain support (17 chains), on-chain identity, and reputation scoring",
+  "author": {
+    "name": "AI Agent Economy",
+    "email": "bill@ai-agent-economy.com"
+  }
+}
