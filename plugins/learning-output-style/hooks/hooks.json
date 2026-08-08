@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks-handlers/session-start.sh"
+            "command": "bash -c 'R=$(echo \"$CLAUDE_PLUGIN_ROOT\" | tr \\\\ /); bash \"$R/hooks-handlers/session-start.sh\"'"
           }
         ]
       }
