@@ -1,0 +1,15 @@
+{
+  "description": "RTL text support hook - runs CSS patch on session start to fix unicode-bidi regression in v2.1.63+",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks-handlers/session-start.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
