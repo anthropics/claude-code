@@ -23,10 +23,18 @@ REMOVE_LABELS=()
 while [[ $# -gt 0 ]]; do
   case $1 in
     --add-label)
+      if [[ $# -lt 2 || "$2" == --* ]]; then
+        echo "Error: --add-label requires a label name" >&2
+        exit 1
+      fi
       ADD_LABELS+=("$2")
       shift 2
       ;;
     --remove-label)
+      if [[ $# -lt 2 || "$2" == --* ]]; then
+        echo "Error: --remove-label requires a label name" >&2
+        exit 1
+      fi
       REMOVE_LABELS+=("$2")
       shift 2
       ;;
