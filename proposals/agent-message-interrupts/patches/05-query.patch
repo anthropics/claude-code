@@ -1,0 +1,46 @@
+--- a/src/query.ts
++++ b/src/query.ts
+@@ -1499,11 +1499,27 @@ export async function* query(
+       // Skip the interruption message for submit-interrupts — the queued
+       // user message that follows provides sufficient context.
+-      if (toolUseContext.abortController.signal.reason !== 'interrupt') {
++      // Also skip for message_interrupt — the pending message attachment
++      // from SendMessage(urgent=true) provides the context instead.
++      if (
++        toolUseContext.abortController.signal.reason !== 'interrupt' &&
++        toolUseContext.abortController.signal.reason !== 'message_interrupt'
++      ) {
+         yield createUserInterruptionMessage({
+           toolUse: true,
+         })
+       }
+-      // Check maxTurns before returning when aborted
+-      const nextTurnCountOnAbort = turnCount + 1
+-      if (maxTurns && nextTurnCountOnAbort > maxTurns) {
+-        yield createAttachmentMessage({
+-          type: 'max_turns_reached',
+-          maxTurns,
+-          turnCount: nextTurnCountOnAbort,
+-        })
++
++      // For message_interrupt (urgent SendMessage), don't exit the query
++      // loop — fall through to the attachment phase so the pending message
++      // is drained and delivered, then continue the agent's conversation.
++      if (toolUseContext.abortController.signal.reason === 'message_interrupt') {
++        // Reset the abort controller so the agent can continue running.
++        // The child controller was one-shot; create a fresh one.
++        toolUseContext.abortController = new AbortController()
++      } else {
++        // Check maxTurns before returning when aborted
++        const nextTurnCountOnAbort = turnCount + 1
++        if (maxTurns && nextTurnCountOnAbort > maxTurns) {
++          yield createAttachmentMessage({
++            type: 'max_turns_reached',
++            maxTurns,
++            turnCount: nextTurnCountOnAbort,
++          })
++        }
++        return { reason: 'aborted_tools' }
+       }
+-      return { reason: 'aborted_tools' }
+     }
