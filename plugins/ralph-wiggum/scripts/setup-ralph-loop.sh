@@ -5,6 +5,21 @@
 
 set -euo pipefail
 
+# Determine state directory (plugin-relative for session isolation)
+if [[ -n "${CLAUDE_PLUGIN_ROOT:-}" ]]; then
+  STATE_DIR="$CLAUDE_PLUGIN_ROOT/state"
+else
+  # Fallback: derive from script location
+  STATE_DIR="$(dirname "$(dirname "$0")")/state"
+fi
+
+# Get session ID (required for session isolation)
+if [[ -z "${CLAUDE_SESSION_ID:-}" ]]; then
+  echo "❌ Error: CLAUDE_SESSION_ID not available" >&2
+  echo "   Ralph loop requires session isolation to work correctly." >&2
+  exit 1
+fi
+
 # Parse arguments
 PROMPT_PARTS=()
 MAX_ITERATIONS=0
@@ -50,11 +65,8 @@ STOPPING:
   No manual stop - Ralph runs infinitely by default!
 
 MONITORING:
-  # View current iteration:
-  grep '^iteration:' .claude/ralph-loop.local.md
-
-  # View full state:
-  head -10 .claude/ralph-loop.local.md
+  State files are stored in the plugin's state/ directory with session ID.
+  The exact path is shown when the loop starts.
 HELP_EOF
       exit 0
       ;;
@@ -128,7 +140,8 @@ if [[ -z "$PROMPT" ]]; then
 fi
 
 # Create state file for stop hook (markdown with YAML frontmatter)
-mkdir -p .claude
+mkdir -p "$STATE_DIR"
+RALPH_STATE_FILE="$STATE_DIR/${CLAUDE_SESSION_ID}.md"
 
 # Quote completion promise for YAML if it contains special chars or is not null
 if [[ -n "$COMPLETION_PROMISE" ]] && [[ "$COMPLETION_PROMISE" != "null" ]]; then
@@ -137,7 +150,7 @@ else
   COMPLETION_PROMISE_YAML="null"
 fi
 
-cat > .claude/ralph-loop.local.md <<EOF
+cat > "$RALPH_STATE_FILE" <<EOF
 ---
 active: true
 iteration: 1
@@ -161,7 +174,7 @@ The stop hook is now active. When you try to exit, the SAME PROMPT will be
 fed back to you. You'll see your previous work in files, creating a
 self-referential loop where you iteratively improve on the same task.
 
-To monitor: head -10 .claude/ralph-loop.local.md
+To monitor: head -10 "$RALPH_STATE_FILE"
 
 ⚠️  WARNING: This loop cannot be stopped manually! It will run infinitely
     unless you set --max-iterations or --completion-promise.
