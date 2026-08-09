@@ -88,7 +88,47 @@ else
 fi
 
 # Check description field
-DESCRIPTION=$(echo "$FRONTMATTER" | grep '^description:' | sed 's/description: *//')
+# Descriptions may use YAML block scalars (`|` or `>`), so include their
+# indented content instead of treating the scalar marker as the description.
+# The checks below intentionally preserve line breaks; they only validate
+# description length and trigger examples, not YAML serialization semantics.
+DESCRIPTION=$(printf '%s\n' "$FRONTMATTER" | awk '
+  function scalar_header(line) {
+    return line ~ /^description:[[:space:]]*[|>]([1-9][+-]?|[+-]?[1-9]?)[[:space:]]*(#.*)?$/
+  }
+  function scalar_indent(line,    prefix) {
+    prefix = line
+    sub(/[^[:space:]].*$/, "", prefix)
+    return length(prefix)
+  }
+  scalar_header($0) {
+    in_description_block = 1
+    next
+  }
+  in_description_block {
+    if ($0 !~ /^[[:space:]]*$/ && $0 !~ /^[[:space:]]/) {
+      in_description_block = 0
+    } else {
+      lines[++line_count] = $0
+      indent = scalar_indent($0)
+      if ($0 !~ /^[[:space:]]*$/ && (min_indent == 0 || indent < min_indent))
+        min_indent = indent
+      next
+    }
+  }
+  /^description:[[:space:]]*/ {
+    sub(/^description:[[:space:]]*/, "")
+    print
+  }
+  END {
+    for (i = 1; i <= line_count; i++) {
+      line = lines[i]
+      if (min_indent > 0)
+        line = substr(line, min_indent + 1)
+      print line
+    }
+  }
+')
 
 if [ -z "$DESCRIPTION" ]; then
   echo "❌ Missing required field: description"
