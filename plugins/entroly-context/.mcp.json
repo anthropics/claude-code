@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "entroly": {
+      "command": "python",
+      "args": ["-m", "entroly"],
+      "env": {
+        "ENTROLY_BUDGET": "8000",
+        "ENTROLY_LOG_LEVEL": "warn"
+      }
+    }
+  }
+}

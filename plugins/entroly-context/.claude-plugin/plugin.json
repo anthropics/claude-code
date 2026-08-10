@@ -1,0 +1,10 @@
+{
+  "name": "entroly-context",
+  "version": "1.0.0",
+  "description": "Budget-aware context management for Claude Code sessions. Uses Entroly to select evidence under an explicit token budget, keep omitted content byte-exactly recoverable, and emit auditable Context Receipts.",
+  "author": {
+    "name": "juyterman1000",
+    "url": "https://github.com/juyterman1000"
+  },
+  "homepage": "https://github.com/juyterman1000/entroly"
+}
