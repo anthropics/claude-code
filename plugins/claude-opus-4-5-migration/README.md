@@ -14,7 +14,7 @@ This skill updates your code and prompts to be compatible with Opus 4.5. It auto
 
 ## Learn More
 
-Refer to our [prompting guide](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-4-best-practices) for best practices on prompting Claude models.
+Refer to our [prompting guide](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) for best practices on prompting Claude models.
 
 ## Authors
 

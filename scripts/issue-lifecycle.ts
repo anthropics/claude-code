@@ -5,7 +5,7 @@ export const lifecycle = [
     label: "invalid",
     days: 3,
     reason: "this doesn't appear to be about Claude Code",
-    nudge: "This doesn't appear to be about [Claude Code](https://github.com/anthropics/claude-code). For general Anthropic support, visit [support.anthropic.com](https://support.anthropic.com).",
+    nudge: "This doesn't appear to be about [Claude Code](https://github.com/anthropics/claude-code). For general Anthropic support, visit [support.claude.com](https://support.claude.com).",
   },
   {
     label: "needs-repro",
