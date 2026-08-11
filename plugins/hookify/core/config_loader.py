@@ -196,7 +196,7 @@ def extract_frontmatter(content: str) -> tuple[Dict[str, Any], str]:
 
 
 def load_rules(event: Optional[str] = None) -> List[Rule]:
-    """Load all hookify rules from .claude directory.
+    """Load all hookify rules from .claude directory and ancestors.
 
     Args:
         event: Optional event filter ("bash", "file", "stop", etc.)
@@ -206,9 +206,30 @@ def load_rules(event: Optional[str] = None) -> List[Rule]:
     """
     rules = []
 
-    # Find all hookify.*.local.md files
-    pattern = os.path.join('.claude', 'hookify.*.local.md')
-    files = glob.glob(pattern)
+    # Traverse upwards to find .claude directories
+    current_path = os.path.abspath('.')
+    search_dirs = []
+    
+    while True:
+        claude_dir = os.path.join(current_path, '.claude')
+        if os.path.isdir(claude_dir):
+            search_dirs.append(claude_dir)
+            
+        parent = os.path.dirname(current_path)
+        if parent == current_path:  # Reached root
+            break
+        current_path = parent
+        
+    # Also check user home directory
+    home_claude = os.path.expanduser('~/.claude')
+    if os.path.isdir(home_claude) and home_claude not in search_dirs:
+        search_dirs.append(home_claude)
+
+    # Find all hookify.*.local.md files in the discovered directories
+    files = []
+    for d in search_dirs:
+        pattern = os.path.join(d, 'hookify.*.local.md')
+        files.extend(glob.glob(pattern))
 
     for file_path in files:
         try:
