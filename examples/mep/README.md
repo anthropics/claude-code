@@ -95,7 +95,9 @@ The complete MEP specification, formal handoff schema (BNF), NUKA-LOG authorship
 
 **[github.com/NukaSoft/mep-protocol](https://github.com/NukaSoft/mep-protocol)**
 
-Licensed AGPL-3.0.
+Licensed **Apache 2.0** for code, templates, and skills; **CC BY 4.0** for the
+specification documents.  Implementing MEP requires no permission and imposes
+no obligation.
 
 ---
 
