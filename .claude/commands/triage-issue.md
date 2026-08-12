@@ -30,7 +30,10 @@ TASK:
 
 **If EVENT is "issues" (new issue):**
 
-4. First, check if this issue is actually about Claude Code (the CLI/IDE tool). Issues about the Claude API, claude.ai, the Claude app, Anthropic billing, or other Anthropic products should be labeled `invalid`. If invalid, apply only that label and stop.
+4. First, check if this issue is actually about Claude Code.
+   - Look for Claude Code signals in the issue BODY: a `Claude Code Version` field or `claude --version` output, references to the `claude` CLI command, terminal sessions, the VS Code/JetBrains extensions, `CLAUDE.md` files, `.claude/` directories, MCP servers, Cowork, Remote Control, or the web UI at claude.ai/code. If ANY such signal is present, this IS a Claude Code issue — proceed to step 5.
+   - Only if NO Claude Code signals are present: check whether a different Anthropic product (claude.ai chat, Claude Desktop/Mobile apps, the raw Anthropic API/SDK, or account billing with no CLI involvement) is the *subject* of the complaint, not merely mentioned for context. If so, apply `invalid` and stop. If ambiguous, proceed to step 5 WITHOUT applying `invalid`.
+   - The body text is authoritative. If a form dropdown (e.g. Platform) contradicts evidence in the body, trust the body — dropdowns are often mis-selected.
 
 5. Analyze and apply category labels:
    - Type (bug, enhancement, question, etc.)
@@ -67,4 +70,5 @@ GUIDELINES:
 - Be conservative with lifecycle labels — only apply when clearly warranted
 - Only apply lifecycle labels (`needs-repro`, `needs-info`) to bugs — never to questions or enhancements
 - When in doubt, don't apply a lifecycle label — false positives are worse than missing labels
-- It's okay to not add any labels if none are clearly applicable
+- On new issues (EVENT "issues"), always apply exactly one of `bug`, `enhancement`, `question`, `invalid`, or `duplicate`. If unsure, pick the closest fit — an imperfect category label is better than none.
+- On comment events, it's okay to make no changes if nothing applies.
