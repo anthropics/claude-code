@@ -4760,7 +4760,7 @@
 
 ## 1.0.124
 
-- Set `CLAUDE_BASH_NO_LOGIN` environment variable to 1 or true to to skip login shell for BashTool
+- Set `CLAUDE_BASH_NO_LOGIN` environment variable to 1 or true to skip login shell for BashTool
 - Fix Bedrock and Vertex environment variables evaluating all strings as truthy
 - No longer inform Claude of the list of allowed tools when permission is denied
 - Fixed security vulnerability in Bash tool permission checks
