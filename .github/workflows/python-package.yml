@@ -37,4 +37,15 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Test with pytest
       run: |
+        # pytest devuelve exit code 5 cuando no colecta ningún test.
+        # El repo aún no tiene tests, así que tratamos ese caso como éxito
+        # (una suite vacía no debe reprobar el build). Cualquier otro código
+        # de salida (tests fallidos, errores) sí falla el build.
+        set +e
         pytest
+        code=$?
+        if [ "$code" -eq 5 ]; then
+          echo "pytest: no se colectaron tests (exit 5) — se trata como éxito."
+          exit 0
+        fi
+        exit $code

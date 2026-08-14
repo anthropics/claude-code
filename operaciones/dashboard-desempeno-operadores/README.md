@@ -1,110 +1,86 @@
 # Dashboard de desempeño de operadores de limpieza · Grupo Portátil
 
 Dashboard **automatizado** para el seguimiento del desempeño de los operadores de campo
-(limpieza, bombeo, entrega y retiro) en Monterrey y Querétaro. Muestra los tres KPIs
-clave por operador y periodo: **puntualidad**, **servicios completados** y **calidad de
-ejecución**, con ranking, comparativa contra metas y tendencia semanal.
+de Grupo Portátil. Lee en vivo desde Supabase (proyecto `gp-inventario`) y muestra los
+servicios completados por operador y periodo, con ranking, tendencia semanal y filtros.
 
 ![dashboard](docs/preview.png)
+
+> **Estado:** la vista `vista_desempeno_operadores` ya está **desplegada** en Supabase y el
+> dashboard está **conectado**. La tabla `servicios` aún no tiene registros: en cuanto los
+> operadores empiecen a capturar en AppSheet, el dashboard se puebla solo.
 
 ---
 
 ## OBJETIVO OPERATIVO
 
-Dar a Eduardo una vista objetiva y sin captura manual del desempeño de Alberto, Emmanuel,
-Meñito y Juan Pablo, para tomar decisiones de asignación de carga, coaching y evaluación.
-Indicadores que mejora: **puntualidad de servicio** y **calidad percibida por el cliente**.
+Dar a Eduardo una vista objetiva y sin captura manual del desempeño de los operadores
+(Alberto, Emmanuel, Meñito, Juan Pablo), para decisiones de asignación de carga y evaluación.
 
-## KPIs y cómo se calculan
+## Alcance de los KPIs
 
-| KPI | Definición | Meta GP |
+El dashboard se construye sobre la tabla **real** `servicios` de `gp-inventario`. Con los
+campos que esa tabla captura hoy, el KPI disponible es:
+
+| KPI | Estado | Cálculo |
 |---|---|---|
-| **Servicios completados** | # de servicios en estado `completado` en el periodo | — (volumen) |
-| **Puntualidad** | % de servicios que llegaron dentro de 15 min de la hora programada (check-in de AppSheet) | ≥ 90% |
-| **Calidad de ejecución** | Score 0-100 = 50% cumplimiento de checklist + 30% calificación del cliente + 20% ausencia de retrabajo | ≥ 85 |
-| **Servicios realizados** | % de servicios programados que sí se ejecutaron (completados / programados) | ≥ 95% |
+| **Servicios completados** | ✅ Activo | `count(*) where completado` por operador/semana |
+| **Puntualidad** | 🔜 Fase 2 | Requiere capturar hora programada + hora de llegada en AppSheet |
+| **Calidad de ejecución** | 🔜 Fase 2 | Requiere capturar checklist, calificación de cliente y retrabajo |
 
-> Los porcentajes se **reagregan desde sumas crudas** al cambiar el periodo (no se promedian
-> porcentajes de semanas), tanto en la vista SQL como en el dashboard.
+Puntualidad y calidad **no se pueden calcular con los datos actuales** (la tabla `servicios`
+no tiene hora programada, checklist ni calificación). El script `sql/fase2-puntualidad-calidad.sql`
+agrega esos campos de forma no destructiva cuando la captura esté lista; el dashboard ya
+muestra ambos KPIs como "Próximamente".
 
-## PROCESO / FLUJO
+## Arquitectura
 
 ```
-Operador (AppSheet, campo)
-   └─ cierra servicio: check-in, checklist, foto, calif. cliente
-        │  [n8n · Flujo 1]
+Operador (AppSheet / SimpliRoute, campo)
+   └─ registra servicio (completado, foto, checkout)
         ▼
-Supabase · tabla servicios_limpieza      ← fuente de verdad
-        │  vista_desempeno_operadores (KPIs semanales por operador)
-        ├──────────────► Dashboard index.html (lectura en vivo, esta carpeta)
-        └──────────────► Reporte semanal WhatsApp  [n8n · Flujo 3]
+Supabase · tabla servicios            ← fuente de verdad (ya existente)
+        │  vista_desempeno_operadores (agregado por operador/semana)
+        ├──────────────► Dashboard index.html  (lectura en vivo con anon key)
+        └──────────────► Reporte semanal WhatsApp  [n8n]  (misma vista)
 ```
 
-## IMPLEMENTACIÓN EN EL STACK DE GP
-
-| Componente | Herramienta | Archivo |
-|---|---|---|
-| Captura en campo | **AppSheet** | (Bot "Servicio completado") |
-| Base de datos | **Supabase** | `sql/01_schema.sql`, `sql/02_vista_kpis.sql` |
-| Automatización / ingesta / reporte | **n8n** | `automatizacion/n8n-flujo.md` |
-| Dashboard | HTML autocontenido | `index.html` |
-| Alertas y reporte | **Troncalnet / WhatsApp** | Flujo 3 |
-
-### Puesta en marcha
-
-1. **Supabase** — en el SQL Editor, ejecutar en orden:
-   ```
-   sql/01_schema.sql        # tabla servicios_limpieza (+ índices y checks)
-   sql/02_vista_kpis.sql    # vista de KPIs + RPC ranking_operadores()
-   ```
-   Exponer la vista con una policy RLS de solo lectura para la `anon key`.
-
-2. **Dashboard** — abrir `index.html` y pegar credenciales:
-   ```js
-   const SUPABASE_URL      = "https://TU-PROYECTO.supabase.co";
-   const SUPABASE_ANON_KEY = "TU_ANON_KEY";
-   ```
-   Sin credenciales, el dashboard funciona con **datos demo** (8 semanas, los 4 operadores)
-   para evaluar el diseño. Publicar en Supabase Storage, Vercel o Netlify (es un solo archivo).
-
-3. **n8n** — importar y conectar los tres flujos de `automatizacion/n8n-flujo.md`.
-
-### Sin backend
-
-El dashboard es **un solo archivo HTML** sin dependencias externas (sin CDNs): gráficas en
-SVG puro, tema claro/oscuro automático, tooltips al pasar el cursor, tabla de ranking
-accesible y filtros por plaza y periodo. Se puede abrir directo en el navegador.
-
-## RIESGOS OPERATIVOS
-
-- **Check-in no registrado** → un servicio sin `fecha_llegada` no cuenta para puntualidad
-  (se excluye, no se penaliza). Reforzar el uso del check-in en AppSheet.
-- **Servicio no cerrado en campo** → el Flujo 2 lo marca `no_realizado` en el corte diario.
-- **Calificación de cliente opcional** → si falta, la calidad pondera checklist + retrabajo;
-  la encuesta post-servicio mejora la señal.
-
-## MÉTRICAS DE ÉXITO
-
-- Puntualidad promedio de flota ≥ 90% sostenida 4 semanas.
-- 100% de servicios con check-in y checklist registrados en AppSheet.
-- Reporte semanal enviado sin intervención manual.
-
-## SIGUIENTE ACCIÓN
-
-Eduardo ejecuta los dos scripts SQL en Supabase y pega la `anon key` en `index.html` para
-ver el dashboard con datos reales; en paralelo se arma el Bot de AppSheet del Flujo 1.
-
----
-
-## Estructura
+## Contenido
 
 ```
 dashboard-desempeno-operadores/
-├── index.html                    # Dashboard (autocontenido, Supabase + demo)
+├── index.html                          # Dashboard (conectado a gp-inventario)
 ├── sql/
-│   ├── 01_schema.sql             # Tabla servicios_limpieza
-│   └── 02_vista_kpis.sql         # Vista de KPIs + RPC de ranking
+│   ├── vista_desempeno_operadores.sql  # Vista desplegada (alcance: completados)
+│   └── fase2-puntualidad-calidad.sql   # Ampliación futura (puntualidad + calidad)
 ├── automatizacion/
-│   └── n8n-flujo.md              # 3 flujos: ingesta, cierre diario, reporte semanal
-└── README.md
+│   └── n8n-flujo.md                    # Reporte semanal + alertas
+└── docs/preview.png
 ```
+
+## Puesta en marcha
+
+La vista ya está creada y el dashboard ya trae URL + anon key del proyecto. Para verlo:
+
+1. Abrir `index.html` en el navegador (o publicarlo en Supabase Storage / Vercel / Netlify).
+2. Con la tabla `servicios` vacía, muestra datos de **ejemplo** con un aviso; cuando haya
+   servicios reales, cambia automáticamente a **"Supabase · en vivo"**.
+
+### Nota de seguridad
+
+La vista se expone con la `anon key` (pública, embebida en el HTML) y solo devuelve
+**conteos agregados** por operador y semana — sin datos de cliente. Si el dashboard se
+publica en una URL abierta y se prefiere no exponer ni esos conteos, hospedarlo detrás de
+autenticación (Supabase Auth o el hosting) y revocar el `grant ... to anon`.
+
+## Fase 2 — habilitar puntualidad y calidad
+
+1. Definir en AppSheet la captura de: hora programada, check-in (hora de llegada),
+   checklist (ok/total), calificación del cliente y bandera de retrabajo.
+2. Aplicar `sql/fase2-puntualidad-calidad.sql` (agrega columnas nullable + amplía la vista).
+3. El dashboard ya está preparado para mostrar ambos KPIs en cuanto la vista los entregue.
+
+## SIGUIENTE ACCIÓN
+
+Publicar `index.html` donde el equipo lo consulte y confirmar que los operadores registran
+sus servicios en AppSheet para que el KPI de completados empiece a poblarse.
