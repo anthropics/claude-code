@@ -33,8 +33,25 @@ if [ ! -f "$FILE" ]; then
   exit 1
 fi
 
-# Extract frontmatter
-FRONTMATTER=$(sed -n '/^---$/,/^---$/{ /^---$/d; p; }' "$FILE")
+# Extract only the opening frontmatter block. A range-based sed expression
+# restarts at later Markdown horizontal rules and can mix body text into it.
+FRONTMATTER=$(awk '
+  NR == 1 {
+    if ($0 != "---") exit 1
+    next
+  }
+  /^---$/ {
+    found_end = 1
+    exit
+  }
+  { print }
+  END {
+    if (!found_end) exit 1
+  }
+' "$FILE") || {
+  echo "Error: No frontmatter found in $FILE" >&2
+  exit 1
+}
 
 if [ -z "$FRONTMATTER" ]; then
   echo "Error: No frontmatter found in $FILE" >&2
