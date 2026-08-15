@@ -6,8 +6,20 @@ name: Python package
 on:
   push:
     branches: [ "main" ]
+    paths:
+      - '**.py'
+      - 'requirements.txt'
+      - 'setup.py'
+      - 'setup.cfg'
+      - 'pyproject.toml'
   pull_request:
     branches: [ "main" ]
+    paths:
+      - '**.py'
+      - 'requirements.txt'
+      - 'setup.py'
+      - 'setup.cfg'
+      - 'pyproject.toml'
 
 jobs:
   build:
