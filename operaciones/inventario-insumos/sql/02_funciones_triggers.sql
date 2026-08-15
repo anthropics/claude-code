@@ -1,175 +1,141 @@
--- =====================================================================
--- Grupo Portátil · Módulo de Inventario de Insumos
--- 02_funciones_triggers.sql — Lógica de negocio
--- =====================================================================
--- Contiene:
---   A) trigger que mantiene insumo_existencias al aplicar cada movimiento
---   B) función procesar_cierre_jornada(): el corazón de la automatización
---   C) función registrar_entrada(): alta de stock por compra
--- =====================================================================
+-- ============================================================
+-- Grupo Portátil · Inventario de insumos
+-- 02_funciones_triggers.sql — Funciones de negocio
+-- ============================================================
+-- DESPLEGADO. Migración aplicada: insumos_inventario_funciones
+-- ============================================================
 
--- ------------------------------------------------------------------
--- A) Mantener el saldo vivo (insumo_existencias) desde el ledger
--- ------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION aplicar_movimiento_insumo()
-RETURNS TRIGGER AS $$
-DECLARE
-  v_delta NUMERIC(12,3);
+-- Alertas de stock bajo -> tabla `alertas` existente (sin duplicar abiertas)
+CREATE OR REPLACE FUNCTION revisar_stock_minimo(p_sucursal INT)
+RETURNS void AS $$
 BEGIN
-  -- Delta con signo: entrada suma, salida resta, ajuste usa el signo capturado.
-  v_delta := CASE NEW.tipo
-               WHEN 'entrada' THEN  NEW.cantidad
-               WHEN 'salida'  THEN -NEW.cantidad
-               WHEN 'ajuste'  THEN  NEW.cantidad
-             END;
-
-  INSERT INTO insumo_existencias (insumo_id, plaza, stock_actual, actualizado_en)
-  VALUES (NEW.insumo_id, NEW.plaza, v_delta, NOW())
-  ON CONFLICT (insumo_id, plaza) DO UPDATE
-    SET stock_actual   = insumo_existencias.stock_actual + v_delta,
-        actualizado_en = NOW();
-
-  RETURN NEW;
+  INSERT INTO alertas (tipo, descripcion, entidad_id)
+  SELECT 'INSUMO_BAJO',
+         format('%s en %s: %s %s en existencia (min %s) — pedir %s',
+                i.nombre, su.clave, e.stock_actual, i.unidad_medida, e.stock_minimo,
+                COALESCE(e.stock_reorden, e.stock_minimo * 2)),
+         'insumo:' || i.id || ':suc:' || p_sucursal
+  FROM insumo_existencias e
+  JOIN insumos i    ON i.id = e.insumo_id
+  JOIN sucursales su ON su.id = e.sucursal_id
+  WHERE e.sucursal_id = p_sucursal
+    AND i.activo
+    AND e.stock_actual <= e.stock_minimo
+    AND NOT EXISTS (
+      SELECT 1 FROM alertas a
+      WHERE a.tipo = 'INSUMO_BAJO'
+        AND a.entidad_id = 'insumo:' || i.id || ':suc:' || p_sucursal
+        AND a.resuelta = false
+    );
 END;
 $$ LANGUAGE plpgsql;
 
-DROP TRIGGER IF EXISTS trg_aplicar_movimiento ON movimientos_insumo;
-CREATE TRIGGER trg_aplicar_movimiento
-  AFTER INSERT ON movimientos_insumo
-  FOR EACH ROW EXECUTE FUNCTION aplicar_movimiento_insumo();
-
--- ------------------------------------------------------------------
--- B) Procesar el cierre de una jornada
---    1. Calcula el consumo (declarado por operador, o estimado por BOM).
---    2. Inserta un movimiento de SALIDA por insumo (idempotente).
---    3. Marca las órdenes como descontadas y la jornada como procesada.
---    Devuelve la cantidad de líneas de insumo aplicadas.
---
---    Es SEGURA ante reintentos: si la jornada ya está 'procesada' no hace nada.
--- ------------------------------------------------------------------
--- OUT params con prefijo r_ para no colisionar con columnas (insumo_id, cantidad...)
--- dentro de la consulta (p. ej. en el conflict_target del ON CONFLICT).
--- DROP explícito: CREATE OR REPLACE no permite cambiar los tipos/nombres de OUT.
-DROP FUNCTION IF EXISTS procesar_cierre_jornada(UUID);
-CREATE OR REPLACE FUNCTION procesar_cierre_jornada(p_jornada_id UUID)
-RETURNS TABLE (r_insumo_id UUID, r_sku TEXT, r_cantidad NUMERIC, r_costo NUMERIC) AS $$
+-- Núcleo: procesar el cierre de una RUTA (= jornada de servicio del operador).
+-- Descuenta insumos (real declarado, o estimado por BOM sobre servicios completados).
+-- Idempotente: si la ruta ya está procesada, no hace nada.
+-- La llama n8n vía RPC: SELECT * FROM procesar_cierre_ruta(<ruta_id>);
+CREATE OR REPLACE FUNCTION procesar_cierre_ruta(p_ruta_id INT)
+RETURNS TABLE (r_insumo_id INT, r_sku TEXT, r_cantidad NUMERIC, r_costo NUMERIC) AS $$
 DECLARE
-  v_plaza    TEXT;
-  v_operador TEXT;
-  v_estado   TEXT;
-  v_usar_declarado BOOLEAN;
+  v_sucursal  INT;
+  v_operador  INT;
+  v_fecha     DATE;
+  v_procesado BOOLEAN;
+  v_declarado BOOLEAN;
+  v_nserv     INT;
 BEGIN
-  -- Bloqueo para evitar carreras entre el webhook y el respaldo programado.
-  SELECT j.plaza, j.operador, j.estado
-    INTO v_plaza, v_operador, v_estado
-    FROM jornadas j
-   WHERE j.id = p_jornada_id
-   FOR UPDATE;
+  SELECT sucursal_id, operador_id, fecha, insumos_procesados
+    INTO v_sucursal, v_operador, v_fecha, v_procesado
+    FROM rutas WHERE id = p_ruta_id FOR UPDATE;
 
-  IF NOT FOUND THEN
-    RAISE EXCEPTION 'Jornada % no existe', p_jornada_id;
-  END IF;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Ruta % no existe', p_ruta_id; END IF;
+  IF v_procesado THEN RETURN; END IF;   -- idempotencia dura
+  IF v_sucursal IS NULL THEN RAISE EXCEPTION 'Ruta % sin sucursal_id', p_ruta_id; END IF;
 
-  -- Idempotencia dura: si ya se procesó, salir sin efectos.
-  IF v_estado = 'procesada' THEN
-    RETURN;
-  END IF;
+  v_declarado := EXISTS (SELECT 1 FROM consumo_declarado WHERE ruta_id = p_ruta_id);
+  SELECT count(*) INTO v_nserv
+    FROM servicios s
+   WHERE s.ruta_id = p_ruta_id AND s.completado AND s.insumos_descontados = FALSE;
 
-  -- ¿El operador declaró consumo real? Entonces manda sobre el estimado.
-  v_usar_declarado := EXISTS (SELECT 1 FROM consumo_declarado cd WHERE cd.jornada_id = p_jornada_id);
-
-  -- Construir el consumo agregado por insumo en una CTE temporal.
   RETURN QUERY
   WITH consumo AS (
-    -- Rama 1: consumo REAL declarado por el operador
-    SELECT cd.insumo_id, cd.cantidad::NUMERIC(12,3) AS cantidad
+    -- Real declarado por el operador
+    SELECT cd.insumo_id, cd.cantidad::numeric(12,3) AS cantidad
       FROM consumo_declarado cd
-     WHERE v_usar_declarado AND cd.jornada_id = p_jornada_id
-
+     WHERE v_declarado AND cd.ruta_id = p_ruta_id
     UNION ALL
-
-    -- Rama 2: consumo ESTIMADO por BOM sobre las órdenes completadas de la jornada
-    SELECT ce.insumo_id,
-           SUM(ce.cantidad_por_unidad * COALESCE(ot.unidades, 1))::NUMERIC(12,3) AS cantidad
-      FROM ordenes_trabajo ot
-      JOIN consumo_estandar ce
-        ON ce.tipo_servicio = ot.tipo_servicio
-     WHERE NOT v_usar_declarado
-       AND ot.jornada_id = p_jornada_id
-       AND ot.estado = 'completado'
-       AND ot.insumos_descontados = FALSE
+    -- Estimado por BOM sobre servicios completados de la ruta (1 servicio = 1 unidad)
+    SELECT ce.insumo_id, SUM(ce.cantidad_por_servicio)::numeric(12,3)
+      FROM servicios s
+      JOIN consumo_estandar ce ON ce.tipo_servicio = upper(s.tipo)
+     WHERE NOT v_declarado
+       AND s.ruta_id = p_ruta_id
+       AND s.completado
+       AND s.insumos_descontados = FALSE
      GROUP BY ce.insumo_id
   ),
   agregado AS (
     SELECT c.insumo_id, SUM(c.cantidad) AS cantidad
-      FROM consumo c
-     GROUP BY c.insumo_id
-    HAVING SUM(c.cantidad) > 0
+      FROM consumo c GROUP BY c.insumo_id HAVING SUM(c.cantidad) > 0
   ),
   aplicado AS (
     INSERT INTO movimientos_insumo
-      (insumo_id, plaza, tipo, cantidad, origen, jornada_id, operador, costo_total, nota)
-    SELECT a.insumo_id, v_plaza, 'salida', a.cantidad, 'cierre_jornada',
-           p_jornada_id, v_operador,
+      (insumo_id, sucursal_id, tipo, cantidad, origen, ruta_id, operador_id, fecha_jornada, servicios_contados, costo_total, nota)
+    SELECT a.insumo_id, v_sucursal, 'salida', a.cantidad, 'cierre_ruta',
+           p_ruta_id, v_operador, v_fecha, v_nserv,
            ROUND(a.cantidad * i.costo_unitario, 2),
-           CASE WHEN v_usar_declarado THEN 'Consumo declarado por operador'
-                ELSE 'Consumo estimado por BOM de rutas completadas' END
-      FROM agregado a
-      JOIN insumos i ON i.id = a.insumo_id
-    -- Si por reintento ya existe (jornada_id, insumo_id), no duplica.
-    ON CONFLICT (jornada_id, insumo_id) WHERE origen = 'cierre_jornada'
-    DO NOTHING
+           CASE WHEN v_declarado THEN 'Consumo declarado por operador'
+                ELSE 'Consumo estimado por BOM de servicios completados' END
+      FROM agregado a JOIN insumos i ON i.id = a.insumo_id
+    ON CONFLICT (ruta_id, insumo_id) WHERE origen = 'cierre_ruta' DO NOTHING
     RETURNING movimientos_insumo.insumo_id, movimientos_insumo.cantidad, movimientos_insumo.costo_total
   )
   SELECT ap.insumo_id, i.sku, ap.cantidad, ap.costo_total
-    FROM aplicado ap
-    JOIN insumos i ON i.id = ap.insumo_id;
+    FROM aplicado ap JOIN insumos i ON i.id = ap.insumo_id;
 
-  -- Marcar órdenes de la jornada como descontadas (sincroniza rutas <-> inventario).
-  UPDATE ordenes_trabajo
-     SET insumos_descontados = TRUE
-   WHERE jornada_id = p_jornada_id
-     AND estado = 'completado';
+  -- Sincronizar rutas <-> inventario
+  UPDATE servicios SET insumos_descontados = TRUE
+   WHERE ruta_id = p_ruta_id AND completado;
 
-  -- Cerrar la jornada con totales.
-  UPDATE jornadas j
-     SET estado = 'procesada',
-         procesada_en = NOW(),
-         cerrada_en = COALESCE(j.cerrada_en, NOW()),
-         ordenes_completadas = (SELECT COUNT(*) FROM ordenes_trabajo o
-                                 WHERE o.jornada_id = p_jornada_id AND o.estado = 'completado'),
-         unidades_servidas   = (SELECT COALESCE(SUM(o.unidades),0) FROM ordenes_trabajo o
-                                 WHERE o.jornada_id = p_jornada_id AND o.estado = 'completado'),
-         costo_insumos       = (SELECT COALESCE(SUM(m.costo_total),0) FROM movimientos_insumo m
-                                 WHERE m.jornada_id = p_jornada_id AND m.origen = 'cierre_jornada')
-   WHERE j.id = p_jornada_id;
+  UPDATE rutas
+     SET insumos_procesados = TRUE,
+         procesado_en = now(),
+         costo_insumos = (SELECT COALESCE(SUM(costo_total),0)
+                            FROM movimientos_insumo
+                           WHERE ruta_id = p_ruta_id AND origen = 'cierre_ruta')
+   WHERE id = p_ruta_id;
+
+  PERFORM revisar_stock_minimo(v_sucursal);
 END;
 $$ LANGUAGE plpgsql;
 
-COMMENT ON FUNCTION procesar_cierre_jornada IS 'Descuenta insumos de una jornada (real declarado o estimado por BOM). Idempotente. Llamado por n8n vía RPC.';
+-- Respaldo diario: procesa todas las rutas completadas del día no procesadas.
+-- La llama n8n a las 20:30: SELECT procesar_cierre_dia(1, CURRENT_DATE);
+CREATE OR REPLACE FUNCTION procesar_cierre_dia(p_sucursal INT, p_fecha DATE)
+RETURNS INT AS $$
+DECLARE r RECORD; n INT := 0;
+BEGIN
+  FOR r IN
+    SELECT id FROM rutas
+     WHERE sucursal_id = p_sucursal AND fecha = p_fecha
+       AND estado = 'completada' AND insumos_procesados = FALSE
+  LOOP
+    PERFORM procesar_cierre_ruta(r.id);
+    n := n + 1;
+  END LOOP;
+  RETURN n;
+END;
+$$ LANGUAGE plpgsql;
 
--- ------------------------------------------------------------------
--- C) Alta de stock por compra / reposición
--- ------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION registrar_entrada(
-  p_insumo_id UUID,
-  p_plaza     TEXT,
-  p_cantidad  NUMERIC,
-  p_nota      TEXT DEFAULT NULL
-) RETURNS UUID AS $$
-DECLARE
-  v_id UUID;
-  v_costo NUMERIC(10,2);
+-- Alta de stock por compra/reposición
+CREATE OR REPLACE FUNCTION registrar_entrada(p_insumo_id INT, p_sucursal INT, p_cantidad NUMERIC, p_nota TEXT DEFAULT NULL)
+RETURNS INT AS $$
+DECLARE v_id INT; v_costo NUMERIC(10,2);
 BEGIN
   SELECT costo_unitario INTO v_costo FROM insumos WHERE id = p_insumo_id;
-  INSERT INTO movimientos_insumo
-    (insumo_id, plaza, tipo, cantidad, origen, costo_total, nota)
-  VALUES
-    (p_insumo_id, p_plaza, 'entrada', p_cantidad, 'compra',
-     ROUND(p_cantidad * COALESCE(v_costo,0), 2), p_nota)
+  INSERT INTO movimientos_insumo (insumo_id, sucursal_id, tipo, cantidad, origen, costo_total, nota)
+  VALUES (p_insumo_id, p_sucursal, 'entrada', p_cantidad, 'compra', ROUND(p_cantidad * COALESCE(v_costo,0),2), p_nota)
   RETURNING id INTO v_id;
   RETURN v_id;
 END;
 $$ LANGUAGE plpgsql;
-
-COMMENT ON FUNCTION registrar_entrada IS 'Registra entrada de inventario por compra/reposición y actualiza el saldo.';
