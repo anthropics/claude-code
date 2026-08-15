@@ -1,27 +1,27 @@
 -- ============================================================================
--- Grupo Portátil · Desempeño de operadores — FASE 2 (NO desplegada aún)
+-- Grupo Portátil · Desempeño de operadores — FASE 2 (APLICADA en gp-inventario)
 -- fase2-puntualidad-calidad.sql
 --
 -- Habilita los KPIs de PUNTUALIDAD y CALIDAD DE EJECUCIÓN.
--- La tabla `servicios` actual no tiene con qué calcularlos (no hay hora
--- programada, checklist ni calificación). Este script agrega esos campos
--- de forma NO destructiva (columnas nullable) para que AppSheet los capture.
+-- Agrega a `servicios` los campos de captura (columnas nullable, no destructivo)
+-- y amplía la vista con ambos KPIs. Reversible (drop column / restaurar la vista
+-- de vista_desempeno_operadores.sql).
 --
--- Requiere decisión de negocio antes de aplicar:
---   1. AppSheet debe capturar hora programada y hora de llegada (check-in).
---   2. AppSheet debe capturar checklist (ok/total), calificación y retrabajo.
--- Aplicar con apply_migration solo cuando la captura esté lista.
+-- Pendiente operativo: que AppSheet capture hora programada, hora de llegada
+-- (check-in), checklist (ok/total), calificación del cliente y retrabajo.
+-- Mientras esos campos estén vacíos, la vista devuelve puntualidad_pct y
+-- calidad_score en NULL y el dashboard los muestra como "sin captura".
 -- ============================================================================
 
--- 1) Campos de captura (nullable = no rompe filas existentes) --------------
-alter table servicios add column if not exists hora_programada     timestamptz;
-alter table servicios add column if not exists hora_llegada        timestamptz;  -- check-in real
-alter table servicios add column if not exists checklist_ok        int;
-alter table servicios add column if not exists checklist_total     int;
+-- 1) Campos de captura (nullable = no rompe filas existentes) ----------------
+alter table servicios add column if not exists hora_programada      timestamptz;
+alter table servicios add column if not exists hora_llegada         timestamptz;  -- check-in real
+alter table servicios add column if not exists checklist_ok         int;
+alter table servicios add column if not exists checklist_total      int;
 alter table servicios add column if not exists calificacion_cliente numeric(2,1); -- 1.0 - 5.0
-alter table servicios add column if not exists retrabajo           boolean default false;
+alter table servicios add column if not exists retrabajo            boolean default false;
 
--- 2) Vista ampliada con los tres KPIs --------------------------------------
+-- 2) Vista ampliada con los tres KPIs ---------------------------------------
 create or replace view vista_desempeno_operadores as
 with s as (
   select
@@ -49,7 +49,7 @@ select
   count(*) filter (where con_checkin) as servicios_con_checkin,
   sum(checklist_ok)                   as checklist_ok,
   sum(checklist_total)                as checklist_total,
-  avg(calificacion_cliente)           as calif_cliente_prom,
+  round(avg(calificacion_cliente), 2) as calif_cliente_prom,
   count(*) filter (where retrabajo)   as retrabajos,
   -- KPI puntualidad (%)
   case when count(*) filter (where con_checkin) > 0
@@ -65,5 +65,8 @@ select
 from s
 group by operador, plaza, semana, semana_inicio
 order by semana desc, servicios_completados desc;
+
+comment on view vista_desempeno_operadores is
+  'KPIs de desempeño por operador: servicios completados, puntualidad y calidad (Fase 2).';
 
 grant select on vista_desempeno_operadores to anon;
