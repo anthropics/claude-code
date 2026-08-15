@@ -2,6 +2,34 @@
 set -euo pipefail  # Exit on error, undefined vars, and pipeline failures
 IFS=$'\n\t'       # Stricter word splitting
 
+# Configuration - Domain list as shell array for easy maintenance
+declare -a DYNAMIC_DOMAINS=(
+    "registry.npmjs.org"
+    "api.anthropic.com"
+    "sentry.io"
+    "statsig.anthropic.com"
+    "statsig.com"
+    "marketplace.visualstudio.com"
+    "vscode.blob.core.windows.net"
+    "update.code.visualstudio.com"
+)
+
+# Merge user-specified domains from EXTRA_DOMAINS env var (space-separated)
+if [ -n "${EXTRA_DOMAINS:-}" ]; then
+    IFS=' ' read -ra USER_DOMAINS <<< "$EXTRA_DOMAINS"
+    DYNAMIC_DOMAINS+=("${USER_DOMAINS[@]}")
+fi
+
+# IPSet configuration
+IPSET_STATIC="allowed-static"    # For GitHub and other static IPs
+IPSET_DYNAMIC="allowed-dynamic"  # For dynamically resolved domains
+# TTL must be > refresh interval so IPs are re-added before they expire.
+# CDN-backed domains (Google, Fastly, CloudFront) rotate IPs frequently.
+# The background refresh loop re-resolves all dynamic domains every
+# DNS_REFRESH seconds to track ongoing DNS rotation.
+: "${DNS_TTL:=600}"              # Seconds before dynamic IPs expire from ipset
+: "${DNS_REFRESH:=300}"          # Seconds between DNS refresh cycles
+
 # 1. Extract Docker DNS info BEFORE any flushing
 DOCKER_DNS_RULES=$(iptables-save -t nat | grep "127\.0\.0\.11" || true)
 
@@ -12,6 +40,8 @@ iptables -t nat -F
 iptables -t nat -X
 iptables -t mangle -F
 iptables -t mangle -X
+ipset destroy "$IPSET_STATIC" 2>/dev/null || true
+ipset destroy "$IPSET_DYNAMIC" 2>/dev/null || true
 ipset destroy allowed-domains 2>/dev/null || true
 
 # 2. Selectively restore ONLY internal Docker DNS resolution
@@ -37,8 +67,9 @@ iptables -A INPUT -p tcp --sport 22 -m state --state ESTABLISHED -j ACCEPT
 iptables -A INPUT -i lo -j ACCEPT
 iptables -A OUTPUT -o lo -j ACCEPT
 
-# Create ipset with CIDR support
-ipset create allowed-domains hash:net
+# Create ipsets
+ipset create "$IPSET_STATIC" hash:net
+ipset create "$IPSET_DYNAMIC" hash:ip timeout "$DNS_TTL"
 
 # Fetch GitHub meta information and aggregate + add their IP ranges
 echo "Fetching GitHub IP ranges..."
@@ -59,34 +90,33 @@ while read -r cidr; do
         echo "ERROR: Invalid CIDR range from GitHub meta: $cidr"
         exit 1
     fi
-    echo "Adding GitHub range $cidr"
-    ipset add allowed-domains "$cidr"
-done < <(echo "$gh_ranges" | jq -r '(.web + .api + .git)[]' | aggregate -q)
+    ipset add "$IPSET_STATIC" "$cidr"
+done < <(echo "$gh_ranges" | jq -r '(.web + .api + .git)[]' | aggregate -q 2>/dev/null || echo "$gh_ranges" | jq -r '(.web + .api + .git)[]')
 
-# Resolve and add other allowed domains
-for domain in \
-    "registry.npmjs.org" \
-    "api.anthropic.com" \
-    "sentry.io" \
-    "statsig.anthropic.com" \
-    "statsig.com" \
-    "marketplace.visualstudio.com" \
-    "vscode.blob.core.windows.net" \
-    "update.code.visualstudio.com"; do
+# Resolve and add other allowed domains with TTL.
+# This initial resolution fails loudly on misconfigured domains (exit 1).
+# The background refresh script below tolerates transient DNS failures silently.
+for domain in "${DYNAMIC_DOMAINS[@]}"; do
+    # Raw IPs: add directly, skip DNS resolution
+    if [[ "$domain" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
+        echo "Adding IP $domain directly..."
+        ipset add "$IPSET_DYNAMIC" "$domain" timeout "$DNS_TTL" -exist
+        continue
+    fi
+
     echo "Resolving $domain..."
     ips=$(dig +noall +answer A "$domain" | awk '$4 == "A" {print $5}')
     if [ -z "$ips" ]; then
         echo "ERROR: Failed to resolve $domain"
         exit 1
     fi
-    
+
     while read -r ip; do
         if [[ ! "$ip" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
             echo "ERROR: Invalid IP from DNS for $domain: $ip"
             exit 1
         fi
-        echo "Adding $ip for $domain"
-        ipset add allowed-domains "$ip"
+        ipset add "$IPSET_DYNAMIC" "$ip" timeout "$DNS_TTL" -exist
     done < <(echo "$ips")
 done
 
@@ -114,7 +144,41 @@ iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
 iptables -A OUTPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
 
 # Then allow only specific outbound traffic to allowed domains
-iptables -A OUTPUT -m set --match-set allowed-domains dst -j ACCEPT
+iptables -A OUTPUT -m set --match-set "$IPSET_STATIC" dst -j ACCEPT
+iptables -A OUTPUT -m set --match-set "$IPSET_DYNAMIC" dst -j ACCEPT
+
+# Create DNS refresh script.
+# Unlike the initial resolution above, this tolerates transient DNS failures
+# silently (2>/dev/null) since it runs in a background loop where temporary
+# errors should not interrupt the container.
+cat > /usr/local/bin/refresh-dynamic-domains.sh << EOF
+#!/bin/bash
+IPSET_DYNAMIC="$IPSET_DYNAMIC"
+DNS_TTL=$DNS_TTL
+
+# Domain list passed as arguments
+for domain in "\$@"; do
+    # Raw IPs: re-add directly, skip DNS
+    if [[ "\$domain" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\$ ]]; then
+        ipset add "\$IPSET_DYNAMIC" "\$domain" timeout "\$DNS_TTL" -exist 2>/dev/null
+        continue
+    fi
+    ips=\$(dig +short A "\$domain" 2>/dev/null | grep -E '^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\$')
+    if [ -n "\$ips" ]; then
+        while IFS= read -r ip; do
+            ipset add "\$IPSET_DYNAMIC" "\$ip" timeout "\$DNS_TTL" -exist 2>/dev/null
+        done <<< "\$ips"
+    fi
+done
+EOF
+
+chmod +x /usr/local/bin/refresh-dynamic-domains.sh 2>/dev/null || true
+
+# Start background DNS refresh loop.
+(while true; do
+    sleep "$DNS_REFRESH"
+    /usr/local/bin/refresh-dynamic-domains.sh "${DYNAMIC_DOMAINS[@]}"
+done) &
 
 # Explicitly REJECT all other outbound traffic for immediate feedback
 iptables -A OUTPUT -j REJECT --reject-with icmp-admin-prohibited
