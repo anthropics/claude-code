@@ -151,6 +151,11 @@ if [ ! -f "$TEST_INPUT" ]; then
   exit 1
 fi
 
+if ! command -v jq >/dev/null 2>&1; then
+  echo "Error: jq is required but not installed. See https://jqlang.github.io/jq/download/"
+  exit 1
+fi
+
 # Validate test input JSON
 if ! jq empty "$TEST_INPUT" 2>/dev/null; then
   echo "❌ Error: Test input is not valid JSON"
