@@ -38,6 +38,7 @@ Tests individual hook scripts with sample input before deploying to Claude Code.
 **Options:**
 - `-v, --verbose` - Show detailed execution information
 - `-t, --timeout N` - Set timeout in seconds (default: 60)
+- `-e, --expect D` - Require an `allow`, `deny`, or `ask` decision
 - `--create-sample <event-type>` - Generate sample test input
 
 **Example:**
@@ -50,6 +51,9 @@ Tests individual hook scripts with sample input before deploying to Claude Code.
 
 # Test with verbose output and custom timeout
 ./test-hook.sh -v -t 30 my-hook.sh test-input.json
+
+# Fail unless the hook denies the operation
+./test-hook.sh --expect deny my-hook.sh test-input.json
 ```
 
 **Features:**
@@ -57,6 +61,7 @@ Tests individual hook scripts with sample input before deploying to Claude Code.
 - Measures execution time
 - Validates output JSON
 - Shows exit codes and their meanings
+- Optionally asserts the hook decision
 - Captures environment file output
 
 ## hook-linter.sh
