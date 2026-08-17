@@ -84,6 +84,12 @@ class Rule:
         )
 
 
+def _strip_ansi(text: str) -> str:
+    """Remove ANSI escape sequences from a string."""
+    import re as _re
+    return _re.sub(r'\x1b\[[0-9;]*[A-Za-z]', '', text)
+
+
 def extract_frontmatter(content: str) -> tuple[Dict[str, Any], str]:
     """Extract YAML frontmatter and message body from markdown.
 
@@ -91,6 +97,7 @@ def extract_frontmatter(content: str) -> tuple[Dict[str, Any], str]:
 
     Supports multi-line dictionary items in lists by preserving indentation.
     """
+    content = _strip_ansi(content)
     if not content.startswith('---'):
         return {}, content
 
