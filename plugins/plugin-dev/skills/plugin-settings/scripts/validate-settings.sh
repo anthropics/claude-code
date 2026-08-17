@@ -72,6 +72,21 @@ echo "$FRONTMATTER" | { grep '^[a-z_][a-z0-9_]*:' || true; } | while IFS=':' rea
   echo "  - $key: ${value:0:50}"
 done
 
+# Check 6b: Report keys the detector above skipped, so they are not invisible
+SKIPPED_KEYS=$(echo "$FRONTMATTER" \
+  | { grep '^[A-Za-z_][A-Za-z0-9_-]*:' || true; } \
+  | { grep -v '^[a-z_][a-z0-9_]*:' || true; } \
+  | cut -d: -f1)
+
+if [ -n "$SKIPPED_KEYS" ]; then
+  echo ""
+  echo "⚠️  Keys not listed above in $SETTINGS_FILE:"
+  echo "$SKIPPED_KEYS" | while IFS= read -r key; do
+    echo "  - $key"
+  done
+  echo "   Field names must be lowercase letters, digits or underscore."
+fi
+
 # Check 7: Validate common boolean fields
 for field in enabled strict_mode; do
   VALUE=$(echo "$FRONTMATTER" | grep "^${field}:" | sed "s/${field}: *//" || true)
