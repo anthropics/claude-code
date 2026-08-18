@@ -10,15 +10,17 @@ These may be applied at any level of the [settings hierarchy](https://code.claud
 > [!WARNING]
 > These examples are community-maintained snippets which may be unsupported or incorrect. You are responsible for the correctness of your own settings configuration.
 
-| Setting | [`settings-lax.json`](./settings-lax.json) | [`settings-strict.json`](./settings-strict.json) | [`settings-bash-sandbox.json`](./settings-bash-sandbox.json) |
-|---------|:---:|:---:|:---:|
-| Disable `--dangerously-skip-permissions` | ✅ | ✅ | |
-| Block plugin marketplaces | ✅ | ✅ | |
-| Block user and project-defined permission `allow` / `ask` / `deny` | | ✅ | ✅ |
-| Block user and project-defined hooks | | ✅ | |
-| Deny web fetch and search tools | | ✅ | |
-| Bash tool requires approval | | ✅ | |
-| Bash tool must run inside of sandbox | | | ✅ |
+| Setting | [`settings-lax.json`](./settings-lax.json) | [`settings-strict.json`](./settings-strict.json) | [`settings-bash-sandbox.json`](./settings-bash-sandbox.json) | [`settings-sandbox-filesystem.json`](./settings-sandbox-filesystem.json) |
+|---------|:---:|:---:|:---:|:---:|
+| Disable `--dangerously-skip-permissions` | ✅ | ✅ | | |
+| Block plugin marketplaces | ✅ | ✅ | | |
+| Block user and project-defined permission `allow` / `ask` / `deny` | | ✅ | ✅ | |
+| Block user and project-defined hooks | | ✅ | | |
+| Deny web fetch and search tools | | ✅ | | |
+| Bash tool requires approval | | ✅ | | |
+| Bash tool must run inside of sandbox | | | ✅ | ✅ |
+| Sandbox filesystem restrictions (`allowWrite`, `denyRead`, etc.) | | | | ✅ |
+| Allow skills directory writes in sandbox | | | | ⚠️ |
 
 ## Tips
 - Consider merging snippets of the above examples to reach your desired configuration
