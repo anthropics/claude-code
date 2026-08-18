@@ -78,6 +78,7 @@ Execute bash commands for deterministic checks:
 - `description` field is optional
 - `hooks` field is required wrapper containing actual hook events
 - This is the **plugin-specific format**
+- `matcher` is optional; if omitted, the entry matches everything
 
 **Example:**
 ```json
@@ -383,6 +384,8 @@ In plugins, define hooks in `hooks/hooks.json`:
 Plugin hooks merge with user's hooks and run in parallel.
 
 ## Matchers
+
+**Important:** `matcher` is optional. If you omit it, the hook matches everything for that event.
 
 ### Tool Name Matching
 
