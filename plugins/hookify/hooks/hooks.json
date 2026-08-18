@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse.py",
+            "command": "bash -c 'R=$(echo \"$CLAUDE_PLUGIN_ROOT\" | tr \\\\ /); bash \"$R/hooks/hfy-python.sh\" \"$R/hooks/pretooluse.py\"'",
             "timeout": 10
           }
         ]
@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse.py",
+            "command": "bash -c 'R=$(echo \"$CLAUDE_PLUGIN_ROOT\" | tr \\\\ /); bash \"$R/hooks/hfy-python.sh\" \"$R/hooks/posttooluse.py\"'",
             "timeout": 10
           }
         ]
@@ -28,7 +28,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/stop.py",
+            "command": "bash -c 'R=$(echo \"$CLAUDE_PLUGIN_ROOT\" | tr \\\\ /); bash \"$R/hooks/hfy-python.sh\" \"$R/hooks/stop.py\"'",
             "timeout": 10
           }
         ]
@@ -39,7 +39,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/userpromptsubmit.py",
+            "command": "bash -c 'R=$(echo \"$CLAUDE_PLUGIN_ROOT\" | tr \\\\ /); bash \"$R/hooks/hfy-python.sh\" \"$R/hooks/userpromptsubmit.py\"'",
             "timeout": 10
           }
         ]
