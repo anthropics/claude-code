@@ -1,0 +1,40 @@
+--- a/src/tools/SendMessageTool/SendMessageTool.ts
++++ b/src/tools/SendMessageTool/SendMessageTool.ts
+@@ -82,6 +82,12 @@ const inputSchema = lazySchema(() =>
+     message: z.union([
+       z.string().describe('Plain text message content'),
+       StructuredMessage(),
+     ]),
++    urgent: z
++      .boolean()
++      .optional()
++      .describe(
++        'When true, interrupts the target agent mid-tool-batch so it processes this message immediately instead of waiting for all queued tool calls to finish. Use for corrections, cancellations, or priority redirects.',
++      ),
+   }),
+ )
+
+@@ -809,12 +815,22 @@ export function createSendMessageTool(
+           if (task.status === 'running') {
+               queuePendingMessage(
+                 agentId,
+                 input.message,
+                 context.setAppStateForTasks ?? context.setAppState,
+               )
++              // When urgent, abort the agent's current operation so it
++              // processes the message immediately instead of finishing
++              // the entire tool batch first. The 'message_interrupt'
++              // reason distinguishes this from user Ctrl+C aborts.
++              if (input.urgent && task.abortController) {
++                task.abortController.abort('message_interrupt')
++              }
+               return {
+                 data: {
+                   success: true,
+-                  message: `Message queued for delivery to ${input.to} at its next tool round.`,
++                  message: input.urgent
++                    ? `Urgent message delivered to ${input.to} — agent interrupted mid-execution.`
++                    : `Message queued for delivery to ${input.to} at its next tool round.`,
+                 },
+               }
+             }
