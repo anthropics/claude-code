@@ -1,0 +1,9 @@
+{
+  "name": "desktop-session-sync",
+  "version": "1.0.0",
+  "description": "Bridges CLI session history into the Claude desktop app so conversations started in the CLI appear in the desktop app's conversation list",
+  "author": {
+    "name": "giruuuuj",
+    "url": "https://github.com/giruuuuj"
+  }
+}
