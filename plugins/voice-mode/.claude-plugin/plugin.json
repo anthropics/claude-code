@@ -1,0 +1,10 @@
+{
+  "name": "voice-mode",
+  "description": "Adds a /voice command to enable, disable, or check the status of voice mode",
+  "version": "1.0.0",
+  "author": {
+    "name": "Anthropic",
+    "email": "support@anthropic.com"
+  },
+  "keywords": ["voice", "voice-mode", "accessibility"]
+}
