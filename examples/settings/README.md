@@ -30,6 +30,24 @@ These may be applied at any level of the [settings hierarchy](https://code.claud
 
 To distribute these settings as enterprise-managed policy through Jamf, Iru (Kandji), Intune, or Group Policy, see the deployment templates in [`../mdm`](../mdm).
 
+## Troubleshooting
+
+### Terminal infinite scrolling / ENOBUFS crash
+
+In long sessions (80k-130k+ tokens), the terminal may scroll
+uncontrollably or crash with `write ENOBUFS`. The TUI renderer
+floods stdout faster than the terminal's write buffer can consume.
+
+**Workarounds**:
+- `/compact` frequently to reduce rendered history
+- Use tmux: `tmux new-session -s claude "claude"`
+- Reduce terminal scrollback to 1000 lines
+- Start fresh sessions instead of resuming long ones
+- Use headless mode: `claude -p "task" > output.md`
+- Press Ctrl+Z then `fg` to reset terminal state
+
+See issue [#2118](https://github.com/anthropics/claude-code/issues/2118).
+
 ## Full Documentation
 
 See https://code.claude.com/docs/en/settings for complete documentation on all available managed settings.
