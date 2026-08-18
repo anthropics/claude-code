@@ -86,8 +86,8 @@ Environment Variables:
   }
   console.log("[DEBUG] GitHub token found");
 
-  const owner = "anthropics";
-  const repo = "claude-code";
+  const owner = process.env.GITHUB_REPOSITORY_OWNER || "anthropics";
+  const repo = process.env.GITHUB_REPOSITORY_NAME || "claude-code";
   const dryRun = process.env.DRY_RUN !== "false";
   const maxIssueNumber = parseInt(process.env.MAX_ISSUE_NUMBER || "4050", 10);
   const minIssueNumber = parseInt(process.env.MIN_ISSUE_NUMBER || "1", 10);
@@ -110,8 +110,8 @@ Environment Variables:
     if (pageIssues.length === 0) break;
     
     // Filter to only include issues within the specified range
-    const filteredIssues = pageIssues.filter(issue => 
-      issue.number >= minIssueNumber && issue.number < maxIssueNumber
+    const filteredIssues = pageIssues.filter(issue =>
+      issue.number >= minIssueNumber && issue.number <= maxIssueNumber
     );
     allIssues.push(...filteredIssues);
     

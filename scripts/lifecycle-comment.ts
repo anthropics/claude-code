@@ -18,7 +18,7 @@ if (!issueNumber) throw new Error("ISSUE_NUMBER required");
 
 const entry = lifecycle.find((l) => l.label === label);
 if (!entry) {
-  console.log(`No lifecycle entry for label "${label}", skipping`);
+  console.warn(`Warning: no lifecycle entry found for label "${label}" — check for a typo in the label name`);
   process.exit(0);
 }
 
