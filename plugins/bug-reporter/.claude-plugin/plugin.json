@@ -1,0 +1,9 @@
+{
+  "name": "bug-reporter",
+  "description": "File bug reports and feature requests directly to the Claude Code GitHub repository without leaving the terminal",
+  "version": "1.0.0",
+  "author": {
+    "name": "Anthropic",
+    "email": "support@anthropic.com"
+  }
+}
