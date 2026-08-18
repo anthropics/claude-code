@@ -153,6 +153,8 @@ Check:
 ### Hook fails silently
 
 - Check exit codes (should be 0 or 2)
+- Use exit code `2` for blocking enforcement; exit code `1` is non-blocking
+  and the tool call continues
 - Ensure errors go to stderr (`>&2`)
 - Validate JSON output structure
 

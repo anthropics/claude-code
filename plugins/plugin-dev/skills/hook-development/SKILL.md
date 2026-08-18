@@ -297,6 +297,11 @@ Execute when Claude sends notifications. Use to react to user notifications.
 - `2` - Blocking error (stderr fed back to Claude)
 - Other - Non-blocking error
 
+**Warning:** Only exit code `2` blocks tool execution. Exit code `1` and
+all other non-zero codes are treated as non-blocking errors, so the tool call
+continues. Use `exit 2` or `sys.exit(2)` for enforcement hooks that must
+prevent an action.
+
 ## Hook Input Format
 
 All hooks receive JSON via stdin with common fields:
