@@ -38,7 +38,16 @@ echo "✅ Valid JSON"
 # Check 2: Root structure
 echo ""
 echo "Checking root structure..."
-VALID_EVENTS=("PreToolUse" "PostToolUse" "UserPromptSubmit" "Stop" "SubagentStop" "SessionStart" "SessionEnd" "PreCompact" "Notification")
+VALID_EVENTS=(
+  "SessionStart" "Setup" "UserPromptSubmit" "UserPromptExpansion"
+  "PreToolUse" "PermissionRequest" "PermissionDenied" "PostToolUse"
+  "PostToolUseFailure" "PostToolBatch" "Notification" "MessageDisplay"
+  "SubagentStart" "SubagentStop" "TaskCreated" "TaskCompleted"
+  "Stop" "StopFailure" "TeammateIdle" "InstructionsLoaded"
+  "ConfigChange" "CwdChanged" "FileChanged" "WorktreeCreate"
+  "WorktreeRemove" "PreCompact" "PostCompact" "Elicitation"
+  "ElicitationResult" "SessionEnd"
+)
 
 for event in $(jq -r 'keys[]' "$HOOKS_FILE"); do
   found=false
@@ -94,11 +103,14 @@ for event in $(jq -r 'keys[]' "$HOOKS_FILE"); do
         continue
       fi
 
-      if [ "$hook_type" != "command" ] && [ "$hook_type" != "prompt" ]; then
-        echo "❌ $event[$i].hooks[$j]: Invalid type '$hook_type' (must be 'command' or 'prompt')"
-        ((error_count++))
-        continue
-      fi
+      case "$hook_type" in
+        command|prompt|http|mcp_tool|agent) ;;
+        *)
+          echo "❌ $event[$i].hooks[$j]: Invalid type '$hook_type' (must be 'command', 'prompt', 'http', 'mcp_tool', or 'agent')"
+          ((error_count++))
+          continue
+          ;;
+      esac
 
       # Check type-specific fields
       if [ "$hook_type" = "command" ]; then
@@ -124,6 +136,29 @@ for event in $(jq -r 'keys[]' "$HOOKS_FILE"); do
         if [ "$event" != "Stop" ] && [ "$event" != "SubagentStop" ] && [ "$event" != "UserPromptSubmit" ] && [ "$event" != "PreToolUse" ]; then
           echo "⚠️  $event[$i].hooks[$j]: Prompt hooks may not be fully supported on $event (best on Stop, SubagentStop, UserPromptSubmit, PreToolUse)"
           ((warning_count++))
+        fi
+      elif [ "$hook_type" = "http" ]; then
+        url=$(jq -r ".\"$event\"[$i].hooks[$j].url // empty" "$HOOKS_FILE")
+        if [ -z "$url" ]; then
+          echo "❌ $event[$i].hooks[$j]: HTTP hooks must have 'url' field"
+          ((error_count++))
+        fi
+      elif [ "$hook_type" = "mcp_tool" ]; then
+        server=$(jq -r ".\"$event\"[$i].hooks[$j].server // empty" "$HOOKS_FILE")
+        if [ -z "$server" ]; then
+          echo "❌ $event[$i].hooks[$j]: MCP tool hooks must have 'server' field"
+          ((error_count++))
+        fi
+        tool=$(jq -r ".\"$event\"[$i].hooks[$j].tool // empty" "$HOOKS_FILE")
+        if [ -z "$tool" ]; then
+          echo "❌ $event[$i].hooks[$j]: MCP tool hooks must have 'tool' field"
+          ((error_count++))
+        fi
+      elif [ "$hook_type" = "agent" ]; then
+        prompt=$(jq -r ".\"$event\"[$i].hooks[$j].prompt // empty" "$HOOKS_FILE")
+        if [ -z "$prompt" ]; then
+          echo "❌ $event[$i].hooks[$j]: Agent hooks must have 'prompt' field"
+          ((error_count++))
         fi
       fi
 

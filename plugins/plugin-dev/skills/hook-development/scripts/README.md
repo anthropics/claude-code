@@ -15,7 +15,7 @@ Validates `hooks.json` configuration files for correct structure and common issu
 - Valid JSON syntax
 - Required fields present
 - Valid hook event names
-- Proper hook types (command/prompt)
+- Proper hook types (command/prompt/http/mcp_tool/agent)
 - Timeout values in valid ranges
 - Hardcoded path detection
 - Prompt hook event compatibility
