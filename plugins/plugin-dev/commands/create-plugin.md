@@ -250,7 +250,7 @@ Guide the user through creating a complete, high-quality Claude Code plugin from
    - Apply recommendations
 
 4. **Test agent triggering** (if plugin has agents):
-   - For each agent, verify <example> blocks are clear
+   - For each agent, verify `<example>` blocks are clear
    - Check triggering conditions are specific
    - Run validate-agent.sh on agent files
 
