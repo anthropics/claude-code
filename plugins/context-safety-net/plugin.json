@@ -1,0 +1,21 @@
+{
+  "name": "context-safety-net",
+  "version": "1.0.0",
+  "description": "Auto-snapshots context state before compaction, tracks anchor files, provides explicit restore and diff comparison.",
+  "author": "Claude Code",
+  "hooks": {
+    "PreCompact": [
+      { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/pre-compact-snapshot.sh" }
+    ],
+    "PostCompact": [
+      { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/post-compact-check.sh" }
+    ]
+  },
+  "commands": [
+    { "name": "snapshot", "description": "Create a manual context snapshot" },
+    { "name": "list-snapshots", "description": "List all context snapshots" },
+    { "name": "restore", "description": "Restore anchor files into context" },
+    { "name": "compare", "description": "Compare current state to a snapshot" }
+  ],
+  "statusline": "${CLAUDE_PLUGIN_ROOT}/statusline/safety-net-hud.sh"
+}
