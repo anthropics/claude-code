@@ -106,6 +106,17 @@ Only use exec() if you absolutely need shell features and the input is guarantee
         "reminder": "⚠️ Security Warning: eval() executes arbitrary code and is a major security risk. Use JSON.parse() for data, ast.literal_eval() for Python literals, or a safe expression parser. If this is safe or is explicitly needed, briefly document that in a comment before continuing.",
     },
     {
+        "ruleName": "python_exec_injection",
+        # Python's exec() builtin — an RCE sink at least as dangerous as eval()
+        # (it runs statements, not just expressions). Python-only: the JS/TS
+        # exec( sinks are child_process_exec's job. Same lookbehind as that rule
+        # excludes `.exec(` method calls and `_exec(` suffixes, so the safe
+        # asyncio.create_subprocess_exec( does not match.
+        "path_filter": lambda p: p.endswith(_PY_EXTS),
+        "regex": r"(?<![a-zA-Z0-9_\.])exec\(",
+        "reminder": "⚠️ Security Warning: exec() runs arbitrary Python and is a code-injection sink — more dangerous than eval(), since it executes statements, not just a single expression. If any part of the string is attacker-influenced this is remote code execution. Prefer a data format (JSON) or an explicit dispatch table / getattr() against an allowlist instead of executing generated source. If this is safe or is explicitly needed, briefly document that in a comment before continuing.",
+    },
+    {
         "ruleName": "react_dangerously_set_html",
         "substrings": ["dangerouslySetInnerHTML"],
         "reminder": "⚠️ Security Warning: dangerouslySetInnerHTML can lead to XSS vulnerabilities if used with untrusted content. Ensure all content is properly sanitized using an HTML sanitizer library like DOMPurify, or use safe alternatives.",
@@ -295,6 +306,7 @@ class RuleId(IntEnum):
     TORCH_UNSAFE_LOAD = 23
     YAML_UNSAFE_LOAD_VARIANTS = 24
     PICKLE_WRAPPER_LOAD = 25
+    PYTHON_EXEC_INJECTION = 26
 
 
 _RULE_NAME_TO_ID = {
@@ -302,6 +314,7 @@ _RULE_NAME_TO_ID = {
     "child_process_exec": RuleId.CHILD_PROCESS_EXEC,
     "new_function_injection": RuleId.NEW_FUNCTION_INJECTION,
     "eval_injection": RuleId.EVAL_INJECTION,
+    "python_exec_injection": RuleId.PYTHON_EXEC_INJECTION,
     "react_dangerously_set_html": RuleId.REACT_DANGEROUSLY_SET_HTML,
     "document_write_xss": RuleId.DOCUMENT_WRITE_XSS,
     "innerHTML_xss": RuleId.INNERHTML_XSS,
