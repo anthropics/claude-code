@@ -199,7 +199,10 @@ def load_rules(event: Optional[str] = None) -> List[Rule]:
     """Load all hookify rules from .claude directory.
 
     Args:
-        event: Optional event filter ("bash", "file", "stop", etc.)
+        event: Optional event filter ("bash", "file", "stop", "all", etc.)
+               If None, load all enabled rules.
+               If "all", load only rules tagged with event="all" (universal rules for unknown tools).
+               Otherwise, load rules matching the event OR tagged with event="all".
 
     Returns:
         List of enabled Rule objects matching the event.

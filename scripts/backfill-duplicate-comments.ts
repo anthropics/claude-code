@@ -107,7 +107,7 @@ Environment Variables:
       token
     );
     
-    if (pageIssues.length === 0) break;
+    if (pageIssues.length < perPage) break;
     
     // Filter to only include issues within the specified range
     const filteredIssues = pageIssues.filter(issue => 
