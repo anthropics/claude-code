@@ -1,0 +1,5 @@
+{
+  "name": "gpg-pinentry-guard",
+  "version": "1.0.0",
+  "description": "PreToolUse hook that prevents broken GPG pinentry prompts by detecting when git signing would launch a terminal-based pinentry that conflicts with Claude Code's terminal control"
+}
