@@ -1,0 +1,11 @@
+[package]
+name = "claude-fs"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+claude-core = { workspace = true }
+tokio = { workspace = true }
+dashmap = { workspace = true }
+ignore = { workspace = true }
+

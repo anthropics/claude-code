@@ -1,0 +1,33 @@
+[package]
+name = "claude-lsp"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description = "Language Server Protocol client for IDE features"
+
+[dependencies]
+claude-core = { path = "../claude-core" }
+
+# Async runtime
+tokio = { workspace = true }
+async-trait = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Error handling
+thiserror = { workspace = true }
+
+# Tracing
+tracing = { workspace = true }
+
+# URL parsing
+url = { workspace = true }
+
+[dev-dependencies]
+tokio-test = "0.4"
+
