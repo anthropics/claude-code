@@ -30,6 +30,32 @@ These may be applied at any level of the [settings hierarchy](https://code.claud
 
 To distribute these settings as enterprise-managed policy through Jamf, Iru (Kandji), Intune, or Group Policy, see the deployment templates in [`../mdm`](../mdm).
 
+## Troubleshooting
+
+### SSH remote session fails with corrupted local plugin/skill archive
+
+Claude Code auto-uploads local plugins and skills when connecting to a
+remote machine via SSH. If any local plugin/skill archive is corrupted
+(e.g. truncated tar, invalid JSON in `plugin.json`, missing manifest),
+the transfer fails and surfaces as a generic SSH connection error.
+
+**Workaround**: disable all plugins before connecting, then re-enable
+one at a time to find the corrupted archive:
+```bash
+# Disable all plugins temporarily
+claude plugins:disable --all
+# Re-enable one at a time and test SSH remote
+claude plugins:enable <plugin-name>
+```
+
+**Check your plugins directory**:
+- Windows: `%APPDATA%\Claude\plugins\`
+- macOS/Linux: `~/.claude/plugins/`
+
+Look for archives that are smaller than expected or fail to extract.
+
+See issue [#61963](https://github.com/anthropics/claude-code/issues/61963).
+
 ## Full Documentation
 
 See https://code.claude.com/docs/en/settings for complete documentation on all available managed settings.
