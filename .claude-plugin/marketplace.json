@@ -145,6 +145,16 @@
       },
       "source": "./plugins/security-guidance",
       "category": "security"
+    },
+    {
+      "name": "account-profiles",
+      "description": "Manage isolated Claude Code launch profiles for personal, work, and client accounts without copying credentials",
+      "version": "0.1.0",
+      "author": {
+        "name": "Osalumense"
+      },
+      "source": "./plugins/account-profiles",
+      "category": "productivity"
     }
   ]
 }
