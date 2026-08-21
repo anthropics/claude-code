@@ -63,6 +63,8 @@ class Rule:
                 field = 'command'
             elif event == 'file':
                 field = 'new_text'
+            elif event in ('stop', 'stop_failure'):
+                field = 'reason'
             else:
                 field = 'content'
 
