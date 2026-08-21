@@ -1,0 +1,16 @@
+{
+  "description": "Checks the correct package source for the installation method and reports accurate update status",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks-handlers/check-update.sh",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}
