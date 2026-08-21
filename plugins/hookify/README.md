@@ -68,6 +68,16 @@ Enable/disable existing rules through an interactive interface.
 /hookify:help
 ```
 
+**Test a rule against sample input:**
+```
+/hookify:test
+```
+
+**Diagnose all rule files:**
+```
+/hookify:doctor
+```
+
 ## Rule Configuration Format
 
 ### Simple Rule (Single Pattern)
@@ -286,6 +296,26 @@ rm .claude/hookify.my-rule.local.md
 /hookify:list
 ```
 
+### Test a Rule
+
+```
+/hookify:test
+```
+
+This command helps you replay a rule against sample hook input so you can see whether it actually matches and which condition failed.
+
+### Run Diagnostics
+
+```
+/hookify:doctor
+```
+
+This command scans all `.claude/hookify.*.local.md` files and reports:
+- parse/frontmatter errors
+- invalid regex patterns
+- unsupported events, actions, or operators
+- duplicate rule names
+
 ## Installation
 
 This plugin is part of the Claude Code Marketplace. It should be auto-discovered when the marketplace is installed.
@@ -308,6 +338,8 @@ cc --plugin-dir /path/to/hookify
 3. Test regex pattern separately
 4. Rules should work immediately - no restart needed
 5. Try `/hookify:list` to see if rule is loaded
+6. Run `/hookify:doctor` to validate the rule file itself
+7. Run `/hookify:test` to replay the rule with sample input
 
 **Import errors:**
 - Ensure Python 3 is available: `python3 --version`
