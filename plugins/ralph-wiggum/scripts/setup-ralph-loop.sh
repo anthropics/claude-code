@@ -7,7 +7,8 @@ set -euo pipefail
 
 # Parse arguments
 PROMPT_PARTS=()
-MAX_ITERATIONS=0
+DEFAULT_MAX_ITERATIONS=5
+MAX_ITERATIONS=$DEFAULT_MAX_ITERATIONS
 COMPLETION_PROMISE="null"
 
 # Parse options and positional arguments
@@ -24,7 +25,7 @@ ARGUMENTS:
   PROMPT...    Initial prompt to start the loop (can be multiple words without quotes)
 
 OPTIONS:
-  --max-iterations <n>           Maximum iterations before auto-stop (default: unlimited)
+  --max-iterations <n>           Maximum iterations before auto-stop (default: 5)
   --completion-promise '<text>'  Promise phrase (USE QUOTES for multi-word)
   -h, --help                     Show this help message
 
@@ -42,12 +43,11 @@ DESCRIPTION:
 EXAMPLES:
   /ralph-loop Build a todo API --completion-promise 'DONE' --max-iterations 20
   /ralph-loop --max-iterations 10 Fix the auth bug
-  /ralph-loop Refactor cache layer  (runs forever)
+  /ralph-loop Refactor cache layer  (runs up to 5 iterations)
   /ralph-loop --completion-promise 'TASK COMPLETE' Create a REST API
 
 STOPPING:
-  Only by reaching --max-iterations or detecting --completion-promise
-  No manual stop - Ralph runs infinitely by default!
+  By reaching --max-iterations, detecting --completion-promise, or /cancel-ralph.
 
 MONITORING:
   # View current iteration:
@@ -65,18 +65,18 @@ HELP_EOF
         echo "   Valid examples:" >&2
         echo "     --max-iterations 10" >&2
         echo "     --max-iterations 50" >&2
-        echo "     --max-iterations 0  (unlimited)" >&2
+        echo "     --max-iterations $DEFAULT_MAX_ITERATIONS" >&2
         echo "" >&2
         echo "   You provided: --max-iterations (with no number)" >&2
         exit 1
       fi
-      if ! [[ "$2" =~ ^[0-9]+$ ]]; then
-        echo "❌ Error: --max-iterations must be a positive integer or 0, got: $2" >&2
+      if ! [[ "$2" =~ ^[1-9][0-9]*$ ]]; then
+        echo "❌ Error: --max-iterations must be a positive integer, got: $2" >&2
         echo "" >&2
         echo "   Valid examples:" >&2
         echo "     --max-iterations 10" >&2
         echo "     --max-iterations 50" >&2
-        echo "     --max-iterations 0  (unlimited)" >&2
+        echo "     --max-iterations $DEFAULT_MAX_ITERATIONS" >&2
         echo "" >&2
         echo "   Invalid: decimals (10.5), negative numbers (-5), text" >&2
         exit 1
@@ -132,7 +132,9 @@ mkdir -p .claude
 
 # Quote completion promise for YAML if it contains special chars or is not null
 if [[ -n "$COMPLETION_PROMISE" ]] && [[ "$COMPLETION_PROMISE" != "null" ]]; then
-  COMPLETION_PROMISE_YAML="\"$COMPLETION_PROMISE\""
+  COMPLETION_PROMISE_ESCAPED=${COMPLETION_PROMISE//\\/\\\\}
+  COMPLETION_PROMISE_ESCAPED=${COMPLETION_PROMISE_ESCAPED//\"/\\\"}
+  COMPLETION_PROMISE_YAML="\"$COMPLETION_PROMISE_ESCAPED\""
 else
   COMPLETION_PROMISE_YAML="null"
 fi
@@ -154,7 +156,7 @@ cat <<EOF
 🔄 Ralph loop activated in this session!
 
 Iteration: 1
-Max iterations: $(if [[ $MAX_ITERATIONS -gt 0 ]]; then echo $MAX_ITERATIONS; else echo "unlimited"; fi)
+Max iterations: $MAX_ITERATIONS
 Completion promise: $(if [[ "$COMPLETION_PROMISE" != "null" ]]; then echo "${COMPLETION_PROMISE//\"/} (ONLY output when TRUE - do not lie!)"; else echo "none (runs forever)"; fi)
 
 The stop hook is now active. When you try to exit, the SAME PROMPT will be
@@ -163,8 +165,9 @@ self-referential loop where you iteratively improve on the same task.
 
 To monitor: head -10 .claude/ralph-loop.local.md
 
-⚠️  WARNING: This loop cannot be stopped manually! It will run infinitely
-    unless you set --max-iterations or --completion-promise.
+⚠️  WARNING: Ralph is experimental. It must not be used for unattended merge,
+    publish, or deploy decisions. The loop guard blocks common high-risk
+    commands while the loop is active.
 
 🔄
 EOF

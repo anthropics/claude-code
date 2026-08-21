@@ -125,17 +125,6 @@
       "category": "productivity"
     },
     {
-      "name": "ralph-wiggum",
-      "description": "Interactive self-referential AI loops for iterative development. Claude works on the same task repeatedly, seeing its previous work, until completion.",
-      "version": "1.0.0",
-      "author": {
-        "name": "Daisy Hollman",
-        "email": "daisy@anthropic.com"
-      },
-      "source": "./plugins/ralph-wiggum",
-      "category": "development"
-    },
-    {
       "name": "security-guidance",
       "description": "Security reminder hook that warns about potential security issues when editing files, including command injection, XSS, and unsafe code patterns",
       "version": "1.0.0",
