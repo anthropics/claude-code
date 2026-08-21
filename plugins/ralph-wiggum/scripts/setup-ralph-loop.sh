@@ -2,19 +2,16 @@
 
 # Ralph Loop Setup Script
 # Creates state file for in-session Ralph loop
+#
+# Arguments arrive as raw text on stdin (fed via a quoted heredoc from
+# ralph-loop.md) so prompt text is never parsed as shell code. Quotes,
+# semicolons, $(), and newlines in the prompt are all treated literally.
+# Direct invocation with positional arguments still works for manual use.
 
 set -euo pipefail
 
-# Parse arguments
-PROMPT_PARTS=()
-MAX_ITERATIONS=0
-COMPLETION_PROMISE="null"
-
-# Parse options and positional arguments
-while [[ $# -gt 0 ]]; do
-  case $1 in
-    -h|--help)
-      cat << 'HELP_EOF'
+show_help() {
+  cat << 'HELP_EOF'
 Ralph Loop - Interactive self-referential development loop
 
 USAGE:
@@ -56,61 +53,101 @@ MONITORING:
   # View full state:
   head -10 .claude/ralph-loop.local.md
 HELP_EOF
-      exit 0
-      ;;
-    --max-iterations)
-      if [[ -z "${2:-}" ]]; then
-        echo "❌ Error: --max-iterations requires a number argument" >&2
-        echo "" >&2
-        echo "   Valid examples:" >&2
-        echo "     --max-iterations 10" >&2
-        echo "     --max-iterations 50" >&2
-        echo "     --max-iterations 0  (unlimited)" >&2
-        echo "" >&2
-        echo "   You provided: --max-iterations (with no number)" >&2
-        exit 1
-      fi
-      if ! [[ "$2" =~ ^[0-9]+$ ]]; then
-        echo "❌ Error: --max-iterations must be a positive integer or 0, got: $2" >&2
-        echo "" >&2
-        echo "   Valid examples:" >&2
-        echo "     --max-iterations 10" >&2
-        echo "     --max-iterations 50" >&2
-        echo "     --max-iterations 0  (unlimited)" >&2
-        echo "" >&2
-        echo "   Invalid: decimals (10.5), negative numbers (-5), text" >&2
-        exit 1
-      fi
-      MAX_ITERATIONS="$2"
-      shift 2
-      ;;
-    --completion-promise)
-      if [[ -z "${2:-}" ]]; then
-        echo "❌ Error: --completion-promise requires a text argument" >&2
-        echo "" >&2
-        echo "   Valid examples:" >&2
-        echo "     --completion-promise 'DONE'" >&2
-        echo "     --completion-promise 'TASK COMPLETE'" >&2
-        echo "     --completion-promise 'All tests passing'" >&2
-        echo "" >&2
-        echo "   You provided: --completion-promise (with no text)" >&2
-        echo "" >&2
-        echo "   Note: Multi-word promises must be quoted!" >&2
-        exit 1
-      fi
-      COMPLETION_PROMISE="$2"
-      shift 2
-      ;;
-    *)
-      # Non-option argument - collect all as prompt parts
-      PROMPT_PARTS+=("$1")
-      shift
-      ;;
-  esac
-done
+}
 
-# Join all prompt parts with spaces
-PROMPT="${PROMPT_PARTS[*]}"
+# Read raw argument text: positional arguments when invoked directly,
+# otherwise stdin (the heredoc from ralph-loop.md)
+if [[ $# -gt 0 ]]; then
+  RAW="$*"
+elif [[ ! -t 0 ]]; then
+  RAW="$(cat)"
+else
+  RAW=""
+fi
+
+# Normalize Windows line endings
+RAW="${RAW//$'\r'/}"
+
+if [[ "$RAW" =~ (^|[[:space:]])(-h|--help)([[:space:]]|$) ]]; then
+  show_help
+  exit 0
+fi
+
+MAX_ITERATIONS=0
+COMPLETION_PROMISE="null"
+
+# Extract --completion-promise <text> from the raw text.
+# Quotes are literal characters here, so recognize 'quoted', "quoted",
+# and bare single-word forms explicitly. Parsed before --max-iterations
+# so a quoted promise containing flag-like text is consumed first.
+RE_PROMISE_SQ="--completion-promise[[:space:]]+'([^']*)'"
+RE_PROMISE_DQ='--completion-promise[[:space:]]+"([^"]*)"'
+RE_PROMISE_BARE='--completion-promise[[:space:]]+([^[:space:]]+)'
+if [[ "$RAW" == *--completion-promise* ]]; then
+  if [[ "$RAW" =~ $RE_PROMISE_SQ ]] || [[ "$RAW" =~ $RE_PROMISE_DQ ]] || [[ "$RAW" =~ $RE_PROMISE_BARE ]]; then
+    PROMISE_MATCH="${BASH_REMATCH[0]}"
+    COMPLETION_PROMISE="${BASH_REMATCH[1]}"
+  fi
+  if [[ -z "$COMPLETION_PROMISE" ]] || [[ "$COMPLETION_PROMISE" == "null" ]]; then
+    echo "❌ Error: --completion-promise requires a text argument" >&2
+    echo "" >&2
+    echo "   Valid examples:" >&2
+    echo "     --completion-promise 'DONE'" >&2
+    echo "     --completion-promise 'TASK COMPLETE'" >&2
+    echo "     --completion-promise 'All tests passing'" >&2
+    echo "" >&2
+    echo "   You provided: --completion-promise (with no text)" >&2
+    echo "" >&2
+    echo "   Note: Multi-word promises must be quoted!" >&2
+    exit 1
+  fi
+  RAW="${RAW/"$PROMISE_MATCH"/ }"
+fi
+
+# Extract --max-iterations <n> from the raw text
+if [[ "$RAW" == *--max-iterations* ]]; then
+  if [[ "$RAW" =~ --max-iterations[[:space:]]+([^[:space:]]+) ]]; then
+    MAX_ITER_MATCH="${BASH_REMATCH[0]}"
+    MAX_ITER_VALUE="${BASH_REMATCH[1]}"
+    if ! [[ "$MAX_ITER_VALUE" =~ ^[0-9]+$ ]]; then
+      echo "❌ Error: --max-iterations must be a positive integer or 0, got: $MAX_ITER_VALUE" >&2
+      echo "" >&2
+      echo "   Valid examples:" >&2
+      echo "     --max-iterations 10" >&2
+      echo "     --max-iterations 50" >&2
+      echo "     --max-iterations 0  (unlimited)" >&2
+      echo "" >&2
+      echo "   Invalid: decimals (10.5), negative numbers (-5), text" >&2
+      exit 1
+    fi
+    MAX_ITERATIONS="$MAX_ITER_VALUE"
+    RAW="${RAW/"$MAX_ITER_MATCH"/ }"
+  else
+    echo "❌ Error: --max-iterations requires a number argument" >&2
+    echo "" >&2
+    echo "   Valid examples:" >&2
+    echo "     --max-iterations 10" >&2
+    echo "     --max-iterations 50" >&2
+    echo "     --max-iterations 0  (unlimited)" >&2
+    echo "" >&2
+    echo "   You provided: --max-iterations (with no number)" >&2
+    exit 1
+  fi
+fi
+
+# Whatever remains is the prompt; trim surrounding whitespace
+PROMPT="$RAW"
+PROMPT="${PROMPT#"${PROMPT%%[![:space:]]*}"}"
+PROMPT="${PROMPT%"${PROMPT##*[![:space:]]}"}"
+
+# Strip one pair of surrounding quotes (shell used to consume these when
+# arguments were passed on the command line, e.g. /ralph-loop "Build X")
+if [[ ${#PROMPT} -ge 2 ]]; then
+  case "$PROMPT" in
+    \"*\") PROMPT="${PROMPT:1:${#PROMPT}-2}" ;;
+    \'*\') PROMPT="${PROMPT:1:${#PROMPT}-2}" ;;
+  esac
+fi
 
 # Validate prompt is non-empty
 if [[ -z "$PROMPT" ]]; then
