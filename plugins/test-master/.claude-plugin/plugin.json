@@ -1,0 +1,9 @@
+{
+  "name": "test-master",
+  "version": "1.0.0",
+  "description": "Comprehensive test generation and debugging toolkit with specialized agents for creating tests, analyzing failures, and improving test coverage",
+  "author": {
+    "name": "Community",
+    "email": "community@anthropic.com"
+  }
+}
