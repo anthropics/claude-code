@@ -1,0 +1,29 @@
+{
+  "description": "Tool mutex hooks to serialize filesystem-heavy operations and prevent parallel directory enumeration crashes",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse.py",
+            "timeout": 30
+          }
+        ],
+        "matcher": "Glob|Grep|Read|Bash"
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse.py",
+            "timeout": 5
+          }
+        ],
+        "matcher": "Glob|Grep|Read|Bash"
+      }
+    ]
+  }
+}
