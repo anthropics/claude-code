@@ -145,6 +145,17 @@
       },
       "source": "./plugins/security-guidance",
       "category": "security"
+    },
+    {
+      "name": "api-fallback",
+      "description": "Quick commands for switching between Claude Pro/Max subscription and API key billing when usage limits are reached",
+      "version": "1.0.0",
+      "author": {
+        "name": "Nicholas Ferraz",
+        "email": "git-contributions@nickferraz.com"
+      },
+      "source": "./plugins/api-fallback",
+      "category": "productivity"
     }
   ]
 }
