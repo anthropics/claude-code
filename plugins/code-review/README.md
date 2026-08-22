@@ -1,10 +1,10 @@
 # Code Review Plugin
 
-Automated code review for pull requests using multiple specialized agents with confidence-based scoring to filter false positives.
+Automated code review for pull requests using multiple specialized agents with per-issue validation to filter false positives.
 
 ## Overview
 
-The Code Review Plugin automates pull request review by launching multiple agents in parallel to independently audit changes from different perspectives. It uses confidence scoring to filter out false positives, ensuring only high-quality, actionable feedback is posted.
+The Code Review Plugin automates pull request review by launching multiple agents in parallel to independently audit changes from different perspectives. Every candidate issue is then checked by a dedicated validation subagent, ensuring only high-quality, actionable feedback is posted.
 
 ## Commands
 
@@ -18,10 +18,9 @@ Performs automated code review on a pull request using multiple specialized agen
 3. Summarizes the pull request changes
 4. Launches 4 parallel agents to independently review:
    - **Agents #1 & #2**: Audit for CLAUDE.md compliance
-   - **Agent #3**: Scan for obvious bugs in changes
-   - **Agent #4**: Analyze git blame/history for context-based issues
-5. Scores each issue 0-100 for confidence level
-6. Filters out issues below 80 confidence threshold
+   - **Agents #3 & #4**: Scan the introduced changes for significant bugs (logic errors, security issues)
+5. Validates each candidate issue with a dedicated subagent
+6. Filters out issues that fail validation
 7. Outputs review (to terminal by default, or as PR comment with `--comment` flag)
 
 **Usage:**
@@ -42,17 +41,16 @@ Performs automated code review on a pull request using multiple specialized agen
 
 # Claude will:
 # - Launch 4 review agents in parallel
-# - Score each issue for confidence
-# - Output issues ≥80 confidence (to terminal or PR depending on flag)
-# - Skip if no high-confidence issues found
+# - Validate each candidate issue with a subagent
+# - Output the validated issues (to terminal or PR depending on flag)
+# - State that no issues were found if nothing survives validation
 ```
 
 **Features:**
 - Multiple independent agents for comprehensive review
-- Confidence-based scoring reduces false positives (threshold: 80)
+- Per-issue validation subagents reduce false positives
 - CLAUDE.md compliance checking with explicit guideline verification
 - Bug detection focused on changes (not pre-existing issues)
-- Historical context analysis via git blame
 - Automatic skipping of closed, draft, or already-reviewed PRs
 - Links directly to code with full SHA and line ranges
 
@@ -75,13 +73,6 @@ https://github.com/owner/repo/blob/abc123.../src/auth.ts#L88-L95
 https://github.com/owner/repo/blob/abc123.../src/utils.ts#L23-L28
 ```
 
-**Confidence scoring:**
-- **0**: Not confident, false positive
-- **25**: Somewhat confident, might be real
-- **50**: Moderately confident, real but minor
-- **75**: Highly confident, real and important
-- **100**: Absolutely certain, definitely real
-
 **False positives filtered:**
 - Pre-existing issues not introduced in PR
 - Code that looks like a bug but isn't
@@ -98,7 +89,7 @@ This plugin is included in the Claude Code repository. The command is automatica
 
 ### Using `/code-review`
 - Maintain clear CLAUDE.md files for better compliance checking
-- Trust the 80+ confidence threshold - false positives are filtered
+- Trust the validation pass - unvalidated issues are filtered
 - Run on all non-trivial pull requests
 - Review agent findings as a starting point for human review
 - Update CLAUDE.md based on recurring review patterns
@@ -162,7 +153,7 @@ This plugin is included in the Claude Code repository. The command is automatica
 **Issue**: Review flags issues that aren't real
 
 **Solution**:
-- Default threshold is 80 (already filters most false positives)
+- Each issue is checked by a validation subagent before being reported
 - Make CLAUDE.md more specific about what matters
 - Consider if the flagged issue is actually valid
 
@@ -176,7 +167,7 @@ Check if:
 - PR is draft (reviews skipped)
 - PR is trivial/automated (reviews skipped)
 - PR already has review (reviews skipped)
-- No issues scored ≥80 (no comment needed)
+- No issues survived validation (a "No issues found" comment is posted only with `--comment`)
 
 ### Link formatting broken
 
@@ -204,21 +195,11 @@ https://github.com/owner/repo/blob/[full-sha]/path/file.ext#L[start]-L[end]
 
 - **Write specific CLAUDE.md files**: Clear guidelines = better reviews
 - **Include context in PRs**: Helps agents understand intent
-- **Use confidence scores**: Issues ≥80 are usually correct
 - **Iterate on guidelines**: Update CLAUDE.md based on patterns
 - **Review automatically**: Set up as part of PR workflow
-- **Trust the filtering**: Threshold prevents noise
+- **Trust the filtering**: Validation prevents noise
 
 ## Configuration
-
-### Adjusting confidence threshold
-
-The default threshold is 80. To adjust, modify the command file at `commands/code-review.md`:
-```markdown
-Filter out any issues with a score less than 80.
-```
-
-Change `80` to your preferred threshold (0-100).
 
 ### Customizing review focus
 
@@ -232,21 +213,18 @@ Edit `commands/code-review.md` to add or modify agent tasks:
 
 ### Agent architecture
 - **2x CLAUDE.md compliance agents**: Redundancy for guideline checks
-- **1x bug detector**: Focused on obvious bugs in changes only
-- **1x history analyzer**: Context from git blame and history
-- **Nx confidence scorers**: One per issue for independent scoring
+- **2x bug detectors**: Focused on significant bugs in the introduced changes only
+- **Nx validation subagents**: One per candidate issue
 
-### Scoring system
-- Each issue independently scored 0-100
-- Scoring considers evidence strength and verification
-- Threshold (default 80) filters low-confidence issues
-- For CLAUDE.md issues: verifies guideline explicitly mentions it
+### Validation
+- Each candidate issue is independently re-checked by a subagent
+- Issues that cannot be confirmed with high confidence are dropped
+- For CLAUDE.md issues: verifies the guideline is scoped to the file and actually violated
 
 ### GitHub integration
 Uses `gh` CLI for:
 - Viewing PR details and diffs
 - Fetching repository data
-- Reading git blame and history
 - Posting review comments
 
 ## Author
