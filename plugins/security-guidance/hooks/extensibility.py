@@ -32,7 +32,6 @@ Trust model:
     all pattern checks; there is no per-rule kill switch in v1.
 """
 
-import fnmatch
 import json
 import os
 import re
@@ -244,13 +243,46 @@ def _validate_pattern(entry: Any, source: str) -> Optional[Dict[str, Any]]:
     return rule
 
 
+def _glob_to_regex(glob: str) -> "re.Pattern[str]":
+    """Translate a glob to a regex where ``**`` matches any depth, including
+    zero directories (unlike ``fnmatch``, where a bare ``*`` already crosses
+    ``/`` and ``**/`` therefore requires a literal ``/`` to be present)."""
+    out = []
+    i, n = 0, len(glob)
+    while i < n:
+        if glob[i:i + 3] == "**/":
+            out.append("(?:.*/)?")
+            i += 3
+        elif glob[i:i + 2] == "**":
+            out.append(".*")
+            i += 2
+        elif glob[i] == "*":
+            out.append("[^/]*")
+            i += 1
+        elif glob[i] == "?":
+            out.append("[^/]")
+            i += 1
+        elif glob[i] == "[":
+            j = glob.find("]", i + 1)
+            if j == -1:
+                out.append(re.escape("["))
+                i += 1
+            else:
+                out.append(glob[i:j + 1])
+                i = j + 1
+        else:
+            out.append(re.escape(glob[i]))
+            i += 1
+    return re.compile("(?s:" + "".join(out) + ")\\Z")
+
+
 def _glob_match(path: str, include: Tuple[str, ...], exclude: Tuple[str, ...]) -> bool:
     """Match a path against include/exclude globs. ``**`` matches any depth."""
     norm = path.replace(os.sep, "/")
     base = os.path.basename(norm)
     def _hit(globs: Tuple[str, ...]) -> bool:
         return any(
-            fnmatch.fnmatch(norm, g) or fnmatch.fnmatch(base, g) for g in globs
+            _glob_to_regex(g).match(norm) or _glob_to_regex(g).match(base) for g in globs
         )
     if include and not _hit(include):
         return False
