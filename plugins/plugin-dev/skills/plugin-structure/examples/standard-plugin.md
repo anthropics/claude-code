@@ -78,7 +78,7 @@ Run comprehensive linting checks on the project codebase.
 Execute the linting script:
 
 \`\`\`bash
-bash ${CLAUDE_PLUGIN_ROOT}/scripts/run-linter.sh
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/run-linter.sh"
 \`\`\`
 
 Parse the output and present issues organized by:
@@ -445,7 +445,7 @@ See language-specific guides for:
       "hooks": [
         {
           "type": "command",
-          "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/validate-commit.sh",
+          "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/validate-commit.sh\"",
           "timeout": 45
         }
       ]
