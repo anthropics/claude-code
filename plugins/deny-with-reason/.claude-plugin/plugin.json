@@ -1,0 +1,5 @@
+{
+  "name": "deny-with-reason",
+  "version": "1.0.0",
+  "description": "Deny tool calls with explanatory reasons so Claude understands and adjusts its approach"
+}
