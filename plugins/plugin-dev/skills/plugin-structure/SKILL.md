@@ -185,13 +185,15 @@ skills/
 **SKILL.md format**:
 ```markdown
 ---
-name: Skill Name
+name: skill-name
 description: When to use this skill
 version: 1.0.0
 ---
 
 Skill instructions and guidance...
 ```
+
+> **Note:** The `name` field is used as the slash command trigger (e.g., `name: skill-name` triggers via `/skill-name`). Always use lowercase hyphenated format, not title case with spaces.
 
 **Supporting files**: Skills can include scripts, references, examples, or assets in subdirectories
 
