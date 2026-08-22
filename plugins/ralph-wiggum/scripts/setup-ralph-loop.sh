@@ -132,7 +132,7 @@ mkdir -p .claude
 
 # Quote completion promise for YAML if it contains special chars or is not null
 if [[ -n "$COMPLETION_PROMISE" ]] && [[ "$COMPLETION_PROMISE" != "null" ]]; then
-  COMPLETION_PROMISE_YAML="\"$COMPLETION_PROMISE\""
+  COMPLETION_PROMISE_YAML=$(jq -n --arg p "$COMPLETION_PROMISE" '$p')
 else
   COMPLETION_PROMISE_YAML="null"
 fi
