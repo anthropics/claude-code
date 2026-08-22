@@ -1,0 +1,8 @@
+{
+  "name": "sound-notification",
+  "version": "1.0.0",
+  "description": "Play sound notifications on task completion and permission prompts to alert users during long-running operations",
+  "author": {
+    "name": "Community"
+  }
+}
