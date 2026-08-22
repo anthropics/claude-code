@@ -28,7 +28,7 @@
 set -euo pipefail
 
 # ---- configuration (env-overridable) ----------------------------------------
-PROJECT_ID="${PROJECT_ID:-$(gcloud config get-value project 2>/dev/null)}"
+PROJECT_ID="${PROJECT_ID:-$(gcloud config get-value project 2>/dev/null || true)}"
 REGION="${REGION:-${CLOUDSDK_COMPUTE_REGION:-us-east5}}"   # guide §1 uses us-east5 (Agent Platform model region)
 
 SA_NAME="${SA_NAME:-claude-gateway}"                       # §2 service account
