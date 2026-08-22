@@ -1,0 +1,16 @@
+{
+  "name": "telemetry-fix",
+  "version": "1.0.0",
+  "description": "Diagnostic tools and fixes for telemetry connection issues including DNS failures and network errors",
+  "author": {
+    "name": "Claude Code Community"
+  },
+  "keywords": [
+    "telemetry",
+    "diagnostics",
+    "network",
+    "dns",
+    "datadog",
+    "troubleshooting"
+  ]
+}
