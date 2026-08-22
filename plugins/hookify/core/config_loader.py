@@ -195,6 +195,26 @@ def extract_frontmatter(content: str) -> tuple[Dict[str, Any], str]:
     return frontmatter, message
 
 
+def resolve_project_claude_dir() -> str:
+    """Resolve the project's .claude directory for hookify rule discovery."""
+    project_dir = os.environ.get('CLAUDE_PROJECT_DIR')
+    if project_dir:
+        return os.path.join(project_dir, '.claude')
+
+    current_dir = os.getcwd()
+    while True:
+        candidate = os.path.join(current_dir, '.claude')
+        if os.path.isdir(candidate):
+            return candidate
+
+        parent_dir = os.path.dirname(current_dir)
+        if parent_dir == current_dir:
+            break
+        current_dir = parent_dir
+
+    return os.path.join(os.getcwd(), '.claude')
+
+
 def load_rules(event: Optional[str] = None) -> List[Rule]:
     """Load all hookify rules from .claude directory.
 
@@ -207,7 +227,7 @@ def load_rules(event: Optional[str] = None) -> List[Rule]:
     rules = []
 
     # Find all hookify.*.local.md files
-    pattern = os.path.join('.claude', 'hookify.*.local.md')
+    pattern = os.path.join(resolve_project_claude_dir(), 'hookify.*.local.md')
     files = glob.glob(pattern)
 
     for file_path in files:
