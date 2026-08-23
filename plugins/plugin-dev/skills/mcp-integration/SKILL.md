@@ -20,6 +20,8 @@ Model Context Protocol (MCP) enables Claude Code plugins to integrate with exter
 
 Plugins can bundle MCP servers in two ways:
 
+> Note: This section describes MCP server definitions bundled with a plugin, either in `.mcp.json` or in the plugin manifest's `mcpServers` field. It is separate from Claude Code's user-level MCP allow/deny list settings in `~/.claude.json`, such as `enabledMcpServers` and `disabledMcpServers`.
+
 ### Method 1: Dedicated .mcp.json (Recommended)
 
 Create `.mcp.json` at plugin root:
