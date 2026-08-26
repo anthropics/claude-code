@@ -8,6 +8,7 @@ agents to route requests through the free-claude-code proxy server.
 Uses MCP 2.1.1 handler-based API.
 """
 
+import asyncio
 import json
 import os
 import subprocess
@@ -23,10 +24,8 @@ from mcp.types import (
     TextContent,
     ListToolsRequest,
     CallToolRequest,
-    CallToolResult,
     ListToolsResult,
 )
-from pydantic import BaseModel, Field
 
 # Configuration
 FCC_SERVER_URL = os.getenv("FCC_SERVER_URL", "http://localhost:8000")
@@ -35,17 +34,100 @@ FCC_ENABLE_SERVER = os.getenv("FCC_ENABLE_SERVER", "false").lower() == "true"
 _server_process = None
 
 
-class ProxyRequestParams(BaseModel):
-    """Parameters for proxy request."""
-    method: str
-    path: str
-    body: dict[str, Any] | None = None
-    provider: str | None = None
+def _get_tools() -> list[Tool]:
+    """List available tools for interacting with free-claude-code proxy."""
+    return [
+        Tool(
+            name="fcc_proxy_request",
+            description=(
+                "Send a request through the free-claude-code proxy. "
+                "Useful for routing API calls to OpenAI-compatible providers "
+                "with custom configuration, fallbacks, and provider selection."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "method": {
+                        "type": "string",
+                        "description": "HTTP method (GET, POST, etc.)",
+                    },
+                    "path": {
+                        "type": "string",
+                        "description": "API path (e.g., /v1/chat/completions)",
+                    },
+                    "body": {
+                        "type": "object",
+                        "description": "Request body (JSON)",
+                    },
+                    "provider": {
+                        "type": "string",
+                        "description": (
+                            "Target provider override. Leave empty for default. "
+                            "Supported: openai, anthropic, nvidia_nim, openrouter, etc."
+                        ),
+                    },
+                },
+                "required": ["method", "path"],
+            },
+        ),
+        Tool(
+            name="fcc_get_config",
+            description=(
+                "Retrieve current free-claude-code configuration including "
+                "enabled providers, routing rules, and fallback settings."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {},
+                "required": [],
+            },
+        ),
+        Tool(
+            name="fcc_list_providers",
+            description=(
+                "List all configured providers in free-claude-code and their status "
+                "(online, offline, misconfigured)."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {},
+                "required": [],
+            },
+        ),
+        Tool(
+            name="fcc_health_check",
+            description="Check the health status of the free-claude-code proxy server.",
+            inputSchema={
+                "type": "object",
+                "properties": {},
+                "required": [],
+            },
+        ),
+    ]
 
 
-class ConfigParams(BaseModel):
-    """Parameters for config request."""
-    pass
+async def handle_list_tools(request: ListToolsRequest) -> ListToolsResult:
+    """Handle list_tools request."""
+    return ListToolsResult(tools=_get_tools())
+
+
+async def handle_call_tool(request: CallToolRequest) -> list[TextContent]:
+    """Execute a tool call."""
+    name = request.params.name
+    arguments = request.params.arguments or {}
+    try:
+        if name == "fcc_proxy_request":
+            return await handle_proxy_request(arguments)
+        elif name == "fcc_get_config":
+            return await handle_get_config()
+        elif name == "fcc_list_providers":
+            return await handle_list_providers()
+        elif name == "fcc_health_check":
+            return await handle_health_check()
+        else:
+            return [TextContent(type="text", text=f"Unknown tool: {name}")]
+    except Exception as e:
+        return [TextContent(type="text", text=f"Error: {type(e).__name__}: {e}")]
 
 
 class ProvidersParams(BaseModel):
@@ -308,16 +390,14 @@ def create_app():
 
 async def main():
     """Run the MCP server."""
-    server = create_app()
-    async with stdio_server() as (read_stream, write_stream):
-        await server.run(
-            read_stream,
-            write_stream,
-            server.create_initialization_options(),
-        )
+    # Register request handlers
+    server.add_request_handler(ListToolsRequest, handle_list_tools)
+    server.add_request_handler(CallToolRequest, handle_call_tool)
+
+    async with server:
+        print("free-claude-code MCP server started. Listening for requests...", file=sys.stderr)
+        await server.wait()
 
 
 if __name__ == "__main__":
-    import asyncio
-
     asyncio.run(main())
