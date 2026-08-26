@@ -24,6 +24,7 @@ from mcp.types import (
     TextContent,
     ListToolsRequest,
     CallToolRequest,
+    CallToolResult,
     ListToolsResult,
 )
 
@@ -111,33 +112,34 @@ async def handle_list_tools(request: ListToolsRequest) -> ListToolsResult:
     return ListToolsResult(tools=_get_tools())
 
 
-async def handle_call_tool(request: CallToolRequest) -> list[TextContent]:
+async def handle_call_tool(request: CallToolRequest) -> CallToolResult:
     """Execute a tool call."""
     name = request.params.name
     arguments = request.params.arguments or {}
     try:
         if name == "fcc_proxy_request":
-            return await handle_proxy_request(arguments)
+            result = await handle_proxy_request(
+                method=arguments.get("method", "GET"),
+                path=arguments.get("path", "/"),
+                body=arguments.get("body"),
+                provider=arguments.get("provider"),
+            )
         elif name == "fcc_get_config":
-            return await handle_get_config()
+            result = await handle_get_config()
         elif name == "fcc_list_providers":
-            return await handle_list_providers()
+            result = await handle_list_providers()
         elif name == "fcc_health_check":
-            return await handle_health_check()
+            result = await handle_health_check()
         else:
-            return [TextContent(type="text", text=f"Unknown tool: {name}")]
+            result = f"Unknown tool: {name}"
+
+        return CallToolResult(content=[TextContent(type="text", text=result)])
     except Exception as e:
-        return [TextContent(type="text", text=f"Error: {type(e).__name__}: {e}")]
-
-
-class ProvidersParams(BaseModel):
-    """Parameters for providers request."""
-    pass
-
-
-class HealthCheckParams(BaseModel):
-    """Parameters for health check."""
-    pass
+        error_text = f"Error: {type(e).__name__}: {e}"
+        return CallToolResult(
+            content=[TextContent(type="text", text=error_text)],
+            isError=True,
+        )
 
 
 async def handle_proxy_request(method: str, path: str, body: dict[str, Any] | None = None, provider: str | None = None) -> str:
@@ -275,128 +277,20 @@ async def _ensure_server_running() -> None:
         )
 
 
-def create_app():
-    """Create and configure the MCP server."""
-    server = Server("free-claude-code-mcp")
-
-    async def list_tools_handler(request: ListToolsRequest) -> ListToolsResult:
-        """Handle list_tools request."""
-        tools = [
-            Tool(
-                name="fcc_proxy_request",
-                description=(
-                    "Send a request through the free-claude-code proxy. "
-                    "Useful for routing API calls to OpenAI-compatible providers "
-                    "with custom configuration, fallbacks, and provider selection."
-                ),
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "method": {
-                            "type": "string",
-                            "description": "HTTP method (GET, POST, etc.)",
-                        },
-                        "path": {
-                            "type": "string",
-                            "description": "API path (e.g., /v1/chat/completions)",
-                        },
-                        "body": {
-                            "type": "object",
-                            "description": "Request body (JSON)",
-                        },
-                        "provider": {
-                            "type": "string",
-                            "description": (
-                                "Target provider override. Leave empty for default. "
-                                "Supported: openai, anthropic, nvidia_nim, openrouter, etc."
-                            ),
-                        },
-                    },
-                    "required": ["method", "path"],
-                },
-            ),
-            Tool(
-                name="fcc_get_config",
-                description=(
-                    "Retrieve current free-claude-code configuration including "
-                    "enabled providers, routing rules, and fallback settings."
-                ),
-                inputSchema={
-                    "type": "object",
-                    "properties": {},
-                    "required": [],
-                },
-            ),
-            Tool(
-                name="fcc_list_providers",
-                description=(
-                    "List all configured providers in free-claude-code and their status "
-                    "(online, offline, misconfigured)."
-                ),
-                inputSchema={
-                    "type": "object",
-                    "properties": {},
-                    "required": [],
-                },
-            ),
-            Tool(
-                name="fcc_health_check",
-                description="Check the health status of the free-claude-code proxy server.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {},
-                    "required": [],
-                },
-            ),
-        ]
-        return ListToolsResult(tools=tools)
-
-    async def call_tool_handler(request: CallToolRequest) -> CallToolResult:
-        """Handle call_tool request."""
-        name = request.name
-        arguments = request.arguments or {}
-
-        try:
-            if name == "fcc_proxy_request":
-                result = await handle_proxy_request(
-                    method=arguments.get("method", "GET"),
-                    path=arguments.get("path", "/"),
-                    body=arguments.get("body"),
-                    provider=arguments.get("provider"),
-                )
-            elif name == "fcc_get_config":
-                result = await handle_get_config()
-            elif name == "fcc_list_providers":
-                result = await handle_list_providers()
-            elif name == "fcc_health_check":
-                result = await handle_health_check()
-            else:
-                result = f"Unknown tool: {name}"
-
-            return CallToolResult(content=[TextContent(type="text", text=result)])
-        except Exception as e:
-            error_text = f"Error: {type(e).__name__}: {e}"
-            return CallToolResult(
-                content=[TextContent(type="text", text=error_text)],
-                isError=True,
-            )
-
-    # Register handlers
-    server.add_request_handler("tools/list", ListToolsRequest, list_tools_handler)
-    server.add_request_handler("tools/call", CallToolRequest, call_tool_handler)
-
-    return server
-
-
 async def main():
     """Run the MCP server."""
-    # Register request handlers
-    server.add_request_handler(ListToolsRequest, handle_list_tools)
-    server.add_request_handler(CallToolRequest, handle_call_tool)
+    server = Server("free-claude-code-mcp")
 
-    async with server:
-        print("free-claude-code MCP server started. Listening for requests...", file=sys.stderr)
-        await server.wait()
+    # Register request handlers
+    server.add_request_handler("tools/list", ListToolsRequest, handle_list_tools)
+    server.add_request_handler("tools/call", CallToolRequest, handle_call_tool)
+
+    async with stdio_server() as (read_stream, write_stream):
+        await server.run(
+            read_stream,
+            write_stream,
+            server.create_initialization_options(),
+        )
 
 
 if __name__ == "__main__":
