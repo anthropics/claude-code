@@ -6,6 +6,7 @@ Exposes free-claude-code's proxy capabilities as MCP tools, allowing Claude Code
 agents to route requests through the free-claude-code proxy server.
 """
 
+import asyncio
 import json
 import os
 import subprocess
@@ -15,7 +16,13 @@ import httpx
 from typing import Any
 
 from mcp.server import Server
-from mcp.types import Tool, TextContent
+from mcp.types import (
+    Tool,
+    TextContent,
+    ListToolsRequest,
+    CallToolRequest,
+    ListToolsResult,
+)
 
 # Configuration
 FCC_SERVER_URL = os.getenv("FCC_SERVER_URL", "http://localhost:8000")
@@ -25,8 +32,7 @@ server = Server("free-claude-code-mcp")
 _server_process = None
 
 
-@server.list_tools()
-async def list_tools() -> list[Tool]:
+def _get_tools() -> list[Tool]:
     """List available tools for interacting with free-claude-code proxy."""
     return [
         Tool(
@@ -98,9 +104,15 @@ async def list_tools() -> list[Tool]:
     ]
 
 
-@server.call_tool()
-async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
+async def handle_list_tools(request: ListToolsRequest) -> ListToolsResult:
+    """Handle list_tools request."""
+    return ListToolsResult(tools=_get_tools())
+
+
+async def handle_call_tool(request: CallToolRequest) -> list[TextContent]:
     """Execute a tool call."""
+    name = request.params.name
+    arguments = request.params.arguments or {}
     try:
         if name == "fcc_proxy_request":
             return await handle_proxy_request(arguments)
@@ -251,13 +263,14 @@ async def _ensure_server_running() -> None:
 
 async def main():
     """Run the MCP server."""
+    # Register request handlers
+    server.add_request_handler(ListToolsRequest, handle_list_tools)
+    server.add_request_handler(CallToolRequest, handle_call_tool)
+
     async with server:
         print("free-claude-code MCP server started. Listening for requests...", file=sys.stderr)
-        while True:
-            await server.wait()
+        await server.wait()
 
 
 if __name__ == "__main__":
-    import asyncio
-
     asyncio.run(main())

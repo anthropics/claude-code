@@ -13,5 +13,8 @@ dependencies = [
     "httpx>=0.27.0",
 ]
 
+[tool.hatch.build.targets.wheel]
+packages = ["."]
+
 [project.scripts]
 free-claude-code-mcp = "mcp_server:main"
