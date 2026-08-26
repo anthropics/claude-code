@@ -15,10 +15,24 @@ tools:
   - type: agent_toolset_20260401
   - type: mcp_toolset
     mcp_server_name: github
+  - type: mcp_toolset
+    mcp_server_name: free-claude-code-mcp
 mcp_servers:
   - type: url
     name: github
     url: https://api.githubcopilot.com/mcp/  # GitHub Copilot MCP endpoint — requires OAuth token
+  - type: local
+    name: free-claude-code-mcp
+    command: uv
+    args:
+      - run
+      - --directory
+      - ./plugins/free-claude-code-mcp
+      - python
+      - mcp_server.py
+    env:
+      FCC_SERVER_URL: http://localhost:8000
+      FCC_ENABLE_SERVER: "false"
 skills:
   - type: anthropic
     skill_id: xlsx

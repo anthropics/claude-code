@@ -17,7 +17,7 @@
   "plugins": [
     {
       "name": "claude-flow",
-      "description": "AI agent orchestration using claude-flow (RuFlo) — coordinate swarms of specialized agents, hive-mind consensus, and persistent task automation within Claude Code",
+      "description": "AI agent orchestration using claude-flow (RuFlo) \u2014 coordinate swarms of specialized agents, hive-mind consensus, and persistent task automation within Claude Code",
       "version": "1.0.0",
       "author": {
         "name": "Anthropic",
@@ -238,6 +238,17 @@
       "source": "./plugins/ruflo-federation",
       "category": "development",
       "marketplace": "ruflo"
+    },
+    {
+      "name": "free-claude-code-mcp",
+      "description": "MCP server integration for free-claude-code proxy. Enables agents to route requests through multiple AI providers with custom configuration and automatic fallbacks.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Anthropic",
+        "email": "support@anthropic.com"
+      },
+      "source": "./plugins/free-claude-code-mcp",
+      "category": "development"
     }
   ]
 }

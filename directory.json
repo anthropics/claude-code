@@ -2261,6 +2261,17 @@
         "sha": "6cf365968eb3b1e11306c973c51c1e54e98e704a"
       },
       "homepage": "https://github.com/zscaler/zscaler-mcp-server"
+    },
+    {
+      "name": "free-claude-code-mcp",
+      "description": "MCP server integration for free-claude-code proxy. Enables agents to route requests through multiple AI providers with custom configuration, fallbacks, and dynamic provider selection.",
+      "author": {
+        "name": "Anthropic",
+        "email": "support@anthropic.com"
+      },
+      "category": "development",
+      "source": "./plugins/free-claude-code-mcp",
+      "homepage": "https://github.com/sjbrenchley89/free-claude-code"
     }
   ]
 }
