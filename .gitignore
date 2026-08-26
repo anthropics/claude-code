@@ -2,3 +2,4 @@
 .netlify/
 source-build-australia/out/
 source-build-australia/.next/
+__pycache__/
