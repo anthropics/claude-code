@@ -1,4 +1,4 @@
-name: "Remove Autoclose Label on Activity"
+name: "Remove Lifecycle Labels on Activity"
 
 on:
   issue_comment:
@@ -8,35 +8,43 @@ permissions:
   issues: write
 
 jobs:
-  remove-autoclose:
-    # Only run if the issue has the autoclose label
-    if: |
+  remove-lifecycle-labels:
+    if: >-
       github.event.issue.state == 'open' &&
-      contains(github.event.issue.labels.*.name, 'autoclose') &&
-      github.event.comment.user.login != 'github-actions[bot]'
+      github.event.comment.user.login != 'github-actions[bot]' &&
+      (
+        contains(github.event.issue.labels.*.name, 'autoclose') ||
+        contains(github.event.issue.labels.*.name, 'stale') ||
+        contains(github.event.issue.labels.*.name, 'needs-info') ||
+        contains(github.event.issue.labels.*.name, 'needs-repro') ||
+        contains(github.event.issue.labels.*.name, 'invalid')
+      )
     runs-on: ubuntu-latest
     steps:
-      - name: Remove autoclose label
+      - name: Remove lifecycle labels on human activity
         uses: actions/github-script@v7
         with:
           script: |
-            console.log(`Removing autoclose label from issue #${context.issue.number} due to new comment from ${context.payload.comment.user.login}`);
-            
-            try {
-              // Remove the autoclose label
-              await github.rest.issues.removeLabel({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                name: 'autoclose'
-              });
-              
-              console.log(`Successfully removed autoclose label from issue #${context.issue.number}`);
-            } catch (error) {
-              // If the label was already removed or doesn't exist, that's fine
-              if (error.status === 404) {
-                console.log(`Autoclose label was already removed from issue #${context.issue.number}`);
-              } else {
-                throw error;
+            // All lifecycle labels from scripts/issue-lifecycle.ts
+            const lifecycleLabels = ['autoclose', 'stale', 'needs-info', 'needs-repro', 'invalid'];
+
+            const issueLabels = context.payload.issue.labels.map(l => l.name);
+            const toRemove = lifecycleLabels.filter(l => issueLabels.includes(l));
+
+            if (toRemove.length === 0) return;
+
+            console.log(`Removing lifecycle labels [${toRemove.join(', ')}] from issue #${context.issue.number} due to new comment from ${context.payload.comment.user.login}`);
+
+            for (const label of toRemove) {
+              try {
+                await github.rest.issues.removeLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  name: label
+                });
+                console.log(`Removed '${label}' from issue #${context.issue.number}`);
+              } catch (error) {
+                if (error.status !== 404) throw error;
               }
             }
