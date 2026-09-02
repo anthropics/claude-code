@@ -145,6 +145,12 @@
       },
       "source": "./plugins/security-guidance",
       "category": "security"
+    },
+    {
+      "name": "neonpanel",
+      "description": "AI workforce for Amazon-seller operations: eight domain agents (replenishment, accounting, supply chain, marketing, forecasting, FP&A, market intel, customer success) grounded in live NeonPanel commerce data via MCP.",
+      "source": "./plugins/neonpanel",
+      "category": "productivity"
     }
   ]
 }
