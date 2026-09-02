@@ -168,6 +168,14 @@ Connect to WebSocket MCP servers for real-time bidirectional communication.
 
 All MCP configurations support environment variable substitution:
 
+**${CLAUDE_PROJECT_DIR}** - The project root directory:
+```json
+{
+  "command": "node",
+  "args": ["server.js", "--project", "${CLAUDE_PROJECT_DIR}"]
+}
+```
+
 **${CLAUDE_PLUGIN_ROOT}** - Plugin directory (always use for portability):
 ```json
 {
@@ -184,6 +192,8 @@ All MCP configurations support environment variable substitution:
   }
 }
 ```
+
+MCP stdio servers also receive `CLAUDE_PROJECT_DIR` as an environment variable at runtime, matching the behavior of hooks.
 
 **Best practice:** Document all required environment variables in plugin README.
 
