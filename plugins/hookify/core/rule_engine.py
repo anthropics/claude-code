@@ -199,12 +199,18 @@ class RuleEngine:
                 return value
             return str(value)
 
-        # For Stop events and other non-tool events, check input_data
+        # For Stop/UserPromptSubmit events and other non-tool events, check input_data
         if input_data:
+            hook_event_name = input_data.get('hook_event_name', '')
+
             # Stop event specific fields
             if field == 'reason':
+                if hook_event_name and hook_event_name != 'Stop':
+                    return None
                 return input_data.get('reason', '')
             elif field == 'transcript':
+                if hook_event_name and hook_event_name != 'Stop':
+                    return None
                 # Read transcript file if path provided
                 transcript_path = input_data.get('transcript_path')
                 if transcript_path:
@@ -225,6 +231,8 @@ class RuleEngine:
                         return ''
             elif field == 'user_prompt':
                 # For UserPromptSubmit events
+                if hook_event_name and hook_event_name != 'UserPromptSubmit':
+                    return None
                 return input_data.get('user_prompt', '')
 
         # Handle special cases by tool type
