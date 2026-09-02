@@ -58,7 +58,7 @@ def main():
         input_data = json.load(sys.stdin)
     except json.JSONDecodeError as e:
         print(f"Error: Invalid JSON input: {e}", file=sys.stderr)
-        # Exit code 1 shows stderr to the user but not to Claude
+        # Exit code 1 is a non-blocking hook error; the tool call continues.
         sys.exit(1)
 
     tool_name = input_data.get("tool_name", "")
@@ -75,7 +75,7 @@ def main():
     if issues:
         for message in issues:
             print(f"• {message}", file=sys.stderr)
-        # Exit code 2 blocks tool call and shows stderr to Claude
+        # Only exit code 2 blocks the tool call and sends stderr to Claude.
         sys.exit(2)
 
 
