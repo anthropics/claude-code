@@ -1,0 +1,44 @@
+[package]
+name = "claude-tests"
+version = "0.1.0"
+edition = "2021"
+authors = ["Claude Code Contributors"]
+description = "Integration test suite for Claude Code"
+
+[dependencies]
+# Core crates
+claude-core = { path = "../claude-core" }
+claude-engine = { path = "../claude-engine" }
+claude-api = { path = "../claude-api" }
+claude-tools = { path = "../claude-tools" }
+claude-git = { path = "../claude-git" }
+claude-tui = { path = "../claude-tui" }
+
+# Async
+tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
+tokio-test = "0.4"
+
+# Testing
+rstest = "0.22"
+wiremock = "0.6"
+tempfile = "3.10"
+serial_test = "3.1"
+
+# Assertions
+pretty_assertions = "1.4"
+assert_matches = "1.5"
+
+# Error handling
+anyhow = { workspace = true }
+
+# Tracing
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["async_tokio"] }
+
+[[bench]]
+name = "performance"
+harness = false
+
