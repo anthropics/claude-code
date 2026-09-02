@@ -145,6 +145,17 @@
       },
       "source": "./plugins/security-guidance",
       "category": "security"
+    },
+    {
+      "name": "voice-mode",
+      "description": "Adds a /voice command to enable, disable, or check the status of voice mode",
+      "version": "1.0.0",
+      "author": {
+        "name": "Anthropic",
+        "email": "support@anthropic.com"
+      },
+      "source": "./plugins/voice-mode",
+      "category": "accessibility"
     }
   ]
 }
