@@ -114,6 +114,17 @@
       "category": "development"
     },
     {
+      "name": "preserve-session",
+      "description": "Preserves Claude Code session history across project directory renames, moves, and copies by assigning each project a path-independent UUID",
+      "version": "1.0.0",
+      "author": {
+        "name": "won",
+        "email": "wonbywondev@gmail.com"
+      },
+      "source": "./plugins/preserve-session",
+      "category": "productivity"
+    },
+    {
       "name": "pr-review-toolkit",
       "description": "Comprehensive PR review agents specializing in comments, tests, error handling, type design, code quality, and code simplification",
       "version": "1.0.0",
