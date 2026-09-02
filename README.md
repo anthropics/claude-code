@@ -53,6 +53,32 @@ This repository includes several Claude Code plugins that extend functionality w
 
 We welcome your feedback. Use the `/bug` command to report issues directly within Claude Code, or file a [GitHub issue](https://github.com/anthropics/claude-code/issues).
 
+## Troubleshooting
+
+### Telemetry Connection Errors
+
+If you see repeated DNS or network errors related to telemetry services (like `getaddrinfo ENOTFOUND http-intake.logs.datadoghq.com`), these don't affect core functionality but can clutter logs. To resolve:
+
+**Disable non-essential traffic:**
+
+Set this environment variable before starting Claude Code:
+
+```bash
+# macOS/Linux
+export CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=true
+
+# Windows (PowerShell)
+$env:CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC = "true"
+```
+
+**Or use the telemetry-fix plugin:**
+```bash
+/telemetry-fix:diagnose  # Diagnose issues
+/telemetry-fix:disable   # Quick disable
+```
+
+See the [telemetry-fix plugin](./plugins/telemetry-fix/) for more details.
+
 ## Connect on Discord
 
 Join the [Claude Developers Discord](https://anthropic.com/discord) to connect with other developers using Claude Code. Get help, share feedback, and discuss your projects with the community.
