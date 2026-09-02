@@ -1,0 +1,16 @@
+{
+  "description": "Cleans up /tmp/claude-*-cwd temp files left by the Bash tool on session end",
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/cleanup.py",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}
