@@ -49,6 +49,27 @@ For more installation options, uninstall steps, and troubleshooting, see the [se
 
 This repository includes several Claude Code plugins that extend functionality with custom commands and agents. See the [plugins directory](./plugins/README.md) for detailed documentation on available plugins.
 
+## Troubleshooting upstream API errors
+
+Some terminal-visible errors come from the Claude API service itself, not from Claude Code. The most common pattern looks like this:
+
+```
+API Error: 500 {"type":"error","error":{"type":"api_error","message":"Internal server error"},"request_id":"req_..."}
+Claude may be experiencing issues. Check https://status.anthropic.com for service status.
+```
+
+That is an upstream 500 from the API, not a client bug. The `request_id` is a server-side identifier that Anthropic support can use to look up the trace.
+
+If you see one, before filing a bug report:
+
+1. **Check the status page** at https://status.claude.com (which is where `status.anthropic.com` now points). If there is an active or recently-resolved incident for the model you are using, the error is being driven by that incident and usually clears within minutes.
+2. **Retry the request**. Most transient `api_error` 500s clear on the next attempt.
+3. **Try a different model** if your current one is listed as degraded on the status page. The status page reports per-model.
+4. **Search existing issues** at https://github.com/anthropics/claude-code/issues?q=is%3Aissue+500+Internal+Server+Error before opening a new one. Service-side incidents tend to produce clusters of duplicate reports; you may find an open issue for the same window.
+5. **If it persists for more than a few minutes** on the same model and prompt, that is when filing a bug or contacting support makes sense. Include the `request_id` so the trace can be looked up.
+
+The same approach applies to `overloaded_error` (the API is temporarily out of capacity for the model, retry with backoff) and `rate_limit_error` (slow down, or switch to a model with more headroom).
+
 ## Reporting Bugs
 
 We welcome your feedback. Use the `/bug` command to report issues directly within Claude Code, or file a [GitHub issue](https://github.com/anthropics/claude-code/issues).
