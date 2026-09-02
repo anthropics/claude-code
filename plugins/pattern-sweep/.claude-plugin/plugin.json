@@ -1,0 +1,5 @@
+{
+  "name": "pattern-sweep",
+  "version": "1.0.0",
+  "description": "Search the codebase for patterns similar to a recent bug fix and offer to fix all instances at once"
+}
