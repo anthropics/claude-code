@@ -1,5 +1,5 @@
 ---
-allowed-tools: Bash(git checkout --branch:*), Bash(git add:*), Bash(git status:*), Bash(git push:*), Bash(git commit:*), Bash(gh pr create:*)
+allowed-tools: Bash(git checkout --branch:*), Bash(git add:*), Bash(git status:*), Bash(git push:*), Bash(git commit:*), Bash(gh pr create:*), Bash(cat:*)
 description: Commit, push, and open a PR
 ---
 
@@ -8,6 +8,7 @@ description: Commit, push, and open a PR
 - Current git status: !`git status`
 - Current git diff (staged and unstaged changes): !`git diff HEAD`
 - Current branch: !`git branch --show-current`
+- PR template: !`cat .github/PULL_REQUEST_TEMPLATE.md 2>/dev/null || echo "no .github/PULL_REQUEST_TEMPLATE.md found"`
 
 ## Your task
 
