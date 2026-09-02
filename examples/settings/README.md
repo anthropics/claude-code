@@ -1,6 +1,6 @@
 # Settings Examples
 
-Example Claude Code settings files, primarily intended for organization-wide deployments. Use these as starting points — adjust them to fit your needs.
+Example Claude Code settings files, primarily intended for organization-wide deployments. Use these as starting points - adjust them to fit your needs.
 
 These may be applied at any level of the [settings hierarchy](https://code.claude.com/docs/en/settings#settings-files), though certain properties only take effect if specified in enterprise settings (e.g. `strictKnownMarketplaces`, `allowManagedHooksOnly`, `allowManagedPermissionRulesOnly`).
 
@@ -12,13 +12,13 @@ These may be applied at any level of the [settings hierarchy](https://code.claud
 
 | Setting | [`settings-lax.json`](./settings-lax.json) | [`settings-strict.json`](./settings-strict.json) | [`settings-bash-sandbox.json`](./settings-bash-sandbox.json) |
 |---------|:---:|:---:|:---:|
-| Disable `--dangerously-skip-permissions` | ✅ | ✅ | |
-| Block plugin marketplaces | ✅ | ✅ | |
-| Block user and project-defined permission `allow` / `ask` / `deny` | | ✅ | ✅ |
-| Block user and project-defined hooks | | ✅ | |
-| Deny web fetch and search tools | | ✅ | |
-| Bash tool requires approval | | ✅ | |
-| Bash tool must run inside of sandbox | | | ✅ |
+| Disable `--dangerously-skip-permissions` | ? | ? | |
+| Block plugin marketplaces | ? | ? | |
+| Block user and project-defined permission `allow` / `ask` / `deny` | | ? | ? |
+| Block user and project-defined hooks | | ? | |
+| Deny web fetch and search tools | | ? | |
+| Bash tool requires approval | | ? | |
+| Bash tool must run inside of sandbox | | | ? |
 
 ## Tips
 - Consider merging snippets of the above examples to reach your desired configuration
@@ -33,3 +33,11 @@ To distribute these settings as enterprise-managed policy through Jamf, Iru (Kan
 ## Full Documentation
 
 See https://code.claude.com/docs/en/settings for complete documentation on all available managed settings.
+
+## Troubleshooting
+
+### Status bar truncated in managed (attached) sessions
+
+If the status bar is cut off when attached to a managed session from Claude Agents, the terminal is too narrow for the available content area. The status bar renders at full terminal width, but the attached-session view reserves additional columns (e.g. for the "attached" indicator), causing overflow.
+
+**Workaround:** Widen your terminal window, or detach from the managed session (`--detach` / `Ctrl+D`) to see the full status bar in a standalone session.
