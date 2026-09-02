@@ -94,8 +94,8 @@ for event in $(jq -r 'keys[]' "$HOOKS_FILE"); do
         continue
       fi
 
-      if [ "$hook_type" != "command" ] && [ "$hook_type" != "prompt" ]; then
-        echo "❌ $event[$i].hooks[$j]: Invalid type '$hook_type' (must be 'command' or 'prompt')"
+      if [ "$hook_type" != "command" ] && [ "$hook_type" != "prompt" ] && [ "$hook_type" != "http" ]; then
+        echo "❌ $event[$i].hooks[$j]: Invalid type '$hook_type' (must be 'command', 'prompt', or 'http')"
         ((error_count++))
         continue
       fi
@@ -124,6 +124,12 @@ for event in $(jq -r 'keys[]' "$HOOKS_FILE"); do
         if [ "$event" != "Stop" ] && [ "$event" != "SubagentStop" ] && [ "$event" != "UserPromptSubmit" ] && [ "$event" != "PreToolUse" ]; then
           echo "⚠️  $event[$i].hooks[$j]: Prompt hooks may not be fully supported on $event (best on Stop, SubagentStop, UserPromptSubmit, PreToolUse)"
           ((warning_count++))
+        fi
+      elif [ "$hook_type" = "http" ]; then
+        url=$(jq -r ".\"$event\"[$i].hooks[$j].url // empty" "$HOOKS_FILE")
+        if [ -z "$url" ]; then
+          echo "❌ $event[$i].hooks[$j]: HTTP hooks must have 'url' field"
+          ((error_count++))
         fi
       fi
 
