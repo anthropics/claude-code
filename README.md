@@ -45,6 +45,33 @@ For more installation options, uninstall steps, and troubleshooting, see the [se
 
 2. Navigate to your project directory and run `claude`.
 
+## Configuration
+
+Claude Code uses several configuration files, each serving a distinct purpose. The two most commonly encountered are:
+
+| File | Purpose | Editing |
+|------|---------|---------|
+| `~/.claude.json` | **Application state** — OAuth tokens, MCP server registrations (local/user scope), theme, notifications, per-project state, and caches | Managed by Claude Code. Avoid manual edits. |
+| `~/.claude/settings.json` | **User settings** — permissions, model selection, language, hooks, environment variables, and plugin configuration | User-editable. This is where your preferences go. |
+
+**Why two files?** `~/.claude.json` is a runtime state file that Claude Code reads and writes automatically (session tokens, caches, MCP server registrations added via `claude mcp add`). `~/.claude/settings.json` is your configuration file — settings you consciously choose and can safely edit by hand. Separating state from configuration keeps the user-editable file clean and predictable.
+
+Beyond these two, Claude Code supports a full hierarchy of settings and memory files:
+
+| File | Scope | Purpose |
+|------|-------|---------|
+| `~/.claude/settings.json` | User | Personal settings across all projects |
+| `.claude/settings.json` | Project | Team-shared settings (committed to git) |
+| `.claude/settings.local.json` | Local | Personal project overrides (git-ignored) |
+| `.mcp.json` | Project | Project-scoped MCP servers (committed to git) |
+| `CLAUDE.md` / `.claude/CLAUDE.md` | Project | Team-shared memory and instructions |
+| `~/.claude/CLAUDE.md` | User | Personal memory across all projects |
+| `CLAUDE.local.md` | Local | Personal project memory (git-ignored) |
+
+Settings follow a precedence order: **Managed** (IT-deployed) > **Command line** > **Local** > **Project** > **User**. More specific scopes override less specific ones.
+
+For full details, see the [settings documentation](https://code.claude.com/docs/en/settings) and [memory documentation](https://code.claude.com/docs/en/memory).
+
 ## Plugins
 
 This repository includes several Claude Code plugins that extend functionality with custom commands and agents. See the [plugins directory](./plugins/README.md) for detailed documentation on available plugins.
