@@ -45,6 +45,43 @@ For more installation options, uninstall steps, and troubleshooting, see the [se
 
 2. Navigate to your project directory and run `claude`.
 
+## Troubleshooting
+
+### "This organization has been disabled"
+
+Claude Code can authenticate with either a Pro/Max subscription login or an
+Anthropic API key. If `ANTHROPIC_API_KEY` is set in your shell or system
+environment, Claude Code uses that API key. This can surface an organization
+error when the API key belongs to a disabled organization, even if your
+subscription login is active.
+
+Check whether an API key is set:
+
+```bash
+if [ -n "$ANTHROPIC_API_KEY" ]; then echo "ANTHROPIC_API_KEY is set"; fi
+```
+
+If you want Claude Code to use your subscription login instead, unset the API
+key for the current terminal session:
+
+```bash
+unset ANTHROPIC_API_KEY
+claude
+```
+
+On Windows PowerShell, run:
+
+```powershell
+if ($Env:ANTHROPIC_API_KEY) { "ANTHROPIC_API_KEY is set" }
+Remove-Item Env:\ANTHROPIC_API_KEY
+claude
+```
+
+If the variable keeps returning, remove the export from your shell profile,
+terminal profile, system environment variables, or project-specific environment
+files. If no `ANTHROPIC_API_KEY` is set and the error still appears, the account
+or organization state may need support review.
+
 ## Plugins
 
 This repository includes several Claude Code plugins that extend functionality with custom commands and agents. See the [plugins directory](./plugins/README.md) for detailed documentation on available plugins.
