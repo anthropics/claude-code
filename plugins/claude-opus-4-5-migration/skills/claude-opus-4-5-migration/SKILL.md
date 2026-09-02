@@ -1,11 +1,11 @@
 ---
 name: claude-opus-4-5-migration
-description: Migrate prompts and code from Claude Sonnet 4.0, Sonnet 4.5, or Opus 4.1 to Opus 4.5. Use when the user wants to update their codebase, prompts, or API calls to use Opus 4.5. Handles model string updates and prompt adjustments for known Opus 4.5 behavioral differences. Does NOT migrate Haiku 4.5.
+description: Migrate prompts and code from Claude Sonnet 4, Sonnet 4.5, or Opus 4.1 to Opus 4.5. Use when the user wants to update their codebase, prompts, or API calls to use Opus 4.5. Handles model string updates and prompt adjustments for known Opus 4.5 behavioral differences. Does NOT migrate Haiku 4.5.
 ---
 
 # Opus 4.5 Migration Guide
 
-One-shot migration from Sonnet 4.0, Sonnet 4.5, or Opus 4.1 to Opus 4.5.
+One-shot migration from Sonnet 4, Sonnet 4.5, or Opus 4.1 to Opus 4.5.
 
 ## Migration Workflow
 
@@ -41,7 +41,7 @@ Remove the `context-1m-2025-08-07` beta header if present—it is not yet suppor
 
 | Source Model | Anthropic API (1P) | AWS Bedrock | Google Vertex AI |
 |--------------|-------------------|-------------|------------------|
-| Sonnet 4.0 | `claude-sonnet-4-20250514` | `anthropic.claude-sonnet-4-20250514-v1:0` | `claude-sonnet-4@20250514` |
+| Sonnet 4 | `claude-sonnet-4-20250514` | `anthropic.claude-sonnet-4-20250514-v1:0` | `claude-sonnet-4@20250514` |
 | Sonnet 4.5 | `claude-sonnet-4-5-20250929` | `anthropic.claude-sonnet-4-5-20250929-v1:0` | `claude-sonnet-4-5@20250929` |
 | Opus 4.1 | `claude-opus-4-1-20250422` | `anthropic.claude-opus-4-1-20250422-v1:0` | `claude-opus-4-1@20250422` |
 
