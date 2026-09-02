@@ -25,6 +25,16 @@ These may be applied at any level of the [settings hierarchy](https://code.claud
 - Settings files must be valid JSON
 - Before deploying configuration files to your organization, test them locally by applying to `managed-settings.json`, `settings.json` or `settings.local.json`
 - The `sandbox` property only applies to the `Bash` tool; it does not apply to other tools (like Read, Write, WebSearch, WebFetch, MCPs), hooks, or internal commands
+- **Piped commands need separate permission entries.** When allowing a piped shell command like `printf "..." | msmtp -t`, you must add a separate `allow` entry for *each* command in the pipeline. A single entry like `Bash(printf:* | msmtp:*)` will **not** work. Instead, use:
+  ```json
+  "permissions": {
+    "allow": [
+      "Bash(printf:*)",
+      "Bash(msmtp:*)"
+    ]
+  }
+  ```
+  The same applies to other shell operators like `&&`, `||`, and `;` — each command must be individually allowed.
 
 ## Deploying via MDM
 
