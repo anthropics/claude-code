@@ -9,9 +9,10 @@ show_usage() {
   echo "Usage: $0 [options] <hook-script> <test-input.json>"
   echo ""
   echo "Options:"
-  echo "  -h, --help      Show this help message"
-  echo "  -v, --verbose   Show detailed execution information"
-  echo "  -t, --timeout N Set timeout in seconds (default: 60)"
+  echo "  -h, --help        Show this help message"
+  echo "  -v, --verbose     Show detailed execution information"
+  echo "  -t, --timeout N   Set timeout in seconds (default: 60)"
+  echo "  --subagent        Generate subagent-context sample (is_subagent=true)"
   echo ""
   echo "Examples:"
   echo "  $0 validate-bash.sh test-input.json"
@@ -19,22 +20,36 @@ show_usage() {
   echo ""
   echo "Creates sample test input with:"
   echo "  $0 --create-sample <event-type>"
+  echo "  $0 --subagent --create-sample <event-type>   # subagent context"
   exit 0
 }
 
 # Create sample input
+# $1 = event type, $2 = is_subagent (true|false, default: false)
 create_sample() {
   event_type="$1"
+  is_subagent="${2:-false}"
+
+  # Set agent-context fields based on is_subagent flag
+  if [ "$is_subagent" = "true" ]; then
+    agent_id='"subagent-1234"'
+    agent_type='"git-expert"'
+  else
+    agent_id='null'
+    agent_type='null'
+  fi
 
   case "$event_type" in
     PreToolUse)
-      cat <<'EOF'
+      cat <<EOF
 {
   "session_id": "test-session",
   "transcript_path": "/tmp/transcript.txt",
   "cwd": "/tmp/test-project",
   "permission_mode": "ask",
   "hook_event_name": "PreToolUse",
+  "agent_id": ${agent_id},
+  "agent_type": ${agent_type},
   "tool_name": "Write",
   "tool_input": {
     "file_path": "/tmp/test.txt",
@@ -44,50 +59,58 @@ create_sample() {
 EOF
       ;;
     PostToolUse)
-      cat <<'EOF'
+      cat <<EOF
 {
   "session_id": "test-session",
   "transcript_path": "/tmp/transcript.txt",
   "cwd": "/tmp/test-project",
   "permission_mode": "ask",
   "hook_event_name": "PostToolUse",
+  "agent_id": ${agent_id},
+  "agent_type": ${agent_type},
   "tool_name": "Bash",
   "tool_result": "Command executed successfully"
 }
 EOF
       ;;
     Stop|SubagentStop)
-      cat <<'EOF'
+      cat <<EOF
 {
   "session_id": "test-session",
   "transcript_path": "/tmp/transcript.txt",
   "cwd": "/tmp/test-project",
   "permission_mode": "ask",
   "hook_event_name": "Stop",
+  "agent_id": ${agent_id},
+  "agent_type": ${agent_type},
   "reason": "Task appears complete"
 }
 EOF
       ;;
     UserPromptSubmit)
-      cat <<'EOF'
+      cat <<EOF
 {
   "session_id": "test-session",
   "transcript_path": "/tmp/transcript.txt",
   "cwd": "/tmp/test-project",
   "permission_mode": "ask",
   "hook_event_name": "UserPromptSubmit",
+  "agent_id": ${agent_id},
+  "agent_type": ${agent_type},
   "user_prompt": "Test user prompt"
 }
 EOF
       ;;
     SessionStart|SessionEnd)
-      cat <<'EOF'
+      cat <<EOF
 {
   "session_id": "test-session",
   "transcript_path": "/tmp/transcript.txt",
   "cwd": "/tmp/test-project",
   "permission_mode": "ask",
-  "hook_event_name": "SessionStart"
+  "hook_event_name": "SessionStart",
+  "agent_id": ${agent_id},
+  "agent_type": ${agent_type}
 }
 EOF
       ;;
@@ -102,6 +125,7 @@ EOF
 # Parse arguments
 VERBOSE=false
 TIMEOUT=60
+SUBAGENT=false
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -116,8 +140,12 @@ while [ $# -gt 0 ]; do
       TIMEOUT="$2"
       shift 2
       ;;
+    --subagent)
+      SUBAGENT=true
+      shift
+      ;;
     --create-sample)
-      create_sample "$2"
+      create_sample "$2" "$SUBAGENT"
       exit 0
       ;;
     *)
