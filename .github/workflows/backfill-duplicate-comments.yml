@@ -39,6 +39,7 @@ jobs:
       - name: Backfill duplicate comments
         run: bun run scripts/backfill-duplicate-comments.ts
         env:
+          PATH: /bin:/usr/bin:$PATH
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DAYS_BACK: ${{ inputs.days_back }}
           DRY_RUN: ${{ inputs.dry_run }}
