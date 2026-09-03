@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Example PreToolUse hook for validating Write/Edit operations
 # This script demonstrates file write validation patterns
 

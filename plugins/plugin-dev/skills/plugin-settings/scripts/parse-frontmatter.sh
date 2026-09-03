@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Frontmatter Parser Utility
 # Extracts YAML frontmatter from .local.md files
 
