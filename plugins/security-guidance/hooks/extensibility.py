@@ -155,7 +155,7 @@ def _load_user_patterns(cwd: Optional[str]) -> List[Dict[str, Any]]:
             if data is None:
                 continue
             for entry in (data or {}).get("patterns", []):
-                rule = _validate_pattern(entry, source=label)
+                rule = _validate_pattern(entry, source=label, cwd=cwd)
                 if rule:
                     rules.append(rule)
             break  # found one extension; don't double-load .yaml AND .json
@@ -195,7 +195,7 @@ def _read_config(path: str) -> Optional[Dict[str, Any]]:
         return None
 
 
-def _validate_pattern(entry: Any, source: str) -> Optional[Dict[str, Any]]:
+def _validate_pattern(entry: Any, source: str, cwd: Optional[str] = None) -> Optional[Dict[str, Any]]:
     """Validate one user pattern entry. Returns a rule dict in the same shape
     as the built-in SECURITY_PATTERNS, or None if invalid (logged)."""
     if not isinstance(entry, dict):
@@ -238,7 +238,7 @@ def _validate_pattern(entry: Any, source: str) -> Optional[Dict[str, Any]]:
             return None
         # Capture as defaults so the lambda doesn't share state across rules.
         rule["path_filter"] = (
-            lambda p, _inc=tuple(paths), _exc=tuple(exclude): _glob_match(p, _inc, _exc)
+            lambda p, _inc=tuple(paths), _exc=tuple(exclude), _cwd=cwd: _glob_match(p, _inc, _exc, _cwd)
         )
     return rule
 
@@ -276,9 +276,31 @@ def _glob_to_regex(glob: str) -> "re.Pattern[str]":
     return re.compile("(?s:" + "".join(out) + ")\\Z")
 
 
-def _glob_match(path: str, include: Tuple[str, ...], exclude: Tuple[str, ...]) -> bool:
+def _project_relative(path: str, cwd: Optional[str]) -> str:
+    """Canonicalize a hook-delivered path to project-relative form, so that
+    an absolute payload (the normal case: tool hooks report edited files by
+    absolute path) and a relative payload for the same file produce the same
+    include/exclude decision against project-relative globs like ``src/*.ts``.
+
+    Paths outside the project root, or when ``cwd`` is unknown, are left as
+    delivered (normalized to ``/`` separators) rather than guessing via
+    prefix-stripping."""
+    if cwd and os.path.isabs(path):
+        try:
+            root = os.path.abspath(cwd)
+            rel = os.path.relpath(os.path.abspath(path), root)
+        except ValueError:
+            rel = None  # e.g. different drive on Windows
+        if rel is not None and rel != os.pardir and not rel.startswith(os.pardir + os.sep):
+            return rel.replace(os.sep, "/")
+    return path.replace(os.sep, "/")
+
+
+def _glob_match(
+    path: str, include: Tuple[str, ...], exclude: Tuple[str, ...], cwd: Optional[str] = None
+) -> bool:
     """Match a path against include/exclude globs. ``**`` matches any depth."""
-    norm = path.replace(os.sep, "/")
+    norm = _project_relative(path, cwd)
     base = os.path.basename(norm)
     def _hit(globs: Tuple[str, ...]) -> bool:
         return any(
