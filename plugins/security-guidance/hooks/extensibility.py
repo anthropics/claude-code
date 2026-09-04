@@ -298,6 +298,43 @@ def _glob_to_regex(glob: str) -> "re.Pattern[str]":
     return re.compile("(?s:" + "".join(out) + ")\\Z", flags)
 
 
+def _segment_match(pat_segs: List[str], path_segs: List[str]) -> bool:
+    """Match a glob split on ``/`` against a path split on ``/``, where a
+    standalone ``**`` segment consumes zero or more whole path segments.
+
+    A single regex with an optional ``(?:.*/)?`` for ``**/`` is not enough:
+    since the segment after it (e.g. ``[!t]*.ts``) may itself contain an
+    unrestricted ``*`` that also crosses ``/`` (required for fnmatch
+    compatibility — see ``_glob_to_regex``), the engine can backtrack into
+    skipping the ``**/`` match entirely and let that later ``*`` swallow the
+    real directory boundary instead. That lets a per-segment check like a
+    negated class end up applied to the wrong character — e.g.
+    ``**/[!t]*.ts`` would wrongly match ``src/t.ts``, silently admitting the
+    exact file the rule meant to exclude. Matching segment-by-segment, with
+    ``**`` structurally bounded to whole segments, has no such backtracking
+    escape hatch."""
+    if not pat_segs:
+        return not path_segs
+    head, rest = pat_segs[0], pat_segs[1:]
+    if head == "**":
+        if _segment_match(rest, path_segs):
+            return True
+        return bool(path_segs) and _segment_match(pat_segs, path_segs[1:])
+    if not path_segs:
+        return False
+    return bool(_glob_to_regex(head).match(path_segs[0])) and _segment_match(rest, path_segs[1:])
+
+
+def _pattern_matches(glob: str, s: str) -> bool:
+    """Match one glob against one string, routing standalone ``**`` segments
+    through the segment-aware matcher and everything else through the
+    single-regex translator (which already matches fnmatch exactly)."""
+    segs = glob.split("/")
+    if "**" in segs:
+        return _segment_match(segs, s.split("/"))
+    return bool(_glob_to_regex(glob).match(s))
+
+
 def _project_relative(path: str, cwd: Optional[str]) -> str:
     """Canonicalize a hook-delivered path to project-relative form, so that
     an absolute payload (the normal case: tool hooks report edited files by
@@ -325,9 +362,7 @@ def _glob_match(
     norm = _project_relative(path, cwd)
     base = os.path.basename(norm)
     def _hit(globs: Tuple[str, ...]) -> bool:
-        return any(
-            _glob_to_regex(g).match(norm) or _glob_to_regex(g).match(base) for g in globs
-        )
+        return any(_pattern_matches(g, norm) or _pattern_matches(g, base) for g in globs)
     if include and not _hit(include):
         return False
     if exclude and _hit(exclude):

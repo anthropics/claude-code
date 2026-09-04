@@ -132,6 +132,16 @@ class CharacterClassFnmatchCompat(unittest.TestCase):
         self.assertFalse(_glob_match("t.ts", ("**/[!t]*.ts",), ()))
         self.assertTrue(_glob_match("x.ts", ("**/[!t]*.ts",), ()))
 
+    def test_negated_class_excludes_nested_matching_file_too(self):
+        # Regression: a single regex with an optional (?:.*/)? for '**/' let
+        # a later unrestricted '*' backtrack around the '**/' entirely, so
+        # the [!t] check landed on the wrong character and t.ts one level
+        # down (or more) was wrongly admitted even though bare t.ts was
+        # correctly excluded above.
+        self.assertFalse(_glob_match("src/t.ts", ("**/[!t]*.ts",), ()))
+        self.assertFalse(_glob_match("a/b/t.ts", ("**/[!t]*.ts",), ()))
+        self.assertTrue(_glob_match("src/x.ts", ("**/[!t]*.ts",), ()))
+
 
 class StarAndQuestionMarkStayRecursive(unittest.TestCase):
     """A bare ``*`` and ``?`` must keep crossing ``/`` exactly like
