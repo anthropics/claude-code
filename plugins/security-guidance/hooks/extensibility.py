@@ -263,12 +263,26 @@ def _glob_to_regex(glob: str) -> "re.Pattern[str]":
             out.append("[^/]")
             i += 1
         elif glob[i] == "[":
-            j = glob.find("]", i + 1)
-            if j == -1:
+            # fnmatch class syntax: leading '!' negates (regex '^', not '!'),
+            # and a ']' immediately after '[' or '[!' is a literal member
+            # rather than the closing bracket.
+            j = i + 1
+            if j < n and glob[j] == "!":
+                j += 1
+            if j < n and glob[j] == "]":
+                j += 1
+            while j < n and glob[j] != "]":
+                j += 1
+            if j >= n:
                 out.append(re.escape("["))
                 i += 1
             else:
-                out.append(glob[i:j + 1])
+                body = glob[i + 1:j].replace("\\", "\\\\")
+                if body.startswith("!"):
+                    body = "^" + body[1:]
+                elif body[:1] in ("^", "["):
+                    body = "\\" + body
+                out.append("[" + body + "]")
                 i = j + 1
         else:
             out.append(re.escape(glob[i]))

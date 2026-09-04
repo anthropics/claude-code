@@ -92,5 +92,45 @@ class PathCanonicalization(unittest.TestCase):
         self.assertFalse(_glob_match(abs_path, ("src/*.ts",), (), cwd=None))
 
 
+class CharacterClassFnmatchCompat(unittest.TestCase):
+    """``[...]`` classes must keep fnmatch semantics: a leading ``!``
+    negates (regex uses ``^``, which fnmatch gives no special meaning), and
+    a ``]`` immediately after ``[`` or ``[!`` is a literal member, not the
+    closing bracket. Each case is checked against real ``fnmatch`` so this
+    stays pinned to the semantics the plugin's existing patterns were
+    written against."""
+
+    CASES = [
+        ("[!t]*.ts", "t.ts"),
+        ("[!t]*.ts", "x.ts"),
+        ("[]t]*.ts", "]x.ts"),
+        ("[]t]*.ts", "t.ts"),
+        ("[]t]*.ts", "a.ts"),
+        ("[![]*.ts", "[.ts"),
+        ("[![]*.ts", "a.ts"),
+        ("[a-z]*.ts", "a.ts"),
+        ("[a-z]*.ts", "A.ts"),
+        ("[^abc]*.ts", "^.ts"),
+        ("[^abc]*.ts", "a.ts"),
+        ("[!abc]*.ts", "a.ts"),
+        ("[!abc]*.ts", "x.ts"),
+    ]
+
+    def test_matches_fnmatch_for_each_case(self):
+        import fnmatch
+
+        for pattern, path in self.CASES:
+            with self.subTest(pattern=pattern, path=path):
+                expected = fnmatch.fnmatch(path, pattern)
+                actual = _glob_match(path, (pattern,), ())
+                self.assertEqual(actual, expected)
+
+    def test_negated_class_excludes_matching_file_from_security_rule(self):
+        # The motivating case: a rule meant to cover every .ts file except
+        # ones starting with 't' must not silently include t.ts.
+        self.assertFalse(_glob_match("t.ts", ("**/[!t]*.ts",), ()))
+        self.assertTrue(_glob_match("x.ts", ("**/[!t]*.ts",), ()))
+
+
 if __name__ == "__main__":
     unittest.main()
