@@ -15,6 +15,7 @@ import os
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -130,6 +131,47 @@ class CharacterClassFnmatchCompat(unittest.TestCase):
         # ones starting with 't' must not silently include t.ts.
         self.assertFalse(_glob_match("t.ts", ("**/[!t]*.ts",), ()))
         self.assertTrue(_glob_match("x.ts", ("**/[!t]*.ts",), ()))
+
+
+class StarAndQuestionMarkStayRecursive(unittest.TestCase):
+    """A bare ``*`` and ``?`` must keep crossing ``/`` exactly like
+    ``fnmatch`` always did — that recursion is relied on by real deployed
+    configs (see the #86545 thread) and is deliberately preserved. Only
+    ``**/`` gets new (zero-depth) behavior fnmatch can't express; nothing
+    about plain ``*``/``?`` should change."""
+
+    CASES = [
+        ("*.ts", "src/deep/f.ts"),
+        ("src/*.ts", "src/deep/f.ts"),
+        ("src/*.ts", "src/sub/deep/f.ts"),
+        ("src/*", "src/deep/f.ts"),
+        ("*/*.ts", "src/deep/f.ts"),
+        ("a*b*c.ts", "aXbYc.ts"),
+        ("a?c.ts", "abc.ts"),
+    ]
+
+    def test_matches_fnmatch_for_each_case(self):
+        import fnmatch
+
+        for pattern, path in self.CASES:
+            with self.subTest(pattern=pattern, path=path):
+                expected = fnmatch.fnmatch(path, pattern)
+                actual = _glob_match(path, (pattern,), ())
+                self.assertEqual(actual, expected)
+
+
+class CaseSensitivity(unittest.TestCase):
+    """fnmatch.fnmatch() case-normalizes via os.path.normcase, which
+    lowercases on Windows and is a no-op elsewhere. Matching must follow
+    the same split rather than being unconditionally case-sensitive."""
+
+    def test_case_sensitive_on_posix(self):
+        with mock.patch("extensibility.os.name", "posix"):
+            self.assertFalse(_glob_match("FOO.TS", ("*.ts",), ()))
+
+    def test_case_insensitive_on_windows(self):
+        with mock.patch("extensibility.os.name", "nt"):
+            self.assertTrue(_glob_match("FOO.TS", ("*.ts",), ()))
 
 
 if __name__ == "__main__":

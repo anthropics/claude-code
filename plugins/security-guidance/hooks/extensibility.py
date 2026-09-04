@@ -244,23 +244,25 @@ def _validate_pattern(entry: Any, source: str, cwd: Optional[str] = None) -> Opt
 
 
 def _glob_to_regex(glob: str) -> "re.Pattern[str]":
-    """Translate a glob to a regex where ``**`` matches any depth, including
-    zero directories (unlike ``fnmatch``, where a bare ``*`` already crosses
-    ``/`` and ``**/`` therefore requires a literal ``/`` to be present)."""
+    """Translate a glob to a regex matching fnmatch's semantics exactly
+    (``*`` and ``?`` both cross ``/`` — that recursion is relied on by
+    existing patterns and is preserved deliberately, not a bug), except for
+    one addition: ``**/`` also matches zero directories, so ``**/*.ts``
+    covers a top-level file the same way it covers a nested one. Plain
+    ``fnmatch`` can't express that — a literal ``/`` in the pattern always
+    requires a literal ``/`` in the string, no matter how many ``*`` sit
+    next to it."""
     out = []
     i, n = 0, len(glob)
     while i < n:
         if glob[i:i + 3] == "**/":
             out.append("(?:.*/)?")
             i += 3
-        elif glob[i:i + 2] == "**":
-            out.append(".*")
-            i += 2
         elif glob[i] == "*":
-            out.append("[^/]*")
+            out.append(".*")
             i += 1
         elif glob[i] == "?":
-            out.append("[^/]")
+            out.append(".")
             i += 1
         elif glob[i] == "[":
             # fnmatch class syntax: leading '!' negates (regex '^', not '!'),
@@ -287,7 +289,13 @@ def _glob_to_regex(glob: str) -> "re.Pattern[str]":
         else:
             out.append(re.escape(glob[i]))
             i += 1
-    return re.compile("(?s:" + "".join(out) + ")\\Z")
+    # fnmatch.fnmatch() case-normalizes via os.path.normcase before matching,
+    # which lowercases on Windows and is a no-op elsewhere (including macOS,
+    # despite its default case-insensitive filesystem — normcase only knows
+    # about nt vs. posix). Match that platform split so a rule doesn't
+    # silently stop firing depending on file casing.
+    flags = re.IGNORECASE if os.name == "nt" else 0
+    return re.compile("(?s:" + "".join(out) + ")\\Z", flags)
 
 
 def _project_relative(path: str, cwd: Optional[str]) -> str:
