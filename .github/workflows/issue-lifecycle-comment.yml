@@ -9,6 +9,14 @@ permissions:
 
 jobs:
   comment:
+    # Only run for lifecycle labels — skip bug, enhancement, platform:*, area:*, etc.
+    # Label set matches scripts/issue-lifecycle.ts
+    if: >-
+      github.event.label.name == 'autoclose' ||
+      github.event.label.name == 'stale' ||
+      github.event.label.name == 'needs-info' ||
+      github.event.label.name == 'needs-repro' ||
+      github.event.label.name == 'invalid'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
