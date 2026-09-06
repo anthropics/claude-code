@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.1.263
+
+- Bug fixes and reliability improvements
+
 ## 2.1.261
 
 - Added an "Organization policy" line to `/status` and `claude doctor` that says why your organization's policy could not be loaded, such as a proxy not passing the endpoint through

@@ -6,7 +6,14 @@
   <author><name>Anthropic</name></author>
   <link rel="alternate" type="text/html" href="https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md"/>
   <link rel="self" type="application/atom+xml" href="https://raw.githubusercontent.com/anthropics/claude-code/main/feed.xml"/>
-  <updated>2026-09-04T19:58:03Z</updated>
+  <updated>2026-09-06T02:54:14Z</updated>
+  <entry>
+    <id>https://github.com/anthropics/claude-code/releases/tag/v2.1.263</id>
+    <title>Claude Code v2.1.263</title>
+    <link rel="alternate" type="text/html" href="https://github.com/anthropics/claude-code/releases/tag/v2.1.263"/>
+    <updated>2026-09-06T02:54:14Z</updated>
+    <content type="html">&lt;p&gt;• Bug fixes and reliability improvements&lt;/p&gt;</content>
+  </entry>
   <entry>
     <id>https://github.com/anthropics/claude-code/releases/tag/v2.1.261</id>
     <title>Claude Code v2.1.261</title>
@@ -811,30 +818,5 @@
 &lt;p&gt;• Aligned the session title chip on the prompt border with the footer's right edge&lt;/p&gt;
 &lt;p&gt;• Right-aligned footer items (goal indicator, session state, background agent status) and truncated notices now share a consistent right margin with the rest of the prompt area&lt;/p&gt;
 &lt;p&gt;• [VSCode] Added screen reader support for the transcript: live announcements for replies, permission requests, errors, and status changes, plus per-turn heading navigation&lt;/p&gt;</content>
-  </entry>
-  <entry>
-    <id>https://github.com/anthropics/claude-code/releases/tag/v2.1.235</id>
-    <title>Claude Code v2.1.235</title>
-    <link rel="alternate" type="text/html" href="https://github.com/anthropics/claude-code/releases/tag/v2.1.235"/>
-    <updated>2026-08-18T20:38:47Z</updated>
-    <content type="html">&lt;p&gt;• Added an optional spellcheck setting that underlines misspelled words in the prompt input as you type, using your installed aspell, hunspell, or ispell&lt;/p&gt;
-&lt;p&gt;• Fixed whole-prompt-cache invalidation when a language server disconnected or reconnected mid-session&lt;/p&gt;
-&lt;p&gt;• Fixed nested markdown list items misaligning at depth 3+ and added a hanging indent to wrapped list items in the terminal UI&lt;/p&gt;
-&lt;p&gt;• Fixed prompt input highlights (slash commands, keywords, mentions) appearing shifted by one or more characters in some multi-line prompts&lt;/p&gt;
-&lt;p&gt;• Fixed Shift+Tab inside the permission prompt's comment field approving the edit and granting session-wide edit permission instead of closing the field&lt;/p&gt;
-&lt;p&gt;• Fixed the Agent tool advertising a general-purpose default in sessions where that agent is unavailable: an omitted subagent_type there now gets a clear error listing the available agents&lt;/p&gt;
-&lt;p&gt;• Fixed notebook cell delete/replace approval dialogs silently omitting the existing cell content when the notebook or cell could not be read; the dialog now says why&lt;/p&gt;
-&lt;p&gt;• Fixed slash commands run while Claude is responding showing HTML entities instead of the actual characters&lt;/p&gt;
-&lt;p&gt;• Fixed the prompt footer not showing the "Update installed" restart notice after a background auto-update&lt;/p&gt;
-&lt;p&gt;• Fixed the expanded task list (ctrl+t) always starting collapsed when resuming or relaunching into a session that still has open tasks&lt;/p&gt;
-&lt;p&gt;• Improved memory and CPU usage while cloud sessions such as /ultrareview or /autofix-pr run in the background — their event streams are no longer re-scanned and re-rendered on every update&lt;/p&gt;
-&lt;p&gt;• Improved permission dialogs: display text and "don't ask again" options now always match what a grant would cover, and "don't ask again" is withheld when contents cannot be fully displayed&lt;/p&gt;
-&lt;p&gt;• Improved the embedded grep in native macOS/Linux builds: pathological patterns now fail fast instead of exhausting memory, and -m N with -A/-C prints correct context&lt;/p&gt;
-&lt;p&gt;• Improved the context-limit error to say when auto-compact is off and point to /config to re-enable it&lt;/p&gt;
-&lt;p&gt;• Vim mode: NORMAL mode and cursor position are now preserved when toggling the detailed transcript (ctrl+o) or closing a panel&lt;/p&gt;
-&lt;p&gt;• Dialogs: arrow keys and Enter pressed in quick succession now select the option you navigated to instead of the previously highlighted one&lt;/p&gt;
-&lt;p&gt;• SendMessage now refuses messages too large for cross-session delivery up front instead of silently dropping them&lt;/p&gt;
-&lt;p&gt;• Remote Control: claude rc now applies the same enterprise-gateway availability check as interactive startup&lt;/p&gt;
-&lt;p&gt;• [VSCode] Fixed focus jumping between open Claude tabs on its own when a window with several Claude panels is restored or reloaded&lt;/p&gt;</content>
   </entry>
 </feed>
