@@ -40,7 +40,16 @@ echo ""
 echo "Checking root structure..."
 VALID_EVENTS=("PreToolUse" "PostToolUse" "UserPromptSubmit" "Stop" "SubagentStop" "SessionStart" "SessionEnd" "PreCompact" "Notification")
 
-for event in $(jq -r 'keys[]' "$HOOKS_FILE"); do
+# Check if hooks are defined under a top-level "hooks" key or directly at root
+if jq -e 'has("hooks") and (.hooks | type == "object")' "$HOOKS_FILE" >/dev/null 2>&1; then
+  JQ_BASE=".hooks"
+else
+  JQ_BASE="."
+fi
+
+EVENT_KEYS=$(jq -r "${JQ_BASE} | keys[] | select(. != \"description\" and . != \"\$schema\" and . != \"title\" and . != \"version\")" "$HOOKS_FILE")
+
+for event in $EVENT_KEYS; do
   found=false
   for valid_event in "${VALID_EVENTS[@]}"; do
     if [ "$event" = "$valid_event" ]; then
@@ -62,20 +71,12 @@ echo "Validating individual hooks..."
 error_count=0
 warning_count=0
 
-for event in $(jq -r 'keys[]' "$HOOKS_FILE"); do
-  hook_count=$(jq -r ".\"$event\" | length" "$HOOKS_FILE")
+for event in $EVENT_KEYS; do
+  hook_count=$(jq -r "${JQ_BASE}.\"$event\" | length" "$HOOKS_FILE")
 
   for ((i=0; i<hook_count; i++)); do
-    # Check matcher exists
-    matcher=$(jq -r ".\"$event\"[$i].matcher // empty" "$HOOKS_FILE")
-    if [ -z "$matcher" ]; then
-      echo "❌ $event[$i]: Missing 'matcher' field"
-      ((error_count++))
-      continue
-    fi
-
     # Check hooks array exists
-    hooks=$(jq -r ".\"$event\"[$i].hooks // empty" "$HOOKS_FILE")
+    hooks=$(jq -r "${JQ_BASE}.\"$event\"[$i].hooks // empty" "$HOOKS_FILE")
     if [ -z "$hooks" ] || [ "$hooks" = "null" ]; then
       echo "❌ $event[$i]: Missing 'hooks' array"
       ((error_count++))
@@ -83,10 +84,10 @@ for event in $(jq -r 'keys[]' "$HOOKS_FILE"); do
     fi
 
     # Validate each hook in the array
-    hook_array_count=$(jq -r ".\"$event\"[$i].hooks | length" "$HOOKS_FILE")
+    hook_array_count=$(jq -r "${JQ_BASE}.\"$event\"[$i].hooks | length" "$HOOKS_FILE")
 
     for ((j=0; j<hook_array_count; j++)); do
-      hook_type=$(jq -r ".\"$event\"[$i].hooks[$j].type // empty" "$HOOKS_FILE")
+      hook_type=$(jq -r "${JQ_BASE}.\"$event\"[$i].hooks[$j].type // empty" "$HOOKS_FILE")
 
       if [ -z "$hook_type" ]; then
         echo "❌ $event[$i].hooks[$j]: Missing 'type' field"
@@ -102,7 +103,7 @@ for event in $(jq -r 'keys[]' "$HOOKS_FILE"); do
 
       # Check type-specific fields
       if [ "$hook_type" = "command" ]; then
-        command=$(jq -r ".\"$event\"[$i].hooks[$j].command // empty" "$HOOKS_FILE")
+        command=$(jq -r "${JQ_BASE}.\"$event\"[$i].hooks[$j].command // empty" "$HOOKS_FILE")
         if [ -z "$command" ]; then
           echo "❌ $event[$i].hooks[$j]: Command hooks must have 'command' field"
           ((error_count++))
@@ -114,7 +115,7 @@ for event in $(jq -r 'keys[]' "$HOOKS_FILE"); do
           fi
         fi
       elif [ "$hook_type" = "prompt" ]; then
-        prompt=$(jq -r ".\"$event\"[$i].hooks[$j].prompt // empty" "$HOOKS_FILE")
+        prompt=$(jq -r "${JQ_BASE}.\"$event\"[$i].hooks[$j].prompt // empty" "$HOOKS_FILE")
         if [ -z "$prompt" ]; then
           echo "❌ $event[$i].hooks[$j]: Prompt hooks must have 'prompt' field"
           ((error_count++))
@@ -128,7 +129,7 @@ for event in $(jq -r 'keys[]' "$HOOKS_FILE"); do
       fi
 
       # Check timeout
-      timeout=$(jq -r ".\"$event\"[$i].hooks[$j].timeout // empty" "$HOOKS_FILE")
+      timeout=$(jq -r "${JQ_BASE}.\"$event\"[$i].hooks[$j].timeout // empty" "$HOOKS_FILE")
       if [ -n "$timeout" ] && [ "$timeout" != "null" ]; then
         if ! [[ "$timeout" =~ ^[0-9]+$ ]]; then
           echo "❌ $event[$i].hooks[$j]: Timeout must be a number"
