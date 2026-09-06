@@ -1,0 +1,9 @@
+{
+  "name": "agentmarkup",
+  "version": "1.0.0",
+  "description": "Make websites machine-readable for LLMs and AI agents with llms.txt, llms-full.txt, JSON-LD, markdown mirrors, and AI crawler directives",
+  "author": {
+    "name": "Sebastian Cochinescu",
+    "url": "https://github.com/cochinescu"
+  }
+}

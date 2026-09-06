@@ -12,6 +12,7 @@ Learn more in the [official plugins documentation](https://docs.claude.com/en/do
 
 | Name | Description | Contents |
 |------|-------------|----------|
+| [agentmarkup](./agentmarkup/) | Make websites machine-readable for LLMs and AI agents with llms.txt, llms-full.txt, JSON-LD, markdown mirrors, and AI crawler directives | **Command:** `/agentmarkup` - Analyze project and set up machine-readable assets with the right adapter or manual approach<br>**Skill:** `agentmarkup` - Auto-invoked for site metadata, agent-readable assets, and structured data work |
 | [agent-sdk-dev](./agent-sdk-dev/) | Development kit for working with the Claude Agent SDK | **Command:** `/new-sdk-app` - Interactive setup for new Agent SDK projects<br>**Agents:** `agent-sdk-verifier-py`, `agent-sdk-verifier-ts` - Validate SDK applications against best practices |
 | [claude-opus-4-5-migration](./claude-opus-4-5-migration/) | Migrate code and prompts from Sonnet 4.x and Opus 4.1 to Opus 4.5 | **Skill:** `claude-opus-4-5-migration` - Automated migration of model strings, beta headers, and prompt adjustments |
 | [code-review](./code-review/) | Automated PR code review using multiple specialized agents with confidence-based scoring to filter false positives | **Command:** `/code-review` - Automated PR review workflow<br>**Agents:** 5 parallel Sonnet agents for CLAUDE.md compliance, bug detection, historical context, PR history, and code comments |
