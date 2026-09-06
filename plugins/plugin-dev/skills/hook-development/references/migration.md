@@ -34,7 +34,7 @@ Prompt-based hooks offer several advantages:
 
 **Script (validate-bash.sh):**
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 input=$(cat)
 command=$(echo "$input" | jq -r '.tool_input.command')
 
@@ -103,7 +103,7 @@ fi
 
 **Script (validate-write.sh):**
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 input=$(cat)
 file_path=$(echo "$input" | jq -r '.tool_input.file_path')
 
@@ -159,7 +159,7 @@ Command hooks still have their place:
 ### 1. Deterministic Performance Checks
 
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 # Check file size quickly
 file_path=$(echo "$input" | jq -r '.tool_input.file_path')
 size=$(stat -f%z "$file_path" 2>/dev/null || stat -c%s "$file_path" 2>/dev/null)
@@ -175,7 +175,7 @@ fi
 ### 2. External Tool Integration
 
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 # Run security scanner
 file_path=$(echo "$input" | jq -r '.tool_input.file_path')
 scan_result=$(security-scanner "$file_path")
@@ -191,7 +191,7 @@ fi
 ### 3. Very Fast Checks (< 50ms)
 
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 # Quick regex check
 command=$(echo "$input" | jq -r '.tool_input.command')
 
