@@ -1,0 +1,25 @@
+{
+  "name": "multi-team-coordination",
+  "description": "Two teams running in parallel; cross-team SendMessage routes correctly.",
+  "primitives_tested": ["multi-team", "cross-team-sendmessage"],
+  "max_duration_minutes": 1,
+  "deterministic": true,
+  "setup": {
+    "fixtures": "../fixtures/multi-team-coordination",
+    "seed": 42,
+    "git_init": true
+  },
+  "teammates": [
+    {"name": "alpha-lead", "head": "Builder", "task_ids": ["alpha-1"], "team": "alpha"},
+    {"name": "alpha-builder", "head": "Builder", "task_ids": ["alpha-2"], "team": "alpha"},
+    {"name": "beta-lead", "head": "Builder", "task_ids": ["beta-1"], "team": "beta"},
+    {"name": "beta-builder", "head": "Builder", "task_ids": ["beta-2"], "team": "beta"}
+  ],
+  "expected": {
+    "tasks_completed": 4,
+    "files_present": ["team-alpha-output.txt", "team-beta-output.txt", "inboxes/beta/beta-lead.json"],
+    "messages_routed": [
+      {"from": "alpha-lead", "to": "beta-lead", "team": "beta"}
+    ]
+  }
+}
