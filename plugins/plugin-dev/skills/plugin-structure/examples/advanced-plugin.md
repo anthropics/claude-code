@@ -146,30 +146,28 @@ enterprise-devops/
 
 ```json
 {
-  "mcpServers": {
-    "kubernetes": {
-      "command": "node",
-      "args": ["${CLAUDE_PLUGIN_ROOT}/servers/kubernetes-mcp/index.js"],
-      "env": {
-        "KUBECONFIG": "${KUBECONFIG}",
-        "K8S_NAMESPACE": "${K8S_NAMESPACE:-default}"
-      }
-    },
-    "terraform": {
-      "command": "python",
-      "args": ["${CLAUDE_PLUGIN_ROOT}/servers/terraform-mcp/main.py"],
-      "env": {
-        "TF_STATE_BUCKET": "${TF_STATE_BUCKET}",
-        "AWS_REGION": "${AWS_REGION}"
-      }
-    },
-    "github-actions": {
-      "command": "node",
-      "args": ["${CLAUDE_PLUGIN_ROOT}/servers/github-actions-mcp/server.js"],
-      "env": {
-        "GITHUB_TOKEN": "${GITHUB_TOKEN}",
-        "GITHUB_ORG": "${GITHUB_ORG}"
-      }
+  "kubernetes": {
+    "command": "node",
+    "args": ["${CLAUDE_PLUGIN_ROOT}/servers/kubernetes-mcp/index.js"],
+    "env": {
+      "KUBECONFIG": "${KUBECONFIG}",
+      "K8S_NAMESPACE": "${K8S_NAMESPACE:-default}"
+    }
+  },
+  "terraform": {
+    "command": "python",
+    "args": ["${CLAUDE_PLUGIN_ROOT}/servers/terraform-mcp/main.py"],
+    "env": {
+      "TF_STATE_BUCKET": "${TF_STATE_BUCKET}",
+      "AWS_REGION": "${AWS_REGION}"
+    }
+  },
+  "github-actions": {
+    "command": "node",
+    "args": ["${CLAUDE_PLUGIN_ROOT}/servers/github-actions-mcp/server.js"],
+    "env": {
+      "GITHUB_TOKEN": "${GITHUB_TOKEN}",
+      "GITHUB_ORG": "${GITHUB_ORG}"
     }
   }
 }
