@@ -11,7 +11,7 @@ Findings cover common web-vulnerability classes — injection, XSS, SSRF, hardco
 ## Install
 
 ```
-/plugin install security-guidance@claude-plugins-official
+/plugin install security-guidance@claude-code-plugins
 ```
 
 Marketplace ships enabled by default in Claude Code — no setup beyond having the CLI itself.
