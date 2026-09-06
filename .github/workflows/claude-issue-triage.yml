@@ -25,6 +25,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Setup Bun
+        if: github.event_name == 'issues'
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0 (sha-pinned)
+        with:
+          bun-version: latest
+
+      - name: Flag empty generated issue reports
+        if: github.event_name == 'issues'
+        run: bun run scripts/flag-empty-generated-issue.ts
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Run Claude Code for Issue Triage
         timeout-minutes: 5
         uses: anthropics/claude-code-action@v1
