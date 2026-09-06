@@ -1,0 +1,9 @@
+{
+  "name": "security-guidance",
+  "version": "1.0.0",
+  "description": "Security reminder hook that warns about potential security issues when editing files, including command injection, XSS, and unsafe code patterns",
+  "author": {
+    "name": "David Dworken",
+    "email": "dworken@anthropic.com"
+  }
+}
