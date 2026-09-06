@@ -1,0 +1,9 @@
+{
+  "name": "anthropic-mcp",
+  "description": "Registers the official Anthropic MCP server, giving Claude Code direct access to Claude models and the Anthropic API",
+  "version": "1.0.0",
+  "author": {
+    "name": "Anthropic",
+    "email": "support@anthropic.com"
+  }
+}
