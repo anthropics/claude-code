@@ -130,14 +130,29 @@ fi
 # Create state file for stop hook (markdown with YAML frontmatter)
 mkdir -p .claude
 
-# Quote completion promise for YAML if it contains special chars or is not null
+# Quote completion promise for YAML if it contains special chars or is not null.
+# Escape backslashes and double quotes so untrusted promise text cannot break out
+# of the YAML string and inject extra frontmatter keys (e.g. active: false).
 if [[ -n "$COMPLETION_PROMISE" ]] && [[ "$COMPLETION_PROMISE" != "null" ]]; then
-  COMPLETION_PROMISE_YAML="\"$COMPLETION_PROMISE\""
+  COMPLETION_PROMISE_ESCAPED=${COMPLETION_PROMISE//\\/\\\\}
+  COMPLETION_PROMISE_ESCAPED=${COMPLETION_PROMISE_ESCAPED//\"/\\\"}
+  # Newlines would still break scalar YAML; flatten to spaces.
+  COMPLETION_PROMISE_ESCAPED=${COMPLETION_PROMISE_ESCAPED//$'\n'/ }
+  COMPLETION_PROMISE_ESCAPED=${COMPLETION_PROMISE_ESCAPED//$'\r'/ }
+  COMPLETION_PROMISE_YAML="\"$COMPLETION_PROMISE_ESCAPED\""
 else
   COMPLETION_PROMISE_YAML="null"
 fi
 
-cat > .claude/ralph-loop.local.md <<EOF
+# Refuse to write through a symlink — a planted link could redirect state into
+# an attacker-chosen path (credential overwrite / arbitrary file write).
+STATE_FILE=".claude/ralph-loop.local.md"
+if [[ -L "$STATE_FILE" ]]; then
+  echo "❌ Error: $STATE_FILE is a symlink; refusing to write for safety" >&2
+  exit 1
+fi
+
+cat > "$STATE_FILE" <<EOF
 ---
 active: true
 iteration: 1

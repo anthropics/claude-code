@@ -71,6 +71,11 @@ Load project-specific context at session start:
 #!/bin/bash
 cd "$CLAUDE_PROJECT_DIR" || exit 1
 
+# Require a real CLAUDE_ENV_FILE path; refuse symlink redirect (credential overwrite).
+if [[ -z "${CLAUDE_ENV_FILE:-}" || -L "$CLAUDE_ENV_FILE" ]]; then
+  exit 1
+fi
+
 # Detect project type
 if [ -f "package.json" ]; then
   echo "📦 Node.js project detected"
