@@ -1,7 +1,7 @@
 # gateway.yaml.example — Claude apps gateway config template, AWS-shaped (walkthrough §4).
 #
 # Okta IdP + Bedrock upstream, following the walkthrough at
-# https://code.claude.com/docs/en/claude-apps-gateway-on-aws. The active sections
+# https://code.claude.com/docs/en/claude-apps-gateway. The active sections
 # below are a strict subset of the full configuration reference at
 # https://code.claude.com/docs/en/claude-apps-gateway-config; optional keys are
 # included commented-out.
