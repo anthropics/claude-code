@@ -32,3 +32,18 @@ output "public_invoker_granted" {
   description = "Whether the allUsers run.invoker binding was applied (false when invoker_iam_disabled handles public access instead, or on Domain-Restricted-Sharing orgs)."
   value       = length(google_cloud_run_v2_service_iam_member.public) > 0
 }
+
+output "lb_ip" {
+  description = "Internal ALB IP (null when internal_alb_enabled = false)."
+  value       = one(google_compute_address.lb[*].address)
+}
+
+output "lb_url" {
+  description = "Gateway URL behind the internal ALB — resolves only inside the VPC (null when internal_alb_enabled = false)."
+  value       = var.internal_alb_enabled ? "https://${var.lb_hostname}" : null
+}
+
+output "lb_ca_cert_pem" {
+  description = "Self-signed ALB certificate PEM — clients trust it via curl --cacert / NODE_EXTRA_CA_CERTS (null when internal_alb_enabled = false)."
+  value       = one(tls_self_signed_cert.lb[*].cert_pem)
+}
