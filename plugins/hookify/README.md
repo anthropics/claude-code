@@ -122,7 +122,7 @@ Ensure credentials are not hardcoded and file is in .gitignore.
 ## Event Types
 
 - **`bash`**: Triggers on Bash tool commands
-- **`file`**: Triggers on Edit, Write, MultiEdit tools
+- **`file`**: Triggers on Read, Edit, Write, MultiEdit tools
 - **`stop`**: Triggers when Claude wants to stop (for completion checks)
 - **`prompt`**: Triggers on user prompt submission
 - **`all`**: Triggers on all events
@@ -247,7 +247,7 @@ Use environment variables instead of hardcoded values.
 - `command`: The bash command string
 
 **For file events:**
-- `file_path`: Path to file being edited
+- `file_path`: Path to file being read or edited
 - `new_text`: New content being added (Edit, Write)
 - `old_text`: Old content being replaced (Edit only)
 - `content`: File content (Write only)

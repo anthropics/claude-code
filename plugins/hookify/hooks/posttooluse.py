@@ -35,11 +35,12 @@ def main():
 
         # Determine event type based on tool
         tool_name = input_data.get('tool_name', '')
-        event = None
         if tool_name == 'Bash':
             event = 'bash'
-        elif tool_name in ['Edit', 'Write', 'MultiEdit']:
+        elif tool_name in ['Edit', 'Write', 'MultiEdit', 'Read']:
             event = 'file'
+        else:
+            event = 'all'
 
         # Load rules
         rules = load_rules(event=event)

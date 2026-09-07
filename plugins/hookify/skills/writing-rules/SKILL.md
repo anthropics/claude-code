@@ -40,7 +40,7 @@ Can include markdown formatting, warnings, suggestions, etc.
 
 **event** (required): Which hook event to trigger on
 - `bash`: Bash tool commands
-- `file`: Edit, Write, MultiEdit tools
+- `file`: Read, Edit, Write, MultiEdit tools
 - `stop`: When agent wants to stop
 - `prompt`: When user submits a prompt
 - `all`: All events
@@ -146,7 +146,7 @@ Dangerous command detected!
 
 ### file Events
 
-Match Edit/Write/MultiEdit operations:
+Match Read/Edit/Write/MultiEdit operations:
 
 ```markdown
 ---
