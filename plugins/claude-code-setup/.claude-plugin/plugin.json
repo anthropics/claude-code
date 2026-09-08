@@ -1,0 +1,9 @@
+{
+  "name": "claude-code-setup",
+  "description": "Analyze codebases and recommend tailored Claude Code automations",
+  "version": "1.0.0",
+  "author": {
+    "name": "Isabella He",
+    "email": "isabella@anthropic.com"
+  }
+}
