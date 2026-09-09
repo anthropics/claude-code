@@ -27,7 +27,11 @@ fi
 FILE="$1"
 FIELD="${2:-}"
 
-# Validate file
+# Validate file (do not follow/operate on symlinks for credential-adjacent settings)
+if [ -L "$FILE" ]; then
+  echo "Error: Refusing to read symlink settings file: $FILE" >&2
+  exit 1
+fi
 if [ ! -f "$FILE" ]; then
   echo "Error: File not found: $FILE" >&2
   exit 1
@@ -45,6 +49,13 @@ fi
 if [ -z "$FIELD" ]; then
   echo "$FRONTMATTER"
   exit 0
+fi
+
+# Field is used in grep/sed patterns — allow only safe identifiers to prevent
+# regex metacharacter injection (e.g. FIELD='.*|evil').
+if ! [[ "$FIELD" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
+  echo "Error: Field name must be a simple identifier (got: $FIELD)" >&2
+  exit 1
 fi
 
 # Extract specific field

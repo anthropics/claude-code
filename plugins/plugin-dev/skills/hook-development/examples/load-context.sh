@@ -7,6 +7,17 @@ set -euo pipefail
 # Navigate to project directory
 cd "$CLAUDE_PROJECT_DIR" || exit 1
 
+# SessionStart hooks persist env via CLAUDE_ENV_FILE. Require a real path and
+# refuse symlinks so a planted link cannot redirect writes into credential files.
+if [[ -z "${CLAUDE_ENV_FILE:-}" ]]; then
+  echo "CLAUDE_ENV_FILE is not set; skipping env persistence" >&2
+  exit 0
+fi
+if [[ -L "$CLAUDE_ENV_FILE" ]]; then
+  echo "Refusing to write through symlink CLAUDE_ENV_FILE=$CLAUDE_ENV_FILE" >&2
+  exit 1
+fi
+
 echo "Loading project context..."
 
 # Detect project type and set environment
