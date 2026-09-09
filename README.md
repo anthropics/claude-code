@@ -1,72 +1,65 @@
 # Claude Code
 
-![](https://img.shields.io/badge/Node.js-18%2B-brightgreen?style=flat-square) [![npm]](https://www.npmjs.com/package/@anthropic-ai/claude-code)
+![Node.js 18+](https://img.shields.io/badge/Node.js-18%2B-brightgreen?style=flat-square) [![npm version](https://img.shields.io/npm/v/@anthropic-ai/claude-code.svg?style=flat-square)](https://www.npmjs.com/package/@anthropic-ai/claude-code)
 
-[npm]: https://img.shields.io/npm/v/@anthropic-ai/claude-code.svg?style=flat-square
+Claude Code is a coding agent that runs in your terminal. It reads your codebase and helps you move faster — executing tasks, explaining code, and handling git workflows through natural language. Works in your terminal, IDE, or directly on GitHub via `@claude`.
 
-Claude Code is an agentic coding tool that lives in your terminal, understands your codebase, and helps you code faster by executing routine tasks, explaining complex code, and handling git workflows -- all through natural language commands. Use it in your terminal, IDE, or tag @claude on Github.
-
-**Learn more in the [official documentation](https://code.claude.com/docs/en/overview)**.
+**[Official documentation](https://code.claude.com/docs/en/overview)**
 
 <img src="./demo.gif" />
 
-## Get started
+## Get Started
+
 > [!NOTE]
 > Installation via npm is deprecated. Use one of the recommended methods below.
 
 For more installation options, uninstall steps, and troubleshooting, see the [setup documentation](https://code.claude.com/docs/en/setup).
 
-1. Install Claude Code:
+**macOS / Linux**
+```bash
+curl -fsSL https://claude.ai/install.sh | bash
+```
+```bash
+brew install --cask claude-code
+```
 
-    **MacOS/Linux (Recommended):**
-    ```bash
-    curl -fsSL https://claude.ai/install.sh | bash
-    ```
+**Windows**
+```powershell
+irm https://claude.ai/install.ps1 | iex
+```
+```powershell
+winget install Anthropic.ClaudeCode
+```
 
-    **Homebrew (MacOS/Linux):**
-    ```bash
-    brew install --cask claude-code
-    ```
+**npm (deprecated)**
+```bash
+npm install -g @anthropic-ai/claude-code
+```
 
-    **Windows (Recommended):**
-    ```powershell
-    irm https://claude.ai/install.ps1 | iex
-    ```
-
-    **WinGet (Windows):**
-    ```powershell
-    winget install Anthropic.ClaudeCode
-    ```
-
-    **NPM (Deprecated):**
-    ```bash
-    npm install -g @anthropic-ai/claude-code
-    ```
-
-2. Navigate to your project directory and run `claude`.
+Then navigate to your project directory and run `claude`.
 
 ## Plugins
 
-This repository includes several Claude Code plugins that extend functionality with custom commands and agents. See the [plugins directory](./plugins/README.md) for detailed documentation on available plugins.
+This repository includes plugins that extend Claude Code with custom commands and agents. See the [plugins directory](./plugins/README.md) for documentation.
 
 ## Reporting Bugs
 
-We welcome your feedback. Use the `/bug` command to report issues directly within Claude Code, or file a [GitHub issue](https://github.com/anthropics/claude-code/issues).
+Use the `/bug` command inside Claude Code, or file a [GitHub issue](https://github.com/anthropics/claude-code/issues).
 
-## Connect on Discord
+## Discord
 
-Join the [Claude Developers Discord](https://anthropic.com/discord) to connect with other developers using Claude Code. Get help, share feedback, and discuss your projects with the community.
+Join the [Claude Developers Discord](https://anthropic.com/discord) to get help, share feedback, and connect with other developers using Claude Code.
 
-## Data collection, usage, and retention
+## Data Collection, Usage, and Retention
 
-When you use Claude Code, we collect feedback, which includes usage data (such as code acceptance or rejections), associated conversation data, and user feedback submitted via the `/bug` command.
+When you use Claude Code, we collect usage data (such as code acceptance or rejections), associated conversation data, and feedback submitted via the `/bug` command.
 
-### How we use your data
+### How We Use Your Data
 
 See our [data usage policies](https://code.claude.com/docs/en/data-usage).
 
-### Privacy safeguards
+### Privacy Safeguards
 
-We have implemented several safeguards to protect your data, including limited retention periods for sensitive information, restricted access to user session data, and clear policies against using feedback for model training.
+We limit retention periods for sensitive information, restrict access to user session data, and do not use feedback for model training.
 
-For full details, please review our [Commercial Terms of Service](https://www.anthropic.com/legal/commercial-terms) and [Privacy Policy](https://www.anthropic.com/legal/privacy).
+For full details, see our [Commercial Terms of Service](https://www.anthropic.com/legal/commercial-terms) and [Privacy Policy](https://www.anthropic.com/legal/privacy).
