@@ -12,6 +12,76 @@ from typing import List, Optional, Dict, Any
 from dataclasses import dataclass, field
 
 
+BOOLEAN_TRUE_VALUES = {'true', 'yes', 'on', '1'}
+BOOLEAN_FALSE_VALUES = {'false', 'no', 'off', '0'}
+BOOLEAN_FRONTMATTER_FIELDS = {'enabled'}
+
+
+def _strip_inline_comment(value: str) -> str:
+    """Remove an unquoted YAML-style inline comment from a scalar value."""
+    in_single_quote = False
+    in_double_quote = False
+
+    for index, char in enumerate(value):
+        if char == "'" and not in_double_quote:
+            in_single_quote = not in_single_quote
+        elif char == '"' and not in_single_quote:
+            in_double_quote = not in_double_quote
+        elif (
+            char == '#'
+            and not in_single_quote
+            and not in_double_quote
+            and (index == 0 or value[index - 1].isspace())
+        ):
+            return value[:index].rstrip()
+
+    return value
+
+
+def _strip_quotes(value: str) -> str:
+    """Strip the simple wrapping quotes supported by the frontmatter parser."""
+    return value.strip('"').strip("'")
+
+
+def _parse_boolean(value: Any, field_name: str = 'enabled') -> bool:
+    """Parse a boolean frontmatter field using common YAML spellings."""
+    if isinstance(value, bool):
+        return value
+
+    if isinstance(value, int) and not isinstance(value, bool):
+        if value in (0, 1):
+            return bool(value)
+
+    if isinstance(value, str):
+        normalized = _strip_quotes(_strip_inline_comment(value.strip())).strip().lower()
+        if normalized in BOOLEAN_TRUE_VALUES:
+            return True
+        if normalized in BOOLEAN_FALSE_VALUES:
+            return False
+
+    raise ValueError(
+        f"{field_name} must be a boolean "
+        "(true/false, yes/no, on/off, or 1/0)"
+    )
+
+
+def _parse_frontmatter_scalar(key: str, value: str) -> Any:
+    """Parse a top-level frontmatter scalar value."""
+    value = value.strip()
+
+    if key in BOOLEAN_FRONTMATTER_FIELDS:
+        return _parse_boolean(value, key)
+
+    value = _strip_quotes(value)
+
+    # Preserve the parser's historical true/false handling for other fields.
+    if value.lower() == 'true':
+        return True
+    if value.lower() == 'false':
+        return False
+    return value
+
+
 @dataclass
 class Condition:
     """A single condition for matching."""
@@ -74,7 +144,7 @@ class Rule:
 
         return cls(
             name=frontmatter.get('name', 'unnamed'),
-            enabled=frontmatter.get('enabled', True),
+            enabled=_parse_boolean(frontmatter.get('enabled', True)),
             event=frontmatter.get('event', 'all'),
             pattern=simple_pattern,
             conditions=conditions,
@@ -144,12 +214,7 @@ def extract_frontmatter(content: str) -> tuple[Dict[str, Any], str]:
                 current_list = []
             else:
                 # Simple key-value pair
-                value = value.strip('"').strip("'")
-                if value.lower() == 'true':
-                    value = True
-                elif value.lower() == 'false':
-                    value = False
-                frontmatter[key] = value
+                frontmatter[key] = _parse_frontmatter_scalar(key, value)
 
         # List item (starts with -)
         elif stripped.startswith('-') and in_list:
