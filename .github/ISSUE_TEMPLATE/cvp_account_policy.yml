@@ -1,0 +1,128 @@
+name: 🔒 CVP / Account Policy Issue
+description: Report issues with the Cyber Verification Program (CVP) application process, account eligibility, or security policy concerns (NOT runtime classifier false positives)
+title: "[CVP] "
+labels:
+  - bug
+  - area:security
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a CVP or account policy issue. This template is specifically for **application and policy issues** — not runtime classifier false positives during active sessions.
+
+        **Is this a CVP application issue?** File here.
+        **Is this a runtime classifier false positive?** Use the [Bug Report](https://github.com/anthropics/claude-code/issues/new?template=bug_report.yml) template instead.
+
+        Before submitting, please check:
+        - This issue hasn't already been reported by searching [existing issues](https://github.com/anthropics/claude-code/issues?q=is%3Aissue%20state%3Aopen%20label%3Aarea%3Asecurity).
+        - You are using the [latest version](https://www.npmjs.com/package/@anthropic-ai/claude-code?activeTab=versions) of Claude Code.
+
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Preflight Checklist
+      options:
+        - label: I have searched existing CVP/security issues and this hasn't been reported yet
+          required: true
+        - label: This is about the CVP application/approval process, not a runtime classifier false positive
+          required: true
+        - label: I am using the latest version of Claude Code
+          required: true
+
+  - type: dropdown
+    id: cvp_category
+    attributes:
+      label: Which category best describes your use case?
+      description: The CVP application currently has no category for all legitimate use cases. Selecting one helps us identify gaps.
+      options:
+        - Homelab / personal infrastructure owner (servers, routers, monitoring, VPNs — my own hardware)
+        - Security researcher / pentester / CTF
+        - Professional sysadmin (corporate infrastructure)
+        - DevOps / platform engineering
+        - IoT / embedded systems developer
+        - Network engineer
+        - Student / learning cybersecurity
+        - Other (describe below)
+    validations:
+      required: true
+
+  - type: textarea
+    id: cvp_story
+    attributes:
+      label: What Happened?
+      description: Describe your CVP application or account policy experience. What did you apply for, what was the result, and why do you think it should not require CVP?
+      placeholder: |
+        I manage a homelab with 3 physical servers running Proxmox, monitoring via Prometheus/Loki/Grafana, 
+        a reverse proxy (nginx), OpenWRT router, and a VPN gateway. I applied for CVP access because I want 
+        to use Claude Code to manage this infrastructure (editing configs, writing alerting rules, etc.).
+        My application was declined with no option for human review.
+
+        The tools/commands that triggered CVP review are standard sysadmin operations on my own hardware:
+        - Accessing SSH configs for my home servers
+        - Editing Loki/Prometheus alerting rules
+        - Reading IP blocklist configs on my OpenWRT router
+        - Managing VPN configuration files
+
+        This is routine sysadmin work, not security research.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What Should Happen?
+      description: What outcome are you looking for?
+      placeholder: |
+        (a) Homelab/sysadmin use should be explicitly carved out from CVP requirements, OR
+        (b) "Infrastructure owner" should be a valid CVP category, OR
+        (c) A human review path should be available when automated CVP declines a non-research use case.
+    validations:
+      required: true
+
+  - type: textarea
+    id: triggers
+    attributes:
+      label: What commands/tools triggered the CVP review?
+      description: Be specific about what operations are being flagged. This helps distinguish policy issues from classifier tuning.
+      placeholder: |
+        - Editing Loki alerting rules with IP rate anomaly detection
+        - Reading /etc/config/ on OpenWRT router
+        - grep/search through blocklist configs
+        - SSH to personal servers
+    validations:
+      required: false
+
+  - type: dropdown
+    id: ownership
+    attributes:
+      label: Hardware ownership
+      description: Who owns the infrastructure involved?
+      options:
+        - Personally-owned hardware (homelab, personal servers)
+        - Employer-owned / corporate hardware
+        - Cloud infrastructure (AWS, GCP, Azure — personal account)
+        - Cloud infrastructure (corporate account)
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - Anthropic API
+        - Claude Code CLI
+        - Claude Desktop / Cowork
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Information
+      description: Any additional context that might help (CVP submission IDs, screenshots of decline messages, etc.)
+      placeholder: CVP submission reference numbers, screenshots, or any other context...
+    validations:
+      required: false
