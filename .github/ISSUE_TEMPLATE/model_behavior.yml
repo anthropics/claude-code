@@ -1,4 +1,4 @@
-name: 🤖 Model Behavior Issue
+name: ?? Model Behavior Issue
 description: Report unexpected Claude model behavior, incorrect actions, or permission violations
 title: "[MODEL] "
 labels:
@@ -11,7 +11,7 @@ body:
         
         Use this template when Claude does something unexpected, makes unwanted changes, or behaves inconsistently with your instructions.
         
-        **This is for:** Unexpected actions, file modifications outside scope, ignoring instructions, making assumptions
+        **This is for:** Unexpected actions, file modifications outside scope, ignoring instructions, making assumptions, interpreting ambiguous/joking replies as authorization, scope creep
         **NOT for:** Crashes, API errors, or installation issues (use Bug Report instead)
         
   - type: checkboxes
@@ -32,6 +32,8 @@ body:
       description: What category best describes the unexpected behavior?
       options:
         - Claude modified files I didn't ask it to modify
+        - Claude interpreted my ambiguous/joking reply as authorization to act
+        - Claude added features or expanded scope beyond what I asked
         - Claude accessed files outside the working directory
         - Claude ignored my instructions or configuration
         - Claude reverted/undid previous changes without asking
