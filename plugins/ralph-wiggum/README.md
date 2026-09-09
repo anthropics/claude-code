@@ -131,7 +131,7 @@ Always use `--max-iterations` as a safety net to prevent infinite loops on impos
 #  - Suggest alternative approaches"
 ```
 
-**Note**: The `--completion-promise` uses exact string matching, so you cannot use it for multiple completion conditions (like "SUCCESS" vs "BLOCKED"). Always rely on `--max-iterations` as your primary safety mechanism.
+**Note**: The `--completion-promise` uses case-insensitive string matching with whitespace normalization, so `COMPLETE`, `Complete`, and `complete` are all equivalent. However, it does not support multiple completion conditions (like "SUCCESS" vs "BLOCKED"). Always rely on `--max-iterations` as your primary safety mechanism.
 
 ## Philosophy
 
