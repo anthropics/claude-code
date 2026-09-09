@@ -1,6 +1,22 @@
 ---
 name: conversation-analyzer
-description: Use this agent when analyzing conversation transcripts to find behaviors worth preventing with hooks. Examples: <example>Context: User is running /hookify command without arguments\nuser: "/hookify"\nassistant: "I'll analyze the conversation to find behaviors you want to prevent"\n<commentary>The /hookify command without arguments triggers conversation analysis to find unwanted behaviors.</commentary></example><example>Context: User wants to create hooks from recent frustrations\nuser: "Can you look back at this conversation and help me create hooks for the mistakes you made?"\nassistant: "I'll use the conversation-analyzer agent to identify the issues and suggest hooks."\n<commentary>User explicitly asks to analyze conversation for mistakes that should be prevented.</commentary></example>
+description: |
+  Use this agent when analyzing conversation transcripts to find behaviors worth preventing with hooks.
+
+  Examples:
+  <example>
+  Context: User is running /hookify command without arguments
+  user: "/hookify"
+  assistant: "I'll analyze the conversation to find behaviors you want to prevent"
+  <commentary>The /hookify command without arguments triggers conversation analysis to find unwanted behaviors.</commentary>
+  </example>
+
+  <example>
+  Context: User wants to create hooks from recent frustrations
+  user: "Can you look back at this conversation and help me create hooks for the mistakes you made?"
+  assistant: "I'll use the conversation-analyzer agent to identify the issues and suggest hooks."
+  <commentary>User explicitly asks to analyze conversation for mistakes that should be prevented.</commentary>
+  </example>
 model: inherit
 color: yellow
 tools: ["Read", "Grep"]
