@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "protect-mcp": {
+      "command": "npx",
+      "args": ["-y", "protect-mcp@0.7.1", "serve", "--enforce", "--cedar", "${CLAUDE_PLUGIN_ROOT}/policies"],
+      "description": "Fail-closed Cedar policy gate + Ed25519 signed receipts for tool calls"
+    }
+  }
+}
