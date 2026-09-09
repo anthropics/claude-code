@@ -121,7 +121,7 @@ To create a task:
 
 ### Agent Configuration
 
-Agents can use MCP tools autonomously without pre-allowing them:
+Agents reference MCP tools by their full name in the system prompt. Use the `tools:` frontmatter field to restrict which tools the agent can call:
 
 ```markdown
 ---
@@ -129,6 +129,7 @@ name: asana-status-updater
 description: This agent should be used when the user asks to "update Asana status", "generate project report", or "sync Asana tasks"
 model: inherit
 color: blue
+tools: mcp__plugin_asana_asana__asana_search_tasks, mcp__plugin_asana_asana__asana_create_comment
 ---
 
 ## Role
@@ -141,18 +142,69 @@ Autonomous agent for generating Asana project status reports.
 2. **Analyze progress**: Calculate completion rates and identify blockers
 3. **Generate report**: Create formatted status update
 4. **Update Asana**: Use mcp__plugin_asana_asana__asana_create_comment to post report
-
-## Available Tools
-
-The agent has access to all Asana MCP tools without pre-approval.
 ```
 
 ### Agent Tool Access
 
-Agents have broader tool access than commands:
-- Can use any tool Claude determines is necessary
-- Don't need pre-allowed lists
-- Should document which tools they typically use
+By default, subagents inherit the parent session's full toolset. Use the `tools:` frontmatter field to restrict which tools are available:
+
+- `tools:` creates a **hard capability boundary** — tools not listed are genuinely unavailable to the agent, even under `bypassPermissions`
+- Restricting tools is strongly recommended for agents that should only read data or interact with specific services
+
+## `allowed-tools` vs `tools:` — Critical Distinction
+
+These two fields look similar but enforce permissions differently. Confusing them is a common security footgun.
+
+### Command `allowed-tools` — Auto-Approval Only
+
+`allowed-tools` in a command or skill frontmatter is an **auto-approval mechanism, not a capability boundary**.
+
+- Tools listed → auto-approved (no user prompt)
+- Tools NOT listed → still callable, but the user is prompted for approval
+- Under `bypassPermissions` → ALL tools execute silently, whether listed or not
+
+```markdown
+---
+# Command: deploy.md
+allowed-tools: [Read, Bash]
+---
+```
+
+In this example, `Write` is not listed but is still callable — the user would just be prompted before each `Write` call. Under `bypassPermissions`, `Write` executes silently without any prompt at all.
+
+**`allowed-tools` does NOT prevent a tool from being called. It only controls whether the user is prompted.**
+
+### Subagent `tools:` — Hard Capability Restriction
+
+`tools:` in an agent frontmatter creates a **genuine capability restriction**.
+
+- Tools listed → available to the agent
+- Tools NOT listed → cannot be called at all, even under `bypassPermissions`
+- The agent is spawned with only the specified toolset
+
+```markdown
+---
+# Agent: data-reader.md
+tools: Read, Grep, Glob
+---
+```
+
+In this example, `Write`, `Bash`, and all MCP tools are completely unavailable to this agent. This is a true security boundary.
+
+### Summary Table
+
+| | `allowed-tools` (command/skill) | `tools:` (agent) |
+|---|---|---|
+| Listed tools | Auto-approved, no prompt | Available |
+| Unlisted tools | Prompt required (or silent under `bypassPermissions`) | **Unavailable** |
+| Under `bypassPermissions` | All tools execute silently | Only listed tools available |
+| Enforcement | Soft (prompt gating) | Hard (capability boundary) |
+
+### When to Use Each
+
+**Use `allowed-tools` in commands** to improve UX by pre-approving the tools a command normally needs — reducing confirmation prompts for the user.
+
+**Use `tools:` in agents** when you need a security boundary — for example, a read-only data-analysis agent that must never be able to write files or execute shell commands.
 
 ## Tool Call Patterns
 

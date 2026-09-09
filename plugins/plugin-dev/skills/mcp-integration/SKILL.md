@@ -221,6 +221,12 @@ allowed-tools: ["mcp__plugin_asana_asana__*"]
 
 **Best practice:** Pre-allow specific tools, not wildcards, for security.
 
+> **Important — `allowed-tools` vs agent `tools:`:** These enforce permissions differently.
+> - `allowed-tools` in a command is an **auto-approval list only** — unlisted tools are still callable (user is prompted, or silent under `bypassPermissions`). It is NOT a capability boundary.
+> - `tools:` in a subagent frontmatter is a **hard capability restriction** — unlisted tools are genuinely unavailable to the agent even under `bypassPermissions`.
+>
+> See `references/tool-usage.md` for the full breakdown with examples.
+
 ## Lifecycle Management
 
 **Automatic startup:**
@@ -364,7 +370,7 @@ Always use secure connections:
 
 ### Permission Scoping
 
-Pre-allow only necessary MCP tools:
+Pre-allow only necessary MCP tools in commands to reduce user confirmation prompts:
 
 ```markdown
 ✅ allowed-tools: [
@@ -374,6 +380,8 @@ Pre-allow only necessary MCP tools:
 
 ❌ allowed-tools: ["mcp__plugin_api_server__*"]
 ```
+
+For a true capability boundary (tools that must be completely unavailable), use `tools:` in subagent frontmatter instead. `allowed-tools` only controls prompting, not what tools can be called.
 
 ## Error Handling
 
