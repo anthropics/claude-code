@@ -1,0 +1,48 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+}
+
+@layer utilities {
+  .prose-chat h1 {
+    @apply text-2xl font-bold text-fb-green-800 mb-4 mt-6;
+  }
+  .prose-chat h2 {
+    @apply text-xl font-semibold text-fb-green-700 mb-3 mt-5 border-b border-fb-green-200 pb-1;
+  }
+  .prose-chat h3 {
+    @apply text-base font-semibold text-fb-green-700 mb-1 mt-4;
+  }
+  .prose-chat p {
+    @apply mb-3 leading-relaxed;
+  }
+  .prose-chat ul {
+    @apply list-disc list-inside mb-3 space-y-1;
+  }
+  .prose-chat ol {
+    @apply list-decimal list-inside mb-3 space-y-1;
+  }
+  .prose-chat strong {
+    @apply font-semibold text-fb-green-800;
+  }
+  .prose-chat em {
+    @apply italic text-gray-600;
+  }
+  .prose-chat a {
+    @apply text-fb-green-600 underline hover:text-fb-green-800;
+  }
+  .prose-chat hr {
+    @apply border-fb-green-200 my-4;
+  }
+  .prose-chat blockquote {
+    @apply border-l-4 border-fb-green-400 pl-4 italic text-gray-600 my-3;
+  }
+  .prose-chat code {
+    @apply bg-gray-100 rounded px-1 text-sm font-mono;
+  }
+}
