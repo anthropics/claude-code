@@ -30,6 +30,20 @@ These may be applied at any level of the [settings hierarchy](https://code.claud
 
 To distribute these settings as enterprise-managed policy through Jamf, Iru (Kandji), Intune, or Group Policy, see the deployment templates in [`../mdm`](../mdm).
 
+## Troubleshooting
+
+### False usage/context limits after updating
+
+After a version upgrade, sessions created before the update may
+show false-positive usage limits, context limits, or safety
+guardrail blocks. This is caused by a session-format mismatch
+between versions.
+
+**Workaround**: start a new session instead of resuming the old one.
+If the old session is critical, downgrade to the previous version.
+
+See issue [#61703](https://github.com/anthropics/claude-code/issues/61703).
+
 ## Full Documentation
 
 See https://code.claude.com/docs/en/settings for complete documentation on all available managed settings.
