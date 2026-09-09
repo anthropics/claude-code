@@ -86,6 +86,16 @@ variable "db_tier" {
   default     = "db-g1-small"
 }
 
+variable "db_edition" {
+  description = "Cloud SQL edition. ENTERPRISE matches the shared-core db_tier default; set ENTERPRISE_PLUS for db-perf-optimized-N-* tiers."
+  type        = string
+  default     = "ENTERPRISE"
+  validation {
+    condition     = contains(["ENTERPRISE", "ENTERPRISE_PLUS"], var.db_edition)
+    error_message = "db_edition must be ENTERPRISE or ENTERPRISE_PLUS."
+  }
+}
+
 variable "db_name" {
   description = "Database name."
   type        = string
@@ -156,7 +166,7 @@ variable "max_instances" {
 }
 
 variable "ingress" {
-  description = "Cloud Run ingress — Claude Code's /login only accepts gateway hosts on private addresses, so public ingress cannot serve clients: INGRESS_TRAFFIC_INTERNAL_ONLY (default; no public URL — VPC-only; reaches corp on-prem only with the private-access prerequisites in the README; public_url stays the run.app URL, so no LB or custom cert needed) or INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER (front with your own internal ALB for a custom hostname/cert)."
+  description = "Cloud Run ingress — Claude Code's /login only accepts gateway hosts on private addresses, so public ingress cannot serve clients: INGRESS_TRAFFIC_INTERNAL_ONLY (default; no public URL — VPC-only; reaches corp on-prem only with the private-access prerequisites in the README; public_url stays the run.app URL, so no LB or custom cert needed) or INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER (front with an internal ALB for a custom hostname/cert — your own, or set internal_alb_enabled to provision one here)."
   type        = string
   default     = "INGRESS_TRAFFIC_INTERNAL_ONLY"
   validation {
@@ -181,4 +191,29 @@ variable "deletion_protection" {
   description = "Provider-level deletion protection on Cloud SQL and Cloud Run. Keep true to avoid accidental deletion of the running deployment."
   type        = bool
   default     = true
+}
+
+# ── Internal ALB (optional — lb.tf) ─────────────────────────────────────────
+variable "internal_alb_enabled" {
+  description = "Provision an internal Application Load Balancer in front of the service (proxy-only subnet, serverless NEG, HTTPS proxy with a self-signed cert, static internal IP, private DNS zone). Requires ingress = \"INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER\" and lb_hostname."
+  type        = bool
+  default     = false
+}
+
+variable "lb_hostname" {
+  description = "Hostname the ALB serves (e.g. claude-gateway.gw.example.com). Must match gateway.yaml public_url; register https://<lb_hostname>/oauth/callback on the OAuth client."
+  type        = string
+  default     = ""
+}
+
+variable "lb_dns_zone_domain" {
+  description = "Domain of the private Cloud DNS zone created for the ALB. Empty = lb_hostname minus its first label."
+  type        = string
+  default     = ""
+}
+
+variable "proxy_only_subnet_range" {
+  description = "CIDR for the ALB proxy-only subnet — add it to gateway.yaml listen.trusted_proxies."
+  type        = string
+  default     = "10.0.2.0/24"
 }
