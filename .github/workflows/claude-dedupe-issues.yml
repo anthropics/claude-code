@@ -72,7 +72,7 @@ jobs:
                   triggered_by: $triggered_by,
                   workflow_run_id: $workflow_run_id
                 },
-                time: (now | floor | tostring)
+                time: (now * 1000 | floor)
               }]
             }')
           
