@@ -30,6 +30,25 @@ These may be applied at any level of the [settings hierarchy](https://code.claud
 
 To distribute these settings as enterprise-managed policy through Jamf, Iru (Kandji), Intune, or Group Policy, see the deployment templates in [`../mdm`](../mdm).
 
+## Troubleshooting
+
+### Model identifier invalid after update
+
+If you see `API Error: 400 The provided model identifier is invalid`
+after an update, the update may have changed the default model ID
+while your regional API endpoint still expects the old format.
+
+This commonly affects users in APAC/EU regions using the desktop app
+or Bedrock, where model IDs like `claude-opus-4-7` may not be recognized.
+
+**Workarounds**:
+- Select a different model in the model picker (e.g. `claude-sonnet-4-6`)
+- Clear settings: delete `settings.json` from the app config directory
+- If using Bedrock, verify region prefix: `apac.` / `eu.` / `us.`
+- If `AWS_REGION` / `CLAUDE_CODE_USE_BEDROCK` env vars are set, unset them — they cause the model resolver to pick up Bedrock region prefixes while the desktop auth flow calls the direct Anthropic API, rejecting the prefixed model ID with 400
+
+See issue [#61707](https://github.com/anthropics/claude-code/issues/61707).
+
 ## Full Documentation
 
 See https://code.claude.com/docs/en/settings for complete documentation on all available managed settings.
