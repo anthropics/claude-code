@@ -51,11 +51,15 @@ async function markStale(owner: string, repo: string) {
 
   console.log(`\n=== marking stale (${staleDays}d inactive) ===`);
 
-  for (let page = 1; page <= 10; page++) {
+  const PAGE_LIMIT = 10;
+  for (let page = 1; page <= PAGE_LIMIT; page++) {
     const issues = await githubRequest<any[]>(
       `/repos/${owner}/${repo}/issues?state=open&sort=updated&direction=asc&per_page=100&page=${page}`
     );
     if (issues.length === 0) break;
+    if (page === PAGE_LIMIT && issues.length === 100) {
+      console.warn(`Warning: reached page limit (${PAGE_LIMIT * 100} issues) — some issues may not have been processed`);
+    }
 
     for (const issue of issues) {
       if (issue.pull_request) continue;
