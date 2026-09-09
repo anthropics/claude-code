@@ -30,6 +30,35 @@ These may be applied at any level of the [settings hierarchy](https://code.claud
 
 To distribute these settings as enterprise-managed policy through Jamf, Iru (Kandji), Intune, or Group Policy, see the deployment templates in [`../mdm`](../mdm).
 
+## Troubleshooting
+
+### Stats cache `lastComputedDate` not advancing
+
+If `/usage` or the stats dashboard shows stale data and
+`~/.claude/stats-cache.json` has an old `lastComputedDate`, the
+incremental recompute may be silently failing.
+
+**Check**:
+```bash
+jq -r '.lastComputedDate' ~/.claude/stats-cache.json
+```
+
+**Fix** (force a full rebuild):
+```bash
+rm ~/.claude/stats-cache.json
+# Restart Claude Code — cache will rebuild from all session files.
+```
+
+**Root cause**: three compounding bugs in the stats recompute pipeline:
+1. Cache serialization fails on unknown model IDs (e.g. new models released after the cache froze) — `modelUsage` schema has no key for them
+2. No error handling in incremental recompute — a single failure aborts the entire pass and `lastComputedDate` never advances
+3. No staleness cap — once frozen, the cache stays frozen permanently with no forced full-rebuild fallback
+
+**Proposed fix** (from community analysis, see [#61686](https://github.com/anthropics/claude-code/issues/61686)):
+- Add a cache version field with auto-migration for schema changes
+- Wrap per-session processing in try/catch — skip bad files, advance the cursor
+- Force full rebuild if `lastComputedDate` is >30 days behind
+
 ## Full Documentation
 
 See https://code.claude.com/docs/en/settings for complete documentation on all available managed settings.
