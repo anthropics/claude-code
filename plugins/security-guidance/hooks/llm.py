@@ -1009,6 +1009,14 @@ _FINDINGS_SCHEMA = review_api.FINDINGS_SCHEMA
 _SURVIVED_SCHEMA = review_api.SURVIVED_SCHEMA
 
 
+def _findings_list(result: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Return findings as a list, tolerating the common singleton shape."""
+    findings = (result or {}).get("findings") or []
+    if isinstance(findings, dict):
+        return [findings]
+    return findings if isinstance(findings, list) else []
+
+
 def _agentic_spawn_env() -> Dict[str, str]:
     """opts.env for the SDK-spawned inner `claude` CLI.
 
@@ -1136,18 +1144,15 @@ def agentic_review(
             "disk than in the diff, trust the diff.\n"
         )
 
+    capped_diff_files = _cap_files_for_prompt(diff_files)
     diff_text = "\n\n".join(
-        f"=== DIFF: {fp} ===\n{content}" for fp, content in _cap_files_for_prompt(diff_files)
+        f"=== DIFF: {fp} ===\n{content}" for fp, content in capped_diff_files
     )
-    user_prompt = (
-        "Review this change for security vulnerabilities.\n\n"
-        f"Changed files (you may Read these and any other file in the repo):\n"
-        + "\n".join(f"  - {p}" for p in touched_paths[:50])
-        + context_note
-        + "\n\nUnified diff (only + lines are new):\n\n"
-        + diff_text
-        + "\n\nInvestigate per the method in your instructions, then return "
-        "the findings list."
+    user_prompt = review_api.build_investigate_prompt(
+        touched_paths,
+        capped_diff_files,
+        repo_root=context_dir,
+        context_note=context_note,
     )
 
     # Always prefer the user's installed `claude` over the SDK's bundled CLI.
@@ -1321,7 +1326,7 @@ def agentic_review(
     # before refute drops most real findings; the eval-validated config keeps
     # mediums through to the final output.
     candidates = [
-        f for f in (inv.get("findings") or [])
+        f for f in _findings_list(inv)
         if isinstance(f, dict) and f.get("severity") in ("critical", "high", "medium")
     ]
     metrics["pass1_candidates"] = len(candidates)
@@ -1365,7 +1370,7 @@ def agentic_review(
             )
             if inv2:
                 seen = {(c.get("filePath"), c.get("category")) for c in candidates}
-                for f in (inv2.get("findings") or []):
+                for f in _findings_list(inv2):
                     if not isinstance(f, dict):
                         continue
                     if f.get("severity") not in ("critical", "high", "medium"):
@@ -1694,4 +1699,3 @@ Respond with JSON."""
         lines.append("")
 
     return "\n".join(lines)
-
