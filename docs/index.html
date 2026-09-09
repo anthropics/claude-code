@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chat de Debates</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; }
+    .animate-pulse-dot { animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+    .msg-bubble { word-break: break-word; }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 2px; }
+  </style>
+</head>
+<body class="bg-zinc-50 min-h-screen">
+  <div id="root"></div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "react": "https://esm.sh/react@18.3.1",
+      "react-dom/client": "https://esm.sh/react-dom@18.3.1/client",
+      "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2"
+    }
+  }
+  </script>
+
+  <script type="module">
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { createRoot } from 'react-dom/client';
+import { createClient } from '@supabase/supabase-js';
+
+// ─── Config ────────────────────────────────────────────────────────────────
+const SUPABASE_URL = 'https://jognrehxhxpwmjkfvwog.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpvZ25yZWh4aHhwd21qa2Z2d29nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyMjk3NTUsImV4cCI6MjA5NDgwNTc1NX0.GFCPk85KlXJwLq2LMS-8RSDRX-g-_F9fFEU59Pfws_0';
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ─── Utils ──────────────────────────────────────────────────────────────────
+function relativeTime(dateStr) {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return 'agora';
+  if (m < 60) return `${m}min atrás`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h atrás`;
+  return `${Math.floor(h / 24)}d atrás`;
+}
+
+function slugify(t) {
+  return t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'')
+    .replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+}
+
+function cn(...args) { return args.filter(Boolean).join(' '); }
+
+// ─── Auth Hook ───────────────────────────────────────────────────────────────
+async function fetchRoles(userId) {
+  const { data } = await sb.from('user_roles').select('role').eq('user_id', userId).in('role',['admin','moderator']);
+  return data?.map(r => r.role) ?? [];
+}
+
+function useAuth() {
+  const [user, setUser] = useState(null);
+  const [role, setRole] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Load user AND roles before clearing the loading gate so AdminPage
+    // never flashes "Acesso restrito" for a logged-in admin.
+    sb.auth.getUser().then(async ({ data }) => {
+      const u = data.user ?? null;
+      setUser(u);
+      if (u) setRole(await fetchRoles(u.id));
+      setLoading(false);
+    });
+    const { data: { subscription } } = sb.auth.onAuthStateChange(async (_e, session) => {
+      const u = session?.user ?? null;
+      setUser(u);
+      setRole(u ? await fetchRoles(u.id) : null);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const isAdmin = role?.includes('admin') || role?.includes('moderator');
+  return { user, role, isAdmin, loading };
+}
+
+// ─── Router ─────────────────────────────────────────────────────────────────
+function useRoute() {
+  const [hash, setHash] = useState(location.hash || '#/');
+  useEffect(() => {
+    const h = () => setHash(location.hash || '#/');
+    window.addEventListener('hashchange', h);
+    return () => window.removeEventListener('hashchange', h);
+  }, []);
+  return hash;
+}
+
+function navigate(path) { location.hash = path; }
+
+// ─── Avatar ──────────────────────────────────────────────────────────────────
+function Avatar({ name, size = 'md' }) {
+  const sz = size === 'sm' ? 'w-7 h-7 text-xs' : 'w-9 h-9 text-sm';
+  const initials = (name || '?').split(' ').map(n => n[0]).slice(0,2).join('').toUpperCase();
+  return React.createElement('div', {
+    className: cn('rounded-full bg-indigo-500 text-white flex items-center justify-center font-medium shrink-0', sz)
+  }, initials);
+}
+
+// ─── Header ──────────────────────────────────────────────────────────────────
+function Header({ user, isAdmin }) {
+  const [signingOut, setSigningOut] = useState(false);
+  return React.createElement('header', { className: 'border-b border-zinc-200 bg-white sticky top-0 z-10' },
+    React.createElement('div', { className: 'max-w-5xl mx-auto px-4 py-3 flex items-center justify-between' },
+      React.createElement('a', { href: '#/', className: 'flex items-center gap-2 font-semibold' },
+        React.createElement('span', { className: 'text-indigo-600 text-xl' }, '💬'),
+        'Chat de Debates'
+      ),
+      React.createElement('div', { className: 'flex items-center gap-3' },
+        isAdmin && React.createElement('a', {
+          href: '#/admin',
+          className: 'text-xs text-zinc-500 hover:text-indigo-600 font-medium'
+        }, 'Admin'),
+        user
+          ? React.createElement('button', {
+              onClick: async () => { setSigningOut(true); await sb.auth.signOut(); setSigningOut(false); },
+              className: 'text-sm text-zinc-500 hover:text-zinc-800'
+            }, signingOut ? 'Saindo...' : 'Sair')
+          : React.createElement('a', { href: '#/login', className: 'text-sm text-indigo-600 font-medium hover:underline' }, 'Entrar')
+      )
+    )
+  );
+}
+
+// ─── Login Page ───────────────────────────────────────────────────────────────
+function LoginPage() {
+  const [email, setEmail] = useState('');
+  const [sent, setSent] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  async function submit(e) {
+    e.preventDefault();
+    setLoading(true); setError(null);
+    const redirectTo = location.href.split('#')[0];
+    const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: redirectTo } });
+    setLoading(false);
+    if (error) setError(error.message);
+    else setSent(true);
+  }
+
+  if (sent) return React.createElement('div', { className: 'min-h-screen flex items-center justify-center p-4' },
+    React.createElement('div', { className: 'text-center max-w-sm' },
+      React.createElement('div', { className: 'text-5xl mb-4' }, '📬'),
+      React.createElement('h2', { className: 'text-xl font-semibold mb-2' }, 'Verifique seu email'),
+      React.createElement('p', { className: 'text-zinc-500 text-sm' }, `Enviamos um link para ${email}. Clique nele para entrar.`)
+    )
+  );
+
+  return React.createElement('div', { className: 'min-h-screen flex items-center justify-center p-4' },
+    React.createElement('form', { onSubmit: submit, className: 'w-full max-w-sm bg-white rounded-2xl border border-zinc-200 p-8 shadow-sm' },
+      React.createElement('div', { className: 'text-3xl text-center mb-6' }, '💬'),
+      React.createElement('h1', { className: 'text-xl font-bold mb-1 text-center' }, 'Entrar'),
+      React.createElement('p', { className: 'text-sm text-zinc-500 text-center mb-6' }, 'Receba um link de acesso no email'),
+      error && React.createElement('p', { className: 'text-red-600 text-sm mb-4 bg-red-50 rounded-lg px-3 py-2' }, error),
+      React.createElement('label', { className: 'block text-sm font-medium text-zinc-700 mb-1' }, 'Email'),
+      React.createElement('input', {
+        type: 'email', required: true, value: email, onChange: e => setEmail(e.target.value),
+        placeholder: 'seu@email.com',
+        className: 'w-full border border-zinc-200 rounded-lg px-3 py-2.5 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-indigo-500'
+      }),
+      React.createElement('button', {
+        type: 'submit', disabled: loading,
+        className: 'w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white py-2.5 rounded-lg text-sm font-medium transition-colors'
+      }, loading ? 'Enviando...' : 'Enviar link de acesso')
+    )
+  );
+}
+
+// ─── Themes Page ──────────────────────────────────────────────────────────────
+function ThemesPage() {
+  const [themes, setThemes] = useState([]);
+  const [counts, setCounts] = useState({});
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    Promise.all([
+      sb.from('debate_themes').select('*').eq('is_active', true).order('created_at'),
+      sb.from('debates').select('theme_id')
+    ]).then(([{ data: t }, { data: d }]) => {
+      setThemes(t ?? []);
+      const c = {};
+      (d ?? []).forEach(row => { c[row.theme_id] = (c[row.theme_id] || 0) + 1; });
+      setCounts(c);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, []);
+
+  if (loading) return React.createElement('div', { className: 'max-w-5xl mx-auto px-4 py-12 text-center text-zinc-400' }, 'Carregando...');
+
+  return React.createElement('div', { className: 'max-w-5xl mx-auto px-4 py-8' },
+    React.createElement('h1', { className: 'text-2xl font-bold mb-2' }, 'Temas de Debate'),
+    React.createElement('p', { className: 'text-zinc-500 mb-8' }, 'Escolha um tema e participe da conversa.'),
+    themes.length === 0
+      ? React.createElement('p', { className: 'text-zinc-400 text-center py-16' }, 'Nenhum tema ainda. Acesse /admin para criar.')
+      : React.createElement('div', { className: 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4' },
+          themes.map(t => React.createElement('a', {
+            key: t.id, href: `#/tema/${t.slug}`,
+            className: 'block rounded-2xl border border-zinc-200 bg-white p-6 hover:shadow-md hover:border-zinc-300 transition-all group'
+          },
+            React.createElement('div', {
+              className: 'w-10 h-10 rounded-xl mb-4 flex items-center justify-center',
+              style: { backgroundColor: t.color + '20' }
+            },
+              React.createElement('div', { className: 'w-4 h-4 rounded-full', style: { backgroundColor: t.color } })
+            ),
+            React.createElement('h2', { className: 'font-semibold group-hover:text-indigo-600 transition-colors' }, t.name),
+            t.description && React.createElement('p', { className: 'text-sm text-zinc-500 mt-1 line-clamp-2' }, t.description),
+            React.createElement('p', { className: 'text-xs text-zinc-400 mt-4' }, `💬 ${counts[t.id] || 0} debates`)
+          ))
+        )
+  );
+}
+
+// ─── Debates Page ─────────────────────────────────────────────────────────────
+function DebatesPage({ slug }) {
+  const [theme, setTheme] = useState(null);
+  const [debates, setDebates] = useState([]);
+  const [msgCounts, setMsgCounts] = useState({});
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    sb.from('debate_themes').select('*').eq('slug', slug).single()
+      .then(({ data: t }) => {
+        if (!t) { navigate('#/'); return; }
+        setTheme(t);
+        return Promise.all([
+          sb.from('debates').select('*').eq('theme_id', t.id).order('created_at', { ascending: false }),
+          sb.from('messages').select('debate_id').is('deleted_at', null).eq('is_hidden', false)
+        ]);
+      }).then(res => {
+        if (!res) return;
+        const [{ data: d }, { data: m }] = res;
+        setDebates(d ?? []);
+        const c = {};
+        (m ?? []).forEach(row => { c[row.debate_id] = (c[row.debate_id] || 0) + 1; });
+        setMsgCounts(c);
+        setLoading(false);
+      }).catch(() => setLoading(false));
+  }, [slug]);
+
+  if (loading) return React.createElement('div', { className: 'max-w-3xl mx-auto px-4 py-12 text-center text-zinc-400' }, 'Carregando...');
+
+  const STATUS = { open: { label: 'Ao vivo', cls: 'bg-green-100 text-green-700' }, closed: { label: 'Encerrado', cls: 'bg-zinc-100 text-zinc-500' }, archived: { label: 'Arquivado', cls: 'bg-amber-100 text-amber-700' } };
+  const open = debates.filter(d => d.status === 'open');
+  const others = debates.filter(d => d.status !== 'open');
+
+  return React.createElement('div', { className: 'max-w-3xl mx-auto px-4 py-8' },
+    React.createElement('div', { className: 'flex items-center gap-3 mb-6' },
+      React.createElement('a', { href: '#/', className: 'text-zinc-400 hover:text-zinc-700 text-lg' }, '←'),
+      theme && React.createElement('div', { className: 'w-3 h-3 rounded-full', style: { backgroundColor: theme.color } }),
+      React.createElement('h1', { className: 'font-bold text-xl' }, theme?.name)
+    ),
+    open.length > 0 && React.createElement('div', { className: 'mb-6' },
+      React.createElement('p', { className: 'text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3' }, 'Ao vivo agora'),
+      open.map(d => DebateCard(d, theme?.slug, msgCounts, STATUS))
+    ),
+    others.length > 0 && React.createElement('div', null,
+      React.createElement('p', { className: 'text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3' }, 'Histórico'),
+      others.map(d => DebateCard(d, theme?.slug, msgCounts, STATUS))
+    ),
+    debates.length === 0 && React.createElement('p', { className: 'text-zinc-400 text-center py-16 text-sm' }, 'Nenhum debate ainda.')
+  );
+}
+
+function DebateCard(d, themeSlug, msgCounts, STATUS) {
+  const s = STATUS[d.status] || STATUS.closed;
+  return React.createElement('a', {
+    key: d.id, href: `#/debate/${d.id}`,
+    className: 'block rounded-xl border border-zinc-200 bg-white p-5 hover:shadow-md hover:border-zinc-300 transition-all mb-3 group'
+  },
+    React.createElement('div', { className: 'flex items-start justify-between gap-4 mb-2' },
+      React.createElement('h3', { className: 'font-medium group-hover:text-indigo-600 transition-colors' }, d.title),
+      React.createElement('span', { className: cn('text-xs px-2 py-0.5 rounded-full font-medium shrink-0', s.cls) },
+        d.status === 'open' && React.createElement('span', { className: 'inline-block w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse-dot mr-1.5 align-middle' }),
+        s.label
+      )
+    ),
+    d.description && React.createElement('p', { className: 'text-sm text-zinc-500 line-clamp-2 mb-2' }, d.description),
+    React.createElement('p', { className: 'text-xs text-zinc-400' }, `💬 ${msgCounts[d.id] || 0} mensagens`)
+  );
+}
+
+// ─── Debate Room ──────────────────────────────────────────────────────────────
+function DebateRoomPage({ debateId, user, isAdmin }) {
+  const [debate, setDebate] = useState(null);
+  const [theme, setTheme] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [reactions, setReactions] = useState([]);
+  const [content, setContent] = useState('');
+  const [sending, setSending] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const bottomRef = useRef(null);
+  const channelRef = useRef(null);
+
+  useEffect(() => {
+    async function load() {
+      const { data: d } = await sb.from('debates').select('*, debate_themes(*)').eq('id', debateId).single();
+      if (!d) { navigate('#/'); return; }
+      setDebate(d); setTheme(d.debate_themes);
+
+      const { data: msgs } = await sb.from('messages')
+        .select('*, profiles(id, display_name, avatar_url)')
+        .eq('debate_id', debateId).eq('is_hidden', false).is('deleted_at', null)
+        .order('created_at', { ascending: true }).limit(100);
+      setMessages(msgs ?? []);
+
+      const ids = (msgs ?? []).map(m => m.id);
+      if (ids.length) {
+        const { data: r } = await sb.from('reactions').select('*').in('message_id', ids);
+        setReactions(r ?? []);
+      }
+      setLoading(false);
+    }
+    load();
+  }, [debateId]);
+
+  useEffect(() => {
+    // Depend on debateId (the prop), not debate?.id (derived state), so the old
+    // channel is unsubscribed synchronously when the user navigates away — before
+    // any new messages can be appended to the wrong debate's list.
+    const channel = sb.channel(`debate:${debateId}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `debate_id=eq.${debateId}` },
+        async payload => {
+          // Skip messages that are already hidden at insert time (e.g. spam triggers)
+          if (payload.new.is_hidden || payload.new.deleted_at) return;
+          const { data: profile } = await sb.from('profiles').select('*').eq('id', payload.new.user_id).single();
+          setMessages(prev => [...prev, { ...payload.new, profiles: profile }]);
+        }
+      )
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages', filter: `debate_id=eq.${debateId}` },
+        payload => {
+          if (payload.new.is_hidden || payload.new.deleted_at) setMessages(prev => prev.filter(m => m.id !== payload.new.id));
+          else setMessages(prev => prev.map(m => m.id === payload.new.id ? { ...m, ...payload.new } : m));
+        }
+      )
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'reactions' },
+        payload => setReactions(prev => prev.some(r => r.id === payload.new.id) ? prev : [...prev, payload.new])
+      )
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'reactions' },
+        payload => setReactions(prev => prev.filter(r => r.id !== payload.old.id))
+      )
+      .subscribe();
+    channelRef.current = channel;
+    return () => channel.unsubscribe();
+  }, [debateId]);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages.length]);
+
+  async function send() {
+    if (!content.trim() || sending) return;
+    setSending(true);
+    await sb.from('messages').insert({ debate_id: debateId, user_id: user.id, content: content.trim() });
+    setContent('');
+    setSending(false);
+  }
+
+  async function toggleReaction(messageId, type) {
+    if (!user) return;
+    const existing = reactions.find(r => r.message_id === messageId && r.user_id === user.id && r.type === type);
+    if (existing) {
+      // Optimistically remove before awaiting so a rapid second click
+      // sees the updated state and won't issue a duplicate INSERT.
+      setReactions(prev => prev.filter(r => r.id !== existing.id));
+      await sb.from('reactions').delete().eq('id', existing.id);
+    } else {
+      const tempId = `tmp-${Date.now()}`;
+      setReactions(prev => [...prev, { id: tempId, message_id: messageId, user_id: user.id, type }]);
+      const { error } = await sb.from('reactions').insert({ message_id: messageId, user_id: user.id, type });
+      if (error) setReactions(prev => prev.filter(r => r.id !== tempId));
+    }
+  }
+
+  async function hideMsg(id) {
+    await sb.from('messages').update({ is_hidden: true }).eq('id', id);
+  }
+
+  if (loading) return React.createElement('div', { className: 'h-screen flex items-center justify-center text-zinc-400' }, 'Carregando...');
+
+  const isOpen = debate?.status === 'open';
+
+  return React.createElement('div', { className: 'h-screen flex flex-col' },
+    // Header
+    React.createElement('div', { className: 'border-b border-zinc-200 bg-white px-4 py-3 flex items-center gap-3' },
+      React.createElement('a', { href: `#/tema/${theme?.slug}`, className: 'text-zinc-400 hover:text-zinc-700 text-lg' }, '←'),
+      React.createElement('div', { className: 'flex-1 min-w-0' },
+        theme && React.createElement('div', { className: 'flex items-center gap-1.5 text-xs text-zinc-500' },
+          React.createElement('div', { className: 'w-2.5 h-2.5 rounded-full', style: { backgroundColor: theme.color } }),
+          theme.name
+        ),
+        React.createElement('h1', { className: 'font-semibold text-sm truncate' }, debate?.title)
+      ),
+      React.createElement('span', {
+        className: cn('text-xs px-2 py-0.5 rounded-full font-medium', isOpen ? 'bg-green-100 text-green-700' : 'bg-zinc-100 text-zinc-500')
+      },
+        isOpen && React.createElement('span', { className: 'inline-block w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse-dot mr-1 align-middle' }),
+        isOpen ? 'Ao vivo' : 'Encerrado'
+      )
+    ),
+
+    // Messages
+    React.createElement('div', { className: 'flex-1 overflow-y-auto py-4 space-y-1 bg-zinc-50' },
+      messages.length === 0 && React.createElement('p', { className: 'text-center text-zinc-400 text-sm py-12' }, 'Nenhuma mensagem. Seja o primeiro!'),
+      messages.map(msg => {
+        const isOwn = msg.user_id === user?.id;
+        const msgReactions = reactions.filter(r => r.message_id === msg.id);
+        const counts = { like: 0, insightful: 0, disagree: 0 };
+        const userReacts = [];
+        msgReactions.forEach(r => { counts[r.type] = (counts[r.type] || 0) + 1; if (r.user_id === user?.id) userReacts.push(r.type); });
+
+        return React.createElement('div', {
+          key: msg.id,
+          className: cn('flex gap-2 px-4 py-1.5 group', isOwn && 'flex-row-reverse')
+        },
+          React.createElement(Avatar, { name: msg.profiles?.display_name, size: 'sm' }),
+          React.createElement('div', { className: cn('flex flex-col max-w-[72%]', isOwn && 'items-end') },
+            React.createElement('div', { className: 'flex items-baseline gap-2 mb-0.5' },
+              React.createElement('span', { className: 'text-xs font-medium text-zinc-600' }, msg.profiles?.display_name || 'Usuário'),
+              React.createElement('span', { className: 'text-[10px] text-zinc-400' }, relativeTime(msg.created_at))
+            ),
+            React.createElement('div', {
+              className: cn('msg-bubble rounded-2xl px-4 py-2 text-sm',
+                isOwn ? 'bg-indigo-600 text-white rounded-tr-sm' : 'bg-white text-zinc-900 shadow-sm rounded-tl-sm border border-zinc-100')
+            }, msg.content),
+            // Reactions
+            React.createElement('div', { className: 'flex items-center gap-1 mt-1' },
+              [['like','👍'],['insightful','💡'],['disagree','👎']].map(([type, emoji]) =>
+                React.createElement('button', {
+                  key: type, disabled: !user,
+                  onClick: () => toggleReaction(msg.id, type),
+                  className: cn('flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs transition-colors',
+                    userReacts.includes(type) ? 'bg-indigo-100 text-indigo-700' : 'text-zinc-400 hover:bg-zinc-100',
+                    !user && 'cursor-default')
+                }, emoji, counts[type] > 0 && React.createElement('span', { className: 'ml-0.5' }, counts[type]))
+              ),
+              isAdmin && React.createElement('button', {
+                onClick: () => hideMsg(msg.id),
+                className: 'ml-2 opacity-0 group-hover:opacity-100 text-xs text-red-400 hover:text-red-600 transition-all'
+              }, 'ocultar')
+            )
+          )
+        );
+      }),
+      React.createElement('div', { ref: bottomRef })
+    ),
+
+    // Composer
+    isOpen && user
+      ? React.createElement('div', { className: 'border-t border-zinc-200 bg-white px-4 py-3' },
+          React.createElement('div', { className: 'flex gap-2 items-end' },
+            React.createElement('textarea', {
+              value: content, onChange: e => setContent(e.target.value.slice(0, 2000)),
+              onKeyDown: e => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); send(); } },
+              placeholder: 'Sua mensagem... (Ctrl+Enter para enviar)',
+              rows: 1,
+              className: 'flex-1 resize-none rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 max-h-32',
+              style: { height: 'auto' },
+              onInput: e => { e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px'; }
+            }),
+            React.createElement('button', {
+              onClick: send, disabled: !content.trim() || sending,
+              className: 'bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white rounded-xl p-2.5 transition-colors'
+            }, sending ? '...' : '→')
+          )
+        )
+      : isOpen && !user
+        ? React.createElement('div', { className: 'border-t border-zinc-200 bg-zinc-50 px-6 py-4 text-center text-sm text-zinc-500' },
+            React.createElement('a', { href: '#/login', className: 'text-indigo-600 font-medium hover:underline' }, 'Faça login'),
+            ' para participar.'
+          )
+        : React.createElement('div', { className: 'border-t border-zinc-200 bg-zinc-50 px-6 py-4 text-center text-sm text-zinc-400' },
+            '🔒 Este debate foi encerrado. Histórico disponível para leitura.'
+          )
+  );
+}
+
+// ─── Admin Page ───────────────────────────────────────────────────────────────
+const COLORS = ['#6366f1','#10b981','#f59e0b','#ef4444','#8b5cf6','#0ea5e9','#ec4899','#14b8a6'];
+
+function StatCard({ label, value, sub }) {
+  return React.createElement('div', { className: 'bg-white border border-zinc-200 rounded-xl px-5 py-4' },
+    React.createElement('p', { className: 'text-xs text-zinc-400 mb-1' }, label),
+    React.createElement('p', { className: 'text-2xl font-bold text-zinc-900' }, value ?? '—'),
+    sub && React.createElement('p', { className: 'text-xs text-zinc-400 mt-0.5' }, sub)
+  );
+}
+
+function AdminPage({ user, isAdmin }) {
+  const [tab, setTab] = useState('dashboard');
+  const [flash, setFlash] = useState(null);
+  const [saving, setSaving] = useState(false);
+
+  // Dashboard
+  const [stats, setStats] = useState(null);
+
+  // Themes
+  const [themes, setThemes] = useState([]);
+  const [tName, setTName] = useState(''); const [tDesc, setTDesc] = useState(''); const [tColor, setTColor] = useState('#6366f1');
+
+  // Debates
+  const [debates, setDebates] = useState([]);
+  const [dTheme, setDTheme] = useState(''); const [dTitle, setDTitle] = useState(''); const [dDesc, setDDesc] = useState('');
+
+  // Users
+  const [profiles, setProfiles] = useState([]);
+  const [roleMap, setRoleMap] = useState({});
+
+  // Moderation
+  const [hiddenMsgs, setHiddenMsgs] = useState([]);
+
+  function showFlash(type, text) {
+    setFlash({ type, text });
+    setTimeout(() => setFlash(null), 3500);
+  }
+
+  async function loadStats() {
+    const [{ count: tc }, themes_data, { count: mc }, { count: uc }] = await Promise.all([
+      sb.from('debate_themes').select('*', { count: 'exact', head: true }).eq('is_active', true),
+      sb.from('debates').select('status'),
+      sb.from('messages').select('*', { count: 'exact', head: true }).is('deleted_at', null).eq('is_hidden', false),
+      sb.from('profiles').select('*', { count: 'exact', head: true }),
+    ]);
+    const d = themes_data.data ?? [];
+    setStats({
+      themes: tc ?? 0,
+      debatesOpen: d.filter(r => r.status === 'open').length,
+      debatesTotal: d.length,
+      messages: mc ?? 0,
+      users: uc ?? 0,
+    });
+  }
+
+  async function loadThemes() {
+    const { data } = await sb.from('debate_themes').select('*').order('created_at', { ascending: false });
+    setThemes(data ?? []);
+  }
+
+  async function loadDebates() {
+    const { data } = await sb.from('debates').select('*, debate_themes(name, color)').order('created_at', { ascending: false });
+    setDebates(data ?? []);
+  }
+
+  async function loadUsers() {
+    const [{ data: p }, { data: r }] = await Promise.all([
+      sb.from('profiles').select('*').order('display_name'),
+      sb.from('user_roles').select('*'),
+    ]);
+    setProfiles(p ?? []);
+    const map = {};
+    (r ?? []).forEach(row => { map[row.user_id] = map[row.user_id] ?? []; map[row.user_id].push(row.role); });
+    setRoleMap(map);
+  }
+
+  async function loadHidden() {
+    const { data } = await sb.from('messages')
+      .select('*, profiles(display_name), debates(title, debate_themes(name))')
+      .eq('is_hidden', true).is('deleted_at', null)
+      .order('created_at', { ascending: false }).limit(100);
+    setHiddenMsgs(data ?? []);
+  }
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    loadStats(); loadThemes(); loadDebates();
+  }, [isAdmin]);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    if (tab === 'users') loadUsers();
+    if (tab === 'moderation') loadHidden();
+  }, [tab, isAdmin]);
+
+  if (!user) return React.createElement('div', { className: 'max-w-xl mx-auto px-4 py-16 text-center' },
+    React.createElement('p', { className: 'text-zinc-500 mb-4' }, 'Você precisa estar logado.'),
+    React.createElement('a', { href: '#/login', className: 'text-indigo-600 font-medium hover:underline' }, 'Entrar')
+  );
+
+  if (!isAdmin) return React.createElement('div', { className: 'max-w-xl mx-auto px-4 py-16 text-center' },
+    React.createElement('p', { className: 'text-zinc-500' }, 'Acesso restrito a administradores.')
+  );
+
+  // ── Theme actions ──────────────────────────────────────────────────────────
+  async function saveTheme(e) {
+    e.preventDefault(); setSaving(true);
+    const { error } = await sb.from('debate_themes').insert({
+      name: tName, slug: slugify(tName), description: tDesc || null, color: tColor, created_by: user.id
+    });
+    setSaving(false);
+    if (error) showFlash('error', error.message);
+    else { showFlash('ok', 'Tema criado!'); setTName(''); setTDesc(''); loadThemes(); loadStats(); }
+  }
+
+  async function toggleTheme(id, active) {
+    await sb.from('debate_themes').update({ is_active: !active }).eq('id', id);
+    loadThemes(); loadStats();
+  }
+
+  async function deleteTheme(id, name) {
+    if (!confirm(`Excluir tema "${name}"? Todos os debates dentro dele também serão afetados.`)) return;
+    await sb.from('debate_themes').delete().eq('id', id);
+    loadThemes(); loadStats();
+  }
+
+  // ── Debate actions ─────────────────────────────────────────────────────────
+  async function saveDebate(e) {
+    e.preventDefault(); setSaving(true);
+    const { error } = await sb.from('debates').insert({
+      theme_id: dTheme, title: dTitle, description: dDesc || null, created_by: user.id
+    });
+    setSaving(false);
+    if (error) showFlash('error', error.message);
+    else { showFlash('ok', 'Debate criado!'); setDTitle(''); setDDesc(''); loadDebates(); loadStats(); }
+  }
+
+  async function changeStatus(id, status) {
+    await sb.from('debates').update({ status }).eq('id', id);
+    loadDebates(); loadStats();
+  }
+
+  async function deleteDebate(id, title) {
+    if (!confirm(`Excluir debate "${title}"? Esta ação não pode ser desfeita.`)) return;
+    await sb.from('debates').delete().eq('id', id);
+    loadDebates(); loadStats();
+  }
+
+  // ── User role actions ──────────────────────────────────────────────────────
+  async function grantRole(userId, role) {
+    await sb.from('user_roles').upsert({ user_id: userId, role }, { onConflict: 'user_id,role' });
+    loadUsers();
+  }
+
+  async function revokeRole(userId, role) {
+    await sb.from('user_roles').delete().eq('user_id', userId).eq('role', role);
+    loadUsers();
+  }
+
+  // ── Moderation actions ─────────────────────────────────────────────────────
+  async function restoreMsg(id) {
+    await sb.from('messages').update({ is_hidden: false }).eq('id', id);
+    loadHidden();
+  }
+
+  async function deleteMsg(id) {
+    if (!confirm('Excluir mensagem permanentemente?')) return;
+    await sb.from('messages').update({ deleted_at: new Date().toISOString() }).eq('id', id);
+    loadHidden();
+  }
+
+  // ── UI helpers ─────────────────────────────────────────────────────────────
+  const TABS = [
+    { id: 'dashboard', label: 'Painel' },
+    { id: 'themes', label: 'Temas' },
+    { id: 'debates', label: 'Debates' },
+    { id: 'users', label: 'Usuários' },
+    { id: 'moderation', label: 'Moderação' },
+  ];
+
+  const TAB_CLS = active => cn('px-4 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap',
+    active ? 'bg-indigo-600 text-white' : 'text-zinc-600 hover:bg-zinc-100');
+
+  const INPUT = 'w-full border border-zinc-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500';
+  const BTN_PRIMARY = 'bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors';
+
+  const STATUS_BADGE = { open: 'bg-green-100 text-green-700', closed: 'bg-zinc-100 text-zinc-500', archived: 'bg-amber-100 text-amber-700' };
+  const STATUS_LABEL = { open: 'Ao vivo', closed: 'Encerrado', archived: 'Arquivado' };
+
+  return React.createElement('div', { className: 'max-w-4xl mx-auto px-4 py-8' },
+    // Header
+    React.createElement('div', { className: 'flex items-center justify-between mb-6' },
+      React.createElement('h1', { className: 'text-xl font-bold' }, 'Painel Admin'),
+      React.createElement('a', { href: '#/', className: 'text-sm text-zinc-400 hover:text-zinc-700' }, '← Voltar')
+    ),
+
+    // Flash message
+    flash && React.createElement('div', {
+      className: cn('mb-5 px-4 py-2.5 rounded-lg text-sm font-medium',
+        flash.type === 'ok' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-600 border border-red-200')
+    }, flash.text),
+
+    // Tabs
+    React.createElement('div', { className: 'flex gap-1.5 mb-7 overflow-x-auto pb-1' },
+      TABS.map(t => React.createElement('button', { key: t.id, onClick: () => setTab(t.id), className: TAB_CLS(tab === t.id) }, t.label))
+    ),
+
+    // ── Dashboard ──────────────────────────────────────────────────────────
+    tab === 'dashboard' && React.createElement('div', null,
+      React.createElement('div', { className: 'grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8' },
+        React.createElement(StatCard, { label: 'Temas ativos', value: stats?.themes }),
+        React.createElement(StatCard, { label: 'Debates ao vivo', value: stats?.debatesOpen, sub: `${stats?.debatesTotal ?? '—'} no total` }),
+        React.createElement(StatCard, { label: 'Mensagens', value: stats?.messages }),
+        React.createElement(StatCard, { label: 'Usuários', value: stats?.users })
+      ),
+      React.createElement('h2', { className: 'font-semibold mb-3 text-sm text-zinc-500 uppercase tracking-wider' }, 'Debates em andamento'),
+      debates.filter(d => d.status === 'open').length === 0
+        ? React.createElement('p', { className: 'text-zinc-400 text-sm' }, 'Nenhum debate ao vivo.')
+        : React.createElement('div', { className: 'space-y-2' },
+            debates.filter(d => d.status === 'open').map(d =>
+              React.createElement('div', { key: d.id, className: 'flex items-center gap-3 bg-white border border-zinc-200 rounded-xl px-4 py-3' },
+                d.debate_themes && React.createElement('div', { className: 'w-2.5 h-2.5 rounded-full shrink-0', style: { backgroundColor: d.debate_themes.color } }),
+                React.createElement('div', { className: 'flex-1 min-w-0' },
+                  React.createElement('p', { className: 'font-medium text-sm truncate' }, d.title),
+                  d.debate_themes && React.createElement('p', { className: 'text-xs text-zinc-400' }, d.debate_themes.name)
+                ),
+                React.createElement('a', { href: `#/debate/${d.id}`, className: 'text-xs text-indigo-600 hover:underline shrink-0' }, 'Ver sala'),
+                React.createElement('button', {
+                  onClick: () => changeStatus(d.id, 'closed'),
+                  className: 'text-xs text-red-500 hover:text-red-700 underline shrink-0'
+                }, 'Encerrar')
+              )
+            )
+          )
+    ),
+
+    // ── Themes ────────────────────────────────────────────────────────────
+    tab === 'themes' && React.createElement('div', null,
+      React.createElement('form', { onSubmit: saveTheme, className: 'bg-white border border-zinc-200 rounded-xl p-6 mb-6' },
+        React.createElement('h2', { className: 'font-semibold mb-4' }, 'Novo tema'),
+        React.createElement('input', { required: true, value: tName, onChange: e => setTName(e.target.value), placeholder: 'Nome do tema...', className: cn(INPUT, 'mb-3') }),
+        React.createElement('textarea', { value: tDesc, onChange: e => setTDesc(e.target.value), placeholder: 'Descrição (opcional)...', rows: 2, className: cn(INPUT, 'mb-3 resize-none') }),
+        React.createElement('div', { className: 'flex gap-2 mb-4' },
+          COLORS.map(c => React.createElement('button', {
+            key: c, type: 'button', onClick: () => setTColor(c),
+            className: cn('w-7 h-7 rounded-full transition-all', tColor === c ? 'ring-2 ring-offset-2 ring-zinc-800' : ''),
+            style: { backgroundColor: c }
+          }))
+        ),
+        React.createElement('button', { type: 'submit', disabled: saving, className: BTN_PRIMARY }, saving ? 'Salvando...' : 'Criar tema')
+      ),
+      React.createElement('div', { className: 'space-y-2' },
+        themes.length === 0 && React.createElement('p', { className: 'text-zinc-400 text-sm text-center py-8' }, 'Nenhum tema.'),
+        themes.map(t => React.createElement('div', {
+          key: t.id, className: 'flex items-center gap-3 bg-white border border-zinc-200 rounded-xl px-4 py-3'
+        },
+          React.createElement('div', { className: 'w-3 h-3 rounded-full shrink-0', style: { backgroundColor: t.color } }),
+          React.createElement('span', { className: 'font-medium text-sm flex-1 min-w-0 truncate' }, t.name),
+          React.createElement('button', {
+            onClick: () => toggleTheme(t.id, t.is_active),
+            className: cn('text-xs px-2.5 py-1 rounded-full font-medium transition-colors',
+              t.is_active ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200')
+          }, t.is_active ? 'ativo' : 'inativo'),
+          React.createElement('button', {
+            onClick: () => deleteTheme(t.id, t.name),
+            className: 'text-xs text-red-400 hover:text-red-600 ml-2'
+          }, 'excluir')
+        ))
+      )
+    ),
+
+    // ── Debates ───────────────────────────────────────────────────────────
+    tab === 'debates' && React.createElement('div', null,
+      React.createElement('form', { onSubmit: saveDebate, className: 'bg-white border border-zinc-200 rounded-xl p-6 mb-6' },
+        React.createElement('h2', { className: 'font-semibold mb-4' }, 'Novo debate'),
+        React.createElement('select', {
+          required: true, value: dTheme, onChange: e => setDTheme(e.target.value), className: cn(INPUT, 'mb-3')
+        },
+          React.createElement('option', { value: '' }, 'Selecione um tema...'),
+          themes.map(t => React.createElement('option', { key: t.id, value: t.id }, t.name))
+        ),
+        React.createElement('input', { required: true, value: dTitle, onChange: e => setDTitle(e.target.value), placeholder: 'Título do debate...', className: cn(INPUT, 'mb-3') }),
+        React.createElement('textarea', { value: dDesc, onChange: e => setDDesc(e.target.value), placeholder: 'Descrição ou pergunta central (opcional)...', rows: 2, className: cn(INPUT, 'mb-4 resize-none') }),
+        React.createElement('button', { type: 'submit', disabled: saving, className: BTN_PRIMARY }, saving ? 'Salvando...' : 'Criar debate')
+      ),
+      React.createElement('div', { className: 'space-y-2' },
+        debates.length === 0 && React.createElement('p', { className: 'text-zinc-400 text-sm text-center py-8' }, 'Nenhum debate.'),
+        debates.map(d => {
+          const t = d.debate_themes;
+          return React.createElement('div', { key: d.id, className: 'flex items-center gap-3 bg-white border border-zinc-200 rounded-xl px-4 py-3 flex-wrap' },
+            t && React.createElement('div', { className: 'w-2.5 h-2.5 rounded-full shrink-0', style: { backgroundColor: t.color } }),
+            React.createElement('div', { className: 'flex-1 min-w-0' },
+              React.createElement('p', { className: 'font-medium text-sm truncate' }, d.title),
+              t && React.createElement('p', { className: 'text-xs text-zinc-400' }, t.name)
+            ),
+            React.createElement('a', { href: `#/debate/${d.id}`, className: 'text-xs text-indigo-500 hover:underline shrink-0' }, 'ver'),
+            React.createElement('span', { className: cn('text-xs px-2 py-0.5 rounded-full font-medium shrink-0', STATUS_BADGE[d.status]) }, STATUS_LABEL[d.status]),
+            d.status === 'open' && React.createElement('button', { onClick: () => changeStatus(d.id, 'closed'), className: 'text-xs text-zinc-500 hover:text-red-600 underline shrink-0' }, 'Encerrar'),
+            d.status === 'closed' && React.createElement('button', { onClick: () => changeStatus(d.id, 'open'), className: 'text-xs text-zinc-500 hover:text-green-700 underline shrink-0' }, 'Reabrir'),
+            d.status === 'closed' && React.createElement('button', { onClick: () => changeStatus(d.id, 'archived'), className: 'text-xs text-zinc-500 hover:text-amber-600 underline shrink-0' }, 'Arquivar'),
+            React.createElement('button', { onClick: () => deleteDebate(d.id, d.title), className: 'text-xs text-red-400 hover:text-red-600 shrink-0' }, 'excluir')
+          );
+        })
+      )
+    ),
+
+    // ── Users ─────────────────────────────────────────────────────────────
+    tab === 'users' && React.createElement('div', null,
+      profiles.length === 0 && React.createElement('p', { className: 'text-zinc-400 text-sm text-center py-12' }, 'Nenhum usuário.'),
+      React.createElement('div', { className: 'space-y-2' },
+        profiles.map(p => {
+          const roles = roleMap[p.id] ?? [];
+          const isAdm = roles.includes('admin');
+          const isMod = roles.includes('moderator');
+          return React.createElement('div', { key: p.id, className: 'flex items-center gap-3 bg-white border border-zinc-200 rounded-xl px-4 py-3 flex-wrap' },
+            React.createElement(Avatar, { name: p.display_name, size: 'sm' }),
+            React.createElement('div', { className: 'flex-1 min-w-0' },
+              React.createElement('p', { className: 'font-medium text-sm truncate' }, p.display_name || 'Sem nome'),
+              React.createElement('p', { className: 'text-xs text-zinc-400 font-mono truncate' }, p.id.slice(0, 8) + '…')
+            ),
+            React.createElement('div', { className: 'flex items-center gap-1.5 flex-wrap' },
+              isAdm
+                ? React.createElement('button', { onClick: () => revokeRole(p.id, 'admin'), className: 'text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full hover:bg-indigo-200' }, '✓ admin')
+                : React.createElement('button', { onClick: () => grantRole(p.id, 'admin'), className: 'text-xs bg-zinc-100 text-zinc-500 px-2 py-0.5 rounded-full hover:bg-zinc-200' }, '+ admin'),
+              isMod
+                ? React.createElement('button', { onClick: () => revokeRole(p.id, 'moderator'), className: 'text-xs bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full hover:bg-violet-200' }, '✓ mod')
+                : React.createElement('button', { onClick: () => grantRole(p.id, 'moderator'), className: 'text-xs bg-zinc-100 text-zinc-500 px-2 py-0.5 rounded-full hover:bg-zinc-200' }, '+ mod')
+            )
+          );
+        })
+      )
+    ),
+
+    // ── Moderation ────────────────────────────────────────────────────────
+    tab === 'moderation' && React.createElement('div', null,
+      hiddenMsgs.length === 0 && React.createElement('p', { className: 'text-zinc-400 text-sm text-center py-12' }, 'Nenhuma mensagem oculta.'),
+      React.createElement('div', { className: 'space-y-2' },
+        hiddenMsgs.map(m => {
+          const debate = m.debates;
+          const theme = debate?.debate_themes;
+          return React.createElement('div', { key: m.id, className: 'bg-white border border-zinc-200 rounded-xl px-4 py-3' },
+            React.createElement('div', { className: 'flex items-start justify-between gap-4 mb-2' },
+              React.createElement('div', { className: 'flex-1 min-w-0' },
+                React.createElement('p', { className: 'text-xs text-zinc-400 mb-1' },
+                  (m.profiles?.display_name || 'Usuário'),
+                  theme && ` · ${theme.name}`,
+                  debate && ` › ${debate.title}`,
+                  ' · ', relativeTime(m.created_at)
+                ),
+                React.createElement('p', { className: 'text-sm text-zinc-700 line-clamp-3' }, m.content)
+              ),
+              React.createElement('div', { className: 'flex gap-2 shrink-0' },
+                React.createElement('button', { onClick: () => restoreMsg(m.id), className: 'text-xs text-green-600 hover:text-green-800 underline' }, 'restaurar'),
+                React.createElement('button', { onClick: () => deleteMsg(m.id), className: 'text-xs text-red-400 hover:text-red-600 underline' }, 'excluir')
+              )
+            )
+          );
+        })
+      )
+    )
+  );
+}
+
+// ─── App ─────────────────────────────────────────────────────────────────────
+function App() {
+  const { user, isAdmin, loading } = useAuth();
+  const hash = useRoute();
+
+  // Handle magic link auth callback (token arrives in hash or query string)
+  useEffect(() => {
+    const h = location.hash;
+    const q = location.search;
+    if (h.includes('access_token') || h.includes('error_description') ||
+        q.includes('code=') || q.includes('error=')) {
+      sb.auth.getSession()
+        .then(() => {
+          history.replaceState(null, '', location.pathname);
+          navigate('#/');
+        })
+        .catch(() => {
+          // Even on failure, clean the auth fragment so the user isn't stuck
+          // on an unrecognised route with token params in the URL bar.
+          history.replaceState(null, '', location.pathname);
+          navigate('#/login');
+        });
+    }
+  }, []);
+
+  if (loading) return React.createElement('div', { className: 'min-h-screen flex items-center justify-center text-zinc-400' }, 'A carregar...');
+
+  // Parse route
+  let page = React.createElement(ThemesPage);
+  const path = hash.replace(/^#/, '') || '/';
+
+  if (path === '/login') {
+    page = React.createElement(LoginPage);
+  } else if (path === '/admin') {
+    page = React.createElement(AdminPage, { user, isAdmin });
+  } else if (path.startsWith('/tema/')) {
+    const slug = path.replace('/tema/', '');
+    page = React.createElement(DebatesPage, { slug });
+  } else if (path.startsWith('/debate/')) {
+    const id = path.replace('/debate/', '');
+    page = React.createElement(DebateRoomPage, { debateId: id, user, isAdmin });
+  }
+
+  const isChat = path.startsWith('/debate/');
+
+  return React.createElement('div', { className: isChat ? 'h-screen flex flex-col' : 'min-h-screen' },
+    !isChat && React.createElement(Header, { user, isAdmin }),
+    isChat ? page : React.createElement('main', null, page)
+  );
+}
+
+createRoot(document.getElementById('root')).render(React.createElement(App));
+  </script>
+</body>
+</html>
