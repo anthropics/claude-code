@@ -257,6 +257,47 @@ cat <<EOF
 EOF
 ```
 
+### Plugin options and headersHelper (v2.1.207+)
+
+As of Claude Code v2.1.207, `${user_config.*}` is **rejected** inside MCP `headersHelper` command strings (same shell-injection fix as plugin hooks/monitors).
+
+**Do not** write:
+
+```json
+{
+  "headersHelper": "\"${CLAUDE_PLUGIN_ROOT}\"/scripts/get-headers.sh ${user_config.api_token}"
+}
+```
+
+**Do** pass options through the server's `env` block (substitution is allowed there) and read them inside the helper:
+
+```json
+{
+  "api": {
+    "type": "http",
+    "url": "https://api.example.com/mcp",
+    "headersHelper": "${CLAUDE_PLUGIN_ROOT}/scripts/get-headers.sh",
+    "env": {
+      "API_TOKEN": "${user_config.api_token}",
+      "API_ENDPOINT": "${user_config.api_endpoint}"
+    }
+  }
+}
+```
+
+```bash
+#!/bin/bash
+# Prefer env from the MCP server config; CLAUDE_PLUGIN_OPTION_* is also set
+TOKEN="${API_TOKEN:-${CLAUDE_PLUGIN_OPTION_API_TOKEN:?api_token not configured}}"
+cat <<EOF
+{
+  "Authorization": "Bearer ${TOKEN}"
+}
+EOF
+```
+
+`${user_config.KEY}` remains valid in non-shell MCP fields such as `env`, static `headers`, and similar structured config—only shell-form helper/command strings are restricted.
+
 ### Use Cases for Dynamic Headers
 
 - Short-lived tokens that need refresh

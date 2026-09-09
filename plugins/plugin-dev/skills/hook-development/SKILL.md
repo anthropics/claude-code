@@ -325,17 +325,57 @@ Available in all command hooks:
 
 - `$CLAUDE_PROJECT_DIR` - Project root path
 - `$CLAUDE_PLUGIN_ROOT` - Plugin directory (use for portable paths)
+- `$CLAUDE_PLUGIN_DATA` - Persistent plugin data directory (survives updates)
 - `$CLAUDE_ENV_FILE` - SessionStart only: persist env vars here
 - `$CLAUDE_CODE_REMOTE` - Set if running in remote context
+- `$CLAUDE_PLUGIN_OPTION_<KEY>` - Values from the plugin's `userConfig` (enable-time options)
 
-**Always use ${CLAUDE_PLUGIN_ROOT} in hook commands for portability:**
+**Always use ${CLAUDE_PLUGIN_ROOT} in hook commands for portability.** Prefer **exec form** so paths need no shell quoting:
 
 ```json
 {
   "type": "command",
-  "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/validate.sh"
+  "command": "bash",
+  "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/validate.sh"]
 }
 ```
+
+Shell form (no `args`) still works when you need pipes or `&&`:
+
+```json
+{
+  "type": "command",
+  "command": "bash \"${CLAUDE_PLUGIN_ROOT}\"/scripts/validate.sh"
+}
+```
+
+### Plugin options and shell-form (v2.1.207+)
+
+As of Claude Code v2.1.207, `${user_config.*}` is **rejected** in shell-form plugin hook commands (shell-injection fix). Monitors and MCP `headersHelper` follow the same rule for their shell command strings.
+
+| Approach | Status |
+|----------|--------|
+| Shell-form `"command": "... ${user_config.api_endpoint}"` | ❌ Rejected |
+| Exec form with `args`, read option inside script via `$CLAUDE_PLUGIN_OPTION_*` | ✅ Preferred |
+| Exec form that passes `${user_config.KEY}` only as an `args` element | ✅ Accepted (value is one argv, not shell-parsed) |
+
+**Preferred pattern** — keep user-controlled values out of the command string:
+
+```json
+{
+  "type": "command",
+  "command": "bash",
+  "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/notify.sh"]
+}
+```
+
+```bash
+# scripts/notify.sh
+endpoint="${CLAUDE_PLUGIN_OPTION_API_ENDPOINT:?missing api_endpoint}"
+# treat "$endpoint" as data only — do not eval
+```
+
+The hook schema validator flags shell-form `${user_config.*}` as an error.
 
 ## Plugin Hook Configuration
 
