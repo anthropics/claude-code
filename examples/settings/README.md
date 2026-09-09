@@ -30,6 +30,24 @@ These may be applied at any level of the [settings hierarchy](https://code.claud
 
 To distribute these settings as enterprise-managed policy through Jamf, Iru (Kandji), Intune, or Group Policy, see the deployment templates in [`../mdm`](../mdm).
 
+## Troubleshooting
+
+### "Usage credits required for 1M context" on Sonnet 4.6
+
+If you see `API Error: Usage credits required for 1M context` when using Sonnet 4.6,
+set the `CLAUDE_CODE_DISABLE_1M_CONTEXT` environment variable to force standard 200K context:
+
+```bash
+export CLAUDE_CODE_DISABLE_1M_CONTEXT=1
+claude
+```
+
+This bypasses the usage-credits check for Pro plan users who don't have 1M context access.
+Sonnet 4.6 on Pro plan should use standard context (200K) without requiring usage credits.
+See issues [#61692](https://github.com/anthropics/claude-code/issues/61692),
+[#61089](https://github.com/anthropics/claude-code/issues/61089), and
+[#60707](https://github.com/anthropics/claude-code/issues/60707) for details.
+
 ## Full Documentation
 
 See https://code.claude.com/docs/en/settings for complete documentation on all available managed settings.
