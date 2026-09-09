@@ -40,6 +40,23 @@ async function githubRequest<T>(
   return response.json();
 }
 
+async function githubRequestAllPages<T>(endpoint: string): Promise<T[]> {
+  const perPage = 100;
+  const results: T[] = [];
+
+  for (let page = 1; ; page++) {
+    const separator = endpoint.includes("?") ? "&" : "?";
+    const items = await githubRequest<T[]>(
+      `${endpoint}${separator}per_page=${perPage}&page=${page}`
+    );
+
+    results.push(...items);
+    if (items.length < perPage) break;
+  }
+
+  return results;
+}
+
 // --
 
 async function markStale(owner: string, repo: string) {
@@ -112,11 +129,12 @@ async function closeExpired(owner: string, repo: string) {
 
         const base = `/repos/${owner}/${repo}/issues/${issue.number}`;
 
-        const events = await githubRequest<any[]>(`${base}/events?per_page=100`);
+        const events = await githubRequestAllPages<any>(`${base}/events`);
 
         const labeledAt = events
           .filter((e) => e.event === "labeled" && e.label?.name === label)
           .map((e) => new Date(e.created_at))
+          .sort((a, b) => a.getTime() - b.getTime())
           .pop();
 
         if (!labeledAt || labeledAt > cutoff) continue;
@@ -124,8 +142,8 @@ async function closeExpired(owner: string, repo: string) {
         // Skip if a non-bot user commented after the label was applied.
         // The triage workflow should remove lifecycle labels on human
         // activity, but check here too as a safety net.
-        const comments = await githubRequest<any[]>(
-          `${base}/comments?since=${labeledAt.toISOString()}&per_page=100`
+        const comments = await githubRequestAllPages<any>(
+          `${base}/comments?since=${encodeURIComponent(labeledAt.toISOString())}`
         );
         const hasHumanComment = comments.some(
           (c) => c.user && c.user.type !== "Bot"
