@@ -72,9 +72,13 @@ Avoid:
 - /do-stuff           (not descriptive)
 ```
 
-## CLAUDE_PLUGIN_ROOT Environment Variable
+## Plugin Environment Variables
 
-### Purpose
+### CLAUDE_PROJECT_DIR
+
+`${CLAUDE_PROJECT_DIR}` resolves to the project root directory. It is available as an environment variable in all subprocesses including hooks and MCP stdio servers.
+
+### CLAUDE_PLUGIN_ROOT
 
 `${CLAUDE_PLUGIN_ROOT}` is a special environment variable available in plugin commands that resolves to the absolute path of the plugin directory.
 
