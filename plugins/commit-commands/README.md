@@ -57,7 +57,8 @@ Complete workflow command that commits, pushes, and creates a pull request in on
 
 **Usage:**
 ```bash
-/commit-push-pr
+/commit-push-pr              # default branch naming
+/commit-push-pr conventional # Conventional Branch naming
 ```
 
 **Example workflow:**
@@ -73,6 +74,18 @@ Complete workflow command that commits, pushes, and creates a pull request in on
 # - Open a PR with summary and test plan
 # - Give you the PR URL to review
 ```
+
+**Conventional Branch naming:**
+
+Pass `conventional` to name the new branch per the
+[Conventional Branch 1.0.0 spec](https://conventionalbranch.org/):
+
+- Format: `<type>/<description>` (e.g. `feature/add-oauth-login`,
+  `bugfix/fix-header-overflow`, `chore/bump-typescript-5-6`).
+- `<type>` is inferred from the diff: `feature`, `bugfix`, `hotfix`,
+  `release`, `chore`, `docs`, or `test`.
+- `<description>` is lowercase, hyphen-separated, alphanumeric + hyphens
+  only, with no consecutive or trailing hyphens.
 
 **Features:**
 - Analyzes all commits in the branch (not just the latest)
