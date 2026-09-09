@@ -1,0 +1,96 @@
+# agents.txt — Claude Code repository
+# v1.0 INI format: https://github.com/barneywohl/agentpress/blob/main/docs/AGENTSTXT_SPEC.md
+#
+# This repository is the public surface of Claude Code: documentation,
+# examples, plugins, install scripts, and the issue tracker. The Claude Code
+# binary itself is distributed via npm and is not in this repo. Agents
+# should treat anything that affects the product's public reputation
+# (docs, examples shown to users, install scripts, plugin samples) as
+# high-stakes and route through human review.
+
+[meta]
+spec_version = 1.0
+project = claude-code
+maintainer = https://github.com/anthropics/claude-code/issues
+contact_for_agents = https://github.com/anthropics/claude-code/issues/new/choose
+last_updated = 2026-05-13
+license = proprietary
+ai_disclosure_required = true
+
+[allowed_actions]
+read_documentation
+read_source_code
+file_pull_request
+comment_on_issue
+propose_design
+suggest_documentation_fix
+suggest_plugin_example
+report_bug
+fix_typo
+fix_broken_link
+
+[prohibited_actions]
+merge_to_main
+push_to_main
+deploy_to_production
+modify_secrets
+modify_license_files
+modify_security_policy
+rewrite_changelog_history
+force_push
+impersonate_anthropic_staff
+impersonate_maintainer
+publish_to_npm
+modify_install_scripts_without_review
+exfiltrate_secrets
+spam
+mass_open_prs
+auto_close_issues
+contact_users_directly
+
+[requires_human_approval]
+changes_touching = README.md, SECURITY.md, LICENSE.md, CHANGELOG.md, scripts/**, .github/workflows/**, .github/ISSUE_TEMPLATE/**, plugins/**, examples/**
+changes_to_install_scripts
+changes_to_official_prompt_examples
+changes_to_plugin_samples
+new_top_level_files
+edits_to_announced_features
+edits_affecting_user_facing_messaging
+
+[entry_points]
+agent_guide = README.md
+contributing = README.md
+architecture = README.md
+issue_templates = .github/ISSUE_TEMPLATE/
+bug_report = .github/ISSUE_TEMPLATE/bug_report.yml
+feature_request = .github/ISSUE_TEMPLATE/feature_request.yml
+documentation_issue = .github/ISSUE_TEMPLATE/documentation.yml
+model_behavior_issue = .github/ISSUE_TEMPLATE/model_behavior.yml
+security_policy = SECURITY.md
+plugins_overview = plugins/README.md
+examples = examples/
+
+[disclosure]
+pr_label = agent-authored
+commit_trailer = Co-Authored-By
+require_attribution_in_pr_body = true
+
+[scope]
+single_purpose_pr = true
+max_files_changed = 20
+max_lines_changed = 500
+
+[rate_limits]
+max_pull_requests_per_day = 2
+max_issues_per_day = 3
+max_comments_per_day = 20
+max_concurrent_branches = 2
+
+[contact]
+escalation = https://github.com/anthropics/claude-code/issues/new/choose
+
+[fyi]
+preferred_pr_size = small
+preferred_commit_style = conventional
+preferred_response_window_hours = 168
+note = Security issues must go through HackerOne (see SECURITY.md), not GitHub issues.
