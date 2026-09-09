@@ -30,6 +30,19 @@ These may be applied at any level of the [settings hierarchy](https://code.claud
 
 To distribute these settings as enterprise-managed policy through Jamf, Iru (Kandji), Intune, or Group Policy, see the deployment templates in [`../mdm`](../mdm).
 
+## Troubleshooting
+
+### Billing for `claude -p` headless sessions
+
+Claude cannot authoritatively answer questions about billing or cost
+allocation. `claude -p` headless sessions may bill against your
+spending limit/account balance rather than your subscription usage
+quota. Verify billing behavior with
+[support@anthropic.com](mailto:support@anthropic.com) before building
+automation that relies on cost assumptions.
+
+See issue [#61704](https://github.com/anthropics/claude-code/issues/61704).
+
 ## Full Documentation
 
 See https://code.claude.com/docs/en/settings for complete documentation on all available managed settings.
