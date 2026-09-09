@@ -253,6 +253,18 @@ if [ "$tool_name" = "Bash" ]; then
 fi
 ```
 
+**PostToolUse with `continueOnBlock`:**
+
+To feed the block reason back to Claude and let it continue (instead of just showing it in the transcript), set `continueOnBlock: true` in the hook config:
+
+```json
+{
+  "type": "command",
+  "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/check-quality.sh",
+  "continueOnBlock": true
+}
+```
+
 **Stop - Verify based on tracking:**
 ```bash
 #!/bin/bash
