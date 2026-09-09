@@ -3,7 +3,7 @@
 // Posts a comment when a lifecycle label is applied to an issue,
 // giving the author a heads-up and a chance to respond before auto-close.
 
-import { lifecycle } from "./issue-lifecycle.ts";
+import { formatLifecycleComment, getLifecycleEntry } from "./issue-lifecycle.ts";
 
 const DRY_RUN = process.argv.includes("--dry-run");
 const token = process.env.GITHUB_TOKEN;
@@ -16,13 +16,13 @@ if (!repo) throw new Error("GITHUB_REPOSITORY required");
 if (!label) throw new Error("LABEL required");
 if (!issueNumber) throw new Error("ISSUE_NUMBER required");
 
-const entry = lifecycle.find((l) => l.label === label);
+const entry = getLifecycleEntry(label);
 if (!entry) {
   console.log(`No lifecycle entry for label "${label}", skipping`);
   process.exit(0);
 }
 
-const body = `${entry.nudge} This issue will be closed automatically if there's no activity within ${entry.days} days.`;
+const body = formatLifecycleComment(label)!;
 
 // --
 
