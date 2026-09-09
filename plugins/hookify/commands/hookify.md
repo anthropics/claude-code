@@ -69,9 +69,10 @@ After gathering behaviors (from arguments or agent), present to user using AskUs
   - Description: Why it's problematic
 
 **Question 2: For each selected behavior, ask about action:**
-- "Should this block the operation or just warn?"
+- "Should this warn, ask for approval, or block the operation?"
 - Options:
   - "Just warn" (action: warn - shows message but allows)
+  - "Ask first" (action: ask - shows a native approval prompt before running)
   - "Block operation" (action: block - prevents execution)
 
 **Question 3: Ask for example patterns:**
@@ -95,7 +96,7 @@ name: {rule-name}
 enabled: true
 event: {bash|file|stop|prompt|all}
 pattern: {regex pattern}
-action: {warn|block}
+action: {warn|ask|block}
 ---
 
 {Message to show Claude when rule triggers}
@@ -103,6 +104,7 @@ action: {warn|block}
 
 **Action values:**
 - `warn`: Show message but allow operation (default)
+- `ask`: Prompt for approval before the tool runs (PreToolUse only; `confirm` also works)
 - `block`: Prevent operation or stop session
 
 **For more complex rules (multiple conditions):**

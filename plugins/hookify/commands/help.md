@@ -133,7 +133,7 @@ Use Python regex syntax:
 
 **No Restart Needed**: Hookify rules (`.local.md` files) take effect immediately on the next tool use. The hookify hooks are already loaded and read your rules dynamically.
 
-**Block or Warn**: Rules can either `block` operations (prevent execution) or `warn` (show message but allow). Set `action: block` or `action: warn` in the rule's frontmatter.
+**Warn, Ask, or Block**: Rules can `warn` (show message but allow), `ask` (show a native approval prompt before the tool runs), or `block` (prevent execution). Set `action: warn`, `action: ask`/`action: confirm`, or `action: block` in the rule's frontmatter.
 
 **Rule Files**: Keep rules in `.claude/hookify.*.local.md` - they should be git-ignored (add to .gitignore if needed).
 
