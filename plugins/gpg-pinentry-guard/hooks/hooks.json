@@ -1,0 +1,17 @@
+{
+  "description": "Intercepts git commands that would trigger GPG signing with a terminal-based pinentry, blocking them before they cause a broken interactive prompt",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/gpg_signing_guard.sh",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}
