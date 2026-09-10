@@ -1,0 +1,27 @@
+[package]
+name = "claude-config"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description = "Configuration management for Claude Code"
+
+[dependencies]
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Error handling
+thiserror = { workspace = true }
+
+# Tracing
+tracing = { workspace = true }
+
+# Directory detection
+dirs = "5.0"
+
+[dev-dependencies]
+tempfile = "3.0"
+

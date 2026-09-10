@@ -1,0 +1,18 @@
+# Configuration for running tests
+# This is used by the test suite to configure test behavior
+
+[test]
+# Default timeout for async tests (seconds)
+timeout = 60
+
+# Number of test threads
+threads = "num-cpus"
+
+# Show output for all tests
+show-output = true
+
+[env]
+# Set test-specific environment variables
+RUST_LOG = "info"
+RUST_BACKTRACE = "1"
+
