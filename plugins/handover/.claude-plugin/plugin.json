@@ -1,0 +1,9 @@
+{
+  "name": "handover",
+  "description": "Export your current Claude session context to a handover file for passing to another Claude session or LLM",
+  "version": "1.0.0",
+  "author": {
+    "name": "Shriyam Shrivastava",
+    "email": "shrivastavashriyam2@gmail.com"
+  }
+}
