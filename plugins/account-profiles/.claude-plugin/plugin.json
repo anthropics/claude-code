@@ -1,0 +1,8 @@
+{
+  "name": "account-profiles",
+  "version": "0.1.0",
+  "description": "Manage isolated Claude Code launch profiles for personal, work, and client accounts without copying credentials",
+  "author": {
+    "name": "Osalumense"
+  }
+}
