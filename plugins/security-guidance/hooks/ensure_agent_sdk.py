@@ -28,7 +28,9 @@ NOOP_SYSTEM = 0      # claude_agent_sdk already importable in system python
 NOOP_VENV = 1        # venv already built and SDK imports from it
 BUILT = 2            # venv created + SDK pip-installed this run
 BUILD_FAILED = 3     # venv create or pip install raised/timed out
-SKIP_WIN32 = 4       # Windows; consumer glob doesn't handle Lib/ layout
+SKIP_WIN32 = 4       # No longer emitted (Windows venv layout is now
+                     # supported end-to-end); value reserved so telemetry
+                     # rows from older plugin versions keep their meaning.
 SKIP_SENTINEL = 5    # another SessionStart is currently building
 
 
@@ -60,13 +62,6 @@ def main() -> tuple[int, str, str]:
     err_phase / err_kind are non-empty only on BUILD_FAILED — they let
     telemetry split bootstrap failures by root cause.
     """
-    # Windows venv layout (Lib/site-packages, no python* subdir) isn't
-    # handled by the consumer's glob in security_reminder_hook.py; skip the
-    # bootstrap entirely rather than build a venv that's never read.
-    if sys.platform == "win32":
-        return SKIP_WIN32, "", ""
-
-
     if _sdk_on_syspath():
         return NOOP_SYSTEM, "", ""
 
@@ -75,7 +70,13 @@ def main() -> tuple[int, str, str]:
         or os.path.expanduser("~/.claude/security")
     )
     venv = state_dir / "agent-sdk-venv"
-    venv_py = venv / "bin" / "python"
+    # Windows venvs place the interpreter at Scripts/python.exe (and
+    # site-packages at Lib/site-packages — handled by the consumer glob
+    # in llm.py); POSIX venvs use bin/python.
+    if sys.platform == "win32":
+        venv_py = venv / "Scripts" / "python.exe"
+    else:
+        venv_py = venv / "bin" / "python"
 
     # Another SessionStart (concurrent CC instance, same plugin) may already
     # be building. The sentinel lives NEXT TO the venv, not inside it —
