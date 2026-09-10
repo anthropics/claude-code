@@ -32,14 +32,18 @@ import json
 import re
 import sys
 
-# Define validation rules as a list of (regex pattern, message) tuples
+# Define validation rules as a list of (regex pattern, message) tuples.
+#
+# Each pattern is anchored to the start of the command (^) so it matches
+# only when the listed command is the leading binary of the pipeline.
+# Downstream uses (e.g. `cat foo | grep bar`) are intentionally not flagged.
 _VALIDATION_RULES = [
     (
-        r"^grep\b(?!.*\|)",
+        r"^grep\b",
         "Use 'rg' (ripgrep) instead of 'grep' for better performance and features",
     ),
     (
-        r"^find\s+\S+\s+-name\b",
+        r"^find\s+\S+.*\s-name\b",
         "Use 'rg --files | rg pattern' or 'rg --files -g pattern' instead of 'find -name' for better performance",
     ),
 ]
