@@ -1,0 +1,63 @@
+# Amazon Listing Optimization — Canonical Claims
+
+These are verified facts. Only make claims that appear in this list.
+
+- Amazon's search algorithm in 2026 emphasizes buyer intent and conversion signals over sheer keyword frequency.
+- Amazon's AI systems (Rufus, COSMO) understand context, not just exact keyword phrases.
+- Keyword duplication across title, bullets, and description should be avoided.
+- The product title is the biggest relevance signal for Amazon search and click-through rate.
+- The recommended title structure is: Brand + Product Type + Key Feature + Size/Color + Unique Differentiator.
+- Bullet points should be written benefit-first, describing what the product does for the customer.
+- All 5 bullet points should be used — each is an opportunity to reinforce relevance.
+- CAPS can be used in bullet points for emphasis on benefits.
+- Low conversion on product descriptions usually means customers don't understand the product fully.
+- Backend search terms are hidden from customers but vital for discoverability.
+- Backend keyword slots should not repeat words already on the front end of the listing.
+- Backend search terms should include synonyms, alternate spellings, and abbreviations.
+- The hero image must have a white background with a clear product view.
+- Video content dramatically improves engagement and click-through rate on Amazon listings.
+- A+ Content allows richer storytelling with comparison charts, benefit blocks, and detailed feature imagery.
+- A+ Content boosts SEO indirectly by improving conversion rates.
+- Amazon uses behavioral signals for ranking: click-through rate, conversion rate, add-to-cart actions, and session behavior.
+- If a listing attracts clicks but doesn't convert, rankings can drop.
+- Listing optimization should be reviewed monthly or quarterly at minimum.
+- Major listing overhauls can temporarily impact rankings — results should be monitored.
+- Customer reviews impact conversion rates, buyer trust, and SEO indirectly via higher sales velocity.
+- Driving external traffic from social media and email to Amazon boosts ranking signals.
+- Mobile shoppers are a majority — titles should be shorter and impactful, with clear imagery and concise bullets.
+- Product titles must not exceed 200 characters.
+- Only digital or cloud-based subscription services can be sold via the Subscribe with Amazon program.
+- Subscribe with Amazon required product information includes: product name, category, subscription length, purchase price, SKU, UPC/EAN/JAN, compatible devices, supported login types, availability, product image, legal disclaimers, website link, and privacy policy link.
+- Product images for Subscribe with Amazon must accurately depict only the product and must not include additional logos, text, or other markings.
+- Auto-renewing subscription listings must clearly and conspicuously disclose: (1) subscriptions auto-renew unless turned off 24 hours before term end, (2) account is charged within 24 hours before term end, (3) the renewal term and cost, and (4) customers can manage subscriptions in their settings.
+- Product information provided to Amazon must be at least the same quality as the highest quality information used in any other seller sales channel.
+- Use of false product identification information in product listings is prohibited.
+- A single detail page may only advertise one product — listing multiple products on one page is prohibited.
+- Product listings may not contain: pornographic/obscene/offensive content, phone numbers, physical addresses, email addresses, website URLs (except required ones), alternative ordering information, reviews/quotes/testimonials, solicitations for positive reviews, advertisements/promotional material/watermarks on images, or time-sensitive information.
+- All product images must meet Amazon image standards.
+- HTML, special characters (*/? etc.), and bad data are prohibited in titles, descriptions, bullets, and all other listing attributes.
+- Listings must include any text, disclaimers, warnings, notices, labels, or other content required by applicable law.
+- Product listings may not feature items designated as Restricted Products by Amazon.
+- Backend search terms should be filled completely with relevant terms that couldn't fit on the front end of the listing.
+- A/B testing should be used where possible to test listing changes selectively.
+- Customer feedback and review language should be incorporated into listing copy to match how buyers describe the product.
+- Comparison charts in A+ Content help educate buyers and can reduce returns.
+- Infographic images showing size comparisons and product benefits improve conversion rates.
+- Search terms entered in the Generic keyword field are indexed by Amazon's search engine for lexical matching between an ASIN and a customer query.
+- Backend search terms should use all lowercase letters, be separated by spaces, and avoid punctuation marks such as semicolons, colons, and dashes.
+- Articles, prepositions, and short words (a, an, and, by, for, of, the, with) should be avoided in backend search terms as they waste space.
+- Use either singular or plural forms in search terms — not both — since Amazon indexes both forms from one.
+- Prohibited search terms include: brand names (yours or others), ASINs, profanity, temporary statements (new, on sale now), subjective claims (best, cheapest, amazing), and offensive terms.
+- Using prohibited search terms may result in ASIN suppression and put the selling account health at risk.
+- The Generic keyword field has a byte limit, not a character limit — complex characters like umlauts (ä) use 2 or more bytes per character.
+- Spaces and punctuation are not counted toward the search term byte limit.
+- The search term field was reduced from five fields to one to improve search quality and reduce superfluous terms.
+- Effective December 6, 2023, the Generic keyword field is required for 23 specific product types including bath toy, beauty, board game, blanket, and others.
+- Sellers can update search terms in bulk using the Category Listing report and inventory file template with the partial update function.
+- Amazon may not use all supplied search terms — relevancy is determined automatically and may change over time as Amazon gathers data.
+- To add search terms in Seller Central: go to Inventory > Manage All Inventory > click Edit next to the product > Product details tab > Generic keyword field.
+- When generating listing copy, the agent must validate its own suggestions against Amazon Content Policy before presenting them — the same compliance rules used to audit existing listings apply to all agent-generated content.
+- Review counts, star ratings, and customer feedback metrics (e.g., '78K+ reviews', '5-star rated', 'thousands of happy customers') are prohibited in all listing fields including titles, bullets, and descriptions — this applies equally to agent-generated suggestions.
+- Social proof statements referencing customer counts or satisfaction metrics (e.g., 'Trusted by 78K+ Customers', 'America's #1') are a form of testimonial and are prohibited in Amazon listing copy.
+- Unsubstantiated professional endorsement claims (e.g., 'Doctor Recommended', 'Clinically Proven', 'Dermatologist Tested') must not appear in listing copy unless the seller provides documented, verifiable proof of the endorsement or certification.
+- Compliance rules apply equally to all agent-generated copy including A/B test suggestions, title alternatives, and optional bullet variations — policy-violating content must never be suggested even as a test.
