@@ -1,0 +1,9 @@
+{
+  "name": "new-session",
+  "description": "Start a fresh session from within an existing one, preserving the old session for /resume",
+  "version": "1.0.0",
+  "author": {
+    "name": "Ajay Achinth",
+    "email": "cjajay93@gmail.com"
+  }
+}
