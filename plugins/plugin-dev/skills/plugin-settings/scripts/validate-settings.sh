@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Settings File Validator
 # Validates .claude/plugin-name.local.md structure
 

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Example hook that reads plugin settings from .claude/my-plugin.local.md
 # Demonstrates the complete pattern for settings-driven hook behavior
 

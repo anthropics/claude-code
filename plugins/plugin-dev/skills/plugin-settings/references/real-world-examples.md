@@ -48,7 +48,7 @@ Report status to 'team-leader' session.
 **Implementation:**
 
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
 
 SWARM_STATE_FILE=".claude/multi-agent-swarm.local.md"
@@ -154,7 +154,7 @@ Document any changes needed in CLAUDE.md.
 **Implementation:**
 
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
 
 RALPH_STATE_FILE=".claude/ralph-loop.local.md"
@@ -231,7 +231,7 @@ exit 0
 **File:** `scripts/setup-ralph-loop.sh`
 
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 PROMPT="$1"
 MAX_ITERATIONS="${2:-0}"
 COMPLETION_PROMISE="${3:-}"

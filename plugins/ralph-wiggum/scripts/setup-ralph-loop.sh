@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Ralph Loop Setup Script
 # Creates state file for in-session Ralph loop

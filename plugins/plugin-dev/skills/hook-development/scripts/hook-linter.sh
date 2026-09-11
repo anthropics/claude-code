@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Hook Linter
 # Checks hook scripts for common issues and best practices
 
@@ -42,7 +42,7 @@ check_script() {
   # Check 2: Shebang
   first_line=$(head -1 "$script")
   if [[ ! "$first_line" =~ ^#!/ ]]; then
-    echo "❌ Missing shebang (#!/bin/bash)"
+    echo "❌ Missing shebang (#!/usr/bin/env bash)"
     ((errors++))
   fi
 
