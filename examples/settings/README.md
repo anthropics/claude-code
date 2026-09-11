@@ -1,6 +1,6 @@
 # Settings Examples
 
-Example Claude Code settings files, primarily intended for organization-wide deployments. Use these as starting points — adjust them to fit your needs.
+Example Claude Code settings files, primarily intended for organization-wide deployments. Use these as starting points - adjust them to fit your needs.
 
 These may be applied at any level of the [settings hierarchy](https://code.claude.com/docs/en/settings#settings-files), though certain properties only take effect if specified in enterprise settings (e.g. `strictKnownMarketplaces`, `allowManagedHooksOnly`, `allowManagedPermissionRulesOnly`).
 
@@ -12,13 +12,13 @@ These may be applied at any level of the [settings hierarchy](https://code.claud
 
 | Setting | [`settings-lax.json`](./settings-lax.json) | [`settings-strict.json`](./settings-strict.json) | [`settings-bash-sandbox.json`](./settings-bash-sandbox.json) |
 |---------|:---:|:---:|:---:|
-| Disable `--dangerously-skip-permissions` | ✅ | ✅ | |
-| Block plugin marketplaces | ✅ | ✅ | |
-| Block user and project-defined permission `allow` / `ask` / `deny` | | ✅ | ✅ |
-| Block user and project-defined hooks | | ✅ | |
-| Deny web fetch and search tools | | ✅ | |
-| Bash tool requires approval | | ✅ | |
-| Bash tool must run inside of sandbox | | | ✅ |
+| Disable `--dangerously-skip-permissions` | ? | ? | |
+| Block plugin marketplaces | ? | ? | |
+| Block user and project-defined permission `allow` / `ask` / `deny` | | ? | ? |
+| Block user and project-defined hooks | | ? | |
+| Deny web fetch and search tools | | ? | |
+| Bash tool requires approval | | ? | |
+| Bash tool must run inside of sandbox | | | ? |
 
 ## Tips
 - Consider merging snippets of the above examples to reach your desired configuration
@@ -33,3 +33,11 @@ To distribute these settings as enterprise-managed policy through Jamf, Iru (Kan
 ## Full Documentation
 
 See https://code.claude.com/docs/en/settings for complete documentation on all available managed settings.
+
+## Troubleshooting
+
+### Agent View TUI does not support specifying a working directory for new sessions
+
+When dispatching a new session from `claude agents`, the session inherits the TUI's own working directory. There is no way to target a different directory from within the TUI. This is a missing feature, not a bug.
+
+**Workaround:** Use multiple terminals or tmux panes — one per project directory — each running its own `claude agents` instance.
