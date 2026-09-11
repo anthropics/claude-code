@@ -30,9 +30,13 @@ Learn more in the [official plugins documentation](https://docs.claude.com/en/do
 
 These plugins are included in the Claude Code repository. To use them in your own projects:
 
-1. Install Claude Code globally:
+1. Install Claude Code using a recommended installer (see the [main README](../README.md#get-started) for all options — installation via npm is deprecated):
 ```bash
-npm install -g @anthropic-ai/claude-code
+# macOS/Linux
+curl -fsSL https://claude.ai/install.sh | bash
+
+# Windows
+irm https://claude.ai/install.ps1 | iex
 ```
 
 2. Navigate to your project and run Claude Code:
