@@ -30,6 +30,23 @@ These may be applied at any level of the [settings hierarchy](https://code.claud
 
 To distribute these settings as enterprise-managed policy through Jamf, Iru (Kandji), Intune, or Group Policy, see the deployment templates in [`../mdm`](../mdm).
 
+## Troubleshooting
+
+### AskUserQuestion answers don't create rewind checkpoints
+
+When Claude asks questions via `AskUserQuestion`, user answers flow back
+as `tool_result` blocks inside an assistant turn — not as user messages.
+The Rewind system checkpoints only at user-typed message boundaries, so
+you cannot rewind to individual question/answer pairs.
+
+**Workaround**: Ask the agent to echo each answer back as a brief
+paraphrase before asking the next question, e.g.:
+> "You said the endpoint is /api/v2. Next question..."
+
+This creates a real user-message boundary for Rewind to checkpoint on.
+
+See issue [#61965](https://github.com/anthropics/claude-code/issues/61965).
+
 ## Full Documentation
 
 See https://code.claude.com/docs/en/settings for complete documentation on all available managed settings.
