@@ -1,0 +1,9 @@
+{
+  "name": "hook-integrity-guard",
+  "version": "1.0.0",
+  "description": "Prevents Claude from modifying its own hooks, settings, and safety infrastructure. Addresses CVE-2025-59536 by intercepting Edit, Write, MultiEdit, and Bash operations that target hook scripts, settings files, and plugin directories.",
+  "author": {
+    "name": "Sunny Patel",
+    "url": "https://github.com/sunnypatell"
+  }
+}
