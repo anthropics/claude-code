@@ -1,0 +1,27 @@
+name: Validate Marketplace Metadata
+
+on:
+  pull_request:
+    paths:
+      - '.claude-plugin/marketplace.json'
+      - 'plugins/**'
+      - 'scripts/validate-marketplace.sh'
+      - '.github/workflows/validate-marketplace.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - '.claude-plugin/marketplace.json'
+      - 'plugins/**'
+      - 'scripts/validate-marketplace.sh'
+      - '.github/workflows/validate-marketplace.yml'
+
+jobs:
+  validate-marketplace:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate bundled marketplace entries
+        run: ./scripts/validate-marketplace.sh
