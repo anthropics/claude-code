@@ -1,0 +1,9 @@
+{
+  "name": "claude-opus-4-5-migration",
+  "version": "1.0.0",
+  "description": "Migrate your code and prompts from Sonnet 4.x and Opus 4.1 to Opus 4.5.",
+  "author": {
+    "name": "William Hu",
+    "email": "whu@anthropic.com"
+  }
+}

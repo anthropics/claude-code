@@ -1,0 +1,9 @@
+{
+  "name": "feature-dev",
+  "version": "1.0.0",
+  "description": "Comprehensive feature development workflow with specialized agents for codebase exploration, architecture design, and quality review",
+  "author": {
+    "name": "Sid Bidasaria",
+    "email": "sbidasaria@anthropic.com"
+  }
+}
