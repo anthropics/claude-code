@@ -94,6 +94,7 @@ Only use exec() if you absolutely need shell features and the input is guarantee
     },
     {
         "ruleName": "new_function_injection",
+        "path_filter": lambda p: not p.endswith(_DOC_EXTS),
         "substrings": ["new Function"],
         "reminder": "\u26a0\ufe0f Security Warning: Using new Function() with string interpolation is a CODE INJECTION vulnerability. If any variable is concatenated or interpolated into the function body string, an attacker controlling that variable can execute arbitrary code. Use safe alternatives: for property access use obj[key] or array.reduce((o, k) => o[k], root); for computation use a safe expression parser. NEVER interpolate untrusted strings into new Function() bodies.",
     },
@@ -107,16 +108,19 @@ Only use exec() if you absolutely need shell features and the input is guarantee
     },
     {
         "ruleName": "react_dangerously_set_html",
+        "path_filter": lambda p: not p.endswith(_DOC_EXTS),
         "substrings": ["dangerouslySetInnerHTML"],
         "reminder": "⚠️ Security Warning: dangerouslySetInnerHTML can lead to XSS vulnerabilities if used with untrusted content. Ensure all content is properly sanitized using an HTML sanitizer library like DOMPurify, or use safe alternatives.",
     },
     {
         "ruleName": "document_write_xss",
+        "path_filter": lambda p: not p.endswith(_DOC_EXTS),
         "substrings": ["document.write"],
         "reminder": "⚠️ Security Warning: document.write() can be exploited for XSS attacks and has performance issues. Use DOM manipulation methods like createElement() and appendChild() instead.",
     },
     {
         "ruleName": "innerHTML_xss",
+        "path_filter": lambda p: not p.endswith(_DOC_EXTS),
         "substrings": [".innerHTML =", ".innerHTML="],
         "reminder": "⚠️ Security Warning: Setting innerHTML with untrusted content can lead to XSS vulnerabilities. Use textContent for plain text or safe DOM methods for HTML content. If you need HTML support, consider using an HTML sanitizer library such as DOMPurify.",
     },
