@@ -94,14 +94,16 @@ if ($Backend -eq 'podman') {
 
     # --- Step 1 & 2: Check Docker Desktop ---
     Write-Host "Checking if Docker Desktop is running and docker command is available..."
-    try {
-        docker info | Out-Null
-        Write-Host "Docker Desktop (daemon) is running."
-    } catch {
-        Write-Error "Docker Desktop is not running or docker command not found."
-        Write-Error "Please ensure Docker Desktop is running."
+    # `docker` is a native command: a non-zero exit (e.g. the daemon is not
+    # running) does NOT raise a PowerShell exception, so a try/catch never fires
+    # here and the script would falsely report success. Check $LASTEXITCODE.
+    docker info 2>$null | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "Docker Desktop is not running or the docker command was not found."
+        Write-Error "Please ensure Docker Desktop is installed and running."
         exit 1
     }
+    Write-Host "Docker Desktop (daemon) is running."
 }
 
 # --- Step 3: Bring up DevContainer ---
