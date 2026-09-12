@@ -145,6 +145,17 @@
       },
       "source": "./plugins/security-guidance",
       "category": "security"
+    },
+    {
+      "name": "sessions",
+      "description": "List, inspect, and delete Claude Code sessions stored locally. Project-scoped by default with cross-platform support.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Venkat Chinni",
+        "email": "nithinchinni2002@gmail.com"
+      },
+      "source": "./plugins/session-manager",
+      "category": "productivity"
     }
   ]
 }
