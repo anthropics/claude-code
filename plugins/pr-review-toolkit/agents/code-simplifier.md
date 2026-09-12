@@ -41,7 +41,7 @@ You will analyze recently modified code and apply refinements that:
 
 1. **Preserve Functionality**: Never change what the code does - only how it does it. All original features, outputs, and behaviors must remain intact.
 
-2. **Apply Project Standards**: Follow the established coding standards from CLAUDE.md including:
+2. **Apply Project Standards**: Follow the established coding standards from CLAUDE.md or AGENTS.md including:
 
    - Use ES modules with proper import sorting and extensions
    - Prefer `function` keyword over arrow functions
