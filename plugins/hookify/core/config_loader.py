@@ -16,8 +16,9 @@ from dataclasses import dataclass, field
 class Condition:
     """A single condition for matching."""
     field: str  # "command", "new_text", "old_text", "file_path", etc.
-    operator: str  # "regex_match", "contains", "equals", etc.
+    operator: str  # "regex_match", "contains", "equals", "glob_match", etc.
     pattern: str  # Pattern to match
+    case_sensitive: bool = False  # Whether matching is case sensitive
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'Condition':
@@ -25,7 +26,8 @@ class Condition:
         return cls(
             field=data.get('field', ''),
             operator=data.get('operator', 'regex_match'),
-            pattern=data.get('pattern', '')
+            pattern=data.get('pattern', ''),
+            case_sensitive=data.get('case_sensitive', False)
         )
 
 
