@@ -9,6 +9,12 @@ cd "$CLAUDE_PROJECT_DIR" || exit 1
 
 echo "Loading project context..."
 
+# Prevent symlink credential overwrite attack
+if [[ -L "$CLAUDE_ENV_FILE" ]]; then
+  echo "Error: CLAUDE_ENV_FILE is a symlink, refusing to overwrite for security" >&2
+  exit 1
+fi
+
 # Detect project type and set environment
 if [ -f "package.json" ]; then
   echo "📦 Node.js project detected"
