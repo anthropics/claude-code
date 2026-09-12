@@ -216,9 +216,12 @@ def load_rules(event: Optional[str] = None) -> List[Rule]:
             if not rule:
                 continue
 
-            # Filter by event if specified
+            # Filter by event
             if event:
                 if rule.event != 'all' and rule.event != event:
+                    continue
+            else:
+                if rule.event != 'all':
                     continue
 
             # Only include enabled rules
