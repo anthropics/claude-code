@@ -1,0 +1,1401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Sarsfield Group | Port Williams, Nova Scotia</title>
+  <meta name="description" content="Sit, relax, and enjoy the friendly atmosphere in our Dining Room, Taproom, and Deck overlooking the Minas Basin tides. Come taste the difference local makes.">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap');
+
+    :root {
+      --dark: #0d0d0d;
+      --dark-surface: #1a1a1a;
+      --dark-elevated: #242424;
+      --dark-border: #333333;
+      --amber: #c8a45c;
+      --amber-light: #dbb96e;
+      --amber-glow: rgba(200, 164, 92, 0.15);
+      --copper: #b87333;
+      --cream: #f5f0e8;
+      --cream-muted: #d4cfc5;
+      --text-primary: #f0ece4;
+      --text-secondary: #a09a8e;
+      --text-dim: #6b665c;
+      --navy: #2d3a4a;
+      --success: #4caf50;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--dark);
+      color: var(--text-primary);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* ============================================
+       NAVIGATION
+       ============================================ */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+      background: rgba(13, 13, 13, 0.92);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--dark-border);
+      transition: all 0.3s ease;
+    }
+
+    nav.scrolled {
+      background: rgba(13, 13, 13, 0.98);
+      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.4);
+    }
+
+    .nav-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 70px;
+    }
+
+    .nav-logo {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--amber);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      text-decoration: none;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 2rem;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.85rem;
+      font-weight: 500;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      transition: color 0.3s ease;
+    }
+
+    .nav-links a:hover {
+      color: var(--amber);
+    }
+
+    .nav-cta {
+      background: var(--amber);
+      color: var(--dark) !important;
+      padding: 0.5rem 1.2rem;
+      border-radius: 4px;
+      font-weight: 600 !important;
+      transition: background 0.3s ease, transform 0.2s ease !important;
+    }
+
+    .nav-cta:hover {
+      background: var(--amber-light) !important;
+      color: var(--dark) !important;
+      transform: translateY(-1px);
+    }
+
+    .mobile-toggle {
+      display: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0.5rem;
+    }
+
+    .mobile-toggle span {
+      display: block;
+      width: 24px;
+      height: 2px;
+      background: var(--text-primary);
+      margin: 5px 0;
+      transition: all 0.3s ease;
+    }
+
+    /* ============================================
+       HERO SECTION
+       ============================================ */
+    .hero {
+      position: relative;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      background:
+        linear-gradient(to bottom, rgba(13, 13, 13, 0.3) 0%, rgba(13, 13, 13, 0.6) 50%, rgba(13, 13, 13, 0.95) 100%),
+        linear-gradient(135deg, #1a1a2e 0%, #16213e 30%, #0f3460 60%, #1a1a2e 100%);
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background:
+        radial-gradient(ellipse at 20% 50%, rgba(200, 164, 92, 0.08) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 20%, rgba(15, 52, 96, 0.2) 0%, transparent 50%);
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 2;
+      max-width: 800px;
+      padding: 2rem;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 500;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--amber);
+      border: 1px solid var(--amber);
+      padding: 0.4rem 1.2rem;
+      margin-bottom: 2rem;
+    }
+
+    .hero h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(2.5rem, 6vw, 5rem);
+      font-weight: 700;
+      line-height: 1.1;
+      margin-bottom: 1.5rem;
+      color: var(--cream);
+    }
+
+    .hero h1 em {
+      color: var(--amber);
+      font-style: italic;
+    }
+
+    .hero-subtitle {
+      font-size: 1.1rem;
+      font-weight: 300;
+      color: var(--text-secondary);
+      max-width: 550px;
+      margin: 0 auto 2.5rem;
+      line-height: 1.8;
+    }
+
+    .hero-buttons {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 0.9rem 2rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      text-decoration: none;
+      border-radius: 4px;
+      transition: all 0.3s ease;
+      cursor: pointer;
+      border: none;
+    }
+
+    .btn-primary {
+      background: var(--amber);
+      color: var(--dark);
+    }
+
+    .btn-primary:hover {
+      background: var(--amber-light);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(200, 164, 92, 0.3);
+    }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--cream);
+      border: 1px solid var(--cream-muted);
+    }
+
+    .btn-outline:hover {
+      border-color: var(--amber);
+      color: var(--amber);
+      transform: translateY(-2px);
+    }
+
+    .hero-scroll {
+      position: absolute;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 2;
+    }
+
+    .hero-scroll a {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--text-dim);
+      text-decoration: none;
+      font-size: 0.7rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      transition: color 0.3s ease;
+    }
+
+    .hero-scroll a:hover {
+      color: var(--amber);
+    }
+
+    .scroll-line {
+      width: 1px;
+      height: 40px;
+      background: linear-gradient(to bottom, var(--amber), transparent);
+      animation: scrollPulse 2s ease-in-out infinite;
+    }
+
+    @keyframes scrollPulse {
+      0%, 100% { opacity: 0.3; }
+      50% { opacity: 1; }
+    }
+
+    /* ============================================
+       SECTION STYLES
+       ============================================ */
+    section {
+      padding: 6rem 2rem;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .section-label {
+      font-size: 0.75rem;
+      font-weight: 500;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 1rem;
+    }
+
+    .section-title {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(2rem, 4vw, 3rem);
+      font-weight: 700;
+      color: var(--cream);
+      margin-bottom: 1.5rem;
+      line-height: 1.2;
+    }
+
+    .section-desc {
+      font-size: 1.05rem;
+      color: var(--text-secondary);
+      max-width: 600px;
+      line-height: 1.8;
+      font-weight: 300;
+    }
+
+    .divider {
+      width: 60px;
+      height: 2px;
+      background: var(--amber);
+      margin: 2rem 0;
+    }
+
+    /* ============================================
+       ABOUT SECTION
+       ============================================ */
+    #about {
+      background: var(--dark-surface);
+    }
+
+    .about-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4rem;
+      align-items: center;
+    }
+
+    .about-image {
+      position: relative;
+      aspect-ratio: 4/3;
+      background: var(--dark-elevated);
+      border-radius: 8px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .about-image-placeholder {
+      text-align: center;
+      color: var(--text-dim);
+      padding: 2rem;
+    }
+
+    .about-image-placeholder .icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      opacity: 0.5;
+    }
+
+    .about-image::after {
+      content: '';
+      position: absolute;
+      bottom: -10px;
+      right: -10px;
+      width: 100%;
+      height: 100%;
+      border: 1px solid var(--amber);
+      border-radius: 8px;
+      z-index: -1;
+      opacity: 0.3;
+    }
+
+    .about-features {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      margin-top: 2rem;
+    }
+
+    .about-feature {
+      padding: 1.2rem;
+      background: var(--dark-elevated);
+      border-radius: 8px;
+      border-left: 3px solid var(--amber);
+    }
+
+    .about-feature h4 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1rem;
+      color: var(--cream);
+      margin-bottom: 0.3rem;
+    }
+
+    .about-feature p {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    /* ============================================
+       SPACES SECTION
+       ============================================ */
+    #spaces {
+      background: var(--dark);
+    }
+
+    .spaces-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2rem;
+      margin-top: 3rem;
+    }
+
+    .space-card {
+      background: var(--dark-surface);
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--dark-border);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .space-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    .space-card-image {
+      height: 200px;
+      background: var(--dark-elevated);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3rem;
+    }
+
+    .space-card-body {
+      padding: 1.5rem;
+    }
+
+    .space-card h3 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.4rem;
+      color: var(--cream);
+      margin-bottom: 0.5rem;
+    }
+
+    .space-card p {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    /* ============================================
+       MENU SECTION
+       ============================================ */
+    #menu {
+      background: var(--dark-surface);
+    }
+
+    .menu-header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    .menu-header .section-desc {
+      margin: 0 auto;
+    }
+
+    .menu-tabs {
+      display: flex;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-bottom: 3rem;
+      flex-wrap: wrap;
+    }
+
+    .menu-tab {
+      padding: 0.6rem 1.5rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      background: transparent;
+      color: var(--text-secondary);
+      border: 1px solid var(--dark-border);
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .menu-tab:hover,
+    .menu-tab.active {
+      background: var(--amber);
+      color: var(--dark);
+      border-color: var(--amber);
+    }
+
+    .menu-category {
+      display: none;
+    }
+
+    .menu-category.active {
+      display: block;
+    }
+
+    .menu-category-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.5rem;
+      color: var(--amber);
+      text-align: center;
+      margin-bottom: 2rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--dark-border);
+    }
+
+    .menu-pricing-bar {
+      display: flex;
+      justify-content: center;
+      gap: 2rem;
+      margin-bottom: 2rem;
+      padding: 0.8rem 1.5rem;
+      background: var(--dark-elevated);
+      border-radius: 4px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--amber);
+      letter-spacing: 1px;
+    }
+
+    .menu-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .menu-item {
+      padding: 1.2rem 1.5rem;
+      background: var(--dark-elevated);
+      border-radius: 8px;
+      border: 1px solid var(--dark-border);
+      transition: border-color 0.3s ease;
+    }
+
+    .menu-item:hover {
+      border-color: var(--amber);
+    }
+
+    .menu-item-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 0.4rem;
+    }
+
+    .menu-item-name {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--cream);
+    }
+
+    .menu-item-detail {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--amber);
+      white-space: nowrap;
+    }
+
+    .menu-item-desc {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    /* ============================================
+       RESERVATION SECTION
+       ============================================ */
+    #reservations {
+      background: var(--dark);
+      text-align: center;
+    }
+
+    .reservation-box {
+      max-width: 700px;
+      margin: 3rem auto 0;
+      padding: 3rem;
+      background: var(--dark-surface);
+      border: 1px solid var(--dark-border);
+      border-radius: 12px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .reservation-box::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(to right, transparent, var(--amber), transparent);
+    }
+
+    .reservation-box h3 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.8rem;
+      color: var(--cream);
+      margin-bottom: 1rem;
+    }
+
+    .reservation-box p {
+      color: var(--text-secondary);
+      margin-bottom: 2rem;
+      line-height: 1.7;
+    }
+
+    .reservation-widget-placeholder {
+      padding: 2rem;
+      background: var(--dark-elevated);
+      border: 2px dashed var(--dark-border);
+      border-radius: 8px;
+      margin-bottom: 1.5rem;
+    }
+
+    .reservation-widget-placeholder p {
+      margin-bottom: 0;
+      font-size: 0.9rem;
+      color: var(--text-dim);
+    }
+
+    .reservation-alt {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1.5rem;
+      margin-top: 2rem;
+      flex-wrap: wrap;
+    }
+
+    .reservation-alt span {
+      color: var(--text-dim);
+      font-size: 0.85rem;
+    }
+
+    .reservation-alt a {
+      color: var(--amber);
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 0.95rem;
+      transition: color 0.3s ease;
+    }
+
+    .reservation-alt a:hover {
+      color: var(--amber-light);
+    }
+
+    /* ============================================
+       CONTACT SECTION
+       ============================================ */
+    #contact {
+      background: var(--dark-surface);
+    }
+
+    .contact-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4rem;
+      margin-top: 3rem;
+    }
+
+    .contact-info-group {
+      margin-bottom: 2rem;
+    }
+
+    .contact-info-group h4 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.1rem;
+      color: var(--amber);
+      margin-bottom: 0.8rem;
+    }
+
+    .contact-info-group p,
+    .contact-info-group a {
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+      line-height: 1.8;
+      text-decoration: none;
+      transition: color 0.3s ease;
+    }
+
+    .contact-info-group a:hover {
+      color: var(--amber);
+    }
+
+    .hours-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .hours-table td {
+      padding: 0.4rem 0;
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      border-bottom: 1px solid var(--dark-border);
+    }
+
+    .hours-table td:last-child {
+      text-align: right;
+      color: var(--cream);
+    }
+
+    .contact-map {
+      background: var(--dark-elevated);
+      border-radius: 8px;
+      overflow: hidden;
+      min-height: 400px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--dark-border);
+    }
+
+    .contact-map iframe {
+      width: 100%;
+      height: 100%;
+      min-height: 400px;
+      border: 0;
+      filter: grayscale(0.7) brightness(0.8);
+      transition: filter 0.3s ease;
+    }
+
+    .contact-map:hover iframe {
+      filter: grayscale(0.3) brightness(0.9);
+    }
+
+    /* ============================================
+       FOOTER
+       ============================================ */
+    footer {
+      background: var(--dark);
+      border-top: 1px solid var(--dark-border);
+      padding: 3rem 2rem;
+    }
+
+    .footer-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .footer-brand {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--amber);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .footer-copy {
+      font-size: 0.8rem;
+      color: var(--text-dim);
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 1.5rem;
+      list-style: none;
+    }
+
+    .footer-links a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.8rem;
+      transition: color 0.3s ease;
+    }
+
+    .footer-links a:hover {
+      color: var(--amber);
+    }
+
+    /* ============================================
+       RESPONSIVE
+       ============================================ */
+    @media (max-width: 968px) {
+      .about-grid {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+      }
+
+      .about-image {
+        order: -1;
+      }
+
+      .spaces-grid {
+        grid-template-columns: 1fr;
+        max-width: 500px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      .contact-grid {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .nav-links {
+        display: none;
+        position: fixed;
+        top: 70px;
+        left: 0;
+        right: 0;
+        background: rgba(13, 13, 13, 0.98);
+        flex-direction: column;
+        padding: 2rem;
+        gap: 1.5rem;
+        border-bottom: 1px solid var(--dark-border);
+      }
+
+      .nav-links.open {
+        display: flex;
+      }
+
+      .mobile-toggle {
+        display: block;
+      }
+
+      .mobile-toggle.open span:nth-child(1) {
+        transform: rotate(45deg) translate(5px, 5px);
+      }
+
+      .mobile-toggle.open span:nth-child(2) {
+        opacity: 0;
+      }
+
+      .mobile-toggle.open span:nth-child(3) {
+        transform: rotate(-45deg) translate(5px, -5px);
+      }
+
+      section {
+        padding: 4rem 1.5rem;
+      }
+
+      .about-features {
+        grid-template-columns: 1fr;
+      }
+
+      .menu-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .menu-pricing-bar {
+        flex-direction: column;
+        gap: 0.5rem;
+        text-align: center;
+      }
+
+      .hero-buttons {
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .reservation-box {
+        padding: 2rem 1.5rem;
+      }
+
+      .footer-inner {
+        flex-direction: column;
+        text-align: center;
+      }
+    }
+
+    /* ============================================
+       ANIMATIONS
+       ============================================ */
+    .fade-in {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+
+    .fade-in.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ==========================================
+       NAVIGATION
+       ========================================== -->
+  <nav id="navbar">
+    <div class="nav-inner">
+      <a href="#" class="nav-logo">The Sarsfield Group</a>
+      <ul class="nav-links" id="navLinks">
+        <li><a href="#about">Our Story</a></li>
+        <li><a href="#spaces">Spaces</a></li>
+        <li><a href="#menu">Menu</a></li>
+        <li><a href="#contact">Contact</a></li>
+        <li><a href="#reservations" class="nav-cta">Make a Reservation</a></li>
+      </ul>
+      <button class="mobile-toggle" id="mobileToggle" aria-label="Toggle navigation">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ==========================================
+       HERO
+       ========================================== -->
+  <section class="hero" id="home">
+    <div class="hero-content">
+      <div class="hero-badge">Port Williams, Nova Scotia</div>
+      <h1>Come Taste the Difference <em>Local</em> Makes</h1>
+      <p class="hero-subtitle">
+        Sit, relax, and enjoy the friendly atmosphere in our Dining Room, Taproom,
+        and on our Deck overlooking the Minas Basin tides.
+      </p>
+      <div class="hero-buttons">
+        <a href="#reservations" class="btn btn-primary">Make a Reservation</a>
+        <a href="#menu" class="btn btn-outline">View Our Menu</a>
+      </div>
+    </div>
+    <div class="hero-scroll">
+      <a href="#about">
+        <span>Scroll</span>
+        <div class="scroll-line"></div>
+      </a>
+    </div>
+  </section>
+
+  <!-- ==========================================
+       ABOUT
+       ========================================== -->
+  <section id="about">
+    <div class="container">
+      <div class="about-grid">
+        <div class="fade-in">
+          <div class="section-label">Our Story</div>
+          <h2 class="section-title">Where History &amp; Community Come Together</h2>
+          <div class="divider"></div>
+          <p class="section-desc">
+            Nestled in Port Williams, Nova Scotia, The Sarsfield Group is more than a restaurant
+            &mdash; it's a gathering place steeped in the rich heritage of the Annapolis Valley.
+            Housed in the historic Mason Apples building, our taproom is a destination for
+            exceptional, crafted beverages and a taste of local culture.
+          </p>
+          <p class="section-desc" style="margin-top: 1rem;">
+            Whether you're a local or a visitor, we invite you to experience the lively atmosphere
+            and the history of Port Williams wharf. From our deck overlooking the Minas Basin tides
+            to our cozy taproom, every visit is a chance to connect with community.
+          </p>
+          <div class="about-features">
+            <div class="about-feature">
+              <h4>Locally Crafted</h4>
+              <p>Beer, cider &amp; seltzers brewed with care</p>
+            </div>
+            <div class="about-feature">
+              <h4>Historic Building</h4>
+              <p>The Mason Apples building, rich in apple history</p>
+            </div>
+            <div class="about-feature">
+              <h4>Waterfront Views</h4>
+              <p>Deck overlooking the Minas Basin tides</p>
+            </div>
+            <div class="about-feature">
+              <h4>Community Hub</h4>
+              <p>A gathering spot for locals and visitors alike</p>
+            </div>
+          </div>
+        </div>
+        <div class="about-image fade-in">
+          <div class="about-image-placeholder">
+            <div class="icon">&#127866;</div>
+            <p style="font-size: 0.85rem;">Replace with a photo of<br>The Port Taproom</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==========================================
+       SPACES
+       ========================================== -->
+  <section id="spaces">
+    <div class="container">
+      <div class="fade-in" style="text-align: center; margin-bottom: 1rem;">
+        <div class="section-label">Our Spaces</div>
+        <h2 class="section-title">Three Ways to Experience Us</h2>
+        <p class="section-desc" style="margin: 0 auto;">
+          Each space offers its own character &mdash; from the warmth of the dining room
+          to the breeze on the deck.
+        </p>
+      </div>
+
+      <div class="spaces-grid">
+        <div class="space-card fade-in">
+          <div class="space-card-image">&#127860;</div>
+          <div class="space-card-body">
+            <h3>The Dining Room</h3>
+            <p>
+              Enjoy a full dining experience with locally-sourced dishes in a warm,
+              inviting atmosphere. Perfect for date nights, family dinners,
+              or catching up with friends.
+            </p>
+          </div>
+        </div>
+
+        <div class="space-card fade-in">
+          <div class="space-card-image">&#127867;</div>
+          <div class="space-card-body">
+            <h3>The Taproom</h3>
+            <p>
+              The heart of The Sarsfield Group. Sample our rotating selection of
+              craft beers, ciders, and seltzers in a space where history and
+              community come together.
+            </p>
+          </div>
+        </div>
+
+        <div class="space-card fade-in">
+          <div class="space-card-image">&#127749;</div>
+          <div class="space-card-body">
+            <h3>The Deck</h3>
+            <p>
+              Soak in the stunning views of the Minas Basin tides from our
+              outdoor deck. The perfect spot on a summer evening with a cold
+              drink in hand.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==========================================
+       MENU
+       ========================================== -->
+  <section id="menu">
+    <div class="container">
+      <div class="menu-header fade-in">
+        <div class="section-label">What We Pour</div>
+        <h2 class="section-title">On Tap</h2>
+        <p class="section-desc">
+          All of our craft beverages are brewed locally. Come taste the difference.
+        </p>
+      </div>
+
+      <div class="menu-tabs">
+        <button class="menu-tab active" data-tab="beer">Beer</button>
+        <button class="menu-tab" data-tab="cider">Cider</button>
+        <button class="menu-tab" data-tab="seltzer">Seltzer</button>
+      </div>
+
+      <!-- BEER -->
+      <div class="menu-category active" id="tab-beer">
+        <div class="menu-category-title">Beer &middot; Brig&amp;Barq</div>
+        <div class="menu-pricing-bar">
+          <span>12oz &mdash; $6</span>
+          <span>16oz &mdash; $7</span>
+          <span>20oz &mdash; $8</span>
+        </div>
+        <div class="menu-grid">
+          <div class="menu-item">
+            <div class="menu-item-header">
+              <span class="menu-item-name">Lager</span>
+              <span class="menu-item-detail">4.5% ABV</span>
+            </div>
+            <p class="menu-item-desc">Czech-style pale lager with malt flavours, floral hops, and a clean, dry finish.</p>
+          </div>
+          <div class="menu-item">
+            <div class="menu-item-header">
+              <span class="menu-item-name">Red Ale</span>
+              <span class="menu-item-detail">5.5% ABV</span>
+            </div>
+            <p class="menu-item-desc">Malt-forward with caramel sweetness, subtle hop bitterness, and a smooth finish.</p>
+          </div>
+          <div class="menu-item">
+            <div class="menu-item-header">
+              <span class="menu-item-name">Session IPA</span>
+              <span class="menu-item-detail">3.5% ABV</span>
+            </div>
+            <p class="menu-item-desc">Bright orange peel for a zesty citrus kick, easy-drinking and refreshing.</p>
+          </div>
+          <div class="menu-item">
+            <div class="menu-item-header">
+              <span class="menu-item-name">IPA</span>
+              <span class="menu-item-detail">5.7% ABV</span>
+            </div>
+            <p class="menu-item-desc">Grapefruit, orange, and tropical fruit flavours with a balanced finish.</p>
+          </div>
+          <div class="menu-item">
+            <div class="menu-item-header">
+              <span class="menu-item-name">Big IPA</span>
+              <span class="menu-item-detail">6.8% ABV</span>
+            </div>
+            <p class="menu-item-desc">Bold West Coast IPA with citrusy aromas, balanced bitterness, and a crisp finish.</p>
+          </div>
+          <div class="menu-item">
+            <div class="menu-item-header">
+              <span class="menu-item-name">Light Lager</span>
+              <span class="menu-item-detail">3.5% ABV</span>
+            </div>
+            <p class="menu-item-desc">Crisp and clean with a light body, subtle malt sweetness, and a refreshing finish.</p>
+          </div>
+          <div class="menu-item">
+            <div class="menu-item-header">
+              <span class="menu-item-name">Baltic Porter</span>
+              <span class="menu-item-detail">9.0% ABV</span>
+            </div>
+            <p class="menu-item-desc">Dark chocolate, roasted coffee, and dried fruit. Smooth and warming.</p>
+          </div>
+          <div class="menu-item">
+            <div class="menu-item-header">
+              <span class="menu-item-name">Stout</span>
+              <span class="menu-item-detail">5.5% ABV</span>
+            </div>
+            <p class="menu-item-desc">Rich dark chocolate, coffee, and caramel with a velvety texture.</p>
+          </div>
+          <div class="menu-item">
+            <div class="menu-item-header">
+              <span class="menu-item-name">Lemonade Radler</span>
+              <span class="menu-item-detail">4.0% ABV</span>
+            </div>
+            <p class="menu-item-desc">Zesty citrus with a hint of sweetness. Light and effervescent.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- CIDER -->
+      <div class="menu-category" id="tab-cider">
+        <div class="menu-category-title">Cider &middot; Moonrise Ridge</div>
+        <div class="menu-pricing-bar">
+          <span>12oz &mdash; $6</span>
+          <span>16oz &mdash; $7</span>
+          <span>20oz &mdash; $8</span>
+        </div>
+        <div class="menu-grid">
+          <div class="menu-item">
+            <div class="menu-item-header">
+              <span class="menu-item-name">Wild Blueberry</span>
+              <span class="menu-item-detail">5.3% ABV</span>
+            </div>
+            <p class="menu-item-desc">Medium dry with wine-like character, rich blueberry, and a hint of plum.</p>
+          </div>
+          <div class="menu-item">
+            <div class="menu-item-header">
+              <span class="menu-item-name">Perfect Pear</span>
+              <span class="menu-item-detail">5.3% ABV</span>
+            </div>
+            <p class="menu-item-desc">Delicate pear, apple, and citrus notes. Refreshing and versatile.</p>
+          </div>
+          <div class="menu-item">
+            <div class="menu-item-header">
+              <span class="menu-item-name">Juicy Peach</span>
+              <span class="menu-item-detail">5.3% ABV</span>
+            </div>
+            <p class="menu-item-desc">Fruit-forward with vibrant peach aroma. Smooth and refreshing.</p>
+          </div>
+          <div class="menu-item">
+            <div class="menu-item-header">
+              <span class="menu-item-name">Honey Crisp Apple</span>
+              <span class="menu-item-detail">6.0% ABV</span>
+            </div>
+            <p class="menu-item-desc">Bold apple flavour with crisp vinous notes and a rounded mouthfeel.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- SELTZER -->
+      <div class="menu-category" id="tab-seltzer">
+        <div class="menu-category-title">Seltzer &middot; Luna</div>
+        <div class="menu-pricing-bar">
+          <span>12oz &mdash; $6</span>
+          <span>16oz &mdash; $7</span>
+          <span>20oz &mdash; $8</span>
+        </div>
+        <div class="menu-grid">
+          <div class="menu-item">
+            <div class="menu-item-header">
+              <span class="menu-item-name">Blackberry</span>
+              <span class="menu-item-detail">5.5% ABV</span>
+            </div>
+            <p class="menu-item-desc">Only 1g sugar. Bold, ripe blackberry with a crisp, clean finish.</p>
+          </div>
+          <div class="menu-item">
+            <div class="menu-item-header">
+              <span class="menu-item-name">Gin Fizz</span>
+              <span class="menu-item-detail">5.5% ABV</span>
+            </div>
+            <p class="menu-item-desc">Only 1g sugar. Classic gin fizz inspired, crisp and effervescent.</p>
+          </div>
+          <div class="menu-item">
+            <div class="menu-item-header">
+              <span class="menu-item-name">Hard Iced Tea</span>
+              <span class="menu-item-detail">5.5% ABV</span>
+            </div>
+            <p class="menu-item-desc">Made with vodka and real lemon tea. Smooth and refreshing.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==========================================
+       RESERVATIONS
+       ========================================== -->
+  <section id="reservations">
+    <div class="container">
+      <div class="fade-in">
+        <div class="section-label">Book a Table</div>
+        <h2 class="section-title">Make a Reservation</h2>
+        <p class="section-desc" style="margin: 0 auto;">
+          Reserve your spot in our Dining Room, Taproom, or on the Deck.
+        </p>
+      </div>
+
+      <div class="reservation-box fade-in">
+        <h3>Reserve Your Table</h3>
+        <p>
+          Book online through TouchBistro Dine and secure your table
+          in just a few clicks. Walk-ins are always welcome too!
+        </p>
+
+        <!--
+          ============================================
+          TOUCHBISTRO INTEGRATION
+          ============================================
+          To embed your TouchBistro reservation widget:
+          1. Log in to your TouchBistro Reservations portal
+          2. Go to Settings > Integration
+          3. Click "Click here to learn how to integrate Bookenda to your website"
+          4. Copy the HTML snippet provided
+          5. Replace the placeholder div below with your snippet
+          ============================================
+        -->
+        <div class="reservation-widget-placeholder" id="touchbistro-widget">
+          <p>
+            &#128197; TouchBistro reservation widget goes here.<br>
+            <small>Paste your Bookenda/TouchBistro Dine embed code to replace this placeholder.</small>
+          </p>
+        </div>
+
+        <a href="tel:9025425555" class="btn btn-primary">Call to Reserve: (902) 542-5555</a>
+
+        <div class="reservation-alt">
+          <span>or email us at</span>
+          <a href="mailto:info@theportpub.com">info@theportpub.com</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==========================================
+       CONTACT
+       ========================================== -->
+  <section id="contact">
+    <div class="container">
+      <div class="fade-in">
+        <div class="section-label">Find Us</div>
+        <h2 class="section-title">Get in Touch</h2>
+      </div>
+
+      <div class="contact-grid">
+        <div class="fade-in">
+          <div class="contact-info-group">
+            <h4>Location</h4>
+            <p>1980 Terrys Creek Road<br>Port Williams, Nova Scotia</p>
+          </div>
+
+          <div class="contact-info-group">
+            <h4>Contact</h4>
+            <p>
+              <a href="tel:9025425555">(902) 542-5555</a><br>
+              <a href="mailto:info@theportpub.com">info@theportpub.com</a>
+            </p>
+          </div>
+
+          <div class="contact-info-group">
+            <h4>Hours</h4>
+            <table class="hours-table">
+              <tr><td>Monday</td><td>Closed</td></tr>
+              <tr><td>Tuesday</td><td>Closed</td></tr>
+              <tr><td>Wednesday</td><td>12:00 PM &ndash; 9:00 PM</td></tr>
+              <tr><td>Thursday</td><td>12:00 PM &ndash; 9:00 PM</td></tr>
+              <tr><td>Friday</td><td>12:00 PM &ndash; 10:00 PM</td></tr>
+              <tr><td>Saturday</td><td>12:00 PM &ndash; 10:00 PM</td></tr>
+              <tr><td>Sunday</td><td>12:00 PM &ndash; 8:00 PM</td></tr>
+            </table>
+            <p style="margin-top: 0.5rem; font-size: 0.8rem; color: var(--text-dim);">
+              Hours may vary seasonally. Please call ahead to confirm.
+            </p>
+          </div>
+        </div>
+
+        <div class="contact-map fade-in">
+          <iframe
+            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2836.5!2d-64.4072!3d45.0862!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zNDXCsDA1JzEwLjMiTiA2NMKwMjQnMjUuOSJX!5e0!3m2!1sen!2sca!4v1700000000000!5m2!1sen!2sca"
+            allowfullscreen=""
+            loading="lazy"
+            referrerpolicy="no-referrer-when-downgrade"
+            title="Map showing The Sarsfield Group location in Port Williams, Nova Scotia">
+          </iframe>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==========================================
+       FOOTER
+       ========================================== -->
+  <footer>
+    <div class="footer-inner">
+      <div class="footer-brand">The Sarsfield Group</div>
+      <p class="footer-copy">&copy; 2026 The Sarsfield Group. All rights reserved.</p>
+      <ul class="footer-links">
+        <li><a href="#about">About</a></li>
+        <li><a href="#menu">Menu</a></li>
+        <li><a href="#reservations">Reservations</a></li>
+        <li><a href="#contact">Contact</a></li>
+      </ul>
+    </div>
+  </footer>
+
+  <!-- ==========================================
+       JAVASCRIPT
+       ========================================== -->
+  <script>
+    // Navbar scroll effect
+    const navbar = document.getElementById('navbar');
+    window.addEventListener('scroll', () => {
+      navbar.classList.toggle('scrolled', window.scrollY > 50);
+    });
+
+    // Mobile menu toggle
+    const mobileToggle = document.getElementById('mobileToggle');
+    const navLinks = document.getElementById('navLinks');
+
+    mobileToggle.addEventListener('click', () => {
+      mobileToggle.classList.toggle('open');
+      navLinks.classList.toggle('open');
+    });
+
+    // Close mobile menu on link click
+    navLinks.querySelectorAll('a').forEach(link => {
+      link.addEventListener('click', () => {
+        mobileToggle.classList.remove('open');
+        navLinks.classList.remove('open');
+      });
+    });
+
+    // Menu tabs
+    const tabs = document.querySelectorAll('.menu-tab');
+    const categories = document.querySelectorAll('.menu-category');
+
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        tabs.forEach(t => t.classList.remove('active'));
+        categories.forEach(c => c.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+      });
+    });
+
+    // Scroll animations
+    const fadeElements = document.querySelectorAll('.fade-in');
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+        }
+      });
+    }, { threshold: 0.1 });
+
+    fadeElements.forEach(el => observer.observe(el));
+  </script>
+
+</body>
+</html>
