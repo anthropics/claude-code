@@ -1,0 +1,26 @@
+{
+  "name": "multi-language-port",
+  "description": "Same algorithm in 3 languages by 3 teammates; tests cross-teammate independence.",
+  "primitives_tested": ["cross-teammate-independence", "parallel-dispatch"],
+  "max_duration_minutes": 1,
+  "deterministic": true,
+  "setup": {
+    "fixtures": "../fixtures/multi-language-port",
+    "seed": 42,
+    "git_init": true
+  },
+  "teammates": [
+    {"name": "porter-py", "head": "Builder", "task_ids": ["add.py"]},
+    {"name": "porter-js", "head": "Builder", "task_ids": ["add.js"]},
+    {"name": "porter-rs", "head": "Builder", "task_ids": ["add.rs"]}
+  ],
+  "expected": {
+    "tasks_completed": 3,
+    "files_present": ["add.py", "add.js", "add.rs"],
+    "file_contains": [
+      {"path": "add.py", "substring": "def add"},
+      {"path": "add.js", "substring": "function add"},
+      {"path": "add.rs", "substring": "fn add"}
+    ]
+  }
+}
