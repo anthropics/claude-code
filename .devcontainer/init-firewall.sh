@@ -41,8 +41,14 @@ iptables -A OUTPUT -o lo -j ACCEPT
 ipset create allowed-domains hash:net
 
 # Fetch GitHub meta information and aggregate + add their IP ranges
-echo "Fetching GitHub IP ranges..."
-gh_ranges=$(curl -s https://api.github.com/meta)
+if [ -z "${GH_TOKEN}" ]; then
+    echo "Fetching GitHub IP ranges..."
+    gh_ranges=$(curl -s https://api.github.com/meta)
+else
+    echo "Fetching GitHub IP ranges with authentication..."
+    gh_ranges=$(curl -H "Authorization: Bearer ${GH_TOKEN}" -s https://api.github.com/meta)
+fi
+
 if [ -z "$gh_ranges" ]; then
     echo "ERROR: Failed to fetch GitHub IP ranges"
     exit 1
