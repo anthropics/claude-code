@@ -41,6 +41,7 @@ export function kindWalkOf(
 
   async function kindOf(path: string): Promise<Types.WalkKind> {
     const names = path === '' ? [] : path.split('/')
+
     let directory = ''
 
     for (const [depth, name] of names.entries()) {

@@ -23,6 +23,7 @@ import { drawnLineOf } from './drawn-line-of'
  */
 export function codeBlocksOf(hunks: readonly Git.Hunk[]): Types.CodeBody {
   const blocks: Types.CodeBlock[] = []
+
   let chars = 0
   let nodes = 0
   let isTruncated = false

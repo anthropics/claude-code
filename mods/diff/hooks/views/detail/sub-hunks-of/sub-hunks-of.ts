@@ -19,6 +19,7 @@ export function subHunksOf(
   maxChars: number,
 ): Pick<Git.FileHunks, 'hunks' | 'isTruncated'> {
   const hunks: Git.Hunk[] = []
+
   let rest = hunk
   let isTruncated = false
 
