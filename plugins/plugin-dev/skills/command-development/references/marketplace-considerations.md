@@ -293,6 +293,39 @@ For support, include the above diagnostics.
 
 ## Distribution Best Practices
 
+### Git Source Options
+
+Marketplace entries that use `github` or `git` sources can skip Git LFS downloads
+when the repository contains large optional assets that are not required at
+runtime. Set `skipLfs` alongside the source-specific location field so installs
+and updates avoid fetching those LFS objects.
+
+**GitHub source:**
+
+```json
+{
+  "name": "large-fixtures-plugin",
+  "source": {
+    "source": "github",
+    "repo": "acme-corp/claude-plugin",
+    "skipLfs": true
+  }
+}
+```
+
+**Git URL source:**
+
+```json
+{
+  "name": "large-fixtures-plugin",
+  "source": {
+    "source": "git",
+    "url": "https://git.example.com/acme/claude-plugin.git",
+    "skipLfs": true
+  }
+}
+```
+
 ### Namespace Awareness
 
 **Avoid name collisions:**
