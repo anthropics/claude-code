@@ -22,10 +22,23 @@
 #        "${CLAUDE_PLUGIN_ROOT}/hooks/security_reminder_hook.py"
 set -e
 
+# Capture probe stderr so the all-candidates-failed path can report useful
+# diagnostics. Logging is best-effort: if the temp file cannot be created,
+# fall back to the previous stderr-suppression behavior.
+errlog=""
+errlog=$(mktemp 2>/dev/null) || true
+if [ -n "$errlog" ]; then
+    trap 'rm -f "$errlog"' EXIT
+fi
+
 probe() {
     # $1..N: the interpreter command (may be multi-word like `py -3`)
     # Probe writes the major version to stdout and exits 0 iff it's >=3.
-    "$@" -c 'import sys; print(sys.version_info[0])' 2>/dev/null
+    if [ -n "$errlog" ]; then
+        "$@" -c 'import sys; print(sys.version_info[0])' 2>>"$errlog"
+    else
+        "$@" -c 'import sys; print(sys.version_info[0])' 2>/dev/null
+    fi
 }
 
 for cmd in "python3" "python" "py -3"; do
@@ -33,6 +46,9 @@ for cmd in "python3" "python" "py -3"; do
     # shellcheck disable=SC2086
     v=$(probe $cmd) || continue
     if [ "$v" = "3" ]; then
+        if [ -n "$errlog" ]; then
+            rm -f "$errlog"
+        fi
         # shellcheck disable=SC2086
         exec $cmd "$@"
     fi
@@ -40,5 +56,9 @@ done
 
 echo "security-guidance: no working Python 3 interpreter found." >&2
 echo "  tried: python3, python, py -3" >&2
+if [ -n "$errlog" ] && [ -s "$errlog" ]; then
+    echo "  probe errors:" >&2
+    sed 's/^/    /' "$errlog" >&2
+fi
 echo "  on Windows, install Python from https://python.org (NOT the Microsoft Store)" >&2
 exit 1
