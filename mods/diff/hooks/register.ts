@@ -43,8 +43,11 @@ export function register(on: On) {
   let isRefreshQueued = false
   let generation = 0
   let bodyKey: string | null = null
+
   const polled = { toplevel: '', headKey: '' }
+
   let model: PaneState.PaneModel = PaneState.INITIAL_MODEL
+
   const timers = new Map<'refresh' | 'redraw' | 'poll', Timer>()
   const loggedBaseKinds = new Set<'ok' | 'sad'>()
 

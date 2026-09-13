@@ -20,6 +20,7 @@ export function parseNumstat(
   const files: Types.FileStat[] = []
   const stats = { filesCount: 0, linesAdded: 0, linesRemoved: 0 }
   const records = stdout.split('\0')
+
   let at = 0
 
   while (at < records.length) {

@@ -18,6 +18,7 @@ export function truncateStart(text: string, cells: number) {
   }
 
   const characters = [...text]
+
   let kept = ''
 
   for (let at = characters.length - 1; at >= 0; at--) {

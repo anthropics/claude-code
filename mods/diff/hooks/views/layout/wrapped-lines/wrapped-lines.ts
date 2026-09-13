@@ -18,6 +18,7 @@ export function wrappedLines(text: string, columns: number): string[] {
 
   for (const [index, word] of words.entries()) {
     const wordWidth = cellWidth(word)
+
     let rowWidth = cellWidth(rows[rows.length - 1] ?? '')
 
     if (index !== 0) {
@@ -39,6 +40,7 @@ export function wrappedLines(text: string, columns: number): string[] {
       }
 
       const characters = [...word]
+
       let visible = cellWidth(rows[rows.length - 1] ?? '')
 
       for (const [at, character] of characters.entries()) {

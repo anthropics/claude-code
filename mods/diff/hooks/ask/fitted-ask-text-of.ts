@@ -17,6 +17,7 @@ export function fittedAskTextOf(
   }
 
   const kept: string[] = []
+
   let used = ASK_CUT_NOTE.length
 
   for (const line of text.split('\n')) {

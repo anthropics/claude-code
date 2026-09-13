@@ -1,4 +1,4 @@
-import type { Args, On, SessionAuthorization } from 'claude-code'
+import type { Args, HttpResponse, On, SessionAuthorization } from 'claude-code'
 
 import { ACCEPTED } from './accepted.js'
 import { BEARER } from './bearer.js'
@@ -9,11 +9,13 @@ import { BEARER } from './bearer.js'
  *
  * @param on the test's `on`
  * @param authorization the credential the session holds
+ * @param answer what the ingest answers each post; accepted by default
  * @returns each post, as it was made
  */
 export function firstPartySession(
   on: On,
   authorization: SessionAuthorization = BEARER,
+  answer: HttpResponse = ACCEPTED,
 ) {
   const posts: Args<'http.fetch'>[] = []
 
@@ -24,7 +26,7 @@ export function firstPartySession(
   on('http.fetch', ($, e) => {
     posts.push(e)
 
-    return { value: ACCEPTED }
+    return { value: answer }
   })
 
   return posts
