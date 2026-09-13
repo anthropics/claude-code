@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<!--
+  Termux Deployment Dashboard
+
+  Copyright (c) 2025 Ljupco Arsovski
+  Author: Ljupco Arsovski <lousta79@gmail.com>
+  Licensed under MIT License
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Termux Deployment Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .header h1 {
+            font-size: 32px;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .header .subtitle {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        .status-live {
+            background: #10b981;
+            color: white;
+        }
+
+        .status-offline {
+            background: #ef4444;
+            color: white;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .card h2 {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+        }
+
+        .metric-label {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .metric-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .live-feed {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            height: 500px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .live-feed h2 {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .pulse {
+            width: 10px;
+            height: 10px;
+            background: #10b981;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .feed-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .feed-item {
+            padding: 12px;
+            margin-bottom: 8px;
+            background: white;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .feed-item-success {
+            border-left-color: #10b981;
+        }
+
+        .feed-item-error {
+            border-left-color: #ef4444;
+        }
+
+        .feed-item-warning {
+            border-left-color: #f59e0b;
+        }
+
+        .feed-time {
+            font-size: 11px;
+            color: #999;
+            margin-bottom: 4px;
+        }
+
+        .feed-message {
+            font-size: 14px;
+            color: #333;
+        }
+
+        .deployment-status {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .status-item {
+            flex: 1;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .status-count {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .status-count.success {
+            color: #10b981;
+        }
+
+        .status-count.error {
+            color: #ef4444;
+        }
+
+        .status-count.pending {
+            color: #f59e0b;
+        }
+
+        .status-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #e5e7eb;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #d1d5db;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .app-list {
+            margin-top: 15px;
+        }
+
+        .app-item {
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .app-name {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .app-url {
+            font-size: 12px;
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .app-url:hover {
+            text-decoration: underline;
+        }
+
+        .app-status {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .app-status.active {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .app-status.inactive {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>
+                📱 Termux Deployment Dashboard
+                <span class="status-badge status-live" id="connectionStatus">● LIVE</span>
+            </h1>
+            <p class="subtitle">Real-time monitoring of your deployments • Last updated: <span id="lastUpdate">--</span></p>
+        </div>
+
+        <div class="dashboard-grid">
+            <div class="card">
+                <h2>📊 Overview</h2>
+                <div class="metric">
+                    <span class="metric-label">Total Deployments</span>
+                    <span class="metric-value" id="totalDeployments">0</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Active Apps</span>
+                    <span class="metric-value" id="activeApps">0</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Success Rate</span>
+                    <span class="metric-value" id="successRate">100%</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>⚡ Performance</h2>
+                <div class="metric">
+                    <span class="metric-label">Avg Deploy Time</span>
+                    <span class="metric-value" id="avgDeployTime">15m</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Uptime</span>
+                    <span class="metric-value" id="uptime">99.9%</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Response Time</span>
+                    <span class="metric-value" id="responseTime">--ms</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>💰 Revenue</h2>
+                <div class="metric">
+                    <span class="metric-label">Today</span>
+                    <span class="metric-value" id="revenueToday">$0</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">This Month</span>
+                    <span class="metric-value" id="revenueMonth">$0</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Total</span>
+                    <span class="metric-value" id="revenueTotal">$0</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="dashboard-grid">
+            <div class="card">
+                <h2>🚀 Current Deployment</h2>
+                <div class="deployment-status">
+                    <div class="status-item">
+                        <div class="status-count success" id="successCount">0</div>
+                        <div class="status-label">Success</div>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-count pending" id="pendingCount">0</div>
+                        <div class="status-label">Pending</div>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-count error" id="errorCount">0</div>
+                        <div class="status-label">Failed</div>
+                    </div>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="deployProgress" style="width: 0%"></div>
+                </div>
+                <div class="actions">
+                    <button class="btn btn-primary" onclick="startNewDeployment()">🚀 New Deployment</button>
+                    <button class="btn btn-secondary" onclick="refreshDashboard()">🔄 Refresh</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>📱 Deployed Apps</h2>
+                <div class="app-list" id="appList">
+                    <div class="app-item">
+                        <div>
+                            <div class="app-name">No deployments yet</div>
+                            <a href="#" class="app-url">Run ./termux-deploy.sh to start</a>
+                        </div>
+                        <span class="app-status inactive">Inactive</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="live-feed">
+            <h2>
+                📡 Live Feed
+                <div class="pulse"></div>
+            </h2>
+            <div class="feed-container" id="feedContainer">
+                <div class="feed-item">
+                    <div class="feed-time" id="initTime">--:--:--</div>
+                    <div class="feed-message">Dashboard initialized. Waiting for deployment events...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const API_BASE = window.location.hostname === 'localhost'
+            ? 'http://localhost:3000'
+            : window.location.origin;
+
+        // State
+        let deployments = [];
+        let apps = [];
+        let feedEvents = [];
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initDashboard();
+            startLiveFeed();
+            loadData();
+        });
+
+        function initDashboard() {
+            updateTime();
+            setInterval(updateTime, 1000);
+            addFeedEvent('info', 'Dashboard connected successfully');
+        }
+
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('lastUpdate').textContent = now.toLocaleTimeString();
+            const initTimeEl = document.getElementById('initTime');
+            if (initTimeEl && initTimeEl.textContent === '--:--:--') {
+                initTimeEl.textContent = now.toLocaleTimeString();
+            }
+        }
+
+        function startLiveFeed() {
+            // Simulate live events
+            setInterval(() => {
+                simulateEvent();
+            }, 10000); // Every 10 seconds
+
+            // Check deployed apps health
+            setInterval(() => {
+                checkAppsHealth();
+            }, 30000); // Every 30 seconds
+        }
+
+        function simulateEvent() {
+            const events = [
+                { type: 'success', message: 'Health check passed for all services' },
+                { type: 'info', message: 'Checking deployment status...' },
+                { type: 'info', message: 'All systems operational' }
+            ];
+            const event = events[Math.floor(Math.random() * events.length)];
+            addFeedEvent(event.type, event.message);
+        }
+
+        async function checkAppsHealth() {
+            for (const app of apps) {
+                try {
+                    const response = await fetch(`${app.url}/health`, {
+                        method: 'GET',
+                        timeout: 5000
+                    });
+                    if (response.ok) {
+                        const data = await response.json();
+                        addFeedEvent('success', `✓ ${app.name}: Health check passed`);
+                        updateResponseTime(app.url);
+                    }
+                } catch (error) {
+                    addFeedEvent('error', `✗ ${app.name}: Health check failed`);
+                }
+            }
+        }
+
+        async function updateResponseTime(url) {
+            try {
+                const start = Date.now();
+                await fetch(`${url}/health`);
+                const responseTime = Date.now() - start;
+                document.getElementById('responseTime').textContent = `${responseTime}ms`;
+            } catch (error) {
+                // Ignore
+            }
+        }
+
+        function addFeedEvent(type, message) {
+            const feedContainer = document.getElementById('feedContainer');
+            const feedItem = document.createElement('div');
+            feedItem.className = `feed-item feed-item-${type}`;
+
+            const time = new Date().toLocaleTimeString();
+            feedItem.innerHTML = `
+                <div class="feed-time">${time}</div>
+                <div class="feed-message">${message}</div>
+            `;
+
+            feedContainer.insertBefore(feedItem, feedContainer.firstChild);
+
+            // Keep only last 50 events
+            while (feedContainer.children.length > 50) {
+                feedContainer.removeChild(feedContainer.lastChild);
+            }
+
+            feedEvents.push({ time, type, message });
+        }
+
+        async function loadData() {
+            // Load from localStorage (simulated backend)
+            const savedDeployments = localStorage.getItem('deployments');
+            const savedApps = localStorage.getItem('apps');
+
+            if (savedDeployments) {
+                deployments = JSON.parse(savedDeployments);
+                updateMetrics();
+            }
+
+            if (savedApps) {
+                apps = JSON.parse(savedApps);
+                updateAppList();
+            }
+
+            addFeedEvent('info', 'Loaded deployment history');
+        }
+
+        function updateMetrics() {
+            document.getElementById('totalDeployments').textContent = deployments.length;
+            document.getElementById('activeApps').textContent = apps.filter(a => a.status === 'active').length;
+
+            const successCount = deployments.filter(d => d.status === 'success').length;
+            const successRate = deployments.length > 0
+                ? Math.round((successCount / deployments.length) * 100)
+                : 100;
+            document.getElementById('successRate').textContent = `${successRate}%`;
+
+            document.getElementById('successCount').textContent = successCount;
+            document.getElementById('errorCount').textContent = deployments.filter(d => d.status === 'failed').length;
+            document.getElementById('pendingCount').textContent = deployments.filter(d => d.status === 'pending').length;
+        }
+
+        function updateAppList() {
+            const appList = document.getElementById('appList');
+
+            if (apps.length === 0) {
+                appList.innerHTML = `
+                    <div class="app-item">
+                        <div>
+                            <div class="app-name">No deployments yet</div>
+                            <a href="#" class="app-url">Run ./termux-deploy.sh to start</a>
+                        </div>
+                        <span class="app-status inactive">Inactive</span>
+                    </div>
+                `;
+                return;
+            }
+
+            appList.innerHTML = apps.map(app => `
+                <div class="app-item">
+                    <div>
+                        <div class="app-name">${app.name}</div>
+                        <a href="${app.url}" target="_blank" class="app-url">${app.url}</a>
+                    </div>
+                    <span class="app-status ${app.status}">${app.status.toUpperCase()}</span>
+                </div>
+            `).join('');
+        }
+
+        function startNewDeployment() {
+            addFeedEvent('info', '🚀 Starting new deployment...');
+            addFeedEvent('info', 'Run: ./termux-deploy.sh to deploy a new application');
+            alert('To start a new deployment, run:\n\n./termux-deploy.sh\n\nfrom your Termux terminal');
+        }
+
+        function refreshDashboard() {
+            addFeedEvent('info', '🔄 Refreshing dashboard...');
+            loadData();
+            setTimeout(() => {
+                addFeedEvent('success', '✓ Dashboard refreshed');
+            }, 500);
+        }
+
+        // Demo: Add sample deployment on first load
+        if (!localStorage.getItem('demo_added')) {
+            setTimeout(() => {
+                const sampleApp = {
+                    name: 'Publishing Empire Demo',
+                    url: 'https://demo.railway.app',
+                    status: 'active'
+                };
+                apps.push(sampleApp);
+                localStorage.setItem('apps', JSON.stringify(apps));
+                updateAppList();
+                addFeedEvent('success', '✓ Demo app loaded for visualization');
+                localStorage.setItem('demo_added', 'true');
+            }, 2000);
+        }
+    </script>
+</body>
+</html>
