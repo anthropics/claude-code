@@ -1,0 +1,16 @@
+{
+  "description": "Prunes oversized task .output files and stale cwd tracking files from /tmp on session start",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/cleanup-tmp.mjs\"",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}
