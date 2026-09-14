@@ -219,7 +219,7 @@ hooks/
     "matcher": "Write|Edit",
     "hooks": [{
       "type": "command",
-      "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/validate.sh",
+      "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/validate.sh\"",
       "timeout": 30
     }]
   }]
@@ -261,7 +261,7 @@ Use `${CLAUDE_PLUGIN_ROOT}` environment variable for all intra-plugin path refer
 
 ```json
 {
-  "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/run.sh"
+  "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run.sh\""
 }
 ```
 
@@ -285,7 +285,7 @@ Use `${CLAUDE_PLUGIN_ROOT}` environment variable for all intra-plugin path refer
 
 **In manifest JSON fields** (hooks, MCP servers):
 ```json
-"command": "${CLAUDE_PLUGIN_ROOT}/scripts/tool.sh"
+"command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/tool.sh\""
 ```
 
 **In component files** (commands, agents, skills):
