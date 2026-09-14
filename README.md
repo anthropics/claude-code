@@ -43,7 +43,7 @@ For more installation options, uninstall steps, and troubleshooting, see the [se
     npm install -g @anthropic-ai/claude-code
     ```
 
-2. Navigate to your project directory and run `claude`.
+2. Navigate to your project directory and run `claude` to open claude code.
 
 ## Plugins
 
