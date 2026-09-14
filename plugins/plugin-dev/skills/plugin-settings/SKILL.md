@@ -64,7 +64,7 @@ Contact @team-lead with questions.
 **Pattern: Check existence and parse frontmatter**
 
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
 
 # Define state file path
@@ -177,7 +177,7 @@ BODY=$(awk '/^---$/{i++; next} i>=2' "$FILE")
 Use settings file to control hook activation:
 
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 STATE_FILE=".claude/security-scan.local.md"
 
 # Quick exit if not configured
