@@ -45,6 +45,21 @@ For more installation options, uninstall steps, and troubleshooting, see the [se
 
 2. Navigate to your project directory and run `claude`.
 
+## Instruction Files
+
+Claude Code can load instructions from multiple locations. More specific
+locations take precedence over broader locations. From broadest to most
+specific:
+
+1. Managed policy instructions for all users and projects
+2. User instructions in `~/.claude/CLAUDE.md`
+3. Project instructions in `CLAUDE.md`
+4. Local project instructions that apply only to you
+
+Use user instructions for preferences that should apply across your projects,
+and project instructions for rules that should override those preferences in a
+specific repository.
+
 ## Plugins
 
 This repository includes several Claude Code plugins that extend functionality with custom commands and agents. See the [plugins directory](./plugins/README.md) for detailed documentation on available plugins.
