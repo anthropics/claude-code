@@ -1,0 +1,41 @@
+[package]
+name = "claude-ide"
+version = "0.1.0"
+edition = "2021"
+authors = ["Claude Code Contributors"]
+description = "IDE features - symbol search, completions, diagnostics"
+
+[dependencies]
+# Core
+claude-core = { path = "../claude-core" }
+
+# Async
+tokio = { workspace = true }
+
+# Tree-sitter for parsing
+tree-sitter = "0.22"
+tree-sitter-rust = "0.21"
+tree-sitter-javascript = "0.21"
+tree-sitter-typescript = "0.21"
+tree-sitter-python = "0.21"
+tree-sitter-go = "0.21"
+tree-sitter-java = "0.21"
+tree-sitter-cpp = "0.22"
+tree-sitter-c = "0.21"
+tree-sitter-ruby = "0.21"
+
+# LSP types
+lsp-types = "0.95"
+
+# Regex for symbol search
+regex = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+
+# Error handling
+thiserror = { workspace = true }
+
+# Tracing
+tracing = { workspace = true }
+
