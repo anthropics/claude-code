@@ -1,4 +1,4 @@
-import type { Args } from 'claude-code'
+import type { Args, ResultOf } from 'claude-code'
 import { describe, expect, mock, test, tier } from 'claude-code/testing'
 
 import Limits from '../hooks/limits'
@@ -346,6 +346,42 @@ describe('register', () => {
     await world.clock.advance(Fixtures.SETTLE_MS)
 
     expect(world.opened.map(pane => pane.id)).toEqual(['diff'])
+  })
+
+  test('an edit that failed or was refused opens nothing', async ($, on) => {
+    const world = Fixtures.inRepository(on)
+
+    const answers: ResultOf['tool.call'][] = [
+      { isError: true, result: 'no such text' },
+      { deny: 'not allowed' },
+    ]
+
+    const edit = () =>
+      $.tool.call({
+        tool: 'Edit',
+        file_path: '/work/app.ts',
+        old_string: '1',
+        new_string: '2',
+      })
+
+    on('tool.call', () => answers.shift() ?? { result: 'edited' })
+
+    await $.session.start(Fixtures.SESSION)
+    await $.ui.render(Fixtures.HINT)
+    await edit()
+    await edit()
+    await world.clock.advance(Fixtures.SETTLE_MS)
+
+    expect(world.opened, 'neither edit landed').toEqual([])
+    expect(world.runs, 'so nothing asked after the repository').toEqual([])
+
+    await edit()
+    await world.clock.advance(Fixtures.SETTLE_MS)
+
+    expect(
+      world.opened.map(pane => pane.id),
+      'the third did',
+    ).toEqual(['diff'])
   })
 
   test('/clear closes the pane it finds open', async ($, on) => {

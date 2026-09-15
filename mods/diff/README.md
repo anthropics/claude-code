@@ -46,7 +46,7 @@ one `git rev-parse`, in the directory the session started in, when `/diff`
 or the first edit a pane has room to open on first needs the repository
 (an answer of no repository is kept too, until `/clear` or `/resume`
 forgets it); and the working tree is read only by a fetch for a pane that
-is open, after an edit or a shell command that was not refused. The one
+is open, after an edit that landed or a shell command that ran. The one
 read the built-in has no counterpart for is a `git status` at a pane's
 first fetch, which stands in for the change time the built-in dates a
 moved file by.
@@ -65,8 +65,8 @@ moved file by.
 | `ui.scroll` of the pane | Docked, moves the hunks under the pinned header and list (three rows a wheel tick, a page a page key), or the list when the wheel is over it, and keeps the engine's window still. |
 | `ui.focus` in the pane | In the dialog's list, selects the file the ring lands on, re-centres the five rows on it, and lands the ring where that row now sits. |
 | `command.run` of `clear`, `resume` | Closes the pane and forgets the session's state, the pinned repository with it. |
-| `tool.call` of `Edit`, `Write`, `NotebookEdit` | After an edit that was not refused, refreshes an open pane; the session's first successful edit opens it, pinning the repository then if the terminal has the room. |
-| `tool.call` of `Bash`, `PowerShell` | After a command that was not refused, refreshes an open pane. |
+| `tool.call` of `Edit`, `Write`, `NotebookEdit` | After an edit that landed (not refused, not failed), refreshes an open pane; the session's first such edit opens it, pinning the repository then if the terminal has the room. |
+| `tool.call` of `Bash`, `PowerShell` | After a command that was not refused, failed and interrupted ones too, refreshes an open pane. |
 | `prompt.submit` | Adds the armed file's hunks to the prompt's context and disarms. |
 
 ## What it calls on `$`

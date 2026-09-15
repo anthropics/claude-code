@@ -1,4 +1,10 @@
-import type { On, PaneOpenArgs, SessionMessage, Timer } from 'claude-code'
+import type {
+  On,
+  PaneOpenArgs,
+  ResultOf,
+  SessionMessage,
+  Timer,
+} from 'claude-code'
 
 import Ask from './ask'
 import Backend from './backend'
@@ -50,7 +56,7 @@ export function register(on: On) {
   const bodyLoads = new Map<string, Promise<Git.FileHunks | null>>()
 
   const polled = { toplevel: '', headKey: '' }
-  const pin = { cwd: '', isEmpty: false }
+  const pin = { cwd: '', isEmpty: false, epoch: 0 }
 
   let model: PaneState.PaneModel = PaneState.INITIAL_MODEL
 
@@ -108,6 +114,7 @@ export function register(on: On) {
   async function probeBackend(engine: Host): Promise<boolean> {
     const asked = { isAnswered: true }
     const probeHost = backendHostOf(engine)
+    const { epoch } = pin
 
     const probed = await Backend.backendOf(
       {
@@ -122,6 +129,10 @@ export function register(on: On) {
       },
       Backend.INSTALLED_BACKEND_PROBES,
     )
+
+    if (epoch !== pin.epoch) {
+      return false
+    }
 
     backend ??= probed
     pin.isEmpty = backend === null && asked.isAnswered
@@ -151,6 +162,7 @@ export function register(on: On) {
   function unpin() {
     backend = null
     pin.isEmpty = false
+    pin.epoch += 1
     polled.toplevel = ''
     polled.headKey = ''
     timers.get('poll')?.cancel()
@@ -796,25 +808,47 @@ export function register(on: On) {
     return result
   })
 
+  function afterTool(
+    engine: Host,
+    tool: string,
+    result: ResultOf['tool.call'] | undefined,
+  ) {
+    const isEdit = Tools.EDITING_TOOLS.some(name => name === tool)
+
+    const hasEdited =
+      isEdit &&
+      result !== undefined &&
+      result.deny === undefined &&
+      result.isError !== true
+
+    const isStale =
+      isPaneOpen &&
+      (isEdit ? hasEdited : result === undefined || result.deny === undefined)
+
+    if (isStale) {
+      scheduleRefresh(engine)
+    }
+
+    if (hasEdited) {
+      void openOnFirstEdit(engine).catch(() => undefined)
+    }
+  }
+
   on(
     'tool.call',
     { tool: [...Tools.EDITING_TOOLS, ...Tools.SHELL_TOOLS] },
     async ($, e, next) => {
-      const result = await next(e)
+      let result: ResultOf['tool.call'] | undefined
 
-      if (host && !('deny' in result)) {
-        if (isPaneOpen) {
-          scheduleRefresh(host)
-        }
+      try {
+        result = await next(e)
 
-        const isEdit = Tools.EDITING_TOOLS.some(name => name === e.tool)
-
-        if (isEdit) {
-          void openOnFirstEdit(host).catch(() => undefined)
+        return result
+      } finally {
+        if (host) {
+          afterTool(host, e.tool, result)
         }
       }
-
-      return result
     },
   )
 
