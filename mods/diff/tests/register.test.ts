@@ -8,7 +8,19 @@ import Fixtures from './fixtures'
 tier('builtin')
 
 describe('register', () => {
-  test('/diff at boot joins the boot probe, then asks again', async ($, on) => {
+  test('the start asks nothing of git and registers /diff', async ($, on) => {
+    const world = Fixtures.inRepository(on)
+
+    await $.session.start(Fixtures.SESSION)
+
+    expect(world.runs, "no git, as the built-in's start runs none").toEqual([])
+
+    expect(await $.command.run(Fixtures.DIFF), '/diff was registered').toEqual({
+      text: 'Diff panel shown',
+    })
+  })
+
+  test('/diff whose probe never answers probes once more', async ($, on) => {
     const probes: (readonly string[])[] = []
     const clock = Fixtures.startsSession(on)
 
@@ -24,24 +36,40 @@ describe('register', () => {
       return { value: Fixtures.NOT_A_REPOSITORY }
     })
 
-    const booting = $.session.start(Fixtures.SESSION)
-
-    await clock.settle()
+    await $.session.start(Fixtures.SESSION)
 
     const ran = $.command.run(Fixtures.DIFF)
 
     await clock.settle()
 
-    expect(probes, 'the boot probe, which /diff joined').toHaveLength(1)
+    expect(probes, "this /diff's probe, unanswered yet").toHaveLength(1)
 
     await clock.advance(Limits.GIT_TIMEOUT_MS)
-    await booting
 
     expect(await ran).toEqual({
       text: expect.stringContaining("isn't in a git repository"),
     })
 
-    expect(probes, 'then one more of its own').toHaveLength(2)
+    expect(probes, 'then one more, which answered').toHaveLength(2)
+  })
+
+  test('two /diff typed together probe the repository once', async ($, on) => {
+    const world = Fixtures.inRepository(on)
+
+    await $.session.start(Fixtures.SESSION)
+
+    const [first, second] = await Promise.all([
+      $.command.run(Fixtures.DIFF),
+      $.command.run(Fixtures.DIFF),
+    ])
+
+    const probes = world.runs.filter(run =>
+      run.argv.includes('--show-toplevel'),
+    )
+
+    expect(first.text).toMatch(/^Diff panel (shown|hidden)$/)
+    expect(second.text).toMatch(/^Diff panel (shown|hidden)$/)
+    expect(probes, 'the second joined the probe in flight').toHaveLength(1)
   })
 
   test('outside a repository /diff says so, opens nothing', async ($, on) => {
@@ -77,11 +105,19 @@ describe('register', () => {
 
   test('when the built-in holds /diff, the mod stands down', async ($, on) => {
     const logged: string[] = []
+    const runs: Args<'process.run'>[] = []
 
     mock.clock(on)
     on('session.start', ($, e) => ({ cwd: e.cwd }))
     on('command.register', () => ({ deny: Fixtures.BUILTIN_HOLDS }))
     on('command.run', () => ({ text: 'the built-in /diff ran' }))
+    on('tool.call', () => ({ result: 'edited' }))
+
+    on('process.run', ($, e) => {
+      runs.push(e)
+
+      return { value: Fixtures.gitIn(e.argv) }
+    })
 
     on('ui.log', ($, e) => {
       logged.push(e.text)
@@ -95,7 +131,15 @@ describe('register', () => {
       text: 'the built-in /diff ran',
     })
 
+    await $.tool.call({
+      tool: 'Edit',
+      file_path: '/work/app.ts',
+      old_string: '1',
+      new_string: '2',
+    })
+
     expect(logged).toEqual([])
+    expect(runs, 'idle: no git for /diff or the edit').toEqual([])
   })
 
   test('a refusal the built-in did not cause is said aloud', async ($, on) => {
@@ -127,9 +171,15 @@ describe('register', () => {
 
     await $.session.start(Fixtures.SESSION)
 
+    expect(world.runs, 'the start ran nothing').toEqual([])
+
     expect(await $.command.run(Fixtures.DIFF)).toEqual({
       text: 'Diff panel shown',
     })
+
+    expect(world.runs[0]?.argv, '/diff found the repository first').toContain(
+      '--show-toplevel',
+    )
 
     expect(world.opened).toEqual([
       { id: 'diff', title: 'Diff', holdToasts: true },
@@ -322,7 +372,11 @@ describe('register', () => {
     expect(before.text).toContain("isn't in a git repository")
     expect(after.text).toBe('Diff panel shown')
     expect(world.opened[0]?.id).toBe('diff')
-    expect(probes).toHaveLength(3)
+
+    expect(
+      probes,
+      'the first two /diff probed; the third was pinned',
+    ).toHaveLength(2)
 
     expect(
       world.runs.some(run => run.argv.includes('--git-dir=/else/.git')),
@@ -380,7 +434,7 @@ describe('register', () => {
     const probes = runs.filter(run => run.argv.includes('--show-toplevel'))
 
     expect(text).toContain("isn't in a git repository")
-    expect(probes, "the boot's, then this /diff's; no retry").toHaveLength(2)
+    expect(probes, "this /diff's alone; no retry").toHaveLength(1)
   })
 
   test('/diff on a narrow terminal: the resize line', async ($, on) => {

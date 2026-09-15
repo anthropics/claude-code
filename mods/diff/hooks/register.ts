@@ -29,9 +29,9 @@ import Views from './views'
  * Registers the diff pane: `/diff` once the built-in stands down, the
  * pane's drawing and refresh, its opening on Claude's first edit, the ask.
  *
- * `session.start` registers `/diff`, binds the host every pinned backend
- * reads through (currentOf: the latest start's, the engine only before
- * bind()), and pins the backend (backendOf), asked again on `/diff`.
+ * `session.start` registers `/diff` and binds the host (currentOf: the
+ * latest start's) and asks nothing of the repository; `/diff` or the
+ * first edit pins the backend (backendOf) when it first needs it.
  *
  * @param on the engine's registrar
  */
@@ -563,11 +563,7 @@ export function register(on: On) {
       if (!Names.BUILTIN_HOLDS_PATTERN.test(reason)) {
         engine.uiLog(Names.registerFailedTextOf(Views.sanitizeName(reason)))
       }
-
-      return
     }
-
-    await pinBackend(engine)
   }
 
   on('session.start', async ($, e, next) => {

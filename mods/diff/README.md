@@ -47,7 +47,7 @@ asked for; a rename lists as git prints it. Outside a git repository
 
 | event | what the hook does |
 | --- | --- |
-| `session.start` | Binds the engine once, registers `/diff` (a session where another `/diff` is listed leaves the plugin idle), and pins the repository. |
+| `session.start` | Binds the engine once and registers `/diff` (a session where another `/diff` is listed leaves the plugin idle); asks nothing of the repository, which `/diff` or the first edit pins when it comes. |
 | `ui.render` of `PromptHint` | Reads the terminal's width, which decides whether the first edit opens the pane. |
 | `ui.render` of `Pane` | Draws the pane: docked, the header, base line, source picker, file list and toggles over the window of hunks; inline, the dialog. |
 | `command.run` of `diff` | Opens or closes the pane (focused and closing on Escape without the fullscreen layout), says which, and remembers the choice. |
