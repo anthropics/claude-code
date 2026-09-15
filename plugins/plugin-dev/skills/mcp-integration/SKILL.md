@@ -238,6 +238,9 @@ allowed-tools: ["mcp__plugin_asana_asana__*"]
 **Viewing servers:**
 Use `/mcp` command to see all servers including plugin-provided ones.
 
+**Deduplication:**
+If a plugin provides an MCP server with the same command or URL as a manually-configured server, the plugin's server is automatically skipped. This prevents duplicate connections and redundant tool sets. Suppressed plugin servers are listed in the `/plugin` menu.
+
 ## Authentication Patterns
 
 ### OAuth (SSE/HTTP)
