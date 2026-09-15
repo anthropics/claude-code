@@ -2,6 +2,138 @@
 
 This reference covers advanced hook patterns and techniques for sophisticated automation workflows.
 
+## Agent-Aware Hook Patterns
+
+Claude Code populates two agent-context fields in every hook input payload to help identify the originator:
+
+| Field | Type | Description |
+|---|---|---|
+| `agent_id` | string | Unique identifier for the subagent; omitted or empty for the main agent |
+| `agent_type` | string | The type/name of the agent (e.g., `git-expert`, `code-reviewer`) |
+
+These fields are available on **all** hook events (PreToolUse, PostToolUse, Stop, UserPromptSubmit, SessionStart, etc.).
+
+### Example: Targeted Denial Messages (Bash)
+
+When denying a Bash call and redirecting to an MCP resource, main agents and subagents need different instructions. Duplicating both in every message is noisy:
+
+```bash
+#!/bin/bash
+# agent-aware-denial.sh
+set -euo pipefail
+
+input=$(cat)
+agent_id=$(echo "$input" | jq -r '.agent_id // ""')
+agent_type=$(echo "$input" | jq -r '.agent_type // ""')
+tool_name=$(echo "$input" | jq -r '.tool_name // ""')
+
+# Only intercept Bash tool
+if [ "$tool_name" != "Bash" ]; then
+  exit 0
+fi
+
+command=$(echo "$input" | jq -r '.tool_input.command // ""')
+
+# Block access to sensitive script
+if [[ "$command" == *"internal-policy.sh"* ]]; then
+  if [ -n "$agent_id" ]; then
+    # Subagents cannot use ReadMcpResourceTool directly
+    msg="[Subagent: ${agent_type:-unknown}] Access denied. "
+    msg+="Use the 'resource-read' wrapper tool: resource-read(uri='policy://internal-policy')"
+  else
+    # Main agent has direct MCP access
+    msg="Access denied. Read the policy directly via: ReadMcpResourceTool(uri='policy://internal-policy')"
+  fi
+
+  echo "$msg" >&2
+  exit 2
+fi
+
+exit 0
+```
+
+### Example: Agent-Specific Security Policy (Python)
+
+Apply stricter rules when the main agent runs code, and looser rules for a trusted subagent:
+
+```python
+#!/usr/bin/env python3
+"""Agent-aware bash security policy hook."""
+import json
+import sys
+
+# Trusted subagents that have broader Bash permissions
+TRUSTED_AGENTS = {"code-reviewer", "test-runner"}
+# Commands always blocked for everyone
+ALWAYS_BLOCKED = ["rm -rf /", "dd if=/dev/zero"]
+
+def main():
+    try:
+        data = json.load(sys.stdin)
+    except json.JSONDecodeError:
+        sys.exit(0)
+
+    if data.get("tool_name") != "Bash":
+        sys.exit(0)
+
+    command = data.get("tool_input", {}).get("command", "")
+    agent_id = data.get("agent_id")
+    agent_type = data.get("agent_type", "")
+    is_subagent = bool(agent_id)
+
+    # Always-blocked commands
+    for blocked in ALWAYS_BLOCKED:
+        if blocked in command:
+            print(f"Blocked: '{blocked}' is prohibited for all agents.", file=sys.stderr)
+            sys.exit(2)
+
+    # Main agent: block git push (must go through code-reviewer agent)
+    if not is_subagent and command.startswith("git push"):
+        print(
+            "Direct 'git push' is not allowed from the main agent. "
+            "Delegate to the @code-reviewer subagent.",
+            file=sys.stderr,
+        )
+        sys.exit(2)
+
+    # Untrusted subagent: block git operations entirely
+    if is_subagent and agent_type not in TRUSTED_AGENTS and command.startswith("git"):
+        print(
+            f"Subagent '{agent_type}' is not authorized "
+            f"to run git commands. Only {TRUSTED_AGENTS} may do so.",
+            file=sys.stderr,
+        )
+        sys.exit(2)
+
+    sys.exit(0)
+
+if __name__ == "__main__":
+    main()
+```
+
+### Example: Audit Logging with Agent Context
+
+Log all tool calls with full agent provenance:
+
+```bash
+#!/bin/bash
+input=$(cat)
+tool_name=$(echo "$input"   | jq -r '.tool_name // "unknown"')
+agent_id=$(echo "$input" | jq -r '.agent_id // ""')
+agent_type=$(echo "$input" | jq -r '.agent_type // "main"')
+session_id=$(echo "$input"  | jq -r '.session_id // ""')
+timestamp=$(date -Iseconds)
+
+echo "$timestamp | session=$session_id | agent=$agent_type | subagent_id=$agent_id | tool=$tool_name" \
+  >> ~/.claude/audit.log
+
+exit 0
+```
+
+**Use for:** Security auditing, compliance logging, and debugging multi-agent workflows.
+
+---
+
 ## Multi-Stage Validation
 
 Combine command and prompt hooks for layered validation:
