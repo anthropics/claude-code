@@ -1,0 +1,13 @@
+{
+  "name": "wmux-orchestrator",
+  "description": "Multi-agent task orchestration with visual terminal panes. Decomposes complex dev tasks into parallel Claude Code instances coordinated through dependency-aware waves.",
+  "version": "0.1.0",
+  "author": {
+    "name": "amirlehmam",
+    "email": "amir@wmux.org"
+  },
+  "homepage": "https://wmux.org",
+  "repository": "https://github.com/amirlehmam/wmux",
+  "license": "MIT",
+  "keywords": ["orchestration", "multi-agent", "parallel", "terminal", "wmux"]
+}
