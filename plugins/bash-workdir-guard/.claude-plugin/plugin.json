@@ -1,0 +1,9 @@
+{
+  "name": "bash-workdir-guard",
+  "description": "Warns when Bash commands navigate outside the project workspace boundary, suggesting safer alternatives like `git -C` or `make -C`.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Rush"
+  },
+  "license": "MIT"
+}
