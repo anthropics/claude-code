@@ -20,7 +20,12 @@ describe('git', () => {
     const diffs = pinned.filter(run => run.argv.includes('diff'))
 
     expect(discovery?.argv).toContain('--show-toplevel')
-    expect(discovery?.init?.cwd).toBeUndefined()
+
+    expect(
+      discovery?.init?.cwd,
+      "found where the session started, wherever Claude's shell has gone",
+    ).toBe('/main/wt')
+
     expect(diffs.length).toBeGreaterThanOrEqual(3)
 
     for (const run of world.runs) {
@@ -36,6 +41,34 @@ describe('git', () => {
     }
 
     expect(world.runs.some(run => run.argv.includes('config'))).toBe(false)
+  })
+
+  test('the working tree is walked once, by the first fetch', async ($, on) => {
+    const world = Fixtures.inRepository(on)
+
+    const walks = () =>
+      world.runs.filter(run => Fixtures.gitWordOf(run.argv) === 'status')
+
+    const fetches = () =>
+      world.runs.filter(
+        run => Fixtures.gitWordOf(run.argv) === 'diff --numstat',
+      )
+
+    on('tool.call', () => ({ result: 'ran' }))
+
+    await $.session.start(Fixtures.SESSION)
+    await $.command.run(Fixtures.DIFF)
+    await world.clock.advance(Fixtures.SETTLE_MS)
+
+    expect(walks(), 'the first fetch walked').toHaveLength(1)
+    expect(fetches()).toHaveLength(1)
+
+    await $.tool.call({ tool: 'Bash', command: 'make' })
+    await world.clock.advance(Fixtures.SETTLE_MS)
+
+    expect(fetches(), 'the command fetched again').toHaveLength(2)
+    expect(walks(), 'and read the walk it had').toHaveLength(1)
+    expect(walks()[0]?.init?.cwd, 'pinned like every child').toBe('/work')
   })
 
   test('a file moved in since the start is session work', async ($, on) => {

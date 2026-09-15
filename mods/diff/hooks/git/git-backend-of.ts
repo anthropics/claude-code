@@ -15,7 +15,7 @@ import type Types from './types'
  *
  * Each child runs with `--git-dir`, `--work-tree` and cwd the top, under
  * the C locale and the fetch's timeout (the built-in's execPinnedGit); the
- * paths dirty at the start are read once, first (Probes.dirtyPathsOf).
+ * first fetch reads the paths dirty then, once (Probes.dirtyPathsOf).
  *
  * @param host the bound host's runner and probes
  * @returns the backend, or null outside a git working tree
@@ -47,15 +47,16 @@ export async function gitBackendOf(
   }
 
   const run = runOf(repository)
-  const baseline = await Probes.dirtyPathsOf(run)
 
-  const depsOf = (): Types.GitDeps => ({
+  let baseline: Promise<ReadonlySet<string> | null> | null = null
+
+  const depsOf = (dirty: ReadonlySet<string> | null): Types.GitDeps => ({
     run,
     repository,
     mtimeOf: host.mtimeOf,
     entryKindsOf: host.entryKindsOf,
     sessionStartMs: host.sessionStartMsOf(),
-    baseline,
+    baseline: dirty,
     onBranchBase: host.onBranchBase,
   })
 
@@ -63,9 +64,16 @@ export async function gitBackendOf(
     repository,
     baseModes: GIT_BASE_MODES,
     words: GIT_WORDS,
-    fetchDiff: mode => fetchDiff(depsOf(), mode),
+    fetchDiff: async mode => {
+      baseline ??= Probes.dirtyPathsOf(run)
+
+      return fetchDiff(depsOf(await baseline), mode)
+    },
     fetchFileHunks: (data, file) => fetchFileHunks(run, data, file),
     headKeyOf: () =>
-      Probes.headKeyOf({ ...depsOf(), readFile: host.readFile }, repository),
+      Probes.headKeyOf(
+        { ...depsOf(null), readFile: host.readFile },
+        repository,
+      ),
   }
 }

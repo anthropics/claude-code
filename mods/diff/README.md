@@ -11,11 +11,11 @@ click puts that file's hunks at the top; the list also scrolls under the
 built-in's list keys (`ctrl+up`/`ctrl+down`, `opt+up`/`opt+down`), and
 `ctrl+x b` moves the comparison base on, as the built-in's chord does: both
 through Buttons that declare the engine's own actions. The pane refreshes
-as Claude edits, runs shell commands and finishes turns, and while it is
-open it polls the repository's HEAD so a commit or checkout made elsewhere
-shows too. The first successful edit of a session opens the pane by itself
-where the terminal is wide enough (144 columns when the person never chose,
-110 when they kept it open before; a person who closed it is left alone).
+as Claude edits and runs shell commands, and while it is open it polls
+the repository's HEAD so a commit or checkout made elsewhere shows too.
+The first successful edit of a session opens the pane by itself where the
+terminal is wide enough (144 columns when the person never chose, 110 when
+they kept it open before; a person who closed it is left alone).
 
 Under the fullscreen layout a terminal under 110 columns gets the
 built-in's line asking for a wider one and nothing opens. Without that
@@ -36,10 +36,20 @@ the default branch; the base line under the header names a base other than
 the session's, and the choice is kept per repository in the plugin's store.
 A picker shows one earlier turn's edits instead of the working tree, read
 from the session's messages. Files that changed before the session started
-(by their timestamp, among the paths already dirty at the start), and noise
-(lockfiles, generated and test files), are listed apart and folded until
-asked for; a rename lists as git prints it. Outside a git repository
-`/diff` says so and does nothing else.
+(by their timestamp, among the paths already dirty when the pane first
+read the repository), and noise (lockfiles, generated and test files), are
+listed apart and folded until asked for; a rename lists as git prints it.
+Outside a git repository `/diff` says so and does nothing else.
+
+Git runs when the built-in panel's would: nothing at the session's start;
+one `git rev-parse`, in the directory the session started in, when `/diff`
+or the first edit a pane has room to open on first needs the repository
+(an answer of no repository is kept too, until `/clear` or `/resume`
+forgets it); and the working tree is read only by a fetch for a pane that
+is open, after an edit or a shell command that was not refused. The one
+read the built-in has no counterpart for is a `git status` at a pane's
+first fetch, which stands in for the change time the built-in dates a
+moved file by.
 
 `hooks/register.ts` is the module; everything under `hooks/` is its parts.
 
@@ -50,14 +60,13 @@ asked for; a rename lists as git prints it. Outside a git repository
 | `session.start` | Binds the engine once and registers `/diff` (a session where another `/diff` is listed leaves the plugin idle); asks nothing of the repository, which `/diff` or the first edit pins when it comes. |
 | `ui.render` of `PromptHint` | Reads the terminal's width, which decides whether the first edit opens the pane. |
 | `ui.render` of `Pane` | Draws the pane: docked, the header, base line, source picker, file list and toggles over the window of hunks; inline, the dialog. |
-| `command.run` of `diff` | Opens or closes the pane (focused and closing on Escape without the fullscreen layout), says which, and remembers the choice. |
+| `command.run` of `diff` | Pins the repository when none is, opens or closes the pane (focused and closing on Escape without the fullscreen layout), says which, and remembers the choice. |
 | `ui.close` of the pane | Backs out of the dialog's detail view instead of closing; else remembers the person's close as `/diff`'s. |
 | `ui.scroll` of the pane | Docked, moves the hunks under the pinned header and list (three rows a wheel tick, a page a page key), or the list when the wheel is over it, and keeps the engine's window still. |
 | `ui.focus` in the pane | In the dialog's list, selects the file the ring lands on, re-centres the five rows on it, and lands the ring where that row now sits. |
-| `command.run` of `clear`, `resume` | Closes the pane and forgets the session's state. |
-| `tool.call` of `Edit`, `Write`, `NotebookEdit` | After the edit, refreshes an open pane; the session's first successful edit opens it. |
-| `tool.call` of `Bash`, `PowerShell` | After the command, refreshes an open pane. |
-| `turn.complete` | Refreshes an open pane. |
+| `command.run` of `clear`, `resume` | Closes the pane and forgets the session's state, the pinned repository with it. |
+| `tool.call` of `Edit`, `Write`, `NotebookEdit` | After an edit that was not refused, refreshes an open pane; the session's first successful edit opens it, pinning the repository then if the terminal has the room. |
+| `tool.call` of `Bash`, `PowerShell` | After a command that was not refused, refreshes an open pane. |
 | `prompt.submit` | Adds the armed file's hunks to the prompt's context and disarms. |
 
 ## What it calls on `$`

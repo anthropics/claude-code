@@ -1,10 +1,4 @@
-import type {
-  On,
-  PaneOpenArgs,
-  ResultOf,
-  SessionMessage,
-  Timer,
-} from 'claude-code'
+import type { On, PaneOpenArgs, SessionMessage, Timer } from 'claude-code'
 
 import Ask from './ask'
 import Backend from './backend'
@@ -29,9 +23,9 @@ import Views from './views'
  * Registers the diff pane: `/diff` once the built-in stands down, the
  * pane's drawing and refresh, its opening on Claude's first edit, the ask.
  *
- * `session.start` registers `/diff` and binds the host (currentOf: the
- * latest start's) and asks nothing of the repository; `/diff` or the
- * first edit pins the backend (backendOf) when it first needs it.
+ * Git runs when the built-in's would: `session.start` binds the host and
+ * registers `/diff`; `/diff` or the first edit with room pins the backend
+ * where the session started, until `/clear`; an open pane alone fetches.
  *
  * @param on the engine's registrar
  */
@@ -56,6 +50,7 @@ export function register(on: On) {
   const bodyLoads = new Map<string, Promise<Git.FileHunks | null>>()
 
   const polled = { toplevel: '', headKey: '' }
+  const pin = { cwd: '', isEmpty: false }
 
   let model: PaneState.PaneModel = PaneState.INITIAL_MODEL
 
@@ -65,7 +60,11 @@ export function register(on: On) {
   const currentOf = (engine: Host): Host => host ?? engine
 
   const backendHostOf = (engine: Host): Backend.BackendHost => ({
-    run: (argv, init) => currentOf(engine).run(argv, init),
+    run: (argv, init) =>
+      currentOf(engine).run(
+        argv,
+        pin.cwd === '' ? init : { cwd: pin.cwd, ...init },
+      ),
     readFile: path => currentOf(engine).readFile(path),
     mtimeOf: path => mtimeOf(currentOf(engine))(path),
     entryKindsOf: dir => entryKindsOf(currentOf(engine))(dir),
@@ -95,7 +94,7 @@ export function register(on: On) {
   })
 
   function pinBackend(engine: Host): Promise<boolean> {
-    if (backend) {
+    if (backend || pin.isEmpty) {
       return Promise.resolve(true)
     }
 
@@ -125,6 +124,7 @@ export function register(on: On) {
     )
 
     backend ??= probed
+    pin.isEmpty = backend === null && asked.isAnswered
 
     if (!probed || backend !== probed) {
       return asked.isAnswered || backend !== null
@@ -146,6 +146,15 @@ export function register(on: On) {
     }
 
     return true
+  }
+
+  function unpin() {
+    backend = null
+    pin.isEmpty = false
+    polled.toplevel = ''
+    polled.headKey = ''
+    timers.get('poll')?.cancel()
+    timers.delete('poll')
   }
 
   function dialogPane(): PaneOpenArgs {
@@ -423,23 +432,25 @@ export function register(on: On) {
     }
 
     const preference = await engine.storeGet(Names.STORE_OPEN_KEY)
-
-    await pinBackend(engine)
-
     const isKeptOpen = preference === true
 
     const floor = isKeptOpen
       ? Limits.OPEN_MIN_COLUMNS
       : Limits.AUTO_OPEN_MIN_COLUMNS
 
-    const isEligible =
+    const hasRoom =
       preference !== false &&
       model.isFullscreen !== false &&
       columns !== null &&
-      columns >= floor &&
-      backend !== null
+      columns >= floor
 
-    if (!isEligible || isTaken()) {
+    if (!hasRoom || isTaken()) {
+      return
+    }
+
+    await pinBackend(engine)
+
+    if (!backend || isTaken()) {
       return
     }
 
@@ -551,8 +562,9 @@ export function register(on: On) {
     redraw(engine)
   }
 
-  async function bind(engine: Host): Promise<void> {
+  async function bind(engine: Host, cwd: string): Promise<void> {
     sessionStartMs = await engine.now()
+    pin.cwd = cwd
 
     try {
       await engine.registerCommand(COMMAND_SPEC)
@@ -567,27 +579,30 @@ export function register(on: On) {
   }
 
   on('session.start', async ($, e, next) => {
-    await bind({
-      now: () => $.clock.now(),
-      after: (ms, fn) => $.clock.after(ms, fn),
-      every: (ms, fn) => $.clock.every(ms, fn),
-      run: (argv, init) => $.process.run(argv, init),
-      stat: path => $.fs.stat(path),
-      listDir: path => $.fs.list(path),
-      readFile: path => $.fs.read(path),
-      storeGet: key => $.store.get(key),
-      storeSet: (key, value) => $.store.set(key, value),
-      messages: () => $.session.messages(),
-      invalidate: () => $.ui.invalidate('ui.render'),
-      status: text => $.ui.status(text),
-      uiLog: text => $.ui.log(text),
-      openPane: pane => $.ui.open(pane),
-      closePane: pane => $.ui.close(pane),
-      registerCommand: spec => $.command.register(spec),
-      sessionId: () => $.session.id(),
-      mark: entry => $.telemetry.mark(entry),
-      log: entry => $.telemetry.log(entry),
-    })
+    await bind(
+      {
+        now: () => $.clock.now(),
+        after: (ms, fn) => $.clock.after(ms, fn),
+        every: (ms, fn) => $.clock.every(ms, fn),
+        run: (argv, init) => $.process.run(argv, init),
+        stat: path => $.fs.stat(path),
+        listDir: path => $.fs.list(path),
+        readFile: path => $.fs.read(path),
+        storeGet: key => $.store.get(key),
+        storeSet: (key, value) => $.store.set(key, value),
+        messages: () => $.session.messages(),
+        invalidate: () => $.ui.invalidate('ui.render'),
+        status: text => $.ui.status(text),
+        uiLog: text => $.ui.log(text),
+        openPane: pane => $.ui.open(pane),
+        closePane: pane => $.ui.close(pane),
+        registerCommand: spec => $.command.register(spec),
+        sessionId: () => $.session.id(),
+        mark: entry => $.telemetry.mark(entry),
+        log: entry => $.telemetry.log(entry),
+      },
+      e.cwd,
+    )
 
     return next(e)
   })
@@ -769,6 +784,7 @@ export function register(on: On) {
         await closePane(host).catch(() => undefined)
       }
 
+      unpin()
       hasAutoOpened = false
       bodyStamp = null
       bodyBase = null
@@ -780,45 +796,27 @@ export function register(on: On) {
     return result
   })
 
-  on('tool.call', { tool: [...Tools.EDITING_TOOLS] }, async ($, e, next) => {
-    let result: ResultOf['tool.call'] | undefined
+  on(
+    'tool.call',
+    { tool: [...Tools.EDITING_TOOLS, ...Tools.SHELL_TOOLS] },
+    async ($, e, next) => {
+      const result = await next(e)
 
-    try {
-      result = await next(e)
-
-      return result
-    } finally {
-      if (host) {
+      if (host && !('deny' in result)) {
         if (isPaneOpen) {
           scheduleRefresh(host)
         }
 
-        const isEditDone = result !== undefined && !('deny' in result)
+        const isEdit = Tools.EDITING_TOOLS.some(name => name === e.tool)
 
-        if (isEditDone) {
+        if (isEdit) {
           void openOnFirstEdit(host).catch(() => undefined)
         }
       }
-    }
-  })
 
-  on('tool.call', { tool: [...Tools.SHELL_TOOLS] }, async ($, e, next) => {
-    try {
-      return await next(e)
-    } finally {
-      if (host && isPaneOpen) {
-        scheduleRefresh(host)
-      }
-    }
-  })
-
-  on('turn.complete', ($, e, next) => {
-    if (host && isPaneOpen) {
-      scheduleRefresh(host)
-    }
-
-    return next(e)
-  })
+      return result
+    },
+  )
 
   on('prompt.submit', async ($, e, next) => {
     const asked = armed

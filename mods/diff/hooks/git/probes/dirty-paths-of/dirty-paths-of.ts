@@ -7,9 +7,9 @@ import { STATUS_PATH_OFFSET } from './status-path-offset'
  * Every path dirty in the working tree right now, tracked changes and
  * untracked files alike, as `git status -z` lists them; null unread.
  *
- * Read once when the backend is pinned, so a fetch can tell a path that
- * was already dirty when the session began from one that turned up since
- * (GitDeps `baseline`). Renames are not paired: each side is its own path.
+ * Read once, by the backend's first fetch (it walks the whole tree), so a
+ * later fetch can tell a path that was dirty then from one that turned up
+ * since (GitDeps `baseline`). Renames unpaired: each side is its own path.
  *
  * @param run runs git against the pinned repository
  * @returns the paths, root-relative, or null on a failed or cut listing

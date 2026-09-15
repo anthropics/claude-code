@@ -20,6 +20,107 @@ describe('register', () => {
     })
   })
 
+  test("git runs at the built-in's moments and no others", async ($, on) => {
+    const world = Fixtures.inRepository(on)
+
+    let read = 0
+
+    function spawnedSince(): string[] {
+      const words = world.runs
+        .slice(read)
+        .map(run => Fixtures.gitWordOf(run.argv))
+        .filter(word => word !== Fixtures.POLL_WORD)
+
+      read = world.runs.length
+
+      return words
+    }
+
+    const edit = () =>
+      $.tool.call({
+        tool: 'Edit',
+        file_path: '/work/app.ts',
+        old_string: '1',
+        new_string: '2',
+      })
+
+    on('tool.call', () => ({ result: 'done' }))
+    on('turn.complete', ($, e) => ({ text: e.answer }))
+    on('command.run', { command: 'clear' }, () => ({}))
+
+    await $.session.start(Fixtures.SESSION)
+    await $.ui.render(Fixtures.hintAt(Limits.AUTO_OPEN_MIN_COLUMNS - 1))
+    await world.clock.advance(Fixtures.SETTLE_MS)
+
+    expect(spawnedSince(), 'the start and the footer: nothing').toEqual([])
+
+    await edit()
+    await world.clock.advance(Fixtures.SETTLE_MS)
+
+    expect(
+      spawnedSince(),
+      'an edit with no room for a pane: nothing, the width is read first',
+    ).toEqual([])
+
+    await $.command.run(Fixtures.DIFF)
+    await world.clock.advance(Fixtures.SETTLE_MS)
+
+    expect(spawnedSince(), '/diff: found, then one fetch for the pane').toEqual(
+      [
+        'rev-parse --show-toplevel',
+        'status',
+        'diff --shortstat',
+        'diff --numstat',
+        'ls-files',
+        'diff -- app.ts',
+      ],
+    )
+
+    await edit()
+    await world.clock.advance(Fixtures.SETTLE_MS)
+
+    expect(spawnedSince(), 'an edit, the pane open: one fetch').toEqual([
+      'diff --shortstat',
+      'diff --numstat',
+      'ls-files',
+      'diff -- app.ts',
+    ])
+
+    await $.tool.call({ tool: 'Bash', command: 'make' })
+    await world.clock.advance(Fixtures.SETTLE_MS)
+
+    expect(spawnedSince(), 'a shell command, the pane open: one fetch').toEqual(
+      ['diff --shortstat', 'diff --numstat', 'ls-files', 'diff -- app.ts'],
+    )
+
+    await $.turn.complete({
+      answer: 'done',
+      durationMs: 1,
+      isAborted: false,
+      turnId: 't1',
+      reason: 'answer',
+    })
+
+    await world.clock.advance(Fixtures.SETTLE_MS)
+
+    expect(spawnedSince(), "a turn's end: nothing").toEqual([])
+
+    await $.command.run(Fixtures.DIFF)
+    await edit()
+    await $.tool.call({ tool: 'Bash', command: 'make' })
+    await world.clock.advance(Fixtures.SETTLE_MS)
+
+    expect(spawnedSince(), 'the pane closed by hand: nothing').toEqual([])
+
+    await $.command.run(Fixtures.CLEAR)
+    await $.command.run(Fixtures.DIFF)
+    await world.clock.advance(Fixtures.SETTLE_MS)
+
+    expect(spawnedSince()[0], '/clear forgot the repository').toBe(
+      'rev-parse --show-toplevel',
+    )
+  })
+
   test('/diff whose probe never answers probes once more', async ($, on) => {
     const probes: (readonly string[])[] = []
     const clock = Fixtures.startsSession(on)
@@ -340,18 +441,28 @@ describe('register', () => {
     ).toContain('uncommitted (vs HEAD)')
   })
 
-  test('a repository made later is pinned once, on /diff', async ($, on) => {
+  test('no repository is an answer kept until /clear', async ($, on) => {
     const { 'rev-parse --path-format=absolute': worktree = '', ...notYet } =
       Fixtures.oneSecret()
 
     const script: Record<string, string> = notYet
     const world = Fixtures.inRepository(on, script)
 
+    const probesOf = () =>
+      world.runs.filter(run => run.argv.includes('--show-toplevel')).length
+
+    on('command.run', { command: 'clear' }, () => ({}))
+
     await $.session.start(Fixtures.WORKTREE_SESSION)
 
     const before = await $.command.run(Fixtures.DIFF)
 
     script['rev-parse --path-format=absolute'] = worktree
+
+    const again = await $.command.run(Fixtures.DIFF)
+    const probesKept = probesOf()
+
+    await $.command.run(Fixtures.CLEAR)
 
     const after = await $.command.run(Fixtures.DIFF)
 
@@ -365,18 +476,16 @@ describe('register', () => {
     await world.clock.advance(Fixtures.SETTLE_MS)
     await third
 
-    const probes = world.runs.filter(run =>
-      run.argv.includes('--show-toplevel'),
+    expect(before.text).toContain("isn't in a git repository")
+
+    expect(again.text, "kept, as the built-in's answer is").toContain(
+      "isn't in a git repository",
     )
 
-    expect(before.text).toContain("isn't in a git repository")
-    expect(after.text).toBe('Diff panel shown')
+    expect(probesKept, 'one probe answered both').toBe(1)
+    expect(after.text, '/clear forgot it').toBe('Diff panel shown')
     expect(world.opened[0]?.id).toBe('diff')
-
-    expect(
-      probes,
-      'the first two /diff probed; the third was pinned',
-    ).toHaveLength(2)
+    expect(probesOf(), 'then one more, pinned from there on').toBe(2)
 
     expect(
       world.runs.some(run => run.argv.includes('--git-dir=/else/.git')),
