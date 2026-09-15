@@ -2,7 +2,7 @@
 # Hook Linter
 # Checks hook scripts for common issues and best practices
 
-set -euo pipefail
+set -uo pipefail
 
 # Usage
 if [ $# -eq 0 ]; then
