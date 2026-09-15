@@ -145,6 +145,17 @@
       },
       "source": "./plugins/security-guidance",
       "category": "security"
+    },
+    {
+      "name": "swarm-orchestrator",
+      "description": "DAG-based multi-agent swarm orchestration on top of vanilla Teams: dependency-aware task graphs, role-specific subagents (Scanner/Reviewer/Builder/Merger), abort-marker contract, worktree GC, and an opt-in reviewer-checkpoint hook.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Kushal Jaligama",
+        "email": "kjaligusa@gmail.com"
+      },
+      "source": "./plugins/swarm-orchestrator",
+      "category": "productivity"
     }
   ]
 }

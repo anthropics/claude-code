@@ -1,0 +1,30 @@
+{
+  "name": "audit-then-fix",
+  "description": "Auditor finds N issues, multiple Builders fix them in parallel; tests DAG + meta-supervisor task-file.",
+  "primitives_tested": ["dag-dependency", "meta-supervisor", "parallel-dispatch"],
+  "max_duration_minutes": 1,
+  "deterministic": true,
+  "setup": {
+    "fixtures": "../fixtures/audit-then-fix",
+    "seed": 42,
+    "git_init": true
+  },
+  "teammates": [
+    {"name": "auditor-1", "head": "Auditor", "task_ids": ["audit"]},
+    {"name": "fixer-1", "head": "Builder", "task_ids": ["fix-buggy_01"]},
+    {"name": "fixer-2", "head": "Builder", "task_ids": ["fix-buggy_02"]},
+    {"name": "fixer-3", "head": "Builder", "task_ids": ["fix-buggy_03"]}
+  ],
+  "expected": {
+    "tasks_completed": 4,
+    "files_present": ["issues.json"],
+    "file_contains": [
+      {"path": "src/buggy_01.py", "substring": "FIXED"},
+      {"path": "src/buggy_02.py", "substring": "FIXED"},
+      {"path": "src/buggy_03.py", "substring": "FIXED"}
+    ],
+    "file_absent_substring": [
+      {"path": "src/buggy_01.py", "substring": "BUG"}
+    ]
+  }
+}
