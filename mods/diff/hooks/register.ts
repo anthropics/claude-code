@@ -4,6 +4,7 @@ import type {
   ResultOf,
   SessionMessage,
   Timer,
+  ToolCallInput,
 } from 'claude-code'
 
 import Ask from './ask'
@@ -14,6 +15,7 @@ import { entryKindsOf } from './entry-kinds-of'
 import type Git from './git'
 import type { Host } from './host'
 import { isOnPaneSurface } from './is-on-pane-surface'
+import { isOutsideWorkingTree } from './is-outside-working-tree'
 import Limits from './limits'
 import { mapLimited } from './map-limited'
 import { messageOf } from './message-of'
@@ -31,7 +33,8 @@ import Views from './views'
  *
  * Git runs when the built-in's would: `session.start` binds the host and
  * registers `/diff`; `/diff` or the first edit with room pins the backend
- * where the session started, until `/clear`; an open pane alone fetches.
+ * where the session started, until `/clear`; an open pane fetches, and so
+ * does an edit with room, inside the tree, until one lists a file to open on.
  *
  * @param on the engine's registrar
  */
@@ -43,6 +46,9 @@ export function register(on: On) {
   let isPaneOpen = false
   let dialogRows: number | null = null
   let hasAutoOpened = false
+  let isAutoOpening = false
+  let landed = 0
+  let opens = 0
   let columns: number | null = null
   let shownSessionId: string | null = null
   let armed: Ask.ArmedAsk | null = null
@@ -304,7 +310,27 @@ export function register(on: On) {
     )
   }
 
-  async function refresh(engine: Host): Promise<void> {
+  async function readOf(
+    engine: Host,
+    pinned: Backend.Backend | null,
+  ): Promise<PaneState.Fetched> {
+    const fetched = (): Promise<Git.FetchOutcome> =>
+      pinned
+        ? pinned.fetchDiff(model.requestedMode)
+        : Promise.resolve({ kind: 'no-repository' })
+
+    const [outcome, messages] = await Promise.all([
+      fetched(),
+      engine.messages().catch((): SessionMessage[] => []),
+    ])
+
+    return { outcome, messages }
+  }
+
+  async function refresh(
+    engine: Host,
+    read: PaneState.Fetched | null = null,
+  ): Promise<void> {
     if (isRefreshing) {
       isRefreshQueued = true
 
@@ -316,20 +342,13 @@ export function register(on: On) {
     const record = Record.recorderOf(engine)
     const pinned = backend
 
-    const fetched = (): Promise<Git.FetchOutcome> =>
-      pinned
-        ? pinned.fetchDiff(model.requestedMode)
-        : Promise.resolve({ kind: 'no-repository' })
-
     try {
       model = { ...model, isLoading: model.data === null }
 
-      const [outcome, messages] = await Promise.all([
-        fetched(),
-        engine.messages().catch((): SessionMessage[] => []),
-      ])
+      const fetched = read ?? (await readOf(engine, pinned))
+      const { outcome } = fetched
 
-      model = PaneState.afterFetch(model, { outcome, messages })
+      model = PaneState.afterFetch(model, fetched)
 
       switch (outcome.kind) {
         case 'no-repository':
@@ -394,8 +413,11 @@ export function register(on: On) {
   async function openPane(
     engine: Host,
     trigger: (typeof Record.SHOWN_TRIGGERS)[number],
+    read: PaneState.Fetched | null = null,
   ): Promise<void> {
     const isDialog = model.isFullscreen === false
+
+    opens += 1
 
     model = {
       ...model,
@@ -405,6 +427,8 @@ export function register(on: On) {
     }
 
     dialogRows = isDialog ? Views.dialogRowsOf(model) : null
+
+    const settling = read ? refresh(engine, read) : null
 
     await engine.openPane(
       isDialog
@@ -421,7 +445,7 @@ export function register(on: On) {
       Record.recorderOf(engine).shown(trigger, Record.widthBucketOf(columns))
     }
 
-    void refresh(engine)
+    void (settling ?? refresh(engine))
   }
 
   async function closePane(engine: Host): Promise<void> {
@@ -436,9 +460,56 @@ export function register(on: On) {
     })
   }
 
-  async function openOnFirstEdit(engine: Host): Promise<void> {
-    const isTaken = () => isPaneOpen || hasAutoOpened
+  const isTaken = () => isPaneOpen || hasAutoOpened
 
+  const hasRoomFor = (floor: number) =>
+    model.isFullscreen === true && columns !== null && columns >= floor
+
+  async function openOnFetchedFiles(
+    engine: Host,
+    floor: number,
+  ): Promise<void> {
+    if (isAutoOpening) {
+      return
+    }
+
+    isAutoOpening = true
+
+    try {
+      while (!isTaken()) {
+        const { epoch } = pin
+        const seen = landed
+        const opened = opens
+        const read = await readOf(engine, backend)
+        const isOvertaken = opened !== opens
+
+        const isCurrent =
+          epoch === pin.epoch && !isOvertaken && hasRoomFor(floor) && !isTaken()
+
+        const isListing = isCurrent && PaneState.hasSessionFiles(read.outcome)
+
+        if (isListing) {
+          hasAutoOpened = true
+          await openPane(engine, 'auto_open', read)
+        }
+
+        if (seen === landed || isOvertaken) {
+          return
+        }
+
+        if (isListing) {
+          scheduleRefresh(engine)
+        }
+      }
+    } finally {
+      isAutoOpening = false
+    }
+  }
+
+  async function openOnFirstEdit(
+    engine: Host,
+    path: string | null,
+  ): Promise<void> {
     if (isTaken()) {
       return
     }
@@ -450,11 +521,7 @@ export function register(on: On) {
       ? Limits.OPEN_MIN_COLUMNS
       : Limits.AUTO_OPEN_MIN_COLUMNS
 
-    const hasRoom =
-      preference !== false &&
-      model.isFullscreen === true &&
-      columns !== null &&
-      columns >= floor
+    const hasRoom = preference !== false && hasRoomFor(floor)
 
     if (!hasRoom || isTaken()) {
       return
@@ -466,8 +533,16 @@ export function register(on: On) {
       return
     }
 
-    hasAutoOpened = true
-    await openPane(engine, 'auto_open')
+    const isOutside =
+      path !== null &&
+      isOutsideWorkingTree(path, {
+        cwd: pin.cwd,
+        toplevel: backend.repository.toplevel,
+      })
+
+    if (!isOutside) {
+      await openOnFetchedFiles(engine, floor)
+    }
   }
 
   function disarm(engine: Host) {
@@ -818,10 +893,10 @@ export function register(on: On) {
 
   function afterTool(
     engine: Host,
-    tool: string,
+    e: ToolCallInput,
     result: ResultOf['tool.call'] | undefined,
   ) {
-    const isEdit = Tools.EDITING_TOOLS.some(name => name === tool)
+    const isEdit = Tools.EDITING_TOOLS.some(name => name === e.tool)
 
     const hasEdited =
       isEdit &&
@@ -829,16 +904,20 @@ export function register(on: On) {
       result.deny === undefined &&
       result.isError !== true
 
-    const isStale =
-      isPaneOpen &&
-      (isEdit ? hasEdited : result === undefined || result.deny === undefined)
+    const hasLanded = isEdit
+      ? hasEdited
+      : result === undefined || result.deny === undefined
 
-    if (isStale) {
+    if (hasLanded) {
+      landed += 1
+    }
+
+    if (isPaneOpen && hasLanded) {
       scheduleRefresh(engine)
     }
 
     if (hasEdited) {
-      void openOnFirstEdit(engine).catch(() => undefined)
+      void openOnFirstEdit(engine, Tools.editedPathOf(e)).catch(() => undefined)
     }
   }
 
@@ -854,7 +933,7 @@ export function register(on: On) {
         return result
       } finally {
         if (host) {
-          afterTool(host, e.tool, result)
+          afterTool(host, e, result)
         }
       }
     },
