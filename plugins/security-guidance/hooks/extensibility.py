@@ -32,7 +32,6 @@ Trust model:
     all pattern checks; there is no per-rule kill switch in v1.
 """
 
-import fnmatch
 import json
 import os
 import re
@@ -156,7 +155,7 @@ def _load_user_patterns(cwd: Optional[str]) -> List[Dict[str, Any]]:
             if data is None:
                 continue
             for entry in (data or {}).get("patterns", []):
-                rule = _validate_pattern(entry, source=label)
+                rule = _validate_pattern(entry, source=label, cwd=cwd)
                 if rule:
                     rules.append(rule)
             break  # found one extension; don't double-load .yaml AND .json
@@ -196,7 +195,7 @@ def _read_config(path: str) -> Optional[Dict[str, Any]]:
         return None
 
 
-def _validate_pattern(entry: Any, source: str) -> Optional[Dict[str, Any]]:
+def _validate_pattern(entry: Any, source: str, cwd: Optional[str] = None) -> Optional[Dict[str, Any]]:
     """Validate one user pattern entry. Returns a rule dict in the same shape
     as the built-in SECURITY_PATTERNS, or None if invalid (logged)."""
     if not isinstance(entry, dict):
@@ -239,19 +238,131 @@ def _validate_pattern(entry: Any, source: str) -> Optional[Dict[str, Any]]:
             return None
         # Capture as defaults so the lambda doesn't share state across rules.
         rule["path_filter"] = (
-            lambda p, _inc=tuple(paths), _exc=tuple(exclude): _glob_match(p, _inc, _exc)
+            lambda p, _inc=tuple(paths), _exc=tuple(exclude), _cwd=cwd: _glob_match(p, _inc, _exc, _cwd)
         )
     return rule
 
 
-def _glob_match(path: str, include: Tuple[str, ...], exclude: Tuple[str, ...]) -> bool:
+def _glob_to_regex(glob: str) -> "re.Pattern[str]":
+    """Translate a glob to a regex matching fnmatch's semantics exactly
+    (``*`` and ``?`` both cross ``/`` — that recursion is relied on by
+    existing patterns and is preserved deliberately, not a bug), except for
+    one addition: ``**/`` also matches zero directories, so ``**/*.ts``
+    covers a top-level file the same way it covers a nested one. Plain
+    ``fnmatch`` can't express that — a literal ``/`` in the pattern always
+    requires a literal ``/`` in the string, no matter how many ``*`` sit
+    next to it."""
+    out = []
+    i, n = 0, len(glob)
+    while i < n:
+        if glob[i:i + 3] == "**/":
+            out.append("(?:.*/)?")
+            i += 3
+        elif glob[i] == "*":
+            out.append(".*")
+            i += 1
+        elif glob[i] == "?":
+            out.append(".")
+            i += 1
+        elif glob[i] == "[":
+            # fnmatch class syntax: leading '!' negates (regex '^', not '!'),
+            # and a ']' immediately after '[' or '[!' is a literal member
+            # rather than the closing bracket.
+            j = i + 1
+            if j < n and glob[j] == "!":
+                j += 1
+            if j < n and glob[j] == "]":
+                j += 1
+            while j < n and glob[j] != "]":
+                j += 1
+            if j >= n:
+                out.append(re.escape("["))
+                i += 1
+            else:
+                body = glob[i + 1:j].replace("\\", "\\\\")
+                if body.startswith("!"):
+                    body = "^" + body[1:]
+                elif body[:1] in ("^", "["):
+                    body = "\\" + body
+                out.append("[" + body + "]")
+                i = j + 1
+        else:
+            out.append(re.escape(glob[i]))
+            i += 1
+    # fnmatch.fnmatch() case-normalizes via os.path.normcase before matching,
+    # which lowercases on Windows and is a no-op elsewhere (including macOS,
+    # despite its default case-insensitive filesystem — normcase only knows
+    # about nt vs. posix). Match that platform split so a rule doesn't
+    # silently stop firing depending on file casing.
+    flags = re.IGNORECASE if os.name == "nt" else 0
+    return re.compile("(?s:" + "".join(out) + ")\\Z", flags)
+
+
+def _segment_match(pat_segs: List[str], path_segs: List[str]) -> bool:
+    """Match a glob split on ``/`` against a path split on ``/``, where a
+    standalone ``**`` segment consumes zero or more whole path segments.
+
+    A single regex with an optional ``(?:.*/)?`` for ``**/`` is not enough:
+    since the segment after it (e.g. ``[!t]*.ts``) may itself contain an
+    unrestricted ``*`` that also crosses ``/`` (required for fnmatch
+    compatibility — see ``_glob_to_regex``), the engine can backtrack into
+    skipping the ``**/`` match entirely and let that later ``*`` swallow the
+    real directory boundary instead. That lets a per-segment check like a
+    negated class end up applied to the wrong character — e.g.
+    ``**/[!t]*.ts`` would wrongly match ``src/t.ts``, silently admitting the
+    exact file the rule meant to exclude. Matching segment-by-segment, with
+    ``**`` structurally bounded to whole segments, has no such backtracking
+    escape hatch."""
+    if not pat_segs:
+        return not path_segs
+    head, rest = pat_segs[0], pat_segs[1:]
+    if head == "**":
+        if _segment_match(rest, path_segs):
+            return True
+        return bool(path_segs) and _segment_match(pat_segs, path_segs[1:])
+    if not path_segs:
+        return False
+    return bool(_glob_to_regex(head).match(path_segs[0])) and _segment_match(rest, path_segs[1:])
+
+
+def _pattern_matches(glob: str, s: str) -> bool:
+    """Match one glob against one string, routing standalone ``**`` segments
+    through the segment-aware matcher and everything else through the
+    single-regex translator (which already matches fnmatch exactly)."""
+    segs = glob.split("/")
+    if "**" in segs:
+        return _segment_match(segs, s.split("/"))
+    return bool(_glob_to_regex(glob).match(s))
+
+
+def _project_relative(path: str, cwd: Optional[str]) -> str:
+    """Canonicalize a hook-delivered path to project-relative form, so that
+    an absolute payload (the normal case: tool hooks report edited files by
+    absolute path) and a relative payload for the same file produce the same
+    include/exclude decision against project-relative globs like ``src/*.ts``.
+
+    Paths outside the project root, or when ``cwd`` is unknown, are left as
+    delivered (normalized to ``/`` separators) rather than guessing via
+    prefix-stripping."""
+    if cwd and os.path.isabs(path):
+        try:
+            root = os.path.abspath(cwd)
+            rel = os.path.relpath(os.path.abspath(path), root)
+        except ValueError:
+            rel = None  # e.g. different drive on Windows
+        if rel is not None and rel != os.pardir and not rel.startswith(os.pardir + os.sep):
+            return rel.replace(os.sep, "/")
+    return path.replace(os.sep, "/")
+
+
+def _glob_match(
+    path: str, include: Tuple[str, ...], exclude: Tuple[str, ...], cwd: Optional[str] = None
+) -> bool:
     """Match a path against include/exclude globs. ``**`` matches any depth."""
-    norm = path.replace(os.sep, "/")
+    norm = _project_relative(path, cwd)
     base = os.path.basename(norm)
     def _hit(globs: Tuple[str, ...]) -> bool:
-        return any(
-            fnmatch.fnmatch(norm, g) or fnmatch.fnmatch(base, g) for g in globs
-        )
+        return any(_pattern_matches(g, norm) or _pattern_matches(g, base) for g in globs)
     if include and not _hit(include):
         return False
     if exclude and _hit(exclude):
