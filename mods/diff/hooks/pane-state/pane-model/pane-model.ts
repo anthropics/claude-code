@@ -9,8 +9,9 @@ import type { Source } from '../source'
  * Everything one drawing of the pane reads.
  *
  * The last good fetch, what the person picked, the bodies read so far, the
- * turns and todos, how the surface seated it, whether fullscreen (once
- * `/diff` said), the dialog's view, and the docked scroll in its last box.
+ * turns and todos, how the surface seated it, whether the layout docks a
+ * pane (once a drawing or `/diff` said), the dialog's view, and the docked
+ * scroll in its last box.
  */
 export type PaneModel = {
   words: Backend.BackendWords

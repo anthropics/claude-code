@@ -452,7 +452,7 @@ export function register(on: On) {
 
     const hasRoom =
       preference !== false &&
-      model.isFullscreen !== false &&
+      model.isFullscreen === true &&
       columns !== null &&
       columns >= floor
 
@@ -622,6 +622,11 @@ export function register(on: On) {
   on('ui.render', { component: 'PromptHint' }, ($, e, next) => {
     if (isOnPaneSurface(e)) {
       columns = e.viewport?.columns ?? columns
+
+      model = {
+        ...model,
+        isFullscreen: e.viewport?.isFullscreen ?? model.isFullscreen,
+      }
     }
 
     return next(e)

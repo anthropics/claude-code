@@ -348,6 +348,70 @@ describe('register', () => {
     expect(world.opened.map(pane => pane.id)).toEqual(['diff'])
   })
 
+  test('on the main screen the first edit opens nothing, and /diff still opens the dialog', async ($, on) => {
+    const world = Fixtures.inRepository(on)
+
+    on('tool.call', () => ({ result: 'edited' }))
+
+    await $.session.start(Fixtures.SESSION)
+    await $.ui.render(Fixtures.MAIN_SCREEN_HINT)
+
+    await $.tool.call({
+      tool: 'Edit',
+      file_path: '/work/app.ts',
+      old_string: '1',
+      new_string: '2',
+    })
+
+    await world.clock.advance(Fixtures.SETTLE_MS)
+
+    expect(world.opened, 'a pane there would be an unasked dialog').toEqual([])
+    expect(world.runs, 'so nothing was asked of the repository').toEqual([])
+
+    expect(await $.command.run(Fixtures.DIALOG_DIFF)).toEqual({})
+
+    expect(
+      world.opened[0],
+      "the person's /diff opens the dialog, not dismisses one",
+    ).toMatchObject({ id: 'diff', focus: true })
+  })
+
+  test('a surface that does not say whether it docks a pane opens nothing at the first edit', async ($, on) => {
+    const world = Fixtures.inRepository(on)
+
+    on('tool.call', () => ({ result: 'edited' }))
+
+    await $.session.start(Fixtures.SESSION)
+    await $.ui.render(Fixtures.UNSAID_HINT)
+
+    await $.tool.call({
+      tool: 'Edit',
+      file_path: '/work/app.ts',
+      old_string: '1',
+      new_string: '2',
+    })
+
+    await world.clock.advance(Fixtures.SETTLE_MS)
+
+    expect(world.opened, 'unknown is not a dock').toEqual([])
+
+    await $.ui.render(Fixtures.HINT)
+
+    await $.tool.call({
+      tool: 'Edit',
+      file_path: '/work/app.ts',
+      old_string: '2',
+      new_string: '3',
+    })
+
+    await world.clock.advance(Fixtures.SETTLE_MS)
+
+    expect(
+      world.opened.map(pane => pane.id),
+      'once a drawing says the layout docks, the next edit opens it',
+    ).toEqual(['diff'])
+  })
+
   test('an edit that failed or was refused opens nothing', async ($, on) => {
     const world = Fixtures.inRepository(on)
 
