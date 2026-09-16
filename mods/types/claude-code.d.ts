@@ -1,4 +1,4 @@
-// Written by Claude Code 2.1.271.
+// Written by Claude Code 2.1.273.
 // Claude Code function hooks: the plugin API's TypeScript declarations.
 //
 // EARLY ACCESS: this surface may change between releases without notice.
@@ -634,9 +634,9 @@ declare module 'claude-code' {
    * The props of `Button`, every surface's pressable leaf: an address, a
    * label, the closure a press runs, and the label styles a hover overrides.
    *
-   * The terminal draws `[ label ]` (or `1: label` when `plain`), a desktop a
-   * native button; a click, a `hotkey`, the chord for its `action`, or Enter
-   * while it has the focus raises `ui.press`, whose bottom is `onPress`.
+   * The terminal draws `[ label ]` (when `plain`, `1: label` or the label
+   * alone), a desktop a native button; a click, a `hotkey`, the chord for its
+   * `action`, or Enter under the focus raises `ui.press`, its bottom `onPress`.
    */
   export type ButtonProps = {
       /**
@@ -668,7 +668,11 @@ declare module 'claude-code' {
       action?: string;
       /**
        * Drawn without chrome: the hotkey in the accent color, a colon, the
-       * label (`1: Yes`), as a survey's row reads.
+       * label (`1: Yes`), as a survey's row reads; no `hotkey`, the label alone.
+       *
+       * A one-glyph label (`'\u{1F50A}'`, a speaker) is then a control by
+       * itself: the focus and the pointer still invert it, `dimColor` and `hover`
+       * still apply. A desktop draws its native button either way.
        */
       plain?: true;
       /**
@@ -2147,7 +2151,7 @@ declare module 'claude-code' {
           repo: () => Promise<SessionRepo | null>;
           /**
            * Returns every surface the session draws on, each once: `terminal` under
-           * the REPL first, then `desktop` and `mobile` in the order they attached.
+           * the REPL first, then the remote ones in the order they attached.
            *
            * A session may draw on several at once (a terminal and two phones):
            * clients attach (`session.attach`) and detach, and a render hook still
@@ -2714,9 +2718,9 @@ declare module 'claude-code' {
    * The element constructors each surface draws, by `e.surface`: what
    * `$.ui.resolve(e)` returns and a `ui.resolve` hook passes on; no globals.
    *
-   * All carry `Box`, `Text`, `Button`, `Link`, `Code`; terminal and desktop add
-   * `Input`, `Select`, `Client`; desktop and mobile `Svg`; terminal `Raster`.
-   * Narrowed on `e.surface`, that table; unnarrowed, the union; else fragments.
+   * All carry `Box`, `Text`, `Button`, `Link`, `Code`; every remote surface
+   * `Svg`; all but mobile `Input` and `Select`; terminal and desktop `Client`;
+   * terminal `Raster`. Narrowed on `e.surface`, that table; else the union.
    */
   export type Elements = {
       terminal: {
@@ -2751,6 +2755,23 @@ declare module 'claude-code' {
           Box: ElementConstructor<BoxProps>;
           Text: ElementConstructor<TextProps>;
           Button: ElementConstructor<ButtonProps>;
+          Svg: ElementConstructor<SvgProps>;
+          Link: ElementConstructor<LinkProps>;
+          Code: ElementConstructor<CodeProps>;
+      };
+      /**
+       * The desktop's table without `Client`: a remote `Client`'s module, presses
+       * and posts (ui_client_module, ui_client_press, ui_message) name no surface.
+       *
+       * They are the desktop's alone today, not a limit of the editor's webview:
+       * the table gains `Client` when those asks name a surface.
+       */
+      vscode: {
+          Box: ElementConstructor<BoxProps>;
+          Text: ElementConstructor<TextProps>;
+          Button: ElementConstructor<ButtonProps>;
+          Input: ElementConstructor<InputProps>;
+          Select: ElementConstructor<SelectProps>;
           Svg: ElementConstructor<SvgProps>;
           Link: ElementConstructor<LinkProps>;
           Code: ElementConstructor<CodeProps>;
@@ -5963,11 +5984,11 @@ declare module 'claude-code' {
           action?: string;
           /**
            * Drawn without chrome: the hotkey in the accent color, a colon,
-           * then the label (`1: Yes`), as a survey's row reads.
+           * then the label (`1: Yes`); without a `hotkey`, the label alone.
            *
-           * In JSX the label may be the one string child
-           * (`<Button hotkey="1" plain onPress={...}>Yes</Button>`); the key
-           * defaults to the label.
+           * The focus still inverts it. In JSX the label may be the one string
+           * child (`<Button hotkey="1" plain onPress={...}>Yes</Button>`); the
+           * key defaults to the label.
            */
           plain?: true;
           /**
@@ -6136,8 +6157,8 @@ declare module 'claude-code' {
       children?: undefined;
   } | {
       /**
-       * A vector drawing, the desktop and mobile surfaces' alone: the SVG
-       * markup is the element's data, drawn in an isolated box, off the page.
+       * A vector drawing, the remote surfaces' alone: the SVG markup is the
+       * element's data, drawn in an isolated box, off the page.
        *
        * A leaf: hooks above wrap or replace it whole, nothing reaches inside;
        * a press other plugins should see goes on an enclosing Button. On a
@@ -6624,23 +6645,25 @@ declare module 'claude-code' {
 
   /**
    * Where a render event's component is drawn: `terminal` is Ink, which draws
-   * the hook's whole tree; `desktop` (Claude Code Desktop) and `mobile` (the
-   * Claude mobile app) are remote surfaces that draw the tree themselves.
+   * the hook's whole tree; the rest are remote surfaces drawing it themselves.
    *
-   * A remote surface asks over the wire (ui_render), draws with the props the
-   * hook handed core and draws the tree where it has a slot for it. Each
-   * surface's ask is its own evaluation, since a tree may hold an element only
-   * some surfaces draw (Svg, Client).
+   * `desktop` is Claude Code Desktop, `mobile` the Claude mobile app, `vscode`
+   * Claude Code for VS Code. A remote surface asks over the wire (ui_render),
+   * draws with the props the hook handed core, and draws the tree where it has
+   * a slot for it.
+   *
+   * Each surface's ask is its own evaluation, since a tree may hold an element
+   * only some surfaces draw (Svg, Client).
    */
-  export type RenderSurface = 'terminal' | 'desktop' | 'mobile';
+  export type RenderSurface = 'terminal' | 'desktop' | 'mobile' | 'vscode';
 
   /**
    * The size of what a surface draws into, in character cells of the
-   * surface's monospace metric: on the terminal, the conversation's columns and
-   * screen rows; on a remote surface, the pane's width and height divided by the
-   * advance and line height of its code font. A pixel-sized companion
-   * arrives with the first element that lays out in pixels; until then
-   * every element on every surface is cell-based, and so is this.
+   * surface's monospace metric, and whether its layout docks a pane.
+   *
+   * On the terminal, the conversation's columns and screen rows; on a remote
+   * surface, the pane's width and height over the advance and line height of
+   * its code font. Cell-based until the first element lays out in pixels.
    */
   export type RenderViewport = {
       /**
@@ -6650,10 +6673,24 @@ declare module 'claude-code' {
       columns: number;
       /**
        * Cells down the whole surface, not the room left for this component.
+       *
        * Informational: a change of height alone re-draws nothing and keys no
        * new evaluation, so a hook reads it as of the last width or props change.
        */
       rows: number;
+      /**
+       * Whether this surface docks a pane beside the transcript, so a pane a
+       * plugin opens unasked is a sidebar, not a takeover; absent is unknown.
+       *
+       * What `command.run`'s `presentation.isFullscreen` says. The terminal always
+       * says: `true` fullscreen, `false` on the main screen, fixed per session; a
+       * remote surface once its client reports it with the size, absent before.
+       *
+       * @remarks The desktop and VS Code report it once they place panes; the
+       *   mobile app, which has no dock, `false`. A change re-draws the sites.
+       * @example if (e.viewport?.isFullscreen === true) void $.ui.open({ id })
+       */
+      isFullscreen?: boolean;
   };
 
   /**
@@ -7681,13 +7718,12 @@ declare module 'claude-code' {
   };
 
   /**
-   * The props of `Svg`, the desktop and mobile surfaces' vector leaf: the
-   * markup is the element's data, as a string is a Text's, drawn isolated.
+   * The props of `Svg`, the remote surfaces' vector leaf: the markup is the
+   * element's data, as a string is a Text's, drawn isolated.
    *
    * A leaf: no children. The surface never lets the markup reach the page
-   * (the engine bounds it; the desktop draws it as an image, or in a
-   * sandboxed frame when `isInteractive`; the mobile app in a sandboxed web
-   * view).
+   * (the engine bounds it; the desktop and the editor draw it as an image, or
+   * in a sandboxed frame when `isInteractive`; the mobile app in a web view).
    */
   export type SvgProps = {
       /**
