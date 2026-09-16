@@ -621,11 +621,14 @@ export function register(on: On) {
 
   on('ui.render', { component: 'PromptHint' }, ($, e, next) => {
     if (isOnPaneSurface(e)) {
-      columns = e.viewport?.columns ?? columns
+      const viewport: { columns?: number; isFullscreen?: boolean } | undefined =
+        e.viewport
+
+      columns = viewport?.columns ?? columns
 
       model = {
         ...model,
-        isFullscreen: e.viewport?.isFullscreen ?? model.isFullscreen,
+        isFullscreen: viewport?.isFullscreen ?? model.isFullscreen,
       }
     }
 
