@@ -1,0 +1,4 @@
+{
+  "description": "AGENTS.md up and down the tree like CLAUDE.md, by the projectInstructions option: under agents-fallback (where the project has no CLAUDE.md of its own on the walk) or both, a prompt.context hook hands every ancestor AGENTS.md to the engine among its instruction files, skipping ones it already loaded, and a tool.call hook on Read attaches the AGENTS.md files of the directories between the project root and a read file, once a conversation and agent loop (an Agent-tool fork inherits its parent's); under none, a prompt.context hook keeps only the organization's managed files and memory; under claude, a session.start hook names the option when the project has an AGENTS.md and no CLAUDE.md; in every mode that hook sends the plugin's usage rows through $.telemetry where that noun is seated",
+  "modules": ["./register.ts"]
+}

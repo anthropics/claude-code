@@ -2,7 +2,7 @@
 
 A mod is a Claude Code plugin whose behaviour lives in a hooks module: one
 `register(on, options)` entry that hooks the engine's events as functions
-`($, e, next)`. These three ship inside Claude Code; this folder is their
+`($, e, next)`. These four ship inside Claude Code; this folder is their
 source, published as it is built into the binary.
 
 | Mod | What it does | Seated |
@@ -10,6 +10,7 @@ source, published as it is built into the binary.
 | [`sec-default`](sec-default) | Keeps an organization's classic hooks, prompt content, managed settings and tool policy out of reach of the plugins a person installs; adds no policy of its own. | Outermost, on a machine with managed settings or for a Team or Enterprise organization, unless managed `prependPlugins` says otherwise |
 | [`diff`](diff) | `/diff`: the session's uncommitted changes in a pane beside the transcript, file by file with their hunks, refreshed as Claude edits files and runs commands. | Built in |
 | [`telemetry`](telemetry) | Adds `$.telemetry` (`log`, `mark`) in the `engine.create` fold so a plugin can record an event as a first-party analytics row; sends nothing wherever Claude Code's analytics are off. | Built in |
+| [`agents-md`](agents-md) | `AGENTS.md` as project instructions, by one option: loaded where the project has no `CLAUDE.md` of its own (`agents-fallback`), beside it (`both`), or neither (`none`), placed and framed exactly as the engine places `CLAUDE.md`; by default (`claude`) the engine reads `CLAUDE.md` alone and a project with only an `AGENTS.md` is told so at session start. | Built in |
 
 Each folder is a complete plugin: `.claude-plugin/plugin.json`, a
 `hooks/hooks.json` naming the module, and TypeScript under `hooks/` typed
