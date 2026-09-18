@@ -30,6 +30,20 @@ These may be applied at any level of the [settings hierarchy](https://code.claud
 
 To distribute these settings as enterprise-managed policy through Jamf, Iru (Kandji), Intune, or Group Policy, see the deployment templates in [`../mdm`](../mdm).
 
+## Troubleshooting
+
+### Desktop app UI strings not localized (e.g. "New session")
+
+Some desktop app sidebar strings like "New session" are hardcoded
+in the JavaScript bundle rather than pulled from locale files
+like `ja-JP.json`. This is a known desktop app localization gap —
+the locale file exists and is loaded, but certain UI elements bypass it.
+
+**No user-side workaround** — the strings cannot be overridden.
+This must be fixed by the desktop app team.
+
+See issue [#61712](https://github.com/anthropics/claude-code/issues/61712).
+
 ## Full Documentation
 
 See https://code.claude.com/docs/en/settings for complete documentation on all available managed settings.
