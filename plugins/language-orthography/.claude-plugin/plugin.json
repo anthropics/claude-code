@@ -1,0 +1,5 @@
+{
+  "name": "language-orthography",
+  "version": "1.0.0",
+  "description": "Enforces full orthographic correctness (diacritics, accents, cedillas) when the language setting targets a non-ASCII language"
+}
