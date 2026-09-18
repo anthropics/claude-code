@@ -1,0 +1,16 @@
+{
+  "description": "Hook to detect and fix incorrect null device redirections on Windows (nul vs /dev/null)",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/windows_null_redirect_hook.py"
+          }
+        ],
+        "matcher": "Bash"
+      }
+    ]
+  }
+}
