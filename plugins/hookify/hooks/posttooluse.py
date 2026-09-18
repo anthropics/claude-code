@@ -35,7 +35,7 @@ def main():
 
         # Determine event type based on tool
         tool_name = input_data.get('tool_name', '')
-        event = None
+        event = 'all'
         if tool_name == 'Bash':
             event = 'bash'
         elif tool_name in ['Edit', 'Write', 'MultiEdit']:
