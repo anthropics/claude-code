@@ -1,0 +1,9 @@
+{
+  "name": "audit-trail",
+  "version": "1.0.0",
+  "description": "Comprehensive audit logging for Claude Code tool usage. Logs all tool calls with timestamps, inputs, and results to JSONL files for debugging, compliance, and security review.",
+  "author": {
+    "name": "Steven Elliott",
+    "email": "elliotts@uswa.net"
+  }
+}
