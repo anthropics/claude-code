@@ -1,0 +1,204 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kushalj1997/claude-swarm/scenario.schema.json",
+  "title": "Swarm scenario",
+  "description": "A binding-agnostic toy swarm test. Same JSON runs against the Anthropic Teams binding (claude-code plugin), the standalone claude-swarm CLI, and our internal claude_swarm. See tests/swarming/README.md.",
+  "type": "object",
+  "required": [
+    "name",
+    "description",
+    "primitives_tested",
+    "max_duration_minutes",
+    "deterministic",
+    "setup",
+    "teammates",
+    "expected"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "kebab-case unique scenario id; matches the scenario JSON filename without .json",
+      "pattern": "^[a-z][a-z0-9-]*$"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "primitives_tested": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "enum": [
+          "file-overlap-reject",
+          "atomic-merge",
+          "dag-dependency",
+          "heads-end-to-end",
+          "parallel-dispatch",
+          "cross-teammate-independence",
+          "meta-supervisor",
+          "merge-rebase",
+          "abort-marker",
+          "respawn-on-crash",
+          "multi-team",
+          "cross-team-sendmessage"
+        ]
+      }
+    },
+    "max_duration_minutes": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "maximum": 5,
+      "description": "Hard ceiling. Runners SHOULD enforce as a wall-clock timeout."
+    },
+    "deterministic": {
+      "type": "boolean",
+      "description": "If true, fixed seeds + sorted iteration order; runners assert reproducibility."
+    },
+    "setup": {
+      "type": "object",
+      "required": ["fixtures", "seed"],
+      "additionalProperties": false,
+      "properties": {
+        "fixtures": {
+          "type": "string",
+          "description": "Path (relative to scenarios/<this>.json's directory) to a fixtures dir. Runner copies into a tmp workspace before run."
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "git_init": {
+          "type": "boolean",
+          "default": true,
+          "description": "If true, runner runs `git init` + initial commit on the fixture copy."
+        },
+        "extra": {
+          "type": "object",
+          "description": "Free-form scenario-specific setup knobs. Documented in the scenario's README block."
+        }
+      }
+    },
+    "teammates": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["name", "head", "task_ids"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+          "head": {
+            "type": "string",
+            "enum": [
+              "Builder",
+              "Reviewer",
+              "Scanner",
+              "Merger",
+              "TestRunner",
+              "Auditor"
+            ]
+          },
+          "task_ids": {
+            "type": "array",
+            "items": { "type": "string" },
+            "minItems": 0
+          },
+          "team": {
+            "type": "string",
+            "description": "Optional team name for multi-team scenarios. Defaults to '<scenario>-default'."
+          }
+        }
+      }
+    },
+    "tasks": {
+      "type": "array",
+      "description": "Optional explicit task list. If absent, fixtures imply the tasks (one per file under fixtures/, etc.).",
+      "items": {
+        "type": "object",
+        "required": ["id", "subject"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" },
+          "subject": { "type": "string" },
+          "depends_on": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "head": { "type": "string" },
+          "payload": { "type": "object" }
+        }
+      }
+    },
+    "inject": {
+      "type": "object",
+      "description": "Optional fault-injection knobs (abort marker drops, simulated crashes, conflict introductions).",
+      "additionalProperties": true,
+      "properties": {
+        "abort_after_seconds": { "type": "number", "minimum": 0 },
+        "kill_teammate": { "type": "string" },
+        "introduce_conflict_after_seconds": { "type": "number", "minimum": 0 }
+      }
+    },
+    "expected": {
+      "type": "object",
+      "description": "Post-run state assertions; runner enforces all that apply.",
+      "additionalProperties": false,
+      "properties": {
+        "tasks_completed": { "type": "integer", "minimum": 0 },
+        "tasks_failed": { "type": "integer", "minimum": 0 },
+        "tasks_aborted": { "type": "integer", "minimum": 0 },
+        "merge_conflicts": { "type": "integer", "minimum": 0 },
+        "branches_in_master": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "files_present": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "files_absent": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "file_contains": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["path", "substring"],
+            "properties": {
+              "path": { "type": "string" },
+              "substring": { "type": "string" }
+            }
+          }
+        },
+        "file_absent_substring": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["path", "substring"],
+            "properties": {
+              "path": { "type": "string" },
+              "substring": { "type": "string" }
+            }
+          }
+        },
+        "messages_routed": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["from", "to"],
+            "properties": {
+              "from": { "type": "string" },
+              "to": { "type": "string" },
+              "team": { "type": "string" }
+            }
+          }
+        },
+        "abort_wip_commit_present": { "type": "boolean" },
+        "respawn_count_min": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}
