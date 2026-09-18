@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "disableBypassPermissionsMode": "disable",
+    "deny": ["WebSearch", "WebFetch"]
+  },
+  "allowManagedPermissionRulesOnly": true,
+  "allowManagedHooksOnly": true,
+  "strictKnownMarketplaces": [
+    {
+      "source": "github",
+      "repo": "anthropics/claude-plugins-official"
+    }
+  ],
+  "disableSideloadFlags": true
+}
