@@ -77,26 +77,17 @@ if ! grep -q '"role":"assistant"' "$TRANSCRIPT_PATH"; then
   exit 0
 fi
 
-# Extract last assistant message with explicit error handling
-LAST_LINE=$(grep '"role":"assistant"' "$TRANSCRIPT_PATH" | tail -1)
-if [[ -z "$LAST_LINE" ]]; then
-  echo "⚠️  Ralph loop: Failed to extract last assistant message" >&2
-  echo "   Ralph loop is stopping." >&2
-  rm "$RALPH_STATE_FILE"
-  exit 0
-fi
-
-# Parse JSON with error handling
-LAST_OUTPUT=$(echo "$LAST_LINE" | jq -r '
-  .message.content |
-  map(select(.type == "text")) |
-  map(.text) |
-  join("\n")
-' 2>&1)
-
-# Check if jq succeeded
-if [[ $? -ne 0 ]]; then
-  echo "⚠️  Ralph loop: Failed to parse assistant message JSON" >&2
+# Extract the most recent assistant TEXT from the transcript.
+# Claude Code writes each content block (thinking / text / tool_use) as a
+# SEPARATE JSONL line, so reading only the last line breaks when it happens
+# to be a tool_use or thinking block. Slurp all assistant lines, skip
+# subagent (sidechain) output, collect every text block, take the last one.
+if ! LAST_OUTPUT=$(grep '"role":"assistant"' "$TRANSCRIPT_PATH" | jq -rs '
+  map(select(.isSidechain != true)
+      | .message.content[]? | select(.type == "text") | .text)
+  | last // ""
+' 2>&1); then
+  echo "⚠️  Ralph loop: Failed to parse assistant messages JSON" >&2
   echo "   Error: $LAST_OUTPUT" >&2
   echo "   This may indicate a transcript format issue" >&2
   echo "   Ralph loop is stopping." >&2
