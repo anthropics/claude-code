@@ -25,6 +25,7 @@ if PLUGIN_ROOT:
 try:
     from hookify.core.config_loader import load_rules
     from hookify.core.rule_engine import RuleEngine
+    from hookify.hooks import safe_json_load
 except ImportError as e:
     # If imports fail, allow operation and log error
     error_msg = {"systemMessage": f"Hookify import error: {e}"}
@@ -35,8 +36,8 @@ except ImportError as e:
 def main():
     """Main entry point for PreToolUse hook."""
     try:
-        # Read input from stdin
-        input_data = json.load(sys.stdin)
+        # Read input from stdin (with Windows path backslash tolerance)
+        input_data = safe_json_load(sys.stdin)
 
         # Determine event type for filtering
         # For PreToolUse, we use tool_name to determine "bash" vs "file" event
