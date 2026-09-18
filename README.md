@@ -43,6 +43,12 @@ For more installation options, uninstall steps, and troubleshooting, see the [se
     npm install -g @anthropic-ai/claude-code
     ```
 
+    > [!WARNING]
+    > If you are using npm, **do not run `npm update -g` to upgrade** — a known bug in certain npm versions can wipe your entire global `node_modules` directory, removing npm itself in the process. Always upgrade with:
+    > ```bash
+    > npm install -g @anthropic-ai/claude-code@latest
+    > ```
+
 2. Navigate to your project directory and run `claude`.
 
 ## Plugins
