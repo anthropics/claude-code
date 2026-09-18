@@ -207,6 +207,29 @@ Or for development, use directly:
 cc --plugin-dir /path/to/plugin-dev
 ```
 
+## Plugin Management Quick Reference
+
+When working inside an active Claude Code session, prefer the built-in `/plugin` slash command:
+
+```bash
+/plugin install plugin-name@marketplace-name
+/plugin update plugin-name
+/plugin enable plugin-name
+```
+
+When working outside Claude Code in a normal terminal, use the CLI subcommand in its singular form:
+
+```bash
+claude plugin list
+claude plugin marketplace add owner/repo
+```
+
+Important notes:
+- Use `claude plugin ...`, not `claude plugins ...`
+- For `marketplace add`, pass `owner/repo` directly
+- Do not add a `github:` prefix or paste a full GitHub URL unless a specific marketplace explicitly documents that format
+- If Claude is already running in a session, do not rely on Bash to manage plugins with `claude plugin ...`; prefer `/plugin ...` in-session or ask the user to run the CLI in a separate terminal
+
 ## Quick Start
 
 ### Creating Your First Plugin
