@@ -121,6 +121,41 @@ describe('register', () => {
     )
   })
 
+  test('a shell command the tool held read-only fetches nothing', async ($, on) => {
+    const world = Fixtures.inRepository(on)
+
+    const fetchesSince = (read: number) =>
+      world.runs.slice(read).filter(run => run.argv.includes('--numstat'))
+        .length
+
+    on('tool.call', ($, e) =>
+      e.tool === 'Bash' && e.command === 'ls'
+        ? Fixtures.READ_ONLY_ANSWER
+        : { result: 'done' },
+    )
+
+    await $.session.start(Fixtures.SESSION)
+    await $.command.run(Fixtures.DIFF)
+    await world.clock.advance(Fixtures.SETTLE_MS)
+
+    const opened = world.runs.length
+
+    await $.tool.call({ tool: 'Bash', command: 'ls' })
+    await world.clock.advance(Fixtures.SETTLE_MS)
+
+    expect(
+      fetchesSince(opened),
+      "read-only, the pane open: nothing, as the built-in's touch is gated",
+    ).toBe(0)
+
+    const listed = world.runs.length
+
+    await $.tool.call({ tool: 'Bash', command: 'make' })
+    await world.clock.advance(Fixtures.SETTLE_MS)
+
+    expect(fetchesSince(listed), 'a command that may write: one fetch').toBe(1)
+  })
+
   test('/diff whose probe never answers probes once more', async ($, on) => {
     const probes: (readonly string[])[] = []
     const clock = Fixtures.startsSession(on)
