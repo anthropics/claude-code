@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#2563eb"/>
+  <g transform="translate(256,256)">
+    <!-- Building -->
+    <rect x="-80" y="-100" width="160" height="180" rx="8" fill="white" opacity="0.95"/>
+    <rect x="-60" y="-70" width="40" height="35" rx="4" fill="#93c5fd"/>
+    <rect x="20" y="-70" width="40" height="35" rx="4" fill="#93c5fd"/>
+    <rect x="-60" y="-20" width="40" height="35" rx="4" fill="#93c5fd"/>
+    <rect x="20" y="-20" width="40" height="35" rx="4" fill="#93c5fd"/>
+    <rect x="-20" y="30" width="40" height="50" rx="4" fill="#1e40af"/>
+    <!-- Roof -->
+    <polygon points="-100,-100 0,-160 100,-100" fill="white" opacity="0.95"/>
+    <!-- AI sparkle -->
+    <g transform="translate(85,-120)">
+      <circle r="35" fill="#fbbf24"/>
+      <path d="M0,-20 L5,-5 L20,0 L5,5 L0,20 L-5,5 L-20,0 L-5,-5 Z" fill="white"/>
+    </g>
+    <!-- Checkmark -->
+    <g transform="translate(-85,65)">
+      <circle r="25" fill="#22c55e"/>
+      <path d="M-10,0 L-3,8 L10,-8" stroke="white" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+  </g>
+</svg>
