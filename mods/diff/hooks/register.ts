@@ -830,8 +830,7 @@ export function register(on: On) {
       result.isError !== true
 
     const isStale =
-      isPaneOpen &&
-      (isEdit ? hasEdited : result === undefined || result.deny === undefined)
+      isPaneOpen && (isEdit ? hasEdited : Tools.mayHaveWritten(result))
 
     if (isStale) {
       scheduleRefresh(engine)
