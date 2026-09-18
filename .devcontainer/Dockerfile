@@ -49,8 +49,12 @@ RUN mkdir -p /workspace /home/node/.claude && \
 WORKDIR /workspace
 
 ARG GIT_DELTA_VERSION=0.18.2
+ARG GIT_DELTA_SHA256_AMD64=4b54b8fa76e28c2cff4c1bfb2b77f22f39057c67bfbc5f7e52c4f03c5c5e5b49
+ARG GIT_DELTA_SHA256_ARM64=e3cf310fc4b25603003f0c68fd64e2e05b65b8ef9d58c25e12ca4a2a7e3e1d5e
 RUN ARCH=$(dpkg --print-architecture) && \
-  wget "https://github.com/dandavison/delta/releases/download/${GIT_DELTA_VERSION}/git-delta_${GIT_DELTA_VERSION}_${ARCH}.deb" && \
+  wget -q "https://github.com/dandavison/delta/releases/download/${GIT_DELTA_VERSION}/git-delta_${GIT_DELTA_VERSION}_${ARCH}.deb" && \
+  if [ "$ARCH" = "amd64" ]; then EXPECTED_SHA="$GIT_DELTA_SHA256_AMD64"; else EXPECTED_SHA="$GIT_DELTA_SHA256_ARM64"; fi && \
+  echo "$EXPECTED_SHA  git-delta_${GIT_DELTA_VERSION}_${ARCH}.deb" | sha256sum -c - && \
   sudo dpkg -i "git-delta_${GIT_DELTA_VERSION}_${ARCH}.deb" && \
   rm "git-delta_${GIT_DELTA_VERSION}_${ARCH}.deb"
 
