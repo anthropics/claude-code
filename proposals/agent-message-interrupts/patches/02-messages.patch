@@ -1,0 +1,30 @@
+--- a/src/utils/messages.ts
++++ b/src/utils/messages.ts
+@@ -208,6 +208,8 @@ export const INTERRUPT_MESSAGE = '[Request interrupted by user]'
+ export const INTERRUPT_MESSAGE_FOR_TOOL_USE =
+   '[Request interrupted by user for tool use]'
++export const PENDING_MESSAGE_INTERRUPT =
++  'Tool execution interrupted: a message was received from the coordinator. Remaining tool calls in this batch were skipped. The message will be delivered as an attachment — read and respond to it before continuing.'
+ export const CANCEL_MESSAGE =
+   "The user doesn't want to take this action right now. STOP what you are doing and wait for the user to tell you how to proceed."
+
+@@ -631,6 +633,19 @@ export function createToolResultStopMessage(
+   }
+ }
+
++/**
++ * Creates a tool_result for a tool that was skipped because a pending
++ * message interrupt arrived between serial tool executions.
++ */
++export function createToolResultInterruptMessage(
++  toolUseID: string,
++): ToolResultBlockParam {
++  return {
++    type: 'tool_result',
++    content: PENDING_MESSAGE_INTERRUPT,
++    is_error: true,
++    tool_use_id: toolUseID,
++  }
++}
++
+ export function extractTag(html: string, tagName: string): string | null {

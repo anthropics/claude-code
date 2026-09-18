@@ -1,0 +1,86 @@
+--- a/src/services/tools/toolOrchestration.ts
++++ b/src/services/tools/toolOrchestration.ts
+@@ -1,7 +1,14 @@
+ import type { ToolUseBlock } from '@anthropic-ai/sdk/resources/index.mjs'
+ import type { CanUseToolFn } from '../../hooks/useCanUseTool.js'
++import { hasPendingMessages } from '../../tasks/LocalAgentTask/LocalAgentTask.js'
+ import { findToolByName, type ToolUseContext } from '../../Tool.js'
+ import type { AssistantMessage, Message } from '../../types/message.js'
+ import { all } from '../../utils/generators.js'
++import {
++  createToolResultInterruptMessage,
++  createUserMessage,
++  PENDING_MESSAGE_INTERRUPT,
++} from '../../utils/messages.js'
+ import { type MessageUpdateLazy, runToolUse } from './toolExecution.js'
+
+@@ -24,9 +31,33 @@ export async function* runTools(
+ ): AsyncGenerator<MessageUpdate, void> {
+   let currentContext = toolUseContext
+-  for (const { isConcurrencySafe, blocks } of partitionToolCalls(
+-    toolUseMessages,
+-    currentContext,
+-  )) {
++  const batches = partitionToolCalls(toolUseMessages, currentContext)
++  for (let batchIdx = 0; batchIdx < batches.length; batchIdx++) {
++    const { isConcurrencySafe, blocks } = batches[batchIdx]!
++
++    // Between batches, check for pending messages addressed to this agent.
++    // If found, cancel all remaining tool calls across remaining batches
++    // so the message surfaces on the next API turn.
++    if (
++      batchIdx > 0 &&
++      currentContext.agentId &&
++      hasPendingMessages(currentContext.agentId, currentContext.getAppState)
++    ) {
++      for (let k = batchIdx; k < batches.length; k++) {
++        for (const skipped of batches[k]!.blocks) {
++          yield {
++            message: createUserMessage({
++              content: [createToolResultInterruptMessage(skipped.id)],
++              toolUseResult: PENDING_MESSAGE_INTERRUPT,
++            }),
++            newContext: currentContext,
++          }
++          markToolUseAsComplete(currentContext, skipped.id)
++        }
++      }
++      return
++    }
++
+     if (isConcurrencySafe) {
+
+@@ -118,8 +149,32 @@ async function* runToolsSerially(
+ ): AsyncGenerator<MessageUpdate, void> {
+   let currentContext = toolUseContext
+
+-  for (const toolUse of toolUseMessages) {
+-    toolUseContext.setInProgressToolUseIDs(prev =>
++  for (let i = 0; i < toolUseMessages.length; i++) {
++    const toolUse = toolUseMessages[i]!
++
++    // Between serial tool calls, check if the agent has pending messages.
++    // If so, cancel remaining tools so the message is delivered on the very
++    // next API turn instead of waiting for the entire batch to finish.
++    if (
++      i > 0 &&
++      currentContext.agentId &&
++      hasPendingMessages(currentContext.agentId, currentContext.getAppState)
++    ) {
++      for (let j = i; j < toolUseMessages.length; j++) {
++        const skipped = toolUseMessages[j]!
++        yield {
++          message: createUserMessage({
++            content: [createToolResultInterruptMessage(skipped.id)],
++            toolUseResult: PENDING_MESSAGE_INTERRUPT,
++          }),
++          newContext: currentContext,
++        }
++        markToolUseAsComplete(toolUseContext, skipped.id)
++      }
++      return
++    }
++
++    toolUseContext.setInProgressToolUseIDs(prev =>
+       new Set(prev).add(toolUse.id),
+     )
