@@ -1,0 +1,33 @@
+{
+  "name": "voice-to-claude-marketplace",
+  "owner": {
+    "name": "Enes Basbug",
+    "url": "https://github.com/enesbasbug"
+  },
+  "plugins": [
+    {
+      "name": "voice-to-claude",
+      "source": "./",
+      "description": "High-quality voice dictation using whisper.cpp with Metal GPU acceleration. Hold Ctrl+Alt, speak, release to transcribe.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Enes Basbug",
+        "url": "https://github.com/enesbasbug"
+      },
+      "homepage": "https://github.com/enesbasbug/voice-to-claude",
+      "repository": "https://github.com/enesbasbug/voice-to-claude",
+      "license": "MIT",
+      "keywords": [
+        "speech-to-text",
+        "stt",
+        "voice",
+        "dictation",
+        "whisper",
+        "audio",
+        "accessibility",
+        "metal",
+        "gpu"
+      ]
+    }
+  ]
+}
