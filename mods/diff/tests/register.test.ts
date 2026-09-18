@@ -875,6 +875,187 @@ describe('register', () => {
     expect(world.opened, 'the room it read for is gone').toEqual([])
   })
 
+  test("only the main loop's edit opens the pane", async ($, on) => {
+    const world = Fixtures.inRepository(on)
+
+    const edit = (agentId?: string) =>
+      $.tool.call({
+        tool: 'Write',
+        file_path: '/work/app.ts',
+        content: '2',
+        ...(agentId !== undefined && { agentId }),
+      })
+
+    on('tool.call', () => ({ result: 'written' }))
+
+    await $.session.start(Fixtures.SESSION)
+    await $.ui.render(Fixtures.HINT)
+    await edit('a-explorer')
+    await world.clock.advance(Fixtures.SETTLE_MS)
+
+    expect(world.opened, 'the built-in checkpoints no subagent edit').toEqual(
+      [],
+    )
+
+    expect(world.runs, 'so nothing was asked of the repository').toEqual([])
+
+    await edit()
+    await world.clock.advance(Fixtures.SETTLE_MS)
+
+    expect(
+      world.opened.map(pane => pane.id),
+      "the main loop's",
+    ).toEqual(['diff'])
+  })
+
+  test('checkpointing off in settings: edits open nothing', async ($, on) => {
+    const world = Fixtures.inRepository(on, Fixtures.REPOSITORY, {
+      settings: { fileCheckpointingEnabled: false },
+    })
+
+    on('tool.call', () => ({ result: 'edited' }))
+
+    await $.session.start(Fixtures.SESSION)
+    await $.ui.render(Fixtures.HINT)
+
+    await $.tool.call({
+      tool: 'Edit',
+      file_path: '/work/app.ts',
+      old_string: '1',
+      new_string: '2',
+    })
+
+    await world.clock.advance(Fixtures.SETTLE_MS)
+
+    expect(world.opened, 'the built-in opens on a checkpoint alone').toEqual([])
+
+    expect(world.runs, 'so nothing was asked of the repository').toEqual([])
+
+    expect(await $.command.run(Fixtures.DIFF)).toEqual({
+      text: 'Diff panel shown',
+    })
+  })
+
+  test('checkpointing off by variable: edits open nothing', async ($, on) => {
+    const world = Fixtures.inRepository(on, Fixtures.REPOSITORY, {
+      env: { CLAUDE_CODE_DISABLE_FILE_CHECKPOINTING: 'true' },
+    })
+
+    on('tool.call', () => ({ result: 'edited' }))
+
+    await $.session.start(Fixtures.SESSION)
+    await $.ui.render(Fixtures.HINT)
+
+    await $.tool.call({
+      tool: 'Edit',
+      file_path: '/work/app.ts',
+      old_string: '1',
+      new_string: '2',
+    })
+
+    await world.clock.advance(Fixtures.SETTLE_MS)
+
+    expect(world.opened).toEqual([])
+  })
+
+  test('an open left waiting is withdrawn; /diff opens it', async ($, on) => {
+    let isNarrow = true
+
+    const world = Fixtures.inRepository(on, Fixtures.REPOSITORY, {
+      stored: { [Names.STORE_OPEN_KEY]: true },
+      isLeftWaiting: () => isNarrow,
+    })
+
+    const edit = () =>
+      $.tool.call({
+        tool: 'Edit',
+        file_path: '/work/app.ts',
+        old_string: '1',
+        new_string: '2',
+      })
+
+    on('tool.call', () => ({ result: 'edited' }))
+
+    await $.session.start(Fixtures.SESSION)
+    await $.ui.render(Fixtures.hintAt(Limits.AUTO_OPEN_MIN_COLUMNS - 1))
+    await edit()
+    await world.clock.advance(Fixtures.SETTLE_MS)
+
+    expect(
+      world.waiting.map(pane => pane.id),
+      'the edit opened',
+    ).toEqual(['diff'])
+
+    expect(
+      world.closed.map(pane => pane.id),
+      'and withdrew the pane the engine left waiting, so no resize seats it',
+    ).toEqual(['diff'])
+
+    expect(
+      world.runs.map(run => Fixtures.gitWordOf(run.argv)),
+      'the repository was found and read once to decide, no hunks fetched ' +
+        'for a pane no one sees',
+    ).toEqual([
+      'rev-parse --show-toplevel',
+      'status',
+      'diff --shortstat',
+      'diff --numstat',
+      'ls-files',
+    ])
+
+    isNarrow = false
+
+    expect(
+      await $.command.run(Fixtures.diffAt(Limits.AUTO_OPEN_MIN_COLUMNS - 1)),
+      '/diff opens it, where a pane believed open would have been hidden',
+    ).toEqual({ text: 'Diff panel shown' })
+
+    await $.command.run(Fixtures.diffAt(Limits.AUTO_OPEN_MIN_COLUMNS - 1))
+    await edit()
+    await world.clock.advance(Fixtures.SETTLE_MS)
+
+    expect(
+      world.opened.map(pane => pane.id),
+      'closed by hand, no edit opens it again',
+    ).toEqual(['diff'])
+  })
+
+  test('an unplaced open is tried again at the next edit', async ($, on) => {
+    let isNarrow = true
+
+    const world = Fixtures.inRepository(on, Fixtures.REPOSITORY, {
+      stored: { [Names.STORE_OPEN_KEY]: true },
+      isLeftWaiting: () => isNarrow,
+    })
+
+    const edit = () =>
+      $.tool.call({
+        tool: 'Edit',
+        file_path: '/work/app.ts',
+        old_string: '1',
+        new_string: '2',
+      })
+
+    on('tool.call', () => ({ result: 'edited' }))
+
+    await $.session.start(Fixtures.SESSION)
+    await $.ui.render(Fixtures.hintAt(Limits.AUTO_OPEN_MIN_COLUMNS - 1))
+    await edit()
+    await world.clock.advance(Fixtures.SETTLE_MS)
+
+    expect(world.opened, 'the first try waited and was withdrawn').toEqual([])
+
+    isNarrow = false
+
+    await edit()
+    await world.clock.advance(Fixtures.SETTLE_MS)
+
+    expect(
+      world.opened.map(pane => pane.id),
+      'the next edit opened it, as the built-in reads the width again then',
+    ).toEqual(['diff'])
+  })
+
   test('/clear closes the pane it finds open', async ($, on) => {
     const world = Fixtures.inRepository(on)
 
@@ -955,7 +1136,7 @@ describe('register', () => {
 
   test('a worktree opens on the base it kept', async ($, on) => {
     const world = Fixtures.inRepository(on, Fixtures.oneSecret(), {
-      'base:/main/wt': 'uncommitted',
+      stored: { 'base:/main/wt': 'uncommitted' },
     })
 
     await $.session.start(Fixtures.WORKTREE_SESSION)

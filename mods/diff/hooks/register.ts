@@ -1,10 +1,10 @@
 import type {
+  Args,
   On,
   PaneOpenArgs,
   ResultOf,
   SessionMessage,
   Timer,
-  ToolCallInput,
 } from 'claude-code'
 
 import Ask from './ask'
@@ -14,8 +14,10 @@ import { drawnFilesOf } from './drawn-files-of'
 import { entryKindsOf } from './entry-kinds-of'
 import type Git from './git'
 import type { Host } from './host'
+import { isCheckpointing } from './is-checkpointing'
 import { isOnPaneSurface } from './is-on-pane-surface'
 import { isOutsideWorkingTree } from './is-outside-working-tree'
+import { isRecord } from './is-record'
 import Limits from './limits'
 import { mapLimited } from './map-limited'
 import { messageOf } from './message-of'
@@ -32,9 +34,9 @@ import Views from './views'
  * pane's drawing and refresh, its opening on Claude's first edit, the ask.
  *
  * Git runs when the built-in's would: `session.start` binds the host and
- * registers `/diff`; `/diff` or the first edit with room pins the backend
- * where the session started, until `/clear`; an open pane fetches, and so
- * does an edit with room, inside the tree, until one lists a file to open on.
+ * registers `/diff`; `/diff` or the main loop's first checkpointed edit with
+ * room pins the backend, until `/clear`; a placed, open pane fetches, and so
+ * does such an edit inside the tree, until one lists a file to open on.
  *
  * @param on the engine's registrar
  */
@@ -414,7 +416,7 @@ export function register(on: On) {
     engine: Host,
     trigger: (typeof Record.SHOWN_TRIGGERS)[number],
     read: PaneState.Fetched | null = null,
-  ): Promise<void> {
+  ): Promise<boolean> {
     const isDialog = model.isFullscreen === false
 
     opens += 1
@@ -428,13 +430,23 @@ export function register(on: On) {
 
     dialogRows = isDialog ? Views.dialogRowsOf(model) : null
 
-    const settling = read ? refresh(engine, read) : null
+    if (read) {
+      model = PaneState.afterFetch(model, read)
+    }
 
-    await engine.openPane(
+    const opened = await engine.openPane(
       isDialog
         ? { ...dialogPane(), focus: true }
         : { id: Names.PANE_ID, title: Names.PANE_TITLE, holdToasts: true },
     )
+
+    const isWaiting = isRecord(opened) && opened.isPlaced === false
+
+    if (isWaiting) {
+      await engine.closePane({ id: Names.PANE_ID }).catch(() => undefined)
+
+      return false
+    }
 
     isPaneOpen = true
 
@@ -445,7 +457,9 @@ export function register(on: On) {
       Record.recorderOf(engine).shown(trigger, Record.widthBucketOf(columns))
     }
 
-    void (settling ?? refresh(engine))
+    void refresh(engine, read)
+
+    return true
   }
 
   async function closePane(engine: Host): Promise<void> {
@@ -490,7 +504,14 @@ export function register(on: On) {
 
         if (isListing) {
           hasAutoOpened = true
-          await openPane(engine, 'auto_open', read)
+
+          const isPlaced = await openPane(engine, 'auto_open', read)
+
+          if (!isPlaced) {
+            hasAutoOpened = false
+
+            return
+          }
         }
 
         if (seen === landed || isOvertaken) {
@@ -524,6 +545,12 @@ export function register(on: On) {
     const hasRoom = preference !== false && hasRoomFor(floor)
 
     if (!hasRoom || isTaken()) {
+      return
+    }
+
+    const isCheckpointed = await engine.isCheckpointing().catch(() => true)
+
+    if (!isCheckpointed || isTaken()) {
       return
     }
 
@@ -677,6 +704,11 @@ export function register(on: On) {
         readFile: path => $.fs.read(path),
         storeGet: key => $.store.get(key),
         storeSet: (key, value) => $.store.set(key, value),
+        isCheckpointing: async () =>
+          isCheckpointing(
+            await $.settings.read(),
+            await $.env.get('CLAUDE_CODE_DISABLE_FILE_CHECKPOINTING'),
+          ),
         messages: () => $.session.messages(),
         invalidate: () => $.ui.invalidate('ui.render'),
         status: text => $.ui.status(text),
@@ -774,7 +806,14 @@ export function register(on: On) {
     }
 
     const isOpening = toggle === 'open'
-    await (isOpening ? openPane(host, 'manual') : closePane(host))
+
+    const isDone = isOpening
+      ? await openPane(host, 'manual')
+      : await closePane(host).then(() => true)
+
+    if (!isDone) {
+      return { text: Names.RESIZE_TERMINAL_TEXT }
+    }
 
     if (!isFullscreen) {
       return isOpening ? {} : { text: Names.DIALOG_DISMISSED_TEXT }
@@ -893,7 +932,7 @@ export function register(on: On) {
 
   function afterTool(
     engine: Host,
-    e: ToolCallInput,
+    e: Args<'tool.call'>,
     result: ResultOf['tool.call'] | undefined,
   ) {
     const isEdit = Tools.EDITING_TOOLS.some(name => name === e.tool)
@@ -916,7 +955,9 @@ export function register(on: On) {
       scheduleRefresh(engine)
     }
 
-    if (hasEdited) {
+    const isMainLoopEdit = hasEdited && e.agentId === undefined
+
+    if (isMainLoopEdit) {
       void openOnFirstEdit(engine, Tools.editedPathOf(e)).catch(() => undefined)
     }
   }

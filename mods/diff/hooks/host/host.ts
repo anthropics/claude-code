@@ -65,6 +65,12 @@ export type Host = {
   storeSet: (key: string, value: unknown) => Promise<void>
 
   /**
+   * Whether the session checkpoints edits (`$.settings.read`, `$.env.get`):
+   * the built-in panel opens on an edit only while it does.
+   */
+  isCheckpointing: () => Promise<boolean>
+
+  /**
    * `$.session.messages`.
    */
   messages: () => Promise<SessionMessage[]>
@@ -87,7 +93,7 @@ export type Host = {
   /**
    * `$.ui.open`.
    */
-  openPane: (pane: PaneOpenArgs) => Promise<void>
+  openPane: (pane: PaneOpenArgs) => Promise<unknown>
 
   /**
    * `$.ui.close`.

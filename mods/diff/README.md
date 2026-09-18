@@ -13,14 +13,18 @@ built-in's list keys (`ctrl+up`/`ctrl+down`, `opt+up`/`opt+down`), and
 through Buttons that declare the engine's own actions. The pane refreshes
 as Claude edits and runs shell commands, and while it is open it polls
 the repository's HEAD so a commit or checkout made elsewhere shows too.
-The first successful edit of a session the diff has a file to list for
-opens the pane by itself where the layout docks it beside the transcript
-(the fullscreen layout, which each drawing's `viewport` says) and the
-terminal is wide enough (144 columns when the person never chose, 110 when
-they kept it open before; a person who closed it is left alone); where the
-surface does not say, nothing opens by itself. An edit to a file outside
-the repository, or one after which the diff lists nothing or cannot be
-read, opens nothing and leaves the opening to a later edit.
+The main loop's first successful edit of a session the diff has a file to
+list for opens the pane by itself, as the built-in panel opens on its first
+checkpoint: where the layout docks it beside the transcript (the fullscreen
+layout, which each drawing's `viewport` says), the terminal is wide enough
+(144 columns when the person never chose, 110 when they kept it open
+before; a person who closed it is left alone) and file checkpointing is on;
+a subagent's edit opens nothing, and where the surface does not say,
+nothing opens by itself. An edit to a file outside the repository, or one
+after which the diff lists nothing or cannot be read, opens nothing and
+leaves the opening to a later edit. An open the engine leaves waiting
+undrawn is withdrawn, so no later resize seats it, and the next edit asks
+again.
 
 Under the fullscreen layout a terminal under 110 columns gets the
 built-in's line asking for a wider one and nothing opens. Without that
@@ -53,9 +57,9 @@ or the first edit a pane has room to open on first needs the repository
 forgets it); and the working tree is read only by a fetch for a pane that
 is open, after an edit that landed or a shell command that ran, or by the
 fetch each edit inside the repository, with room for a pane, makes until
-one lists a file to open on. The one read the built-in has no counterpart
-for is a `git status` at a pane's first fetch, which stands in for the
-change time the built-in dates a moved file by.
+one lists a file and the pane opens on it. The one read the built-in has
+no counterpart for is a `git status` at a pane's first fetch, which stands
+in for the change time the built-in dates a moved file by.
 
 `hooks/register.ts` is the module; everything under `hooks/` is its parts.
 
@@ -71,16 +75,17 @@ change time the built-in dates a moved file by.
 | `ui.scroll` of the pane | Docked, moves the hunks under the pinned header and list (three rows a wheel tick, a page a page key), or the list when the wheel is over it, and keeps the engine's window still. |
 | `ui.focus` in the pane | In the dialog's list, selects the file the ring lands on, re-centres the five rows on it, and lands the ring where that row now sits. |
 | `command.run` of `clear`, `resume` | Closes the pane and forgets the session's state, the pinned repository with it. |
-| `tool.call` of `Edit`, `Write`, `NotebookEdit` | After an edit that landed (not refused, not failed), refreshes an open pane; the session's first such edit inside the repository whose fetch lists a file opens it on that fetch, pinning the repository then if the terminal has the room. |
+| `tool.call` of `Edit`, `Write`, `NotebookEdit` | After an edit that landed (not refused, not failed), refreshes an open pane; the main loop's first such edit inside the repository whose fetch lists a file opens it on that fetch, pinning the repository then if the terminal has the room and checkpointing is on. |
 | `tool.call` of `Bash`, `PowerShell` | After a command that was not refused, failed and interrupted ones too, refreshes an open pane. |
 | `prompt.submit` | Adds the armed file's hunks to the prompt's context and disarms. |
 
 ## What it calls on `$`
 
-`clock.after`, `clock.every`, `clock.now`, `command.register`, `fs.list`,
-`fs.read`, `fs.stat`, `process.run` (git, read-only), `session.messages`,
-`store.get`, `store.set`, `telemetry.log`, `telemetry.mark`, `ui.close`,
-`ui.invalidate`, `ui.log`, `ui.open`, `ui.resolve`, `ui.status`.
+`clock.after`, `clock.every`, `clock.now`, `command.register`, `env.get`
+(`CLAUDE_CODE_DISABLE_FILE_CHECKPOINTING`), `fs.list`, `fs.read`, `fs.stat`,
+`process.run` (git, read-only), `session.id`, `session.messages`,
+`settings.read`, `store.get`, `store.set`, `telemetry.log`, `telemetry.mark`,
+`ui.close`, `ui.invalidate`, `ui.log`, `ui.open`, `ui.resolve`, `ui.status`.
 
 `$.telemetry` is the telemetry plugin's noun; where it is absent the rows
 are dropped and nothing else changes.

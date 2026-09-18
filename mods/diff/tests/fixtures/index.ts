@@ -1,6 +1,7 @@
 export * from './answers-of.js'
 export * from './ask'
 export * from './backend-of'
+export * from './beneath'
 export * from './big-lines.js'
 export * from './branch-base-of'
 export * from './builtin-holds.js'

@@ -45,7 +45,9 @@ export function inSlowRepository(
   on('ui.invalidate', () => ({ value: undefined }))
   on('ui.render', { component: 'PromptHint' }, () => HINT_DRAWN)
   on('session.messages', () => ({ value: [] }))
+  on('settings.read', () => ({ value: {} }))
   mock.store(on, {})
+  mock.env(on, {})
 
   return { reads, opened: opened.kept, clock }
 }
