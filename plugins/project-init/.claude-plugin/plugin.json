@@ -1,0 +1,9 @@
+{
+  "name": "project-init",
+  "description": "Initialize new projects with a single command: create directory, git repo, and Claude Code configuration",
+  "version": "1.0.0",
+  "author": {
+    "name": "Anthropic",
+    "email": "support@anthropic.com"
+  }
+}
