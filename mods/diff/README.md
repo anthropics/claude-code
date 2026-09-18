@@ -58,8 +58,8 @@ forgets it); and the working tree is read only by a fetch for a pane that
 is open, after an edit that landed or a shell command that ran, or by the
 fetch each edit inside the repository, with room for a pane, makes until
 one lists a file and the pane opens on it. The one read the built-in has
-no counterpart for is a `git status` at a pane's first fetch, which stands
-in for the change time the built-in dates a moved file by.
+no counterpart for is a `git status` at the first of those fetches, which
+stands in for the change time the built-in dates a moved file by.
 
 `hooks/register.ts` is the module; everything under `hooks/` is its parts.
 

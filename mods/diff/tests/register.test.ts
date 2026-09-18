@@ -875,6 +875,44 @@ describe('register', () => {
     expect(world.opened, 'the room it read for is gone').toEqual([])
   })
 
+  test('nor does a command landing in that read have it read again, the next edit with room does', async ($, on) => {
+    const world = Fixtures.inSlowRepository(on)
+
+    const edit = () =>
+      $.tool.call({
+        tool: 'Edit',
+        file_path: '/work/app.ts',
+        old_string: '1',
+        new_string: '2',
+      })
+
+    on('tool.call', () => ({ result: 'done' }))
+
+    await $.session.start(Fixtures.SESSION)
+    await $.ui.render(Fixtures.HINT)
+    await edit()
+    await world.clock.settle()
+    await $.ui.render(Fixtures.hintAt(Limits.AUTO_OPEN_MIN_COLUMNS - 1))
+    await $.tool.call({ tool: 'Bash', command: 'make' })
+    await world.clock.advance(Fixtures.SETTLE_MS)
+
+    expect(
+      world.reads,
+      'the attempt gave way with the room; it read for nothing more',
+    ).toEqual([0])
+
+    expect(world.opened).toEqual([])
+
+    await $.ui.render(Fixtures.HINT)
+    await edit()
+    await world.clock.advance(Fixtures.SETTLE_MS)
+
+    expect(
+      world.opened.map(pane => pane.id),
+      'wide again, the next edit starts an attempt of its own',
+    ).toEqual(['diff'])
+  })
+
   test("only the main loop's edit opens the pane", async ($, on) => {
     const world = Fixtures.inRepository(on)
 

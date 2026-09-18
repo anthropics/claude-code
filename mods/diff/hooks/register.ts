@@ -514,7 +514,9 @@ export function register(on: On) {
           }
         }
 
-        if (seen === landed || isOvertaken) {
+        const hasLostRoom = !isListing && !hasRoomFor(floor)
+
+        if (seen === landed || isOvertaken || hasLostRoom) {
           return
         }
 
