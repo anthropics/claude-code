@@ -21,7 +21,7 @@ jobs:
             exit 0
           fi
 
-          MATCHES=$(echo "$DIFF" | grep "^+.*allowed_non_write_users" || true)
+          MATCHES=$(echo "$DIFF" | grep "^+" | grep -v "^+#" | grep -v "^+.*#.*allowed_non_write_users" | grep "allowed_non_write_users" || true)
 
           if [ -z "$MATCHES" ]; then
             exit 0
