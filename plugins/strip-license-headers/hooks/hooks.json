@@ -1,0 +1,17 @@
+{
+  "description": "PreToolUse hook to strip license headers from Read operations",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/strip_headers.py",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}
