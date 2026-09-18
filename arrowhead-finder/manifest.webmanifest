@@ -1,0 +1,10 @@
+{
+  "name": "Arrowhead Finder",
+  "short_name": "Arrowhead",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f4efe4",
+  "theme_color": "#f4efe4",
+  "description": "Log and map arrowhead finds, shared with your group."
+}
