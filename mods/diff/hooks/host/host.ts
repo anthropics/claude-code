@@ -65,6 +65,12 @@ export type Host = {
   storeSet: (key: string, value: unknown) => Promise<void>
 
   /**
+   * Whether the session checkpoints edits (`$.settings.read`, `$.env.get`):
+   * the built-in panel opens on an edit only while it does.
+   */
+  isCheckpointing: () => Promise<boolean>
+
+  /**
    * `$.session.messages`.
    */
   messages: () => Promise<SessionMessage[]>
