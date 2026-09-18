@@ -1,0 +1,27 @@
+{
+  "description": "Buddy Customizer — tracks coding activity for gamification and injects buddy personality overlay",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/track_activity.py",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/session_summary.py",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}
