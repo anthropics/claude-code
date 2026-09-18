@@ -66,7 +66,12 @@ builds (the next turn after the reload, a new conversation, `/clear`, a
 compaction) carries the new mode's files. A hand-typed value outside the
 four is told once in the transcript and reads as the default. `/plugin`
 lists the plugin among the built-ins, where a person can turn it off; with
-it off the engine reads `CLAUDE.md` alone.
+it off the engine reads `CLAUDE.md` alone. No hooks setting or CLI mode turns
+it off (`disableAllHooks`, `allowManagedHooksOnly` and `--bare` govern
+settings hooks and installed plugins, not built-ins); where the engine loads
+no instruction files (`--bare` without `--add-dir`, `--safe-mode`,
+`CLAUDE_CODE_DISABLE_CLAUDE_MDS`) its walk finds none and it adds none,
+`CLAUDE.md` and `AGENTS.md` alike.
 
 The option was first keyed `projectInstructions`, with the values `claude`,
 `agents-fallback`, `both` and `none`. A value still stored under that key is
@@ -88,7 +93,7 @@ same entry is keyed `"agents-md"`.
 | `session.start` | in every mode: passes the start straight through and floats the usage row for the configured mode, never awaited; the first start of a load logs how a stored `projectInstructions` value is read. The session's start never waits on this plugin |
 | `prompt.context` | under `claude-md-or-agents-md` and `claude-md-and-agents-md`: walks `$.fs.ancestors` for the `AGENTS.md` files above the working directory and answers them as `project` instruction files, each `@` import its own entry after its file, each placed where a project file of its directory stands (root first, before the first deeper project file, else after the last project file, before memory); files the engine already holds by path or by content are left out; under `claude-md-or-agents-md` it answers nothing when the project has a `CLAUDE.md` of its own (among the handed files, else found by a `$.fs.ancestors` walk, so a `CLAUDE.md` the engine loaded and then withheld still counts), and logs which files it loaded once, and again after a move to another project root; handed unknown files (a hook above rewrote the `claudeMd` text) it adds nothing; the first context of a load sends the load row (counts) and the feature mark; under `managed-only` (matcher: a `project`, `local` or `user` file present): answers the list without those kinds |
 | `agent.spawn` on `fork: true` | under `claude-md-or-agents-md` and `claude-md-and-agents-md`: a fork the Agent tool starts shares its parent's prompt prefix, so the parent loop's delivered nested files are copied to the fork's loop and not attached to it again (a `/fork` or `/subtask` fork does not raise `agent.spawn` yet and starts from an empty set, as every fork did before; a fork started in the same tool batch as a `Read` inherits that Read's file although its prefix holds a placeholder for it) |
-| `tool.call` on `Read` | under `claude-md-or-agents-md` and `claude-md-and-agents-md`, for a file under the session's project root (`$.session.root()`, read live, so `/cd`, a host's directory change and worktree moves are followed and a moved root starts the delivered sets and the fallback decision over; a file elsewhere gets nothing, as the engine attaches no nested `CLAUDE.md` there): walks only the directories strictly between the root and the read file (`$.fs.ancestors` with `below: root`, as the engine walks only those for a nested `CLAUDE.md`, never up to the filesystem root again) and attaches their `AGENTS.md` files not yet given to that agent loop, not already among the context's instruction files (by path or, for a project file, by text) and not claimed by a `CLAUDE.md` of the same directory (or imported by one), as `context` after the tool result, framed `Contents of <path>:` byte for byte as the engine frames a nested `CLAUDE.md`, whatever its size; each file once per loop and conversation (the context's recomputation after a compaction or `/clear` starts the count over), the context's files never; a Read that attached files sends the nested row. A `~` or `~/` path is read under the home directory as the Read tool reads it |
+| `tool.call` on `Read` | under `claude-md-or-agents-md` and `claude-md-and-agents-md`, for a file under the session's project root (`$.session.root()`, read live, so `/cd`, a host's directory change and worktree moves are followed and a moved root starts the delivered sets and the fallback decision over; a file elsewhere gets nothing, as the engine attaches no nested `CLAUDE.md` there; and nothing anywhere in a run where the engine attaches nothing to a turn, `--bare` with its `CLAUDE_CODE_SIMPLE` or `CLAUDE_CODE_DISABLE_ATTACHMENTS`, read on every Read through `$.env.get` as the engine reads them on every turn): walks only the directories strictly between the root and the read file (`$.fs.ancestors` with `below: root`, as the engine walks only those for a nested `CLAUDE.md`, never up to the filesystem root again) and attaches their `AGENTS.md` files not yet given to that agent loop, not already among the context's instruction files (by path or, for a project file, by text) and not claimed by a `CLAUDE.md` of the same directory (or imported by one), as `context` after the tool result, framed `Contents of <path>:` byte for byte as the engine frames a nested `CLAUDE.md`, whatever its size; each file once per loop and conversation (the context's recomputation after a compaction or `/clear` starts the count over), the context's files never; a Read that attached files sends the nested row. A `~` or `~/` path is read under the home directory as the Read tool reads it |
 
 ## What it calls on `$`
 
@@ -97,7 +102,8 @@ apart; with `below` on a Read; it finds nothing on a thin client, whose
 workspace files are remote, as the engine's own walk does), `session.root`,
 `session.cwd`, `env.get` (`HOME` and `USERPROFILE`, once per load, the
 profile first on a Windows spelling of the working directory, so a `~/` path
-the model hands a Read resolves where the Read tool reads it), `ui.log`,
+the model hands a Read resolves where the Read tool reads it; `CLAUDE_CODE_SIMPLE`
+and `CLAUDE_CODE_DISABLE_ATTACHMENTS` on every Read), `ui.log`,
 `telemetry.log` and `telemetry.mark`.
 
 `$.telemetry` is the [telemetry](../telemetry) plugin's noun; where that

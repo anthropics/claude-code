@@ -87,7 +87,7 @@ export type Host = {
   /**
    * `$.ui.open`.
    */
-  openPane: (pane: PaneOpenArgs) => Promise<void>
+  openPane: (pane: PaneOpenArgs) => Promise<unknown>
 
   /**
    * `$.ui.close`.

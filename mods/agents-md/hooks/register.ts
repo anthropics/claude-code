@@ -10,6 +10,7 @@ import Files from './files'
 import Frames from './frames'
 import Modes from './modes'
 import Names from './names'
+import Switches from './switches'
 import Telemetry from './telemetry'
 
 /**
@@ -26,7 +27,9 @@ const NONE: readonly FsAncestor[] = []
  * standing alone. `managed-only`: the project's and the person's instruction
  * files dropped, the organization's kept. `claude-md-or-agents-md` (a project
  * with none of its own) and `claude-md-and-agents-md`: AGENTS.md files joined
- * to the engine's instruction files, nested ones on a Read. Every mode sends
+ * to the engine's instruction files, nested ones on a Read except in a run
+ * where the engine attaches nothing to a turn (--bare, which sets
+ * CLAUDE_CODE_SIMPLE, or CLAUDE_CODE_DISABLE_ATTACHMENTS). Every mode sends
  * its usage rows through `$.telemetry` where that noun is seated and drops
  * them where it is not.
  *
@@ -182,6 +185,10 @@ export function register(on: On, options: PluginOptions): void {
       return result
     }
 
+    if (!(await attachesOnRead($))) {
+      return result
+    }
+
     const [root, cwd] = await Promise.all([$.session.root(), $.session.cwd()])
     home ??= await homeOf($, cwd)
     const read = Frames.absoluteOf(e.file_path, cwd, home)
@@ -245,6 +252,31 @@ export function register(on: On, options: PluginOptions): void {
         }
       : result
   })
+}
+
+/**
+ * Whether a Read attaches nested AGENTS.md files in this run: not where the
+ * engine attaches nothing to a turn, a nested CLAUDE.md included, which is a
+ * --bare run (it sets CLAUDE_CODE_SIMPLE) or one with
+ * CLAUDE_CODE_DISABLE_ATTACHMENTS on.
+ *
+ * Read on every Read, as the engine reads them on every turn: a settings
+ * `env` block or a managed delivery can flip either mid-session. The files of
+ * the walk itself need no such check: where the engine loads no instruction
+ * files `$.fs.ancestors` finds none.
+ *
+ * @param $ the engine, as the `tool.call` hook holds it
+ * @returns whether nested files ride a Read's result here
+ */
+async function attachesOnRead($: EngineInterface): Promise<boolean> {
+  const [simple, attachmentsOff] = await Promise.all([
+    $.env.get('CLAUDE_CODE_SIMPLE'),
+    $.env.get('CLAUDE_CODE_DISABLE_ATTACHMENTS'),
+  ])
+
+  return (
+    !Switches.isSwitchedOn(simple) && !Switches.isSwitchedOn(attachmentsOff)
+  )
 }
 
 /**
