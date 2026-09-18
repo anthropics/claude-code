@@ -1,0 +1,8 @@
+{
+  "name": "notification-sound",
+  "version": "1.0.0",
+  "description": "Plays a system notification sound when Claude finishes and is waiting for your input. Cross-platform: macOS, Linux, Windows.",
+  "author": {
+    "name": "Khurdhula-Harshavardhan"
+  }
+}
