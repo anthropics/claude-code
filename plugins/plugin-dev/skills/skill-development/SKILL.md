@@ -163,11 +163,13 @@ Also, delete any example files and directories not needed for the skill. Create 
 
 ```yaml
 ---
-name: Skill Name
+name: skill-name
 description: This skill should be used when the user asks to "specific phrase 1", "specific phrase 2", "specific phrase 3". Include exact phrases users would say that should trigger this skill. Be concrete and specific.
 version: 0.1.0
 ---
 ```
+
+> **Note:** The `name` field is used as the slash command trigger (e.g., `name: skill-name` triggers via `/skill-name`). Always use lowercase hyphenated format, not title case with spaces.
 
 **Good description examples:**
 ```yaml
@@ -418,7 +420,7 @@ Before finalizing a skill:
 
 **Structure:**
 - [ ] SKILL.md file exists with valid YAML frontmatter
-- [ ] Frontmatter has `name` and `description` fields
+- [ ] Frontmatter has `name` (lowercase hyphenated) and `description` fields
 - [ ] Markdown body is present and substantial
 - [ ] Referenced files actually exist
 
