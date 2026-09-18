@@ -267,6 +267,77 @@ argument-hint: [test-pattern] [options]
 Run tests matching $1 with options: $2
 ```
 
+### name
+
+**Type:** String
+**Required:** No
+**Default:** Derived from the filename (without `.md` extension) or folder name
+
+**Purpose:** Override the command or skill name displayed in menus.
+
+**Examples:**
+```yaml
+name: deploy
+```
+```yaml
+name: review-pr
+```
+
+### user-invocable
+
+**Type:** Boolean
+**Required:** No
+**Default:** `true` for skills in `/skills/` directories
+
+**Purpose:** Control whether the skill appears in the slash command menu. Set to `false` to hide from the menu while keeping the skill available for programmatic use.
+
+**Examples:**
+```yaml
+user-invocable: false  # Hide from slash command menu
+```
+
+### context
+
+**Type:** String
+**Required:** No
+**Default:** Runs in the current conversation context
+
+**Purpose:** Control the execution context. Use `fork` to run in a forked sub-agent context, isolating it from the main conversation.
+
+**Examples:**
+```yaml
+context: fork
+```
+
+### agent
+
+**Type:** String
+**Required:** No
+
+**Purpose:** Specify that this command should run as a named agent.
+
+**Examples:**
+```yaml
+agent: code-reviewer
+```
+
+### hooks
+
+**Type:** Object
+**Required:** No
+
+**Purpose:** Define lifecycle hooks (PreToolUse, PostToolUse, Stop) scoped to this command or skill.
+
+**Examples:**
+```yaml
+hooks:
+  PreToolUse:
+    - matcher: Edit
+      hooks:
+        - type: command
+          command: "echo 'About to edit a file'"
+```
+
 ### disable-model-invocation
 
 **Type:** Boolean
