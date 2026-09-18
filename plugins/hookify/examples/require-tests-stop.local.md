@@ -6,7 +6,13 @@ action: block
 conditions:
   - field: transcript
     operator: not_contains
-    pattern: npm test|pytest|cargo test
+    pattern: npm test
+  - field: transcript
+    operator: not_contains
+    pattern: pytest
+  - field: transcript
+    operator: not_contains
+    pattern: cargo test
 ---
 
 **Tests not detected in transcript!**
