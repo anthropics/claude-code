@@ -1,0 +1,6 @@
+[
+  {
+    "type": "SessionStart",
+    "handler": "../hooks-handlers/inject-tips.md"
+  }
+]
