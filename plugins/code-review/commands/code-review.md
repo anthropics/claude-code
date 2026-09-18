@@ -8,10 +8,11 @@ Provide a code review for the given pull request.
 **Agent assumptions (applies to all agents and subagents):**
 - All tools are functional and will work without error. Do not test tools or make exploratory calls. Make sure this is clear to every subagent that is launched.
 - Only call a tool if it is required to complete the task. Every tool call should have a clear purpose.
+- When launching agents, always use a valid subagent_type (e.g. "general-purpose") and set the desired model via the `model` parameter (e.g. model: haiku, model: sonnet, model: opus). Do NOT use model names as the subagent_type.
 
 To do this, follow these steps precisely:
 
-1. Launch a haiku agent to check if any of the following are true:
+1. Launch a general-purpose agent (model: haiku) to check if any of the following are true:
    - The pull request is closed
    - The pull request is a draft
    - The pull request does not need code review (e.g. automated PR, trivial change that is obviously correct)
@@ -21,21 +22,21 @@ To do this, follow these steps precisely:
 
 Note: Still review Claude generated PR's.
 
-2. Launch a haiku agent to return a list of file paths (not their contents) for all relevant CLAUDE.md files including:
+2. Launch a general-purpose agent (model: haiku) to return a list of file paths (not their contents) for all relevant CLAUDE.md files including:
    - The root CLAUDE.md file, if it exists
    - Any CLAUDE.md files in directories containing files modified by the pull request
 
-3. Launch a sonnet agent to view the pull request and return a summary of the changes
+3. Launch a general-purpose agent (model: sonnet) to view the pull request and return a summary of the changes
 
 4. Launch 4 agents in parallel to independently review the changes. Each agent should return the list of issues, where each issue includes a description and the reason it was flagged (e.g. "CLAUDE.md adherence", "bug"). The agents should do the following:
 
-   Agents 1 + 2: CLAUDE.md compliance sonnet agents
+   Agents 1 + 2: CLAUDE.md compliance agents (model: sonnet)
    Audit changes for CLAUDE.md compliance in parallel. Note: When evaluating CLAUDE.md compliance for a file, you should only consider CLAUDE.md files that share a file path with the file or parents.
 
-   Agent 3: Opus bug agent (parallel subagent with agent 4)
+   Agent 3: Bug review agent (model: opus, parallel subagent with agent 4)
    Scan for obvious bugs. Focus only on the diff itself without reading extra context. Flag only significant bugs; ignore nitpicks and likely false positives. Do not flag issues that you cannot validate without looking at context outside of the git diff.
 
-   Agent 4: Opus bug agent (parallel subagent with agent 3)
+   Agent 4: Bug review agent (model: opus, parallel subagent with agent 3)
    Look for problems that exist in the introduced code. This could be security issues, incorrect logic, etc. Only look for issues that fall within the changed code.
 
    **CRITICAL: We only want HIGH SIGNAL issues.** Flag issues where:
@@ -52,7 +53,7 @@ Note: Still review Claude generated PR's.
 
    In addition to the above, each subagent should be told the PR title and description. This will help provide context regarding the author's intent.
 
-5. For each issue found in the previous step by agents 3 and 4, launch parallel subagents to validate the issue. These subagents should get the PR title and description along with a description of the issue. The agent's job is to review the issue to validate that the stated issue is truly an issue with high confidence. For example, if an issue such as "variable is not defined" was flagged, the subagent's job would be to validate that is actually true in the code. Another example would be CLAUDE.md issues. The agent should validate that the CLAUDE.md rule that was violated is scoped for this file and is actually violated. Use Opus subagents for bugs and logic issues, and sonnet agents for CLAUDE.md violations.
+5. For each issue found in the previous step by agents 3 and 4, launch parallel general-purpose subagents to validate the issue. These subagents should get the PR title and description along with a description of the issue. The agent's job is to review the issue to validate that the stated issue is truly an issue with high confidence. For example, if an issue such as "variable is not defined" was flagged, the subagent's job would be to validate that is actually true in the code. Another example would be CLAUDE.md issues. The agent should validate that the CLAUDE.md rule that was violated is scoped for this file and is actually violated. Use model: opus for bugs and logic issues, and model: sonnet for CLAUDE.md violations.
 
 6. Filter out any issues that were not validated in step 5. This step will give us our list of high signal issues for our review.
 
