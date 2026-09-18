@@ -13,6 +13,7 @@
   "allowManagedHooksOnly": true,
   "strictKnownMarketplaces": [],
   "sandbox": {
+    "enabled": true,
     "autoAllowBashIfSandboxed": false,
     "excludedCommands": [],
     "network": {
