@@ -1,0 +1,17 @@
+{
+  "description": "Remind user to deploy agent after editing the YAML definition",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/notify-yaml-changed.sh\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}
