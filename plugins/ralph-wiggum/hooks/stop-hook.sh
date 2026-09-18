@@ -168,7 +168,7 @@ jq -n \
   --arg prompt "$PROMPT_TEXT" \
   --arg msg "$SYSTEM_MSG" \
   '{
-    "decision": "block",
+    "ok": false,
     "reason": $prompt,
     "systemMessage": $msg
   }'
