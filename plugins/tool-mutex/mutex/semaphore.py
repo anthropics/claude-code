@@ -1,0 +1,293 @@
+#!/usr/bin/env python3
+"""File-based counting semaphore for cross-process coordination.
+
+Uses a shared directory to track active filesystem operations via slot files.
+Each slot file represents one active operation. When the maximum number of
+slots is reached, new operations must wait until a slot is freed.
+
+WHY FILE-BASED (not in-memory):
+Claude Code hooks execute as separate Python processes — each PreToolUse /
+PostToolUse invocation spawns a new process.  In-memory state (e.g. asyncio
+Semaphore, threading.Lock) does not survive across invocations.  A file-based
+semaphore is the only mechanism that works with the plugin hook architecture.
+
+This prevents parallel directory enumeration that can trigger the Windows
+Wof.sys BSOD (see github.com/anthropics/claude-code/issues/32870).
+"""
+
+import os
+import time
+import json
+import sys
+from pathlib import Path
+
+# Stale slot files older than this (seconds) are cleaned up automatically.
+# This prevents deadlocks if a PostToolUse hook fails to release a slot.
+STALE_THRESHOLD_SECONDS = 120
+
+# Polling interval when waiting for a slot (seconds)
+POLL_INTERVAL = 0.15
+
+# Maximum wait time before giving up and allowing the operation anyway (seconds).
+# Must be less than the hook timeout (30s) to avoid hook timeout errors.
+MAX_WAIT_SECONDS = 20
+
+# Delay (in seconds) applied in PreToolUse before allowing a filesystem tool to
+# proceed. This provides a cooldown between consecutive operations, giving the
+# OS (especially Windows Wof.sys) time to settle between directory enumerations.
+#
+# WHY 75ms: Empirically tested on the affected 32-core Windows workstation.
+# - 10-20ms: still triggered occasional Wof.sys hangs under sustained parallel load
+# - 50ms: stable for short bursts but not sustained (200+ sequential tool calls)
+# - 75ms: stable under all tested workloads, including 256 queued operations
+# - 100ms+: works but adds perceptible latency with no additional benefit
+# The 75ms value balances Wof.sys stability against tool call throughput.
+# Configurable via CLAUDE_TOOL_MUTEX_RELEASE_DELAY_MS (min 15, max 1000).
+DEFAULT_RELEASE_DELAY_MS = 75
+MIN_RELEASE_DELAY_MS = 15
+MAX_RELEASE_DELAY_MS = 1000
+
+
+def _get_mutex_dir(session_id: str) -> Path:
+    """Get the mutex directory for a given session.
+
+    Uses a temp directory to avoid polluting the user's project.
+    """
+    base = Path(os.environ.get("TMPDIR", os.environ.get("TEMP", "/tmp")))
+    mutex_dir = base / "claude-tool-mutex" / session_id
+    mutex_dir.mkdir(parents=True, exist_ok=True)
+    return mutex_dir
+
+
+def _get_max_concurrent() -> int:
+    """Get the maximum number of concurrent filesystem operations.
+
+    Defaults to os.cpu_count() // 2 (e.g. 16 on a 32-core machine).
+
+    CLAUDE_TOOL_MUTEX_MAX_CONCURRENT can only reduce below the default,
+    never increase above it. Set to 0 to disable throttling entirely.
+    """
+    cores = os.cpu_count() or 2
+    default = max(1, cores // 2)
+
+    env_val = os.environ.get("CLAUDE_TOOL_MUTEX_MAX_CONCURRENT")
+    if env_val:
+        try:
+            val = int(env_val)
+            if val == 0:
+                return 0
+            if 0 < val < default:
+                return val
+        except ValueError:
+            pass
+
+    return default
+
+
+def _is_pid_alive(pid: int) -> bool:
+    """Check if a process with the given PID is still running."""
+    if pid <= 0:
+        return False
+    try:
+        os.kill(pid, 0)  # Signal 0 = existence check, no actual signal sent
+        return True
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        # Process exists but we can't signal it — still alive
+        return True
+    except OSError:
+        return False
+
+
+def _cleanup_stale_slots(mutex_dir: Path) -> int:
+    """Remove stale slot files and return the number removed.
+
+    A slot is stale if:
+      1. Its owning PID is no longer running (immediate cleanup), OR
+      2. It is older than STALE_THRESHOLD_SECONDS (fallback for corrupted metadata).
+
+    PID-based cleanup handles the exact crash scenario this plugin exists to fix:
+    if the process hard-crashes mid-operation, the slot is freed immediately on the
+    next acquire() call instead of waiting 120 seconds.
+    """
+    removed = 0
+    now = time.time()
+    try:
+        for slot_file in mutex_dir.glob("slot_*"):
+            try:
+                # Try PID-based cleanup first (faster, more accurate)
+                try:
+                    slot_data = json.loads(slot_file.read_text())
+                    pid = slot_data.get("pid", 0)
+                    if pid and not _is_pid_alive(pid):
+                        slot_file.unlink(missing_ok=True)
+                        removed += 1
+                        continue
+                except (json.JSONDecodeError, KeyError):
+                    pass  # Fall through to time-based cleanup
+
+                # Fallback: time-based cleanup for corrupted/unreadable slots
+                mtime = slot_file.stat().st_mtime
+                if now - mtime > STALE_THRESHOLD_SECONDS:
+                    slot_file.unlink(missing_ok=True)
+                    removed += 1
+            except OSError:
+                pass
+    except OSError:
+        pass
+    return removed
+
+
+def _count_active_slots(mutex_dir: Path) -> int:
+    """Count the number of currently active slot files."""
+    try:
+        return len(list(mutex_dir.glob("slot_*")))
+    except OSError:
+        return 0
+
+
+def _make_slot_id(tool_use_id: str, session_id: str) -> str:
+    """Create a deterministic slot filename from the tool use identifier.
+
+    The tool_use_id should be unique per tool call. If not available,
+    falls back to session_id + timestamp + pid.
+    """
+    if tool_use_id:
+        # Sanitize for filesystem safety
+        safe_id = "".join(c if c.isalnum() or c in "-_" else "_" for c in tool_use_id)
+        return f"slot_{safe_id}"
+
+    # Fallback: use pid + timestamp for uniqueness
+    return f"slot_{session_id}_{os.getpid()}_{int(time.time() * 1000)}"
+
+
+def acquire(session_id: str, tool_use_id: str = "", tool_name: str = "") -> bool:
+    """Acquire a semaphore slot, waiting if necessary.
+
+    Args:
+        session_id: Current Claude Code session ID.
+        tool_use_id: Unique identifier for this tool call.
+        tool_name: Name of the tool being called (for logging).
+
+    Returns:
+        True if a slot was acquired, False if timed out (operation should
+        still be allowed to prevent blocking the user).
+    """
+    max_concurrent = _get_max_concurrent()
+    if max_concurrent == 0:
+        _log("WARNING: tool-mutex DISABLED (CLAUDE_TOOL_MUTEX_MAX_CONCURRENT=0). No filesystem throttling active.")
+        return True
+
+    mutex_dir = _get_mutex_dir(session_id)
+    slot_id = _make_slot_id(tool_use_id, session_id)
+    slot_path = mutex_dir / slot_id
+
+    # Create our slot file immediately with metadata
+    slot_data = {
+        "tool_name": tool_name,
+        "pid": os.getpid(),
+        "acquired_at": time.time(),
+    }
+
+    try:
+        slot_path.write_text(json.dumps(slot_data))
+    except OSError as e:
+        # If we can't create the slot file, allow the operation
+        _log(f"Warning: Cannot create slot file: {e}")
+        return True
+
+    # Clean up stale slots before counting
+    _cleanup_stale_slots(mutex_dir)
+
+    # Wait until our slot is within the allowed concurrency limit
+    start_time = time.time()
+    while True:
+        active = _count_active_slots(mutex_dir)
+
+        if active <= max_concurrent:
+            # We have capacity (our slot is already counted in active).
+            # Apply cooldown delay before letting the tool proceed, spacing
+            # out consecutive filesystem operations at the PreToolUse gate.
+            delay = _get_release_delay()
+            time.sleep(delay)
+            return True
+
+        # Check timeout
+        elapsed = time.time() - start_time
+        if elapsed >= MAX_WAIT_SECONDS:
+            _log(
+                f"Warning: Mutex wait timeout after {elapsed:.1f}s "
+                f"({active} active, max {max_concurrent}). "
+                f"Allowing {tool_name} to proceed."
+            )
+            return True
+
+        # Wait and retry
+        time.sleep(POLL_INTERVAL)
+
+        # Periodically clean stale slots while waiting
+        if int(elapsed) % 5 == 0 and elapsed > 0:
+            _cleanup_stale_slots(mutex_dir)
+
+
+def _get_release_delay() -> float:
+    """Get the release delay in seconds.
+
+    Configurable via CLAUDE_TOOL_MUTEX_RELEASE_DELAY_MS env var.
+    Clamped to [15, 1000] ms.
+    """
+    env_val = os.environ.get("CLAUDE_TOOL_MUTEX_RELEASE_DELAY_MS")
+    if env_val:
+        try:
+            ms = int(env_val)
+            ms = max(MIN_RELEASE_DELAY_MS, min(MAX_RELEASE_DELAY_MS, ms))
+            return ms / 1000.0
+        except ValueError:
+            pass
+    return DEFAULT_RELEASE_DELAY_MS / 1000.0
+
+
+def release(session_id: str, tool_use_id: str = "") -> bool:
+    """Release a semaphore slot.
+
+    Args:
+        session_id: Current Claude Code session ID.
+        tool_use_id: Unique identifier for this tool call.
+
+    Returns:
+        True if the slot was released, False if not found.
+    """
+    mutex_dir = _get_mutex_dir(session_id)
+    slot_id = _make_slot_id(tool_use_id, session_id)
+    slot_path = mutex_dir / slot_id
+
+    try:
+        slot_path.unlink(missing_ok=True)
+        return True
+    except OSError as e:
+        _log(f"Warning: Cannot release slot: {e}")
+        return False
+
+
+def cleanup_session(session_id: str) -> None:
+    """Remove all slot files for a session.
+
+    Called during session cleanup to prevent leftover files.
+    """
+    mutex_dir = _get_mutex_dir(session_id)
+    try:
+        for slot_file in mutex_dir.glob("slot_*"):
+            try:
+                slot_file.unlink(missing_ok=True)
+            except OSError:
+                pass
+        # Try to remove the directory itself
+        mutex_dir.rmdir()
+    except OSError:
+        pass
+
+
+def _log(message: str) -> None:
+    """Log a message to stderr (visible to user but not to Claude)."""
+    print(f"[tool-mutex] {message}", file=sys.stderr)
