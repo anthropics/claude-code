@@ -1,4 +1,4 @@
-import type Git from '../../git'
+import type Git from '../git'
 
 /**
  * Whether a fetch settled with a file the header would count, so a pane

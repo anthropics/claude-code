@@ -1,4 +1,4 @@
-export * from './edited-path-of'
+export * from './edited-path-of.js'
 export * from './editing-tools.js'
 export * from './shell-tools.js'
 export * from './todo-tool.js'

@@ -1,5 +1,5 @@
 import Git from '../git'
-import { normalPathOf } from './normal-path-of'
+import { normalPathOf } from './normal-path-of.js'
 
 /**
  * Whether a file a tool edited lies outside the pinned working tree, by
