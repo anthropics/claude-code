@@ -1,0 +1,29 @@
+# deny-reasons.example.yaml
+#
+# Copy this file to .claude/deny-reasons.yaml in your project root.
+# Each rule denies a tool call pattern and sends the reason to Claude.
+#
+# Pattern syntax: ToolName(glob)
+#   Bash(pnpm *)     - bash commands starting with "pnpm"
+#   Bash(sudo *)     - bash commands starting with "sudo"
+#   Edit(*.env)      - editing files ending in .env
+#   Write(*.env)     - writing files ending in .env
+#   Bash             - all Bash calls (no argument filter)
+#
+# Supported tools: Bash, Edit, Write, MultiEdit, Read, WebFetch, WebSearch
+
+rules:
+  - pattern: "Bash(pnpm *)"
+    reason: "Use npm instead of pnpm — this project uses npm as its package manager"
+
+  - pattern: "Bash(sudo *)"
+    reason: "Never use sudo — use rootless alternatives or ask the user to run privileged commands manually"
+
+  - pattern: "Edit(*.env)"
+    reason: "Don't modify .env files directly — use .env.example as a template and document the variable needed"
+
+  - pattern: "Write(*.env)"
+    reason: "Don't create .env files — use .env.example as a template and document the variable needed"
+
+  - pattern: "Bash(git push --force*)"
+    reason: "Force pushes are not allowed in this project — discuss with the team first"
