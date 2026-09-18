@@ -1,0 +1,24 @@
+{
+  "allowManagedPermissionRulesOnly": true,
+  "sandbox": {
+    "enabled": true,
+    "autoAllowBashIfSandboxed": false,
+    "allowUnsandboxedCommands": false,
+    "excludedCommands": [],
+    "network": {
+      "allowUnixSockets": [],
+      "allowAllUnixSockets": false,
+      "allowLocalBinding": false,
+      "allowedDomains": [],
+      "httpProxyPort": null,
+      "socksProxyPort": null
+    },
+    "enableWeakerNestedSandbox": false,
+    "filesystem": {
+      "denyRead": ["/etc/secrets", "/var/keys"],
+      "allowRead": ["/etc/secrets/app.crt"],
+      "denyWrite": [".venv/", "node_modules/"],
+      "allowWrite": [".claude/skills/"]
+    }
+  }
+}
