@@ -1,0 +1,9 @@
+{
+  "name": "persistent-identity",
+  "version": "1.0.0",
+  "description": "Gives Claude Code a persistent name and per-project memory that carries across sessions",
+  "author": {
+    "name": "Hrishikesh S",
+    "email": "hrish2006@gmail.com"
+  }
+}
