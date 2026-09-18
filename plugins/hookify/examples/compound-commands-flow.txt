@@ -1,0 +1,154 @@
+Compound Command Validation Flow
+=================================
+
+BEFORE (Current Behavior):
+--------------------------
+User: "Run sleep 10 && rm -rf /tmp/test"
+  |
+  v
+Kiro: Executes bash tool
+  |
+  v
+Permission System: "Allow 'sleep *'?"
+  |
+  v
+User: ??? (What else will run?)
+
+
+AFTER (With Compound Command Validation):
+------------------------------------------
+User: "Run sleep 10 && rm -rf /tmp/test"
+  |
+  v
+Kiro: Attempts to execute bash tool
+  |
+  v
+PreToolUse Hook: Detects compound command
+  |
+  v
+Command Parser: Splits into components
+  - Component 1: "sleep 10"
+  - Operator: "&&" (THEN if successful)
+  - Component 2: "rm -rf /tmp/test"
+  |
+  v
+Rule Engine: Evaluates conditions
+  - is_compound? YES
+  - Contains "rm -rf"? YES
+  |
+  v
+Action: WARN or BLOCK
+  |
+  v
+User sees:
+┌─────────────────────────────────────────┐
+│ ⚠️  Compound Command Detected           │
+│                                         │
+│ This command contains:                  │
+│                                         │
+│ 1. First: `sleep 10`                    │
+│ 2. THEN (if successful): `rm -rf /tmp`  │
+│                                         │
+│ Review each part before approving.      │
+└─────────────────────────────────────────┘
+  |
+  v
+User: Makes informed decision
+
+
+Component Architecture:
+-----------------------
+
+┌─────────────────────────────────────────────────────┐
+│                  Hookify Plugin                     │
+├─────────────────────────────────────────────────────┤
+│                                                     │
+│  ┌──────────────────┐    ┌──────────────────┐     │
+│  │  Config Loader   │───>│   Rule Engine    │     │
+│  │                  │    │                  │     │
+│  │ - Load .md files │    │ - Match rules    │     │
+│  │ - Parse YAML     │    │ - Format output  │     │
+│  └──────────────────┘    └────────┬─────────┘     │
+│                                   │               │
+│                                   v               │
+│                          ┌──────────────────┐     │
+│                          │ Command Parser   │     │
+│                          │                  │     │
+│                          │ - Split commands │     │
+│                          │ - Handle quotes  │     │
+│                          │ - Format output  │     │
+│                          └──────────────────┘     │
+│                                                     │
+└─────────────────────────────────────────────────────┘
+
+
+Operator Explanations:
+----------------------
+
+&&  (AND)     →  "THEN (if successful)"
+                 Run next command only if previous succeeded
+
+||  (OR)      →  "OR (if failed)"
+                 Run next command only if previous failed
+
+;   (SEQ)     →  "THEN (regardless)"
+                 Run next command no matter what
+
+|   (PIPE)    →  "PIPE output to"
+                 Send output of first to input of second
+
+
+Example Breakdowns:
+-------------------
+
+Input:  "sleep 10 && echo done"
+Output: 1. First: `sleep 10`
+        2. THEN (if successful): `echo done`
+
+Input:  "cmd1 || cmd2 || cmd3"
+Output: 1. First: `cmd1`
+        2. OR (if failed): `cmd2`
+        3. OR (if failed): `cmd3`
+
+Input:  "ls ; pwd ; whoami"
+Output: 1. First: `ls`
+        2. THEN (regardless): `pwd`
+        3. THEN (regardless): `whoami`
+
+Input:  "cat file.txt | grep pattern | wc -l"
+Output: 1. First: `cat file.txt`
+        2. PIPE output to: `grep pattern`
+        3. PIPE output to: `wc -l`
+
+
+Rule Configuration:
+-------------------
+
+.claude/hookify.compound-validator.local.md
+├── Frontmatter (YAML)
+│   ├── name: "compound-command-validator"
+│   ├── enabled: true
+│   ├── event: "bash"
+│   ├── action: "warn" or "block"
+│   └── conditions:
+│       └── field: "command"
+│           operator: "is_compound"
+│           pattern: ""
+└── Message Body (Markdown)
+    └── Can use templates:
+        ├── {{COMMAND_BREAKDOWN}}
+        └── {{BASE_COMMANDS}}
+
+
+Decision Matrix:
+----------------
+
+┌──────────────┬──────────────┬─────────────────────┐
+│ Command Type │ Action: warn │ Action: block       │
+├──────────────┼──────────────┼─────────────────────┤
+│ Simple       │ No message   │ No message          │
+│ (ls -la)     │ ✓ Executes   │ ✓ Executes          │
+├──────────────┼──────────────┼─────────────────────┤
+│ Compound     │ ⚠️  Warning   │ ❌ Blocked          │
+│ (cmd1 && c2) │ ✓ Executes   │ ✗ Does not execute  │
+└──────────────┴──────────────┴─────────────────────┘
