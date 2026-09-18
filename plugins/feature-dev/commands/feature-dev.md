@@ -82,23 +82,52 @@ If the user says "whatever you think is best", provide your recommendation and g
 
 ---
 
-## Phase 5: Implementation
+## Phase 5: Implementation Planning
 
-**Goal**: Build the feature
+**Goal**: Break the feature into reviewable increments
 
 **DO NOT START WITHOUT USER APPROVAL**
 
 **Actions**:
-1. Wait for explicit user approval
-2. Read all relevant files identified in previous phases
-3. Implement following chosen architecture
-4. Follow codebase conventions strictly
-5. Write clean, well-documented code
-6. Update todos as you progress
+1. Wait for explicit user approval of the architecture
+2. Break the implementation into logical increments (2-5 chunks), where each increment:
+   - Is a self-contained, working change that doesn't break the build
+   - Represents a logical unit (e.g., data layer, then API, then UI)
+   - Is small enough for a focused code review
+3. Present the increment plan to the user:
+   - List each increment with a brief description and estimated files touched
+   - **Ask user to confirm the plan or adjust the granularity**
 
 ---
 
-## Phase 6: Quality Review
+## Phase 6: Iterative Implementation
+
+**Goal**: Build and submit each increment for review
+
+**For each increment**:
+
+1. Read all relevant files for this increment
+2. Implement following chosen architecture and codebase conventions
+3. Write clean, well-documented code
+4. Update todos as you progress
+5. When the increment is complete:
+   - Create a new branch (if not already on one) using a descriptive name
+   - Stage and commit the changes with a clear commit message summarizing the increment
+   - Push and create a pull request using `gh pr create` with:
+     - A concise title describing the increment
+     - A body summarizing what changed and why
+   - **Present the PR link to the user**
+   - **Ask: "Ready to proceed to the next increment, or do you want to adjust anything?"**
+6. Wait for user confirmation before starting the next increment
+
+**Notes**:
+- If the user prefers a single PR for the whole feature, respect that and skip per-increment PRs
+- Each increment should pass tests and not break existing functionality
+- Later increments can build on earlier ones (stacked changes on the same branch are fine)
+
+---
+
+## Phase 7: Quality Review
 
 **Goal**: Ensure code is simple, DRY, elegant, easy to read, and functionally correct
 
@@ -110,7 +139,7 @@ If the user says "whatever you think is best", provide your recommendation and g
 
 ---
 
-## Phase 7: Summary
+## Phase 8: Summary
 
 **Goal**: Document what was accomplished
 
