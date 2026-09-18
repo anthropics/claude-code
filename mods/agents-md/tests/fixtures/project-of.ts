@@ -5,26 +5,27 @@ import type { Started } from './types'
 
 /**
  * A project whose walks up from the working directory find the given files,
- * one list per set of names, its session starting untouched (startedOf).
+ * one list per set of names, its session starting untouched (startedOf);
+ * each walk's first name is kept in `walks`.
  *
  * @param on the test's `on`
  * @param agents what a walk for AGENTS.md and .claude/AGENTS.md finds
  * @param claude what a walk for CLAUDE.md, .claude/CLAUDE.md and
  * CLAUDE.local.md finds
- * @param stored what the plugin's store already holds, by key
- * @returns the toasts and lines the plugins raised, in order
+ * @returns the toasts, lines and walks the plugins raised, in order
  */
 export function projectOf(
   on: On,
   agents: readonly FsAncestor[],
   claude: readonly FsAncestor[],
-  stored: Readonly<Record<string, unknown>> = {},
 ): Started {
-  const started = startedOf(on, stored)
+  const started = startedOf(on)
 
-  on('fs.ancestors', ($, e) => ({
-    value: e.names.includes('AGENTS.md') ? agents : claude,
-  }))
+  on('fs.ancestors', ($, e) => {
+    started.walks.push(e.names[0] ?? '')
+
+    return { value: e.names.includes('AGENTS.md') ? agents : claude }
+  })
 
   return started
 }

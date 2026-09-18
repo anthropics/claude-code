@@ -18,34 +18,57 @@ import Telemetry from './telemetry'
 const NONE: readonly FsAncestor[] = []
 
 /**
- * Registers the plugin's hooks for the mode `projectInstructions` names
- * (`claude` when unset; the manifest lists the four, nothing else arrives).
+ * Registers the plugin's hooks for the mode `instructionFiles` names
+ * (`claude-md-or-agents-md` when unset; the manifest lists the four, nothing
+ * else arrives).
  *
- * `claude`: a nudge for a project with AGENTS.md alone. `none`: the project's
- * and the person's instruction files dropped, the organization's kept.
- * `agents-fallback` (a project with none of its own) and `both`: AGENTS.md
- * files joined to the engine's instruction files, nested ones on a Read.
- * Every mode sends its usage rows through `$.telemetry` where that noun is
- * seated and drops them where it is not.
+ * `claude-md`: nothing beyond the usage row, the engine's CLAUDE.md walk
+ * standing alone. `managed-only`: the project's and the person's instruction
+ * files dropped, the organization's kept. `claude-md-or-agents-md` (a project
+ * with none of its own) and `claude-md-and-agents-md`: AGENTS.md files joined
+ * to the engine's instruction files, nested ones on a Read. Every mode sends
+ * its usage rows through `$.telemetry` where that noun is seated and drops
+ * them where it is not.
  *
  * @param on the engine's registrar
- * @param options the plugin's options; `projectInstructions` is `claude`,
- * `agents-fallback`, `both` or `none`
+ * @param options the plugin's options; `instructionFiles` is `claude-md`,
+ * `claude-md-or-agents-md`, `claude-md-and-agents-md` or `managed-only`
  */
 export function register(on: On, options: PluginOptions): void {
-  const mode = Modes.modeOf(options.projectInstructions)
+  const named = Modes.modeOf(options.instructionFiles)
+  // COMPAT_BREAK(agents-md-project-instructions): drop the projectInstructions
+  // mapping once stored settings have migrated. The host fills in the default,
+  // so an instructionFiles set to it cannot be told from one left unset.
+  const legacy = Modes.legacyModeOf(options.projectInstructions)
+  const isLegacyRead = legacy !== undefined && named === Modes.DEFAULT_MODE
+  const mode = isLegacyRead ? legacy : named
+  let isRenameTold = legacy === undefined
 
   on('session.start', ($, e, next) => {
-    void started($, mode, e.isInteractive).catch(() => undefined)
+    Telemetry.quietly(() =>
+      $.telemetry.log(Telemetry.modeRowOf(mode, e.isInteractive)),
+    )
+
+    if (!isRenameTold) {
+      isRenameTold = true
+      $.ui.log(
+        isLegacyRead
+          ? 'option projectInstructions in settings is honoured for now, ' +
+              `read as instructionFiles ${mode}; set instructionFiles to ` +
+              `${mode} and remove projectInstructions`
+          : `option projectInstructions in settings is not read: ` +
+              `instructionFiles ${mode} is set; remove projectInstructions`,
+      )
+    }
 
     return next(e)
   })
 
-  if (mode === 'claude') {
+  if (mode === 'claude-md') {
     return
   }
 
-  if (mode === 'none') {
+  if (mode === 'managed-only') {
     on(
       'prompt.context',
       { instructionFiles: { kind: Files.DROPPED_KINDS } },
@@ -61,13 +84,13 @@ export function register(on: On, options: PluginOptions): void {
     return
   }
 
-  const isFallback = mode === 'agents-fallback'
+  const isFallback = mode === 'claude-md-or-agents-md'
   const given = new Map<string, Set<string>>()
   let inContext: readonly InstructionFile[] = []
   let home: string | undefined
   let isClaudeProject: boolean | undefined
   let rootSeen: string | undefined
-  let isLogged = false
+  let rootLogged: string | undefined
   let isCounted = false
 
   on('prompt.context', async ($, e, next) => {
@@ -81,10 +104,20 @@ export function register(on: On, options: PluginOptions): void {
 
     const root = isFallback ? await $.session.root() : undefined
     rootSeen = root ?? rootSeen
+    let isWalkFailed = false
+    // The walk, not only what was handed: the engine can withhold a project
+    // CLAUDE.md it loaded, and the project still has one.
     isClaudeProject =
       root !== undefined &&
-      handed.some(file => Files.isClaudeFileOnWalk(file, root))
-    let isWalkFailed = false
+      (handed.some(file => Files.isClaudeFileOnWalk(file, root)) ||
+        (await $.fs.ancestors({ names: Names.CLAUDE_NAMES }).then(
+          files => files.length > 0,
+          () => {
+            isWalkFailed = true
+
+            return true
+          },
+        )))
     const found = isClaudeProject
       ? NONE
       : await $.fs.ancestors({ names: Names.AGENTS_NAMES }).catch(() => {
@@ -98,7 +131,7 @@ export function register(on: On, options: PluginOptions): void {
       isCounted = true
       const counts = Telemetry.loadCountsOf(
         added,
-        isClaudeProject,
+        isClaudeProject && !isWalkFailed,
         isWalkFailed,
       )
       Telemetry.quietly(() =>
@@ -107,10 +140,11 @@ export function register(on: On, options: PluginOptions): void {
       Telemetry.quietly(() => $.telemetry.mark(Telemetry.loadMarkOf(counts)))
     }
 
-    const isFirstLoad = isFallback && !isLogged && added.length > 0
+    const isFirstLoad =
+      root !== undefined && root !== rootLogged && added.length > 0
 
     if (isFirstLoad) {
-      isLogged = true
+      rootLogged = root
       $.ui.log(
         'no CLAUDE.md found; AGENTS.md loaded: ' +
           added
@@ -211,66 +245,6 @@ export function register(on: On, options: PluginOptions): void {
         }
       : result
   })
-}
-
-/**
- * What a fresh load does once the session has started, never awaited there:
- * sends the mode row; under `claude` runs the nudge's two walks, toasts the
- * nudge for a project with AGENTS.md and no CLAUDE.md and notes it shown;
- * under any other mode notes a nudge shown earlier as acted on, once.
- *
- * A failed walk finds nothing; a store or telemetry call that fails is
- * dropped. The session's start waits on none of it.
- *
- * @param $ the engine, as the `session.start` hook holds it
- * @param mode the configured mode
- * @param isInteractive whether a person is at the terminal
- */
-async function started(
-  $: EngineInterface,
-  mode: Modes.Mode,
-  isInteractive: boolean,
-): Promise<void> {
-  if (mode !== 'claude') {
-    Telemetry.quietly(() =>
-      $.telemetry.log(Telemetry.modeRowOf(mode, { isInteractive })),
-    )
-    const noted = await $.store.get(Telemetry.NUDGE_KEY)
-
-    if (noted === 'shown') {
-      await $.store.set(Telemetry.NUDGE_KEY, 'acted')
-      Telemetry.quietly(() => $.telemetry.log(Telemetry.nudgeRowOf('acted')))
-    }
-
-    return
-  }
-
-  const [agents, claude] = await Promise.all([
-    $.fs.ancestors({ names: Names.AGENTS_NAMES }),
-    $.fs.ancestors({ names: Names.CLAUDE_NAMES }),
-  ]).catch((): [typeof NONE, typeof NONE] => [NONE, NONE])
-  const isAgentsOnlyProject = agents.length > 0 && claude.length === 0
-  Telemetry.quietly(() =>
-    $.telemetry.log(
-      Telemetry.modeRowOf(mode, {
-        isInteractive,
-        agentsFileCount: agents.length,
-        claudeFileCount: claude.length,
-      }),
-    ),
-  )
-
-  if (!isAgentsOnlyProject) {
-    return
-  }
-
-  $.ui.toast(Names.NUDGE, { timeoutMs: Names.NUDGE_TIMEOUT_MS })
-  Telemetry.quietly(() => $.telemetry.log(Telemetry.nudgeRowOf('shown')))
-  const noted = await $.store.get(Telemetry.NUDGE_KEY)
-
-  if (noted === undefined) {
-    await $.store.set(Telemetry.NUDGE_KEY, 'shown')
-  }
 }
 
 /**

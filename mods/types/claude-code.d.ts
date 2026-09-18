@@ -1,4 +1,4 @@
-// Written by Claude Code 2.1.276.
+// Written by Claude Code 2.1.277.
 // Claude Code function hooks: the plugin API's TypeScript declarations.
 //
 // EARLY ACCESS: this surface may change between releases without notice.
@@ -2051,27 +2051,31 @@ declare module 'claude-code' {
            *
            * A render hook whose state changed (a countdown) calls it for a redraw, at
            * most ten a second, thirty for the shown pane and the band (calls sooner
-           * fold); a `prompt.section` or `prompt.context` hook: dropped next turn.
+           * fold); a prompt section, context or attachment hook: dropped next turn.
            *
-           * @param event `ui.render`, `prompt.section`, `prompt.context`,
-           *              `tool.describe`, `command.describe` or `config.describe`
+           * @param event `ui.render`, or a cached-answer event: `prompt.section`,
+           *   `prompt.context`, `prompt.attachment`, `tool/command/config.describe`
            */
           invalidate: (event: InvalidatableEventName) => void;
           /**
-           * Repaints a `Raster` this plugin's own render hook drew, still mounted,
-           * with new cells, without the redraw `invalidate` asks for.
+           * Repaints a mounted `Raster` this plugin's own render hook drew with new
+           * cells, or swaps a keyed `Image` it drew to a new source; no redraw.
            *
-           * The surface keeps the cells for that Raster (by site and `key`) and
-           * paints them at its next frame, so blits between frames fold into one:
-           * an animation runs at the frame rate. A resize is a redraw instead.
+           * The surface paints the cells or source at its next frame, so blits
+           * between frames fold into one: up to 120 a second taken, some sixty
+           * shown. An Image swap sends one small command; a resize is a redraw.
            *
-           * @param args `requestId` (the site), `key` (the Raster's), `cells`
-           *             (RasterProps), `columns` and `rows` (the mounted size)
-           * @returns `{}` once the cells are its next frame, or `{ deny }` (not
-           *          mounted, not this plugin's, another size, cells that do not
-           *          decode)
+           * @param args `requestId` (the site), `key`, and `cells` (RasterProps) or
+           *             `source` (ImageSource); `columns`, `rows` (the mounted size)
+           * @returns `{}` once the cells or source are its next frame, or `{ deny }`
+           *          (not mounted, not this plugin's, another size, cells that do
+           *          not decode, a bad source, or an Image drawing its alt there:
+           *          no placeholder images, or a file this terminal cannot read)
            * @example
            * $.clock.every(33, () => $.ui.blit({ requestId, key, cells: frame() }))
+           * @example
+           * await $.ui.blit({ requestId: 'browser', key: 'view',
+           *   source: { shm: name, format: 'rgb', width, height } })
            */
           blit: (args: UiBlitArgs) => Promise<UiBlitResult>;
           /**
@@ -3396,15 +3400,29 @@ declare module 'claude-code' {
        */
       'prompt.context': PromptContextInput;
       /**
-       * Fires once per tool, when the engine first renders the tool's schema for
-       * the model in a session; `next(e)` resolves to `{ description }`.
+       * Fires once per message the engine injects for the model on its own (a
+       * reminder, a mode transition, a mentioned file), as a request carries it.
        *
-       * Rendered schemas are cached for the session until
-       * `$.ui.invalidate("tool.describe")`: an unstable answer spends the model's
-       * prompt cache on every call. A hook that fails passes it through.
+       * `next(e)` resolves to `{ text }`; `{ text: null }` leaves it out. The
+       * answer holds per attachment for the process (asked again on resume or
+       * `$.ui.invalidate`); the transcript keeps the engine's record.
        *
        * @example
-       * on("tool.describe", { tool: "Bash" }, () => ({ description: "Shell." }))
+       * on("prompt.attachment", { type: "todo_reminder" }, () => ({ text: null }))
+       */
+      'prompt.attachment': PromptAttachmentInput;
+      /**
+       * Fires once per tool, when the engine first renders the tool's schema in
+       * a session; `next(e)` resolves to `{ description, isDeferred? }`.
+       *
+       * Cached for the session until `$.ui.invalidate("tool.describe")`: an
+       * unstable answer spends the model's prompt cache. An explicit `isDeferred`
+       * moves the tool behind ToolSearch (true) or into the prompt's list (false).
+       *
+       * @example
+       * on("tool.describe", { tool: "Bash" }, ($, e) => ({ ...e, description }))
+       * @example
+       * on("tool.describe", { tool: "Monitor" }, pin) // {...e, isDeferred: false}
        */
       'tool.describe': ToolDescribeInput;
       /**
@@ -3706,7 +3724,11 @@ declare module 'claude-code' {
        */
       'prompt.context': PromptContextResult;
       /**
-       * `{ description }`.
+       * `{ text }` (null leaves the attachment out).
+       */
+      'prompt.attachment': PromptAttachmentResult;
+      /**
+       * `{ description, isDeferred? }`.
        */
       'tool.describe': ToolDescribeResult;
       /**
@@ -3812,6 +3834,7 @@ declare module 'claude-code' {
           suggest: (input: PromptSuggestArgs) => Promise<PromptSuggestResult>;
           section: (input: PromptSectionInput) => Promise<PromptSectionResult>;
           context: (input: PromptContextInput) => Promise<PromptContextResult>;
+          attachment: (input: PromptAttachmentInput) => Promise<PromptAttachmentResult>;
       };
       skill: {
           prompt: (input: SkillPromptInput) => Promise<SkillPromptResult>;
@@ -4304,19 +4327,63 @@ declare module 'claude-code' {
   };
 
   /**
-   * The props of `Image`, the terminal surface's picture leaf: pixels over a box
-   * of cells where the terminal can (kitty, Ghostty), the `alt` text elsewhere.
+   * A `$.ui.blit` argument swapping one of the caller's mounted keyed Images
+   * to its next picture; every call sends it, so a stream needs no generation.
    *
-   * A leaf: no children, `hover` or `onPress`. The cells are text to the surface,
-   * so the picture scrolls and clips as a word does; drawn again with other
-   * `source` bytes it is replaced in place. Terminal only; elsewhere a fragment.
+   * The surface writes them with its frames, some sixty a second: byte and
+   * `file` sources fold to the last per frame; every `shm` source reaches the
+   * terminal (it unlinks each), and is denied while frames are not written.
+   *
+   * @example await $.ui.blit({ requestId: 'browser', key: 'view',
+   *   source: { shm: '/tb-4', format: 'rgb', width: 1280, height: 720 } })
+   */
+  export type ImageBlitArgs = {
+      /**
+       * The site the Image is drawn in, by the `requestId` this plugin draws it
+       * under.
+       */
+      requestId: string;
+      /**
+       * The Image's `key` in that drawing.
+       */
+      key: string;
+      /**
+       * The next picture (ImageSource): bytes, or a name the terminal reads.
+       */
+      source: ImageSource;
+      /**
+       * Refused unless it is the mounted Image's width in cells. Absent, that.
+       */
+      columns?: number;
+      /**
+       * Refused unless it is the mounted Image's height in cells. Absent, that.
+       */
+      rows?: number;
+  };
+
+  /**
+   * The props of `Image`, the terminal surface's picture leaf: pixels over a
+   * box of cells where the terminal can (kitty, Ghostty), the `alt` elsewhere.
+   *
+   * A leaf: no children, `hover` or `onPress`; the cells are text, so the
+   * picture scrolls and clips as a word does. Drawn again with another `source`
+   * it is replaced in place; keyed, `$.ui.blit` swaps it at the frame rate.
    *
    * @example const { bytes } = await $.fs.read('chart.png', { as: 'bytes' })
    * <Image source={{ png: bytes.toBase64() }} columns={40} rows={12} alt="p95" />
+   * @example <Image key="view" source={{ shm: '/tb-7', format: 'rgb', width: 960,
+   *   height: 600 }} columns={80} rows={25} alt="the page" />
    */
   export type ImageProps = {
       /**
-       * The picture's bytes (ImageSource): `{ png }` or `{ rgba, width, height }`.
+       * The element's address within the drawing: what `$.ui.blit` names to swap.
+       *
+       * Unique among the Images of one tree; absent, only a redraw changes it.
+       */
+      key?: string;
+      /**
+       * The picture (ImageSource): `{ png }` or `{ rgba, width, height }` bytes,
+       * or `{ file, format }` / `{ shm, format, width, height }` read here.
        */
       source: ImageSource;
       /** How many terminal columns wide, 1 to 255; the picture is scaled to fill
@@ -4327,19 +4394,28 @@ declare module 'claude-code' {
        */
       rows: number;
       /**
-       * What the picture says, drawn dim in its place on a terminal that cannot
-       * show it (and read by a screen reader); required, may be a single space.
+       * What the picture says, drawn dim in its place where the picture cannot
+       * be (and read by a screen reader); required, may be a single space.
        */
       alt: string;
   };
 
   /**
-   * The picture an `Image` shows, as bytes the plugin already holds.
+   * The picture an `Image` shows: base64 bytes the plugin holds (at most 2 MiB
+   * decoded), or the name of a file or POSIX shared-memory object it does not.
    *
-   * Read with `$.fs.read(path, { as: 'bytes' })` or fetched, never a path the
-   * host reads for it: standard padded base64, at most 2 MiB decoded either
-   * way. `png` is a PNG file the terminal decodes; `rgba` is raw 8-bit pixels,
-   * `width * height * 4` bytes, row-major, for a frame a plugin computed.
+   * A name is one another process on this machine wrote; the terminal, running
+   * as the person, opens, reads and decodes it itself, so no pixel crosses `$`
+   * and the engine never touches it. One it will not read (not a regular file,
+   * under `/proc`, `/sys` or `/dev`, gone, across ssh) draws a blank box, its
+   * words in the debug log; it unlinks a shared-memory object once read, so
+   * each frame is a fresh one. A source equal to the last drawn sends nothing;
+   * `generation` makes new content under an unchanged name a new source.
+   *
+   * @example { rgba: pixels.toBase64(), width: 64, height: 32 }
+   * @example { file: '/dev/shm/frame-3.rgba', format: 'rgba', width: 640,
+   *   height: 400 }
+   * @example { shm: '/tb-view-2', format: 'rgb', width: 1280, height: 720 }
    */
   export type ImageSource = {
       /**
@@ -4359,6 +4435,72 @@ declare module 'claude-code' {
        * Rows of pixels, 1 to 2048.
        */
       height: number;
+  } | {
+      /**
+       * The absolute path of a regular file holding a whole PNG, at most
+       * 3072 bytes of path; read by the terminal, left in place.
+       */
+      file: string;
+      /**
+       * The file is a whole PNG; the terminal decodes it and sizes it itself.
+       */
+      format: 'png';
+      /**
+       * A whole number that changes when the file's content does under the
+       * same path, so a redraw reads it again; absent, the path alone tells.
+       */
+      generation?: number;
+  } | {
+      /**
+       * The absolute path of a regular file of `width * height` raw pixels, at
+       * most 3072 bytes of path; read by the terminal, left in place.
+       *
+       * On Linux a file under `/dev/shm` is memory.
+       */
+      file: string;
+      /**
+       * `rgba`, 4 bytes a pixel, or `rgb`, 3.
+       */
+      format: 'rgba' | 'rgb';
+      /**
+       * Pixels per row, 1 to 4096.
+       */
+      width: number;
+      /**
+       * Rows of pixels, 1 to 4096.
+       */
+      height: number;
+      /**
+       * A whole number that changes when the file's content does under the
+       * same path, so a redraw reads it again; absent, the path alone tells.
+       */
+      generation?: number;
+  } | {
+      /**
+       * The name of a POSIX shared-memory object of `width * height` raw
+       * pixels: `/` then up to 254 of `A-Z a-z 0-9 . _ -` (macOS takes 30).
+       *
+       * The terminal unlinks it after reading, so a name feeds one Image
+       * drawn once and is never sent again on a redraw; POSIX terminals only.
+       */
+      shm: string;
+      /**
+       * `rgba`, 4 bytes a pixel, or `rgb`, 3.
+       */
+      format: 'rgba' | 'rgb';
+      /**
+       * Pixels per row, 1 to 4096.
+       */
+      width: number;
+      /**
+       * Rows of pixels, 1 to 4096.
+       */
+      height: number;
+      /**
+       * A whole number that changes when a fresh object reuses a name, so a
+       * redraw reads it again; absent, the name alone tells.
+       */
+      generation?: number;
   };
 
   /**
@@ -4470,10 +4612,10 @@ declare module 'claude-code' {
   };
 
   /**
-   * What `$.ui.invalidate` takes: a render event, or one of the five events
+   * What `$.ui.invalidate` takes: a render event, or one of the six events
    * whose answers the engine caches for the session.
    */
-  export type InvalidatableEventName = RenderEventName | 'prompt.section' | 'prompt.context' | 'tool.describe' | 'command.describe' | 'config.describe';
+  export type InvalidatableEventName = RenderEventName | 'prompt.section' | 'prompt.context' | 'prompt.attachment' | 'tool.describe' | 'command.describe' | 'config.describe';
 
   /**
    * Whether tag key `K` selects members of `I`: it does when each member gives
@@ -5487,8 +5629,8 @@ declare module 'claude-code' {
        */
       'ui.panes': NoArgs;
       /**
-       * The argument of `$.ui.blit({ requestId, key, cells })`; a hook above
-       * the painter may repaint the cells with `next`, or refuse with `{ deny }`.
+       * The argument of `$.ui.blit(...)`: a Raster's `cells` or a keyed Image's
+       * `source`; a hook above may rewrite either with `next`, or `{ deny }`.
        */
       'ui.blit': UiBlitArgs;
       /**
@@ -6344,21 +6486,95 @@ declare module 'claude-code' {
   };
 
   /**
-   * A pasted or attached non-text item of a prompt; its kind, never its bytes.
+   * The input of `prompt.attachment`: one message the engine injects into the
+   * conversation for the model on its own, as a request is about to carry it.
+   *
+   * A reminder, a mode transition, a listing, a mentioned file, a hook's
+   * context: the person never typed it and mostly never sees it. Only an
+   * attachment that carries text for the model is raised.
    */
-  export type PromptAttachment = {
+  export type PromptAttachmentInput = {
       /**
-       * The item's kind.
+       * As the engine names the attachment's kind; the key a matcher narrows on.
+       * Pinned. Builds add and retire kinds: match by name.
+       *
+       * Among them `todo_reminder`, `plan_mode`, `plan_mode_exit`, `auto_mode`,
+       * `auto_mode_exit`, `instructions`, `nested_memory`, `skill_listing`,
+       * `deferred_tools_delta`, `edited_text_file`, `file`, `queued_command`.
        */
-      type: 'image' | 'audio' | 'document';
+      type: string;
       /**
-       * The item's MIME type (`image/png`), when known.
+       * What the model reads for this attachment, inside the engine's framing;
+       * rewritable with `next({ ...e, text })`.
+       *
+       * The `<system-reminder>` wrapper (or the system channel that replaces it)
+       * goes around what the chain answers, never inside it. An attachment
+       * rendered as several text blocks hands them joined by newlines.
        */
-      mediaType?: string;
+      text: string;
       /**
-       * The pasted file's name, when it had one.
+       * Who authored the text (PromptAttachmentOrigin): the engine, a settings
+       * hook, or a plugin's chain context.
+       *
+       * Pinned: a different value is refused, one left out is kept.
        */
-      filename?: string;
+      origin: PromptAttachmentOrigin;
+      /**
+       * The loop whose request carries the attachment: a subagent's id, the `id`
+       * `$.agent.list()` gives it and its `tool.call`s carry; absent on main.
+       *
+       * Pinned: a different value is refused, one left out is kept. A subagent
+       * a hook spawned through `$.agent.spawn` is resolved past that hook.
+       */
+      agentId?: string;
+  };
+
+  /**
+   * Who authored the text an injected attachment carries, as the engine knows
+   * it from the attachment itself; a closed set, pinned on the event.
+   *
+   * A hooks module reads `e.origin.kind` to tell the engine's own prose from a
+   * settings hook's output or another plugin's context. `next(e)` passes it on
+   * as received; one left out is put back; no hook sets one.
+   */
+  export type PromptAttachmentOrigin = {
+      /**
+       * The engine's own prose or framing: a reminder, a mode transition, a
+       * listing, a notice, an announced context block.
+       *
+       * A file the person mentioned, as the engine presents it, and a prompt
+       * or notification delivered into a running turn are the engine's too.
+       */
+      kind: 'engine';
+  } | {
+      /**
+       * A settings hook's output the engine injects for the model: its
+       * additional context, a blocking error's note, a stopped continuation.
+       */
+      kind: 'hook';
+      /**
+       * The settings hook event that produced it (`SessionStart`,
+       * `UserPromptSubmit`, `PostToolUse`, ...).
+       */
+      event: string;
+  } | {
+      /**
+       * Text a plugin's hook attached through a chain's `context`
+       * (`prompt.submit`, `tool.call`), as the model reads it.
+       */
+      kind: 'plugin';
+      /**
+       * The chain's event that attached it.
+       */
+      event: string;
+  };
+
+  /**
+   * What a `prompt.attachment` hook returns: the text the model reads for that
+   * attachment, or null to leave the attachment out of the request.
+   */
+  export type PromptAttachmentResult = {
+      text: string | null;
   };
 
   /**
@@ -6779,6 +6995,25 @@ declare module 'claude-code' {
   export type PromptSubmitArgs = Omit<PromptSubmitInput, 'origin' | 'turnId' | 'wait' | 'context'>;
 
   /**
+   * A pasted or attached non-text item of a submitted prompt; its kind, never
+   * its bytes.
+   */
+  export type PromptSubmitAttachment = {
+      /**
+       * The item's kind.
+       */
+      type: 'image' | 'audio' | 'document';
+      /**
+       * The item's MIME type (`image/png`), when known.
+       */
+      mediaType?: string;
+      /**
+       * The pasted file's name, when it had one.
+       */
+      filename?: string;
+  };
+
+  /**
    * The input of `prompt.submit`: the prompt as typed, after the input became
    * a user message and before it enters the session.
    */
@@ -6790,7 +7025,7 @@ declare module 'claude-code' {
       /**
        * Present only when the submission carried images or other non-text items.
        */
-      attachments?: readonly PromptAttachment[];
+      attachments?: readonly PromptSubmitAttachment[];
       /**
        * What the model reads beside the prompt and the user never sees, each
        * entry one block after the prompt as typed; absent as the engine raises it.
@@ -6931,6 +7166,39 @@ declare module 'claude-code' {
        * `next` keeps it from showing.
        */
       isShown: boolean;
+  };
+
+  /**
+   * A `$.ui.blit` argument repainting one of the caller's mounted Rasters.
+   *
+   * `columns` and `rows`, when given, must be the mounted size (a resize is a
+   * redraw, `$.ui.invalidate("ui.render")`, not a blit).
+   */
+  export type RasterBlitArgs = {
+      /**
+       * The site the Raster is drawn in, by the `requestId` this plugin draws
+       * it under: one of its panes' ids, a tool row's `tool_use_id`, the band's.
+       */
+      requestId: string;
+      /**
+       * The Raster's `key` in that drawing.
+       */
+      key: string;
+      /**
+       * The new cells, encoded as the element's `cells` are (RasterProps), for
+       * the mounted `columns * rows`.
+       */
+      cells: string;
+      /**
+       * The width the cells are laid out for; refused unless it is the mounted
+       * Raster's. Absent, the mounted width.
+       */
+      columns?: number;
+      /**
+       * The height the cells are laid out for; refused unless it is the mounted
+       * Raster's. Absent, the mounted height.
+       */
+      rows?: number;
   };
 
   /**
@@ -7307,12 +7575,19 @@ declare module 'claude-code' {
        * A picture, the terminal surface's alone: `props.source` drawn over a
        * box of cells where the terminal can, `props.alt` where it cannot.
        *
-       * A leaf: hooks above wrap or replace it whole, nothing reaches inside;
-       * a press other plugins should see goes on an enclosing Button. On a
-       * surface whose table lacks it the tree is refused.
+       * A leaf: hooks above wrap or replace it whole; a press other plugins
+       * should see goes on an enclosing Button; keyed, its plugin's
+       * `$.ui.blit` swaps it. On a surface without it the tree is refused.
        */
       type: 'Image';
       props: ImageProps;
+      /**
+       * Whose Image: the plugin whose hook drew the element, stamped by the
+       * runtime as the tree leaves it; the one plugin whose blit reaches it.
+       */
+      image: {
+          plugin: string;
+      };
       children?: undefined;
   } | {
       /**
@@ -9498,6 +9773,14 @@ declare module 'claude-code' {
   };
 
   /**
+   * Where a `tool.describe` answer places the tool: `true` behind ToolSearch
+   * (its schema loads when the model asks for it), `false` in the prompt's list.
+   *
+   * Left out of an answer, the placement beneath stands.
+   */
+  export type ToolDeferral = boolean;
+
+  /**
    * The input of `tool.describe`: one tool's description, at the moment the
    * engine first renders the tool's schema for the model.
    */
@@ -9512,6 +9795,14 @@ declare module 'claude-code' {
        */
       description: string;
       /**
+       * Present, and true, when the engine lists the tool behind ToolSearch (its
+       * schema loads when the model asks for it by name); absent for one listed.
+       *
+       * By the engine's rule an MCP server's tool, or one that asks to be,
+       * unless a rule keeps it in front.
+       */
+      isDeferred?: true;
+      /**
        * Who provides this tool: the plugin and its tier; `{ plugin: "engine",
        * tier: "core" }` for a built-in. Pinned: a rewrite is refused.
        *
@@ -9523,10 +9814,15 @@ declare module 'claude-code' {
 
   /**
    * What a `tool.describe` hook returns: the description the model sees for that
-   * tool.
+   * tool and, when the hook moves it, where the tool waits (ToolDeferral).
+   *
+   * `{ description }` alone, or `{ ...(await next(e)), description }`, changes
+   * the text and keeps the engine's placement; `isDeferred: true` puts the tool
+   * behind ToolSearch, `isDeferred: false` puts its schema in the prompt's list.
    */
   export type ToolDescribeResult = {
       description: string;
+      isDeferred?: ToolDeferral;
   };
 
   /**
@@ -10117,51 +10413,26 @@ declare module 'claude-code' {
   };
 
   /**
-   * What a plugin's `$.ui.blit(args)` takes: which of its mounted Rasters to
-   * repaint, in which of its sites, and the cells to paint it with.
+   * What a plugin's `$.ui.blit(args)` takes: a Raster's next `cells`
+   * (RasterBlitArgs) or a keyed Image's next `source` (ImageBlitArgs).
    *
-   * The Raster is one this plugin's own `ui.render` hook drew, still mounted;
-   * `columns` and `rows`, when given, must be the mounted size (a resize is a
-   * redraw, `$.ui.invalidate("ui.render")`, not a blit).
+   * Either names an element this plugin's own `ui.render` hook drew, still
+   * mounted; a hook above may rewrite the cells or the source, never the
+   * address or which kind it is.
    */
-  export type UiBlitArgs = {
-      /**
-       * The site the Raster is drawn in, by the `requestId` this plugin draws
-       * it under: one of its panes' ids, a tool row's `tool_use_id`, the band's.
-       */
-      requestId: string;
-      /**
-       * The Raster's `key` in that drawing.
-       */
-      key: string;
-      /**
-       * The new cells, encoded as the element's `cells` are (RasterProps), for
-       * the mounted `columns * rows`.
-       */
-      cells: string;
-      /**
-       * The width the cells are laid out for; refused unless it is the mounted
-       * Raster's. Absent, the mounted width.
-       */
-      columns?: number;
-      /**
-       * The height the cells are laid out for; refused unless it is the mounted
-       * Raster's. Absent, the mounted height.
-       */
-      rows?: number;
-  };
+  export type UiBlitArgs = RasterBlitArgs | ImageBlitArgs;
 
   /**
    * What `$.ui.blit` resolves to and what a `ui.blit` hook's `{ value }`
-   * holds: `{}` once the cells are the Raster's next frame, or why not.
+   * holds: `{}` once the cells or source are the next frame's, or why not.
    */
   export type UiBlitResult = {
       /**
-       * Absent when the cells were taken; else why not: nothing of this plugin's
-       * is mounted there, the size is not the mounted one, the cells are bad.
+       * Absent when the cells or source were taken; else why not.
        *
-       * Another plugin's Raster under the same site and key reads as not this
-       * plugin's; a cell that does not decode is named by its index.
+       * Nothing of this plugin's is mounted there (another plugin's reads so),
+       * the size is not the mounted one, the cells or source are bad, or the
+       * Image draws its `alt` there, the reason spelled out for a fallback.
        */
       deny?: string;
   };

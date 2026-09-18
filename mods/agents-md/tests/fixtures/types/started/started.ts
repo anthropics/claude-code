@@ -3,13 +3,13 @@ import type { MockClock } from 'claude-code/testing'
 import type { ToastAsked } from '../toast-asked'
 
 /**
- * What the plugins raised while a session started: each toast as asked for,
- * each transcript line, and the plugin's store as it stands; `clock` settles
- * what the start floated.
+ * What the plugins raised while a session ran: each toast as asked for, each
+ * transcript line, the first name of each walk they asked for; `clock`
+ * settles what they floated.
  */
 export type Started = {
   toasts: ToastAsked[]
   lines: string[]
-  store: Map<string, unknown>
+  walks: string[]
   clock: MockClock
 }

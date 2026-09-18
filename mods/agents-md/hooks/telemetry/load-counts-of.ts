@@ -8,7 +8,7 @@ import type { LoadCounts } from './types'
  *
  * @param added the AGENTS.md instruction files handed to the engine, imports
  * among them
- * @param isYielded whether `agents-fallback` stood down for a CLAUDE.md
+ * @param isYielded whether `claude-md-or-agents-md` stood down for a CLAUDE.md
  * @param isWalkFailed whether the walk threw
  * @returns the counts the load row and mark are built from
  */
