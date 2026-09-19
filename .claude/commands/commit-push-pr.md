@@ -3,6 +3,8 @@ allowed-tools: Bash(git checkout --branch:*), Bash(git add:*), Bash(git status:*
 description: Commit, push, and open a PR
 ---
 
+# Commit, push, and open a PR
+
 ## Context
 
 - Current git status: !`git status`
@@ -12,6 +14,7 @@ description: Commit, push, and open a PR
 ## Your task
 
 Based on the above changes:
+
 1. Create a new branch if on main
 2. Create a single commit with an appropriate message
 3. Push the branch to origin
