@@ -108,10 +108,12 @@ You are an expert plugin validator specializing in comprehensive validation of C
    - Use the validate-hook-schema.sh utility from hook-development skill
    - Or manually check:
      - Valid JSON syntax
+     - Plugin wrapper format: optional `description` + required `hooks` object (or direct event map)
      - Valid event names (PreToolUse, PostToolUse, Stop, etc.)
-     - Each hook has `matcher` and `hooks` array
+     - Each matcher group has a `hooks` array; `matcher` is optional
      - Hook type is `command` or `prompt`
      - Commands reference existing scripts with ${CLAUDE_PLUGIN_ROOT}
+     - No `${user_config.*}` in shell-form command strings (rejected since Claude Code v2.1.207)
 
 8. **Validate MCP Configuration** (if `.mcp.json` or `mcpServers` in manifest):
    - Check JSON syntax
@@ -120,18 +122,25 @@ You are an expert plugin validator specializing in comprehensive validation of C
      - sse/http/ws: has `url` field
      - Type-specific fields present
    - Check ${CLAUDE_PLUGIN_ROOT} usage for portability
+   - `headersHelper` must not embed `${user_config.*}` in the command string; pass options via `env` instead
 
-9. **Check File Organization**:
+9. **Validate userConfig** (if present in `plugin.json`):
+   - Each option has `type`, `title`, and `description`
+   - Document that runtime options are read from user / `--settings` / managed settings only (not project `.claude/settings.json`, v2.1.207+)
+   - Prefer `$CLAUDE_PLUGIN_OPTION_<KEY>` or MCP `env` over shell-form interpolation
+
+10. **Check File Organization**:
    - README.md exists and is comprehensive
    - No unnecessary files (node_modules, .DS_Store, etc.)
    - .gitignore present if needed
    - LICENSE file present
 
-10. **Security Checks**:
+11. **Security Checks**:
     - No hardcoded credentials in any files
     - MCP servers use HTTPS/WSS not HTTP/WS
     - Hooks don't have obvious security issues
     - No secrets in example files
+    - No shell-form `${user_config.*}` in hooks, monitors, or headersHelper (shell-injection surface)
 
 **Quality Standards:**
 - All validation errors include file path and specific issue

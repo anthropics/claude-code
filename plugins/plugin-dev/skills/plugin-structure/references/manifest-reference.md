@@ -329,6 +329,114 @@ MCP server configuration location or inline definition.
 - Complex plugins: External `.mcp.json` file
 - Multiple servers: Always use external file
 
+#### userConfig
+
+**Type**: Object
+**Default**: none
+**Example**: see below
+
+Declares values Claude Code prompts for when the plugin is enabled. Prefer this over asking users to hand-edit `settings.json`.
+
+```json
+{
+  "userConfig": {
+    "api_endpoint": {
+      "type": "string",
+      "title": "API endpoint",
+      "description": "Your team's API endpoint"
+    },
+    "api_token": {
+      "type": "string",
+      "title": "API token",
+      "description": "API authentication token",
+      "sensitive": true
+    }
+  }
+}
+```
+
+**Option fields**:
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `type` | Yes | `string`, `number`, `boolean`, `directory`, or `file` |
+| `title` | Yes | Label in the configuration dialog |
+| `description` | Yes | Help text under the field |
+| `sensitive` | No | If `true`, mask input and store in secure storage |
+| `required` | No | Fail validation when empty |
+| `default` | No | Value when the user provides nothing |
+| `multiple` | No | For `string`, allow an array of strings |
+| `min` / `max` | No | Bounds for `number` |
+
+**How values are exposed**:
+
+- Exported to plugin subprocesses as `CLAUDE_PLUGIN_OPTION_<KEY>` (uppercase key)
+- Substitutable as `${user_config.KEY}` in MCP/LSP server configs (including `env` blocks) and in **exec-form** hook handlers
+- Non-sensitive values may also appear in skill/agent content
+
+**Storage scopes (Claude Code v2.1.207+)**:
+
+Non-sensitive values are stored under `pluginConfigs[<plugin-id>].options` in settings. Only these layers are **read** at runtime:
+
+1. User settings (`~/.claude/settings.json`)
+2. Inline `--settings`
+3. Managed/enterprise settings
+
+Project-level `.claude/settings.json` is **not** a supported source for `pluginConfigs`. Do not document team plugin options as something to commit under project settings—they will be ignored. Sensitive values use the system keychain (or `~/.claude/.credentials.json` where keychain is unavailable).
+
+**Shell-form restriction (Claude Code v2.1.207+, shell-injection fix)**:
+
+`${user_config.*}` is **rejected** in shell-form command strings for:
+
+- Plugin hook `command` handlers when `args` is omitted
+- Plugin monitor `command` fields (monitors are always shell-form)
+- MCP `headersHelper` command strings
+
+| Component | Safe migration |
+|-----------|----------------|
+| Hooks | Prefer exec form: `"command": "node", "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/run.js"]` and read `$CLAUDE_PLUGIN_OPTION_<KEY>` inside the script; or pass the option only via `args` |
+| Monitors | Do **not** interpolate `${user_config.*}` into `command`. Read `$CLAUDE_PLUGIN_OPTION_<KEY>` (or a config file) inside the monitor script |
+| MCP `headersHelper` | Keep the helper path free of user options; pass options through the server's `env` block as `${user_config.KEY}` / `$CLAUDE_PLUGIN_OPTION_<KEY>` and read them inside the helper |
+
+**Unsafe (rejected since v2.1.207)**:
+```json
+{
+  "type": "command",
+  "command": "\"${CLAUDE_PLUGIN_ROOT}\"/scripts/poll.sh ${user_config.api_endpoint}"
+}
+```
+
+**Safe — read env inside the script**:
+```json
+{
+  "type": "command",
+  "command": "bash",
+  "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/poll.sh"]
+}
+```
+
+```bash
+# scripts/poll.sh
+endpoint="${CLAUDE_PLUGIN_OPTION_API_ENDPOINT:?api_endpoint not configured}"
+# use "$endpoint" as data — never eval it
+```
+
+**Safe — MCP env block (not shell-form)**:
+```json
+{
+  "mcpServers": {
+    "api": {
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/server.js"],
+      "env": {
+        "API_ENDPOINT": "${user_config.api_endpoint}",
+        "API_TOKEN": "${user_config.api_token}"
+      }
+    }
+  }
+}
+```
+
 ## Path Resolution
 
 ### Relative Path Rules
