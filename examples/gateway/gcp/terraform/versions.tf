@@ -10,6 +10,10 @@ terraform {
       source  = "hashicorp/random"
       version = ">= 3.5"
     }
+    tls = {
+      source  = "hashicorp/tls"
+      version = ">= 4.0" # self-signed cert for the optional internal ALB (lb.tf)
+    }
   }
 }
 
