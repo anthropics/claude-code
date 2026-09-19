@@ -55,14 +55,39 @@ if [[ $MAX_ITERATIONS -gt 0 ]] && [[ $ITERATION -ge $MAX_ITERATIONS ]]; then
 fi
 
 # Get transcript path from hook input
-TRANSCRIPT_PATH=$(echo "$HOOK_INPUT" | jq -r '.transcript_path')
+TRANSCRIPT_PATH=$(echo "$HOOK_INPUT" | jq -r '.transcript_path // empty')
+
+# Validate transcript path before reading. A missing/null path, path traversal,
+# or symlink to an unintended target must not be followed as a data source.
+if [[ -z "$TRANSCRIPT_PATH" || "$TRANSCRIPT_PATH" == "null" ]]; then
+  echo "⚠️  Ralph loop: Transcript path missing from hook input" >&2
+  echo "   Ralph loop is stopping." >&2
+  rm -f "$RALPH_STATE_FILE"
+  exit 0
+fi
+
+if [[ "$TRANSCRIPT_PATH" == *'..'* ]]; then
+  echo "⚠️  Ralph loop: Transcript path contains '..' — refusing to read" >&2
+  echo "   Path: $TRANSCRIPT_PATH" >&2
+  echo "   Ralph loop is stopping." >&2
+  rm -f "$RALPH_STATE_FILE"
+  exit 0
+fi
+
+if [[ -L "$TRANSCRIPT_PATH" ]]; then
+  echo "⚠️  Ralph loop: Transcript path is a symlink — refusing to follow" >&2
+  echo "   Path: $TRANSCRIPT_PATH" >&2
+  echo "   Ralph loop is stopping." >&2
+  rm -f "$RALPH_STATE_FILE"
+  exit 0
+fi
 
 if [[ ! -f "$TRANSCRIPT_PATH" ]]; then
   echo "⚠️  Ralph loop: Transcript file not found" >&2
   echo "   Expected: $TRANSCRIPT_PATH" >&2
   echo "   This is unusual and may indicate a Claude Code internal issue." >&2
   echo "   Ralph loop is stopping." >&2
-  rm "$RALPH_STATE_FILE"
+  rm -f "$RALPH_STATE_FILE"
   exit 0
 fi
 
@@ -150,9 +175,20 @@ if [[ -z "$PROMPT_TEXT" ]]; then
 fi
 
 # Update iteration in frontmatter (portable across macOS and Linux)
-# Create temp file, then atomically replace
+# Create temp file, then atomically replace. Refuse symlink destinations so a
+# planted link cannot redirect the state write outside the project.
+if [[ -L "$RALPH_STATE_FILE" ]]; then
+  echo "⚠️  Ralph loop: State file is a symlink — refusing to update" >&2
+  rm -f "$RALPH_STATE_FILE"
+  exit 0
+fi
 TEMP_FILE="${RALPH_STATE_FILE}.tmp.$$"
 sed "s/^iteration: .*/iteration: $NEXT_ITERATION/" "$RALPH_STATE_FILE" > "$TEMP_FILE"
+if [[ -L "$RALPH_STATE_FILE" ]]; then
+  rm -f "$TEMP_FILE"
+  echo "⚠️  Ralph loop: State file became a symlink during update — aborting" >&2
+  exit 0
+fi
 mv "$TEMP_FILE" "$RALPH_STATE_FILE"
 
 # Build system message with iteration count and completion promise info
