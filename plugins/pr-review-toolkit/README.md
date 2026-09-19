@@ -96,7 +96,7 @@ This plugin bundles 6 expert review agents that each focus on a specific aspect 
 **Focus**: General code review for project guidelines
 
 **Analyzes:**
-- CLAUDE.md compliance
+- CLAUDE.md and AGENTS.md compliance
 - Style violations
 - Bug detection
 - Code quality issues
