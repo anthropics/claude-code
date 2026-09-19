@@ -1,4 +1,4 @@
-import type { Args, ResultOf } from 'claude-code'
+import type { Args, ResultOf, SessionMessage } from 'claude-code'
 import { describe, expect, mock, test, tier } from 'claude-code/testing'
 
 import Limits from '../hooks/limits'
@@ -681,16 +681,137 @@ describe('register', () => {
     expect(drawn).not.toContain('Loading diff')
   })
 
-  test('/clear closes the pane it finds open', async ($, on) => {
+  test('/clear leaves the pane it finds open up and reads the repository afresh', async ($, on) => {
     const world = Fixtures.inRepository(on)
 
     on('command.run', { command: 'clear' }, () => ({}))
 
     await $.session.start(Fixtures.SESSION)
     await $.command.run(Fixtures.DIFF)
-    await $.command.run(Fixtures.CLEAR)
+    await world.clock.advance(Fixtures.SETTLE_MS)
 
-    expect(world.closed.map(pane => pane.id)).toEqual(['diff'])
+    const read = world.runs.length
+
+    await $.command.run(Fixtures.CLEAR)
+    await world.clock.advance(Fixtures.SETTLE_MS)
+
+    expect(world.closed, 'as the built-in panel stays across /clear').toEqual(
+      [],
+    )
+
+    expect(
+      world.runs.slice(read).map(run => Fixtures.gitWordOf(run.argv))[0],
+      'the repository found again for the conversation that starts over',
+    ).toBe('rev-parse --show-toplevel')
+
+    expect(
+      Fixtures.textOf(await $.ui.render(Fixtures.PANE)),
+      'drawn from the fresh read',
+    ).toContain('1 file changed')
+  })
+
+  test('a resumed session whose turns edited opens the pane before any new edit', async ($, on) => {
+    const world = Fixtures.inRepository(on, Fixtures.REPOSITORY, {
+      messages: () => Fixtures.EDITED_TRANSCRIPT,
+    })
+
+    await $.session.start(Fixtures.SESSION)
+
+    expect(world.runs, 'the start itself still runs no git').toEqual([])
+
+    await $.ui.render(Fixtures.HINT)
+    await world.clock.advance(Fixtures.SETTLE_MS)
+
+    expect(
+      world.opened.map(pane => pane.id),
+      'open once the width is known, as the built-in opens on the restore',
+    ).toEqual(['diff'])
+  })
+
+  test('a resumed session opens nothing where its first edit would not', async ($, on) => {
+    const narrow = Fixtures.inRepository(on, Fixtures.REPOSITORY, {
+      messages: () => Fixtures.EDITED_TRANSCRIPT,
+    })
+
+    await $.session.start(Fixtures.SESSION)
+    await $.ui.render(Fixtures.hintAt(Limits.AUTO_OPEN_MIN_COLUMNS - 1))
+    await narrow.clock.advance(Fixtures.SETTLE_MS)
+
+    expect(narrow.opened, 'under the unasked floor, never kept open').toEqual(
+      [],
+    )
+
+    expect(narrow.runs, 'and no git for it').toEqual([])
+  })
+
+  test('a resumed session the person kept the pane open in opens it from the lower floor', async ($, on) => {
+    const world = Fixtures.inRepository(on, Fixtures.REPOSITORY, {
+      messages: () => Fixtures.EDITED_TRANSCRIPT,
+      stored: { [Names.STORE_OPEN_KEY]: true },
+    })
+
+    await $.session.start(Fixtures.SESSION)
+    await $.ui.render(Fixtures.hintAt(Limits.OPEN_MIN_COLUMNS))
+    await world.clock.advance(Fixtures.SETTLE_MS)
+
+    expect(world.opened.map(pane => pane.id)).toEqual(['diff'])
+  })
+
+  test('a resumed session with no edits opens nothing', async ($, on) => {
+    const world = Fixtures.inRepository(on, Fixtures.REPOSITORY, {
+      messages: () => [Fixtures.promptOf('just talk')],
+    })
+
+    await $.session.start(Fixtures.SESSION)
+    await $.ui.render(Fixtures.HINT)
+    await world.clock.advance(Fixtures.SETTLE_MS)
+
+    expect(world.opened).toEqual([])
+    expect(world.runs).toEqual([])
+  })
+
+  test('a resumed session whose pane the person closed opens nothing', async ($, on) => {
+    const world = Fixtures.inRepository(on, Fixtures.REPOSITORY, {
+      messages: () => Fixtures.EDITED_TRANSCRIPT,
+      stored: { [Names.STORE_OPEN_KEY]: false },
+    })
+
+    await $.session.start(Fixtures.SESSION)
+    await $.ui.render(Fixtures.HINT)
+    await world.clock.advance(Fixtures.SETTLE_MS)
+
+    expect(world.opened).toEqual([])
+    expect(world.runs).toEqual([])
+  })
+
+  test('/resume closes the pane, then opens it for the turns it brought back', async ($, on) => {
+    let transcript: readonly SessionMessage[] = []
+
+    const world = Fixtures.inRepository(on, Fixtures.REPOSITORY, {
+      messages: () => transcript,
+    })
+
+    on('command.run', { command: 'resume' }, () => {
+      transcript = Fixtures.EDITED_TRANSCRIPT
+
+      return {}
+    })
+
+    await $.session.start(Fixtures.SESSION)
+    await $.ui.render(Fixtures.HINT)
+    await $.command.run(Fixtures.DIFF)
+    await world.clock.advance(Fixtures.SETTLE_MS)
+    await $.command.run(Fixtures.RESUME)
+    await world.clock.advance(Fixtures.SETTLE_MS)
+
+    expect(world.closed.map(pane => pane.id), 'closed at /resume').toEqual([
+      'diff',
+    ])
+
+    expect(
+      world.opened.map(pane => pane.id),
+      '/diff opened it, /resume opened it again for the restored turns',
+    ).toEqual(['diff', 'diff'])
   })
 
   test('ask attaches the hunks on screen and calls no tool', async ($, on) => {
