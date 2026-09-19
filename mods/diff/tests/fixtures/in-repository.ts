@@ -18,7 +18,8 @@ import { startsSession } from './starts-session.js'
  *
  * @param on the test's `on`
  * @param script git's output for each invocation whose line holds the key
- * @param beneath the store, settings, environment, whether an open is seated
+ * @param beneath the store, settings, environment, transcript, whether an
+ *   open is seated
  * @returns the runs, the ring's moves, the panes opened, left waiting and
  *   closed, the statuses, the clock
  */
@@ -68,7 +69,7 @@ export function inRepository(
   on('ui.close', closed.hook)
   on('ui.invalidate', () => ({ value: undefined }))
   on('ui.render', { component: 'PromptHint' }, () => HINT_DRAWN)
-  on('session.messages', () => ({ value: [] }))
+  on('session.messages', () => ({ value: [...(beneath.messages?.() ?? [])] }))
   on('settings.read', () => ({ value: beneath.settings ?? {} }))
   mock.store(on, beneath.stored ?? {})
   mock.env(on, beneath.env ?? {})
