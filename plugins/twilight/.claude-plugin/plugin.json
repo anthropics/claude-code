@@ -1,0 +1,10 @@
+{
+  "name": "twilight",
+  "version": "1.0.0",
+  "description": "Makes specs, plans, and a durable focus stack first-order concepts: spec-first design and implement skills, hooks that inject focus state every session and prompt, and /focus commands. Guards work-in-flight against AI context resets and shifting human attention.",
+  "author": {
+    "name": "Julian Klappenbach",
+    "email": "jklappenbach@gmail.com"
+  },
+  "homepage": "https://github.com/anthropics/claude-code/tree/main/plugins/twilight"
+}

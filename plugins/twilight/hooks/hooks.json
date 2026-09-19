@@ -1,0 +1,27 @@
+{
+  "description": "twilight plugin — injects focus-stack and active-plan state at session start and on every prompt",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/session-start.sh\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/prompt-submit.sh\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
