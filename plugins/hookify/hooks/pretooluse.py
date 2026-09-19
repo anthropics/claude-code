@@ -23,8 +23,8 @@ if PLUGIN_ROOT:
         sys.path.insert(0, PLUGIN_ROOT)
 
 try:
-    from hookify.core.config_loader import load_rules
-    from hookify.core.rule_engine import RuleEngine
+    from core.config_loader import load_rules
+    from core.rule_engine import RuleEngine
 except ImportError as e:
     # If imports fail, allow operation and log error
     error_msg = {"systemMessage": f"Hookify import error: {e}"}
