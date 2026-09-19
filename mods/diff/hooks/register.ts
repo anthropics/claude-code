@@ -35,8 +35,8 @@ import Views from './views'
  *
  * Git runs when the built-in's would: `session.start` binds the host and
  * registers `/diff`; `/diff` or the main loop's first checkpointed edit with
- * room pins the backend, until `/clear`; a placed, open pane fetches, and so
- * does such an edit inside the tree, until one lists a file to open on.
+ * room pins the backend, until `/clear`; a docked pane fetches, then opens,
+ * and such an edit inside the tree fetches until one lists a file to open on.
  *
  * @param on the engine's registrar
  */
@@ -430,8 +430,12 @@ export function register(on: On) {
 
     dialogRows = isDialog ? Views.dialogRowsOf(model) : null
 
+    const landedBefore = landed
+
     if (read) {
       model = PaneState.afterFetch(model, read)
+    } else if (!isDialog) {
+      await refresh(engine).catch(() => undefined)
     }
 
     const opened = await engine.openPane(
@@ -457,7 +461,11 @@ export function register(on: On) {
       Record.recorderOf(engine).shown(trigger, Record.widthBucketOf(columns))
     }
 
-    void refresh(engine, read)
+    const isStale = isDialog || read !== null || landed !== landedBefore
+
+    if (isStale) {
+      void refresh(engine, read)
+    }
 
     return true
   }
@@ -953,7 +961,7 @@ export function register(on: On) {
       landed += 1
     }
 
-    if (isPaneOpen && hasLanded) {
+    if (hasLanded && isPaneOpen) {
       scheduleRefresh(engine)
     }
 
