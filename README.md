@@ -1,7 +1,5 @@
 # Claude Code
-
 ![](https://img.shields.io/badge/Node.js-18%2B-brightgreen?style=flat-square) [![npm]](https://www.npmjs.com/package/@anthropic-ai/claude-code)
-
 [npm]: https://img.shields.io/npm/v/@anthropic-ai/claude-code.svg?style=flat-square
 
 Claude Code is an agentic coding tool that lives in your terminal, understands your codebase, and helps you code faster by executing routine tasks, explaining complex code, and handling git workflows -- all through natural language commands. Use it in your terminal, IDE, or tag @claude on Github.
@@ -11,6 +9,7 @@ Claude Code is an agentic coding tool that lives in your terminal, understands y
 <img src="./demo.gif" />
 
 ## Get started
+
 > [!NOTE]
 > Installation via npm is deprecated. Use one of the recommended methods below.
 
@@ -19,35 +18,55 @@ For more installation options, uninstall steps, and troubleshooting, see the [se
 1. Install Claude Code:
 
     **MacOS/Linux (Recommended):**
-    ```bash
+```bash
     curl -fsSL https://claude.ai/install.sh | bash
-    ```
+```
 
     **Homebrew (MacOS/Linux):**
-    ```bash
+```bash
     brew install --cask claude-code
-    ```
+```
 
     **Windows (Recommended):**
-    ```powershell
+```powershell
     irm https://claude.ai/install.ps1 | iex
-    ```
+```
 
     **WinGet (Windows):**
-    ```powershell
+```powershell
     winget install Anthropic.ClaudeCode
-    ```
+```
 
     **NPM (Deprecated):**
-    ```bash
+```bash
     npm install -g @anthropic-ai/claude-code
-    ```
+```
 
 2. Navigate to your project directory and run `claude`.
 
 ## Plugins
 
 This repository includes several Claude Code plugins that extend functionality with custom commands and agents. See the [plugins directory](./plugins/README.md) for detailed documentation on available plugins.
+
+## Environment Variables
+
+| Variable | Description |
+|---|---|
+| `ANTHROPIC_BASE_URL` | Use a custom API endpoint or third-party provider |
+| `CLAUDE_CODE_ATTRIBUTION_HEADER` | Set to `0` to disable the attribution header injected into system prompts |
+| `ENABLE_PROMPT_CACHING_1H` | Enable 1-hour prompt caching |
+
+> [!IMPORTANT]
+> If you set `ANTHROPIC_BASE_URL`, also set `CLAUDE_CODE_ATTRIBUTION_HEADER=0`.
+> Without this, Claude Code injects a dynamic header into every system prompt
+> that changes per request and breaks prompt caching on most third-party providers.
+
+```bash
+export ANTHROPIC_BASE_URL=https://your-provider.com
+export CLAUDE_CODE_ATTRIBUTION_HEADER=0
+```
+
+For a full list of supported environment variables, see the [environment variables documentation](https://code.claude.com/docs/en/env-vars).
 
 ## Reporting Bugs
 
