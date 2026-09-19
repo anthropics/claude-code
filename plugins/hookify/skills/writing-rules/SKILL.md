@@ -88,6 +88,7 @@ You're adding an API key to a .env file. Ensure this file is in .gitignore!
   - For file: `file_path`, `new_text`, `old_text`, `content`
 - `operator`: How to match
   - `regex_match`: Regex pattern matching
+  - `regex_not_match`: Regex must NOT match (alias: `not_regex_match`)
   - `contains`: Substring check
   - `equals`: Exact match
   - `not_contains`: Substring must NOT be present
@@ -371,4 +372,4 @@ Warning message
 - Prompt: `user_prompt`
 
 **Operators:**
-- `regex_match`, `contains`, `equals`, `not_contains`, `starts_with`, `ends_with`
+- `regex_match`, `regex_not_match`, `contains`, `equals`, `not_contains`, `starts_with`, `ends_with`
