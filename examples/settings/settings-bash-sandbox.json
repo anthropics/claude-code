@@ -2,6 +2,7 @@
   "allowManagedPermissionRulesOnly": true,
   "sandbox": {
     "enabled": true,
+    "failIfUnavailable": true,
     "autoAllowBashIfSandboxed": false,
     "allowUnsandboxedCommands": false,
     "excludedCommands": [],
