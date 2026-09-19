@@ -321,10 +321,13 @@ Better: `rm\s+-rf`
 
 ## Examples
 
-See `${CLAUDE_PLUGIN_ROOT}/examples/` for complete examples:
-- `dangerous-rm.local.md` - Block dangerous rm commands
-- `console-log-warning.local.md` - Warn about console.log
-- `sensitive-files-warning.local.md` - Warn about editing .env files
+See `${CLAUDE_PLUGIN_ROOT}/examples/` for complete examples. Copy them into your
+project's `.claude/` directory as-is - the `hookify.` prefix is required for a
+rule file to be picked up:
+- `hookify.dangerous-rm.local.md` - Block dangerous rm commands
+- `hookify.console-log-warning.local.md` - Warn about console.log
+- `hookify.sensitive-files-warning.local.md` - Warn about editing .env files
+- `hookify.require-tests-stop.local.md` - Remind about tests before stopping
 
 ## Quick Reference
 
