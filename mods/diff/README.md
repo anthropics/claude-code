@@ -20,8 +20,10 @@ drawing's `viewport` says), the terminal is wide enough (144 columns when
 the person never chose, 110 when they kept it open before; a person who
 closed it is left alone) and file checkpointing is on; a subagent's edit
 opens nothing, and where the surface does not say, nothing opens by
-itself. An open the engine leaves waiting undrawn is withdrawn, so no
-later resize seats it, and the next edit asks again.
+itself. A docked pane fetches before it opens, as the built-in panel
+primes its data, so it never lands on `Loading diff…`; an open the engine
+leaves waiting undrawn is withdrawn, so no later resize seats it, and the
+next edit asks again.
 
 Under the fullscreen layout a terminal under 110 columns gets the
 built-in's line asking for a wider one and nothing opens. Without that

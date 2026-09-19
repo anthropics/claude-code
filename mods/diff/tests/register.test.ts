@@ -565,9 +565,15 @@ describe('register', () => {
     ).toEqual(['diff'])
 
     expect(
+      world.runs.map(run => Fixtures.gitWordOf(run.argv)).slice(0, 2),
+      'the repository was found and read once before the open, as the ' +
+        'built-in primes; nothing polls for a pane no one sees',
+    ).toEqual(['rev-parse --show-toplevel', 'status'])
+
+    expect(
       world.runs.map(run => Fixtures.gitWordOf(run.argv)),
-      'the repository was found, nothing fetched for a pane no one sees',
-    ).toEqual(['rev-parse --show-toplevel'])
+      'no HEAD poll for a withdrawn pane',
+    ).not.toContain(Fixtures.POLL_WORD)
 
     isNarrow = false
 
@@ -620,6 +626,59 @@ describe('register', () => {
       world.opened.map(pane => pane.id),
       'the next edit opened it, as the built-in reads the width again then',
     ).toEqual(['diff'])
+  })
+
+  test('a docked pane opens once its first fetch settled', async ($, on) => {
+    const opened: string[] = []
+    const clock = Fixtures.startsSession(on)
+
+    on('process.run', async ($, e) => {
+      if (e.argv.includes('--shortstat')) {
+        await clock.sleep(Fixtures.SLOW_DIFF_MS)
+      }
+
+      return { value: Fixtures.gitIn(e.argv) }
+    })
+
+    on('ui.open', ($, e) => {
+      opened.push(e.id)
+
+      return { value: undefined }
+    })
+
+    on('ui.close', () => ({ value: undefined }))
+    on('ui.invalidate', () => ({ value: undefined }))
+    on('ui.render', { component: 'PromptHint' }, () => Fixtures.HINT_DRAWN)
+    on('session.messages', () => ({ value: [] }))
+    on('settings.read', () => ({ value: {} }))
+    on('tool.call', () => ({ result: 'edited' }))
+    mock.store(on)
+    mock.env(on, {})
+
+    await $.session.start(Fixtures.SESSION)
+    await $.ui.render(Fixtures.HINT)
+
+    await $.tool.call({
+      tool: 'Edit',
+      file_path: '/work/app.ts',
+      old_string: '1',
+      new_string: '2',
+    })
+
+    await clock.advance(Fixtures.SLOW_DIFF_MS - 1)
+
+    expect(opened, 'git has not answered: no pane, no Loading frame').toEqual(
+      [],
+    )
+
+    await clock.advance(Fixtures.SETTLE_MS)
+
+    expect(opened, 'the fetch settled: the pane opens filled').toEqual(['diff'])
+
+    const drawn = Fixtures.textOf(await $.ui.render(Fixtures.PANE))
+
+    expect(drawn).toContain('1 file changed')
+    expect(drawn).not.toContain('Loading diff')
   })
 
   test('/clear closes the pane it finds open', async ($, on) => {

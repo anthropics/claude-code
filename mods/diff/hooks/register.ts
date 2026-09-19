@@ -34,7 +34,7 @@ import Views from './views'
  *
  * Git runs when the built-in's would: `session.start` binds the host and
  * registers `/diff`; `/diff` or the main loop's first checkpointed edit with
- * room pins the backend, until `/clear`; only a placed, open pane fetches.
+ * room pins the backend, until `/clear`; a docked pane fetches, then opens.
  *
  * @param on the engine's registrar
  */
@@ -53,6 +53,7 @@ export function register(on: On) {
   let isRefreshing = false
   let isRefreshQueued = false
   let generation = 0
+  let landed = 0
   let bodyStamp: string | null = null
   let bodyBase: string | null = null
 
@@ -409,6 +410,12 @@ export function register(on: On) {
 
     dialogRows = isDialog ? Views.dialogRowsOf(model) : null
 
+    const landedBefore = landed
+
+    if (!isDialog) {
+      await refresh(engine).catch(() => undefined)
+    }
+
     const opened = await engine.openPane(
       isDialog
         ? { ...dialogPane(), focus: true }
@@ -432,7 +439,11 @@ export function register(on: On) {
       Record.recorderOf(engine).shown(trigger, Record.widthBucketOf(columns))
     }
 
-    void refresh(engine)
+    const isStale = isDialog || landed !== landedBefore
+
+    if (isStale) {
+      void refresh(engine)
+    }
 
     return true
   }
@@ -860,11 +871,15 @@ export function register(on: On) {
       result.deny === undefined &&
       result.isError !== true
 
-    const isStale =
-      isPaneOpen &&
-      (isEdit ? hasEdited : result === undefined || result.deny === undefined)
+    const hasLanded = isEdit
+      ? hasEdited
+      : result === undefined || result.deny === undefined
 
-    if (isStale) {
+    if (hasLanded) {
+      landed += 1
+    }
+
+    if (hasLanded && isPaneOpen) {
       scheduleRefresh(engine)
     }
 
