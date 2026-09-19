@@ -16,6 +16,7 @@ import type Git from './git'
 import type { Host } from './host'
 import { isCheckpointing } from './is-checkpointing'
 import { isOnPaneSurface } from './is-on-pane-surface'
+import { isOutsideWorkingTree } from './is-outside-working-tree'
 import { isRecord } from './is-record'
 import Limits from './limits'
 import { mapLimited } from './map-limited'
@@ -34,7 +35,8 @@ import Views from './views'
  *
  * Git runs when the built-in's would: `session.start` binds the host and
  * registers `/diff`; `/diff` or the main loop's first checkpointed edit with
- * room pins the backend, until `/clear`; a docked pane fetches, then opens.
+ * room pins the backend, until `/clear`; a docked pane fetches, then opens,
+ * and such an edit inside the tree fetches until one lists a file to open on.
  *
  * @param on the engine's registrar
  */
@@ -46,6 +48,9 @@ export function register(on: On) {
   let isPaneOpen = false
   let dialogRows: number | null = null
   let hasAutoOpened = false
+  let isAutoOpening = false
+  let landed = 0
+  let opens = 0
   let columns: number | null = null
   let shownSessionId: string | null = null
   let armed: Ask.ArmedAsk | null = null
@@ -53,7 +58,6 @@ export function register(on: On) {
   let isRefreshing = false
   let isRefreshQueued = false
   let generation = 0
-  let landed = 0
   let bodyStamp: string | null = null
   let bodyBase: string | null = null
 
@@ -308,7 +312,27 @@ export function register(on: On) {
     )
   }
 
-  async function refresh(engine: Host): Promise<void> {
+  async function readOf(
+    engine: Host,
+    pinned: Backend.Backend | null,
+  ): Promise<PaneState.Fetched> {
+    const fetched = (): Promise<Git.FetchOutcome> =>
+      pinned
+        ? pinned.fetchDiff(model.requestedMode)
+        : Promise.resolve({ kind: 'no-repository' })
+
+    const [outcome, messages] = await Promise.all([
+      fetched(),
+      engine.messages().catch((): SessionMessage[] => []),
+    ])
+
+    return { outcome, messages }
+  }
+
+  async function refresh(
+    engine: Host,
+    read: PaneState.Fetched | null = null,
+  ): Promise<void> {
     if (isRefreshing) {
       isRefreshQueued = true
 
@@ -320,20 +344,13 @@ export function register(on: On) {
     const record = Record.recorderOf(engine)
     const pinned = backend
 
-    const fetched = (): Promise<Git.FetchOutcome> =>
-      pinned
-        ? pinned.fetchDiff(model.requestedMode)
-        : Promise.resolve({ kind: 'no-repository' })
-
     try {
       model = { ...model, isLoading: model.data === null }
 
-      const [outcome, messages] = await Promise.all([
-        fetched(),
-        engine.messages().catch((): SessionMessage[] => []),
-      ])
+      const fetched = read ?? (await readOf(engine, pinned))
+      const { outcome } = fetched
 
-      model = PaneState.afterFetch(model, { outcome, messages })
+      model = PaneState.afterFetch(model, fetched)
 
       switch (outcome.kind) {
         case 'no-repository':
@@ -398,8 +415,11 @@ export function register(on: On) {
   async function openPane(
     engine: Host,
     trigger: (typeof Record.SHOWN_TRIGGERS)[number],
+    read: PaneState.Fetched | null = null,
   ): Promise<boolean> {
     const isDialog = model.isFullscreen === false
+
+    opens += 1
 
     model = {
       ...model,
@@ -412,7 +432,9 @@ export function register(on: On) {
 
     const landedBefore = landed
 
-    if (!isDialog) {
+    if (read) {
+      model = PaneState.afterFetch(model, read)
+    } else if (!isDialog) {
       await refresh(engine).catch(() => undefined)
     }
 
@@ -439,10 +461,10 @@ export function register(on: On) {
       Record.recorderOf(engine).shown(trigger, Record.widthBucketOf(columns))
     }
 
-    const isStale = isDialog || landed !== landedBefore
+    const isStale = isDialog || read !== null || landed !== landedBefore
 
     if (isStale) {
-      void refresh(engine)
+      void refresh(engine, read)
     }
 
     return true
@@ -460,9 +482,65 @@ export function register(on: On) {
     })
   }
 
-  async function openOnFirstEdit(engine: Host): Promise<void> {
-    const isTaken = () => isPaneOpen || hasAutoOpened
+  const isTaken = () => isPaneOpen || hasAutoOpened
 
+  const hasRoomFor = (floor: number) =>
+    model.isFullscreen === true && columns !== null && columns >= floor
+
+  async function openOnFetchedFiles(
+    engine: Host,
+    floor: number,
+  ): Promise<void> {
+    if (isAutoOpening) {
+      return
+    }
+
+    isAutoOpening = true
+
+    try {
+      while (!isTaken()) {
+        const { epoch } = pin
+        const seen = landed
+        const opened = opens
+        const read = await readOf(engine, backend)
+        const isOvertaken = opened !== opens
+
+        const isCurrent =
+          epoch === pin.epoch && !isOvertaken && hasRoomFor(floor) && !isTaken()
+
+        const isListing = isCurrent && PaneState.hasSessionFiles(read.outcome)
+
+        if (isListing) {
+          hasAutoOpened = true
+
+          const isPlaced = await openPane(engine, 'auto_open', read)
+
+          if (!isPlaced) {
+            hasAutoOpened = false
+
+            return
+          }
+        }
+
+        const hasLostRoom = !isListing && !hasRoomFor(floor)
+
+        if (seen === landed || isOvertaken || hasLostRoom) {
+          return
+        }
+
+        if (isListing) {
+          scheduleRefresh(engine)
+        }
+      }
+    } finally {
+      isAutoOpening = false
+    }
+  }
+
+  async function openOnFirstEdit(
+    engine: Host,
+    path: string | null,
+  ): Promise<void> {
     if (isTaken()) {
       return
     }
@@ -474,11 +552,7 @@ export function register(on: On) {
       ? Limits.OPEN_MIN_COLUMNS
       : Limits.AUTO_OPEN_MIN_COLUMNS
 
-    const hasRoom =
-      preference !== false &&
-      model.isFullscreen === true &&
-      columns !== null &&
-      columns >= floor
+    const hasRoom = preference !== false && hasRoomFor(floor)
 
     if (!hasRoom || isTaken()) {
       return
@@ -496,8 +570,16 @@ export function register(on: On) {
       return
     }
 
-    hasAutoOpened = true
-    hasAutoOpened = await openPane(engine, 'auto_open')
+    const isOutside =
+      path !== null &&
+      isOutsideWorkingTree(path, {
+        cwd: pin.cwd,
+        toplevel: backend.repository.toplevel,
+      })
+
+    if (!isOutside) {
+      await openOnFetchedFiles(engine, floor)
+    }
   }
 
   function disarm(engine: Host) {
@@ -886,7 +968,7 @@ export function register(on: On) {
     const isMainLoopEdit = hasEdited && e.agentId === undefined
 
     if (isMainLoopEdit) {
-      void openOnFirstEdit(engine).catch(() => undefined)
+      void openOnFirstEdit(engine, Tools.editedPathOf(e)).catch(() => undefined)
     }
   }
 
