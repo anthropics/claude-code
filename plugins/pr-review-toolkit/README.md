@@ -296,9 +296,7 @@ This plugin works great with:
 
 ## Contributing
 
-Found issues or have suggestions? These agents are maintained in:
-- User agents: `~/.claude/agents/`
-- Project agents: `.claude/agents/` in claude-cli-internal
+Found issues or have suggestions? These agents are maintained in `plugins/pr-review-toolkit/agents/` in this repository.
 
 ## License
 
