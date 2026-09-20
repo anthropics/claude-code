@@ -1217,6 +1217,50 @@ describe('register', () => {
     ).toEqual(['diff'])
   })
 
+  test('a resumed session whose edits the diff no longer lists opens nothing, the next edit it lists does', async ($, on) => {
+    const script: Record<string, string> = {
+      ...Fixtures.REPOSITORY,
+      'HEAD --shortstat': '',
+      'HEAD --numstat': '',
+    }
+
+    const world = Fixtures.inRepository(on, script, {
+      messages: () => Fixtures.EDITED_TRANSCRIPT,
+    })
+
+    on('tool.call', () => ({ result: 'edited' }))
+
+    await $.session.start(Fixtures.SESSION)
+    await $.ui.render(Fixtures.HINT)
+    await world.clock.advance(Fixtures.SETTLE_MS)
+
+    expect(
+      world.opened,
+      'committed since: it would say "No changes this session"',
+    ).toEqual([])
+
+    Object.assign(script, Fixtures.REPOSITORY)
+
+    await $.tool.call({
+      tool: 'Edit',
+      file_path: '/work/app.ts',
+      old_string: '1',
+      new_string: '2',
+    })
+
+    await world.clock.advance(Fixtures.SETTLE_MS)
+
+    expect(
+      world.opened.map(pane => pane.id),
+      'the restore left the opening to the first edit with a row to list',
+    ).toEqual(['diff'])
+
+    expect(
+      Fixtures.textOf(await $.ui.render(Fixtures.PANE)),
+      'listed as it opened',
+    ).toContain('1 file changed')
+  })
+
   test('a resumed session opens nothing where its first edit would not', async ($, on) => {
     const narrow = Fixtures.inRepository(on, Fixtures.REPOSITORY, {
       messages: () => Fixtures.EDITED_TRANSCRIPT,
