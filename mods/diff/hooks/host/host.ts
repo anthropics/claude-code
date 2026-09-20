@@ -111,6 +111,14 @@ export type Host = {
   sessionId: () => Promise<string>
 
   /**
+   * When the session began, `$.session.usage`'s `startedAt`: where the line
+   * between this session's edits and earlier ones falls, a resumed session's
+   * first start, moved by `/clear`. Not a number under an engine that
+   * predates it, where the plugin's own start stands in.
+   */
+  startedAt: () => Promise<unknown>
+
+  /**
    * `$.telemetry.mark`; rejects where the telemetry built-in is absent.
    */
   mark: EngineInterface['telemetry']['mark']

@@ -10,21 +10,22 @@
  */
 
 /**
- * A plugin's analytics, sent one event at a time through `$.telemetry`.
+ * A plugin's analytics, queued through `$.telemetry` and sent in batches.
  *
- * Internal builds alone: the telemetry mod adds the noun in the
- * `engine.create` fold, so a plugin on an external build, or one where the
- * mod is off, finds no `$.telemetry` and its call throws.
+ * The telemetry mod adds the noun in the `engine.create` fold wherever the
+ * CLI seats it, which is every build whose own analytics are on, and serves
+ * the plugins built into the CLI alone: a call from an installed plugin
+ * rejects. Where the mod is off or absent there is no `$.telemetry`.
  */
 export type Telemetry = {
   /**
-   * Sends one event, `tengu_plugin_<event>`, as one first-party row;
-   * resolves once the ingest accepted it.
+   * Queues one event, `tengu_plugin_<event>`, as one first-party row, sent
+   * with the next batch; resolves once queued, rejects a malformed entry.
    *
    * The calling mod names itself in `event`; one already named `tengu_…` is
    * sent as named. A value is a finite number, a boolean or a
    * TelemetryChoice; free text is refused. One input, as every op on `$`
-   * takes.
+   * takes. Whether a batch went out is a line in the debug log.
    *
    * @param entry the event's name, a snake_case token, and its properties by
    *   snake_case key
@@ -41,7 +42,8 @@ export type Telemetry = {
 
   /**
    * Marks one use of a feature as the CLI's own feature events do, one
-   * `tengu_feature_<kind>` row; resolves once the ingest accepted it.
+   * `tengu_feature_<kind>` row queued for the next batch; resolves once
+   * queued, rejects a malformed entry.
    *
    * The row carries `feature_name`, `error_code` on sad or bad (`reason`,
    * required there and refused on ok) and the entry's `props`, checked as
@@ -108,8 +110,8 @@ export type TelemetryChoice = { value: string; of: readonly string[] }
 declare module 'claude-code' {
   interface EngineInterface {
     /**
-     * A plugin's analytics, one first-party row per call; present only where
-     * the telemetry mod is seated (internal builds), absent everywhere else.
+     * A built-in plugin's analytics, first-party rows sent in batches;
+     * present where the telemetry mod is seated, refused to installed plugins.
      */
     telemetry: Telemetry
   }

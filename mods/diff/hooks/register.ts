@@ -27,6 +27,7 @@ import PaneState from './pane-state'
 import PaneToggle from './pane-toggle'
 import Record from './record'
 import Tools from './tools'
+import Turns from './turns'
 import Views from './views'
 
 /**
@@ -34,9 +35,12 @@ import Views from './views'
  * pane's drawing and refresh, its opening on Claude's first edit, the ask.
  *
  * Git runs when the built-in's would: `session.start` binds the host and
- * registers `/diff`; `/diff` or the main loop's first checkpointed edit with
- * room pins the backend, until `/clear`; a docked pane fetches, then opens,
- * and such an edit inside the tree fetches until one lists a file to open on.
+ * registers `/diff`, and off its dispatch reads the transcript, so a resumed
+ * session whose turns already edited opens as its first edit would; `/diff`
+ * or the main loop's first checkpointed edit with room pins the backend,
+ * until `/clear`, which reads afresh under a pane it leaves open; a docked
+ * pane fetches, then opens, and such an edit inside the tree fetches until
+ * one lists a file to open on.
  *
  * @param on the engine's registrar
  */
@@ -48,6 +52,7 @@ export function register(on: On) {
   let isPaneOpen = false
   let dialogRows: number | null = null
   let hasAutoOpened = false
+  let hasRestoredEdits = false
   let isAutoOpening = false
   let landed = 0
   let opens = 0
@@ -539,7 +544,7 @@ export function register(on: On) {
 
   async function openOnFirstEdit(
     engine: Host,
-    path: string | null,
+    path: string | null = null,
   ): Promise<void> {
     if (isTaken()) {
       return
@@ -579,6 +584,16 @@ export function register(on: On) {
 
     if (!isOutside) {
       await openOnFetchedFiles(engine, floor)
+    }
+  }
+
+  async function openOnRestore(engine: Host): Promise<void> {
+    const messages = await engine.messages().catch((): SessionMessage[] => [])
+
+    hasRestoredEdits = Turns.turnDiffsOf(messages).length > 0
+
+    if (hasRestoredEdits) {
+      await openOnFirstEdit(engine)
     }
   }
 
@@ -686,8 +701,14 @@ export function register(on: On) {
     redraw(engine)
   }
 
+  async function startedAtOf(engine: Host): Promise<number | null> {
+    const startedAt: unknown = await engine.startedAt().catch(() => undefined)
+
+    return typeof startedAt === 'number' ? startedAt : null
+  }
+
   async function bind(engine: Host, cwd: string): Promise<void> {
-    sessionStartMs = await engine.now()
+    sessionStartMs = (await startedAtOf(engine)) ?? (await engine.now())
     pin.cwd = cwd
 
     try {
@@ -727,11 +748,21 @@ export function register(on: On) {
         closePane: pane => $.ui.close(pane),
         registerCommand: spec => $.command.register(spec),
         sessionId: () => $.session.id(),
+        startedAt: () =>
+          $.session
+            .usage()
+            .then((usage: unknown) =>
+              isRecord(usage) ? usage.startedAt : undefined,
+            ),
         mark: entry => $.telemetry.mark(entry),
         log: entry => $.telemetry.log(entry),
       },
       e.cwd,
     )
+
+    if (host) {
+      void openOnRestore(host).catch(() => undefined)
+    }
 
     return next(e)
   })
@@ -741,11 +772,17 @@ export function register(on: On) {
       const viewport: { columns?: number; isFullscreen?: boolean } | undefined =
         e.viewport
 
+      const isFirstMeasure = columns === null && viewport?.columns !== undefined
+
       columns = viewport?.columns ?? columns
 
       model = {
         ...model,
         isFullscreen: viewport?.isFullscreen ?? model.isFullscreen,
+      }
+
+      if (isFirstMeasure && hasRestoredEdits && host) {
+        void openOnFirstEdit(host).catch(() => undefined)
       }
     }
 
@@ -923,18 +960,37 @@ export function register(on: On) {
   on('command.run', { command: ['clear', 'resume'] }, async ($, e, next) => {
     const result = await next(e)
 
-    if (host) {
-      if (isPaneOpen) {
-        await closePane(host).catch(() => undefined)
-      }
+    if (!host) {
+      return result
+    }
 
-      unpin()
-      hasAutoOpened = false
-      bodyStamp = null
-      bodyBase = null
-      bodyLoads.clear()
-      disarm(host)
-      model = PaneState.afterNewSession(model)
+    const isResume = e.command === 'resume'
+    const isKeptOpen = isPaneOpen && !isResume
+
+    if (isPaneOpen && isResume) {
+      await closePane(host).catch(() => undefined)
+    }
+
+    unpin()
+    hasAutoOpened = false
+    hasRestoredEdits = false
+    bodyStamp = null
+    bodyBase = null
+    bodyLoads.clear()
+    disarm(host)
+    model = PaneState.afterNewSession(model)
+
+    sessionStartMs =
+      (await startedAtOf(host)) ??
+      (isResume ? sessionStartMs : await host.now())
+
+    if (isKeptOpen) {
+      await pinBackend(host)
+      void refresh(host)
+    }
+
+    if (isResume) {
+      void openOnRestore(host).catch(() => undefined)
     }
 
     return result

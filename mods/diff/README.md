@@ -25,7 +25,10 @@ after which the diff lists nothing or cannot be read, opens nothing and
 leaves the opening to a later edit. A docked pane fetches before it opens,
 as the built-in panel primes its data, so it never lands on
 `Loading diff…`; an open the engine leaves waiting undrawn is withdrawn, so
-no later resize seats it, and the next edit asks again.
+no later resize seats it, and the next edit asks again. A session resumed
+or continued whose transcript already holds such an edit opens the pane on
+the same terms as soon as the width is known, as the built-in opens on the
+history it restores.
 
 Under the fullscreen layout a terminal under 110 columns gets the
 built-in's line asking for a wider one and nothing opens. Without that
@@ -41,7 +44,9 @@ dismissed`; toasts are held while it is up. A file's ask button arms that
 file: its hunks ride the next prompt as context, once.
 
 The pane compares the working tree against HEAD, split at the session's
-start (the default), against HEAD plainly, or against the merge-base with
+start (the default; the start the engine gives in `$.session.usage()`, so a
+resumed session keeps its first and `/clear` begins anew), against HEAD
+plainly, or against the merge-base with
 the default branch; the base line under the header names a base other than
 the session's, and the choice is kept per repository in the plugin's store.
 A picker shows one earlier turn's edits instead of the working tree, read
@@ -68,7 +73,7 @@ stands in for the change time the built-in dates a moved file by.
 
 | event | what the hook does |
 | --- | --- |
-| `session.start` | Binds the engine once and registers `/diff` (a session where another `/diff` is listed leaves the plugin idle); asks nothing of the repository, which `/diff` or the first edit pins when it comes. |
+| `session.start` | Binds the engine once and registers `/diff` (a session where another `/diff` is listed leaves the plugin idle); asks nothing of the repository, which `/diff` or the first edit pins when it comes; off its dispatch, reads the transcript, and for a resumed session whose turns edited opens the pane as the first edit would. |
 | `ui.render` of `PromptHint` | Reads the terminal's width and whether its layout docks a pane, which decide whether the first edit may open the pane. |
 | `ui.render` of `Pane` | Draws the pane: docked, the header, base line, source picker, file list and toggles over the window of hunks; inline, the dialog. |
 | `command.run` of `diff` | Pins the repository when none is, opens or closes the pane (focused and closing on Escape without the fullscreen layout), says which, and remembers the choice. |
