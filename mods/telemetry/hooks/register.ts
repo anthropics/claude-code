@@ -335,6 +335,7 @@ export function register(on: On) {
       }),
       cwd: () => beneath.session.cwd(),
       repo: () => beneath.session.repo(),
+      version: async () => beneath.session.version(),
       read: path => beneath.fs.read(path),
       list: path => beneath.fs.list(path),
       exists: path => beneath.fs.exists(path),

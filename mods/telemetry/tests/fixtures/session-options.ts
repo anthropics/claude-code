@@ -1,4 +1,8 @@
-import type { HttpResponse, SessionAuthorization } from 'claude-code'
+import type {
+  HttpResponse,
+  SessionAuthorization,
+  SessionVersion,
+} from 'claude-code'
 
 import type { PolicyOption } from './policy-option.js'
 
@@ -16,4 +20,10 @@ export type SessionOptions = {
   readonly files?: Readonly<Record<string, string>>
   readonly existing?: readonly string[]
   readonly probeOutput?: string
+
+  /**
+   * What `$.session.version()` answers; `unanswered` leaves nothing beneath
+   * it, as under an engine without the read.
+   */
+  readonly engineVersion?: SessionVersion | 'unanswered'
 }

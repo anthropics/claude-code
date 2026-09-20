@@ -26,10 +26,12 @@ entrypoint and interactivity, and an `env` block (platform and
 architecture from one `uname` probe, terminal, shell, package managers and
 runtimes, CI and GitHub Actions, the remote container, the deployment, the
 Linux distribution and kernel, WSL, the working directory's version
-control), with the repository's remote hash beside the row's properties.
-What the engine alone knows (its version and build time, its runtime's
-version, the process's memory, the request's betas, the subscription tier,
-the calling agent) is not on `$`, and those columns stay empty.
+control, and the engine's version, base version and build time from
+`$.session.version()`, left empty on an engine that does not answer it),
+with the repository's remote hash beside the row's properties. What the
+engine alone knows (its runtime's version, the process's memory, the
+request's betas, the subscription tier, the calling agent) is not on `$`,
+and those columns stay empty.
 
 It sends nothing wherever the CLI's own analytics are off: under
 `DISABLE_TELEMETRY`, `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` or

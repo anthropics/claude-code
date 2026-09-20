@@ -61,6 +61,45 @@ describe('register', () => {
   )
 
   test(
+    'an engine without the version read leaves those three columns empty',
+    { plugins: [Fixtures.recording] },
+    async ($, on) => {
+      mock.env(on, Fixtures.SENDING_ENV)
+
+      const session = Fixtures.firstPartySession(on, {
+        engineVersion: 'unanswered',
+      })
+
+      await $.session.start(Fixtures.STARTED)
+      await $.command.run(Fixtures.record(Fixtures.surveyAnswer()))
+      await session.clock.advance(Hooks.BATCH_WINDOW_MS)
+
+      const { version, version_base, build_time, ...rest } =
+        Fixtures.EXPECTED_ROW.env
+
+      expect([version, version_base, build_time]).toEqual([
+        Fixtures.ENGINE_VERSION.version,
+        Fixtures.ENGINE_VERSION.base,
+        Fixtures.ENGINE_VERSION.builtAt,
+      ])
+
+      expect(Fixtures.rowsOf(session)).toEqual([
+        { ...Fixtures.EXPECTED_ROW, env: rest },
+      ])
+
+      expect(session.lines).toEqual([
+        expect.stringContaining(
+          "telemetry: the engine's version is not readable here, so the " +
+            'version columns stay empty (',
+        ),
+        'telemetry: sent 1 row(s)',
+      ])
+
+      expect(session.lines[0]).toContain('session.version')
+    },
+  )
+
+  test(
     'a full queue goes out at once, before the window',
     { plugins: [Fixtures.recording] },
     async ($, on) => {

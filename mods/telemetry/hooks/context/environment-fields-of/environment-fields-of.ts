@@ -12,6 +12,9 @@ import { tagsOf } from './tags-of'
  * The rows' `env` block from what was probed, valued as the CLI's own is;
  * the GitHub Actions fields only inside a workflow, the Linux ones on Linux.
  *
+ * The engine's version, base version and build time are as it answered
+ * them, absent where it did not.
+ *
  * @param probe what was gathered for the session
  * @returns the block
  */
@@ -56,5 +59,8 @@ export function environmentFieldsOf(probe: Probe): EnvironmentFields {
     linuxDistroVersion: probe.distro.version,
     linuxKernel: isLinux ? machine.kernel : undefined,
     vcs: probe.vcs,
+    version: probe.engine?.version,
+    versionBase: probe.engine?.base,
+    buildTime: probe.engine?.builtAt,
   }
 }

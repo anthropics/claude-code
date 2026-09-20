@@ -1,3 +1,5 @@
+import type { SessionVersion } from 'claude-code'
+
 import type Deployment from '../../deployment'
 import type { Facts } from '../../facts'
 import type { Identity } from '../identity'
@@ -6,7 +8,7 @@ import type { Machine } from '../machine'
 
 /**
  * Everything gathered for the session's context before it is shaped: the
- * variables, the identity, the machine, the Linux files and the directory.
+ * variables, the identity, the machine, the Linux files, the engine's version.
  */
 export type Probe = {
   readonly facts: Facts
@@ -19,4 +21,5 @@ export type Probe = {
   readonly wslVersion: string | undefined
   readonly vcs: string | undefined
   readonly remoteHash: string | undefined
+  readonly engine: SessionVersion | undefined
 }

@@ -5,8 +5,8 @@ import type { GithubActionsFields } from './github-actions-fields'
  * carry it, before its keys are spelled for the wire (Entries.wireOf).
  *
  * The machine, the terminal and shell, CI and GitHub Actions, the remote
- * container, the deployment. `isClaudeAiAuth` follows the credential each
- * batch is sent with and joins these then; an absent field is undefined.
+ * container, the deployment, the engine's version. `isClaudeAiAuth` follows
+ * the credential each batch is sent with and joins these then.
  */
 export type EnvironmentFields = {
   readonly platform: string
@@ -38,4 +38,7 @@ export type EnvironmentFields = {
   readonly linuxDistroVersion: string | undefined
   readonly linuxKernel: string | undefined
   readonly vcs: string | undefined
+  readonly version: string | undefined
+  readonly versionBase: string | undefined
+  readonly buildTime: string | undefined
 }

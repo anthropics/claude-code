@@ -2428,6 +2428,24 @@ declare module 'claude-code' {
            */
           usage: (args?: SessionUsageArgs) => Promise<SessionUsage>;
           /**
+           * Returns the version of the engine the session runs on, the release it
+           * is built from, and when it was built.
+           *
+           * The same three values the engine's own analytics rows carry, answered
+           * in every mode and build; `base` is absent when the version is not
+           * spelled as a release, `builtAt` in a run from source that stamps none.
+           *
+           * @returns `{ version, base, builtAt }`: the full version, its release
+           *          (`2.1.280`, or `2.1.280-dev` for a development build) and an
+           *          ISO 8601 build time
+           * @example
+           * const { version, base, builtAt } = await $.session.version()
+           * row.env = { version, version_base: base, build_time: builtAt }
+           * @example
+           * const isDevelopmentBuild = (await $.session.version()).base?.endsWith("-dev")
+           */
+          version: () => Promise<SessionVersion>;
+          /**
            * Compacts the conversation: the event `session.compact` with `trigger`
            * `plugin`, the same call `/compact` makes, between turns.
            *
@@ -5542,6 +5560,10 @@ declare module 'claude-code' {
        */
       'session.usage': SessionUsageArgs;
       /**
+       * The argument of `$.session.version()`.
+       */
+      'session.version': NoArgs;
+      /**
        * The argument of `$.turn.abort({ turnId })`.
        */
       'turn.abort': {
@@ -5780,6 +5802,10 @@ declare module 'claude-code' {
        */
       'session.authorize': SessionAuthorization;
       'session.usage': SessionUsage;
+      /**
+       * The engine's version, its release, and its build time when stamped.
+       */
+      'session.version': SessionVersion;
       'turn.abort': void;
       /**
        * The box as it stands; the empty box where the session draws none.
@@ -9080,6 +9106,34 @@ declare module 'claude-code' {
        * client's breakdown is the remote workspace's, whose grid ignores this.
        */
       columns?: number;
+  };
+
+  /**
+   * What `$.session.version()` answers: the version of the engine the session
+   * runs on, the release that version is built from, and when it was built.
+   *
+   * The three are what the engine's own analytics rows carry as `version`,
+   * `version_base` and `build_time`, so a row a plugin sends and a row the
+   * engine sends from the same binary agree.
+   */
+  export type SessionVersion = {
+      /**
+       * The engine's full version, as `claude --version` prints it: a release's
+       * (`2.1.280`) or a development build's, which adds the build's date, time
+       * and commit (`2.1.280-dev.20260920.t101500.sha1a2b3c4`).
+       */
+      version: string;
+      /**
+       * The release the version is built from, its semantic core and channel:
+       * `2.1.280` for that release, `2.1.280-dev` for a development build of it.
+       * Absent when the version is not spelled as a release.
+       */
+      base?: string;
+      /**
+       * When the binary was built, an ISO 8601 timestamp
+       * (`2026-09-20T10:15:00Z`). Absent in a run from source that stamps none.
+       */
+      builtAt?: string;
   };
 
   /**

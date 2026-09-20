@@ -1,3 +1,4 @@
+import Batching from '../../batching'
 import type { TelemetryDeps } from '../../telemetry-deps'
 import Identity from '../identity'
 import Machine from '../machine'
@@ -8,10 +9,10 @@ import { linuxFilesOf } from './linux-files-of'
 
 /**
  * Gathers what holds for the whole session through the nouns beneath: the
- * variables, the global config, one machine probe, the directory, the remote.
+ * variables, the global config, one machine probe, the directory, the engine.
  *
- * Each read that fails leaves its part empty; the Linux files are read on
- * Linux alone.
+ * Each read that fails leaves its part empty, the engine's version saying so
+ * once in the debug log; the Linux files are read on Linux alone.
  *
  * @param deps the calls on the nouns beneath
  * @param isInteractive whether a person is at the prompt
@@ -21,14 +22,23 @@ export async function probeOf(
   deps: TelemetryDeps,
   isInteractive: boolean,
 ): Promise<Probe> {
-  const [facts, signals, location, environment, cwd, repo] = await Promise.all([
-    deps.facts(),
-    deps.deployment(),
-    deps.configLocation(),
-    deps.environment(),
-    deps.cwd().catch(() => undefined),
-    deps.repo().catch(() => null),
-  ])
+  const [facts, signals, location, environment, cwd, repo, engine] =
+    await Promise.all([
+      deps.facts(),
+      deps.deployment(),
+      deps.configLocation(),
+      deps.environment(),
+      deps.cwd().catch(() => undefined),
+      deps.repo().catch(() => null),
+      deps.version().catch((error: unknown) => {
+        deps.debug(
+          "telemetry: the engine's version is not readable here, so the " +
+            `version columns stay empty (${Batching.messageOf(error)})`,
+        )
+
+        return undefined
+      }),
+    ])
 
   const [identity, machine, vcs, remoteHash] = await Promise.all([
     Identity.identityOf(deps.read, location, environment.userType === 'ant'),
@@ -50,5 +60,6 @@ export async function probeOf(
     wslVersion: files.wslVersion,
     vcs,
     remoteHash,
+    engine,
   }
 }

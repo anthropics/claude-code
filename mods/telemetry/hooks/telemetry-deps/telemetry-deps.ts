@@ -5,6 +5,7 @@ import type {
   ProcessRunResult,
   SessionAuthorization,
   SessionRepo,
+  SessionVersion,
   Timer,
 } from 'claude-code'
 
@@ -78,6 +79,12 @@ export type TelemetryDeps = {
    * The repository the session runs in, or null.
    */
   repo: () => Promise<SessionRepo | null>
+
+  /**
+   * The engine's version, its release and its build time; rejects on an
+   * engine that does not answer it.
+   */
+  version: () => Promise<SessionVersion>
 
   /**
    * Reads a file as text; rejects when it cannot be read.

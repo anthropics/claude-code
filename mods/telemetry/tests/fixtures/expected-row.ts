@@ -1,4 +1,5 @@
 import { DEVICE_ID } from './device-id.js'
+import { ENGINE_VERSION } from './engine-version.js'
 import { REMOTE_HASH } from './remote-hash.js'
 
 /**
@@ -36,6 +37,9 @@ export const EXPECTED_ROW = {
     is_conductor: false,
     deployment_environment: 'unknown-darwin',
     vcs: 'git',
+    version: ENGINE_VERSION.version,
+    version_base: ENGINE_VERSION.base,
+    build_time: ENGINE_VERSION.builtAt,
     is_claude_ai_auth: true,
   },
   metadata: { rh: REMOTE_HASH, answer: 2, page: 'ready', seen: true },

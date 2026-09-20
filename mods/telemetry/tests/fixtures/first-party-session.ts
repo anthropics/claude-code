@@ -4,6 +4,7 @@ import { mock } from 'claude-code/testing'
 import { ACCEPTED } from './accepted.js'
 import { BEARER } from './bearer.js'
 import { CONFIG_PATH } from './config-path.js'
+import { ENGINE_VERSION } from './engine-version.js'
 import { GLOBAL_CONFIG } from './global-config.js'
 import { LISTING } from './listing.js'
 import { PROBED } from './probed.js'
@@ -16,7 +17,7 @@ import type { SessionOptions } from './session-options.js'
  * session signed in first party on a Mac in a git checkout, on a mock clock.
  *
  * Keeps what the plugin did: each post, file read, program run and debug
- * line, as it does it.
+ * line, as it does it. The engine answers its version unless told not to.
  *
  * @param on the test's `on`
  * @param options how this session differs from the plain one
@@ -52,6 +53,12 @@ export function firstPartySession(
   on('session.cwd', () => ({ value: '/work' }))
   on('session.repo', () => ({ value: REPO }))
   on('fs.list', () => ({ value: LISTING }))
+
+  const engineVersion = options.engineVersion ?? ENGINE_VERSION
+
+  if (engineVersion !== 'unanswered') {
+    on('session.version', () => ({ value: engineVersion }))
+  }
 
   on('session.authorize', () => {
     authorizeCalls += 1
