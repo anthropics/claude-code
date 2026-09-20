@@ -1,4 +1,6 @@
 {
-  "description": "Plugin analytics: an engine.create step adds $.telemetry (log, mark) over $.session, $.http and $.env beneath; sends nothing wherever the CLI's analytics are off",
-  "modules": ["./register.ts"]
+  "description": "Plugin analytics: an engine.create step adds $.telemetry (log, mark) over $.session, $.env, $.settings, $.fs, $.process, $.clock and $.http beneath; rows go out in batches; sends nothing wherever the CLI's analytics are off",
+  "modules": [
+    "./register.ts"
+  ]
 }

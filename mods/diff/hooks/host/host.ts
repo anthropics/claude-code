@@ -65,6 +65,12 @@ export type Host = {
   storeSet: (key: string, value: unknown) => Promise<void>
 
   /**
+   * Whether the session checkpoints edits (`$.settings.read`, `$.env.get`):
+   * the built-in panel opens on an edit only while it does.
+   */
+  isCheckpointing: () => Promise<boolean>
+
+  /**
    * `$.session.messages`.
    */
   messages: () => Promise<SessionMessage[]>
@@ -103,6 +109,14 @@ export type Host = {
    * Which session the pane-shown row is latched to, as `$.session.id` says.
    */
   sessionId: () => Promise<string>
+
+  /**
+   * When the session began, `$.session.usage`'s `startedAt`: where the line
+   * between this session's edits and earlier ones falls, a resumed session's
+   * first start, moved by `/clear`. Not a number under an engine that
+   * predates it, where the plugin's own start stands in.
+   */
+  startedAt: () => Promise<unknown>
 
   /**
    * `$.telemetry.mark`; rejects where the telemetry built-in is absent.

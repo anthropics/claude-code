@@ -94,4 +94,42 @@ describe('git', () => {
     expect(drawn).toContain('moved.ts')
     expect(drawn).toContain('+1 file edited before this session (show)')
   })
+
+  test("the session began when the engine says: a resumed one's first start, again at /clear", async ($, on) => {
+    let startedAt = 0
+
+    const clock = Fixtures.startsSession(on, Fixtures.SETTLE_MS)
+
+    on('process.run', ($, e) => ({
+      value: Fixtures.gitIn(e.argv, Fixtures.MOVED_IN),
+    }))
+
+    on('ui.open', () => ({ value: undefined }))
+    on('ui.invalidate', () => ({ value: undefined }))
+    on('session.messages', () => ({ value: [] }))
+    on('session.usage', () => ({ value: Fixtures.usageAt(startedAt) }))
+    on('command.run', { command: 'clear' }, () => ({}))
+    Fixtures.oldFiles(on)
+    mock.store(on)
+
+    await $.session.start(Fixtures.SESSION)
+    await $.command.run(Fixtures.DIFF)
+    await clock.advance(Fixtures.SETTLE_MS)
+
+    expect(
+      Fixtures.textOf(await $.ui.render(Fixtures.PANE)),
+      'resumed from before the old files were written: both are the ' +
+        "session's, as the built-in restores its start",
+    ).toContain('2 files changed +2 -2')
+
+    startedAt = clock.now()
+
+    await $.command.run(Fixtures.CLEAR)
+    await clock.advance(Fixtures.SETTLE_MS)
+
+    expect(
+      Fixtures.textOf(await $.ui.render(Fixtures.PANE)),
+      '/clear started the session over, past the dirty file',
+    ).toContain('+1 file edited before this session (show)')
+  })
 })

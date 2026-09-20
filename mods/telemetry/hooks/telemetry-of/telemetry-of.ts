@@ -1,74 +1,191 @@
+import type { HttpResponse, Timer } from 'claude-code'
+
 import type { Telemetry } from '../../types'
+import Batching from '../batching'
+import Context from '../context'
 import Entries from '../entries'
+import type { Environment } from '../environment'
 import { isAnalyticsOff } from '../is-analytics-off'
+import type { Sender } from '../sender'
 import type { TelemetryDeps } from '../telemetry-deps'
 
 /**
- * Builds `$.telemetry`: `log` and `mark` check the entry, read the environment
- * and authorize afresh, build the first-party row and POST it to the ingest.
+ * Builds `$.telemetry` and its flush: `log` and `mark` check the entry and
+ * queue a row; a batch goes out on a timer, when full, or when flushed.
  *
- * One POST per call, rows one after another, nothing kept between them: a
- * session that has moved to a third-party provider or a gateway, or turned
- * analytics off, sends nothing more; no credential or a refusal rejects.
+ * Each batch reads the switches afresh: analytics off, or unreadable, sends
+ * nothing; no credential, or an ingest that refuses after one retry, drops
+ * the batch. Each outcome is one debug line; the context is gathered once.
  *
  * @param deps the calls on the nouns beneath
- * @returns the `$.telemetry` interface, `log` and `mark`
+ * @returns the noun and its flush
  */
-export function telemetryOf(deps: TelemetryDeps): Telemetry {
-  let queue: Promise<unknown> = Promise.resolve()
+export function telemetryOf(deps: TelemetryDeps): Sender {
+  let pending: Batching.PendingRow[] = []
+  let timer: Timer | undefined
+  let context: Promise<Context.Context> | undefined
+  let priming: Promise<void> | undefined
+  let sending: Promise<void> = Promise.resolve()
 
-  async function post(
-    fields: Entries.Fields,
-    method: Entries.Method,
-  ): Promise<void> {
-    const environment = await deps.environment()
+  function gathered(): Promise<Context.Context> {
+    const gathering =
+      context ??
+      deps
+        .isInteractive()
+        .then(isInteractive => Context.contextOf(deps, isInteractive))
+        .catch((error: unknown) => {
+          context = undefined
+          throw error
+        })
 
-    if (isAnalyticsOff(environment)) {
-      return
-    }
+    context = gathering
 
-    const body = Entries.batchOf(fields, {
-      sessionId: await deps.id(),
-      model: await deps.model(),
-      userType: environment.userType === 'ant' ? 'ant' : 'external',
-    })
+    return gathering
+  }
 
-    const auth = await deps.authorize()
+  async function sendingEnvironment(): Promise<Environment | undefined> {
+    try {
+      const [environment, policy] = await Promise.all([
+        deps.environment(),
+        deps.policy(),
+      ])
 
-    if (!auth) {
-      throw Entries.refusal(
-        'this session has no first-party credential to authorize',
-        method,
+      return isAnalyticsOff(environment, policy) ? undefined : environment
+    } catch (error) {
+      deps.debug(
+        'telemetry: the analytics switches could not be read, so nothing ' +
+          `is sent (${Batching.messageOf(error)})`,
       )
-    }
 
-    const response = await deps.fetch(Entries.INGEST_URL, {
+      return undefined
+    }
+  }
+
+  async function primed(): Promise<void> {
+    const environment = await sendingEnvironment()
+
+    if (environment) {
+      await gathered()
+    }
+  }
+
+  const post = (body: string, auth: string): Promise<HttpResponse> =>
+    deps.fetch(Entries.INGEST_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'x-service-name': 'claude-code',
       },
-      auth: auth.handle,
+      auth,
       body,
     })
 
-    if (!response.ok) {
-      throw Entries.refusal(`the ingest answered ${response.status}`, method)
+  async function postedWithRetry(
+    body: string,
+    auth: string,
+  ): Promise<HttpResponse> {
+    let first: HttpResponse | undefined
+
+    try {
+      first = await post(body, auth)
+    } catch {
+      first = undefined
     }
+
+    const isSettled =
+      first !== undefined && (first.ok || !Batching.isRetriable(first.status))
+
+    if (first !== undefined && isSettled) {
+      return first
+    }
+
+    await deps.sleep(Batching.RETRY_DELAY_MS)
+
+    return post(body, auth)
   }
 
-  function queued(
-    fields: Entries.Fields,
-    method: Entries.Method,
-  ): Promise<void> {
-    const turn = queue.then(() => post(fields, method))
-    queue = turn.catch(() => undefined)
+  async function send(rows: readonly Batching.PendingRow[]): Promise<void> {
+    const environment = await sendingEnvironment()
 
-    return turn
+    if (!environment) {
+      return
+    }
+
+    const authorization = await deps.authorize()
+
+    if (!authorization) {
+      throw new Error('this session has no first-party credential to authorize')
+    }
+
+    const settled = await gathered()
+
+    const response = await postedWithRetry(
+      Entries.batchOf(rows, {
+        sessionId: await deps.id(),
+        model: await deps.model(),
+        userType: environment.userType === 'ant' ? 'ant' : 'external',
+        isInteractive: await deps.isInteractive(),
+        isClaudeAiAuth:
+          authorization.kind === 'bearer' &&
+          settled.identity.accountUuid !== undefined,
+        context: settled,
+      }),
+      authorization.handle,
+    )
+
+    if (!response.ok) {
+      throw new Error(`the ingest answered ${response.status}`)
+    }
+
+    deps.debug(`telemetry: sent ${rows.length} row(s)`)
   }
 
-  return {
-    log: async entry => queued(Entries.checkedFields(entry), 'log'),
-    mark: async entry => queued(Entries.checkedMark(entry), 'mark'),
+  function flush(): Promise<void> {
+    timer?.cancel()
+    timer = undefined
+
+    const rows = pending
+
+    pending = []
+
+    if (rows.length === 0) {
+      return sending
+    }
+
+    sending = sending.then(() =>
+      send(rows).catch((error: unknown) => {
+        deps.debug(
+          `telemetry: ${rows.length} row(s) not sent: ` +
+            Batching.messageOf(error),
+        )
+      }),
+    )
+
+    return sending
   }
+
+  function queued(fields: Entries.Fields) {
+    priming ??= primed().catch(() => undefined)
+
+    pending.push({
+      fields,
+      eventId: crypto.randomUUID(),
+      loggedAt: new Date().toISOString(),
+    })
+
+    if (pending.length >= Batching.BATCH_ROWS) {
+      void flush()
+
+      return
+    }
+
+    timer ??= deps.after(Batching.BATCH_WINDOW_MS, () => void flush())
+  }
+
+  const telemetry: Telemetry = {
+    log: async entry => queued(Entries.checkedFields(entry)),
+    mark: async entry => queued(Entries.checkedMark(entry)),
+  }
+
+  return { telemetry, flush }
 }
