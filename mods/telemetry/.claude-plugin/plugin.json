@@ -1,7 +1,7 @@
 {
   "name": "telemetry",
   "version": "0.1.0",
-  "description": "Plugin analytics: adds $.telemetry in the engine.create fold, so a plugin logs an event or marks a feature's use as one first-party row per call, sent with the session's own credential.",
+  "description": "Plugin analytics: adds $.telemetry in the engine.create fold, so a plugin logs an event or marks a feature's use as a first-party row, sent in batches with the session's own credential.",
   "author": {
     "name": "Anthropic"
   },
