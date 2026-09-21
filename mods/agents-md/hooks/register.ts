@@ -223,7 +223,14 @@ export function register(on: On, options: PluginOptions): void {
       ...Files.filesOf(claude),
     ]).filter(file => !sent.has(file.path))
     const attached = fresh.filter(file => !Frames.isFileAt(file, read))
-    const isWholeRead = e.offset === undefined && e.limit === undefined
+    const output = result.result
+    const isPartialText =
+      output?.type === 'text' &&
+      (output.file.truncatedByTokenCap ||
+        output.file.startLine !== 1 ||
+        output.file.numLines < output.file.totalLines)
+    const isWholeRead =
+      e.offset === undefined && e.limit === undefined && !isPartialText
 
     for (const file of fresh) {
       const isSent =

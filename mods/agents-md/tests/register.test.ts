@@ -1,4 +1,4 @@
-import { describe, expect, test, tier } from 'claude-code/testing'
+import { describe, expect, mock, test, tier } from 'claude-code/testing'
 
 import Hooks from '../hooks'
 import Fixtures from './fixtures'
@@ -83,6 +83,70 @@ describe('register', () => {
       await $.prompt.context({ blocks: BLOCKS, instructionFiles: [] }),
     ).toEqual({ blocks: BLOCKS, instructionFiles: [] })
   })
+
+  for (const [name, args, file, attaches] of [
+    [
+      'an auto-paginated read',
+      {},
+      { content: '# head\nfollow', truncatedByTokenCap: true },
+      true,
+    ],
+    ['an incomplete line range', {}, { content: '# head', numLines: 1 }, true],
+    ['a complete read', {}, {}, false],
+    ['an explicit limit', { limit: 1 }, { content: '# head', numLines: 1 }, true],
+    [
+      'an explicit offset',
+      { offset: 2 },
+      { content: 'follow the tail rule', numLines: 1, startLine: 2 },
+      true,
+    ],
+    ['an unstructured result', {}, undefined, false],
+  ] as const) {
+    test(`a nested AGENTS.md after ${name}`, async ($, on) => {
+      const dir = `${Fixtures.SESSION.cwd}/nested`
+      const path = `${dir}/AGENTS.md`
+      const content = '# head\nfollow the tail rule'
+      const started = Fixtures.projectOf(
+        on,
+        [Fixtures.ancestorOf(dir, 'AGENTS.md', content)],
+        [],
+      )
+
+      mock.env(on, {})
+      on('session.cwd', () => ({ value: Fixtures.SESSION.cwd }))
+      on('tool.call', ($, e) => ({
+        result:
+          e.tool === 'Read' && file !== undefined
+            ? {
+                type: 'text',
+                file: Object.assign(
+                  {
+                    filePath: e.file_path,
+                    content,
+                    numLines: 2,
+                    startLine: 1,
+                    totalLines: 2,
+                  },
+                  file,
+                ),
+              }
+            : 'read',
+      }))
+
+      const direct = await $.tool.call({ tool: 'Read', file_path: path, ...args })
+      const source = { tool: 'Read', file_path: `${dir}/source.ts` } as const
+      const after = await $.tool.call(source)
+      const repeated = await $.tool.call(source)
+
+      expect(direct.context).toBeUndefined()
+      expect(after.context).toEqual(
+        attaches ? [`Contents of ${path}:\n\n${content}`] : undefined,
+      )
+      expect(repeated.context).toBeUndefined()
+
+      await started.clock.settle()
+    })
+  }
 
   test(
     'the start sends the mode row alone: no walk, no toast',
