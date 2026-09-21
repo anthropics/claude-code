@@ -148,6 +148,42 @@ describe('fetch-diff', () => {
     ).toBe(true)
   })
 
+  test("forced git colors do not hide a changed file's hunks", async () => {
+    const deps = depsOf({
+      'HEAD --shortstat': Fixtures.ok(
+        ' 1 file changed, 1 insertion(+), 1 deletion(-)',
+      ),
+      'HEAD --numstat': Fixtures.ok('1\t1\ta.ts\0'),
+      'ls-files': Fixtures.ok(),
+    })
+
+    const git = Fixtures.scriptedGitOf({
+      '--no-color': Fixtures.ok('@@ -1 +1 @@\n-old\n+new\n'),
+      diff: Fixtures.ok(
+        '\x1b[36m@@ -1 +1 @@\x1b[m\n\x1b[31m-old\x1b[m\n' +
+          '\x1b[32m+\x1b[m\x1b[32mnew\x1b[m\n',
+      ),
+    })
+
+    const outcome = await Git.fetchDiff(deps, 'uncommitted')
+    const data = outcome.kind === 'data' ? outcome.data : null
+    const [row] = data?.files ?? []
+
+    expect(data?.stats).toEqual({
+      filesCount: 1,
+      linesAdded: 1,
+      linesRemoved: 1,
+    })
+
+    expect(
+      data && row ? await Git.fetchFileHunks(git.run, data, row) : null,
+    ).toEqual({
+      hunks: [{ oldStart: 1, newStart: 1, lines: ['-old', '+new'] }],
+      isTruncated: false,
+      isLarge: false,
+    })
+  })
+
   test('uncommitted mode drops pre-session untracked files', async () => {
     const outcome = await Git.fetchDiff(
       depsOf(
