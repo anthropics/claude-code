@@ -21,7 +21,7 @@ Performs automated code review on a pull request using multiple specialized agen
    - **Agents #3 & #4**: Scan the introduced changes for significant bugs (logic errors, security issues)
 5. Validates each candidate issue with a dedicated subagent
 6. Filters out issues that fail validation
-7. Outputs review (to terminal by default, or as PR comment with `--comment` flag)
+7. Outputs review (to terminal by default, or as PR comments with `--comment` flag)
 
 **Usage:**
 ```bash
@@ -29,7 +29,7 @@ Performs automated code review on a pull request using multiple specialized agen
 ```
 
 **Options:**
-- `--comment`: Post the review as a comment on the pull request (default: outputs to terminal only)
+- `--comment`: Post the review to the pull request, one inline comment per issue (default: outputs to terminal only)
 
 **Example workflow:**
 ```bash
@@ -42,7 +42,7 @@ Performs automated code review on a pull request using multiple specialized agen
 # Claude will:
 # - Launch 4 review agents in parallel
 # - Validate each candidate issue with a subagent
-# - Output the validated issues (to terminal or PR depending on flag)
+# - Output the validated issues (to terminal, or as inline PR comments with --comment)
 # - State that no issues were found if nothing survives validation
 ```
 
@@ -54,23 +54,25 @@ Performs automated code review on a pull request using multiple specialized agen
 - Automatic skipping of closed, draft, or already-reviewed PRs
 - Links directly to code with full SHA and line ranges
 
-**Review comment format:**
+**Where the review goes:**
+
+Without `--comment`, the review is printed to the terminal only. Nothing is posted to GitHub.
+
+With `--comment` and at least one validated issue, each issue becomes its own inline comment
+on the changed line, with a link to the code:
+
+```markdown
+Missing error handling for OAuth callback (CLAUDE.md says "Always handle OAuth errors")
+
+https://github.com/owner/repo/blob/abc123.../src/auth.ts#L67-L72
+```
+
+With `--comment` and no validated issues, one summary comment is posted instead:
+
 ```markdown
 ## Code review
 
-Found 3 issues:
-
-1. Missing error handling for OAuth callback (CLAUDE.md says "Always handle OAuth errors")
-
-https://github.com/owner/repo/blob/abc123.../src/auth.ts#L67-L72
-
-2. Memory leak: OAuth state not cleaned up (bug due to missing cleanup in finally block)
-
-https://github.com/owner/repo/blob/abc123.../src/auth.ts#L88-L95
-
-3. Inconsistent naming pattern (src/conventions/CLAUDE.md says "Use camelCase for functions")
-
-https://github.com/owner/repo/blob/abc123.../src/utils.ts#L23-L28
+No issues found. Checked for bugs and CLAUDE.md compliance.
 ```
 
 **False positives filtered:**
@@ -126,7 +128,7 @@ This plugin is included in the Claude Code repository. The command is automatica
 ### As part of CI/CD:
 ```bash
 # Trigger on PR creation or update
-# Use --comment flag to post review comments
+# Use --comment flag to post inline review comments
 /code-review --comment
 # Skip if review already exists
 ```
@@ -163,6 +165,7 @@ This plugin is included in the Claude Code repository. The command is automatica
 
 **Solution**:
 Check if:
+- `--comment` was not passed (terminal output only is the default)
 - PR is closed (reviews skipped)
 - PR is draft (reviews skipped)
 - PR is trivial/automated (reviews skipped)
@@ -225,7 +228,9 @@ Edit `commands/code-review.md` to add or modify agent tasks:
 Uses `gh` CLI for:
 - Viewing PR details and diffs
 - Fetching repository data
-- Posting review comments
+- Posting the "No issues found" summary comment
+
+Inline comments are posted with the GitHub inline-comment tool, not `gh`.
 
 ## Author
 
