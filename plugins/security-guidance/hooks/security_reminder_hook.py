@@ -84,6 +84,7 @@ from _base import (  # noqa: E402,F401
     _PRICE_PER_MTOK, _PRICE_DEFAULT, _record_usage, _usage_metrics,
 )
 import extensibility  # noqa: E402
+import secretpaths  # noqa: E402
 from patterns import (  # noqa: E402,F401
     _JS_EXTS, _PY_EXTS, _DOC_EXTS,
     _UNSAFE_DESERIALIZATION_REMINDER, _UNSAFE_YAML_LOAD_REMINDER,
@@ -2051,6 +2052,7 @@ def main():
     # per invocation. Failures are non-fatal (debug-logged) so a malformed
     # config never prevents the built-in checks from running.
     extensibility.load_for_session(input_data.get("cwd"))
+    secretpaths.load_for_session(input_data.get("cwd"))
 
     # Remote-pod SDK-bootstrap rescue: PostToolUse is the earliest hook event
     # that is guaranteed to fire *after* async plugin sync (its firing proves
