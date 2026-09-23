@@ -93,7 +93,12 @@ describe('register', () => {
     ],
     ['an incomplete line range', {}, { content: '# head', numLines: 1 }, true],
     ['a complete read', {}, {}, false],
-    ['an explicit limit', { limit: 1 }, { content: '# head', numLines: 1 }, true],
+    [
+      'an explicit limit',
+      { limit: 1 },
+      { content: '# head', numLines: 1 },
+      true,
+    ],
     [
       'an explicit offset',
       { offset: 2 },
@@ -133,7 +138,11 @@ describe('register', () => {
             : 'read',
       }))
 
-      const direct = await $.tool.call({ tool: 'Read', file_path: path, ...args })
+      const direct = await $.tool.call({
+        tool: 'Read',
+        file_path: path,
+        ...args,
+      })
       const source = { tool: 'Read', file_path: `${dir}/source.ts` } as const
       const after = await $.tool.call(source)
       const repeated = await $.tool.call(source)
