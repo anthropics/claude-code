@@ -741,7 +741,7 @@ export function register(on: On) {
     )
   })
 
-  on('command.run', { command: Names.COMMAND_NAME }, async ($, e, next) => {
+  on('command.run', { command: 'diff' }, async ($, e, next) => {
     if (!host) {
       return next(e)
     }
