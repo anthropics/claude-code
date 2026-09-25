@@ -1,0 +1,29 @@
+{
+  "description": "protect-mcp — fail-closed Cedar policy gate on PreToolUse, Ed25519 signed receipts on PostToolUse",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|Write|Edit|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npx -y protect-mcp@0.7.1 evaluate --cedar \"${CLAUDE_PLUGIN_ROOT}/policies\" --tool \"$TOOL_NAME\" --input \"$TOOL_INPUT\"",
+            "timeout": 60
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash|Write|Edit|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npx -y protect-mcp@0.7.1 sign --tool \"$TOOL_NAME\" --receipts \"./receipts\" --key \"./keys/gateway.json\"",
+            "timeout": 60
+          }
+        ]
+      }
+    ]
+  }
+}
