@@ -49,6 +49,20 @@ For more installation options, uninstall steps, and troubleshooting, see the [se
 
 This repository includes several Claude Code plugins that extend functionality with custom commands and agents. See the [plugins directory](./plugins/README.md) for detailed documentation on available plugins.
 
+## VS Code extension
+
+For detailed VS Code setup and usage, see the [VS Code documentation](https://code.claude.com/docs/en/vs-code).
+
+### Status bar states
+
+When Claude runs long-running commands in VS Code, the extension shows progress in the status bar. The status bar can display the following states:
+
+- **Normal progress** — A spinner indicates Claude is actively working. This is expected during long-running operations such as large file edits or complex commands.
+- **"Not responding"** — The spinner turns red with a "Not responding" label when the extension has not received a response from the backend for approximately 60 seconds. This is **not** the expected state during normal long-running operations. If you see this indicator:
+  1. Check your internet connection.
+  2. Start a new conversation to see if the issue persists.
+  3. Try running `claude` from the terminal for more detailed error output.
+
 ## Reporting Bugs
 
 We welcome your feedback. Use the `/bug` command to report issues directly within Claude Code, or file a [GitHub issue](https://github.com/anthropics/claude-code/issues).
