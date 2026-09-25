@@ -13,6 +13,10 @@ interface GitHubIssue {
   created_at: string;
 }
 
+interface GitHubIssueDetail {
+  labels?: Array<{ name: string } | string>;
+}
+
 interface GitHubComment {
   id: number;
   body: string;
@@ -46,6 +50,17 @@ async function githubRequest<T>(endpoint: string, token: string, method: string 
   return response.json();
 }
 
+function extractLabelNames(
+  labels: Array<{ name: string } | string> | undefined
+): string[] {
+  if (!labels) {
+    return [];
+  }
+  return labels
+    .map((label) => (typeof label === "string" ? label : label.name))
+    .filter((label) => Boolean(label));
+}
+
 function extractDuplicateIssueNumber(commentBody: string): number | null {
   // Try to match #123 format first
   let match = commentBody.match(/#(\d+)/);
@@ -70,6 +85,13 @@ async function closeIssueAsDuplicate(
   duplicateOfNumber: number,
   token: string
 ): Promise<void> {
+  const issueDetail = await githubRequest<GitHubIssueDetail>(
+    `/repos/${owner}/${repo}/issues/${issueNumber}`,
+    token
+  );
+  const labelSet = new Set(extractLabelNames(issueDetail.labels));
+  labelSet.add("duplicate");
+
   await githubRequest(
     `/repos/${owner}/${repo}/issues/${issueNumber}`,
     token,
@@ -77,7 +99,7 @@ async function closeIssueAsDuplicate(
     {
       state: 'closed',
       state_reason: 'duplicate',
-      labels: ['duplicate']
+      labels: Array.from(labelSet)
     }
   );
 
