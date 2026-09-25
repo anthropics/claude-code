@@ -13,12 +13,14 @@ Validates `hooks.json` configuration files for correct structure and common issu
 
 **Checks:**
 - Valid JSON syntax
-- Required fields present
+- Plugin wrapper format (`description` + `hooks`) or direct event map
+- Required fields present (`hooks` array; `matcher` optional)
 - Valid hook event names
 - Proper hook types (command/prompt)
 - Timeout values in valid ranges
 - Hardcoded path detection
 - Prompt hook event compatibility
+- Shell-form `${user_config.*}` rejected (Claude Code v2.1.207 shell-injection fix)
 
 **Example:**
 ```bash
