@@ -14,7 +14,7 @@ This plugin implements Ralph using a **Stop hook** that intercepts Claude's exit
 
 ```bash
 # You run ONCE:
-/ralph-loop "Your task description" --completion-promise "DONE"
+/ralph-wiggum:ralph-loop "Your task description" --completion-promise "DONE"
 
 # Then Claude Code automatically:
 # 1. Works on the task
@@ -35,7 +35,7 @@ This creates a **self-referential feedback loop** where:
 ## Quick Start
 
 ```bash
-/ralph-loop "Build a REST API for todos. Requirements: CRUD operations, input validation, tests. Output <promise>COMPLETE</promise> when done." --completion-promise "COMPLETE" --max-iterations 50
+/ralph-wiggum:ralph-loop "Build a REST API for todos. Requirements: CRUD operations, input validation, tests. Output <promise>COMPLETE</promise> when done." --completion-promise "COMPLETE" --max-iterations 50
 ```
 
 Claude will:
@@ -47,26 +47,26 @@ Claude will:
 
 ## Commands
 
-### /ralph-loop
+### /ralph-wiggum:ralph-loop
 
 Start a Ralph loop in your current session.
 
 **Usage:**
 ```bash
-/ralph-loop "<prompt>" --max-iterations <n> --completion-promise "<text>"
+/ralph-wiggum:ralph-loop "<prompt>" --max-iterations <n> --completion-promise "<text>"
 ```
 
 **Options:**
 - `--max-iterations <n>` - Stop after N iterations (default: unlimited)
 - `--completion-promise <text>` - Phrase that signals completion
 
-### /cancel-ralph
+### /ralph-wiggum:cancel-ralph
 
 Cancel the active Ralph loop.
 
 **Usage:**
 ```bash
-/cancel-ralph
+/ralph-wiggum:cancel-ralph
 ```
 
 ## Prompt Writing Best Practices
@@ -122,7 +122,7 @@ Always use `--max-iterations` as a safety net to prevent infinite loops on impos
 
 ```bash
 # Recommended: Always set a reasonable iteration limit
-/ralph-loop "Try to implement feature X" --max-iterations 20
+/ralph-wiggum:ralph-loop "Try to implement feature X" --max-iterations 20
 
 # In your prompt, include what to do if stuck:
 # "After 15 iterations, if not complete:
