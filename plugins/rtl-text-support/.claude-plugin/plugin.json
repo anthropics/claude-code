@@ -1,0 +1,9 @@
+{
+  "name": "rtl-text-support",
+  "version": "1.0.0",
+  "description": "Fixes RTL (right-to-left) text rendering broken in VSCode chat panel since v2.1.63. The webview CSS unicode-bidi:bidi-override incorrectly forces all text LTR, breaking Persian/Arabic/Hebrew. Addresses issues #29545, #29658, #29662, #29754.",
+  "author": {
+    "name": "HarshalJain-cs",
+    "email": ""
+  }
+}
