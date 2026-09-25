@@ -145,6 +145,16 @@
       },
       "source": "./plugins/security-guidance",
       "category": "security"
+    },
+    {
+      "name": "notification-sound",
+      "description": "Plays a system notification sound when Claude finishes processing and is waiting for input. Cross-platform: macOS, Linux, Windows.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Khurdhula-Harshavardhan"
+      },
+      "source": "./plugins/notification-sound",
+      "category": "productivity"
     }
   ]
 }
