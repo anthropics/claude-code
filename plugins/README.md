@@ -6,7 +6,7 @@ This directory contains some official Claude Code plugins that extend functional
 
 Claude Code plugins are extensions that enhance Claude Code with custom slash commands, specialized agents, hooks, and MCP servers. Plugins can be shared across projects and teams, providing consistent tooling and workflows.
 
-Learn more in the [official plugins documentation](https://docs.claude.com/en/docs/claude-code/plugins).
+Learn more in the [official plugins documentation](https://code.claude.com/docs/en/plugins).
 
 ## Plugins in This Directory
 
@@ -14,7 +14,7 @@ Learn more in the [official plugins documentation](https://docs.claude.com/en/do
 |------|-------------|----------|
 | [agent-sdk-dev](./agent-sdk-dev/) | Development kit for working with the Claude Agent SDK | **Command:** `/new-sdk-app` - Interactive setup for new Agent SDK projects<br>**Agents:** `agent-sdk-verifier-py`, `agent-sdk-verifier-ts` - Validate SDK applications against best practices |
 | [claude-opus-4-5-migration](./claude-opus-4-5-migration/) | Migrate code and prompts from Sonnet 4.x and Opus 4.1 to Opus 4.5 | **Skill:** `claude-opus-4-5-migration` - Automated migration of model strings, beta headers, and prompt adjustments |
-| [code-review](./code-review/) | Automated PR code review using multiple specialized agents with confidence-based scoring to filter false positives | **Command:** `/code-review` - Automated PR review workflow<br>**Agents:** 5 parallel Sonnet agents for CLAUDE.md compliance, bug detection, historical context, PR history, and code comments |
+| [code-review](./code-review/) | Automated PR code review using multiple specialized agents with confidence-based scoring to filter false positives | **Command:** `/code-review` - Automated PR review workflow<br>**Agents:** Haiku agents for pre-checks, Sonnet agents for CLAUDE.md compliance, Opus agents for bug detection, with confidence-based validation |
 | [commit-commands](./commit-commands/) | Git workflow automation for committing, pushing, and creating pull requests | **Commands:** `/commit`, `/commit-push-pr`, `/clean_gone` - Streamlined git operations |
 | [explanatory-output-style](./explanatory-output-style/) | Adds educational insights about implementation choices and codebase patterns (mimics the deprecated Explanatory output style) | **Hook:** SessionStart - Injects educational context at the start of each session |
 | [feature-dev](./feature-dev/) | Comprehensive feature development workflow with a structured 7-phase approach | **Command:** `/feature-dev` - Guided feature development workflow<br>**Agents:** `code-explorer`, `code-architect`, `code-reviewer` - For codebase analysis, architecture design, and quality review |
@@ -30,10 +30,19 @@ Learn more in the [official plugins documentation](https://docs.claude.com/en/do
 
 These plugins are included in the Claude Code repository. To use them in your own projects:
 
-1. Install Claude Code globally:
-```bash
-npm install -g @anthropic-ai/claude-code
-```
+1. Install Claude Code:
+
+   **macOS/Linux:**
+   ```bash
+   curl -fsSL https://claude.ai/install.sh | bash
+   ```
+
+   **Windows:**
+   ```powershell
+   irm https://claude.ai/install.ps1 | iex
+   ```
+
+   For more installation options, see the [setup documentation](https://code.claude.com/docs/en/setup).
 
 2. Navigate to your project and run Claude Code:
 ```bash
@@ -42,7 +51,7 @@ claude
 
 3. Use the `/plugin` command to install plugins from marketplaces, or configure them in your project's `.claude/settings.json`.
 
-For detailed plugin installation and configuration, see the [official documentation](https://docs.claude.com/en/docs/claude-code/plugins).
+For detailed plugin installation and configuration, see the [official documentation](https://code.claude.com/docs/en/plugins).
 
 ## Plugin Structure
 
@@ -72,6 +81,6 @@ When adding new plugins to this directory:
 
 ## Learn More
 
-- [Claude Code Documentation](https://docs.claude.com/en/docs/claude-code/overview)
-- [Plugin System Documentation](https://docs.claude.com/en/docs/claude-code/plugins)
-- [Agent SDK Documentation](https://docs.claude.com/en/api/agent-sdk/overview)
+- [Claude Code Documentation](https://code.claude.com/docs/en/overview)
+- [Plugin System Documentation](https://code.claude.com/docs/en/plugins)
+- [Agent SDK Documentation](https://platform.claude.com/docs/en/agent-sdk/overview)
