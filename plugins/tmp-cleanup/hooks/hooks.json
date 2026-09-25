@@ -1,0 +1,28 @@
+{
+  "description": "Cleanup hook for claude-{hex}-cwd temp file leak (GitHub Issue #8856)",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/tmp_cleanup_post_tool.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/tmp_cleanup_stop.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
