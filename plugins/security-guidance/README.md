@@ -50,6 +50,7 @@ SECURITY_REVIEW_MODEL=claude-opus-4-7@20260218
 | `ENABLE_CODE_SECURITY_REVIEW=0` | on | Disable all LLM reviews (Stop hook + commit/push) |
 | `ENABLE_STOP_REVIEW=0` | on | Disable only the Stop-hook diff review, keeping commit/push reviews. Useful for multi-agent / shared-worktree setups where another agent can move HEAD between a worker's turns |
 | `ENABLE_COMMIT_REVIEW=0` | on | Disable layer 3 (agentic commit review) |
+| `SG_SKIP_SECRET_FILES=0` | on | Stop skipping well-known secret files (`.env*`, private keys, `secrets.yaml`, `credentials.json`, `.netrc`, …) so they are reviewed like any other file. Files your `Read` deny rules cover stay excluded either way — see [Privacy and data handling](#privacy-and-data-handling) |
 
 ### Higher-recall mode
 
@@ -85,6 +86,13 @@ Built-in rules cover common web-vulnerability classes without it — `claude-sec
 ## Privacy and data handling
 
 The plugin sends data to a model endpoint to perform its reviews. Specifically, each Stop-hook diff review transmits the changed file paths, the diff hunks, and the relevant file contents in the diff; each agentic commit review additionally transmits any files the reviewer pulls in via `Read`/`Grep`/`Glob` while tracing data flow. Your `claude-security-guidance.md` contents (user, project, and local) are appended to the prompt on every review, so don't put secrets in it.
+
+Two kinds of file are kept out of every review, both from the diff the plugin sends and from what the agentic reviewer's sub-agent may `Read`/`Grep`/`Glob` (the sub-agent gets no shell tool, so `cat` or `git show` are not a way around this):
+
+- **Files your session's `Read` permission rules deny or ask about.** The plugin reads `permissions.deny` and `permissions.ask` from the same settings files Claude Code loads — managed (`managed-settings.json` and `managed-settings.d/`), user (`~/.claude/settings.json`), project (`.claude/settings.json`) and local (`.claude/settings.local.json`) — and applies the `Read(...)` rules with Claude Code's path conventions (`//abs`, `~/home`, `/project-relative`, gitignore-style globs). The sub-agent receives the same rules as `--disallowedTools`. Rules that exist only in MDM/registry policy, server-managed settings, or `--settings` / `--disallowedTools` command-line flags are not visible to a hook; put them in one of the settings files above if the reviewer must honor them.
+- **Well-known secret files**, on by default: `.env` / `.env.*` / `*.env`, private keys and keystores (`*.pem`, `*.key`, `*.p12`, `*.jks`, `id_rsa*`, …), credential stores (`.netrc`, `.npmrc`, `.pypirc`, `.git-credentials`, `credentials`, `kubeconfig`) and `secret(s)` / `credential(s)` data files (`.json`, `.yaml`, `.toml`, …). Source files such as `secrets.py` are still reviewed. In the sub-agent these names follow permission-rule (gitignore) semantics, so a directory that shares one — `credentials/`, `.env/` — is off-limits to it as well. Set `SG_SKIP_SECRET_FILES=0` to review these too.
+
+The flip side: the reviewer cannot flag a problem inside a file it never sees, and a project's own `.claude/settings.json` decides what is hidden — the same trust Claude Code itself places in project settings. Each withheld path is named in the debug log (`secretpaths: withheld from review …`).
 
 Where that data goes depends on your Claude Code configuration:
 - **Default (Anthropic API / subscription):** sent to `api.anthropic.com` and handled under Anthropic's [Commercial Terms](https://www.anthropic.com/legal/commercial-terms) and [Privacy Policy](https://www.anthropic.com/legal/privacy).
