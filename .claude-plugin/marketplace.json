@@ -145,6 +145,13 @@
       },
       "source": "./plugins/security-guidance",
       "category": "security"
+    },
+    {
+      "name": "tool-mutex",
+      "description": "Limits concurrent filesystem-heavy tool calls to prevent parallel directory enumeration that can trigger Windows Wof.sys BSOD (issue #32870)",
+      "version": "1.0.0",
+      "source": "./plugins/tool-mutex",
+      "category": "stability"
     }
   ]
 }
