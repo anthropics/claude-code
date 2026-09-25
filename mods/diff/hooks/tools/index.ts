@@ -1,3 +1,4 @@
+export * from './edited-path-of.js'
 export * from './editing-tools.js'
 export * from './may-have-written.js'
 export * from './shell-tools.js'
