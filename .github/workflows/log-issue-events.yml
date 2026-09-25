@@ -19,22 +19,30 @@ jobs:
           AUTHOR: ${{ github.event.issue.user.login }}
           CREATED_AT: ${{ github.event.issue.created_at }}
         run: |
-          # All values are now safely passed via environment variables
-          # No direct templating in the shell script to prevent injection attacks
-          
+          # Build JSON payload with jq to safely handle special characters
+          # in issue titles (newlines, quotes, backslashes, control chars).
+          # The previous sed-based approach only escaped double quotes.
+          PAYLOAD=$(jq -n \
+            --arg num "$ISSUE_NUMBER" \
+            --arg repo "$REPO" \
+            --arg title "$ISSUE_TITLE" \
+            --arg author "$AUTHOR" \
+            --arg created "$CREATED_AT" \
+            '{
+              events: [{
+                eventName: "github_issue_created",
+                metadata: {
+                  issue_number: $num,
+                  repository: $repo,
+                  title: $title,
+                  author: $author,
+                  created_at: $created
+                },
+                time: (now | floor * 1000)
+              }]
+            }')
+
           curl -X POST "https://events.statsigapi.net/v1/log_event" \
             -H "Content-Type: application/json" \
             -H "statsig-api-key: $STATSIG_API_KEY" \
-            -d '{
-              "events": [{
-                "eventName": "github_issue_created",
-                "metadata": {
-                  "issue_number": "'"$ISSUE_NUMBER"'",
-                  "repository": "'"$REPO"'",
-                  "title": "'"$(echo "$ISSUE_TITLE" | sed "s/\"/\\\\\"/g")"'",
-                  "author": "'"$AUTHOR"'",
-                  "created_at": "'"$CREATED_AT"'"
-                },
-                "time": '"$(date +%s)000"'
-              }]
-            }'
+            -d "$PAYLOAD"
