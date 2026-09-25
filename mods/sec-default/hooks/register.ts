@@ -21,6 +21,7 @@ export function register(on: On) {
 
   on('prompt.section', ($, e, next) => next.to(e, 'append'))
   on('prompt.context', ($, e, next) => next.to(e, 'append'))
+  on('prompt.compose', ($, e, next) => next.to(e, 'append'))
   on('skill.prompt', ($, e, next) => next.to(e, 'append'))
   on('attribution.text', ($, e, next) => next.to(e, 'append'))
 

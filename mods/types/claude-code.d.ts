@@ -3418,6 +3418,18 @@ declare module 'claude-code' {
        */
       'prompt.context': PromptContextInput;
       /**
+       * Fires when the engine renders a system prompt; `next(e)` resolves to
+       * `{ sections }`, each `{ id, text, scope }`, in the order they are sent.
+       *
+       * The engine answers no sections: the plugins hooked here are the prompt.
+       * Append, replace by id, reorder or drop what `next(e)` answered; `e` is
+       * the facts to compose from. The engine joins, and places every cache mark.
+       *
+       * @example
+       * on("prompt.compose", () => ({ sections: [INTRO, TOOLS, PLACE] }))
+       */
+      'prompt.compose': PromptComposeInput;
+      /**
        * Fires once per message the engine injects for the model on its own (a
        * reminder, a mode transition, a mentioned file), as a request carries it.
        *
@@ -3742,6 +3754,11 @@ declare module 'claude-code' {
        */
       'prompt.context': PromptContextResult;
       /**
+       * `{ sections }`, every `shared` one ahead of every `session` one (a
+       * section left out is not sent).
+       */
+      'prompt.compose': PromptComposeResult;
+      /**
        * `{ text }` (null leaves the attachment out).
        */
       'prompt.attachment': PromptAttachmentResult;
@@ -3853,6 +3870,7 @@ declare module 'claude-code' {
           section: (input: PromptSectionInput) => Promise<PromptSectionResult>;
           context: (input: PromptContextInput) => Promise<PromptContextResult>;
           attachment: (input: PromptAttachmentInput) => Promise<PromptAttachmentResult>;
+          compose: (input: PromptComposeInput) => Promise<PromptComposeResult>;
       };
       skill: {
           prompt: (input: SkillPromptInput) => Promise<SkillPromptResult>;
@@ -6621,6 +6639,109 @@ declare module 'claude-code' {
        */
       cursor: number;
   };
+
+  /**
+   * The input of `prompt.compose`: the facts a system prompt is composed from,
+   * each already resolved by the engine, at the moment it renders one.
+   */
+  export type PromptComposeInput = {
+      /**
+       * The id of the model the request is for; pinned, the field a matcher
+       * narrows on.
+       */
+      model: string;
+      /**
+       * The model whose prompt is rendered: `model`, unless the engine renders
+       * another model's prompt for it (a model it holds no prompt of its own for).
+       */
+      promptModel: string;
+      /**
+       * Where the session draws at this render, as `$.session.surfaces()`
+       * answers: `terminal` first under the REPL; empty where nothing draws.
+       */
+      surfaces: readonly RenderSurface[];
+      /**
+       * The names of the tools the request offers the model.
+       */
+      tools: readonly string[];
+      /**
+       * What the person chose in place of the default way of answering, and
+       * whether it keeps the coding instructions; null for the default style.
+       */
+      outputStyle: {
+          name: string;
+          isKeepingCodingInstructions: boolean;
+      } | null;
+      traits: readonly PromptComposeTrait[];
+  };
+
+  /**
+   * What a `prompt.compose` hook returns: the sections of the system prompt,
+   * in order, every `shared` one ahead of every `session` one.
+   *
+   * A section left out is not sent. The engine joins each side, places the
+   * cache boundary between them and every cache marker itself.
+   */
+  export type PromptComposeResult = {
+      sections: readonly PromptComposeSection[];
+  };
+
+  /**
+   * Which side of the prompt cache's boundary a section of the system prompt
+   * sits on: `shared` before it, `session` after it.
+   *
+   * `shared` is text that reads the same for every person on this build and
+   * model: it is sent in the block the API may cache across organizations.
+   * `session` is text that varies with the person, the machine or the session.
+   *
+   * The engine places the one boundary and every cache marker itself,
+   * whatever a list says; `shared` text that varies hits that cache for nobody.
+   */
+  export type PromptComposeScope = 'shared' | 'session';
+
+  /**
+   * One section of the system prompt as `prompt.compose` answers it: a stable
+   * id, the text the model reads, and the side of the cache boundary it is on.
+   *
+   * @example
+   * const POLICY = { id: "acme:policy", text: "# Policy\n...", scope: "session" }
+   */
+  export type PromptComposeSection = {
+      /**
+       * What a hook above finds the section by, to replace, move or drop it;
+       * never empty, and unique in one list.
+       *
+       * A section a plugin adds is named `<plugin>:<name>`; the bare names are
+       * the ones the plugin that defines the default prompt gives its own.
+       */
+      id: string;
+      /**
+       * The section's text, sent as written; sections on one side of the
+       * boundary are joined by a blank line, in the list's order.
+       */
+      text: string;
+      scope: PromptComposeScope;
+  };
+
+  /**
+   * One branch the engine's own composition of the system prompt takes on the
+   * request or the session before it computes any section: a closed set.
+   *
+   * `bare`: the session runs with the one-line prompt (`--bare`). `lean`: the
+   * prompt model takes the short body. `sdk-preset`: the SDK's `claude_code`
+   * preset, whose per-person sections ride the first user message instead.
+   *
+   * `teammate`: an in-process teammate's render of its lead's prompt.
+   * `analysis`: a render that measures the prompt (`/context`) and sends
+   * nothing. `print`: a session with no terminal behind it (`-p`, the SDK).
+   *
+   * `skills`: the Skill tool has commands to list. `send-user-message`: the
+   * session speaks to the person through a message tool.
+   *
+   * What one section's own text turns on (a flag, a setting, a model family)
+   * is not here: it becomes a member when that text is a plugin's to write.
+   */
+  export type PromptComposeTrait = 'bare' | 'lean' | 'sdk-preset' | 'teammate' | 'analysis' | 'print' | 'skills' | 'send-user-message';
 
   /**
    * One block of the context the first user message carries: a name the

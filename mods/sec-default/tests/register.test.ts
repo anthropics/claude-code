@@ -138,6 +138,23 @@ describe('register', () => {
   )
 
   test(
+    "the system prompt's sections pass over the plugins the person installed",
+    { plugins: [Fixtures.emptying, Fixtures.heading] },
+    async ($, on) => {
+      on('prompt.compose', () => ({
+        sections: [{ id: 'body', text: 'the body', scope: 'shared' }],
+      }))
+
+      expect(await $.prompt.compose(Fixtures.COMPOSED)).toEqual({
+        sections: [
+          { id: 'heading:org', text: 'the org says hi', scope: 'shared' },
+          { id: 'body', text: 'the body', scope: 'shared' },
+        ],
+      })
+    },
+  )
+
+  test(
     "a user plugin's rewrite of policy is skipped for every other reader",
     {
       plugins: [

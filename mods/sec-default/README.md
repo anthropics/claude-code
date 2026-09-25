@@ -24,7 +24,7 @@ settings it decides by.
 | event | from the outermost seat |
 | --- | --- |
 | `classic.*` | Continue past the user tier: the organization's settings hooks see the engine's input and their answer stands. |
-| `prompt.section`, `prompt.context`, `skill.prompt`, `attribution.text` | Continue past the user tier: managed CLAUDE.md, rules and policy skills reach the model as written. A person's plugins keep `prompt.submit` and its additive context. |
+| `prompt.section`, `prompt.context`, `prompt.compose`, `skill.prompt`, `attribution.text` | Continue past the user tier: managed CLAUDE.md, rules and policy skills reach the model as written, and the system prompt's list of sections is composed by the organization's tiers and the built-ins alone. A person's plugins keep `prompt.submit` and its additive context. |
 | `settings.read` | Continue past the user tier: no user hook rewrites what any caller reads as settings, this plugin's own policy reads included. |
 | `tool.describe`, `command.describe`, `agent.offer`, `agent.spawn` | When the subject's pinned `e.provider.tier` is `prepend` or `append` (a policy-installed plugin, the managed folder, a policy MCP server), continue past the user tier; a subject provided by `user`, `builtin` or `core` passes. |
 | `tool.register` | A caller in `prepend` or `append` continues past the user tier. A `user`-tier caller is refused by name while managed settings hold `allowedMcpServers` (set at all, empty included); otherwise it passes. |
@@ -33,9 +33,10 @@ settings it decides by.
 
 ## What it hooks
 
-`classic.*`, `prompt.section`, `prompt.context`, `skill.prompt`,
-`attribution.text`, `settings.read`, `tool.describe`, `command.describe`,
-`agent.offer`, `agent.spawn`, `tool.register`, `tool.list`.
+`classic.*`, `prompt.section`, `prompt.context`, `prompt.compose`,
+`skill.prompt`, `attribution.text`, `settings.read`, `tool.describe`,
+`command.describe`, `agent.offer`, `agent.spawn`, `tool.register`,
+`tool.list`.
 
 ## What it calls on `$`
 
