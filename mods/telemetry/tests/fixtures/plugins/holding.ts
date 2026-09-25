@@ -21,7 +21,7 @@ export const holding: Plugin = {
     })
 
     on('command.run', { command: 'hold' }, async () => {
-      await held?.telemetry.log({ event: 'held' })
+      await held?.telemetry.log({ to: 'collector', event: 'held' })
 
       return { text: 'served' }
     })

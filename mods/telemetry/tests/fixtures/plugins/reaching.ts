@@ -17,7 +17,7 @@ export const reaching: Plugin = {
       const beneath = await next(e)
 
       during = await beneath.telemetry
-        .log({ event: 'during_create' })
+        .log({ to: 'collector', event: 'during_create' })
         .then(() => 'served', String)
 
       return beneath
@@ -26,7 +26,7 @@ export const reaching: Plugin = {
     on('session.start', ($, e, next) => {
       $.clock.after(1, () => {
         void $.telemetry
-          .log({ event: 'from_timer' })
+          .log({ to: 'collector', event: 'from_timer' })
           .then(() => 'served', String)
           .then(outcome => $.ui.log(`timer: ${outcome}`, { to: 'debug' }))
       })
@@ -36,7 +36,7 @@ export const reaching: Plugin = {
 
     on('tool.call', { tool: 'Read' }, async ($, e, next) => {
       const outcome = await $.telemetry
-        .log({ event: 'from_tool' })
+        .log({ to: 'collector', event: 'from_tool' })
         .then(() => 'served', String)
 
       await $.ui.log(`tool: ${outcome}`, { to: 'debug' })
