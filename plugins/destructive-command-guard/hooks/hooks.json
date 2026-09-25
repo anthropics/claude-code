@@ -1,0 +1,17 @@
+{
+  "description": "Blocks self-destructive Bash commands and warns about edits to CLAUDE.md and policy files",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/destructive_command_guard.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

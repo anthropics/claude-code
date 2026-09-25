@@ -314,24 +314,39 @@ Use AskUserQuestion with multiple questions in one call:
 **Question 1:**
 - question: "Which programming language?"
 - header: "Language"
-- options: Python, TypeScript, Go, Rust
+- options:
+  - Python (General-purpose, great for data and scripting)
+  - TypeScript (Typed JavaScript, ideal for web applications)
+  - Go (Fast compiled language, great for services)
+  - Rust (Memory-safe systems language, maximum performance)
 
 **Question 2:**
 - question: "Which test framework?"
 - header: "Testing"
-- options: Jest, PyTest, Go Test, Cargo Test
+- options:
+  - Jest (JavaScript/TypeScript testing with snapshots)
+  - PyTest (Python testing with fixtures and plugins)
+  - Go Test (Built-in Go testing framework)
+  - Cargo Test (Rust built-in test runner)
   (Adapt based on language from Q1)
 
 **Question 3:**
 - question: "Which CI/CD platform?"
 - header: "CI/CD"
-- options: GitHub Actions, GitLab CI, CircleCI
+- options:
+  - GitHub Actions (Native GitHub integration, YAML workflows)
+  - GitLab CI (Built-in GitLab pipelines)
+  - CircleCI (Cloud CI with Docker support)
 
 **Question 4:**
 - question: "Which features do you need?"
 - header: "Features"
 - multiSelect: true
-- options: Linting, Type checking, Code coverage, Security scanning
+- options:
+  - Linting (Static code analysis and style enforcement)
+  - Type checking (Compile-time type verification)
+  - Code coverage (Track test coverage metrics)
+  - Security scanning (Detect vulnerabilities in dependencies)
 
 Process all answers together to generate cohesive configuration.
 ```
@@ -522,10 +537,10 @@ If "Guided":
 Question: "Which features do you want to enable?"
 multiSelect: true
 Options:
-  - Logging
-  - Metrics
-  - Alerts
-  - Backups
+  - Logging (Detailed operation logs)
+  - Metrics (Performance monitoring)
+  - Alerts (Error notifications)
+  - Backups (Automatic backups)
 
 Reason: User might want any combination
 ```
@@ -822,10 +837,10 @@ Question: "Which features do you need?"
 Header: "Features"
 multiSelect: true
 Options:
-  - Authentication
-  - Authorization
-  - Rate Limiting
-  - Caching
+  - Authentication (User identity verification and login)
+  - Authorization (Access control and permissions)
+  - Rate Limiting (Request throttling and quotas)
+  - Caching (Response and data caching layer)
 ```
 
 ### Pattern: Environment Configuration
