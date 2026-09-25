@@ -312,7 +312,7 @@ disable-model-invocation: true
 - Still available for manual invocation
 
 **When true:**
-- Command only invokable by user typing `/command`
+- Command only invocable by user typing `/command`
 - Not available to SlashCommand tool
 - Safer for sensitive operations
 
