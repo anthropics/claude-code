@@ -1,0 +1,8 @@
+{
+  "name": "data-protection",
+  "version": "1.0.0",
+  "description": "Protects critical data files (ML checkpoints, training results, model weights) from accidental overwrites by prompting for user confirmation before Write operations",
+  "author": {
+    "name": "Claude Code Team"
+  }
+}
