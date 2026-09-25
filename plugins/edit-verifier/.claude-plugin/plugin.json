@@ -1,0 +1,5 @@
+{
+  "name": "edit-verifier",
+  "version": "1.0.0",
+  "description": "PostToolUse hook that verifies file edits applied correctly by reading the file back after Edit operations"
+}
