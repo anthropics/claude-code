@@ -38,7 +38,7 @@ fi
 echo "✅ File is readable"
 
 # Check 3: Has frontmatter markers
-MARKER_COUNT=$(grep -c '^---$' "$SETTINGS_FILE" 2>/dev/null || echo "0")
+MARKER_COUNT=$(grep -c '^---$' "$SETTINGS_FILE" 2>/dev/null || true)
 
 if [ "$MARKER_COUNT" -lt 2 ]; then
   echo "❌ Invalid frontmatter: found $MARKER_COUNT '---' markers (need at least 2)"
