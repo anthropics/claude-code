@@ -19,10 +19,12 @@ fi
 
 # Parse markdown frontmatter (YAML between ---) and extract values
 FRONTMATTER=$(sed -n '/^---$/,/^---$/{ /^---$/d; p; }' "$RALPH_STATE_FILE")
-ITERATION=$(echo "$FRONTMATTER" | grep '^iteration:' | sed 's/iteration: *//')
-MAX_ITERATIONS=$(echo "$FRONTMATTER" | grep '^max_iterations:' | sed 's/max_iterations: *//')
+# Use `|| true` so a missing field (grep exits 1) doesn't trigger set -e;
+# the validation below handles empty values explicitly.
+ITERATION=$(echo "$FRONTMATTER" | grep '^iteration:' | sed 's/iteration: *//' || true)
+MAX_ITERATIONS=$(echo "$FRONTMATTER" | grep '^max_iterations:' | sed 's/max_iterations: *//' || true)
 # Extract completion_promise and strip surrounding quotes if present
-COMPLETION_PROMISE=$(echo "$FRONTMATTER" | grep '^completion_promise:' | sed 's/completion_promise: *//' | sed 's/^"\(.*\)"$/\1/')
+COMPLETION_PROMISE=$(echo "$FRONTMATTER" | grep '^completion_promise:' | sed 's/completion_promise: *//' | sed 's/^"\(.*\)"$/\1/' || true)
 
 # Validate numeric fields before arithmetic operations
 if [[ ! "$ITERATION" =~ ^[0-9]+$ ]]; then
@@ -87,22 +89,21 @@ if [[ -z "$LAST_LINE" ]]; then
 fi
 
 # Parse JSON with error handling
+# Capture stderr into LAST_OUTPUT via 2>&1; use || to handle set -e on jq failure
+# so the error block is reached instead of the script silently exiting.
 LAST_OUTPUT=$(echo "$LAST_LINE" | jq -r '
   .message.content |
   map(select(.type == "text")) |
   map(.text) |
   join("\n")
-' 2>&1)
-
-# Check if jq succeeded
-if [[ $? -ne 0 ]]; then
+' 2>&1) || {
   echo "⚠️  Ralph loop: Failed to parse assistant message JSON" >&2
   echo "   Error: $LAST_OUTPUT" >&2
   echo "   This may indicate a transcript format issue" >&2
   echo "   Ralph loop is stopping." >&2
   rm "$RALPH_STATE_FILE"
   exit 0
-fi
+}
 
 if [[ -z "$LAST_OUTPUT" ]]; then
   echo "⚠️  Ralph loop: Assistant message contained no text content" >&2
