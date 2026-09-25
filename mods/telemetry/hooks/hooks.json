@@ -1,5 +1,5 @@
 {
-  "description": "Plugin analytics: an engine.create step adds $.telemetry (log, mark) over $.session, $.env, $.settings, $.fs, $.process, $.clock and $.http beneath; rows go out in batches; sends nothing wherever the CLI's analytics are off",
+  "description": "Plugin analytics: hooks on telemetry.log and telemetry.mark queue first-party rows over $.session, $.env, $.settings, $.fs, $.process, $.clock and $.http beneath, the noun added in engine.create where the engine has none; rows go out in batches; sends nothing wherever the CLI's analytics are off",
   "modules": [
     "./register.ts"
   ]

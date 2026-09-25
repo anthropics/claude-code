@@ -497,6 +497,37 @@ describe('register', () => {
   )
 
   test(
+    'a refused entry is denied by the hook, naming the caller and the reason',
+    { plugins: [Fixtures.recording, Fixtures.marking] },
+    async ($, on) => {
+      mock.env(on, Fixtures.SENDING_ENV)
+
+      const session = Fixtures.firstPartySession(on)
+
+      const logged = (
+        await $.command.run(Fixtures.typed('record', { event: 'Survey' }))
+      ).text
+
+      const marked = (
+        await $.command.run(
+          Fixtures.typed('mark', { feature: 'learn_page', kind: 'meh' }),
+        )
+      ).text
+
+      await session.clock.advance(Hooks.BATCH_WINDOW_MS)
+
+      expect({ logged, marked, posts: session.posts }).toEqual({
+        logged:
+          'HooksError: recording: $.telemetry.log: takes an event name, a ' +
+          'snake_case token',
+        marked:
+          "HooksError: marking: $.telemetry.mark: kind: 'ok', 'sad' or 'bad'",
+        posts: [],
+      })
+    },
+  )
+
+  test(
     'a number that is not finite is refused, nothing queued',
     {
       plugins: [

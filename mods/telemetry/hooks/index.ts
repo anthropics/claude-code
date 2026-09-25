@@ -1,3 +1,4 @@
+export * from './answer-of'
 export * from './batching'
 export * from './config-location'
 export * from './context'

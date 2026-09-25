@@ -1,11 +1,16 @@
 # telemetry
 
-Plugin analytics as a plugin: one `engine.create` step adds `$.telemetry` to
-the engine interface every plugin above it is handed, built over the nouns
-beneath, and a hook on its own two events serves the plugins built into
-Claude Code alone: a call from a plugin a person installed or an
+Plugin analytics as a plugin: its hooks on `telemetry.log` and
+`telemetry.mark` are what those two events do, built over the nouns its
+`engine.create` step is handed, and a gate above them serves the plugins
+built into Claude Code alone: a call from a plugin a person installed or an
 administrator listed is refused with a reason (the host stamps every call
 with the plugin that raised it, `next.origin`, and the gate reads its tier).
+On an engine that has no `$.telemetry` of its own the same step adds the
+noun, so the calls exist there too. An entry names where it goes with `to`:
+`anthropic`, the default, is this mod's; one for `collector`, the telemetry
+collector an operator configured, is passed on beneath untouched, and `to`
+is never part of a row.
 `$.telemetry.log({ event, props })` queues one event as one first-party
 row, `tengu_plugin_<event>`; `$.telemetry.mark({ feature, kind, reason?,
 props? })` marks one use of a feature as the CLI's own feature events do,
@@ -59,11 +64,16 @@ noun and a test answering it all read.
 
 ## What it hooks
 
-`engine.create`: `{ ...await next(e), telemetry }`, so the noun is added and
-nothing beneath is replaced. `telemetry.*`, the gate: a caller in the
-built-in tier (or the engine) goes on, any other is refused, and a gate
-that throws refuses too. `session.start`, to learn whether a person is at
-the prompt; `session.end`, to send what still waits.
+`telemetry.*`, the gate: a caller in the built-in tier (or the engine) goes
+on, any other is refused, and a gate that throws refuses too.
+`telemetry.log` and `telemetry.mark`, beneath the gate: the entry is checked
+and its row queued, the hook answering `{ value }`, or `{ deny }` with the
+reason for an entry that breaks a rule, so the caller's promise rejects
+naming it. `engine.create`: the sender is built over `await next(e)`, which
+is handed up as it is where it already has a `telemetry`, and as
+`{ ...beneath, telemetry }` where it has none; nothing beneath is replaced.
+`session.start`, to learn whether a person is at the prompt; `session.end`,
+to send what still waits.
 
 ## What it calls on `$`
 
@@ -81,5 +91,6 @@ are on, and nowhere else; it serves the plugins bundled with the CLI and
 refuses every other caller. It is not meant to be installed or loaded with
 `--plugin-dir`; the folder has a manifest so it reads like every other
 plugin, not so it can stand alone. A built-in that calls `$.telemetry`
-where this one is absent finds no such noun and should treat that as "no
-analytics here".
+where this one is absent finds no such noun, or, on an engine with the noun
+of its own, one whose calls queue nothing; either way that is "no analytics
+here".

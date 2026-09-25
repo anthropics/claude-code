@@ -1,5 +1,6 @@
 import type { EngineInterface, On } from 'claude-code'
 
+import { answerOf } from './answer-of'
 import Context from './context'
 import Gate from './gate'
 import IsAnalyticsOff from './is-analytics-off'
@@ -7,12 +8,15 @@ import type { Sender } from './sender'
 import { telemetryOf } from './telemetry-of'
 
 /**
- * Registers the plugin's hooks: its engine.create step adds `$.telemetry`
- * over the nouns beneath; session.start and session.end feed and flush it.
+ * Registers the plugin's hooks: the gate on `telemetry.*`, the two hooks
+ * that are what `telemetry.log` and `telemetry.mark` do, and its
+ * engine.create step, which builds the sender over the nouns beneath.
  *
- * `log` and `mark` queue a row for a built-in caller and refuse any other;
- * a gate that throws refuses too, a refusal from beneath stays as it is. A
- * batch goes out on a timer, when full, and when the session ends.
+ * A row is queued for a built-in caller and refused to any other; a
+ * malformed entry is denied with its reason; an entry for `collector` is
+ * not this plugin's and goes on beneath. On an engine with no `telemetry`
+ * of its own the step adds the noun, its methods the same queueing. A batch
+ * goes out on a timer, when full, and when the session ends.
  *
  * @param on the engine's registrar
  */
@@ -22,6 +26,16 @@ export function register(on: On) {
 
   on('telemetry.*', (_$, e, next) => Gate.served(e, next)).catch(
     (_$, e, next) => Gate.caught(e, next),
+  )
+
+  on('telemetry.log', (_$, e, next) =>
+    sender === undefined || e.to === 'collector'
+      ? next(e)
+      : answerOf(sender.telemetry.log(e)),
+  )
+
+  on('telemetry.mark', (_$, e, next) =>
+    sender === undefined ? next(e) : answerOf(sender.telemetry.mark(e)),
   )
 
   on('session.start', (_$, e, next) => {
@@ -349,6 +363,8 @@ export function register(on: On) {
 
     const telemetry: EngineInterface['telemetry'] = sender.telemetry
 
-    return { ...beneath, telemetry }
+    return Object.hasOwn(beneath, 'telemetry')
+      ? beneath
+      : { ...beneath, telemetry }
   })
 }

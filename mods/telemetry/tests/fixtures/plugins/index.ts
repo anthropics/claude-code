@@ -1,3 +1,4 @@
+export * from './annotating.js'
 export * from './holding.js'
 export * from './managing.js'
 export * from './marking.js'
@@ -6,6 +7,7 @@ export * from './reaching.js'
 export * from './recording.js'
 export * from './replacing.js'
 export * from './swallowing.js'
+export * from './sweeping.js'
 export * from './visiting.js'
 
 export * as default from '.'

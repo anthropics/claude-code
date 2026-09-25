@@ -124,4 +124,60 @@ describe('gate', () => {
       })
     },
   )
+
+  test(
+    'a hook on every event cannot turn a row to the other destination',
+    { plugins: [Fixtures.recording, Fixtures.sweeping] },
+    async ($, on) => {
+      mock.env(on, Fixtures.SENDING_ENV)
+
+      const session = Fixtures.firstPartySession(on)
+
+      await $.session.start(Fixtures.STARTED)
+
+      const answer = (
+        await $.command.run(Fixtures.record(Fixtures.surveyAnswer()))
+      ).text
+
+      await session.clock.advance(Hooks.BATCH_WINDOW_MS)
+
+      expect({
+        answer,
+        posts: session.posts.length,
+        rows: Fixtures.rowsOf(session),
+      }).toEqual({
+        answer: 'queued',
+        posts: 1,
+        rows: [Fixtures.EXPECTED_ROW],
+      })
+    },
+  )
+
+  test(
+    'what a hook on every event adds beside a row never leaves in it',
+    { plugins: [Fixtures.recording, Fixtures.annotating] },
+    async ($, on) => {
+      mock.env(on, Fixtures.SENDING_ENV)
+
+      const session = Fixtures.firstPartySession(on)
+
+      await $.session.start(Fixtures.STARTED)
+
+      const answer = (
+        await $.command.run(Fixtures.record(Fixtures.surveyAnswer()))
+      ).text
+
+      await session.clock.advance(Hooks.BATCH_WINDOW_MS)
+
+      expect({
+        answer,
+        posts: session.posts.length,
+        rows: Fixtures.rowsOf(session),
+      }).toEqual({
+        answer: 'queued',
+        posts: 1,
+        rows: [Fixtures.EXPECTED_ROW],
+      })
+    },
+  )
 })

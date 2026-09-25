@@ -2,20 +2,21 @@
  * The `$.telemetry` noun as every caller sees it: the one contract for the
  * noun, its types exported here and the noun declared on `EngineInterface`.
  *
- * The telemetry mod adds the noun in the `engine.create` fold and checks its
- * return against `EngineInterface['telemetry']`; its hooks import these types
- * from this folder, a mod that calls the noun and a test that answers it read
- * them by including it in their tsconfig, and the engine's repository imports
- * the folder by path. Nothing here is imported, so it stands on its own.
+ * The telemetry mod hooks the noun's two events, `telemetry.log` and
+ * `telemetry.mark`, and is what queues and sends a row; on an engine that
+ * has no `telemetry` of its own it also adds the noun in the `engine.create`
+ * fold, checked against `EngineInterface['telemetry']`. Its hooks import
+ * these types from this folder, a mod that calls the noun and a test that
+ * answers it read them by including it in their tsconfig. Nothing here is
+ * imported, so it stands on its own.
  */
 
 /**
  * A plugin's analytics, queued through `$.telemetry` and sent in batches.
  *
- * The telemetry mod adds the noun in the `engine.create` fold wherever the
- * CLI seats it, which is every build whose own analytics are on, and serves
- * the plugins built into the CLI alone: a call from an installed plugin
- * rejects. Where the mod is off or absent there is no `$.telemetry`.
+ * The telemetry mod serves the plugins built into the CLI alone: a call from
+ * an installed plugin rejects. Where the mod is off or absent nothing is
+ * queued, and on an engine without the noun there is no `$.telemetry`.
  */
 export type Telemetry = {
   /**
@@ -63,10 +64,22 @@ export type Telemetry = {
 }
 
 /**
+ * Where a logged record goes: `anthropic`, the first-party analytics this
+ * mod sends, or `collector`, the telemetry collector a session's operator
+ * configured, which this mod leaves to whatever is beneath it.
+ */
+export type TelemetryDestination = 'anthropic' | 'collector'
+
+/**
  * What `$.telemetry.log` takes: the event's name after the prefix, and its
  * properties by snake_case key.
+ *
+ * `to` names the destination and is never part of the row; left out, it
+ * reads as `anthropic`. An entry for `collector` is not this mod's: its
+ * hook passes it on beneath untouched.
  */
 export type TelemetryLogEntry = {
+  to?: TelemetryDestination
   event: string
   props?: Readonly<Record<string, TelemetryProp>>
 }
