@@ -121,6 +121,24 @@ Lint results: !`node ${CLAUDE_PLUGIN_ROOT}/bin/lint.js $1`
 Review the linting output and suggest fixes.
 ```
 
+If the plugin ships an executable in `bin/`, the Bash tool can also invoke it
+as a bare command while the plugin is enabled:
+
+```markdown
+---
+description: Run bundled analyzer
+allowed-tools: Bash(analyze-project:*)
+---
+
+Analysis: !`analyze-project --format json $1`
+```
+
+Use `${CLAUDE_PLUGIN_ROOT}/scripts/...` for helper scripts that should only be
+called by your plugin internals. Use `bin/` for executable tools that should be
+discoverable as commands from Bash. Ensure files in `bin/` have executable
+permissions and that platform-specific binaries are packaged for the platforms
+you support.
+
 #### 2. Loading Configuration Files
 
 ```markdown
