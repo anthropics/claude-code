@@ -88,12 +88,13 @@ You're adding an API key to a .env file. Ensure this file is in .gitignore!
   - For file: `file_path`, `new_text`, `old_text`, `content`
 - `operator`: How to match
   - `regex_match`: Regex pattern matching
+  - `not_regex_match`: Regex must NOT match (for exclusion patterns)
   - `contains`: Substring check
   - `equals`: Exact match
   - `not_contains`: Substring must NOT be present
   - `starts_with`: Prefix check
   - `ends_with`: Suffix check
-- `pattern`: Pattern or string to match
+- `pattern` or `value`: Pattern or string to match (use `value` for non-regex operators for clarity)
 
 **All conditions must match for rule to trigger.**
 
@@ -371,4 +372,6 @@ Warning message
 - Prompt: `user_prompt`
 
 **Operators:**
-- `regex_match`, `contains`, `equals`, `not_contains`, `starts_with`, `ends_with`
+- `regex_match`, `not_regex_match`, `contains`, `equals`, `not_contains`, `starts_with`, `ends_with`
+
+**Tip:** Use `value` instead of `pattern` for non-regex operators for better readability.
