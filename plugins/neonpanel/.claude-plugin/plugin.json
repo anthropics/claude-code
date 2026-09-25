@@ -1,0 +1,21 @@
+{
+  "name": "neonpanel",
+  "version": "1.0.0",
+  "description": "AI workforce for Amazon-seller operations: eight domain agents (replenishment, accounting, supply chain, marketing, forecasting, FP&A, market intel, customer success) grounded in live NeonPanel commerce data via MCP.",
+  "author": {
+    "name": "NeonPanel",
+    "email": "michael.sorochev@neonpanel.com",
+    "url": "https://neonpanel.com"
+  },
+  "homepage": "https://neonpanel.com",
+  "repository": "https://github.com/neonpanel/claude-plugin",
+  "license": "MIT",
+  "keywords": [
+    "amazon", "ecommerce", "seller", "supply-chain",
+    "inventory", "inventory-management",
+    "accounting", "accounting-automation",
+    "replenishment", "planning", "forecasting",
+    "marketing", "analytics", "brand-analytics", "fp-and-a"
+  ],
+  "category": "productivity"
+}
