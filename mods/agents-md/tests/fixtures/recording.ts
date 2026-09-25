@@ -1,29 +1,38 @@
 import type { Plugin } from 'claude-code/testing'
 
 /**
- * A plugin standing in for the telemetry built-in: it adds the `telemetry`
- * noun at `engine.create` over the nouns beneath.
+ * A plugin standing in for the telemetry built-in: it hooks `telemetry.log`
+ * and `telemetry.mark` and answers them without going on.
  *
- * Its `log` and `mark` write the entry they are handed as one `$.ui.log`
- * line, `<op> <json>`, which startedOf keeps and rowsOf reads back.
+ * Each writes the entry as the caller handed it (`to` left off) as one
+ * `$.ui.log` line, `<op> <json>`, which startedOf keeps and rowsOf reads
+ * back. Where the engine has no `telemetry` its engine.create step adds one.
  */
 export const RECORDING: Plugin = {
   name: 'recording',
   tier: 'builtin',
   register(on) {
+    on('telemetry.log', async ($, e) => {
+      const { to: _to, ...entry } = e
+
+      await $.ui.log(`log ${JSON.stringify(entry)}`)
+
+      return { value: undefined }
+    })
+
+    on('telemetry.mark', async ($, e) => {
+      await $.ui.log(`mark ${JSON.stringify(e)}`)
+
+      return { value: undefined }
+    })
+
     on('engine.create', async ($, e, next) => {
       const beneath = await next(e)
-      const built = { ...beneath }
-      built.telemetry = {
-        log: async entry => {
-          await beneath.ui.log(`log ${JSON.stringify(entry)}`)
-        },
-        mark: async entry => {
-          await beneath.ui.log(`mark ${JSON.stringify(entry)}`)
-        },
+      const added = {
+        telemetry: { log: async () => undefined, mark: async () => undefined },
       }
 
-      return built
+      return { ...added, ...beneath }
     })
   },
 }
