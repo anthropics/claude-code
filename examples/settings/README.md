@@ -30,6 +30,30 @@ These may be applied at any level of the [settings hierarchy](https://code.claud
 
 To distribute these settings as enterprise-managed policy through Jamf, Iru (Kandji), Intune, or Group Policy, see the deployment templates in [`../mdm`](../mdm).
 
+## Troubleshooting
+
+### Desktop app crashes after update on macOS
+
+If the Claude Desktop app crashes constantly after an update
+on macOS, the workaround is to downgrade or switch to the CLI.
+
+**Downgrade the desktop app**:
+```bash
+rm -rf /Applications/Claude.app
+rm -rf ~/Library/Application\ Support/Claude
+# Then reinstall an older version from the Anthropic website
+```
+
+**Switch to CLI** (crash doesn't affect the CLI):
+```bash
+npm install -g @anthropic-ai/claude-code
+```
+
+**For support**: email support@anthropic.com with crash logs
+from `~/Library/Logs/Claude/`.
+
+See issue [#61714](https://github.com/anthropics/claude-code/issues/61714).
+
 ## Full Documentation
 
 See https://code.claude.com/docs/en/settings for complete documentation on all available managed settings.
