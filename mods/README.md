@@ -48,7 +48,13 @@ describe('register', () => {
     on('session.start', ($, e) => ({ cwd: e.cwd }))
     on('command.register', ($, e) => ({ value: { command: e.name } }))
     on('process.run', () => ({
-      value: { exitCode: 128, stdout: '', stderr: 'fatal: not a git repository' },
+      value: {
+        exitCode: 128,
+        stdout: '',
+        stderr: 'fatal: not a git repository',
+        isStdoutTruncated: false,
+        isStderrTruncated: false,
+      },
     }))
     on('ui.open', ($, e, next) => {
       opened.push(e.id)

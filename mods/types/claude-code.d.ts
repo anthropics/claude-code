@@ -2751,11 +2751,17 @@ declare module 'claude-code' {
            */
           write: (path: string, text: string) => Promise<void>;
           /**
-           * Lists a directory: `{ name, kind, size, isLink }` per entry, by name,
-           * each entry as it stands (a symbolic link is `other` with `isLink`).
+           * Lists a directory by name: `{ name, kind, size, mtimeMs, isLink }` per
+           * entry, each entry as it stands.
+           *
+           * A symbolic link is `other` with `isLink`; `size` and `mtimeMs` are a
+           * regular file's own and 0 for every other kind (`$.fs.stat` has those).
            *
            * @param path the directory's path; absent, the working directory
-           * @returns the entries, `{ name, kind, size, isLink }` each
+           * @returns the entries, `{ name, kind, size, mtimeMs, isLink }` each
+           * @example
+           * const logs = await $.fs.list("logs")
+           * const newest = [...logs].sort((a, b) => b.mtimeMs - a.mtimeMs)[0]
            */
           list: (path?: string) => Promise<FsEntry[]>;
           /**
@@ -2958,7 +2964,8 @@ declare module 'claude-code' {
            * @param argv the command and its arguments, `argv[0]` the executable
            * @param init `{ cwd, env, stdin, timeoutMs }` (cwd the session's by
            *             default; timeout 30 s by default, ten minutes at most)
-           * @returns `{ exitCode, stdout, stderr }` once the child exits
+           * @returns `{ exitCode, stdout, stderr }`, each stream's first 4194304
+           *          bytes (`isStdoutTruncated`, `isStderrTruncated` say when cut)
            * @example
            * const { exitCode, stdout } = await $.process.run(["git", "status"])
            */
@@ -4039,6 +4046,17 @@ declare module 'claude-code' {
        * Bytes, for a file.
        */
       size: number;
+      /**
+       * Last modification, milliseconds since the epoch, for a file, as
+       * `$.fs.stat` spells it; 0 for a directory, a link or any other kind.
+       *
+       * The listing reads a regular file's size and time in its one call and
+       * looks no other entry up: `$.fs.stat` answers a directory's.
+       *
+       * @example
+       * const newest = [...entries].sort((a, b) => b.mtimeMs - a.mtimeMs)[0]
+       */
+      mtimeMs: number;
       /**
        * True when the entry is a symbolic link.
        */
@@ -6493,6 +6511,9 @@ declare module 'claude-code' {
 
   /**
    * What `$.process.run` resolves with once the child has exited.
+   *
+   * @example
+   * const { stdout, isStdoutTruncated } = await $.process.run(["git", "log"])
    */
   export type ProcessRunResult = {
       /**
@@ -6500,15 +6521,29 @@ declare module 'claude-code' {
        */
       exitCode: number;
       /**
-       * What the child wrote to standard output, as text, cut at the output
-       * limit.
+       * What the child wrote to standard output, as text: its first 4194304
+       * bytes (4 MiB), the rest read and dropped (`isStdoutTruncated`).
+       *
+       * The limit counts bytes, not characters, and is standard output's own:
+       * standard error has the same limit again. A cut inside a multi-byte
+       * character drops that character.
        */
       stdout: string;
       /**
-       * What the child wrote to standard error, as text, cut at the output
-       * limit.
+       * What the child wrote to standard error, as text: its first 4194304
+       * bytes (4 MiB), the rest read and dropped (`isStderrTruncated`).
        */
       stderr: string;
+      /**
+       * True when the child wrote more than 4194304 bytes to standard output
+       * and `stdout` is only the first of them; false when `stdout` is whole.
+       */
+      isStdoutTruncated: boolean;
+      /**
+       * True when the child wrote more than 4194304 bytes to standard error
+       * and `stderr` is only the first of them; false when `stderr` is whole.
+       */
+      isStderrTruncated: boolean;
   };
 
   /**
