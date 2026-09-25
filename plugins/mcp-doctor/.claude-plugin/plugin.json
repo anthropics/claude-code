@@ -1,0 +1,9 @@
+{
+  "name": "mcp-doctor",
+  "version": "1.0.0",
+  "description": "Robust MCP configuration validator that catches JSON parsing issues the built-in /doctor misses. Validates .mcp.json files with detailed diagnostics including schema checks, encoding detection, and server-type-specific field validation.",
+  "author": {
+    "name": "Steven Elliott",
+    "email": "srichardelliottjr@gmail.com"
+  }
+}
