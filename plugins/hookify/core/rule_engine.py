@@ -10,6 +10,19 @@ from typing import List, Dict, Any, Optional
 from hookify.core.config_loader import Rule, Condition
 
 
+ADDITIONAL_CONTEXT_EVENTS = {
+    'SessionStart',
+    'Setup',
+    'SubagentStart',
+    'UserPromptSubmit',
+    'UserPromptExpansion',
+    'PreToolUse',
+    'PostToolUse',
+    'PostToolUseFailure',
+    'PostToolBatch',
+}
+
+
 # Cache compiled regexes (max 128 patterns)
 @lru_cache(maxsize=128)
 def compile_regex(pattern: str) -> re.Pattern:
@@ -86,12 +99,20 @@ class RuleEngine:
         # If only warnings, show them but allow operation
         if warning_rules:
             messages = [f"**[{r.name}]**\n{r.message}" for r in warning_rules]
-            return {
-                "systemMessage": "\n\n".join(messages)
-            }
+            return self._warning_result(hook_event, "\n\n".join(messages))
 
         # No matches - allow operation
         return {}
+
+    def _warning_result(self, hook_event: str, message: str) -> Dict[str, Any]:
+        """Return a warning response visible to the user and, when supported, Claude."""
+        result = {"systemMessage": message}
+        if hook_event in ADDITIONAL_CONTEXT_EVENTS:
+            result["hookSpecificOutput"] = {
+                "hookEventName": hook_event,
+                "additionalContext": message,
+            }
+        return result
 
     def _rule_matches(self, rule: Rule, input_data: Dict[str, Any]) -> bool:
         """Check if rule matches input data.
@@ -224,8 +245,11 @@ class RuleEngine:
                         print(f"Warning: Encoding error in transcript {transcript_path}: {e}", file=sys.stderr)
                         return ''
             elif field == 'user_prompt':
-                # For UserPromptSubmit events
-                return input_data.get('user_prompt', '')
+                # Backward-compatible alias for older Hookify rules.
+                return input_data.get('user_prompt') or input_data.get('prompt', '')
+            elif field == 'prompt':
+                # UserPromptSubmit events use `prompt` in the hook payload.
+                return input_data.get('prompt') or input_data.get('user_prompt', '')
 
         # Handle special cases by tool type
         if tool_name == 'Bash':
