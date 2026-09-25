@@ -18,23 +18,36 @@ jobs:
           ISSUE_TITLE: ${{ github.event.issue.title }}
           AUTHOR: ${{ github.event.issue.user.login }}
           CREATED_AT: ${{ github.event.issue.created_at }}
+          EVENT_ACTION: ${{ github.event.action }}
         run: |
-          # All values are now safely passed via environment variables
-          # No direct templating in the shell script to prevent injection attacks
-          
-          curl -X POST "https://events.statsigapi.net/v1/log_event" \
+          # Use jq to safely construct JSON, handling special characters
+          # in issue titles (newlines, backslashes, quotes, tabs, etc.)
+
+          EVENT_NAME="github_issue_${EVENT_ACTION}"
+
+          PAYLOAD=$(jq -n \
+            --arg event_name "$EVENT_NAME" \
+            --arg issue_number "$ISSUE_NUMBER" \
+            --arg repository "$REPO" \
+            --arg title "$ISSUE_TITLE" \
+            --arg author "$AUTHOR" \
+            --arg created_at "$CREATED_AT" \
+            --argjson time "$(date +%s)000" \
+            '{
+              events: [{
+                eventName: $event_name,
+                metadata: {
+                  issue_number: $issue_number,
+                  repository: $repository,
+                  title: $title,
+                  author: $author,
+                  created_at: $created_at
+                },
+                time: $time
+              }]
+            }')
+
+          curl -s -X POST "https://events.statsigapi.net/v1/log_event" \
             -H "Content-Type: application/json" \
             -H "statsig-api-key: $STATSIG_API_KEY" \
-            -d '{
-              "events": [{
-                "eventName": "github_issue_created",
-                "metadata": {
-                  "issue_number": "'"$ISSUE_NUMBER"'",
-                  "repository": "'"$REPO"'",
-                  "title": "'"$(echo "$ISSUE_TITLE" | sed "s/\"/\\\\\"/g")"'",
-                  "author": "'"$AUTHOR"'",
-                  "created_at": "'"$CREATED_AT"'"
-                },
-                "time": '"$(date +%s)000"'
-              }]
-            }'
+            -d "$PAYLOAD"
