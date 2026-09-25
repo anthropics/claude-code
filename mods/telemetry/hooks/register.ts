@@ -362,9 +362,8 @@ export function register(on: On) {
     })
 
     const telemetry: EngineInterface['telemetry'] = sender.telemetry
+    const added = { telemetry }
 
-    return Object.hasOwn(beneath, 'telemetry')
-      ? beneath
-      : { ...beneath, telemetry }
+    return { ...added, ...beneath }
   })
 }

@@ -69,9 +69,10 @@ on, any other is refused, and a gate that throws refuses too.
 `telemetry.log` and `telemetry.mark`, beneath the gate: the entry is checked
 and its row queued, the hook answering `{ value }`, or `{ deny }` with the
 reason for an entry that breaks a rule, so the caller's promise rejects
-naming it. `engine.create`: the sender is built over `await next(e)`, which
-is handed up as it is where it already has a `telemetry`, and as
-`{ ...beneath, telemetry }` where it has none; nothing beneath is replaced.
+naming it. `engine.create`: the sender is built over `await next(e)`, and
+the step hands up `{ ...{ telemetry }, ...beneath }`: what is beneath is
+spread last, so its own `telemetry` stands where it has one and this mod's
+is added where it has none; nothing beneath is replaced.
 `session.start`, to learn whether a person is at the prompt; `session.end`,
 to send what still waits.
 
