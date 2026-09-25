@@ -6,7 +6,7 @@ user: "Please add authentication to the /api/users endpoint"
 assistant: "I've implemented the authentication for the /api/users endpoint. Here's the code:"
 <function call omitted for brevity>
 <commentary>
-Since a logical chunk of code has been written (authentication feature), use the Task tool to launch the code-simplifier agent to improve the code's clarity and maintainability while preserving functionality.
+Since a logical chunk of code has been written (authentication feature), use the Agent tool to launch the code-simplifier agent to improve the code's clarity and maintainability while preserving functionality.
 </commentary>
 assistant: "Now let me use the code-simplifier agent to refine this implementation for better clarity and maintainability"
 </example>
