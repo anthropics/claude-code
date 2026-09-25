@@ -60,6 +60,17 @@ plugin-name/
 └── README.md                # Plugin documentation
 ```
 
+## Community Plugins
+
+Community-built plugins and hooks that extend Claude Code:
+
+| Name | Description |
+|------|-------------|
+| [Bouncer](https://github.com/buildingopen/bouncer) | Independent quality gate using Gemini to audit Claude Code output via Stop hook. Scores responses 1-10 and blocks until quality threshold is met. Includes on-demand `/bouncer` skill with deep audit mode. |
+| [claude-code-hooks-mastery](https://github.com/disler/claude-code-hooks-mastery) | Comprehensive collection of hook examples and patterns for all hook lifecycle events. |
+
+*To add your plugin, open a PR adding it to this table.*
+
 ## Contributing
 
 When adding new plugins to this directory:
