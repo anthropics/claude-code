@@ -3,6 +3,8 @@ allowed-tools: Bash(git checkout --branch:*), Bash(git add:*), Bash(git status:*
 description: Commit, push, and open a PR
 ---
 
+# Commit, push, and open a PR
+
 ## Context
 
 - Current git status: !`git status`
