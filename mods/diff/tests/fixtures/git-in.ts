@@ -22,6 +22,12 @@ export function gitIn(
   const found = Object.entries(script).find(([key]) => line.includes(key))
 
   return found
-    ? { exitCode: 0, stdout: found[1], stderr: '' }
+    ? {
+        exitCode: 0,
+        stdout: found[1],
+        stderr: '',
+        isStdoutTruncated: false,
+        isStderrTruncated: false,
+      }
     : NOT_A_REPOSITORY
 }

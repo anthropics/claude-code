@@ -11,4 +11,6 @@ export const ok = (stdout = ''): ProcessRunResult => ({
   exitCode: 0,
   stdout,
   stderr: '',
+  isStdoutTruncated: false,
+  isStderrTruncated: false,
 })

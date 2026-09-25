@@ -20,7 +20,11 @@ export function recordingBackendHostOf(
   const host = backendHostOf(([program, ...rest]) => {
     programs.push(program)
 
-    return scripted.run(rest)
+    return scripted.run(rest).then(ran => ({
+      ...ran,
+      isStdoutTruncated: false,
+      isStderrTruncated: false,
+    }))
   })
 
   return { host, programs }

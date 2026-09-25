@@ -8,4 +8,6 @@ export const GIT_TIMED_OUT: ProcessRunResult = {
   exitCode: -1,
   stdout: '',
   stderr: '',
+  isStdoutTruncated: false,
+  isStderrTruncated: false,
 }
