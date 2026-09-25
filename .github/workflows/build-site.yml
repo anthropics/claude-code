@@ -1,0 +1,32 @@
+name: Build Site
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'source-build-australia/**'
+  pull_request:
+    paths:
+      - 'source-build-australia/**'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: source-build-australia
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: source-build-australia/package-lock.json
+
+      - run: npm ci
+
+      - run: npm run build
