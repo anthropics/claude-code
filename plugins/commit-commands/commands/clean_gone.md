@@ -25,15 +25,27 @@ You need to execute the following bash commands to clean up stale local branches
 3. **Finally, remove worktrees and delete [gone] branches (handles both regular and worktree branches)**
    Execute this command:
    ```bash
-   # Process all [gone] branches, removing '+' prefix if present
-   git branch -v | grep '\[gone\]' | sed 's/^[+* ]//' | awk '{print $1}' | while read branch; do
+   # Process all branches whose upstream has been deleted
+   git for-each-ref --format='%(refname:short)%09%(upstream:track)' refs/heads | while IFS=$'\t' read -r branch tracking; do
+     [ "$tracking" = "[gone]" ] || continue
      echo "Processing branch: $branch"
-     # Find and remove worktree if it exists
-     worktree=$(git worktree list | grep "\\[$branch\\]" | awk '{print $1}')
-     if [ ! -z "$worktree" ] && [ "$worktree" != "$(git rev-parse --show-toplevel)" ]; then
-       echo "  Removing worktree: $worktree"
-       git worktree remove --force "$worktree"
-     fi
+     # Find the associated worktree using Git's stable machine-readable format
+     root_worktree=$(git rev-parse --show-toplevel)
+     current_worktree=
+     while IFS= read -r -d '' field; do
+       case "$field" in
+         "worktree "*)
+           current_worktree=${field#worktree }
+           ;;
+         "branch refs/heads/$branch")
+           if [ -n "$current_worktree" ] && [ "$current_worktree" != "$root_worktree" ]; then
+             echo "  Removing worktree: $current_worktree"
+             git worktree remove --force "$current_worktree"
+           fi
+           break
+           ;;
+       esac
+     done < <(git worktree list --porcelain -z)
      # Delete the branch
      echo "  Deleting branch: $branch"
      git branch -D "$branch"
@@ -50,4 +62,3 @@ After executing these commands, you will:
 - Provide feedback on which worktrees and branches were removed
 
 If no branches are marked as [gone], report that no cleanup was needed.
-
