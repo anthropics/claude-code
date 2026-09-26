@@ -138,6 +138,37 @@ describe('register', () => {
   )
 
   test(
+    'a collector record passes over the plugins the person installed',
+    { plugins: [Fixtures.withholding] },
+    async ($, on) => {
+      const reached: unknown[] = []
+      on('telemetry.log', { to: 'collector' }, ($, e) => {
+        reached.push([e.event, e.to === 'collector' && e.attributes.edited])
+
+        return { value: undefined }
+      })
+
+      await $.telemetry.log({
+        to: 'collector',
+        event: 'kept',
+        attributes: {},
+        loggedAt: '2026-09-26T10:00:00.000Z',
+      })
+      await $.telemetry.log({
+        to: 'collector',
+        event: 'withheld',
+        attributes: {},
+        loggedAt: '2026-09-26T10:00:01.000Z',
+      })
+
+      expect(reached).toEqual([
+        ['kept', undefined],
+        ['withheld', undefined],
+      ])
+    },
+  )
+
+  test(
     "a user plugin's rewrite of policy is skipped for every other reader",
     {
       plugins: [

@@ -28,5 +28,6 @@ export * from './tools.js'
 export * from './tools-command.js'
 export * from './tools-registered.js'
 export * from './user-reachable-providers.js'
+export * from './withholding.js'
 
 export * as default from '.'

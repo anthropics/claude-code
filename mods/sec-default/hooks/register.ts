@@ -26,6 +26,10 @@ export function register(on: On) {
 
   on('settings.read', ($, e, next) => next.to(e, 'append'))
 
+  on('telemetry.log', { to: 'collector' }, ($, e, next) =>
+    next.to(e, 'append'),
+  )
+
   on('tool.describe', ($, e, next) => pastUsers(e, next))
   on('command.describe', ($, e, next) => pastUsers(e, next))
   on('agent.offer', ($, e, next) => pastUsers(e, next))

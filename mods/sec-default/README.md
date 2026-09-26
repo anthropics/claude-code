@@ -26,6 +26,7 @@ settings it decides by.
 | `classic.*` | Continue past the user tier: the organization's settings hooks see the engine's input and their answer stands. |
 | `prompt.section`, `prompt.context`, `skill.prompt`, `attribution.text` | Continue past the user tier: managed CLAUDE.md, rules and policy skills reach the model as written. A person's plugins keep `prompt.submit` and its additive context. |
 | `settings.read` | Continue past the user tier: no user hook rewrites what any caller reads as settings, this plugin's own policy reads included. |
+| `telemetry.log` `{ to: "collector" }` | Continue past the user tier: no plugin a person installed drops or rewrites a record on its way to the collector the organization configured. The organization's own plugins, in `prepend` and `append`, still may. |
 | `tool.describe`, `command.describe`, `agent.offer`, `agent.spawn` | When the subject's pinned `e.provider.tier` is `prepend` or `append` (a policy-installed plugin, the managed folder, a policy MCP server), continue past the user tier; a subject provided by `user`, `builtin` or `core` passes. |
 | `tool.register` | A caller in `prepend` or `append` continues past the user tier. A `user`-tier caller is refused by name while managed settings hold `allowedMcpServers` (set at all, empty included); otherwise it passes. |
 | `tool.list` | The tools of the organization's managed MCP servers are listed as the organization's tiers listed them; every other tool as the user tier left it. With no policy to read, or a refusal from either listing, the organization's listing stands whole. |
@@ -34,8 +35,9 @@ settings it decides by.
 ## What it hooks
 
 `classic.*`, `prompt.section`, `prompt.context`, `skill.prompt`,
-`attribution.text`, `settings.read`, `tool.describe`, `command.describe`,
-`agent.offer`, `agent.spawn`, `tool.register`, `tool.list`.
+`attribution.text`, `settings.read`, `telemetry.log` (the collector's
+stream), `tool.describe`, `command.describe`, `agent.offer`, `agent.spawn`,
+`tool.register`, `tool.list`.
 
 ## What it calls on `$`
 
