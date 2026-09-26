@@ -23,6 +23,7 @@ export function register(on: On) {
   on('prompt.context', ($, e, next) => next.to(e, 'append'))
   on('skill.prompt', ($, e, next) => next.to(e, 'append'))
   on('attribution.text', ($, e, next) => next.to(e, 'append'))
+  on('session.append', ($, e, next) => next.to(e, 'append'))
 
   on('settings.read', ($, e, next) => next.to(e, 'append'))
 

@@ -138,6 +138,24 @@ describe('register', () => {
   )
 
   test(
+    'a kept row passes over the plugins the person installed',
+    { plugins: [Fixtures.rewording, Fixtures.countersigning] },
+    async ($, on) => {
+      on('session.append', ($, e) => ({ message: e.message, uuid: e.uuid }))
+
+      const { message, uuid } = Fixtures.HOOK_CONTEXT_ROW
+
+      expect(await $.session.append(Fixtures.HOOK_CONTEXT_ROW)).toEqual({
+        message: {
+          ...message,
+          content: [...message.content, Fixtures.COUNTERSIGNATURE],
+        },
+        uuid,
+      })
+    },
+  )
+
+  test(
     "a user plugin's rewrite of policy is skipped for every other reader",
     {
       plugins: [
