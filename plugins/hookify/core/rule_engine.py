@@ -209,7 +209,7 @@ class RuleEngine:
                 transcript_path = input_data.get('transcript_path')
                 if transcript_path:
                     try:
-                        with open(transcript_path, 'r') as f:
+                        with open(transcript_path, 'r', encoding='utf-8') as f:
                             return f.read()
                     except FileNotFoundError:
                         print(f"Warning: Transcript file not found: {transcript_path}", file=sys.stderr)
