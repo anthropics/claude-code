@@ -29,9 +29,9 @@ Every skill consists of a required SKILL.md file and optional bundled resources:
 ```
 skill-name/
 ├── SKILL.md (required)
-│   ├── YAML frontmatter metadata (required)
-│   │   ├── name: (required)
-│   │   └── description: (required)
+│   ├── YAML frontmatter metadata (optional but recommended)
+│   │   ├── description: (recommended)
+│   │   └── other fields (optional)
 │   └── Markdown instructions (required)
 └── Bundled Resources (optional)
     ├── scripts/          - Executable code (Python/Bash/etc.)
@@ -41,7 +41,23 @@ skill-name/
 
 #### SKILL.md (required)
 
-**Metadata Quality:** The `name` and `description` in YAML frontmatter determine when Claude will use the skill. Be specific about what the skill does and when to use it. Use the third-person (e.g. "This skill should be used when..." instead of "Use this skill when...").
+**Metadata Quality:** The `description` in YAML frontmatter determines when Claude will use the skill. Be specific about what the skill does and when to use it. Use the third-person (e.g. "This skill should be used when..." instead of "Use this skill when...").
+
+All frontmatter fields are optional. Only `description` is recommended so Claude knows when to use the skill.
+
+| Field | Required | Description |
+|---|---|---|
+| `name` | No | Display name for the skill. If omitted, uses the directory name. Lowercase letters, numbers, and hyphens only (max 64 characters). |
+| `description` | Recommended | What the skill does and when to use it. Claude uses this to decide when to apply the skill. If omitted, uses the first paragraph of markdown content. |
+| `argument-hint` | No | Hint shown during autocomplete to indicate expected arguments. Example: `[issue-number]` or `[filename] [format]`. |
+| `disable-model-invocation` | No | Set to `true` to prevent Claude from automatically loading this skill. Use for workflows to trigger manually with `/name`. Default: `false`. |
+| `user-invocable` | No | Set to `false` to hide from the `/` menu. Use for background knowledge users shouldn't invoke directly. Default: `true`. |
+| `allowed-tools` | No | Tools Claude can use without asking permission when this skill is active. |
+| `model` | No | Model to use when this skill is active. |
+| `effort` | No | Effort level when this skill is active. Overrides the session effort level. Options: `low`, `medium`, `high`, `max` (Opus 4.6 only). |
+| `context` | No | Set to `fork` to run in a forked subagent context. |
+| `agent` | No | Which subagent type to use when `context: fork` is set. |
+| `hooks` | No | Hooks scoped to this skill's lifecycle. See Hooks in skills and agents for configuration format. |
 
 #### Bundled Resources (optional)
 
@@ -165,7 +181,6 @@ Also, delete any example files and directories not needed for the skill. Create 
 ---
 name: Skill Name
 description: This skill should be used when the user asks to "specific phrase 1", "specific phrase 2", "specific phrase 3". Include exact phrases users would say that should trigger this skill. Be concrete and specific.
-version: 0.1.0
 ---
 ```
 
@@ -214,7 +229,7 @@ Working examples in `examples/`:
 **For plugin skills, validation is different from generic skills:**
 
 1. **Check structure**: Skill directory in `plugin-name/skills/skill-name/`
-2. **Validate SKILL.md**: Has frontmatter with name and description
+2. **Validate SKILL.md**: Has frontmatter with at least a description
 3. **Check trigger phrases**: Description includes specific user queries
 4. **Verify writing style**: Body uses imperative/infinitive form, not second person
 5. **Test progressive disclosure**: SKILL.md is lean (~1,500-2,000 words), detailed content in references/
@@ -418,7 +433,7 @@ Before finalizing a skill:
 
 **Structure:**
 - [ ] SKILL.md file exists with valid YAML frontmatter
-- [ ] Frontmatter has `name` and `description` fields
+- [ ] Frontmatter has at least a `description` field
 - [ ] Markdown body is present and substantial
 - [ ] Referenced files actually exist
 
