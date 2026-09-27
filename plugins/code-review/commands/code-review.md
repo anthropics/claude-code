@@ -15,9 +15,14 @@ To do this, follow these steps precisely:
    - The pull request is closed
    - The pull request is a draft
    - The pull request does not need code review (e.g. automated PR, trivial change that is obviously correct)
-   - Claude has already commented on this PR (check `gh pr view <PR> --comments` for comments left by claude)
+   - Claude has already commented on this PR AND there are no new commits since Claude's last comment.
+     To check this:
+     1. Get Claude's latest comment using `gh pr view <PR> --comments --json comments --jq '.comments | map(select(.author.login == "claude")) | if length > 0 then last else empty end'`
+     2. Get the latest commit date using `gh pr view <PR> --json commits --jq '.commits | if length > 0 then last else empty end'`
+     3. If Claude has commented AND the latest commit date is BEFORE or EQUAL to Claude's last comment date, skip the review
+     4. If Claude has commented BUT there are new commits after Claude's last comment, proceed with the review
 
-   If any condition is true, stop and do not proceed.
+   If any condition is true (and for the Claude comment condition, only if there are no new commits), stop and do not proceed.
 
 Note: Still review Claude generated PR's.
 
