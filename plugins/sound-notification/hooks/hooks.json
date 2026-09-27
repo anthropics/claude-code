@@ -1,0 +1,26 @@
+{
+  "description": "Play sound notifications on task completion and permission prompts",
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/play-sound.sh complete"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/play-sound.sh permission"
+          }
+        ],
+        "matcher": "AskUserQuestion"
+      }
+    ]
+  }
+}
