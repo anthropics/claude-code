@@ -8,9 +8,9 @@ export const withholding: Plugin = {
   name: 'withholding',
   register(on) {
     on('telemetry.log', { to: 'collector' }, ($, e, next) =>
-      e.to === 'collector' && e.event !== 'withheld'
-        ? next({ ...e, attributes: { ...e.attributes, edited: true } })
-        : { deny: 'kept from the collector' },
+      e.event === 'withheld'
+        ? { deny: 'kept from the collector' }
+        : next({ ...e, props: { ...e.props, edited: true } }),
     )
   },
 }
