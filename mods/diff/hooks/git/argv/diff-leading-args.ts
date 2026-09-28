@@ -13,7 +13,6 @@ export const DIFF_LEADING_ARGS = [
   '-c',
   'core.quotePath=false',
   'diff',
-  '--no-color',
   '--no-ext-diff',
   '--no-textconv',
   '--ignore-submodules=dirty',
