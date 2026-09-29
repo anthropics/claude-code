@@ -6,8 +6,8 @@ import Verdicts from './verdicts'
  * What the `tool.check` hook's failure handler answers from the one run it
  * can read, the failed hook's last: that run's verdict, or a refusal.
  *
- * A verdict no plugin a person installed loosened stands (a deny, the run
- * past the user tier). A loosened one, or none at all, met no deny rule.
+ * A deny stands, and so does a verdict no link that may hold a person's
+ * plugin loosened. A loosened one, or none at all, met no deny rule.
  *
  * @param last what that run settled on; undefined when it rejected
  * @param trace that run's `next.trace`

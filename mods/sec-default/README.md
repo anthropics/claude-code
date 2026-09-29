@@ -60,8 +60,8 @@ seated it does not:
 - The hook first runs the chain as it is. If the answer is a deny, or no
   link that may hold a person's plugin answered more permissively than the
   verdict handed up to it, the answer passes: nothing of the person's
-  loosened anything, and a plugin that only listens costs nothing more. This
-  is read off `next.trace`, whose tiers the engine pins: a link that never
+  loosened anything, and a plugin that only listens adds no run of its own.
+  This is read off `next.trace`, whose tiers the engine pins: a link that never
   called `next` is measured against a deny, and since the engine lists
   neighbouring plugins that share a worker as one batch under its first
   member's tier, a `prepend` entry beneath this plugin counts as well as a
@@ -78,13 +78,15 @@ seated it does not:
   carries the rule as written, never where it was read from. A deny that
   names no rule (a settings hook's, a tool's own check) is not held.
 - An organization's plugin (prepend or append) or a built-in that allows
-  over a deny rule takes part in both runs, so its answer stands. An ask
+  over a deny rule takes part in both runs, so its answer stands (a prepended
+  one that loosens is what brings the second run about, so its hooks run
+  twice on such a call). An ask
   that a person's plugin turns into an allow, with no deny rule behind it,
   stands: that is what such a plugin is for.
 - `tool.check` pins the question (`tool`, `input`, `tool_use_id`), so no hook
   can have the rules evaluated on one command and another run; a rewrite
   belongs to `tool.call`, which runs before any of this.
-- The person is told once for each plugin in a session, in the transcript
+- The person is told once for each name in a session, in the transcript
   and the debug log: `<plugin> tried to lift a deny rule in your settings
   from a <tool> call (<rule>); the deny rule holds over the plugins you
   install (allowModsToOverrideDenyRules)`. Plugins the engine ran as one
