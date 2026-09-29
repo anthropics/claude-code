@@ -2542,6 +2542,18 @@ declare module 'claude-code' {
            * void $.prompt.suggest({ text: "run the tests you just wrote" })
            */
           suggest: EventCalls['prompt']['suggest'];
+          /**
+           * Returns the system prompt's sections for `facts`: the event
+           * `prompt.compose`, the call the engine makes for every prompt it sends.
+           *
+           * A fact left out is the session's own (its model, its tools). Through
+           * every other plugin's hook, over the engine's own composition; composed
+           * for nobody to send, so nothing the session holds is written.
+           *
+           * @example
+           * const ids = (await $.prompt.compose()).sections.map(s => s.id)
+           */
+          compose: EventCalls['prompt']['compose'];
       };
       /**
        * The tools the model has in this session, and running one.
@@ -3421,12 +3433,12 @@ declare module 'claude-code' {
        * Fires when the engine renders a system prompt; `next(e)` resolves to
        * `{ sections }`, each `{ id, text, scope }`, in the order they are sent.
        *
-       * The engine answers no sections: the plugins hooked here are the prompt.
-       * Append, replace by id, reorder or drop what `next(e)` answered; `e` is
-       * the facts to compose from. The engine joins, and places every cache mark.
+       * The bottom is the engine's own composition (`intro`, `tools`, `memory`,
+       * ...). Append, replace by id, reorder or drop what `next(e)` answered;
+       * answer without `next` to replace it all. The engine places each cache mark.
        *
        * @example
-       * on("prompt.compose", () => ({ sections: [INTRO, TOOLS, PLACE] }))
+       * on("prompt.compose", async ($, e, next) => dropped(await next(e), "tone"))
        */
       'prompt.compose': PromptComposeInput;
       /**
@@ -3870,7 +3882,7 @@ declare module 'claude-code' {
           section: (input: PromptSectionInput) => Promise<PromptSectionResult>;
           context: (input: PromptContextInput) => Promise<PromptContextResult>;
           attachment: (input: PromptAttachmentInput) => Promise<PromptAttachmentResult>;
-          compose: (input: PromptComposeInput) => Promise<PromptComposeResult>;
+          compose: (input?: PromptComposeArgs) => Promise<PromptComposeResult>;
       };
       skill: {
           prompt: (input: SkillPromptInput) => Promise<SkillPromptResult>;
@@ -6641,6 +6653,12 @@ declare module 'claude-code' {
   };
 
   /**
+   * What a plugin passes `$.prompt.compose`: the facts it wants composed for,
+   * each one it leaves out read off the session (its model, its tools).
+   */
+  export type PromptComposeArgs = Partial<PromptComposeInput>;
+
+  /**
    * The input of `prompt.compose`: the facts a system prompt is composed from,
    * each already resolved by the engine, at the moment it renders one.
    */
@@ -6661,7 +6679,8 @@ declare module 'claude-code' {
        */
       surfaces: readonly RenderSurface[];
       /**
-       * The names of the tools the request offers the model.
+       * The names of the tools the request offers the model; the engine's own
+       * composition reads them against the session's, an unknown name ignored.
        */
       tools: readonly string[];
       /**
@@ -6679,8 +6698,9 @@ declare module 'claude-code' {
    * What a `prompt.compose` hook returns: the sections of the system prompt,
    * in order, every `shared` one ahead of every `session` one.
    *
-   * A section left out is not sent. The engine joins each side, places the
-   * cache boundary between them and every cache marker itself.
+   * A section left out is not sent; a hook that never calls `next` answers
+   * the whole list. The engine joins each side, places the cache boundary
+   * between them and every cache marker itself.
    */
   export type PromptComposeResult = {
       sections: readonly PromptComposeSection[];
@@ -6712,7 +6732,7 @@ declare module 'claude-code' {
        * never empty, and unique in one list.
        *
        * A section a plugin adds is named `<plugin>:<name>`; the bare names are
-       * the ones the plugin that defines the default prompt gives its own.
+       * the engine's own composition's (`intro`, `tools`, `memory`, ...).
        */
       id: string;
       /**
@@ -6738,8 +6758,9 @@ declare module 'claude-code' {
    * `skills`: the Skill tool has commands to list. `send-user-message`: the
    * session speaks to the person through a message tool.
    *
-   * What one section's own text turns on (a flag, a setting, a model family)
-   * is not here: it becomes a member when that text is a plugin's to write.
+   * Rewritten going down, `sdk-preset`, `teammate` and `analysis` steer the
+   * engine's composition; the rest it derives itself, so they tell a hook what
+   * it will do. What one section's own text turns on (a flag) is not here.
    */
   export type PromptComposeTrait = 'bare' | 'lean' | 'sdk-preset' | 'teammate' | 'analysis' | 'print' | 'skills' | 'send-user-message';
 

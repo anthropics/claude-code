@@ -159,6 +159,25 @@ describe('register', () => {
     "the system prompt's sections pass over the plugins the person installed",
     { plugins: [Fixtures.emptying, Fixtures.heading] },
     async ($, on) => {
+      on('settings.read', () => ({ value: Fixtures.NO_ALLOWLIST }))
+      on('prompt.compose', () => ({
+        sections: [{ id: 'body', text: 'the body', scope: 'shared' }],
+      }))
+
+      expect(await $.prompt.compose(Fixtures.COMPOSED)).toEqual({
+        sections: [
+          { id: 'heading:org', text: 'the org says hi', scope: 'shared' },
+          { id: 'body', text: 'the body', scope: 'shared' },
+        ],
+      })
+    },
+  )
+
+  test(
+    "nor does a person's plugin drop or reword a section it asked for",
+    { plugins: [Fixtures.rewording, Fixtures.heading] },
+    async ($, on) => {
+      on('settings.read', () => ({ value: Fixtures.NO_ALLOWLIST }))
       on('prompt.compose', () => ({
         sections: [{ id: 'body', text: 'the body', scope: 'shared' }],
       }))
