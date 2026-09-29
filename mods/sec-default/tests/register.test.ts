@@ -309,7 +309,7 @@ describe('register', () => {
 
   test(
     'a deny rule holds over an allow from a plugin the person installed',
-    { plugins: [Fixtures.answering('easy', Fixtures.ALLOWED)] },
+    { plugins: [Fixtures.allowing('easy')] },
     async ($, on) => {
       on('settings.read', () => ({ value: Fixtures.MANAGED_POLICY }))
 
@@ -328,10 +328,7 @@ describe('register', () => {
   test(
     'two plugins of the person chained are each named once in a session',
     {
-      plugins: [
-        Fixtures.answering('first', Fixtures.ALLOWED),
-        Fixtures.answering('second', Fixtures.ASKED),
-      ],
+      plugins: [Fixtures.allowing('first'), Fixtures.asking('second')],
     },
     async ($, on) => {
       on('settings.read', () => ({ value: Fixtures.MANAGED_POLICY }))
@@ -343,7 +340,7 @@ describe('register', () => {
       expect(await $.tool.check(Fixtures.CHECKED)).toEqual(Fixtures.RULE_DENY)
       expect(await $.tool.check(Fixtures.CHECKED)).toEqual(Fixtures.RULE_DENY)
 
-      expect(lines).toEqual([
+      expect(lines.toSorted()).toEqual([
         `transcript: ${Hooks.heldNotice('first', 'Bash', 'Bash(echo *)')}`,
         `transcript: ${Hooks.heldNotice('second', 'Bash', 'Bash(echo *)')}`,
       ])
@@ -352,7 +349,7 @@ describe('register', () => {
 
   test(
     'a deny rule turned into an ask by a plugin of the person holds too',
-    { plugins: [Fixtures.answering('easy', Fixtures.ASKED)] },
+    { plugins: [Fixtures.asking('easy')] },
     async ($, on) => {
       on('settings.read', () => ({ value: Fixtures.MANAGED_POLICY }))
       Fixtures.logged(on)
@@ -366,8 +363,8 @@ describe('register', () => {
     "an organization plugin's allow over a deny rule stands, above or below",
     {
       plugins: [
-        Fixtures.answering('suite', Fixtures.ALLOWED, 'append'),
-        Fixtures.answering('easy', Fixtures.ALLOWED),
+        Fixtures.allowing('suite', 'append'),
+        Fixtures.allowing('easy'),
       ],
     },
     async ($, on) => {
@@ -384,7 +381,7 @@ describe('register', () => {
 
   test(
     "a prepended organization plugin's allow over a deny rule stands",
-    { plugins: [Fixtures.answering('guard', Fixtures.ALLOWED, 'prepend')] },
+    { plugins: [Fixtures.allowing('guard', 'prepend')] },
     async ($, on) => {
       on('settings.read', () => ({ value: Fixtures.MANAGED_POLICY }))
 
@@ -399,7 +396,7 @@ describe('register', () => {
 
   test(
     "a built-in's allow over a deny rule stands",
-    { plugins: [Fixtures.answering('bundled', Fixtures.ALLOWED, 'builtin')] },
+    { plugins: [Fixtures.allowing('bundled', 'builtin')] },
     async ($, on) => {
       on('settings.read', () => ({ value: Fixtures.MANAGED_POLICY }))
 
@@ -414,7 +411,7 @@ describe('register', () => {
 
   test(
     'an ask a plugin of the person allows, no deny rule behind it, stands',
-    { plugins: [Fixtures.answering('easy', Fixtures.ALLOWED)] },
+    { plugins: [Fixtures.allowing('easy')] },
     async ($, on) => {
       on('settings.read', () => ({ value: Fixtures.MANAGED_POLICY }))
 
@@ -429,7 +426,7 @@ describe('register', () => {
 
   test(
     'a deny no rule decided is still theirs to answer over',
-    { plugins: [Fixtures.answering('easy', Fixtures.ALLOWED)] },
+    { plugins: [Fixtures.allowing('easy')] },
     async ($, on) => {
       on('settings.read', () => ({ value: Fixtures.MANAGED_POLICY }))
 
@@ -444,7 +441,7 @@ describe('register', () => {
 
   test(
     'a plugin of the person that tightens is heard, with one evaluation',
-    { plugins: [Fixtures.answering('strict', Fixtures.PLAIN_DENY)] },
+    { plugins: [Fixtures.tightening] },
     async ($, on) => {
       const reads = Fixtures.policyReads(on, Fixtures.MANAGED_POLICY)
       const evaluations = Fixtures.checksAnswered(on, Fixtures.ASKED)
@@ -472,7 +469,7 @@ describe('register', () => {
 
   test(
     'an allow that never called next meets the deny rule all the same',
-    { plugins: [Fixtures.blindAnswering('blind', Fixtures.ALLOWED)] },
+    { plugins: [Fixtures.blindAllowing] },
     async ($, on) => {
       on('settings.read', () => ({ value: Fixtures.MANAGED_POLICY }))
 
@@ -492,15 +489,7 @@ describe('register', () => {
 
   test(
     'a rule a plugin of the person writes into its answer is never read',
-    {
-      plugins: [
-        Fixtures.answering('forging', {
-          decision: 'ask',
-          reason: 'fine by me',
-          rule: 'Bash(ls *)',
-        }),
-      ],
-    },
+    { plugins: [Fixtures.forging] },
     async ($, on) => {
       on('settings.read', () => ({ value: Fixtures.MANAGED_POLICY }))
 
@@ -542,7 +531,7 @@ describe('register', () => {
 
   test(
     'managed settings may let the plugins a person installs override',
-    { plugins: [Fixtures.answering('easy', Fixtures.ALLOWED)] },
+    { plugins: [Fixtures.allowing('easy')] },
     async ($, on) => {
       on('settings.read', () => ({ value: Fixtures.overridePolicyOf(true) }))
 
@@ -560,7 +549,7 @@ describe('register', () => {
 
   test(
     "only managed settings are asked: a person's own cannot lift a deny rule",
-    { plugins: [Fixtures.answering('easy', Fixtures.ALLOWED)] },
+    { plugins: [Fixtures.allowing('easy')] },
     async ($, on) => {
       Fixtures.policyBySource(
         on,
@@ -577,7 +566,7 @@ describe('register', () => {
 
   test(
     'the option mistyped lifts nothing: only the literal true does',
-    { plugins: [Fixtures.answering('easy', Fixtures.ALLOWED)] },
+    { plugins: [Fixtures.allowing('easy')] },
     async ($, on) => {
       on('settings.read', () => ({ value: Fixtures.overridePolicyOf('true') }))
       Fixtures.logged(on)
@@ -589,7 +578,7 @@ describe('register', () => {
 
   test(
     'with a policy that cannot be read the deny rule holds: fails closed',
-    { plugins: [Fixtures.answering('easy', Fixtures.ALLOWED)] },
+    { plugins: [Fixtures.allowing('easy')] },
     async ($, on) => {
       on('settings.read', () => ({ deny: 'managed settings unreadable' }))
       Fixtures.logged(on)
@@ -601,7 +590,7 @@ describe('register', () => {
 
   test(
     "when the rules cannot be evaluated the call is refused: the hook's catch",
-    { plugins: [Fixtures.blindAnswering('blind', Fixtures.ALLOWED)] },
+    { plugins: [Fixtures.blindAllowing] },
     async ($, on) => {
       on('settings.read', () => ({ value: Fixtures.MANAGED_POLICY }))
       Fixtures.logged(on)
