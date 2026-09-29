@@ -4,10 +4,11 @@ The security default for organizations. Function hooks give every plugin a
 say on every event, in chain order, and the plugins a person installs sit
 in the user tier, beneath the organization's prepend tier and above its
 append tier. Some of what an organization sets today (its classic hooks,
-its managed CLAUDE.md and rules, its settings, its MCP allowlist) was never
-within a person's reach before function hooks; seated outermost, this
-plugin keeps exactly those out of the user tier's reach and adds no policy
-of its own. Everything else passes through untouched.
+its managed CLAUDE.md and rules, its settings, its MCP allowlist, the deny
+rules in force on its machines) was never within a person's reach before
+function hooks; seated outermost, this plugin keeps exactly those out of the
+user tier's reach and adds no policy of its own. Everything else passes
+through untouched.
 
 It has three moves and nothing else: continue past the user tier
 (`next.to(e, "append")`), refuse a user-tier caller by name (`{ deny }`
@@ -29,18 +30,80 @@ settings it decides by.
 | `tool.describe`, `command.describe`, `agent.offer`, `agent.spawn` | When the subject's pinned `e.provider.tier` is `prepend` or `append` (a policy-installed plugin, the managed folder, a policy MCP server), continue past the user tier; a subject provided by `user`, `builtin` or `core` passes. |
 | `tool.register` | A caller in `prepend` or `append` continues past the user tier. A `user`-tier caller is refused by name while managed settings hold `allowedMcpServers` (set at all, empty included); otherwise it passes. |
 | `tool.list` | The tools of the organization's managed MCP servers are listed as the organization's tiers listed them; every other tool as the user tier left it. With no policy to read, or a refusal from either listing, the organization's listing stands whole. |
-| everything else | Passes: `prompt.submit`, `turn.*`, `tool.call`, `tool.check`, `command.run`, `command.register`, `session.*`, `ui.*`, `fs.*`, `http.fetch`, `process.run`, `store.*`, `clock.*`, `model.*`, `mcp.call`, `audio.*`, `agent.list`, `engine.create`. |
+| `tool.check` | A deny that a settings rule decided holds over the user tier: when a person's plugin answered `allow` or `ask`, the dispatch is run again past the user tier, and if that verdict is a deny naming its rule, it is the answer. See [Deny rules hold](#deny-rules-hold). Every other verdict passes as the chain left it. |
+| everything else | Passes: `prompt.submit`, `turn.*`, `tool.call`, `command.run`, `command.register`, `session.*`, `ui.*`, `fs.*`, `http.fetch`, `process.run`, `store.*`, `clock.*`, `model.*`, `mcp.call`, `audio.*`, `agent.list`, `engine.create`. |
 
 ## What it hooks
 
 `classic.*`, `prompt.section`, `prompt.context`, `skill.prompt`,
 `attribution.text`, `settings.read`, `tool.describe`, `command.describe`,
-`agent.offer`, `agent.spawn`, `tool.register`, `tool.list`.
+`agent.offer`, `agent.spawn`, `tool.register`, `tool.list`, `tool.check`.
+
+Hooking `tool.check` has a cost: the engine raises that event only when some
+loaded plugin hooks it, so where this plugin is seated every tool call now
+runs the `tool.check` chain, where before only a session with such a plugin
+did.
 
 ## What it calls on `$`
 
-`settings.read`. It continues to the `append` tier with `next.to`, which
-only a plugin in a managed tier may do.
+`settings.read`, and `ui.log` for the one line a person reads when a deny
+rule held over a plugin of theirs. It continues to the `append` tier with
+`next.to`, which only a plugin in a managed tier may do.
+
+## Deny rules hold
+
+On `tool.check` any hook may answer any verdict, so a plugin a person
+installs to stop the permission prompts (`() => ({ decision: "allow" })`)
+would also lift a deny rule, a managed one included. Where this plugin is
+seated it does not:
+
+- The hook first runs the chain as it is. If the answer is a deny, or no
+  user-tier link answered `allow` or `ask` (read off `next.trace`, whose
+  tiers the engine pins), the answer passes: nothing of the person's loosened
+  anything.
+- Otherwise it runs the dispatch once more with the user tier left out
+  (`next.to(e, "append")`). That verdict never passed through a person's
+  plugin, so neither the decision nor the rule it names can have been
+  rewritten or erased, and a plugin that answered without calling `next`
+  changes nothing: the rules are evaluated in this run. The two runs differ
+  by the user tier alone, so a deny here that names its rule is a deny rule
+  the user tier loosened, and it is returned in place of the chain's answer.
+- Any deny rule counts, whatever settings file it came from: a verdict
+  carries the rule as written, never where it was read from. A deny that
+  names no rule (a settings hook's, a tool's own check) is not held.
+- An organization's plugin (prepend or append) or a built-in that allows
+  over a deny rule takes part in both runs, so its answer stands. An ask
+  that a person's plugin turns into an allow, with no deny rule behind it,
+  stands: that is what such a plugin is for.
+- `tool.check` pins the question (`tool`, `input`, `tool_use_id`), so no hook
+  can have the rules evaluated on one command and another run; a rewrite
+  belongs to `tool.call`, which runs before any of this.
+- The person is told once for each plugin in a session, in the transcript
+  and the debug log: `<plugin> tried to allow a <tool> call your settings
+  deny (<rule>); the deny rule holds over the plugins you install
+  (allowModsToOverrideDenyRules)`.
+- If the hook itself fails, its `.catch` answers from the one run it can
+  read: a deny stands; a verdict no plugin of the person's loosened stands;
+  one they loosened, or a run that rejected, is refused, since the deny
+  rules were never consulted.
+
+An organization that wants the plugins its people install to override deny
+rules says so in managed settings, under this plugin's own options:
+
+```json
+{
+  "pluginConfigs": {
+    "cc-plugin-sec-default@builtin": {
+      "options": { "allowModsToOverrideDenyRules": true }
+    }
+  }
+}
+```
+
+Only the managed source is read (`$.settings.read({ source: "policy" })`),
+so the same key in a person's, a project's or a local settings file, or in
+`--settings`, is never consulted; only the literal `true` counts, and a
+policy that cannot be read leaves deny rules holding.
 
 ## Where it is seated
 

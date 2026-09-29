@@ -1,7 +1,9 @@
 export * from './create-policy-memo'
 export * from './decided-by-policy.js'
+export * from './deny-rules-hold.js'
 export * from './has-mcp-allowlist.js'
 export * from './managed-tools-restored'
+export * from './own-option'
 export * from './policy-memo-ms.js'
 export * from './source.js'
 
