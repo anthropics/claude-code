@@ -455,6 +455,22 @@ describe('register', () => {
     },
   )
 
+  test(
+    'a plugin of the person that only listens costs no second evaluation',
+    { plugins: [Fixtures.listening] },
+    async ($, on) => {
+      const reads = Fixtures.policyReads(on, Fixtures.MANAGED_POLICY)
+      const evaluations = Fixtures.checksAnswered(on, Fixtures.ASKED)
+
+      expect(await $.tool.check(Fixtures.CHECKED)).toEqual(Fixtures.ASKED)
+
+      expect({ reads: reads(), evaluations: evaluations() }).toEqual({
+        reads: 0,
+        evaluations: 1,
+      })
+    },
+  )
+
   test('with none of their plugins the verdict passes once', async ($, on) => {
     const reads = Fixtures.policyReads(on, Fixtures.MANAGED_POLICY)
     const evaluations = Fixtures.checksAnswered(on, Fixtures.RULE_DENY)

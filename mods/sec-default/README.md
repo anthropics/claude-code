@@ -30,7 +30,7 @@ settings it decides by.
 | `tool.describe`, `command.describe`, `agent.offer`, `agent.spawn` | When the subject's pinned `e.provider.tier` is `prepend` or `append` (a policy-installed plugin, the managed folder, a policy MCP server), continue past the user tier; a subject provided by `user`, `builtin` or `core` passes. |
 | `tool.register` | A caller in `prepend` or `append` continues past the user tier. A `user`-tier caller is refused by name while managed settings hold `allowedMcpServers` (set at all, empty included); otherwise it passes. |
 | `tool.list` | The tools of the organization's managed MCP servers are listed as the organization's tiers listed them; every other tool as the user tier left it. With no policy to read, or a refusal from either listing, the organization's listing stands whole. |
-| `tool.check` | A deny that a settings rule decided holds over the user tier: when a person's plugin answered `allow` or `ask`, the dispatch is run again past the user tier, and if that verdict is a deny naming its rule, it is the answer. See [Deny rules hold](#deny-rules-hold). Every other verdict passes as the chain left it. |
+| `tool.check` | A deny that a settings rule decided holds over the user tier: when a person's plugin loosened the verdict it was handed, the dispatch is run again past the user tier, and if that verdict is a deny naming its rule, it is the answer. See [Deny rules hold](#deny-rules-hold). Every other verdict passes as the chain left it. |
 | everything else | Passes: `prompt.submit`, `turn.*`, `tool.call`, `command.run`, `command.register`, `session.*`, `ui.*`, `fs.*`, `http.fetch`, `process.run`, `store.*`, `clock.*`, `model.*`, `mcp.call`, `audio.*`, `agent.list`, `engine.create`. |
 
 ## What it hooks
@@ -58,9 +58,11 @@ would also lift a deny rule, a managed one included. Where this plugin is
 seated it does not:
 
 - The hook first runs the chain as it is. If the answer is a deny, or no
-  user-tier link answered `allow` or `ask` (read off `next.trace`, whose
-  tiers the engine pins), the answer passes: nothing of the person's loosened
-  anything.
+  user-tier link answered more permissively than the verdict handed up to it
+  (read off `next.trace`, whose tiers the engine pins; a link that never
+  called `next` is measured against a deny), the answer passes: nothing of
+  the person's loosened anything, and a plugin that only listens costs
+  nothing more.
 - Otherwise it runs the dispatch once more with the user tier left out
   (`next.to(e, "append")`). That verdict never passed through a person's
   plugin, so neither the decision nor the rule it names can have been

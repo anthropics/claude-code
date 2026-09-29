@@ -14,18 +14,35 @@ describe('held-verdict', () => {
     ).toEqual([true, false, false])
   })
 
-  test("only the person's links that answered allow or ask are named", () => {
+  test('a link of theirs is named when it answered looser than handed', () => {
+    expect(
+      Hooks.loosenedByUsers([
+        Fixtures.linkOf('listening', 'user', Fixtures.ALLOWED),
+        Fixtures.linkOf('easy', 'user', Fixtures.ALLOWED),
+        Fixtures.linkOf('engine', 'core', Fixtures.ASKED),
+      ]),
+    ).toEqual(['easy'])
+  })
+
+  test('one that never called next is measured against a deny', () => {
+    expect(
+      Hooks.loosenedByUsers([
+        Fixtures.linkOf('listening', 'user', Fixtures.ALLOWED),
+        Fixtures.linkOf('blind', 'user', Fixtures.ALLOWED),
+      ]),
+    ).toEqual(['blind'])
+  })
+
+  test('a tightening, a skipped link and an organization link are not', () => {
     expect(
       Hooks.loosenedByUsers([
         Fixtures.linkOf('guard', 'prepend', Fixtures.ALLOWED),
-        Fixtures.linkOf('easy', 'user', Fixtures.ALLOWED),
         Fixtures.linkOf('strict', 'user', Fixtures.PLAIN_DENY),
         Fixtures.linkOf('passed-over', 'user'),
-        Fixtures.linkOf('asking', 'user', Fixtures.ASKED),
         Fixtures.linkOf('bundled', 'builtin', Fixtures.ALLOWED),
         Fixtures.linkOf('engine', 'core', Fixtures.RULE_DENY),
       ]),
-    ).toEqual(['easy', 'asking'])
+    ).toEqual([])
   })
 
   test('the handler keeps a deny, and a verdict none of theirs made', () => {
