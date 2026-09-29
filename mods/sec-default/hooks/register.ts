@@ -1,6 +1,8 @@
 import type { On } from 'claude-code'
 
+import { admissionFailure } from './admission-failure'
 import HeldVerdict from './held-verdict'
+import { managedModsOnlyRefusal } from './managed-mods-only-refusal'
 import { pastUsers } from './past-users'
 import Policy from './policy'
 import { TOOL_REGISTER_REFUSAL } from './tool-register-refusal'
@@ -98,5 +100,15 @@ export function register(on: On) {
     )
 
     return shouldVouch ? HeldVerdict.caughtAnswer(last, next.trace) : last
+  })
+
+  on('plugin.register', { tier: 'user' }, async ($, e, next) =>
+    Policy.isManagedModsOnly(await $.settings.read(Policy.SOURCE))
+      ? { refuse: managedModsOnlyRefusal(e.name) }
+      : next(e),
+  ).catch(($, e, next) => {
+    $.ui.log(admissionFailure(e.name, next.error), { to: 'debug' })
+
+    return next.called ? next(e) : { refuse: managedModsOnlyRefusal(e.name) }
   })
 }
