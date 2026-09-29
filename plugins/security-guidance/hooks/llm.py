@@ -614,28 +614,7 @@ def _format_vulns_guidance(vulns: List[Dict[str, Any]]) -> Optional[str]:
     """
     if not vulns:
         return None
-    severity_order = {"critical": 0, "high": 1, "medium": 2}
-    vulns = sorted(vulns, key=lambda v: severity_order.get(v.get("severity", "medium"), 2))
-    by_file: Dict[str, list] = {}
-    for v in vulns:
-        by_file.setdefault(v.get("filePath", "unknown"), []).append(v)
-    lines = [
-        "Security Review: Potential vulnerabilities detected",
-        "",
-        f"Affected files: {', '.join(by_file)}",
-        "The following issues were flagged by automated security review. Address each, or briefly note why it doesn't apply. Valid reasons to proceed without changes: the user explicitly asked for this and you've already surfaced the security tradeoffs, or the pattern isn't actually exploitable in this context. Do not dismiss findings solely because the service is internal-only — internal services are common SSRF/IDOR targets:",
-        "",
-    ]
-    n = 1
-    for fp, vs in by_file.items():
-        lines.append(f"  {fp}:")
-        for v in vs:
-            sev = (v.get("severity") or "medium").upper()
-            lines.append(f"    {n}. [{sev}] [{v.get('category', 'Unknown')}] {v.get('vulnerableCode', 'N/A')}")
-            lines.append(f"       Suggested fix: {v.get('fix', 'N/A')}")
-            lines.append("")
-            n += 1
-    return "\n".join(lines)
+    return review_api.format_findings(vulns)
 
 
 # CC truncates the rewakeSummary override at 300 chars. Cap a little under so
@@ -1704,9 +1683,10 @@ Respond with JSON."""
     lines.append("")
     for i, concern in enumerate(concerns, 1):
         severity = concern.get('severity', 'high').upper()
-        lines.append(f"  {i}. [{severity}] [{concern.get('category', 'Unknown')}] {concern.get('area', '')}")
-        lines.append(f"     Evidence: {concern.get('evidenceLine', 'N/A')}")
-        lines.append(f"     Check: {concern.get('concern', '')}")
+        cat = concern.get('category', 'Unknown')
+        lines.append(f"  {i}. [{severity}] [{cat}] {review_api.redact_secret_values(concern.get('area', ''), category=cat)}")
+        lines.append(f"     Evidence: {review_api.redact_secret_values(concern.get('evidenceLine', 'N/A'), category=cat)}")
+        lines.append(f"     Check: {review_api.redact_secret_values(concern.get('concern', ''), category=cat)}")
         lines.append("")
 
     return "\n".join(lines)
