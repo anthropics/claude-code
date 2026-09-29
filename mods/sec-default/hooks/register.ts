@@ -1,5 +1,7 @@
 import type { On } from 'claude-code'
 
+import { admissionFailure } from './admission-failure'
+import { managedModsOnlyRefusal } from './managed-mods-only-refusal'
 import { pastUsers } from './past-users'
 import Policy from './policy'
 import { TOOL_REGISTER_REFUSAL } from './tool-register-refusal'
@@ -9,8 +11,8 @@ import { TOOL_REGISTER_REFUSAL } from './tool-register-refusal'
  * organization has today out of reach of the plugins a person installs.
  *
  * Three moves: continue past the user tier (`next.to(e, "append")`), refuse
- * a user-tier caller by name, or pass. Provenance is the event's pinned
- * `provider`; policy is `$.settings.read`, memoized per burst; fail closed.
+ * a user-tier caller or module by name, or pass. Provenance is the event's
+ * pinned `provider` or `tier`; policy is `$.settings.read`; fail closed.
  *
  * @param on the engine's registrar
  */
@@ -58,4 +60,14 @@ export function register(on: On) {
       await next(e),
     ),
   )
+
+  on('plugin.register', { tier: 'user' }, async ($, e, next) =>
+    Policy.isManagedModsOnly(await $.settings.read(Policy.SOURCE))
+      ? { refuse: managedModsOnlyRefusal(e.name) }
+      : next(e),
+  ).catch(($, e, next) => {
+    $.ui.log(admissionFailure(e.name, next.error), { to: 'debug' })
+
+    return next.called ? next(e) : { refuse: managedModsOnlyRefusal(e.name) }
+  })
 }

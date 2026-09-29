@@ -67,10 +67,18 @@ describe('register', () => {
     'a policy that cannot be read counts as one in force',
     { plugins: [Fixtures.registering('mine')] },
     async ($, on) => {
-      on('settings.read', () => ({ deny: 'managed settings unreadable' }))
+      const stopPolicy = Fixtures.policyUntilStopped(
+        on,
+        Fixtures.NO_ALLOWLIST,
+        'managed settings unreadable',
+      )
 
       const registered = Fixtures.toolsRegistered(on)
 
+      on('prompt.section', ($, e) => ({ text: e.text }))
+
+      await $.prompt.section(Fixtures.MEMORY)
+      stopPolicy()
       await $.session.start(Fixtures.SESSION)
 
       expect(registered).toEqual([])
@@ -113,8 +121,17 @@ describe('register', () => {
     "with no policy to read the organization's listing stands whole",
     { plugins: [Fixtures.relabeling, Fixtures.listing] },
     async ($, on) => {
-      on('settings.read', () => ({ deny: 'settings unreadable' }))
+      const stopPolicy = Fixtures.policyUntilStopped(
+        on,
+        Fixtures.ALLOWLIST,
+        'settings unreadable',
+      )
+
+      on('prompt.section', ($, e) => ({ text: e.text }))
       on('tool.list', () => ({ value: [...Fixtures.TOOLS] }))
+
+      await $.prompt.section(Fixtures.MEMORY)
+      stopPolicy()
 
       const { text } = await $.command.run(Fixtures.TOOLS_COMMAND)
 
@@ -129,6 +146,7 @@ describe('register', () => {
     'a prompt section passes over the plugins the person installed',
     { plugins: [Fixtures.dropping, Fixtures.signing] },
     async ($, on) => {
+      on('settings.read', () => ({ value: Fixtures.NO_ALLOWLIST }))
       on('prompt.section', ($, e) => ({ text: e.text }))
 
       expect(await $.prompt.section(Fixtures.MEMORY)).toEqual({
@@ -170,6 +188,7 @@ describe('register', () => {
     "an organization provider's subject passes over the user plugins",
     { plugins: [Fixtures.marking] },
     async ($, on) => {
+      on('settings.read', () => ({ value: Fixtures.NO_ALLOWLIST }))
       Fixtures.subjectsEchoed(on)
 
       for (const provider of Fixtures.ORG_PROVIDERS) {
@@ -228,6 +247,7 @@ describe('register', () => {
     'an odd provider passes over the user plugins: it fails closed',
     { plugins: [Fixtures.marking] },
     async ($, on) => {
+      on('settings.read', () => ({ value: Fixtures.NO_ALLOWLIST }))
       Fixtures.subjectsEchoed(on)
 
       for (const provider of Fixtures.ODD_PROVIDERS) {
@@ -256,7 +276,7 @@ describe('register', () => {
         await $.agent.spawn(Fixtures.agentSpawned(provider))
       }
 
-      expect(reads()).toBe(0)
+      expect(reads(), "one read: the person's plugin was admitted").toBe(1)
 
       await Promise.all([
         $.command.run(Fixtures.TOOLS_COMMAND),
@@ -264,7 +284,7 @@ describe('register', () => {
         $.command.run(Fixtures.TOOLS_COMMAND),
       ])
 
-      expect(reads()).toBe(1)
+      expect(reads()).toBe(2)
     },
   )
 
@@ -304,6 +324,135 @@ describe('register', () => {
       expect(text).toEndWith(
         `asking: $.tool.register: ${Hooks.TOOL_REGISTER_REFUSAL}`,
       )
+    },
+  )
+
+  test(
+    "under allowManagedModsOnly a person's mod is kept out, told why",
+    { plugins: [Fixtures.registering('mine')] },
+    async ($, on) => {
+      on('settings.read', () => ({ value: Fixtures.MANAGED_MODS_ONLY }))
+
+      const registered = Fixtures.toolsRegistered(on)
+
+      await expect($.session.start(Fixtures.SESSION)).rejects.toThrow(
+        Hooks.managedModsOnlyRefusal('mine'),
+      )
+
+      expect(registered, 'no hook of it ever ran').toEqual([])
+    },
+  )
+
+  test(
+    "under it the organization's mods and the built-ins load",
+    {
+      plugins: [
+        Fixtures.registering('suite', 'prepend'),
+        Fixtures.registering('after', 'append'),
+        Fixtures.registering('bundled', 'builtin'),
+      ],
+    },
+    async ($, on) => {
+      on('settings.read', () => ({ value: Fixtures.MANAGED_MODS_ONLY }))
+
+      const registered = Fixtures.toolsRegistered(on)
+
+      await $.session.start(Fixtures.SESSION)
+
+      expect(registered).toEqual(['suite', 'after', 'bundled'])
+    },
+  )
+
+  test(
+    'set to false, a mod the person installed loads as before',
+    { plugins: [Fixtures.registering('mine')] },
+    async ($, on) => {
+      on('settings.read', () => ({ value: Fixtures.modsPolicyOf(false) }))
+
+      const registered = Fixtures.toolsRegistered(on)
+
+      await $.session.start(Fixtures.SESSION)
+
+      expect(registered).toEqual(['mine'])
+    },
+  )
+
+  test(
+    "a person's copy under an organization mod's name is still theirs",
+    { plugins: [Fixtures.registering('suite')] },
+    async ($, on) => {
+      on('settings.read', () => ({
+        value: { ...Fixtures.MANAGED_POLICY, ...Fixtures.MANAGED_MODS_ONLY },
+      }))
+
+      const registered = Fixtures.toolsRegistered(on)
+
+      await expect($.session.start(Fixtures.SESSION)).rejects.toThrow(
+        Hooks.managedModsOnlyRefusal('suite'),
+      )
+
+      expect(registered).toEqual([])
+    },
+  )
+
+  test(
+    "only managed settings are asked: a person's own cannot loosen it",
+    { plugins: [Fixtures.registering('mine')] },
+    async ($, on) => {
+      Fixtures.policyBySource(
+        on,
+        Fixtures.MANAGED_MODS_ONLY,
+        Fixtures.modsPolicyOf(false),
+      )
+
+      const registered = Fixtures.toolsRegistered(on)
+
+      await expect($.session.start(Fixtures.SESSION)).rejects.toThrow(
+        Hooks.managedModsOnlyRefusal('mine'),
+      )
+
+      expect(registered).toEqual([])
+    },
+  )
+
+  test(
+    "nor turn it on: set only in a person's settings, it is not read",
+    { plugins: [Fixtures.registering('mine')] },
+    async ($, on) => {
+      Fixtures.policyBySource(
+        on,
+        Fixtures.NO_ALLOWLIST,
+        Fixtures.MANAGED_MODS_ONLY,
+      )
+
+      const registered = Fixtures.toolsRegistered(on)
+
+      await $.session.start(Fixtures.SESSION)
+
+      expect(registered).toEqual(['mine'])
+    },
+  )
+
+  test(
+    "a policy that cannot be read keeps a person's mod out: the hook's catch",
+    { plugins: [Fixtures.registering('mine')] },
+    async ($, on) => {
+      on('settings.read', () => ({ deny: 'managed settings unreadable' }))
+
+      const lines = Fixtures.logged(on)
+      const registered = Fixtures.toolsRegistered(on)
+
+      await expect($.session.start(Fixtures.SESSION)).rejects.toThrow(
+        Hooks.managedModsOnlyRefusal('mine'),
+      )
+
+      expect({ registered, lines }).toEqual({
+        registered: [],
+        lines: [
+          'debug: plugin.register hook failed judging mine (throw): ' +
+            'sec-default: $.settings.read: managed settings unreadable',
+        ],
+      })
     },
   )
 })
