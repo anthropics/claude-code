@@ -33,16 +33,25 @@ describe('held-verdict', () => {
     ).toEqual(['blind'])
   })
 
-  test('a tightening, a skipped link and an organization link are not', () => {
+  test('a tightening, a skipped link and links beneath theirs are not', () => {
     expect(
       Hooks.loosenedByUsers([
-        Fixtures.linkOf('guard', 'prepend', Fixtures.ALLOWED),
         Fixtures.linkOf('strict', 'user', Fixtures.PLAIN_DENY),
         Fixtures.linkOf('passed-over', 'user'),
+        Fixtures.linkOf('suite', 'append', Fixtures.ALLOWED),
         Fixtures.linkOf('bundled', 'builtin', Fixtures.ALLOWED),
         Fixtures.linkOf('engine', 'core', Fixtures.RULE_DENY),
       ]),
     ).toEqual([])
+  })
+
+  test('a batch listed under prepend may hold a plugin of theirs', () => {
+    expect(
+      Hooks.loosenedByUsers([
+        Fixtures.linkOf('audit+easy', 'prepend', Fixtures.ALLOWED),
+        Fixtures.linkOf('engine', 'core', Fixtures.RULE_DENY),
+      ]),
+    ).toEqual(['audit+easy'])
   })
 
   test('the handler keeps a deny, and a verdict none of theirs made', () => {

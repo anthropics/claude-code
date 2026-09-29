@@ -456,8 +456,32 @@ describe('register', () => {
   )
 
   test(
+    "a deny rule holds when an organization's plugin listens above theirs",
+    {
+      plugins: [
+        Fixtures.listening('audit', 'prepend'),
+        Fixtures.allowing('easy'),
+      ],
+    },
+    async ($, on) => {
+      on('settings.read', () => ({ value: Fixtures.MANAGED_POLICY }))
+
+      const lines = Fixtures.logged(on)
+
+      Fixtures.checksAnswered(on, Fixtures.RULE_DENY)
+
+      expect(await $.tool.check(Fixtures.CHECKED)).toEqual(Fixtures.RULE_DENY)
+
+      expect(
+        lines.map(line => line.includes('easy')),
+        'one line, naming the plugin of theirs, alone or in its batch',
+      ).toEqual([true])
+    },
+  )
+
+  test(
     'a plugin of the person that only listens costs no second evaluation',
-    { plugins: [Fixtures.listening] },
+    { plugins: [Fixtures.listening('listening')] },
     async ($, on) => {
       const reads = Fixtures.policyReads(on, Fixtures.MANAGED_POLICY)
       const evaluations = Fixtures.checksAnswered(on, Fixtures.ASKED)

@@ -58,11 +58,15 @@ would also lift a deny rule, a managed one included. Where this plugin is
 seated it does not:
 
 - The hook first runs the chain as it is. If the answer is a deny, or no
-  user-tier link answered more permissively than the verdict handed up to it
-  (read off `next.trace`, whose tiers the engine pins; a link that never
-  called `next` is measured against a deny), the answer passes: nothing of
-  the person's loosened anything, and a plugin that only listens costs
-  nothing more.
+  link that may hold a person's plugin answered more permissively than the
+  verdict handed up to it, the answer passes: nothing of the person's
+  loosened anything, and a plugin that only listens costs nothing more. This
+  is read off `next.trace`, whose tiers the engine pins: a link that never
+  called `next` is measured against a deny, and since the engine lists
+  neighbouring plugins that share a worker as one batch under its first
+  member's tier, a `prepend` entry beneath this plugin counts as well as a
+  `user` one. Whether a person's plugin did the loosening is never settled
+  here, only by the next step.
 - Otherwise it runs the dispatch once more with the user tier left out
   (`next.to(e, "append")`). That verdict never passed through a person's
   plugin, so neither the decision nor the rule it names can have been
@@ -81,10 +85,12 @@ seated it does not:
   can have the rules evaluated on one command and another run; a rewrite
   belongs to `tool.call`, which runs before any of this.
 - The person is told once for each plugin in a session, in the transcript
-  and the debug log: `<plugin> tried to allow a <tool> call your settings
-  deny (<rule>); the deny rule holds over the plugins you install
-  (allowModsToOverrideDenyRules)`. A plain `-p` run has it in the debug log
-  alone; the call is still denied with the rule's own message.
+  and the debug log: `<plugin> tried to lift a deny rule in your settings
+  from a <tool> call (<rule>); the deny rule holds over the plugins you
+  install (allowModsToOverrideDenyRules)`. Plugins the engine ran as one
+  batch are named together, as it names them (`audit+easy`). A plain `-p`
+  run has it in the debug log alone; the call is still denied with the
+  rule's own message.
 - If the hook itself fails, its `.catch` answers from the one run it can
   read: a deny stands; a verdict no plugin of the person's loosened stands;
   one they loosened, or a run that rejected, is refused, since the deny
