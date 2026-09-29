@@ -83,7 +83,8 @@ seated it does not:
 - The person is told once for each plugin in a session, in the transcript
   and the debug log: `<plugin> tried to allow a <tool> call your settings
   deny (<rule>); the deny rule holds over the plugins you install
-  (allowModsToOverrideDenyRules)`.
+  (allowModsToOverrideDenyRules)`. A plain `-p` run has it in the debug log
+  alone; the call is still denied with the rule's own message.
 - If the hook itself fails, its `.catch` answers from the one run it can
   read: a deny stands; a verdict no plugin of the person's loosened stands;
   one they loosened, or a run that rejected, is refused, since the deny
