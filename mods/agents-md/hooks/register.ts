@@ -154,6 +154,7 @@ export function register(on: On, options: PluginOptions): void {
             .filter(file => file.parent === undefined)
             .map(file => file.path)
             .join(', '),
+        { to: 'debug' },
       )
     }
 

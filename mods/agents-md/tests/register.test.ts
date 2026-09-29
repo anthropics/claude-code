@@ -41,7 +41,8 @@ describe('register', () => {
 
     await started.clock.settle()
 
-    expect(started.lines).toEqual([
+    expect(started.lines, 'nothing new in the transcript').toEqual([])
+    expect(started.debugLines).toEqual([
       'no CLAUDE.md found; AGENTS.md loaded: /repo/AGENTS.md',
     ])
   })
@@ -69,6 +70,7 @@ describe('register', () => {
 
     expect(started.walks).toEqual([])
     expect(started.lines).toEqual([])
+    expect(started.debugLines).toEqual([])
   })
 
   test('a failed walk leaves the context as handed', async ($, on) => {
