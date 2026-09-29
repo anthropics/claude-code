@@ -160,6 +160,7 @@ describe('register', () => {
     { plugins: [Fixtures.emptying, Fixtures.heading] },
     async ($, on) => {
       on('settings.read', () => ({ value: Fixtures.NO_ALLOWLIST }))
+
       on('prompt.compose', () => ({
         sections: [{ id: 'body', text: 'the body', scope: 'shared' }],
       }))
@@ -178,6 +179,7 @@ describe('register', () => {
     { plugins: [Fixtures.rewording, Fixtures.heading] },
     async ($, on) => {
       on('settings.read', () => ({ value: Fixtures.NO_ALLOWLIST }))
+
       on('prompt.compose', () => ({
         sections: [{ id: 'body', text: 'the body', scope: 'shared' }],
       }))
