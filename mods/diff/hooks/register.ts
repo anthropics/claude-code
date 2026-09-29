@@ -833,7 +833,7 @@ export function register(on: On) {
     return result
   })
 
-  on('ui.focus', { plugin: Names.PLUGIN_NAME }, ($, e, next) => {
+  on('ui.focus', { plugin: Names.PLUGIN_NAMES }, ($, e, next) => {
     const isListed =
       model.placement === 'inline' && model.dialogView === 'list' && host
 

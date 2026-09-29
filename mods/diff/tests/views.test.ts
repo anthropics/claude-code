@@ -200,6 +200,24 @@ describe('views', () => {
     expect(walked).not.toContain('file0.ts')
   })
 
+  test('the walk follows under the name a build registers', async ($, on) => {
+    const world = Fixtures.inRepository(on, Fixtures.MANY_FILES)
+
+    await $.session.start(Fixtures.SESSION)
+    await $.command.run(Fixtures.DIALOG_DIFF)
+    await world.clock.advance(Fixtures.SETTLE_MS)
+    await $.ui.render(Fixtures.INLINE_PANE)
+
+    expect(
+      await $.ui.focus(Fixtures.ringOnto('file:file3.ts', 'cc-plugin-diff')),
+    ).toEqual({})
+
+    expect(
+      world.focused.map(focus => focus.element),
+      'its row once centred',
+    ).toEqual(['file:file2.ts'])
+  })
+
   test('off fullscreen, the walk stops at the last file', async ($, on) => {
     const world = Fixtures.inRepository(on, Fixtures.MANY_FILES)
 
