@@ -730,8 +730,10 @@ export function register(on: On) {
 
     /**
      * A seat that changed since the last drawing lists other rows, whose
-     * bodies are read once: the model takes the new seat in this same pass,
-     * so the drawing that read asks for finds the seat unchanged.
+     * bodies are read once.
+     *
+     * The model takes the new seat in this same pass, so the drawing that
+     * read asks for finds the seat unchanged.
      */
     const isReseated = e.props.placement !== model.placement
 
