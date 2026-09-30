@@ -544,7 +544,7 @@ export function register(on: On) {
         place: isDocked ? Views.placeAtFile(model, path) : model.place,
       }
 
-      void loadBodies(engine)
+      void loadBodies(engine).catch(() => undefined)
       redraw(engine)
     },
     scrollList: delta => {
@@ -749,7 +749,7 @@ export function register(on: On) {
     }
 
     if (isReseated) {
-      void loadBodies(host)
+      void loadBodies(host).catch(() => undefined)
     }
 
     return Views.paneView(
@@ -867,7 +867,7 @@ export function register(on: On) {
     }
 
     model = { ...model, selectedPath: focus.selectedPath }
-    void loadBodies(host)
+    void loadBodies(host).catch(() => undefined)
     fitDialog(host)
     host.invalidate()
 
