@@ -1,13 +1,54 @@
-import type { Args, ResultOf, SessionMessage } from 'claude-code'
+import type { Args, FsEntry, On, ResultOf, SessionMessage } from 'claude-code'
 import { describe, expect, mock, test, tier } from 'claude-code/testing'
+import type { Engine } from 'claude-code/testing'
 
 import Limits from '../hooks/limits'
 import Names from '../hooks/names'
+import Record from '../hooks/record'
 import Fixtures from './fixtures'
 
 tier('builtin')
 
 describe('register', () => {
+  async function drawnRoundMerge($: Engine, on: On, finishedMs: number) {
+    const script = { ...Fixtures.REPOSITORY, 'rev-parse --verify': 'merging' }
+
+    let listing = Fixtures.MERGING.map(([name, kind]): FsEntry => ({
+      name,
+      kind,
+      size: 0,
+      isLink: false,
+    }))
+
+    on('fs.list', (_engine, e) => {
+      const isGitDir = e.path === '/work/.git'
+
+      return { value: isGitDir ? listing : [] }
+    })
+
+    const world = Fixtures.inRepository(on, script)
+
+    const drawn = async () => Fixtures.textOf(await $.ui.render(Fixtures.PANE))
+
+    await $.session.start(Fixtures.SESSION)
+    await $.command.run(Fixtures.DIFF)
+    await world.clock.advance(finishedMs)
+
+    const before = await drawn()
+
+    listing = []
+    script['rev-parse --verify'] = 'merged'
+
+    await world.clock.advance(Limits.HEAD_POLL_MS + Fixtures.SETTLE_MS)
+
+    return { before, after: await drawn() }
+  }
+
+  const NOTICED = {
+    before: expect.stringContaining('Diff unavailable'),
+    after: expect.stringContaining('1 file changed'),
+  }
+
   test('the start asks nothing of git and registers /diff', async ($, on) => {
     const world = Fixtures.inRepository(on)
 
@@ -121,18 +162,18 @@ describe('register', () => {
     )
   })
 
-  test('a shell command the tool held read-only fetches nothing', async ($, on) => {
+  test('a shell command held read-only fetches nothing', async ($, on) => {
     const world = Fixtures.inRepository(on)
 
     const fetchesSince = (read: number) =>
       world.runs.slice(read).filter(run => run.argv.includes('--numstat'))
         .length
 
-    on('tool.call', ($, e) =>
-      e.tool === 'Bash' && e.command === 'ls'
-        ? Fixtures.READ_ONLY_ANSWER
-        : { result: 'done' },
-    )
+    on('tool.call', ($, e) => {
+      const isListing = e.tool === 'Bash' && e.command === 'ls'
+
+      return isListing ? Fixtures.READ_ONLY_ANSWER : { result: 'done' }
+    })
 
     await $.session.start(Fixtures.SESSION)
     await $.command.run(Fixtures.DIFF)
@@ -383,7 +424,7 @@ describe('register', () => {
     expect(world.opened.map(pane => pane.id)).toEqual(['diff'])
   })
 
-  test('on the main screen the first edit opens nothing, and /diff still opens the dialog', async ($, on) => {
+  test('on the main screen only /diff opens, as a dialog', async ($, on) => {
     const world = Fixtures.inRepository(on)
 
     on('tool.call', () => ({ result: 'edited' }))
@@ -411,7 +452,7 @@ describe('register', () => {
     ).toMatchObject({ id: 'diff', focus: true })
   })
 
-  test('a surface that does not say whether it docks a pane opens nothing at the first edit', async ($, on) => {
+  test('a surface silent on docking opens nothing by itself', async ($, on) => {
     const world = Fixtures.inRepository(on)
 
     on('tool.call', () => ({ result: 'edited' }))
@@ -716,7 +757,7 @@ describe('register', () => {
     expect(drawn).not.toContain('Loading diff')
   })
 
-  test('/clear leaves the pane it finds open up and reads the repository afresh', async ($, on) => {
+  test('/clear leaves an open pane up and reads afresh', async ($, on) => {
     const world = Fixtures.inRepository(on)
 
     on('command.run', { command: 'clear' }, () => ({}))
@@ -745,7 +786,70 @@ describe('register', () => {
     ).toContain('1 file changed')
   })
 
-  test('a resumed session whose turns edited opens the pane before any new edit', async ($, on) => {
+  test('/clear under an open pane counts it shown again', async ($, on) => {
+    const world = Fixtures.inRepository(on)
+    const logged = Fixtures.keeping<Args<'telemetry.log'>>()
+
+    let sessionId = 'first'
+
+    on('telemetry.log', logged.hook)
+    on('session.id', () => ({ value: sessionId }))
+    on('tool.call', () => ({ result: 'edited' }))
+
+    on('command.run', { command: 'clear' }, () => {
+      sessionId = 'second'
+
+      return {}
+    })
+
+    await $.session.start(Fixtures.SESSION)
+    await $.ui.render(Fixtures.HINT)
+
+    await $.tool.call({
+      tool: 'Edit',
+      file_path: '/work/app.ts',
+      old_string: '1',
+      new_string: '2',
+    })
+
+    await world.clock.advance(Fixtures.SETTLE_MS)
+    await $.command.run(Fixtures.CLEAR)
+    await world.clock.advance(Fixtures.SETTLE_MS)
+
+    expect(world.closed, 'the pane stayed up across /clear').toEqual([])
+
+    expect(
+      logged.kept.map(shown => shown.props?.trigger),
+      "once a conversation: Claude's edit opened the first, and the second, " +
+        "which nobody opened, reads as the person's, as the built-in's does",
+    ).toEqual([
+      { value: 'auto_open', of: [...Record.SHOWN_TRIGGERS] },
+      { value: 'manual', of: [...Record.SHOWN_TRIGGERS] },
+    ])
+  })
+
+  test('a merge finished 3 s after the open is noticed', async ($, on) => {
+    expect(
+      await drawnRoundMerge($, on, 3000),
+      'finished in another terminal: read with no edit or command',
+    ).toEqual(NOTICED)
+  })
+
+  test('a merge finished 1.2 s after the open is noticed', async ($, on) => {
+    expect(
+      await drawnRoundMerge($, on, 1200),
+      'before the first look at HEAD on the clock: the open read it',
+    ).toEqual(NOTICED)
+  })
+
+  test('a merge finished 0.3 s after the open is noticed', async ($, on) => {
+    expect(
+      await drawnRoundMerge($, on, 300),
+      'before the first look at HEAD on the clock: the open read it',
+    ).toEqual(NOTICED)
+  })
+
+  test('a resumed session that edited opens before an edit', async ($, on) => {
     const world = Fixtures.inRepository(on, Fixtures.REPOSITORY, {
       messages: () => Fixtures.EDITED_TRANSCRIPT,
     })
@@ -763,7 +867,7 @@ describe('register', () => {
     ).toEqual(['diff'])
   })
 
-  test('a resumed session opens nothing where its first edit would not', async ($, on) => {
+  test('a resumed session opens only where an edit would', async ($, on) => {
     const narrow = Fixtures.inRepository(on, Fixtures.REPOSITORY, {
       messages: () => Fixtures.EDITED_TRANSCRIPT,
     })
@@ -779,7 +883,7 @@ describe('register', () => {
     expect(narrow.runs, 'and no git for it').toEqual([])
   })
 
-  test('a resumed session the person kept the pane open in opens it from the lower floor', async ($, on) => {
+  test('a resumed session kept open opens at the low floor', async ($, on) => {
     const world = Fixtures.inRepository(on, Fixtures.REPOSITORY, {
       messages: () => Fixtures.EDITED_TRANSCRIPT,
       stored: { [Names.STORE_OPEN_KEY]: true },
@@ -805,7 +909,7 @@ describe('register', () => {
     expect(world.runs).toEqual([])
   })
 
-  test('a resumed session whose pane the person closed opens nothing', async ($, on) => {
+  test('a resumed session the person closed opens nothing', async ($, on) => {
     const world = Fixtures.inRepository(on, Fixtures.REPOSITORY, {
       messages: () => Fixtures.EDITED_TRANSCRIPT,
       stored: { [Names.STORE_OPEN_KEY]: false },
@@ -819,7 +923,7 @@ describe('register', () => {
     expect(world.runs).toEqual([])
   })
 
-  test('/resume closes the pane, then opens it for the turns it brought back', async ($, on) => {
+  test('/resume closes the pane, reopens it for its turns', async ($, on) => {
     let transcript: readonly SessionMessage[] = []
 
     const world = Fixtures.inRepository(on, Fixtures.REPOSITORY, {
@@ -839,9 +943,10 @@ describe('register', () => {
     await $.command.run(Fixtures.RESUME)
     await world.clock.advance(Fixtures.SETTLE_MS)
 
-    expect(world.closed.map(pane => pane.id), 'closed at /resume').toEqual([
-      'diff',
-    ])
+    expect(
+      world.closed.map(pane => pane.id),
+      'closed at /resume',
+    ).toEqual(['diff'])
 
     expect(
       world.opened.map(pane => pane.id),
@@ -934,7 +1039,7 @@ describe('register', () => {
     const { 'rev-parse --path-format=absolute': worktree = '', ...notYet } =
       Fixtures.oneSecret()
 
-    const script: Record<string, string> = notYet
+    const script = { ...notYet }
     const world = Fixtures.inRepository(on, script)
 
     const probesOf = () =>
@@ -991,7 +1096,7 @@ describe('register', () => {
     const { 'rev-parse --path-format=absolute': worktree = '', ...notYet } =
       Fixtures.oneSecret()
 
-    const script: Record<string, string> = notYet
+    const script = { ...notYet }
     const world = Fixtures.inRepository(on, script)
 
     on('tool.call', () => ({ result: 'edited' }))

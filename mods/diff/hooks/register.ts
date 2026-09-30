@@ -146,6 +146,8 @@ export function register(on: On) {
       return asked.isAnswered || backend !== null
     }
 
+    startPoll(engine, probed)
+
     const stored = PaneState.baseModeOf(
       await engine
         .storeGet(Names.baseStoreKeyOf(probed.repository.toplevel))
@@ -268,6 +270,25 @@ export function register(on: On) {
     return [...read.values()].includes(null)
   }
 
+  function keepBaseline() {
+    const pinned = backend
+
+    if (!pinned || polled.headKey !== '') {
+      return
+    }
+
+    void pinned
+      .headKeyOf()
+      .catch(() => '')
+      .then(key => {
+        const isFirst = backend === pinned && polled.headKey === ''
+
+        if (isFirst) {
+          polled.headKey = key
+        }
+      })
+  }
+
   function startPoll(engine: Host, pinned: Backend.Backend) {
     const readHeadKey = () => pinned.headKeyOf().catch(() => '')
 
@@ -339,10 +360,6 @@ export function register(on: On) {
         case 'data':
           generation += 1
 
-          if (pinned) {
-            startPoll(engine, pinned)
-          }
-
           break
       }
 
@@ -386,6 +403,18 @@ export function register(on: On) {
     )
   }
 
+  async function markShown(
+    engine: Host,
+    trigger: (typeof Record.SHOWN_TRIGGERS)[number],
+  ): Promise<void> {
+    const sessionId = await engine.sessionId().catch(() => null)
+
+    if (sessionId !== null && sessionId !== shownSessionId) {
+      shownSessionId = sessionId
+      Record.recorderOf(engine).shown(trigger, Record.widthBucketOf(columns))
+    }
+  }
+
   async function openPane(
     engine: Host,
     trigger: (typeof Record.SHOWN_TRIGGERS)[number],
@@ -422,13 +451,9 @@ export function register(on: On) {
     }
 
     isPaneOpen = true
+    keepBaseline()
 
-    const sessionId = await engine.sessionId().catch(() => null)
-
-    if (sessionId !== null && sessionId !== shownSessionId) {
-      shownSessionId = sessionId
-      Record.recorderOf(engine).shown(trigger, Record.widthBucketOf(columns))
-    }
+    await markShown(engine, trigger)
 
     const isStale = isDialog || landed !== landedBefore
 
@@ -889,7 +914,9 @@ export function register(on: On) {
       (isResume ? sessionStartMs : await host.now())
 
     if (isKeptOpen) {
+      await markShown(host, 'manual')
       await pinBackend(host)
+      keepBaseline()
       void refresh(host)
     }
 
