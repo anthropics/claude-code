@@ -9,9 +9,9 @@ import { stampProbeOf } from '../stamp-probe-of'
  * A string that changes when HEAD moves: HEAD's text and the timestamps
  * of HEAD, its ref file and packed-refs, each a listed real file.
  *
- * A HEAD that is not a plain file, or a `ref:` outside the safe refname
- * grammar, is read through `git rev-parse` instead and nothing is stat'ed;
- * every directory above a stat'ed file was listed as a real directory.
+ * A `ref:` outside the safe refname grammar is dated by HEAD's own log, the
+ * listed real file `logs/HEAD`; without one, or where HEAD is not a plain
+ * file, `git rev-parse` answers instead.
  *
  * @param deps git, listings, timestamps, a file read
  * @param repository the repository's directories
@@ -54,13 +54,16 @@ export async function headKeyOf(
   const isSymbolic = ref !== ''
 
   const isUnsafeRef = isSymbolic && !isSafeRefName(ref)
+  const logged = isUnsafeRef ? await stampIfFile(own, 'logs/HEAD') : null
+  const isUndated = isUnsafeRef && typeof logged !== 'number'
+  const isRefDated = isSymbolic && !isUnsafeRef
 
-  return isUnsafeRef
+  return isUndated
     ? viaGit()
     : [
         head,
         await stampIfFile(own, 'HEAD'),
-        isSymbolic ? await stampIfFile(common, ref) : null,
+        isRefDated ? await stampIfFile(common, ref) : logged,
         await stampIfFile(common, 'packed-refs'),
       ].join('|')
 }

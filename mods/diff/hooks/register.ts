@@ -33,12 +33,9 @@ import Views from './views'
  * Registers the diff pane: `/diff` once the built-in stands down, the
  * pane's drawing and refresh, its opening on Claude's first edit, the ask.
  *
- * Git runs when the built-in's would: `session.start` binds the host and
- * registers `/diff`, and off its dispatch reads the transcript, so a resumed
- * session whose turns already edited opens as its first edit would; `/diff`
- * or the main loop's first checkpointed edit with room pins the backend,
- * until `/clear`, which reads afresh under a pane it leaves open; a docked
- * pane fetches, then opens.
+ * Git runs when the built-in's would: none at the start; `/diff` or the main
+ * loop's first checkpointed edit with room pins the backend, until `/clear`,
+ * which reads afresh under a pane it leaves open.
  *
  * @param on the engine's registrar
  */
@@ -149,6 +146,8 @@ export function register(on: On) {
     if (!probed || backend !== probed) {
       return asked.isAnswered || backend !== null
     }
+
+    startPoll(engine, probed)
 
     const stored = PaneState.baseModeOf(
       await engine
@@ -282,6 +281,25 @@ export function register(on: On) {
     ).includes(null)
   }
 
+  function keepBaseline() {
+    const pinned = backend
+
+    if (!pinned || polled.headKey !== '') {
+      return
+    }
+
+    void pinned
+      .headKeyOf()
+      .catch(() => '')
+      .then(key => {
+        const isFirst = backend === pinned && polled.headKey === ''
+
+        if (isFirst) {
+          polled.headKey = key
+        }
+      })
+  }
+
   function startPoll(engine: Host, pinned: Backend.Backend) {
     const readHeadKey = () => pinned.headKeyOf().catch(() => '')
 
@@ -353,10 +371,6 @@ export function register(on: On) {
         case 'data':
           generation += 1
 
-          if (pinned) {
-            startPoll(engine, pinned)
-          }
-
           break
       }
 
@@ -400,6 +414,18 @@ export function register(on: On) {
     )
   }
 
+  async function markShown(
+    engine: Host,
+    trigger: (typeof Record.SHOWN_TRIGGERS)[number],
+  ): Promise<void> {
+    const sessionId = await engine.sessionId().catch(() => null)
+
+    if (sessionId !== null && sessionId !== shownSessionId) {
+      shownSessionId = sessionId
+      Record.recorderOf(engine).shown(trigger, Record.widthBucketOf(columns))
+    }
+  }
+
   async function openPane(
     engine: Host,
     trigger: (typeof Record.SHOWN_TRIGGERS)[number],
@@ -436,13 +462,9 @@ export function register(on: On) {
     }
 
     isPaneOpen = true
+    keepBaseline()
 
-    const sessionId = await engine.sessionId().catch(() => null)
-
-    if (sessionId !== null && sessionId !== shownSessionId) {
-      shownSessionId = sessionId
-      Record.recorderOf(engine).shown(trigger, Record.widthBucketOf(columns))
-    }
+    await markShown(engine, trigger)
 
     const isStale = isDialog || landed !== landedBefore
 
@@ -506,9 +528,10 @@ export function register(on: On) {
   }
 
   async function openOnRestore(engine: Host): Promise<void> {
-    const messages = await engine.messages().catch((): SessionMessage[] => [])
-
-    hasRestoredEdits = Turns.turnDiffsOf(messages).length > 0
+    hasRestoredEdits =
+      Turns.turnDiffsOf(
+        await engine.messages().catch((): SessionMessage[] => []),
+      ).length > 0
 
     if (hasRestoredEdits) {
       await openOnFirstEdit(engine)
@@ -687,8 +710,7 @@ export function register(on: On) {
 
   on('ui.render', { component: 'PromptHint' }, ($, e, next) => {
     if (isOnPaneSurface(e)) {
-      const viewport: { columns?: number; isFullscreen?: boolean } | undefined =
-        e.viewport
+      const { viewport } = e
 
       const isFirstMeasure = columns === null && viewport?.columns !== undefined
 
@@ -903,7 +925,9 @@ export function register(on: On) {
       (isResume ? sessionStartMs : await host.now())
 
     if (isKeptOpen) {
+      await markShown(host, 'manual')
       await pinBackend(host)
+      keepBaseline()
       void refresh(host)
     }
 
