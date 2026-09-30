@@ -77,6 +77,22 @@ describe('fetch-diff', () => {
     'ls-files': Fixtures.GIT_TIMED_OUT,
   })
 
+  const fetchedIn = (gitDir: Listing, applyDir: Listing = []) =>
+    Git.fetchDiff(
+      depsOf(trackedNoUntrackedOf(), {
+        entryKindsOf: dir =>
+          Promise.resolve(
+            listingOf(
+              new Map([
+                ['/repo/.git', gitDir],
+                ['/repo/.git/rebase-apply', applyDir],
+              ]).get(dir) ?? Fixtures.FILES_LISTING,
+            ),
+          ),
+      }),
+      'session',
+    )
+
   test('session mode: rows tagged by mtime, untracked merged', async () => {
     const outcome = await Git.fetchDiff(
       depsOf(
@@ -372,6 +388,48 @@ describe('fetch-diff', () => {
 
     expect(outcome).toMatchObject({ kind: 'data' })
     expect(outcome.kind === 'data' && outcome.data.files).toHaveLength(1)
+  })
+
+  test('a rebase stopped on a conflict: unavailable', async () => {
+    expect(await fetchedIn(Fixtures.REBASE_MERGING)).toEqual({
+      kind: 'unavailable',
+    })
+  })
+
+  test('a rebase applying patches, stopped: unavailable', async () => {
+    expect(
+      await fetchedIn(Fixtures.REBASE_APPLYING, Fixtures.APPLY_REBASING),
+    ).toEqual({ kind: 'unavailable' })
+  })
+
+  test('a REBASE_HEAD a finished rebase left is no rebase', async () => {
+    expect(await fetchedIn(Fixtures.REBASE_HEAD_LEFT)).toMatchObject({
+      kind: 'data',
+    })
+  })
+
+  test('git am beside a REBASE_HEAD left behind is no rebase', async () => {
+    expect(
+      await fetchedIn(Fixtures.REBASE_APPLYING, Fixtures.APPLY_MAILING),
+    ).toMatchObject({ kind: 'data' })
+  })
+
+  test('a rebase folder that is a symbolic link is no rebase', async () => {
+    expect(await fetchedIn(Fixtures.REBASE_LINKED)).toMatchObject({
+      kind: 'data',
+    })
+  })
+
+  test('git am stopped on a conflict reads as it did', async () => {
+    expect(
+      await fetchedIn(Fixtures.MAILING, Fixtures.APPLY_MAILING),
+    ).toMatchObject({ kind: 'data' })
+  })
+
+  test('a rebase waiting at a break reads as it did', async () => {
+    expect(await fetchedIn(Fixtures.REBASE_PAUSED)).toMatchObject({
+      kind: 'data',
+    })
   })
 
   test('a path under a symlinked directory: unlisted, undated', async () => {
