@@ -728,6 +728,11 @@ export function register(on: On) {
 
     columns = e.viewport?.columns ?? columns
 
+    /**
+     * A seat that changed since the last drawing lists other rows, whose
+     * bodies are read once: the model takes the new seat in this same pass,
+     * so the drawing that read asks for finds the seat unchanged.
+     */
     const isReseated = e.props.placement !== model.placement
 
     model = {

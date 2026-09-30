@@ -18,10 +18,15 @@ export function drawnFilesOf(
   model: PaneState.PaneModel,
 ): readonly Git.FileStat[] {
   const files = model.data?.files ?? []
-  const listed = Views.dialogEntriesOf(model).map(entry => entry.path)
-  const start = Views.dialogWindowOf(model, listed)
-  const windowed = listed.slice(start, start + Limits.MAX_VISIBLE_FILES)
-  const isTurn = PaneState.pickedTurnOf(model) !== undefined
+
+  if (model.placement === 'inline') {
+    const isTurn = PaneState.pickedTurnOf(model) !== undefined
+    const listed = Views.dialogEntriesOf(model).map(entry => entry.path)
+    const start = Views.dialogWindowOf(model, listed)
+    const windowed = listed.slice(start, start + Limits.MAX_VISIBLE_FILES)
+
+    return files.filter(file => !isTurn && windowed.includes(file.path))
+  }
 
   const partition = PaneState.partitionOf(
     files,
@@ -32,8 +37,5 @@ export function drawnFilesOf(
     model.isPreSessionShown &&
     partition.preSession.length <= Limits.PRE_SESSION_BODY_CAP
 
-  const docked = [...partition.shown, ...(isBodied ? partition.preSession : [])]
-  const inDialog = files.filter(file => !isTurn && windowed.includes(file.path))
-
-  return model.placement === 'inline' ? inDialog : docked
+  return [...partition.shown, ...(isBodied ? partition.preSession : [])]
 }

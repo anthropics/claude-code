@@ -124,6 +124,29 @@ describe('views', () => {
     expect(drawn).not.toContain('+d')
   })
 
+  test('inline, a file the docked pane hides opens too', async ($, on) => {
+    const world = Fixtures.inRepository(on, Fixtures.WITH_LOCKFILE)
+
+    await $.session.start(Fixtures.SESSION)
+    await $.command.run(Fixtures.DIALOG_DIFF)
+    await world.clock.advance(Fixtures.SETTLE_MS)
+    await $.ui.render(Fixtures.INLINE_PANE)
+
+    expect(await $.ui.press({ plugin: 'diff', key: 'file:bun.lock' })).toEqual({
+      element: 'file:bun.lock',
+    })
+
+    await world.clock.advance(Fixtures.SETTLE_MS)
+
+    const drawn = Fixtures.textOf(await $.ui.render(Fixtures.INLINE_PANE))
+
+    expect(drawn, 'generated, and still a listed row').not.toContain(
+      'Loading diff',
+    )
+
+    expect(drawn).toContain('+"left": "1.0.1"')
+  })
+
   test('docked, a wheel tick moves the body, not the list', async ($, on) => {
     const world = Fixtures.inRepository(on, Fixtures.MANY_FILES)
 

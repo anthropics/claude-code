@@ -61,6 +61,7 @@ export * from './usage-at.js'
 export * from './vs-main.js'
 export * from './wheel-over-list.js'
 export * from './wheel-tick.js'
+export * from './with-lockfile.js'
 export * from './worktree'
 export * from './wrapped-lines'
 
