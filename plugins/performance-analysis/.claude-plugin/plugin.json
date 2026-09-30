@@ -1,0 +1,9 @@
+{
+  "name": "performance-analysis",
+  "version": "1.0.0",
+  "description": "Comprehensive performance analysis and optimization plugin with specialized agents for bottleneck detection, complexity analysis, memory profiling, and optimization recommendations",
+  "author": {
+    "name": "Anthropic",
+    "email": "dev@anthropic.com"
+  }
+}
