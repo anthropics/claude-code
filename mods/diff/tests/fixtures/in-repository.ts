@@ -19,7 +19,7 @@ import { startsSession } from './starts-session.js'
  * @param on the test's `on`
  * @param script git's output for each invocation whose line holds the key
  * @param beneath the store, settings, environment, transcript, whether an
- *   open is seated
+ *   open is seated, whether a hunks read is refused
  * @returns the runs, the ring's moves, the panes opened, left waiting and
  *   closed, the statuses, the clock
  */
@@ -39,7 +39,10 @@ export function inRepository(
   on('process.run', ($, e) => {
     runs.push(e)
 
-    return { value: gitIn(e.argv, script) }
+    const refusal = e.argv.includes('--raw') ? beneath.hunksRefusal?.() : null
+    const isRefused = typeof refusal === 'string'
+
+    return isRefused ? { deny: refusal } : { value: gitIn(e.argv, script) }
   })
 
   on('ui.focus', (_engine, e) => {

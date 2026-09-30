@@ -3,7 +3,7 @@ import Limits from '../limits'
 import Argv from './argv'
 import { FAILED_RUN } from './failed-run'
 import { fetchDiff } from './fetch-diff'
-import { fetchFileHunks } from './fetch-file-hunks'
+import { fetchHunks } from './fetch-hunks'
 import { GIT_BASE_MODES } from './git-base-modes'
 import { GIT_WORDS } from './git-words'
 import Probes from './probes'
@@ -69,7 +69,7 @@ export async function gitBackendOf(
 
       return fetchDiff(depsOf(await baseline), mode)
     },
-    fetchFileHunks: (data, file) => fetchFileHunks(run, data, file),
+    fetchHunks: (data, files) => fetchHunks(run, data, files),
     headKeyOf: () =>
       Probes.headKeyOf(
         { ...depsOf(null), readFile: host.readFile },

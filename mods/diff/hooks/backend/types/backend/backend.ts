@@ -30,12 +30,13 @@ export type Backend = {
   fetchDiff: (mode: Git.BaseMode) => Promise<Git.FetchOutcome>
 
   /**
-   * One row's hunks against the base its fetch read (Git.fetchFileHunks).
+   * The rows' hunks by path against the base their fetch read, null where
+   * they could not be read (Git.fetchHunks).
    */
-  fetchFileHunks: (
+  fetchHunks: (
     data: Git.DiffData,
-    file: Git.FileStat,
-  ) => Promise<Git.FileHunks | null>
+    files: readonly Git.FileStat[],
+  ) => Promise<ReadonlyMap<string, Git.FileHunks | null>>
 
   /**
    * A string that changes when the checked-out commit moves

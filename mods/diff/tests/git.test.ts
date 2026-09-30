@@ -1,6 +1,7 @@
 import { describe, expect, mock, test, tier } from 'claude-code/testing'
 
 import Git from '../hooks/git'
+import Limits from '../hooks/limits'
 import Fixtures from './fixtures'
 
 tier('builtin')
@@ -71,6 +72,46 @@ describe('git', () => {
     expect(walks()[0]?.init?.cwd, 'pinned like every child').toBe('/work')
   })
 
+  test('fifty drawn files: one hunks child a read', async ($, on) => {
+    const world = Fixtures.inRepository(
+      on,
+      Fixtures.filesChanged(Limits.MAX_FILES),
+    )
+
+    const hunkReads = () => world.runs.filter(run => run.argv.includes('--raw'))
+
+    on('tool.call', () => ({ result: 'ran' }))
+
+    await $.session.start(Fixtures.SESSION)
+    await $.command.run(Fixtures.DIFF)
+    await world.clock.advance(Fixtures.SETTLE_MS)
+
+    expect(hunkReads(), 'the open read every body at once').toHaveLength(1)
+
+    expect(
+      hunkReads()[0]?.argv.filter(word => /^file\d+\.ts$/.test(word)),
+      'every drawn file named to the one child',
+    ).toHaveLength(Limits.MAX_FILES)
+
+    const read = world.runs.length
+
+    await $.tool.call({ tool: 'Bash', command: 'make' })
+    await world.clock.advance(Fixtures.SETTLE_MS)
+
+    expect(
+      world.runs
+        .slice(read)
+        .filter(run => Fixtures.gitWordOf(run.argv) !== Fixtures.POLL_WORD)
+        .map(run => run.argv.find(word => /^--(\w*stat|raw)$/.test(word))),
+      'a command: the counts, then one child for fifty bodies',
+    ).toEqual(['--shortstat', '--numstat', '--raw'])
+
+    expect(
+      Fixtures.textOf(await $.ui.render(Fixtures.PANE)),
+      'drawn from that one answer',
+    ).toContain('const v = 1')
+  })
+
   test('a file moved in since the start is session work', async ($, on) => {
     const clock = Fixtures.startsSession(on, Fixtures.SETTLE_MS)
 
@@ -95,7 +136,7 @@ describe('git', () => {
     expect(drawn).toContain('+1 file edited before this session (show)')
   })
 
-  test("the session began when the engine says: a resumed one's first start, again at /clear", async ($, on) => {
+  test('the session began when the engine says', async ($, on) => {
     let startedAt = 0
 
     const clock = Fixtures.startsSession(on, Fixtures.SETTLE_MS)
