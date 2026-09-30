@@ -8,4 +8,6 @@ export const PROBE_MISSED: ProcessRunResult = {
   exitCode: 1,
   stdout: '',
   stderr: '',
+  isStdoutTruncated: false,
+  isStderrTruncated: false,
 }
