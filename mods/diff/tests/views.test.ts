@@ -24,6 +24,54 @@ describe('views', () => {
     expect(drawn).not.toContain('❯')
   })
 
+  test('a failed hunks read blanks every body, not the list', async ($, on) => {
+    const world = Fixtures.inRepository(on, Fixtures.TWO_FILES, {
+      hunksRefusal: () => Fixtures.GIT_HUNG,
+    })
+
+    await $.session.start(Fixtures.SESSION)
+    await $.command.run(Fixtures.DIFF)
+    await world.clock.advance(Fixtures.SETTLE_MS)
+
+    const drawn = Fixtures.textOf(await $.ui.render(Fixtures.PANE))
+
+    expect(drawn).toContain('2 files changed +3 -1')
+    expect(drawn).toContain('app.ts')
+    expect(drawn).toContain('lib.ts')
+    expect(drawn.match(/Diff unavailable/g), 'once a file').toHaveLength(2)
+    expect(drawn).not.toContain('const a')
+  })
+
+  test('the read after a failed one draws the hunks again', async ($, on) => {
+    let refusal: string | null = Fixtures.GIT_HUNG
+
+    const world = Fixtures.inRepository(on, Fixtures.TWO_FILES, {
+      hunksRefusal: () => refusal,
+    })
+
+    on('tool.call', () => ({ result: 'ran' }))
+
+    await $.session.start(Fixtures.SESSION)
+    await $.command.run(Fixtures.DIFF)
+    await world.clock.advance(Fixtures.SETTLE_MS)
+
+    expect(
+      Fixtures.textOf(await $.ui.render(Fixtures.PANE)),
+      'the failed read blanked the hunks first',
+    ).toContain('Diff unavailable')
+
+    refusal = null
+
+    await $.tool.call({ tool: 'Bash', command: 'make' })
+    await world.clock.advance(Fixtures.SETTLE_MS)
+
+    const drawn = Fixtures.textOf(await $.ui.render(Fixtures.PANE))
+
+    expect(drawn).not.toContain('Diff unavailable')
+    expect(drawn).toContain('+const a = 2')
+    expect(drawn).toContain('+export const c = 2')
+  })
+
   test('inline, a row opens that file alone', async ($, on) => {
     const world = Fixtures.inRepository(on, Fixtures.TWO_FILES)
 

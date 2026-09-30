@@ -13,6 +13,6 @@ export const stubBackendOf = (toplevel: string): Backend => ({
   baseModes: ['uncommitted'],
   words: { ...Git.GIT_WORDS, lister: toplevel },
   fetchDiff: () => Promise.resolve({ kind: 'unavailable' }),
-  fetchFileHunks: () => Promise.resolve(null),
+  fetchHunks: () => Promise.resolve(new Map()),
   headKeyOf: () => Promise.resolve(''),
 })

@@ -18,7 +18,6 @@ import { isCheckpointing } from './is-checkpointing'
 import { isOnPaneSurface } from './is-on-pane-surface'
 import { isRecord } from './is-record'
 import Limits from './limits'
-import { mapLimited } from './map-limited'
 import { messageOf } from './message-of'
 import { mtimeOf } from './mtime-of'
 import Names from './names'
@@ -33,12 +32,9 @@ import Views from './views'
  * Registers the diff pane: `/diff` once the built-in stands down, the
  * pane's drawing and refresh, its opening on Claude's first edit, the ask.
  *
- * Git runs when the built-in's would: `session.start` binds the host and
- * registers `/diff`, and off its dispatch reads the transcript, so a resumed
- * session whose turns already edited opens as its first edit would; `/diff`
- * or the main loop's first checkpointed edit with room pins the backend,
- * until `/clear`, which reads afresh under a pane it leaves open; a docked
- * pane fetches, then opens.
+ * Git runs when the built-in's would: none at the start; `/diff` or the main
+ * loop's first checkpointed edit with room pins the backend, until `/clear`,
+ * which reads afresh under a pane it leaves open.
  *
  * @param on the engine's registrar
  */
@@ -62,7 +58,7 @@ export function register(on: On) {
   let bodyStamp: string | null = null
   let bodyBase: string | null = null
 
-  const bodyLoads = new Map<string, Promise<Git.FileHunks | null>>()
+  const bodyLoads = new Set<string>()
 
   const polled = { toplevel: '', headKey: '' }
   const pin = { cwd: '', isEmpty: false, epoch: 0 }
@@ -255,31 +251,21 @@ export function register(on: On) {
   ): Promise<boolean> {
     const stamp = bodyStampOf(data)
 
-    function loadOf(file: Git.FileStat): Promise<Git.FileHunks | null> {
-      const load = pinned.fetchFileHunks(data, file)
-      bodyLoads.set(file.path, load)
+    const files = drawnFilesOf(model).filter(file => !bodyLoads.has(file.path))
 
-      return load.then(body => {
-        if (bodyStamp === stamp) {
-          model = {
-            ...model,
-            bodies: new Map(model.bodies).set(file.path, body),
-          }
-
-          redraw(engine)
-        }
-
-        return body
-      })
+    for (const file of files) {
+      bodyLoads.add(file.path)
     }
 
-    return (
-      await mapLimited(
-        drawnFilesOf(model).filter(file => !bodyLoads.has(file.path)),
-        Limits.BODY_FETCH_CONCURRENCY,
-        loadOf,
-      )
-    ).includes(null)
+    const read = await pinned.fetchHunks(data, files)
+    const isCurrent = bodyStamp === stamp && read.size > 0
+
+    if (isCurrent) {
+      model = { ...model, bodies: new Map([...model.bodies, ...read]) }
+      redraw(engine)
+    }
+
+    return [...read.values()].includes(null)
   }
 
   function startPoll(engine: Host, pinned: Backend.Backend) {
@@ -506,9 +492,10 @@ export function register(on: On) {
   }
 
   async function openOnRestore(engine: Host): Promise<void> {
-    const messages = await engine.messages().catch((): SessionMessage[] => [])
-
-    hasRestoredEdits = Turns.turnDiffsOf(messages).length > 0
+    hasRestoredEdits =
+      Turns.turnDiffsOf(
+        await engine.messages().catch((): SessionMessage[] => []),
+      ).length > 0
 
     if (hasRestoredEdits) {
       await openOnFirstEdit(engine)
@@ -687,8 +674,7 @@ export function register(on: On) {
 
   on('ui.render', { component: 'PromptHint' }, ($, e, next) => {
     if (isOnPaneSurface(e)) {
-      const viewport: { columns?: number; isFullscreen?: boolean } | undefined =
-        e.viewport
+      const { viewport } = e
 
       const isFirstMeasure = columns === null && viewport?.columns !== undefined
 

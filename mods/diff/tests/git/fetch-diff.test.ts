@@ -532,8 +532,11 @@ describe('fetch-diff', () => {
     const data = outcome.kind === 'data' ? outcome.data : null
     const [row] = data?.files ?? []
 
-    const body =
-      data && row ? await Git.fetchFileHunks(deps.run, data, row) : null
+    const isListed = data !== null && row !== undefined
+
+    const body = isListed
+      ? (await Git.fetchHunks(deps.run, data, [row])).get(row.path)
+      : null
 
     expect(data?.files.map(f => [f.path, f.renamedFrom])).toEqual([
       ['new.ts', 'old.ts'],

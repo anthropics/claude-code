@@ -2,8 +2,10 @@ import type { SessionMessage, Settings } from 'claude-code'
 
 /**
  * What the world beneath a repository session holds and answers besides
- * git: the store, the settings, the environment, the transcript, whether a
- * pane is seated.
+ * git.
+ *
+ * The store, the settings, the environment, the transcript, whether a pane
+ * is seated, whether a hunks read is refused.
  */
 export type Beneath = {
   /**
@@ -32,4 +34,10 @@ export type Beneath = {
    * engine leaves an unasked open on a narrow terminal; placed when not given.
    */
   isLeftWaiting?: () => boolean
+
+  /**
+   * Why a hunks read asked now is refused, as the host refuses a git that
+   * outran its timeout; answered from the script when null or not given.
+   */
+  hunksRefusal?: () => string | null
 }
