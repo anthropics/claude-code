@@ -92,6 +92,38 @@ describe('views', () => {
     expect(drawn).toContain('\u2191/\u2193 to scroll \u00b7 Esc to back')
   })
 
+  test('inline, a file edited before the session opens too', async ($, on) => {
+    const world = Fixtures.inRepository(on, Fixtures.MOVED_IN)
+
+    on('session.usage', () => ({ value: Fixtures.usageAt(Fixtures.SETTLE_MS) }))
+    Fixtures.oldFiles(on)
+
+    await $.session.start(Fixtures.SESSION)
+    await $.command.run(Fixtures.DIALOG_DIFF)
+    await world.clock.advance(Fixtures.SETTLE_MS)
+
+    expect(
+      Fixtures.textOf(await $.ui.render(Fixtures.INLINE_PANE)),
+      "the dialog lists it beside the session's file",
+    ).toContain('old.ts')
+
+    expect(await $.ui.press({ plugin: 'diff', key: 'file:old.ts' })).toEqual({
+      element: 'file:old.ts',
+    })
+
+    await world.clock.advance(Fixtures.SETTLE_MS)
+
+    const drawn = Fixtures.textOf(await $.ui.render(Fixtures.INLINE_PANE))
+
+    expect(
+      drawn,
+      'a listed row can be pressed, so its hunks were read',
+    ).not.toContain('Loading diff')
+
+    expect(drawn).toContain('+b')
+    expect(drawn).not.toContain('+d')
+  })
+
   test('docked, a wheel tick moves the body, not the list', async ($, on) => {
     const world = Fixtures.inRepository(on, Fixtures.MANY_FILES)
 
