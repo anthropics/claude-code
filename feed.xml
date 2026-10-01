@@ -13,7 +13,7 @@
     <link rel="alternate" type="text/html" href="https://github.com/anthropics/claude-code/releases/tag/v2.1.287"/>
     <updated>2026-10-01T17:59:57Z</updated>
     <content type="html">&lt;p&gt;• Added Claude Mods: plugins may now modify deeper behavior&lt;/p&gt;
-&lt;p&gt;• Added You should know, an opt-in plugin where a side agent watches your back and flags things you or Claude might miss. Turn it on with /plugin enable cc-plugin-you-should-know@builtin (for first-party sessions with telemetry on)&lt;/p&gt;
+&lt;p&gt;• Added You should know, a built-in mod where a side agent watches your back and flags things you or Claude might miss. Turn it on with /plugin enable cc-plugin-you-should-know@builtin (for first-party sessions with telemetry on)&lt;/p&gt;
 &lt;p&gt;• Added an n:&amp;lt;text&amp;gt; filter to the agents view that matches session names and tasks; a filter now shows matches in collapsed sections and Enter opens the first match&lt;/p&gt;
 &lt;p&gt;• Added prompt_text to the OpenTelemetry user_prompt event, a copy of prompt for backends that nest dotted keys; drop or mask it wherever you drop or mask prompt (anthropics/claude-code#70763)&lt;/p&gt;
 &lt;p&gt;• Added URL prompts from MCP servers on the 2025-11-25 protocol, for example to sign in. If a server no longer connects after this update, add "bareElicitationCapability": true to its MCP config entry&lt;/p&gt;
