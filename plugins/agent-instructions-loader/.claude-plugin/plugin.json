@@ -1,0 +1,9 @@
+{
+  "name": "agent-instructions-loader",
+  "version": "1.0.0",
+  "description": "Loads custom agent body content as additional context when subagents are spawned via SubagentStart hook.",
+  "author": {
+    "name": "Claude Code Contributors"
+  },
+  "repository": "https://github.com/anthropics/claude-code"
+}
