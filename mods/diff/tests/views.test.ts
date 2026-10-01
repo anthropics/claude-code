@@ -92,6 +92,97 @@ describe('views', () => {
     expect(drawn).toContain('\u2191/\u2193 to scroll \u00b7 Esc to back')
   })
 
+  test('inline, a file edited before the session opens too', async ($, on) => {
+    const world = Fixtures.inRepository(on, Fixtures.MOVED_IN)
+
+    on('session.usage', () => ({ value: Fixtures.usageAt(Fixtures.SETTLE_MS) }))
+    Fixtures.oldFiles(on)
+
+    await $.session.start(Fixtures.SESSION)
+    await $.command.run(Fixtures.DIALOG_DIFF)
+    await world.clock.advance(Fixtures.SETTLE_MS)
+
+    expect(
+      Fixtures.textOf(await $.ui.render(Fixtures.INLINE_PANE)),
+      "the dialog lists it beside the session's file",
+    ).toContain('old.ts')
+
+    expect(await $.ui.press({ plugin: 'diff', key: 'file:old.ts' })).toEqual({
+      element: 'file:old.ts',
+    })
+
+    await world.clock.advance(Fixtures.SETTLE_MS)
+
+    const drawn = Fixtures.textOf(await $.ui.render(Fixtures.INLINE_PANE))
+
+    expect(
+      drawn,
+      'a listed row can be pressed, so its hunks were read',
+    ).not.toContain('Loading diff')
+
+    expect(drawn).toContain('+b')
+    expect(drawn).not.toContain('+d')
+  })
+
+  test('inline, a file the docked pane hides opens too', async ($, on) => {
+    const world = Fixtures.inRepository(on, Fixtures.WITH_LOCKFILE)
+
+    await $.session.start(Fixtures.SESSION)
+    await $.command.run(Fixtures.DIALOG_DIFF)
+    await world.clock.advance(Fixtures.SETTLE_MS)
+    await $.ui.render(Fixtures.INLINE_PANE)
+
+    expect(await $.ui.press({ plugin: 'diff', key: 'file:bun.lock' })).toEqual({
+      element: 'file:bun.lock',
+    })
+
+    await world.clock.advance(Fixtures.SETTLE_MS)
+
+    const drawn = Fixtures.textOf(await $.ui.render(Fixtures.INLINE_PANE))
+
+    expect(drawn, 'generated, and still a listed row').not.toContain(
+      'Loading diff',
+    )
+
+    expect(drawn).toContain('+"left": "1.0.1"')
+  })
+
+  test('inline, a window that moves reads only its new rows', async ($, on) => {
+    const world = Fixtures.inRepository(on, Fixtures.MANY_FILES)
+
+    on('session.usage', () => ({ value: Fixtures.usageAt(Fixtures.SETTLE_MS) }))
+
+    Fixtures.oldFiles(
+      on,
+      Array.from(
+        { length: Fixtures.MANY_FILE_COUNT },
+        (_, at) => `file${at}.ts`,
+      ),
+    )
+
+    await $.session.start(Fixtures.SESSION)
+    await $.command.run(Fixtures.DIALOG_DIFF)
+    await world.clock.advance(Fixtures.SETTLE_MS)
+    await $.ui.render(Fixtures.INLINE_PANE)
+    await world.clock.advance(Fixtures.SETTLE_MS)
+    await $.ui.focus(Fixtures.ringOnto('file:file3.ts'))
+    await world.clock.advance(Fixtures.SETTLE_MS)
+    await $.ui.render(Fixtures.INLINE_PANE)
+    await $.ui.press({ plugin: 'diff', key: 'file:file5.ts' })
+    await world.clock.advance(Fixtures.SETTLE_MS)
+
+    expect(
+      world.runs
+        .filter(run => run.argv.includes('--raw'))
+        .map(run => run.argv.slice(run.argv.indexOf('--') + 1).join(' ')),
+      'the first five, the one the walk brought in, the two the press did',
+    ).toEqual([
+      'file0.ts file1.ts file2.ts file3.ts file4.ts',
+      'file5.ts',
+      'file6.ts file7.ts',
+    ])
+  })
+
   test('docked, a wheel tick moves the body, not the list', async ($, on) => {
     const world = Fixtures.inRepository(on, Fixtures.MANY_FILES)
 
