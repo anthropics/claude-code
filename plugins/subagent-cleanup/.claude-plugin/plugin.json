@@ -1,0 +1,8 @@
+{
+  "name": "subagent-cleanup",
+  "version": "1.0.0",
+  "description": "Automatically cleans up orphaned subagent processes on session start to prevent CPU/memory leaks",
+  "author": {
+    "name": "Hendrik Mennen"
+  }
+}
