@@ -1,0 +1,34 @@
+{
+  "name": "scan-build-review",
+  "description": "Scanner files tasks from a sample repo, Builder implements them, Reviewer approves; tests heads architecture end-to-end.",
+  "primitives_tested": ["heads-end-to-end", "dag-dependency"],
+  "max_duration_minutes": 1,
+  "deterministic": true,
+  "setup": {
+    "fixtures": "../fixtures/scan-build-review",
+    "seed": 42,
+    "git_init": true
+  },
+  "teammates": [
+    {"name": "scanner-1", "head": "Scanner", "task_ids": ["scan"]},
+    {"name": "builder-1", "head": "Builder", "task_ids": ["build-1", "build-2", "build-3", "build-4", "build-5"]},
+    {"name": "reviewer-1", "head": "Reviewer", "task_ids": ["review"]}
+  ],
+  "expected": {
+    "tasks_completed": 7,
+    "files_present": [
+      "tasks.json",
+      "review.log",
+      "sample/feature_01.txt",
+      "sample/feature_05.txt"
+    ],
+    "file_contains": [
+      {"path": "sample/feature_01.txt", "substring": "DONE"},
+      {"path": "sample/feature_05.txt", "substring": "DONE"},
+      {"path": "review.log", "substring": "approved:feature_01.txt"}
+    ],
+    "file_absent_substring": [
+      {"path": "sample/feature_01.txt", "substring": "TODO"}
+    ]
+  }
+}

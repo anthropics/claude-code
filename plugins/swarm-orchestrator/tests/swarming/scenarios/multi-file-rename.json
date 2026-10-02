@@ -1,0 +1,35 @@
+{
+  "name": "multi-file-rename",
+  "description": "Rename a variable across 10 files in parallel; tests file-overlap-reject + atomic merge.",
+  "primitives_tested": ["file-overlap-reject", "atomic-merge"],
+  "max_duration_minutes": 1,
+  "deterministic": true,
+  "setup": {
+    "fixtures": "../fixtures/multi-file-rename",
+    "seed": 42,
+    "git_init": true
+  },
+  "teammates": [
+    {"name": "renamer-1", "head": "Builder", "task_ids": ["1", "2", "3"]},
+    {"name": "renamer-2", "head": "Builder", "task_ids": ["4", "5", "6"]},
+    {"name": "renamer-3", "head": "Builder", "task_ids": ["7", "8"]},
+    {"name": "renamer-4", "head": "Builder", "task_ids": ["9", "10"]}
+  ],
+  "expected": {
+    "tasks_completed": 10,
+    "merge_conflicts": 0,
+    "branches_in_master": ["feature/rename-foo-to-bar"],
+    "files_present": [
+      "files/mod01.py",
+      "files/mod10.py"
+    ],
+    "file_contains": [
+      {"path": "files/mod01.py", "substring": "bar_01"},
+      {"path": "files/mod10.py", "substring": "bar_10"}
+    ],
+    "file_absent_substring": [
+      {"path": "files/mod01.py", "substring": "foo"},
+      {"path": "files/mod10.py", "substring": "foo"}
+    ]
+  }
+}
