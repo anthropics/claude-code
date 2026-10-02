@@ -1,0 +1,116 @@
+import { c as _c } from "react/compiler-runtime";
+import * as React from 'react';
+import { useLayoutEffect } from 'react';
+import { PassThrough } from 'stream';
+import stripAnsi from 'strip-ansi';
+import { render, useApp } from '../ink.js';
+
+// This is a workaround for the fact that Ink doesn't support multiple <Static>
+// components in the same render tree. Instead of using a <Static> we just render
+// the component to a string and then print it to stdout
+
+/**
+ * Wrapper component that exits after rendering.
+ * Uses useLayoutEffect to ensure we wait for React's commit phase to complete
+ * before exiting. This is more robust than process.nextTick() for React 19's
+ * async render cycle.
+ */
+function RenderOnceAndExit(t0) {
+  const $ = _c(5);
+  const {
+    children
+  } = t0;
+  const {
+    exit
+  } = useApp();
+  let t1;
+  let t2;
+  if ($[0] !== exit) {
+    t1 = () => {
+      const timer = setTimeout(exit, 0);
+      return () => clearTimeout(timer);
+    };
+    t2 = [exit];
+    $[0] = exit;
+    $[1] = t1;
+    $[2] = t2;
+  } else {
+    t1 = $[1];
+    t2 = $[2];
+  }
+  useLayoutEffect(t1, t2);
+  let t3;
+  if ($[3] !== children) {
+    t3 = <>{children}</>;
+    $[3] = children;
+    $[4] = t3;
+  } else {
+    t3 = $[4];
+  }
+  return t3;
+}
+
+// DEC synchronized update markers used by terminals
+const SYNC_START = '\x1B[?2026h';
+const SYNC_END = '\x1B[?2026l';
+
+/**
+ * Extracts content from the first complete frame in Ink's output.
+ * Ink with non-TTY stdout outputs multiple frames, each wrapped in DEC synchronized
+ * update sequences ([?2026h ... [?2026l). We only want the first frame's content.
+ */
+function extractFirstFrame(output: string): string {
+  const startIndex = output.indexOf(SYNC_START);
+  if (startIndex === -1) return output;
+  const contentStart = startIndex + SYNC_START.length;
+  const endIndex = output.indexOf(SYNC_END, contentStart);
+  if (endIndex === -1) return output;
+  return output.slice(contentStart, endIndex);
+}
+
+/**
+ * Renders a React node to a string with ANSI escape codes (for terminal output).
+ */
+export function renderToAnsiString(node: React.ReactNode, columns?: number): Promise<string> {
+  return new Promise(async resolve => {
+    let output = '';
+
+    // Capture all writes. Set .columns so Ink (ink.tsx:~165) picks up a
+    // chosen width instead of PassThrough's undefined → 80 fallback —
+    // useful for rendering at terminal width for file dumps that should
+    // match what the user sees on screen.
+    const stream = new PassThrough();
+    if (columns !== undefined) {
+      ;
+      (stream as unknown as {
+        columns: number;
+      }).columns = columns;
+    }
+    stream.on('data', chunk => {
+      output += chunk.toString();
+    });
+
+    // Render the component wrapped in RenderOnceAndExit
+    // Non-TTY stdout (PassThrough) gives full-frame output instead of diffs
+    const instance = await render(<RenderOnceAndExit>{node}</RenderOnceAndExit>, {
+      stdout: stream as unknown as NodeJS.WriteStream,
+      patchConsole: false
+    });
+
+    // Wait for the component to exit naturally
+    await instance.waitUntilExit();
+
+    // Extract only the first frame's content to avoid duplication
+    // (Ink outputs multiple frames in non-TTY mode)
+    await resolve(extractFirstFrame(output));
+  });
+}
+
+/**
+ * Renders a React node to a plain text string (ANSI codes stripped).
+ */
+export async function renderToString(node: React.ReactNode, columns?: number): Promise<string> {
+  const output = await renderToAnsiString(node, columns);
+  return stripAnsi(output);
+}
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJuYW1lcyI6WyJSZWFjdCIsInVzZUxheW91dEVmZmVjdCIsIlBhc3NUaHJvdWdoIiwic3RyaXBBbnNpIiwicmVuZGVyIiwidXNlQXBwIiwiUmVuZGVyT25jZUFuZEV4aXQiLCJ0MCIsIiQiLCJfYyIsImNoaWxkcmVuIiwiZXhpdCIsInQxIiwidDIiLCJ0aW1lciIsInNldFRpbWVvdXQiLCJjbGVhclRpbWVvdXQiLCJ0MyIsIlNZTkNfU1RBUlQiLCJTWU5DX0VORCIsImV4dHJhY3RGaXJzdEZyYW1lIiwib3V0cHV0Iiwic3RhcnRJbmRleCIsImluZGV4T2YiLCJjb250ZW50U3RhcnQiLCJsZW5ndGgiLCJlbmRJbmRleCIsInNsaWNlIiwicmVuZGVyVG9BbnNpU3RyaW5nIiwibm9kZSIsIlJlYWN0Tm9kZSIsImNvbHVtbnMiLCJQcm9taXNlIiwicmVzb2x2ZSIsInN0cmVhbSIsInVuZGVmaW5lZCIsIm9uIiwiY2h1bmsiLCJ0b1N0cmluZyIsImluc3RhbmNlIiwic3Rkb3V0IiwiTm9kZUpTIiwiV3JpdGVTdHJlYW0iLCJwYXRjaENvbnNvbGUiLCJ3YWl0VW50aWxFeGl0IiwicmVuZGVyVG9TdHJpbmciXSwic291cmNlcyI6WyJzdGF0aWNSZW5kZXIudHN4Il0sInNvdXJjZXNDb250ZW50IjpbImltcG9ydCAqIGFzIFJlYWN0IGZyb20gJ3JlYWN0J1xuaW1wb3J0IHsgdXNlTGF5b3V0RWZmZWN0IH0gZnJvbSAncmVhY3QnXG5pbXBvcnQgeyBQYXNzVGhyb3VnaCB9IGZyb20gJ3N0cmVhbSdcbmltcG9ydCBzdHJpcEFuc2kgZnJvbSAnc3RyaXAtYW5zaSdcbmltcG9ydCB7IHJlbmRlciwgdXNlQXBwIH0gZnJvbSAnLi4vaW5rLmpzJ1xuXG4vLyBUaGlzIGlzIGEgd29ya2Fyb3VuZCBmb3IgdGhlIGZhY3QgdGhhdCBJbmsgZG9lc24ndCBzdXBwb3J0IG11bHRpcGxlIDxTdGF0aWM+XG4vLyBjb21wb25lbnRzIGluIHRoZSBzYW1lIHJlbmRlciB0cmVlLiBJbnN0ZWFkIG9mIHVzaW5nIGEgPFN0YXRpYz4gd2UganVzdCByZW5kZXJcbi8vIHRoZSBjb21wb25lbnQgdG8gYSBzdHJpbmcgYW5kIHRoZW4gcHJpbnQgaXQgdG8gc3Rkb3V0XG5cbi8qKlxuICogV3JhcHBlciBjb21wb25lbnQgdGhhdCBleGl0cyBhZnRlciByZW5kZXJpbmcuXG4gKiBVc2VzIHVzZUxheW91dEVmZmVjdCB0byBlbnN1cmUgd2Ugd2FpdCBmb3IgUmVhY3QncyBjb21taXQgcGhhc2UgdG8gY29tcGxldGVcbiAqIGJlZm9yZSBleGl0aW5nLiBUaGlzIGlzIG1vcmUgcm9idXN0IHRoYW4gcHJvY2Vzcy5uZXh0VGljaygpIGZvciBSZWFjdCAxOSdzXG4gKiBhc3luYyByZW5kZXIgY3ljbGUuXG4gKi9cbmZ1bmN0aW9uIFJlbmRlck9uY2VBbmRFeGl0KHtcbiAgY2hpbGRyZW4sXG59OiB7XG4gIGNoaWxkcmVuOiBSZWFjdC5SZWFjdE5vZGVcbn0pOiBSZWFjdC5SZWFjdE5vZGUge1xuICBjb25zdCB7IGV4aXQgfSA9IHVzZUFwcCgpXG5cbiAgLy8gdXNlTGF5b3V0RWZmZWN0IHJ1bnMgc3luY2hyb25vdXNseSBhZnRlciBSZWFjdCBjb21taXRzIERPTSBtdXRhdGlvbnMuXG4gIC8vIHNldFRpbWVvdXQoMCkgZGVmZXJzIGV4aXQgdG8gYWxsb3cgSW5rIHRvIGZsdXNoIG91dHB1dCB0byB0aGUgc3RyZWFtLlxuICB1c2VMYXlvdXRFZmZlY3QoKCkgPT4ge1xuICAgIGNvbnN0IHRpbWVyID0gc2V0VGltZW91dChleGl0LCAwKVxuICAgIHJldHVybiAoKSA9PiBjbGVhclRpbWVvdXQodGltZXIpXG4gIH0sIFtleGl0XSlcblxuICByZXR1cm4gPD57Y2hpbGRyZW59PC8+XG59XG5cbi8vIERFQyBzeW5jaHJvbml6ZWQgdXBkYXRlIG1hcmtlcnMgdXNlZCBieSB0ZXJtaW5hbHNcbmNvbnN0IFNZTkNfU1RBUlQgPSAnXFx4MUJbPzIwMjZoJ1xuY29uc3QgU1lOQ19FTkQgPSAnXFx4MUJbPzIwMjZsJ1xuXG4vKipcbiAqIEV4dHJhY3RzIGNvbnRlbnQgZnJvbSB0aGUgZmlyc3QgY29tcGxldGUgZnJhbWUgaW4gSW5rJ3Mgb3V0cHV0LlxuICogSW5rIHdpdGggbm9uLVRUWSBzdGRvdXQgb3V0cHV0cyBtdWx0aXBsZSBmcmFtZXMsIGVhY2ggd3JhcHBlZCBpbiBERUMgc3luY2hyb25pemVkXG4gKiB1cGRhdGUgc2VxdWVuY2VzIChbPzIwMjZoIC4uLiBbPzIwMjZsKS4gV2Ugb25seSB3YW50IHRoZSBmaXJzdCBmcmFtZSdzIGNvbnRlbnQuXG4gKi9cbmZ1bmN0aW9uIGV4dHJhY3RGaXJzdEZyYW1lKG91dHB1dDogc3RyaW5nKTogc3RyaW5nIHtcbiAgY29uc3Qgc3RhcnRJbmRleCA9IG91dHB1dC5pbmRleE9mKFNZTkNfU1RBUlQpXG4gIGlmIChzdGFydEluZGV4ID09PSAtMSkgcmV0dXJuIG91dHB1dFxuXG4gIGNvbnN0IGNvbnRlbnRTdGFydCA9IHN0YXJ0SW5kZXggKyBTWU5DX1NUQVJULmxlbmd0aFxuICBjb25zdCBlbmRJbmRleCA9IG91dHB1dC5pbmRleE9mKFNZTkNfRU5ELCBjb250ZW50U3RhcnQpXG4gIGlmIChlbmRJbmRleCA9PT0gLTEpIHJldHVybiBvdXRwdXRcblxuICByZXR1cm4gb3V0cHV0LnNsaWNlKGNvbnRlbnRTdGFydCwgZW5kSW5kZXgpXG59XG5cbi8qKlxuICogUmVuZGVycyBhIFJlYWN0IG5vZGUgdG8gYSBzdHJpbmcgd2l0aCBBTlNJIGVzY2FwZSBjb2RlcyAoZm9yIHRlcm1pbmFsIG91dHB1dCkuXG4gKi9cbmV4cG9ydCBmdW5jdGlvbiByZW5kZXJUb0Fuc2lTdHJpbmcoXG4gIG5vZGU6IFJlYWN0LlJlYWN0Tm9kZSxcbiAgY29sdW1ucz86IG51bWJlcixcbik6IFByb21pc2U8c3RyaW5nPiB7XG4gIHJldHVybiBuZXcgUHJvbWlzZShhc3luYyByZXNvbHZlID0+IHtcbiAgICBsZXQgb3V0cHV0ID0gJydcblxuICAgIC8vIENhcHR1cmUgYWxsIHdyaXRlcy4gU2V0IC5jb2x1bW5zIHNvIEluayAoaW5rLnRzeDp+MTY1KSBwaWNrcyB1cCBhXG4gICAgLy8gY2hvc2VuIHdpZHRoIGluc3RlYWQgb2YgUGFzc1Rocm91Z2gncyB1bmRlZmluZWQg4oaSIDgwIGZhbGxiYWNrIOKAlFxuICAgIC8vIHVzZWZ1bCBmb3IgcmVuZGVyaW5nIGF0IHRlcm1pbmFsIHdpZHRoIGZvciBmaWxlIGR1bXBzIHRoYXQgc2hvdWxkXG4gICAgLy8gbWF0Y2ggd2hhdCB0aGUgdXNlciBzZWVzIG9uIHNjcmVlbi5cbiAgICBjb25zdCBzdHJlYW0gPSBuZXcgUGFzc1Rocm91Z2goKVxuICAgIGlmIChjb2x1bW5zICE9PSB1bmRlZmluZWQpIHtcbiAgICAgIDsoc3RyZWFtIGFzIHVua25vd24gYXMgeyBjb2x1bW5zOiBudW1iZXIgfSkuY29sdW1ucyA9IGNvbHVtbnNcbiAgICB9XG4gICAgc3RyZWFtLm9uKCdkYXRhJywgY2h1bmsgPT4ge1xuICAgICAgb3V0cHV0ICs9IGNodW5rLnRvU3RyaW5nKClcbiAgICB9KVxuXG4gICAgLy8gUmVuZGVyIHRoZSBjb21wb25lbnQgd3JhcHBlZCBpbiBSZW5kZXJPbmNlQW5kRXhpdFxuICAgIC8vIE5vbi1UVFkgc3Rkb3V0IChQYXNzVGhyb3VnaCkgZ2l2ZXMgZnVsbC1mcmFtZSBvdXRwdXQgaW5zdGVhZCBvZiBkaWZmc1xuICAgIGNvbnN0IGluc3RhbmNlID0gYXdhaXQgcmVuZGVyKFxuICAgICAgPFJlbmRlck9uY2VBbmRFeGl0Pntub2RlfTwvUmVuZGVyT25jZUFuZEV4aXQ+LFxuICAgICAge1xuICAgICAgICBzdGRvdXQ6IHN0cmVhbSBhcyB1bmtub3duIGFzIE5vZGVKUy5Xcml0ZVN0cmVhbSxcbiAgICAgICAgcGF0Y2hDb25zb2xlOiBmYWxzZSxcbiAgICAgIH0sXG4gICAgKVxuXG4gICAgLy8gV2FpdCBmb3IgdGhlIGNvbXBvbmVudCB0byBleGl0IG5hdHVyYWxseVxuICAgIGF3YWl0IGluc3RhbmNlLndhaXRVbnRpbEV4aXQoKVxuXG4gICAgLy8gRXh0cmFjdCBvbmx5IHRoZSBmaXJzdCBmcmFtZSdzIGNvbnRlbnQgdG8gYXZvaWQgZHVwbGljYXRpb25cbiAgICAvLyAoSW5rIG91dHB1dHMgbXVsdGlwbGUgZnJhbWVzIGluIG5vbi1UVFkgbW9kZSlcbiAgICBhd2FpdCByZXNvbHZlKGV4dHJhY3RGaXJzdEZyYW1lKG91dHB1dCkpXG4gIH0pXG59XG5cbi8qKlxuICogUmVuZGVycyBhIFJlYWN0IG5vZGUgdG8gYSBwbGFpbiB0ZXh0IHN0cmluZyAoQU5TSSBjb2RlcyBzdHJpcHBlZCkuXG4gKi9cbmV4cG9ydCBhc3luYyBmdW5jdGlvbiByZW5kZXJUb1N0cmluZyhcbiAgbm9kZTogUmVhY3QuUmVhY3ROb2RlLFxuICBjb2x1bW5zPzogbnVtYmVyLFxuKTogUHJvbWlzZTxzdHJpbmc+IHtcbiAgY29uc3Qgb3V0cHV0ID0gYXdhaXQgcmVuZGVyVG9BbnNpU3RyaW5nKG5vZGUsIGNvbHVtbnMpXG4gIHJldHVybiBzdHJpcEFuc2kob3V0cHV0KVxufVxuIl0sIm1hcHBpbmdzIjoiO0FBQUEsT0FBTyxLQUFLQSxLQUFLLE1BQU0sT0FBTztBQUM5QixTQUFTQyxlQUFlLFFBQVEsT0FBTztBQUN2QyxTQUFTQyxXQUFXLFFBQVEsUUFBUTtBQUNwQyxPQUFPQyxTQUFTLE1BQU0sWUFBWTtBQUNsQyxTQUFTQyxNQUFNLEVBQUVDLE1BQU0sUUFBUSxXQUFXOztBQUUxQztBQUNBO0FBQ0E7O0FBRUE7QUFDQTtBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0EsU0FBQUMsa0JBQUFDLEVBQUE7RUFBQSxNQUFBQyxDQUFBLEdBQUFDLEVBQUE7RUFBMkI7SUFBQUM7RUFBQSxJQUFBSCxFQUkxQjtFQUNDO0lBQUFJO0VBQUEsSUFBaUJOLE1BQU0sQ0FBQyxDQUFDO0VBQUEsSUFBQU8sRUFBQTtFQUFBLElBQUFDLEVBQUE7RUFBQSxJQUFBTCxDQUFBLFFBQUFHLElBQUE7SUFJVEMsRUFBQSxHQUFBQSxDQUFBO01BQ2QsTUFBQUUsS0FBQSxHQUFjQyxVQUFVLENBQUNKLElBQUksRUFBRSxDQUFDLENBQUM7TUFBQSxPQUMxQixNQUFNSyxZQUFZLENBQUNGLEtBQUssQ0FBQztJQUFBLENBQ2pDO0lBQUVELEVBQUEsSUFBQ0YsSUFBSSxDQUFDO0lBQUFILENBQUEsTUFBQUcsSUFBQTtJQUFBSCxDQUFBLE1BQUFJLEVBQUE7SUFBQUosQ0FBQSxNQUFBSyxFQUFBO0VBQUE7SUFBQUQsRUFBQSxHQUFBSixDQUFBO0lBQUFLLEVBQUEsR0FBQUwsQ0FBQTtFQUFBO0VBSFRQLGVBQWUsQ0FBQ1csRUFHZixFQUFFQyxFQUFNLENBQUM7RUFBQSxJQUFBSSxFQUFBO0VBQUEsSUFBQVQsQ0FBQSxRQUFBRSxRQUFBO0lBRUhPLEVBQUEsS0FBR1AsU0FBTyxDQUFDLEdBQUk7SUFBQUYsQ0FBQSxNQUFBRSxRQUFBO0lBQUFGLENBQUEsTUFBQVMsRUFBQTtFQUFBO0lBQUFBLEVBQUEsR0FBQVQsQ0FBQTtFQUFBO0VBQUEsT0FBZlMsRUFBZTtBQUFBOztBQUd4QjtBQUNBLE1BQU1DLFVBQVUsR0FBRyxhQUFhO0FBQ2hDLE1BQU1DLFFBQVEsR0FBRyxhQUFhOztBQUU5QjtBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0EsU0FBU0MsaUJBQWlCQSxDQUFDQyxNQUFNLEVBQUUsTUFBTSxDQUFDLEVBQUUsTUFBTSxDQUFDO0VBQ2pELE1BQU1DLFVBQVUsR0FBR0QsTUFBTSxDQUFDRSxPQUFPLENBQUNMLFVBQVUsQ0FBQztFQUM3QyxJQUFJSSxVQUFVLEtBQUssQ0FBQyxDQUFDLEVBQUUsT0FBT0QsTUFBTTtFQUVwQyxNQUFNRyxZQUFZLEdBQUdGLFVBQVUsR0FBR0osVUFBVSxDQUFDTyxNQUFNO0VBQ25ELE1BQU1DLFFBQVEsR0FBR0wsTUFBTSxDQUFDRSxPQUFPLENBQUNKLFFBQVEsRUFBRUssWUFBWSxDQUFDO0VBQ3ZELElBQUlFLFFBQVEsS0FBSyxDQUFDLENBQUMsRUFBRSxPQUFPTCxNQUFNO0VBRWxDLE9BQU9BLE1BQU0sQ0FBQ00sS0FBSyxDQUFDSCxZQUFZLEVBQUVFLFFBQVEsQ0FBQztBQUM3Qzs7QUFFQTtBQUNBO0FBQ0E7QUFDQSxPQUFPLFNBQVNFLGtCQUFrQkEsQ0FDaENDLElBQUksRUFBRTdCLEtBQUssQ0FBQzhCLFNBQVMsRUFDckJDLE9BQWdCLENBQVIsRUFBRSxNQUFNLENBQ2pCLEVBQUVDLE9BQU8sQ0FBQyxNQUFNLENBQUMsQ0FBQztFQUNqQixPQUFPLElBQUlBLE9BQU8sQ0FBQyxNQUFNQyxPQUFPLElBQUk7SUFDbEMsSUFBSVosTUFBTSxHQUFHLEVBQUU7O0lBRWY7SUFDQTtJQUNBO0lBQ0E7SUFDQSxNQUFNYSxNQUFNLEdBQUcsSUFBSWhDLFdBQVcsQ0FBQyxDQUFDO0lBQ2hDLElBQUk2QixPQUFPLEtBQUtJLFNBQVMsRUFBRTtNQUN6QjtNQUFDLENBQUNELE1BQU0sSUFBSSxPQUFPLElBQUk7UUFBRUgsT0FBTyxFQUFFLE1BQU07TUFBQyxDQUFDLEVBQUVBLE9BQU8sR0FBR0EsT0FBTztJQUMvRDtJQUNBRyxNQUFNLENBQUNFLEVBQUUsQ0FBQyxNQUFNLEVBQUVDLEtBQUssSUFBSTtNQUN6QmhCLE1BQU0sSUFBSWdCLEtBQUssQ0FBQ0MsUUFBUSxDQUFDLENBQUM7SUFDNUIsQ0FBQyxDQUFDOztJQUVGO0lBQ0E7SUFDQSxNQUFNQyxRQUFRLEdBQUcsTUFBTW5DLE1BQU0sQ0FDM0IsQ0FBQyxpQkFBaUIsQ0FBQyxDQUFDeUIsSUFBSSxDQUFDLEVBQUUsaUJBQWlCLENBQUMsRUFDN0M7TUFDRVcsTUFBTSxFQUFFTixNQUFNLElBQUksT0FBTyxJQUFJTyxNQUFNLENBQUNDLFdBQVc7TUFDL0NDLFlBQVksRUFBRTtJQUNoQixDQUNGLENBQUM7O0lBRUQ7SUFDQSxNQUFNSixRQUFRLENBQUNLLGFBQWEsQ0FBQyxDQUFDOztJQUU5QjtJQUNBO0lBQ0EsTUFBTVgsT0FBTyxDQUFDYixpQkFBaUIsQ0FBQ0MsTUFBTSxDQUFDLENBQUM7RUFDMUMsQ0FBQyxDQUFDO0FBQ0o7O0FBRUE7QUFDQTtBQUNBO0FBQ0EsT0FBTyxlQUFld0IsY0FBY0EsQ0FDbENoQixJQUFJLEVBQUU3QixLQUFLLENBQUM4QixTQUFTLEVBQ3JCQyxPQUFnQixDQUFSLEVBQUUsTUFBTSxDQUNqQixFQUFFQyxPQUFPLENBQUMsTUFBTSxDQUFDLENBQUM7RUFDakIsTUFBTVgsTUFBTSxHQUFHLE1BQU1PLGtCQUFrQixDQUFDQyxJQUFJLEVBQUVFLE9BQU8sQ0FBQztFQUN0RCxPQUFPNUIsU0FBUyxDQUFDa0IsTUFBTSxDQUFDO0FBQzFCIiwiaWdub3JlTGlzdCI6W119
