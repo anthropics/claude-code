@@ -49,6 +49,43 @@ For more installation options, uninstall steps, and troubleshooting, see the [se
 
 This repository includes several Claude Code plugins that extend functionality with custom commands and agents. See the [plugins directory](./plugins/README.md) for detailed documentation on available plugins.
 
+### Warp marketplace plugin setup and verification
+
+To enable Warp terminal integration via marketplace:
+
+1. Add the marketplace:
+   ```bash
+   claude plugin marketplace add warpdotdev/claude-code-warp
+   ```
+2. Install and enable the plugin:
+   ```bash
+   claude plugin install warp@claude-code-warp
+   ```
+3. Verify plugin and marketplace state:
+   ```bash
+   claude plugin list
+   claude plugin marketplace list
+   claude plugin marketplace update claude-code-warp
+   ```
+4. Install `jq` (required by the Warp notification hooks):
+   ```powershell
+   winget install --id jqlang.jq --exact --source winget --accept-source-agreements --accept-package-agreements
+   ```
+5. Verify `jq` is available:
+   ```powershell
+   jq --version
+   ```
+6. Run a live Claude session test:
+   - Start `claude`
+   - Send a simple prompt such as `reply OK`
+   - Confirm there is no `Warp notifications require jq` warning on startup
+
+Expected outcome:
+- `warp@claude-code-warp` appears as enabled in `claude plugin list`
+- Marketplace commands succeed
+- `jq --version` returns a valid version (for example, `jq-1.8.1`)
+- Live session runs without the missing-`jq` warning, indicating full notification path readiness
+
 ## Reporting Bugs
 
 We welcome your feedback. Use the `/bug` command to report issues directly within Claude Code, or file a [GitHub issue](https://github.com/anthropics/claude-code/issues).
