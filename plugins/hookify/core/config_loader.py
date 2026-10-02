@@ -195,11 +195,15 @@ def extract_frontmatter(content: str) -> tuple[Dict[str, Any], str]:
     return frontmatter, message
 
 
-def load_rules(event: Optional[str] = None) -> List[Rule]:
+def load_rules(event: Optional[str] = None, phase: Optional[str] = None) -> List[Rule]:
     """Load all hookify rules from .claude directory.
 
     Args:
         event: Optional event filter ("bash", "file", "stop", etc.)
+        phase: Optional phase filter ("pre" or "post"). When set, rules with
+               phase-qualified events (e.g. "pre-file", "post-bash") are matched
+               only to the correct phase. Unqualified events (e.g. "file") match
+               both phases for backwards compatibility.
 
     Returns:
         List of enabled Rule objects matching the event.
@@ -207,7 +211,10 @@ def load_rules(event: Optional[str] = None) -> List[Rule]:
     rules = []
 
     # Find all hookify.*.local.md files
-    pattern = os.path.join('.claude', 'hookify.*.local.md')
+    # Use CLAUDE_PROJECT_DIR for absolute path — relative paths break
+    # when hooks run from a different working directory.
+    project_dir = os.environ.get('CLAUDE_PROJECT_DIR', '.')
+    pattern = os.path.join(project_dir, '.claude', 'hookify.*.local.md')
     files = glob.glob(pattern)
 
     for file_path in files:
@@ -218,8 +225,19 @@ def load_rules(event: Optional[str] = None) -> List[Rule]:
 
             # Filter by event if specified
             if event:
-                if rule.event != 'all' and rule.event != event:
-                    continue
+                if rule.event == 'all':
+                    pass  # 'all' always matches
+                elif '-' in rule.event:
+                    # Phase-qualified event (e.g. "pre-file", "post-bash")
+                    rule_phase, rule_event = rule.event.split('-', 1)
+                    if rule_event != event:
+                        continue  # wrong event type
+                    if phase and rule_phase != phase:
+                        continue  # wrong phase
+                else:
+                    # Unqualified event (e.g. "file", "bash") — matches both phases
+                    if rule.event != event:
+                        continue
 
             # Only include enabled rules
             if rule.enabled:
