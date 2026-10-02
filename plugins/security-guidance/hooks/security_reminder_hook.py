@@ -394,7 +394,13 @@ def check_patterns(file_path, content):
         # positive match condition (e.g. .github/workflows/).
         if "path_filter" in pattern:
             try:
-                if not pattern["path_filter"](normalized_path):
+                # Pass the un-stripped path (normalized_path has already lost
+                # its leading '/', which breaks os.path.isabs() for callers
+                # like extensibility._glob_match that need to tell an
+                # absolute payload from a relative one to canonicalize it
+                # against the project root). Existing path_filter callbacks
+                # are all endswith()-based and unaffected by a leading '/'.
+                if not pattern["path_filter"](file_path):
                     continue
             except Exception:
                 continue
