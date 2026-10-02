@@ -3,6 +3,7 @@
   "build": {
     "dockerfile": "Dockerfile",
     "args": {
+      "NODE_VERSION": "${localEnv:NODE_VERSION:20}",
       "TZ": "${localEnv:TZ:America/Los_Angeles}",
       "CLAUDE_CODE_VERSION": "latest",
       "GIT_DELTA_VERSION": "0.18.2",
