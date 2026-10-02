@@ -30,6 +30,25 @@ These may be applied at any level of the [settings hierarchy](https://code.claud
 
 To distribute these settings as enterprise-managed policy through Jamf, Iru (Kandji), Intune, or Group Policy, see the deployment templates in [`../mdm`](../mdm).
 
+## Troubleshooting
+
+### VS Code extension crashes on resume (exit code 4294967295)
+
+On Windows, resuming a conversation in the VS Code extension may
+crash immediately with exit code `4294967295` (`0xFFFFFFFF`, -1).
+This is caused by a corrupted session file from a prior unclean exit.
+
+The CLI (`claude --resume`) usually works for the same session —
+the crash is in the extension's child-process spawning path.
+
+**Workaround**: delete the corrupted session file:
+```
+del %USERPROFILE%\.claude\projects\c8b9645c-* /s
+```
+Then restart VS Code and start a new conversation.
+
+See issue [#61724](https://github.com/anthropics/claude-code/issues/61724).
+
 ## Full Documentation
 
 See https://code.claude.com/docs/en/settings for complete documentation on all available managed settings.
