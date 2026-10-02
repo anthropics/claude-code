@@ -30,6 +30,22 @@ These may be applied at any level of the [settings hierarchy](https://code.claud
 
 To distribute these settings as enterprise-managed policy through Jamf, Iru (Kandji), Intune, or Group Policy, see the deployment templates in [`../mdm`](../mdm).
 
+## Troubleshooting
+
+### Cursor extension: Web-tier sessions listed but fail to open
+
+In the Cursor extension, sessions under the Web tab show in the list
+but return `"No conversation found with session ID"` when clicked.
+
+**Root cause**: the extension routes all resume requests to the local
+CLI backend (`claude --resume`), which only knows how to look up
+sessions in `~/.claude/projects/`. Web-tier (cloud) sessions have no
+local file — the extension needs a cloud hydration path.
+
+**Workaround**: open Web-tier sessions in Claude Desktop instead.
+
+See issue [#61726](https://github.com/anthropics/claude-code/issues/61726).
+
 ## Full Documentation
 
 See https://code.claude.com/docs/en/settings for complete documentation on all available managed settings.
