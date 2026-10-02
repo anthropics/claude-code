@@ -1,0 +1,17 @@
+{
+  "description": "Syncs CLI session transcripts to the Claude desktop app's session list on session end",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/sync_sessions.py\" --sync-current",
+            "timeout": 15
+          }
+        ],
+        "matcher": "*.jsonl"
+      }
+    ]
+  }
+}
