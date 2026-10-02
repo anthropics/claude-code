@@ -82,61 +82,79 @@ Usage:
 Environment Variables:
   GITHUB_TOKEN - GitHub personal access token with repo and actions permissions (required)
   DRY_RUN - Set to "false" to actually trigger workflows (default: true for safety)
-  MAX_ISSUE_NUMBER - Only process issues with numbers less than this value (default: 4050)`);
+  DAYS_BACK - Only process issues created within this many days (e.g. 90). Takes priority over MIN_ISSUE_NUMBER/MAX_ISSUE_NUMBER when set.
+  MIN_ISSUE_NUMBER - Only process issues with numbers >= this value (default: 1)
+  MAX_ISSUE_NUMBER - Only process issues with numbers < this value (default: 4050)`);
   }
   console.log("[DEBUG] GitHub token found");
 
   const owner = "anthropics";
   const repo = "claude-code";
   const dryRun = process.env.DRY_RUN !== "false";
+  const daysBack = process.env.DAYS_BACK ? parseInt(process.env.DAYS_BACK, 10) : null;
+  const cutoffDate = daysBack ? new Date(Date.now() - daysBack * 24 * 60 * 60 * 1000) : null;
   const maxIssueNumber = parseInt(process.env.MAX_ISSUE_NUMBER || "4050", 10);
   const minIssueNumber = parseInt(process.env.MIN_ISSUE_NUMBER || "1", 10);
-  
+
   console.log(`[DEBUG] Repository: ${owner}/${repo}`);
   console.log(`[DEBUG] Dry run mode: ${dryRun}`);
-  console.log(`[DEBUG] Looking at issues between #${minIssueNumber} and #${maxIssueNumber}`);
-
-  console.log(`[DEBUG] Fetching issues between #${minIssueNumber} and #${maxIssueNumber}...`);
+  if (cutoffDate) {
+    console.log(`[DEBUG] Fetching issues created in the last ${daysBack} days (since ${cutoffDate.toISOString()})...`);
+  } else {
+    console.log(`[DEBUG] Fetching issues between #${minIssueNumber} and #${maxIssueNumber}...`);
+  }
   const allIssues: GitHubIssue[] = [];
   let page = 1;
   const perPage = 100;
-  
+
   while (true) {
     const pageIssues: GitHubIssue[] = await githubRequest(
       `/repos/${owner}/${repo}/issues?state=all&per_page=${perPage}&page=${page}&sort=created&direction=desc`,
       token
     );
-    
+
     if (pageIssues.length === 0) break;
-    
-    // Filter to only include issues within the specified range
-    const filteredIssues = pageIssues.filter(issue => 
-      issue.number >= minIssueNumber && issue.number < maxIssueNumber
-    );
+
+    // Filter issues by date range (DAYS_BACK) or issue number range
+    const filteredIssues = cutoffDate
+      ? pageIssues.filter(issue => new Date(issue.created_at) >= cutoffDate)
+      : pageIssues.filter(issue =>
+          issue.number >= minIssueNumber && issue.number < maxIssueNumber
+        );
     allIssues.push(...filteredIssues);
-    
-    // If the oldest issue in this page is still above our minimum, we need to continue
-    // but if the oldest issue is below our minimum, we can stop
+
+    // Stop early once we've gone past the relevant range
     const oldestIssueInPage = pageIssues[pageIssues.length - 1];
-    if (oldestIssueInPage && oldestIssueInPage.number >= maxIssueNumber) {
-      console.log(`[DEBUG] Oldest issue in page #${page} is #${oldestIssueInPage.number}, continuing...`);
-    } else if (oldestIssueInPage && oldestIssueInPage.number < minIssueNumber) {
-      console.log(`[DEBUG] Oldest issue in page #${page} is #${oldestIssueInPage.number}, below minimum, stopping`);
-      break;
-    } else if (filteredIssues.length === 0 && pageIssues.length > 0) {
-      console.log(`[DEBUG] No issues in page #${page} are in range #${minIssueNumber}-#${maxIssueNumber}, continuing...`);
+    if (cutoffDate) {
+      if (oldestIssueInPage && new Date(oldestIssueInPage.created_at) < cutoffDate) {
+        console.log(`[DEBUG] Oldest issue in page #${page} is before cutoff date, stopping`);
+        break;
+      }
+    } else {
+      if (oldestIssueInPage && oldestIssueInPage.number >= maxIssueNumber) {
+        console.log(`[DEBUG] Oldest issue in page #${page} is #${oldestIssueInPage.number}, continuing...`);
+      } else if (oldestIssueInPage && oldestIssueInPage.number < minIssueNumber) {
+        console.log(`[DEBUG] Oldest issue in page #${page} is #${oldestIssueInPage.number}, below minimum, stopping`);
+        break;
+      } else if (filteredIssues.length === 0 && pageIssues.length > 0) {
+        console.log(`[DEBUG] No issues in page #${page} are in range #${minIssueNumber}-#${maxIssueNumber}, continuing...`);
+      }
     }
-    
+
     page++;
-    
+
     // Safety limit to avoid infinite loops
     if (page > 200) {
       console.log("[DEBUG] Reached page limit, stopping pagination");
       break;
     }
   }
-  
-  console.log(`[DEBUG] Found ${allIssues.length} issues between #${minIssueNumber} and #${maxIssueNumber}`);
+
+  if (cutoffDate) {
+    console.log(`[DEBUG] Found ${allIssues.length} issues created in the last ${daysBack} days`);
+  } else {
+    console.log(`[DEBUG] Found ${allIssues.length} issues between #${minIssueNumber} and #${maxIssueNumber}`);
+  }
 
   let processedCount = 0;
   let candidateCount = 0;
