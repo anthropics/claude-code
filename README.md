@@ -18,12 +18,12 @@ For more installation options, uninstall steps, and troubleshooting, see the [se
 
 1. Install Claude Code:
 
-    **MacOS/Linux (Recommended):**
+    **macOS/Linux (Recommended):**
     ```bash
     curl -fsSL https://claude.ai/install.sh | bash
     ```
 
-    **Homebrew (MacOS/Linux):**
+    **Homebrew (macOS/Linux):**
     ```bash
     brew install --cask claude-code
     ```
