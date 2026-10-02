@@ -1,0 +1,27 @@
+{
+  "description": "Audit trail plugin - comprehensive logging of all tool usage for debugging and compliance",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
