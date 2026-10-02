@@ -27,6 +27,7 @@ from typing import Optional, Tuple, Dict, Any, List
 
 import extensibility
 import review_api
+import secretpaths
 from _base import debug_log, _record_usage, _PV, PROVENANCE_TAG  # noqa: F401
 from session_state import with_locked_state
 
@@ -276,8 +277,9 @@ def _call_claude_via_sdk(prompt, output_schema, *, max_tokens=16000, model=None)
     3P providers. Uses the same `output_format` JSON-schema contract so the
     return value shape is identical (parsed dict or None).
 
-    No tools (`allowed_tools=[]`) — the security review only needs structured
-    output, not Read/Grep/Glob. Single turn keeps cost predictable.
+    No tools — the security review only needs structured output, so the
+    file and shell tools are passed as `disallowed_tools`. Single turn keeps
+    cost predictable.
     """
     global _last_call_claude_http_error
     _last_call_claude_http_error = None
@@ -330,6 +332,11 @@ def _call_claude_via_sdk(prompt, output_schema, *, max_tokens=16000, model=None)
             system_prompt=CLAUDE_CODE_SYSTEM_PROMPT,
             cli_path=cli_path,
             allowed_tools=[],
+            # allowed_tools=[] grants nothing but removes nothing either:
+            # Read inside cwd and read-only shell commands are auto-approved
+            # in default mode. This call needs no tools, so take the file and
+            # shell tools away outright.
+            disallowed_tools=secretpaths.no_file_tools(),
             setting_sources=[],
             max_turns=2,
             model=chosen_model,
@@ -607,28 +614,7 @@ def _format_vulns_guidance(vulns: List[Dict[str, Any]]) -> Optional[str]:
     """
     if not vulns:
         return None
-    severity_order = {"critical": 0, "high": 1, "medium": 2}
-    vulns = sorted(vulns, key=lambda v: severity_order.get(v.get("severity", "medium"), 2))
-    by_file: Dict[str, list] = {}
-    for v in vulns:
-        by_file.setdefault(v.get("filePath", "unknown"), []).append(v)
-    lines = [
-        "Security Review: Potential vulnerabilities detected",
-        "",
-        f"Affected files: {', '.join(by_file)}",
-        "The following issues were flagged by automated security review. Address each, or briefly note why it doesn't apply. Valid reasons to proceed without changes: the user explicitly asked for this and you've already surfaced the security tradeoffs, or the pattern isn't actually exploitable in this context. Do not dismiss findings solely because the service is internal-only — internal services are common SSRF/IDOR targets:",
-        "",
-    ]
-    n = 1
-    for fp, vs in by_file.items():
-        lines.append(f"  {fp}:")
-        for v in vs:
-            sev = (v.get("severity") or "medium").upper()
-            lines.append(f"    {n}. [{sev}] [{v.get('category', 'Unknown')}] {v.get('vulnerableCode', 'N/A')}")
-            lines.append(f"       Suggested fix: {v.get('fix', 'N/A')}")
-            lines.append("")
-            n += 1
-    return "\n".join(lines)
+    return review_api.format_findings(vulns)
 
 
 # CC truncates the rewakeSummary override at 300 chars. Cap a little under so
@@ -1126,6 +1112,8 @@ def agentic_review(
     # trace cross-file data flow. The harness sets SG_AGENTIC_CONTEXT_DIR to a
     # full repo (worktree at the commit, or the live clone at HEAD).
     context_dir = os.environ.get("SG_AGENTIC_CONTEXT_DIR") or repo_dir
+    disallowed = secretpaths.subagent_disallowed_tools(context_dir)
+    debug_log(f"agentic_review: {len(disallowed)} disallowed Read pattern(s) for the sub-agent")
     context_note = ""
     if context_dir != repo_dir:
         context_note = (
@@ -1219,6 +1207,13 @@ def agentic_review(
             # would trip our own agent-permission-bypass guidance). Leaving
             # permission_mode unset means an accidental future addition of
             # a write/exec tool to allowed_tools is caught by the gate.
+            #
+            # setting_sources=[] keeps the parent's plugins and hooks (this
+            # one included) from loading recursively, but it also drops the
+            # parent's permission rules. The session's Read deny/ask rules
+            # and the well-known secret-file globs are re-applied here so the
+            # reviewer cannot pull a denied file into model context.
+            disallowed_tools=disallowed,
             setting_sources=[],
             max_turns=turns if turns is not None else max_turns,
             model=model,
@@ -1688,9 +1683,10 @@ Respond with JSON."""
     lines.append("")
     for i, concern in enumerate(concerns, 1):
         severity = concern.get('severity', 'high').upper()
-        lines.append(f"  {i}. [{severity}] [{concern.get('category', 'Unknown')}] {concern.get('area', '')}")
-        lines.append(f"     Evidence: {concern.get('evidenceLine', 'N/A')}")
-        lines.append(f"     Check: {concern.get('concern', '')}")
+        cat = concern.get('category', 'Unknown')
+        lines.append(f"  {i}. [{severity}] [{cat}] {review_api.redact_secret_values(concern.get('area', ''), category=cat)}")
+        lines.append(f"     Evidence: {review_api.redact_secret_values(concern.get('evidenceLine', 'N/A'), category=cat)}")
+        lines.append(f"     Check: {review_api.redact_secret_values(concern.get('concern', ''), category=cat)}")
         lines.append("")
 
     return "\n".join(lines)

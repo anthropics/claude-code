@@ -1,6 +1,6 @@
 {
   "name": "security-guidance",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Security review for Claude-generated code. Pattern-based warnings on edits, LLM-powered diff review on Stop, and an agentic commit reviewer that catches injection, XSS, SSRF, hardcoded secrets, and 25+ other vulnerability classes.",
   "author": {
     "name": "David Dworken",
