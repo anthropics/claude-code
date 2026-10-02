@@ -1,0 +1,15 @@
+[package]
+name = "claude-themes"
+version = "0.1.0"
+edition = "2021"
+authors = ["Claude Code Contributors"]
+description = "Theme system with accessibility support"
+
+[dependencies]
+# TUI
+ratatui = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+

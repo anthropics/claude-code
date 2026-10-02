@@ -1,0 +1,60 @@
+[package]
+name = "claude-tools"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description = "Tool implementations for file, shell, git, and more operations"
+
+[dependencies]
+# Core primitives
+claude-core = { path = "../claude-core" }
+
+# Async runtime
+tokio = { workspace = true }
+
+# Error handling
+thiserror = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Tracing
+tracing = { workspace = true }
+
+# File operations
+tempfile = "3.10"
+walkdir = "2.5"
+
+# Text diffing for multi-file edits
+similar = { version = "2.5", features = ["text", "inline"] }
+
+# Regex for search/replace
+regex = { workspace = true }
+
+# Directory management
+dirs = "5.0"
+
+# TUI for file browser
+ratatui = { workspace = true }
+crossterm = { workspace = true }
+
+# PTY support for interactive commands
+nix = { version = "0.28", features = ["pty", "process", "term"] }
+
+# Process management
+libc = "0.2"
+
+[dev-dependencies]
+tokio-test = "0.4"
+
+# Tracing
+tracing = { workspace = true }
+
+# Path handling
+path-absolutize = { workspace = true }
+
+
