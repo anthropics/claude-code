@@ -123,7 +123,7 @@ FINDINGS_SCHEMA = {
     "type": "object",
     "properties": {
         "findings": {
-            "type": "array",
+            "type": ["array", "null"],
             "items": {
                 "type": "object",
                 "properties": {
