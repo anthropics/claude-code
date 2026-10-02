@@ -1,0 +1,11 @@
+{
+    "name": "export-session",
+    "version": "1.0.0",
+    "description": "Export Claude Code session outputs to markdown, JSON, plain text, Word (docx), or PDF. Supports selective last-N export with no extra token cost.",
+    "author": {
+      "name": "Your Name",
+      "email": "your@email.com"
+    },
+    "skills": ["./skills/export-session"],
+    "category": "productivity"
+  }
