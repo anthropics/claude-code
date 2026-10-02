@@ -195,16 +195,16 @@ Use this workflow for structured, high-quality plugin development from concept t
 
 ## Installation
 
-Install from claude-code-marketplace:
+Install from the official Claude Code plugins marketplace:
 
 ```bash
-/plugin install plugin-dev@claude-code-marketplace
+/plugin install plugin-dev@claude-plugins-official
 ```
 
 Or for development, use directly:
 
 ```bash
-cc --plugin-dir /path/to/plugin-dev
+claude --plugin-dir /path/to/plugin-dev
 ```
 
 ## Quick Start
@@ -378,11 +378,11 @@ All skills emphasize:
 
 ## Contributing
 
-This plugin is part of the claude-code-marketplace. To contribute improvements:
+This plugin is included in the Claude Code repository's bundled plugin marketplace. To contribute improvements:
 
-1. Fork the marketplace repository
+1. Fork the Claude Code repository
 2. Make changes to plugin-dev/
-3. Test locally with `cc --plugin-dir`
+3. Test locally with `claude --plugin-dir`
 4. Create PR following marketplace-publishing guidelines
 
 ## Version
