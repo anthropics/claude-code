@@ -70,14 +70,26 @@ async function closeIssueAsDuplicate(
   duplicateOfNumber: number,
   token: string
 ): Promise<void> {
+  // Add the `duplicate` label WITHOUT clobbering the issue's existing labels.
+  // The "Update an issue" endpoint's `labels` field *replaces* the whole label
+  // set, so passing it in the PATCH below would wipe every triage label
+  // (bug, area:*, platform:*, priority, ...). "Add labels to an issue" appends.
+  await githubRequest(
+    `/repos/${owner}/${repo}/issues/${issueNumber}/labels`,
+    token,
+    'POST',
+    {
+      labels: ['duplicate']
+    }
+  );
+
   await githubRequest(
     `/repos/${owner}/${repo}/issues/${issueNumber}`,
     token,
     'PATCH',
     {
       state: 'closed',
-      state_reason: 'duplicate',
-      labels: ['duplicate']
+      state_reason: 'duplicate'
     }
   );
 
