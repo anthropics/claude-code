@@ -57,6 +57,14 @@ fi
 # Get transcript path from hook input
 TRANSCRIPT_PATH=$(echo "$HOOK_INPUT" | jq -r '.transcript_path')
 
+# Reject path traversal and symlinks for security
+if [[ "$TRANSCRIPT_PATH" == *".."* ]] || [[ -L "$TRANSCRIPT_PATH" ]]; then
+  echo "⚠️  Ralph loop: Invalid transcript path (traversal or symlink rejected)" >&2
+  echo "   Ralph loop is stopping." >&2
+  rm "$RALPH_STATE_FILE"
+  exit 0
+fi
+
 if [[ ! -f "$TRANSCRIPT_PATH" ]]; then
   echo "⚠️  Ralph loop: Transcript file not found" >&2
   echo "   Expected: $TRANSCRIPT_PATH" >&2

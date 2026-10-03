@@ -109,7 +109,9 @@ def save_state(session_id, state):
         if state_dir:
             os.makedirs(state_dir, exist_ok=True)
 
-        with open(state_file, "w") as f:
+        # Write safely without following symlinks
+        fd = os.open(state_file, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | getattr(os, "O_NOFOLLOW", 0), 0o600)
+        with os.fdopen(fd, "w") as f:
             json.dump(state, f)
     except (IOError, OSError) as e:
         debug_log(f"Failed to save state file {state_file}: {e}")
