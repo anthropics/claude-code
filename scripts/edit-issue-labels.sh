@@ -38,6 +38,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ ${#ADD_LABELS[@]} -eq 0 && ${#REMOVE_LABELS[@]} -eq 0 ]]; then
+  echo "Error: at least one --add-label or --remove-label argument is required" >&2
   exit 1
 fi
 
