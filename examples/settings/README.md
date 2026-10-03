@@ -30,6 +30,24 @@ These may be applied at any level of the [settings hierarchy](https://code.claud
 
 To distribute these settings as enterprise-managed policy through Jamf, Iru (Kandji), Intune, or Group Policy, see the deployment templates in [`../mdm`](../mdm).
 
+## Troubleshooting
+
+### Cowork queue: queued messages delivered but not actioned
+
+In Cowork, queued messages may be delivered to the session but no
+follow-up assistant turn spawns. The message silently disappears.
+
+**Root cause**: a race condition between the queue's post-turn
+handler and the rate-limit handler. When a rate-limit event fires
+at the same moment a turn ends, the rate-limit handler preempts
+the queue's "spawn next turn" signal.
+
+**Workaround**: don't queue messages during turns where rate limits
+may fire (long context, rapid turns). Wait for the current turn to
+fully complete before sending the next message.
+
+See issue [#61718](https://github.com/anthropics/claude-code/issues/61718).
+
 ## Full Documentation
 
 See https://code.claude.com/docs/en/settings for complete documentation on all available managed settings.
