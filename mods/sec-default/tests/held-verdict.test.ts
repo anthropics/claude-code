@@ -6,12 +6,75 @@ import Fixtures from './fixtures'
 tier('prepend')
 
 describe('held-verdict', () => {
-  test('a deny that names its rule is a rule deny; any other is not', () => {
+  test('over an allow: any deny, and an ask a settings rule decided', () => {
     expect(
-      [Fixtures.RULE_DENY, Fixtures.PLAIN_DENY, Fixtures.ASKED].map(
-        Hooks.isRuleDeny,
+      [
+        Fixtures.RULE_DENY,
+        Fixtures.RULE_ASK,
+        Fixtures.PLAIN_DENY,
+        Fixtures.ASKED,
+        Fixtures.ALLOWED,
+      ].map(held => Hooks.holdsOver(held, Fixtures.ALLOWED)),
+    ).toEqual([true, true, true, false, false])
+  })
+
+  test('over an ask only a deny is stricter; over a deny nothing is', () => {
+    expect(
+      [Fixtures.RULE_DENY, Fixtures.RULE_ASK].map(held => [
+        Hooks.holdsOver(held, Fixtures.ASKED),
+        Hooks.holdsOver(held, Fixtures.PLAIN_DENY),
+      ]),
+    ).toEqual([
+      [true, false],
+      [false, false],
+    ])
+  })
+
+  test('a rule the answer itself names makes nothing hold', () => {
+    expect(
+      Hooks.holdsOver(Fixtures.ASKED, {
+        ...Fixtures.ALLOWED,
+        rule: 'Bash(echo *)',
+      }),
+    ).toBe(false)
+  })
+
+  test('the notice names the kind that held, and the rule when one did', () => {
+    expect(
+      [Fixtures.RULE_DENY, Fixtures.RULE_ASK, Fixtures.PLAIN_DENY].map(held =>
+        Hooks.heldNotice('easy', 'Bash', held),
       ),
-    ).toEqual([true, false, false])
+    ).toEqual(
+      [
+        'a deny rule in your settings from a Bash call (Bash(echo *)); ' +
+          'the deny rule',
+        'an ask rule in your settings from a Bash call (Bash(echo *)); ' +
+          'the ask rule',
+        'a refusal from a Bash call; the refusal',
+      ].map(
+        middle =>
+          `easy tried to lift ${middle} holds over the plugins you install ` +
+          '(allowModsToOverrideDenyRules)',
+      ),
+    )
+  })
+
+  test('what no check vouches for is refused, and says why', () => {
+    expect(Hooks.UNCHECKED_DENY).toEqual({
+      decision: 'deny',
+      reason:
+        'the rules in your settings could not be checked for this call, ' +
+        'so it is refused',
+    })
+  })
+
+  test('an ask of theirs over a deny, caught, is no more vouched for', () => {
+    expect(
+      Hooks.caughtAnswer(Fixtures.ASKED, [
+        Fixtures.linkOf('easy', 'user', Fixtures.ASKED),
+        Fixtures.linkOf('engine', 'core', Fixtures.RULE_DENY),
+      ]),
+    ).toEqual(Hooks.UNCHECKED_DENY)
   })
 
   test('a link of theirs is named when it answered looser than handed', () => {
