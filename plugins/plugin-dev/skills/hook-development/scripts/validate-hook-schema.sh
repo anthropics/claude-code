@@ -2,7 +2,7 @@
 # Hook Schema Validator
 # Validates hooks.json structure and checks for common issues
 
-set -euo pipefail
+set -uo pipefail
 
 # Usage
 if [ $# -eq 0 ]; then
