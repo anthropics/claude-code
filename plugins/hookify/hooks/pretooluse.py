@@ -26,8 +26,13 @@ try:
     from hookify.core.config_loader import load_rules
     from hookify.core.rule_engine import RuleEngine
 except ImportError as e:
-    # If imports fail, allow operation and log error
-    error_msg = {"systemMessage": f"Hookify import error: {e}"}
+    # If imports fail, fail closed to prevent unauthorized actions
+    error_msg = {
+        "systemMessage": f"Hookify import error: {e}. Failing closed to prevent unauthorized action.",
+        "hookSpecificOutput": {
+            "permissionDecision": "deny"
+        }
+    }
     print(json.dumps(error_msg), file=sys.stdout)
     sys.exit(0)
 
@@ -59,9 +64,12 @@ def main():
         print(json.dumps(result), file=sys.stdout)
 
     except Exception as e:
-        # On any error, allow the operation and log
+        # On any error, fail closed by denying the operation
         error_output = {
-            "systemMessage": f"Hookify error: {str(e)}"
+            "systemMessage": f"Hookify error: {str(e)}. Failing closed to prevent unauthorized action.",
+            "hookSpecificOutput": {
+                "permissionDecision": "deny"
+            }
         }
         print(json.dumps(error_output), file=sys.stdout)
 
