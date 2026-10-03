@@ -4,6 +4,7 @@ import { admissionFailure } from './admission-failure'
 import HeldVerdict from './held-verdict'
 import { managedModsOnlyRefusal } from './managed-mods-only-refusal'
 import { pastUsers } from './past-users'
+import { pinnedVariableRefusal } from './pinned-variable-refusal'
 import Policy from './policy'
 import { TOOL_REGISTER_REFUSAL } from './tool-register-refusal'
 
@@ -82,13 +83,15 @@ export function register(on: On) {
 
     const held = await next.to(e, 'append')
 
-    if (!HeldVerdict.isRuleDeny(held)) {
+    if (!HeldVerdict.holdsOver(held, answer)) {
       return answer
     }
 
-    for (const mod of mods.filter(name => !told.has(name))) {
-      told.add(mod)
-      $.ui.log(HeldVerdict.heldNotice(mod, e.tool, held.rule))
+    const kind = HeldVerdict.heldKind(held)
+
+    for (const mod of mods.filter(name => !told.has(`${name} ${kind}`))) {
+      told.add(`${mod} ${kind}`)
+      $.ui.log(HeldVerdict.heldNotice(mod, e.tool, held))
     }
 
     return held
@@ -101,6 +104,40 @@ export function register(on: On) {
     )
 
     return shouldVouch ? HeldVerdict.caughtAnswer(last, next.trace) : last
+  })
+
+  on('ui.log', ($, e, next) => {
+    const isOrgs =
+      next.origin.tier === 'prepend' || next.origin.tier === 'append'
+
+    return isOrgs ? next.to(e, 'append') : next(e)
+  })
+
+  on('env.set', async ($, e, next) => {
+    const isPinned = await Policy.decidedByPolicy(
+      readPolicy(() => $.settings.read(Policy.SOURCE)),
+      policy => Policy.isPinnedVariable(policy, e.name),
+    )
+
+    if (!isPinned) {
+      return next(e)
+    }
+
+    const isTheirs = next.origin.tier === 'user'
+
+    return isTheirs
+      ? { deny: pinnedVariableRefusal(e.name) }
+      : next.to(e, 'append')
+  }).catch(($, e, next) => {
+    if (next.called) {
+      return next(e)
+    }
+
+    const isTheirs = next.origin.tier === 'user'
+
+    return isTheirs
+      ? { deny: pinnedVariableRefusal(e.name) }
+      : next.to(e, 'append')
   })
 
   on('plugin.register', { tier: 'user' }, async ($, e, next) =>

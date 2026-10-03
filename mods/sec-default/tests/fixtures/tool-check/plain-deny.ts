@@ -1,10 +1,10 @@
 import type { EventResult } from 'claude-code'
 
 /**
- * A deny that no settings rule decided (a settings hook's, a tool's own
- * check): it names no rule.
+ * A deny that neither a settings rule nor a classic hook decided (a tool's
+ * own check, a setting that is no rule, a plugin's answer): it names neither.
  */
 export const PLAIN_DENY: EventResult<'tool.check'> = {
   decision: 'deny',
-  reason: 'a PreToolUse hook refused it',
+  reason: 'echo is refused here',
 }
