@@ -4,11 +4,11 @@ import Ranking from './ranking'
 
 /**
  * Whether the verdict reached past the user tier holds over the chain's
- * answer: it is the stricter, and a deny, or an ask a rule or a hook decided.
+ * answer: it is the stricter, and a deny, or an ask a settings rule decided.
  *
- * Any rule or classic hook counts, whoever configured it: a verdict names the
- * rule and the hook's event, never their source. A deny holds unnamed: it may
- * stand before a rule's or a hook's ask. The mode's own ask does not hold.
+ * Any rule counts, whoever configured it: a verdict names the rule, never its
+ * source. A deny holds unnamed: it may stand before a rule's ask. The mode's
+ * own ask does not hold, nor a settings hook's.
  *
  * @param held what the run past the user tier settled on
  * @param answer what the whole chain settled on
@@ -19,6 +19,4 @@ export const holdsOver = (
   answer: EventResult<'tool.check'>,
 ) =>
   Ranking.isLooser(answer, held) &&
-  (held.decision === 'deny' ||
-    held.rule !== undefined ||
-    held.hook !== undefined)
+  (held.decision === 'deny' || held.rule !== undefined)

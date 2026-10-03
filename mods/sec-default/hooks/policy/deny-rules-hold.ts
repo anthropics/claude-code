@@ -6,7 +6,7 @@ import { ownOption } from './own-option'
  * Whether deny rules hold over the plugins a person installs: they do unless
  * managed policy sets `allowModsToOverrideDenyRules` to the literal `true`.
  *
- * Ask rules and classic hooks' answers hold or not with them. A value mistyped
+ * Every other deny, and ask rules, hold or not with them. A value mistyped
  * (`"true"`, `1`) loosens nothing. Only the policy source is handed in, so a
  * person's settings never reach this.
  *

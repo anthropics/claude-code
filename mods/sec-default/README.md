@@ -4,9 +4,10 @@ The security default for organizations. Function hooks give every plugin a
 say on every event, in chain order, and the plugins a person installs sit
 in the user tier, beneath the organization's prepend tier and above its
 append tier. Some of what an organization sets today (its classic hooks,
-its managed CLAUDE.md and rules, its settings, its MCP allowlist, the deny
-rules in force on its machines) was never within a person's reach before
-function hooks; seated outermost, this plugin keeps exactly those out of the
+its managed CLAUDE.md and rules, its settings and the environment they set,
+its MCP allowlist, the permission rules and refusals in force on its machines)
+was never within a person's reach before function hooks; seated outermost,
+this plugin keeps exactly those, and the lines its own plugins log, out of the
 user tier's reach and adds no policy of its own. Everything else passes
 through untouched.
 
@@ -32,7 +33,7 @@ settings it decides by.
 | `tool.describe`, `command.describe`, `agent.offer`, `agent.spawn` | When the subject's pinned `e.provider.tier` is `prepend` or `append` (a policy-installed plugin, the managed folder, a policy MCP server), continue past the user tier; a subject provided by `user`, `builtin` or `core` passes. |
 | `tool.register` | A caller in `prepend` or `append` continues past the user tier. A `user`-tier caller is refused by name while managed settings hold `allowedMcpServers` (set at all, empty included); otherwise it passes. |
 | `tool.list` | The tools of the organization's managed MCP servers are listed as the organization's tiers listed them; every other tool as the user tier left it. With no policy to read, or a refusal from either listing, the organization's listing stands whole. |
-| `tool.check` | A deny, and an ask a settings rule or a classic hook decided, hold over the user tier: when a person's plugin loosened the verdict it was handed, the dispatch is run again past the user tier, and if that verdict is the stricter and is a deny, or names the rule or the hook behind it, it is the answer. See [Deny rules hold](#deny-rules-hold). Every other verdict passes as the chain left it. |
+| `tool.check` | A deny, and an ask a settings rule decided, hold over the user tier: when a person's plugin loosened the verdict it was handed, the dispatch is run again past the user tier, and if that verdict is the stricter and is a deny, or names the rule behind it, it is the answer. See [Deny rules hold](#deny-rules-hold). Every other verdict passes as the chain left it. |
 | `ui.log` | A line a plugin in `prepend` or `append` logs, this one's included, continues past the user tier: no user hook rewrites or drops it, and none runs inside the hook that logged it. Every other line passes. |
 | `env.set` | A variable managed settings set in `env` (its name in any case) is pinned: setting or unsetting it, a `user`-tier caller is refused by name and any other caller continues past the user tier, so no user hook rewrites the value. A variable the organization does not set passes. With no policy to read, every variable counts as pinned. `allowModsToOverrideDenyRules` does not unpin. |
 | `plugin.register` | A hooks module in the `user` tier (one a person installed, named with `--plugin-dir`, or keeps in their mods folder) is refused while managed settings set this plugin's `allowManagedModsOnly` option; otherwise it passes. Modules in `prepend`, `append` and `builtin` are never asked about. |
@@ -89,9 +90,9 @@ not loaded. Settings hooks, status lines and `/goal` are not touched by it.
 
 `allowModsToOverrideDenyRules`: the plugins a person installs may answer
 over a settings deny rule on `tool.check`, as they could before this plugin
-held deny rules, and over every other deny, an ask rule or a classic hook's
-ask with it: the one option covers all that holds there. Off unless it is the
-literal `true`; an option that reads as unset leaves them holding. See
+held deny rules, and over every other deny and an ask rule with it: the one
+option covers all that holds there. Off unless it is the literal `true`; an
+option that reads as unset leaves them holding. See
 [Deny rules hold](#deny-rules-hold).
 
 ## What it hooks
@@ -118,8 +119,8 @@ do.
 
 On `tool.check` any hook may answer any verdict, so a plugin a person
 installs to stop the permission prompts (`() => ({ decision: "allow" })`)
-would also lift a deny rule, an ask rule or a `PreToolUse` hook's ask, a
-managed one included. Where this plugin is seated it does not:
+would also lift a deny rule or an ask rule, a managed one included. Where
+this plugin is seated it does not:
 
 - The hook first runs the chain as it is. If the answer is a deny, or no
   link that may hold a person's plugin answered more permissively than the
@@ -138,18 +139,18 @@ managed one included. Where this plugin is seated it does not:
   changes nothing: the rules are evaluated in this run. The two runs differ
   by the user tier alone, so a verdict here that is stricter than the chain's
   answer is one the user tier loosened. A deny is returned in place of the
-  chain's answer whatever decided it; an ask, when it names what decided it:
-  a settings rule (`rule`) or a classic hook (`hook`).
-- Any rule and any classic hook counts, whoever configured it: a verdict
-  carries the rule as written and the hook's event, never where either was
-  read from. A deny holds unnamed because it can stand in front of a rule's or
-  a hook's ask: lifted, the call would run with nobody asked. An ask that names
-  neither (the mode's own, a check of the engine's own) is not held.
+  chain's answer whatever decided it; an ask, when it names the settings rule
+  that decided it (`rule`).
+- Any rule counts, whoever configured it: a verdict carries the rule as
+  written, never where it was read from. A deny holds unnamed because it can
+  stand in front of a rule's ask: lifted, the call would run with nobody
+  asked. An ask that names no rule (the mode's own, a settings hook's, a check
+  of the engine's own, an organization's plugin's) is not held.
 - An organization's plugin (prepend or append) or a built-in that allows
   over a deny rule takes part in both runs, so its answer stands (a prepended
   one that loosens is what brings the second run about, so its hooks run
   twice on such a call). The mode's own ask
-  that a person's plugin turns into an allow, with no rule or hook behind it,
+  that a person's plugin turns into an allow, with no rule behind it,
   stands: that is what such a plugin is for.
 - `tool.check` pins the question (`tool`, `input`, `tool_use_id`), so no hook
   can have the rules evaluated on one command and another run; a rewrite
@@ -158,9 +159,8 @@ managed one included. Where this plugin is seated it does not:
   transcript and the debug log: `<plugin> tried to lift a deny rule in your
   settings from a <tool> call (<rule>); the deny rule holds over the plugins
   you install (allowModsToOverrideDenyRules)`. The kinds are `a deny rule`,
-  `an ask rule`, `a <event> hook's ask` and `a refusal` (a deny that names no
-  rule); the last two carry neither `in your settings` nor a rule. Plugins the
-  engine ran as one
+  `an ask rule` and `a refusal` (a deny that names no rule); the last carries
+  neither `in your settings` nor a rule. Plugins the engine ran as one
   batch are named together, as it names them (`audit+easy`). A plain `-p`
   run has it in the debug log alone; the call is still denied, or asked
   about, with its own message. The line goes past the user tier (the `ui.log`
@@ -179,7 +179,7 @@ managed one included. Where this plugin is seated it does not:
 - If the hook itself fails, its `.catch` answers from the one run it can
   read: a deny stands; a verdict no plugin of the person's loosened stands;
   one they loosened, or a run that rejected, is refused, since the rules
-  and hooks were never consulted.
+  were never consulted.
 
 An organization that wants the plugins its people install to override deny
 rules, and all else that holds with them, says so in managed settings, under

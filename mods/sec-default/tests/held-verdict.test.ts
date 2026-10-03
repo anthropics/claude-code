@@ -6,69 +6,50 @@ import Fixtures from './fixtures'
 tier('prepend')
 
 describe('held-verdict', () => {
-  test('over an allow: any deny, and an ask a rule or a hook decided', () => {
+  test('over an allow: any deny, and an ask a settings rule decided', () => {
     expect(
       [
         Fixtures.RULE_DENY,
         Fixtures.RULE_ASK,
-        Fixtures.HOOK_DENY,
-        Fixtures.HOOK_ASK,
         Fixtures.PLAIN_DENY,
         Fixtures.ASKED,
         Fixtures.ALLOWED,
       ].map(held => Hooks.holdsOver(held, Fixtures.ALLOWED)),
-    ).toEqual([true, true, true, true, true, false, false])
+    ).toEqual([true, true, true, false, false])
   })
 
   test('over an ask only a deny is stricter; over a deny nothing is', () => {
     expect(
-      [
-        Fixtures.RULE_DENY,
-        Fixtures.RULE_ASK,
-        Fixtures.HOOK_DENY,
-        Fixtures.HOOK_ASK,
-      ].map(held => [
+      [Fixtures.RULE_DENY, Fixtures.RULE_ASK].map(held => [
         Hooks.holdsOver(held, Fixtures.ASKED),
         Hooks.holdsOver(held, Fixtures.PLAIN_DENY),
       ]),
     ).toEqual([
       [true, false],
       [false, false],
-      [true, false],
-      [false, false],
     ])
   })
 
-  test('a rule or hook the answer itself names makes nothing hold', () => {
+  test('a rule the answer itself names makes nothing hold', () => {
     expect(
       Hooks.holdsOver(Fixtures.ASKED, {
         ...Fixtures.ALLOWED,
         rule: 'Bash(echo *)',
-        hook: 'PreToolUse',
       }),
     ).toBe(false)
   })
 
   test('the notice names the kind that held, and the rule when one did', () => {
     expect(
-      [
-        Fixtures.RULE_DENY,
-        Fixtures.RULE_ASK,
-        { ...Fixtures.RULE_ASK, ...Fixtures.HOOK_ASK },
-        Fixtures.HOOK_ASK,
-        Fixtures.HOOK_DENY,
-        Fixtures.PLAIN_DENY,
-      ].map(held => Hooks.heldNotice('easy', 'Bash', held)),
+      [Fixtures.RULE_DENY, Fixtures.RULE_ASK, Fixtures.PLAIN_DENY].map(held =>
+        Hooks.heldNotice('easy', 'Bash', held),
+      ),
     ).toEqual(
       [
         'a deny rule in your settings from a Bash call (Bash(echo *)); ' +
           'the deny rule',
         'an ask rule in your settings from a Bash call (Bash(echo *)); ' +
           'the ask rule',
-        'an ask rule in your settings from a Bash call (Bash(echo *)); ' +
-          'the ask rule',
-        "a PreToolUse hook's ask from a Bash call; the PreToolUse hook's ask",
-        'a refusal from a Bash call; the refusal',
         'a refusal from a Bash call; the refusal',
       ].map(
         middle =>
@@ -78,10 +59,22 @@ describe('held-verdict', () => {
     )
   })
 
-  test('the refusal of a pinned variable names the setting and it', () => {
-    expect(Hooks.pinnedVariableRefusal('CORP_PROXY')).toBe(
-      'env (managed): CORP_PROXY is not for plugins outside policy to change',
-    )
+  test('what no check vouches for is refused, and says why', () => {
+    expect(Hooks.UNCHECKED_DENY).toEqual({
+      decision: 'deny',
+      reason:
+        'the rules in your settings could not be checked for this call, ' +
+        'so it is refused',
+    })
+  })
+
+  test('an ask of theirs over a deny, caught, is no more vouched for', () => {
+    expect(
+      Hooks.caughtAnswer(Fixtures.ASKED, [
+        Fixtures.linkOf('easy', 'user', Fixtures.ASKED),
+        Fixtures.linkOf('engine', 'core', Fixtures.RULE_DENY),
+      ]),
+    ).toEqual(Hooks.UNCHECKED_DENY)
   })
 
   test('a link of theirs is named when it answered looser than handed', () => {

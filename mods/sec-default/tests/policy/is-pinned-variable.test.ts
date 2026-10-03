@@ -22,6 +22,12 @@ describe('is-pinned-variable', () => {
     ).toEqual([true, true, false])
   })
 
+  test('a name managed env sets to nothing is pinned all the same', () => {
+    expect(
+      Policy.isPinnedVariable({ env: { CORP_PROXY: '' } }, 'CORP_PROXY'),
+    ).toBe(true)
+  })
+
   test('settings with no env pin nothing', () => {
     expect(
       [Fixtures.MANAGED_POLICY, {}, { env: {} }].map(policy =>

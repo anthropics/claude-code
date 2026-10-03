@@ -3695,7 +3695,7 @@ declare module 'claude-code' {
        */
       'tool.call': ToolCallResult;
       /**
-       * `{ decision, reason?, rule?, hook? }`.
+       * `{ decision, reason?, rule? }`.
        */
       'tool.check': ToolCheckResult;
       /**
@@ -9943,7 +9943,7 @@ declare module 'claude-code' {
 
   /**
    * What a `tool.check` hook returns and what `next(e)` resolves to: the
-   * verdict, why, and the settings rule or classic hook behind it, if any.
+   * verdict, why, and the settings rule behind it when one decided.
    *
    * From core, the engine's declarative decision for the session's mode and
    * rules. A hook may answer any verdict in either direction; the last word up
@@ -9966,13 +9966,6 @@ declare module 'claude-code' {
        * Absent for a mode or a tool's own check.
        */
       rule?: string;
-      /**
-       * The classic hook event that decided, or whose ask the verdict was reached
-       * under (`PreToolUse`), whoever configured the hook.
-       *
-       * Absent on a `$.tool.check` query, which runs no classic hook.
-       */
-      hook?: string;
   };
 
   /**

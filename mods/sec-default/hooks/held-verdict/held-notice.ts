@@ -19,14 +19,12 @@ export function heldNotice(
   held: EventResult<'tool.check'>,
 ) {
   const kind = heldKind(held)
-  const article = kind.startsWith('a') ? 'an' : 'a'
-  const lifted =
-    held.rule === undefined
-      ? `${article} ${kind} from a ${tool} call`
-      : `${article} ${kind} in your settings from a ${tool} call (${held.rule})`
+  const isRuled = held.rule !== undefined
 
   return (
-    `${plugin} tried to lift ${lifted}; the ${kind} holds over the plugins ` +
-    'you install (allowModsToOverrideDenyRules)'
+    `${plugin} tried to lift ${kind.startsWith('a') ? 'an' : 'a'} ${kind}` +
+    `${isRuled ? ' in your settings' : ''} from a ${tool} call` +
+    `${isRuled ? ` (${held.rule})` : ''}; the ${kind} holds over the ` +
+    'plugins you install (allowModsToOverrideDenyRules)'
   )
 }

@@ -615,54 +615,6 @@ describe('register', () => {
   )
 
   test(
-    "a classic hook's ask holds over an allow from a plugin of the person",
-    { plugins: [Fixtures.allowing('easy')] },
-    async ($, on) => {
-      on('settings.read', () => ({ value: Fixtures.MANAGED_POLICY }))
-
-      const lines = Fixtures.logged(on)
-
-      Fixtures.checksAnswered(on, Fixtures.HOOK_ASK)
-
-      expect(await $.tool.check(Fixtures.CHECKED)).toEqual(Fixtures.HOOK_ASK)
-
-      expect(lines).toEqual([
-        `transcript: ${Hooks.heldNotice('easy', 'Bash', Fixtures.HOOK_ASK)}`,
-      ])
-    },
-  )
-
-  test(
-    "a classic hook's deny holds over their allow",
-    { plugins: [Fixtures.allowing('easy')] },
-    async ($, on) => {
-      on('settings.read', () => ({ value: Fixtures.MANAGED_POLICY }))
-
-      const lines = Fixtures.logged(on)
-
-      Fixtures.checksAnswered(on, Fixtures.HOOK_DENY)
-
-      expect(await $.tool.check(Fixtures.CHECKED)).toEqual(Fixtures.HOOK_DENY)
-
-      expect(lines).toEqual([
-        `transcript: ${Hooks.heldNotice('easy', 'Bash', Fixtures.HOOK_DENY)}`,
-      ])
-    },
-  )
-
-  test(
-    "a classic hook's deny holds over their ask",
-    { plugins: [Fixtures.asking('easy')] },
-    async ($, on) => {
-      on('settings.read', () => ({ value: Fixtures.MANAGED_POLICY }))
-      Fixtures.logged(on)
-      Fixtures.checksAnswered(on, Fixtures.HOOK_DENY)
-
-      expect(await $.tool.check(Fixtures.CHECKED)).toEqual(Fixtures.HOOK_DENY)
-    },
-  )
-
-  test(
     'an allow that never called next meets the ask rule all the same',
     { plugins: [Fixtures.blindAllowing] },
     async ($, on) => {
@@ -721,7 +673,7 @@ describe('register', () => {
 
       const lines = Fixtures.logged(on)
 
-      Fixtures.checksAnswered(on, Fixtures.HOOK_ASK)
+      Fixtures.checksAnswered(on, Fixtures.RULE_ASK)
 
       expect(await $.tool.check(Fixtures.CHECKED)).toEqual(Fixtures.ALLOWED)
       expect(lines).toEqual([])
@@ -729,7 +681,7 @@ describe('register', () => {
   )
 
   test(
-    "the mode's own ask, no rule or hook behind it, is theirs to allow",
+    "the mode's own ask, no rule behind it, is theirs to allow",
     { plugins: [Fixtures.allowing('easy')] },
     async ($, on) => {
       on('settings.read', () => ({ value: Fixtures.MANAGED_POLICY }))
@@ -744,7 +696,7 @@ describe('register', () => {
   )
 
   test(
-    'a deny holds whatever decided it: it may stand before a rule or a hook',
+    "a deny holds whatever decided it: it may stand before a rule's ask",
     { plugins: [Fixtures.allowing('easy')] },
     async ($, on) => {
       on('settings.read', () => ({ value: Fixtures.MANAGED_POLICY }))
@@ -827,6 +779,43 @@ describe('register', () => {
   )
 
   test(
+    'each plugin is told of a kind, by the tool it answered on',
+    { plugins: [Fixtures.allowingBash, Fixtures.allowingRead] },
+    async ($, on) => {
+      on('settings.read', () => ({ value: Fixtures.MANAGED_POLICY }))
+
+      const lines = Fixtures.logged(on)
+
+      Fixtures.checksAnswered(on, Fixtures.RULE_DENY)
+
+      await $.tool.check(Fixtures.CHECKED)
+      await $.tool.check(Fixtures.CHECKED_READ)
+
+      expect(lines).toEqual([
+        `transcript: ${Hooks.heldNotice('basher', 'Bash', Fixtures.RULE_DENY)}`,
+        `transcript: ${Hooks.heldNotice('reader', 'Read', Fixtures.RULE_DENY)}`,
+      ])
+    },
+  )
+
+  test(
+    "an organization's appended plugin has its say in the run past theirs",
+    {
+      plugins: [Fixtures.allowing('suite', 'append'), Fixtures.blindAllowing],
+    },
+    async ($, on) => {
+      on('settings.read', () => ({ value: Fixtures.MANAGED_POLICY }))
+
+      const lines = Fixtures.logged(on)
+
+      Fixtures.checksAnswered(on, Fixtures.RULE_ASK)
+
+      expect(await $.tool.check(Fixtures.CHECKED)).toEqual(Fixtures.ALLOWED)
+      expect(lines).toEqual([])
+    },
+  )
+
+  test(
     'a plugin is told once of each kind of thing that held over it',
     { plugins: [Fixtures.allowing('easy')] },
     async ($, on) => {
@@ -837,24 +826,20 @@ describe('register', () => {
         Fixtures.RULE_DENY,
         Fixtures.RULE_ASK,
         Fixtures.RULE_ASK,
-        Fixtures.HOOK_ASK,
         Fixtures.PLAIN_DENY,
         Fixtures.RULE_DENY,
       ]
       const turn = Fixtures.checksAnsweredInTurn(on, verdicts)
 
-      for (const _ of verdicts) {
-        await $.tool.check(Fixtures.CHECKED)
+      for (const verdict of verdicts) {
+        expect(await $.tool.check(Fixtures.CHECKED)).toEqual(verdict)
         turn()
       }
 
       expect(lines).toEqual(
-        [
-          Fixtures.RULE_DENY,
-          Fixtures.RULE_ASK,
-          Fixtures.HOOK_ASK,
-          Fixtures.PLAIN_DENY,
-        ].map(held => `transcript: ${Hooks.heldNotice('easy', 'Bash', held)}`),
+        [Fixtures.RULE_DENY, Fixtures.RULE_ASK, Fixtures.PLAIN_DENY].map(
+          held => `transcript: ${Hooks.heldNotice('easy', 'Bash', held)}`,
+        ),
       )
     },
   )
