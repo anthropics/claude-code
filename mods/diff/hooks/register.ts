@@ -21,6 +21,7 @@ import Limits from './limits'
 import { messageOf } from './message-of'
 import { mtimeOf } from './mtime-of'
 import Names from './names'
+import OpenOutcome from './open-outcome'
 import PaneState from './pane-state'
 import PaneToggle from './pane-toggle'
 import Record from './record'
@@ -44,6 +45,7 @@ export function register(on: On) {
   let probing: Promise<boolean> | null = null
   let sessionStartMs = 0
   let isPaneOpen = false
+  let awaited: (typeof Record.SHOWN_TRIGGERS)[number] | null = null
   let dialogRows: number | null = null
   let hasAutoOpened = false
   let hasRestoredEdits = false
@@ -69,6 +71,7 @@ export function register(on: On) {
   const loggedBaseKinds = new Set<'ok' | 'sad'>()
 
   const currentOf = (engine: Host): Host => host ?? engine
+  const isPaneSeen = (): boolean => isPaneOpen && awaited === null
 
   const backendHostOf = (engine: Host): Backend.BackendHost => ({
     run: (argv, init) =>
@@ -180,7 +183,6 @@ export function register(on: On) {
     return {
       id: Names.PANE_ID,
       title: Names.PANE_TITLE,
-      holdToasts: true,
       closeOnEscape: true,
       rows: Views.dialogRowsOf(model),
     }
@@ -303,7 +305,7 @@ export function register(on: On) {
     timers.set(
       'poll',
       engine.every(Limits.HEAD_POLL_MS, () => {
-        if (!isPaneOpen) {
+        if (!isPaneSeen()) {
           return
         }
 
@@ -415,10 +417,20 @@ export function register(on: On) {
     }
   }
 
+  async function showKept(
+    engine: Host,
+    trigger: (typeof Record.SHOWN_TRIGGERS)[number],
+  ): Promise<void> {
+    await markShown(engine, trigger)
+    await pinBackend(engine)
+    keepBaseline()
+    void refresh(engine)
+  }
+
   async function openPane(
     engine: Host,
     trigger: (typeof Record.SHOWN_TRIGGERS)[number],
-  ): Promise<boolean> {
+  ): Promise<OpenOutcome.OpenOutcome> {
     const isDialog = model.isFullscreen === false
 
     model = {
@@ -439,21 +451,25 @@ export function register(on: On) {
     const opened = await engine.openPane(
       isDialog
         ? { ...dialogPane(), focus: true }
-        : { id: Names.PANE_ID, title: Names.PANE_TITLE, holdToasts: true },
+        : { id: Names.PANE_ID, title: Names.PANE_TITLE },
     )
 
-    const isWaiting = isRecord(opened) && opened.isPlaced === false
+    const outcome = OpenOutcome.openOutcomeOf(opened)
 
-    if (isWaiting) {
+    if (outcome === 'withdrawn') {
       await engine.closePane({ id: Names.PANE_ID }).catch(() => undefined)
 
-      return false
+      return outcome
     }
 
     isPaneOpen = true
     keepBaseline()
 
-    await markShown(engine, trigger)
+    if (outcome === 'awaited') {
+      awaited = trigger
+    } else {
+      await markShown(engine, trigger)
+    }
 
     const isStale = isDialog || landed !== landedBefore
 
@@ -461,12 +477,13 @@ export function register(on: On) {
       void refresh(engine)
     }
 
-    return true
+    return outcome
   }
 
   async function closePane(engine: Host): Promise<void> {
     await engine.closePane({ id: Names.PANE_ID })
     isPaneOpen = false
+    awaited = null
   }
 
   function markTabSwitch(engine: Host, tab: (typeof Record.TABS)[number]) {
@@ -513,7 +530,7 @@ export function register(on: On) {
     }
 
     hasAutoOpened = true
-    hasAutoOpened = await openPane(engine, 'auto_open')
+    hasAutoOpened = (await openPane(engine, 'auto_open')) !== 'withdrawn'
   }
 
   async function openOnRestore(engine: Host): Promise<void> {
@@ -728,6 +745,13 @@ export function register(on: On) {
 
     columns = e.viewport?.columns ?? columns
 
+    if (awaited !== null) {
+      const trigger = awaited
+
+      awaited = null
+      void showKept(host, trigger).catch(() => undefined)
+    }
+
     /**
      * A seat that changed since the last drawing lists other rows, whose
      * bodies are read once.
@@ -797,12 +821,16 @@ export function register(on: On) {
 
     const isOpening = toggle === 'open'
 
-    const isDone = isOpening
+    const outcome = isOpening
       ? await openPane(host, 'manual')
-      : await closePane(host).then(() => true)
+      : await closePane(host).then(() => 'placed' as const)
 
-    if (!isDone) {
+    if (outcome === 'withdrawn') {
       return { text: Names.RESIZE_TERMINAL_TEXT }
+    }
+
+    if (outcome === 'awaited') {
+      return { text: Names.AWAITS_SURFACE_TEXT }
     }
 
     if (!isFullscreen) {
@@ -842,6 +870,7 @@ export function register(on: On) {
 
     if (isClosed) {
       isPaneOpen = false
+      awaited = null
     }
 
     const isDocking = model.isFullscreen !== false
@@ -905,7 +934,7 @@ export function register(on: On) {
     }
 
     const isResume = e.command === 'resume'
-    const isKeptOpen = isPaneOpen && !isResume
+    const isKeptOpen = isPaneSeen() && !isResume
 
     if (isPaneOpen && isResume) {
       await closePane(host).catch(() => undefined)
@@ -925,10 +954,7 @@ export function register(on: On) {
       (isResume ? sessionStartMs : await host.now())
 
     if (isKeptOpen) {
-      await markShown(host, 'manual')
-      await pinBackend(host)
-      keepBaseline()
-      void refresh(host)
+      await showKept(host, 'manual')
     }
 
     if (isResume) {
@@ -957,7 +983,7 @@ export function register(on: On) {
       landed += 1
     }
 
-    if (hasLanded && isPaneOpen) {
+    if (hasLanded && isPaneSeen()) {
       scheduleRefresh(engine)
     }
 
