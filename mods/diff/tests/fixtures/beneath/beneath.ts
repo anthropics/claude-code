@@ -36,6 +36,12 @@ export type Beneath = {
   isLeftWaiting?: () => boolean
 
   /**
+   * Whether an open made now is kept with nothing attached to draw it
+   * (LEFT_UNSEEN), as before a host's page attaches; placed when not given.
+   */
+  isLeftUnseen?: () => boolean
+
+  /**
    * Why a hunks read asked now is refused, as the host refuses a git that
    * outran its timeout; answered from the script when null or not given.
    */
