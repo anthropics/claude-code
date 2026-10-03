@@ -61,7 +61,9 @@ HAS_API_CREDENTIALS = bool(
 # interruptive review surfaces — false positives are the dominant uninstall
 # driver, so the default favors precision over recall and over latency.
 # Override via the SECURITY_REVIEW_MODEL env var (see README).
-SECURITY_REVIEW_MODEL = os.environ.get("SECURITY_REVIEW_MODEL", "").strip() or "claude-opus-4-7"
+# NOTE: this is a fixed model-generation string, not a "latest" alias — the
+# API has no such alias. Bump this by hand when a newer default is warranted.
+SECURITY_REVIEW_MODEL = os.environ.get("SECURITY_REVIEW_MODEL", "").strip() or "claude-opus-5"
 
 # OAuth subscriber tokens (ANTHROPIC_AUTH_TOKEN) require this exact system prompt
 # for api.anthropic.com/v1/messages — the API checks for one of the known Claude
@@ -210,7 +212,10 @@ def _build_auth_headers(use_token):
 _ADAPTIVE_THINKING_MODELS = (
     "claude-opus-4-6",
     "claude-opus-4-7",
+    "claude-opus-4-8",
+    "claude-opus-5",
     "claude-sonnet-4-6",
+    "claude-sonnet-5",
 )
 _LEGACY_THINKING_MODELS = (
     "claude-3-",
@@ -387,7 +392,8 @@ def _call_claude(prompt, output_schema, thinking_budget=10000, max_tokens=16000,
                  retry_5xx=True):
     """
     Call the configured LLM model with extended thinking and structured outputs.
-    Model defaults to Sonnet 4.6 but can be overridden via SECURITY_REVIEW_MODEL env var.
+    Model defaults to SECURITY_REVIEW_MODEL (Opus 5) but can be overridden via
+    the SECURITY_REVIEW_MODEL env var.
     Returns parsed JSON response or None on failure.
     On failure, sets module-level _last_call_claude_http_error to the HTTP status
     (or -1 for network/timeout) so callers can distinguish API failure from an
@@ -552,7 +558,7 @@ def _call_claude_dual_or(prompt, output_schema, *, bool_key: str, list_key: str,
         if r is None and not explicit:
             debug_log(f"single: {primary} failed, falling back to sonnet")
             r = _call_claude(prompt, output_schema, thinking_budget=thinking_budget,
-                             max_tokens=max_tokens, model="claude-sonnet-4-6",
+                             max_tokens=max_tokens, model="claude-sonnet-5",
                              retry_5xx=True)
         return r
 
@@ -562,7 +568,7 @@ def _call_claude_dual_or(prompt, output_schema, *, bool_key: str, list_key: str,
         if r is None and not explicit:
             debug_log(f"dual_or: {primary} leg failed, falling back to sonnet")
             r = _call_claude(prompt, output_schema, thinking_budget=thinking_budget,
-                             max_tokens=max_tokens, model="claude-sonnet-4-6",
+                             max_tokens=max_tokens, model="claude-sonnet-5",
                              retry_5xx=True)
         return r
 
@@ -1118,7 +1124,7 @@ def agentic_review(
 
     # Default to the documented public model. Overridable via SG_AGENTIC_MODEL.
     # The bundled SDK CLI only knows public model names.
-    _DEFAULT_PUBLIC_MODEL = "claude-opus-4-7"
+    _DEFAULT_PUBLIC_MODEL = "claude-opus-5"
     model = os.environ.get("SG_AGENTIC_MODEL") or _DEFAULT_PUBLIC_MODEL
     max_turns = int(os.environ.get("SG_AGENTIC_MAX_TURNS", "18"))
     # In production repo_dir is the user's working tree (full repo). Under the
