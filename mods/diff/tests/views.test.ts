@@ -290,7 +290,6 @@ describe('views', () => {
     expect(world.opened.at(-1), 'sized to its rows once listed').toEqual({
       id: 'diff',
       title: 'Diff',
-      holdToasts: true,
       closeOnEscape: true,
       rows: 8,
     })

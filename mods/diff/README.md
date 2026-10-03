@@ -37,8 +37,8 @@ where the focus ring starts; the plugin follows the ring's walk through
 `ui.focus` and re-centres the rows as the built-in does), the key hints;
 Enter shows that file's hunks alone,
 Escape backs out to the list and then closes, leaving `Diff dialog
-dismissed`; toasts are held while it is up. A file's ask button arms that
-file: its hunks ride the next prompt as context, once.
+dismissed`; toasts show while it is up, as beside the docked pane. A file's
+ask button arms that file: its hunks ride the next prompt as context, once.
 
 The pane compares the working tree against HEAD, split at the session's
 start (the default; the start the engine gives in `$.session.usage()`, so a
