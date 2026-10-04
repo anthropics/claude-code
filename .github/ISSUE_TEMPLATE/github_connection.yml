@@ -1,0 +1,37 @@
+name: GitHub connection problem (claude.ai)
+description: Report a problem connecting GitHub to Claude on claude.ai, usually opened from the "Report an issue" link on the GitHub connector page.
+title: "[GitHub integration] "
+labels: ["github-integration"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Add a screenshot before you submit. It's the fastest way to show what went wrong.
+        This issue will be public. Crop or blur anything you don't want to share, like private repository names.
+  - type: textarea
+    id: screenshot
+    attributes:
+      label: Screenshot
+      description: Take a screenshot of the claude.ai page where you hit the problem (the whole page, including any error message), then paste or drag it here.
+    validations:
+      required: false
+  - type: textarea
+    id: goal
+    attributes:
+      label: What were you trying to do?
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics
+      description: Filled in by claude.ai. Don't edit.
+      render: text
+    validations:
+      required: false

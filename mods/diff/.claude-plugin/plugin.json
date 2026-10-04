@@ -1,0 +1,8 @@
+{
+  "name": "diff",
+  "version": "0.1.0",
+  "description": "The diff pane as a plugin: /diff opens the session's uncommitted changes beside the transcript, file by file with their hunks, refreshed as Claude edits and runs commands; the first edit opens it where the terminal is wide enough, and a file's ask button rides its hunks on the next prompt.",
+  "author": {
+    "name": "Anthropic"
+  }
+}

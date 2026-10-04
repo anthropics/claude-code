@@ -22,71 +22,56 @@ jobs:
           script: |
             const sevenDaysAgo = new Date();
             sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+            const cutoff = sevenDaysAgo.toISOString().split('T')[0];
 
             const lockComment = `This issue has been automatically locked since it was closed and has not had any activity for 7 days. If you're experiencing a similar issue, please file a new issue and reference this one if it's relevant.`;
 
-            let page = 1;
-            let hasMore = true;
+            const query = `repo:${context.repo.owner}/${context.repo.repo} is:issue is:closed is:unlocked updated:<${cutoff}`;
+            console.log(`Search query: ${query}`);
+
+            const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+            const MAX_PER_RUN = 250;
+            const processed = new Set();
             let totalLocked = 0;
 
-            while (hasMore) {
-              // Get closed issues (pagination)
-              const { data: issues } = await github.rest.issues.listForRepo({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                state: 'closed',
+            while (totalLocked < MAX_PER_RUN) {
+              const { data } = await github.rest.search.issuesAndPullRequests({
+                q: query,
                 sort: 'updated',
-                direction: 'asc',
+                order: 'asc',
                 per_page: 100,
-                page: page
               });
-              
-              if (issues.length === 0) {
-                hasMore = false;
-                break;
+
+              if (totalLocked === 0) {
+                console.log(`Total candidates: ${data.total_count}`);
               }
-              
-              for (const issue of issues) {
-                // Skip if already locked
-                if (issue.locked) continue;
-                
-                // Skip pull requests
-                if (issue.pull_request) continue;
-                
-                // Check if updated more than 7 days ago
-                const updatedAt = new Date(issue.updated_at);
-                if (updatedAt > sevenDaysAgo) {
-                  // Since issues are sorted by updated_at ascending, 
-                  // once we hit a recent issue, all remaining will be recent too
-                  hasMore = false;
-                  break;
-                }
-                
+
+              const fresh = data.items.filter((i) => !processed.has(i.number));
+              if (fresh.length === 0) break;
+
+              for (const issue of fresh) {
+                if (totalLocked >= MAX_PER_RUN) break;
+                processed.add(issue.number);
                 try {
-                  // Add comment before locking
                   await github.rest.issues.createComment({
                     owner: context.repo.owner,
                     repo: context.repo.repo,
                     issue_number: issue.number,
-                    body: lockComment
+                    body: lockComment,
                   });
-                  
-                  // Lock the issue
                   await github.rest.issues.lock({
                     owner: context.repo.owner,
                     repo: context.repo.repo,
                     issue_number: issue.number,
-                    lock_reason: 'resolved'
+                    lock_reason: 'resolved',
                   });
-                  
                   totalLocked++;
                   console.log(`Locked issue #${issue.number}: ${issue.title}`);
+                  await sleep(1000);
                 } catch (error) {
                   console.error(`Failed to lock issue #${issue.number}: ${error.message}`);
                 }
               }
-              
-              page++;
             }
 
             console.log(`Total issues locked: ${totalLocked}`);

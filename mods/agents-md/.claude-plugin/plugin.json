@@ -1,0 +1,23 @@
+{
+  "name": "agents-md",
+  "version": "0.1.0",
+  "description": "AGENTS.md as project instructions, by one option. Under claude-md-or-agents-md a project with no instruction files of its own gets its AGENTS.md files instead: a prompt.context hook asks $.fs.ancestors for every AGENTS.md and .claude/AGENTS.md from the filesystem root down to the working directory and hands them to the engine as project instruction files, which it renders, announces and withholds from agents exactly as it does CLAUDE.md, skipping any file the engine already loaded by import or link; a tool.call hook on Read attaches the ones under the project root as the engine attaches a nested CLAUDE.md. Under claude-md-and-agents-md every AGENTS.md is loaded beside CLAUDE.md. Under managed-only the project's and the person's instruction files are dropped and the organization's managed ones kept. Under claude-md the engine's walk stands alone. claude-md-or-agents-md is the default.",
+  "author": {
+    "name": "Anthropic"
+  },
+  "userConfig": {
+    "instructionFiles": {
+      "type": "string",
+      "title": "Project instructions",
+      "description": "\"claude-md\": CLAUDE.md only, loaded by the engine as today. \"claude-md-or-agents-md\" (default): a project with no CLAUDE.md of its own gets its AGENTS.md files instead, loaded exactly where and how CLAUDE.md would be. \"claude-md-and-agents-md\": AGENTS.md files are loaded beside CLAUDE.md (a file CLAUDE.md already imports or links to is not loaded twice). \"managed-only\": the project's and your own instruction files are dropped; the organization's managed CLAUDE.md and memory stay.",
+      "required": false,
+      "default": "claude-md-or-agents-md",
+      "options": [
+        "claude-md",
+        "claude-md-or-agents-md",
+        "claude-md-and-agents-md",
+        "managed-only"
+      ]
+    }
+  }
+}

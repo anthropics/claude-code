@@ -1,0 +1,8 @@
+{
+  "name": "sec-default",
+  "version": "0.1.0",
+  "description": "Security default for organizations: seated outermost, it keeps the organization's classic hooks, prompt content, settings and tool policy out of reach of the plugins a person installs, and adds no policy of its own; one managed option, allowManagedModsOnly, limits mods to the organization's.",
+  "author": {
+    "name": "Anthropic"
+  }
+}

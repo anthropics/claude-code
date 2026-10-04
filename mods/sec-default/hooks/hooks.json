@@ -1,0 +1,4 @@
+{
+  "description": "Security default: from the outermost seat, continues past the user tier on the organization's classic hooks, prompt content, settings and subjects, refuses a user-tier tool.register under an MCP allowlist, restores the organization's tools in tool.list, holds a settings deny rule over a user-tier allow or ask on tool.check, and refuses a user-tier hooks module at plugin.register while managed settings set its allowManagedModsOnly option",
+  "modules": ["./register.ts"]
+}

@@ -13,7 +13,7 @@ To do this, follow these steps precisely:
 4. Next, feed the results from #1 and #2 into another agent, so that it can filter out false positives, that are likely not actually duplicates of the original issue. If there are no duplicates remaining, do not proceed.
 5. Finally, use the comment script to post duplicates:
    ```
-   ./scripts/comment-on-duplicates.sh --base-issue <issue-number> --potential-duplicates <dup1> <dup2> <dup3>
+   ./scripts/comment-on-duplicates.sh --potential-duplicates <dup1> <dup2> <dup3>
    ```
 
 Notes (be sure to tell this to your agents, too):

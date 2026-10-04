@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>PayloadDisplayName</key>
+	<string>Claude Code Managed Settings</string>
+	<key>PayloadDescription</key>
+	<string>Configures managed settings for Claude Code.</string>
+	<key>PayloadIdentifier</key>
+	<string>com.anthropic.claudecode.profile</string>
+	<key>PayloadOrganization</key>
+	<string>Example Organization</string>
+	<key>PayloadScope</key>
+	<string>System</string>
+	<key>PayloadType</key>
+	<string>Configuration</string>
+	<key>PayloadUUID</key>
+	<string>DC3CBC17-3330-4CDE-94AC-D2342E9C88A3</string>
+	<key>PayloadVersion</key>
+	<integer>1</integer>
+	<key>PayloadContent</key>
+	<array>
+		<dict>
+			<key>PayloadDisplayName</key>
+			<string>Claude Code</string>
+			<key>PayloadIdentifier</key>
+			<string>com.anthropic.claudecode.profile.BEFD5F54-71FC-4012-82B2-94399A1E220B</string>
+			<key>PayloadType</key>
+			<string>com.apple.ManagedClient.preferences</string>
+			<key>PayloadUUID</key>
+			<string>BEFD5F54-71FC-4012-82B2-94399A1E220B</string>
+			<key>PayloadVersion</key>
+			<integer>1</integer>
+			<key>PayloadContent</key>
+			<dict>
+				<key>com.anthropic.claudecode</key>
+				<dict>
+					<key>Forced</key>
+					<array>
+						<dict>
+							<key>mcx_preference_settings</key>
+							<dict>
+								<key>permissions</key>
+								<dict>
+									<key>disableBypassPermissionsMode</key>
+									<string>disable</string>
+								</dict>
+							</dict>
+						</dict>
+					</array>
+				</dict>
+			</dict>
+		</dict>
+	</array>
+</dict>
+</plist>
