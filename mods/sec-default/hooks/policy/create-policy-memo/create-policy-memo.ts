@@ -1,5 +1,7 @@
 import type { Settings } from 'claude-code'
 
+import { attempted } from '../../attempted'
+
 /**
  * A reader of managed policy that serves one read to every caller inside a
  * window after it, rejections included (a failed read still fails closed).
@@ -20,7 +22,7 @@ export function createPolicyMemo(
 
     if (isStale) {
       heldAt = now()
-      held = read()
+      held = attempted(read)
     }
 
     return held ?? read()

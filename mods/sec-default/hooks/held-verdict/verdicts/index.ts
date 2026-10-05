@@ -1,7 +1,11 @@
+export * from './is-ceiling-held.js'
 export * from './is-rule-deny.js'
+export * from './lifted-by-users.js'
 export * from './loosened-by-users.js'
+export * from './loosened-links'
 export * from './ranking'
 export * from './types'
+export * from './unchecked-ceiling.js'
 export * from './unchecked-deny.js'
 
 export * as default from '.'
