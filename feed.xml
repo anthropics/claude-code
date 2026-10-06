@@ -6,7 +6,15 @@
   <author><name>Anthropic</name></author>
   <link rel="alternate" type="text/html" href="https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md"/>
   <link rel="self" type="application/atom+xml" href="https://raw.githubusercontent.com/anthropics/claude-code/main/feed.xml"/>
-  <updated>2026-10-05T23:32:55Z</updated>
+  <updated>2026-10-06T03:54:58Z</updated>
+  <entry>
+    <id>https://github.com/anthropics/claude-code/releases/tag/v2.1.291</id>
+    <title>Claude Code v2.1.291</title>
+    <link rel="alternate" type="text/html" href="https://github.com/anthropics/claude-code/releases/tag/v2.1.291"/>
+    <updated>2026-10-06T03:54:58Z</updated>
+    <content type="html">&lt;p&gt;• Fixed a regression in 2.1.290 where cloud sessions could drop answers to permission prompts&lt;/p&gt;
+&lt;p&gt;• Fixed a regression in 2.1.288 where the last messages of a session could be lost when quitting&lt;/p&gt;</content>
+  </entry>
   <entry>
     <id>https://github.com/anthropics/claude-code/releases/tag/v2.1.290</id>
     <title>Claude Code v2.1.290</title>
@@ -1781,12 +1789,5 @@
 &lt;p&gt;• [Code Review] Fixed follow-up reviews re-posting a security finding a person had already resolved when a later push moved the lines it was anchored to&lt;/p&gt;
 &lt;p&gt;• [Code Review] Fixed reopening a finished /ultrareview cloud session in the Claude app starting the whole review over again unprompted&lt;/p&gt;
 &lt;p&gt;• Windows: Fixed PowerShell commands failing with "Exit code 1" and no output when the session's temp output path reaches 260 characters&lt;/p&gt;</content>
-  </entry>
-  <entry>
-    <id>https://github.com/anthropics/claude-code/releases/tag/v2.1.270</id>
-    <title>Claude Code v2.1.270</title>
-    <link rel="alternate" type="text/html" href="https://github.com/anthropics/claude-code/releases/tag/v2.1.270"/>
-    <updated>2026-09-12T19:45:38Z</updated>
-    <content type="html">&lt;p&gt;• Fixed read-only git commands in Bash unexpectedly asking for permission after a session had been running for a while (regression in 2.1.269)&lt;/p&gt;</content>
   </entry>
 </feed>
