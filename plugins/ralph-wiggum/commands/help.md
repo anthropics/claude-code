@@ -46,12 +46,14 @@ Start a Ralph loop in your current session.
 - `--completion-promise <text>` - Promise phrase to signal completion
 
 **How it works:**
-1. Creates `.claude/.ralph-loop.local.md` state file
+1. Creates session-specific state file in `state/<session-id>.md`
 2. You work on the task
 3. When you try to exit, stop hook intercepts
 4. Same prompt fed back
 5. You see your previous work
 6. Continues until promise detected or max iterations
+
+**Session Isolation:** Each Claude Code session has its own state file, preventing cross-session interference.
 
 ---
 
@@ -65,8 +67,8 @@ Cancel an active Ralph loop (removes the loop state file).
 ```
 
 **How it works:**
-- Checks for active loop state file
-- Removes `.claude/.ralph-loop.local.md`
+- Checks for active loop state file for this session
+- Removes the session's state file
 - Reports cancellation with iteration count
 
 ---
