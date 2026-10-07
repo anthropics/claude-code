@@ -8,6 +8,11 @@ from typing import List, Dict, Any, Optional
 
 # Import from local module
 from hookify.core.config_loader import Rule, Condition
+from hookify.utils.command_parser import (
+    is_compound_command,
+    format_command_breakdown,
+    extract_base_commands
+)
 
 
 # Cache compiled regexes (max 128 patterns)
@@ -59,7 +64,7 @@ class RuleEngine:
 
         # If any blocking rules matched, block the operation
         if blocking_rules:
-            messages = [f"**[{r.name}]**\n{r.message}" for r in blocking_rules]
+            messages = [self._format_rule_message(r, input_data) for r in blocking_rules]
             combined_message = "\n\n".join(messages)
 
             # Use appropriate blocking format based on event type
@@ -85,13 +90,46 @@ class RuleEngine:
 
         # If only warnings, show them but allow operation
         if warning_rules:
-            messages = [f"**[{r.name}]**\n{r.message}" for r in warning_rules]
+            messages = [self._format_rule_message(r, input_data) for r in warning_rules]
             return {
                 "systemMessage": "\n\n".join(messages)
             }
 
         # No matches - allow operation
         return {}
+
+    def _format_rule_message(self, rule: Rule, input_data: Dict[str, Any]) -> str:
+        """Format a rule message with template substitution.
+        
+        Supports template variables like {{COMMAND_BREAKDOWN}} for bash commands.
+        
+        Args:
+            rule: Rule with message to format
+            input_data: Hook input data
+            
+        Returns:
+            Formatted message string
+        """
+        message = f"**[{rule.name}]**\n{rule.message}"
+        
+        # Check if this is a bash command and message has templates
+        tool_name = input_data.get('tool_name', '')
+        if tool_name == 'Bash' and '{{' in message:
+            tool_input = input_data.get('tool_input', {})
+            command = tool_input.get('command', '')
+            
+            # Replace {{COMMAND_BREAKDOWN}} with formatted breakdown
+            if '{{COMMAND_BREAKDOWN}}' in message:
+                breakdown = format_command_breakdown(command)
+                message = message.replace('{{COMMAND_BREAKDOWN}}', breakdown)
+            
+            # Replace {{BASE_COMMANDS}} with list of base commands
+            if '{{BASE_COMMANDS}}' in message:
+                base_cmds = extract_base_commands(command)
+                cmd_list = ', '.join(f'`{cmd}`' for cmd in base_cmds)
+                message = message.replace('{{BASE_COMMANDS}}', cmd_list)
+        
+        return message
 
     def _rule_matches(self, rule: Rule, input_data: Dict[str, Any]) -> bool:
         """Check if rule matches input data.
@@ -175,6 +213,12 @@ class RuleEngine:
             return field_value.startswith(pattern)
         elif operator == 'ends_with':
             return field_value.endswith(pattern)
+        elif operator == 'is_compound':
+            # Special operator for detecting compound commands
+            # Pattern is ignored for this operator
+            if tool_name == 'Bash' and condition.field == 'command':
+                return is_compound_command(field_value)
+            return False
         else:
             # Unknown operator
             return False

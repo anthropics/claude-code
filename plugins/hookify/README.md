@@ -207,6 +207,31 @@ Before stopping, please run tests to verify your changes work correctly.
 
 **This blocks Claude from stopping** if no test commands appear in the session transcript. Enable only when you want strict enforcement.
 
+### Example 4: Validate Compound Commands
+
+```markdown
+---
+name: compound-command-validator
+enabled: true
+event: bash
+action: warn
+conditions:
+  - field: command
+    operator: is_compound
+    pattern: ""
+---
+
+⚠️ **Compound Command Detected**
+
+This command contains multiple operations:
+
+{{COMMAND_BREAKDOWN}}
+
+Make sure you understand all parts before approving.
+```
+
+**This warns about compound commands** like `sleep 10 && do-something-else`, breaking them down so you can see exactly what will execute. See `examples/COMPOUND_COMMANDS.md` for more details.
+
 ## Advanced Usage
 
 ### Multiple Conditions
@@ -240,6 +265,36 @@ Use environment variables instead of hardcoded values.
 - `not_contains`: String must NOT contain pattern
 - `starts_with`: String starts with pattern
 - `ends_with`: String ends with pattern
+- `is_compound`: Detects compound commands with `&&`, `||`, `;`, or `|` (bash only)
+
+### Template Variables
+
+For bash command rules, you can use template variables in your messages:
+
+- `{{COMMAND_BREAKDOWN}}`: Shows each command in a compound command with its operator
+- `{{BASE_COMMANDS}}`: Lists the base command names (e.g., `sleep`, `echo`, `rm`)
+
+Example:
+```markdown
+---
+name: compound-command-validator
+enabled: true
+event: bash
+action: warn
+conditions:
+  - field: command
+    operator: is_compound
+    pattern: ""
+---
+
+⚠️ **Compound Command Detected**
+
+{{COMMAND_BREAKDOWN}}
+
+Review each command before approving.
+```
+
+See `examples/COMPOUND_COMMANDS.md` for detailed documentation on compound command validation.
 
 ### Field Reference
 
