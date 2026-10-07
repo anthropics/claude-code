@@ -106,6 +106,7 @@ async function closeExpired(owner: string, repo: string) {
       for (const issue of issues) {
         if (issue.pull_request) continue;
         if (issue.locked) continue;
+        if (issue.assignees?.length > 0) continue;
 
         const thumbsUp = issue.reactions?.["+1"] ?? 0;
         if (thumbsUp >= STALE_UPVOTE_THRESHOLD) continue;
