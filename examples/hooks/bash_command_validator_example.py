@@ -6,7 +6,7 @@ This hook runs as a PreToolUse hook for the Bash tool.
 It validates bash commands against a set of rules before execution.
 In this case it changes grep calls to using rg.
 
-Read more about hooks here: https://docs.anthropic.com/en/docs/claude-code/hooks
+Read more about hooks here: https://code.claude.com/docs/en/hooks-guide
 
 Make sure to change your path to your actual script.
 

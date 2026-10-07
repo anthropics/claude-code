@@ -32,7 +32,7 @@ body:
     attributes:
       label: Documentation Location
       description: Where did you encounter this issue? Provide a URL if possible
-      placeholder: "e.g., https://docs.anthropic.com/en/docs/claude-code/getting-started"
+      placeholder: "e.g., https://code.claude.com/docs/en/quickstart"
     validations:
       required: false
       
