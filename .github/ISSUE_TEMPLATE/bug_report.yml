@@ -81,6 +81,26 @@ body:
         Note: The bug only happens with Python files containing...
     validations:
       required: true
+
+  - type: textarea
+    id: usage_limit_details
+    attributes:
+      label: Usage Limit Details (if relevant)
+      description: |
+        If this report is about usage limits, unexpected spending, or rate limiting, include:
+        - Output of `/usage` and `/cost` (redact any sensitive info)
+        - Approximate timestamps and timezone when limits triggered
+        - Any recent plan changes or top-ups
+      placeholder: |
+        /usage:
+        (paste output here)
+
+        /cost:
+        (paste output here)
+
+        Limit hit at ~5:30 PM PST on 2026-01-08. Added $5 top-up twice at 5:40 PM PST.
+    validations:
+      required: false
       
   - type: dropdown
     id: model
