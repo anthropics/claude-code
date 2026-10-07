@@ -1,4 +1,3 @@
-import Limits from '../../../limits'
 import type PaneState from '../../../pane-state'
 import type { BodyLayout, DockPlan } from '../types'
 import Segments from './segments'
@@ -39,10 +38,7 @@ export function bodyLayoutOf(
 
   const tops = new Map<string, number>()
 
-  const visibleRows = Math.max(
-    0,
-    model.place.rows - Limits.PANE_TOP_PAD_ROWS - headRows - listRows,
-  )
+  const visibleRows = Math.max(0, model.place.rows - headRows - listRows)
 
   let extent = 0
 
@@ -54,7 +50,7 @@ export function bodyLayoutOf(
     extent += Segments.segmentRowsOf(segment)
   }
 
-  const listTop = Limits.PANE_TOP_PAD_ROWS + headRows + 1
+  const listTop = headRows + 1
 
   return {
     segments,

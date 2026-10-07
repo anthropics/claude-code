@@ -40,11 +40,7 @@ export function paneView(
     seat.terminalColumns < Limits.OPEN_MIN_COLUMNS
 
   return isDocked ? (
-    <Box
-      flexDirection="column"
-      paddingTop={Limits.PANE_TOP_PAD_ROWS}
-      paddingRight={Limits.PANE_RIGHT_PAD_COLUMNS}
-    >
+    <Box flexDirection="column" paddingRight={Limits.PANE_RIGHT_PAD_COLUMNS}>
       {sidebarPane(insetOf(kit), model)}
     </Box>
   ) : isNarrow ? (

@@ -365,7 +365,7 @@ describe('pane-view', () => {
     expect(Fixtures.jsonOf(reversed)).not.toContain('‮')
   })
 
-  test("docked: the built-in's blank top row, last column", async ($, on) => {
+  test("docked: no top pad, the built-in's last column", async ($, on) => {
     const tree = await Fixtures.dockedPane(
       $,
       on,
@@ -381,14 +381,53 @@ describe('pane-view', () => {
 
     expect(tree).toMatchObject({
       type: 'Box',
-      props: {
-        paddingTop: Limits.PANE_TOP_PAD_ROWS,
-        paddingRight: Limits.PANE_RIGHT_PAD_COLUMNS,
-      },
+      props: { paddingRight: Limits.PANE_RIGHT_PAD_COLUMNS },
     })
 
+    expect(Fixtures.jsonOf(tree)).not.toContain('"paddingTop"')
     expect(Fixtures.stringsOf(tree)).toContain(rule)
     expect(Fixtures.stringsOf(tree)).not.toContain(`${rule}─`)
+  })
+
+  test('docked: the window takes every row under the list', () => {
+    const files = [Fixtures.rowOf('src/a.ts'), Fixtures.rowOf('b.ts')]
+    const headerRows = 1
+    const listMarginRows = 1
+
+    const model = modelOf({
+      data: dataOf(files),
+      place: { ...Fixtures.WHOLE_PLACE, rows: Fixtures.BODY_ROWS },
+    })
+
+    const listTop = headerRows + listMarginRows
+    const listEnd = listTop + files.length
+
+    expect(Views.bodyLayoutOf(model, Views.dockPlanOf(model))).toMatchObject({
+      listTop,
+      listEnd,
+      visibleRows: Fixtures.BODY_ROWS - listEnd - listMarginRows,
+    })
+  })
+
+  test('docked: the list takes the wheel from its first row', () => {
+    const model = modelOf({
+      data: dataOf(
+        Array.from({ length: Limits.MAX_SUMMARY_ROWS + 1 }, (_, index) =>
+          Fixtures.rowOf(`file${index}.ts`),
+        ),
+      ),
+      place: { ...Fixtures.WHOLE_PLACE, rows: Fixtures.BODY_ROWS },
+    })
+
+    expect(
+      Views.isWheelOverList(model, Fixtures.WHEEL_OVER_LIST_MARGIN),
+      'the blank row under the header',
+    ).toBe(false)
+
+    expect(
+      Views.isWheelOverList(model, Fixtures.WHEEL_OVER_LIST_TOP),
+      "the list's first row",
+    ).toBe(true)
   })
 
   test("docked rows follow the built-in's, its hunks after", async ($, on) => {
@@ -428,11 +467,9 @@ describe('pane-view', () => {
 
     const [header, pad, middle, foot, ...more] = Fixtures.childrenOf(body)
     const [spacer, headline, ...under] = Fixtures.childrenOf(middle)
-    const aboveMiddle = Limits.PANE_TOP_PAD_ROWS + 2
+    const aboveMiddle = Fixtures.ENGINE_HEAD_ROWS + 2
 
-    expect(body).toMatchObject({
-      props: { height: Fixtures.BODY_ROWS - Limits.PANE_TOP_PAD_ROWS },
-    })
+    expect(body).toMatchObject({ props: { height: Fixtures.BODY_ROWS } })
 
     expect(Fixtures.stringsOf(header)).toEqual([])
     expect(Fixtures.jsonOf(header)).not.toContain('✕')
