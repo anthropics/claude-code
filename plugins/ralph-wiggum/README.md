@@ -32,6 +32,10 @@ This creates a **self-referential feedback loop** where:
 - Each iteration sees modified files and git history
 - Claude autonomously improves by reading its own past work in files
 
+## Requirements
+
+- **Python 3** — used by the stop hook for JSON parsing (available on virtually all systems)
+
 ## Quick Start
 
 ```bash
