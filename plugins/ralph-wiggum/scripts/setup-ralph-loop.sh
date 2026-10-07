@@ -7,8 +7,8 @@ set -euo pipefail
 
 # Parse arguments
 PROMPT_PARTS=()
-MAX_ITERATIONS=0
-COMPLETION_PROMISE="null"
+MAX_ITERATIONS=5
+COMPLETION_PROMISE="RALPH TASK DONE"
 
 # Parse options and positional arguments
 while [[ $# -gt 0 ]]; do
@@ -24,12 +24,18 @@ ARGUMENTS:
   PROMPT...    Initial prompt to start the loop (can be multiple words without quotes)
 
 OPTIONS:
-  --max-iterations <n>           Maximum iterations before auto-stop (default: unlimited)
+  -m [n]                         Max iterations (default: 5)
+  --max-iterations <n>           Maximum iterations before auto-stop
+  -c [text]                      Completion promise (default: "RALPH TASK DONE")
   --completion-promise '<text>'  Promise phrase (USE QUOTES for multi-word)
   -h, --help                     Show this help message
 
+DEFAULTS (applied automatically):
+  Max iterations: 5
+  Completion promise: "RALPH TASK DONE"
+
 DESCRIPTION:
-  Starts a Ralph Wiggum loop in your CURRENT session. The stop hook prevents
+  Starts a Ralph Loop in your CURRENT session. The stop hook prevents
   exit and feeds your output back as input until completion or iteration limit.
 
   To signal completion, you must output: <promise>YOUR_PHRASE</promise>
@@ -40,10 +46,11 @@ DESCRIPTION:
   - Learning how Ralph works
 
 EXAMPLES:
+  /ralph-loop Build a todo API                 (uses defaults: "RALPH TASK DONE", 5 iterations)
+  /ralph-loop Build a todo API -m 10           (custom max: 10 iterations)
+  /ralph-loop Build a todo API -c 'DONE'       (custom promise)
   /ralph-loop Build a todo API --completion-promise 'DONE' --max-iterations 20
-  /ralph-loop --max-iterations 10 Fix the auth bug
-  /ralph-loop Refactor cache layer  (runs forever)
-  /ralph-loop --completion-promise 'TASK COMPLETE' Create a REST API
+  /ralph-loop --max-iterations 0 Refactor code (unlimited iterations)
 
 STOPPING:
   Only by reaching --max-iterations or detecting --completion-promise
@@ -57,6 +64,16 @@ MONITORING:
   head -10 .claude/ralph-loop.local.md
 HELP_EOF
       exit 0
+      ;;
+    -m)
+      # Shortcut for --max-iterations with optional value (default: 5)
+      if [[ -n "${2:-}" ]] && [[ "$2" =~ ^[0-9]+$ ]]; then
+        MAX_ITERATIONS="$2"
+        shift 2
+      else
+        MAX_ITERATIONS=5
+        shift
+      fi
       ;;
     --max-iterations)
       if [[ -z "${2:-}" ]]; then
@@ -84,6 +101,16 @@ HELP_EOF
       MAX_ITERATIONS="$2"
       shift 2
       ;;
+    -c)
+      # Shortcut for --completion-promise with optional value (default: "RALPH TASK DONE")
+      if [[ -n "${2:-}" ]] && [[ ! "$2" =~ ^- ]]; then
+        COMPLETION_PROMISE="$2"
+        shift 2
+      else
+        COMPLETION_PROMISE="RALPH TASK DONE"
+        shift
+      fi
+      ;;
     --completion-promise)
       if [[ -z "${2:-}" ]]; then
         echo "❌ Error: --completion-promise requires a text argument" >&2
@@ -101,6 +128,22 @@ HELP_EOF
       COMPLETION_PROMISE="$2"
       shift 2
       ;;
+    -*)
+      # Unknown flag - error out
+      echo "❌ Error: no prompt submitted" >&2
+      echo "" >&2
+      echo "   Unknown option: $1" >&2
+      echo "" >&2
+      echo "   Valid options:" >&2
+      echo "     -m [n]                         Max iterations (default: 5)" >&2
+      echo "     --max-iterations <n>           Maximum iterations" >&2
+      echo "     -c [text]                      Completion promise (default: RALPH TASK DONE)" >&2
+      echo "     --completion-promise '<text>'  Completion phrase" >&2
+      echo "     -h, --help                     Show help" >&2
+      echo "" >&2
+      echo "   For all options: /ralph-loop --help" >&2
+      exit 1
+      ;;
     *)
       # Non-option argument - collect all as prompt parts
       PROMPT_PARTS+=("$1")
@@ -110,11 +153,11 @@ HELP_EOF
 done
 
 # Join all prompt parts with spaces
-PROMPT="${PROMPT_PARTS[*]}"
+PROMPT="${PROMPT_PARTS[*]:-}"
 
 # Validate prompt is non-empty
 if [[ -z "$PROMPT" ]]; then
-  echo "❌ Error: No prompt provided" >&2
+  echo "❌ Error: no prompt submitted" >&2
   echo "" >&2
   echo "   Ralph needs a task description to work on." >&2
   echo "" >&2
@@ -163,8 +206,8 @@ self-referential loop where you iteratively improve on the same task.
 
 To monitor: head -10 .claude/ralph-loop.local.md
 
-⚠️  WARNING: This loop cannot be stopped manually! It will run infinitely
-    unless you set --max-iterations or --completion-promise.
+⚠️  NOTE: This loop cannot be stopped manually! Use --max-iterations 0
+    for unlimited iterations.
 
 🔄
 EOF
