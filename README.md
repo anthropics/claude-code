@@ -49,6 +49,8 @@ For more installation options, uninstall steps, and troubleshooting, see the [se
 
 This repository includes several Claude Code plugins that extend functionality with custom commands and agents. See the [plugins directory](./plugins/README.md) for detailed documentation on available plugins.
 
+For quota / usage-limit transparency specifically, see the new [usage-transparency plugin](./plugins/usage-transparency/README.md), which adds repository-scoped slash commands for distinguishing rate limits, exhausted allowance, auth conflicts, and org/subscription-related access issues from local signals without inventing backend billing data.
+
 ## Reporting Bugs
 
 We welcome your feedback. Use the `/bug` command to report issues directly within Claude Code, or file a [GitHub issue](https://github.com/anthropics/claude-code/issues).
