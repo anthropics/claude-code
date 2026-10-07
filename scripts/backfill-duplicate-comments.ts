@@ -14,6 +14,7 @@ interface GitHubIssue {
   user: { id: number };
   created_at: string;
   closed_at?: string;
+  pull_request?: { url?: string };
 }
 
 interface GitHubComment {
@@ -108,10 +109,17 @@ Environment Variables:
     );
     
     if (pageIssues.length === 0) break;
-    
+
+    const prItems = pageIssues.filter(issue => issue.pull_request);
+    if (prItems.length > 0) {
+      console.log(`[DEBUG] Skipping ${prItems.length} pull request items`);
+    }
+
     // Filter to only include issues within the specified range
-    const filteredIssues = pageIssues.filter(issue => 
-      issue.number >= minIssueNumber && issue.number < maxIssueNumber
+    const filteredIssues = pageIssues.filter(issue =>
+      !issue.pull_request &&
+      issue.number >= minIssueNumber &&
+      issue.number < maxIssueNumber
     );
     allIssues.push(...filteredIssues);
     
@@ -143,6 +151,12 @@ Environment Variables:
   let triggeredCount = 0;
 
   for (const issue of allIssues) {
+    if (issue.pull_request) {
+      console.log(
+        `[DEBUG] Issue #${issue.number} is a pull request, skipping`
+      );
+      continue;
+    }
     processedCount++;
     console.log(
       `[DEBUG] Processing issue #${issue.number} (${processedCount}/${allIssues.length}): ${issue.title}`
