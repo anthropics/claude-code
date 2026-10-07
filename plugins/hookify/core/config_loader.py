@@ -21,11 +21,17 @@ class Condition:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'Condition':
-        """Create Condition from dict."""
+        """Create Condition from dict.
+
+        Supports both 'pattern' and 'value' keys for flexibility.
+        The 'value' key is more intuitive for non-regex operators.
+        """
+        # Support both 'pattern' and 'value' keys
+        pattern = data.get('pattern') or data.get('value', '')
         return cls(
             field=data.get('field', ''),
             operator=data.get('operator', 'regex_match'),
-            pattern=data.get('pattern', '')
+            pattern=pattern
         )
 
 

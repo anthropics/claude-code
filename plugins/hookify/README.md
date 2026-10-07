@@ -235,11 +235,19 @@ Use environment variables instead of hardcoded values.
 ### Operators Reference
 
 - `regex_match`: Pattern must match (most common)
-- `contains`: String must contain pattern
+- `not_regex_match`: Pattern must NOT match (for exclusion patterns)
+- `contains`: String must contain value
 - `equals`: Exact string match
-- `not_contains`: String must NOT contain pattern
-- `starts_with`: String starts with pattern
-- `ends_with`: String ends with pattern
+- `not_contains`: String must NOT contain value
+- `starts_with`: String starts with value
+- `ends_with`: String ends with value
+
+**Note:** For non-regex operators, you can use `value` instead of `pattern` for clarity:
+```yaml
+- field: command
+  operator: contains
+  value: --force  # More intuitive than "pattern" for literal strings
+```
 
 ### Field Reference
 
