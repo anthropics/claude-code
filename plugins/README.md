@@ -2,6 +2,8 @@
 
 This directory contains some official Claude Code plugins that extend functionality through custom commands, agents, and workflows. These are examples of what's possible with the Claude Code plugin system—many more plugins are available through community marketplaces.
 
+These plugins are examples and building blocks, not replacements for Claude Code's built-in features. Start with existing built-in commands and the official documentation, and reach for plugins when you need project-specific workflows, commands, agents, hooks, or MCP integrations.
+
 ## What are Claude Code Plugins?
 
 Claude Code plugins are extensions that enhance Claude Code with custom slash commands, specialized agents, hooks, and MCP servers. Plugins can be shared across projects and teams, providing consistent tooling and workflows.
