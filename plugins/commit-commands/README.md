@@ -44,6 +44,73 @@ Creates a git commit with an automatically generated commit message based on sta
 - Avoids committing files with secrets (.env, credentials.json)
 - Includes Claude Code attribution in commit message
 
+### `/commit-review`
+
+Creates a git commit with interactive message review, allowing you to edit the commit message before finalizing.
+
+**What it does:**
+1. Analyzes staged changes
+2. Generates or uses provided commit message
+3. Shows a summary of changes to be committed
+4. Lets you review, edit, or cancel the commit
+5. Creates the commit only after approval
+
+**Usage:**
+```bash
+# With auto-generated message:
+/commit-review
+
+# With custom message:
+/commit-review "feat: add user authentication"
+```
+
+**Example workflow:**
+```bash
+# Make and stage your changes
+git add .
+
+# Run the interactive commit:
+/commit-review
+
+# Claude will:
+# - Show what will be committed
+# - Present a draft commit message
+# - Ask for confirmation with options to:
+#   - Use the draft message
+#   - Edit the message
+#   - Cancel the commit
+```
+
+**Features:**
+- Interactive commit message review
+- Option to provide custom message upfront
+- Shows change summary before committing
+- Ability to edit generated messages
+- Safe cancellation option
+
+### `/commit-interactive`
+
+Advanced interactive commit workflow with full control over message editing and file staging.
+
+**What it does:**
+1. Analyzes all changes (staged and unstaged)
+2. Generates a draft commit message
+3. Allows interactive message editing
+4. Lets you select which files to include
+5. Creates commit based on your selections
+
+**Usage:**
+```bash
+/commit-interactive
+```
+
+**Features:**
+- Full interactive control
+- Multi-select file staging
+- Custom message editing
+- Preview before commit
+- Granular file selection
+
 ### `/commit-push-pr`
 
 Complete workflow command that commits, pushes, and creates a pull request in one step.
@@ -136,6 +203,18 @@ This plugin is included in the Claude Code repository. The commands are automati
 - Let Claude analyze your changes and match your repo's commit style
 - Trust the automated message, but verify it's accurate
 - Use for routine commits during development
+
+### Using `/commit-review`
+- Best for when you want to review the message before committing
+- Provide a custom message if you have specific wording in mind
+- Use when commit message accuracy is critical
+- Ideal for commits that will be part of public history
+
+### Using `/commit-interactive`
+- Use when you need full control over the commit
+- Ideal for complex changes with mixed staged/unstaged files
+- Best when you want to carefully curate what gets committed
+- Perfect for partial commits of work in progress
 
 ### Using `/commit-push-pr`
 - Use when you're ready to create a PR
