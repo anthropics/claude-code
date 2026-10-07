@@ -1,0 +1,8 @@
+{
+  "name": "pr-comments",
+  "version": "1.0.0",
+  "description": "Fetch PR comments with filtering for resolved/unresolved conversations using GitHub GraphQL API",
+  "author": {
+    "name": "Avishay Zarad"
+  }
+}
