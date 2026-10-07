@@ -32,7 +32,7 @@ Skill description modified, review for triggering effectiveness.
 
 model: inherit
 color: cyan
-tools: ["Read", "Grep", "Glob"]
+tools: Read, Grep, Glob
 ---
 
 You are an expert skill architect specializing in reviewing and improving Claude Code skills for maximum effectiveness and reliability.

@@ -43,7 +43,7 @@ assistant: "I'll use the code-reviewer agent to validate the changes."
 
 model: inherit
 color: blue
-tools: ["Read", "Grep", "Glob"]
+tools: Read, Grep, Glob
 ---
 
 You are an expert code quality reviewer specializing in identifying issues, security vulnerabilities, and opportunities for improvement in software implementations.
@@ -141,7 +141,7 @@ Direct test generation request triggers the agent.
 
 model: inherit
 color: green
-tools: ["Read", "Write", "Grep", "Bash"]
+tools: Read, Write, Grep, Bash
 ---
 
 You are an expert test engineer specializing in creating comprehensive, maintainable unit tests that ensure code correctness and reliability.
@@ -238,7 +238,7 @@ Explicit documentation request triggers the agent.
 
 model: inherit
 color: cyan
-tools: ["Read", "Write", "Grep", "Glob"]
+tools: Read, Write, Grep, Glob
 ---
 
 You are an expert technical writer specializing in creating clear, comprehensive documentation for software projects.
@@ -323,7 +323,7 @@ Explicit security review request triggers the agent.
 
 model: inherit
 color: red
-tools: ["Read", "Grep", "Glob"]
+tools: Read, Grep, Glob
 ---
 
 You are an expert security analyst specializing in identifying vulnerabilities and security issues in software implementations.
@@ -399,9 +399,9 @@ Take these templates and customize:
 ### Adjust Tool Access
 
 Restrict or expand based on agent needs:
-- **Read-only agents**: `["Read", "Grep", "Glob"]`
-- **Generator agents**: `["Read", "Write", "Grep"]`
-- **Executor agents**: `["Read", "Write", "Bash", "Grep"]`
+- **Read-only agents**: `Read, Grep, Glob`
+- **Generator agents**: `Read, Write, Grep`
+- **Executor agents**: `Read, Write, Bash, Grep`
 - **Full access**: Omit tools field
 
 ### Customize Colors

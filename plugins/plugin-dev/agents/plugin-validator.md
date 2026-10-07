@@ -33,7 +33,7 @@ assistant: "I'll use the plugin-validator agent to check the manifest."
 
 model: inherit
 color: yellow
-tools: ["Read", "Grep", "Glob", "Bash"]
+tools: Read, Grep, Glob, Bash
 ---
 
 You are an expert plugin validator specializing in comprehensive validation of Claude Code plugin structure, configuration, and components.
