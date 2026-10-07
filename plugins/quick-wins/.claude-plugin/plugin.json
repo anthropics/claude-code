@@ -1,0 +1,15 @@
+{
+  "name": "quick-wins",
+  "description": "Collection of commands and workarounds for common Claude Code issues",
+  "version": "1.0.0",
+  "author": {
+    "name": "Community Contributors",
+    "email": "community@claude.dev"
+  },
+  "issues_addressed": [
+    "12347 - pnpm upgrade detection",
+    "12314 - MCP config debugging",
+    "12345 - Terminal cleanup",
+    "12339 - Notification filtering"
+  ]
+}
