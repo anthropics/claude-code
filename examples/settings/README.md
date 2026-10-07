@@ -30,6 +30,10 @@ These may be applied at any level of the [settings hierarchy](https://code.claud
 
 To distribute these settings as enterprise-managed policy through Jamf, Iru (Kandji), Intune, or Group Policy, see the deployment templates in [`../mdm`](../mdm).
 
+## HIPAA deployments
+
+For an organization that has the HIPAA configuration applied, [`../managed-settings`](../managed-settings) has a fuller `managed-settings.json` and `managed-mcp.json` example with sandboxing, a network allowlist, credential protections, and local data retention, plus a README that explains each choice.
+
 ## Full Documentation
 
 See https://code.claude.com/docs/en/settings for complete documentation on all available managed settings.
