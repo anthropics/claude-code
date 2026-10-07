@@ -46,7 +46,7 @@ Execute bash commands for deterministic checks:
 ```json
 {
   "type": "command",
-  "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/validate.sh",
+  "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/validate.sh\"",
   "timeout": 60
 }
 ```
@@ -90,7 +90,7 @@ Execute bash commands for deterministic checks:
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/validate.sh"
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/validate.sh\""
           }
         ]
       }
@@ -248,7 +248,7 @@ Execute when Claude Code session begins. Use to load context and set environment
       "hooks": [
         {
           "type": "command",
-          "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/load-context.sh"
+          "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/load-context.sh\""
         }
       ]
     }
@@ -333,7 +333,7 @@ Available in all command hooks:
 ```json
 {
   "type": "command",
-  "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/validate.sh"
+  "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/validate.sh\""
 }
 ```
 
@@ -371,7 +371,7 @@ In plugins, define hooks in `hooks/hooks.json`:
       "hooks": [
         {
           "type": "command",
-          "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/load-context.sh",
+          "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/load-context.sh\"",
           "timeout": 10
         }
       ]
@@ -613,7 +613,7 @@ Test command hooks directly:
 
 ```bash
 echo '{"tool_name": "Write", "tool_input": {"file_path": "/test"}}' | \
-  bash ${CLAUDE_PLUGIN_ROOT}/scripts/validate.sh
+  bash "${CLAUDE_PLUGIN_ROOT}/scripts/validate.sh"
 
 echo "Exit code: $?"
 ```
