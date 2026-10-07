@@ -1,0 +1,9 @@
+{
+  "name": "debug-workflow",
+  "version": "1.0.0",
+  "description": "Structured debugging workflow with specialized agents for log analysis, hypothesis generation, and fix verification",
+  "author": {
+    "name": "Community Contribution",
+    "email": ""
+  }
+}
