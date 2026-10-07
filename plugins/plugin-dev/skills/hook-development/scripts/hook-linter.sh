@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Hook Linter
 # Checks hook scripts for common issues and best practices
 
