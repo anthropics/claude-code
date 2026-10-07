@@ -6,8 +6,8 @@ import sys
 from functools import lru_cache
 from typing import List, Dict, Any, Optional
 
-# Import from local module
-from hookify.core.config_loader import Rule, Condition
+# Import from local module (relative import within core package)
+from .config_loader import Rule, Condition
 
 
 # Cache compiled regexes (max 128 patterns)
@@ -275,7 +275,7 @@ class RuleEngine:
 
 # For testing
 if __name__ == '__main__':
-    from hookify.core.config_loader import Condition, Rule
+    from config_loader import Condition, Rule
 
     # Test rule evaluation
     rule = Rule(
