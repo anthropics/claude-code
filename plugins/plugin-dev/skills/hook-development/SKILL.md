@@ -431,7 +431,7 @@ Plugin hooks merge with user's hooks and run in parallel.
 Always validate inputs in command hooks:
 
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
 
 input=$(cat)
@@ -529,7 +529,7 @@ Create hooks that activate conditionally by checking for a flag file or configur
 
 **Pattern: Flag file activation**
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 # Only active when flag file exists
 FLAG_FILE="$CLAUDE_PROJECT_DIR/.enable-strict-validation"
 
@@ -545,7 +545,7 @@ input=$(cat)
 
 **Pattern: Configuration-based activation**
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 # Check configuration for activation
 CONFIG_FILE="$CLAUDE_PROJECT_DIR/.claude/plugin-config.json"
 

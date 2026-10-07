@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Hook Schema Validator
 # Validates hooks.json structure and checks for common issues
 
