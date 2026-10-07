@@ -243,13 +243,13 @@ Additional directories or files containing command definitions.
 
 #### agents
 
-**Type**: String or Array of strings
+**Type**: Array of strings
 **Default**: `["./agents"]`
-**Example**: `"./specialized-agents"`
+**Example**: `["./specialized-agents"]`
 
 Additional directories or files containing agent definitions.
 
-**Format**: Same as `commands` field
+> **Note**: Only the array format is supported. String values (e.g. `"./agents/"`) will cause plugin installation to silently fail.
 
 **Use cases**:
 - Grouping agents by specialization
@@ -512,7 +512,7 @@ Full configuration with all features:
     "./commands",
     "./admin-commands"
   ],
-  "agents": "./specialized-agents",
+  "agents": ["./specialized-agents"],
   "hooks": "./config/hooks.json",
   "mcpServers": "./.mcp.json"
 }
