@@ -1,0 +1,23 @@
+{
+  "name": "sprint",
+  "version": "1.0.0",
+  "description": "Autonomous multi-agent development framework with spec-driven sprints and convergent iteration",
+  "author": {
+    "name": "Damien Laine",
+    "email": "damien.laine@gmail.com",
+    "url": "https://github.com/damienlaine"
+  },
+  "repository": "https://github.com/damienlaine/agentic-sprint",
+  "homepage": "https://github.com/damienlaine/agentic-sprint",
+  "license": "MIT",
+  "keywords": [
+    "autonomous",
+    "agentic",
+    "yolo",
+    "self-iterating",
+    "multi-agent",
+    "hands-off",
+    "auto-pilot",
+    "orchestration"
+  ]
+}
