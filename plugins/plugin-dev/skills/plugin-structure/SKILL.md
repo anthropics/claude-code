@@ -83,6 +83,11 @@ The manifest defines plugin metadata and configuration. Located at `.claude-plug
 **Version format**: Follow semantic versioning (MAJOR.MINOR.PATCH)
 **Keywords**: Use for plugin discovery and categorization
 
+**Versioning guidance**:
+- Treat `version` as the update key for distributed plugins
+- If plugin files change, bump the version before asking users to reinstall or update
+- For marketplace-managed plugins, keep any registry version in sync with `.claude-plugin/plugin.json`
+
 ### Component Path Configuration
 
 Specify custom paths for components (supplements default directories):
@@ -353,6 +358,18 @@ Claude Code automatically discovers and loads components:
 - No restart required: Changes take effect on next Claude Code session
 
 **Override behavior**: Custom paths in `plugin.json` supplement (not replace) default directories
+
+## Plugin Management and Updates
+
+When teaching users how to install or update plugins:
+
+- Inside a Claude Code session, prefer `/plugin ...` commands
+- In an external terminal, use `claude plugin ...` with the singular `plugin` subcommand
+- For marketplace registration, use `claude plugin marketplace add owner/repo`
+- Do not use `claude plugins ...`
+- Do not add a `github:` prefix unless the marketplace explicitly documents that syntax
+
+If you are guiding a user from within Claude Code, avoid assuming `claude plugin ...` can be run safely through the Bash tool. Prefer `/plugin ...` in-session, or direct the user to run CLI plugin commands in a separate terminal.
 
 ## Best Practices
 
