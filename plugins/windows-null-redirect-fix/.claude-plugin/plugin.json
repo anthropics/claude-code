@@ -1,0 +1,9 @@
+{
+  "name": "windows-null-redirect-fix",
+  "version": "1.0.0",
+  "description": "Prevents creation of 'nul' files on Windows by detecting and fixing incorrect null device redirections in bash commands. Addresses issue #23343.",
+  "author": {
+    "name": "Community Contributor",
+    "email": "contributor@example.com"
+  }
+}
