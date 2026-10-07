@@ -1,0 +1,9 @@
+{
+  "name": "destructive-command-guardrails",
+  "version": "1.0.0",
+  "description": "PreToolUse hook that intercepts destructive shell commands (rm -rf, git reset --hard, DROP TABLE, etc.) before execution, preventing accidental data loss from autonomous agent actions.",
+  "author": {
+    "name": "Steven Elliott",
+    "email": "srichardelliottjr@gmail.com"
+  }
+}
