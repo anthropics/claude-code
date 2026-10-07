@@ -8,7 +8,7 @@ import os
 import sys
 import glob
 import re
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Tuple
 from dataclasses import dataclass, field
 
 
@@ -84,7 +84,7 @@ class Rule:
         )
 
 
-def extract_frontmatter(content: str) -> tuple[Dict[str, Any], str]:
+def extract_frontmatter(content: str) -> Tuple[Dict[str, Any], str]:
     """Extract YAML frontmatter and message body from markdown.
 
     Returns (frontmatter_dict, message_body).
