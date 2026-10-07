@@ -145,6 +145,16 @@
       },
       "source": "./plugins/security-guidance",
       "category": "security"
+    },
+    {
+      "name": "open-hive",
+      "description": "Developer collision detection for AI-assisted teams — alerts before merge conflicts happen when multiple developers or Agent Teams work on the same codebase",
+      "version": "0.2.0",
+      "author": {
+        "name": "Chase Skibeness"
+      },
+      "source": "./plugins/open-hive",
+      "category": "productivity"
     }
   ]
 }
