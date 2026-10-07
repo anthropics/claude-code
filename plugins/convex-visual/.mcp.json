@@ -1,0 +1,7 @@
+{
+  "convex-visual": {
+    "command": "npx",
+    "args": ["convex-mcp-visual", "--stdio"],
+    "env": {}
+  }
+}

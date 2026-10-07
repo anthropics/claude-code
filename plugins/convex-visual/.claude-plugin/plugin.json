@@ -1,0 +1,23 @@
+{
+  "name": "convex-visual",
+  "description": "Visual schema browser, dashboard, and ER diagrams for Convex databases. Browse tables, view schemas, inspect documents, and generate diagrams.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Wayne Sutton",
+    "email": "wayne@convex.dev"
+  },
+  "homepage": "https://www.npmjs.com/package/convex-mcp-visual",
+  "repository": "https://github.com/waynesutton/convex-mcp-visual",
+  "license": "MIT",
+  "keywords": [
+    "convex",
+    "database",
+    "schema",
+    "visualization",
+    "mermaid",
+    "er-diagram",
+    "dashboard"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json"
+}
