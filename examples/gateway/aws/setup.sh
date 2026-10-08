@@ -15,7 +15,7 @@
 # config edit triggers a rebuild on the next run.
 #
 #   Section markers (§N) below map to the walkthrough:
-#   https://code.claude.com/docs/en/claude-apps-gateway-on-aws
+#   https://code.claude.com/docs/en/claude-apps-gateway
 #
 # Covers here:  security groups (§1) -> IAM roles + Bedrock model-access note (§2)
 #               -> build & push image, config baked in (§6 + §4) -> DB subnet group
@@ -948,7 +948,7 @@ cat <<EOF
   Secrets               ${SECRET_NAME}, ${JWT_SECRET_NAME}, ${OIDC_SECRET_NAME}$( [[ -n "${OIDC_ARN}" ]] || printf ' (MISSING — create it)' )
   ECS service           ${CLUSTER}/${SERVICE} behind ${ALB_DNS:-(not deployed yet)}
 
-Next steps (see https://code.claude.com/docs/en/claude-apps-gateway-on-aws):
+Next steps (see https://code.claude.com/docs/en/claude-apps-gateway):
   - Create the one operator-provided secret (from the Okta OIDC web app). Put the
     client secret in a 0600 file first — passing it as a literal argument would
     leave it readable in the process table and in audit/EDR logs:
