@@ -30,6 +30,27 @@ These may be applied at any level of the [settings hierarchy](https://code.claud
 
 To distribute these settings as enterprise-managed policy through Jamf, Iru (Kandji), Intune, or Group Policy, see the deployment templates in [`../mdm`](../mdm).
 
+## Troubleshooting
+
+### Unauthorized messages sent without initiation (tmux)
+
+If messages appear to be sent on your behalf without your input, and
+you are using **tmux**, the likely cause is tmux forwarding terminal
+control sequences (focus events, bracketed paste) that Claude Code's
+TUI input reader interprets as keypresses.
+
+**To confirm the trigger**, run Claude Code outside tmux (directly in
+Terminal.app or iTerm2). If phantom messages stop, the issue is tmux
+input forwarding.
+
+**Fix in tmux**:
+```bash
+# Disable focus event forwarding
+set -g focus-events off
+```
+
+See issue [#61962](https://github.com/anthropics/claude-code/issues/61962).
+
 ## Full Documentation
 
 See https://code.claude.com/docs/en/settings for complete documentation on all available managed settings.
