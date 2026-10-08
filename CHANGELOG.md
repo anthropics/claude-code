@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.1.294
+
+- Fixed `prompt` and `agent` hooks written as instructions (such as "Block commands that...") allowing what they should block
+- Improved how `prompt` hooks on Stop and SubagentStop written as instructions (such as "Carry on if the build is broken") are judged, so Claude is less likely to stop early
+
 ## 2.1.293
 
 - Added Claude Haiku 5.5 (`claude-haiku-5-5`), now the default Haiku model on the Anthropic API — 1M context, $0.10/$0.50 per Mtok ($0.50/$2.50 for prompts over 100K)
