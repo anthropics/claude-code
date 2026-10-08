@@ -30,27 +30,30 @@ TASK:
 
 **If EVENT is "issues" (new issue):**
 
-4. First, check if this issue is actually about Claude Code.
-   - Look for Claude Code signals in the issue BODY: a `Claude Code Version` field or `claude --version` output, references to the `claude` CLI command, terminal sessions, the VS Code/JetBrains extensions, `CLAUDE.md` files, `.claude/` directories, MCP servers, Cowork, Remote Control, or the web UI at claude.ai/code. If ANY such signal is present, this IS a Claude Code issue — proceed to step 5.
-   - Only if NO Claude Code signals are present: check whether a different Anthropic product (claude.ai chat, Claude Desktop/Mobile apps, the raw Anthropic API/SDK, or account billing with no CLI involvement) is the *subject* of the complaint, not merely mentioned for context. If so, apply `invalid` and stop. If ambiguous, proceed to step 5 WITHOUT applying `invalid`.
+4. First, check if the issue body is empty or contains only headings/whitespace with no substantive content. If so, apply `bug` and `needs-info` and stop — the reporter didn't provide any details.
+
+5. Next, check if this issue is actually about Claude Code.
+   - Look for Claude Code signals in the issue BODY: a `Claude Code Version` field or `claude --version` output, references to the `claude` CLI command, terminal sessions, the VS Code/JetBrains extensions, `CLAUDE.md` files, `.claude/` directories, MCP servers, Cowork, Remote Control, or the web UI at claude.ai/code. If ANY such signal is present, this IS a Claude Code issue — proceed to step 6.
+   - Only if NO Claude Code signals are present: check whether a different Anthropic product (claude.ai chat, Claude Desktop/Mobile apps, the raw Anthropic API/SDK, or account billing with no CLI involvement) is the *subject* of the complaint, not merely mentioned for context. If so, apply `invalid` and stop. If ambiguous, proceed to step 6 WITHOUT applying `invalid`.
    - The body text is authoritative. If a form dropdown (e.g. Platform) contradicts evidence in the body, trust the body — dropdowns are often mis-selected.
 
-5. Analyze and apply category labels:
+6. Analyze and apply category labels:
    - Type (bug, enhancement, question, etc.)
    - Technical areas and platform
    - Check for duplicates with `./scripts/gh.sh search issues`. Only mark as duplicate of OPEN issues.
 
-6. Evaluate lifecycle labels:
+7. Evaluate lifecycle labels:
    - `needs-repro` (bugs only, 7 days): Bug reports without clear steps to reproduce. A good repro has specific, followable steps that someone else could use to see the same issue.
      Do NOT apply if the user already provided error messages, logs, file paths, or a description of what they did. Don't require a specific format — narrative descriptions count.
      For model behavior issues (e.g. "Claude does X when it should do Y"), don't require traditional repro steps — examples and patterns are sufficient.
    - `needs-info` (bugs only, 7 days): The issue needs something from the community before it can progress — e.g. error messages, versions, environment details, or answers to follow-up questions. Don't apply to questions or enhancements.
-     Do NOT apply if the user already provided version, environment, and error details. If the issue just needs engineering investigation, that's not `needs-info`.
+     Do NOT apply if the user already provided version, environment, and error details AND a clear description of the problem. If the user only provided metadata but no description of what they were doing, `needs-info` is still appropriate.
+     If the issue just needs engineering investigation, that's not `needs-info`.
 
    Issues with these labels are automatically closed after the timeout if there's no response.
    The goal is to avoid issues lingering without a clear next step.
 
-7. Apply all selected labels:
+8. Apply all selected labels:
    `./scripts/edit-issue-labels.sh --add-label "label1" --add-label "label2"`
 
 **If EVENT is "issue_comment" (comment on existing issue):**
