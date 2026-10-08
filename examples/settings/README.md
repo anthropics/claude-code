@@ -1,6 +1,6 @@
 # Settings Examples
 
-Example Claude Code settings files, primarily intended for organization-wide deployments. Use these as starting points — adjust them to fit your needs.
+Example Claude Code settings files, primarily intended for organization-wide deployments. Use these as starting points - adjust them to fit your needs.
 
 These may be applied at any level of the [settings hierarchy](https://code.claude.com/docs/en/settings#settings-files), though certain properties only take effect if specified in enterprise settings (e.g. `strictKnownMarketplaces`, `allowManagedHooksOnly`, `allowManagedPermissionRulesOnly`).
 
@@ -12,13 +12,13 @@ These may be applied at any level of the [settings hierarchy](https://code.claud
 
 | Setting | [`settings-lax.json`](./settings-lax.json) | [`settings-strict.json`](./settings-strict.json) | [`settings-bash-sandbox.json`](./settings-bash-sandbox.json) |
 |---------|:---:|:---:|:---:|
-| Disable `--dangerously-skip-permissions` | ✅ | ✅ | |
-| Block plugin marketplaces | ✅ | ✅ | |
-| Block user and project-defined permission `allow` / `ask` / `deny` | | ✅ | ✅ |
-| Block user and project-defined hooks | | ✅ | |
-| Deny web fetch and search tools | | ✅ | |
-| Bash tool requires approval | | ✅ | |
-| Bash tool must run inside of sandbox | | | ✅ |
+| Disable `--dangerously-skip-permissions` | ? | ? | |
+| Block plugin marketplaces | ? | ? | |
+| Block user and project-defined permission `allow` / `ask` / `deny` | | ? | ? |
+| Block user and project-defined hooks | | ? | |
+| Deny web fetch and search tools | | ? | |
+| Bash tool requires approval | | ? | |
+| Bash tool must run inside of sandbox | | | ? |
 
 ## Tips
 - Consider merging snippets of the above examples to reach your desired configuration
@@ -33,3 +33,11 @@ To distribute these settings as enterprise-managed policy through Jamf, Iru (Kan
 ## Full Documentation
 
 See https://code.claude.com/docs/en/settings for complete documentation on all available managed settings.
+
+## Troubleshooting
+
+### /clear fails with "Path does not exist" after git worktree cleanup
+
+If `/clear` errors with `Path "<path>" does not exist` or the resume picker cannot resolve a session's working directory, a bg-spare process may be holding a stale `cwd` that was deleted (e.g. a cleaned-up git worktree). The daemon doesn't validate spare `cwd` at claim time, so the stale spare derives session slugs from the deleted path and writes JSONLs to a non-existent directory.
+
+**Workaround:** Restart the `cc-daemon` to destroy all stale spares: `pkill -f cc-daemon`. Or run the cleanup script at [`scripts/cleanup-stale-bg-spares.sh`](../scripts/cleanup-stale-bg-spares.sh) to kill stale spares and remove orphan session dirs.
