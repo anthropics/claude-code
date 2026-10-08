@@ -33,6 +33,12 @@ if [ ! -f "$FILE" ]; then
   exit 1
 fi
 
+# Validate field name to prevent injection
+if [[ -n "$FIELD" ]] && [[ ! "$FIELD" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+  echo "Error: Field name must be alphanumeric" >&2
+  exit 1
+fi
+
 # Extract frontmatter
 FRONTMATTER=$(sed -n '/^---$/,/^---$/{ /^---$/d; p; }' "$FILE")
 
