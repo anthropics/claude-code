@@ -2,6 +2,31 @@
 
 import { lifecycle, STALE_UPVOTE_THRESHOLD } from "./issue-lifecycle.ts";
 
+interface GitHubLabel {
+  name: string;
+}
+
+interface GitHubIssue {
+  number: number;
+  title: string;
+  pull_request?: unknown;
+  locked: boolean;
+  assignees?: unknown[];
+  updated_at: string;
+  labels?: GitHubLabel[];
+  reactions?: Record<string, number>;
+}
+
+interface GitHubEvent {
+  event: string;
+  label?: { name: string };
+  created_at: string;
+}
+
+interface GitHubComment {
+  user: { type: string };
+}
+
 // --
 
 const NEW_ISSUE = "https://github.com/anthropics/claude-code/issues/new/choose";
@@ -32,7 +57,6 @@ async function githubRequest<T>(
   });
 
   if (!response.ok) {
-    if (response.status === 404) return {} as T;
     const text = await response.text();
     throw new Error(`GitHub API ${response.status}: ${text}`);
   }
@@ -52,7 +76,7 @@ async function markStale(owner: string, repo: string) {
   console.log(`\n=== marking stale (${staleDays}d inactive) ===`);
 
   for (let page = 1; page <= 10; page++) {
-    const issues = await githubRequest<any[]>(
+    const issues = await githubRequest<GitHubIssue[]>(
       `/repos/${owner}/${repo}/issues?state=open&sort=updated&direction=asc&per_page=100&page=${page}`
     );
     if (issues.length === 0) break;
@@ -66,7 +90,7 @@ async function markStale(owner: string, repo: string) {
       if (updatedAt > cutoff) return labeled;
 
       const alreadyStale = issue.labels?.some(
-        (l: any) => l.name === "stale" || l.name === "autoclose"
+        (l) => l.name === "stale" || l.name === "autoclose"
       );
       if (alreadyStale) continue;
 
@@ -98,7 +122,7 @@ async function closeExpired(owner: string, repo: string) {
     console.log(`\n=== ${label} (${days}d timeout) ===`);
 
     for (let page = 1; page <= 10; page++) {
-      const issues = await githubRequest<any[]>(
+      const issues = await githubRequest<GitHubIssue[]>(
         `/repos/${owner}/${repo}/issues?state=open&labels=${label}&sort=updated&direction=asc&per_page=100&page=${page}`
       );
       if (issues.length === 0) break;
@@ -112,7 +136,7 @@ async function closeExpired(owner: string, repo: string) {
 
         const base = `/repos/${owner}/${repo}/issues/${issue.number}`;
 
-        const events = await githubRequest<any[]>(`${base}/events?per_page=100`);
+        const events = await githubRequest<GitHubEvent[]>(`${base}/events?per_page=100`);
 
         const labeledAt = events
           .filter((e) => e.event === "labeled" && e.label?.name === label)
@@ -124,7 +148,7 @@ async function closeExpired(owner: string, repo: string) {
         // Skip if a non-bot user commented after the label was applied.
         // The triage workflow should remove lifecycle labels on human
         // activity, but check here too as a safety net.
-        const comments = await githubRequest<any[]>(
+        const comments = await githubRequest<GitHubComment[]>(
           `${base}/comments?since=${labeledAt.toISOString()}&per_page=100`
         );
         const hasHumanComment = comments.some(
