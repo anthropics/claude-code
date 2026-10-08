@@ -145,6 +145,16 @@
       },
       "source": "./plugins/security-guidance",
       "category": "security"
+    },
+    {
+      "name": "git-branch-info",
+      "description": "Displays current git branch and status info at session start and on demand, keeping branch context always visible",
+      "version": "1.0.0",
+      "author": {
+        "name": "Nick"
+      },
+      "source": "./plugins/git-branch-info",
+      "category": "productivity"
     }
   ]
 }
