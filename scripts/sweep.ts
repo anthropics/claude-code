@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 
 import { lifecycle, STALE_UPVOTE_THRESHOLD } from "./issue-lifecycle.ts";
+import { githubRequest as _githubRequest } from "./github-request.ts";
 
 // --
 
@@ -10,34 +11,26 @@ const DRY_RUN = process.argv.includes("--dry-run");
 const CLOSE_MESSAGE = (reason: string) =>
   `Closing for now — ${reason}. Please [open a new issue](${NEW_ISSUE}) if this is still relevant.`;
 
-// --
+const _token = (() => {
+  const t = process.env.GITHUB_TOKEN;
+  if (!t) throw new Error("GITHUB_TOKEN required");
+  return t;
+})();
 
+/** Convenience wrapper: token is read once at startup, 404→empty object. */
 async function githubRequest<T>(
   endpoint: string,
   method = "GET",
-  body?: unknown
+  body?: unknown,
 ): Promise<T> {
-  const token = process.env.GITHUB_TOKEN;
-  if (!token) throw new Error("GITHUB_TOKEN required");
-
-  const response = await fetch(`https://api.github.com${endpoint}`, {
-    method,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: "application/vnd.github.v3+json",
-      "User-Agent": "sweep",
-      ...(body && { "Content-Type": "application/json" }),
-    },
-    ...(body && { body: JSON.stringify(body) }),
-  });
-
-  if (!response.ok) {
-    if (response.status === 404) return {} as T;
-    const text = await response.text();
-    throw new Error(`GitHub API ${response.status}: ${text}`);
+  try {
+    return await _githubRequest<T>(endpoint, _token, { method, body });
+  } catch (error) {
+    if (error instanceof Error && error.message.startsWith("GitHub API 404:")) {
+      return {} as T;
+    }
+    throw error;
   }
-
-  return response.json();
 }
 
 // --
