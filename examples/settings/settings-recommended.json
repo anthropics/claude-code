@@ -1,0 +1,36 @@
+{
+  "permissions": {
+    "disableBypassPermissionsMode": "disable",
+    "allow": [
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git branch:*)",
+      "Bash(git show:*)",
+      "Bash(ls:*)",
+      "Bash(pwd)",
+      "Bash(echo:*)"
+    ],
+    "deny": [
+      "Bash(rm -rf /*)",
+      "Bash(rm -fr /*)",
+      "Bash(chmod 777 *)",
+      "Bash(chmod -R 777 *)",
+      "Bash(*| bash*)",
+      "Bash(*| sh*)",
+      "Bash(*| zsh*)",
+      "Bash(git push --force *)",
+      "Bash(git push * --force*)",
+      "Bash(git reset --hard*)",
+      "Bash(git clean -f*)",
+      "Bash(eval *)",
+      "Bash(source *.env*)",
+      "Bash(. *.env*)"
+    ]
+  },
+  "strictKnownMarketplaces": [],
+  "sandbox": {
+    "enabled": true,
+    "autoAllowBashIfSandboxed": false
+  }
+}
