@@ -32,7 +32,7 @@ To distribute these settings as enterprise-managed policy through Jamf, Iru (Kan
 
 ## HIPAA deployments
 
-For an organization that has the HIPAA configuration applied, [`../managed-settings`](../managed-settings) has a fuller `managed-settings.json` and `managed-mcp.json` example with sandboxing, a network allowlist, credential protections, and local data retention, plus a README that explains each choice.
+For an organization that has the HIPAA configuration applied, [`settings-hipaa.json`](./settings-hipaa.json) and [`managed-mcp-hipaa.json`](./managed-mcp-hipaa.json) are a fuller `managed-settings.json` and `managed-mcp.json` pair with sandboxing, a network allowlist, credential protections, and local data retention. [`README-hipaa.md`](./README-hipaa.md) explains each choice and what to edit before deploying.
 
 ## Full Documentation
 

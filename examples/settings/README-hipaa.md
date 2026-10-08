@@ -1,4 +1,4 @@
-# Managed settings examples for HIPAA deployments
+# HIPAA settings example
 
 Example `managed-settings.json` and `managed-mcp.json` files for an organization that has the HIPAA configuration applied and wants to limit how session content can leave a developer's computer.
 They apply whether or not the HIPAA configuration is in effect.
@@ -16,8 +16,8 @@ For the Claude Desktop policy and Cowork, see [Set up Cowork (local mode) for a 
 
 | File | Purpose |
 |---|---|
-| `hipaa-baseline.json` | Deploy as `managed-settings.json`. Sandboxed commands reach only the hosts you list, and the retention period for local session data is 30 days. [Tighten further](#tighten-further) lists optional changes. |
-| `managed-mcp.lockdown.json` | Deploy as `managed-mcp.json` beside the settings file to [turn MCP off](https://code.claude.com/docs/en/managed-mcp#disable-mcp-entirely). Keep the `mcpServers` key. |
+| [`settings-hipaa.json`](./settings-hipaa.json) | Deploy as `managed-settings.json`. Sandboxed commands reach only the hosts you list, and the retention period for local session data is 30 days. [Tighten further](#tighten-further) lists optional changes. |
+| [`managed-mcp-hipaa.json`](./managed-mcp-hipaa.json) | Deploy as `managed-mcp.json` beside the settings file to [turn MCP off](https://code.claude.com/docs/en/managed-mcp#disable-mcp-entirely). Keep the `mcpServers` key. |
 
 The settings file also governs local sessions in the Code tab of Claude Desktop and, [by default](https://code.claude.com/docs/en/managed-settings#where-and-when-a-policy-applies), Cowork.
 [Check which Claude Code managed settings apply in Cowork](https://claude.com/docs/cowork/hipaa-setup#check-which-claude-code-managed-settings-apply-in-cowork) lists what these keys change in Cowork.

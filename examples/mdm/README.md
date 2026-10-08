@@ -2,7 +2,7 @@
 
 Example templates for deploying Claude Code [managed settings](https://code.claude.com/docs/en/settings#settings-files) through Jamf, Iru (Kandji), Intune, or Group Policy. Use these as starting points — adjust them to fit your needs.
 
-All templates encode the same minimal example (`permissions.disableBypassPermissionsMode`). See the [settings reference](https://code.claude.com/docs/en/settings#available-settings) for the full list of keys, [`../settings`](../settings) for more complete example configurations, and [`../managed-settings`](../managed-settings) for a HIPAA deployment example.
+All templates encode the same minimal example (`permissions.disableBypassPermissionsMode`). See the [settings reference](https://code.claude.com/docs/en/settings#available-settings) for the full list of keys, and [`../settings`](../settings) for more complete example configurations.
 
 
 ## Templates
