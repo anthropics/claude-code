@@ -344,3 +344,45 @@ fi
 - Per-project settings
 - Team-specific rules
 - Dynamic validation criteria
+
+## Pattern 11: Agent-Context Branching
+
+Apply different policies based on whether the hook fires in the main agent or a subagent:
+
+```bash
+#!/bin/bash
+# Branch on agent context fields available in all hook payloads
+input=$(cat)
+agent_id=$(echo "$input" | jq -r '.agent_id // ""')
+agent_type=$(echo "$input"  | jq -r '.agent_type // ""')
+tool_name=$(echo "$input"   | jq -r '.tool_name // ""')
+
+# Only process Bash tool
+if [ "$tool_name" != "Bash" ]; then
+  exit 0
+fi
+
+if [ -n "$agent_id" ]; then
+  # Subagent-specific guidance
+  echo "Subagent '${agent_type}': use resource-read wrapper for MCP resources." >&2
+else
+  # Main-agent guidance
+  echo "Use ReadMcpResourceTool for MCP resources." >&2
+fi
+exit 2
+```
+
+**Agent context fields (available in all hook events):**
+
+| Field | Type | Description |
+|---|---|---|
+| `agent_id` | string | Unique identifier for the subagent; omitted or empty for the main agent |
+| `agent_type` | string | Subagent name/type (e.g., `git-expert`) |
+
+**Use for:**
+- Targeted denial messages (avoid noisy dual-instruction blocks)
+- Restricting git or deploy operations to designated agents only
+- Audit logging with full agent provenance
+- Tiered security policies per agent role
+
+See `references/advanced.md` → **Agent-Aware Hook Patterns** for full bash and Python examples.
