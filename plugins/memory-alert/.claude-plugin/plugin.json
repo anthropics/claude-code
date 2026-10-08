@@ -1,0 +1,9 @@
+{
+  "name": "memory-alert",
+  "version": "1.0.0",
+  "description": "Monitors Claude Code process memory and alerts in the terminal when it exceeds a configurable threshold (macOS and Linux)",
+  "author": {
+    "name": "Shankar Tiwari",
+    "url": "https://github.com/tiwari91"
+  }
+}
