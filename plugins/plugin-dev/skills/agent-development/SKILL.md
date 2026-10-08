@@ -153,6 +153,8 @@ tools: ["Read", "Write", "Grep", "Bash"]
 
 **Best practice:** Limit tools to minimum needed (principle of least privilege)
 
+> **Note — `tools:` is a hard capability boundary.** Unlike command `allowed-tools` (which only gates prompting), tools not listed here are genuinely unavailable to the agent even under `bypassPermissions`. See the MCP integration skill for a full comparison.
+
 **Common tool sets:**
 - Read-only analysis: `["Read", "Grep", "Glob"]`
 - Code generation: `["Read", "Write", "Grep"]`
@@ -374,6 +376,25 @@ Output: [What to provide]
 - ❌ Write vague system prompts
 - ❌ Skip testing
 
+## Known Limitations
+
+### `${CLAUDE_PLUGIN_ROOT}` and `${CLAUDE_PROJECT_DIR}` are not resolved in subagents
+
+**Affected versions:** Claude Code ≤ 2.1.166 (tracked in [issue #65768](https://github.com/anthropics/claude-code/issues/65768))
+
+These environment variable tokens resolve correctly in hooks and slash commands, but subagents receive them as **literal strings**. A `Read` call inside a subagent with path `${CLAUDE_PLUGIN_ROOT}/kernel/STANDARDS.md` will fail with "File does not exist."
+
+| Context | `${CLAUDE_PLUGIN_ROOT}` | `${CLAUDE_PROJECT_DIR}` |
+|---------|------------------------|------------------------|
+| SessionStart hooks | ✅ Resolves | ✅ Resolves |
+| Slash commands | ✅ Resolves | ✅ Resolves |
+| Subagents | ❌ Literal string | ❌ Literal string |
+
+**Workarounds** (see `references/subagent-plugin-root-workaround.md` for full details):
+
+1. **SessionStart hook staging (recommended)** — Copy plugin files to a project-relative path on session start so subagents can read them via relative paths.
+2. **Inject via orchestrator** — Have a parent command read the shared file and pass its content as text in the subagent's spawn prompt.
+
 ## Additional Resources
 
 ### Reference Files
@@ -383,6 +404,7 @@ For detailed guidance, consult:
 - **`references/system-prompt-design.md`** - Complete system prompt patterns
 - **`references/triggering-examples.md`** - Example formats and best practices
 - **`references/agent-creation-system-prompt.md`** - The exact prompt from Claude Code
+- **`references/subagent-plugin-root-workaround.md`** - Workarounds for `${CLAUDE_PLUGIN_ROOT}` in subagents
 
 ### Example Files
 
