@@ -1,0 +1,9 @@
+{
+  "name": "agent-status",
+  "version": "0.1.0",
+  "description": "Check background subagent status and recent log activity. Type /agent-status to see all agents with timestamps and last N log lines.",
+  "author": {
+    "name": "Ruize Ren",
+    "email": "renruize1998@gmail.com"
+  }
+}
