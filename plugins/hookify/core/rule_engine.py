@@ -233,11 +233,9 @@ class RuleEngine:
                 return tool_input.get('command', '')
 
         elif tool_name in ['Write', 'Edit']:
-            if field == 'content':
-                # Write uses 'content', Edit has 'new_string'
-                return tool_input.get('content') or tool_input.get('new_string', '')
-            elif field == 'new_text' or field == 'new_string':
-                return tool_input.get('new_string', '')
+            if field in ['content', 'new_text', 'new_string']:
+                # new_text maps to Write content and Edit new_string.
+                return tool_input.get('new_string') or tool_input.get('content', '')
             elif field == 'old_text' or field == 'old_string':
                 return tool_input.get('old_string', '')
             elif field == 'file_path':
