@@ -52,13 +52,13 @@ function extractDuplicateIssueNumber(commentBody: string): number | null {
   if (match) {
     return parseInt(match[1], 10);
   }
-  
+
   // Try to match GitHub issue URL format: https://github.com/owner/repo/issues/123
   match = commentBody.match(/github\.com\/[^\/]+\/[^\/]+\/issues\/(\d+)/);
   if (match) {
     return parseInt(match[1], 10);
   }
-  
+
   return null;
 }
 
@@ -119,27 +119,27 @@ async function autoCloseDuplicates(): Promise<void> {
   const allIssues: GitHubIssue[] = [];
   let page = 1;
   const perPage = 100;
-  
+
   while (true) {
     const pageIssues: GitHubIssue[] = await githubRequest(
       `/repos/${owner}/${repo}/issues?state=open&per_page=${perPage}&page=${page}`,
       token
     );
-    
+
     if (pageIssues.length === 0) break;
-    
+
     // Filter for issues created more than 3 days ago
-    const oldEnoughIssues = pageIssues.filter(issue => 
+    const oldEnoughIssues = pageIssues.filter(issue =>
       new Date(issue.created_at) <= threeDaysAgo
     );
-    
+
     allIssues.push(...oldEnoughIssues);
     page++;
-    
+
     // Safety limit to avoid infinite loops
     if (page > 20) break;
   }
-  
+
   const issues = allIssues;
   console.log(`[DEBUG] Found ${issues.length} open issues`);
 
@@ -181,8 +181,7 @@ async function autoCloseDuplicates(): Promise<void> {
     const lastDupeComment = dupeComments[dupeComments.length - 1];
     const dupeCommentDate = new Date(lastDupeComment.created_at);
     console.log(
-      `[DEBUG] Issue #${
-        issue.number
+      `[DEBUG] Issue #${issue.number
       } - most recent duplicate comment from: ${dupeCommentDate.toISOString()}`
     );
 
@@ -193,8 +192,7 @@ async function autoCloseDuplicates(): Promise<void> {
       continue;
     }
     console.log(
-      `[DEBUG] Issue #${
-        issue.number
+      `[DEBUG] Issue #${issue.number
       } - duplicate comment is old enough (${Math.floor(
         (Date.now() - dupeCommentDate.getTime()) / (1000 * 60 * 60 * 24)
       )} days)`
@@ -250,7 +248,7 @@ async function autoCloseDuplicates(): Promise<void> {
 
     candidateCount++;
     const issueUrl = `https://github.com/${owner}/${repo}/issues/${issue.number}`;
-    
+
     try {
       console.log(
         `[INFO] Auto-closing issue #${issue.number} as duplicate of #${duplicateIssueNumber}: ${issueUrl}`
@@ -274,4 +272,4 @@ async function autoCloseDuplicates(): Promise<void> {
 autoCloseDuplicates().catch(console.error);
 
 // Make it a module
-export {};
+export { };
