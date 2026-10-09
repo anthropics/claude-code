@@ -7,7 +7,7 @@ import Verdicts from './verdicts'
  * can read, the failed hook's last: that run's verdict, or a refusal.
  *
  * A deny stands, and so does a verdict no link that may hold a person's
- * plugin loosened. A loosened one, or none at all, met no deny rule.
+ * plugin loosened. A loosened one, or none at all, met no rule.
  *
  * @param last what that run settled on; undefined when it rejected
  * @param trace that run's `next.trace`

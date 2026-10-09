@@ -10,7 +10,7 @@ export const tightening: Plugin = {
     on('tool.check', async ($, e, next) => {
       await next(e)
 
-      return { decision: 'deny', reason: 'a PreToolUse hook refused it' }
+      return { decision: 'deny', reason: 'echo is refused here' }
     })
   },
 }
