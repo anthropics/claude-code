@@ -23,9 +23,13 @@ opens nothing, and where the surface does not say, nothing opens by
 itself. A docked pane fetches before it opens, as the built-in panel
 primes its data, so it never lands on `Loading diff…`; an open the engine
 leaves waiting undrawn is withdrawn, so no later resize seats it, and the
-next edit asks again. A session resumed or continued whose transcript
-already holds such an edit opens the pane on the same terms as soon as the
-width is known, as the built-in opens on the history it restores.
+next edit asks again. An open answered `no-surface` (nothing is attached
+that draws it yet, as before a host's page attaches) is kept instead:
+`/diff` says so, nothing polls or refreshes while no one sees the pane, and
+its first drawing reads the repository again and counts it shown. A session
+resumed or continued whose transcript already holds such an edit opens the
+pane on the same terms as soon as the width is known, as the built-in opens
+on the history it restores.
 
 Under the fullscreen layout a terminal under 110 columns gets the
 built-in's line asking for a wider one and nothing opens. Without that
