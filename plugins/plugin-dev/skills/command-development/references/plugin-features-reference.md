@@ -331,7 +331,7 @@ Store analysis for future reference and comparison.
 
 ### Invoking Plugin Agents
 
-Commands can trigger plugin agents using the Task tool:
+Commands can trigger plugin agents using the Agent tool:
 
 ```markdown
 ---
@@ -347,12 +347,12 @@ The agent will:
 3. Suggest improvements
 4. Generate detailed report
 
-Note: This uses the Task tool to launch the plugin's code-analyzer agent.
+Note: This uses the Agent tool to launch the plugin's code-analyzer agent.
 ```
 
 **Key points:**
 - Agent must be defined in plugin's `agents/` directory
-- Claude will automatically use Task tool to launch agent
+- Claude will automatically use Agent tool to launch agent
 - Agent has access to same plugin resources
 
 ### Invoking Plugin Skills
