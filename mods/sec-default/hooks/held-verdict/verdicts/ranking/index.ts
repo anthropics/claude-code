@@ -1,5 +1,7 @@
+export * from './ceiling-verdict'
 export * from './handed-to.js'
 export * from './is-looser.js'
+export * from './is-over-ceiling.js'
 export * from './leniency'
 export * from './tiers-holding-users'
 

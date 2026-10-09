@@ -1,4 +1,4 @@
-import type { HookFailure } from 'claude-code'
+import type { FailureRead } from './failure-read'
 
 /**
  * The debug line for a `plugin.register` hook of this plugin that failed:
@@ -8,6 +8,6 @@ import type { HookFailure } from 'claude-code'
  * @param error why the hook failed, as its `.catch` reads it
  * @returns the line
  */
-export const admissionFailure = (name: string, error: HookFailure) =>
+export const admissionFailure = (name: string, error: FailureRead) =>
   `plugin.register hook failed judging ${name} (${error.kind}): ` +
   (error.message ?? 'no message')

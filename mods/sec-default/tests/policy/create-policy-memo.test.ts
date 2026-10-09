@@ -69,4 +69,13 @@ describe('create-policy-memo', () => {
     await expect(memo(failing)).rejects.toThrow('settings unreadable')
     expect(reads).toBe(1)
   })
+
+  test('a read that throws where it is made is a failed read', async () => {
+    await expect(
+      Policy.createPolicyMemo(
+        Policy.POLICY_MEMO_MS,
+        () => 0,
+      )(Fixtures.THROWING.settings.read),
+    ).rejects.toThrow('settings unreadable')
+  })
 })

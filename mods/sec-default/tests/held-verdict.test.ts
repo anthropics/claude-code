@@ -77,4 +77,100 @@ describe('held-verdict', () => {
       Hooks.caughtAnswer(undefined, []),
     ]).toEqual([Hooks.UNCHECKED_DENY, Hooks.UNCHECKED_DENY])
   })
+
+  test('only a verdict looser than the ceiling is over it', () => {
+    expect(
+      [Fixtures.ALLOWED, Fixtures.ASKED, Fixtures.PLAIN_DENY].map(verdict =>
+        Hooks.isOverCeiling(verdict, Fixtures.CAPPED.ceiling),
+      ),
+    ).toEqual([true, false, false])
+  })
+
+  test('where the organization set no ceiling nothing is over it', () => {
+    expect(
+      Hooks.isOverCeiling(Fixtures.ALLOWED, Fixtures.CHECKED.ceiling),
+    ).toBe(false)
+  })
+
+  test('the ceiling holds an answer over it by a stricter run', () => {
+    expect([
+      Hooks.isCeilingHeld(Fixtures.ALLOWED, Fixtures.CAPPED_ASK, 'ask'),
+      Hooks.isCeilingHeld(Fixtures.ALLOWED, Fixtures.RULE_DENY, 'ask'),
+    ]).toEqual([true, true])
+  })
+
+  test('it holds no run as permissive, and no answer within it', () => {
+    expect([
+      Hooks.isCeilingHeld(Fixtures.ALLOWED, Fixtures.CAPPED_ALLOWED, 'ask'),
+      Hooks.isCeilingHeld(Fixtures.ASKED, Fixtures.PLAIN_DENY, 'ask'),
+      Hooks.isCeilingHeld(Fixtures.ASKED, Fixtures.ALLOWED, 'deny'),
+      Hooks.isCeilingHeld(Fixtures.ALLOWED, Fixtures.ASKED, undefined),
+    ]).toEqual([false, false, false, false])
+  })
+
+  test('a ceiling it does not know holds a call at a deny', () => {
+    expect([
+      Hooks.ceilingVerdict('ask'),
+      Hooks.ceilingVerdict('blocked'),
+      Hooks.isOverCeiling(Fixtures.ASKED, 'blocked'),
+      Hooks.isOverCeiling(Fixtures.PLAIN_DENY, 'blocked'),
+    ]).toEqual(['ask', 'deny', true, false])
+  })
+
+  test('a link of theirs is named when it answered over the ceiling', () => {
+    expect(
+      Hooks.liftedByUsers(
+        [
+          Fixtures.linkOf('easy', 'user', Fixtures.ALLOWED),
+          Fixtures.linkOf('soft', 'user', Fixtures.ASKED),
+          Fixtures.linkOf('suite', 'append', Fixtures.ALLOWED),
+          Fixtures.linkOf('engine', 'core', Fixtures.PLAIN_DENY),
+        ],
+        'ask',
+      ),
+    ).toEqual(['easy'])
+  })
+
+  test('none is named over an allow handed up, or under no ceiling', () => {
+    const run = [
+      Fixtures.linkOf('listening', 'user', Fixtures.ALLOWED),
+      Fixtures.linkOf('suite', 'append', Fixtures.ALLOWED),
+    ]
+
+    expect([
+      Hooks.liftedByUsers(run, 'ask'),
+      Hooks.liftedByUsers(run.slice(0, 1), undefined),
+    ]).toEqual([[], []])
+  })
+
+  test('a plugin is told once, however many of its links are named', () => {
+    expect(
+      Hooks.untold(new Set(['told']), ['easy', 'told', 'soft', 'easy']),
+    ).toEqual(['easy', 'soft'])
+  })
+
+  test('the handler keeps a verdict within the ceiling, or under none', () => {
+    expect([
+      Hooks.underCeiling(Fixtures.ASKED, 'ask'),
+      Hooks.underCeiling(Hooks.UNCHECKED_DENY, 'ask'),
+      Hooks.underCeiling(Fixtures.ALLOWED, undefined),
+    ]).toEqual([Fixtures.ASKED, Hooks.UNCHECKED_DENY, Fixtures.ALLOWED])
+  })
+
+  test('the handler answers the ceiling for a verdict over it', () => {
+    expect([
+      Hooks.underCeiling(Fixtures.ALLOWED, 'ask'),
+      Hooks.underCeiling(Fixtures.ASKED, 'blocked'),
+    ]).toEqual([
+      Hooks.uncheckedCeiling('ask'),
+      { ...Hooks.uncheckedCeiling('ask'), decision: 'deny' },
+    ])
+  })
+
+  test('the handler makes no verdict of none: a rejection stays one', () => {
+    expect([
+      Hooks.underCeiling(undefined, 'ask'),
+      Hooks.underCeiling(undefined, undefined),
+    ]).toEqual([undefined, undefined])
+  })
 })

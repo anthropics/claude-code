@@ -1,6 +1,6 @@
 import type { TraceEntry } from 'claude-code'
 
-import Ranking from './ranking'
+import { loosenedLinks } from './loosened-links'
 
 /**
  * The links of one run of `tool.check` that may hold a plugin a person
@@ -15,11 +15,4 @@ import Ranking from './ranking'
  */
 export const loosenedByUsers = (
   trace: readonly TraceEntry<'tool.check'>[],
-): readonly string[] =>
-  trace
-    .filter(
-      (link, at) =>
-        Ranking.TIERS_HOLDING_USERS.includes(link.tier) &&
-        Ranking.isLooser(link.returned, Ranking.handedTo(trace, at)),
-    )
-    .map(link => link.plugin)
+): readonly string[] => loosenedLinks(trace).map(link => link.plugin)

@@ -855,4 +855,350 @@ describe('register', () => {
       expect(await $.tool.check(Fixtures.CHECKED)).toEqual(Hooks.UNCHECKED_DENY)
     },
   )
+
+  test(
+    "an organization's ceiling holds over an allow from a plugin of theirs",
+    { plugins: [Fixtures.allowing('easy')] },
+    async ($, on) => {
+      on('settings.read', () => ({ value: Fixtures.MANAGED_POLICY }))
+
+      const lines = Fixtures.logged(on)
+      const evaluations = Fixtures.checksAnswered(on, Fixtures.CAPPED_ASK)
+
+      expect(await $.tool.check(Fixtures.CAPPED)).toEqual(Fixtures.CAPPED_ASK)
+      expect(await $.tool.check(Fixtures.CAPPED)).toEqual(Fixtures.CAPPED_ASK)
+
+      expect({ lines, evaluations: evaluations() }).toEqual({
+        lines: [`transcript: ${Hooks.ceilingNotice('easy', Fixtures.CAPPED)}`],
+        evaluations: 4,
+      })
+    },
+  )
+
+  test(
+    'the ceiling holds over an allow that never called next',
+    { plugins: [Fixtures.blindAllowing] },
+    async ($, on) => {
+      on('settings.read', () => ({ value: Fixtures.MANAGED_POLICY }))
+      Fixtures.logged(on)
+
+      const evaluations = Fixtures.checksAnswered(on, Fixtures.CAPPED_ASK)
+
+      expect(await $.tool.check(Fixtures.CAPPED)).toEqual(Fixtures.CAPPED_ASK)
+      expect(evaluations()).toBe(1)
+    },
+  )
+
+  test(
+    'the ceiling holds where plugins of theirs may override deny rules',
+    { plugins: [Fixtures.allowing('easy')] },
+    async ($, on) => {
+      on('settings.read', () => ({ value: Fixtures.overridePolicyOf(true) }))
+      Fixtures.logged(on)
+      Fixtures.checksAnswered(on, Fixtures.CAPPED_ASK)
+
+      expect(await $.tool.check(Fixtures.CAPPED)).toEqual(Fixtures.CAPPED_ASK)
+    },
+  )
+
+  test(
+    'there, an allow over a deny rule on such a tool gets the rule back',
+    { plugins: [Fixtures.allowing('easy')] },
+    async ($, on) => {
+      on('settings.read', () => ({ value: Fixtures.overridePolicyOf(true) }))
+
+      const lines = Fixtures.logged(on)
+
+      Fixtures.checksAnswered(on, Fixtures.CAPPED_RULE_DENY)
+
+      expect(await $.tool.check(Fixtures.CAPPED)).toEqual(
+        Fixtures.CAPPED_RULE_DENY,
+      )
+
+      expect(lines).toEqual([
+        `transcript: ${Hooks.ceilingNotice('easy', Fixtures.CAPPED)}`,
+      ])
+    },
+  )
+
+  test(
+    'a deny rule on a tool under a ceiling holds as a deny rule does',
+    { plugins: [Fixtures.allowing('easy')] },
+    async ($, on) => {
+      on('settings.read', () => ({ value: Fixtures.MANAGED_POLICY }))
+
+      const lines = Fixtures.logged(on)
+
+      Fixtures.checksAnswered(on, Fixtures.CAPPED_RULE_DENY)
+
+      expect(await $.tool.check(Fixtures.CAPPED)).toEqual(
+        Fixtures.CAPPED_RULE_DENY,
+      )
+
+      expect(lines).toEqual([
+        'transcript: ' +
+          Hooks.heldNotice('easy', Fixtures.CAPPED.tool, 'Bash(echo *)'),
+      ])
+    },
+  )
+
+  test(
+    'an ask from a plugin of theirs is within the ceiling: one evaluation',
+    { plugins: [Fixtures.asking('easy')] },
+    async ($, on) => {
+      on('settings.read', () => ({ value: Fixtures.MANAGED_POLICY }))
+
+      const lines = Fixtures.logged(on)
+      const evaluations = Fixtures.checksAnswered(on, Fixtures.CAPPED_ASK)
+
+      expect(await $.tool.check(Fixtures.CAPPED)).toEqual({
+        ...Fixtures.CAPPED_ASK,
+        reason: 'Bash needs approval',
+      })
+
+      expect({ lines, evaluations: evaluations() }).toEqual({
+        lines: [],
+        evaluations: 1,
+      })
+    },
+  )
+
+  test(
+    'a plugin of theirs that tightens under a ceiling is heard',
+    { plugins: [Fixtures.tightening] },
+    async ($, on) => {
+      on('settings.read', () => ({ value: Fixtures.MANAGED_POLICY }))
+
+      const evaluations = Fixtures.checksAnswered(on, Fixtures.CAPPED_ASK)
+
+      expect(await $.tool.check(Fixtures.CAPPED)).toEqual({
+        ...Fixtures.PLAIN_DENY,
+        ceiling: 'ask',
+      })
+
+      expect(evaluations()).toBe(1)
+    },
+  )
+
+  test(
+    "an organization plugin's allow over the ceiling stands beneath theirs",
+    {
+      plugins: [
+        Fixtures.allowing('suite', 'append'),
+        Fixtures.allowing('easy'),
+      ],
+    },
+    async ($, on) => {
+      on('settings.read', () => ({ value: Fixtures.MANAGED_POLICY }))
+
+      const lines = Fixtures.logged(on)
+
+      Fixtures.checksAnswered(on, Fixtures.CAPPED_ASK)
+
+      expect(await $.tool.check(Fixtures.CAPPED)).toEqual(
+        Fixtures.CAPPED_ALLOWED,
+      )
+
+      expect(lines).toEqual([])
+    },
+  )
+
+  test(
+    "a prepended organization plugin's allow over the ceiling stands",
+    { plugins: [Fixtures.allowing('guard', 'prepend')] },
+    async ($, on) => {
+      on('settings.read', () => ({ value: Fixtures.MANAGED_POLICY }))
+
+      const lines = Fixtures.logged(on)
+
+      Fixtures.checksAnswered(on, Fixtures.CAPPED_ASK)
+
+      expect(await $.tool.check(Fixtures.CAPPED)).toEqual(
+        Fixtures.CAPPED_ALLOWED,
+      )
+
+      expect(lines).toEqual([])
+    },
+  )
+
+  test(
+    "a built-in's allow over the ceiling stands",
+    { plugins: [Fixtures.allowing('bundled', 'builtin')] },
+    async ($, on) => {
+      on('settings.read', () => ({ value: Fixtures.MANAGED_POLICY }))
+
+      const lines = Fixtures.logged(on)
+
+      Fixtures.checksAnswered(on, Fixtures.CAPPED_ASK)
+
+      expect(await $.tool.check(Fixtures.CAPPED)).toEqual(
+        Fixtures.CAPPED_ALLOWED,
+      )
+
+      expect(lines).toEqual([])
+    },
+  )
+
+  test(
+    'a ceiling a plugin of theirs writes into its answer is never read',
+    { plugins: [Fixtures.ceilingForging] },
+    async ($, on) => {
+      on('settings.read', () => ({ value: Fixtures.MANAGED_POLICY }))
+      Fixtures.logged(on)
+      Fixtures.checksAnswered(on, Fixtures.CAPPED_ASK)
+
+      expect(await $.tool.check(Fixtures.CAPPED)).toEqual(Fixtures.CAPPED_ASK)
+    },
+  )
+
+  test(
+    'a plugin of theirs asking beneath under another ceiling is left out',
+    { plugins: [Fixtures.ceilingLifting] },
+    async ($, on) => {
+      on('settings.read', () => ({ value: Fixtures.MANAGED_POLICY }))
+
+      const lines = Fixtures.logged(on)
+
+      Fixtures.checksAnswered(on, Fixtures.CAPPED_ASK)
+
+      expect(await $.tool.check(Fixtures.CAPPED)).toEqual(Fixtures.CAPPED_ASK)
+      expect(lines.filter(line => line.startsWith('transcript'))).toEqual([])
+    },
+  )
+
+  test('none of theirs: an ask under a ceiling passes once', async ($, on) => {
+    const reads = Fixtures.policyReads(on, Fixtures.MANAGED_POLICY)
+    const evaluations = Fixtures.checksAnswered(on, Fixtures.CAPPED_ASK)
+
+    expect(await $.tool.check(Fixtures.CAPPED)).toEqual(Fixtures.CAPPED_ASK)
+
+    expect({ reads: reads(), evaluations: evaluations() }).toEqual({
+      reads: 0,
+      evaluations: 1,
+    })
+  })
+
+  test(
+    "when the run past theirs rejects so does the call: the hook's catch",
+    { plugins: [Fixtures.blindAllowing] },
+    async ($, on) => {
+      on('settings.read', () => ({ value: Fixtures.overridePolicyOf(true) }))
+      Fixtures.logged(on)
+
+      on('tool.check', () => {
+        throw new Error('the evaluation failed')
+      })
+
+      await expect($.tool.check(Fixtures.CAPPED)).rejects.toThrow('tool.check')
+    },
+  )
+
+  test(
+    'a failed check of deny rules on such a tool is still a refusal',
+    { plugins: [Fixtures.blindAllowing] },
+    async ($, on) => {
+      on('settings.read', () => ({ value: Fixtures.MANAGED_POLICY }))
+      Fixtures.logged(on)
+
+      on('tool.check', () => {
+        throw new Error('the evaluation failed')
+      })
+
+      expect(await $.tool.check(Fixtures.CAPPED)).toEqual({
+        ...Hooks.UNCHECKED_DENY,
+        ceiling: 'ask',
+      })
+    },
+  )
+
+  test(
+    'only a plugin of theirs that answered over the ceiling is told of it',
+    { plugins: [Fixtures.allowing('easy'), Fixtures.asking('soft')] },
+    async ($, on) => {
+      on('settings.read', () => ({ value: Fixtures.overridePolicyOf(true) }))
+
+      const lines = Fixtures.logged(on)
+
+      Fixtures.checksAnswered(on, { ...Fixtures.PLAIN_DENY, ceiling: 'ask' })
+
+      expect(await $.tool.check(Fixtures.CAPPED)).toEqual({
+        ...Fixtures.PLAIN_DENY,
+        ceiling: 'ask',
+      })
+
+      expect(lines).toEqual([
+        `transcript: ${Hooks.ceilingNotice('easy', Fixtures.CAPPED)}`,
+      ])
+    },
+  )
+
+  test(
+    'the line it logs passes over a plugin of theirs that hooks ui.log',
+    { plugins: [Fixtures.allowing('easy'), Fixtures.logSwallowing] },
+    async ($, on) => {
+      on('settings.read', () => ({ value: Fixtures.MANAGED_POLICY }))
+
+      const lines = Fixtures.logged(on)
+
+      Fixtures.checksAnswered(on, Fixtures.CAPPED_ASK)
+
+      expect(await $.tool.check(Fixtures.CAPPED)).toEqual(Fixtures.CAPPED_ASK)
+
+      expect(lines).toEqual([
+        `transcript: ${Hooks.ceilingNotice('easy', Fixtures.CAPPED)}`,
+      ])
+    },
+  )
+
+  test(
+    'the deny rule line passes over such a plugin of theirs too',
+    { plugins: [Fixtures.allowing('easy'), Fixtures.logSwallowing] },
+    async ($, on) => {
+      on('settings.read', () => ({ value: Fixtures.MANAGED_POLICY }))
+
+      const lines = Fixtures.logged(on)
+
+      Fixtures.checksAnswered(on, Fixtures.RULE_DENY)
+
+      expect(await $.tool.check(Fixtures.CHECKED)).toEqual(Fixtures.RULE_DENY)
+
+      expect(lines).toEqual([
+        `transcript: ${Hooks.heldNotice('easy', 'Bash', 'Bash(echo *)')}`,
+      ])
+    },
+  )
+
+  test(
+    'what a plugin of theirs logs is still theirs to hook',
+    { plugins: [Fixtures.logging('chatty'), Fixtures.logSwallowing] },
+    async ($, on) => {
+      on('settings.read', () => ({ value: Fixtures.MANAGED_POLICY }))
+
+      const lines = Fixtures.logged(on)
+
+      Fixtures.checksAnswered(on, Fixtures.ASKED)
+
+      await $.tool.check(Fixtures.CHECKED)
+
+      expect(lines).toEqual([])
+    },
+  )
+
+  test(
+    "what an organization's plugin logs passes over theirs",
+    {
+      plugins: [Fixtures.logging('suite', 'append'), Fixtures.logSwallowing],
+    },
+    async ($, on) => {
+      on('settings.read', () => ({ value: Fixtures.MANAGED_POLICY }))
+
+      const lines = Fixtures.logged(on)
+
+      Fixtures.checksAnswered(on, Fixtures.ASKED)
+
+      await $.tool.check(Fixtures.CHECKED)
+
+      expect(lines).toEqual(['transcript: heard a tool.check'])
+    },
+  )
 })
