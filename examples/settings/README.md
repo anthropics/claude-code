@@ -35,5 +35,5 @@ To distribute these settings as enterprise-managed policy through Jamf, Iru (Kan
 For an organization that has the HIPAA configuration applied, [`settings-hipaa.json`](./settings-hipaa.json) and [`managed-mcp-hipaa.json`](./managed-mcp-hipaa.json) are a fuller `managed-settings.json` and `managed-mcp.json` pair with sandboxing, a network allowlist, credential protections, and local data retention. [`README-hipaa.md`](./README-hipaa.md) explains each choice and what to edit before deploying.
 
 ## Full Documentation
-
+ok
 See https://code.claude.com/docs/en/settings for complete documentation on all available managed settings.
