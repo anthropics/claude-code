@@ -138,7 +138,7 @@
     {
       "name": "security-guidance",
       "description": "Security review for Claude-generated code. Pattern-based warnings on edits, LLM-powered diff review on Stop, and an agentic commit reviewer that catches injection, XSS, SSRF, hardcoded secrets, and 25+ other vulnerability classes.",
-      "version": "2.0.12",
+      "version": "2.0.13",
       "author": {
         "name": "David Dworken",
         "email": "dworken@anthropic.com"
