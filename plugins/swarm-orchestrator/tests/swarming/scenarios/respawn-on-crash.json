@@ -1,0 +1,26 @@
+{
+  "name": "respawn-on-crash",
+  "description": "Kill a teammate's process; verify meta-supervisor respawns and the work completes.",
+  "primitives_tested": ["respawn-on-crash", "meta-supervisor"],
+  "max_duration_minutes": 1,
+  "deterministic": true,
+  "setup": {
+    "fixtures": "../fixtures/respawn-on-crash",
+    "seed": 42,
+    "git_init": true
+  },
+  "teammates": [
+    {"name": "flaky-builder", "head": "Builder", "task_ids": ["work"]}
+  ],
+  "inject": {
+    "crashes": 1
+  },
+  "expected": {
+    "tasks_completed": 1,
+    "respawn_count_min": 1,
+    "files_present": ["respawned_output.txt"],
+    "file_contains": [
+      {"path": "respawned_output.txt", "substring": "succeeded"}
+    ]
+  }
+}

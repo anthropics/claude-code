@@ -1,0 +1,8 @@
+{
+  "rename": {
+    "from": "foo",
+    "to": "bar"
+  },
+  "target_glob": "files/*.py",
+  "branch_name": "feature/rename-foo-to-bar"
+}
