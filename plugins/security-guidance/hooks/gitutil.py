@@ -26,18 +26,69 @@ GIT_CMD = [
     "git",
     "-c", "core.fsmonitor=false",
     "-c", "core.hooksPath=/dev/null",
+    # core.quotePath=false: emit raw UTF-8 in path-emitting commands instead
+    # of C-quoting non-ASCII bytes (default `"\\303\\201vila/..."` vs
+    # `Ávila/...`). Downstream parsers — both ours (parse_diff_into_files,
+    # extract_file_paths_from_diff) and Python stdlib (os.path.isabs,
+    # os.path.join) — expect raw paths and silently drop / mishandle the
+    # quoted form. Adding the flag globally to GIT_CMD covers every
+    # subprocess.run site that uses the splat — diff feeders, rev-parse
+    # path queries (--show-toplevel, --git-dir, --git-common-dir),
+    # reflog %gs subjects, ls-files, status, etc. — without per-site
+    # flag duplication. See #2082, #2099.
+    "-c", "core.quotePath=false",
+    # A work-tree `git diff` that meets stat-stale entries (mtime changed,
+    # content same) rewrites the index under index.lock, GIT_OPTIONAL_LOCKS or
+    # not. Off, every diff here only reads the index, so none needs a copy.
+    "-c", "diff.autoRefreshIndex=false",
 ]
+
+SAFE_GIT_CONFIG = (
+    ("core.fsmonitor", "false"),
+    ("core.hooksPath", "/dev/null"),
+)
+
+# The hook's git runs in the background beside the session's own git. Without
+# this, `git status` holds .git/index.lock while it writes back a refreshed
+# index: a concurrent `git add` fails, and a timeout kill leaves the lock.
+SAFE_GIT_ENV = {
+    "GIT_OPTIONAL_LOCKS": "0",
+}
+
+
+def git_config_env(pairs, base=None):
+    base = os.environ if base is None else base
+    try:
+        n = max(0, int(base.get("GIT_CONFIG_COUNT") or 0))
+    except (TypeError, ValueError):
+        n = 0
+    env = {}
+    for i, (k, v) in enumerate(pairs, start=n):
+        env[f"GIT_CONFIG_KEY_{i}"] = k
+        env[f"GIT_CONFIG_VALUE_{i}"] = v
+    env["GIT_CONFIG_COUNT"] = str(n + len(pairs))
+    return env
+
+
+def apply_safe_git_env():
+    os.environ.update(git_config_env(SAFE_GIT_CONFIG))
+    os.environ.update(SAFE_GIT_ENV)
 
 
 def _git_rev_parse_head(cwd):
     """Return the current HEAD SHA, or None if not a git repo / no commits."""
     try:
+        # See #2099: text=True on Windows cp1252 crashes the reader thread on
+        # any UTF-8 byte undefined in cp1252 (e.g. via a git error message
+        # referencing a non-ASCII filename in stderr). stdout is a SHA so it
+        # IS safe; stderr is not. capture_output=True with bytes-by-default
+        # never decodes, so the reader thread can't crash.
         result = subprocess.run(
             [*GIT_CMD, "rev-parse", "HEAD"],
-            cwd=cwd, capture_output=True, text=True, timeout=5
+            cwd=cwd, capture_output=True, timeout=5
         )
         if result.returncode == 0 and result.stdout.strip():
-            return result.stdout.strip()
+            return result.stdout.decode("utf-8", errors="replace").strip()
         return None
     except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
         return None
@@ -52,13 +103,17 @@ def _find_git_index(cwd):
     Returns the absolute path to the index file, or None.
     """
     try:
+        # See #2099: stdout here is a PATH which can contain non-ASCII bytes
+        # (e.g. C:\אבטחה\repo\.git). text=True decodes via cp1252 strict on
+        # Windows → crashes the reader thread → returns stdout=None →
+        # caller does .strip() on None → AttributeError. Decode manually.
         result = subprocess.run(
             [*GIT_CMD, "rev-parse", "--git-dir"],
-            cwd=cwd, capture_output=True, text=True, timeout=5
+            cwd=cwd, capture_output=True, timeout=5
         )
         if result.returncode != 0:
             return None
-        git_dir = result.stdout.strip()
+        git_dir = result.stdout.decode("utf-8", errors="replace").strip()
         if not os.path.isabs(git_dir):
             git_dir = os.path.join(cwd, git_dir)
         index_path = os.path.join(git_dir, "index")
@@ -88,31 +143,295 @@ def _diff_pathspec(cwd, paths):
     return ["--"] + rel if rel else []
 
 
+_TEMP_INDEX_PREFIX = "security_hook_idx_"
+# A copy is named <prefix>pid<hook pid>_<8 random chars>, so a later run can
+# tell that the hook which made it is gone. Names from earlier releases have
+# only the 8 random characters and never match.
+_OWNER_PID = re.compile(re.escape(_TEMP_INDEX_PREFIX) + r"pid(\d+)_[^.]{8}(?:\.|$)")
+# A live copy is in use for under a minute (a couple of bounded git calls), so
+# anything this old belongs to a run that was killed.
+_TEMP_INDEX_STALE_S = 1800
+# Unlinking index-sized files is slow; a large backlog drains over several
+# calls instead of stalling one hook past its timeout.
+_SWEEP_BUDGET_S = 2
+
+
+def _owner_is_gone(name):
+    """True when `name` records the pid of the hook that made it and no such
+    process exists. A reused pid reads as alive: the file then waits for the
+    age limit. Never probes on Windows, where os.kill would end the process."""
+    if not hasattr(os, "getuid"):
+        return False
+    m = _OWNER_PID.match(name)
+    if not m:
+        return False
+    try:
+        os.kill(int(m.group(1)), 0)
+    except ProcessLookupError:
+        return True
+    except (OSError, OverflowError, ValueError):
+        return False
+    return False
+
+
+def _sweep_stale_indexes(dirpath, uid):
+    """Delete index copies in `dirpath` that a killed run left behind. Only
+    regular files owned by `uid` (None: no ownership check) are touched.
+
+    A copy goes as soon as the hook that made it is gone: a killed hook can
+    leave one per run, and index-sized files fill a disk long before the age
+    limit. The age limit covers names without a pid and reused pids.
+
+    Age is the newer of mtime and ctime: a copy keeps .git/index's mtime,
+    which may be days old, so mtime alone would delete a file that another
+    running hook is still using."""
+    import stat
+    import time
+    cutoff = time.time() - _TEMP_INDEX_STALE_S
+    deadline = time.monotonic() + _SWEEP_BUDGET_S
+    try:
+        names = os.listdir(dirpath)
+    except OSError:
+        return
+    for name in names:
+        if not name.startswith(_TEMP_INDEX_PREFIX):
+            continue
+        p = os.path.join(dirpath, name)
+        try:
+            st = os.lstat(p)
+            if not stat.S_ISREG(st.st_mode):
+                continue
+            if uid is not None and st.st_uid != uid:
+                continue
+            if max(st.st_mtime, st.st_ctime) < cutoff or _owner_is_gone(name):
+                os.unlink(p)
+                if time.monotonic() > deadline:
+                    return
+        except OSError:
+            pass
+
+
+def _sweep_stale_stash_indexes(real_index):
+    """Delete `<index>.stash.<pid>` files a killed `git stash create` left
+    next to the real index. Releases before 2.0.10 ran it there, so a clone
+    can hold hundreds, each the size of the index, and nothing else removes
+    them. Only our own regular files past the age limit go: git keeps one for
+    seconds. `index.lock` is never touched; a live git may hold it."""
+    import stat
+    import time
+    uid = os.getuid() if hasattr(os, "getuid") else None
+    cutoff = time.time() - _TEMP_INDEX_STALE_S
+    deadline = time.monotonic() + _SWEEP_BUDGET_S
+    dirpath = os.path.dirname(real_index)
+    stale = re.compile(re.escape(os.path.basename(real_index)) + r"\.stash\.\d+$")
+    try:
+        names = os.listdir(dirpath)
+    except OSError:
+        return
+    for name in names:
+        if not stale.match(name):
+            continue
+        p = os.path.join(dirpath, name)
+        try:
+            st = os.lstat(p)
+            if not stat.S_ISREG(st.st_mode):
+                continue
+            if uid is not None and st.st_uid != uid:
+                continue
+            if max(st.st_mtime, st.st_ctime) < cutoff:
+                os.unlink(p)
+                if time.monotonic() > deadline:
+                    return
+        except OSError:
+            pass
+
+
+# Index copies this process has made and not yet removed.
+_live_copies = set()
+
+# A hook working on a copy needs up to three times the index's size for a
+# moment (the copy, and git's rewrite and stash index next to it). With many
+# agents in one clone that alone can fill a disk, so only so many hooks per
+# user work on a copy at once; the others wait, then go without.
+_MAX_LIVE_COPIES = 8
+_SLOT_WAIT_S = 5
+
+
+def _copy_slots(tmpdir, index_bytes):
+    """How many hooks may work on a copy at once: what fits into a quarter of
+    the free space at three times the index each, from 1 to
+    _MAX_LIVE_COPIES."""
+    import shutil
+    try:
+        free = shutil.disk_usage(tmpdir).free
+    except OSError:
+        return 1
+    return max(1, min(_MAX_LIVE_COPIES, free // (12 * max(index_bytes, 1))))
+
+
+@contextlib.contextmanager
+def _copy_slot(tmpdir, index_bytes=0):
+    """Hold one of the copy slots; yields False when none came free in
+    _SLOT_WAIT_S. A slot is an flock, so the kernel frees it when its holder
+    dies, however it dies. No cap without flock or a private dir."""
+    import time
+    try:
+        import fcntl
+    except ImportError:
+        fcntl = None
+    if fcntl is None or tmpdir is None:
+        yield True
+        return
+    deadline = time.monotonic() + _SLOT_WAIT_S
+    held = None
+    while held is None:
+        for i in range(_copy_slots(tmpdir, index_bytes)):
+            try:
+                fd = os.open(os.path.join(tmpdir, f"slot{i}.lock"),
+                             os.O_RDWR | os.O_CREAT, 0o600)
+            except OSError:
+                continue
+            try:
+                fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                held = fd
+                break
+            except OSError:
+                os.close(fd)
+        if held is None:
+            if time.monotonic() >= deadline:
+                break
+            time.sleep(0.1)
+    try:
+        yield held is not None
+    finally:
+        if held is not None:
+            os.close(held)
+
+
+def _remove_copy(tmp_index):
+    """Remove an index copy and the files git wrote next to it."""
+    import glob
+    for p in glob.glob(glob.escape(tmp_index) + "*"):
+        try:
+            os.unlink(p)
+        except OSError:
+            pass
+
+
+def remove_copies_on_termination():
+    """Remove this process's index copies when it is told to terminate.
+    Python's default SIGTERM action ends the process without running
+    `finally`, which left an index-sized file behind each time."""
+    import signal
+
+    def _on_term(signum, _frame):
+        for tmp_index in list(_live_copies):
+            _remove_copy(tmp_index)
+        os._exit(128 + signum)
+
+    try:
+        signal.signal(signal.SIGTERM, _on_term)
+    except (ValueError, OSError, AttributeError):
+        pass  # not the main thread, or no SIGTERM here
+
+
+def _hook_tmpdir():
+    """Private per-user directory for throwaway index copies, or None to use
+    the bare temp dir.
+
+    An index copy can be hundreds of MB and a killed hook cannot clean up, so
+    copies live in one 0700 directory and anything stale is swept on entry,
+    here and in the bare temp dir. The name is predictable and the temp dir
+    may be shared, so anything that is not a real directory we own is
+    refused. Windows has no uid and its temp dir is already per-user."""
+    import stat
+    import tempfile
+    base = tempfile.gettempdir()
+    uid = os.getuid() if hasattr(os, "getuid") else None
+    _sweep_stale_indexes(base, uid)
+    if uid is None:
+        return None
+    d = os.path.join(base, f"claude-security-guidance-{uid}")
+    try:
+        os.mkdir(d, 0o700)
+    except FileExistsError:
+        pass
+    except OSError:
+        return None
+    try:
+        st = os.lstat(d)
+    except OSError:
+        return None
+    if not stat.S_ISDIR(st.st_mode) or st.st_uid != uid:
+        return None
+    try:
+        os.chmod(d, 0o700)
+    except OSError:
+        pass
+    _sweep_stale_indexes(d, uid)
+    return d
+
+
 @contextlib.contextmanager
 def _temp_index(cwd, untracked_paths=None):
     """Yield an env dict pointing GIT_INDEX_FILE at a throwaway copy of the
     repo's index with `git add --intent-to-add` applied, so untracked files
     show up in subsequent `git diff` calls without touching the user's real
-    index. Yields None if no index can be found (bare repo / not a repo); the
-    caller should fall back to a plain diff. Always cleans up the temp file.
+    index. Yields None if no index can be found (bare repo / not a repo) or
+    no copy slot came free; the caller should fall back to a plain diff.
+    Always cleans up the temp file.
 
     Perf: when `untracked_paths` is given, only those paths are added (O(n)
     in untracked count). The default `add -N .` stats every file in the
     worktree — slow in large repos vs fast targeted scan. v2 callers
     already know the untracked set from `git status --porcelain`, so they
-    pass it; v1 keeps the whole-tree scan since it has no prior list."""
-    import shutil
-    import tempfile
+    pass it; v1 keeps the whole-tree scan since it has no prior list.
 
+    Cleanup removes `<tmp_index>*`, not just the copy: git writes
+    `<index>.lock` and `<index>.stash.<pid>` next to the index it is given and
+    cannot remove them itself when a subprocess timeout kills it."""
     real_index = _find_git_index(cwd)
     if not real_index:
         yield None
         return
 
-    tmp_fd, tmp_index = tempfile.mkstemp(prefix="security_hook_idx_")
-    os.close(tmp_fd)
+    _sweep_stale_stash_indexes(real_index)
+    tmpdir = _hook_tmpdir()
     try:
-        shutil.copy2(real_index, tmp_index)
+        index_bytes = os.path.getsize(real_index)
+    except OSError:
+        index_bytes = 0
+    with _copy_slot(tmpdir, index_bytes) as got_slot:
+        if not got_slot:
+            debug_log("no index copy slot came free; going without a copy")
+            yield None
+            return
+        with _copied_index(cwd, real_index, tmpdir, untracked_paths) as env:
+            yield env
+
+
+@contextlib.contextmanager
+def _copied_index(cwd, real_index, tmpdir, untracked_paths):
+    import shutil
+    import tempfile
+
+    tmp_fd, tmp_index = tempfile.mkstemp(
+        prefix=f"{_TEMP_INDEX_PREFIX}pid{os.getpid()}_", dir=tmpdir)
+    os.close(tmp_fd)
+    _live_copies.add(tmp_index)
+    try:
+        # A hard link where the filesystem allows it: no bytes are copied, and
+        # git never writes an index in place (it renames a new file over it),
+        # so the real index cannot change through the link. Either way the
+        # copy must keep .git/index's mtime (copy2, not copyfile): git
+        # re-reads any file whose mtime is not older than the index file's,
+        # and with a fresh mtime it would miss a same-size edit made in the
+        # same second as the last index write.
+        try:
+            os.unlink(tmp_index)
+            os.link(real_index, tmp_index)
+        except (OSError, NotImplementedError, AttributeError):
+            shutil.copy2(real_index, tmp_index)
         env = {**os.environ, "GIT_INDEX_FILE": tmp_index}
         if untracked_paths is None:
             add_args = ["."]
@@ -128,27 +447,35 @@ def _temp_index(cwd, untracked_paths=None):
         else:
             add_args = None
         if add_args:
+            # No stdout used here (only returncode matters), but text=True
+            # still spawns reader threads that decode stderr — git error
+            # messages can reference non-ASCII filenames and crash on
+            # cp1252. See #2099. Drop text=True so bytes stay raw.
             subprocess.run(
                 [*GIT_CMD, "add", "--intent-to-add"] + add_args,
-                cwd=cwd, capture_output=True, text=True, timeout=10,
+                cwd=cwd, capture_output=True, timeout=10,
                 env=env,
             )
         yield env
     finally:
-        try:
-            os.unlink(tmp_index)
-        except OSError:
-            pass
+        _remove_copy(tmp_index)
+        _live_copies.discard(tmp_index)
 
 
 def _git_toplevel(cwd):
     """Absolute repo root for `cwd`, or None if not in a work tree."""
     try:
+        # See #2099: stdout is a PATH — `C:\אבטחה\repo` returned as UTF-8
+        # bytes by git. text=True would decode via cp1252 strict on Windows
+        # → reader-thread crash. Decode manually with errors="replace".
         r = subprocess.run(
             [*GIT_CMD, "rev-parse", "--show-toplevel"],
-            cwd=cwd, capture_output=True, text=True, timeout=5,
+            cwd=cwd, capture_output=True, timeout=5,
         )
-        return r.stdout.strip() if r.returncode == 0 and r.stdout.strip() else None
+        if r.returncode != 0:
+            return None
+        path = r.stdout.decode("utf-8", errors="replace").strip()
+        return path if path else None
     except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
         return None
 
@@ -164,13 +491,15 @@ def _git_dir(repo_root):
     callers can degrade (push-sweep state is best-effort).
     """
     try:
+        # See #2099: stdout is a PATH (shared gitdir), may be non-ASCII.
+        # Decode bytes manually to avoid cp1252 reader-thread crash.
         r = subprocess.run(
             [*GIT_CMD, "rev-parse", "--git-common-dir"],
-            cwd=repo_root, capture_output=True, text=True, timeout=5,
+            cwd=repo_root, capture_output=True, timeout=5,
         )
         if r.returncode != 0:
             return None
-        d = r.stdout.strip()
+        d = r.stdout.decode("utf-8", errors="replace").strip()
         return d if os.path.isabs(d) else os.path.join(repo_root, d)
     except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
         return None
@@ -179,13 +508,15 @@ def _git_dir(repo_root):
 def _git_rev_list_range(repo_root, base, head="HEAD"):
     """Shas in `base..head`, oldest→newest. Empty list on error."""
     try:
+        # See #2099: stdout is ASCII SHAs, but stderr can carry git error
+        # messages referencing non-ASCII filenames — keep bytes raw.
         r = subprocess.run(
             [*GIT_CMD, "rev-list", "--reverse", f"{base}..{head}"],
-            cwd=repo_root, capture_output=True, text=True, timeout=10,
+            cwd=repo_root, capture_output=True, timeout=10,
         )
         if r.returncode != 0:
             return []
-        return [s for s in r.stdout.strip().split("\n") if s]
+        return [s for s in r.stdout.decode("utf-8", errors="replace").strip().split("\n") if s]
     except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
         return []
 
@@ -199,8 +530,12 @@ def _git_diff_range(repo_root, base, head="HEAD"):
     them reviewed — otherwise unreviewed commits get permanently silenced.
     """
     try:
+        # GIT_CMD globally passes core.quotePath=false (see definition) so
+        # non-ASCII paths in `diff --git a/... b/...` headers come through as
+        # raw UTF-8, not C-quoted. Required by the downstream
+        # parse_diff_into_files / extract_file_paths_from_diff regex.
         r = subprocess.run(
-            [*GIT_CMD, "diff", "-p", "--no-color", "--no-ext-diff", base, head],
+            [*GIT_CMD, "diff", "-p", "--no-color", "--no-ext-diff", "--no-textconv", base, head],
             cwd=repo_root, capture_output=True, timeout=30,
         )
         if r.returncode != 0:
@@ -213,9 +548,11 @@ def _git_diff_range(repo_root, base, head="HEAD"):
 def _detect_main_branch(repo_root):
     for ref in ("origin/HEAD", "origin/main", "origin/master", "main", "master"):
         try:
+            # See #2099: stdout is a SHA but stderr can carry non-ASCII git
+            # warnings — keep bytes raw to avoid cp1252 reader-thread crash.
             r = subprocess.run(
                 [*GIT_CMD, "rev-parse", "--verify", "-q", ref],
-                cwd=repo_root, capture_output=True, text=True, timeout=5,
+                cwd=repo_root, capture_output=True, timeout=5,
             )
             if r.returncode == 0 and r.stdout.strip():
                 return ref
@@ -259,19 +596,29 @@ def _git_reflog_recent_commits(repo_root, max_age_s=120, max_n=5):
         # %gs (the reflog subject) is `commit: <commit-msg first line>` and can
         # contain `|`; put it LAST so split("|", 2) leaves it intact. %H is
         # hex and %ct is integer, so the first two fields are delimiter-safe.
+        #
+        # Bytes + decode utf-8/replace: %gs embeds commit-message subjects
+        # which git stores as raw bytes — commits can be authored in
+        # latin-1 / cp1252 / shift-jis etc., and text=True would raise
+        # UnicodeDecodeError in the subprocess reader thread on Windows
+        # cp1252 (subprocess.run returns r.stdout=None, then
+        # r.stdout.splitlines() AttributeErrors). Mirrors the existing
+        # migration at security_reminder_hook.py:540 — same pattern was
+        # missed here. See anthropics/claude-plugins-official#2056.
         r = subprocess.run(
             [*GIT_CMD, "log", "-g", "-n", str(max_n),
              "--format=%H|%ct|%gs", "HEAD"],
-            cwd=repo_root, capture_output=True, text=True, timeout=5,
+            cwd=repo_root, capture_output=True, timeout=5,
         )
-    except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
+    except (subprocess.TimeoutExpired, FileNotFoundError, OSError, ValueError):
         return [], 0
     if r.returncode != 0:
         return [], 0
+    stdout = (r.stdout or b"").decode("utf-8", errors="replace")
     import time as _time
     now = int(_time.time())
     fresh, stale = [], 0
-    for idx, line in enumerate(r.stdout.splitlines()):
+    for idx, line in enumerate(stdout.splitlines()):
         parts = line.split("|", 2)
         if len(parts) != 3:
             continue
@@ -305,24 +652,39 @@ def _git_name_only(cwd, base, include_untracked=False):
     or None if git failed (unresolvable ref, not a repo, timeout). Callers
     must distinguish None (error → don't trust as a filter) from set()
     (genuinely nothing changed). `-c core.quotePath=false -z` keeps non-ASCII
-    and space-containing paths intact."""
+    and space-containing paths intact.
+
+    Against the work tree the set can also hold a file whose stat changed and
+    whose content did not: the diff does not refresh the index. Callers
+    intersect with `git status`, which compares content."""
+    # Decode stdout/stderr as UTF-8 with errors="replace" instead of using
+    # text=True. core.quotePath=false makes git emit raw UTF-8 for non-ASCII
+    # paths, and text=True on Windows decodes via cp1252 strict — a non-ASCII
+    # changed path would crash the subprocess reader thread, leave
+    # result.stdout=None, and propagate AttributeError out of the helper.
+    # Same fix shape as diffstate._list_untracked. See #2056.
     def _run(env):
+        # core.quotePath=false comes from GIT_CMD globally (see definition).
         result = subprocess.run(
-            [*GIT_CMD, "-c", "core.quotePath=false", "diff", "--name-only", "-z", base],
-            cwd=cwd, capture_output=True, text=True, timeout=30,
+            [*GIT_CMD, "diff", "--name-only", "-z", base],
+            cwd=cwd, capture_output=True, timeout=30,
             env=env,
         )
         if result.returncode != 0:
-            debug_log(f"_git_name_only({base!r}) rc={result.returncode}: {result.stderr[:200]}")
+            stderr_str = (result.stderr or b"").decode("utf-8", errors="replace")
+            debug_log(f"_git_name_only({base!r}) rc={result.returncode}: {stderr_str[:200]}")
             return None
-        return {p for p in result.stdout.split("\0") if p}
+        stdout = (result.stdout or b"").decode("utf-8", errors="replace")
+        return {p for p in stdout.split("\0") if p}
 
     try:
+        # The diff only reads the index (diff.autoRefreshIndex is off in
+        # GIT_CMD); a copy is for `add -N` alone.
         if not include_untracked:
             return _run(None)
         with _temp_index(cwd) as env:
             return _run(env)
-    except (subprocess.TimeoutExpired, FileNotFoundError, OSError) as e:
+    except (subprocess.TimeoutExpired, FileNotFoundError, OSError, ValueError) as e:
         debug_log(f"_git_name_only({base!r}) error: {e}")
         return None
 
@@ -339,17 +701,22 @@ def _git_status_porcelain(cwd):
     collapses to `dir/`). Required so the untracked set subtracts cleanly
     against the UPS-time `_list_untracked` snapshot, which uses ls-files and
     therefore always lists individual files."""
+    # Lenient decode: same UTF-8 + errors="replace" pattern as the
+    # sibling helpers — a non-ASCII path in the worktree would otherwise
+    # crash the cp1252 reader thread on Windows. See #2056.
     try:
+        # core.quotePath=false comes from GIT_CMD globally (see definition).
         r = subprocess.run(
-            [*GIT_CMD, "-c", "core.quotePath=false", "status",
-             "--porcelain=v1", "-uall", "-z"],
-            cwd=cwd, capture_output=True, text=True, timeout=30,
+            [*GIT_CMD, "status", "--porcelain=v1", "-uall", "-z"],
+            cwd=cwd, capture_output=True, timeout=30,
         )
         if r.returncode != 0:
-            debug_log(f"_git_status_porcelain rc={r.returncode}: {r.stderr[:200]}")
+            stderr_str = (r.stderr or b"").decode("utf-8", errors="replace")
+            debug_log(f"_git_status_porcelain rc={r.returncode}: {stderr_str[:200]}")
             return None, None
         tracked, untracked = set(), set()
-        entries = r.stdout.split("\0")
+        stdout = (r.stdout or b"").decode("utf-8", errors="replace")
+        entries = stdout.split("\0")
         i = 0
         while i < len(entries):
             e = entries[i]
@@ -368,7 +735,9 @@ def _git_status_porcelain(cwd):
                     i += 1
             i += 1
         return tracked, untracked
-    except (subprocess.TimeoutExpired, FileNotFoundError, OSError) as e:
+    except (subprocess.TimeoutExpired, FileNotFoundError, OSError, ValueError) as e:
+        # ValueError guards against any future strict-decode regression
+        # so the helper degrades to (None, None) instead of crashing.
         debug_log(f"_git_status_porcelain error: {e}")
         return None, None
 
@@ -378,9 +747,12 @@ def _is_ancestor(cwd, maybe_ancestor, descendant):
     """True if `maybe_ancestor` is reachable from `descendant` (i.e. HEAD
     moved forward via commit/merge, not sideways via checkout)."""
     try:
+        # See #2099: only returncode matters, but text=True spawns reader
+        # threads that decode stderr — git error messages can carry non-ASCII
+        # filenames. Drop text=True to keep bytes raw, avoid cp1252 crash.
         result = subprocess.run(
             [*GIT_CMD, "merge-base", "--is-ancestor", maybe_ancestor, descendant],
-            cwd=cwd, capture_output=True, text=True, timeout=5,
+            cwd=cwd, capture_output=True, timeout=5,
         )
         return result.returncode == 0
     except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
@@ -411,12 +783,18 @@ def get_git_diff(cwd, baseline_sha, full_context=False, paths=None, untracked_pa
         # change exists to fix.
         return ""
 
-    cmd = [*GIT_CMD, "diff", "--no-color", "--no-ext-diff", baseline_sha] + (["--unified=99999"] if full_context else []) + pathspec
+    # core.quotePath=false comes from GIT_CMD globally (see definition).
+    cmd = [*GIT_CMD, "diff", "--no-color", "--no-ext-diff", "--no-textconv", baseline_sha] + (["--unified=99999"] if full_context else []) + pathspec
     try:
-        with _temp_index(cwd, untracked_paths) as env:
-            # env is None when no index could be found (bare repo / not a
-            # repo) — diff still runs, just without untracked-file support.
-            result = subprocess.run(cmd, cwd=cwd, capture_output=True, timeout=30, env=env)
+        if untracked_paths is not None and not untracked_paths:
+            # Nothing to `add -N`, and the diff only reads the index.
+            result = subprocess.run(cmd, cwd=cwd, capture_output=True, timeout=30)
+        else:
+            with _temp_index(cwd, untracked_paths) as env:
+                # env is None when there is no index (bare repo / not a repo)
+                # or no copy slot — diff still runs, just without
+                # untracked-file support.
+                result = subprocess.run(cmd, cwd=cwd, capture_output=True, timeout=30, env=env)
         if result.returncode != 0:
             debug_log(f"git diff failed: {result.stderr[:200].decode('utf-8', errors='replace')}")
             return None

@@ -13,7 +13,7 @@ from _base import debug_log, _PV
 from gitutil import (
     GIT_CMD,
     _git_dir, _git_toplevel, _git_status_porcelain,
-    _git_rev_parse_head, _is_ancestor, _git_name_only,
+    _git_rev_parse_head, _is_ancestor, _git_name_only, _temp_index,
 )
 from session_state import with_locked_state
 
@@ -71,7 +71,7 @@ def record_touched_path(session_id, file_path):
     with_locked_state(session_id, _record)
 
 
-def consume_stop_state(session_id):
+def consume_stop_state(session_id, clear=True):
     """Atomically snapshot all state the Stop hook needs and clear touched_paths.
 
     The Stop hook is asyncRewake — it runs in the background after Claude's
@@ -102,15 +102,25 @@ def consume_stop_state(session_id):
             "fire_count": 0 if expired else state.get("stop_hook_fire_count", 0),
             "fire_count_expired": expired and state.get("stop_hook_fire_count", 0) > 0,
             "previous_findings": [] if findings_expired else list(state.get("previous_findings", [])),
+            "reviewed_diff_hash": state.get("reviewed_diff_hash"),
         }
-        state["touched_paths"] = []
+        if clear:
+            state["touched_paths"] = []
+            state.pop("reviewed_diff_hash", None)
         return snap
 
     return with_locked_state(session_id, _snap) or {
         "touched_paths": [], "baseline_sha": None, "head_at_capture": None,
         "untracked_at_baseline": {},
         "fire_count": 0, "fire_count_expired": False, "previous_findings": [],
+        "reviewed_diff_hash": None,
     }
+
+
+def record_reviewed_diff(session_id, diff_hash):
+    def _save(state):
+        state["reviewed_diff_hash"] = diff_hash
+    with_locked_state(session_id, _save)
 
 
 def restore_unreviewed_stop_state(session_id, paths, baseline_sha):
@@ -138,7 +148,17 @@ def restore_unreviewed_stop_state(session_id, paths, baseline_sha):
 
 
 def get_baseline_file_content(session_id, file_path, cwd):
-    """Get the content of a file at the baseline SHA. Returns None if unavailable."""
+    """Get the content of a file at the baseline SHA. Returns None if unavailable.
+
+    Decode the file content as UTF-8 with errors="replace" rather than using
+    text=True: source files in user repos can be latin-1 / cp1252 / shift-jis
+    / etc., and on Windows text=True would decode via locale.getpreferredencoding()
+    in strict mode and raise UnicodeDecodeError in the subprocess reader
+    thread — leaving result.stdout=None and propagating AttributeError when
+    the caller tries to use it. Same class as the existing migrations at
+    security_reminder_hook.py:540 (reflog subjects) and :1115 (commit
+    diffs); this helper was missed in that pass. See
+    anthropics/claude-plugins-official#2056."""
     baseline_sha = load_baseline_sha(session_id)
     if not baseline_sha:
         return None
@@ -151,12 +171,12 @@ def get_baseline_file_content(session_id, file_path, cwd):
             return None
         result = subprocess.run(
             [*GIT_CMD, "show", f"{baseline_sha}:{rel_path}"],
-            cwd=cwd, capture_output=True, text=True, timeout=5
+            cwd=cwd, capture_output=True, timeout=5
         )
         if result.returncode == 0:
-            return result.stdout
+            return (result.stdout or b"").decode("utf-8", errors="replace")
         return None
-    except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
+    except (subprocess.TimeoutExpired, FileNotFoundError, OSError, ValueError):
         return None
 
 
@@ -168,38 +188,55 @@ def capture_git_baseline(cwd):
     Falls back to HEAD if the working tree is clean.
     Returns the SHA string, or None if not in a git repo or if the repo has no commits.
 
+    `stash create` runs on a throwaway copy of the index (GIT_INDEX_FILE), so
+    its `index.lock` and `index.stash.<pid>` files land next to the copy, not
+    in `.git`: it cannot collide with a concurrent git command, and a timeout
+    kill cannot leave a lock that blocks the user's next one.
+    GIT_OPTIONAL_LOCKS does not cover stash. Copying the real index without a
+    lock is safe: git replaces it by atomic rename.
+
     NOTE: `git stash create` does NOT capture untracked files. UPS pairs this
     SHA with a `_list_untracked()` snapshot stored as `untracked_at_baseline`,
     and `compute_v2_review_set` subtracts that set so pre-existing untracked
     files are not reviewed as Claude-authored.
     """
+    # stdout is a SHA so text=True is safe on stdout, but a non-ASCII
+    # filename in `git stash create`'s STDERR warning (e.g. a worktree
+    # with `Ávila_report.txt` triggers a quotePath/locale warning) would
+    # trip the stderr reader thread on Windows cp1252. Decode both streams
+    # leniently for symmetry with _list_untracked. See #2056.
     try:
         # Check if HEAD exists (i.e., repo has at least one commit)
         head_check = subprocess.run(
             [*GIT_CMD, "rev-parse", "HEAD"],
-            cwd=cwd, capture_output=True, text=True, timeout=5
+            cwd=cwd, capture_output=True, timeout=5
         )
         if head_check.returncode != 0:
             # No commits yet — skip review rather than creating commits in the user's repo
             debug_log("No commits in repo, skipping baseline capture")
             return None
 
-        result = subprocess.run(
-            [*GIT_CMD, "stash", "create"],
-            cwd=cwd, capture_output=True, text=True, timeout=15
-        )
-        sha = result.stdout.strip()
+        sha = ""
+        # untracked_paths=[]: a plain copy of the index, no `add -N` pass.
+        with _temp_index(cwd, untracked_paths=[]) as env:
+            # env is None when there is no index file to copy: treat as clean.
+            if env is not None:
+                result = subprocess.run(
+                    [*GIT_CMD, "stash", "create"],
+                    cwd=cwd, capture_output=True, timeout=15, env=env
+                )
+                sha = (result.stdout or b"").decode("utf-8", errors="replace").strip()
         if sha:
             return sha
 
         # Working tree is clean — stash create returns empty. Use HEAD.
         result = subprocess.run(
             [*GIT_CMD, "rev-parse", "HEAD"],
-            cwd=cwd, capture_output=True, text=True, timeout=5
+            cwd=cwd, capture_output=True, timeout=5
         )
-        sha = result.stdout.strip()
+        sha = (result.stdout or b"").decode("utf-8", errors="replace").strip()
         return sha if sha else None
-    except (subprocess.TimeoutExpired, FileNotFoundError, OSError) as e:
+    except (subprocess.TimeoutExpired, FileNotFoundError, OSError, ValueError) as e:
         debug_log(f"Failed to capture git baseline: {e}")
         return None
 
@@ -323,19 +360,35 @@ def _list_untracked(cwd):
     mtime is captured so an in-place edit during the turn is still reviewed.
 
     Uses ls-files (not status) for the UPS path: the index diff isn't needed,
-    and ls-files --others only walks the worktree against .gitignore."""
+    and ls-files --others only walks the worktree against .gitignore.
+
+    Decodes stdout/stderr as UTF-8 with errors="replace" instead of using
+    text=True. With core.quotePath=false git emits raw UTF-8 bytes for
+    non-ASCII filenames; text=True decodes via locale.getpreferredencoding()
+    in strict mode — on Windows that's cp1252 with several undefined bytes
+    (0x81/0x8D/0x8F/0x90/0x9D), all of which appear in UTF-8 encodings of
+    common accented capitals (Á Í Ï Ð Ý) and most CJK/emoji codepoints.
+    A non-ASCII filename in the worktree crashed the subprocess reader
+    thread, left r.stdout=None, and propagated AttributeError out of the
+    helper — silently losing the baseline snapshot every UserPromptSubmit.
+    See anthropics/claude-plugins-official#2056. The sibling helpers in
+    gitutil.py already follow the lenient pattern; this function and
+    capture_git_baseline / _git_name_only / _git_status_porcelain were
+    the holdouts."""
     try:
         repo = _git_toplevel(cwd) or cwd
+        # core.quotePath=false comes from GIT_CMD globally (see gitutil.py).
         r = subprocess.run(
-            [*GIT_CMD, "-c", "core.quotePath=false", "ls-files",
-             "--others", "--exclude-standard", "-z"],
-            cwd=repo, capture_output=True, text=True, timeout=15,
+            [*GIT_CMD, "ls-files", "--others", "--exclude-standard", "-z"],
+            cwd=repo, capture_output=True, timeout=15,
         )
         if r.returncode != 0:
-            debug_log(f"_list_untracked rc={r.returncode}: {r.stderr[:200]}")
+            stderr_str = (r.stderr or b"").decode("utf-8", errors="replace")
+            debug_log(f"_list_untracked rc={r.returncode}: {stderr_str[:200]}")
             return {}
+        stdout = (r.stdout or b"").decode("utf-8", errors="replace")
         out = {}
-        for p in r.stdout.split("\0"):
+        for p in stdout.split("\0"):
             if not p:
                 continue
             try:
@@ -346,7 +399,9 @@ def _list_untracked(cwd):
                 debug_log(f"_list_untracked: capped at {UNTRACKED_BASELINE_CAP}")
                 break
         return out
-    except (subprocess.TimeoutExpired, FileNotFoundError, OSError) as e:
+    except (subprocess.TimeoutExpired, FileNotFoundError, OSError, ValueError) as e:
+        # ValueError guards against any future strict-decode regression
+        # so the helper degrades to {} instead of crashing the hook.
         debug_log(f"_list_untracked error: {e}")
         return {}
 
@@ -407,7 +462,7 @@ def compute_v2_review_set(cwd, baseline_sha, head_at_capture, untracked_at_basel
         dirty_now |= _git_name_only(repo, f"{head_at_capture}..HEAD") or set()
         diff_base = head_at_capture
 
-    # changed_since: tracked files vs the stash baseline (no temp index — the
+    # changed_since: tracked files vs the stash baseline (no `add -N` — the
     # stash never contained untracked files anyway), then union with
     # currently-untracked. The previous `include_untracked=True` arm cost a
     # full `git add -N .` (slow in large repos) per call to surface

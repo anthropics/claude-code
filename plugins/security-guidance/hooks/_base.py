@@ -10,15 +10,42 @@ import os
 import threading
 from datetime import datetime
 
+def state_dir():
+    """Return the absolute path of the plugin's state directory.
+
+    Resolution precedence (highest first):
+      1. SECURITY_WARNINGS_STATE_DIR — plugin-specific override (existing)
+      2. CLAUDE_CONFIG_DIR/security  — CC's config-dir env var (#1868)
+      3. ~/.claude/security          — default fallback
+
+    Empty-string env vars are treated as not-set so a misconfigured shell
+    (`CLAUDE_CONFIG_DIR=` with no value) doesn't silently write to
+    /security at the filesystem root.
+
+    Returns a fully-expanded absolute path (no literal `~`) so subprocess
+    callers can pass it through to code that doesn't re-expand tildes.
+
+    Called per-invocation rather than cached at import time so test
+    monkeypatches of the env vars take effect — the plugin's hooks each
+    run as fresh subprocesses in production, so the per-call cost is
+    negligible compared to subprocess spawn.
+    """
+    explicit = os.environ.get("SECURITY_WARNINGS_STATE_DIR")
+    if explicit:
+        return os.path.expanduser(explicit)
+    cc_config = os.environ.get("CLAUDE_CONFIG_DIR")
+    if cc_config:
+        return os.path.expanduser(os.path.join(cc_config, "security"))
+    return os.path.expanduser("~/.claude/security")
+
+
 # Debug log file. Lives under the plugin state dir (default ~/.claude/security/)
 # rather than /tmp because /tmp is world-writable on multi-user hosts (TOCTOU /
 # symlink-attack surface, cross-user log leakage). Overridable per-process via
-# SECURITY_GUIDANCE_DEBUG_LOG, or per-state-dir via SECURITY_WARNINGS_STATE_DIR.
-_DEFAULT_STATE_DIR = os.path.expanduser(
-    os.environ.get("SECURITY_WARNINGS_STATE_DIR") or "~/.claude/security"
-)
+# SECURITY_GUIDANCE_DEBUG_LOG, or per-state-dir via SECURITY_WARNINGS_STATE_DIR
+# (plugin-specific override) or CLAUDE_CONFIG_DIR (CC-wide config dir, #1868).
 DEBUG_LOG_FILE = os.environ.get("SECURITY_GUIDANCE_DEBUG_LOG") or os.path.join(
-    _DEFAULT_STATE_DIR, "log.txt"
+    state_dir(), "log.txt"
 )
 # Cap the debug log so parallel-worker fleets don't fill disk. When the active
 # file exceeds this it's atomically rotated to <file>.1 (overwriting any prior
@@ -89,7 +116,18 @@ _PV = _read_plugin_version_int()
 # Emitted via _usage_metrics() into the existing emit_metrics() channel so
 # hook metrics rows carry per-invocation token/cost totals
 # alongside the existing skip_reason / vulns_found fields.
-_USAGE = {"in": 0, "out": 0, "cr": 0, "cw": 0, "cost": 0.0, "n": 0}
+_USAGE = {
+    "in": 0, "out": 0, "cr": 0, "cw": 0, "cost": 0.0, "n": 0,
+    # HTTP error visibility (#2098 visibility gap — see emit comment in
+    # _usage_metrics). Without this, API failures from `_call_claude` left
+    # zero fingerprint in telemetry: the call returns None, the caller's
+    # emit_metrics carries no api_calls field, and the failure is
+    # indistinguishable from "no review needed". The deprecation outage
+    # that broke every commit-review LLM call was invisible until users
+    # reported it manually.
+    "http_err_last": 0,    # most recent HTTP error code this invocation
+    "http_err_count": 0,   # total HTTP errors (4xx + 5xx + network)
+}
 _USAGE_LOCK = threading.Lock()
 
 # $/Mtok (input, output). Used only for the raw-HTTP path; the SDK path
@@ -102,6 +140,9 @@ _PRICE_PER_MTOK = {
     "claude-sonnet-4-6": (3.0, 15.0),
     "claude-opus-4-6": (15.0, 75.0),
     "claude-opus-4-7": (5.0, 25.0),
+    "claude-opus-4-8": (5.0, 25.0),
+    "claude-opus-5": (5.0, 25.0),
+    "claude-opus-5-5": (4.0, 20.0),
 }
 _PRICE_DEFAULT = (3.0, 15.0)
 
@@ -139,19 +180,55 @@ def _record_usage(usage, model, cost_usd=None):
         _USAGE["n"] += 1
 
 
+def _record_http_error(status):
+    """Record an HTTP error from an LLM API call. `status` is the HTTP
+    status code (integer 400–599) or -1 for network/timeout errors. Stored
+    in `_USAGE["http_err_last"]` (most recent) and counted in
+    `_USAGE["http_err_count"]`. Snapshot via `_usage_metrics()` so every
+    subsequent `emit_metrics` includes the failure fingerprint.
+
+    Background: without this, the most recent example was the #2098
+    deprecation 400. Every hook fire's LLM call returned HTTP 400; the
+    plugin caught it and returned None; the emit_metrics carried no
+    api_calls field; aggregate dashboards looked normal. The failure
+    only became visible when a user manually reported errors out of
+    their debug log. With this field, a category-of-failure spike (4xx,
+    5xx, or -1 network) is queryable from BQ in real time.
+    """
+    try:
+        s = int(status)
+    except (TypeError, ValueError):
+        return
+    with _USAGE_LOCK:
+        _USAGE["http_err_last"] = s
+        _USAGE["http_err_count"] += 1
+
+
 def _usage_metrics():
     """Snapshot the accumulator as metric keys. Returns {} when no API calls
-    were made so skip-path emits don't burn key budget. cost_usd rounded to
-    1e-6 to keep the float finite/short for the zod schema."""
+    AND no HTTP errors were made so skip-path emits don't burn key budget.
+    cost_usd rounded to 1e-6 to keep the float finite/short for the zod
+    schema.
+
+    HTTP errors (`http_err_last`, `http_err_count`) emitted ONLY when
+    `http_err_count > 0` so successful calls don't pad every metrics row
+    with two zero fields.
+    """
     with _USAGE_LOCK:
-        if _USAGE["n"] == 0:
+        if _USAGE["n"] == 0 and _USAGE["http_err_count"] == 0:
             return {}
-        return {
-            "tok_in": _USAGE["in"],
-            "tok_out": _USAGE["out"],
-            "tok_cache_r": _USAGE["cr"],
-            "tok_cache_w": _USAGE["cw"],
-            "cost_usd": round(_USAGE["cost"], 6),
-            "api_calls": _USAGE["n"],
-        }
+        out = {}
+        if _USAGE["n"] > 0:
+            out.update({
+                "tok_in": _USAGE["in"],
+                "tok_out": _USAGE["out"],
+                "tok_cache_r": _USAGE["cr"],
+                "tok_cache_w": _USAGE["cw"],
+                "cost_usd": round(_USAGE["cost"], 6),
+                "api_calls": _USAGE["n"],
+            })
+        if _USAGE["http_err_count"] > 0:
+            out["http_err_last"] = _USAGE["http_err_last"]
+            out["http_err_count"] = _USAGE["http_err_count"]
+        return out
 

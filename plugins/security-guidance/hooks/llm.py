@@ -18,17 +18,88 @@ Two reassignable globals here are read by handlers in
 ``from``-import) so they observe reassignment.
 """
 import glob
+import hashlib
 import json
 import os
 import re
 import sys
+import tempfile
+import time
 import urllib.request
 from typing import Optional, Tuple, Dict, Any, List
 
 import extensibility
 import review_api
-from _base import debug_log, _record_usage, _PV, PROVENANCE_TAG  # noqa: F401
+from _base import debug_log, _record_usage, _record_http_error, _PV, PROVENANCE_TAG, state_dir as _resolve_state_dir  # noqa: F401
 from session_state import with_locked_state
+from gitutil import git_config_env, SAFE_GIT_CONFIG
+
+
+def _inject_agent_sdk_venv_into_syspath(state_dir):
+    """Prepend the agent-SDK venv's site-packages to sys.path so the SDK
+    import below picks it up when the user's system Python doesn't have it.
+
+    Called from two fallback sites (3P SDK + agentic_review); shared here so
+    Windows pywin32 handling stays in one place.
+
+    Returns True if any path was added.
+
+    POSIX venv layout: `agent-sdk-venv/lib/pythonX.Y/site-packages`
+    Windows venv layout: `agent-sdk-venv/Lib/site-packages` (capital L, no
+    pythonX.Y subdir). The SDK transitively imports pywin32 on Windows, and
+    pywin32's `.pth` files (which add `win32/`, `win32/lib/` to sys.path and
+    register the DLL search dir via `pywin32_bootstrap.py`) are processed
+    ONLY by Python's `site.py` at interpreter startup — not when we manually
+    insert a path here. Without the bootstrap, the SDK's
+    `mcp.client.stdio → mcp.os.win32.utilities → pywintypes` import chain
+    fails with `ModuleNotFoundError: pywintypes` and the agentic reviewer
+    falls back to single-shot silently. Replicate what site.py would do.
+    """
+    venv_root = os.path.join(state_dir, "agent-sdk-venv")
+    candidates = (
+        glob.glob(os.path.join(venv_root, "lib", "python*", "site-packages"))
+        + glob.glob(os.path.join(venv_root, "Lib", "site-packages"))
+        # `pip install --target` fallback (ensure_agent_sdk BUILT_TARGET, used
+        # when venv can't bootstrap pip): a FLAT layout — packages sit directly
+        # in agent-sdk-libs/, not under a site-packages subdir. See #2154
+        # follow-up. The pywin32 .pth bootstrap below applies here too (target
+        # installs don't process .pth at runtime, same as a manual venv insert).
+        + [os.path.join(state_dir, "agent-sdk-libs")]
+    )
+    added = False
+    for sp in candidates:
+        if not os.path.isdir(sp) or sp in sys.path:
+            continue
+        sys.path.insert(0, sp)
+        added = True
+        if sys.platform == "win32":
+            _bootstrap_pywin32(sp)
+    return added
+
+
+def _bootstrap_pywin32(site_packages_dir):
+    """Manually replicate the pywin32 `.pth` bootstrap so a venv added via
+    `sys.path.insert()` (not site.py) can still import `pywintypes`. No-op
+    when the venv doesn't include pywin32. Failures are swallowed — the
+    SDK import below will raise its own ImportError and the caller's
+    fallback path handles it cleanly."""
+    try:
+        win32 = os.path.join(site_packages_dir, "win32")
+        win32_lib = os.path.join(win32, "lib")
+        for d in (win32, win32_lib):
+            if os.path.isdir(d) and d not in sys.path:
+                sys.path.insert(0, d)
+        bootstrap = os.path.join(win32_lib, "pywin32_bootstrap.py")
+        if os.path.isfile(bootstrap):
+            import importlib.util
+            spec = importlib.util.spec_from_file_location(
+                "pywin32_bootstrap", bootstrap,
+            )
+            if spec and spec.loader:
+                mod = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(mod)
+    except Exception as e:
+        debug_log(f"pywin32 bootstrap failed (may break SDK import on Windows): {e}")
 
 
 # Plan Security Check Configuration
@@ -57,11 +128,19 @@ HAS_API_CREDENTIALS = bool(
     ANTHROPIC_API_KEY or ANTHROPIC_AUTH_TOKEN or _HAS_3P_PROVIDER_AT_LOAD
 )
 
-# Model for security review. Default chosen for its precision profile on
+# Model for security review. Opus is the default for its precision profile on
 # interruptive review surfaces — false positives are the dominant uninstall
 # driver, so the default favors precision over recall and over latency.
 # Override via the SECURITY_REVIEW_MODEL env var (see README).
-SECURITY_REVIEW_MODEL = os.environ.get("SECURITY_REVIEW_MODEL", "").strip() or "claude-opus-4-7"
+#
+# Without an override the review follows the newest Opus rather than a
+# release named here: default_review_model() resolves it per call path.
+# _PINNED_REVIEW_MODEL is only what a review uses when that lookup fails.
+_PINNED_REVIEW_MODEL = "claude-opus-5-5"
+# Claude Code's own alias. The CLI the Agent SDK spawns resolves it to the
+# newest Opus it knows how to drive, in the provider's id form on 3P.
+_CLI_OPUS_ALIAS = "opus"
+SECURITY_REVIEW_MODEL = os.environ.get("SECURITY_REVIEW_MODEL", "").strip() or _PINNED_REVIEW_MODEL
 
 # OAuth subscriber tokens (ANTHROPIC_AUTH_TOKEN) require this exact system prompt
 # for api.anthropic.com/v1/messages — the API checks for one of the known Claude
@@ -188,8 +267,8 @@ def _cap_files_for_prompt(files):
 _auth_prefer_token = False
 
 
-def _build_auth_headers(use_token):
-    betas = ["structured-outputs-2025-11-13"]
+def _build_auth_headers(use_token, betas=("structured-outputs-2025-11-13",)):
+    betas = list(betas)
     headers = {
         "Content-Type": "application/json",
         "anthropic-version": "2023-06-01",
@@ -199,7 +278,8 @@ def _build_auth_headers(use_token):
         betas.append("oauth-2025-04-20")
     else:
         headers["x-api-key"] = ANTHROPIC_API_KEY
-    headers["anthropic-beta"] = ",".join(betas)
+    if betas:
+        headers["anthropic-beta"] = ",".join(betas)
     return headers
 
 
@@ -210,7 +290,10 @@ def _build_auth_headers(use_token):
 _ADAPTIVE_THINKING_MODELS = (
     "claude-opus-4-6",
     "claude-opus-4-7",
+    "claude-opus-4-8",
+    "claude-opus-5",
     "claude-sonnet-4-6",
+    "claude-sonnet-5",
 )
 _LEGACY_THINKING_MODELS = (
     "claude-3-",
@@ -271,6 +354,159 @@ def _is_3p_provider() -> bool:
     return False
 
 
+# ── Default review model ─────────────────────────────────────────────────
+# The API has no alias for "newest Opus", so the raw-HTTP path asks the
+# endpoint it is about to call (GET /v1/models) and keeps the answer in the
+# state dir. Asking that endpoint, not api.anthropic.com, means a gateway
+# that serves an older Opus gets a model it can actually route.
+
+_REVIEW_MODEL_CACHE_FILE = "review_model.json"
+_REVIEW_MODEL_TTL_SECONDS = 24 * 3600
+# A failed lookup is remembered too, for less long: otherwise an endpoint
+# without /v1/models costs every hook fire the lookup timeout.
+_REVIEW_MODEL_RETRY_SECONDS = 3600
+_REVIEW_MODEL_LOOKUP_TIMEOUT = 5
+_REVIEW_MODEL_LISTING_MAX_BYTES = 4 * 1024 * 1024
+
+# claude-opus-<major>[-<minor>][-<yyyymmdd>]. Anything else a listing or the
+# cache file holds (other families, gateway-prefixed names, free text) is
+# never sent as a model id.
+_OPUS_ID = re.compile(r"claude-opus-(\d{1,2})(?:-(\d{1,2}))?(?:-(\d{8}))?")
+
+_review_model_memo: Optional[str] = None
+
+
+def _newest_opus(model_ids) -> Optional[str]:
+    """The highest-versioned Opus id in `model_ids`, or None."""
+    best = None
+    for model_id in model_ids:
+        m = _OPUS_ID.fullmatch(model_id) if isinstance(model_id, str) else None
+        if not m:
+            continue
+        version = (int(m.group(1)), int(m.group(2) or 0), m.group(3) or "")
+        if best is None or version > best[0]:
+            best = (version, model_id)
+    return best[1] if best else None
+
+
+def _fetch_newest_opus() -> Optional[str]:
+    """Newest Opus the configured endpoint lists; None if it can't say."""
+    # Newest first, so one modest page is enough; an org with many models
+    # otherwise returns a megabyte-sized listing.
+    url = _anthropic_base_url() + "/v1/models?limit=100"
+    use_token = _auth_prefer_token or not ANTHROPIC_API_KEY
+    for _ in range(2):
+        request = urllib.request.Request(
+            url, headers=_build_auth_headers(use_token, betas=()), method="GET",
+        )
+        try:
+            with urllib.request.urlopen(
+                request, timeout=_REVIEW_MODEL_LOOKUP_TIMEOUT,
+            ) as response:
+                listing = json.loads(
+                    response.read(_REVIEW_MODEL_LISTING_MAX_BYTES).decode("utf-8")
+                )
+            entries = listing.get("data") if isinstance(listing, dict) else None
+            if not isinstance(entries, list):
+                debug_log("review model lookup: no model list in response")
+                return None
+            ids = [e.get("id") for e in entries if isinstance(e, dict)]
+            if listing.get("has_more"):
+                # A truncated page may hold no current Opus at all (an org's
+                # own models can fill it); never let it pick an older one.
+                ids.append(_PINNED_REVIEW_MODEL)
+            return _newest_opus(ids)
+        except urllib.error.HTTPError as e:
+            if e.code == 401 and not use_token and ANTHROPIC_AUTH_TOKEN:
+                use_token = True
+                continue
+            debug_log(f"review model lookup: HTTP {e.code}")
+            return None
+        except Exception as e:
+            debug_log(f"review model lookup failed: {type(e).__name__}")
+            return None
+    return None
+
+
+def _read_review_model_cache(path, endpoint_key, now):
+    """(hit, model) from the cache file. `model` is None for a remembered
+    failed lookup. The file is user-writable state: every field is checked
+    and a model id is accepted only if it has the shape of an Opus id."""
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            entry = json.loads(f.read(4096))
+    except (OSError, ValueError):
+        return False, None
+    if not isinstance(entry, dict) or entry.get("endpoint") != endpoint_key:
+        return False, None
+    at = entry.get("at")
+    if isinstance(at, bool) or not isinstance(at, (int, float)):
+        return False, None
+    model = entry.get("model")
+    if model is None:
+        ttl = _REVIEW_MODEL_RETRY_SECONDS
+    elif isinstance(model, str) and _OPUS_ID.fullmatch(model):
+        ttl = _REVIEW_MODEL_TTL_SECONDS
+    else:
+        return False, None
+    if not 0 <= now - at < ttl:
+        return False, None
+    return True, model
+
+
+def _write_review_model_cache(path, endpoint_key, model, now):
+    tmp = None
+    try:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        fd, tmp = tempfile.mkstemp(dir=os.path.dirname(path), prefix=".review_model.")
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump({"endpoint": endpoint_key, "model": model, "at": now}, f)
+        os.replace(tmp, path)
+    except OSError as e:
+        debug_log(f"review model cache not written: {type(e).__name__}")
+        if tmp:
+            try:
+                os.unlink(tmp)
+            except OSError:
+                pass
+
+
+def default_review_model() -> str:
+    """Model for a review the user hasn't pinned with SECURITY_REVIEW_MODEL.
+
+    3P providers go through the Agent SDK, so the CLI alias does the work.
+    1P and gateways get the newest Opus the endpoint lists, looked up at most
+    once per _REVIEW_MODEL_TTL_SECONDS; _PINNED_REVIEW_MODEL when the lookup
+    can't answer. Never raises.
+    """
+    global _review_model_memo
+    explicit = os.environ.get("SECURITY_REVIEW_MODEL", "").strip()
+    if explicit:
+        return explicit
+    if _is_3p_provider():
+        return _CLI_OPUS_ALIAS
+    if not HAS_API_CREDENTIALS:
+        return _PINNED_REVIEW_MODEL
+    if _review_model_memo:
+        return _review_model_memo
+    try:
+        path = os.path.join(_resolve_state_dir(), _REVIEW_MODEL_CACHE_FILE)
+        # Hashed: a gateway URL can carry credentials.
+        endpoint_key = hashlib.sha256(
+            _anthropic_base_url().encode("utf-8")
+        ).hexdigest()[:16]
+        now = time.time()
+        hit, model = _read_review_model_cache(path, endpoint_key, now)
+        if not hit:
+            model = _fetch_newest_opus()
+            _write_review_model_cache(path, endpoint_key, model, now)
+    except Exception as e:
+        debug_log(f"review model resolution failed: {type(e).__name__}")
+        model = None
+    _review_model_memo = model or _PINNED_REVIEW_MODEL
+    return _review_model_memo
+
+
 def _call_claude_via_sdk(prompt, output_schema, *, max_tokens=16000, model=None):
     """Single-turn SDK call as a substitute for the HTTP _call_claude path on
     3P providers. Uses the same `output_format` JSON-schema contract so the
@@ -294,16 +530,8 @@ def _call_claude_via_sdk(prompt, output_schema, *, max_tokens=16000, model=None)
         # Try the venv ensure_agent_sdk.py builds. Same fallback logic as
         # agentic_review() — duplicated here so the 3P path doesn't require
         # the agentic path to have run first.
-        _state_dir = os.environ.get(
-            "SECURITY_WARNINGS_STATE_DIR",
-            os.path.expanduser("~/.claude/security"),
-        )
-        for _sp in glob.glob(
-            os.path.join(_state_dir, "agent-sdk-venv", "lib",
-                         "python*", "site-packages")
-        ):
-            if os.path.isdir(_sp) and _sp not in sys.path:
-                sys.path.insert(0, _sp)
+        _state_dir = _resolve_state_dir()
+        _inject_agent_sdk_venv_into_syspath(_state_dir)
         try:
             import asyncio as _asyncio  # noqa: F811
             from claude_agent_sdk import (  # noqa: F401,F811
@@ -315,10 +543,12 @@ def _call_claude_via_sdk(prompt, output_schema, *, max_tokens=16000, model=None)
         except Exception as e:
             debug_log(f"3P sdk-single-turn: SDK unavailable ({e})")
             _last_call_claude_http_error = -1
+            _record_http_error(-1)
             return None
 
     cli_path = os.environ.get("SG_AGENTIC_CLI_PATH") or None
-    chosen_model = model or SECURITY_REVIEW_MODEL
+    default_model = default_review_model()
+    chosen_model = model or default_model
 
     # Capture child claude stderr so a failing 3P call surfaces the real
     # error (auth missing, model id wrong, etc.) in the debug log instead
@@ -335,10 +565,10 @@ def _call_claude_via_sdk(prompt, output_schema, *, max_tokens=16000, model=None)
             model=chosen_model,
             output_format={"type": "json_schema", "schema": output_schema},
             # Identical --model/--fallback-model is rejected by the CLI at
-            # startup; chosen_model defaults to SECURITY_REVIEW_MODEL, so
-            # only pass a fallback when it actually differs.
+            # startup; chosen_model defaults to default_model, so only pass
+            # a fallback when it actually differs.
             fallback_model=(
-                SECURITY_REVIEW_MODEL if chosen_model != SECURITY_REVIEW_MODEL else None
+                default_model if chosen_model != default_model else None
             ),
             env=_agentic_spawn_env(),
             stderr=lambda l: _captured_stderr.append(l),
@@ -372,6 +602,7 @@ def _call_claude_via_sdk(prompt, output_schema, *, max_tokens=16000, model=None)
     except _asyncio.TimeoutError:
         debug_log("3P sdk-single-turn: timeout after 60s")
         _last_call_claude_http_error = -1
+        _record_http_error(-1)
         return None
     except Exception as e:
         debug_log(f"3P sdk-single-turn: query failed ({e})")
@@ -380,14 +611,17 @@ def _call_claude_via_sdk(prompt, output_schema, *, max_tokens=16000, model=None)
             for _l in _captured_stderr[:20]:
                 debug_log(f"  | {_l.rstrip()}")
         _last_call_claude_http_error = -1
+        _record_http_error(-1)
         return None
 
 
 def _call_claude(prompt, output_schema, thinking_budget=10000, max_tokens=16000, model=None,
-                 retry_5xx=True):
+                 retry_5xx=True, cacheable_prefix=None):
     """
     Call the configured LLM model with extended thinking and structured outputs.
-    Model defaults to Sonnet 4.6 but can be overridden via SECURITY_REVIEW_MODEL env var.
+    cacheable_prefix: static text sent ahead of `prompt` as its own content block
+    with cache_control, so repeated calls share a cached request prefix.
+    Model defaults to default_review_model(); SECURITY_REVIEW_MODEL overrides it.
     Returns parsed JSON response or None on failure.
     On failure, sets module-level _last_call_claude_http_error to the HTTP status
     (or -1 for network/timeout) so callers can distinguish API failure from an
@@ -408,6 +642,8 @@ def _call_claude(prompt, output_schema, thinking_budget=10000, max_tokens=16000,
         # child claude CLI. Note: thinking_budget/retry_5xx don't pass
         # through — the SDK manages retries (529) and thinking config
         # internally per the chosen model.
+        if cacheable_prefix:
+            prompt = cacheable_prefix + "\n\n" + prompt
         return _call_claude_via_sdk(prompt, output_schema,
                                     max_tokens=max_tokens, model=model)
 
@@ -421,15 +657,35 @@ def _call_claude(prompt, output_schema, thinking_budget=10000, max_tokens=16000,
     use_token = _auth_prefer_token or not ANTHROPIC_API_KEY
     headers = _build_auth_headers(use_token)
 
+    if cacheable_prefix:
+        content = [
+            {"type": "text", "text": cacheable_prefix,
+             "cache_control": {"type": "ephemeral"}},
+            {"type": "text", "text": prompt},
+        ]
+    else:
+        content = prompt
+
     payload = {
-        "model": model or SECURITY_REVIEW_MODEL,
+        "model": model or default_review_model(),
         "max_tokens": max_tokens,
         "system": CLAUDE_CODE_SYSTEM_PROMPT,
-        "messages": [{"role": "user", "content": prompt}],
-        "output_format": {
-            "type": "json_schema",
-            "schema": output_schema
-        }
+        "messages": [{"role": "user", "content": content}],
+        # API moved the structured-output schema from top-level `output_format`
+        # to `output_config.format` per
+        # https://platform.claude.com/docs/en/build-with-claude/structured-outputs.
+        # The old form "continues to work for a transition period" for some
+        # auth modes (API key + non-streaming), but is rejected with
+        # `invalid_request_error: output_format: This field is deprecated.
+        # Use 'output_config.format' instead.` for others (OAuth Bearer +
+        # newer CLI versions hit it consistently — reporter saw 462 errors
+        # in one day). See #2098.
+        "output_config": {
+            "format": {
+                "type": "json_schema",
+                "schema": output_schema,
+            },
+        },
     }
     if thinking_budget > 0:
         # Models trained on adaptive thinking (4.6+) reject the budget_tokens
@@ -437,7 +693,10 @@ def _call_claude(prompt, output_schema, thinking_budget=10000, max_tokens=16000,
         # models (4.5 and earlier, all 3.x) reject adaptive. Pick by model.
         if _model_supports_adaptive_thinking(payload["model"]):
             payload["thinking"] = {"type": "adaptive"}
-            payload["output_config"] = {"effort": "high"}
+            # Merge `effort` into the existing output_config dict (which
+            # now carries the `format` schema) rather than reassigning —
+            # otherwise the schema is silently overwritten. See #2098.
+            payload["output_config"]["effort"] = "high"
         else:
             payload["thinking"] = {
                 "type": "enabled",
@@ -475,6 +734,7 @@ def _call_claude(prompt, output_schema, thinking_budget=10000, max_tokens=16000,
                 error_body = e.read().decode("utf-8") if e.fp else ""
                 debug_log(f"API error: {e.code} - {error_body[:200]}")
                 _last_call_claude_http_error = e.code
+                _record_http_error(e.code)
                 return None
         except (urllib.error.URLError, TimeoutError) as e:
             if attempt < 2:
@@ -484,6 +744,7 @@ def _call_claude(prompt, output_schema, thinking_budget=10000, max_tokens=16000,
             else:
                 debug_log(f"Request failed after retries: {e}")
                 _last_call_claude_http_error = -1
+                _record_http_error(-1)
                 return None
 
     if not response_data:
@@ -492,6 +753,7 @@ def _call_claude(prompt, output_schema, thinking_budget=10000, max_tokens=16000,
         # call uses the token; record the 401 so callers don't see error=None.
         if _last_call_claude_http_error is None:
             _last_call_claude_http_error = 401
+            _record_http_error(401)
         return None
 
     # Find the text block (skip thinking blocks)
@@ -519,7 +781,7 @@ def _dual_or_enabled() -> bool:
 
 
 def _call_claude_dual_or(prompt, output_schema, *, bool_key: str, list_key: str,
-                         thinking_budget=10000, max_tokens=16000):
+                         thinking_budget=10000, max_tokens=16000, cacheable_prefix=None):
     """Run prompt through the model 2× in parallel and OR-merge the results.
 
     The second look samples the model again on the same prompt — independent
@@ -542,28 +804,30 @@ def _call_claude_dual_or(prompt, output_schema, *, bool_key: str, list_key: str,
     from concurrent.futures import ThreadPoolExecutor
 
     explicit = os.environ.get("SECURITY_REVIEW_MODEL", "").strip()
-    primary = explicit or SECURITY_REVIEW_MODEL
+    primary = default_review_model()
 
     if not _dual_or_enabled():
         # Single-call path. Reuse the same sonnet-fallback retry as a dual_or
         # leg so a 529/400 on the primary doesn't drop recall to zero.
         r = _call_claude(prompt, output_schema, thinking_budget=thinking_budget,
-                         max_tokens=max_tokens, model=primary, retry_5xx=False)
+                         max_tokens=max_tokens, model=primary, retry_5xx=False,
+                         cacheable_prefix=cacheable_prefix)
         if r is None and not explicit:
             debug_log(f"single: {primary} failed, falling back to sonnet")
             r = _call_claude(prompt, output_schema, thinking_budget=thinking_budget,
                              max_tokens=max_tokens, model="claude-sonnet-4-6",
-                             retry_5xx=True)
+                             retry_5xx=True, cacheable_prefix=cacheable_prefix)
         return r
 
     def _leg():
         r = _call_claude(prompt, output_schema, thinking_budget=thinking_budget,
-                         max_tokens=max_tokens, model=primary, retry_5xx=False)
+                         max_tokens=max_tokens, model=primary, retry_5xx=False,
+                         cacheable_prefix=cacheable_prefix)
         if r is None and not explicit:
             debug_log(f"dual_or: {primary} leg failed, falling back to sonnet")
             r = _call_claude(prompt, output_schema, thinking_budget=thinking_budget,
                              max_tokens=max_tokens, model="claude-sonnet-4-6",
-                             retry_5xx=True)
+                             retry_5xx=True, cacheable_prefix=cacheable_prefix)
         return r
 
     with ThreadPoolExecutor(max_workers=2) as ex:
@@ -707,6 +971,138 @@ def _dedup_against_state(session_id: str, vulns: List[Dict[str, Any]],
     return kept, len(vulns) - len(kept)
 
 
+# Static review rubric, sent as its own content block with cache_control so the
+# request prefix is byte-identical across calls. Keep it free of per-call text.
+_CODE_REVIEW_RUBRIC = """You are a security expert reviewing code for CONCRETE security vulnerabilities that an attacker could exploit.
+
+IMPORTANT vulnerability categories to check:
+
+**Command Injection**: Is user input passed to shell commands or system exec calls? In Go, exec.Command("sh", "-c", userInput) is injectable. Even exec.Command("cmd", userArg) can be dangerous if userArg isn't validated (e.g., a hostname could contain shell metacharacters in some contexts). Safe: pass each argument separately without invoking a shell, AND validate the input format.
+
+**Path Traversal**: Is user input used to construct file paths? Key insight: filepath.Join() in Go does NOT prevent path traversal — filepath.Join("/var/log", "../../etc/passwd") returns "/etc/passwd". Same for Python's os.path.join() and Java's Paths.get().resolve(). CRITICAL: `path.resolve()`/`filepath.Clean()`/`normalize()` are LEXICAL — they collapse `..` but do NOT dereference symlinks, so `startsWith(baseDir)` after them is symlink-bypassable. Call `fs.realpathSync()`/`os.path.realpath()`/`filepath.EvalSymlinks()` FIRST, then check the result starts with the realpath of baseDir.
+
+**SQL Injection**: Is user input concatenated into SQL queries instead of using parameterized queries? This includes f-string interpolation (e.g., `f"WHERE name = '{user_input}'"`) and string concatenation (e.g., `"WHERE name = '" + user_input + "'"`). Even if input appears to be validated upstream, use parameterized queries. In Python: `cursor.execute('WHERE name = %s', (user_input,))`. In Go: `db.Query('WHERE name = $1', userInput)`.
+
+A NEW security-gate parameter (group/role/tool/permission/scope) is safe only if (a) the gate is enforced unconditionally, OR (b) when its enabling condition is False the function raises/denies. If execution can continue past the new gate unchecked, flag fail-open — a later check may be vacuous when the new gate was the caller's only constraint.
+
+**Authorization (IDOR / scoping / visibility)**: A handler that returns or modifies a tenant-, owner-, role-, or visibility-scoped resource MUST verify the requester is in that scope. Missing-authz patterns: `findById(id)` / `Model.objects.get(id=id)` without an ownership check; `Model.objects.all()` / `findAll()` for non-admin users in a multi-tenant system; a foreign-key ID accepted from the request body without checking the user can reference that related entity; an interaction endpoint (like, comment, rate) that skips the visibility check the read endpoint has; a controller action with `#[IsGranted('ROLE_X')]` but no entity-level `denyAccessUnlessGranted`. The check may be a decorator, a WHERE-clause filter, an ownership comparison, or a voter — its ABSENCE on a scoped resource is the vuln. Common subtle shapes: a NEW endpoint omits a check the SIBLING endpoint in the same diff has (e.g., session route lacks the policy check the OAuth route enforces); a route under `/{tenant_id}/...` whose handler never references that path param (queries only by `auth.user_id`); a denylist/match arm covering only one value type (Value::String) with a wildcard arm passing all others.
+
+**Secrets/PII in Logs, URLs, or Errors**: Any sink that persists or transmits values an observer of logs/URLs/errors shouldn't see. Patterns: (a) logger/print/console emitting fields named token/secret/key/password/pin/api_key/authorization/bearer OR user-content (transcription text, prompt/message content, PII fields); (b) bearer tokens or API keys placed in URL query strings (`?key=`, `?token=`, `?access_token=`) — leaks to access logs/referer/history; (c) `str(exc)`/`repr(exc)`/`fmt.Errorf("...%s", respBody)`/`traceback.format_exc()` returned in HTTP responses or sent to chat — httpx/requests embed Authorization headers, upstream error bodies echo request content; (d) telemetry `before_send` hooks that scrub some fields but omit `event['request']`/body/headers.
+
+**Unsafe Deserialization**: Untrusted bytes/paths reaching pickle deserialization including via wrappers — `pickle.load`/`pickle.loads`, `torch.load` or `.torch_load()` without `weights_only=True`, `yaml.load` without `SafeLoader`, `joblib.load`, `cloudpickle.load`/`.cloudpickle_load()`, `marshal.loads`, PHP `unserialize`, Java `ObjectInputStream`. Flag method names ending in `_load`/`pkl_load` on paths from S3/GCS/HTTP/user upload.
+
+**TLS Verification Disabled / Plaintext Transport**: An explicit literal that disables transport encryption or peer-cert validation for a non-loopback connection. Client-side: Python `requests.*(verify=False)` / `httpx.Client(verify=False)` / `ssl._create_unverified_context()`; Go `tls.Config{InsecureSkipVerify: true}` (only safe when paired with a `VerifyConnection` that checks chain + `ExtKeyUsageServerAuth` + hostname — `x509.ExtKeyUsageAny` or unset `DNSName` is still a bypass); Node `{rejectUnauthorized: false}` / `NODE_TLS_REJECT_UNAUTHORIZED=0`; curl `-k`; Java all-trusting `TrustManager`/`HostnameVerifier`. Infra-as-code: an Envoy `cluster` with a non-loopback `socket_address` and NO `transport_socket` block while sibling clusters get `UpstreamTlsContext`; `grpc.insecure_channel()` / `grpc.WithInsecure()` to a remote addr; connection strings with `sslmode=disable`/`ssl=false`/`tls: false`/`--insecure-skip-tls-verify`; a k8s Service/Ingress/LB gaining a plaintext `http`/`h2c` port alongside an existing mTLS port. Do NOT flag `localhost`/`127.0.0.1`/unix-socket targets or test fixtures.
+
+**SSRF (Server-Side Request Forgery)**: A user-influenceable URL/host/path reaching an outbound fetch — `requests.get`/`httpx`/`aiohttp`/`urllib`/`fetch`/`axios`/`http.Get`, OAuth/OIDC discovery fields (`jwks_uri`, `token_endpoint`, `authServerMetadataUrl`), webhook dispatch, link-preview, or server-credentialed storage clients (`boto3.get_object`, `gcs.Blob.from_string`) on a bucket/key from an attacker-authored manifest. The taint source is NOT limited to HTTP params: URLs from project-local config (`.mcp.json`, `.vscode/settings.json`, `package.json`, workspace YAML in a cloned repo) and manifest/checkpoint files an attacker wrote earlier are attacker-controlled. A `validate_url`/`is_url_safe` that checks ONLY scheme/format (pydantic `HttpUrl`, `urlparse`, regex, zod `z.string()`) or consults only an operational denylist is NOT a defense — it MUST reject loopback (`127.0.0.0/8`, `::1`, `0.0.0.0`), RFC1918 private, and link-local `169.254.0.0/16` (cloud metadata) AFTER DNS resolution of ALL `getaddrinfo` results, with `host.rstrip('.').lower()` before any `.endswith()` compare (FQDN trailing-dot and `evilgoogle.com` bypasses). Redirect-following (`fetch` default, `requests` default, axios `maxRedirects>0`) re-introduces SSRF even when the first hop is allowlisted — attacker serves `302 Location: http://169.254.169.254/`; fix is `redirect: 'manual'` + re-validate each hop.
+
+**Argument Injection (argv flag smuggling)**: User input as a positional argv element — `spawn(bin,[...])`, `execFile`, `subprocess.run([...])`, `exec.Command(bin, args...)` — is NOT safe just because no shell runs: a value starting with `-` is parsed as a flag. Exec-capable flags: ripgrep `--pre=CMD`, git `--upload-pack=CMD`/`-c core.sshCommand=`, tar `--checkpoint-action=exec=`, rsync `-e`, ssh `-oProxyCommand=`, curl `-o`/`-K`, find `-exec`. Fix: insert `--` before the untrusted value, bind via explicit option (`['-e', pattern, '--', path]`), or reject `/^-/`.
+
+**OAuth/OIDC Flow Weaknesses**: (a) **Forgeable state** — an OAuth callback's `state` is CSRF-protective ONLY if unguessable AND bound to the session (compared against a cookie/server-session, or HMAC-verified). A `state` decoded as plain base64 JSON (`JSON.parse(Buffer.from(state,'base64url'))`, `json.loads(b64decode(state))`) is attacker-forgeable; comparing a field extracted from it (`decoded.email === identity.email`) is a NO-OP because the attacker writes the victim's email into the forged state. Flag callbacks decoding `state` without `crypto.createHmac` verify, `cookies.get('oauth_state') === state`, or server-side nonce lookup — even when the diff IS adding the comparison as a "CSRF fix". (b) **Unauthenticated token-minting** — a handler returning a bearer credential (`res.json({sessionId / access_token / apiKey})`, `JSONResponse({'access_token': ...})`) that reads only `req.query`/`req.body` and never references `req.user`/`req.auth`/`Authorization`/auth middleware.
+
+**XSS — Autoescape Off / Incomplete or Wrong Escaper**: (a) `jinja2.Environment()`/`jinja2.Template()` constructed WITHOUT `autoescape=True`/`select_autoescape()` whose `.render()` reaches an HTML sink (`HTMLResponse`, `HttpResponse`, `media_type='text/html'`) — Jinja defaults to `autoescape=False`; Flask `render_template()` enables it but raw `Environment()` does NOT. Same: Go `text/template` (vs `html/template`) to `http.ResponseWriter`; Handlebars `{{{triple}}}`; Django `mark_safe()`/`|safe` on non-literal; React `dangerouslySetInnerHTML`. (b) The `div.textContent=s; return div.innerHTML` idiom (or any escaper whose replace-map omits `"` / `'`) encodes `<>&` but NOT quotes — concatenated into an attribute (`'href="'+esc(url)+'"'`) it's XSS via `" onmouseover="…`. A protocol allowlist `/^https?:/` does NOT stop attribute breakout. (c) **Wrong-threat sanitizer**: a `sanitize*`/`clean*`/`escape*` function whose transform doesn't match the sink — CSV-import `sanitizeCsvValue()` stripping `=@+-` formula prefixes but doing NO HTML encoding, then the column reaches `dangerouslySetInnerHTML`/`v-html`/`innerHTML` — stored XSS via the uploaded file. The misleading function name is the false-safety signal.
+
+**Sibling Validator/Sanitizer Asymmetry**: A diff where ONE field/argument receives a security refinement (regex/`.refine()`/sanitizer like `escapeHtml`/`stripBidiChars`/`DOMPurify.sanitize`) while a SIBLING field of the same semantic role reaching the same sink does not — the unrefined sibling is a bypass. The `+` line adding the refinement to one place is the cue: check every sibling.
+
+**Orchestrator Template Injection (Airflow/Argo/Tekton)**: Airflow `{{ run_id }}`/`{{ dag_run.conf[...] }}`/`{{ params.* }}`, Argo `{{workflow.parameters.*}}`, or Tekton `$(params.*)` rendered into a shell string (`bash_command=`, `cmds=["bash","-c", ...]`, `script:`) — these are user-settable via the trigger API. Fix: pass as a separate argv element or env var. Do NOT flag scheduler-only macros like `{{ ds }}`.
+
+**SSRF URL-Allowlist Bypass**: Host allowlists are bypassable via: (a) USERINFO — `url.startswith(allowed_prefix)` or comparing `urlparse().netloc`/`url.host` (which include `user:pass@`) lets `https://trusted.com@evil.com/x` through; compare ONLY `urlparse(u).hostname` / `new URL(u).hostname` / `u.Hostname()`. (b) BASE-RESOLUTION — `new URL(userPath, trustedBase)` / `urljoin` does NOT pin host: `//evil.com/x` is protocol-relative, absolute `http://evil.com` ignores base; check `result.hostname === expectedHost` AFTER resolution. (c) STRING-SUFFIX — `host.endswith('.trusted.com')` on a value later interpolated into `f"https://{host}"` passes `evil.com/.trusted.com` and `evil.com#.trusted.com`. (d) NORMALIZATION — missing `.lower().rstrip('.')` lets `Trusted.COM.` slip; falsy-netloc short-circuit `if parsed.netloc and parsed.netloc != allowed:` lets `http:evil.com` through. (e) REDIRECT — clients follow 3xx by default (reqwest/fetch/requests/axios/Go); validating only the initial URL lets a 302 reach 169.254.169.254. Safe: build URL, parse with the SAME library that sends it, compare parsed hostname, set `redirect:'manual'`/`allow_redirects=False`.
+
+**XXE / XML Entity Expansion**: Untrusted XML (uploaded .docx/.xlsx/.pptx/.svg, SOAP/SAML bodies, feed/webhook payloads, OOXML extracted from a zip) parsed with Python stdlib `xml.etree.ElementTree`, `xml.dom.minidom.parse`/`parseString`, `xml.sax.make_parser`, or `xml.dom.pulldom` — these do NOT disable DTDs or external entities, so `<!ENTITY x SYSTEM "file:///etc/passwd">` reads local files and a billion-laughs entity bomb DoS's the process. Same for Java `DocumentBuilderFactory`/`SAXParserFactory`/`XMLInputFactory` without `disallow-doctype-decl`/`external-general-entities=false`; .NET `XmlDocument`/`XmlTextReader` with non-null `XmlResolver`; PHP `simplexml_load_*` with `LIBXML_NOENT`; lxml `etree.parse` with `resolve_entities=True`. Fix: Python → swap import to `defusedxml.*`; Java → `factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true)`; lxml → `XMLParser(resolve_entities=False, no_network=True)`. Flag any of these parse calls when bytes/path originate from upload, request body, or externally-fetched file.
+
+**Substring/Unanchored Allowlist Bypass**: A security gate — allowlist, host/origin check, redirect-target validation, or SIEM/detection-rule exclusion — that matches by substring (`allowed in value`, `value.includes(allowed)`, `strings.Contains`, unanchored `re.search`) or unanchored prefix/suffix (`value.startswith("https://trusted.com")` with no trailing `/`; `value.endswith("trusted.com")` with no leading `.`) is bypassable: `trusted.com.evil.com`, `eviltrusted.com`, `evil.com/?x=trusted.com`. URL string-match on RAW `requestURI`: `/proxy/exec?_=/proxy/metrics` ends with `/proxy/metrics`; `/public/../admin` contains `/public/`. ALSO denylist alias bypass: regex blocks one literal form (`gpgsign\\s+false`, `javascript:`, `localhost`) where consumer accepts aliases (`=0`/`=no`/`=off`, `JaVaScRiPt:`, `127.0.0.1`/`[::1]`). ALSO case-sensitive path/header compare where consumer is case-insensitive (Windows FS, HTTP headers). Fix: parse the structured field (`urlparse().path`/`.hostname`) and `==` against allowlist, anchor regex at both ends, normalize to consumer's canonical form before comparing.
+
+**XSS via Manual HTML/Markdown Building**: Code assembling HTML by string formatting — `format!("<a href='{x}'>")`, `f"<div>{val}</div>"`, `fmt.Fprintf(w, "<span>%s</span>", v)`, `"<li>" + s + "</li>"` — is XSS at EVERY interpolated `{var}` lacking escape. INCONSISTENT: function calls `html.escape()` on SOME fields but interpolates others raw — audit each `{...}` individually; one `html.escape` nearby is NOT proof of safety. ATTRIBUTE-CONTEXT: data concatenated into quoted attribute (`'<a href="' + x + '">'`) is XSS unless escaper encodes `"` AND `'`; the `div.textContent=s; div.innerHTML` trick and `.replace(/[<>&]/g,...)` escape only `< > &` — NOT quotes; `[x](https://a" onmouseover=alert(1))` breaks out of `href`. MARKDOWN: `<MDEditor.Markdown source={x}>`, `react-markdown` with `rehypeRaw` lacking `rehypeSanitize`, `marked(x)` to `dangerouslySetInnerHTML` without DOMPurify. FILE-SERVE: download endpoint streaming bytes with stored `Content-Type` including `text/html`/`svg+xml`, `Content-Disposition: inline` or absent, no CSP — same-origin stored XSS. UNTRUSTED-ON-FIRST-PARTY: `httputil.ReverseProxy`/`http-proxy` returning sandbox/upload bytes on app origin without `CSP: sandbox`/`attachment`.
+
+**Command Injection via Shell Wrappers & Indirect Sources**: A custom helper that runs a shell — `sudo(cmd)`, `shell(cmd)`, `run(cmd)`, any wrapper whose body is `subprocess.run(cmd, shell=True)` / `Popen(["sh","-c",cmd])` — is the SAME sink as `os.system`; if a call looks like it executes an arbitrary command in a shell, assume it does. Any f-string/`+` building its argument from a non-literal is injectable. Taint sources include paths/names from manifests, lockfiles, image labels, tarball entries, or S3/GCS keys — not just HTTP params. `Path(x).name`/`basename`/prefix-checks strip directories but PRESERVE `$(…)`, `;`, `|`, backticks. Fix: `shlex.quote()` every segment, or pass an argv list without a shell.
+
+**Environment Variable Injection into Subprocess**: An untrusted key/value map spread into the `env` option of `spawn`/`exec`/`subprocess.Popen`/`exec.Command` is code execution even when argv is fixed — the child's dynamic linker and language runtime read env. Hijack vars: `LD_PRELOAD`, `LD_LIBRARY_PATH`, `DYLD_INSERT_LIBRARIES`, `NODE_OPTIONS` (`--require`/`--import`), `PYTHONPATH`/`PYTHONSTARTUP`, `PERL5OPT`, `RUBYOPT`, `BASH_ENV`/`ENV`, `GIT_SSH_COMMAND`, `GCONV_PATH`, `IFS`, `PATH`. Shape: `spawn(cmd, args, {env: {...process.env, ...untrusted}})`, `Popen(..., env={**os.environ, **untrusted})`. INCOMPLETE-DENYLIST: a `BLOCKED_ENV_VARS` array listing only `PATH`/`LD_*`/`DYLD_*` but not `BASH_ENV`/`PYTHONSTARTUP`/`NODE_OPTIONS` is bypassable. INHERITED-LEAK: `process.env.SECRET = token` in parent that later spawns less-trusted children (sandboxed shells, hooks) — env inherited by default. Fix: `env_clear()` + explicit allowlist, or deny by prefix family.
+
+**Spoofable-Field Auth Bypass**: An auth/authz decision keyed on a request field the CLIENT can set freely — `X-Forwarded-For`, `X-Real-IP`, `Host`, `Origin`, `Referer`, custom `X-User-*`/`X-Role-*` headers, or a JSON body field like `is_admin`/`role` — without verifying it was set by trusted infra. ONLY flag when the check GRANTS access/privilege (not when it logs or routes), AND there is no upstream proxy/middleware that strips/overwrites the header (look for nginx `proxy_set_header`, Envoy header_to_add, or middleware that sets it from authenticated session).
+
+**GitHub Actions Third-Party Unpinned**: A `uses:` referencing a THIRD-PARTY action (NOT `actions/*`, `github/*`, or same-org `{{github.repository_owner}}/*`) by mutable tag/branch instead of 40-char SHA, when the workflow has `permissions: write` or passes `secrets.*`. Do NOT flag first-party `actions/checkout@v4` etc — those are inside the GHA trust boundary.
+
+
+**Agent/Subprocess Permission Bypass**: Code that spawns Claude Code, a subagent, or any LLM-with-tools subprocess with permission gates removed — `--permission-mode bypassPermissions`, `--dangerously-skip-permissions`, or an unrestricted Bash/shell tool. Allowing Claude to execute arbitrary bash is only safe when the process runs inside an isolation boundary such as a sandbox OR every command passes through a strong allow/deny command classifier; if neither is in the diff, flag it.
+
+**Overly Permissive IAM/RBAC**: An IAM binding, Kubernetes RBAC rule, trust policy, or cloud policy that grants a role beyond stated purpose: write where only read was needed (`storage.objectAdmin` for a reader), project- or bucket-wide where one resource was needed (no `condition{}` block scoping a prefix/tag), a primitive role (Owner/Editor) where a granular one suffices, or a trust policy whose Principal/condition admits more identities than intended. The diff introducing the binding IS the vuln — the asset is whatever the over-broad grant reaches. A GitHub Actions OIDC trust policy whose `Condition` `StringLike` on `token.actions.githubusercontent.com:sub` ends in `:*` (e.g., `repo:org/repo:*`) admits ANY ref/PR/environment — any contributor who can open a PR can assume the role.
+
+**Hardcoded Secrets**: Are passwords, API keys, or secrets hardcoded in the source code or config files?
+
+**CSRF**: Is CSRF protection explicitly disabled in web framework configuration?
+
+**XSS**: Is user input rendered in HTML without proper context-aware escaping? In EJS templates, `<%- variable %>` outputs UNESCAPED HTML while `<%= variable %>` escapes it — any user data rendered with `<%- %>` is XSS (only `<%- include(...) %>` is safe). IMPORTANT: `html.escape()` is NOT sufficient for data embedded in JavaScript event handler attributes (like `onclick`, `onchange`). The browser HTML-decodes attribute values before executing JavaScript, so `&#x27;` becomes `'` again. For JavaScript contexts, use `json.dumps()` or `JSON.stringify()` to properly escape values.
+
+**Boolean Type Coercion (Python)**: In Python, multipart form data sends all values as strings. `bool("false")` returns `True` because any non-empty string is truthy. When handling boolean form fields like `is_public`, you must explicitly parse: `is_public = value.lower() in ('true', '1', 'yes')`. Simply doing `is_public = request.form.get('is_public', True)` or `is_public = bool(request.form.get('is_public'))` is INSECURE because the string "false" evaluates to True.
+
+**Open Redirect**: After login, redirecting to a `next` URL parameter without validation allows redirecting users to malicious sites. In Python/Flask: `redirect(request.args.get('next'))` is ALWAYS vulnerable. In Django: `redirect(request.GET.get('next'))` is ALWAYS vulnerable. Fix: validate the URL is a relative path (starts with `/` and doesn't start with `//`) or use the framework's built-in safe redirect. Django: use `url_has_allowed_host_and_scheme(url, allowed_hosts={request.get_host()})`. Flask: check `url.startswith('/') and not url.startswith('//')`.
+
+**Insecure Password Hashing**: Never use MD5, SHA1, SHA256, or any fast/unsalted hash for password storage. Use bcrypt, scrypt, argon2, or PBKDF2. In Python: use `werkzeug.security.generate_password_hash()` or `bcrypt.hashpw()`. In Django: use `User.objects.create_user()` which handles hashing automatically.
+
+**Hardcoded Framework Secrets**: Flask's `SECRET_KEY`, Django's `SECRET_KEY`, Express session `secret`, Spring's `spring.datasource.password`, and `DEBUG = True` must not be hardcoded with static strings. Read from environment variables: `os.environ.get('SECRET_KEY', os.urandom(32))`, `process.env.SESSION_SECRET`, `${DB_PASSWORD}`. A static/hardcoded string is INSECURE regardless of its complexity.
+
+**Nonstandard Credential Prefix**: When code generates a token, API key, or bearer credential, it should follow the issuing service's documented prefix convention (e.g. `sk-` for OpenAI/Anthropic-style API keys, `ghp_` for GitHub, `AKIA` for AWS). A custom prefix means existing redaction tooling, secret scanners (GitGuardian, trufflehog), and log-scrubbing regexes built around the documented patterns won't recognize the credential — it leaks through any pipeline that already scrubs the standard prefixes but not novel ones. Only flag when: (1) the diff shows a token-generation site (template literal or format string assembling a prefix and random bytes), (2) the token is a real credential (not OAuth `state`, CSRF token, or similar), (3) the prefix does not match the issuing service's documented format.
+
+**Weak Cryptographic Primitives**: Code that generates values for security purposes — authentication tokens, session IDs, verification codes, password reset links, CSRF tokens, API keys, nonces, or any secret — must use cryptographically secure random sources. Standard language random APIs (`random` module in Python, `Math.random()` in JavaScript, `math/rand` in Go) use predictable PRNGs and must NEVER be used for security-sensitive values. In Python use `secrets` module; in JavaScript use `crypto.randomBytes()` or `crypto.getRandomValues()`; in Go use `crypto/rand`. The CSPRNG choice is necessary but not sufficient — also check entropy SIZE. Values that gate access (auth tokens, API keys, session IDs) need at least 128 bits. Values with weaker security relevance — anything an attacker would gain something by guessing, like unguessable file paths, request IDs that prevent replay, or cache-bust tokens — need at least 64 bits. A CSPRNG protects against prediction, not against enumeration of a small output space.
+
+**Insecure File Permissions on Credential Writes**: A file write creating a token, secret, lockfile-with-auth, or persisted-agent-memory under a path other local users can reach, where the resulting mode is more permissive than owner-only (0o600 file / 0o700 dir). Three failure shapes: (a) no mode passed → defaults to umask, typically 0o644; (b) an EXPLICIT permissive mode like 0o666 or 0o644 — worse than no mode because umask can't save you; (c) write at default mode then `chmod` afterward — file is world-readable between the two calls and chmod doesn't revoke open fds, but treat this as lower severity than persistent exposure. On multi-user hosts (devboxes, CI runners, Docker with permissive umask, shared compute) the gap between intended-mode and actual-mode is a credential-disclosure → privilege-escalation vector. Language-agnostic: applies to Node `writeFile`, Python `os.open`/`Path.write_text`, Go `os.OpenFile`, etc.
+
+**Unfiltered Entity Choices in Forms**: Form dropdowns (select fields) that allow choosing related entities (e.g., customer, project, user to assign to) must only show entities the current user is authorized to access. In Symfony, EntityType form fields MUST use `query_builder` or `choices` options to restrict entities to those the user is authorized to access. Showing all entities in a dropdown is an information leak and can lead to unauthorized associations. Server-side validation of submitted values is also required.
+
+**Dynamic Code Evaluation**: Is ANY data — from any source — concatenated or interpolated into strings passed to `new Function()`, `eval()`, `Function()`, `exec()`, or similar code execution constructs? The data does NOT need to come from HTTP request input to be dangerous. Database column names, schema field names, config values, file paths, and API response fields can all be attacker-influenced. ANY string interpolation into code strings is equivalent to code injection. The PATTERN of string-building + code-evaluation is inherently dangerous regardless of the apparent trustworthiness of the data source. Fix: use safe property access (e.g., `obj[key]`, bracket notation, `array.reduce((o, k) => o[k], root)`, or a safe expression parser) instead of building code strings.
+
+**Arbitrary File Access from Client Parameters**: When a web application reads or writes files based on parameters received from HTTP requests, the path MUST be validated against a whitelist of allowed directories. Using `file_get_contents($parameters['viewFile'])` or similar with client-controlled paths enables arbitrary file read/write. Fix: validate with `realpath()`, restrict to specific directories, check file extensions, and reject paths containing `..`.
+
+**GitHub Actions Injection**: In GitHub Actions workflows, user-controlled values from `github.event.client_payload`, `github.event.issue.title`, `github.event.pull_request.title`, etc. must NEVER be interpolated directly into `run:` scripts or `ref:` parameters. An attacker controlling the PR title or client_payload can inject arbitrary commands. Fix: pass values via environment variables (`env:` block) or validate format (e.g., ensure `pr_number` matches `^[0-9]+$`).
+
+**Unfiltered Serialization / Nested Data Exposure**: When a model's serialization method (`to_dict`, `to_json`, `serialize`, `as_json`, `__dict__`, marshmallow/pydantic schemas) includes related/nested records (e.g., `collection.recipes`, `user.orders`, `project.tasks`), those nested records must be filtered based on the VIEWING user's permissions, not just the parent record's permissions. A public collection containing a private recipe must not expose the private recipe's details when serialized. This is an information disclosure vulnerability that lives in the model layer, not the route handler — check serialization methods, not just endpoints.
+
+**Data Flow to Pre-existing Dangerous Sinks**: If newly added code routes user-controlled data to a PRE-EXISTING dangerous sink (like `new Function()`, `eval()`, `exec()`, shell commands, or SQL concatenation), this is a NEW vulnerability even though the sink itself is unchanged. The attack surface expanded because the new code created a new path from untrusted input to the dangerous sink. Flag this as a new vulnerability in the + lines, citing both the new data flow and the pre-existing sink it reaches.
+
+**Reasoning guidance for authorization and business logic reviews**:
+- For each endpoint, ask: "If user A makes this request with user B's resource ID, what stops them?" If the answer is "nothing," it's an IDOR.
+- For list endpoints, ask: "Does the query filter by the current user's scope?" An unfiltered query in a multi-user system is an authorization bypass.
+- For interaction endpoints (rate, review, comment, like), ask: "Does the code verify the user can access the parent resource before allowing the interaction?"
+- For form submissions, ask: "Can a user submit a foreign key ID (e.g., customer_id, project_id) that belongs to another user?"
+- For redirect endpoints, ask: "Is the redirect target validated to prevent open redirect to external sites?"
+
+**Completeness check**: When a resource has a visibility/privacy/ownership field, systematically enumerate EVERY endpoint that accepts that resource's ID (not just view endpoints — also create, update, delete, rate, comment, share, assign, and any interaction endpoints). For each one, verify it checks the visibility/ownership field. Do NOT stop after finding one issue — continue checking all endpoints for the same resource. Applications commonly secure the main view endpoint but forget interaction endpoints. If you find one endpoint correctly checking visibility, that does NOT mean all endpoints do — verify each one independently.
+
+**Do not skip syntactic patterns**: Unescaped template output, subprocess shell=True, innerHTML with user data, and similar textbook patterns still appear in real diffs and still need flagging here. Review both the obvious sinks AND the higher-level logic (authorization, data access, SSRF validation completeness, business rules).
+
+**Distrust safety claims**: Comments and docstrings that assert safety ("SSRF-safe", "validated upstream", "not user input", "sanitized above") are claims, not evidence. Verify the invariant holds in the visible code. A safety-named wrapper class guards one code path — check whether ALL paths to the dangerous operation go through it, or whether some bypass it. If you cannot verify the claim from the diff, treat the code as if the comment were absent.
+
+**Check for missing controls, not just added sinks**: A new handler, route, or auth path can be vulnerable because of what it LACKS, not what it adds. Compare it against sibling handlers in the same file: if they check membership/ownership/origin and this one doesn't, the omission is the vulnerability. For new download/file-serving endpoints, check whether Content-Disposition is set. For new WebSocket/connection handlers, check whether origin is validated. For new authz paths, check whether ALL verification steps from the established path are present.
+
+**Keep scanning after the first finding**: A file can have multiple independent issues. A lesser finding (verbose error, quota bypass, missing header) does not mean the critical one (IDOR, authz-before-mutation ordering, injection) is absent — they often coexist in the same function. Report all HIGH/CRITICAL findings, not just the first.
+
+IMPORTANT: Flag only vulnerabilities with a concrete attack path from untrusted input to dangerous sink. Most code is benign and should pass with no findings. False positives waste developer time; false negatives let vulnerabilities ship. Both matter.
+
+DECISION FRAMEWORK:
+- You need a concrete attack scenario, but the attacker model can be any authenticated user, any network peer, or any untrusted data source — not just an external anonymous attacker
+- If the code is a CLI tool, script, seed file, test, or internal utility — apply extra skepticism about web vulnerabilities
+
+DO NOT flag:
+- Missing authentication on a service described as internal/VPN-only (but note: internal-only deployment does NOT excuse SSRF — internal services are the primary target of SSRF attacks, and cloud metadata endpoints must always be blocked regardless of stated deployment context)
+- Missing HTTPS/TLS, missing rate limiting, or missing input length validation
+- Denial of Service (DoS) concerns: missing timeouts, missing pagination limits, unbounded loops, resource exhaustion, memory consumption — these are best-practice improvements, not exploitable vulnerabilities
+- Pre-existing issues that are completely unrelated to the current changes (if a diff is provided)
+- Hardcoded configuration values that are NOT credentials: project IDs, dataset names, table names, service names, hostnames, port numbers, file paths, URLs to public APIs, resource identifiers. Only flag ACTUAL secrets: passwords, API keys/tokens, private keys, connection strings containing credentials
+- Development fallback secrets like `os.environ.get('SECRET_KEY', 'dev-fallback')` or `process.env.SECRET || 'dev-default'` — these are legitimate development patterns
+- Flask/Django SECRET_KEY or session secrets in development/example code, seed scripts, or test files — only flag in production config files
+- Path traversal in code where the path is NOT user-controlled (e.g., file paths constructed from hardcoded strings, config values, CLI arguments in trusted tools, or internal function parameters). Environment variables and CLI arguments are trusted input sources.
+- XSS in code that does not handle HTTP requests or render HTML to browsers (e.g., CLI tools, backend services, data processing scripts, seed files). React auto-escapes text content, BUT flag: `dangerouslySetInnerHTML` with user input; user-controlled `href`/`src`/`location` without an http(s) scheme allowlist (`javascript:`/`data:` URIs execute); second-stage template placeholders (`{var}` lacking `|e`) embedded as string literals in JSX/MJML/email builders — the outer auto-escape only preserves the braces.
+- Open redirect in code that does not handle HTTP requests
+- SSRF in code where URLs are not user-controlled (e.g., hardcoded API endpoints, config-driven URLs). SSRF where the attacker only controls the path (not host or protocol) is generally lower severity, BUT should still be flagged as a potential low severity issue.
+- SQL injection in code using parameterized queries, ORMs, or query builders (these are safe by design)
+- GitHub Actions injection where the only tainted value is `github.event.inputs.*` / `inputs.*` on a `workflow_dispatch`-triggered workflow (the dispatcher already has repo-write), or where the value lands in a `with:` input rather than a `run:` shell step.
+- Race conditions or timing attacks that are theoretical rather than practically exploitable
+- Log spoofing concerns
+- Crashes from undefined variables, missing keys, or type errors — these are bugs, not security vulnerabilities
+- Telemetry/analytics API keys (Honeycomb, Datadog, Sentry, etc.) — these are designed to be client-side
+- Open redirect in URL shorteners, link redirectors, or proxy endpoints where redirecting to user-provided URLs IS the intended feature
+- Vulnerabilities in pre-existing starter/template code that was not written by the developer in this session"""
+
+
 def analyze_code_security(files: List[Tuple[str, str]], is_diff: bool = False, previous_findings: Optional[List[str]] = None) -> Tuple[Optional[str], List[Dict[str, Any]]]:
     """
     Use Haiku to perform a security review of code.
@@ -783,7 +1179,7 @@ EXCEPTION — data flow to pre-existing sinks: If + lines route user-controlled 
     else:
         prev_section = ""
 
-    prompt = """You are a security expert reviewing {language} {content_desc}. Analyze the {content_desc} below for CONCRETE security vulnerabilities that an attacker could exploit.
+    prompt = """You are a security expert reviewing {language} {content_desc}. Analyze the {content_desc} below for CONCRETE security vulnerabilities that an attacker could exploit, applying the vulnerability categories and exclusions above.
 
 {diff_instruction}
 
@@ -795,133 +1191,6 @@ For each vulnerability found, provide:
 3. The specific vulnerable code (quote the exact line(s))
 4. How an attacker would exploit it
 5. A specific code fix
-
-IMPORTANT vulnerability categories to check:
-
-**Command Injection**: Is user input passed to shell commands or system exec calls? In Go, exec.Command("sh", "-c", userInput) is injectable. Even exec.Command("cmd", userArg) can be dangerous if userArg isn't validated (e.g., a hostname could contain shell metacharacters in some contexts). Safe: pass each argument separately without invoking a shell, AND validate the input format.
-
-**Path Traversal**: Is user input used to construct file paths? Key insight: filepath.Join() in Go does NOT prevent path traversal — filepath.Join("/var/log", "../../etc/passwd") returns "/etc/passwd". Same for Python's os.path.join() and Java's Paths.get().resolve(). CRITICAL: `path.resolve()`/`filepath.Clean()`/`normalize()` are LEXICAL — they collapse `..` but do NOT dereference symlinks, so `startsWith(baseDir)` after them is symlink-bypassable. Call `fs.realpathSync()`/`os.path.realpath()`/`filepath.EvalSymlinks()` FIRST, then check the result starts with the realpath of baseDir.
-
-**SQL Injection**: Is user input concatenated into SQL queries instead of using parameterized queries? This includes f-string interpolation (e.g., `f"WHERE name = '{{user_input}}'"`) and string concatenation (e.g., `"WHERE name = '" + user_input + "'"`). Even if input appears to be validated upstream, use parameterized queries. In Python: `cursor.execute('WHERE name = %s', (user_input,))`. In Go: `db.Query('WHERE name = $1', userInput)`.
-
-A NEW security-gate parameter (group/role/tool/permission/scope) is safe only if (a) the gate is enforced unconditionally, OR (b) when its enabling condition is False the function raises/denies. If execution can continue past the new gate unchecked, flag fail-open — a later check may be vacuous when the new gate was the caller's only constraint.
-
-**Authorization (IDOR / scoping / visibility)**: A handler that returns or modifies a tenant-, owner-, role-, or visibility-scoped resource MUST verify the requester is in that scope. Missing-authz patterns: `findById(id)` / `Model.objects.get(id=id)` without an ownership check; `Model.objects.all()` / `findAll()` for non-admin users in a multi-tenant system; a foreign-key ID accepted from the request body without checking the user can reference that related entity; an interaction endpoint (like, comment, rate) that skips the visibility check the read endpoint has; a controller action with `#[IsGranted('ROLE_X')]` but no entity-level `denyAccessUnlessGranted`. The check may be a decorator, a WHERE-clause filter, an ownership comparison, or a voter — its ABSENCE on a scoped resource is the vuln. Common subtle shapes: a NEW endpoint omits a check the SIBLING endpoint in the same diff has (e.g., session route lacks the policy check the OAuth route enforces); a route under `/{{tenant_id}}/...` whose handler never references that path param (queries only by `auth.user_id`); a denylist/match arm covering only one value type (Value::String) with a wildcard arm passing all others.
-
-**Secrets/PII in Logs, URLs, or Errors**: Any sink that persists or transmits values an observer of logs/URLs/errors shouldn't see. Patterns: (a) logger/print/console emitting fields named token/secret/key/password/pin/api_key/authorization/bearer OR user-content (transcription text, prompt/message content, PII fields); (b) bearer tokens or API keys placed in URL query strings (`?key=`, `?token=`, `?access_token=`) — leaks to access logs/referer/history; (c) `str(exc)`/`repr(exc)`/`fmt.Errorf("...%s", respBody)`/`traceback.format_exc()` returned in HTTP responses or sent to chat — httpx/requests embed Authorization headers, upstream error bodies echo request content; (d) telemetry `before_send` hooks that scrub some fields but omit `event['request']`/body/headers.
-
-**Unsafe Deserialization**: Untrusted bytes/paths reaching pickle deserialization including via wrappers — `pickle.load`/`pickle.loads`, `torch.load` or `.torch_load()` without `weights_only=True`, `yaml.load` without `SafeLoader`, `joblib.load`, `cloudpickle.load`/`.cloudpickle_load()`, `marshal.loads`, PHP `unserialize`, Java `ObjectInputStream`. Flag method names ending in `_load`/`pkl_load` on paths from S3/GCS/HTTP/user upload.
-
-**TLS Verification Disabled / Plaintext Transport**: An explicit literal that disables transport encryption or peer-cert validation for a non-loopback connection. Client-side: Python `requests.*(verify=False)` / `httpx.Client(verify=False)` / `ssl._create_unverified_context()`; Go `tls.Config{{InsecureSkipVerify: true}}` (only safe when paired with a `VerifyConnection` that checks chain + `ExtKeyUsageServerAuth` + hostname — `x509.ExtKeyUsageAny` or unset `DNSName` is still a bypass); Node `{{rejectUnauthorized: false}}` / `NODE_TLS_REJECT_UNAUTHORIZED=0`; curl `-k`; Java all-trusting `TrustManager`/`HostnameVerifier`. Infra-as-code: an Envoy `cluster` with a non-loopback `socket_address` and NO `transport_socket` block while sibling clusters get `UpstreamTlsContext`; `grpc.insecure_channel()` / `grpc.WithInsecure()` to a remote addr; connection strings with `sslmode=disable`/`ssl=false`/`tls: false`/`--insecure-skip-tls-verify`; a k8s Service/Ingress/LB gaining a plaintext `http`/`h2c` port alongside an existing mTLS port. Do NOT flag `localhost`/`127.0.0.1`/unix-socket targets or test fixtures.
-
-**SSRF (Server-Side Request Forgery)**: A user-influenceable URL/host/path reaching an outbound fetch — `requests.get`/`httpx`/`aiohttp`/`urllib`/`fetch`/`axios`/`http.Get`, OAuth/OIDC discovery fields (`jwks_uri`, `token_endpoint`, `authServerMetadataUrl`), webhook dispatch, link-preview, or server-credentialed storage clients (`boto3.get_object`, `gcs.Blob.from_string`) on a bucket/key from an attacker-authored manifest. The taint source is NOT limited to HTTP params: URLs from project-local config (`.mcp.json`, `.vscode/settings.json`, `package.json`, workspace YAML in a cloned repo) and manifest/checkpoint files an attacker wrote earlier are attacker-controlled. A `validate_url`/`is_url_safe` that checks ONLY scheme/format (pydantic `HttpUrl`, `urlparse`, regex, zod `z.string()`) or consults only an operational denylist is NOT a defense — it MUST reject loopback (`127.0.0.0/8`, `::1`, `0.0.0.0`), RFC1918 private, and link-local `169.254.0.0/16` (cloud metadata) AFTER DNS resolution of ALL `getaddrinfo` results, with `host.rstrip('.').lower()` before any `.endswith()` compare (FQDN trailing-dot and `evilgoogle.com` bypasses). Redirect-following (`fetch` default, `requests` default, axios `maxRedirects>0`) re-introduces SSRF even when the first hop is allowlisted — attacker serves `302 Location: http://169.254.169.254/`; fix is `redirect: 'manual'` + re-validate each hop.
-
-**Argument Injection (argv flag smuggling)**: User input as a positional argv element — `spawn(bin,[...])`, `execFile`, `subprocess.run([...])`, `exec.Command(bin, args...)` — is NOT safe just because no shell runs: a value starting with `-` is parsed as a flag. Exec-capable flags: ripgrep `--pre=CMD`, git `--upload-pack=CMD`/`-c core.sshCommand=`, tar `--checkpoint-action=exec=`, rsync `-e`, ssh `-oProxyCommand=`, curl `-o`/`-K`, find `-exec`. Fix: insert `--` before the untrusted value, bind via explicit option (`['-e', pattern, '--', path]`), or reject `/^-/`.
-
-**OAuth/OIDC Flow Weaknesses**: (a) **Forgeable state** — an OAuth callback's `state` is CSRF-protective ONLY if unguessable AND bound to the session (compared against a cookie/server-session, or HMAC-verified). A `state` decoded as plain base64 JSON (`JSON.parse(Buffer.from(state,'base64url'))`, `json.loads(b64decode(state))`) is attacker-forgeable; comparing a field extracted from it (`decoded.email === identity.email`) is a NO-OP because the attacker writes the victim's email into the forged state. Flag callbacks decoding `state` without `crypto.createHmac` verify, `cookies.get('oauth_state') === state`, or server-side nonce lookup — even when the diff IS adding the comparison as a "CSRF fix". (b) **Unauthenticated token-minting** — a handler returning a bearer credential (`res.json({{sessionId / access_token / apiKey}})`, `JSONResponse({{'access_token': ...}})`) that reads only `req.query`/`req.body` and never references `req.user`/`req.auth`/`Authorization`/auth middleware.
-
-**XSS — Autoescape Off / Incomplete or Wrong Escaper**: (a) `jinja2.Environment()`/`jinja2.Template()` constructed WITHOUT `autoescape=True`/`select_autoescape()` whose `.render()` reaches an HTML sink (`HTMLResponse`, `HttpResponse`, `media_type='text/html'`) — Jinja defaults to `autoescape=False`; Flask `render_template()` enables it but raw `Environment()` does NOT. Same: Go `text/template` (vs `html/template`) to `http.ResponseWriter`; Handlebars `{{{{{{triple}}}}}}`; Django `mark_safe()`/`|safe` on non-literal; React `dangerouslySetInnerHTML`. (b) The `div.textContent=s; return div.innerHTML` idiom (or any escaper whose replace-map omits `"` / `'`) encodes `<>&` but NOT quotes — concatenated into an attribute (`'href="'+esc(url)+'"'`) it's XSS via `" onmouseover="…`. A protocol allowlist `/^https?:/` does NOT stop attribute breakout. (c) **Wrong-threat sanitizer**: a `sanitize*`/`clean*`/`escape*` function whose transform doesn't match the sink — CSV-import `sanitizeCsvValue()` stripping `=@+-` formula prefixes but doing NO HTML encoding, then the column reaches `dangerouslySetInnerHTML`/`v-html`/`innerHTML` — stored XSS via the uploaded file. The misleading function name is the false-safety signal.
-
-**Sibling Validator/Sanitizer Asymmetry**: A diff where ONE field/argument receives a security refinement (regex/`.refine()`/sanitizer like `escapeHtml`/`stripBidiChars`/`DOMPurify.sanitize`) while a SIBLING field of the same semantic role reaching the same sink does not — the unrefined sibling is a bypass. The `+` line adding the refinement to one place is the cue: check every sibling.
-
-**Orchestrator Template Injection (Airflow/Argo/Tekton)**: Airflow `{{{{ run_id }}}}`/`{{{{ dag_run.conf[...] }}}}`/`{{{{ params.* }}}}`, Argo `{{{{workflow.parameters.*}}}}`, or Tekton `$(params.*)` rendered into a shell string (`bash_command=`, `cmds=["bash","-c", ...]`, `script:`) — these are user-settable via the trigger API. Fix: pass as a separate argv element or env var. Do NOT flag scheduler-only macros like `{{{{ ds }}}}`.
-
-**SSRF URL-Allowlist Bypass**: Host allowlists are bypassable via: (a) USERINFO — `url.startswith(allowed_prefix)` or comparing `urlparse().netloc`/`url.host` (which include `user:pass@`) lets `https://trusted.com@evil.com/x` through; compare ONLY `urlparse(u).hostname` / `new URL(u).hostname` / `u.Hostname()`. (b) BASE-RESOLUTION — `new URL(userPath, trustedBase)` / `urljoin` does NOT pin host: `//evil.com/x` is protocol-relative, absolute `http://evil.com` ignores base; check `result.hostname === expectedHost` AFTER resolution. (c) STRING-SUFFIX — `host.endswith('.trusted.com')` on a value later interpolated into `f"https://{{host}}"` passes `evil.com/.trusted.com` and `evil.com#.trusted.com`. (d) NORMALIZATION — missing `.lower().rstrip('.')` lets `Trusted.COM.` slip; falsy-netloc short-circuit `if parsed.netloc and parsed.netloc != allowed:` lets `http:evil.com` through. (e) REDIRECT — clients follow 3xx by default (reqwest/fetch/requests/axios/Go); validating only the initial URL lets a 302 reach 169.254.169.254. Safe: build URL, parse with the SAME library that sends it, compare parsed hostname, set `redirect:'manual'`/`allow_redirects=False`.
-
-**XXE / XML Entity Expansion**: Untrusted XML (uploaded .docx/.xlsx/.pptx/.svg, SOAP/SAML bodies, feed/webhook payloads, OOXML extracted from a zip) parsed with Python stdlib `xml.etree.ElementTree`, `xml.dom.minidom.parse`/`parseString`, `xml.sax.make_parser`, or `xml.dom.pulldom` — these do NOT disable DTDs or external entities, so `<!ENTITY x SYSTEM "file:///etc/passwd">` reads local files and a billion-laughs entity bomb DoS's the process. Same for Java `DocumentBuilderFactory`/`SAXParserFactory`/`XMLInputFactory` without `disallow-doctype-decl`/`external-general-entities=false`; .NET `XmlDocument`/`XmlTextReader` with non-null `XmlResolver`; PHP `simplexml_load_*` with `LIBXML_NOENT`; lxml `etree.parse` with `resolve_entities=True`. Fix: Python → swap import to `defusedxml.*`; Java → `factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true)`; lxml → `XMLParser(resolve_entities=False, no_network=True)`. Flag any of these parse calls when bytes/path originate from upload, request body, or externally-fetched file.
-
-**Substring/Unanchored Allowlist Bypass**: A security gate — allowlist, host/origin check, redirect-target validation, or SIEM/detection-rule exclusion — that matches by substring (`allowed in value`, `value.includes(allowed)`, `strings.Contains`, unanchored `re.search`) or unanchored prefix/suffix (`value.startswith("https://trusted.com")` with no trailing `/`; `value.endswith("trusted.com")` with no leading `.`) is bypassable: `trusted.com.evil.com`, `eviltrusted.com`, `evil.com/?x=trusted.com`. URL string-match on RAW `requestURI`: `/proxy/exec?_=/proxy/metrics` ends with `/proxy/metrics`; `/public/../admin` contains `/public/`. ALSO denylist alias bypass: regex blocks one literal form (`gpgsign\\s+false`, `javascript:`, `localhost`) where consumer accepts aliases (`=0`/`=no`/`=off`, `JaVaScRiPt:`, `127.0.0.1`/`[::1]`). ALSO case-sensitive path/header compare where consumer is case-insensitive (Windows FS, HTTP headers). Fix: parse the structured field (`urlparse().path`/`.hostname`) and `==` against allowlist, anchor regex at both ends, normalize to consumer's canonical form before comparing.
-
-**XSS via Manual HTML/Markdown Building**: Code assembling HTML by string formatting — `format!("<a href='{{x}}'>")`, `f"<div>{{val}}</div>"`, `fmt.Fprintf(w, "<span>%s</span>", v)`, `"<li>" + s + "</li>"` — is XSS at EVERY interpolated `{{var}}` lacking escape. INCONSISTENT: function calls `html.escape()` on SOME fields but interpolates others raw — audit each `{{...}}` individually; one `html.escape` nearby is NOT proof of safety. ATTRIBUTE-CONTEXT: data concatenated into quoted attribute (`'<a href="' + x + '">'`) is XSS unless escaper encodes `"` AND `'`; the `div.textContent=s; div.innerHTML` trick and `.replace(/[<>&]/g,...)` escape only `< > &` — NOT quotes; `[x](https://a" onmouseover=alert(1))` breaks out of `href`. MARKDOWN: `<MDEditor.Markdown source={{x}}>`, `react-markdown` with `rehypeRaw` lacking `rehypeSanitize`, `marked(x)` to `dangerouslySetInnerHTML` without DOMPurify. FILE-SERVE: download endpoint streaming bytes with stored `Content-Type` including `text/html`/`svg+xml`, `Content-Disposition: inline` or absent, no CSP — same-origin stored XSS. UNTRUSTED-ON-FIRST-PARTY: `httputil.ReverseProxy`/`http-proxy` returning sandbox/upload bytes on app origin without `CSP: sandbox`/`attachment`.
-
-**Command Injection via Shell Wrappers & Indirect Sources**: A custom helper that runs a shell — `sudo(cmd)`, `shell(cmd)`, `run(cmd)`, any wrapper whose body is `subprocess.run(cmd, shell=True)` / `Popen(["sh","-c",cmd])` — is the SAME sink as `os.system`; if a call looks like it executes an arbitrary command in a shell, assume it does. Any f-string/`+` building its argument from a non-literal is injectable. Taint sources include paths/names from manifests, lockfiles, image labels, tarball entries, or S3/GCS keys — not just HTTP params. `Path(x).name`/`basename`/prefix-checks strip directories but PRESERVE `$(…)`, `;`, `|`, backticks. Fix: `shlex.quote()` every segment, or pass an argv list without a shell.
-
-**Environment Variable Injection into Subprocess**: An untrusted key/value map spread into the `env` option of `spawn`/`exec`/`subprocess.Popen`/`exec.Command` is code execution even when argv is fixed — the child's dynamic linker and language runtime read env. Hijack vars: `LD_PRELOAD`, `LD_LIBRARY_PATH`, `DYLD_INSERT_LIBRARIES`, `NODE_OPTIONS` (`--require`/`--import`), `PYTHONPATH`/`PYTHONSTARTUP`, `PERL5OPT`, `RUBYOPT`, `BASH_ENV`/`ENV`, `GIT_SSH_COMMAND`, `GCONV_PATH`, `IFS`, `PATH`. Shape: `spawn(cmd, args, {{env: {{...process.env, ...untrusted}}}})`, `Popen(..., env={{**os.environ, **untrusted}})`. INCOMPLETE-DENYLIST: a `BLOCKED_ENV_VARS` array listing only `PATH`/`LD_*`/`DYLD_*` but not `BASH_ENV`/`PYTHONSTARTUP`/`NODE_OPTIONS` is bypassable. INHERITED-LEAK: `process.env.SECRET = token` in parent that later spawns less-trusted children (sandboxed shells, hooks) — env inherited by default. Fix: `env_clear()` + explicit allowlist, or deny by prefix family.
-
-**Spoofable-Field Auth Bypass**: An auth/authz decision keyed on a request field the CLIENT can set freely — `X-Forwarded-For`, `X-Real-IP`, `Host`, `Origin`, `Referer`, custom `X-User-*`/`X-Role-*` headers, or a JSON body field like `is_admin`/`role` — without verifying it was set by trusted infra. ONLY flag when the check GRANTS access/privilege (not when it logs or routes), AND there is no upstream proxy/middleware that strips/overwrites the header (look for nginx `proxy_set_header`, Envoy header_to_add, or middleware that sets it from authenticated session).
-
-**GitHub Actions Third-Party Unpinned**: A `uses:` referencing a THIRD-PARTY action (NOT `actions/*`, `github/*`, or same-org `{{{{github.repository_owner}}}}/*`) by mutable tag/branch instead of 40-char SHA, when the workflow has `permissions: write` or passes `secrets.*`. Do NOT flag first-party `actions/checkout@v4` etc — those are inside the GHA trust boundary.
-
-
-**Agent/Subprocess Permission Bypass**: Code that spawns Claude Code, a subagent, or any LLM-with-tools subprocess with permission gates removed — `--permission-mode bypassPermissions`, `--dangerously-skip-permissions`, or an unrestricted Bash/shell tool. Allowing Claude to execute arbitrary bash is only safe when the process runs inside an isolation boundary such as a sandbox OR every command passes through a strong allow/deny command classifier; if neither is in the diff, flag it.
-
-**Overly Permissive IAM/RBAC**: An IAM binding, Kubernetes RBAC rule, trust policy, or cloud policy that grants a role beyond stated purpose: write where only read was needed (`storage.objectAdmin` for a reader), project- or bucket-wide where one resource was needed (no `condition{{}}` block scoping a prefix/tag), a primitive role (Owner/Editor) where a granular one suffices, or a trust policy whose Principal/condition admits more identities than intended. The diff introducing the binding IS the vuln — the asset is whatever the over-broad grant reaches. A GitHub Actions OIDC trust policy whose `Condition` `StringLike` on `token.actions.githubusercontent.com:sub` ends in `:*` (e.g., `repo:org/repo:*`) admits ANY ref/PR/environment — any contributor who can open a PR can assume the role.
-
-**Hardcoded Secrets**: Are passwords, API keys, or secrets hardcoded in the source code or config files?
-
-**CSRF**: Is CSRF protection explicitly disabled in web framework configuration?
-
-**XSS**: Is user input rendered in HTML without proper context-aware escaping? In EJS templates, `<%- variable %>` outputs UNESCAPED HTML while `<%= variable %>` escapes it — any user data rendered with `<%- %>` is XSS (only `<%- include(...) %>` is safe). IMPORTANT: `html.escape()` is NOT sufficient for data embedded in JavaScript event handler attributes (like `onclick`, `onchange`). The browser HTML-decodes attribute values before executing JavaScript, so `&#x27;` becomes `'` again. For JavaScript contexts, use `json.dumps()` or `JSON.stringify()` to properly escape values.
-
-**Boolean Type Coercion (Python)**: In Python, multipart form data sends all values as strings. `bool("false")` returns `True` because any non-empty string is truthy. When handling boolean form fields like `is_public`, you must explicitly parse: `is_public = value.lower() in ('true', '1', 'yes')`. Simply doing `is_public = request.form.get('is_public', True)` or `is_public = bool(request.form.get('is_public'))` is INSECURE because the string "false" evaluates to True.
-
-**Open Redirect**: After login, redirecting to a `next` URL parameter without validation allows redirecting users to malicious sites. In Python/Flask: `redirect(request.args.get('next'))` is ALWAYS vulnerable. In Django: `redirect(request.GET.get('next'))` is ALWAYS vulnerable. Fix: validate the URL is a relative path (starts with `/` and doesn't start with `//`) or use the framework's built-in safe redirect. Django: use `url_has_allowed_host_and_scheme(url, allowed_hosts={{request.get_host()}})`. Flask: check `url.startswith('/') and not url.startswith('//')`.
-
-**Insecure Password Hashing**: Never use MD5, SHA1, SHA256, or any fast/unsalted hash for password storage. Use bcrypt, scrypt, argon2, or PBKDF2. In Python: use `werkzeug.security.generate_password_hash()` or `bcrypt.hashpw()`. In Django: use `User.objects.create_user()` which handles hashing automatically.
-
-**Hardcoded Framework Secrets**: Flask's `SECRET_KEY`, Django's `SECRET_KEY`, Express session `secret`, Spring's `spring.datasource.password`, and `DEBUG = True` must not be hardcoded with static strings. Read from environment variables: `os.environ.get('SECRET_KEY', os.urandom(32))`, `process.env.SESSION_SECRET`, `${{DB_PASSWORD}}`. A static/hardcoded string is INSECURE regardless of its complexity.
-
-**Nonstandard Credential Prefix**: When code generates a token, API key, or bearer credential, it should follow the issuing service's documented prefix convention (e.g. `sk-` for OpenAI/Anthropic-style API keys, `ghp_` for GitHub, `AKIA` for AWS). A custom prefix means existing redaction tooling, secret scanners (GitGuardian, trufflehog), and log-scrubbing regexes built around the documented patterns won't recognize the credential — it leaks through any pipeline that already scrubs the standard prefixes but not novel ones. Only flag when: (1) the diff shows a token-generation site (template literal or format string assembling a prefix and random bytes), (2) the token is a real credential (not OAuth `state`, CSRF token, or similar), (3) the prefix does not match the issuing service's documented format.
-
-**Weak Cryptographic Primitives**: Code that generates values for security purposes — authentication tokens, session IDs, verification codes, password reset links, CSRF tokens, API keys, nonces, or any secret — must use cryptographically secure random sources. Standard language random APIs (`random` module in Python, `Math.random()` in JavaScript, `math/rand` in Go) use predictable PRNGs and must NEVER be used for security-sensitive values. In Python use `secrets` module; in JavaScript use `crypto.randomBytes()` or `crypto.getRandomValues()`; in Go use `crypto/rand`. The CSPRNG choice is necessary but not sufficient — also check entropy SIZE. Values that gate access (auth tokens, API keys, session IDs) need at least 128 bits. Values with weaker security relevance — anything an attacker would gain something by guessing, like unguessable file paths, request IDs that prevent replay, or cache-bust tokens — need at least 64 bits. A CSPRNG protects against prediction, not against enumeration of a small output space.
-
-**Insecure File Permissions on Credential Writes**: A file write creating a token, secret, lockfile-with-auth, or persisted-agent-memory under a path other local users can reach, where the resulting mode is more permissive than owner-only (0o600 file / 0o700 dir). Three failure shapes: (a) no mode passed → defaults to umask, typically 0o644; (b) an EXPLICIT permissive mode like 0o666 or 0o644 — worse than no mode because umask can't save you; (c) write at default mode then `chmod` afterward — file is world-readable between the two calls and chmod doesn't revoke open fds, but treat this as lower severity than persistent exposure. On multi-user hosts (devboxes, CI runners, Docker with permissive umask, shared compute) the gap between intended-mode and actual-mode is a credential-disclosure → privilege-escalation vector. Language-agnostic: applies to Node `writeFile`, Python `os.open`/`Path.write_text`, Go `os.OpenFile`, etc.
-
-**Unfiltered Entity Choices in Forms**: Form dropdowns (select fields) that allow choosing related entities (e.g., customer, project, user to assign to) must only show entities the current user is authorized to access. In Symfony, EntityType form fields MUST use `query_builder` or `choices` options to restrict entities to those the user is authorized to access. Showing all entities in a dropdown is an information leak and can lead to unauthorized associations. Server-side validation of submitted values is also required.
-
-**Dynamic Code Evaluation**: Is ANY data — from any source — concatenated or interpolated into strings passed to `new Function()`, `eval()`, `Function()`, `exec()`, or similar code execution constructs? The data does NOT need to come from HTTP request input to be dangerous. Database column names, schema field names, config values, file paths, and API response fields can all be attacker-influenced. ANY string interpolation into code strings is equivalent to code injection. The PATTERN of string-building + code-evaluation is inherently dangerous regardless of the apparent trustworthiness of the data source. Fix: use safe property access (e.g., `obj[key]`, bracket notation, `array.reduce((o, k) => o[k], root)`, or a safe expression parser) instead of building code strings.
-
-**Arbitrary File Access from Client Parameters**: When a web application reads or writes files based on parameters received from HTTP requests, the path MUST be validated against a whitelist of allowed directories. Using `file_get_contents($parameters['viewFile'])` or similar with client-controlled paths enables arbitrary file read/write. Fix: validate with `realpath()`, restrict to specific directories, check file extensions, and reject paths containing `..`.
-
-**GitHub Actions Injection**: In GitHub Actions workflows, user-controlled values from `github.event.client_payload`, `github.event.issue.title`, `github.event.pull_request.title`, etc. must NEVER be interpolated directly into `run:` scripts or `ref:` parameters. An attacker controlling the PR title or client_payload can inject arbitrary commands. Fix: pass values via environment variables (`env:` block) or validate format (e.g., ensure `pr_number` matches `^[0-9]+$`).
-
-**Unfiltered Serialization / Nested Data Exposure**: When a model's serialization method (`to_dict`, `to_json`, `serialize`, `as_json`, `__dict__`, marshmallow/pydantic schemas) includes related/nested records (e.g., `collection.recipes`, `user.orders`, `project.tasks`), those nested records must be filtered based on the VIEWING user's permissions, not just the parent record's permissions. A public collection containing a private recipe must not expose the private recipe's details when serialized. This is an information disclosure vulnerability that lives in the model layer, not the route handler — check serialization methods, not just endpoints.
-
-**Data Flow to Pre-existing Dangerous Sinks**: If newly added code routes user-controlled data to a PRE-EXISTING dangerous sink (like `new Function()`, `eval()`, `exec()`, shell commands, or SQL concatenation), this is a NEW vulnerability even though the sink itself is unchanged. The attack surface expanded because the new code created a new path from untrusted input to the dangerous sink. Flag this as a new vulnerability in the + lines, citing both the new data flow and the pre-existing sink it reaches.
-
-**Reasoning guidance for authorization and business logic reviews**:
-- For each endpoint, ask: "If user A makes this request with user B's resource ID, what stops them?" If the answer is "nothing," it's an IDOR.
-- For list endpoints, ask: "Does the query filter by the current user's scope?" An unfiltered query in a multi-user system is an authorization bypass.
-- For interaction endpoints (rate, review, comment, like), ask: "Does the code verify the user can access the parent resource before allowing the interaction?"
-- For form submissions, ask: "Can a user submit a foreign key ID (e.g., customer_id, project_id) that belongs to another user?"
-- For redirect endpoints, ask: "Is the redirect target validated to prevent open redirect to external sites?"
-
-**Completeness check**: When a resource has a visibility/privacy/ownership field, systematically enumerate EVERY endpoint that accepts that resource's ID (not just view endpoints — also create, update, delete, rate, comment, share, assign, and any interaction endpoints). For each one, verify it checks the visibility/ownership field. Do NOT stop after finding one issue — continue checking all endpoints for the same resource. Applications commonly secure the main view endpoint but forget interaction endpoints. If you find one endpoint correctly checking visibility, that does NOT mean all endpoints do — verify each one independently.
-
-**Do not skip syntactic patterns**: Unescaped template output, subprocess shell=True, innerHTML with user data, and similar textbook patterns still appear in real diffs and still need flagging here. Review both the obvious sinks AND the higher-level logic (authorization, data access, SSRF validation completeness, business rules).
-
-**Distrust safety claims**: Comments and docstrings that assert safety ("SSRF-safe", "validated upstream", "not user input", "sanitized above") are claims, not evidence. Verify the invariant holds in the visible code. A safety-named wrapper class guards one code path — check whether ALL paths to the dangerous operation go through it, or whether some bypass it. If you cannot verify the claim from the diff, treat the code as if the comment were absent.
-
-**Check for missing controls, not just added sinks**: A new handler, route, or auth path can be vulnerable because of what it LACKS, not what it adds. Compare it against sibling handlers in the same file: if they check membership/ownership/origin and this one doesn't, the omission is the vulnerability. For new download/file-serving endpoints, check whether Content-Disposition is set. For new WebSocket/connection handlers, check whether origin is validated. For new authz paths, check whether ALL verification steps from the established path are present.
-
-**Keep scanning after the first finding**: A file can have multiple independent issues. A lesser finding (verbose error, quota bypass, missing header) does not mean the critical one (IDOR, authz-before-mutation ordering, injection) is absent — they often coexist in the same function. Report all HIGH/CRITICAL findings, not just the first.
-
-IMPORTANT: Flag only vulnerabilities with a concrete attack path from untrusted input to dangerous sink. Most code is benign and should pass with no findings. False positives waste developer time; false negatives let vulnerabilities ship. Both matter.
-
-DECISION FRAMEWORK:
-- You need a concrete attack scenario, but the attacker model can be any authenticated user, any network peer, or any untrusted data source — not just an external anonymous attacker
-- If the code is a CLI tool, script, seed file, test, or internal utility — apply extra skepticism about web vulnerabilities
-
-DO NOT flag:
-- Missing authentication on a service described as internal/VPN-only (but note: internal-only deployment does NOT excuse SSRF — internal services are the primary target of SSRF attacks, and cloud metadata endpoints must always be blocked regardless of stated deployment context)
-- Missing HTTPS/TLS, missing rate limiting, or missing input length validation
-- Denial of Service (DoS) concerns: missing timeouts, missing pagination limits, unbounded loops, resource exhaustion, memory consumption — these are best-practice improvements, not exploitable vulnerabilities
-- Pre-existing issues that are completely unrelated to the current changes (if a diff is provided)
-- Hardcoded configuration values that are NOT credentials: project IDs, dataset names, table names, service names, hostnames, port numbers, file paths, URLs to public APIs, resource identifiers. Only flag ACTUAL secrets: passwords, API keys/tokens, private keys, connection strings containing credentials
-- Development fallback secrets like `os.environ.get('SECRET_KEY', 'dev-fallback')` or `process.env.SECRET || 'dev-default'` — these are legitimate development patterns
-- Flask/Django SECRET_KEY or session secrets in development/example code, seed scripts, or test files — only flag in production config files
-- Path traversal in code where the path is NOT user-controlled (e.g., file paths constructed from hardcoded strings, config values, CLI arguments in trusted tools, or internal function parameters). Environment variables and CLI arguments are trusted input sources.
-- XSS in code that does not handle HTTP requests or render HTML to browsers (e.g., CLI tools, backend services, data processing scripts, seed files). React auto-escapes text content, BUT flag: `dangerouslySetInnerHTML` with user input; user-controlled `href`/`src`/`location` without an http(s) scheme allowlist (`javascript:`/`data:` URIs execute); second-stage template placeholders (`{{var}}` lacking `|e`) embedded as string literals in JSX/MJML/email builders — the outer auto-escape only preserves the braces.
-- Open redirect in code that does not handle HTTP requests
-- SSRF in code where URLs are not user-controlled (e.g., hardcoded API endpoints, config-driven URLs). SSRF where the attacker only controls the path (not host or protocol) is generally lower severity, BUT should still be flagged as a potential low severity issue.
-- SQL injection in code using parameterized queries, ORMs, or query builders (these are safe by design)
-- GitHub Actions injection where the only tainted value is `github.event.inputs.*` / `inputs.*` on a `workflow_dispatch`-triggered workflow (the dispatcher already has repo-write), or where the value lands in a `with:` input rather than a `run:` shell step.
-- Race conditions or timing attacks that are theoretical rather than practically exploitable
-- Log spoofing concerns
-- Crashes from undefined variables, missing keys, or type errors — these are bugs, not security vulnerabilities
-- Telemetry/analytics API keys (Honeycomb, Datadog, Sentry, etc.) — these are designed to be client-side
-- Open redirect in URL shorteners, link redirectors, or proxy endpoints where redirecting to user-provided URLs IS the intended feature
-- Vulnerabilities in pre-existing starter/template code that was not written by the developer in this session
 
 {files_text}
 
@@ -962,7 +1231,8 @@ Respond with a JSON object. If vulnerabilities are found, set hasVulnerabilities
     prompt += extensibility.guidance_block()
     analysis = _call_claude_dual_or(prompt, output_schema,
                                     bool_key="hasVulnerabilities",
-                                    list_key="vulnerabilities")
+                                    list_key="vulnerabilities",
+                                    cacheable_prefix=_CODE_REVIEW_RUBRIC)
     if not analysis or not analysis.get("hasVulnerabilities") or not analysis.get("vulnerabilities"):
         debug_log("LLM code review: no vulnerabilities found")
         return None, []
@@ -1044,6 +1314,7 @@ def _agentic_spawn_env() -> Dict[str, str]:
         "GIT_SSH_COMMAND": "/bin/false",
         "GIT_TERMINAL_PROMPT": "0",
         "GIT_OPTIONAL_LOCKS": "0",
+        **git_config_env(SAFE_GIT_CONFIG),
     }
     if os.environ.get("ANTHROPIC_API_KEY"):
         # API key present → blank the OAuth token so API-key auth wins.
@@ -1089,18 +1360,8 @@ def agentic_review(
         # ~/.claude/security/ with the SDK installed; try that as a fallback
         # before giving up. The system import is attempted first so users
         # who DO have it never touch the venv.
-        _venv_tried = False
-        _state_dir = os.environ.get(
-            "SECURITY_WARNINGS_STATE_DIR",
-            os.path.expanduser("~/.claude/security"),
-        )
-        for _sp in glob.glob(
-            os.path.join(_state_dir, "agent-sdk-venv", "lib",
-                         "python*", "site-packages")
-        ):
-            if os.path.isdir(_sp) and _sp not in sys.path:
-                sys.path.insert(0, _sp)
-                _venv_tried = True
+        _state_dir = _resolve_state_dir()
+        _venv_tried = _inject_agent_sdk_venv_into_syspath(_state_dir)
         try:
             import asyncio as _asyncio  # noqa: F811
 
@@ -1116,10 +1377,8 @@ def agentic_review(
             debug_log(f"agentic_review: SDK unavailable ({e}); falling back")
             return None, [], {"agentic_fallback": f"import:{type(e).__name__}"}
 
-    # Default to the documented public model. Overridable via SG_AGENTIC_MODEL.
-    # The bundled SDK CLI only knows public model names.
-    _DEFAULT_PUBLIC_MODEL = "claude-opus-4-7"
-    model = os.environ.get("SG_AGENTIC_MODEL") or _DEFAULT_PUBLIC_MODEL
+    # Overridable via SG_AGENTIC_MODEL.
+    model = os.environ.get("SG_AGENTIC_MODEL") or _CLI_OPUS_ALIAS
     max_turns = int(os.environ.get("SG_AGENTIC_MAX_TURNS", "18"))
     # In production repo_dir is the user's working tree (full repo). Under the
     # eval harness it's a temp dir with ONLY touched_paths — the agent can't
@@ -1231,11 +1490,11 @@ def agentic_review(
             # Identical --model/--fallback-model is rejected by the inner CLI
             # at startup ("Fallback model cannot be the same as the main
             # model", exit 1 → ProcessError). The default model here IS
-            # _DEFAULT_PUBLIC_MODEL, so an unconditional fallback_model would
+            # _CLI_OPUS_ALIAS, so an unconditional fallback_model would
             # kill every spawn before the first API call. Omit the fallback
             # when it would equal the primary.
             fallback_model=(
-                _DEFAULT_PUBLIC_MODEL if model != _DEFAULT_PUBLIC_MODEL else None
+                _CLI_OPUS_ALIAS if model != _CLI_OPUS_ALIAS else None
             ),
             # Plugin-hook subprocesses get ANTHROPIC_AUTH_TOKEN (the user's
             # OAuth token) injected by Claude Code. The SDK builds the child

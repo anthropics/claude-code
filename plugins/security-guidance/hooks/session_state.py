@@ -19,7 +19,7 @@ import os
 import re
 from datetime import datetime
 
-from _base import debug_log
+from _base import debug_log, state_dir as _state_dir
 
 
 def _state_key(session_id):
@@ -36,20 +36,20 @@ def _state_key(session_id):
 
 def get_state_file(session_id):
     """Get session-specific state file path."""
-    state_dir = os.environ.get("SECURITY_WARNINGS_STATE_DIR", os.path.expanduser("~/.claude/security"))
+    state_dir = _state_dir()
     return os.path.join(state_dir, f"security_warnings_state_{_state_key(session_id)}.json")
 
 
 def get_lock_file(session_id):
     """Get session-specific lock file path."""
-    state_dir = os.environ.get("SECURITY_WARNINGS_STATE_DIR", os.path.expanduser("~/.claude/security"))
+    state_dir = _state_dir()
     return os.path.join(state_dir, f"security_warnings_state_{_state_key(session_id)}.lock")
 
 
 def cleanup_old_state_files():
     """Remove state files and lock files older than 30 days."""
     try:
-        state_dir = os.environ.get("SECURITY_WARNINGS_STATE_DIR", os.path.expanduser("~/.claude/security"))
+        state_dir = _state_dir()
         if not os.path.exists(state_dir):
             return
 

@@ -3,7 +3,7 @@
 Security review for Claude-generated code. Three layers:
 
 1. **Pattern warnings** — instant regex-based reminders on `Edit`/`Write` for ~25 known-dangerous patterns (`yaml.load`, `torch.load(weights_only=False)`, `pickle.load` on untrusted data, raw `innerHTML`, hardcoded secrets, etc.).
-2. **LLM diff review** — when Claude finishes a turn, the plugin sends the diff to a fast LLM call (Opus 4.7 by default) and feeds high-severity findings back to Claude so it can fix them before you see the response.
+2. **LLM diff review** — when Claude finishes a turn, the plugin sends the diff to a fast LLM call (the newest Opus by default) and feeds high-severity findings back to Claude so it can fix them before you see the response.
 3. **Agentic commit review** — on `git commit`, an SDK-driven reviewer reads related files (`Read`/`Grep`/`Glob`) to trace data flow across the codebase, catching multi-file vulnerabilities pattern matching misses (IDOR, auth bypass, cross-file SSRF).
 
 Findings cover common web-vulnerability classes — injection, XSS, SSRF, hardcoded secrets, IDOR, auth bypass, unsafe deserialization, and path traversal among others.
@@ -28,18 +28,25 @@ All configuration is via environment variables. None are required for default be
 
 ### Selecting a model
 
+By default both reviews run on the newest Claude Opus, and move to the next one when it is released — there is no model version to bump:
+
+- The LLM diff review asks your API endpoint (`GET /v1/models`) which Opus models it serves and uses the newest. The answer is cached for a day in the plugin's state directory. If the endpoint can't answer, the review uses `claude-opus-5-5`.
+- The agentic commit reviewer, and every review on Bedrock, Vertex, and Foundry, runs through your installed Claude Code and uses its `opus` alias — the same model `/model opus` selects, including any `ANTHROPIC_DEFAULT_OPUS_MODEL` you have set.
+
+To pin a model, or to use a cheaper one:
+
 ```bash
 # 1P / gateway: a canonical model id
-SECURITY_REVIEW_MODEL=claude-opus-4-7   # default
+SECURITY_REVIEW_MODEL=claude-opus-5-5
 
 # Bedrock: use the inference-profile id
-SECURITY_REVIEW_MODEL=us.anthropic.claude-opus-4-7
+SECURITY_REVIEW_MODEL=us.anthropic.claude-opus-5-5
 
-# Vertex: use the Vertex date-tag form
-SECURITY_REVIEW_MODEL=claude-opus-4-7@20260218
+# Vertex / Foundry: the provider's model id
+SECURITY_REVIEW_MODEL=claude-opus-5-5
 ```
 
-`SECURITY_REVIEW_MODEL` controls the LLM diff review. `SG_AGENTIC_MODEL` (same syntax) controls the agentic commit reviewer; defaults to the same model.
+`SECURITY_REVIEW_MODEL` controls the LLM diff review. `SG_AGENTIC_MODEL` (same syntax) controls the agentic commit reviewer.
 
 ### Enabling/disabling layers
 
@@ -101,9 +108,9 @@ This is a best-effort assistive tool, not a guarantee. Treat findings as suggest
 
 **Plugin doesn't seem to fire** — check that `~/.claude/claude-security-guidance.md` (or hook activity) shows in debug logs. Run Claude Code with `--debug-file /tmp/claude/debug.txt` and grep for `security_reminder_hook`. The plugin also writes its own log to `~/.claude/security/log.txt`.
 
-**Review never finds anything** — verify your API path works. On 3P providers, check `SECURITY_REVIEW_MODEL` is set to a provider-specific id (not a bare `claude-opus-4-7`). On LLM gateways, check the gateway's logs for `POST /v1/messages` traffic from the plugin.
+**Review never finds anything** — verify your API path works. On 3P providers, if you set `SECURITY_REVIEW_MODEL`, check it is a provider-specific id your account can invoke. On LLM gateways, check the gateway's logs for `POST /v1/messages` traffic from the plugin.
 
-**Too many false positives** — drop `SECURITY_REVIEW_MODEL` to a cheaper model (`claude-sonnet-4-6`) and re-evaluate; if precision is the priority, stay on Opus 4.7.
+**Too many false positives** — set `SECURITY_REVIEW_MODEL` to a cheaper model (`claude-sonnet-5-5`) and re-evaluate; if precision is the priority, stay on the default.
 
 **Want to silence a specific finding** — add a comment to the line explaining why it's safe; the LLM reviewer treats inline justifications as exclusions. For systemic exclusions, document them in your `claude-security-guidance.md`.
 
