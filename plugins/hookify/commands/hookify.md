@@ -158,7 +158,7 @@ Use the current working directory (where Claude Code was started) as the base pa
 ## Event Types Reference
 
 - **bash**: Matches Bash tool commands
-- **file**: Matches Edit, Write, MultiEdit tools
+- **file**: Matches Read, Edit, Write, MultiEdit tools
 - **stop**: Matches when agent wants to stop (use for completion checks)
 - **prompt**: Matches when user submits prompts
 - **all**: Matches all events
