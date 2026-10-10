@@ -26,6 +26,17 @@
       "category": "development"
     },
     {
+      "name": "credential-guard",
+      "description": "Detects hardcoded credentials (API keys, tokens, private keys) in file writes and blocks them before they reach disk or version control",
+      "version": "1.0.0",
+      "author": {
+        "name": "Pradyoth Prashanth",
+        "email": "pradyoth0@gmail.com"
+      },
+      "source": "./plugins/credential-guard",
+      "category": "security"
+    },
+    {
       "name": "code-review",
       "description": "Automated code review for pull requests using multiple specialized agents with confidence-based scoring to filter false positives",
       "version": "1.0.0",
