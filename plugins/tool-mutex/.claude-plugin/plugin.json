@@ -1,0 +1,8 @@
+{
+  "name": "tool-mutex",
+  "version": "1.0.0",
+  "description": "Limits concurrent filesystem-heavy tool calls to prevent parallel directory enumeration that can trigger Windows Wof.sys BSOD (issue #32870)",
+  "author": {
+    "name": "Claude Code Contributors"
+  }
+}
