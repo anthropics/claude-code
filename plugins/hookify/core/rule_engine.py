@@ -93,6 +93,44 @@ class RuleEngine:
         # No matches - allow operation
         return {}
 
+    def get_matching_rules(self, rules: List[Rule], input_data: Dict[str, Any]) -> List[Rule]:
+        """Return all rules that match the given input."""
+        return [rule for rule in rules if self._rule_matches(rule, input_data)]
+
+    def explain_rule_match(self, rule: Rule, input_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Return condition-by-condition match details for a rule."""
+        tool_name = input_data.get('tool_name', '')
+        tool_input = input_data.get('tool_input', {})
+        tool_matcher_matched = True
+
+        if rule.tool_matcher:
+            tool_matcher_matched = self._matches_tool(rule.tool_matcher, tool_name)
+
+        conditions = []
+        for condition in rule.conditions:
+            field_value = self._extract_field(condition.field, tool_name, tool_input, input_data)
+            matched = False
+            if field_value is not None:
+                matched = self._evaluate_operator(condition.operator, condition.pattern, field_value)
+            conditions.append(
+                {
+                    "field": condition.field,
+                    "operator": condition.operator,
+                    "pattern": condition.pattern,
+                    "value": field_value,
+                    "matched": matched,
+                }
+            )
+
+        return {
+            "matched": tool_matcher_matched and bool(conditions) and all(
+                condition["matched"] for condition in conditions
+            ),
+            "tool_matcher": rule.tool_matcher,
+            "tool_matcher_matched": tool_matcher_matched,
+            "conditions": conditions,
+        }
+
     def _rule_matches(self, rule: Rule, input_data: Dict[str, Any]) -> bool:
         """Check if rule matches input data.
 
@@ -163,6 +201,10 @@ class RuleEngine:
         operator = condition.operator
         pattern = condition.pattern
 
+        return self._evaluate_operator(operator, pattern, field_value)
+
+    def _evaluate_operator(self, operator: str, pattern: str, field_value: str) -> bool:
+        """Evaluate a single operator against a field value."""
         if operator == 'regex_match':
             return self._regex_match(pattern, field_value)
         elif operator == 'contains':
@@ -176,7 +218,6 @@ class RuleEngine:
         elif operator == 'ends_with':
             return field_value.endswith(pattern)
         else:
-            # Unknown operator
             return False
 
     def _extract_field(self, field: str, tool_name: str,
@@ -205,6 +246,9 @@ class RuleEngine:
             if field == 'reason':
                 return input_data.get('reason', '')
             elif field == 'transcript':
+                if 'transcript' in input_data:
+                    value = input_data.get('transcript', '')
+                    return value if isinstance(value, str) else str(value)
                 # Read transcript file if path provided
                 transcript_path = input_data.get('transcript_path')
                 if transcript_path:
