@@ -1,4 +1,5 @@
 export * from './caught-answer.js'
+export * from './held-kind.js'
 export * from './held-notice.js'
 export * from './verdicts'
 

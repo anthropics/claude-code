@@ -4,8 +4,13 @@ import { admissionFailure } from './admission-failure'
 import HeldVerdict from './held-verdict'
 import { managedModsOnlyRefusal } from './managed-mods-only-refusal'
 import { pastUsers } from './past-users'
+import { pinnedVariableRefusal } from './pinned-variable-refusal'
 import Policy from './policy'
-import { TOOL_REGISTER_REFUSAL } from './tool-register-refusal'
+import { isSkillRow } from './skill-row'
+import {
+  registerRefusalOf,
+  TOOL_REGISTER_REFUSAL,
+} from './tool-register-refusal'
 
 /**
  * The built-in's hooks, seated outermost: each keeps one control an
@@ -20,14 +25,37 @@ import { TOOL_REGISTER_REFUSAL } from './tool-register-refusal'
 export function register(on: On) {
   const readPolicy = Policy.createPolicyMemo(Policy.POLICY_MEMO_MS)
   const told = new Set<string>()
+  const admittedAs = new Map<string, string>()
 
   on('classic.*', ($, e, next) => next.to(e, 'append'))
 
   on('prompt.section', ($, e, next) => next.to(e, 'append'))
   on('prompt.context', ($, e, next) => next.to(e, 'append'))
+  on('prompt.attachment', ($, e, next) => next.to(e, 'append'))
   on('prompt.compose', ($, e, next) => next.to(e, 'append'))
   on('skill.prompt', ($, e, next) => next.to(e, 'append'))
   on('attribution.text', ($, e, next) => next.to(e, 'append'))
+
+  on('session.append', { door: 'attachment' }, ($, e, next) =>
+    next.to(e, 'append'),
+  )
+  on('session.append', { door: 'hook-context' }, ($, e, next) =>
+    next.to(e, 'append'),
+  )
+  on('session.append', { door: 'compaction' }, ($, e, next) =>
+    next.to(e, 'append'),
+  )
+  on('session.append', { door: 'tool-message' }, ($, e, next) =>
+    isSkillRow(e) ? next.to(e, 'append') : next(e),
+  )
+  on('session.append', { door: 'note' }, ($, e, next) => {
+    const isOrgs =
+      next.origin.tier === 'prepend' || next.origin.tier === 'append'
+
+    return isOrgs ? next.to(e, 'append') : next(e)
+  })
+
+  on('session.compact', ($, e, next) => next.to(e, 'append'))
 
   on('settings.read', ($, e, next) => next.to(e, 'append'))
 
@@ -44,14 +72,21 @@ export function register(on: On) {
       return next.to(e, 'append')
     }
 
-    const isRefused =
-      next.origin.tier === 'user' &&
-      (await Policy.decidedByPolicy(
-        readPolicy(() => $.settings.read(Policy.SOURCE)),
-        Policy.hasMcpAllowlist,
-      ))
+    const refusal =
+      next.origin.tier === 'user'
+        ? await readPolicy(() => $.settings.read(Policy.SOURCE))
+            .then(policy =>
+              registerRefusalOf(
+                policy,
+                next.origin.plugin,
+                e.name,
+                admittedAs.get(next.origin.plugin),
+              ),
+            )
+            .catch(() => TOOL_REGISTER_REFUSAL)
+        : undefined
 
-    return isRefused ? { deny: TOOL_REGISTER_REFUSAL } : next(e)
+    return refusal === undefined ? next(e) : { deny: refusal }
   })
 
   on('tool.list', async ($, e, next) =>
@@ -66,10 +101,9 @@ export function register(on: On) {
 
   on('tool.check', async ($, e, next) => {
     const answer = await next(e)
-    const mods = HeldVerdict.loosenedByUsers(next.trace)
+    const mods = HeldVerdict.rewrittenByUsers(next.trace)
 
     const shouldRecheck =
-      answer.decision !== 'deny' &&
       mods.length > 0 &&
       (await Policy.decidedByPolicy(
         readPolicy(() => $.settings.read(Policy.SOURCE)),
@@ -82,13 +116,22 @@ export function register(on: On) {
 
     const held = await next.to(e, 'append')
 
-    if (!HeldVerdict.isRuleDeny(held)) {
+    if (!HeldVerdict.holdsOver(held, answer)) {
       return answer
     }
 
-    for (const mod of mods.filter(name => !told.has(name))) {
-      told.add(mod)
-      $.ui.log(HeldVerdict.heldNotice(mod, e.tool, held.rule))
+    const kind = HeldVerdict.heldKind(held)
+
+    for (const mod of mods.filter(name => !told.has(`${name} ${kind}`))) {
+      told.add(`${mod} ${kind}`)
+      $.ui.log(
+        HeldVerdict.heldNotice(
+          mod,
+          e.tool,
+          held,
+          HeldVerdict.isLooser(answer, held) ? 'lift' : 'reword',
+        ),
+      )
     }
 
     return held
@@ -103,11 +146,61 @@ export function register(on: On) {
     return shouldVouch ? HeldVerdict.caughtAnswer(last, next.trace) : last
   })
 
-  on('plugin.register', { tier: 'user' }, async ($, e, next) =>
-    Policy.isManagedModsOnly(await $.settings.read(Policy.SOURCE))
+  on('ui.log', ($, e, next) => {
+    const isOrgs =
+      next.origin.tier === 'prepend' || next.origin.tier === 'append'
+
+    return isOrgs ? next.to(e, 'append') : next(e)
+  })
+
+  on('env.get', ($, e, next) => {
+    const isOrgs =
+      next.origin.tier === 'prepend' || next.origin.tier === 'append'
+
+    return isOrgs ? next.to(e, 'append') : next(e)
+  })
+
+  on('env.set', async ($, e, next) => {
+    const isOrgs =
+      next.origin.tier === 'prepend' || next.origin.tier === 'append'
+
+    if (isOrgs) {
+      return next.to(e, 'append')
+    }
+
+    const isPinned = await Policy.decidedByPolicy(
+      readPolicy(() => $.settings.read(Policy.SOURCE)),
+      policy => Policy.isPinnedVariable(policy, e.name),
+    )
+
+    if (!isPinned) {
+      return next(e)
+    }
+
+    const isTheirs = next.origin.tier === 'user'
+
+    return isTheirs
+      ? { deny: pinnedVariableRefusal(e.name) }
+      : next.to(e, 'append')
+  }).catch(($, e, next) => {
+    if (next.called) {
+      return next(e)
+    }
+
+    const isTheirs = next.origin.tier === 'user'
+
+    return isTheirs
+      ? { deny: pinnedVariableRefusal(e.name) }
+      : next.to(e, 'append')
+  })
+
+  on('plugin.register', { tier: 'user' }, async ($, e, next) => {
+    admittedAs.set(e.name, e.provenance)
+
+    return Policy.isManagedModsOnly(await $.settings.read(Policy.SOURCE))
       ? { refuse: managedModsOnlyRefusal(e.name) }
-      : next(e),
-  ).catch(($, e, next) => {
+      : next(e)
+  }).catch(($, e, next) => {
     $.ui.log(admissionFailure(e.name, next.error), { to: 'debug' })
 
     return next.called ? next(e) : { refuse: managedModsOnlyRefusal(e.name) }
