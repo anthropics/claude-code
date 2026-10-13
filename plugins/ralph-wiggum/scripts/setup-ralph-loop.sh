@@ -137,17 +137,22 @@ else
   COMPLETION_PROMISE_YAML="null"
 fi
 
-cat > .claude/ralph-loop.local.md <<EOF
+# Write state file in two steps to avoid shell expansion of prompt text
+# and heredoc termination if prompt contains 'EOF' on its own line
+STARTED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+{
+  cat <<FRONTMATTER_EOF
 ---
 active: true
 iteration: 1
 max_iterations: $MAX_ITERATIONS
 completion_promise: $COMPLETION_PROMISE_YAML
-started_at: "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+started_at: "$STARTED_AT"
 ---
 
-$PROMPT
-EOF
+FRONTMATTER_EOF
+  printf '%s\n' "$PROMPT"
+} > .claude/ralph-loop.local.md
 
 # Output setup message
 cat <<EOF
