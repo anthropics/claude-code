@@ -36,7 +36,8 @@ class RuleEngine:
         """Evaluate all rules and return combined results.
 
         Checks all rules and accumulates matches. Blocking rules take priority
-        over warning rules. All matching rule messages are combined.
+        over ask rules, which take priority over warning rules. All matching
+        rule messages are combined within the winning action bucket.
 
         Args:
             rules: List of Rule objects to evaluate
@@ -48,12 +49,15 @@ class RuleEngine:
         """
         hook_event = input_data.get('hook_event_name', '')
         blocking_rules = []
+        ask_rules = []
         warning_rules = []
 
         for rule in rules:
             if self._rule_matches(rule, input_data):
                 if rule.action == 'block':
                     blocking_rules.append(rule)
+                elif rule.action == 'ask' and hook_event == 'PreToolUse':
+                    ask_rules.append(rule)
                 else:
                     warning_rules.append(rule)
 
@@ -82,6 +86,17 @@ class RuleEngine:
                 return {
                     "systemMessage": combined_message
                 }
+
+        if ask_rules:
+            messages = [f"**[{r.name}]**\n{r.message}" for r in ask_rules]
+            combined_message = "\n\n".join(messages)
+            return {
+                "hookSpecificOutput": {
+                    "hookEventName": hook_event,
+                    "permissionDecision": "ask"
+                },
+                "systemMessage": combined_message
+            }
 
         # If only warnings, show them but allow operation
         if warning_rules:
