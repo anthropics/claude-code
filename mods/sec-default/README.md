@@ -320,7 +320,15 @@ or by a careless plugin, not by a hostile one.
   credential, provider and home variables (`HTTPS_PROXY`,
   `NODE_EXTRA_CA_CERTS`, `ANTHROPIC_API_KEY`, `HOME` and their like): they are
   not pinned, because a person sets the same ones in their own settings and
-  shell, so a pin on `env.set` would not close that road. An organization pins the variables its hooks rely
+  shell, so a pin on `env.set` would not close that road. Where that road is
+  closed, the engine closes it for a plugin too, with or without this
+  plugin seated: in a session that asks its organization for its settings (a
+  Cowork cloud session), a plugin that is not built in sets or unsets only a
+  variable the filters on every settings `env` would let a person's own
+  settings file set there, and any other write (the proxy and certificate
+  variables among them) is held. A plugin the container's managed settings
+  enable is held alike: the session can write that file. So is a write, or
+  an unset, of a name the organization's own settings `env` set there. An organization pins the variables its hooks rely
   on by setting them in managed `env`. An
   organization's plugin's `$.env.get` is answered past the user tier's hooks,
   with the environment as written.
