@@ -264,6 +264,9 @@ async function autoCloseDuplicates(): Promise<void> {
         `[ERROR] Failed to close issue #${issue.number} as duplicate: ${error}`
       );
     }
+
+    // Rate-limit writes to avoid hitting GitHub API secondary rate limits
+    await new Promise(resolve => setTimeout(resolve, 1000));
   }
 
   console.log(
