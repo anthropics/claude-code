@@ -263,7 +263,12 @@ set, an `apiKeyHelper` that appeared in a person's settings, another
 sign-in) does not unseat it. How a person signs in before a launch is
 theirs, so a seat that rests on the plan alone follows the sign-in at the
 next launch; managed settings on the machine are what hold it there. The
-organization's own `prependPlugins` list still decides at every reload. It
+organization's own `prependPlugins` list still decides at every reload,
+with one exception: a Cowork cloud session that asks its organization for
+its managed settings seats it by default, and there a `prependPlugins` list
+that leaves it out does not unseat it. The only such list a session there
+can hold is a file's in its container, which the session can write as well
+as its environment can, so it may add a hold and never lift one. It
 is a plugin folder like any
 other, but its one move that matters, `next.to`, is refused outside a
 managed tier, so loading it with `--plugin-dir` seats a plugin that can
