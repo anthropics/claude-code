@@ -1,0 +1,46 @@
+name: Weekly Digest
+
+on:
+  schedule:
+    # Every Monday at 9am UTC
+    - cron: "0 9 * * 1"
+  workflow_dispatch:
+    inputs:
+      days:
+        description: "Number of days to look back (default: 7)"
+        required: false
+        default: "7"
+
+permissions:
+  issues: write
+
+jobs:
+  digest:
+    name: Generate weekly digest with Claude
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install dependencies
+        working-directory: .github/claude-triage
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate digest
+        working-directory: .github/claude-triage
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          DIGEST_DAYS: ${{ github.event.inputs.days || '7' }}
+        run: pnpm digest
