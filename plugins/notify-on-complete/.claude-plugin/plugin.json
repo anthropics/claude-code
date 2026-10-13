@@ -1,0 +1,8 @@
+{
+  "name": "notify-on-complete",
+  "version": "1.0.0",
+  "description": "Stop hook that plays a sound, desktop notification, or text-to-speech alert when Claude Code finishes a task",
+  "author": {
+    "name": "Codex"
+  }
+}
