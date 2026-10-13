@@ -1,0 +1,17 @@
+{
+  "description": "Blocks git add/commit of sensitive files before they enter version control",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/commit_guard.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}
