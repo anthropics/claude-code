@@ -1,5 +1,7 @@
 #!/usr/bin/env bun
 
+import { githubRequest } from "./github-request.ts";
+
 declare global {
   var process: {
     env: Record<string, string | undefined>;
@@ -23,27 +25,6 @@ interface GitHubComment {
 interface GitHubReaction {
   user: { id: number };
   content: string;
-}
-
-async function githubRequest<T>(endpoint: string, token: string, method: string = 'GET', body?: any): Promise<T> {
-  const response = await fetch(`https://api.github.com${endpoint}`, {
-    method,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: "application/vnd.github.v3+json",
-      "User-Agent": "auto-close-duplicates-script",
-      ...(body && { "Content-Type": "application/json" }),
-    },
-    ...(body && { body: JSON.stringify(body) }),
-  });
-
-  if (!response.ok) {
-    throw new Error(
-      `GitHub API request failed: ${response.status} ${response.statusText}`
-    );
-  }
-
-  return response.json();
 }
 
 function extractDuplicateIssueNumber(commentBody: string): number | null {
@@ -73,24 +54,28 @@ async function closeIssueAsDuplicate(
   await githubRequest(
     `/repos/${owner}/${repo}/issues/${issueNumber}`,
     token,
-    'PATCH',
     {
-      state: 'closed',
-      state_reason: 'duplicate',
-      labels: ['duplicate']
+      method: 'PATCH',
+      body: {
+        state: 'closed',
+        state_reason: 'duplicate',
+        labels: ['duplicate']
+      },
     }
   );
 
   await githubRequest(
     `/repos/${owner}/${repo}/issues/${issueNumber}/comments`,
     token,
-    'POST',
     {
-      body: `This issue has been automatically closed as a duplicate of #${duplicateOfNumber}.
+      method: 'POST',
+      body: {
+        body: `This issue has been automatically closed as a duplicate of #${duplicateOfNumber}.
 
 If this is incorrect, please re-open this issue or create a new one.
 
 🤖 Generated with [Claude Code](https://claude.ai/code)`
+      },
     }
   );
 
@@ -272,6 +257,3 @@ async function autoCloseDuplicates(): Promise<void> {
 }
 
 autoCloseDuplicates().catch(console.error);
-
-// Make it a module
-export {};
