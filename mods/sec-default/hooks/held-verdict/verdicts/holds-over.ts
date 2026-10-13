@@ -5,12 +5,11 @@ import Ranking from './ranking'
 
 /**
  * Whether the verdict reached past the user tier holds whole over the
- * chain's answer: a deny, or an ask a rule, a hook or a ceiling stands behind.
+ * chain's answer: a deny, or an ask that names what stands behind it.
  *
  * It holds over a more permissive answer and over the same decision reworded
- * or stripped of its rule or hook; a stricter answer stands. Any rule or
- * classic hook counts, whoever configured it, and so does the ceiling an
- * organization set on the tool. The mode's own ask, with none, never holds.
+ * or stripped of what it names; a stricter answer stands. A rule, a hook, a
+ * setting, a host or a ceiling counts; the mode's own ask at a dialog never.
  *
  * @param held what the run past the user tier settled on
  * @param answer what the whole chain settled on
@@ -25,4 +24,6 @@ export const holdsOver = (
   (held.decision === 'deny' ||
     held.rule !== undefined ||
     held.hook !== undefined ||
+    held.setting !== undefined ||
+    held.decider !== undefined ||
     held.ceiling !== undefined)

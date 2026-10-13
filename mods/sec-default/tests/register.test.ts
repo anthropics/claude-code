@@ -811,6 +811,55 @@ describe('register', () => {
   )
 
   test(
+    "the read block's ask on a shell read holds over their allow",
+    { plugins: [Fixtures.allowing('easy')] },
+    async ($, on) => {
+      on('settings.read', () => ({ value: Fixtures.MANAGED_POLICY }))
+
+      const lines = Fixtures.logged(on)
+
+      Fixtures.checksAnswered(on, Fixtures.SETTING_ASK)
+
+      expect(await $.tool.check(Fixtures.CHECKED)).toEqual(Fixtures.SETTING_ASK)
+
+      expect(lines).toEqual([
+        `transcript: ${Hooks.heldNotice('easy', 'Bash', Fixtures.SETTING_ASK, 'lift')}`,
+      ])
+    },
+  )
+
+  test(
+    "the mode's own ask, where a host answers it, holds over their allow",
+    { plugins: [Fixtures.allowing('easy')] },
+    async ($, on) => {
+      on('settings.read', () => ({ value: Fixtures.MANAGED_POLICY }))
+
+      const lines = Fixtures.logged(on)
+
+      Fixtures.checksAnswered(on, Fixtures.HOST_ASK)
+
+      expect(await $.tool.check(Fixtures.CHECKED)).toEqual(Fixtures.HOST_ASK)
+
+      expect(lines).toEqual([
+        `transcript: ${Hooks.heldNotice('easy', 'Bash', Fixtures.HOST_ASK, 'lift')}`,
+      ])
+    },
+  )
+
+  test(
+    "an organization plugin's allow over a host's ask stands",
+    { plugins: [Fixtures.allowing('corp', 'append')] },
+    async ($, on) => {
+      on('settings.read', () => ({ value: Fixtures.MANAGED_POLICY }))
+      Fixtures.checksAnswered(on, Fixtures.HOST_ASK)
+
+      expect(await $.tool.check(Fixtures.CHECKED)).toEqual({
+        decision: 'allow',
+      })
+    },
+  )
+
+  test(
     "a classic hook's deny holds over their allow",
     { plugins: [Fixtures.allowing('easy')] },
     async ($, on) => {
@@ -1840,6 +1889,15 @@ describe('register', () => {
     ).toEqual([true, false, false, true])
   })
 
+  test("a server named corp does not claim a corp-tools server's tools", () => {
+    expect(
+      Hooks.isOrgTool(
+        { managedMcpServers: { corp: {} } },
+        'mcp__corp-tools__x',
+      ),
+    ).toBe(false)
+  })
+
   test(
     'a compaction is not theirs to answer',
     { plugins: [Fixtures.compacting] },
@@ -2186,6 +2244,168 @@ describe('register', () => {
       ].map(name => Hooks.isPinnedVariable({}, name)),
     ).toEqual([true, true, true, true, true, true, true, true, true])
   })
+
+  test('every variable that can load code into a child is pinned', () => {
+    expect(
+      [
+        'LD_PRELOAD',
+        'LD_LIBRARY_PATH',
+        'LD_AUDIT',
+        'DYLD_INSERT_LIBRARIES',
+        'DYLD_LIBRARY_PATH',
+        'DYLD_FRAMEWORK_PATH',
+        'BASH_ENV',
+        'ENV',
+        'ZDOTDIR',
+        'NODE_OPTIONS',
+        'ld_preload',
+        'PATH',
+        'HOME',
+      ].map(name => Hooks.isPinnedVariable({}, name)),
+    ).toEqual([
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+    ])
+  })
+
+  test(
+    "LD_PRELOAD is not a person's plugin's to set",
+    {
+      plugins: [
+        Fixtures.settingLdPreload('suite', 'prepend'),
+        Fixtures.settingLdPreload('mine'),
+        Fixtures.settingLdPreload('bundled', 'builtin'),
+      ],
+    },
+    async ($, on) => {
+      on('settings.read', () => ({ value: Fixtures.MANAGED_POLICY }))
+
+      const lines = Fixtures.logged(on)
+      const set = Fixtures.variablesSet(on)
+
+      await $.session.start(Fixtures.SESSION)
+
+      expect(set).toEqual([
+        'suite LD_PRELOAD=mine',
+        'bundled LD_PRELOAD=mine',
+      ])
+      expect(lines).toHaveLength(1)
+      expect(lines[0]).toContain(Hooks.pinnedVariableRefusal('LD_PRELOAD'))
+    },
+  )
+
+  test(
+    "DYLD_INSERT_LIBRARIES is not a person's plugin's to set",
+    {
+      plugins: [
+        Fixtures.settingDyldInsert('suite', 'prepend'),
+        Fixtures.settingDyldInsert('mine'),
+        Fixtures.settingDyldInsert('bundled', 'builtin'),
+      ],
+    },
+    async ($, on) => {
+      on('settings.read', () => ({ value: Fixtures.MANAGED_POLICY }))
+
+      const lines = Fixtures.logged(on)
+      const set = Fixtures.variablesSet(on)
+
+      await $.session.start(Fixtures.SESSION)
+
+      expect(set).toEqual([
+        'suite DYLD_INSERT_LIBRARIES=mine',
+        'bundled DYLD_INSERT_LIBRARIES=mine',
+      ])
+      expect(lines).toHaveLength(1)
+      expect(lines[0]).toContain(
+        Hooks.pinnedVariableRefusal('DYLD_INSERT_LIBRARIES'),
+      )
+    },
+  )
+
+  test(
+    "BASH_ENV is not a person's plugin's to set",
+    {
+      plugins: [
+        Fixtures.settingBashEnv('suite', 'prepend'),
+        Fixtures.settingBashEnv('mine'),
+        Fixtures.settingBashEnv('bundled', 'builtin'),
+      ],
+    },
+    async ($, on) => {
+      on('settings.read', () => ({ value: Fixtures.MANAGED_POLICY }))
+
+      const lines = Fixtures.logged(on)
+      const set = Fixtures.variablesSet(on)
+
+      await $.session.start(Fixtures.SESSION)
+
+      expect(set).toEqual([
+        'suite BASH_ENV=mine',
+        'bundled BASH_ENV=mine',
+      ])
+      expect(lines).toHaveLength(1)
+      expect(lines[0]).toContain(Hooks.pinnedVariableRefusal('BASH_ENV'))
+    },
+  )
+
+  test(
+    "NODE_OPTIONS is not a person's plugin's to set",
+    {
+      plugins: [
+        Fixtures.settingNodeOptions('suite', 'prepend'),
+        Fixtures.settingNodeOptions('mine'),
+        Fixtures.settingNodeOptions('bundled', 'builtin'),
+      ],
+    },
+    async ($, on) => {
+      on('settings.read', () => ({ value: Fixtures.MANAGED_POLICY }))
+
+      const lines = Fixtures.logged(on)
+      const set = Fixtures.variablesSet(on)
+
+      await $.session.start(Fixtures.SESSION)
+
+      expect(set).toEqual([
+        'suite NODE_OPTIONS=mine',
+        'bundled NODE_OPTIONS=mine',
+      ])
+      expect(lines).toHaveLength(1)
+      expect(lines[0]).toContain(Hooks.pinnedVariableRefusal('NODE_OPTIONS'))
+    },
+  )
+
+  test(
+    'nor is NODE_OPTIONS theirs to unset',
+    {
+      plugins: [
+        Fixtures.unsettingNodeOptions('suite', 'prepend'),
+        Fixtures.unsettingNodeOptions('mine'),
+      ],
+    },
+    async ($, on) => {
+      on('settings.read', () => ({ value: Fixtures.MANAGED_POLICY }))
+
+      const lines = Fixtures.logged(on)
+      const set = Fixtures.variablesSet(on)
+
+      await $.session.start(Fixtures.SESSION)
+
+      expect(set).toEqual(['suite NODE_OPTIONS=undefined'])
+      expect(lines).toHaveLength(1)
+      expect(lines[0]).toContain(Hooks.pinnedVariableRefusal('NODE_OPTIONS'))
+    },
+  )
 
   test(
     'a listed id that is one at-sign refuses every registration of theirs',

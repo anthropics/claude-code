@@ -2,7 +2,7 @@ import type { EventResult } from 'claude-code'
 
 /**
  * Whether two `tool.check` verdicts say the same in every field: decision,
- * reason, and the rule, hook or ceiling either names.
+ * reason, and whatever either names (a rule, a hook, a setting, a host).
  *
  * @param one a verdict
  * @param other another, or undefined when nothing settled

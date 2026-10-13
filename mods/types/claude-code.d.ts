@@ -2593,7 +2593,7 @@ declare module 'claude-code' {
           call: EventCalls['tool']['call'];
           /**
            * Asks the engine's permission decision for a tool call now: the event
-           * `tool.check`, resolved to `{ decision, reason?, rule? }`.
+           * `tool.check`, resolved to its verdict (`{ decision, reason?, ... }`).
            *
            * The hooks run (the calling hook's own frame skipped, `next.origin` this
            * plugin, no `tool_use_id`); nothing runs, no dialog opens, no PreToolUse
@@ -3719,7 +3719,7 @@ declare module 'claude-code' {
        */
       'tool.call': ToolCallResult;
       /**
-       * `{ decision, reason?, rule?, hook?, ceiling? }`.
+       * `{ decision, reason?, rule?, hook?, setting?, decider?, ceiling? }`.
        */
       'tool.check': ToolCheckResult;
       /**
@@ -10124,6 +10124,12 @@ declare module 'claude-code' {
   type ToolCheckArgs = Pick<ToolCheckInput, 'tool' | 'input'>;
 
   /**
+   * Who an ask is put to, where that is not a dialog here: `host`, the program
+   * that answers a hosted session's asks, or a served call's own session.
+   */
+  type ToolCheckDecider = 'host';
+
+  /**
    * The verdict of `tool.check`: run the tool, put it to the mode's decider
    * (the dialog, the auto-mode classifier, a headless host), or refuse it.
    */
@@ -10158,7 +10164,7 @@ declare module 'claude-code' {
 
   /**
    * What a `tool.check` hook returns and what `next(e)` resolves to: the
-   * verdict, why, and the rule, classic hook or ceiling behind it, if any.
+   * verdict, why, what stands behind it, and who answers core's ask.
    *
    * From core, the engine's declarative decision for the session's mode and
    * rules. A hook may answer any verdict in either direction; the last word up
@@ -10188,6 +10194,23 @@ declare module 'claude-code' {
        * Absent on a `$.tool.check` query, which runs no classic hook.
        */
       hook?: string;
+      /**
+       * The key of the option whose own check asked, whoever configured it
+       * (`permissions.blockReadsOutsideWorkingDirectories`).
+       *
+       * From core, for the read block: its ask on a shell command that reads
+       * outside the working directories or, the block on, leaves the sandbox.
+       */
+      setting?: string;
+      /**
+       * Who an ask is put to, where that is not a dialog here: `host`, a hosted
+       * session's permission callback or the cloud session a served call is for.
+       *
+       * From core, on its own ask, only where a host would be asked: an ask the
+       * mode or the loop refuses with nobody asked (dontAsk, no prompt to show)
+       * names none, and neither does a host whose card the person answers.
+       */
+      decider?: ToolCheckDecider;
       /**
        * The most permissive verdict the organization lets a call of the tool
        * reach (`ask`), as its administrators set it on a connector's tool.

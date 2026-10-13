@@ -20,6 +20,51 @@ describe('held-verdict', () => {
     ).toEqual([true, true, true, true, true, false, false])
   })
 
+  test("a setting's ask and a host's hold over an allow and a rewording", () => {
+    expect(
+      [Fixtures.SETTING_ASK, Fixtures.HOST_ASK].map(held => [
+        Hooks.holdsOver(held, Fixtures.ALLOWED),
+        Hooks.holdsOver(held, Fixtures.ASKED),
+        Hooks.holdsOver(held, { ...held }),
+      ]),
+    ).toEqual([
+      [true, true, false],
+      [true, true, false],
+    ])
+  })
+
+  test('a setting or decider the answer itself names holds nothing', () => {
+    expect(
+      Hooks.holdsOver(Fixtures.ASKED, {
+        ...Fixtures.ALLOWED,
+        setting: 'permissions.blockReadsOutsideWorkingDirectories',
+        decider: 'host',
+      }),
+    ).toBe(false)
+  })
+
+  test('an ask is named for its hook, then its setting, then its host', () => {
+    expect(
+      [
+        { ...Fixtures.HOST_ASK, ...Fixtures.SETTING_ASK, ...Fixtures.HOOK_ASK },
+        { ...Fixtures.HOST_ASK, ...Fixtures.SETTING_ASK },
+        Fixtures.HOST_ASK,
+      ].map(held => Hooks.heldNotice('easy', 'Bash', held, 'lift')),
+    ).toEqual(
+      [
+        "a PreToolUse hook's ask from a Bash call; the PreToolUse hook's ask",
+        "a permissions.blockReadsOutsideWorkingDirectories setting's ask " +
+          'from a Bash call; the ' +
+          "permissions.blockReadsOutsideWorkingDirectories setting's ask",
+        "a host's ask from a Bash call; the host's ask",
+      ].map(
+        middle =>
+          `easy tried to lift ${middle} holds over the plugins you install ` +
+          '(allowModsToOverrideDenyRules)',
+      ),
+    )
+  })
+
   test('over the same decision reworded; a stricter answer stands', () => {
     expect(
       [
