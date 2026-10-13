@@ -122,7 +122,7 @@ async function autoCloseDuplicates(): Promise<void> {
   
   while (true) {
     const pageIssues: GitHubIssue[] = await githubRequest(
-      `/repos/${owner}/${repo}/issues?state=open&per_page=${perPage}&page=${page}`,
+      `/repos/${owner}/${repo}/issues?state=open&sort=created&direction=asc&per_page=${perPage}&page=${page}`,
       token
     );
     
