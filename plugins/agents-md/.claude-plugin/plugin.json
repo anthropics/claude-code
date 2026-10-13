@@ -1,0 +1,11 @@
+{
+  "name": "agents-md",
+  "version": "1.0.0",
+  "description": "Adds AGENTS.md support to Claude Code. Reads AGENTS.md files as a fallback when no CLAUDE.md is present, enabling cross-tool compatibility with Codex, Cursor, Amp, and other AI coding tools.",
+  "author": {
+    "name": "baktybekb",
+    "url": "https://github.com/baktybekb"
+  },
+  "license": "MIT",
+  "keywords": ["agents-md", "interoperability", "context", "instructions"]
+}
