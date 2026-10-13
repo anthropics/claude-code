@@ -45,6 +45,62 @@ For more installation options, uninstall steps, and troubleshooting, see the [se
 
 2. Navigate to your project directory and run `claude`.
 
+## Known issues
+
+### False-positive "Update available" banner (Homebrew / WinGet)
+
+Users who installed via Homebrew or WinGet may see an "Update available!" banner
+even though their package manager reports no update is available. For example:
+
+```
+Update available! Run: brew upgrade claude-code
+```
+
+**Why this happens:** Claude Code checks the npm registry for the latest
+version. When a new release is published to npm, the Homebrew cask and WinGet
+manifest may not be updated yet. During this window the banner fires even though
+`brew upgrade` / `winget upgrade` has nothing to install. The banner resolves on
+its own once the package registries catch up.
+
+**Verify whether the update is real:**
+
+```bash
+# Homebrew
+brew update && brew info --cask claude-code   # compare "Installed" vs cask version
+
+# WinGet
+winget list Anthropic.ClaudeCode              # compare installed vs available
+
+# npm (if installed via npm)
+npm outdated -g @anthropic-ai/claude-code
+```
+
+**Workarounds:**
+
+Set the `DISABLE_AUTOUPDATER` environment variable to suppress the banner:
+
+```bash
+# One-time
+DISABLE_AUTOUPDATER=1 claude
+
+# Persistent (add to ~/.bashrc, ~/.zshrc, or equivalent)
+export DISABLE_AUTOUPDATER=1
+```
+
+```powershell
+# One-time
+$env:DISABLE_AUTOUPDATER = 1; claude
+
+# Persistent (PowerShell profile)
+[System.Environment]::SetEnvironmentVariable('DISABLE_AUTOUPDATER', '1', 'User')
+```
+
+> [!NOTE]
+> This suppresses **all** update notifications, including legitimate ones.
+> Remove the variable once your package manager has the latest version.
+
+Tracked in [#18047](https://github.com/anthropics/claude-code/issues/18047).
+
 ## Plugins
 
 This repository includes several Claude Code plugins that extend functionality with custom commands and agents. See the [plugins directory](./plugins/README.md) for detailed documentation on available plugins.
