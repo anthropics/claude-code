@@ -169,7 +169,8 @@ export function register(on: On, options: PluginOptions): void {
   on('agent.spawn', { fork: true }, async ($, e, next) => {
     const result = await next(e)
 
-    if (result.agentId !== undefined) {
+    // a resumed fork keeps the set its own loop was given
+    if (!('resume' in e) && result.agentId !== undefined) {
       const parent = given.get(e.parentAgentId ?? Names.MAIN_LOOP)
       given.set(result.agentId, new Set(parent))
     }
