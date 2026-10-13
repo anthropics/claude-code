@@ -48,7 +48,9 @@ if [ -z "$FIELD" ]; then
 fi
 
 # Extract specific field
-VALUE=$(echo "$FRONTMATTER" | grep "^${FIELD}:" | sed "s/${FIELD}: *//" | sed 's/^"\(.*\)"$/\1/' | sed "s/^'\\(.*\\)'$/\\1/")
+# Escape regex metacharacters in field name before using in sed
+ESCAPED_FIELD=$(printf '%s\n' "$FIELD" | sed 's/[[\.*^$()+?{|]/\\&/g')
+VALUE=$(echo "$FRONTMATTER" | grep "^${FIELD}:" | sed "s/${ESCAPED_FIELD}: *//" | sed 's/^"\(.*\)"$/\1/' | sed "s/^'\\(.*\\)'$/\\1/")
 
 if [ -z "$VALUE" ]; then
   echo "Error: Field '$FIELD' not found in frontmatter" >&2
