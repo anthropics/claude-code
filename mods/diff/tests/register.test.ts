@@ -4,6 +4,7 @@ import type { Engine } from 'claude-code/testing'
 
 import Limits from '../hooks/limits'
 import Names from '../hooks/names'
+import OpenOutcome from '../hooks/open-outcome'
 import Record from '../hooks/record'
 import Fixtures from './fixtures'
 
@@ -701,6 +702,101 @@ describe('register', () => {
     ).toEqual(['diff'])
   })
 
+  test('an open nothing draws yet is kept until drawn', async ($, on) => {
+    const world = Fixtures.inRepository(on, Fixtures.REPOSITORY, {
+      isLeftUnseen: () => true,
+    })
+
+    const logged = Fixtures.keeping<Args<'telemetry.log'>>()
+
+    on('telemetry.log', logged.hook)
+    on('session.id', () => ({ value: 'first' }))
+
+    await $.session.start(Fixtures.SESSION)
+
+    expect(
+      await $.command.run(Fixtures.DIALOG_DIFF),
+      'said as it is, with no word of a terminal to resize',
+    ).toEqual({ text: Names.AWAITS_SURFACE_TEXT })
+
+    await world.clock.advance(Limits.HEAD_POLL_MS + Fixtures.SETTLE_MS)
+
+    expect(
+      world.unseen.map(pane => pane.id),
+      '/diff opened, then fitted the rows to what it read',
+    ).toEqual(['diff', 'diff'])
+
+    expect(world.closed, 'and kept what it asked for').toEqual([])
+
+    expect(
+      world.runs
+        .map(run => Fixtures.gitWordOf(run.argv))
+        .filter(word => word === Fixtures.POLL_WORD),
+      'HEAD was read once at the open, as ever; no poll for a pane no one sees',
+    ).toEqual([Fixtures.POLL_WORD])
+
+    expect(logged.kept, 'nor is it counted shown').toEqual([])
+
+    const read = world.runs.length
+
+    expect(
+      Fixtures.textOf(await $.ui.render(Fixtures.INLINE_PANE)),
+      'the first drawing has what the open read',
+    ).toContain('app.ts')
+
+    await world.clock.advance(Fixtures.SETTLE_MS)
+
+    expect(
+      world.runs.length,
+      'and reads again, for what changed while no one saw',
+    ).toBeGreaterThan(read)
+
+    expect(
+      logged.kept.map(shown => shown.props?.trigger),
+      'and counted it, as the person asked for it',
+    ).toEqual([{ value: 'manual', of: [...Record.SHOWN_TRIGGERS] }])
+
+    expect(
+      await $.command.run(Fixtures.DIALOG_DIFF),
+      'believed open all along, so /diff closes it',
+    ).toEqual({ text: 'Diff dialog dismissed' })
+  })
+
+  test('while it waits unseen an edit reads nothing', async ($, on) => {
+    const world = Fixtures.inRepository(on, Fixtures.REPOSITORY, {
+      stored: { [Names.STORE_OPEN_KEY]: true },
+      isLeftUnseen: () => true,
+    })
+
+    const edit = () =>
+      $.tool.call({
+        tool: 'Edit',
+        file_path: '/work/app.ts',
+        old_string: '1',
+        new_string: '2',
+      })
+
+    on('tool.call', () => ({ result: 'edited' }))
+
+    await $.session.start(Fixtures.SESSION)
+    await $.ui.render(Fixtures.HINT)
+    await edit()
+    await world.clock.advance(Fixtures.SETTLE_MS)
+
+    const read = world.runs.length
+
+    await edit()
+    await world.clock.advance(Limits.HEAD_POLL_MS + Fixtures.SETTLE_MS)
+
+    expect(
+      world.unseen.map(pane => pane.id),
+      'the first edit opened, and the second found it open',
+    ).toEqual(['diff'])
+
+    expect(world.closed, 'kept for whatever attaches').toEqual([])
+    expect(world.runs.length, 'git is left alone meanwhile').toBe(read)
+  })
+
   test('a docked pane opens once its first fetch settled', async ($, on) => {
     const opened: string[] = []
     const clock = Fixtures.startsSession(on)
@@ -1156,5 +1252,26 @@ describe('register', () => {
 
     expect(openedNarrow).toEqual([])
     expect(world.opened.map(pane => pane.id)).toEqual([Names.PANE_ID])
+  })
+
+  describe('open-outcome-of', () => {
+    test('placed: a placed pane, and an engine that resolves nothing', () => {
+      expect(OpenOutcome.openOutcomeOf({ isPlaced: true })).toBe('placed')
+      expect(OpenOutcome.openOutcomeOf(undefined)).toBe('placed')
+    })
+
+    test('left waiting it is withdrawn, with a reason or none', () => {
+      expect(OpenOutcome.openOutcomeOf(Fixtures.LEFT_WAITING.value)).toBe(
+        'withdrawn',
+      )
+
+      expect(OpenOutcome.openOutcomeOf({ isPlaced: false })).toBe('withdrawn')
+    })
+
+    test('with nothing attached to draw it yet it is awaited', () => {
+      expect(OpenOutcome.openOutcomeOf(Fixtures.LEFT_UNSEEN.value)).toBe(
+        'awaited',
+      )
+    })
   })
 })

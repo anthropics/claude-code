@@ -1,3 +1,4 @@
+export * from './awaits-surface-text.js'
 export * from './builtin-holds-pattern.js'
 export * from './git-unanswered-text.js'
 export * from './more-below-text.js'

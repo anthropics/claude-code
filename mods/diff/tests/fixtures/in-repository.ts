@@ -12,16 +12,18 @@ import { startsSession } from './starts-session.js'
  * A session in a repository git answers for from a script (REPOSITORY, in
  * /work, when none is given), keeping what the plugin does there.
  *
- * Kept: each git run, ring move, pane opened, left waiting or closed, status
- * line. The clock starts at 0 and the engine draws the hint; the rest of the
- * world is the test's (Beneath). Rewriting the script changes git's answers.
+ * Kept: each git run, ring move, pane opened, left waiting, left unseen or
+ * closed, status line. The clock starts at 0 and the engine draws the hint.
+ *
+ * The rest of the world is the test's (Beneath). Rewriting the script changes
+ * git's answers.
  *
  * @param on the test's `on`
  * @param script git's output for each invocation whose line holds the key
  * @param beneath the store, settings, environment, transcript, whether an
  *   open is seated, whether a hunks read is refused
- * @returns the runs, the ring's moves, the panes opened, left waiting and
- *   closed, the statuses, the clock
+ * @returns the runs, the ring's moves, the panes opened, left waiting, left
+ *   unseen and closed, the statuses, the clock
  */
 export function inRepository(
   on: On,
@@ -32,6 +34,7 @@ export function inRepository(
   const focused: Args<'ui.focus'>[] = []
   const statuses: (string | undefined)[] = []
   const waiting: Args<'ui.open'>[] = []
+  const unseen: Args<'ui.open'>[] = []
   const opened = keeping<Args<'ui.open'>>()
   const closed = keeping<Args<'ui.close'>>()
   const clock = startsSession(on)
@@ -59,6 +62,13 @@ export function inRepository(
 
   on('ui.open', (engine, e) => {
     const isWaiting = beneath.isLeftWaiting?.() === true
+    const isUnseen = beneath.isLeftUnseen?.() === true
+
+    if (isUnseen) {
+      unseen.push(e)
+
+      return Beneath.LEFT_UNSEEN
+    }
 
     if (!isWaiting) {
       return opened.hook(engine, e)
@@ -82,6 +92,7 @@ export function inRepository(
     focused,
     opened: opened.kept,
     waiting,
+    unseen,
     closed: closed.kept,
     statuses,
     clock,
