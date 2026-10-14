@@ -310,14 +310,34 @@ or by a careless plugin, not by a hostile one.
   the plugins admitted so far, this one first: a pinned variable is
   refused to a person's `plugin.register` hook then as at any later time.
 - What this does not reach: a variable that managed `env` does not set and
-  that is not among those names is a person's plugin's to write, and every
-  child the engine starts, a managed
-  hook's command among them, starts from the environment as written. A
-  person already decides the environment Claude Code starts in (`PATH`,
+  that is not among those names is a person's plugin's to write, and the
+  children the engine starts afterwards (Bash, an MCP server, `$.process.run`,
+  a person's own hook) start from the environment as written.
+- A hook the organization defines is the exception: one in managed settings,
+  one of a plugin managed settings install, and the managed status line and
+  file suggestion commands. A plugin counts as one managed settings install
+  only when it is read in place from a folder those settings name; a plugin
+  they merely enable by id, loaded from a copy on the person's machine (a
+  marketplace download, or the person's own folder under that id), is not
+  treated as the organization's, for its hooks or for its writes. The
+  organization's hook's command starts from the environment, and is
+  wrapped in the `CLAUDE_CODE_SHELL_PREFIX`, as they stood before any write a
+  person's plugin made with `$.env.set` in this process: a variable such a
+  plugin set or deleted reads as it did before, absent if it was absent. A
+  managed HTTP hook's header variables are read the same way, and so is the
+  time allowed to the hooks that run as a session ends. What an
+  organization's plugin, or one built into the CLI, writes still reaches the
+  hook, also where it writes a variable a person's plugin wrote first; a
+  value a later settings reload puts over the person's plugin's value stands
+  too. A write counts as the organization's only when no person's plugin
+  stands behind it. A write made while serving a person's plugin, or in a
+  call a person's plugin raised, is a person's; so is an organization's
+  write whose value a hook of a person's plugin changed before it was made.
+- A person still decides the environment Claude Code starts in (`PATH`,
   `LD_PRELOAD`, `CLAUDE_CODE_SHELL_PREFIX` are theirs to set before launch,
-  and in their own settings files), so a plugin of theirs that sets one
-  gains nothing they lack. The same holds for the proxy and certificate,
-  credential, provider and home variables (`HTTPS_PROXY`,
+  and in their own settings files), and a managed hook starts from that
+  environment like every other child. The same holds for the proxy and
+  certificate, credential, provider and home variables (`HTTPS_PROXY`,
   `NODE_EXTRA_CA_CERTS`, `ANTHROPIC_API_KEY`, `HOME` and their like): they are
   not pinned, because a person sets the same ones in their own settings and
   shell, so a pin on `env.set` would not close that road. Where that road is
