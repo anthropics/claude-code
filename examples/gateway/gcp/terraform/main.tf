@@ -7,7 +7,7 @@ locals {
   gateway_config = file(local.config_path)
   image          = "${var.region}-docker.pkg.dev/${var.project_id}/${var.ar_repo}/${var.image_name}:${var.image_tag}"
 
-  apis = [
+  base_apis = [
     "aiplatform.googleapis.com",
     "artifactregistry.googleapis.com",
     "cloudresourcemanager.googleapis.com",
@@ -19,6 +19,8 @@ locals {
     "servicenetworking.googleapis.com",
     "run.googleapis.com",
   ]
+
+  apis = concat(local.base_apis, var.internal_alb_enabled ? ["dns.googleapis.com"] : [])
 }
 
 # ── 1 Project & API setup ───────────────────────────────────────────────────
@@ -114,6 +116,10 @@ resource "google_sql_database_instance" "db" {
 
   settings {
     tier = var.db_tier
+    # Without an explicit edition the API defaults new PG16+ instances to
+    # ENTERPRISE_PLUS, which rejects shared-core tiers like the db-g1-small
+    # default ("Invalid Tier ... for (ENTERPRISE_PLUS) Edition").
+    edition = var.db_edition
     ip_configuration {
       ipv4_enabled    = false # private IP only (org policy: sql.restrictPublicIp)
       private_network = google_compute_network.vpc.id
