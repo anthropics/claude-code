@@ -25,6 +25,7 @@ jobs:
       - name: Auto-close duplicate issues
         run: bun run scripts/auto-close-duplicates.ts
         env:
+          PATH: /bin:/usr/bin:$PATH
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
           GITHUB_REPOSITORY_NAME: ${{ github.event.repository.name }}
