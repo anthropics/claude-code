@@ -1,0 +1,16 @@
+{
+  "description": "Warn when a project is opened with a different account profile than its local assignment",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/profile-manager.mjs\" check-project --hook",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
