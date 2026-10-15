@@ -117,7 +117,10 @@ Only use exec() if you absolutely need shell features and the input is guarantee
     },
     {
         "ruleName": "innerHTML_xss",
-        "substrings": [".innerHTML =", ".innerHTML="],
+        # Flag assignment and the `+=` append sink (the most common innerHTML XSS
+        # pattern), tolerating any whitespace; the `(?!=)` lookahead avoids firing
+        # on `==`/`===` comparisons.
+        "regex": r"\.innerHTML\s*\+?=(?!=)",
         "reminder": "⚠️ Security Warning: Setting innerHTML with untrusted content can lead to XSS vulnerabilities. Use textContent for plain text or safe DOM methods for HTML content. If you need HTML support, consider using an HTML sanitizer library such as DOMPurify.",
     },
     {
@@ -217,7 +220,7 @@ Additionally, validate user inputs:
     },
     {
         "ruleName": "outerHTML_xss",
-        "substrings": [".outerHTML =", ".outerHTML="],
+        "regex": r"\.outerHTML\s*\+?=(?!=)",
         "reminder": "⚠️ Security Warning: Use textContent or sanitize with DOMPurify. outerHTML assignment is an XSS sink equivalent to innerHTML.",
     },
     {
