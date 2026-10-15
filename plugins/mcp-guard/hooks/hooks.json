@@ -1,0 +1,30 @@
+{
+  "description": "MCP Guard security hooks - monitors for secret exposure in MCP config operations and warns when sensitive data could leak into session history",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/mcp_guard.py\"",
+            "timeout": 10,
+            "if": "Bash(claude mcp get:*)",
+            "rewakeSummary": "MCP Guard detected potential secret exposure"
+          }
+        ],
+        "matcher": "Bash"
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/mcp_guard.py\"",
+            "timeout": 10,
+            "if": "Edit(.claude/mcp.json:*)"
+          }
+        ],
+        "matcher": "Edit|Write"
+      }
+    ]
+  }
+}
