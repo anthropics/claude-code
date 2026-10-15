@@ -253,7 +253,7 @@ Use environment variables instead of hardcoded values.
 - `content`: File content (Write only)
 
 **For prompt events:**
-- `user_prompt`: The user's submitted prompt text
+- `prompt`: The user's submitted prompt text (`user_prompt` is also accepted for compatibility with older rules)
 
 **For stop events:**
 - Use general matching on session state
