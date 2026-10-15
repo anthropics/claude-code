@@ -86,8 +86,48 @@ _last_call_claude_http_error = None
 
 _anthropic_reachable: Optional[bool] = None  # None = not yet probed
 
+def _check_anthropic_connectivity() -> bool:
+    global _anthropic_reachable
+    if _anthropic_reachable is not None:
+        return _anthropic_reachable
+    try:
+        import ssl
+        ctx = ssl.create_default_context()
+        # Ensure macOS system certificates are loaded for Bun runtime
+        if sys.platform == 'darwin':
+            ctx.load_default_certs()
+        req = urllib.request.Request('https://api.anthropic.com')
+        resp = urllib.request.urlopen(req, timeout=5, context=ctx)
+        _anthropic_reachable = True
+    except (urllib.error.URLError, OSError):
+        # Check for NO_PROXY blackhole issue
+        no_proxy = os.environ.get('NO_PROXY', '').strip()
+        if 'anthropic.com' in no_proxy.split(',') or 'api.anthropic.com' in no_proxy.split(','):
+            debug_log('NO_PROXY blackhole detected, retrying without it')
+            # Remove anthropic.com from NO_PROXY and retry
+            entries = [e.strip() for e in no_proxy.split(',')]
+            filtered = [e for e in entries if 'anthropic.com' not in e]
+            os.environ['NO_PROXY'] = ','.join(filtered)
+            try:
+                resp = urllib.request.urlopen(req, timeout=5, context=ctx)
+                _anthropic_reachable = True
+                return True
+            except:
+                pass
+        _anthropic_reachable = False
+    return _anthropic_reachable
 
-def _anthropic_base_url() -> str:
+# Ensure CA bundle path is set for Bun runtime on macOS
+if sys.platform == 'darwin' and not os.environ.get('NODE_EXTRA_CA_CERTS'):
+    import ssl
+    _default_ca_paths = [
+        '/etc/ssl/cert.pem',
+        '/etc/ssl/certs/ca-certificates.crt',
+    ]
+    for path in _default_ca_paths:
+        if os.path.exists(path):
+            os.environ['NODE_EXTRA_CA_CERTS'] = path
+            breakase_url() -> str:
     """Resolve the Anthropic-protocol endpoint base URL.
 
     Honors ANTHROPIC_BASE_URL (the convention the Anthropic SDK and CC itself
