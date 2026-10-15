@@ -46,6 +46,28 @@ async function githubRequest<T>(endpoint: string, token: string, method: string 
   return response.json();
 }
 
+// List endpoints return at most 100 items per page (30 by default), so
+// follow pagination until a short page signals the end of the collection.
+async function githubRequestAllPages<T>(
+  endpoint: string,
+  token: string
+): Promise<T[]> {
+  const results: T[] = [];
+  const perPage = 100;
+  const separator = endpoint.includes("?") ? "&" : "?";
+
+  for (let page = 1; page <= 20; page++) {
+    const pageItems: T[] = await githubRequest(
+      `${endpoint}${separator}per_page=${perPage}&page=${page}`,
+      token
+    );
+    results.push(...pageItems);
+    if (pageItems.length < perPage) break;
+  }
+
+  return results;
+}
+
 function extractDuplicateIssueNumber(commentBody: string): number | null {
   // Try to match #123 format first
   let match = commentBody.match(/#(\d+)/);
@@ -153,7 +175,7 @@ async function autoCloseDuplicates(): Promise<void> {
     );
 
     console.log(`[DEBUG] Fetching comments for issue #${issue.number}...`);
-    const comments: GitHubComment[] = await githubRequest(
+    const comments: GitHubComment[] = await githubRequestAllPages(
       `/repos/${owner}/${repo}/issues/${issue.number}/comments`,
       token
     );
@@ -217,7 +239,7 @@ async function autoCloseDuplicates(): Promise<void> {
     console.log(
       `[DEBUG] Issue #${issue.number} - checking reactions on duplicate comment...`
     );
-    const reactions: GitHubReaction[] = await githubRequest(
+    const reactions: GitHubReaction[] = await githubRequestAllPages(
       `/repos/${owner}/${repo}/issues/comments/${lastDupeComment.id}/reactions`,
       token
     );
