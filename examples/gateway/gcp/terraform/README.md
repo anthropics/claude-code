@@ -48,7 +48,7 @@ curl -fL --proto '=https' --proto-redir '=https' -o ../claude \
 WANT="$(curl -fsSL --proto '=https' "${BASE}/${VERSION}/manifest.json" \
   | tr -d '[:space:]' | grep -oE '"linux-x64"[^}]*' | grep -oE '[a-f0-9]{64}' | head -1)"
 [ "$(openssl dgst -sha256 ../claude | awk '{print $NF}')" = "${WANT}" ] \
-  && echo "sha256 OK" || { echo "checksum mismatch" >&2; rm -f ../claude; }
+  && echo "sha256 OK" || { echo "checksum mismatch" >&2; rm -f ../claude; exit 1; }
 gcloud auth configure-docker us-east5-docker.pkg.dev --quiet
 docker build --platform=linux/amd64 --provenance=false \
   -f ../Dockerfile -t "us-east5-docker.pkg.dev/<project>/claude-gateway/gateway:${VERSION}" ..
