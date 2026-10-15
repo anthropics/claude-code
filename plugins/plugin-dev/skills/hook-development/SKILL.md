@@ -1,6 +1,6 @@
 ---
 name: Hook Development
-description: This skill should be used when the user asks to "create a hook", "add a PreToolUse/PostToolUse/Stop hook", "validate tool use", "implement prompt-based hooks", "use ${CLAUDE_PLUGIN_ROOT}", "set up event-driven automation", "block dangerous commands", or mentions hook events (PreToolUse, PostToolUse, Stop, SubagentStop, SessionStart, SessionEnd, UserPromptSubmit, PreCompact, Notification). Provides comprehensive guidance for creating and implementing Claude Code plugin hooks with focus on advanced prompt-based hooks API.
+description: This skill should be used when the user asks to "create a hook", "add a PreToolUse/PostToolUse/Stop/MessageDisplay hook", "validate tool use", "implement prompt-based hooks", "use ${CLAUDE_PLUGIN_ROOT}", "set up event-driven automation", "block dangerous commands", or mentions hook events (PreToolUse, PostToolUse, Stop, SubagentStop, SessionStart, SessionEnd, UserPromptSubmit, PreCompact, Notification, MessageDisplay). Provides comprehensive guidance for creating and implementing Claude Code plugin hooks with focus on advanced prompt-based hooks API.
 version: 0.1.0
 ---
 
@@ -15,6 +15,7 @@ Hooks are event-driven automation scripts that execute in response to Claude Cod
 - React to tool results (PostToolUse)
 - Enforce completion standards (Stop, SubagentStop)
 - Load project context (SessionStart)
+- Transform streamed assistant text for display (MessageDisplay)
 - Automate workflows across the development lifecycle
 
 ## Hook Types
@@ -274,6 +275,44 @@ Execute before context compaction. Use to add critical information to preserve.
 ### Notification
 
 Execute when Claude sends notifications. Use to react to user notifications.
+
+### MessageDisplay
+
+Run while Claude streams assistant text to the screen. Use it for display-only
+transformations such as redacting sensitive values or adapting text for a
+terminal UI. It has no matcher and fires for every assistant message that
+streams text.
+
+Claude Code waits for this hook before rendering each batch, so keep the
+handler fast. If it fails or times out, Claude Code renders the original text.
+
+**Streaming input:**
+
+- `message_id` identifies one assistant message across its batches.
+- `index` is the zero-based position of the batch in that message.
+- `final` is true exactly once, on the final batch. Use it for cleanup even
+  when `delta` is empty.
+- `delta` contains newly streamed text, usually as completed lines. The final
+  batch can end mid-line, so do not assume a particular grouping when carrying
+  state between calls.
+
+Return `displayContent` to replace only the current batch on screen:
+
+```json
+{
+  "hookSpecificOutput": {
+    "hookEventName": "MessageDisplay",
+    "displayContent": "Replacement text"
+  }
+}
+```
+
+MessageDisplay is display-only: it cannot block the message or change the
+transcript or what Claude sees. Store any streaming state per `message_id` and
+remove it when `final` is true.
+
+See the [MessageDisplay hook reference](https://code.claude.com/docs/en/hooks#messagedisplay)
+for the complete input and output schema.
 
 ## Hook Output Format
 
@@ -642,6 +681,7 @@ echo "$output" | jq .
 | SessionEnd | Session ends | Cleanup, logging |
 | PreCompact | Before compact | Preserve context |
 | Notification | User notified | Logging, reactions |
+| MessageDisplay | Assistant text streams | Display-only transformations |
 
 ### Best Practices
 
@@ -653,6 +693,7 @@ echo "$output" | jq .
 - ✅ Set appropriate timeouts
 - ✅ Return structured JSON output
 - ✅ Test hooks thoroughly
+- ✅ Keep MessageDisplay handlers fast and state scoped to `message_id`
 
 **DON'T:**
 - ❌ Use hardcoded paths
