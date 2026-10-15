@@ -298,9 +298,14 @@ def _call_claude_via_sdk(prompt, output_schema, *, max_tokens=16000, model=None)
             "SECURITY_WARNINGS_STATE_DIR",
             os.path.expanduser("~/.claude/security"),
         )
+        # POSIX venvs use lib/python*/site-packages; Windows venvs use
+        # Lib/site-packages with no python* subdir. Glob both layouts.
         for _sp in glob.glob(
             os.path.join(_state_dir, "agent-sdk-venv", "lib",
                          "python*", "site-packages")
+        ) + glob.glob(
+            os.path.join(_state_dir, "agent-sdk-venv", "Lib",
+                         "site-packages")
         ):
             if os.path.isdir(_sp) and _sp not in sys.path:
                 sys.path.insert(0, _sp)
@@ -1094,9 +1099,14 @@ def agentic_review(
             "SECURITY_WARNINGS_STATE_DIR",
             os.path.expanduser("~/.claude/security"),
         )
+        # POSIX venvs use lib/python*/site-packages; Windows venvs use
+        # Lib/site-packages with no python* subdir. Glob both layouts.
         for _sp in glob.glob(
             os.path.join(_state_dir, "agent-sdk-venv", "lib",
                          "python*", "site-packages")
+        ) + glob.glob(
+            os.path.join(_state_dir, "agent-sdk-venv", "Lib",
+                         "site-packages")
         ):
             if os.path.isdir(_sp) and _sp not in sys.path:
                 sys.path.insert(0, _sp)
