@@ -1,0 +1,16 @@
+{
+  "description": "Rate-limits filesystem tool calls to prevent Windows BSOD (Wof.sys crash). Serializes all agent tool calls through a coroutine Mutex daemon with configurable delay.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/mutex-acquire.sh"
+          }
+        ],
+        "matcher": "Bash|Read|Glob|Grep|Edit|Write"
+      }
+    ]
+  }
+}
