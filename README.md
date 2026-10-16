@@ -29,6 +29,7 @@ For more installation options, uninstall steps, and troubleshooting, see the [se
     ```
 
     **Windows (Recommended):**
+    > Run in **PowerShell**
     ```powershell
     irm https://claude.ai/install.ps1 | iex
     ```
@@ -43,7 +44,7 @@ For more installation options, uninstall steps, and troubleshooting, see the [se
     npm install -g @anthropic-ai/claude-code
     ```
 
-2. Navigate to your project directory and run `claude`.
+3. Navigate to your project directory and run `claude`.
 
 ## Plugins
 
