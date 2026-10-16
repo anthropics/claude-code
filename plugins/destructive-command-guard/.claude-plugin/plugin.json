@@ -1,0 +1,5 @@
+{
+  "name": "destructive-command-guard",
+  "version": "1.0.0",
+  "description": "PreToolUse hook that blocks self-destructive Bash commands and warns about edits to CLAUDE.md and policy files"
+}
