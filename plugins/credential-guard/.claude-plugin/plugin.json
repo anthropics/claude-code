@@ -1,0 +1,9 @@
+{
+  "name": "credential-guard",
+  "version": "1.0.0",
+  "description": "Detects hardcoded credentials (API keys, tokens, secrets) in file writes and blocks them before they reach disk or version control",
+  "author": {
+    "name": "Pradyoth Prashanth",
+    "email": "pradyoth0@gmail.com"
+  }
+}
