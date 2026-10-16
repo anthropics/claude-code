@@ -1,5 +1,71 @@
 # Changelog
 
+## 2.1.302
+
+- Added `CLAUDE_CODE_AUTO_MODE_MODEL` to choose the model the client-side auto mode classifier uses; it does not change the model for server-side auto mode
+- Added an `Idle compaction` row to `/config` for turning idle compaction off or back on; the notices shown after an idle compaction now say how to turn it off
+- Added a notice to `/design-sync` and `/design-login` that standalone Claude Design (claude.ai/design) closes by December 14, 2026
+- Fixed a "Prompt is too long" error when stopping a turn while the conversation was being compacted
+- Fixed requests failing with "diagnostics: Extra inputs are not permitted" after switching to Vertex or Bedrock mid-session
+- Fixed the Read tool loading an image file of any size, or a pipe or device named like an image, entirely into memory; image sources over 128 MB are now refused
+- Fixed `/autocompact` and `/effort` saving to the wrong model when a gateway names Opus 4 or 4.1 with a prefix, such as `anthropic/claude-opus-4-1`
+- Fixed a prompt cache miss when a tool added mid-session was loaded again through ToolSearch or after compaction
+- Fixed `claude plugin` and other subcommands sometimes exiting before a queued settings or config write finished, which could lose the change or leave a `.tmp` file behind
+- Fixed plugin marketplaces re-cloning on every refresh, and newly installed git plugins showing version "unknown", when git defaults to the reftable ref format
+- Fixed the PowerShell tool not finding commands in a plugin's `bin/` folder, and reporting an error when a search that finds nothing (rg, grep, findstr, git grep) is piped into `Select-Object` or another formatting cmdlet
+- Fixed Claude in the desktop app pointing you to claude.ai settings or `/mcp` to authorize or reconnect an MCP server where that option isn't available
+- Fixed artifact publishes sometimes failing when Claude sent an empty list of edits, and Claude retrying an artifact update the wrong way after a newer version of the artifact turned it away
+- Fixed `classifier_category` missing from OpenTelemetry `tool_decision` events for most auto mode classifier blocks, and new `tool_decision` attributes pushing out `tool_use_id`, `tool_source` and `tool_parameters` when `OTEL_LOGRECORD_ATTRIBUTE_COUNT_LIMIT` is low
+- Fixed rows in the agents view staying blank after moving down a long list or folding a section
+- Fixed `claude remote-control --help` not printing its usage and exiting when not signed in
+- Fixed `/design consent` and `/design revoke` suggesting `/design-login` when they fail in a cloud session, where it isn't available; the message now points to claude.ai/design/settings
+- Fixed MCP servers showing no tools, or every tool call failing, when the server negotiates protocol version 2026-07-28 but omits `resultType`, `ttlMs` or `cacheScope`
+- Fixed prompt suggestions spending usage credits on models your plan pays for only with credits: they are now skipped after a reply billed to credits
+- Fixed URLs written in backticks being clickable only on their first row when they wrap; the whole URL is now one link in terminals that support hyperlinks
+- Fixed `claude plugin details <name>@builtin` suggesting `claude plugin list`, which never shows built-in plugins, when the plugin isn't found; it now points to `/plugin`
+- Fixed an emoji that a link starts inside wrapping one column too wide, which hid it in question previews and turned tables into lists
+- Fixed worktree isolation refusing to create or resume worktrees under git 2.56 or later when a stray `.git` file points at a directory that doesn't exist
+- Fixed a cloud session's cost and usage restarting from zero after the session resumed in a new process
+- Self-hosted runner: Fixed git fetches failing with "bad object refs/heads" in sessions that reuse a checkout stored in git's reftable format
+- Windows: Fixed every file write being refused or asked about for projects on exFAT or FAT32 drives, including in sessions started with `--plugin-dir`
+- Improved startup time with many plugins enabled: plugin command and agent files now take far fewer file system calls to load, most of all on Windows
+- Improved auto mode with the server-side classifier: a conversation too long for the safety check is now compacted, instead of every checked tool call being denied
+- Improved the message when a background session reopened from another folder has no LLM gateway: it now says why, instead of "Not logged in"
+- Changed `claude -p` and Agent SDK sessions with no permission mode to start in `default` mode on third-party providers, with telemetry off or on a fresh install; `--permission-mode auto` keeps auto
+- Changed fork subagents (`subagent_type: "fork"`) to be on by default in `claude -p`, the Agent SDK, the desktop app and VS Code, as they already are in the terminal; `CLAUDE_CODE_FORK_SUBAGENT=0` turns them off, and `claude mcp serve` never offers them
+- Changed the desktop app and VS Code to always run the main conversation's subagents in the background, as the terminal does, rather than let Claude choose; a subagent's own Agent calls in `claude -p`, the Agent SDK, the desktop app and VS Code now run in the foreground by default
+- Changed the `← for agents` footer hint to hide 10 seconds after a session opens; the count of agents waiting on you still shows
+- Changed where the Claude in Chrome instructions sit in the system prompt so that new conversations can read them from the shared prompt cache
+- Changed prompt and agent hooks so that at most 12 of one event run at a time; the rest wait their turn
+- Changed the message shown when your organization's policy turns off `/feedback`: it now points to GitHub issues instead of an organization admin
+- [VSCode] Fixed text after an unclosed code block in a list showing as plain text while a reply streams, then turning into code
+- [VSCode] Fixed MCP server sign-in from the panel opening a broken authorization page when the server URL contains a query string
+- [VSCode] Fixed the `@browser` banner saying "Browser connected" when no browser with the Claude extension can be reached
+- [Cloud sessions] Added a banner on a routine's page that says why its last run didn't start, such as your organization reaching its limit on concurrent cloud sessions
+- [Cloud sessions] Fixed "Rewind to here" failing on every message except the newest in cloud sessions; self-hosted runners need Claude Code v2.1.246 or later
+- [Cloud sessions] Fixed the pull request status bar in cloud sessions flipping a pull request with merge conflicts back to ready while GitHub rechecked it
+- [Cloud sessions] Fixed routine runs showing as Completed after their cloud session stopped unexpectedly, and as Cancelled when archived before they started, instead of failed
+- [Cloud sessions] Fixed the diff view in cloud sessions missing changes or failing to load after the session's GitHub repository was renamed or moved
+- [Cloud sessions] Fixed a scheduled routine run that failed partway being run again from the start an hour or more later, which could repeat work such as posting the same report twice
+- [Cloud sessions] Fixed an open cloud session sometimes not showing messages sent from another device until you reloaded the page or clicked away and back
+- [Cloud sessions] Improved the error shown when a cloud session fails to start: it now says "Connection lost" or "Server error" instead of "Something went wrong"
+- [Remote Control] Fixed a subagent's pane spinning forever in a Remote Control session after your computer goes offline; it now says Remote Control is disconnected
+- [Claude Tag] Fixed "is thinking…" staying up under a mention in a Slack channel or DM after Claude answered it by editing one of its earlier messages
+- [Claude Tag] Fixed URLs in code blocks under a numbered or bulleted step of Claude's Slack replies being wrapped in angle brackets, which broke copied commands
+- [Claude Tag] Fixed HEIC, SVG, TIFF and BMP images attached in Slack never reaching Claude; they now arrive as files in its working files, like other file types
+- [Claude Tag] Fixed new channel managers losing access to Claude in Slack in organizations that restrict Claude Tag by role; the manager role now also grants Claude Tag in Slack
+- [Claude Tag] Fixed custom connectors whose MCP servers share one host showing as a single connector in Claude Tag admin settings; each server is now its own connector
+- [Claude Tag] Fixed Claude in Slack sometimes answering a direct message with "DMs are temporarily unavailable" and dropping it when a single Slack lookup stalled; it now retries first
+- [Claude Tag] Fixed direct messages with Claude on a Slack Enterprise Grid ignoring Slack's workspace dropdown; they now run under the connected workspace you last opened Claude in
+- [Claude Tag] Fixed Claude in Slack's notice for a channel's monthly spend limit saying a channel manager can raise it; it now names an organization owner and links the usage page
+- [Claude Tag] Fixed links in Claude's Slack replies absorbing the closing bold or italic marks, or full-width punctuation, right after them, which broke the link and the formatting
+- [Claude Tag] Improved repository search in Claude Tag admin settings to cover up to 100 connected GitHub accounts and find private repositories past the first 5,000 of a GitHub App install
+- [Claude Tag] Improved Add place in Claude Tag admin settings to list a channel you type or paste right away, instead of only after your organization's full channel list has loaded
+- [Claude Tag] Improved Add > Domain on a workspace's or channel's page in Claude Tag admin settings to be available once that page loads, not only after every channel has loaded
+- [Claude Tag] Changed Claude Tag admin settings to organize Claude's access into four tabs: Bundles, Connectors, Skills and plugins, and Channels
+- [Claude Tag] Changed the Roles page in organization settings to group the roles created for Claude Tag channel managers in a collapsed section below your organization's own roles
+- [Code Review] Fixed Code Review setup not resuming after you leave to connect GitHub; back in admin settings, it now reopens at the repository picker
+
 ## 2.1.301
 
 - Added `CLAUDE_CODE_RETRY_WATCHDOG_MAX_USAGE_LIMIT_WAIT_MS` so unattended retry mode (`CLAUDE_CODE_RETRY_WATCHDOG`) ends a request at a usage limit that resets too far away instead of waiting
