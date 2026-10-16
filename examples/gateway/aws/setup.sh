@@ -63,7 +63,8 @@ DOCKERFILE="${DOCKERFILE:-./Dockerfile}"
 CLAUDE_BINARY="${CLAUDE_BINARY:-./claude}"                 # prebuilt linux-x64 Claude Code release binary (includes the gateway subcommand)
 DIST_URL="${DIST_URL:-}"                                   # optional: download URL, used only if $CLAUDE_BINARY is missing
 DIST_SHA256="${DIST_SHA256:-}"                             # REQUIRED with DIST_URL: expected sha256 of the binary (verified fail-closed)
-DIST_SHA256="${DIST_SHA256,,}"                                # normalize to lowercase — openssl emits lowercase hex; some tools (PowerShell Get-FileHash) publish uppercase
+# normalize to lowercase — openssl emits lowercase hex; some tools (PowerShell Get-FileHash) publish uppercase
+DIST_SHA256="$(printf '%s' "${DIST_SHA256}" | LC_ALL=C tr '[:upper:]' '[:lower:]')"
 # Obtain DIST_SHA256 out-of-band — never from the server that serves DIST_URL.
 # For binaries from the standard Claude Code release channel, verify the
 # release's GPG-signed manifest.json and copy the platform checksum from it:
