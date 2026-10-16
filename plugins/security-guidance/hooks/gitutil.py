@@ -20,6 +20,7 @@ import re
 import subprocess
 
 from _base import debug_log
+import secretpaths
 
 
 GIT_CMD = [
@@ -548,6 +549,10 @@ def _prioritize_diff_files(diff_files, cap):
 
 
 def _is_reviewable_source(file_path):
+    # The session's Read deny rules and well-known secret files come first:
+    # a denied `config/prod.json` has a reviewable extension.
+    if secretpaths.is_excluded(file_path):
+        return False
     # Normalize for component matching: a path like `.next/x.js` or
     # `pkg/node_modules/y.ts` should both be excluded; matching against
     # `'/' + path` lets each pattern be checked as `'/' + p in '/' + path`

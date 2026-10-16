@@ -84,6 +84,7 @@ from _base import (  # noqa: E402,F401
     _PRICE_PER_MTOK, _PRICE_DEFAULT, _record_usage, _usage_metrics,
 )
 import extensibility  # noqa: E402
+import secretpaths  # noqa: E402
 from patterns import (  # noqa: E402,F401
     _JS_EXTS, _PY_EXTS, _DOC_EXTS,
     _UNSAFE_DESERIALIZATION_REMINDER, _UNSAFE_YAML_LOAD_REMINDER,
@@ -829,6 +830,20 @@ def is_commit_review_enabled():
 
 COMMIT_REVIEW_ENABLED = is_commit_review_enabled()
 
+
+def _finding_snapshot(v):
+    """What previous_findings keeps of a finding. Stop and commit review
+    dedupe on (filePath, category); vulnerableCode only feeds the reviewer's
+    do-not-re-flag list, so it is stored masked — the state file must not
+    become a copy of a credential that lived in the working tree."""
+    category = v.get("category", "Unknown")
+    return {
+        "filePath": v.get("filePath", ""),
+        "category": category,
+        "vulnerableCode": review_api.redact_secret_values(v.get("vulnerableCode", ""), category=category),
+    }
+
+
 def _agentic_review_with_race(
     repo_root: str,
     diff_files: List[Tuple[str, str]],
@@ -1334,14 +1349,7 @@ def handle_commit_review_posttooluse(input_data):
     # Record new findings into shared state. Key on (filePath, category) —
     # vulnerableCode bytes drift between fires (diff context lines shift) so
     # matching on it under-dedupes; this aligns with Stop's _record_fire.
-    finding_snapshots = [
-        {
-            "filePath": v.get("filePath", ""),
-            "category": v.get("category", "Unknown"),
-            "vulnerableCode": v.get("vulnerableCode", ""),
-        }
-        for v in new_vulns
-    ]
+    finding_snapshots = [_finding_snapshot(v) for v in new_vulns]
 
     def _record_findings(state):
         existing = [f for f in state.get("previous_findings", []) if isinstance(f, dict)]
@@ -1662,12 +1670,7 @@ def handle_push_sweep_posttooluse(input_data):
     # push-sweep itself won't re-find them; leaving them out of
     # previous_findings keeps the door open for the per-commit hook to
     # surface them later if the code is touched again.
-    snapshots = [
-        {"filePath": v.get("filePath", ""),
-         "category": v.get("category", "Unknown"),
-         "vulnerableCode": v.get("vulnerableCode", "")}
-        for v in reported
-    ]
+    snapshots = [_finding_snapshot(v) for v in reported]
     def _record(state):
         existing = [f for f in state.get("previous_findings", [])
                     if isinstance(f, dict)]
@@ -1881,14 +1884,7 @@ def handle_stop_hook(input_data):
         concrete_guidance = _format_vulns_guidance(vulns)
 
     if concrete_guidance:
-        finding_snapshots = [
-            {
-                "filePath": v.get("filePath", ""),
-                "category": v.get("category", "Unknown"),
-                "vulnerableCode": v.get("vulnerableCode", ""),
-            }
-            for v in vulns
-        ]
+        finding_snapshots = [_finding_snapshot(v) for v in vulns]
         # Update baseline so next stop hook iteration only sees new changes
         new_sha = capture_git_baseline(cwd)
         new_untracked_baseline = _list_untracked(cwd) if new_sha else None
@@ -2051,6 +2047,7 @@ def main():
     # per invocation. Failures are non-fatal (debug-logged) so a malformed
     # config never prevents the built-in checks from running.
     extensibility.load_for_session(input_data.get("cwd"))
+    secretpaths.load_for_session(input_data.get("cwd"))
 
     # Remote-pod SDK-bootstrap rescue: PostToolUse is the earliest hook event
     # that is guaranteed to fire *after* async plugin sync (its firing proves
