@@ -1,0 +1,16 @@
+{
+  "description": "Scans for agent worktrees with uncommitted or unpushed work at session start",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/worktree_guardian.sh"
+          }
+        ],
+        "matcher": ""
+      }
+    ]
+  }
+}
