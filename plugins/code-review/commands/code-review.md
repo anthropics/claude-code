@@ -1,13 +1,15 @@
 ---
-allowed-tools: Bash(gh issue view:*), Bash(gh search:*), Bash(gh issue list:*), Bash(gh pr comment:*), Bash(gh pr diff:*), Bash(gh pr view:*), Bash(gh pr list:*), mcp__github_inline_comment__create_inline_comment
+allowed-tools: Bash(gh:*), Bash(git diff:*), Bash(git log:*), Bash(git blame:*), Bash(git show:*), Bash(git rev-parse:*), Read, Grep, Glob, mcp__github_inline_comment__create_inline_comment
 description: Code review a pull request
 ---
 
 Provide a code review for the given pull request.
 
-**Agent assumptions (applies to all agents and subagents):**
-- All tools are functional and will work without error. Do not test tools or make exploratory calls. Make sure this is clear to every subagent that is launched.
+**Agent assumptions (applies to all agents and subagents). Relay these rules to EVERY subagent you launch:**
+- All tools are functional and will work without error. Do not test tools or make exploratory calls.
 - Only call a tool if it is required to complete the task. Every tool call should have a clear purpose.
+- **NEVER prefix bash commands with `cd`.** The working directory is already correct. Run commands directly (e.g., `gh pr diff 123`, NOT `cd /path && gh pr diff 123`). This applies to all commands including `gh`, `git`, and any other CLI tools. Chaining `cd` with commands triggers unnecessary permission prompts and degrades the review experience.
+- Use `Read` or `Grep` to inspect files instead of `cat` or `grep` bash commands.
 
 To do this, follow these steps precisely:
 
