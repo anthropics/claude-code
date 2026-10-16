@@ -89,9 +89,32 @@ Environment Variables:
   const owner = "anthropics";
   const repo = "claude-code";
   const dryRun = process.env.DRY_RUN !== "false";
+
+  // Parse and validate issue number range
   const maxIssueNumber = parseInt(process.env.MAX_ISSUE_NUMBER || "4050", 10);
   const minIssueNumber = parseInt(process.env.MIN_ISSUE_NUMBER || "1", 10);
-  
+
+  if (isNaN(maxIssueNumber)) {
+    throw new Error(
+      `MAX_ISSUE_NUMBER must be a valid number. Got: "${process.env.MAX_ISSUE_NUMBER}"`
+    );
+  }
+  if (isNaN(minIssueNumber)) {
+    throw new Error(
+      `MIN_ISSUE_NUMBER must be a valid number. Got: "${process.env.MIN_ISSUE_NUMBER}"`
+    );
+  }
+  if (minIssueNumber < 1) {
+    throw new Error(
+      `MIN_ISSUE_NUMBER must be at least 1. Got: ${minIssueNumber}`
+    );
+  }
+  if (maxIssueNumber <= minIssueNumber) {
+    throw new Error(
+      `MAX_ISSUE_NUMBER must be greater than MIN_ISSUE_NUMBER. Got: MIN=${minIssueNumber}, MAX=${maxIssueNumber}`
+    );
+  }
+
   console.log(`[DEBUG] Repository: ${owner}/${repo}`);
   console.log(`[DEBUG] Dry run mode: ${dryRun}`);
   console.log(`[DEBUG] Looking at issues between #${minIssueNumber} and #${maxIssueNumber}`);
