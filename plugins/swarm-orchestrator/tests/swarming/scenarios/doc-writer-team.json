@@ -1,0 +1,33 @@
+{
+  "name": "doc-writer-team",
+  "description": "Scan a sample codebase, generate API docs per module in parallel; tests parallel-safe dispatch.",
+  "primitives_tested": ["parallel-dispatch"],
+  "max_duration_minutes": 1,
+  "deterministic": true,
+  "setup": {
+    "fixtures": "../fixtures/doc-writer-team",
+    "seed": 42,
+    "git_init": true
+  },
+  "teammates": [
+    {"name": "doc-writer-1", "head": "Builder", "task_ids": ["alpha"]},
+    {"name": "doc-writer-2", "head": "Builder", "task_ids": ["beta"]},
+    {"name": "doc-writer-3", "head": "Builder", "task_ids": ["gamma"]},
+    {"name": "doc-writer-4", "head": "Builder", "task_ids": ["delta"]},
+    {"name": "doc-writer-5", "head": "Builder", "task_ids": ["epsilon"]}
+  ],
+  "expected": {
+    "tasks_completed": 5,
+    "files_present": [
+      "docs/alpha.md",
+      "docs/beta.md",
+      "docs/gamma.md",
+      "docs/delta.md",
+      "docs/epsilon.md"
+    ],
+    "file_contains": [
+      {"path": "docs/alpha.md", "substring": "alpha"},
+      {"path": "docs/epsilon.md", "substring": "epsilon"}
+    ]
+  }
+}

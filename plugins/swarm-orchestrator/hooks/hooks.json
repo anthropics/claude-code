@@ -1,0 +1,28 @@
+{
+  "description": "swarm-orchestrator plugin — DAG cascade + reviewer-checkpoint + worktree-GC hooks",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "TaskUpdate",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/on_task_complete.py",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/reviewer_checkpoint.py",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}
