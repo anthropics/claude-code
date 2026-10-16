@@ -457,7 +457,7 @@ See language-specific guides for:
 ### hooks/scripts/validate-commit.sh
 
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 # Validate code quality before task completion
 
 set -e

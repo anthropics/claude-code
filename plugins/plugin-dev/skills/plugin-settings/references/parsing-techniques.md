@@ -26,7 +26,7 @@ It's useful for prompts, documentation, or additional context.
 ### Extract Frontmatter Block
 
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 FILE=".claude/my-plugin.local.md"
 
 # Extract everything between --- markers (excluding the markers themselves)
@@ -103,7 +103,7 @@ done
 ### Extract Body Content
 
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 FILE=".claude/my-plugin.local.md"
 
 # Extract everything after the closing ---
@@ -194,7 +194,7 @@ done <<< "$FRONTMATTER"
 Always use temp file + atomic move to prevent corruption:
 
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 FILE=".claude/my-plugin.local.md"
 NEW_VALUE="updated_value"
 
@@ -397,7 +397,7 @@ FIELD3=$(echo "$FRONTMATTER" | grep '^field3:' | sed 's/field3: *//')
 Only parse settings when needed:
 
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 input=$(cat)
 
 # Quick checks first (no file I/O)
@@ -418,7 +418,7 @@ fi
 ### Print Parsed Values
 
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 set -x  # Enable debug tracing
 
 FILE=".claude/my-plugin.local.md"
@@ -486,7 +486,7 @@ done
 ## Complete Example
 
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
 
 # Configuration
