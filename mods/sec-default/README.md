@@ -388,7 +388,11 @@ with one exception: a Cowork cloud session that asks its organization for
 its managed settings seats it by default, and there a `prependPlugins` list
 that leaves it out does not unseat it. The only such list a session there
 can hold is a file's in its container, which the session can write as well
-as its environment can, so it may add a hold and never lift one. It
+as its environment can, so it may add a hold and never lift one. That
+default ends once the organization's 200 has set nothing, the server
+has named a Pro or Max plan for the launch's login and the host's plan
+variable agrees: it is then known that nothing seats it, as in the
+terminal, and a policy served later brings it back. It
 is a plugin folder like any
 other, but its one move that matters, `next.to`, is refused outside a
 managed tier, so loading it with `--plugin-dir` seats a plugin that can
