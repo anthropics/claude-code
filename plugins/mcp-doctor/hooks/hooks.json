@@ -1,0 +1,16 @@
+{
+  "description": "MCP config validator - validates .mcp.json files on session start and provides a /validate-mcp command",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/validate_mcp_config.py --hook",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
