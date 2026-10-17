@@ -10,7 +10,7 @@ import sys
 import json
 
 # CRITICAL: Add plugin root to Python path for imports
-PLUGIN_ROOT = os.environ.get('CLAUDE_PLUGIN_ROOT')
+PLUGIN_ROOT = os.environ.get('CLAUDE_PLUGIN_ROOT') or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if PLUGIN_ROOT:
     parent_dir = os.path.dirname(PLUGIN_ROOT)
     if parent_dir not in sys.path:
