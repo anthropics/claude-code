@@ -10,7 +10,7 @@ body:
         Thanks for taking the time to report this bug! Please fill out the sections below to help us understand and fix the issue.
         
         Before submitting, please check:
-        - You're using the [latest version](https://www.npmjs.com/package/@anthropic-ai/claude-code?activeTab=versions) of Claude Code (`claude --version`) 
+        - You're using the [latest version](https://github.com/anthropics/claude-code/releases) of Claude Code (`claude --version`)
         - This issue hasn't already been reported by searching [existing issues](https://github.com/anthropics/claude-code/issues?q=is%3Aissue%20state%3Aopen%20label%3Abug).
         - This is a bug, not a feature request or support question
         
