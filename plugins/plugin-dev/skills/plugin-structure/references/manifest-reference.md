@@ -62,6 +62,12 @@ Semantic versioning guidelines:
 - `"1.2.3"` - Patch update to 1.2
 - `"2.0.0"` - Major version with breaking changes
 
+**Operational guidance**:
+- Treat `version` as the update key for distributed plugins
+- If you change plugin files and keep the same version, users may continue seeing cached plugin content
+- Bump the version for every published change that should propagate to installed users
+- If a marketplace registry or manifest also stores the plugin version, update that entry in the same commit so published metadata stays in sync
+
 #### description
 
 **Type**: String
@@ -537,11 +543,17 @@ Full configuration with all features:
 
 ### Maintenance
 
-1. **Bump version on changes**: Follow semantic versioning
+1. **Bump version on changes**: Follow semantic versioning and treat version as part of update propagation
 2. **Update keywords**: Reflect new functionality
 3. **Keep description current**: Match actual capabilities
 4. **Maintain changelog**: Track version history
 5. **Update repository links**: Keep URLs current
+
+**Publishing checklist**:
+1. Update `.claude-plugin/plugin.json`
+2. Bump the plugin version if files changed
+3. Update any marketplace registry entry that also records plugin version
+4. Test install/update from a clean environment before publishing
 
 ### Distribution
 
