@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.1.303
+
+- Bug fixes and reliability improvements
+
 ## 2.1.302
 
 - Added `CLAUDE_CODE_AUTO_MODE_MODEL` to choose the model the client-side auto mode classifier uses; it does not change the model for server-side auto mode
