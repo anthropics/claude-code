@@ -1,5 +1,84 @@
 # Changelog
 
+## 2.1.304
+
+- Added a transcript line when a plugin that runs first skips one of your mod's hooks, naming the event and the plugin
+- Added `decider: "person"` to a mod's `tool.check` answer: only the permission dialog or a host's callback can approve the ask, and it is refused with the mod's reason where nobody can be asked
+- Added `e.isReadOnly` to a mod's `tool.check` event, set when the tool call is read-only
+- Added `/auto-mode-setup`: a guided setup that reads your project and recent sessions to teach auto mode about your environment, now also available on Bedrock, Vertex, Foundry, Claude apps gateway and telemetry-disabled sessions
+- Added `/claude-api managed-agents-secure`, which compares a Managed Agents agent's settings with Anthropic's published security guide, without changing anything
+- Added the names of the tools called earlier to the compaction summary in the transcript view (Ctrl+O)
+- Added a warning on Pro and Max plans when resuming an inactive conversation would use a noticeable share of your 5-hour usage limit: resume anyway, or start a new conversation and Claude can look up the previous one if you refer to it
+- Fixed the organization policy not refreshing until the hourly check after approving an `ANTHROPIC_API_KEY` at startup or switching "Use custom API key" in `/config`
+- Fixed sandboxed commands failing to start on Linux when a `sandbox.filesystem.denyRead` glob contains brackets that are not a character class, such as a `[user-id]` route folder
+- Fixed `rm -r` of a mounted drive or a folder at its top level (`/Volumes`, `/media`, WSL's `/mnt/c`) not getting the safety prompt that `rm -rf /Applications` gets
+- Fixed `CLAUDE_CODE_TRANSCRIPT_LOCAL_GC` dropping messages from the saved transcript when the disk filled up while the file was being trimmed
+- Fixed a plugin keeping a headless run going past `--max-turns`, Stop, or ended input by spawning subagents or re-running a finished one
+- Fixed a failed mod reload removing the tools and commands of the version that stays loaded, and its messages being wrong or silent about whether the previous version is still loaded
+- Fixed a click on a mod's button being lost when buttons with the same label and no `key` were redrawn unchanged
+- Fixed mod sharing in the built-in `plugin-authoring` skill stopping at the secret scan on machines with managed settings and on Team and Enterprise plans
+- Fixed scheduled Cowork cloud sessions waiting five minutes again for each subagent whose WebFetch needed a URL approval that nobody was there to give
+- Fixed Write results and rejected edits showing a file outside the working directory as `../../…`; they now show `~/…` or the full path
+- Fixed a claude.ai Directory plugin's skills not running as commands when picked from the "/" menu in Cowork cloud sessions
+- Fixed Remote Control permanently withholding a desktop conversation's history when a different account was signed in to the terminal
+- Fixed Remote Control failing to start from Claude Desktop when DISABLE_TELEMETRY or DO_NOT_TRACK is set on a paid plan
+- Fixed model switches, messages and interrupts waiting behind a context usage check in SDK and desktop sessions
+- Fixed `context_management: Extra inputs are not permitted` errors behind LLM gateways; Claude Code now resends the request without that field
+- Fixed OpenTelemetry settings delivered through server-managed settings being ignored for the whole session after signing in during first-run setup or the first start after /logout
+- Fixed unsandboxed Bash commands in Claude Desktop Code tab sessions on macOS and Linux not seeing environment variables exported in shell startup files such as ~/.zshrc
+- Fixed the Consumer Terms notice being skipped for a day or longer after a server error
+- Fixed `/privacy-settings` offering choices that may not apply to you after a network or server error
+- Fixed a "Context limit reached" or "Prompt is too long" error after stopping a turn while Claude Code was compacting a conversation the API had rejected as too long
+- Fixed subagents sometimes forgetting their most recent work when they were messaged or resumed right after finishing
+- Fixed `claude --help` text for `--tools`, `--resume`, `--debug`, `--json-schema`, `--disable-slash-commands`, `--system-prompt-snapshot` and `claude update` to match actual behavior
+- Fixed `claude --worktree` removing the worktree and its branch without asking at exit when HEAD was detached or on another branch, which could lose commits
+- Fixed resumed and cloud sessions sending Claude the whole skill list again each time plugins reloaded at startup
+- Fixed an interrupt not ending a Read that waits on an idle pipe or device named like an image
+- Fixed `/effort status`, `/effort ultracode` and the prompt's effort indicator showing a guessed effort level when `CLAUDE_CODE_EFFORT_LEVEL` is `auto` or `unset` and no level is sent
+- Fixed a PreToolUse hook's deny reason being replaced by a timeout error when an Agent SDK callback hook on the same tool call timed out
+- Fixed Bash and PowerShell deleting a large command's output file when it could not be copied to the session's tool-results folder, unless the disk is full
+- Fixed notes typed into a multiple-choice question with previews being cut off with "…" in terminals under about 100 columns, hiding what was typed (anthropics/claude-code#82768)
+- Fixed self-paced `/loop` wakeups scheduled at the 1-hour maximum firing just after the 1-hour prompt cache expired, so those wakeups no longer re-read the conversation uncached
+- Fixed agent teams: approving a shutdown request from the main session no longer exits the whole CLI
+- Fixed a skill's `once` hook also removing another skill's identical hook after it ran
+- Fixed transcript mode's `{` and `}` landing the prompt on an inconsistent row, or off screen, instead of the transcript's first row
+- Fixed `CLAUDE_CODE_AUTO_COMPACT_WINDOW=200k` silently setting a 100K window: the variable now accepts `k` and `M` suffixes like `--autocompact`, and warns when a value is out of range or ignored
+- Fixed Ctrl+C in the agents view clearing a text selection without copying it when pressed before the mouse button was released
+- Improved `/usage` to say when a rate limit on usage data ends instead of "try again in a moment"
+- Improved the lines shown when a mod written in the session loads, reloads or fails to load
+- Improved artifacts with several views: when you ask for links to them, Claude now writes out each view's link and explains that the address bar stays the same as you switch views
+- Improved cloud sessions: a new conversation's first turn no longer waits for the local (stdio) MCP servers of plugins synced from claude.ai, unless a server sets `alwaysLoad: true`
+- Improved how a remote session recovers its status when the server refuses a status update that carried other session data
+- Improved session file size in auto mode: the safety classifier's context is no longer stored with every request
+- Improved the `claude -p` invalid-settings warning: a file that did not load lists only what stopped it, and long lists are capped per file
+- Improved resume of large compacted sessions in SDK and headless mode: the first request after resuming is sent sooner
+- Improved responsiveness and throughput when many subagents are running at the same time
+- Improved memory use when sending requests in long or resumed conversations
+- Self-hosted runner: Improved the error shown when the git host answers "not found" for a session's repository: it now names the repository and whom to ask
+- Windows: Improved git command start-up with a standard Git for Windows install by running its git.exe directly instead of through its cmd launcher
+- Changed mods' `settings.read` hooks to receive each settings layer and rewrite the merged settings, so a managed mod can make an organization's setting a ceiling, including the `cleanupPeriodDays` the retention sweep uses
+- Changed the `/artifacts` delete confirmation to show numbered choices: 1 or Enter keeps the artifact, 2 deletes it, and y, n and Esc still work
+- Changed the question that turns on the mods Claude writes in a session to plain text with no link or session id; it stays up when a new turn starts, and Claude tells you what loaded when you turn them on
+- Changed tool search to be on by default behind a custom `ANTHROPIC_BASE_URL`; a 400 or 422 from the gateway is retried without it
+- Changed compaction to send Claude the skill list again afterwards; `/reload-skills` now sends only new or changed skills
+- Changed skill hooks: the skills of one source (a repo, your own folder, or a plugin) can register at most 1,024 hooks and 16,384 matcher characters per session
+- Changed skills under a policy that allows hooks from plugins only: a skill used in the main conversation whose hooks are kept out no longer gets its `allowed-tools`
+- Updated the /claude-api skill to use the `ant` CLI on Claude Platform on AWS instead of falling back to the SDK or curl
+- Removed the notes from `claude plugin validate` that predicted where a mod's hooks would run
+- Removed the "(research preview)" label from the `/fast` dialog title on Opus 5.5
+- [VSCode] Added mod drawing in the chat panel for sessions on Amazon Bedrock, Google Vertex AI and Microsoft Foundry, behind an LLM gateway, or with telemetry turned off
+- [VSCode] Fixed one cause of sessions failing to start with "Subprocess initialization did not complete within 60000ms": time a SessionStart command hook spends running no longer counts toward the limit, up to 10 minutes in total
+- [VSCode] Fixed a session closed while it was starting keeping its Claude Code process running until the start ended
+- [VSCode] Fixed a mod's drawings disappearing from a long-open panel until the next turn on machines that also run an older Claude Code
+- [VSCode] Fixed Past conversations hiding sessions when `claudeCode.claudeProcessWrapper` is set
+- [VSCode] Changed background sub-agents to show as one status line under their Agent card instead of streaming every step into the chat; the full transcript stays in /tasks
+- [Cloud sessions] Fixed folders in the composer's @ list showing no name in cloud sessions, where picking one added only a space instead of a mention
+- [Claude Tag] Fixed Claude going silent in a thread when its channel becomes shared across Enterprise Grid workspaces mid-task; it now posts a one-time note to @-mention it in a new thread
+- [Claude Tag] Fixed `@Claude !fork` typed outside a thread getting no visible reply; Claude now shows you a private note saying to run it from inside a thread
+- [Code Review] Added review levels to Code Review: Owners choose Quick, Standard (the default), or Deep for the organization, and can give individual repositories their own level
+- [Code Review] Added an option in Code Review admin settings to review every repository in a GitHub organization, including ones added later, without selecting them one by one
+- [Code Review] Fixed pull requests opened within a minute or two of an admin turning on Code Review being silently skipped; they are now retried and reviewed
+
 ## 2.1.303
 
 - Bug fixes and reliability improvements
