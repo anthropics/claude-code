@@ -16,16 +16,16 @@ describe('held-verdict', () => {
         Fixtures.PLAIN_DENY,
         Fixtures.ASKED,
         Fixtures.ALLOWED,
-      ].map(held => Hooks.holdsOver(held, Fixtures.ALLOWED)),
+      ].map(held => Hooks.holdsOver(held, Fixtures.ALLOWED, undefined)),
     ).toEqual([true, true, true, true, true, false, false])
   })
 
   test("a setting's ask and a host's hold over an allow and a rewording", () => {
     expect(
       [Fixtures.SETTING_ASK, Fixtures.HOST_ASK].map(held => [
-        Hooks.holdsOver(held, Fixtures.ALLOWED),
-        Hooks.holdsOver(held, Fixtures.ASKED),
-        Hooks.holdsOver(held, { ...held }),
+        Hooks.holdsOver(held, Fixtures.ALLOWED, 'host'),
+        Hooks.holdsOver(held, Fixtures.ASKED, 'host'),
+        Hooks.holdsOver(held, { ...held }, 'host'),
       ]),
     ).toEqual([
       [true, true, false],
@@ -33,13 +33,16 @@ describe('held-verdict', () => {
     ])
   })
 
-  test('a setting or decider the answer itself names holds nothing', () => {
+  test('a setting the answer itself names holds nothing', () => {
     expect(
-      Hooks.holdsOver(Fixtures.ASKED, {
-        ...Fixtures.ALLOWED,
-        setting: 'permissions.blockReadsOutsideWorkingDirectories',
-        decider: 'host',
-      }),
+      Hooks.holdsOver(
+        Fixtures.ASKED,
+        {
+          ...Fixtures.ALLOWED,
+          setting: 'permissions.blockReadsOutsideWorkingDirectories',
+        },
+        undefined,
+      ),
     ).toBe(false)
   })
 
@@ -73,9 +76,9 @@ describe('held-verdict', () => {
         Fixtures.HOOK_DENY,
         Fixtures.HOOK_ASK,
       ].map(held => [
-        Hooks.holdsOver(held, Fixtures.ASKED),
-        Hooks.holdsOver(held, Fixtures.PLAIN_DENY),
-        Hooks.holdsOver(held, { ...held }),
+        Hooks.holdsOver(held, Fixtures.ASKED, undefined),
+        Hooks.holdsOver(held, Fixtures.PLAIN_DENY, undefined),
+        Hooks.holdsOver(held, { ...held }, undefined),
       ]),
     ).toEqual([
       [true, true, false],
@@ -87,20 +90,28 @@ describe('held-verdict', () => {
 
   test('an ask stripped of its rule, same sentence, is no same verdict', () => {
     expect(
-      Hooks.holdsOver(Fixtures.RULE_ASK, {
-        decision: Fixtures.RULE_ASK.decision,
-        reason: Fixtures.RULE_ASK.reason,
-      }),
+      Hooks.holdsOver(
+        Fixtures.RULE_ASK,
+        {
+          decision: Fixtures.RULE_ASK.decision,
+          reason: Fixtures.RULE_ASK.reason,
+        },
+        undefined,
+      ),
     ).toBe(true)
   })
 
   test('a rule or hook the answer itself names makes nothing hold', () => {
     expect(
-      Hooks.holdsOver(Fixtures.ASKED, {
-        ...Fixtures.ALLOWED,
-        rule: 'Bash(echo *)',
-        hook: 'PreToolUse',
-      }),
+      Hooks.holdsOver(
+        Fixtures.ASKED,
+        {
+          ...Fixtures.ALLOWED,
+          rule: 'Bash(echo *)',
+          hook: 'PreToolUse',
+        },
+        undefined,
+      ),
     ).toBe(false)
   })
 

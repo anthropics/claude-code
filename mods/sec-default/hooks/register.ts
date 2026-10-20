@@ -116,7 +116,9 @@ export function register(on: On) {
 
     const held = await next.to(e, 'append')
 
-    if (!HeldVerdict.holdsOver(held, answer)) {
+    const { approver }: { tool: string; approver?: string } = e
+
+    if (!HeldVerdict.holdsOver(held, answer, approver)) {
       return answer
     }
 

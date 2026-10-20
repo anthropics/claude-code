@@ -4,11 +4,10 @@ import { askKind } from './ask-kind.js'
 
 /**
  * What kind of thing held over a person's plugin, as the notice calls it:
- * `deny rule`, `ask rule`, `refusal`, or whose ask it was, else `ask cap`.
+ * `deny rule`, `ask rule`, `refusal`, or whose ask it was.
  *
  * A deny that names no rule is a refusal even when it names a hook: the hook
- * may only have asked, and something else refused. An ask that names nobody
- * holds by the ceiling an organization set on the tool.
+ * may only have asked, and something else refused.
  *
  * @param held the verdict that holds
  * @returns the kind

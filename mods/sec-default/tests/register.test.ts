@@ -838,7 +838,9 @@ describe('register', () => {
 
       Fixtures.checksAnswered(on, Fixtures.HOST_ASK)
 
-      expect(await $.tool.check(Fixtures.CHECKED)).toEqual(Fixtures.HOST_ASK)
+      expect(await $.tool.check(Fixtures.CHECKED_BY_HOST)).toEqual(
+        Fixtures.HOST_ASK,
+      )
 
       expect(lines).toEqual([
         `transcript: ${Hooks.heldNotice('easy', 'Bash', Fixtures.HOST_ASK, 'lift')}`,
@@ -853,7 +855,7 @@ describe('register', () => {
       on('settings.read', () => ({ value: Fixtures.MANAGED_POLICY }))
       Fixtures.checksAnswered(on, Fixtures.HOST_ASK)
 
-      expect(await $.tool.check(Fixtures.CHECKED)).toEqual({
+      expect(await $.tool.check(Fixtures.CHECKED_BY_HOST)).toEqual({
         decision: 'allow',
       })
     },
@@ -1857,9 +1859,9 @@ describe('register', () => {
   })
 
   test("an organization's ask cap holds over a plugin's allow", () => {
-    expect(Hooks.holdsOver(Fixtures.CEILING_ASK, Fixtures.CEILING_ALLOW)).toBe(
-      true,
-    )
+    expect(
+      Hooks.holdsOver(Fixtures.CEILING_ASK, Fixtures.CEILING_ALLOW, undefined),
+    ).toBe(true)
   })
 
   test('the launcher variable is pinned where policy names a launcher', () => {

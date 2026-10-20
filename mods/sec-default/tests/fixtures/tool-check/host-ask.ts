@@ -6,6 +6,5 @@ import type { EventResult } from 'claude-code'
  */
 export const HOST_ASK: EventResult<'tool.check'> = {
   decision: 'ask',
-  reason: 'Bash needs approval',
-  decider: 'host',
+  reason: 'The host answers this one',
 }

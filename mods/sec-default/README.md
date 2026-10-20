@@ -34,7 +34,7 @@ settings it decides by.
 | `tool.describe`, `command.describe`, `agent.offer`, `agent.spawn` | When the subject's pinned `e.provider.tier` is `prepend` or `append` (a policy-installed plugin, the managed folder, a policy MCP server), continue past the user tier; a subject provided by `user`, `builtin` or `core` passes. |
 | `tool.register` | A caller in `prepend` or `append` continues past the user tier. A `user`-tier caller is refused by name while managed settings hold `allowedMcpServers` (set at all, empty included). With no allowlist, one is still refused whose tool, called `mcp__<plugin>__<tool>`, would read as a tool of a server the organization delivers: a `managedMcpServers` entry, or a server of the enterprise `managed-mcp.json`, which the policy read names under that key. So is one whose name reads as a plugin the organization seats itself (`prependPlugins`, `appendPlugins`, or an id managed `enabledPlugins` turns on, by `true` or by a version list, as the engine reads an entry), or as an MCP server such a plugin's own manifest declares, which the engine spells under the plugin's scope (`mcp__plugin_<plugin>_<server>__`). A `user`-tier plugin keeps its own name exactly when the id the engine recorded for it (`<name>@<marketplace>`: the settings key the loader resolved, never the plugin's manifest) is one managed `enabledPlugins` turn on, compared as the engine compares ids (NFC, then lower case). That is how an organization's own plugin registers its tools where the engine leaves it in the `user` tier: only a copy read in place from a local folder marketplace that managed settings name is vouched for, so a plugin from a remote marketplace (git, GitHub, npm) can never be vouched for in this release, and neither is one a version list turns on. For an organization that means such a plugin runs among a person's plugins in the chain, not ahead of them, and keeps its tools by this exemption alone. A plugin loaded with `--plugin-dir` is always `<name>@inline` and never matches; nor does a same-named plugin from another marketplace, one whose name only folds to the organization's, or an id policy lists only in `prependPlugins` or `appendPlugins`. A person who registers a marketplace of their own under the organization's marketplace name gets an equal id, and so the exemption: it gives that plugin what every plugin had before this hold existed, and `strictKnownMarketplaces` in managed settings closes it today by allowing no other marketplace source. The mod hears a plugin's id at its admission, so after a load that seats the mod afresh while other plugins stay seated (a load that folds again, as a policy change mid-session can cause) the organization's own plugin is refused its name until the session restarts. A plugin's own MCP servers are connected by the engine from its manifest, not registered through `tool.register`, so they are unaffected. An id's name is everything before its last at-sign, as the engine parts ids, so a scoped `@scope/name@npm` counts. A `managed-mcp.json` that is present and cannot be read whole names nobody: the policy read marks it (`managedMcpServersUnreadable`) and every such registration is refused while it stands, its servers never taken for none; the only other reader of the mark is `tool.list` (the next row), so a person's plugins still load and still set what is not pinned. A server the file names and the engine dropped with a warning is still named; a warning about a server that loads is no failure. Names are compared folded, as a model reads them (spelled as the engine spells a name inside a tool's name, every character outside letters, digits, `-` and `_` a `_` and nothing normalized; then lower case, every run of `-` and `_` one `_`; a seated plugin counts under its name composed and decomposed, since the engine spells its tools from its manifest's own form): a plugin named as the server in any case or with other separators, one whose name and tool together spell it, and one whose tool's own name folds to nothing, is refused. A server whose name folds to nothing (no letter or digit in it) cannot be told from any name, so while the policy names one every `user`-tier registration is refused. The engine pins the tool's name at this event (a hook beneath that hands on another name fails, and the chain goes on without it), so the name judged is the name registered. Otherwise it passes. |
 | `tool.list` | The tools of the organization's managed MCP servers, of the plugins it seats itself and of the MCP servers those plugins' own manifests declare (told by the name whole, as the engine spells it inside a tool's name: `mcp__<server>__`, never by a fold, so another server whose name only begins like the organization's is not taken for it; a seated plugin and its own servers, under its scope `mcp__plugin_<plugin>_`, fold to fold as the registration check compares, so policy may list its id in another letter case, and another plugin whose name begins with the seated one's and a `-` or `_` reads the same) are listed as the organization's tiers listed them; every other tool as the user tier left it. Where the server file cannot be read, every `mcp__` tool counts as the organization's. With no policy to read, or a refusal from either listing, the organization's listing stands whole. |
-| `tool.check` | A deny, an ask a settings rule, a classic hook, a setting's own check or an organization's ceiling on the tool stands behind, an ask a host answers in the person's place and an ask a built-in or an organization's hook put to a person, hold whole over the user tier: when a person's plugin rewrote the verdict it was handed without tightening it (a more permissive decision, or the same decision under another reason or with what it names changed), the dispatch is run again past the user tier, and unless the chain's answer is the stricter, that verdict, if it is a deny or names what stands behind it or who it is put to, is the answer as the engine gave it. See [Deny rules hold](#deny-rules-hold). Every other verdict passes as the chain left it. |
+| `tool.check` | A deny, an ask a settings rule, a classic hook, a setting's own check or an organization's ceiling on the tool stands behind, an ask a host answers in the person's place and an ask a built-in or an organization's plugin made, hold whole over the user tier: when a person's plugin rewrote the verdict it was handed without tightening it (a more permissive decision, or the same decision under another reason or with what it names changed), the dispatch is run again past the user tier, and unless the chain's answer is the stricter, that verdict, if it is a deny, names what stands behind it or is an ask a host answers, is the answer as the engine gave it. See [Deny rules hold](#deny-rules-hold). Every other verdict passes as the chain left it. |
 | `ui.log` | A line a plugin in `prepend` or `append` logs, this one's included, continues past the user tier: no user hook rewrites or drops it, and none runs inside the hook that logged it. Every other line passes. |
 | `env.get` | A read by a plugin in `prepend` or `append` continues past the user tier: no user hook answers what the organization's own plugin reads. Every other read passes. |
 | `env.set` | A write by a plugin in `prepend` or `append` continues past the user tier, whatever the variable: no user hook rewrites or drops what the organization's own plugin sets. A variable managed settings set in `env` (its name in any case) is pinned, and so are `CLAUDE_CODE_PROCESS_WRAPPER` where they name a launcher with `processWrapper` and, always, the nine variables that move where policy and sign-in are read from or how policy's tiers compose (`CLAUDE_CODE_MANAGED_SETTINGS_PATH`, `CLAUDE_CODE_REMOTE_SETTINGS_PATH`, `CLAUDE_CODE_MOCK_REMOTE_SETTINGS`, `CLAUDE_CODE_DISABLE_ADMIN_ENV_UNION`, `CLAUDE_CONFIG_DIR`, `CLAUDE_SECURESTORAGE_CONFIG_DIR`, `USE_LOCAL_OAUTH`, `USE_STAGING_OAUTH` and `CLAUDE_LOCAL_OAUTH_API_BASE`, which choose the server sign-in goes to; all nine on every build), and, on every build too, ten variables that can load code into a child the engine starts (`LD_PRELOAD`, `LD_LIBRARY_PATH`, `LD_AUDIT`, `DYLD_INSERT_LIBRARIES`, `DYLD_LIBRARY_PATH`, `DYLD_FRAMEWORK_PATH`, `BASH_ENV`, `ENV`, `ZDOTDIR`, `NODE_OPTIONS`): setting or unsetting it, a `user`-tier caller is refused by name and a built-in's write continues past the user tier. Any other variable is a person's plugin's to set. With no policy to read, every variable counts as pinned. `allowModsToOverrideDenyRules` does not unpin. See [Pinned variables](#pinned-variables). |
@@ -93,7 +93,7 @@ not loaded. Settings hooks, status lines and `/goal` are not touched by it.
 `allowModsToOverrideDenyRules`: the plugins a person installs may answer
 over a settings deny rule on `tool.check`, as they could before this plugin
 held deny rules, and over every other deny, an ask rule, a classic hook's
-ask, a setting's own ask or an ask a host or a person answers with it: the one option
+ask, a setting's own ask or an ask a host answers or a plugin made with it: the one option
 covers all that holds there. Off unless it is the
 literal `true`; an option that reads as unset leaves them holding. See
 [Deny rules hold](#deny-rules-hold).
@@ -150,8 +150,8 @@ host was to answer. Where this plugin is seated it does not:
   chain's answer whatever decided it; an ask, when it names what decided it,
   a settings rule (`rule`), a classic hook (`hook`), a setting whose own
   check asked (`setting`) or an organization's ask cap on the tool
-  (`ceiling`), or names who answers it (`decider`: a host, or a person a
-  built-in or an organization's hook put it to). It is returned
+  (`ceiling`) or a built-in's or an organization's plugin that made it
+  (`plugin`), and an ask a host answers (`e.approver`). It is returned
   whole, so the reason this event answers, which a person reads in the
   prompt and the engine writes into a refusal, is the engine's, and what it
   names is still named. (The refusal then enters the conversation as a tool
@@ -165,15 +165,15 @@ host was to answer. Where this plugin is seated it does not:
   asked. An ask that names none of them and that the person answers at a
   dialog (the mode's own, a check of the engine's own that no setting turns
   on) is not held.
-- A person: a hook that answers `ask` with `decider: "person"` keeps the
-  call from the classifier's allow. Made by a built-in or an organization's
-  hook, that ask holds, so a person's plugin neither allows it nor turns it
-  back into a plain ask. A person's own plugin may ask a person too, over a
-  verdict that does not hold, and over a host's ask by changing only its
-  `decider` to `"person"`: that is a tightening and passes. Any other change
-  to a host's ask stays held. As for any hook's ask, a rule for the whole tool
-  is not kept; a narrower rule the person saves is theirs and settles nothing
-  while the hook asks.
+- A plugin: an ask a hook makes names the plugin (`plugin`, the engine's
+  word, never the hook's), and no classifier's allow settles it. The run past
+  the user tier holds no person's plugin, so a plugin named there is a
+  built-in or an organization's: that ask holds, and a person's plugin neither
+  allows it nor rewords it. A person's own plugin may ask too, over an allow
+  or the mode's own ask: there its ask stands, because it is stricter. Its
+  rewording of an ask that holds is held, with the notice. As for any hook's
+  ask, a rule for the whole tool is not kept; a narrower rule the person saves
+  is theirs and settles nothing while the hook asks.
 - The setting the engine names today is the read block's
   (`permissions.blockReadsOutsideWorkingDirectories`), for the two asks the
   block keeps for the person: about a shell command that reads outside the
@@ -182,9 +182,9 @@ host was to answer. Where this plugin is seated it does not:
   tools refuse such a read outright, and a deny holds as it is.
 - A host: where the permission callback of the program that runs the session
   answers its asks (an SDK host's `can_use_tool`, a permission prompt tool;
-  a cloud session's host is one), the engine's own ask says so
-  (`decider: "host"`), in every loop of the process, a subagent's included,
-  and only where the host would be asked. Such an ask holds, the mode's own
+  a cloud session's host is one), the event says so (`e.approver` is
+  `host`), in every loop of the process, a subagent's included, and only
+  where the host would be asked. Such an ask holds, the mode's own
   too: it goes on to whatever the mode puts between an ask and the host
   (auto mode's classifier) and then to the callback, as it would with no
   plugin loaded. An evaluation the engine has not classified is held.
@@ -236,8 +236,8 @@ host was to answer. Where this plugin is seated it does not:
   settings from a <tool> call (<rule>); the deny rule holds over the plugins
   you install (allowModsToOverrideDenyRules)`, or `tried to reword` where
   the decision was kept and its words or its rule were not. The kinds are `a deny rule`,
-  `an ask rule`, `a <event> hook's ask`, `a <key> setting's ask`, `a host's
-  ask` and `a refusal` (a deny that names no rule); only the two rule kinds
+  `an ask rule`, `a <event> hook's ask`, `a <key> setting's ask`, `a
+  <plugin>'s ask`, `an ask cap`, `a host's ask` and `a refusal` (a deny that names no rule); only the two rule kinds
   carry `in your settings` and a rule. Plugins the
   engine ran as one
   batch are named together, as it names them (`audit+easy`). A plain `-p`
