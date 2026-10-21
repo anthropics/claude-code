@@ -281,6 +281,13 @@ Guide the user through creating a complete, high-quality Claude Code plugin from
      cc --plugin-dir /path/to/plugin-name
      ```
    - Or copy to `.claude-plugin/` for project testing
+   - For install, update, and enable flows inside Claude Code, prefer `/plugin ...` commands instead of running `claude plugin ...` through Bash
+   - If the user needs CLI plugin management, tell them to use a separate terminal and the singular subcommand form:
+     ```bash
+     claude plugin list
+     claude plugin marketplace add owner/repo
+     ```
+   - For `marketplace add`, use `owner/repo` directly. Do not prepend `github:` or substitute a full GitHub URL unless the marketplace explicitly requires it.
 
 2. **Verification checklist** for user to perform:
    - [ ] Skills load when triggered (ask questions with trigger phrases)
@@ -320,6 +327,8 @@ Guide the user through creating a complete, high-quality Claude Code plugin from
    - Show user how to add to marketplace.json
    - Help draft marketplace description
    - Suggest category and tags
+   - Remind the user to bump the plugin version whenever published plugin files change
+   - If a marketplace registry also stores the plugin version, keep the registry entry in sync with `.claude-plugin/plugin.json`
 
 3. **Create summary**:
    - Mark all todos complete
