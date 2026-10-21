@@ -1,9 +1,6 @@
 name: "Lock Stale Issues"
 
 on:
-  schedule:
-    # 8am Pacific = 1pm UTC (2pm UTC during DST)
-    - cron: "0 14 * * *"
   workflow_dispatch:
 
 permissions:

@@ -1,8 +1,6 @@
 name: Auto-close duplicate issues
 description: Auto-closes issues that are duplicates of existing issues
 on:
-  schedule:
-    - cron: "0 9 * * *"
   workflow_dispatch:
 
 jobs:

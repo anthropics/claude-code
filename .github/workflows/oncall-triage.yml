@@ -4,9 +4,6 @@ on:
   push:
     branches:
       - add-oncall-triage-workflow  # Temporary: for testing only
-  schedule:
-    # Run every 6 hours
-    - cron: '0 */6 * * *'
   workflow_dispatch: # Allow manual trigger
 
 jobs:

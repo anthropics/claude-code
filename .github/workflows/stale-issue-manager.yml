@@ -1,9 +1,6 @@
 name: "Manage Stale Issues"
 
 on:
-  schedule:
-    # 2am Pacific = 9am UTC (10am UTC during DST)
-    - cron: "0 10 * * *"
   workflow_dispatch:
 
 permissions:
