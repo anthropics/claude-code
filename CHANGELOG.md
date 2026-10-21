@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.1.306
+
+- Fixed `claude -p` inside cloud sessions reporting "Not logged in" when started without the session's environment variables
+- Fixed an API error being replaced by "prompt is too long", and an unneeded compaction, in sessions with many MCP tools
+
 ## 2.1.305
 
 - Added `sandbox.allowNestedUserNamespaces` so sandboxed commands on Linux can create user namespaces (Chromium, rootless podman); this lets them get around the sandbox's file protections
