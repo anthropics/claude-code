@@ -1,0 +1,9 @@
+{
+  "name": "claude-md-management",
+  "description": "Tools to maintain and improve CLAUDE.md files",
+  "version": "1.0.0",
+  "author": {
+    "name": "Isabella He",
+    "email": "isabella@anthropic.com"
+  }
+}
