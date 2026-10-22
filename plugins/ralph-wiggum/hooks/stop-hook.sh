@@ -24,6 +24,16 @@ MAX_ITERATIONS=$(echo "$FRONTMATTER" | grep '^max_iterations:' | sed 's/max_iter
 # Extract completion_promise and strip surrounding quotes if present
 COMPLETION_PROMISE=$(echo "$FRONTMATTER" | grep '^completion_promise:' | sed 's/completion_promise: *//' | sed 's/^"\(.*\)"$/\1/')
 
+# Session isolation: the state file is project-scoped, but the Stop hook
+# fires in every Claude Code session in that project. If another session
+# started the loop, this session must not block (or touch the state file).
+# Legacy state files without session_id fall through (preserves old behavior).
+STATE_SESSION=$(echo "$FRONTMATTER" | grep '^session_id:' | sed 's/session_id: *//' || true)
+HOOK_SESSION=$(echo "$HOOK_INPUT" | jq -r '.session_id // ""')
+if [[ -n "$STATE_SESSION" ]] && [[ "$STATE_SESSION" != "$HOOK_SESSION" ]]; then
+  exit 0
+fi
+
 # Validate numeric fields before arithmetic operations
 if [[ ! "$ITERATION" =~ ^[0-9]+$ ]]; then
   echo "⚠️  Ralph loop: State file corrupted" >&2
@@ -77,35 +87,39 @@ if ! grep -q '"role":"assistant"' "$TRANSCRIPT_PATH"; then
   exit 0
 fi
 
-# Extract last assistant message with explicit error handling
-LAST_LINE=$(grep '"role":"assistant"' "$TRANSCRIPT_PATH" | tail -1)
-if [[ -z "$LAST_LINE" ]]; then
-  echo "⚠️  Ralph loop: Failed to extract last assistant message" >&2
+# Extract the most recent assistant text block.
+#
+# Claude Code writes each content block (text/tool_use/thinking) as its own
+# JSONL line, all with role=assistant. So slurp the last N assistant lines,
+# flatten to text blocks only, and take the last one.
+#
+# Capped at the last 100 assistant lines to keep jq's slurp input bounded
+# for long-running sessions.
+LAST_LINES=$(grep '"role":"assistant"' "$TRANSCRIPT_PATH" | tail -n 100)
+if [[ -z "$LAST_LINES" ]]; then
+  echo "⚠️  Ralph loop: Failed to extract assistant messages" >&2
   echo "   Ralph loop is stopping." >&2
   rm "$RALPH_STATE_FILE"
   exit 0
 fi
 
-# Parse JSON with error handling
-LAST_OUTPUT=$(echo "$LAST_LINE" | jq -r '
-  .message.content |
-  map(select(.type == "text")) |
-  map(.text) |
-  join("\n")
+# Parse the recent lines and pull out the final text block.
+# `last // ""` yields empty string when no text blocks exist (e.g. a turn
+# that is all tool calls). That's fine: empty text means no <promise> tag,
+# so the loop simply continues.
+# (Briefly disable errexit so a jq failure can be caught by the $? check.)
+set +e
+LAST_OUTPUT=$(echo "$LAST_LINES" | jq -rs '
+  map(.message.content[]? | select(.type == "text") | .text) | last // ""
 ' 2>&1)
+JQ_EXIT=$?
+set -e
 
 # Check if jq succeeded
-if [[ $? -ne 0 ]]; then
+if [[ $JQ_EXIT -ne 0 ]]; then
   echo "⚠️  Ralph loop: Failed to parse assistant message JSON" >&2
   echo "   Error: $LAST_OUTPUT" >&2
-  echo "   This may indicate a transcript format issue" >&2
-  echo "   Ralph loop is stopping." >&2
-  rm "$RALPH_STATE_FILE"
-  exit 0
-fi
-
-if [[ -z "$LAST_OUTPUT" ]]; then
-  echo "⚠️  Ralph loop: Assistant message contained no text content" >&2
+  echo "   This may indicate a transcript format issue." >&2
   echo "   Ralph loop is stopping." >&2
   rm "$RALPH_STATE_FILE"
   exit 0
