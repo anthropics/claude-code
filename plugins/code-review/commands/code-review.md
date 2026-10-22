@@ -62,7 +62,18 @@ Note: Still review Claude generated PR's.
 
    If `--comment` argument was NOT provided, stop here. Do not post any GitHub comments.
 
-   If `--comment` argument IS provided and NO issues were found, post a summary comment using `gh pr comment` and stop.
+   If `--comment` argument IS provided and NO issues were found, post a summary comment using `gh pr comment` and stop. **Always pass the body via a temporary file with `--body-file` to ensure newlines are preserved**:
+
+   ```bash
+   cat > /tmp/code-review.md <<'EOF'
+   ## Code review
+
+   No issues found. Checked for bugs and CLAUDE.md compliance.
+   EOF
+   gh pr comment <PR> --body-file /tmp/code-review.md
+   ```
+
+   Do **not** use `gh pr comment <PR> -b "..."` with escape sequences such as `\n` / `\t` / `\r` — bash does not interpret them inside double quotes, so they will be stored as literal backslash-n etc. and break GitHub's Markdown rendering.
 
    If `--comment` argument IS provided and issues were found, continue to step 8.
 
