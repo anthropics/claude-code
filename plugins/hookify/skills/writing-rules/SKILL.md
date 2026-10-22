@@ -41,6 +41,7 @@ Can include markdown formatting, warnings, suggestions, etc.
 **event** (required): Which hook event to trigger on
 - `bash`: Bash tool commands
 - `file`: Edit, Write, MultiEdit tools
+- `read`: Read, Glob, Grep, LS tools (file reads, not modifications)
 - `stop`: When agent wants to stop
 - `prompt`: When user submits a prompt
 - `all`: All events
@@ -361,6 +362,7 @@ Warning message
 **Event types:**
 - `bash` - Bash commands
 - `file` - File edits
+- `read` - File reads (Read, Glob, Grep, LS)
 - `stop` - Completion checks
 - `prompt` - User input
 - `all` - All events
