@@ -1,0 +1,9 @@
+{
+  "name": "teach",
+  "version": "1.0.0",
+  "description": "Incrementally teach Claude Code about your project's conventions, patterns, and architecture — one topic at a time. Claude actively explores the codebase and saves what it learns to CLAUDE.md.",
+  "author": {
+    "name": "LvienOeria",
+    "email": "120090440@link.cuhk.edu.cn"
+  }
+}
