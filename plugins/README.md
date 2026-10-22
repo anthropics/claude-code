@@ -25,24 +25,22 @@ Learn more in the [official plugins documentation](https://docs.claude.com/en/do
 | [pr-review-toolkit](./pr-review-toolkit/) | Comprehensive PR review agents specializing in comments, tests, error handling, type design, code quality, and code simplification | **Command:** `/pr-review-toolkit:review-pr` - Run with optional review aspects (comments, tests, errors, types, code, simplify, all)<br>**Agents:** `comment-analyzer`, `pr-test-analyzer`, `silent-failure-hunter`, `type-design-analyzer`, `code-reviewer`, `code-simplifier` |
 | [ralph-wiggum](./ralph-wiggum/) | Interactive self-referential AI loops for iterative development. Claude works on the same task repeatedly until completion | **Commands:** `/ralph-loop`, `/cancel-ralph` - Start/stop autonomous iteration loops<br>**Hook:** Stop - Intercepts exit attempts to continue iteration |
 | [security-guidance](./security-guidance/) | Security reminder hook that warns about potential security issues when editing files | **Hook:** PreToolUse - Monitors 9 security patterns including command injection, XSS, eval usage, dangerous HTML, pickle deserialization, and os.system calls |
+| [usage-transparency](./usage-transparency/) | Diagnose quota, rate-limit, auth, and subscription-related access failures without inventing backend billing details | **Commands:** `/usage-status`, `/usage-help` - Classify usage/access failures, separate local signals from platform-side unknowns, and suggest next steps |
 
 ## Installation
 
-These plugins are included in the Claude Code repository. To use them in your own projects:
+These plugins are included in the Claude Code repository as examples and building blocks. They are not the primary Claude Code installation path.
 
-1. Install Claude Code globally:
-```bash
-npm install -g @anthropic-ai/claude-code
-```
+To use them in your own projects:
 
+1. Install Claude Code using one of the recommended methods from the top-level README or setup docs.
 2. Navigate to your project and run Claude Code:
 ```bash
 claude
 ```
+3. Use the `/plugin` command to install plugins from marketplaces, or copy/configure a plugin in your project's `.claude` plugin settings.
 
-3. Use the `/plugin` command to install plugins from marketplaces, or configure them in your project's `.claude/settings.json`.
-
-For detailed plugin installation and configuration, see the [official documentation](https://docs.claude.com/en/docs/claude-code/plugins).
+For detailed Claude Code setup plus plugin installation and configuration, see the [official documentation](https://docs.claude.com/en/docs/claude-code/plugins).
 
 ## Plugin Structure
 
