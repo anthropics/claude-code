@@ -1,0 +1,9 @@
+{
+  "name": "tmp-cleanup",
+  "version": "1.0.0",
+  "description": "Cleans up orphaned claude-{hex}-cwd temp files that accumulate due to missing cleanup in the Bash tool. Addresses GitHub Issue #8856.",
+  "author": {
+    "name": "Community",
+    "url": "https://github.com/anthropics/claude-code/issues/8856"
+  }
+}
