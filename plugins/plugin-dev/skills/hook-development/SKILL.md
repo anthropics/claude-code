@@ -124,6 +124,14 @@ Execute bash commands for deterministic checks:
 
 Execute before any tool runs. Use to approve, deny, or modify tool calls.
 
+For Bash permissions, prefer conservative validation hooks that deny or ask on
+uncertain input. Avoid auto-approving compound shell commands unless the hook
+fully parses shell syntax and checks every command segment against both allow
+and deny policies. When in doubt, block chained commands and ask Claude to retry
+with one Bash tool call per command. See
+`examples/hooks/block_chained_bash_commands_example.py` for a fail-closed
+example.
+
 **Example (prompt-based):**
 ```json
 {
