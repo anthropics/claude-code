@@ -11,6 +11,7 @@ interface GitHubIssue {
   title: string;
   user: { id: number };
   created_at: string;
+  state?: string;
 }
 
 interface GitHubComment {
@@ -76,9 +77,15 @@ async function closeIssueAsDuplicate(
     'PATCH',
     {
       state: 'closed',
-      state_reason: 'duplicate',
-      labels: ['duplicate']
+      state_reason: 'duplicate'
     }
+  );
+
+  await githubRequest(
+    `/repos/${owner}/${repo}/issues/${issueNumber}/labels`,
+    token,
+    "POST",
+    { labels: ["duplicate"] }
   );
 
   await githubRequest(
@@ -94,6 +101,35 @@ If this is incorrect, please re-open this issue or create a new one.
     }
   );
 
+  await githubRequest(
+    `/repos/${owner}/${repo}/issues/${duplicateOfNumber}/comments`,
+    token,
+    "POST",
+    {
+      body: `Linked duplicate report: #${issueNumber} was automatically closed as a duplicate of this issue.
+
+🤖 Generated with [Claude Code](https://claude.ai/code)`,
+    }
+  );
+}
+
+async function getIssue(
+  owner: string,
+  repo: string,
+  issueNumber: number,
+  token: string
+): Promise<GitHubIssue | null> {
+  try {
+    return await githubRequest<GitHubIssue>(
+      `/repos/${owner}/${repo}/issues/${issueNumber}`,
+      token
+    );
+  } catch (error) {
+    console.log(
+      `[DEBUG] Failed to fetch issue #${issueNumber} metadata, treating as invalid duplicate target: ${error}`
+    );
+    return null;
+  }
 }
 
 async function autoCloseDuplicates(): Promise<void> {
@@ -244,6 +280,49 @@ async function autoCloseDuplicates(): Promise<void> {
     if (!duplicateIssueNumber) {
       console.log(
         `[DEBUG] Issue #${issue.number} - could not extract duplicate issue number from comment, skipping`
+      );
+      continue;
+    }
+
+    if (duplicateIssueNumber === issue.number) {
+      console.log(
+        `[DEBUG] Issue #${issue.number} - duplicate target points to itself, skipping`
+      );
+      continue;
+    }
+
+    const duplicateIssue = await getIssue(
+      owner,
+      repo,
+      duplicateIssueNumber,
+      token
+    );
+    if (!duplicateIssue) {
+      console.log(
+        `[DEBUG] Issue #${issue.number} - duplicate target #${duplicateIssueNumber} could not be loaded, skipping`
+      );
+      continue;
+    }
+
+    if (duplicateIssue.state !== "open") {
+      console.log(
+        `[DEBUG] Issue #${issue.number} - duplicate target #${duplicateIssueNumber} is not open (${duplicateIssue.state}), skipping`
+      );
+      continue;
+    }
+
+    const issueCreatedAt = new Date(issue.created_at).getTime();
+    const duplicateCreatedAt = new Date(duplicateIssue.created_at).getTime();
+    if (!Number.isFinite(issueCreatedAt) || !Number.isFinite(duplicateCreatedAt)) {
+      console.log(
+        `[DEBUG] Issue #${issue.number} - invalid created_at timestamp on source or target issue, skipping`
+      );
+      continue;
+    }
+
+    if (duplicateCreatedAt >= issueCreatedAt) {
+      console.log(
+        `[DEBUG] Issue #${issue.number} - duplicate target #${duplicateIssueNumber} is not older than source issue, skipping`
       );
       continue;
     }
