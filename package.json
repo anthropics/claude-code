@@ -1,0 +1,13 @@
+{
+  "name": "agent-memory-system",
+  "version": "1.0.0",
+  "description": "Continuous memory bank and session management for agentic LLM assistants",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/",
+    "start": "node src/index.js"
+  },
+  "keywords": ["agent", "memory", "llm", "session"],
+  "license": "MIT"
+}
