@@ -1,0 +1,113 @@
+@import "tailwindcss";
+
+/* Veridis Design System - Based on Stripe + Anthropic + Tesla */
+
+:root {
+  /* Primary Colors */
+  --primary-dark: #0A2540;        /* Stripe Downriver - Headlines, dark sections */
+  --background-light: #F6F9FC;    /* Stripe Black Squeeze - Page background */
+  --background-warm: #EEECE2;     /* Anthropic cream - Alternative warm background */
+  --accent-primary: #635BFF;      /* Stripe purple - Primary CTAs */
+  --accent-trust: #DA7756;        /* Anthropic terra cotta - Trust signals */
+
+  /* Text Colors */
+  --text-primary: #32325D;        /* Headlines */
+  --text-secondary: #525F7F;      /* Body copy */
+  --text-muted: #8898AA;          /* Muted text */
+
+  /* Code Block Colors */
+  --code-background: #1A1F36;     /* Code block backgrounds */
+  --code-text: #E6E6E6;
+
+  /* Surface Colors */
+  --surface-white: #FFFFFF;
+  --surface-elevated: #FFFFFF;
+  --border-light: #E6EBF1;
+
+  /* Semantic Colors */
+  --success: #24B47E;
+  --warning: #F5A623;
+  --error: #E25950;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(50, 50, 93, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 6px rgba(50, 50, 93, 0.1), 0 1px 3px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 13px 27px -5px rgba(50, 50, 93, 0.15), 0 8px 16px -8px rgba(0, 0, 0, 0.2);
+  --shadow-xl: 0 30px 60px -12px rgba(50, 50, 93, 0.25), 0 18px 36px -18px rgba(0, 0, 0, 0.3);
+}
+
+/* Tailwind 4 Theme Configuration */
+@theme inline {
+  /* Colors */
+  --color-primary-dark: var(--primary-dark);
+  --color-background-light: var(--background-light);
+  --color-background-warm: var(--background-warm);
+  --color-accent-primary: var(--accent-primary);
+  --color-accent-trust: var(--accent-trust);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-code-background: var(--code-background);
+  --color-code-text: var(--code-text);
+  --color-surface-white: var(--surface-white);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-border-light: var(--border-light);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--error);
+
+  /* Typography - Using system fonts with Inter/JetBrains Mono as preferences */
+  --font-sans: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+
+  /* Shadows */
+  --shadow-stripe-sm: var(--shadow-sm);
+  --shadow-stripe-md: var(--shadow-md);
+  --shadow-stripe-lg: var(--shadow-lg);
+  --shadow-stripe-xl: var(--shadow-xl);
+}
+
+/* Base Styles */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--surface-white);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Selection */
+::selection {
+  background-color: var(--accent-primary);
+  color: white;
+}
+
+/* Focus Ring */
+*:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Code Block Syntax Highlighting */
+.code-keyword { color: #C792EA; }
+.code-string { color: #C3E88D; }
+.code-function { color: #82AAFF; }
+.code-number { color: #F78C6C; }
+.code-comment { color: #676E95; }
+.code-property { color: #FFCB6B; }
+.code-operator { color: #89DDFF; }
