@@ -80,10 +80,11 @@ Execute local MCP servers as child processes with communication via stdin/stdout
 ### Best Practices
 
 1. **Use absolute paths or ${CLAUDE_PLUGIN_ROOT}**
-2. **Set PYTHONUNBUFFERED for Python servers**
-3. **Pass configuration via args or env, not stdin**
-4. **Handle server crashes gracefully**
-5. **Log to stderr, not stdout (stdout is for MCP protocol)**
+2. **Use `CLAUDE_PROJECT_DIR`** to reference the project root — available as an environment variable in all stdio server subprocesses, matching hooks
+3. **Set PYTHONUNBUFFERED for Python servers**
+4. **Pass configuration via args or env, not stdin**
+5. **Handle server crashes gracefully**
+6. **Log to stderr, not stdout (stdout is for MCP protocol)**
 
 ### Troubleshooting
 
