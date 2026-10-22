@@ -1,0 +1,16 @@
+{
+  "description": "Intercepts basic shell commands to save tokens by running them locally instead of querying the LLM",
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/intercept_command.py"
+          }
+        ]
+      }
+    ]
+  }
+}
