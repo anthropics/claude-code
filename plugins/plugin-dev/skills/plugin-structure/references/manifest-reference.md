@@ -280,7 +280,7 @@ Hook configuration location or inline definition.
         "hooks": [
           {
             "type": "command",
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/validate.sh",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/validate.sh\"",
             "timeout": 30
           }
         ]
