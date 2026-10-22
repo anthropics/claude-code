@@ -178,6 +178,30 @@ Execute after tool completes. Use to react to results, provide feedback, or log.
 - Exit 2: stderr fed back to Claude
 - systemMessage included in context
 
+**`continueOnBlock` option:**
+
+Set `continueOnBlock: true` in the hook config to feed the rejection reason back to Claude and continue the turn when `decision` is `"block"`:
+
+```json
+{
+  "PostToolUse": [
+    {
+      "matcher": "Edit",
+      "hooks": [
+        {
+          "type": "prompt",
+          "prompt": "Check the edit for issues. If problematic, return 'block' with reason.",
+          "continueOnBlock": true
+        }
+      ]
+    }
+  ]
+}
+```
+
+- Without `continueOnBlock`: `decision: "block"` adds the reason next to the tool result. Claude still sees the original output.
+- With `continueOnBlock: true`: the rejection reason is fed back to Claude and the turn continues, allowing Claude to react to the feedback.
+
 ### Stop
 
 Execute when main agent considers stopping. Use to validate completeness.
