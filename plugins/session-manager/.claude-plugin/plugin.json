@@ -1,0 +1,9 @@
+{
+  "name": "session-manager",
+  "description": "List and resume Claude Code sessions for the current working directory",
+  "version": "1.0.0",
+  "author": {
+    "name": "Abdul Sahil",
+    "email": "abdulsaheel81@gmail.com"
+  }
+}
