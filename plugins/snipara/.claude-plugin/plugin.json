@@ -1,0 +1,12 @@
+{
+  "name": "snipara",
+  "description": "Context optimization for documentation - Query docs with 90% token reduction via Snipara MCP",
+  "version": "1.0.0",
+  "author": {
+    "name": "Snipara Team"
+  },
+  "homepage": "https://snipara.com",
+  "repository": "https://github.com/alopez3006/snipara-claude",
+  "license": "MIT",
+  "keywords": ["documentation", "context", "mcp", "rag", "optimization", "memory"]
+}
