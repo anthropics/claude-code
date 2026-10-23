@@ -1,0 +1,16 @@
+{
+  "description": "Registers a project hash on session start for path-independent session tracking",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/session-start.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
