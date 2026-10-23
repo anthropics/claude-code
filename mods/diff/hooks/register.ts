@@ -48,6 +48,8 @@ export function register(on: On) {
   let awaited: (typeof Record.SHOWN_TRIGGERS)[number] | null = null
   let dialogRows: number | null = null
   let hasAutoOpened = false
+  let isAutoOpenPending = false
+  let personCloses = 0
   let hasRestoredEdits = false
   let columns: number | null = null
   let shownSessionId: string | null = null
@@ -55,6 +57,7 @@ export function register(on: On) {
   let carrying: Ask.ArmedAsk | null = null
   let isRefreshing = false
   let isRefreshQueued = false
+  let reading: Promise<void> = Promise.resolve()
   let generation = 0
   let landed = 0
   let bodyStamp: string | null = null
@@ -331,6 +334,12 @@ export function register(on: On) {
 
     isRefreshing = true
 
+    let settle = (): void => undefined
+
+    reading = new Promise(resolve => {
+      settle = resolve
+    })
+
     const record = Record.recorderOf(engine)
     const pinned = backend
 
@@ -384,6 +393,7 @@ export function register(on: On) {
       throw error
     } finally {
       isRefreshing = false
+      settle()
       redraw(engine)
 
       if (isRefreshQueued) {
@@ -430,7 +440,27 @@ export function register(on: On) {
   async function openPane(
     engine: Host,
     trigger: (typeof Record.SHOWN_TRIGGERS)[number],
+    closesBefore = personCloses,
   ): Promise<OpenOutcome.OpenOutcome> {
+    const isUnasked = trigger === 'auto_open'
+    const epochBefore = pin.epoch
+
+    /**
+     * An open nobody asked for decides on a read it starts itself. A read
+     * already running (a refresh started now would only queue behind it) may
+     * predate the latest edit or a /resume, so it is waited out first.
+     */
+    while (isUnasked && isRefreshing) {
+      await reading
+    }
+
+    const isOvertaken =
+      isPaneOpen || pin.epoch !== epochBefore || personCloses !== closesBefore
+
+    if (isUnasked && isOvertaken) {
+      return 'withdrawn'
+    }
+
     const isDialog = model.isFullscreen === false
 
     model = {
@@ -443,9 +473,34 @@ export function register(on: On) {
     dialogRows = isDialog ? Views.dialogRowsOf(model) : null
 
     const landedBefore = landed
+    const generationBefore = generation
 
     if (!isDialog) {
       await refresh(engine).catch(() => undefined)
+    }
+
+    /**
+     * generation moves only when a read returns data (a failed read keeps the
+     * old list), so an unasked open shows a fresh list with a file in it.
+     */
+    const { data } = model
+
+    const isShowable =
+      generation !== generationBefore &&
+      pin.epoch === epochBefore &&
+      !isPaneOpen &&
+      personCloses === closesBefore &&
+      data !== null &&
+      PaneState.headerTotalsOf(
+        data,
+        PaneState.partitionOf(
+          data.files,
+          model.isNoiseShown ? 'shown' : 'hidden',
+        ),
+      ).filesCount > 0
+
+    if (isUnasked && !isShowable) {
+      return 'withdrawn'
     }
 
     const opened = await engine.openPane(
@@ -500,6 +555,7 @@ export function register(on: On) {
       return
     }
 
+    const closesBefore = personCloses
     const preference = await engine.storeGet(Names.STORE_OPEN_KEY)
     const isKeptOpen = preference === true
 
@@ -529,8 +585,35 @@ export function register(on: On) {
       return
     }
 
+    const landedBefore = landed
+    const { epoch } = pin
+
     hasAutoOpened = true
-    hasAutoOpened = (await openPane(engine, 'auto_open')) !== 'withdrawn'
+
+    const outcome = await openPane(engine, 'auto_open', closesBefore).catch(
+      (): OpenOutcome.OpenOutcome => 'withdrawn',
+    )
+
+    /**
+     * After a /clear or /resume, hasAutoOpened and any retry belong to the new
+     * conversation, which reset hasAutoOpened and may have started an attempt
+     * of its own.
+     */
+    if (pin.epoch !== epoch) {
+      return
+    }
+
+    hasAutoOpened = outcome !== 'withdrawn'
+    isAutoOpenPending = !hasAutoOpened
+
+    /**
+     * An edit or shell command that landed during the attempt may have given
+     * the diff something to list, and a main-loop edit that arrived then
+     * returned early at the isTaken check above, so try again.
+     */
+    if (!hasAutoOpened && landed !== landedBefore) {
+      await openOnFirstEdit(engine)
+    }
   }
 
   async function openOnRestore(engine: Host): Promise<void> {
@@ -821,6 +904,10 @@ export function register(on: On) {
 
     const isOpening = toggle === 'open'
 
+    if (!isOpening) {
+      personCloses += 1
+    }
+
     const outcome = isOpening
       ? await openPane(host, 'manual')
       : await closePane(host).then(() => 'placed' as const)
@@ -871,6 +958,10 @@ export function register(on: On) {
     if (isClosed) {
       isPaneOpen = false
       awaited = null
+    }
+
+    if (isPersons) {
+      personCloses += 1
     }
 
     const isDocking = model.isFullscreen !== false
@@ -942,6 +1033,7 @@ export function register(on: On) {
 
     unpin()
     hasAutoOpened = false
+    isAutoOpenPending = false
     hasRestoredEdits = false
     bodyStamp = null
     bodyBase = null
@@ -989,7 +1081,12 @@ export function register(on: On) {
 
     const isMainLoopEdit = hasEdited && e.agentId === undefined
 
-    if (isMainLoopEdit) {
+    /**
+     * Only a main-loop edit, or a restored session, makes the first ask. After
+     * an ask that did not open the pane, any edit or shell command that lands
+     * asks again, since it may have given the diff something to list.
+     */
+    if (isMainLoopEdit || (hasLanded && isAutoOpenPending)) {
       void openOnFirstEdit(engine).catch(() => undefined)
     }
   }

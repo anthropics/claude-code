@@ -18,18 +18,27 @@ itself, as the built-in panel opens on its first checkpoint: where the
 layout docks it beside the transcript (the fullscreen layout, which each
 drawing's `viewport` says), the terminal is wide enough (144 columns when
 the person never chose, 110 when they kept it open before; a person who
-closed it is left alone) and file checkpointing is on; a subagent's edit
-opens nothing, and where the surface does not say, nothing opens by
-itself. A docked pane fetches before it opens, as the built-in panel
-primes its data, so it never lands on `Loading diff…`; an open the engine
-leaves waiting undrawn is withdrawn, so no later resize seats it, and the
-next edit asks again. An open answered `no-surface` (nothing is attached
+closed it is left alone) and file checkpointing is on; a subagent's edit or
+a shell command never makes the first ask, and where the surface does not
+say, nothing opens by itself. A docked pane fetches before it opens, as the
+built-in panel primes its data, so it never lands on `Loading diff…`.
+
+An open nobody asked for starts its own fetch, after any fetch already
+running. It opens the pane only if that fetch succeeds and lists a file, and
+the person has not opened or closed the pane in the meantime, so it never
+lands on an empty state such as `No changes this session` or
+`Diff unavailable`. If it does not open, it asks again when that fetch ends
+if an edit or shell command landed during it, and otherwise at the next edit
+or shell command that lands. An open the engine leaves waiting undrawn is
+withdrawn, so no later resize seats it, and the next edit or shell command
+that lands asks again. An open answered `no-surface` (nothing is attached
 that draws it yet, as before a host's page attaches) is kept instead:
 `/diff` says so, nothing polls or refreshes while no one sees the pane, and
 its first drawing reads the repository again and counts it shown. A session
 resumed or continued whose transcript already holds such an edit opens the
-pane on the same terms as soon as the width is known, as the built-in opens
-on the history it restores.
+pane on the same terms as soon as the width is known. The built-in opens on
+the history it restores even when the tree lists nothing; this one leaves
+that case to the next edit or shell command that lands.
 
 Under the fullscreen layout a terminal under 110 columns gets the
 built-in's line asking for a wider one and nothing opens. Without that
@@ -59,13 +68,15 @@ Outside a git repository `/diff` says so and does nothing else.
 
 Git runs when the built-in panel's would: nothing at the session's start;
 one `git rev-parse`, in the directory the session started in, when `/diff`
-or the first edit a pane has room to open on first needs the repository
-(an answer of no repository is kept too, until `/clear` or `/resume`
-forgets it); and the working tree is read only by a fetch for a pane that
-is open, after an edit that landed or a shell command that ran. The one
-read the built-in has no counterpart for is a `git status` at a pane's
-first fetch, which stands in for the change time the built-in dates a
-moved file by.
+or the first edit a pane has room to open on first needs the repository (an
+answer of no repository is kept too, until `/clear` or `/resume` forgets
+it); and the working tree is read only by a fetch for an open pane after an
+edit that landed or a shell command that ran, or by the fetch before a pane
+opens. Two reads have no counterpart in the built-in: a `git status` at a
+pane's first fetch, which stands in for the change time the built-in dates a
+moved file by, and the fetches an open nobody asked for repeats after its
+first fetch did not open the pane: one after each later edit or shell
+command that lands, and one more when one landed during a fetch.
 
 `hooks/register.ts` is the module; everything under `hooks/` is its parts.
 
@@ -80,9 +91,9 @@ moved file by.
 | `ui.close` of the pane | Backs out of the dialog's detail view instead of closing; else remembers the person's close as `/diff`'s. |
 | `ui.scroll` of the pane | Docked, moves the hunks under the pinned header and list (three rows a wheel tick, a page a page key), or the list when the wheel is over it, and keeps the engine's window still. |
 | `ui.focus` in the pane | In the dialog's list, selects the file the ring lands on, re-centres the five rows on it, and lands the ring where that row now sits. |
-| `command.run` of `clear`, `resume` | Closes the pane and forgets the session's state, the pinned repository with it. |
-| `tool.call` of `Edit`, `Write`, `NotebookEdit` | After an edit that landed (not refused, not failed), refreshes an open pane; the main loop's first such edit opens it, pinning the repository then if the terminal has the room and checkpointing is on. |
-| `tool.call` of `Bash`, `PowerShell` | After a command that was not refused, failed and interrupted ones too, refreshes an open pane. |
+| `command.run` of `clear`, `resume` | Forgets the session's state, the pinned repository with it. `/resume` closes the pane; `/clear` leaves an open pane up and reads afresh. |
+| `tool.call` of `Edit`, `Write`, `NotebookEdit` | After an edit that landed (not refused, not failed), refreshes an open pane. The main loop's first such edit pins the repository and asks to open the pane if the terminal has the room and checkpointing is on; after an ask that did not open it, any edit that lands asks again. |
+| `tool.call` of `Bash`, `PowerShell` | After a command that was not refused, failed and interrupted ones too, refreshes an open pane; after an ask that did not open the pane, also asks to open it. |
 | `prompt.submit` | Adds the armed file's hunks to the prompt's context and disarms. |
 
 ## What it calls on `$`
