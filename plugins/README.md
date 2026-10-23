@@ -26,6 +26,18 @@ Learn more in the [official plugins documentation](https://docs.claude.com/en/do
 | [ralph-wiggum](./ralph-wiggum/) | Interactive self-referential AI loops for iterative development. Claude works on the same task repeatedly until completion | **Commands:** `/ralph-loop`, `/cancel-ralph` - Start/stop autonomous iteration loops<br>**Hook:** Stop - Intercepts exit attempts to continue iteration |
 | [security-guidance](./security-guidance/) | Security reminder hook that warns about potential security issues when editing files | **Hook:** PreToolUse - Monitors 9 security patterns including command injection, XSS, eval usage, dangerous HTML, pickle deserialization, and os.system calls |
 
+### [api-fallback](./api-fallback/)
+
+**API Fallback Plugin**
+
+Quick commands for switching between Claude Pro/Max subscription and API key billing when usage limits are reached.
+
+- **Commands**:
+  - `/switch-to-api` - Switch from subscription to API key billing
+  - `/switch-to-subscription` - Switch back to subscription billing
+  - `/fallback-status` - Check authentication setup and fallback options
+- **Use case**: Interim solution for manual auth switching while awaiting automatic fallback ([issue #2944](https://github.com/anthropics/claude-code/issues/2944))
+
 ## Installation
 
 These plugins are included in the Claude Code repository. To use them in your own projects:
