@@ -1,0 +1,10 @@
+{
+  "name": "protect-mcp",
+  "version": "0.7.1",
+  "description": "Fail-closed Cedar policy gate plus Ed25519-signed receipts for tool calls. Blocks what breaks the rules before it runs (PreToolUse) and signs an offline-verifiable receipt of every decision (PostToolUse). Denies on any policy error rather than failing open.",
+  "author": {
+    "name": "Tom Farley (ScopeBlind)",
+    "email": "tommy@scopeblind.com"
+  },
+  "homepage": "https://github.com/anthropics/claude-code/tree/main/plugins/protect-mcp"
+}
