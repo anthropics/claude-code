@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from typing import Any
 
 import extensibility
@@ -344,6 +345,362 @@ def tag_diff_anchor(
     return candidates
 
 
+# ---------------------------------------------------------------------------
+# Secret-value redaction for feedback text
+# ---------------------------------------------------------------------------
+#
+# Findings quote the diff (`vulnerableCode`, `fix`, `evidenceLine`), and the
+# formatted block is fed back into the main conversation and kept in session
+# state. For a hardcoded-secret finding that quote IS the secret, so a value
+# that only ever lived in a working-tree file gets copied into model context,
+# the transcript and ~/.claude. The reviewer is deliberately NOT asked to
+# elide values itself: diff anchoring, dedupe and the refute pass all compare
+# the quoted code against the diff. Masking happens here, on the way out.
+# Keep the key name and the last two characters so the finding still points
+# at the right line; when unsure, mask: a garbled evidence line costs less
+# than an echoed credential. Pattern matching, not a guarantee — the README
+# says so and points at Read(...) deny rules for files that must never leave.
+
+# Identifier segments that make an assignment's left-hand side a credential.
+_SECRET_KEY_WORDS = frozenset((
+    "password", "passwd", "pwd", "pass", "passphrase", "secret", "secrets",
+    "token", "apikey", "apitoken", "authtoken", "accesstoken", "refreshtoken",
+    "secretkey", "privatekey", "accesskey", "signingkey", "masterkey",
+    "credential", "credentials", "creds", "authorization", "bearer", "dsn",
+    "connectionstring", "connstr", "connstring",
+))
+# Joined spellings: PGPASSWORD, DBPASSWORD, CLIENTSECRET, GHTOKEN.
+_SECRET_KEY_SUFFIXES = ("password", "passwd", "passphrase", "secret", "token", "apikey")
+_SECRET_KEY_PAIRS = frozenset((
+    ("api", "key"), ("private", "key"), ("secret", "key"), ("access", "key"),
+    ("signing", "key"), ("master", "key"), ("encryption", "key"),
+    ("client", "secret"), ("auth", "token"), ("auth", "key"),
+    ("conn", "str"), ("connection", "string"),
+))
+# ...unless another segment says the value is metadata about a credential.
+_NOT_SECRET_KEY_WORDS = frozenset((
+    "timeout", "expiry", "expires", "expire", "expiration", "ttl", "age",
+    "length", "len", "max", "min", "size", "count", "limit", "attempts",
+    "url", "uri", "endpoint", "host", "path", "file", "filename", "dir",
+    "name", "names", "id", "ids", "type", "field", "fields", "header", "param",
+    "hash", "hashed", "hasher", "hashers", "digest", "alg", "algorithm",
+    "reset", "csrf", "xsrf", "enabled", "disabled", "required", "use",
+    "policy", "rotation", "validator", "validators", "regex", "pattern",
+))
+# A dotted "key" ending in one of these is a file name (`secrets.yml:12`).
+_FILE_EXTENSIONS = frozenset((
+    "yml", "yaml", "json", "toml", "ini", "cfg", "conf", "env", "properties",
+    "xml", "txt", "md", "py", "js", "ts", "jsx", "tsx", "go", "rb", "java",
+    "kt", "rs", "ex", "exs", "php", "cs", "sh", "swift", "scala", "c", "h",
+    "cpp", "tf", "tfvars", "sql", "lock", "pem", "key",
+))
+_BARE_VALUE_SKIP = frozenset((
+    "true", "false", "null", "none", "nil", "yes", "no", "required",
+    "optional", "string", "str", "redacted", "await", "new",
+))
+_CAMEL_RE = re.compile(r"(?<=[a-z0-9])(?=[A-Z])")
+_SEGMENT_SPLIT_RE = re.compile(r"[_\-.$\s]+")
+# Assignment/comparison operator. The key before it is found by walking back
+# over identifier characters, which keeps the scan linear on hostile input
+# (the quoted code comes from the repository under review).
+_ASSIGN_OP_RE = re.compile(r"(?:[!=]?==|!=|=>|:=|[:=])[ \t]*")
+_KEY_CHARS = frozenset("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_$.-")
+# `password: str = "..."`, `apiKey: string = '...'`, `password: &str = "..."`.
+_TYPE_ANNOTATION_RE = re.compile(r"[&*]?[A-Za-z_][\w.<>\[\]&|?]*(?:[ \t]+=(?!=)[ \t]*|=(?=[\"'bfru@]))")
+_STRING_PREFIX_RE = re.compile(r"(?:[bBfFrRuU]{1,2}|@)(?=[\"'])")
+_AUTH_SCHEME_RE = re.compile(r"(?i)(?:basic|bearer|token|digest|apikey|negotiate)[ \t]+")
+_BARE_TOKEN_RE = re.compile(r"[^\s,;&)}\]\"'`]+")
+_DOTTED_REFERENCE_RE = re.compile(r"[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)+$")
+_CONSTANT_NAME_RE = re.compile(r"[A-Z][A-Z0-9_]*$")
+# What may precede a key that opens a config line: indentation, a diff or
+# list marker, a quote, a `file:line:` prefix, `export`/`ENV`/`set`.
+_LINE_LEAD_RE = re.compile(
+    r"[\s+>\"'-]*(?:[\w./\\-]+:\d+:[ \t]*)?(?:(?:export|ENV|ARG|set|SET|setx)[ \t]+)?$"
+)
+# Dockerfile `ENV DB_PASSWORD value` (the `=`-less form).
+_DOCKER_ENV_RE = re.compile(r"(?m)^([ \t+-]*(?:ENV|ARG)[ \t]+([A-Za-z_]\w*)[ \t]+)([^\s=\"']+)$")
+# <password>value</password> style markup.
+_XML_VALUE_RE = re.compile(r"(<([A-Za-z_][\w.-]*)[^>]*>)([^<]{3,})(</)")
+# curl -u user:pass / --user 'user:pass'
+_CURL_USER_RE = re.compile(r"((?:\s-u[ \t]*|--user[= \t]+)[\"']?[^\s:'\"]*:)([^\s'\"]+)")
+# --password VALUE / --token VALUE / --api-key VALUE
+_CLI_FLAG_RE = re.compile(
+    r"(?i)((?<![\w-])--?(?:password|passwd|passphrase|token|secret|api[_-]?key|access[_-]?key"
+    r"|secret[_-]?key|client[_-]?secret|auth[_-]?token)[ \t]+)([^\s\"'$<{-][^\s\"']*)"
+)
+# Bearer <token> outside an Authorization assignment (prose, logs).
+_BEARER_RE = re.compile(r"(?i)(\bbearer\s+)((?=[A-Za-z0-9._~+/=-]*\d)[A-Za-z0-9._~+/=-]{8,})")
+# scheme://user:password@host and scheme://:password@host
+_URL_CRED_RE = re.compile(
+    r"((?<![A-Za-z0-9+.-])[A-Za-z][A-Za-z0-9+.-]*://[^\s/:@]*:)([^\s/]{3,})(@)(?=[^\s/@]*(?:[/?#]|$))"
+)
+# Well-known token shapes, wherever they appear.
+_TOKEN_SHAPES_RE = re.compile(
+    r"\b(?:sk-ant-[\w-]{10,}|sk_(?:live|test)_\w{8,}|sk-[\w-]{20,}"
+    r"|AKIA[0-9A-Z]{16}|ASIA[0-9A-Z]{16}|gh[pousr]_\w{20,}|github_pat_\w{20,}"
+    r"|xox[abprs]-[\w-]{10,}|glpat-[\w-]{20,}|AIza[\w-]{35}"
+    r"|eyJ[\w-]{10,}\.[\w-]{10,}\.[\w-]{10,})\b"
+)
+_PEM_BODY_RE = re.compile(
+    r"(-----BEGIN [A-Z ]*PRIVATE KEY[A-Z ]*-----)[\s\S]*?(-----END [A-Z ]*PRIVATE KEY[A-Z ]*-----|$)"
+)
+# A finding the reviewer itself classed as an exposed credential also gets
+# the broad masks: quoted literals and long opaque runs anywhere in the text,
+# since the value may sit in a positional argument or in the fix prose.
+_SECRET_CATEGORY_RE = re.compile(
+    r"(?i)secret|credential|passw|passphrase|api[ _-]?key|private[ _-]?key"
+    r"|access[ _-]?key|token|key material|cwe-?(?:259|798|321|312|313)"
+)
+_NOT_SECRET_CATEGORY_RE = re.compile(
+    r"(?i)csrf|xsrf|reset|expir|invalidat|missing|validat|verif|hash|length"
+    r"|strength|polic|logging|logged|fixation|predictab|entropy|jwt alg"
+)
+_QUOTED_RE = re.compile(r"([\"'`])([^\"'`\s]{8,})(\1)")
+# Quoted things that are not values: names, file names, templates.
+_QUOTED_KEEP_RE = re.compile(r"[A-Z][A-Z0-9_]*$|[A-Za-z][A-Za-z_-]*[-_][A-Za-z]+$|[${<%(~.]")
+_LABEL_RE = re.compile(r"[A-Za-z][A-Za-z_ .-]{0,30}[=:][ \t]*$")  # "password=" log labels
+_ATTRIBUTE_NAME_RE = re.compile(r"(?i)(?:key|name|id|for|class|type)=$")
+_PATH_SEGMENT_RE = re.compile(r"[a-z0-9_.@+~-]+$")
+_FILE_EXT_RE = re.compile(r"\w\.[A-Za-z][A-Za-z0-9]{0,4}$")
+_OPAQUE_RUN_RE = re.compile(r"(?<![\w/.*+-])[A-Za-z0-9_+/-]{16,}={0,2}(?![\w*=]|\.[A-Za-z])")
+
+
+def _mask(value: str) -> str:
+    return "****" + value[-2:] if len(value) >= 8 else "****"
+
+
+def _looks_like_path(text: str) -> bool:
+    if text.startswith(("/", "./", "../", "~/")) or "://" in text:
+        return True
+    segments = [seg for seg in re.split(r"[/\\]", text) if seg]
+    return len(segments) > 1 and (
+        all(_PATH_SEGMENT_RE.match(seg) for seg in segments)
+        or any(_FILE_EXT_RE.search(seg) for seg in segments)
+    )
+
+
+def _keep_assigned(value: str) -> bool:
+    """A quoted right-hand side is a literal; keep it only when it is a
+    template/reference placeholder or a path, never for its shape."""
+    return bool(
+        value.startswith(("****", "$", "%(", "<", "{{", "~/"))
+        or ("{" in value and "}" in value) or "%s" in value or "$(" in value
+        or ("/" in value and _looks_like_path(value))
+        or value.lower() in _BARE_VALUE_SKIP
+    )
+
+
+def _keep_quoted(inner: str) -> bool:
+    """True for a quoted string that reads as a name, reference, path, URL
+    or template rather than a value: those carry the finding's location."""
+    return bool(
+        inner.startswith("****")
+        or _LABEL_RE.match(inner)
+        or ("{" in inner and "}" in inner) or "%s" in inner or "$(" in inner
+        or _QUOTED_KEEP_RE.match(inner)
+        or _DOTTED_REFERENCE_RE.match(inner)
+        or _FILE_EXT_RE.search(inner)
+        or (("/" in inner or "\\" in inner) and _looks_like_path(inner))
+    )
+
+
+def _is_secret_key(key: str) -> bool:
+    segments = [
+        seg for seg in _SEGMENT_SPLIT_RE.split(_CAMEL_RE.sub("_", key).lower()) if seg
+    ]
+    if not segments or any(seg in _NOT_SECRET_KEY_WORDS for seg in segments):
+        return False
+    if "." in key and key.rsplit(".", 1)[-1].lower() in _FILE_EXTENSIONS:
+        return False
+    for seg in segments:
+        if seg in _SECRET_KEY_WORDS:
+            return True
+        if not seg.startswith(("csrf", "xsrf")) and seg.endswith(_SECRET_KEY_SUFFIXES) \
+                and any(0 < len(seg) - len(w) <= 6 for w in _SECRET_KEY_SUFFIXES if seg.endswith(w)):
+            return True
+    return any(pair in _SECRET_KEY_PAIRS for pair in zip(segments, segments[1:]))
+
+
+def _is_secret_category(category: str) -> bool:
+    return bool(_SECRET_CATEGORY_RE.search(category)) and not _NOT_SECRET_CATEGORY_RE.search(category)
+
+
+def _mask_assignments(s: str) -> str:
+    """`key = value`, `key: value`, `"key": "value"`, `cfg['key'] = 'value'`,
+    `key: Type = "value"`, `key == 'value'` where the key names a credential.
+    A quoted value is masked whole (spaces, punctuation and all); a bare
+    value is masked as one token, or to end of line when the key opens the
+    line (YAML, .env, ini, a quoted `+` diff line)."""
+    out: list[str] = []
+    pos = 0
+    length = len(s)
+    while True:
+        m = _ASSIGN_OP_RE.search(s, pos)
+        if not m:
+            out.append(s[pos:])
+            return "".join(out)
+        i = m.end()
+        out.append(s[pos:i])
+        pos = i
+        # Walk back: spaces, an optional quote/bracket closing a subscript or
+        # JSON key, then the identifier itself.
+        j = m.start()
+        while j > 0 and s[j - 1] in " \t":
+            j -= 1
+        key_quote = ""
+        if j > 0 and s[j - 1] == "]":
+            j -= 1
+        if j > 0 and s[j - 1] in "\"'":
+            key_quote = s[j - 1]
+            j -= 1
+        key_end = key_start = j
+        while key_start > 0 and s[key_start - 1] in _KEY_CHARS:
+            key_start -= 1
+        while key_start < key_end and s[key_start] in "-.$0123456789":
+            key_start += 1
+        key = s[key_start:key_end]
+        if i >= length or not key or not _is_secret_key(key):
+            continue
+        ch = s[i]
+        line_start = s.rfind("\n", 0, key_start) + 1
+        # `log("password=" + pw)`, `"...?api_key=" + key`: an odd number of
+        # quotes before this one means it closes the literal the key sits in,
+        # and what follows is code.
+        if not key_quote and ch in "\"'" and s.count(ch, line_start, i) % 2 == 1:
+            continue
+        if m.group(0).rstrip() == ":":
+            typed = _TYPE_ANNOTATION_RE.match(s, i)
+            if typed:
+                out.append(typed.group(0))
+                pos = i = typed.end()
+                if i >= length:
+                    continue
+                ch = s[i]
+        prefix_m = _STRING_PREFIX_RE.match(s, i)
+        if prefix_m:
+            out.append(prefix_m.group(0))
+            pos = i = prefix_m.end()
+            ch = s[i]
+        if ch in "\"'`":
+            close = s.find(ch, i + 1)
+            newline = s.find("\n", i + 1)
+            if close == -1 or (newline != -1 and newline < close):
+                close = newline if newline != -1 else length
+            inner = s[i + 1:close]
+            scheme = _AUTH_SCHEME_RE.match(inner)
+            prefix = scheme.group(0) if scheme else ""
+            value = inner[len(prefix):]
+            if value and not _keep_assigned(value):
+                value = _mask(value)
+            out.append(ch + prefix + value)
+            pos = close
+            continue
+        scheme = _AUTH_SCHEME_RE.match(s, i)
+        if scheme:
+            out.append(scheme.group(0))
+            pos = i = scheme.end()
+        token_m = _BARE_TOKEN_RE.match(s, i)
+        if not token_m:
+            continue
+        token = token_m.group(0)
+        end = token_m.end()
+        if token.startswith(("****", "$", "{", "<", "%", "&", "*", "@")) or "(" in token \
+                or "[" in token or token.lower() in _BARE_VALUE_SKIP \
+                or _DOTTED_REFERENCE_RE.match(token):
+            continue
+        opens_line = bool(_LINE_LEAD_RE.match(s[line_start:key_start]))
+        # `-H 'X-Api-Key: value'`: the key opens a quoted string, the value ends it.
+        opens_string = not key_quote and key_start > line_start and s[key_start - 1] in "\"'"
+        has_digit = any(c.isdigit() for c in token)
+        # In code a bare right-hand side is a reference; bare literals live in
+        # config lines (YAML, .env, ini, Dockerfile), where the key opens the
+        # line or a quoted string. Mid-line, only a token carrying digits
+        # reads as a value, and an ALL_CAPS one reads as a constant's name.
+        if not (opens_line or opens_string) and (_CONSTANT_NAME_RE.match(token) or not has_digit):
+            continue
+        # `key: v a l u e` runs on to the end of the line (or of the string);
+        # `KEY=value cmd`, a shell prefix assignment, is one token.
+        if (opens_line or opens_string) and (m.group(0)[-1] in " \t" or m.group(0).startswith(":")):
+            line_end = s.find("\n", end)
+            line_end = length if line_end == -1 else line_end
+            if opens_string:
+                close = s.find(s[key_start - 1], end, line_end)
+                line_end = close if close != -1 else line_end
+            rest = s[end:line_end]
+            comment = rest.find(" #")
+            if comment != -1:
+                rest = rest[:comment]
+            if len(rest.split()) > 3 and not opens_string:
+                if not has_digit:
+                    continue  # more than a few words after `Key:` is a sentence
+            elif "(" not in rest and "[" not in rest:
+                end += len(rest.rstrip())
+                token = s[i:end]
+        out.append(_mask(token))
+        pos = end
+
+
+def _mask_docker_env(m: "re.Match[str]") -> str:
+    value = m.group(3)
+    if not _is_secret_key(m.group(2)) or value.startswith(("$", "{", "<", "****")):
+        return m.group(0)
+    return m.group(1) + _mask(value)
+
+
+def _mask_xml(m: "re.Match[str]") -> str:
+    value = m.group(3).strip()
+    if not _is_secret_key(m.group(2)) or value.lower() in _BARE_VALUE_SKIP \
+            or value.startswith(("$", "{", "%", "<", "****")):
+        return m.group(0)
+    return m.group(1) + _mask(value) + m.group(4)
+
+
+def _mask_quoted(m: "re.Match[str]") -> str:
+    inner, text, start, end = m.group(2), m.string, m.start(), m.end()
+    after = text[end:end + 4].lstrip(" \t")
+    is_key = after[:1] in (":", "=") and after[1:2] not in ("=", ">", ":")
+    is_subscript = text[max(0, start - 1):start] == "[" and text[end:end + 1] == "]"
+    is_attribute_name = _ATTRIBUTE_NAME_RE.search(text[max(0, start - 8):start])
+    if is_key or is_subscript or is_attribute_name or _keep_quoted(inner):
+        return m.group(0)
+    return m.group(1) + _mask(inner) + m.group(3)
+
+
+def _mask_opaque(m: "re.Match[str]") -> str:
+    run, text = m.group(0), m.string
+    if text[m.end():m.end() + 1] == "(" or text[max(0, m.start() - 7):m.start()].lower() in ("commit ", "sha "):
+        return run  # a call site / a commit reference, not a value
+    digits = sum(ch.isdigit() for ch in run)
+    letters = sum(ch.isalpha() for ch in run)
+    mixed_case = run.lower() != run and run.upper() != run
+    opaque = letters >= 2 and (digits >= 2 or (digits and mixed_case and len(run) >= 32))
+    if not opaque or ("/" in run and _looks_like_path(run)):
+        return run
+    return _mask(run)
+
+
+def redact_secret_values(text: Any, *, category: Any = "") -> str:
+    """Mask credential-shaped values in a finding field before it is echoed
+    into the main conversation or stored. ``category`` is the finding's own
+    category; one that names an exposed credential turns on the broad masks."""
+    s = str(text or "")
+    if not s:
+        return s
+    s = _PEM_BODY_RE.sub(lambda m: m.group(1) + " **** " + m.group(2), s)
+    s = _TOKEN_SHAPES_RE.sub(lambda m: _mask(m.group(0)), s)
+    s = _URL_CRED_RE.sub(lambda m: m.group(1) + _mask(m.group(2)) + m.group(3), s)
+    s = _CURL_USER_RE.sub(lambda m: m.group(1) + _mask(m.group(2)), s)
+    s = _CLI_FLAG_RE.sub(lambda m: m.group(1) + _mask(m.group(2)), s)
+    s = _BEARER_RE.sub(lambda m: m.group(1) + _mask(m.group(2)), s)
+    s = _mask_assignments(s)
+    s = _DOCKER_ENV_RE.sub(_mask_docker_env, s)
+    s = _XML_VALUE_RE.sub(_mask_xml, s)
+    if _is_secret_category(str(category or "")):
+        s = _QUOTED_RE.sub(_mask_quoted, s)
+        s = _OPAQUE_RUN_RE.sub(_mask_opaque, s)
+    return s
+
+
 _SEVERITY_ORDER = {"critical": 0, "high": 1, "medium": 2, "low": 3}
 
 
@@ -366,7 +723,9 @@ def filter_by_severity(
 
 
 def format_findings(findings: list[dict[str, Any]]) -> str:
-    """Render findings as the same text block the CC plugin emits to Claude."""
+    """Render findings, most severe first, as the text block the CC plugin
+    emits to Claude. Quoted code goes through ``redact_secret_values``."""
+    findings = sorted(findings, key=lambda v: _SEVERITY_ORDER.get(v.get("severity", "medium"), 2))
     by_file: dict[str, list[dict[str, Any]]] = {}
     for v in findings:
         by_file.setdefault(v.get("filePath", "unknown"), []).append(v)
@@ -388,11 +747,14 @@ def format_findings(findings: list[dict[str, Any]]) -> str:
         lines.append(f"  {fp}:")
         for v in vs:
             sev = (v.get("severity") or "medium").upper()
+            cat = v.get("category", "Unknown")
             lines.append(
-                f"    {n}. [{sev}] [{v.get('category', 'Unknown')}] "
-                f"{v.get('vulnerableCode', 'N/A')}"
+                f"    {n}. [{sev}] [{cat}] "
+                f"{redact_secret_values(v.get('vulnerableCode', 'N/A'), category=cat)}"
             )
-            lines.append(f"       Suggested fix: {v.get('fix', 'N/A')}")
+            lines.append(
+                f"       Suggested fix: {redact_secret_values(v.get('fix', 'N/A'), category=cat)}"
+            )
             lines.append("")
             n += 1
     return "\n".join(lines)
