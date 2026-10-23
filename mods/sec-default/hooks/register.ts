@@ -60,6 +60,10 @@ export function register(on: On) {
   on('settings.read', ($, e, next) => next.to(e, 'append'))
 
   on('tool.describe', ($, e, next) => pastUsers(e, next))
+  // This row and the env.get row only pass the event on. Where this plugin is the copy
+  // built into the engine and no other plugin hooks the event, the engine skips them.
+  // Before either does more, take its event off that skip: a test in the engine's
+  // repository fails and says where.
   on('command.describe', ($, e, next) => pastUsers(e, next))
   on('agent.offer', ($, e, next) => pastUsers(e, next))
   on('agent.spawn', ($, e, next) => pastUsers(e, next))
@@ -155,6 +159,7 @@ export function register(on: On) {
     return isOrgs ? next.to(e, 'append') : next(e)
   })
 
+  // Skipped when alone on the event: see the command.describe row.
   on('env.get', ($, e, next) => {
     const isOrgs =
       next.origin.tier === 'prepend' || next.origin.tier === 'append'
