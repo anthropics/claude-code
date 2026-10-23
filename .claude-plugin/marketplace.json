@@ -81,6 +81,17 @@
       "category": "development"
     },
     {
+      "name": "hook-integrity-guard",
+      "description": "Prevents Claude from modifying its own hooks, settings, and safety infrastructure. Blocks Edit, Write, MultiEdit, and Bash operations targeting hook scripts, settings files, and plugin directories.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Sunny Patel",
+        "url": "https://github.com/sunnypatell"
+      },
+      "source": "./plugins/hook-integrity-guard",
+      "category": "security"
+    },
+    {
       "name": "hookify",
       "description": "Easily create custom hooks to prevent unwanted behaviors by analyzing conversation patterns or from explicit instructions. Define rules via simple markdown files.",
       "version": "0.1.0",
