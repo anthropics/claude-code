@@ -1,0 +1,38 @@
+[package]
+name = "claude-cli"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description = "Main CLI binary for Claude Code"
+
+[[bin]]
+name = "claude-code"
+path = "src/main.rs"
+
+[dependencies]
+claude-core = { path = "../claude-core" }
+claude-api = { path = "../claude-api" }
+claude-engine = { path = "../claude-engine" }
+claude-tools = { path = "../claude-tools" }
+claude-tui = { path = "../claude-tui", optional = true }
+
+# Async runtime
+tokio = { workspace = true }
+
+# Error handling
+anyhow = { workspace = true }
+
+# Tracing
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+# CLI
+clap = { workspace = true, features = ["derive"] }
+
+[features]
+default = ["tui"]
+tui = ["dep:claude-tui"]
+

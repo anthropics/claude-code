@@ -1,0 +1,30 @@
+[package]
+name = "claude-permissions"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description = "Advanced permission system with auto-allow patterns"
+
+[dependencies]
+# Regex for pattern matching
+regex = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Error handling
+thiserror = { workspace = true }
+
+# Tracing
+tracing = { workspace = true }
+
+# Async runtime
+tokio = { workspace = true }
+
+[dev-dependencies]
+tokio-test = "0.4"
+
