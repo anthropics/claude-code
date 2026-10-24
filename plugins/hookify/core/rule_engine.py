@@ -223,6 +223,8 @@ class RuleEngine:
                     except UnicodeDecodeError as e:
                         print(f"Warning: Encoding error in transcript {transcript_path}: {e}", file=sys.stderr)
                         return ''
+
+        return Noneturn ''
             elif field == 'user_prompt':
                 # For UserPromptSubmit events
                 return input_data.get('user_prompt', '')
