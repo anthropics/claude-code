@@ -1,0 +1,8 @@
+# Web4 Governance Plugin runtime dependencies.
+# Plugin gracefully degrades (no signing, no audit chain) if these are missing,
+# but full functionality requires them.
+
+cryptography>=41.0  # Ed25519 signing of audit records
+
+# Optional development dependencies (uncomment to run the test suite):
+# pytest>=7.0
