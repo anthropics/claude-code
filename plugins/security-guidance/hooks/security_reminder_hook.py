@@ -46,7 +46,7 @@ Per-feature toggles (all default enabled; set to "0" to disable):
 - ENABLE_COMMIT_REVIEW: PostToolUse[Bash] commit security review
 
 Other:
-- SECURITY_REVIEW_MODEL: Model for LLM review (default: claude-opus-4-7)
+- SECURITY_REVIEW_MODEL: Model for LLM review (default: claude-opus-5)
 - ANTHROPIC_API_KEY: Required for LLM-based reviews
 - ANTHROPIC_AUTH_TOKEN: Alternative to API key — OAuth access token sent as Bearer auth.
   Claude Code passes this automatically for OAuth-authenticated users.
