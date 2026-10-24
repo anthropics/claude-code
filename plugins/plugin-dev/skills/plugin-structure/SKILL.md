@@ -253,6 +253,20 @@ hooks/
 
 **Usage**: MCP servers integrate seamlessly with Claude Code's tool system
 
+### User configuration (`userConfig`)
+
+Plugins can declare `userConfig` in `plugin.json` so Claude Code prompts for options at enable time (API URLs, tokens, paths). Values are available as:
+
+- Environment variables: `CLAUDE_PLUGIN_OPTION_<KEY>`
+- Substitutions: `${user_config.KEY}` in MCP/LSP configs and **exec-form** hooks
+
+**Important (Claude Code v2.1.207+)**:
+
+1. **No shell-form interpolation** of `${user_config.*}` in plugin hook commands, monitor commands, or MCP `headersHelper` strings (shell-injection fix). Use exec form (`args`) or read `$CLAUDE_PLUGIN_OPTION_<KEY>` inside the script.
+2. **`pluginConfigs` are not read from project** `.claude/settings.json`. Only user, `--settings`, and managed settings supply plugin option values.
+
+See `references/manifest-reference.md` for the full schema and safe examples.
+
 ## Portable Path References
 
 ### ${CLAUDE_PLUGIN_ROOT}
