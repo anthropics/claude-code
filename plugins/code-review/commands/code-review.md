@@ -9,6 +9,10 @@ Provide a code review for the given pull request.
 - All tools are functional and will work without error. Do not test tools or make exploratory calls. Make sure this is clear to every subagent that is launched.
 - Only call a tool if it is required to complete the task. Every tool call should have a clear purpose.
 
+**Arguments:**
+- `--comment`: Post the review as a comment on the pull request (default: outputs to terminal only).
+- `--threshold <n>`: Only ship issues with a confidence score of `n` or higher (default: `80`). `<n>` must be an integer from 0 to 100. If `--threshold` is given with a value below 0, above 100, or non-integer, stop immediately and print: `Invalid --threshold value. Must be an integer between 0 and 100.` Do not run the review.
+
 To do this, follow these steps precisely:
 
 1. Launch a haiku agent to check if any of the following are true:
@@ -52,12 +56,30 @@ Note: Still review Claude generated PR's.
 
    In addition to the above, each subagent should be told the PR title and description. This will help provide context regarding the author's intent.
 
-5. For each issue found in the previous step by agents 3 and 4, launch parallel subagents to validate the issue. These subagents should get the PR title and description along with a description of the issue. The agent's job is to review the issue to validate that the stated issue is truly an issue with high confidence. For example, if an issue such as "variable is not defined" was flagged, the subagent's job would be to validate that is actually true in the code. Another example would be CLAUDE.md issues. The agent should validate that the CLAUDE.md rule that was violated is scoped for this file and is actually violated. Use Opus subagents for bugs and logic issues, and sonnet agents for CLAUDE.md violations.
+5. For each issue found in the previous step, launch parallel subagents that **both** validate the issue **and** assign a confidence score. Each subagent receives the PR title, description, a description of the issue, and the false-positive list below. Use Opus subagents for bug and logic issues, and Sonnet subagents for CLAUDE.md violations.
 
-6. Filter out any issues that were not validated in step 5. This step will give us our list of high signal issues for our review.
+   Each subagent must verify the issue against the actual code/diff and return a result with this structure:
+   - `verdict`: `real` or `false_positive`
+   - `score`: one of `0`, `25`, `50`, `75`, `100` (set to `0` when `verdict` is `false_positive`; otherwise pick the closest rubric bucket below)
+   - `evidence`: a concrete description of what the subagent checked to verify the issue (e.g. "confirmed `userApi` is not imported in this file or any parent scope")
+   - `rule_citation`: for CLAUDE.md issues, the quoted rule text and the scoped CLAUDE.md file path; `null` for non-CLAUDE.md issues
+
+   **Scoring rubric** (assign the closest match):
+   - `0`: false positive / not real (e.g. "variable is not defined" but it is actually imported)
+   - `25`: real but trivial or out of scope (e.g. a style nit a senior engineer would not flag)
+   - `50`: real, minor — would not block merge (e.g. missing test for a small change)
+   - `75`: real, important — should fix before merge (e.g. missing error handling on a non-critical path)
+   - `100`: absolutely certain, definite bug or violation (e.g. syntax error; `==` vs `=` in a condition; a CLAUDE.md rule quoted verbatim and unambiguously broken)
+
+   **Scoring guardrails:**
+   - The score must reflect the issue, not the reviewer's confidence in having read it. A high score requires concrete `evidence` the subagent personally verified — never score above 50 without citing what you checked.
+   - For CLAUDE.md issues, `rule_citation` is mandatory. An unverifiable "I think CLAUDE.md says…" gets score 0.
+   - The false-positive list below still applies — do not score pre-existing issues, lint-caught issues, pedantic nitpicks, or lint-ignore-silenced issues; their `verdict` is `false_positive`.
+
+6. Filter the issues: keep only those where `verdict` is `real` **and** `score` is greater than or equal to the `--threshold` value (default `80`). This is the final list of high-signal issues for the review.
 
 7. Output a summary of the review findings to the terminal:
-   - If issues were found, list each issue with a brief description.
+   - If issues were found, list each issue with a brief description and its score in parentheses, e.g. `1. `==` used instead of `===` in a condition (score 100)`.
    - If no issues were found, state: "No issues found. Checked for bugs and CLAUDE.md compliance."
 
    If `--comment` argument was NOT provided, stop here. Do not post any GitHub comments.
