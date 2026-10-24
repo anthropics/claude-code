@@ -27,7 +27,7 @@ You will help the user create hookify rules to prevent unwanted behaviors. Follo
 - Agent will return structured findings
 
 **To analyze conversation:**
-Use the Task tool to launch conversation-analyzer agent:
+Use the Agent tool to launch conversation-analyzer agent:
 ```
 {
   "subagent_type": "general-purpose",
