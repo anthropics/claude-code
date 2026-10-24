@@ -122,6 +122,18 @@ person reads when something held over a plugin of theirs. It continues to
 the `append` tier with `next.to`, which only a plugin in a managed tier may
 do.
 
+An organization's plugin seated above it in `prepend` can reopen an event
+with `next.to(e, "user")`: this mod is then a peer below that hook, and is
+skipped. One seated below it reopens nothing, its floor at `append` winning.
+
+A reopen is as wide as the opener's hooks that spell `next.to(e, "user")`, by
+pattern: the host reads their matcher and door over the dispatch as raised. A
+condition inside a hook is not checked, so a mod that shares the hooks worker
+can cause the reopen there whether or not the hook took the branch. Where a
+member above rewrites the argument into such a matcher, the call fails in the
+opener's hook, and the hop and its rewrite go on with the guard in place. A
+RegExp is not read past 65,536 characters, and the reopen is refused there.
+
 ## Deny rules hold
 
 On `tool.check` any hook may answer any verdict, so a plugin a person
