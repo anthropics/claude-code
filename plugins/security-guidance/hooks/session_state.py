@@ -109,8 +109,23 @@ def save_state(session_id, state):
         if state_dir:
             os.makedirs(state_dir, exist_ok=True)
 
-        with open(state_file, "w") as f:
-            json.dump(state, f)
+        # Refuse to write through a symlink — a planted link under the state
+        # dir could redirect credential-adjacent session state into another file.
+        if os.path.islink(state_file):
+            debug_log(f"Refusing to write through symlink state file {state_file}")
+            return
+
+        flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
+        if hasattr(os, "O_NOFOLLOW"):
+            flags |= os.O_NOFOLLOW
+        fd = os.open(state_file, flags, 0o600)
+        try:
+            with os.fdopen(fd, "w") as f:
+                json.dump(state, f)
+                fd = None  # fdopen owns the descriptor
+        finally:
+            if fd is not None:
+                os.close(fd)
     except (IOError, OSError) as e:
         debug_log(f"Failed to save state file {state_file}: {e}")
 
