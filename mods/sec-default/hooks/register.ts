@@ -31,6 +31,9 @@ export function register(on: On) {
 
   on('prompt.section', ($, e, next) => next.to(e, 'append'))
   on('prompt.context', ($, e, next) => next.to(e, 'append'))
+  // This row and the session.append rows below only pass the event on, so the
+  // engine may skip them when no other plugin hooks the event. Before one does
+  // more, end that skip: an engine test, not in this folder, fails and says how.
   on('prompt.attachment', ($, e, next) => next.to(e, 'append'))
   on('prompt.compose', ($, e, next) => next.to(e, 'append'))
   on('skill.prompt', ($, e, next) => next.to(e, 'append'))
