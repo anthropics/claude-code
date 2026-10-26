@@ -47,8 +47,7 @@
         "source": "git-subdir",
         "url": "https://github.com/anthropics/claude-plugins-official.git",
         "path": "plugins/commit-commands",
-        "ref": "main",
-        "sha": "58267944f92187b7d6a1c822165c96c81c864806"
+        "ref": "main"
       },
       "category": "productivity"
     },
@@ -96,8 +95,7 @@
         "source": "git-subdir",
         "url": "https://github.com/anthropics/claude-plugins-official.git",
         "path": "plugins/hookify",
-        "ref": "main",
-        "sha": "58267944f92187b7d6a1c822165c96c81c864806"
+        "ref": "main"
       },
       "category": "productivity"
     },
@@ -145,8 +143,7 @@
         "source": "git-subdir",
         "url": "https://github.com/anthropics/claude-plugins-official.git",
         "path": "plugins/ralph-loop",
-        "ref": "main",
-        "sha": "58267944f92187b7d6a1c822165c96c81c864806"
+        "ref": "main"
       },
       "category": "development"
     },
