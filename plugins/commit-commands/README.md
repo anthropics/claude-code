@@ -75,10 +75,9 @@ Complete workflow command that commits, pushes, and creates a pull request in on
 ```
 
 **Features:**
-- Analyzes all commits in the branch (not just the latest)
+- Analyzes your current staged and unstaged changes
 - Creates comprehensive PR descriptions with:
   - Summary of changes (1-3 bullet points)
-  - Test plan checklist
   - Claude Code attribution
 - Handles branch creation automatically
 - Uses GitHub CLI (`gh`) for PR creation
@@ -140,7 +139,7 @@ This plugin is included in the Claude Code repository. The commands are automati
 ### Using `/commit-push-pr`
 - Use when you're ready to create a PR
 - Ensure all your changes are complete and tested
-- Claude will analyze the full branch history for the PR description
+- The PR description is generated from your current staged and unstaged changes
 - Review the PR description and edit if needed
 - Use when you want to minimize context switching
 
