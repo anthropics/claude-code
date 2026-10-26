@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
   "name": "claude-code-plugins",
   "version": "1.0.0",
-  "description": "Anthropic's Claude Code plugins. Most install from the claude-plugins-official repository; code-review installs from this repository",
+  "description": "Anthropic's Claude Code plugins, installed from the claude-plugins-official repository",
   "owner": {
     "name": "Anthropic",
     "email": "support@anthropic.com"
@@ -22,12 +22,16 @@
     {
       "name": "code-review",
       "description": "Automated code review for pull requests using multiple specialized agents with confidence-based scoring to filter false positives",
-      "version": "1.0.0",
       "author": {
         "name": "Boris Cherny",
         "email": "boris@anthropic.com"
       },
-      "source": "./plugins/code-review",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/anthropics/claude-plugins-official.git",
+        "path": "plugins/code-review",
+        "ref": "main"
+      },
       "category": "productivity"
     },
     {
