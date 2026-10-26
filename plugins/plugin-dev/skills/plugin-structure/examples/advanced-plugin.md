@@ -113,10 +113,7 @@ enterprise-devops/
     "url": "https://company.com/teams/devops"
   },
   "homepage": "https://docs.company.com/plugins/devops",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/company/devops-plugin.git"
-  },
+  "repository": "https://github.com/company/devops-plugin",
   "license": "Apache-2.0",
   "keywords": [
     "devops",
