@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
   "name": "claude-code-plugins",
   "version": "1.0.0",
-  "description": "Bundled plugins for Claude Code including Agent SDK development tools, PR review toolkit, and commit workflows",
+  "description": "Anthropic's Claude Code plugins. Most install from the claude-plugins-official repository; code-review installs from this repository",
   "owner": {
     "name": "Anthropic",
     "email": "support@anthropic.com"
@@ -11,18 +11,12 @@
     {
       "name": "agent-sdk-dev",
       "description": "Development kit for working with the Claude Agent SDK",
-      "source": "./plugins/agent-sdk-dev",
-      "category": "development"
-    },
-    {
-      "name": "claude-opus-4-5-migration",
-      "description": "Migrate your code and prompts from Sonnet 4.x and Opus 4.1 to Opus 4.5.",
-      "version": "1.0.0",
-      "author": {
-        "name": "William Hu",
-        "email": "whu@anthropic.com"
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/anthropics/claude-plugins-official.git",
+        "path": "plugins/agent-sdk-dev",
+        "ref": "main"
       },
-      "source": "./plugins/claude-opus-4-5-migration",
       "category": "development"
     },
     {
@@ -39,104 +33,156 @@
     {
       "name": "commit-commands",
       "description": "Commands for git commit workflows including commit, push, and PR creation",
-      "version": "1.0.0",
       "author": {
         "name": "Anthropic",
         "email": "support@anthropic.com"
       },
-      "source": "./plugins/commit-commands",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/anthropics/claude-plugins-official.git",
+        "path": "plugins/commit-commands",
+        "ref": "main"
+      },
       "category": "productivity"
     },
     {
       "name": "explanatory-output-style",
       "description": "Adds educational insights about implementation choices and codebase patterns (mimics the deprecated Explanatory output style)",
-      "version": "1.0.0",
       "author": {
         "name": "Dickson Tsai",
         "email": "dickson@anthropic.com"
       },
-      "source": "./plugins/explanatory-output-style",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/anthropics/claude-plugins-official.git",
+        "path": "plugins/explanatory-output-style",
+        "ref": "main"
+      },
       "category": "learning"
     },
     {
       "name": "feature-dev",
       "description": "Comprehensive feature development workflow with specialized agents for codebase exploration, architecture design, and quality review",
-      "version": "1.0.0",
       "author": {
         "name": "Siddharth Bidasaria",
         "email": "sbidasaria@anthropic.com"
       },
-      "source": "./plugins/feature-dev",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/anthropics/claude-plugins-official.git",
+        "path": "plugins/feature-dev",
+        "ref": "main"
+      },
       "category": "development"
     },
     {
       "name": "frontend-design",
       "description": "Create distinctive, production-grade frontend interfaces with high design quality. Generates creative, polished code that avoids generic AI aesthetics.",
-      "version": "1.1.0",
       "author": {
         "name": "Prithvi Rajasekaran & Alexander Bricken",
         "email": "prithvi@anthropic.com"
       },
-      "source": "./plugins/frontend-design",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/anthropics/claude-plugins-official.git",
+        "path": "plugins/frontend-design",
+        "ref": "main"
+      },
       "category": "development"
     },
     {
       "name": "hookify",
       "description": "Easily create custom hooks to prevent unwanted behaviors by analyzing conversation patterns or from explicit instructions. Define rules via simple markdown files.",
-      "version": "0.1.0",
       "author": {
         "name": "Daisy Hollman",
         "email": "daisy@anthropic.com"
       },
-      "source": "./plugins/hookify",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/anthropics/claude-plugins-official.git",
+        "path": "plugins/hookify",
+        "ref": "main"
+      },
       "category": "productivity"
     },
     {
       "name": "learning-output-style",
       "description": "Interactive learning mode that requests meaningful code contributions at decision points (mimics the unshipped Learning output style)",
-      "version": "1.0.0",
       "author": {
         "name": "Boris Cherny",
         "email": "boris@anthropic.com"
       },
-      "source": "./plugins/learning-output-style",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/anthropics/claude-plugins-official.git",
+        "path": "plugins/learning-output-style",
+        "ref": "main"
+      },
       "category": "learning"
     },
     {
       "name": "plugin-dev",
       "description": "Comprehensive toolkit for developing Claude Code plugins. Includes 7 expert skills covering hooks, MCP integration, commands, agents, and best practices. AI-assisted plugin creation and validation.",
-      "version": "0.1.0",
       "author": {
         "name": "Daisy Hollman",
         "email": "daisy@anthropic.com"
       },
-      "source": "./plugins/plugin-dev",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/anthropics/claude-plugins-official.git",
+        "path": "plugins/plugin-dev",
+        "ref": "main"
+      },
       "category": "development"
     },
     {
       "name": "pr-review-toolkit",
       "description": "Comprehensive PR review agents specializing in comments, tests, error handling, type design, code quality, and code simplification",
-      "version": "1.0.0",
       "author": {
         "name": "Anthropic",
         "email": "support@anthropic.com"
       },
-      "source": "./plugins/pr-review-toolkit",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/anthropics/claude-plugins-official.git",
+        "path": "plugins/pr-review-toolkit",
+        "ref": "main"
+      },
       "category": "productivity"
     },
     {
-      "name": "ralph-wiggum",
+      "name": "ralph-loop",
       "description": "Interactive self-referential AI loops for iterative development. Claude works on the same task repeatedly, seeing its previous work, until completion.",
-      "version": "1.0.0",
       "author": {
         "name": "Daisy Hollman",
         "email": "daisy@anthropic.com"
       },
-      "source": "./plugins/ralph-wiggum",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/anthropics/claude-plugins-official.git",
+        "path": "plugins/ralph-loop",
+        "ref": "main"
+      },
       "category": "development"
+    },
+    {
+      "name": "security-guidance",
+      "description": "Security review for Claude-generated code. Pattern-based warnings on edits, LLM-powered diff review on Stop, and an agentic commit reviewer that catches injection, XSS, SSRF, hardcoded secrets, and 25+ other vulnerability classes.",
+      "author": {
+        "name": "Anthropic",
+        "email": "support@anthropic.com"
+      },
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/anthropics/claude-plugins-official.git",
+        "path": "plugins/security-guidance",
+        "ref": "main"
+      },
+      "category": "security"
     }
   ],
   "renames": {
-    "security-guidance": null
+    "claude-opus-4-5-migration": null,
+    "ralph-wiggum": "ralph-loop"
   }
 }
