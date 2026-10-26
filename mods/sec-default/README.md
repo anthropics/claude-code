@@ -112,8 +112,10 @@ runs the `tool.check` chain, where before only a session with such a plugin
 did. So has hooking `ui.log`, `env.get` and `env.set`: each such call of any
 plugin's now runs a chain, and an `env.set` from outside the organization's tiers waits on
 the policy read. Where the copy built into Claude Code is the only plugin that
-hooks `env.get` or `command.describe`, the engine runs no chain for that event:
-this plugin would only pass it on, so the answer is the engine's own.
+hooks `env.get`, `command.describe`, `agent.offer`, `attribution.text` or
+`prompt.section`, a `$.env.get` call and the engine's own raises of the other
+four run no chain: this plugin would only pass the event on, so the answer is
+the engine's own.
 
 ## What it calls on `$`
 

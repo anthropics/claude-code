@@ -29,6 +29,8 @@ export function register(on: On) {
 
   on('classic.*', ($, e, next) => next.to(e, 'append'))
 
+  // This row and the attribution.text row below are skipped when alone on their
+  // event: see the command.describe row.
   on('prompt.section', ($, e, next) => next.to(e, 'append'))
   on('prompt.context', ($, e, next) => next.to(e, 'append'))
   // This row and the session.append rows below only pass the event on, so the
@@ -63,10 +65,10 @@ export function register(on: On) {
   on('settings.read', ($, e, next) => next.to(e, 'append'))
 
   on('tool.describe', ($, e, next) => pastUsers(e, next))
-  // This row and the env.get row only pass the event on. Where this plugin is the copy
-  // built into the engine and no other plugin hooks the event, the engine skips them.
-  // Before either does more, take its event off that skip: a test in the engine's
-  // repository fails and says where.
+  // This row and the agent.offer, prompt.section, attribution.text and env.get rows only
+  // pass the event on. Where this plugin is the copy built into the engine and no other
+  // plugin hooks the event, the engine skips them. Before one does more, take its event
+  // off that skip: a test in the engine's repository fails and says where.
   on('command.describe', ($, e, next) => pastUsers(e, next))
   on('agent.offer', ($, e, next) => pastUsers(e, next))
   on('agent.spawn', ($, e, next) => pastUsers(e, next))
