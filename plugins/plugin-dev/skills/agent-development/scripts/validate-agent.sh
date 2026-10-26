@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Agent File Validator
 # Validates agent markdown files for correct structure and content
 
