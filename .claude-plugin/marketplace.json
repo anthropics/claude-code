@@ -30,7 +30,7 @@
         "source": "git-subdir",
         "url": "https://github.com/anthropics/claude-plugins-official.git",
         "path": "plugins/code-review",
-        "ref": "main"
+        "ref": "port-code-review-from-claude-code"
       },
       "category": "productivity"
     },
