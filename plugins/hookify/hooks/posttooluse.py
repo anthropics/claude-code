@@ -9,16 +9,15 @@ import os
 import sys
 import json
 
-# CRITICAL: Add plugin root to Python path for imports
-PLUGIN_ROOT = os.environ.get('CLAUDE_PLUGIN_ROOT')
-if PLUGIN_ROOT:
-    parent_dir = os.path.dirname(PLUGIN_ROOT)
-    if parent_dir not in sys.path:
-        sys.path.insert(0, parent_dir)
-    if PLUGIN_ROOT not in sys.path:
-        sys.path.insert(0, PLUGIN_ROOT)
+# Make the "hookify" package importable no matter what directory name the
+# plugin was installed under (marketplace installs use e.g. "hookify@0.1.0").
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 try:
+    from _bootstrap import load_hookify
+
+    load_hookify()
+
     from hookify.core.config_loader import load_rules
     from hookify.core.rule_engine import RuleEngine
 except ImportError as e:
