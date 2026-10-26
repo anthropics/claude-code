@@ -134,17 +134,9 @@
       },
       "source": "./plugins/ralph-wiggum",
       "category": "development"
-    },
-    {
-      "name": "security-guidance",
-      "description": "Security reminder hook that warns about potential security issues when editing files, including command injection, XSS, and unsafe code patterns",
-      "version": "1.0.0",
-      "author": {
-        "name": "David Dworken",
-        "email": "dworken@anthropic.com"
-      },
-      "source": "./plugins/security-guidance",
-      "category": "security"
     }
-  ]
+  ],
+  "renames": {
+    "security-guidance": null
+  }
 }
