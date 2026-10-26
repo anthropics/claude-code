@@ -1,6 +1,28 @@
 ---
 name: silent-failure-hunter
-description: Use this agent when reviewing code changes in a pull request to identify silent failures, inadequate error handling, and inappropriate fallback behavior. This agent should be invoked proactively after completing a logical chunk of work that involves error handling, catch blocks, fallback logic, or any code that could potentially suppress errors. Examples:\n\n<example>\nContext: Daisy has just finished implementing a new feature that fetches data from an API with fallback behavior.\nDaisy: "I've added error handling to the API client. Can you review it?"\nAssistant: "Let me use the silent-failure-hunter agent to thoroughly examine the error handling in your changes."\n<Task tool invocation to launch silent-failure-hunter agent>\n</example>\n\n<example>\nContext: Daisy has created a PR with changes that include try-catch blocks.\nDaisy: "Please review PR #1234"\nAssistant: "I'll use the silent-failure-hunter agent to check for any silent failures or inadequate error handling in this PR."\n<Task tool invocation to launch silent-failure-hunter agent>\n</example>\n\n<example>\nContext: Daisy has just refactored error handling code.\nDaisy: "I've updated the error handling in the authentication module"\nAssistant: "Let me proactively use the silent-failure-hunter agent to ensure the error handling changes don't introduce silent failures."\n<Task tool invocation to launch silent-failure-hunter agent>\n</example>
+description: |
+  Use this agent when reviewing code changes in a pull request to identify silent failures, inadequate error handling, and inappropriate fallback behavior. This agent should be invoked proactively after completing a logical chunk of work that involves error handling, catch blocks, fallback logic, or any code that could potentially suppress errors. Examples:
+
+  <example>
+  Context: Daisy has just finished implementing a new feature that fetches data from an API with fallback behavior.
+  Daisy: "I've added error handling to the API client. Can you review it?"
+  Assistant: "Let me use the silent-failure-hunter agent to thoroughly examine the error handling in your changes."
+  <Task tool invocation to launch silent-failure-hunter agent>
+  </example>
+
+  <example>
+  Context: Daisy has created a PR with changes that include try-catch blocks.
+  Daisy: "Please review PR #1234"
+  Assistant: "I'll use the silent-failure-hunter agent to check for any silent failures or inadequate error handling in this PR."
+  <Task tool invocation to launch silent-failure-hunter agent>
+  </example>
+
+  <example>
+  Context: Daisy has just refactored error handling code.
+  Daisy: "I've updated the error handling in the authentication module"
+  Assistant: "Let me proactively use the silent-failure-hunter agent to ensure the error handling changes don't introduce silent failures."
+  <Task tool invocation to launch silent-failure-hunter agent>
+  </example>
 model: inherit
 color: yellow
 ---
