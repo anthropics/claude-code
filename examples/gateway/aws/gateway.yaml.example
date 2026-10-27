@@ -1,0 +1,174 @@
+# gateway.yaml.example — Claude apps gateway config template, AWS-shaped (walkthrough §4).
+#
+# Okta IdP + Bedrock upstream, following the walkthrough at
+# https://code.claude.com/docs/en/claude-apps-gateway-on-aws. The active sections
+# below are a strict subset of the full configuration reference at
+# https://code.claude.com/docs/en/claude-apps-gateway-config; optional keys are
+# included commented-out.
+#
+# USAGE — this is the shippable TEMPLATE. Copy it to gateway.yaml and fill it in:
+#     cp gateway.yaml.example gateway.yaml
+#   setup.sh and terraform/ read gateway.yaml (your filled-in copy, which is
+#   gitignored). Unlike the GCP example it is NOT published to a secret store:
+#   the Dockerfile bakes it into the image at /etc/claude/gateway.yaml — the
+#   container ENTRYPOINT runs `claude gateway --config /etc/claude/gateway.yaml`.
+#   It holds no secret values; a config edit means an image rebuild (setup.sh
+#   tags images with a hash of this file, so a re-run rebuilds automatically).
+#
+# Secret expansion: ${ENV_VAR} reads an env var; ${file:/path} reads a mounted file.
+# On ECS, the task definition injects the JWT / OIDC / Postgres secrets as ENV
+# VARS via its `secrets` field (valueFrom -> Secrets Manager ARN). On EKS you
+# may mount them as files instead and use ${file:/secrets/...}.
+#
+# BEFORE BUILD — replace every REPLACE_ME placeholder below (setup.sh refuses to
+# build the image while any remain — the config is baked in, so a half-filled
+# config would ship), and create the referenced secrets:
+#   gateway-jwt-secret           (setup.sh generates this)
+#   gateway-oidc-client-secret   (from the Okta admin console OIDC web app)
+#   gateway-postgres-url         (setup.sh generates this)
+
+# ── Listener ─────────────────────────────────────────────────────────────────
+listen:
+  host: 0.0.0.0
+  port: 8080                      # the target group forwards ALB :443 -> :8080
+  # Required. Fixes the IdP redirect_uri, the OIDC discovery doc, and the
+  # gateway-token issuer so none are derived from the client-controlled Host
+  # header (X-Forwarded-Host/-Proto are likewise never trusted). Set it to the
+  # internal hostname you picked in the prerequisites — the Route 53 private
+  # zone name your ACM certificate covers (e.g.
+  # https://claude-gateway.internal.example.com). Unlike Cloud Run there is no
+  # first-deploy placeholder dance: you choose the hostname up front, alias it
+  # to the internal ALB after the deploy, and register the same host's
+  # /oauth/callback on the Okta app.
+  public_url: REPLACE_ME
+  # Register this exact redirect URI on the Okta OIDC web application:
+  #   https://<public_url host>/oauth/callback
+  #
+  # Behind the internal ALB every request arrives via the load balancer, so the
+  # gateway sees ALB-node peer IPs for all developers — set trusted_proxies so
+  # X-Forwarded-For from those proxies is trusted and per-IP rate limiting /
+  # audit IPs record the real client. ALB nodes take addresses from the subnets
+  # the ALB is attached to, so list those subnets' CIDRs (the private subnets
+  # from the prerequisites).
+  #
+  # NOTE: listing the ALB subnets' CIDRs trusts every host in those subnets as a
+  # proxy — any co-located workload that can reach the ALB can then spoof the
+  # client IP via X-Forwarded-For (audit logs, per-IP rate limits, IP
+  # allowlists). Keep the ALB :443 ingress source (CORP_CIDR / corporate_cidr)
+  # from overlapping these subnets, and don't share the subnets with untrusted
+  # workloads.
+  trusted_proxies: [REPLACE_ME]   # e.g. [10.0.1.0/24, 10.0.2.0/24]
+  #
+  # Alternative — terminate TLS in the gateway itself instead of at the ALB:
+  # tls:
+  #   cert: /certs/gateway.crt
+  #   key:  /certs/gateway.key
+
+# ── Identity provider — Okta ─────────────────────────────────────────────────
+oidc:
+  issuer: REPLACE_ME                                 # e.g. https://example.okta.com (or your custom auth server URL)
+  client_id: REPLACE_ME                              # Okta OIDC web app client ID (not secret)
+  client_secret: ${OIDC_CLIENT_SECRET}               # EKS file mounts: ${file:/secrets/oidc-client-secret}
+  allowed_email_domains: [REPLACE_ME]                # e.g. [example.com] — reject id_tokens outside your org
+  # The Okta org authorization server returns a thin id_token that omits email
+  # and groups; the gateway fills them from /userinfo.
+  userinfo_fallback: true
+  # offline_access yields refresh tokens (silent renewal + the deprovision
+  # leash); Okta emits groups only when the `groups` scope is requested AND the
+  # app's groups claim filter allows them (Okta admin console -> the app's
+  # Sign On tab -> OpenID Connect ID Token -> Groups claim filter).
+  scopes: [openid, profile, email, offline_access, groups]
+  # groups_claim: groups          # Okta default. Entra app roles=roles; see the config reference
+  # ca_cert_pem: ${file:/secrets/idp-ca.pem}   # only for an IdP behind a private CA
+
+# ── Sessions ─────────────────────────────────────────────────────────────────
+session:
+  jwt_secret: ${GATEWAY_JWT_SECRET}   # >= 32 bytes; openssl rand -base64 32
+  # Okta issues refresh tokens (offline_access above), so sessions renew
+  # silently and this mainly bounds deprovision latency. 8 is a sane default;
+  # lower toward 1 for tighter revocation. Array form rotates keys:
+  # [new, old] (index 0 signs, all verify).
+  ttl_hours: 8
+
+# ── Store (REQUIRED — the gateway refuses to boot without it) ─────────────────
+store:
+  postgres_url: ${GATEWAY_POSTGRES_URL}   # private-subnet RDS; built with ?sslmode=verify-full by setup.sh
+                                          # (the image trusts the RDS CA bundle via NODE_EXTRA_CA_CERTS — see Dockerfile)
+
+# ── Upstreams — Amazon Bedrock ───────────────────────────────────────────────
+upstreams:
+  - provider: bedrock
+    # Must equal the region you provision in (setup.sh's AWS_REGION /
+    # terraform's region): the IAM policy's inference-profile ARNs are scoped
+    # to that region, and Bedrock model access is enabled there (cross-region
+    # us.anthropic.* profiles need access in every spanned region). NOTE: the
+    # walkthrough is scoped to US regions — the built-in model catalog maps to
+    # us.anthropic.* (US-geo) profiles; a non-US region also needs a models:
+    # list below (see the model catalog section).
+    region: REPLACE_ME            # e.g. us-east-1
+    auth: {}                      # AWS default credential chain: ECS task role / IRSA on EKS (preferred — no static keys)
+    # base_url: https://bedrock-runtime.us-east-1.amazonaws.com   # bedrock-runtime interface VPC endpoint, to keep model traffic off the public path
+  # Add more upstreams for failover (tried top→bottom on 5xx/timeout/501): a
+  # second region, or an anthropic/vertex fallback. See
+  # https://code.claude.com/docs/en/claude-apps-gateway.
+
+# ── Telemetry fan-out (OPTIONAL) ─────────────────────────────────────────────
+# The CLI sends OTLP/HTTP to the gateway; the gateway fans out, stamping
+# user.id/user.email/user.groups server-side. On AWS, point at an OpenTelemetry
+# Collector (e.g. the AWS Distro for OpenTelemetry -> CloudWatch / Managed
+# Prometheus). When forward_to and public_url are both configured the gateway
+# pushes CLAUDE_CODE_ENABLE_TELEMETRY and the OTEL exporter selectors to every
+# client automatically — no per-developer config needed.
+# telemetry:
+#   forward_to:
+#     - url: https://otel-collector.internal.example.com:4318
+#       headers:
+#         Authorization: ${file:/secrets/otlp-token}
+#       metrics: true     # safe aggregate counters (default)
+#       logs: false       # carries bash commands / tool inputs — opt in deliberately
+#       traces: false
+
+# ── RBAC + managed settings (OPTIONAL; first-match-wins, top -> bottom) ───────
+# With Okta as IdP, match on the group names the `groups` scope emits (subject
+# to the app's groups claim filter), or on email_domain.
+# managed:
+#   policies:
+#     - match: { groups: [engineering] }
+#       cli:
+#         availableModels: [claude-opus-4-8, claude-sonnet-4-6, claude-haiku-4-5]
+#         permissions: { deny: ["Read(./.env)", "Read(./secrets/**)"] }
+#     - match: {}        # catch-all floor — keep LAST
+#       cli:
+#         availableModels: [claude-sonnet-4-6, claude-haiku-4-5]
+
+# ── Admin API (OPTIONAL — enables db-mode runtime config + spend caps) ───────
+# admin_groups needs a groups claim — Okta provides one via the `groups` scope
+# above — or use the bootstrap keys below instead. Named keys for attribution
+# in the audit log; 32-char minimum on key values. On ECS add these to the task
+# definition's `secrets` field (valueFrom -> a Secrets Manager ARN), same as the
+# JWT/OIDC/Postgres secrets above; on EKS you may use ${file:...}.
+# admin:
+#   write_keys:
+#     - id: terraform
+#       key: ${GATEWAY_ADMIN_WRITE_KEY}
+#   read_keys:
+#     - id: reporting
+#       key: ${GATEWAY_ADMIN_READ_KEY}
+#   # admin_groups: [platform-finops]   # Okta group names via the groups scope
+
+# ── Model catalog (OPTIONAL for US regions) ──────────────────────────────────
+# Default true: every built-in Claude model is exposed and auto-translated per
+# upstream (the built-in table already maps to us.anthropic.* cross-region
+# inference profiles). Set false + a models: list to pin IDs (e.g. an
+# application or provisioned-throughput inference-profile ARN).
+# NON-US REGIONS: the built-in us.anthropic.* mappings do not exist outside
+# the US geo — set auto_include_builtin_models: false and list your region's
+# inference profiles (eu.anthropic.*, apac.anthropic.*, ...) here, and widen
+# the geo prefix in the deploy's bedrock-invoke IAM policy to match. See the
+# models: guidance in the config reference:
+# https://code.claude.com/docs/en/claude-apps-gateway-config
+# auto_include_builtin_models: true
+# models:
+#   - id: claude-opus-4-8
+#     label: Claude Opus 4.8
+#     upstream_model: { bedrock: us.anthropic.claude-opus-4-8 }

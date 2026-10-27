@@ -1,0 +1,4 @@
+{
+  "description": "The diff pane: /diff and its Pane drawing, a refresh on Claude's edits, shell commands and finished turns, the pane's opening on the first edit, and the ask that rides a file's hunks on the next prompt",
+  "modules": ["./register.ts"]
+}

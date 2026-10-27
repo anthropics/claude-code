@@ -1,0 +1,9 @@
+{
+  "name": "telemetry",
+  "version": "0.1.0",
+  "description": "Plugin analytics: hooks $.telemetry's two events, so a plugin logs an event or marks a feature's use as a first-party row, sent in batches with the session's own credential.",
+  "author": {
+    "name": "Anthropic"
+  },
+  "types": "./types/index.d.ts"
+}

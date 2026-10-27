@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<policyDefinitionResources xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+                            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                            xmlns="http://schemas.microsoft.com/GroupPolicy/2006/07/PolicyDefinitions"
+                            revision="1.0" schemaVersion="1.0">
+  <displayName>Claude Code</displayName>
+  <description>Claude Code policy settings</description>
+  <resources>
+    <stringTable>
+      <string id="Cat_ClaudeCode">Claude Code</string>
+      <string id="ManagedSettings">Managed settings (JSON)</string>
+      <string id="ManagedSettings_Explain">Configures managed settings for Claude Code.
+
+Enter the full settings configuration as a single line of JSON. The value is stored as a REG_SZ string at HKLM\SOFTWARE\Policies\ClaudeCode\Settings and is applied at the highest precedence; users cannot override these settings.
+
+Example:
+{"permissions":{"disableBypassPermissionsMode":"disable"}}
+
+For the list of available settings keys, see https://code.claude.com/docs/en/settings.
+
+If your configuration is large or you prefer to manage a JSON file directly, deploy C:\Program Files\ClaudeCode\managed-settings.json instead (see Set-ClaudeCodePolicy.ps1).</string>
+    </stringTable>
+    <presentationTable>
+      <presentation id="ManagedSettings">
+        <textBox refId="SettingsJson">
+          <label>Settings JSON:</label>
+        </textBox>
+      </presentation>
+    </presentationTable>
+  </resources>
+</policyDefinitionResources>

@@ -1,0 +1,19 @@
+# Keep secrets and generated artifacts out of the build context. The Dockerfile
+# COPYs the binary, gateway.yaml (unlike the GCP example, the config is baked
+# into the image — ECS injects only the secrets it references, as env vars),
+# and the RDS CA bundle. BuildKit (the default builder) only syncs the
+# referenced COPY sources anyway, so this is a denylist for the classic
+# builder (DOCKER_BUILDKIT=0) and a conventional signal that the .gitignore'd
+# secrets in this directory aren't part of the image build.
+terraform/
+**/.terraform/
+*.tfstate*
+terraform.tfvars
+secrets/
+*.pem
+# The RDS CA bundle is public trust-anchor material (no secret), and the
+# Dockerfile COPYs it — carve it out of the *.pem exclusion above.
+!rds-global-bundle.pem
+*.iam.json
+claude.download
+claude.bad

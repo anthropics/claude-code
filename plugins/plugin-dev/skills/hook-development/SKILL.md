@@ -691,7 +691,7 @@ Development tools in `scripts/`:
 ### External Resources
 
 - **Official Docs**: https://code.claude.com/docs/en/hooks
-- **Examples**: See security-guidance plugin in marketplace
+- **Examples**: See the security-guidance plugin in the claude-plugins-official marketplace
 - **Testing**: Use `claude --debug` for detailed logs
 - **Validation**: Use `jq` to validate hook JSON output
 
