@@ -60,6 +60,30 @@ describe('turn-diffs-of', () => {
     expect([turn?.files[0]?.added, turn?.files[0]?.removed]).toEqual([2, 1])
   })
 
+  test('an edit, write or create held for review (staged) changed no file and is left out', () => {
+    expect(
+      Turns.turnDiffsOf([
+        Fixtures.promptOf('change my settings'),
+        Fixtures.editsOf(
+          { ...Fixtures.editPatchOf(['-a', '+b']), staged: true },
+          {
+            ...Fixtures.editPatchOf(['-a', '+b']),
+            type: 'update',
+            content: 'b',
+            staged: true,
+          },
+          {
+            filePath: '/r/.claude/settings.local.json',
+            type: 'create',
+            content: '{}',
+            structuredPatch: [],
+            staged: true,
+          },
+        ),
+      ]),
+    ).toEqual([])
+  })
+
   test('results that are not file edits are ignored', () => {
     expect(
       Turns.turnDiffsOf([
