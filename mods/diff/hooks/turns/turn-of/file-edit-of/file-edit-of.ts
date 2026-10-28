@@ -8,13 +8,18 @@ import { hunksOf } from './hunks-of'
  * turn view tells an edit result; null for any other result.
  *
  * A `filePath` with a non-empty `structuredPatch`, or a `create` with its
- * `content`, which becomes one all-`+` hunk.
+ * `content`, which becomes one all-`+` hunk. A result held for review
+ * (`staged`) changed no file, whatever patch it carries, and is null.
  *
  * @param result what the transcript stored for the tool call
  * @returns the file's edit, or null
  */
 export function fileEditOf(result: unknown): Types.TurnFile | null {
   if (!isRecord(result) || typeof result.filePath !== 'string') {
+    return null
+  }
+
+  if (result.staged === true) {
     return null
   }
 
