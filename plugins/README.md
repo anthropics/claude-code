@@ -50,4 +50,4 @@ New plugins belong in [claude-plugins-official](https://github.com/anthropics/cl
 
 - [Claude Code Documentation](https://code.claude.com/docs/en/overview)
 - [Plugin System Documentation](https://code.claude.com/docs/en/plugins)
-- [Agent SDK Documentation](https://code.claude.com/docs/en/api/agent-sdk/overview)
+- [Agent SDK Documentation](https://code.claude.com/docs/en/agent-sdk/overview)
