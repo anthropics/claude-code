@@ -1,6 +1,7 @@
 import type { ProcessRunResult } from 'claude-code'
 import { describe, expect, test, tier } from 'claude-code/testing'
 
+import CountOf from '../../hooks/count-of'
 import Git from '../../hooks/git'
 import Limits from '../../hooks/limits'
 import Fixtures from '../fixtures'
@@ -144,7 +145,7 @@ describe('fetch-diff', () => {
       true,
     )
 
-    expect(diffs).toHaveLength(2)
+    expect(diffs).toHaveLength(1)
 
     expect(diffs.every(argv => argv.includes('core.quotePath=false'))).toBe(
       true,
@@ -152,7 +153,7 @@ describe('fetch-diff', () => {
 
     expect(diffs.every(argv => argv.includes('--no-ext-diff'))).toBe(true)
     expect(diffs.every(argv => argv.includes('--no-textconv'))).toBe(true)
-    expect(diffs[1]).toContain('-z')
+    expect(diffs[0]).toContain('-z')
     expect(deps.argvs.find(argv => argv.includes('ls-files'))).toContain('-z')
 
     expect(
@@ -182,17 +183,89 @@ describe('fetch-diff', () => {
     ).toEqual(['fresh.txt'])
   })
 
-  test('past 500 files: totals only, no numstat, no untracked', async () => {
+  test('past 500 files: totals only, one diff, no untracked', async () => {
+    const rows = Array.from({ length: 501 }, (_, at) => `1\t0\tf${at}.ts\0`)
+    const deps = depsOf({ 'HEAD --numstat': Fixtures.ok(rows.join('')) })
+
+    const outcome = await Git.fetchDiff(deps, 'session')
+
+    expect(outcome.kind === 'data' && outcome.data.stats).toEqual({
+      filesCount: 501,
+      linesAdded: 501,
+      linesRemoved: 0,
+    })
+
+    expect(outcome.kind === 'data' && outcome.data.files).toEqual([])
+    expect(CountOf.countOf(deps.argvs, argv => argv.includes('diff'))).toBe(1)
+    expect(deps.argvs.some(argv => argv.includes('ls-files'))).toBe(false)
+  })
+
+  test('a numstat cut at the output cap: totals from shortstat', async () => {
     const deps = depsOf({
-      'HEAD --shortstat': Fixtures.ok(' 501 files changed, 9 insertions(+)'),
+      'HEAD --numstat': Fixtures.ok('1\t0\ta.ts\x001\t0\tcut'),
+      'HEAD --shortstat': Fixtures.ok(' 70001 files changed, 9 insertions(+)'),
     })
 
     const outcome = await Git.fetchDiff(deps, 'session')
 
-    expect(outcome.kind === 'data' && outcome.data.stats.filesCount).toBe(501)
+    expect(outcome.kind === 'data' && outcome.data.stats.filesCount).toBe(70001)
     expect(outcome.kind === 'data' && outcome.data.files).toEqual([])
+  })
+
+  test('after a cut numstat, shortstat first while the totals stay past 500', async () => {
+    const cutBases = new Set<string>()
+
+    const script = {
+      'HEAD --numstat': Fixtures.ok('1\t0\ta.ts\x001\t0\tcut'),
+      'HEAD --shortstat': Fixtures.ok(' 70001 files changed, 9 insertions(+)'),
+    }
+
+    await Git.fetchDiff(depsOf(script, { cutBases }), 'session')
+
+    const again = depsOf(script, { cutBases })
+    const outcome = await Git.fetchDiff(again, 'session')
+
+    expect(outcome.kind === 'data' && outcome.data.stats.filesCount).toBe(70001)
+
+    expect(
+      again.argvs.filter(argv => argv.includes('diff')),
+      'one pass: the totals, no listing',
+    ).toEqual([expect.arrayContaining(['--shortstat'])])
+
+    const fits = depsOf(
+      {
+        'HEAD --shortstat': Fixtures.ok(' 2 files changed, 9 insertions(+)'),
+        'HEAD --numstat': Fixtures.ok('1\t0\ta.ts\x001\t0\tb.ts\0'),
+      },
+      { cutBases },
+    )
+
+    const listed = await Git.fetchDiff(fits, 'session')
+
+    expect(listed.kind === 'data' && listed.data.stats.filesCount).toBe(2)
+    expect(cutBases.size, 'a whole listing forgets the cut').toBe(0)
+  })
+
+  test('after a cut numstat, a failed shortstat runs no listing', async () => {
+    const deps = depsOf(
+      {
+        'HEAD --shortstat': Fixtures.GIT_TIMED_OUT,
+        'HEAD --numstat': Fixtures.ok('1\t0\ta.ts\x001\t0\tcut'),
+      },
+      { cutBases: new Set(['HEAD']) },
+    )
+
+    await Git.fetchDiff(deps, 'session')
+
     expect(deps.argvs.some(argv => argv.includes('--numstat'))).toBe(false)
-    expect(deps.argvs.some(argv => argv.includes('ls-files'))).toBe(false)
+  })
+
+  test('a failed numstat runs no shortstat', async () => {
+    const deps = depsOf({ 'HEAD --numstat': Fixtures.GIT_TIMED_OUT })
+
+    await Git.fetchDiff(deps, 'session')
+
+    expect(deps.argvs.some(argv => argv.includes('--shortstat'))).toBe(false)
   })
 
   test('a transient state file: unavailable, and no diff runs', async () => {

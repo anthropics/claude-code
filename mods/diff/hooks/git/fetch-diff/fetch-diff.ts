@@ -3,8 +3,8 @@ import Tiers from '../tiers'
 import type Types from '../types'
 
 /**
- * One fetch of the session's pinned repository, as the built-in panel
- * fetches; every git child names it so paths stay root-relative.
+ * One fetch of the session's pinned repository. Every git process is pointed
+ * at that repository, so the paths it prints stay relative to the root.
  *
  * Mid-merge, mid-rebase, mid-cherry-pick or mid-revert, or when git cannot
  * answer, it is unavailable and the caller keeps what it had.

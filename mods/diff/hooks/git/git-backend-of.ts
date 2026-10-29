@@ -49,6 +49,7 @@ export async function gitBackendOf(
   const run = runOf(repository)
 
   let baseline: Promise<ReadonlySet<string> | null> | null = null
+  const cutBases = new Set<string>()
 
   const depsOf = (dirty: ReadonlySet<string> | null): Types.GitDeps => ({
     run,
@@ -57,6 +58,7 @@ export async function gitBackendOf(
     entryKindsOf: host.entryKindsOf,
     sessionStartMs: host.sessionStartMsOf(),
     baseline: dirty,
+    cutBases,
     onBranchBase: host.onBranchBase,
   })
 

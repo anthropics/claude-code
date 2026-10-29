@@ -29,7 +29,8 @@ the person has not opened or closed the pane in the meantime, so it never
 lands on an empty state such as `No changes this session` or
 `Diff unavailable`. If it does not open, it asks again when that fetch ends
 if an edit or shell command landed during it, and otherwise at the next edit
-or shell command that lands. An open the engine leaves waiting undrawn is
+or shell command that lands. Either ask holds during the wait after a slow
+fetch, described below. An open the engine leaves waiting undrawn is
 withdrawn, so no later resize seats it, and the next edit or shell command
 that lands asks again. An open answered `no-surface` (nothing is attached
 that draws it yet, as before a host's page attaches) is kept instead:
@@ -75,8 +76,28 @@ edit that landed or a shell command that ran, or by the fetch before a pane
 opens. Two reads have no counterpart in the built-in: a `git status` at a
 pane's first fetch, which stands in for the change time the built-in dates a
 moved file by, and the fetches an open nobody asked for repeats after its
-first fetch did not open the pane: one after each later edit or shell
-command that lands, and one more when one landed during a fetch.
+first fetch did not open the pane: one after a later edit or shell command
+that lands (several during a wait count as one), and one more when one
+landed during a fetch.
+
+In a repository with commits, a fetch usually reads the whole tree twice:
+one `git diff --numstat`, whose rows also give the totals, and one
+`git ls-files` for untracked files. The built-in runs `--shortstat` first;
+this pane runs it only after a listing too long for the host to return
+whole. Later fetches of that base then run `--shortstat` first and list only
+when it counts 500 changed files or fewer. The hunks of the files shown
+usually take one more `git diff`, limited to their paths.
+
+Unlike the built-in, the pane waits after a slow fetch. When a fetch's reads,
+not counting the hunks, took longer than 150 ms (the delay that already groups
+refreshes), the next fetch caused by an edit, a command or a moved HEAD waits
+that long once the fetch ends, at most 30 seconds. After a fetch that read
+nothing because git timed out, it waits at least 10 seconds, doubling with
+each timeout in a row up to a minute. Changes that arrive during the wait are
+read when it ends, so an open pane still ends on the latest state. Opening the
+pane, `/diff`, switching the base, `/clear` and `/resume` skip this wait, but
+still queue behind a fetch already running. An open nobody asked for skips it
+only on its first ask: later asks hold until the wait ends, and then one runs.
 
 `hooks/register.ts` is the module; everything under `hooks/` is its parts.
 

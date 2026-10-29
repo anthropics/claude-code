@@ -27,7 +27,7 @@ describe('git', () => {
       "found where the session started, wherever Claude's shell has gone",
     ).toBe('/main/wt')
 
-    expect(diffs.length).toBeGreaterThanOrEqual(3)
+    expect(diffs.length).toBeGreaterThanOrEqual(2)
 
     for (const run of world.runs) {
       expect(run.init?.env).toEqual(Git.GIT_CHILD_ENV)
@@ -104,7 +104,7 @@ describe('git', () => {
         .filter(run => Fixtures.gitWordOf(run.argv) !== Fixtures.POLL_WORD)
         .map(run => run.argv.find(word => /^--(\w*stat|raw)$/.test(word))),
       'a command: the counts, then one child for fifty bodies',
-    ).toEqual(['--shortstat', '--numstat', '--raw'])
+    ).toEqual(['--numstat', '--raw'])
 
     expect(
       Fixtures.textOf(await $.ui.render(Fixtures.PANE)),

@@ -42,6 +42,13 @@ export type GitDeps = {
   baseline?: ReadonlySet<string> | null
 
   /**
+   * The bases whose last `--numstat` listing was too long for the host to
+   * return whole. Keep one set across fetches; without it every fetch lists
+   * first.
+   */
+  cutBases?: Set<string>
+
+  /**
    * Told each time branch mode resolves its base, for telemetry.
    */
   onBranchBase: (base: BranchBase) => void
