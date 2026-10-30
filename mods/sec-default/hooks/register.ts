@@ -64,11 +64,11 @@ export function register(on: On) {
 
   on('settings.read', ($, e, next) => next.to(e, 'append'))
 
+  // The tool.describe and command.describe rows, like the agent.offer, prompt.section,
+  // attribution.text and env.get rows, only pass the event on. The engine skips them where this
+  // plugin is the copy built into it and no other plugin hooks the event. Before one does more,
+  // take its event off that skip list: a test in the engine's repository fails and says where.
   on('tool.describe', ($, e, next) => pastUsers(e, next))
-  // This row and the agent.offer, prompt.section, attribution.text and env.get rows only
-  // pass the event on. Where this plugin is the copy built into the engine and no other
-  // plugin hooks the event, the engine skips them. Before one does more, take its event
-  // off that skip: a test in the engine's repository fails and says where.
   on('command.describe', ($, e, next) => pastUsers(e, next))
   on('agent.offer', ($, e, next) => pastUsers(e, next))
   on('agent.spawn', ($, e, next) => pastUsers(e, next))
