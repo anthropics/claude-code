@@ -1,0 +1,27 @@
+name: "Issue Lifecycle Comment"
+
+on:
+  issues:
+    types: [labeled]
+
+permissions:
+  issues: write
+
+jobs:
+  comment:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Post lifecycle comment
+        run: bun run scripts/lifecycle-comment.ts
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          LABEL: ${{ github.event.label.name }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
