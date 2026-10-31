@@ -50,8 +50,11 @@
     "CLAUDE_CONFIG_DIR": "/home/node/.claude",
     "POWERLEVEL9K_DISABLE_GITSTATUS": "true"
   },
+  "remoteEnv": {
+    "GH_TOKEN": "${localEnv:GH_TOKEN}"
+  },
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=delegated",
   "workspaceFolder": "/workspace",
-  "postStartCommand": "sudo /usr/local/bin/init-firewall.sh",
+  "postStartCommand": "sudo GH_TOKEN=${GH_TOKEN} /usr/local/bin/init-firewall.sh",
   "waitFor": "postStartCommand"
 }
