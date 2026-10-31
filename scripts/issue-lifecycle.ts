@@ -17,7 +17,8 @@ export const lifecycle = [
     label: "needs-info",
     days: 7,
     reason: "we still need a bit more information to move forward",
-    nudge: "We need more information to continue investigating. Can you make sure to include your Claude Code version (`claude --version`), OS, and any error messages or logs?",
+    nudge:
+      "We need the actual issue details before we can investigate. Please reply with a short summary, what you expected to happen, what happened instead, and steps or context to reproduce it. If you used `/bug` or `/feedback`, make sure the description is not blank or a placeholder; version, OS, terminal, and feedback metadata alone are not enough.",
   },
   {
     label: "stale",
@@ -36,3 +37,74 @@ export const lifecycle = [
 export type LifecycleLabel = (typeof lifecycle)[number]["label"];
 
 export const STALE_UPVOTE_THRESHOLD = 10;
+
+const EMPTY_GENERATED_TITLE_PATTERNS = [
+  "i need a bug report or feature request description",
+  "please provide the details of the issue you'd like to report",
+];
+
+export function getLifecycleEntry(label: string) {
+  return lifecycle.find((entry) => entry.label === label);
+}
+
+export function formatLifecycleComment(label: string) {
+  const entry = getLifecycleEntry(label);
+  if (!entry) return null;
+
+  return `${entry.nudge} This issue will be closed automatically if there's no activity within ${entry.days} days.`;
+}
+
+function extractBoldSection(body: string, heading: string) {
+  const escapedHeading = heading.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const match = body.match(
+    new RegExp(
+      String.raw`\*\*${escapedHeading}\*\*[ \t]*(?:\r?\n)?([\s\S]*?)(?=\r?\n\*\*[^*]+\*\*|$)`,
+      "i"
+    )
+  );
+
+  return match?.[1] ?? null;
+}
+
+function hasMeaningfulText(value: string | null) {
+  if (!value) return false;
+
+  const normalized = value
+    .replace(/```[\s\S]*?```/g, "")
+    .replace(/<!--[\s\S]*?-->/g, "")
+    .trim()
+    .toLowerCase();
+
+  return !["", "n/a", "na", "none", "null", "[]"].includes(normalized);
+}
+
+export function isEmptyGeneratedIssueReport({
+  title,
+  body,
+}: {
+  title: string;
+  body?: string | null;
+}) {
+  const normalizedTitle = title.trim().toLowerCase();
+  const issueBody = body ?? "";
+  const hasPlaceholderTitle = EMPTY_GENERATED_TITLE_PATTERNS.some((pattern) =>
+    normalizedTitle.includes(pattern)
+  );
+  const hasGeneratedMetadata =
+    /\*\*Environment Info\*\*/i.test(issueBody) && /Feedback ID:/i.test(issueBody);
+
+  if (!hasGeneratedMetadata) return false;
+
+  const descriptionSections = [
+    extractBoldSection(issueBody, "Bug Description"),
+    extractBoldSection(issueBody, "Feature Description"),
+    extractBoldSection(issueBody, "Description"),
+  ];
+  const hasDescriptionSection = descriptionSections.some((section) => section !== null);
+  const hasMeaningfulDescription = descriptionSections.some(hasMeaningfulText);
+
+  return (
+    (hasPlaceholderTitle || hasDescriptionSection) &&
+    !hasMeaningfulDescription
+  );
+}
