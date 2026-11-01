@@ -45,5 +45,5 @@ jobs:
           # --permission-mode auto: a tool call that needs permission and that the allowed tools
           # do not cover runs only if Claude Code's safety review passes it. The action sets
           # --permission-mode acceptEdits for @claude mentions, and this one, which comes after it, wins.
-          claude_args: "--model claude-sonnet-4-6 --permission-mode auto"
+          claude_args: "--model claude-sonnet-5-5 --permission-mode auto"
 
