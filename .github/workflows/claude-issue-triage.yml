@@ -48,7 +48,9 @@ jobs:
           # --permission-mode auto: a tool call that needs permission and is outside the allowed-tools
           # list in .claude/commands/triage-issue.md runs only if Claude Code's safety review passes
           # it. Tools in --disallowedTools never run.
+          # Sonnet, not Opus 5.5: claude-code-action's own CI was refused Opus 5.5
+          # (see anthropics/claude-code-action#1853). Not tried with this repo's account.
           claude_args: |
             --permission-mode auto
             --disallowedTools "WebFetch,WebSearch,Write,Edit,MultiEdit,NotebookEdit"
-            --model claude-opus-4-6
+            --model claude-sonnet-5-5

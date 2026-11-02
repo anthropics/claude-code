@@ -45,7 +45,7 @@ jobs:
           # --permission-mode auto: a tool call that needs permission and is outside the allowed-tools
           # list in .claude/commands/dedupe.md runs only if Claude Code's safety review passes it.
           # Tools in --disallowedTools never run.
-          claude_args: '--model claude-sonnet-4-6 --permission-mode auto --disallowedTools "WebFetch,WebSearch,Write,Edit,MultiEdit,NotebookEdit"'
+          claude_args: '--model claude-sonnet-5-5 --permission-mode auto --disallowedTools "WebFetch,WebSearch,Write,Edit,MultiEdit,NotebookEdit"'
 
       - name: Log duplicate comment event to Statsig
         if: always()
