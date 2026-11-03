@@ -1,0 +1,13 @@
+# Never commit state (contains secrets) or local var files
+*.tfstate
+*.tfstate.*
+.terraform/
+terraform.tfvars
+*.auto.tfvars
+crash.log
+
+# The lock file holds no secrets. It's ignored here so consumers who copy this
+# example into their own repo generate (and commit) their own platform-complete
+# lock at first init — committing one from this repo would carry only one
+# platform's provider hashes.
+.terraform.lock.hcl

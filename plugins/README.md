@@ -1,6 +1,6 @@
 # Claude Code Plugins
 
-This directory contains some official Claude Code plugins that extend functionality through custom commands, agents, and workflows. These are examples of what's possible with the Claude Code plugin system—many more plugins are available through community marketplaces.
+Anthropic's plugins are developed in [claude-plugins-official](https://github.com/anthropics/claude-plugins-official). The `claude-code-plugins` marketplace in this repository still lists them, and installs them from there. The `claude-opus-4-5-migration` plugin has been retired.
 
 ## What are Claude Code Plugins?
 
@@ -29,7 +29,7 @@ Learn more in the [official plugins documentation](https://docs.claude.com/en/do
 
 ## Installation
 
-These plugins are included in the Claude Code repository. To use them in your own projects:
+To use plugins in your own projects:
 
 1. Install Claude Code globally:
 ```bash
@@ -63,13 +63,7 @@ plugin-name/
 
 ## Contributing
 
-When adding new plugins to this directory:
-
-1. Follow the standard plugin structure
-2. Include a comprehensive README.md
-3. Add plugin metadata in `.claude-plugin/plugin.json`
-4. Document all commands and agents
-5. Provide usage examples
+New plugins belong in [claude-plugins-official](https://github.com/anthropics/claude-plugins-official).
 
 ## Learn More
 

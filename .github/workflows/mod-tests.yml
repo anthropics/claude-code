@@ -1,0 +1,40 @@
+name: "Mod tests"
+
+on:
+  pull_request:
+    paths:
+      - "mods/**"
+      - ".github/workflows/mod-tests.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          persist-credentials: false
+
+      - name: Install Claude Code and TypeScript
+        run: npm install -g @anthropic-ai/claude-code typescript@5.9.3
+
+      - name: Typecheck each mod's hooks and tests
+        run: tsc -p mods/tsconfig.json
+
+      - name: Run each mod's tests
+        run: |
+          if ! claude plugin test --help 2>/dev/null | grep -q '^Usage: claude plugin test'; then
+            echo "claude $(claude --version) has no 'plugin test' yet; skipping the test step"
+            exit 0
+          fi
+          status=0
+          for mod in mods/*/; do
+            [ -d "$mod/tests" ] || continue
+            claude plugin test "$mod" || status=1
+          done
+          exit $status
+        env:
+          CLAUDE_CODE_ENABLE_FUNCTION_HOOKS: "1"

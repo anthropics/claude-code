@@ -7,7 +7,9 @@ on:
 
 jobs:
   triage-issue:
-    runs-on: ubuntu-latest
+    # This job calls Claude, so it runs on GitHub's egress-firewall runner, which
+    # filters the job's outbound network traffic (allow list: .github/egress-firewall.yaml).
+    runs-on: ubuntu-24.04-firewall
     timeout-minutes: 10
     if: >-
       github.event_name == 'issues' ||
@@ -43,5 +45,12 @@ jobs:
           anthropic_organization_id: ${{ vars.ANTHROPIC_ORGANIZATION_ID }}
           anthropic_service_account_id: ${{ vars.ANTHROPIC_SERVICE_ACCOUNT_ID }}
           anthropic_workspace_id: ${{ vars.ANTHROPIC_WORKSPACE_ID }}
+          # --permission-mode auto: a tool call that needs permission and is outside the allowed-tools
+          # list in .claude/commands/triage-issue.md runs only if Claude Code's safety review passes
+          # it. Tools in --disallowedTools never run.
+          # Sonnet, not Opus 5.5: claude-code-action's own CI was refused Opus 5.5
+          # (see anthropics/claude-code-action#1853). Not tried with this repo's account.
           claude_args: |
-            --model claude-opus-4-6
+            --permission-mode auto
+            --disallowedTools "WebFetch,WebSearch,Write,Edit,MultiEdit,NotebookEdit"
+            --model claude-sonnet-5-5

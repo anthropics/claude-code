@@ -1,0 +1,13 @@
+# Keep the build context to just the binary the Dockerfile COPYs. BuildKit (the
+# default, selected via the Dockerfile's syntax directive) only syncs the
+# referenced COPY source anyway, so this is a no-op there — it matters for the
+# classic builder (DOCKER_BUILDKIT=0) and as a conventional signal that the
+# .gitignore'd secrets in this directory aren't part of the image build.
+terraform/
+**/.terraform/
+*.tfstate*
+terraform.tfvars
+gateway.yaml
+secrets/
+*.pem
+client_secret_*.json

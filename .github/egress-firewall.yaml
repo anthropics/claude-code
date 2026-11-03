@@ -1,0 +1,27 @@
+# Hosts that jobs on GitHub's egress-firewall runner (runs-on: ubuntu-24.04-firewall)
+# may reach. All other hosts are blocked, apart from any that GitHub's firewall allows
+# by default. Add a host only when a workflow step needs it, name it in full (no '*'), and say what uses it.
+mode: enforce
+allow:
+  # Claude API: model requests, trading the workflow's GitHub identity token for a
+  # short-lived API token, and fetching the Claude GitHub App's token in claude.yml
+  - api.anthropic.com
+  # GitHub API: calls made by the Claude Code action, and by gh in scripts/gh.sh,
+  # scripts/edit-issue-labels.sh and scripts/comment-on-duplicates.sh
+  - api.github.com
+  # Claude Code install script, fetched by the Claude Code action
+  - claude.ai
+  # Claude Code binary, downloaded by the install script
+  - downloads.claude.ai
+  # Bun release download (oven-sh/setup-bun, used by the Claude Code action)
+  - release-assets.githubusercontent.com
+  # npm packages for the Claude Code action (bun install)
+  - registry.npmjs.org
+  # apt packages bubblewrap and socat, which the Claude Code action installs when a
+  # workflow admits users without write access (claude-issue-triage.yml,
+  # claude-dedupe-issues.yml)
+  - azure.archive.ubuntu.com
+  - archive.ubuntu.com
+  - security.ubuntu.com
+  # Statsig event logging (claude-dedupe-issues.yml, "Log duplicate comment event to Statsig")
+  - events.statsigapi.net

@@ -1,0 +1,27 @@
+# Copy to terraform.tfvars and edit. terraform.tfvars is gitignored (see .gitignore).
+
+region = "us-east-1" # a region where Bedrock serves the Claude models you need
+
+# Prerequisite networking (NOT created by this module): the VPC and two+ private
+# subnets in different AZs with outbound internet via a NAT gateway.
+vpc_id             = "vpc-..."
+private_subnet_ids = ["subnet-...a", "subnet-...b"]
+
+# The only source the ALB admits on 443. Must not overlap the private subnets
+# above — hosts in the ALB subnets are trusted_proxies (gateway.yaml) and could
+# spoof client IPs via X-Forwarded-For.
+corporate_cidr = "10.0.0.0/8"
+
+# ACM certificate for your internal gateway hostname (the host in gateway.yaml's
+# public_url), imported or issued by AWS Private CA.
+acm_certificate_arn = "arn:aws:acm:..."
+
+image_tag = "<version>" # REQUIRED — the tag you build and push as linux/amd64 with
+                        # gateway.yaml baked in (setup.sh tags <version>-cfg<sha8>;
+                        # see README Deploy)
+
+# Okta OIDC client secret: REQUIRED — uncomment and set it (Terraform creates the
+# secret version; the ECS tasks inject `gateway-oidc-client-secret` at start, so
+# without a version they fail with ResourceInitializationError). Leave empty only
+# if you add the secret version out-of-band.
+# oidc_client_secret = "..."
