@@ -1,5 +1,95 @@
 # Changelog
 
+## 2.1.317
+
+- Added a warning to `/schedule` when a new cloud scheduled task gets connectors you did not ask for, with how to remove them
+- Added a check that asks before a web or shell tool call sends your account email address to the network
+- Added `onFailure: "block"` for Agent SDK hook callbacks, so a callback that fails blocks the action instead of letting it run
+- Added a notice in Claude Desktop's Code tab when your organization's remote managed settings haven't loaded for the session, and another once they do
+- Added a notice when auto mode's check has no answer for a subagent's tool call, which used to leave nothing in the main view
+- Added `anthropic.plan`, `anthropic.seat_type`, `anthropic.provider` and `anthropic.custom_base_url` to OTel metrics, events and spans
+- Added a cost report to the Claude apps gateway admin API, `GET /v1/organizations/analytics/cost`, for reading past spend over a date range in total, per developer, per day or per IdP group
+- Added a daily record of each developer's IdP groups on Claude apps gateways with `admin:` set, kept for `admin.identity_retention_days`, which the cost report groups by
+- Added `CLAUDE_CODE_DISABLE_NESTED_SESSION_ID`: set it to `1` on a self-hosted runner to have `claude -p` run inside a session use that session's ID and transcript, as in earlier versions
+- Fixed project and local MCP servers disconnecting after the first turn in some Claude desktop sessions
+- Fixed auto mode failing every turn when an LLM gateway set as the base URL answers 403 or 422 to its server-side safety check (a 403 with an apiKeyHelper is unchanged)
+- Fixed `claude auth status` exiting before a slow token refresh was saved, which could sign you out on the next run
+- Fixed a project's `effortLevel` setting being ignored by sessions that an app starts ahead of time and then opens in the project, such as new sessions in the desktop app's Code tab
+- Fixed `claude --from-pr` reporting "No conversations found" in projects with many sessions when the linked session was older than the first page
+- Fixed the second of two simultaneous permission prompts showing no file path or command on claude.ai and the mobile apps
+- Fixed Remote Control and SDK hosts offering "don't ask again" on a mod's tool calls
+- Fixed session titles being lost in cloud and SDK sessions when a new message or Stop arrived while the title was generating
+- Fixed self-paced `/loop` wakeups sometimes not being scheduled when Claude left a field out of its request
+- Fixed auto mode in cloud sessions stopping for approval when the Artifact tool uploaded, wrote to a database or saved a file through the outputs folder
+- Fixed skills synced from claude.ai being lost or downloaded again every ten minutes when they can't be written to disk
+- Fixed `/schedule` leaving a cloud scheduled task's next run time and link out of its results after creating or updating it
+- Fixed screen readers speaking a running subagent's elapsed time and token count on every change in screen reader mode
+- Fixed a region or network block (HTTP 403) being shown as a sign-in failure; the error now explains the block
+- Fixed Claude saying a working claude.ai connector needed authorization or had failed in cloud sessions when a synced plugin included the same server
+- Fixed `claude -p` exiting 0 when a full disk or quota lost its transcript or ~/.claude.json writes; it now prints an error and, in text and json output, exits 1. Full NFS exports may be missed
+- Fixed edits to settings files made in the first second or so after launch not taking effect until a settings file changed again
+- Fixed old transcripts not being cleaned up on machines where some runs skip cleanup, such as runs using `--setting-sources`
+- Fixed deleted agent team inboxes being re-created by a teammate's late message
+- Fixed a re-created agent teammate being removed from its team by an earlier shutdown approval
+- Fixed stored scheduled tasks being impossible to list or delete after scheduled tasks were turned off
+- Fixed Claude deleting your most recently updated `/team-onboarding` guide when asked to delete one without naming which
+- Fixed Claude saying a `/team-onboarding` guide was deleted when the server refused the delete
+- Fixed the Claude apps gateway hiding Amazon Bedrock's "Input is too long." error, which left sessions failing every turn with "upstream rejected the request" instead of compacting
+- Fixed self-hosted runner sessions losing recent turns or the whole conversation when restarted while a plan waited for approval
+- Fixed "Prompt is too long" after automatic compaction in sessions whose very large CLAUDE.md changed since it was last sent
+- Fixed high memory use and slow startup in headless sessions with many plugins that register commands
+- Fixed stdio MCP servers receiving an empty `AWS_BEARER_TOKEN_BEDROCK` when their env config sets it to empty; the variable is now unset, so the server can use the machine's own AWS credentials
+- Fixed API requests failing with "unable to get local issuer certificate" behind some TLS-inspecting proxies after a root certificate renewal
+- Fixed very long conversations losing their earlier summary when compaction had to shorten its own request
+- Fixed a PDF's own metadata being able to make Read and @-mentions under-count its pages
+- Fixed `DISABLE_PROMPT_CACHING_OPUS` and `DISABLE_PROMPT_CACHING_SONNET` having no effect on `[1m]`, other-region and undated spellings of the default model
+- Fixed `/artifacts` and the Artifact tool's shared list showing no shared artifacts when you have 200 or more of your own
+- Fixed Claude treating partial Grep and Glob results as complete when a search hit its time limit
+- Fixed OpenTelemetry exports to an `https://` endpoint through a proxy never being sent when they started while another export was still in progress
+- Fixed a flood of connection attempts to a proxy that blocks (HTTP 403) OpenTelemetry exports to an `http://` endpoint
+- Fixed OpenTelemetry exports hanging indefinitely behind a proxy that never answers; they now time out after 10 seconds, or `OTEL_EXPORTER_OTLP_TIMEOUT` up to 30 seconds
+- Fixed resumed sessions telling Claude again about a file change it already knew about
+- Fixed Claude sometimes not using a built-in tool in a resumed session after an earlier call failed because the tool was switched off
+- Fixed `/remote-control` answering "Unknown command" instead of saying that Remote Control is turned off by the `disableRemoteControl` setting
+- Fixed agent team teammates in tmux or iTerm2 panes starting in auto mode when the lead session was in manual mode
+- Fixed a background session sometimes losing a just-made change of permission mode when it was upgraded or retired
+- Fixed Ctrl+C stopping all running background agents when pressed to clear typed text at the prompt
+- Fixed /feedback showing "Enter to confirm" while a report is being sent
+- Fixed child processes of a stopped shell command sometimes being sent SIGTERM twice, which could make some programs skip their cleanup
+- Fixed `claude -p` run inside a cloud or self-hosted runner session sharing that session's ID: it wrote into the session's transcript, and a restart could resume the wrong conversation
+- Fixed `claude -p` run inside a cloud or self-hosted runner session generating a title of its own and sending it to that session
+- Improved the error shown on Microsoft Foundry when Azure credentials can't be loaded: it now says to check or refresh them, and reports as `cloud_credential_error`
+- Improved `/design-sync` to say up front when your design system has moved to Claude, and stop before building instead of failing at upload
+- Improved the startup error when a required Claude apps gateway can't be reached: it points to the network instead of a sign-in, and says when the gateway's TLS certificate can't be verified
+- Improved the "Resume this session with" hint shown at exit to repeat the flags you launched with (for example `--chrome --debug`) ahead of `--resume`
+- Improved how self-hosted runners recover from server errors: after a 5xx other than 501 or 529, a runner's next poll now opens a new connection instead of reusing the one that failed
+- Improved how self-hosted runner sessions recover from server errors: after a 5xx other than 501 or 529, a session now opens new connections instead of reusing the one that failed
+- Improved how self-hosted runner sessions recover when connections stop answering: after a heartbeat gets no answer, a session now opens new connections instead of trying each idle one in turn
+- Changed SendMessage so a message to a running background agent arrives earlier: its running command moves to the background, without being stopped
+- Changed subagents and teammates on a different model from the main conversation to use that model's saved effort level or its default, instead of the session's effort level
+- Changed exit to skip the "Background work is running" prompt for plugin monitors
+- Changed the built-in `plugin-authoring` skill to offer once, after a mod you built works, to help share the mod
+- Removed the Read tool's "file unchanged since your last Read" stub: reading an unchanged file again returns its content
+- Windows: Fixed every tool call being refused on some volumes where the native path lookup fails; the working-directory check now compares the folder's identity instead
+- Windows: Fixed the session scratchpad and other temporary paths growing with your project's path length in sessions not started by Claude Desktop, which made repositories cloned into them hit the 260-character path limit
+- Gateway: Fixed the status line and `/usage` showing a developer's own spend limit as 100% used after their group's pooled budget ran out
+- Self-hosted runner: Fixed Claude not seeing the interrupted tool call when a session moves to a new runner and the turn is older than `CLAUDE_CODE_RESUME_INTERRUPTED_TURN_MAX_AGE_MS`
+- Self-hosted runner: Fixed an MCP server that was switched off coming back on after the session moved to a new machine, when the session service had refused to save the switch
+- Remote Control: Improved fork names when the app doesn't set one: a long name keeps its "(fork)" ending, and in sessions started with `claude remote-control` a fork of "Name (fork)" is "Name (fork 2)"
+- [VSCode] Fixed forked conversations dropping messages: only one of the tool calls Claude ran in parallel was kept, and the last messages a compaction kept were lost, which could leave Claude's answer without the question it answered
+- [VSCode] Fixed a message being lost when Claude did not finish starting in time: the extension now starts Claude once more before showing the error
+- [VSCode] Fixed the sign-in screen opening when a request is blocked for its region or network
+- [VSCode] Fixed the Account panel showing the plan name with a lower-cased second word
+- [VSCode] Fixed file links in a Claude tab opening on top of the chat instead of in another editor group
+- [VSCode] Fixed attachment chips, menus, banners and dialogs in the Claude panel staying small when `chat.fontSize` is raised
+- [VSCode] Fixed `ultrathink` not raising effort for its turn or showing its rainbow when telemetry is off
+- [Cloud sessions] Added a link card to cloud sessions, so you can open or decline a link an MCP server asks you to visit instead of the request going unseen
+- [Cloud sessions] Changed the organization environment dialog in admin settings to the personal dialogs' short layout: each section opens from a row, and unsaved input asks before closing
+- [Cloud sessions] Fixed adding a network secret for a host that already has one silently replacing it; the Add secret form now refuses and points you to the existing secret
+- [Cloud sessions] Fixed new scheduled tasks ignoring your organization's default environment: the form now starts on the one an admin chose instead of the Anthropic-hosted default
+- [Remote Control] Fixed the next message to an idle session going unanswered after you restart `claude remote-control`, when you sent it within a minute of your previous message
+- [Claude Tag] Changed newly pasted artifact links in Slack to show a simpler card with an Open button that opens the artifact in Claude, instead of Slack's side panel
+
 ## 2.1.316
 
 - Added `CLAUDE_CODE_DISABLE_ULTRATHINK`, which turns the `ultrathink` keyword off
