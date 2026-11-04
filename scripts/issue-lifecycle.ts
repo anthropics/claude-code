@@ -17,7 +17,7 @@ export const lifecycle = [
     label: "needs-info",
     days: 7,
     reason: "we still need a bit more information to move forward",
-    nudge: "We need more information to continue investigating. Can you make sure to include your Claude Code version (`claude --version`), OS, and any error messages or logs?",
+    nudge: "We need more information to continue investigating. Please provide the specific details that are missing — such as what you were doing when the issue occurred, steps to reproduce, your Claude Code version (`claude --version`), OS, and any error messages or logs.",
   },
   {
     label: "stale",
