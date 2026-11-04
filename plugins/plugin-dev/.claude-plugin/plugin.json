@@ -1,0 +1,9 @@
+{
+  "name": "plugin-dev",
+  "version": "0.1.0",
+  "description": "Toolkit for developing Claude Code plugins with expert guidance on hooks, MCP integration, and structure",
+  "author": {
+    "name": "Daisy Hollman",
+    "email": "daisy@anthropic.com"
+  }
+}
