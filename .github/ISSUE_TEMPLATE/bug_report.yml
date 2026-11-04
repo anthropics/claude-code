@@ -67,6 +67,7 @@ body:
       description: |
         Please provide clear, numbered steps that anyone can follow to reproduce the issue.
         **Important**: Include any necessary code, file contents, or context needed to reproduce the bug.
+        For calculation bugs, include the exact formula and assumptions (for example, fees, slippage, and rounding).
         If the issue involves specific files or code, please create a minimal example.
       placeholder: |
         1. Create a file `test.py` with this content:
