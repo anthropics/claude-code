@@ -1,0 +1,154 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply antialiased;
+  }
+
+  body {
+    @apply bg-gray-50 text-gray-900 font-sans;
+  }
+}
+
+@layer components {
+  /* Prose styles for AI-generated markdown content */
+  .prose-inspection {
+    @apply max-w-none text-sm leading-relaxed;
+  }
+
+  .prose-inspection h2 {
+    @apply text-base font-semibold text-gray-900 mt-4 mb-2;
+  }
+
+  .prose-inspection h3 {
+    @apply text-sm font-semibold text-gray-800 mt-3 mb-1;
+  }
+
+  .prose-inspection p {
+    @apply text-sm text-gray-700 mb-2 leading-relaxed;
+  }
+
+  .prose-inspection strong {
+    @apply font-semibold text-gray-900;
+  }
+
+  .prose-inspection table {
+    @apply w-full text-xs border-collapse border border-gray-200 mt-2 mb-4;
+  }
+
+  .prose-inspection th {
+    @apply bg-blue-50 text-blue-900 font-semibold p-2 text-left border border-gray-200;
+  }
+
+  .prose-inspection td {
+    @apply p-2 border border-gray-200 align-top;
+  }
+
+  .prose-inspection tr:nth-child(even) {
+    @apply bg-gray-50;
+  }
+
+  .prose-inspection ul {
+    @apply list-disc list-inside text-sm text-gray-700 mb-2 space-y-1;
+  }
+
+  /* Recording animation */
+  .recording-pulse {
+    animation: pulse-ring 1.5s ease-out infinite;
+  }
+
+  @keyframes pulse-ring {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.08); opacity: 0.8; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  /* AI processing shimmer */
+  .ai-shimmer {
+    background: linear-gradient(90deg, #f0f4ff 25%, #e0e8ff 50%, #f0f4ff 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+}
+
+/* Mobile-optimized touch targets */
+@layer components {
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+}
+
+/* Safe area for notch devices */
+html {
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+/* Prevent pull-to-refresh in app mode */
+body {
+  overscroll-behavior-y: contain;
+}
+
+/* Scrollbar styling - hidden on mobile, subtle on desktop */
+@media (pointer: fine) {
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-gray-100;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-400;
+  }
+}
+
+/* Hide scrollbar on touch devices */
+@media (pointer: coarse) {
+  ::-webkit-scrollbar {
+    display: none;
+  }
+
+  * {
+    scrollbar-width: none;
+  }
+}
+
+/* Print styles for PDF export */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  .print-break {
+    page-break-before: always;
+  }
+}
+
+/* PWA install prompt */
+.pwa-install-banner {
+  @apply fixed bottom-4 left-4 right-4 bg-blue-600 text-white rounded-2xl p-4 shadow-2xl z-50;
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* Bottom navigation styles */
+.bottom-nav {
+  padding-bottom: env(safe-area-inset-bottom);
+}
