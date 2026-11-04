@@ -1,0 +1,9 @@
+{
+  "name": "multi-setup",
+  "version": "1.0.0",
+  "description": "Create parallel development workspaces — full git clones with shared config, each opened in a new Claude Code session",
+  "author": {
+    "name": "abhishek-git",
+    "email": "abhishekshingadiya2543@gmail.com"
+  }
+}
