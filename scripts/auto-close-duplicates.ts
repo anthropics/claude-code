@@ -11,6 +11,7 @@ interface GitHubIssue {
   title: string;
   user: { id: number };
   created_at: string;
+  pull_request?: { url?: string };
 }
 
 interface GitHubComment {
@@ -127,10 +128,15 @@ async function autoCloseDuplicates(): Promise<void> {
     );
     
     if (pageIssues.length === 0) break;
-    
+
+    const prItems = pageIssues.filter(issue => issue.pull_request);
+    if (prItems.length > 0) {
+      console.log(`[DEBUG] Skipping ${prItems.length} pull request items`);
+    }
+
     // Filter for issues created more than 3 days ago
-    const oldEnoughIssues = pageIssues.filter(issue => 
-      new Date(issue.created_at) <= threeDaysAgo
+    const oldEnoughIssues = pageIssues.filter(issue =>
+      !issue.pull_request && new Date(issue.created_at) <= threeDaysAgo
     );
     
     allIssues.push(...oldEnoughIssues);
@@ -147,6 +153,12 @@ async function autoCloseDuplicates(): Promise<void> {
   let candidateCount = 0;
 
   for (const issue of issues) {
+    if (issue.pull_request) {
+      console.log(
+        `[DEBUG] Issue #${issue.number} is a pull request, skipping`
+      );
+      continue;
+    }
     processedCount++;
     console.log(
       `[DEBUG] Processing issue #${issue.number} (${processedCount}/${issues.length}): ${issue.title}`
