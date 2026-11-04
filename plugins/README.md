@@ -2,6 +2,8 @@
 
 Anthropic's plugins are developed in [claude-plugins-official](https://github.com/anthropics/claude-plugins-official). The `claude-code-plugins` marketplace in this repository still lists them, and installs them from there. The `claude-opus-4-5-migration` plugin has been retired.
 
+These plugins are examples and building blocks, not replacements for Claude Code's built-in features. Start with existing built-in commands and the official documentation, and reach for plugins when you need project-specific workflows, commands, agents, hooks, or MCP integrations.
+
 ## What are Claude Code Plugins?
 
 Claude Code plugins are extensions that enhance Claude Code with custom slash commands, specialized agents, hooks, and MCP servers. Plugins can be shared across projects and teams, providing consistent tooling and workflows.
