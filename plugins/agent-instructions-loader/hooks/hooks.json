@@ -1,0 +1,16 @@
+{
+  "description": "Loads custom agent body content as additional context when subagents are spawned.",
+  "hooks": {
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/load-agent-instructions.py",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}
