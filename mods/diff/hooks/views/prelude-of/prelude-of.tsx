@@ -37,9 +37,7 @@ export function preludeOf(
     DialogPane.messagePaneOf(kit, {
       top: [Sections.headerView(kit, null, null)],
       message: ['Loading diff…'],
-      controls: null,
       earlier: null,
-      rest: [],
     })
 
   const settled = isLoading ? loadingOf() : null

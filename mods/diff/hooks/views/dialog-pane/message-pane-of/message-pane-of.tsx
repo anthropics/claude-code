@@ -10,42 +10,34 @@ import type { MessagePane } from './message-pane'
 
 /**
  * The pane while a message stands in for the list (ReplDiffSidebar's
- * centered body): the header, a blank row, the message, the pickers.
+ * centered body): the header, a blank row, the message.
  *
- * With nothing listed below and room, the lines sit where the built-in
- * centers them (half the spare rows above), the pickers under them;
- * otherwise all stacks from the top, the pickers over the pre-session line.
+ * With room, the lines sit where the built-in centers them (half the spare
+ * rows above); otherwise all stacks from the top, a blank row over the
+ * pre-session line.
  *
  * @param kit the elements, the width, the body's rows
- * @param pane the header block, the message's lines, the pickers, the
- *   pre-session line, and what is listed under it
+ * @param pane the header block, the message's lines, and the pre-session line
  * @returns the pane's tree
  */
 export function messagePaneOf(kit: Kit, pane: MessagePane): RenderElement {
   const { Box, Text } = kit.ui
-  const { top, controls, earlier, rest } = pane
+  const { top, earlier } = pane
 
   const lines = pane.message.flatMap(text =>
     Layout.wrappedLines(Layout.sanitizeName(text), kit.columns),
   )
 
   const drawn = lines.map(line => <Text dimColor>{line}</Text>)
-  const controlRows = controls === null ? [] : [controls]
   const earlierRows = earlier === null ? [] : [earlier]
 
-  const isControlsAboveEarlier =
-    controlRows.length > 0 || earlierRows.length === 0
-
-  const aboveEarlier = isControlsAboveEarlier
-    ? controlRows
-    : [<Box height={1} />]
+  const aboveEarlier = earlier === null ? [] : [<Box height={1} />]
 
   const footRows = earlier === null ? 0 : FOOT_ROWS
   const middleRows = kit.rows - top.length - 1 - footRows
   const above = Math.floor((middleRows - lines.length) / 2)
 
-  const isCentered =
-    rest.length === 0 && middleRows - above - lines.length >= controlRows.length
+  const isCentered = middleRows - above - lines.length >= 0
 
   if (!isCentered) {
     return (
@@ -56,7 +48,6 @@ export function messagePaneOf(kit: Kit, pane: MessagePane): RenderElement {
           ...drawn,
           ...aboveEarlier,
           ...earlierRows,
-          ...rest,
         ]}
       </Box>
     )
@@ -76,7 +67,7 @@ export function messagePaneOf(kit: Kit, pane: MessagePane): RenderElement {
         ...top,
         <Box height={1} />,
         <Box flexDirection="column" height={middleRows} alignItems="center">
-          {[...spacer, ...drawn, ...controlRows]}
+          {[...spacer, ...drawn]}
         </Box>,
         ...foot,
       ]}

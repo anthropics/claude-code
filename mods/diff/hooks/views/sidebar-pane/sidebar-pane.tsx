@@ -70,12 +70,10 @@ export function sidebarPane(
     return DialogPane.messagePaneOf(kit, {
       top: [...top, ...rows],
       message: plan.message,
-      controls: null,
       earlier:
         keptOf([plan.earlierLabel]).map(label =>
           Sections.toggleRow(kit, 'presession', { label, onPress }),
         )[0] ?? null,
-      rest: [],
     })
   }
 
