@@ -1,5 +1,92 @@
 # Changelog
 
+## 2.1.318
+
+- Added a record of your answer when Claude Code asks to turn on the mods it writes in a session
+- Added `assume_role` on `mantle` upstreams of the Claude apps gateway, for a role in another AWS account and for per-developer AWS cost attribution
+- Added an `effort` option to a mod's `$.model.fork`, so a quick side job can run at `low` whatever effort the session uses; the result reports the effort sent
+- Added the date a stored claude.ai sign-in ends to `claude auth status` (`loginExpiresAt`) and to `claude -p` JSON results (`credential_expires_at`)
+- Added a one-line stderr warning to `claude -p` text output, starting 10 days before a stored claude.ai sign-in ends
+- Fixed `--continue` sometimes losing the earlier conversation after a malformed tool call's retries ran out (regression in 2.1.314)
+- Fixed macOS sessions with many running Bash commands stalling while memory grew
+- Fixed permission prompts being answered by keys typed just after sending a message, or before a slow prompt appeared
+- Fixed `/logout`, `claude auth logout` and `claude mcp remove` reporting success, and changes to trust, consent or MCP settings being dropped with no word, when the config file could not be updated on a shared network home directory
+- Fixed jobs exiting with `Not logged in` when another terminal or host signs in again to the same account and organization on the same home
+- Fixed `claude mcp add` and `remove` writing the config without its lock: they now wait for it or exit 1, though another job's save can still replace a saved server
+- Fixed `claude plugin` commands exiting before a slow token refresh was saved, which could sign you out on the next run
+- Fixed `claude plugin validate` passing a custom-named marketplace file that `claude plugin marketplace add` rejects
+- Fixed stdio MCP servers that exit on the version probe being re-probed on every start; a server that dies in under 3s for its own reason is also pinned to the legacy handshake for 7 days
+- Fixed sessions being refused at startup by an `allowedProviders` list that another login on the same machine had stored
+- Fixed idle compaction replacing a conversation with a reply that was not a summary
+- Fixed the "Now using usage credits" notice reappearing about every 30 seconds while a background subagent is running
+- Fixed custom slash commands that fail, or that only Claude can invoke, printing nothing in `claude -p` and SDK sessions
+- Fixed `claude -p` and Agent SDK sessions reporting success when an API error cut off a reply while a mod hooked `turn.step`
+- Fixed a message sent right after a model change still running after Stop in headless sessions: Stop now cancels or stops it as it would a queued message
+- Fixed a deleted session transcript being re-created with its last prompt when an idle non-interactive session exited
+- Fixed `claude remote-control` hosts, the background daemon and self-hosted runners failing to start new sessions (`spawn ENOENT`) after an update or version cleanup removed the binary of a still-running process
+- Fixed a running Claude Code process owned by another user (for example one left by `sudo claude`) being treated as dead by version cleanup, which could delete its binary
+- Fixed `/remote-control` showing a session as available after a failed connection
+- Fixed `/design revoke` reporting success when the request failed with a 404
+- Fixed a shell command approved after a self-hosted runner or cloud session restart running in the session's start folder, not the folder it was asked in; if that folder can't be entered, it is not run
+- Fixed Claude not being told when an approved connector tool was unavailable after a cloud session restart
+- Fixed cloud sessions being stopped in the middle of a turn when the service refuses uploads for several minutes
+- Fixed variables a `Setup` hook writes to `CLAUDE_ENV_FILE` not reaching the Bash tool in some cloud sessions
+- Fixed the iPhone app showing a cloud session's turn as finished while it kept running, after a response was cut off at a tool call or a refused image or document was removed
+- Fixed a restarted session re-sending a message that failed with an API error, ahead of the newer message waiting behind it
+- Fixed a restarted session dropping its interrupted turn when the restart came right after Claude read a large image or retried a tool call
+- Fixed every connection failing when the `NODE_EXTRA_CA_CERTS` file is empty, not PEM, or starts with a damaged certificate: readable certificates are now used, with a warning on stderr
+- Fixed workflows re-running finished agents when resumed after a usage limit
+- Fixed `/mcp` in cloud sessions counting tools the model can't use; a server's row now shows how many of its tools are available
+- Fixed a duplicate notification when Claude left the status field out of a PushNotification call
+- Fixed the error for a too-large image in a request with more than 20 images always saying the limit was 2000px; it now shows the API's limit
+- Fixed the runtime in background shell details not updating while the dialog is open
+- Fixed a mod's `turn.step` hook making a stopped reply finish as a success in headless runs
+- Fixed retention cleanup leaving a home that only runs `claude -p` with no `~/.claude.json` backup: it now takes a fresh backup before deleting the last good one
+- Fixed the stored login being replaced by an empty file when a network home directory has no room left for data but still takes new files
+- Fixed tokens from `setup-token` being refused at start on machines with `forceLoginOrgUUID`, when the token belongs to a permitted organization
+- Fixed non-interactive launches replacing a `~/.claude.json` that isn't valid JSON with defaults; the start now fails, says how to restore the file, and leaves it as is (anthropics/claude-code#87551)
+- Fixed an empty `~/.claude.json` with no backup being reported as corrupted; Claude Code now starts as it does when the file is missing
+- Fixed the restore command printed for a damaged or missing `~/.claude.json` naming an empty or cut-off backup, or failing on a read-only file
+- Fixed the sign-in failure when a stored claude.ai login reaches its time limit: it now says so, and in `claude -p` names `claude auth login` and `claude setup-token`
+- Improved how `~/.claude.json`, settings files and the stored login survive saves on shared network home directories: they are less often deleted, briefly emptied or replaced by a near-empty or older copy
+- Improved sessions on network file systems to look again when the configuration file is wrongly reported as missing, so fewer start without your MCP servers and trusted folders
+- Improved MCP tool errors: a call made before the tool is loaded now returns its input schema
+- Improved the reliability of git commits and pull request creation when the Bash tool runs macOS's built-in `/bin/bash`
+- Improved "Ask your admin for more usage" in the usage limit menu to send the request in one step
+- Improved how fast remote sessions reconnect after a pause or sleep
+- Improved You should know toasts to say "try again" instead of "press 2", which only works in the terminal
+- Improved auto-update reliability: a brief network failure while verifying a release is now retried right away instead of waiting for the next check
+- Improved unattended runs (`claude -p`, SDK apps) to stop rewriting `~/.claude.json` on every run when nothing in it changed
+- Changed Claude Code to no longer install or update the IDE extension when started in an IDE terminal; use `/ide` from an outside terminal or your editor's extensions view
+- Changed subagents to stop instead of switching models when "Switch models when a message is flagged" is set to "Ask each time"
+- Changed background subagents to move a shell command to the background after 3 minutes on all providers, so the prompt cache doesn't expire while it runs
+- Changed subagent progress summaries on Bedrock, Vertex, Foundry, or with telemetry off: on a cold prompt cache, one can now wait up to 5 minutes for the subagent's pending response
+- Changed what a mod attaches at `prompt.submit` to stay in the user's turn rather than go out as a system message
+- Changed `deniedMcpServers` URL entries to also block Anthropic-provided servers whose upstream URL matches, and connectors in cloud sessions and on self-hosted runners, where the session is given the connector's own URL; otherwise deny a connector by name
+- Changed the `/permissions` rule details, built-in rules and delete confirmation views to use the standard dialog; pressing Ctrl+C twice there now goes back or cancels instead of quitting
+- Changed `/claude-api managed-agents-onboard` to give a new agent's built-in tools, and a quickstart template's MCP tools, the `auto` permission policy ("Judge risky actions") by default, matching the Claude Console; say "run without asking" to opt out
+- Removed the 2.1.288 fix that kept the model's earlier thinking when resuming a conversation started on 2.1.286 or earlier; that thinking can now be dropped
+- Gateway: Added a log warning when the Google access token from a federation (`external_account`) credentials file is about to expire
+- Gateway: Improved the log hints about `listen.trusted_proxies`: they now say to list only a proxy that adds the connecting address to `X-Forwarded-For` itself
+- Gateway: Improved the warning when AWS CountTokens fails on Amazon Bedrock: it says Claude Code, not the gateway, counts after the 501, and points at IAM only when AWS denies access
+- Self-hosted runner: Added `CLAUDE_RUNNER_SPAWN_REASON` to the orchestrator's spawn-runner hook environment: why Anthropic sent the request (e.g. `runner_lost`, `resumed`); unset when none was sent
+- Self-hosted runner: Added a startup warning when `--release-idle-session-min` is the last argument with no value (still ignored) or has a value of only spaces (still read as `0`)
+- Self-hosted runner: Changed the orchestrator's log lines: `ok session=…` now prints at every log level on stdout (was debug only, stderr) with `reason=…` after `jti=…`, and `nack session=…` ends its fields with `reason=…` after `retryable=…`; update scripts that match `retryable=true:` or `retryable=false:`
+- Remote Control: Fixed a misleading "spawn error: ENOENT" when a session's working folder is missing; the error now names the folder
+- Remote Control: Improved the title a fork of a terminal fork is created with when the app doesn't set one: "Name (fork 2)"
+- [VSCode] Fixed a window whose sign-in the organization's settings refuse starting a new Claude Code process in the background every minute
+- [VSCode] Fixed a long word in the chat panel's error banner pushing its close button out of view
+- [VSCode] Improved the sign-in screen to show what Claude Code printed when its sign-in status check fails
+- [Cloud sessions] Added a No repository option: a cloud session on an Anthropic-hosted environment can now start without picking a repository
+- [Cloud sessions] Added the usual Chrome names to cloud sessions, so tools other than Playwright can find the built-in Chromium through google-chrome and CHROME_PATH
+- [Cloud sessions] Added a New session button to the card shown when a cloud session's environment was deleted, where the message box is hidden
+- [Cloud sessions] Fixed reading GitHub Actions logs in cloud sessions: `gh run view --log` and `gh api` log requests now get the log in most environments, not an unreachable redirect
+- [Cloud sessions] Improved most Create PR failure messages in cloud and Remote Control sessions: they now give the reason or a link to GitHub instead of saying Try again
+- [Cloud sessions] Changed connector search results to tell Claude that the search covers only part of the connector directory
+- [Remote Control] Fixed side-by-side checkouts of one repository looking identical in the environment menu's Remote Control rows; each now shows its own folder name
+- [Claude Tag] Fixed keyboard focus and screen reader announcements in Claude Tag admin setup; pressing Escape in the connect form no longer also closes the Add dialog
+- [Code Review] Improved the Code Review analytics page to retry once after a server or network failure, then show a Try again banner instead of empty cards
+
 ## 2.1.317
 
 - Added a warning to `/schedule` when a new cloud scheduled task gets connectors you did not ask for, with how to remove them
