@@ -1,0 +1,9 @@
+{
+  "name": "refactor",
+  "version": "1.0.0",
+  "description": "Automated iterative code refactoring with specialized test, architect, and code agents. Ensures test coverage, designs optimizations, implements clean code improvements, and verifies quality through multiple refinement cycles.",
+  "author": {
+    "name": "Claude Code",
+    "email": "claude-code@anthropic.com"
+  }
+}
