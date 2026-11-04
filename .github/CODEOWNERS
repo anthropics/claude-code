@@ -1,0 +1,17 @@
+# Default owners for the entire repository
+* @anthropic/claude-code-maintainers
+
+# Security-related files
+SECURITY.md @anthropic/security
+CODE_OF_CONDUCT.md @anthropic/legal
+.github/CODEOWNERS @anthropic/claude-code-maintainers
+
+# CI/CD workflows
+.github/workflows/ @anthropic/claude-code-maintainers
+
+# Plugins
+/plugins/ @anthropic/claude-code-plugins
+
+# Documentation
+/README.md @anthropic/docs
+/CHANGELOG.md @anthropic/docs
