@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Port Taproom Menu</title>
+  <style>
+    @page {
+      size: 14in 8.5in;
+      margin: 0;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Georgia, 'Times New Roman', serif;
+      color: #1a1a1a;
+      background: #ffffff;
+      width: 14in;
+      margin: 0 auto;
+      display: flex;
+    }
+
+    .menu-panel {
+      width: 7in;
+      height: 8.5in;
+      padding: 0.15in 0.3in;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .menu-panel:first-child {
+      border-right: 1px dashed #ccc;
+    }
+
+    /* Header */
+    .header {
+      border-bottom: 2px solid #2d3a4a;
+      padding-bottom: 3px;
+      margin-bottom: 3px;
+    }
+
+    .header-top {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .logo-left, .logo-right {
+      height: 60px;
+      width: auto;
+      flex-shrink: 0;
+    }
+
+    .logo-right {
+      border-radius: 6px;
+    }
+
+    .header-text {
+      text-align: center;
+      flex: 1;
+    }
+
+    .header h1 {
+      font-size: 30px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-bottom: 1px;
+      color: #2d3a4a;
+    }
+
+    .header .subtitle {
+      font-size: 15px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #555;
+    }
+
+    /* Pricing bar */
+    .pricing-bar {
+      display: flex;
+      justify-content: center;
+      gap: 40px;
+      padding: 2px 0;
+      margin-bottom: 2px;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: #1a1a1a;
+      border-bottom: 1px solid #ccc;
+    }
+
+    .pricing-bar span {
+      font-weight: 700;
+    }
+
+    /* Section */
+    .section {
+      margin-bottom: 4px;
+    }
+
+    .section-title {
+      font-size: 19px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      border-bottom: 1px solid #999;
+      padding-bottom: 1px;
+      margin-bottom: 2px;
+      color: #2d3a4a;
+    }
+
+    /* Beer list */
+    .beer-list {
+      columns: 2;
+      column-gap: 20px;
+    }
+
+    .beer-item {
+      break-inside: avoid;
+      margin-bottom: 4px;
+    }
+
+    .beer-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+
+    .beer-name {
+      font-size: 17px;
+      font-weight: 700;
+    }
+
+    .beer-abv {
+      font-size: 14px;
+      font-weight: 600;
+      color: #333;
+      white-space: nowrap;
+    }
+
+    .beer-desc {
+      font-size: 14px;
+      color: #444;
+      line-height: 1.2;
+      margin-top: 0;
+    }
+
+    .cider-list {
+      columns: 2;
+      column-gap: 20px;
+    }
+
+    .seltzer-list {
+      columns: 2;
+      column-gap: 20px;
+    }
+
+
+    /* Footer */
+    .footer {
+      text-align: center;
+      margin-top: auto;
+      padding-top: 2px;
+      border-top: 1px solid #ccc;
+    }
+
+    .footer p {
+      font-size: 12px;
+      color: #555;
+      margin-bottom: 2px;
+      letter-spacing: 1px;
+    }
+
+    .footer img.qr {
+      display: block;
+      margin: 0 auto;
+      width: 60px;
+      height: 60px;
+    }
+
+    /* Print styles */
+    @media print {
+      body {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- LEFT COPY -->
+  <div class="menu-panel">
+
+    <div class="header">
+      <div class="header-top">
+        <img class="logo-left" src="brig&Barqlogo.png" alt="Brig &amp; Barq Logo">
+        <div class="header-text">
+          <h1>The Port Taproom</h1>
+          <div class="subtitle">On Tap</div>
+        </div>
+        <img class="logo-right" src="moonriseridgeimage.jpeg" alt="Moonrise Ridge Logo">
+      </div>
+    </div>
+
+    <div class="pricing-bar">
+      <span>12oz &mdash; $6</span>
+      <span>16oz &mdash; $7</span>
+      <span>20oz &mdash; $8</span>
+    </div>
+
+    <!-- BEER -->
+    <div class="section">
+      <div class="section-title">Beer &middot; Brig&amp;Barq</div>
+      <div class="beer-list">
+
+        <div class="beer-item">
+          <div class="beer-header">
+            <span class="beer-name" style="color: #b8860b;">Lager</span>
+            <span class="beer-abv">4.5% ABV</span>
+          </div>
+          <div class="beer-desc">Czech-style pale lager with malt flavours, floral hops, and a clean, dry finish.</div>
+        </div>
+
+        <div class="beer-item">
+          <div class="beer-header">
+            <span class="beer-name" style="color: #c0392b;">Red Ale</span>
+            <span class="beer-abv">5.5% ABV</span>
+          </div>
+          <div class="beer-desc">Malt-forward with caramel sweetness, subtle hop bitterness, and a smooth finish.</div>
+        </div>
+
+        <div class="beer-item">
+          <div class="beer-header">
+            <span class="beer-name" style="color: #7cb342;">Session IPA</span>
+            <span class="beer-abv">3.5% ABV</span>
+          </div>
+          <div class="beer-desc">Bright orange peel for a zesty citrus kick, easy-drinking and refreshing.</div>
+        </div>
+
+        <div class="beer-item">
+          <div class="beer-header">
+            <span class="beer-name" style="color: #4caf50;">IPA</span>
+            <span class="beer-abv">5.7% ABV</span>
+          </div>
+          <div class="beer-desc">Grapefruit, orange, and tropical fruit flavours with a balanced finish.</div>
+        </div>
+
+        <div class="beer-item">
+          <div class="beer-header">
+            <span class="beer-name" style="color: #1b5e20;">Big IPA</span>
+            <span class="beer-abv">6.8% ABV</span>
+          </div>
+          <div class="beer-desc">Bold West Coast IPA with citrusy aromas, balanced bitterness, and a crisp finish.</div>
+        </div>
+
+        <div class="beer-item">
+          <div class="beer-header">
+            <span class="beer-name" style="color: #87CEEB;">Light Lager</span>
+            <span class="beer-abv">3.5% ABV</span>
+          </div>
+          <div class="beer-desc">Crisp and clean with a light body, subtle malt sweetness, and a refreshing finish.</div>
+        </div>
+
+        <div class="beer-item">
+          <div class="beer-header">
+            <span class="beer-name" style="color: #5d3a1a;">Baltic Porter</span>
+            <span class="beer-abv">9.0% ABV</span>
+          </div>
+          <div class="beer-desc">Dark chocolate, roasted coffee, and dried fruit. Smooth and warming.</div>
+        </div>
+
+        <div class="beer-item">
+          <div class="beer-header">
+            <span class="beer-name" style="color: #1a1a1a;">Stout</span>
+            <span class="beer-abv">5.5% ABV</span>
+          </div>
+          <div class="beer-desc">Rich dark chocolate, coffee, and caramel with a velvety texture.</div>
+        </div>
+
+        <div class="beer-item">
+          <div class="beer-header">
+            <span class="beer-name" style="color: #e6c619;">Lemonade Radler</span>
+            <span class="beer-abv">4.0% ABV</span>
+          </div>
+          <div class="beer-desc">Zesty citrus with a hint of sweetness. Light and effervescent.</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- CIDER -->
+    <div class="section">
+      <div class="section-title">Cider &middot; Moonrise Ridge</div>
+      <div class="cider-list">
+
+        <div class="beer-item">
+          <div class="beer-header">
+            <span class="beer-name" style="color: #5c3d8f;">Wild Blueberry</span>
+            <span class="beer-abv">5.3% ABV</span>
+          </div>
+          <div class="beer-desc">Medium dry with wine-like character, rich blueberry, and a hint of plum.</div>
+        </div>
+
+        <div class="beer-item">
+          <div class="beer-header">
+            <span class="beer-name" style="color: #4caf50;">Perfect Pear</span>
+            <span class="beer-abv">5.3% ABV</span>
+          </div>
+          <div class="beer-desc">Delicate pear, apple, and citrus notes. Refreshing and versatile.</div>
+        </div>
+
+        <div class="beer-item">
+          <div class="beer-header">
+            <span class="beer-name" style="color: #e67e22;">Juicy Peach</span>
+            <span class="beer-abv">5.3% ABV</span>
+          </div>
+          <div class="beer-desc">Fruit-forward with vibrant peach aroma. Smooth and refreshing.</div>
+        </div>
+
+        <div class="beer-item">
+          <div class="beer-header">
+            <span class="beer-name" style="color: #c0392b;">Honey Crisp Apple</span>
+            <span class="beer-abv">6.0% ABV</span>
+          </div>
+          <div class="beer-desc">Bold apple flavour with crisp vinous notes and a rounded mouthfeel.</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- SELTZER -->
+    <div class="section">
+      <div class="section-title">Seltzer &middot; Luna</div>
+      <div class="seltzer-list">
+
+        <div class="beer-item">
+          <div class="beer-header">
+            <span class="beer-name" style="color: #6a1b6a;">Blackberry</span>
+            <span class="beer-abv">5.5% ABV</span>
+          </div>
+          <div class="beer-desc">Only 1g sugar. Bold, ripe blackberry with a crisp, clean finish.</div>
+        </div>
+
+        <div class="beer-item">
+          <div class="beer-header">
+            <span class="beer-name" style="color: #0e8c7f;">Gin Fizz</span>
+            <span class="beer-abv">5.5% ABV</span>
+          </div>
+          <div class="beer-desc">Only 1g sugar. Classic gin fizz inspired, crisp and effervescent.</div>
+        </div>
+
+        <div class="beer-item">
+          <div class="beer-header">
+            <span class="beer-name" style="color: #b8860b;">Hard Iced Tea</span>
+            <span class="beer-abv">5.5% ABV</span>
+          </div>
+          <div class="beer-desc">Made with vodka and real lemon tea. Smooth and refreshing.</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- QR CODE -->
+    <div class="footer">
+      <p>Visit us online</p>
+      <img class="qr" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQ4AAAEOCAIAAAD3027yAAAEvklEQVR4nO3dwZErNRRAUYYiHhIgBOIlBBIgoWYLG/lWqfSfev4526mxu23f0uJZ8tfzPL8An/w6fQHwDlKBRCqQSAUSqUAiFUikAolUIJEKJL+t//z7H3/+mOv4Yf75+6/FX9f3u/O/U9bXvOPO+92xfq2sKpBIBRKpQCIVSKQCiVQgkQokUoFEKpB8mNavnZsE7zg3Rd555Du/JbDzvGvf77NhVYFEKpBIBRKpQCIVSKQCiVQgkQokUoFka1q/dm5qfm4SvPPI6/s9N49/447/N342rCqQSAUSqUAiFUikAolUIJEKJFKBRCqQHJzW82Oc2/HPf1lVIJEKJFKBRCqQSAUSqUAiFUikAolUIDGt/58793yf23lPZ1WBRCqQSAUSqUAiFUikAolUIJEKJFKB5OC0/vvNic/d0c82cX/jHVlVIJEKJFKBRCqQSAUSqUAiFUikAolUINma1t/5m+hT3jhxP3fN3++zYVWBRCqQSAUSqUAiFUikAolUIJEKJFKB5MO0/s4Z8xtNnbF/59n+b2RVgUQqkEgFEqlAIhVIpAKJVCCRCiRSgeTDtP7OWe/OVd35vHfuRJ+6qjvfI6sKJFKBRCqQSAUSqUAiFUikAolUIJEKJFt7689Nc6dOaD93v3fO49fOvRo7jzy1p9+qAolUIJEKJFKBRCqQSAUSqUAiFUikAsnX8zyLP0/Ntr/f6e7nXsk3/u855+7IqgKJVCCRCiRSgUQqkEgFEqlAIhVIpALJh731dzq3t37qjP2pR5563qm99Tv/a1WBRCqQSAUSqUAiFUikAolUIJEKJFKBZGtaP3Ve/Y47r+rOs9/X7pypr9lbD8dJBRKpQCIVSKQCiVQgkQokUoFEKpAc/N36qQn01K/av9HU9y2m5vE7rCqQSAUSqUAiFUikAolUIJEKJFKBRCqQfJjWT+0mX7vzF9OnnvdOU2cYnPtsWFUgkQokUoFEKpBIBRKpQCIVSKQCiVQg+Xqe59BD33ma/dqdE/dzE+hzvx//xnd/zaoCiVQgkQokUoFEKpBIBRKpQCIVSKQCyYdp/Z27nM+ZmgRPnUh/pztP4LeqQCIVSKQCiVQgkQokUoFEKpBIBRKpQHJwb/0bTe0mv3MeP3WGwZ3Pa1WBRCqQSAUSqUAiFUikAolUIJEKJFKBZOx366esJ7JT5wGcm16fu6OpifsUqwokUoFEKpBIBRKpQCIVSKQCiVQgkQokH6b1a3dOZM9NoNemXo2f7ffj15yED8OkAolUIJEKJFKBRCqQSAUSqUAiFUi2pvVrb5wT33kG+5Q3nqxw7pW0qkAiFUikAolUIJEKJFKBRCqQSAUSqUBycFr//UydhL82dU7+zvO+8fwDqwokUoFEKpBIBRKpQCIVSKQCiVQgkQokpvX/szOffuMp+m+cx++8CzuPbFWBRCqQSAUSqUAiFUikAolUIJEKJFKB5OC0/s7T3aec28U+9Q2Dc86dFrDDqgKJVCCRCiRSgUQqkEgFEqlAIhVIpALJ1rT+zlnvOVP7xdfu/FbEuX35U49sVYFEKpBIBRKpQCIVSKQCiVQgkQokUoHk63me6WuAF7CqQCIVSKQCiVQgkQokUoFEKpBIBRKpQPIvmpt01keolfsAAAAASUVORK5CYII=" alt="QR code to thesarsfieldgroup.com">
+    </div>
+
+  </div>
+
+  <!-- RIGHT COPY (identical) -->
+  <div class="menu-panel">
+
+    <div class="header">
+      <div class="header-top">
+        <img class="logo-left" src="brig&Barqlogo.png" alt="Brig &amp; Barq Logo">
+        <div class="header-text">
+          <h1>The Port Taproom</h1>
+          <div class="subtitle">On Tap</div>
+        </div>
+        <img class="logo-right" src="moonriseridgeimage.jpeg" alt="Moonrise Ridge Logo">
+      </div>
+    </div>
+
+    <div class="pricing-bar">
+      <span>12oz &mdash; $6</span>
+      <span>16oz &mdash; $7</span>
+      <span>20oz &mdash; $8</span>
+    </div>
+
+    <!-- BEER -->
+    <div class="section">
+      <div class="section-title">Beer &middot; Brig&amp;Barq</div>
+      <div class="beer-list">
+
+        <div class="beer-item">
+          <div class="beer-header">
+            <span class="beer-name" style="color: #b8860b;">Lager</span>
+            <span class="beer-abv">4.5% ABV</span>
+          </div>
+          <div class="beer-desc">Czech-style pale lager with malt flavours, floral hops, and a clean, dry finish.</div>
+        </div>
+
+        <div class="beer-item">
+          <div class="beer-header">
+            <span class="beer-name" style="color: #c0392b;">Red Ale</span>
+            <span class="beer-abv">5.5% ABV</span>
+          </div>
+          <div class="beer-desc">Malt-forward with caramel sweetness, subtle hop bitterness, and a smooth finish.</div>
+        </div>
+
+        <div class="beer-item">
+          <div class="beer-header">
+            <span class="beer-name" style="color: #7cb342;">Session IPA</span>
+            <span class="beer-abv">3.5% ABV</span>
+          </div>
+          <div class="beer-desc">Bright orange peel for a zesty citrus kick, easy-drinking and refreshing.</div>
+        </div>
+
+        <div class="beer-item">
+          <div class="beer-header">
+            <span class="beer-name" style="color: #4caf50;">IPA</span>
+            <span class="beer-abv">5.7% ABV</span>
+          </div>
+          <div class="beer-desc">Grapefruit, orange, and tropical fruit flavours with a balanced finish.</div>
+        </div>
+
+        <div class="beer-item">
+          <div class="beer-header">
+            <span class="beer-name" style="color: #1b5e20;">Big IPA</span>
+            <span class="beer-abv">6.8% ABV</span>
+          </div>
+          <div class="beer-desc">Bold West Coast IPA with citrusy aromas, balanced bitterness, and a crisp finish.</div>
+        </div>
+
+        <div class="beer-item">
+          <div class="beer-header">
+            <span class="beer-name" style="color: #87CEEB;">Light Lager</span>
+            <span class="beer-abv">3.5% ABV</span>
+          </div>
+          <div class="beer-desc">Crisp and clean with a light body, subtle malt sweetness, and a refreshing finish.</div>
+        </div>
+
+        <div class="beer-item">
+          <div class="beer-header">
+            <span class="beer-name" style="color: #5d3a1a;">Baltic Porter</span>
+            <span class="beer-abv">9.0% ABV</span>
+          </div>
+          <div class="beer-desc">Dark chocolate, roasted coffee, and dried fruit. Smooth and warming.</div>
+        </div>
+
+        <div class="beer-item">
+          <div class="beer-header">
+            <span class="beer-name" style="color: #1a1a1a;">Stout</span>
+            <span class="beer-abv">5.5% ABV</span>
+          </div>
+          <div class="beer-desc">Rich dark chocolate, coffee, and caramel with a velvety texture.</div>
+        </div>
+
+        <div class="beer-item">
+          <div class="beer-header">
+            <span class="beer-name" style="color: #e6c619;">Lemonade Radler</span>
+            <span class="beer-abv">4.0% ABV</span>
+          </div>
+          <div class="beer-desc">Zesty citrus with a hint of sweetness. Light and effervescent.</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- CIDER -->
+    <div class="section">
+      <div class="section-title">Cider &middot; Moonrise Ridge</div>
+      <div class="cider-list">
+
+        <div class="beer-item">
+          <div class="beer-header">
+            <span class="beer-name" style="color: #5c3d8f;">Wild Blueberry</span>
+            <span class="beer-abv">5.3% ABV</span>
+          </div>
+          <div class="beer-desc">Medium dry with wine-like character, rich blueberry, and a hint of plum.</div>
+        </div>
+
+        <div class="beer-item">
+          <div class="beer-header">
+            <span class="beer-name" style="color: #4caf50;">Perfect Pear</span>
+            <span class="beer-abv">5.3% ABV</span>
+          </div>
+          <div class="beer-desc">Delicate pear, apple, and citrus notes. Refreshing and versatile.</div>
+        </div>
+
+        <div class="beer-item">
+          <div class="beer-header">
+            <span class="beer-name" style="color: #e67e22;">Juicy Peach</span>
+            <span class="beer-abv">5.3% ABV</span>
+          </div>
+          <div class="beer-desc">Fruit-forward with vibrant peach aroma. Smooth and refreshing.</div>
+        </div>
+
+        <div class="beer-item">
+          <div class="beer-header">
+            <span class="beer-name" style="color: #c0392b;">Honey Crisp Apple</span>
+            <span class="beer-abv">6.0% ABV</span>
+          </div>
+          <div class="beer-desc">Bold apple flavour with crisp vinous notes and a rounded mouthfeel.</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- SELTZER -->
+    <div class="section">
+      <div class="section-title">Seltzer &middot; Luna</div>
+      <div class="seltzer-list">
+
+        <div class="beer-item">
+          <div class="beer-header">
+            <span class="beer-name" style="color: #6a1b6a;">Blackberry</span>
+            <span class="beer-abv">5.5% ABV</span>
+          </div>
+          <div class="beer-desc">Only 1g sugar. Bold, ripe blackberry with a crisp, clean finish.</div>
+        </div>
+
+        <div class="beer-item">
+          <div class="beer-header">
+            <span class="beer-name" style="color: #0e8c7f;">Gin Fizz</span>
+            <span class="beer-abv">5.5% ABV</span>
+          </div>
+          <div class="beer-desc">Only 1g sugar. Classic gin fizz inspired, crisp and effervescent.</div>
+        </div>
+
+        <div class="beer-item">
+          <div class="beer-header">
+            <span class="beer-name" style="color: #b8860b;">Hard Iced Tea</span>
+            <span class="beer-abv">5.5% ABV</span>
+          </div>
+          <div class="beer-desc">Made with vodka and real lemon tea. Smooth and refreshing.</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- QR CODE -->
+    <div class="footer">
+      <p>Visit us online</p>
+      <img class="qr" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQ4AAAEOCAIAAAD3027yAAAEvklEQVR4nO3dwZErNRRAUYYiHhIgBOIlBBIgoWYLG/lWqfSfev4526mxu23f0uJZ8tfzPL8An/w6fQHwDlKBRCqQSAUSqUAiFUikAolUIJEKJL+t//z7H3/+mOv4Yf75+6/FX9f3u/O/U9bXvOPO+92xfq2sKpBIBRKpQCIVSKQCiVQgkQokUoFEKpB8mNavnZsE7zg3Rd555Du/JbDzvGvf77NhVYFEKpBIBRKpQCIVSKQCiVQgkQokUoFka1q/dm5qfm4SvPPI6/s9N49/447/N342rCqQSAUSqUAiFUikAolUIJEKJFKBRCqQHJzW82Oc2/HPf1lVIJEKJFKBRCqQSAUSqUAiFUikAolUIDGt/58793yf23lPZ1WBRCqQSAUSqUAiFUikAolUIJEKJFKB5OC0/vvNic/d0c82cX/jHVlVIJEKJFKBRCqQSAUSqUAiFUikAolUINma1t/5m+hT3jhxP3fN3++zYVWBRCqQSAUSqUAiFUikAolUIJEKJFKB5MO0/s4Z8xtNnbF/59n+b2RVgUQqkEgFEqlAIhVIpAKJVCCRCiRSgeTDtP7OWe/OVd35vHfuRJ+6qjvfI6sKJFKBRCqQSAUSqUAiFUikAolUIJEKJFt7689Nc6dOaD93v3fO49fOvRo7jzy1p9+qAolUIJEKJFKBRCqQSAUSqUAiFUikAsnX8zyLP0/Ntr/f6e7nXsk3/u855+7IqgKJVCCRCiRSgUQqkEgFEqlAIhVIpALJh731dzq3t37qjP2pR5563qm99Tv/a1WBRCqQSAUSqUAiFUikAolUIJEKJFKBZGtaP3Ve/Y47r+rOs9/X7pypr9lbD8dJBRKpQCIVSKQCiVQgkQokUoFEKpAc/N36qQn01K/av9HU9y2m5vE7rCqQSAUSqUAiFUikAolUIJEKJFKBRCqQfJjWT+0mX7vzF9OnnvdOU2cYnPtsWFUgkQokUoFEKpBIBRKpQCIVSKQCiVQg+Xqe59BD33ma/dqdE/dzE+hzvx//xnd/zaoCiVQgkQokUoFEKpBIBRKpQCIVSKQCyYdp/Z27nM+ZmgRPnUh/pztP4LeqQCIVSKQCiVQgkQokUoFEKpBIBRKpQHJwb/0bTe0mv3MeP3WGwZ3Pa1WBRCqQSAUSqUAiFUikAolUIJEKJFKBZOx366esJ7JT5wGcm16fu6OpifsUqwokUoFEKpBIBRKpQCIVSKQCiVQgkQokH6b1a3dOZM9NoNemXo2f7ffj15yED8OkAolUIJEKJFKBRCqQSAUSqUAiFUi2pvVrb5wT33kG+5Q3nqxw7pW0qkAiFUikAolUIJEKJFKBRCqQSAUSqUBycFr//UydhL82dU7+zvO+8fwDqwokUoFEKpBIBRKpQCIVSKQCiVQgkQokpvX/szOffuMp+m+cx++8CzuPbFWBRCqQSAUSqUAiFUikAolUIJEKJFKB5OC0/s7T3aec28U+9Q2Dc86dFrDDqgKJVCCRCiRSgUQqkEgFEqlAIhVIpALJ1rT+zlnvOVP7xdfu/FbEuX35U49sVYFEKpBIBRKpQCIVSKQCiVQgkQokUoHk63me6WuAF7CqQCIVSKQCiVQgkQokUoFEKpBIBRKpQPIvmpt01keolfsAAAAASUVORK5CYII=" alt="QR code to thesarsfieldgroup.com">
+    </div>
+
+  </div>
+
+</body>
+</html>
