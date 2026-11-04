@@ -1,0 +1,33 @@
+name: Validate Plugin Catalog
+
+on:
+  pull_request:
+    paths:
+      - ".claude-plugin/marketplace.json"
+      - "plugins/**"
+      - "scripts/validate-plugin-catalog.mjs"
+  push:
+    branches:
+      - main
+    paths:
+      - ".claude-plugin/marketplace.json"
+      - "plugins/**"
+      - "scripts/validate-plugin-catalog.mjs"
+  workflow_dispatch:
+
+jobs:
+  validate-plugin-catalog:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Validate plugin catalog
+        run: node scripts/validate-plugin-catalog.mjs
