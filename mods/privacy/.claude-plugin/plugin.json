@@ -1,0 +1,8 @@
+{
+  "name": "privacy",
+  "version": "0.1.0",
+  "description": "Refuses a shell call that holds the signed-in account's email address and names a User-Agent, so the address does not go out as a client's contact details.",
+  "author": {
+    "name": "Anthropic"
+  }
+}

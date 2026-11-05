@@ -1,0 +1,4 @@
+{
+  "description": "Privacy: refuses a shell call that holds the signed-in account's address and names a User-Agent",
+  "modules": ["./register.ts"]
+}
