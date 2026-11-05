@@ -45,5 +45,7 @@ tier is refused that op and is left off its chain.
 - `/plugin disable`, or `"cc-plugin-privacy@builtin": false` under
   `enabledPlugins` in user, `--settings` or managed settings. A repository's
   settings do not.
+- A server-side switch, read once per session.
 - A hook of an installed plugin, which sits above this one: on `tool.check` it
   may overrule the refusal.
+- A session where no hooks module loads, where `hooks/register.ts` does not run.
