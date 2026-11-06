@@ -1,0 +1,34 @@
+[package]
+name = "claude-plugins"
+version = "0.1.0"
+edition = "2021"
+authors = ["Claude Code Contributors"]
+description = "Plugin system for commands, agents, skills, and hooks"
+
+[dependencies]
+# Core
+claude-core = { path = "../claude-core" }
+
+# Async
+tokio = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Tracing
+tracing = { workspace = true }
+
+# Error handling
+anyhow = { workspace = true }
+
+# Directories
+dirs = { workspace = true }
+
+# Regex for pattern matching
+regex = { workspace = true }
+
+# Serde regex support
+serde_regex = "1.1"
+
+

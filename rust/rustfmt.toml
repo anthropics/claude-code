@@ -1,0 +1,36 @@
+# rustfmt configuration
+# This ensures consistent formatting across the codebase
+
+# Basic formatting
+max_width = 100
+hard_tabs = false
+tab_spaces = 4
+newline_style = "Unix"
+edition = "2021"
+
+# Imports
+imports_granularity = "Crate"
+group_imports = "StdExternalCrate"
+reorder_imports = true
+
+# Code style
+use_small_heuristics = "Default"
+brace_style = "SameLineWhere"
+control_brace_style = "AlwaysSameLine"
+trailing_semicolon = true
+trailing_comma = "Vertical"
+
+# Comments
+wrap_comments = true
+comment_width = 80
+normalize_comments = true
+
+# Strings
+format_strings = true
+
+# Other
+format_code_in_doc_comments = true
+format_generated_files = false
+format_macro_matchers = true
+format_macro_bodies = true
+
