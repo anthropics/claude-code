@@ -31,6 +31,9 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CLAUDE_CODE_SCRIPT_CAPS: '{"comment-on-duplicates.sh":1}'
+          # The action stops at Claude's first result, which would cut off an agent
+          # still running in the background.
+          CLAUDE_CODE_DISABLE_BACKGROUND_TASKS: '1'
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           allowed_non_write_users: "*"
