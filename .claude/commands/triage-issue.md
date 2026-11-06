@@ -41,6 +41,7 @@ TASK:
    - Check for duplicates with `./scripts/gh.sh search issues`. Only mark as duplicate of OPEN issues.
 
 6. Evaluate lifecycle labels:
+   - Empty generated reports: If the title or body is a placeholder asking the user to provide a bug report or feature request description, or the body only contains generated metadata such as version, OS, terminal, and feedback ID without an actual problem statement, classify it as `bug` and apply `needs-info`. Environment metadata alone is not enough to investigate. Do not mark it `invalid` just because the generated report is incomplete.
    - `needs-repro` (bugs only, 7 days): Bug reports without clear steps to reproduce. A good repro has specific, followable steps that someone else could use to see the same issue.
      Do NOT apply if the user already provided error messages, logs, file paths, or a description of what they did. Don't require a specific format — narrative descriptions count.
      For model behavior issues (e.g. "Claude does X when it should do Y"), don't require traditional repro steps — examples and patterns are sufficient.
