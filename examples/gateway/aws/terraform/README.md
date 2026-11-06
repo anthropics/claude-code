@@ -1,7 +1,7 @@
 # Claude apps gateway — Terraform (ECS Fargate)
 
 Terraform equivalent of `../setup.sh`. Lets end-users provision and manage
-the gateway with `terraform apply`. Covers the same scope ([walkthrough](https://code.claude.com/docs/en/claude-apps-gateway-on-aws) §1–7,
+the gateway with `terraform apply`. Covers the same scope ([walkthrough](https://code.claude.com/docs/en/claude-apps-gateway) §1–7,
 ECS track): security groups → task + execution IAM roles → ECR repository →
 private-subnet RDS for PostgreSQL → Secrets Manager secrets → ECS Fargate
 service behind an internal ALB. The VPC and private subnets are walkthrough
@@ -29,7 +29,7 @@ created here.
    `gateway.yaml` is gitignored; the committed template is `gateway.yaml.example`.
 2. The **prebuilt linux-x64 `claude` binary at `../claude`** — the Claude Code
    release binary, which includes the `gateway` subcommand (see the
-   [walkthrough](https://code.claude.com/docs/en/claude-apps-gateway-on-aws)).
+   [walkthrough](https://code.claude.com/docs/en/claude-apps-gateway)).
    See `../setup.sh`'s `DIST_URL`/`DIST_SHA256` download path for a
    checksum-verified fetch.
 3. A **VPC with two+ private subnets** in different AZs and NAT egress, an **ACM
