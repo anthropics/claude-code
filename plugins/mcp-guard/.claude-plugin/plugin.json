@@ -1,0 +1,9 @@
+{
+  "name": "mcp-guard",
+  "version": "1.0.0",
+  "description": "MCP security hardening plugin - secrets redaction, config audits, and safe inspection for your MCP server configurations. Closes the gap between claude mcp add (which redacts secrets) and claude mcp get (which leaks them).",
+  "author": {
+    "name": "Adwait M",
+    "email": "adwaitm1301@users.noreply.github.com"
+  }
+}
