@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "free-claude-code": {
+      "command": "python",
+      "args": ["mcp_server.py"],
+      "env": {
+        "FCC_SERVER_URL": "${FCC_SERVER_URL:-http://localhost:8000}",
+        "FCC_ENABLE_SERVER": "${FCC_ENABLE_SERVER:-false}"
+      },
+      "cwd": "."
+    }
+  }
+}

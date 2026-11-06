@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 60" fill="none" aria-label="Source Build Australia">
+  <!-- Mark: stylised roof/arrow above SBA -->
+  <g>
+    <!-- Roof/chevron mark -->
+    <polygon points="20,22 32,10 44,22" fill="#C9A84C"/>
+    <rect x="20" y="22" width="4" height="16" fill="#1B2A4A"/>
+    <rect x="40" y="22" width="4" height="16" fill="#1B2A4A"/>
+    <rect x="24" y="30" width="16" height="8" fill="#1B2A4A"/>
+  </g>
+  <!-- Wordmark -->
+  <text x="58" y="28" font-family="Arial, Helvetica, sans-serif" font-weight="900" font-size="18" fill="#1B2A4A" letter-spacing="-0.5">SOURCE BUILD</text>
+  <text x="58" y="46" font-family="Arial, Helvetica, sans-serif" font-weight="900" font-size="18" fill="#1B2A4A" letter-spacing="-0.5">AUSTRALIA</text>
+  <!-- Tagline -->
+  <text x="58" y="58" font-family="Arial, Helvetica, sans-serif" font-weight="400" font-size="8" fill="#C9A84C" letter-spacing="1">SPECIALIST SUPPLY · CHINA TO AUSTRALIA</text>
+</svg>
