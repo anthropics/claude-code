@@ -1,0 +1,10 @@
+{
+  "name": "gp-flujo-facturacion",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Flujo automatizado de facturación post-servicio de Grupo Portátil: contratos + geocercas + Google Maps → CFDI Facturama.",
+  "scripts": {
+    "test": "node --test logic/*.test.js"
+  },
+  "license": "UNLICENSED"
+}
