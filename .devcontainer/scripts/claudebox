@@ -1,0 +1,167 @@
+#!/bin/bash
+set -euo pipefail
+
+DOCKER_IMAGE="claude-code-devcontainer"
+CONTAINER_NAME="claude-code-auth-$$-$(date +%s)"
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DEVCONTAINER_DIR="$(dirname "$SCRIPT_DIR")"
+PROXY_SCRIPT="$SCRIPT_DIR/claude-auth-proxy.py"
+
+# Initialize variables
+CLAUDE_ARGS=()
+MOUNT_CLAUDE_MD=false
+TEMP_CREDS=""
+PROXY_PID=""
+MAX_ATTEMPTS=30
+ATTEMPT=0
+while [[ $# -gt 0 ]]; do
+    case $1 in
+    --mount-claude-md)
+        MOUNT_CLAUDE_MD=true
+        shift
+        ;;
+    --help)
+        cat <<'EOF'
+Run Claude Code in a Docker container with credential isolation.
+
+Real API credentials stay on the host and are injected via proxy.
+
+USAGE:
+    Run this script from your project directory:
+    
+    cd /path/to/your/project
+    claudebox [OPTIONS] [CLAUDE_OPTIONS]
+
+OPTIONS:
+    --mount-claude-md Mount your real CLAUDE.md file (default: none)
+    --help            Show this help
+
+WORKSPACE:
+    The current directory becomes /workspace in the container.
+    Claude Code will have access to all files in the current directory.
+
+EXAMPLES:
+    cd ~/my-project && claudebox
+    cd ~/my-project && claudebox --mount-claude-md -p "hello world"
+    cd ~/my-project && claudebox --continue
+EOF
+        exit 0
+        ;;
+    *)
+        # Pass unknown arguments to Claude
+        CLAUDE_ARGS+=("$1")
+        shift
+        ;;
+    esac
+done
+
+docker info >/dev/null 2>&1 || {
+    echo "Docker not running"
+    exit 1
+}
+
+# Build image if needed
+if ! docker image inspect "$DOCKER_IMAGE" >/dev/null 2>&1; then
+    [[ "$VERBOSE" == "true" ]] && echo "🔨 Building devcontainer image..."
+    docker build -t "$DOCKER_IMAGE" -f "$DEVCONTAINER_DIR/Dockerfile" "$DEVCONTAINER_DIR" || exit 1
+fi
+
+# Find an available port
+find_available_port() {
+    local port=$1
+    local max_port=65535
+    for ((i = 0; i <= $((max_port - port)); i++)); do
+        if ! nc -z localhost $((port + i)) 2>/dev/null; then
+            echo $((port + i))
+            return 0
+        fi
+    done
+    echo "❌ No available ports found in range $port-$max_port" >&2
+    return 1
+}
+
+# Find available port in ephemeral range (58080-65535) to avoid conflicts with registered services
+ACTUAL_PORT=$(find_available_port 58080) || exit 1
+
+# Start proxy in background on the available port
+python3 "$PROXY_SCRIPT" --port "$ACTUAL_PORT" &
+PROXY_PID=$!
+
+# Health check polling - wait for proxy to be ready
+while [[ $ATTEMPT -lt $MAX_ATTEMPTS ]]; do
+    if ! ps -p $PROXY_PID >/dev/null 2>&1; then
+        echo "❌ Proxy process died unexpectedly"
+        exit 1
+    fi
+
+    # Try to connect to the proxy port
+    if nc -z localhost "$ACTUAL_PORT" 2>/dev/null; then
+        break
+    fi
+
+    ATTEMPT=$((ATTEMPT + 1))
+    if [[ $ATTEMPT -eq $MAX_ATTEMPTS ]]; then
+        echo "❌ Proxy failed to start after ${MAX_ATTEMPTS} attempts"
+        kill $PROXY_PID 2>/dev/null || true
+        exit 1
+    fi
+
+    sleep 0.2
+done
+
+# Cleanup on exit
+cleanup() {
+    local exit_code=$?
+
+    # Kill proxy process and remove container
+    kill $PROXY_PID 2>/dev/null || true
+    docker rm -f "$CONTAINER_NAME" 2>/dev/null || true
+
+    # Clean up temporary files
+    rm -f "$TEMP_CREDS" 2>/dev/null || true
+
+    exit $exit_code
+}
+trap cleanup INT TERM EXIT
+
+# Create dummy credentials (pipe directly, never write real creds to disk)
+TEMP_CREDS=$(mktemp) || {
+    echo "Failed to create temporary credentials file" >&2
+    exit 1
+}
+
+# Try to get credentials and replace with dummy tokens in one operation
+if ! "$SCRIPT_DIR/get-claude-credentials.sh" 2>/dev/null | jq '
+        .claudeAiOauth.accessToken = "sk-ant-oat01-dummyDummyDummyDummyDummyDummyDummyDummyDummyDummyDummyDummyDummyDummyDummyDummyDummyDQ-DummyAA" |
+        .claudeAiOauth.refreshToken = "sk-ant-ort01-dummyDummyDummyDummyDummyDummyDummyDummyDummyDummyDummyDummyDummyDummyDummyDummyDummyDQ-DummyAA"
+    ' >"$TEMP_CREDS" 2>/dev/null; then
+    # Failed to get credentials or process them, clean up
+    rm -f "$TEMP_CREDS"
+    TEMP_CREDS=""
+fi
+
+# Build docker command
+docker_cmd=(
+    docker run --rm --name "$CONTAINER_NAME" -it
+    -v "$(pwd):/workspace" -w /workspace
+    -e "ANTHROPIC_BASE_URL=http://host.docker.internal:$ACTUAL_PORT"
+)
+
+# Mount dummy credentials directly to Claude's location if they exist
+[[ -n "$TEMP_CREDS" ]] && docker_cmd+=(-v "$TEMP_CREDS:/home/node/.claude/.credentials.json:ro")
+[[ "$MOUNT_CLAUDE_MD" == true && -f "$HOME/.claude/CLAUDE.md" ]] && docker_cmd+=(-v "$HOME/.claude/CLAUDE.md:/tmp/host-claude-md:ro")
+
+docker_cmd+=("$DOCKER_IMAGE")
+
+# Run container with setup script
+"${docker_cmd[@]}" bash -c "
+    # Copy CLAUDE.md if provided
+    [[ -f /tmp/host-claude-md ]] && cp /tmp/host-claude-md /home/node/.claude/CLAUDE.md
+    
+    # Create minimal config to skip setup screen
+    echo '{\"hasCompletedOnboarding\": true}' > /home/node/.claude.json
+
+    # Start Claude with passed arguments
+    claude \"\$@\"
+" -- "${CLAUDE_ARGS[@]+"${CLAUDE_ARGS[@]}"}"
