@@ -108,6 +108,8 @@ export function register(on: On) {
     ),
   )
 
+  // The engine skips this row on a successful check where this is the built-in copy and no other hook could run;
+  // a failure still reaches the .catch. Before the row does more on success, end that skip: an engine test says where.
   on('tool.check', async ($, e, next) => {
     const answer = await next(e)
     const mods = HeldVerdict.rewrittenByUsers(next.trace)

@@ -61,7 +61,10 @@ plainly, or against the merge-base with
 the default branch; the base line under the header names a base other than
 the session's, and the choice is kept per repository in the plugin's store.
 A picker shows one earlier turn's edits instead of the working tree, read
-from the session's messages. Files that changed before the session started
+from the session's messages. It lists 63 turns at most, in pages: its label
+counts them, and the turn at an end of the list says so when picking it moves
+the list on.
+Files that changed before the session started
 (by their timestamp, among the paths already dirty when the pane first
 read the repository), and noise (lockfiles, generated and test files), are
 listed apart and folded until asked for; a rename lists as git prints it.

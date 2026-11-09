@@ -200,6 +200,24 @@ describe('fetch-diff', () => {
     expect(deps.argvs.some(argv => argv.includes('ls-files'))).toBe(false)
   })
 
+  test('both stats diffs end in --, so a file named HEAD cannot make git refuse the revision', async () => {
+    const deps = depsOf({
+      'HEAD --numstat': Fixtures.ok('1\t0\ta.ts\x001\t0\tcut'),
+      'HEAD --shortstat': Fixtures.ok(' 70001 files changed, 9 insertions(+)'),
+    })
+
+    await Git.fetchDiff(deps, 'session')
+
+    expect(
+      deps.argvs
+        .filter(argv => argv.includes('diff'))
+        .map(argv => argv.slice(argv.indexOf('HEAD'))),
+    ).toEqual([
+      ['HEAD', '--numstat', '-z', '--'],
+      ['HEAD', '--shortstat', '--'],
+    ])
+  })
+
   test('a numstat cut at the output cap: totals from shortstat', async () => {
     const deps = depsOf({
       'HEAD --numstat': Fixtures.ok('1\t0\ta.ts\x001\t0\tcut'),

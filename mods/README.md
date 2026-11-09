@@ -30,7 +30,7 @@ A test gets the engine's own `$` and a plugin's `on`. Each call on `$` is one
 the engine makes, through every hook of the mod loaded as it ships. The hooks
 the test registers with `on` sit beneath the mod, where the rest of the world
 would be, and nothing is beneath them: a call they leave unanswered throws,
-naming its event.
+naming its event. `ui.render` answers, with the node Claude Code draws.
 
 A test file is named for what it covers under `hooks/` (`register.test.ts`
 beside `hooks/register.ts`, `git.test.ts` beside `hooks/git/`), and holds its
@@ -79,7 +79,7 @@ unawaited, `await clock.settle()`, then look: the clock stays where it was.
 `$.ui.press({ plugin, key })` presses a `Button` the test rendered, as a
 click in the terminal does.
 
-`tsc -p mods/tsconfig.json` typechecks every mod's hooks and tests against
+`scripts/ci/typecheck-mods.sh` typechecks every mod's hooks and tests against
 `types/` and each mod's own `types/` contract.
 
 ## Composing mods: noun contracts

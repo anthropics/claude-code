@@ -26,7 +26,7 @@ export function gitWordOf(argv: readonly string[]) {
     return subcommand
   }
 
-  if (dashes !== -1) {
+  if (dashes !== -1 && dashes < argv.length - 1) {
     return `diff -- ${argv.slice(dashes + 1).join(' ')}`
   }
 

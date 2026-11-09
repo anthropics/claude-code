@@ -115,7 +115,10 @@ the policy read. Where the copy built into Claude Code is the only plugin that
 hooks `env.get`, `command.describe`, `tool.describe`, `agent.offer`,
 `attribution.text` or `prompt.section`, a `$.env.get` call and the engine's own
 raises of the other five run no chain: this plugin would only pass the event
-on, so the answer is the engine's own.
+on, so the answer is the engine's own. Behind a rollout flag, the same goes for
+a `tool.check` on which only that copy's hook could run, if the check succeeds.
+If it fails, the chain runs and this plugin's `.catch` sees the failure, unless
+this copy has been unloaded or replaced meanwhile: then the failure escapes.
 
 ## What it calls on `$`
 

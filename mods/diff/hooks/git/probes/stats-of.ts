@@ -9,6 +9,9 @@ import type Types from '../types'
  * the host's output cap and `--shortstat` counted MAX_FILES_FOR_DETAILS files
  * or fewer.
  *
+ * Both diffs end in `--`, so a file or folder named HEAD at the top of the
+ * working tree cannot make git refuse the revision as ambiguous.
+ *
  * @param context runs git, and keeps the bases whose listing was cut
  * @param base the ref (or `--cached`) the working tree is compared with
  * @returns the parsed result, or null
@@ -19,7 +22,7 @@ export async function statsOf(
 ): Promise<Types.NumstatResult | null> {
   const run = context.run
   const cutBases = context.deps.cutBases
-  const shortstatArgv = [...Argv.DIFF_LEADING_ARGS, base, '--shortstat']
+  const shortstatArgv = [...Argv.DIFF_LEADING_ARGS, base, '--shortstat', '--']
 
   if (cutBases?.has(base)) {
     const shortstat = await run(shortstatArgv)
@@ -40,6 +43,7 @@ export async function statsOf(
     base,
     '--numstat',
     '-z',
+    '--',
   ])
 
   if (Parse.isWholeAnswer(numstat)) {
