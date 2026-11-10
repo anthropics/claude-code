@@ -408,9 +408,10 @@ its managed settings seats it by default, and there a `prependPlugins` list
 that leaves it out does not unseat it. The only such list a session there
 can hold is a file's in its container, which the session can write as well
 as its environment can, so it may add a hold and never lift one. That
-default ends once the organization's 200 has set nothing, the server
-has named a Pro or Max plan for the launch's login and the host's plan
-variable agrees: it is then known that nothing seats it, as in the
+default ends once Anthropic's settings route has answered that nothing is
+set, the server has named a Free, Pro or Max plan for the launch's login and
+that login's organization is the one the host launched the session for, and
+the host's plan variable agrees or is absent: it is then known that nothing seats it, as in the
 terminal, and a policy served later brings it back. It
 is a plugin folder like any
 other, but its one move that matters, `next.to`, is refused outside a
