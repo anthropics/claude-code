@@ -48,7 +48,7 @@ export function inRepository(
     return isRefused ? { deny: refusal } : { value: gitIn(e.argv, script) }
   })
 
-  on('ui.focus', (_engine, e) => {
+  on('ui.focus', { plugin: '*' }, (_engine, e) => {
     focused.push(e)
 
     return {}
