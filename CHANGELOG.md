@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.1.322
+
+- Added fast mode on Vertex in the global, us and eu regions, falling back to standard speed if Vertex refuses it
+
 ## 2.1.321
 
 - Added Claude Fable 5.2 (`claude-fable-5-2`), now the default Fable model — 1M context, $8/$40 per Mtok with $0.20/Mtok cache reads
