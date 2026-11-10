@@ -1017,17 +1017,23 @@ export function register(on: On) {
     }
 
     /**
+     * The model lays out two seats; a widget, or a seat this build has not
+     * heard of, gets the dock's.
+     */
+    const placement = e.props.placement === 'inline' ? 'inline' : 'dock'
+
+    /**
      * A seat that changed since the last drawing lists other rows, whose
      * bodies are read once.
      *
      * The model takes the new seat in this same pass, so the drawing that
      * read asks for finds the seat unchanged.
      */
-    const isReseated = e.props.placement !== model.placement
+    const isReseated = placement !== model.placement
 
     model = {
       ...model,
-      placement: e.props.placement,
+      placement,
       place: {
         ...model.place,
         columns: Math.max(
@@ -1050,7 +1056,7 @@ export function register(on: On) {
         rows: e.props.scroll.bodyRows,
       },
       model,
-      { placement: e.props.placement, terminalColumns: columns },
+      { placement, terminalColumns: columns },
     )
   })
 
