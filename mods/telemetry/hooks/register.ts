@@ -51,7 +51,9 @@ export function register(on: On) {
   })
 
   on('engine.create', async (_$, e, next) => {
-    const beneath = await next(e)
+    // The contract types $.telemetry as always there, though only a step beneath
+    // may have added it: without the Omit, the return below is TS2783.
+    const beneath: Omit<EngineInterface, 'telemetry'> = await next(e)
 
     sender = telemetryOf({
       authorize: () => beneath.session.authorize(),
@@ -362,8 +364,7 @@ export function register(on: On) {
     })
 
     const telemetry: EngineInterface['telemetry'] = sender.telemetry
-    const added = { telemetry }
 
-    return { ...added, ...beneath }
+    return { telemetry, ...beneath }
   })
 }
