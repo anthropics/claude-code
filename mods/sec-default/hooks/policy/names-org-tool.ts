@@ -1,23 +1,14 @@
 import type { Settings } from 'claude-code'
 
-import { isServerFileUnreadable } from './managed-tools-restored/is-org-tool/is-server-file-unreadable'
-import { orgNames } from './managed-tools-restored/is-org-tool/org-names'
-import { toolPrefixOf } from './managed-tools-restored/is-org-tool/tool-prefix-of'
-import { foldedName } from './managed-tools-restored/is-org-tool/tool-prefix-of/folded-name'
+import { readsAsOrgTool } from './reads-as-org-tool'
 
 /**
  * Whether the tool a plugin registers would read as the organization's: it
- * is called `mcp__<plugin>__<tool>`, compared fold to fold with the prefix
- * of each server the policy names, each plugin it seats, and each seated
- * plugin's scope, which holds the servers its own manifest declares.
+ * is called `mcp__<plugin>__<tool>`, read as readsAsOrgTool reads a name.
  *
  * So a plugin named as one of them in any case or with other separators, one
  * whose name and tool together spell a prefix, and one whose tool's own name
- * folds to nothing all count. A name of the organization's that folds to
- * nothing cannot be told from any name, and a server file that cannot be
- * read names nobody: every registration then reads as the organization's.
- * The plugin whose engine-recorded id managed enabledPlugins turn on keeps
- * its own name; an unreadable server file holds it all the same.
+ * folds to nothing all count.
  *
  * @param policy the managed settings, as `$.settings.read` answers them
  * @param plugin the registering plugin's name
@@ -32,13 +23,5 @@ export function namesOrgTool(
   tool: string,
   id?: string,
 ): boolean {
-  const registered = `${foldedName(`mcp__${plugin}__${tool}`)}_`
-
-  return (
-    isServerFileUnreadable(policy) ||
-    orgNames(policy, id).some(
-      owner =>
-        foldedName(owner) === '' || registered.startsWith(toolPrefixOf(owner)),
-    )
-  )
+  return readsAsOrgTool(policy, `mcp__${plugin}__${tool}`, id)
 }

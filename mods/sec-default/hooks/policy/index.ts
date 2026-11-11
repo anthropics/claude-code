@@ -13,6 +13,7 @@ export * from './pinned-names.js'
 export * from './policy-memo-ms.js'
 export * from './policy-source-variables.js'
 export * from './process-wrapper-variable.js'
+export * from './reads-as-org-tool.js'
 export * from './source.js'
 
 export * as default from '.'

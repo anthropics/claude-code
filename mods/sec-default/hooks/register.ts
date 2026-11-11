@@ -12,6 +12,8 @@ import {
   TOOL_REGISTER_REFUSAL,
 } from './tool-register-refusal'
 
+const TOOL_LIST_REFUSAL = 'sec-default could not read the tool list'
+
 /**
  * The built-in's hooks, seated outermost: each keeps one control an
  * organization has today out of reach of the plugins a person installs.
@@ -98,13 +100,38 @@ export function register(on: On) {
     return refusal === undefined ? next(e) : { deny: refusal }
   })
 
-  on('tool.list', async ($, e, next) =>
-    Policy.managedToolsRestored(
-      await readPolicy(() => $.settings.read(Policy.SOURCE)).catch(
-        () => undefined,
-      ),
-      await next.to(e, 'append'),
-      await next(e),
+  on('tool.list', async ($, e, next) => {
+    // The engine asks because settings changed, among other causes, and asks
+    // only then: a memo younger than that change would answer it for good.
+    const policy =
+      next.origin.tier === 'core'
+        ? $.settings.read(Policy.SOURCE)
+        : readPolicy(() => $.settings.read(Policy.SOURCE))
+    const managed = await policy.catch(() => undefined)
+    const listed = await next.to(e, 'append')
+
+    // Here and not in `.catch`, whose `next` replays this hook's last call: the
+    // organization's listing is in hand, and whatever fails below costs it nothing.
+    try {
+      const answered = await next(e)
+      const engine = await next.to(e, 'builtin')
+
+      return Policy.managedToolsRestored(
+        managed,
+        listed,
+        answered,
+        engine,
+        next.trace.some(
+          link => link.tier === 'prepend' && link.reason === undefined,
+        ),
+      )
+    } catch {
+      return Policy.orgRemovalsApplied(managed, listed)
+    }
+  }).catch(async ($, e, next) =>
+    Policy.orgRemovalsApplied(
+      await $.settings.read(Policy.SOURCE).catch(() => undefined),
+      await next.to(e, 'append').catch(() => ({ deny: TOOL_LIST_REFUSAL })),
     ),
   )
 
