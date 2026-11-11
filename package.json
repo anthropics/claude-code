@@ -1,0 +1,27 @@
+{
+  "name": "@anthropic-ai/claude-code-cloud-sync",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Cloud-synced CLAUDE.md instructions for Claude Code",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "commander": "^12.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@vitest/coverage-v8": "^2.1.0",
+    "msw": "^2.12.10",
+    "typescript": "^5.7.0",
+    "vitest": "^2.1.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
