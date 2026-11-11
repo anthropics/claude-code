@@ -1,6 +1,7 @@
 export * from './awaits-surface-text.js'
 export * from './builtin-holds-pattern.js'
 export * from './git-unanswered-text.js'
+export * from './header-close-hint-text.js'
 export * from './more-below-text.js'
 export * from './not-in-repository-text.js'
 export * from './panel-toggle'

@@ -34,6 +34,7 @@ export const drawsPane = (
       actions: noopActionsOf(),
       columns: COLUMNS,
       rows: BODY_ROWS,
+      hasCloseHint: false,
       ...overrides,
     })
   })

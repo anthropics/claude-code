@@ -3,7 +3,12 @@
 The diff pane as a plugin: `/diff` opens the session's uncommitted changes
 beside the transcript, one row per changed file and every file's hunks
 beneath, and closes it again; each toggle leaves `Diff panel shown` or
-`Diff panel hidden` in the transcript. The header, the file list and its
+`Diff panel hidden` in the transcript. Docked in a terminal, the header says
+`/diff to close` when it has room and the prompt has the keyboard. From the
+first docked open to the end of the session, `/diff` runs at once even while
+Claude is working, and the transcript line follows when the turn ends;
+without the fullscreen layout `/diff` waits for the turn to end. The header,
+the file list and its
 toggles stay put while the wheel moves the hunks under them three rows a
 tick, or the list a file a tick while the wheel is over a list longer than
 its eight rows (the plugin answers the pane's `ui.scroll` itself); a row's
@@ -68,7 +73,8 @@ Files that changed before the session started
 (by their timestamp, among the paths already dirty when the pane first
 read the repository), and noise (lockfiles, generated and test files), are
 listed apart and folded until asked for; a rename lists as git prints it.
-Outside a git repository `/diff` says so and does nothing else.
+Outside a git repository `/diff` says so and opens nothing; it still closes
+a pane that is open.
 
 Git runs when the built-in panel's would: nothing at the session's start;
 one `git rev-parse`, in the directory the session started in, when `/diff`
@@ -111,7 +117,7 @@ only on its first ask: later asks hold until the wait ends, and then one runs.
 | `session.start` | Binds the engine once and registers `/diff` (a session where another `/diff` is listed leaves the plugin idle); asks nothing of the repository, which `/diff` or the first edit pins when it comes; off its dispatch, reads the transcript, and for a resumed session whose turns edited opens the pane as the first edit would. |
 | `ui.render` of `PromptHint` | Reads the terminal's width and whether its layout docks a pane, which decide whether the first edit opens the pane. |
 | `ui.render` of `Pane` | Draws the pane: docked, the header, base line, source picker, file list and toggles over the window of hunks; inline, the dialog. |
-| `command.run` of `diff` | Pins the repository when none is, opens or closes the pane (focused and closing on Escape without the fullscreen layout), says which, and remembers the choice. |
+| `command.run` of `diff` | Pins the repository when none is and the pane is closed, opens or closes the pane (focused and closing on Escape without the fullscreen layout), says which, and remembers the choice; a run that starts before the last one has finished does nothing. |
 | `ui.close` of the pane | Backs out of the dialog's detail view instead of closing; else remembers the person's close as `/diff`'s. |
 | `ui.scroll` of the pane | Docked, moves the hunks under the pinned header and list (three rows a wheel tick, a page a page key), or the list when the wheel is over it, and keeps the engine's window still. |
 | `ui.focus` in the pane | In the dialog's list, selects the file the ring lands on, re-centres the five rows on it, and lands the ring where that row now sits. |

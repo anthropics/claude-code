@@ -8400,6 +8400,12 @@ declare module 'claude-code' {
            */
           isFocused: boolean;
           /**
+           * Present, and true, while keys typed in the terminal may go to something
+           * other than the prompt or this pane: a dialog (a permission prompt,
+           * `/model`), a search, a field in the band. Terminal only. Read-only.
+           */
+          isPromptCovered?: true;
+          /**
            * Cells across the body, inside the frame. Read-only.
            */
           bodyColumns: number;

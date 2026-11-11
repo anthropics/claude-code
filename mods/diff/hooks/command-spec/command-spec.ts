@@ -1,8 +1,8 @@
 import Names from '../names'
 
 /**
- * What `session.start` hands `$.command.register`: the one place the
- * `/diff` spec is built, where a later CommandSpec field joins.
+ * What `session.start` hands `$.command.register`: `/diff` typed during a
+ * turn waits for the turn to end.
  */
 export const COMMAND_SPEC = {
   name: Names.COMMAND_NAME,
