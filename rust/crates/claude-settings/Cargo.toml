@@ -1,0 +1,28 @@
+[package]
+name = "claude-settings"
+version = "0.1.0"
+edition = "2021"
+authors = ["Claude Code Contributors"]
+description = "Settings UI and configuration management"
+
+[dependencies]
+# TUI
+ratatui = { workspace = true }
+crossterm = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Async
+tokio = { workspace = true }
+
+# Error handling
+thiserror = { workspace = true }
+
+# Tracing
+tracing = { workspace = true }
+
+# Configuration directories
+dirs = "5.0"
+

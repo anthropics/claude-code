@@ -1,0 +1,24 @@
+[package]
+name = "claude-telemetry"
+version = "0.1.0"
+edition = "2021"
+authors = ["Claude Code Contributors"]
+description = "Anonymous telemetry collection"
+
+[dependencies]
+# Async
+tokio = { workspace = true }
+
+# HTTP client
+reqwest = { version = "0.12", features = ["json"] }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# UUID
+uuid = { workspace = true }
+
+# Tracing
+tracing = { workspace = true }
+
