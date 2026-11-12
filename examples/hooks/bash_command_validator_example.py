@@ -68,6 +68,15 @@ def main():
     tool_input = input_data.get("tool_input", {})
     command = tool_input.get("command", "")
 
+    # NOTE: for the Bash tool, `tool_input` carries more than just `command`.
+    # It also includes `description` and `run_in_background` (bool), plus
+    # `timeout` when set; the top-level payload additionally includes
+    # `tool_use_id`. A hook can read these, e.g. to treat a backgrounded
+    # command differently from a foreground one:
+    #     run_in_background = tool_input.get("run_in_background", False)
+    # (These fields are not yet shown in the hooks docs example -- see
+    #  https://github.com/anthropics/claude-code/issues/72262.)
+
     if not command:
         sys.exit(0)
 
