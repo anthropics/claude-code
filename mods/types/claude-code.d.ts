@@ -2741,7 +2741,9 @@ declare module 'claude-code' {
            * `backdrop` is a scene, drawn behind the conversation by what `ui.render`
            * answers for `Backdrop`: full window on desktop under its frosted panels,
            * full screen on mobile under one veil (`tint` and `opacity`, not yet
-           * `blur`). Or it's a still ground, which a surface draws with no hook.
+           * `blur`). Or it's a still ground, which a surface draws with no hook: a
+           * color, a gradient or a vector. `{ image }` is refused, so redraw a picture
+           * as SVG.
            * `colors` is a theme for a surface to paint itself with, where it reads
            * one. With no scene, no `ui.render` hook is asked to draw.
            * Display only: `--resume` brings none back and a plugin that unloads
@@ -11658,7 +11660,18 @@ declare module 'claude-code' {
        * Every plugin's hook hears it, so read `plugin` beside `scene`. The surface
        * sizes the drawing to its window or screen and lets presses through to what
        * is over it. Each surface asks separately, so a hook can read `e.surface` to
-       * draw a different scene on each; a `Client` draws nothing on mobile.
+       * draw a different scene on each.
+       *
+       * An answer holds only `Box`, `Text` and `Svg`, and an `Svg` is pure vector, or
+       * the answer is refused: no `data:` URL, base64, `<image>`, `feImage`,
+       * `foreignObject`, `@font-face`, `@import`, `image-set()`, `src()`,
+       * `cross-fade()` or `<?xml-stylesheet`; no `url()` or `href` but a local
+       * `#fragment`, and no SMIL on an `href`. Nor anything that could hide one of
+       * these: a backslash in `<style>` or a tag, a character reference other than
+       * `&amp;`, `&lt;`, `&gt;`, `&quot;` and `&apos;`, a control character, an XML
+       * declaration with an encoding other than UTF-8, a CSS comment, `<!`, `<?`, an
+       * element inside `<style>`, a `<style>` with no end tag, or a tag with an attribute
+       * that has no value or whose value holds `<` or `>`.
        *
        * Raised on the desktop and mobile surfaces only.
        */
@@ -14224,8 +14237,8 @@ declare module 'claude-code' {
 
   /**
    * The `backdrop` attribute of `$.theme.set`: what is behind the conversation.
-   * `scene` makes a live scene, and `color`, `gradient`, `vector` or `image` make a
-   * still ground.
+   * `scene` makes a live scene, and `color`, `gradient` or `vector` make a still
+   * ground. All of them are pure vector, with no embedded pictures or fonts.
    */
   export type ThemeBackdrop = ThemeScene | ThemeGround;
 
@@ -14267,7 +14280,6 @@ declare module 'claude-code' {
       color: ThemeColor;
       gradient?: never;
       vector?: never;
-      image?: never;
   }
 
   /**
@@ -14369,17 +14381,17 @@ declare module 'claude-code' {
       gradient: ThemeGradient;
       color?: never;
       vector?: never;
-      image?: never;
   }
 
   /**
-   * A still ground behind the conversation: a flat color, a gradient, a drawing in
-   * paths or a picture. A scene draws what moves, and any other pattern.
+   * A still ground behind the conversation: a flat color, a gradient or a drawing in
+   * paths. A scene draws what moves, and any other pattern. There is no picture ground
+   * for now, so redraw a picture as SVG.
    *
    * @example
    * backdrop: { gradient: { stops: ['surface-0', 'surface-2'] } }
    */
-  export type ThemeGround = ThemeColorGround | ThemeGradientGround | ThemeImageGround | ThemeVectorGround;
+  export type ThemeGround = ThemeColorGround | ThemeGradientGround | ThemeVectorGround;
 
   /**
    * A scene's keys, which no ground has.
@@ -14394,43 +14406,6 @@ declare module 'claude-code' {
        */
       glass?: never;
   }
-
-  /**
-   * A picture from the mod's folder, filling its box unless `size` and `repeat` tile it.
-   */
-  interface ThemeImage extends ThemeTiling {
-      /**
-       * An 8-bit JPEG or a PNG, as a path relative to the mod's folder, with `/` between
-       * folders and no `..`: at most 1 MiB and 4096 on a side.
-       */
-      source: string;
-  }
-
-  interface ThemeImageGround extends ThemeGroundBase {
-      image: ThemeImage;
-      color?: never;
-      gradient?: never;
-      vector?: never;
-  }
-
-  /**
-   * How a `Theme` answer names a ground's image: a surface pulls the bytes by `id`,
-   * and lays them out by `size` and `repeat` as the mod gave them. The bytes are the
-   * mod's own, so `width` and `height`, the size in the file's header before any EXIF
-   * rotation, are hints: a surface reads the file's header with its own decoder, decodes
-   * off the main thread, caps the pixels at 4096 on a side and, if it can't draw the
-   * picture, keeps the app's own ground.
-   */
-  export type ThemeImageWire = {
-      type: 'jpeg' | 'png';
-      width: number;
-      height: number;
-      /**
-       * Names the picture for this run of the engine: it's keyed with a secret the engine
-       * keeps, so a copy of the file can't be matched to it.
-       */
-      id: string;
-  };
 
   /**
    * The theme keys named for what a color means: text, status, the prompt box
@@ -14507,10 +14482,6 @@ declare module 'claude-code' {
        * A ground's key, which no scene has.
        */
       vector?: never;
-      /**
-       * A ground's key, which no scene has.
-       */
-      image?: never;
   };
 
   /**
@@ -14544,13 +14515,13 @@ declare module 'claude-code' {
   };
 
   /**
-   * How a drawing, a gradient or a picture lies in its box.
+   * How a drawing or a gradient lies in its box.
    */
   interface ThemeTiling {
       /**
        * `[width, height]` in points, such as `[24, 8]`: the box one copy fills under
        * `repeat`, each side from 1 to 256. Absent, a drawing takes its own
-       * size, and a gradient or a picture fills its box.
+       * size, and a gradient fills its box.
        */
       size?: readonly [number, number];
       /**
@@ -14590,7 +14561,6 @@ declare module 'claude-code' {
       vector: ThemeVector;
       color?: never;
       gradient?: never;
-      image?: never;
   }
 
   /**
