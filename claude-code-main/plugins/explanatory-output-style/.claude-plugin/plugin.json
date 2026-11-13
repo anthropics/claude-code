@@ -1,0 +1,9 @@
+{
+  "name": "explanatory-output-style",
+  "version": "1.0.0",
+  "description": "Adds educational insights about implementation choices and codebase patterns (mimics the deprecated Explanatory output style)",
+  "author": {
+    "name": "Dickson Tsai",
+    "email": "dickson@anthropic.com"
+  }
+}
