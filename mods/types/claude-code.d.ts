@@ -14476,7 +14476,7 @@ declare module 'claude-code' {
       backdrop?: ThemeBackdrop;
       /**
        * Overrides the person's own mode with `light` or `dark`, so a surface can draw
-       * its own text to suit; the desktop app ignores it for now. Absent, a surface
+       * its own text to suit. Absent, a surface
        * acts as if it named the only mode `colors.inputs` gives, else the person's own
        * stands. Set it for a look or a scene made for one mode, where `colors` gives
        * both.
