@@ -1,5 +1,6 @@
 /**
- * The tools that run a line, the only calls this guard reads.
+ * The tools that run a line, whose whole input this guard reads, and whose
+ * named scripts it reads too.
  */
 export const SHELL_TOOLS: readonly string[] = ['Bash', 'Monitor', 'PowerShell']
 

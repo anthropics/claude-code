@@ -1,7 +1,7 @@
 {
   "name": "privacy",
   "version": "0.1.0",
-  "description": "Refuses a shell call that holds the signed-in account's email address and names a User-Agent, so the address does not go out as a client's contact details.",
+  "description": "Refuses a shell, file, web fetch or MCP call that holds the signed-in account's email address beside a word that declares who is calling, so the address does not go out as a client's identity.",
   "author": {
     "name": "Anthropic"
   }

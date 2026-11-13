@@ -7,7 +7,8 @@ export const QUOTING = /["'`\\]/g
  * A call's input as the text that the test reads: every string in it, a list's
  * as one line, as written and again with continued lines joined and quotes and
  * escapes taken out, so that `cu''rl` and `"jo"@x.test` count. Both readings,
- * since a backslash or backtick need not be either: `C:\\bin\\curl`.
+ * since a backslash or backtick need not be either: `C:\\bin\\curl`. A key is
+ * quoted, as in a headers dict: `headers: {From: ...}` reads as the word it is.
  *
  * @param input the tool call's input
  * @returns the text
@@ -26,7 +27,9 @@ export function textOf(input: unknown): string {
     return ''
   }
 
-  return Object.values(input)
-    .map(textOf)
-    .join(Array.isArray(input) ? ' ' : '\n')
+  return Array.isArray(input)
+    ? input.map(textOf).join(' ')
+    : Object.entries(input)
+        .map(([key, value]) => `"${key}": ${textOf(value)}`)
+        .join('\n')
 }

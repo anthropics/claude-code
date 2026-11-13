@@ -11,7 +11,7 @@ source, published as it is built into the binary.
 | [`diff`](diff) | `/diff`: the session's uncommitted changes in a pane beside the transcript, file by file with their hunks, refreshed as Claude edits files and runs commands. | Built in |
 | [`telemetry`](telemetry) | Hooks `$.telemetry`'s two events (`log`, `mark`), adding the noun in the `engine.create` fold where the engine has none, so a built-in plugin can record an event as a first-party analytics row, sent in batches; refuses installed plugins; sends nothing wherever Claude Code's analytics are off. | Built in |
 | [`agents-md`](agents-md) | `AGENTS.md` as project instructions, by one option: loaded where the project has no `CLAUDE.md` of its own (`claude-md-or-agents-md`, the default) or beside it (`claude-md-and-agents-md`), placed and framed exactly as the engine places `CLAUDE.md`, nested ones on a `Read`; or the project's and the person's instruction files dropped and the organization's kept (`managed-only`); or `CLAUDE.md` alone, as the engine reads it (`claude-md`). | Built in |
-| [`privacy`](privacy) | Refuses a shell call that holds the signed-in account's email address and names a User-Agent, with no prompt, so the address does not go out as a client's contact details. | Built in |
+| [`privacy`](privacy) | Refuses a shell, file, web fetch or MCP call that holds the signed-in account's email address beside a word that declares who is calling, with no prompt, so the address does not go out as a client's identity. | Built in |
 
 Each folder is a complete plugin: `.claude-plugin/plugin.json`, a
 `hooks/hooks.json` naming the module, and TypeScript under `hooks/` typed
