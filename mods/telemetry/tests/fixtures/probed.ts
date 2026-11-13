@@ -8,4 +8,6 @@ export const PROBED: ProcessRunResult = {
   exitCode: 0,
   stdout: 'Darwin\n25.6.0\narm64\nnpm,pnpm,\nbun,node,\n',
   stderr: '',
+  isStdoutTruncated: false,
+  isStderrTruncated: false,
 }

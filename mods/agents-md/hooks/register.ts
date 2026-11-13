@@ -187,13 +187,21 @@ export function register(on: On, options: PluginOptions): void {
       return result
     }
 
+    // The declarations this module is checked against hold no tool table, so
+    // a Read's input is untyped; the Read tool's own schema makes it a string.
+    const filePath = e.file_path
+
+    if (typeof filePath !== 'string') {
+      return result
+    }
+
     if (!(await attachesOnRead($))) {
       return result
     }
 
     const [root, cwd] = await Promise.all([$.session.root(), $.session.cwd()])
     home ??= await homeOf($, cwd)
-    const read = Frames.absoluteOf(e.file_path, cwd, home)
+    const read = Frames.absoluteOf(filePath, cwd, home)
 
     if (root !== rootSeen) {
       rootSeen = root

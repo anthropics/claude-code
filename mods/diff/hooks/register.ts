@@ -968,9 +968,7 @@ export function register(on: On) {
         startedAt: () =>
           $.session
             .usage()
-            .then((usage: unknown) =>
-              isRecord(usage) ? usage.startedAt : undefined,
-            ),
+            .then(usage => (isRecord(usage) ? usage.startedAt : undefined)),
         mark: entry => $.telemetry.mark(entry),
         log: entry => $.telemetry.log(entry),
       },

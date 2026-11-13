@@ -8,4 +8,6 @@ export const UNSCRIPTED: ProcessRunResult = {
   exitCode: 128,
   stdout: '',
   stderr: '',
+  isStdoutTruncated: false,
+  isStderrTruncated: false,
 }

@@ -71,7 +71,9 @@ export function inRepository(
     }
 
     if (!isWaiting) {
-      return opened.hook(engine, e)
+      opened.hook(engine, e)
+
+      return Beneath.PLACED
     }
 
     waiting.push(e)

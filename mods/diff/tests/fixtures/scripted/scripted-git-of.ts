@@ -1,6 +1,5 @@
 import type { ProcessRunResult } from 'claude-code'
 
-import type Git from '../../../hooks/git'
 import type { ScriptedGit } from './scripted-git.js'
 import { UNSCRIPTED } from './unscripted.js'
 
@@ -16,7 +15,7 @@ export function scriptedGitOf(
 ): ScriptedGit {
   const argvs: (readonly string[])[] = []
 
-  const run: Git.GitRun = argv => {
+  const run: ScriptedGit['run'] = argv => {
     argvs.push(argv)
 
     const line = argv.join(' ')

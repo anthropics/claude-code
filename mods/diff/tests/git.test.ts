@@ -119,7 +119,7 @@ describe('git', () => {
       value: Fixtures.gitIn(e.argv, Fixtures.MOVED_IN),
     }))
 
-    on('ui.open', () => ({ value: undefined }))
+    on('ui.open', () => Fixtures.PLACED)
     on('ui.invalidate', () => ({ value: undefined }))
     on('session.messages', () => ({ value: [] }))
     Fixtures.oldFiles(on)
@@ -145,7 +145,7 @@ describe('git', () => {
       value: Fixtures.gitIn(e.argv, Fixtures.MOVED_IN),
     }))
 
-    on('ui.open', () => ({ value: undefined }))
+    on('ui.open', () => Fixtures.PLACED)
     on('ui.invalidate', () => ({ value: undefined }))
     on('session.messages', () => ({ value: [] }))
     on('session.usage', () => ({ value: Fixtures.usageAt(startedAt) }))

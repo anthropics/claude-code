@@ -15,7 +15,7 @@ export function variablesSet(on: On) {
   on('env.set', ($, e, next) => {
     kept.push(`${next.origin.plugin} ${e.name}=${String(e.value)}`)
 
-    return { value: undefined }
+    return { value: {} }
   })
 
   return kept

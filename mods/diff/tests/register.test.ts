@@ -24,6 +24,7 @@ describe('register', () => {
       name,
       kind,
       size: 0,
+      mtimeMs: 0,
       isLink: false,
     }))
 
@@ -86,7 +87,7 @@ describe('register', () => {
 
       opened.push(e.id)
 
-      return { value: undefined }
+      return Fixtures.PLACED
     })
 
     on('ui.close', () => ({ value: undefined }))
@@ -319,7 +320,7 @@ describe('register', () => {
       return { value: Fixtures.gitIn(e.argv) }
     })
 
-    on('ui.open', () => ({ value: undefined }))
+    on('ui.open', () => Fixtures.PLACED)
     on('ui.close', () => ({ value: undefined }))
     on('ui.invalidate', () => ({ value: undefined }))
     on('ui.render', { component: 'PromptHint' }, () => Fixtures.HINT_DRAWN)
@@ -1935,7 +1936,9 @@ describe('register', () => {
     ).toBeGreaterThan(read)
 
     expect(
-      logged.kept.map(shown => shown.props?.trigger),
+      logged.kept.map(shown =>
+        shown.to === 'anthropic' ? shown.props?.trigger : undefined,
+      ),
       'and counted it, as the person asked for it',
     ).toEqual([{ value: 'manual', of: [...Record.SHOWN_TRIGGERS] }])
 
@@ -1995,7 +1998,7 @@ describe('register', () => {
     on('ui.open', ($, e) => {
       opened.push(e.id)
 
-      return { value: undefined }
+      return Fixtures.PLACED
     })
 
     on('ui.close', () => ({ value: undefined }))
@@ -2095,7 +2098,9 @@ describe('register', () => {
     expect(world.closed, 'the pane stayed up across /clear').toEqual([])
 
     expect(
-      logged.kept.map(shown => shown.props?.trigger),
+      logged.kept.map(shown =>
+        shown.to === 'anthropic' ? shown.props?.trigger : undefined,
+      ),
       "once a conversation: Claude's edit opened the first, and the second, " +
         "which nobody opened, reads as the person's, as the built-in's does",
     ).toEqual([

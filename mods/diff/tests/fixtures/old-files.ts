@@ -16,6 +16,7 @@ export function oldFiles(
       name,
       kind: 'file' as const,
       size: 2,
+      mtimeMs: 0,
       isLink: false,
     })),
   }))

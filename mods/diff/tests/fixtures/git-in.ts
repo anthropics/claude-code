@@ -35,5 +35,13 @@ export function gitIn(
 
   const isKnown = stdout !== undefined
 
-  return isKnown ? { exitCode: 0, stdout, stderr: '' } : NOT_A_REPOSITORY
+  return isKnown
+    ? {
+        exitCode: 0,
+        stdout,
+        stderr: '',
+        isStdoutTruncated: false,
+        isStderrTruncated: false,
+      }
+    : NOT_A_REPOSITORY
 }

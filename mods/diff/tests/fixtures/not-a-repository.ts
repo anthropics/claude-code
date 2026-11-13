@@ -7,4 +7,6 @@ export const NOT_A_REPOSITORY: ProcessRunResult = {
   exitCode: 128,
   stdout: '',
   stderr: 'fatal: not a git repository',
+  isStdoutTruncated: false,
+  isStderrTruncated: false,
 }
