@@ -14290,8 +14290,7 @@ declare module 'claude-code' {
    * under the name of each design system token the theme sets. The type checks
    * the leading `#` alone.
    *
-   * The names are the design system's and change with it, so the type lists
-   * none. A surface keeps its own color for a token that is left out.
+   * The names are the design system's, so the type lists none. A surface keeps its own color for a token that is left out.
    */
   export type ThemeColorInputs = {
       [token: string]: `#${string}`;
