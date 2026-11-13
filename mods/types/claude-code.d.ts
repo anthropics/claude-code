@@ -4269,7 +4269,8 @@ declare module 'claude-code' {
        * pending aborts what runs beneath. Managed-settings hooks' deny comes first.
        *
        * @remarks A guard that fails is skipped and the tool runs, so give it
-       *   `.catch(($, e, next) => next.called ? next(e) : { deny: "no" })`.
+       *   `.catch(($, e, next) => next.called ? next(e) : { deny: "no" })`. A hook
+       *   that checks the result refuses in its `.catch` even where `next` was called.
        */
       'tool.call': ToolCallInput;
       /**
