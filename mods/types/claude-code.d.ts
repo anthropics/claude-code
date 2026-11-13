@@ -200,6 +200,70 @@ declare module 'claude-code' {
        * taken. Two agents may hold one name: `id` tells them apart.
        */
       name?: string;
+      /**
+       * Which kind of task the engine keeps it as: `local_agent` for every
+       * subagent, whatever its `type`; `in_process_teammate` for a teammate.
+       */
+      kind: 'local_agent' | 'in_process_teammate';
+      /**
+       * The task's own status, as the engine stores it: `status` before it tells
+       * `waiting` and `idle` apart.
+       *
+       * A subagent that ended its turn is `completed` here whatever still holds
+       * it, and a teammate between turns `running`.
+       */
+      taskStatus: 'pending' | 'running' | 'completed' | 'failed' | 'killed' | 'paused';
+      /**
+       * What it is doing: its latest progress summary as stored, line breaks and
+       * all, else `description`. The summary is a model's text.
+       */
+      label: string;
+      /**
+       * When it started, in milliseconds since the epoch.
+       */
+      startTime: number;
+      /**
+       * The directory it works in: its own (a worktree), else the session's.
+       */
+      cwd: string;
+      /**
+       * The id of the model it runs on, a subagent's moving with a fallback;
+       * absent where the engine has none (a teammate in a pane of its own).
+       */
+      model?: string;
+      /**
+       * The effort set for it (its definition's or the call's), a level or a
+       * number, as written; absent when it takes the session's.
+       *
+       * What a request carries may be less: a model caps it, or takes none.
+       */
+      effort?: ModelEffort | number;
+      /**
+       * The context window of `model` in tokens, what `tokenCount` is a share
+       * of; absent when `model` is.
+       */
+      contextWindowSize?: number;
+      /**
+       * The tokens it has used: its latest request's input and all its output;
+       * 0 before the first reading.
+       */
+      tokenCount: number;
+      /**
+       * Its last 16 `tokenCount` readings, oldest first, about five seconds
+       * apart, the last one `tokenCount` itself.
+       *
+       * The engine keeps them whether or not a plugin is loaded, and starts them
+       * over once the agent's row goes.
+       */
+      tokenSamples: number[];
+      /**
+       * Whether the at-a-glance agent list holds a row for it (`AgentRow`),
+       * anywhere in its tree and hidden or not; false where the layout draws no
+       * agent rows.
+       *
+       * A finished subagent keeps one, undrawn, until the engine drops its task.
+       */
+      hasRow: boolean;
   };
 
   /**
@@ -3079,6 +3143,17 @@ declare module 'claude-code' {
            */
           version: () => Promise<SessionVersion>;
           /**
+           * Returns the session's transcript file, scratchpad, prompt id, agent type
+           * and config root (SessionInfo), as they stand at the call.
+           *
+           * What a settings hook reads on its input, for a plugin that has seen no
+           * classic event yet.
+           *
+           * @example
+           * const { transcriptPath } = await $.session.info()
+           */
+          info: () => Promise<SessionInfo>;
+          /**
            * Compacts the conversation: the event `session.compact` with `trigger`
            * `plugin`, the same call `/compact` makes, between turns.
            *
@@ -3859,6 +3934,21 @@ declare module 'claude-code' {
            * })
            */
           spawn: (request: ProcessSpawnRequest) => HookStream<ProcessSpawnChunk, ProcessSpawnResult>;
+          /**
+           * Returns the variables that name the session and this plugin, as its
+           * command hook gets them, to pass as a child's `env`; `run` and `spawn`
+           * set none of them.
+           *
+           * `CLAUDECODE`, `CLAUDE_CODE_SESSION_ID`, `CLAUDE_CODE_CHILD_SESSION`,
+           * `CLAUDE_CODE_SESSION_ATTENDED`, `CLAUDE_PID`, `CLAUDE_PROJECT_DIR`,
+           * `CLAUDE_PLUGIN_ROOT`, `CLAUDE_PLUGIN_DATA`, and `TRACEPARENT` while a
+           * trace is passed on. `CLAUDE_PLUGIN_DATA` is this plugin's data folder,
+           * kept across updates: the call makes it, and rejects when it cannot.
+           *
+           * @example
+           * await $.process.run(["./rows.sh"], { env: await $.process.hookEnv() })
+           */
+          hookEnv: () => Promise<Record<string, string>>;
       };
       /**
        * What the settings files, `--settings` and managed policy hold, as the
@@ -7534,6 +7624,10 @@ declare module 'claude-code' {
        */
       'session.version': NoArgs;
       /**
+       * The argument of `$.session.info()`.
+       */
+      'session.info': NoArgs;
+      /**
        * The argument of `$.turn.abort({ turnId })`.
        */
       'turn.abort': {
@@ -7799,6 +7893,10 @@ declare module 'claude-code' {
        */
       'process.spawn': ProcessSpawnRequest;
       /**
+       * The argument of `$.process.hookEnv()`.
+       */
+      'process.hookEnv': NoArgs;
+      /**
        * The argument of `$.settings.read({ source })`, and the layers the read
        * is made of, which the engine fills; rewritable, deniable.
        */
@@ -7868,6 +7966,7 @@ declare module 'claude-code' {
        * The engine's version, its release, and its build time when stamped.
        */
       'session.version': SessionVersion;
+      'session.info': SessionInfo;
       'turn.abort': void;
       /**
        * The box as it stands; the empty box where the session draws none.
@@ -7965,6 +8064,7 @@ declare module 'claude-code' {
       'http.fetch': HttpResponse;
       'process.run': ProcessRunResult;
       'process.spawn': ProcessSpawnResult;
+      'process.hookEnv': Record<string, string>;
       'settings.read': Settings;
       'env.get': string | undefined;
       'env.set': EnvSetResult;
@@ -10436,7 +10536,7 @@ declare module 'claude-code' {
    * apps alone. `AbovePromptList` is the band's arrangement of its `AbovePrompt`
    * rows.
    */
-  export type RenderComponent = 'AskUserQuestion' | 'UserMessage' | 'AssistantMessage' | 'ToolUse' | 'ToolResult' | 'ToolGroup' | 'ToolProgress' | 'CommandOutput' | 'Spinner' | 'TurnDuration' | 'InfoNotice' | 'SessionMode' | 'PromptHint' | 'AbovePrompt' | 'AbovePromptList' | 'Pane' | 'Placed' | 'Backdrop';
+  export type RenderComponent = 'AskUserQuestion' | 'UserMessage' | 'AssistantMessage' | 'ToolUse' | 'ToolResult' | 'ToolGroup' | 'ToolProgress' | 'CommandOutput' | 'Spinner' | 'TurnDuration' | 'InfoNotice' | 'SessionMode' | 'PromptHint' | 'AbovePrompt' | 'AbovePromptList' | 'AgentRow' | 'Pane' | 'Placed' | 'Backdrop';
 
   /**
    * What a render hook returns, and what `next(e)` resolves to: a plain-data
@@ -11547,6 +11647,61 @@ declare module 'claude-code' {
           view: SiteView;
       };
       /**
+       * One agent's row in the at-a-glance agent list (the terminal's, under the
+       * prompt): a subagent's or a teammate's, `requestId` its `id`.
+       *
+       * The agent as `$.agent.list()` gives it, `parentId` naming the agent that
+       * spawned it (absent when the main loop did); read-only but for `label`, the
+       * words the engine's own row shows beside the name. A tree, or `body`,
+       * stands for everything after the row's pointer, connector and bullet, dim
+       * or bold as the row is selected or viewed. On every surface the surface
+       * keeps opening and stopping the agent, and hiding never removes an agent
+       * from the full list. Not raised where the layout draws no agent rows, nor
+       * for the `main` row, a workflow's or the folded idle summary.
+       *
+       * Asked for every agent with `hasRow`, drawn now or not, and again as a
+       * prop changes; `tokenCount` and `tokenSamples` are read every five seconds
+       * and on `$.ui.invalidate`. The last answer stands until the next lands; a
+       * new row waits 300 ms at most for its first, then shows as the engine's.
+       *
+       * @example
+       * on("ui.render", { component: "AgentRow" }, ($, e, next) =>
+       *   next({ ...e, props: { ...e.props, isHidden: e.props.status === "idle" } }))
+       *
+       * Raised on the terminal surface only.
+       */
+      AgentRow: AgentInfo & {
+          /**
+           * The `id` of every agent with `hasRow`, so each row is asked again as
+           * one comes or goes. Read-only.
+           */
+          rowIds: string[];
+          /**
+           * The columns a top-level row's body has, where the surface measures
+           * them; a nested row's connector takes two a level of them. Read-only.
+           */
+          columns?: number;
+          /**
+           * Text drawn as the whole of the row's body in place of the engine's
+           * columns, cut at the row's edge; `""` hides the row as `isHidden` does.
+           * It arrives set where the person's settings already draw the row; leave
+           * it out for the engine's columns.
+           *
+           * It alone may hold escape sequences: SGR styles and OSC 8 links are
+           * drawn, any other is dropped. A line break makes the row taller. A
+           * remote surface is sent it as Text and Link elements.
+           */
+          body?: string;
+          /**
+           * Whether the row is left out of the list: of its drawing, its count and
+           * its keys. A hidden row is still asked, so a hook may show it again.
+           *
+           * What the last `next` in the chain passed decides, whoever draws: pass
+           * `false` to show a row that arrives hidden by the person's settings.
+           */
+          isHidden: boolean;
+      };
+      /**
        * The framed region a plugin opened with `$.ui.open({ id })`: one instance
        * per id (`requestId`), its body the hook's tree, one shown, the rest tabs.
        *
@@ -12498,6 +12653,40 @@ declare module 'claude-code' {
       organizationType?: undefined;
       email?: undefined;
       isVerified?: undefined;
+  };
+
+  /**
+   * What `$.session.info()` answers: what a settings hook's input says of the
+   * session that no other read on `$.session` does.
+   */
+  export type SessionInfo = {
+      /**
+       * The main conversation's transcript file (`transcript_path`); empty in a
+       * session that keeps none on this machine.
+       *
+       * A subagent's lies under the folder of that name, in `subagents/`.
+       */
+      transcriptPath: string;
+      /**
+       * The session's scratchpad directory (`scratchpad_dir`); absent where the
+       * session has none.
+       */
+      scratchpadDir?: string;
+      /**
+       * The id of the prompt the session is on (`prompt_id`); absent before the
+       * first.
+       */
+      promptId?: string;
+      /**
+       * The agent the session itself runs as (`--agent`, `agent_type`); absent
+       * when it runs as none.
+       */
+      agentType?: string;
+      /**
+       * The folder the project's settings are read from when it is not where the
+       * session stands, which a settings hook's command starts in; else absent.
+       */
+      configRoot?: string;
   };
 
   /**
