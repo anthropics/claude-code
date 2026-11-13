@@ -3423,8 +3423,19 @@ declare module 'claude-code' {
            * `{ deny }` is a hook's refusal, or the engine's own with its reason:
            * past a Stop or a host's limit nothing is spawned, as for a prompt.
            *
+           * The subagent's own events reach every hook, this plugin's and the calling
+           * one's too, `next.origin` naming this plugin. A spawn made handling one
+           * counts one level deeper, and the engine refuses it past the depth cap;
+           * one made at `turn.complete` or `classic.StopFailure`, or by a timer after
+           * the hook returned, counts as from no hook, at depth 1. A hook that spawns on an event its subagent
+           * also raises leaves those be. An agent's `turn.complete` comes from the
+           * engine, so it is told apart by `e.agentId` alone.
+           *
            * @example
            * const { agentId } = await $.agent.spawn({ prompt: "Read README.md." })
+           * @example
+           * // the guard: this plugin's own subagents pass; "lab" is the plugin's name
+           * if (e.agentId && next.origin.plugin === "lab") return next(e)
            */
           spawn: EventCalls['agent']['spawn'];
           /**
@@ -4777,8 +4788,9 @@ declare module 'claude-code' {
        * before its first model call; `next(e)` resolves to `{ turnId }`.
        *
        * Observe: a different return changes nothing. For the main loop alone,
-       * return `next(e)` first when `e.agentId !== undefined`. An agent's start
-       * skips the hooks its spawn was nested in, as its `turn.step`s do.
+       * return `next(e)` first when `e.agentId !== undefined`. Every hook hears
+       * an agent's start, the spawner's too, as at its `turn.step`s, but for the
+       * hook whose `$` call ran a skill or command as a fork.
        */
       'turn.start': TurnStartInput;
       /**
@@ -12949,7 +12961,8 @@ declare module 'claude-code' {
   } | {
       /**
        * A plugin's `$.session.send`, its `$.tool.call` of SendMessage, or the
-       * model inside an agent it spawned; its other hooks still see it.
+       * model inside an agent it spawned. Every hook of the plugin sees it, but
+       * for the one that made the `$` call.
        */
       kind: 'plugin';
       /**
@@ -15404,7 +15417,8 @@ declare module 'claude-code' {
        *
        * A hook that heard a turn's start hears its end after it, an aborted
        * run's too. One that heard no start of an agent's turn hears the end
-       * alone: its spawn was nested in it, or the start was held past its bound.
+       * alone: the start was held past its bound, or its `$` call ran a skill or
+       * command as this fork.
        */
       turnId: string;
       /**
@@ -15509,8 +15523,8 @@ declare module 'claude-code' {
        * answers it and `$.agent.list()` lists it; absent on the main loop.
        *
        * Each run of the loop is one turn. Pinned: a different value is refused,
-       * one left out is kept. The hooks an agent's spawn was nested in do not
-       * hear its start, as at its `turn.step`s; every other hook does.
+       * one left out is kept. Every hook hears its start, the spawner's too, but
+       * for the hook whose `$` call ran a skill or command as this fork.
        */
       agentId?: string;
   };
@@ -15594,9 +15608,9 @@ declare module 'claude-code' {
        * The loop the request is made in: a subagent's id, the `id`
        * `$.agent.list()` gives it and its `tool.call`s carry; absent on main.
        *
-       * Pinned: a different value is refused, one left out is kept. A subagent
-       * a hook spawned through `$.agent.spawn` steps past that hook, as its tool
-       * calls do; every other hook sees its steps.
+       * Pinned: a different value is refused, one left out is kept. Every hook
+       * sees its steps, the spawner's too, as it does its tool calls, but for the
+       * hook whose `$` call ran a skill or command as this fork.
        */
       agentId?: string;
   };
@@ -16780,8 +16794,9 @@ declare module 'claude-code' {
        * The loop whose request carries the attachment: a subagent's id, the `id`
        * `$.agent.list()` gives it and its `tool.call`s carry; absent on main.
        *
-       * Pinned: a different value is refused, one left out is kept. A subagent
-       * a hook spawned through `$.agent.spawn` is resolved past that hook.
+       * Pinned: a different value is refused, one left out is kept. Every hook
+       * resolves it, the spawner's too, but for the hook whose `$` call ran a skill
+       * or command as this fork.
        */
       agentId?: string;
       /**
