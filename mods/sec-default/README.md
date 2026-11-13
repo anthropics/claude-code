@@ -38,12 +38,12 @@ settings it decides by.
 | `ui.log` | A line a plugin in `prepend` or `append` logs, this one's included, continues past the user tier: no user hook rewrites or drops it, and none runs inside the hook that logged it. Every other line passes. |
 | `env.get` | A read by a plugin in `prepend` or `append` continues past the user tier: no user hook answers what the organization's own plugin reads. Every other read passes. |
 | `env.set` | A write by a plugin in `prepend` or `append` continues past the user tier, whatever the variable: no user hook rewrites or drops what the organization's own plugin sets. A variable managed settings set in `env` (its name in any case) is pinned, and so are `CLAUDE_CODE_PROCESS_WRAPPER` where they name a launcher with `processWrapper` and, always, the nine variables that move where policy and sign-in are read from or how policy's tiers compose (`CLAUDE_CODE_MANAGED_SETTINGS_PATH`, `CLAUDE_CODE_REMOTE_SETTINGS_PATH`, `CLAUDE_CODE_MOCK_REMOTE_SETTINGS`, `CLAUDE_CODE_DISABLE_ADMIN_ENV_UNION`, `CLAUDE_CONFIG_DIR`, `CLAUDE_SECURESTORAGE_CONFIG_DIR`, `USE_LOCAL_OAUTH`, `USE_STAGING_OAUTH` and `CLAUDE_LOCAL_OAUTH_API_BASE`, which choose the server sign-in goes to; all nine on every build), and, on every build too, ten variables that can load code into a child the engine starts (`LD_PRELOAD`, `LD_LIBRARY_PATH`, `LD_AUDIT`, `DYLD_INSERT_LIBRARIES`, `DYLD_LIBRARY_PATH`, `DYLD_FRAMEWORK_PATH`, `BASH_ENV`, `ENV`, `ZDOTDIR`, `NODE_OPTIONS`): setting or unsetting it, a `user`-tier caller is refused by name and a built-in's write continues past the user tier. Any other variable is a person's plugin's to set. With no policy to read, every variable counts as pinned. `allowModsToOverrideDenyRules` does not unpin. See [Pinned variables](#pinned-variables). |
-| `plugin.register` | A hooks module in the `user` tier (one a person installed, named with `--plugin-dir`, or keeps in their mods folder) is refused while managed settings set this plugin's `allowManagedModsOnly` option; otherwise it passes. Modules in `prepend`, `append` and `builtin` are never asked about. |
+| `plugin.register` | A hooks module in the `user` tier (one a person installed, named with `--plugin-dir`, or keeps in their mods folder) is refused while managed settings set this plugin's `allowManagedModsOnly` option. While they set its `forceHotReloadPrompt` option, a plugin in a session's dev-mods folder is asked about, with a hooks module or without one, unless a person already said yes to that folder here. Otherwise it passes. Plugins in `prepend`, `append` and `builtin` are never asked about. A refusal refuses the whole plugin. |
 | everything else | Passes: `prompt.submit`, `turn.*`, `tool.call`, `command.run`, `command.register`, `command.list`, `agent.register`, `config.*`, `prompt.fill`, `prompt.suggest`, `prompt.edit`, `prompt.read`, `session.*` but `session.append` and `session.compact`, `ui.*` but `ui.log`, `fs.*`, `http.fetch`, `process.run`, `store.*`, `clock.*`, `model.*`, `mcp.call`, `audio.*`, `agent.list`, `engine.create`. |
 
 ## Options an administrator sets
 
-Two, in managed settings, under this plugin's own `pluginConfigs` entry,
+Three, in managed settings, under this plugin's own `pluginConfigs` entry,
 keyed by the id the CLI builds the plugin in under (only this spelling of the
 id is read):
 
@@ -61,7 +61,11 @@ id is read):
 managed settings, and the ones built into Claude Code, load. A hooks module
 a person installed, named with `--plugin-dir` or keeps in their mods folder
 is refused whenever it loads or reloads (one already running when the option
-is set keeps running until then), with one line that names it: `mods are
+is set keeps running until then). A plugin with no hooks module passes, and so
+does a module that scans empty: neither has a hook or a `$`, the only way a
+module touches anything. A plugin whose module does not load passes the same way:
+the module does not run, and its other parts do. A refusal comes with one line that
+names it: `mods are
 limited to your organization's by policy (allowManagedModsOnly); <plugin>
 was not loaded`
 (in the debug log, and on screen where the session hot-reloads the mod's
@@ -71,9 +75,12 @@ not loaded. Settings hooks, status lines and `/goal` are not touched by it.
 - The decision reads the tier the CLI pins on the module and nothing the
   module says of itself: a person's copy carrying an organization mod's name
   is still in the `user` tier and is refused.
-- Refused means nothing of the module joins: no hook, no tool, no command.
-  Its top-level code has run once by then, in the closed context every hooks
-  module is evaluated in, with no call on `$` served.
+- Refused means nothing of the plugin takes effect, as any refusal at
+  `plugin.register` means: no hook, tool or command of its module, and no command
+  hook, MCP or LSP server, skill, command, agent, output style, theme, monitor,
+  setting or `bin/`. A monitor armed before a later refusal runs on. Its module's
+  top-level code still runs once, in the closed context every hooks module is
+  evaluated in, with no call on `$` served.
 - Only managed settings are read (`$.settings.read({ source: "policy" })`):
   the same entry in a person's, a project's or a `--settings` file neither
   turns it on nor off. On unless absent or `false`, so a mistyped `"true"` or
@@ -83,12 +90,60 @@ not loaded. Settings hooks, status lines and `/goal` are not touched by it.
 - It fails closed: when the read of managed settings is refused (a hook beneath
   denies it) or this plugin's hook fails, its `.catch` refuses the module,
   with the same line, and names the failure in the debug log; so a policy
-  that cannot be read keeps every person's mod out at load. Where this plugin
+  that cannot be read keeps every person's mod out at load. A plugin that uses
+  nothing still passes, unless it sits in a dev-mods folder. Where this plugin
   is not seated there is no such rule, and mods load as they do without it.
 - Where managed settings define `prependPlugins`, that list must name this
   plugin (next section) for the option to apply.
 - `claude plugin test` is not covered: it runs a mod's tests in an engine of
   their own and loads nothing into a session.
+
+`forceHotReloadPrompt`: an organization that keeps mods also keeps a question
+before the mods Claude writes turn on. In bypass, and in auto while its classifier
+runs, those mods load with nobody asked, so on a managed machine code the model
+wrote would run unasked. While the option is on, this plugin asks about a session's
+dev-mods folder (`dev-mods/<session id>` under the config home) as a plugin in it
+loads, with a hooks module or without one, whether or not its module loads, in any
+mode:
+
+- It reads no mode. In default, acceptEdits and plan, two questions are expected:
+  the engine's about the folder, then this one, which names the organization. In
+  bypass, and in auto while its classifier runs, this is the only question.
+- `Turn them on` loads the folder's mods in that session. `Not now` refuses them,
+  with `you answered Not now (forceHotReloadPrompt); <plugin> was not loaded`. The
+  answer stands for the process, so a reload on each edit does not ask again.
+- A yes is kept in this plugin's `$.store` under the folder, so a resume, which
+  keeps the session's id, asks nothing. A fork has an id of its own, and with it a
+  folder no yes covers. Only a yes is kept. If the write fails, the yes still stands
+  for the process; if the read fails, this plugin asks.
+- A yes covers later edits and later mods in the folder: what Claude writes there
+  afterwards loads without another question.
+- With nobody to answer (`claude -p`, no session bound yet, the question rejected
+  or dismissed), the mod is refused with `nobody answered the question about it
+  (forceHotReloadPrompt); <plugin> was not loaded`, and nothing is kept. So is it
+  when this plugin's hook fails, through its `.catch`. A start's first load can
+  come before a session is bound: the engine judges such a plugin again once one
+  is, and then the person is asked.
+- It is read as `allowManagedModsOnly` is: only managed settings, on unless absent
+  or `false`. Set or cleared mid-session, it takes effect at the next load that
+  judges the plugin. With the option unset, nothing changes.
+
+Known limits:
+
+- The question goes through `$.ui.ask`, so a person's own mod already loaded, or a
+  host, can answer it. The yes sits in this plugin's `$.store`, a file under the
+  plugins directory that anything running as the person can write, Claude's Bash
+  and Write tools in those modes included.
+- It covers mods, not what Claude can run through Bash in those modes.
+- It covers the session's dev-mods folder, known by its path. A mod Claude writes
+  into a `--plugin-dir` or other hot-reload folder, or into the installed-plugins
+  store with a registry entry, gets no question from it.
+- If the hook stalls on anything but the person's answer, such as a `$.store.get`
+  that never settles, the engine cuts it at the site's limit and its `.catch` refuses
+  the mod. After a yes, the `.catch` loads it instead if that run's policy read passed
+  it or it uses nothing. The `.catch` waits on nothing and runs on the engine's own
+  thread, so its grace does not run out.
+- If this plugin's own module fails to load, it judges nothing, and mods load unasked.
 
 `allowModsToOverrideDenyRules`: the plugins a person installs may answer
 over a settings deny rule on `tool.check`, as they could before this plugin
@@ -122,8 +177,9 @@ this copy has been unloaded or replaced meanwhile: then the failure escapes.
 
 ## What it calls on `$`
 
-`settings.read`, and `ui.log`: to the debug log, and for the one line a
-person reads when something held over a plugin of theirs. It continues to
+`settings.read`, `ui.log`: to the debug log, and for the one line a person reads
+when something held over a plugin of theirs, and `ui.ask` and `store.get` and
+`store.set`, for `forceHotReloadPrompt`. It continues to
 the `append` tier with `next.to`, which only a plugin in a managed tier may
 do.
 

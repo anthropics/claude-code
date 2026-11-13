@@ -267,7 +267,7 @@ declare module 'claude-code' {
    * A call's spawn runs in the background: it resolves once the subagent
    * started, and nothing holds it in the foreground.
    */
-  export type AgentSpawnArgs = Pick<AgentSpawnInput, 'prompt'> & Partial<Pick<AgentSpawnInput, 'description' | 'subagentType' | 'model' | 'name' | 'cwd'>>;
+  export type AgentSpawnArgs = Pick<AgentSpawnInput, 'prompt'> & Partial<Pick<AgentSpawnInput, 'description' | 'subagentType' | 'model' | 'name' | 'cwd' | 'parentAgentId'>>;
 
   /**
    * The input of `agent.spawn`: what is decided about an agent about to start,
@@ -332,6 +332,23 @@ declare module 'claude-code' {
       /**
        * The id of the loop the spawn happens in (its `tool.call` `agentId`; for a
        * subagent or teammate its `$.agent.list()` id); absent from main.
+       *
+       * Given to `$.agent.spawn`, it names the agent the spawn is made under: a
+       * running or resting agent of this session, a fork included. The spawn acts
+       * as that agent's own: `subagentType: "fork"` copies its conversation, prompt,
+       * tools and model, and any child is one deeper than it, under `$.agent.list()`
+       * `parentId`, stopped with it, in its directory and permission mode, and
+       * reports where its children report. It takes no turn and nothing is written
+       * to its conversation. The parent may be running or resting, however long ago
+       * and in whichever process it ran: a resting one is rebuilt from its record as a
+       * resume rebuilds it, and refused where a resume of it would be, with that reason.
+       * An id the session can't read or run from answers `{ deny }`, and nothing falls
+       * back to main. So does an agent with no readable record, since nothing says what
+       * it was; an older record is judged by the fields it carries. Limits a run was
+       * under by name are applied again from its record, and one whose limits have no
+       * name this build knows, once this process no longer holds them, answers `{ deny }`
+       * too. So does an agent at its own first `turn.start`, whose loop holds nothing
+       * yet. Left out, the spawn is main's.
        *
        * Pinned: a different value is refused, one left out is kept. The agent
        * axis, not the origin: `next.origin` names the plugin whose hook frame
@@ -3431,8 +3448,16 @@ declare module 'claude-code' {
            * also raises leaves those be. An agent's `turn.complete` comes from the
            * engine, so it is told apart by `e.agentId` alone.
            *
+           * With `parentAgentId` the spawn is that agent's own child, and a fork of
+           * it with `subagentType: "fork"`: see `AgentSpawnInput.parentAgentId`.
+           *
            * @example
            * const { agentId } = await $.agent.spawn({ prompt: "Read README.md." })
+           * @example
+           * // fork a subagent, running or resting: it starts from that agent's
+           * // conversation, prompt, tools and model
+           * await $.agent.spawn({ prompt: "Try the other fix.", subagentType: "fork",
+           *   parentAgentId: e.agentId })
            * @example
            * // the guard: this plugin's own subagents pass; "lab" is the plugin's name
            * if (e.agentId && next.origin.plugin === "lab") return next(e)
@@ -5470,7 +5495,9 @@ declare module 'claude-code' {
    * Each bounds the hook's OWN time: the clock stops while a `next(e)` call or
    * any `$` call of the hook's is in flight (a `$.clock` wait excepted), so a
    * slow chain beneath or a minute-long `$.model.complete` costs it nothing.
-   * On `tool.list` a hook's `$` calls hold it for 30 seconds in all, then fail it.
+   * On `tool.list` a hook's `$` calls hold it for 30 seconds in all, then fail it;
+   * on `plugin.register` for 10 seconds, `$.ui.ask` aside: a person answers in their
+   * own time.
    *
    * @example
    * await $.model.complete(ask) // a minute; next.budget.remainingMs unmoved
@@ -8324,10 +8351,16 @@ declare module 'claude-code' {
   export type PluginOptions = Readonly<Record<string, string | number | boolean | readonly string[]>>;
 
   /**
-   * The input of `plugin.register`: one hooks module the engine is about to
-   * load, read off its manifest and its scanned source. Every field is pinned.
+   * The input of `plugin.register`: one plugin the engine is about to load, with a
+   * hooks module or without one, read off its manifest and, where it has a module,
+   * its scanned source. Every field is pinned.
    *
-   * `tier` and `uses` are the host's reading of the module, what a gate holds
+   * The event judges the plugin whole: a `{ refuse }` keeps out its hooks module,
+   * command hooks, MCP servers, LSP servers, skills, commands, agents, output
+   * styles, themes, monitors, settings and `bin/`. None of them starts before the
+   * verdict.
+   *
+   * `tier` and `uses` are the host's reading of the plugin, what a gate holds
    * it to; `name`, `root`, `version` and `provenance` are its own word (its
    * manifest, its place), so a rule keyed on them is one a rename walks past.
    */
@@ -8355,7 +8388,9 @@ declare module 'claude-code' {
        */
       provenance: string;
       /**
-       * What the module hooks and calls, as scanned (PluginRegisterUses).
+       * What its hooks module hooks and calls, as scanned (PluginRegisterUses).
+       * Empty for a plugin with no module, or whose module did not load, and for a
+       * module that scans empty: with no hook and no `$`, it can touch nothing.
        */
       uses: PluginRegisterUses;
   };
@@ -8366,14 +8401,18 @@ declare module 'claude-code' {
    */
   export type PluginRegisterResult = {
       /**
-       * The module loads: its `engine.create` step runs and its hooks join.
+       * The plugin loads: its module's `engine.create` step runs and its hooks
+       * join, and the rest of its parts follow.
        */
       allow: true;
       refuse?: undefined;
   } | {
       /**
-       * The module does not load: no step, no hooks, no tools or commands;
-       * the debug log names the plugin that refused and this reason.
+       * The whole plugin does not load: no step, no hooks, no tools or commands
+       * from its module, and none of its other parts (command hooks, MCP and LSP
+       * servers, skills, commands, agents, output styles, themes, monitors,
+       * settings, `bin/`) take effect, but for a monitor armed before the refusal,
+       * which runs on. The debug log names the plugin that refused and this reason.
        */
       refuse: string;
       allow?: undefined;

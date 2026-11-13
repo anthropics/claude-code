@@ -2,6 +2,7 @@ import type { On } from 'claude-code'
 
 import { admissionFailure } from './admission-failure'
 import HeldVerdict from './held-verdict'
+import HotReloadPrompt from './hot-reload-prompt'
 import { managedModsOnlyRefusal } from './managed-mods-only-refusal'
 import { pastUsers } from './past-users'
 import { pinnedVariableRefusal } from './pinned-variable-refusal'
@@ -11,6 +12,7 @@ import {
   registerRefusalOf,
   TOOL_REGISTER_REFUSAL,
 } from './tool-register-refusal'
+import { usesNothing } from './uses-nothing'
 
 const TOOL_LIST_REFUSAL = 'sec-default could not read the tool list'
 
@@ -20,7 +22,8 @@ const TOOL_LIST_REFUSAL = 'sec-default could not read the tool list'
  *
  * Three moves: continue past the user tier (`next.to(e, "append")`), refuse
  * a user-tier caller or module by name, or pass. Provenance is the event's
- * pinned `provider` or `tier`; policy is `$.settings.read`; fail closed.
+ * pinned `provider` or `tier`; policy is `$.settings.read`; fail closed. Under
+ * `forceHotReloadPrompt` it also asks about a mod Claude wrote before it loads.
  *
  * @param on the engine's registrar
  */
@@ -28,6 +31,9 @@ export function register(on: On) {
   const readPolicy = Policy.createPolicyMemo(Policy.POLICY_MEMO_MS)
   const told = new Set<string>()
   const admittedAs = new Map<string, string>()
+  const answers = new Map<string, string>()
+  // Whose run of the hook below got past allowManagedModsOnly, for its `.catch`.
+  const pastManagedOnly = new Set<string>()
 
   on('classic.*', ($, e, next) => next.to(e, 'append'))
 
@@ -237,13 +243,89 @@ export function register(on: On) {
 
   on('plugin.register', { tier: 'user' }, async ($, e, next) => {
     admittedAs.set(e.name, e.provenance)
+    pastManagedOnly.delete(e.name)
 
-    return Policy.isManagedModsOnly(await $.settings.read(Policy.SOURCE))
-      ? { refuse: managedModsOnlyRefusal(e.name) }
-      : next(e)
+    const policy = await $.settings.read(Policy.SOURCE)
+
+    if (Policy.isManagedModsOnly(policy) && !usesNothing(e.uses)) {
+      return { refuse: managedModsOnlyRefusal(e.name) }
+    }
+
+    pastManagedOnly.add(e.name)
+
+    const folder = HotReloadPrompt.devModsFolderOf(e.root)
+
+    if (!Policy.isHotReloadPromptForced(policy) || folder === undefined) {
+      return next(e)
+    }
+
+    const kept = answers.get(folder)
+
+    if (kept === HotReloadPrompt.TURN_THEM_ON) {
+      return next(e)
+    }
+
+    if (kept !== undefined) {
+      return { refuse: HotReloadPrompt.declinedRefusal(e.name) }
+    }
+
+    const isStored =
+      (await $.store.get(HotReloadPrompt.yesKey(folder)).catch(() => false)) ===
+      true
+
+    if (isStored) {
+      answers.set(folder, HotReloadPrompt.TURN_THEM_ON)
+
+      return next(e)
+    }
+
+    // A rejection is no answer: the next load, where someone can answer, asks.
+    const answer = await $.ui
+      .ask(HotReloadPrompt.HOT_RELOAD_QUESTION, {
+        header: 'Organization',
+        // First, so a stray Enter refuses: in bypass and auto no other question comes.
+        options: [HotReloadPrompt.NOT_NOW, HotReloadPrompt.TURN_THEM_ON],
+      })
+      .catch(() => undefined)
+
+    if (answer === undefined) {
+      return { refuse: HotReloadPrompt.unaskedRefusal(e.name) }
+    }
+
+    answers.set(folder, answer)
+
+    if (answer !== HotReloadPrompt.TURN_THEM_ON) {
+      return { refuse: HotReloadPrompt.declinedRefusal(e.name) }
+    }
+
+    // A failed write costs the next session a question, not this one its answer.
+    await $.store.set(HotReloadPrompt.yesKey(folder), true).catch(() => {})
+
+    return next(e)
   }).catch(($, e, next) => {
-    $.ui.log(admissionFailure(e.name, next.error), { to: 'debug' })
+    // A `.catch` that throws or waits past its grace answers nothing, and the mod
+    // would load unasked: so this one waits on nothing, and its log line cannot stop it.
+    try {
+      $.ui.log(admissionFailure(e.name, next.error), { to: 'debug' })
+    } catch {
+      // The refusal below is what matters.
+    }
 
-    return next.called ? next(e) : { refuse: managedModsOnlyRefusal(e.name) }
+    const folder = HotReloadPrompt.devModsFolderOf(e.root)
+    const isAnsweredYes =
+      folder !== undefined &&
+      answers.get(folder) === HotReloadPrompt.TURN_THEM_ON
+
+    if (next.called || (isAnsweredYes && pastManagedOnly.has(e.name))) {
+      return next(e)
+    }
+
+    if (folder !== undefined && !isAnsweredYes) {
+      return { refuse: HotReloadPrompt.unaskedRefusal(e.name) }
+    }
+
+    return usesNothing(e.uses)
+      ? next(e)
+      : { refuse: managedModsOnlyRefusal(e.name) }
   })
 }
