@@ -4585,6 +4585,9 @@ declare module 'claude-code' {
        * for a tool a thread has sent waits for a new thread or a compaction, unless
        * it carries `breakPromptCache: true` (ToolDescribeResult).
        *
+       * @remarks Fires again when an MCP server replaced under the same name brings
+       *   another `mcpServer`. A description changed then waits the same way, and
+       *   `breakPromptCache` sends it only after `$.ui.invalidate`.
        * @remarks Twice for an MCP tool behind ToolSearch: its short text, then
        *   the one loaded.
        * @remarks An explicit `isDeferred` moves the tool behind ToolSearch (true)
@@ -14980,6 +14983,14 @@ declare module 'claude-code' {
        * policy settings source configures the server, else `user`.
        */
       provider: Origin;
+      /**
+       * The MCP server this tool comes from, off the connection that listed it, so
+       * no config file need be read and a server added at runtime is covered.
+       * Absent on any other tool, a built-in or a `tool.list` hook's among them, and
+       * on an MCP tool whose server facts are not known. Pinned: a rewrite that
+       * changes or adds it is refused, and one that leaves it out has it restored.
+       */
+      mcpServer?: ToolMcpServer;
   };
 
   /**
@@ -15158,6 +15169,46 @@ declare module 'claude-code' {
    */
   export type ToolInputOf<Name extends string, Arguments> = {
       [K in keyof ToolEnvelope<Name, Arguments>]: ToolEnvelope<Name, Arguments>[K];
+  };
+
+  /**
+   * The MCP server a tool comes from, as `tool.describe` reports it
+   * (ToolDescribeInput.mcpServer).
+   *
+   * @example
+   * on("tool.describe", ($, e, next) => {
+   *   if (e.mcpServer?.origin === "https://gateway.corp.example") tag(e.tool)
+   *   return next(e)
+   * })
+   */
+  export type ToolMcpServer = {
+      /**
+       * The transport in the server's config. A config with no `type` reads
+       * `stdio`.
+       */
+      type: 'stdio' | 'http' | 'sse' | 'ws' | 'sdk' | 'sse-ide' | 'ws-ide' | 'claudeai-proxy';
+      /**
+       * Where the server is: scheme, host and a port that is not the default, as
+       * WHATWG `URL.origin` gives it, of the URL after `${VAR}` expansion. Never a
+       * login, path, query or fragment.
+       *
+       * An entry on a session proxy reads the host dialed, not the server the proxy
+       * reaches. For `claudeai-proxy`, claude.ai's own connector reads the upstream
+       * claude.ai states, and any other entry the proxy it dials, never the `url` it
+       * wrote.
+       *
+       * Absent for `stdio` and `sdk`; for a URL that does not parse or has no origin
+       * of its own; for a connector whose address claude.ai withholds; for a
+       * `claudeai-proxy` entry with no route to dial; and for a server a cloud
+       * session's tool container relays, whatever its `type`.
+       */
+      origin?: string;
+      /**
+       * The claude.ai connector's id, only where it is vouched for: claude.ai's own
+       * connector, or the `connectorId` a host states on its own `sdk` entry. Never
+       * one written in a file, a plugin or `--mcp-config`.
+       */
+      connectorId?: string;
   };
 
   /**
