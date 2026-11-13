@@ -34,6 +34,44 @@ All `.soloflow/` paths in this document are relative to
 
 ---
 
+## SoloFlow state is never committed (no-commit mode)
+
+`.soloflow/` is **untracked and gitignored** (untracked via PR #178).
+It is ephemeral, on-disk-only coordination — plans, backlog,
+checkpoints, done reports, findings. **GitHub Issues are the persistent
+record of work to be done and completed;** `.soloflow/` never enters
+git history.
+
+**Operational rules — apply to every SoloFlow phase and agent:**
+
+- **Never** `git add`, `git add -f`, `git rm`, or commit anything under
+  `.soloflow/`. It is gitignored — a plain `git add` fails, and it must
+  not enter history. Do not force it in.
+- Run state-mutating scripts in **no-commit mode**:
+  - `settle-task.js` and any `update-task-status.js` call → always pass
+    `--no-commit`. They write state to disk and skip the commit (the
+    script's intended "not a git repo / no-commit" path).
+  - Do **not** run `commit-atomic.js` on `.soloflow/` paths, and do
+    **not** perform the sprint command's local state-commit steps —
+    the initiator/closer `chore(...)` state commits, the per-task
+    `chore(TASK-NNN): done` commits, and the end-of-sprint
+    review/verification commits. Skip them entirely.
+- The **disk** copy of `.soloflow/` is the source of truth for state.
+  Checkpoint-resume reads it directly from disk — no git needed. Do not
+  rely on branch switches to carry state (they won't — it's untracked).
+- **Code commits are unaffected.** Executors still commit CODE to run
+  branches / feature branches normally. Sprint PRs to `main` are
+  code-only (no `.soloflow/` churn — cherry-pick code commits if a run
+  branch accumulated any legacy state). Only `.soloflow/` state is
+  never committed.
+
+**The GitHub sync below still applies in full** — syncing ideas → Issues,
+plans → `## Direction` comments, and work → PRs with `Closes #<N>` IS how
+the persistent record is maintained. No-commit mode disables only local
+`.soloflow/` commits, never the GitHub sync.
+
+---
+
 ## GitHub-first workflow
 
 GitHub Issues on `counterfactual-consulting/counterfactual` are the
