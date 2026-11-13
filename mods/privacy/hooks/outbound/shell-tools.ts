@@ -1,8 +1,17 @@
 /**
+ * The shell tool whose backslash escapes nothing.
+ */
+export const POWERSHELL_TOOL = 'PowerShell'
+
+/**
  * The tools that run a line, whose whole input this guard reads, and whose
  * named scripts it reads too.
  */
-export const SHELL_TOOLS: readonly string[] = ['Bash', 'Monitor', 'PowerShell']
+export const SHELL_TOOLS: readonly string[] = [
+  'Bash',
+  'Monitor',
+  POWERSHELL_TOOL,
+]
 
 /**
  * Where a host adds a shell tool of its own, once, before the plugin registers

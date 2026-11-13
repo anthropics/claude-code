@@ -5,8 +5,8 @@ import Outbound from './outbound'
 /**
  * Registers the hook: a call whose outgoing text, or a script its line names,
  * holds the account's address beside a word that declares who is calling, or a
- * fetch with the address in its URL, is refused, with no prompt. A deny beneath
- * keeps its own reason.
+ * fetch with the address in its URL, is refused, with no prompt. A line that only
+ * touches files reads no script. A deny beneath keeps its own reason.
  *
  * @param on the engine's registrar
  */
@@ -22,12 +22,13 @@ export function register(on: On): void {
     }
 
     const text = Outbound.outgoingText(e.tool, e.input)
-    // The line that runs, not a field that only talks about it, such as `description`,
-    // and no git command's own text. An installed shell tool's fields are its own, so
-    // its whole input.
-    const line = Outbound.SHELL_TOOLS.includes(e.tool)
-      ? Outbound.fieldText(e.input, 'command', Outbound.GIT_COMMAND)
-      : text
+    // The line that runs, not a field that only talks about it, such as `description`.
+    // An installed shell tool's fields are its own, so its whole input.
+    const line = !Outbound.SHELL_TOOLS.includes(e.tool)
+      ? text
+      : Outbound.onlyTouches(e.tool, e.input)
+        ? ''
+        : Outbound.fieldText(e.input, 'command', Outbound.GIT_COMMAND)
     const scripts = shells.includes(e.tool) ? Outbound.scriptNames(line) : []
 
     if (scripts.length === 0 && !Outbound.mayHoldAddress(text)) {
