@@ -169,8 +169,11 @@ export function register(on: On, options: PluginOptions): void {
   on('agent.spawn', { fork: true }, async ($, e, next) => {
     const result = await next(e)
 
-    // a resumed fork keeps the set its own loop was given
-    if (!('resume' in e) && result.agentId !== undefined) {
+    // a resumed fork keeps the set its own loop was given, and one no tool
+    // call started may hold an older transcript than its parent's
+    const inherits = !('resume' in e) && e.tool_use_id !== ''
+
+    if (inherits && result.agentId !== undefined) {
       const parent = given.get(e.parentAgentId ?? Names.MAIN_LOOP)
       given.set(result.agentId, new Set(parent))
     }

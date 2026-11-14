@@ -445,13 +445,15 @@ declare module 'claude-code' {
        *
        * For a workflow agent, the Workflow tool call that started its run, shared
        * by all of the run's agents and possibly empty on a resumed or
-       * server-launched run.
+       * server-launched run. Empty for a fork no tool call starts (`/subtask`,
+       * say), so `$.ui.notice` has no call to show under.
        */
       tool_use_id: string;
       /**
        * The task the subagent is given: the Agent tool's `prompt` parameter. A
        * rewrite is the prompt the subagent runs with.
        *
+       * For a fork no tool call starts, what followed the command.
        * A workflow agent's is a fixed placeholder on a run that keeps its script
        * out of SDK events (Code Review's, say): a hook has not seen the prompt, so
        * a rewrite of it is not applied, and the agent starts with the script's own.
@@ -526,13 +528,16 @@ declare module 'claude-code' {
        * rewrite is read back as the call's `run_in_background`.
        *
        * The agent's own definition and remote isolation can still force it on,
-       * and disabled background tasks force it off. A teammate's is true: a
-       * rewrite is left out, said once in the plugin's failure line.
+       * and disabled background tasks force it off. A teammate's is true, as is
+       * that of a fork no tool call starts: a rewrite is left out, said once in
+       * the plugin's failure line.
        */
       background: boolean;
       /**
        * True for a fork of the parent: it inherits the parent's context and model,
        * and `model` is ignored. Pinned: the spawn's identity.
+       *
+       * The Agent tool's, or one no tool call starts (`tool_use_id` is empty).
        */
       fork: boolean;
       /**
@@ -593,14 +598,17 @@ declare module 'claude-code' {
        * undefined when unnamed. Pinned: the address the parent routes by.
        *
        * A teammate whose name the team has already gets a suffix (`scout-2`),
-       * which the answer's `teammateId` and `$.agent.list()` show.
+       * which the answer's `teammateId` and `$.agent.list()` show. A fork no tool
+       * call starts is named by the engine, and gets a suffix if another agent
+       * took the name while its hooks ran.
        */
       name?: string;
       /**
        * The directory the subagent runs in when the call set one (`cwd`); undefined
        * means the parent's. A rewrite is where the subagent runs.
        *
-       * A teammate runs in the session's: a rewrite is left out, as `background`'s.
+       * A teammate runs in the session's, and a fork no tool call starts in its
+       * parent's: a rewrite is left out, as `background`'s.
        */
       cwd?: string;
   };
@@ -642,7 +650,8 @@ declare module 'claude-code' {
   } | {
       /**
        * Refuses the spawn, so nothing starts; the text is the Agent tool's
-       * error, or the error a workflow script's `agent()` call throws.
+       * error, the error a workflow script's `agent()` call throws, or the
+       * answer of the command that asked for a fork.
        *
        * Returned after a `next(e)` was answered it fails the hook: its
        * `.catch` is asked (a deny from it fails too), or it is skipped by
@@ -4778,6 +4787,11 @@ declare module 'claude-code' {
       /**
        * Fires when the Agent tool, or a workflow script's `agent()`
        * (`e.workflow`), is about to start an agent, its model not yet resolved.
+       *
+       * Also for a fork a command starts with no tool call (`e.fork`, an empty
+       * `tool_use_id`): `/subtask`, `/btw`'s fork key, and `/fork` where it starts
+       * a subagent. A fork the engine starts by itself, to answer an artifact's
+       * comment or a Slack thread, does not raise it.
        *
        * `next(e)` resolves to `{ model }`. Return it, `next({ ...e, model })`,
        * `{ model }` of your own (an alias resolves like the tool's parameter), or
