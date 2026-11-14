@@ -6,13 +6,13 @@ import Ranking from './ranking'
 
 /**
  * Whether the verdict reached past the user tier holds whole over the
- * chain's answer: a deny, or an ask that names what stands behind it.
+ * chain's answer: a deny or an ask, whoever answers it.
  *
  * It holds over a more permissive answer and over the same decision reworded
- * or stripped of what it names; a stricter answer stands. A rule, a hook, a
- * setting, a plugin or a ceiling counts, and a host answering the ask; the
- * mode's own ask at a dialog never. The run past the user tier holds no
- * person's plugin, so a plugin it names is a built-in or an organization's.
+ * or stripped of what it names; a stricter answer stands. So does their ask
+ * over one that names nothing, which no classifier's allow settles, unless a
+ * host answers it. The run past the user tier holds no person's plugin, so a
+ * plugin it names is a built-in or an organization's.
  *
  * @param held what the run past the user tier settled on
  * @param answer what the whole chain settled on
@@ -35,6 +35,6 @@ export function holdsOver(
       held.setting !== undefined ||
       pluginOf(held) !== undefined ||
       held.ceiling !== undefined ||
-      (isAsked && approver === 'host'))
+      (isAsked && (Ranking.isLooser(answer, held) || approver === 'host')))
   )
 }

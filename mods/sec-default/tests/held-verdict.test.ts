@@ -6,7 +6,7 @@ import Fixtures from './fixtures'
 tier('prepend')
 
 describe('held-verdict', () => {
-  test('over an allow: any deny, and an ask a rule or a hook decided', () => {
+  test('over an allow: any deny and any ask', () => {
     expect(
       [
         Fixtures.RULE_DENY,
@@ -17,7 +17,7 @@ describe('held-verdict', () => {
         Fixtures.ASKED,
         Fixtures.ALLOWED,
       ].map(held => Hooks.holdsOver(held, Fixtures.ALLOWED, undefined)),
-    ).toEqual([true, true, true, true, true, false, false])
+    ).toEqual([true, true, true, true, true, true, false])
   })
 
   test("a setting's ask and a host's hold over an allow and a rewording", () => {
@@ -33,20 +33,21 @@ describe('held-verdict', () => {
     ])
   })
 
-  test('a setting the answer itself names holds nothing', () => {
+  test("the mode's ask holds whoever answers; their ask, under a host", () => {
     expect(
-      Hooks.holdsOver(
-        Fixtures.ASKED,
-        {
-          ...Fixtures.ALLOWED,
-          setting: 'permissions.blockReadsOutsideWorkingDirectories',
-        },
-        undefined,
+      ['person', undefined, 'host'].map(approver =>
+        [Fixtures.ALLOWED, Fixtures.HOST_ASK, Fixtures.PLAIN_DENY].map(answer =>
+          Hooks.holdsOver(Fixtures.ASKED, answer, approver),
+        ),
       ),
-    ).toBe(false)
+    ).toEqual([
+      [true, false, false],
+      [true, false, false],
+      [true, true, false],
+    ])
   })
 
-  test('an ask is named for its hook, then its setting, then its host', () => {
+  test('an ask is named for its hook, then its setting, else as a prompt', () => {
     expect(
       [
         { ...Fixtures.HOST_ASK, ...Fixtures.SETTING_ASK, ...Fixtures.HOOK_ASK },
@@ -59,7 +60,7 @@ describe('held-verdict', () => {
         "a permissions.blockReadsOutsideWorkingDirectories setting's ask " +
           'from a Bash call; the ' +
           "permissions.blockReadsOutsideWorkingDirectories setting's ask",
-        "a host's ask from a Bash call; the host's ask",
+        'a permission prompt from a Bash call; the permission prompt',
       ].map(
         middle =>
           `easy tried to lift ${middle} holds over the plugins you install ` +
@@ -101,14 +102,15 @@ describe('held-verdict', () => {
     ).toBe(true)
   })
 
-  test('a rule or hook the answer itself names makes nothing hold', () => {
+  test('what the answer itself names makes nothing hold', () => {
     expect(
       Hooks.holdsOver(
         Fixtures.ASKED,
         {
-          ...Fixtures.ALLOWED,
+          decision: 'ask',
           rule: 'Bash(echo *)',
           hook: 'PreToolUse',
+          setting: 'permissions.blockReadsOutsideWorkingDirectories',
         },
         undefined,
       ),

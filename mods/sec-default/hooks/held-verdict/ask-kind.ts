@@ -7,11 +7,11 @@ import { pluginOf } from './verdicts/plugin-of.js'
  * hook first, then the setting whose check asked, then the plugin that made
  * it, then the ceiling an organization set on the tool.
  *
- * An ask that names none of them holds by the host that answers it.
+ * An ask that names none of them is the mode's own or an engine check's.
  *
  * @param held the ask in question
  * @returns `<event> hook's ask`, `<key> setting's ask`, `<plugin>'s ask`,
- *   `ask cap`, or `host's ask`
+ *   `ask cap`, or `permission prompt`
  */
 export function askKind(held: EventResult<'tool.check'>) {
   const plugin = pluginOf(held)
@@ -28,5 +28,5 @@ export function askKind(held: EventResult<'tool.check'>) {
         ? `${plugin}'s ask`
         : isCapped
           ? 'ask cap'
-          : "host's ask"
+          : 'permission prompt'
 }

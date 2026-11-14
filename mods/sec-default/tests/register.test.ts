@@ -1213,7 +1213,7 @@ describe('register', () => {
   )
 
   test(
-    "the mode's own ask, no rule or hook behind it, is theirs to allow",
+    "the mode's own ask, with no host, holds over their allow too",
     { plugins: [Fixtures.allowing('easy')] },
     async ($, on) => {
       on('settings.read', () => ({ value: Fixtures.MANAGED_POLICY }))
@@ -1222,8 +1222,36 @@ describe('register', () => {
 
       Fixtures.checksAnswered(on, Fixtures.ASKED)
 
+      expect(await $.tool.check(Fixtures.CHECKED)).toEqual(Fixtures.ASKED)
+
+      expect(lines).toEqual([
+        `transcript: ${Hooks.heldNotice('easy', Fixtures.CHECKED.tool, Fixtures.ASKED, 'lift')}`,
+      ])
+    },
+  )
+
+  test(
+    "the option lets them allow the mode's own ask",
+    { plugins: [Fixtures.allowing('easy')] },
+    async ($, on) => {
+      on('settings.read', () => ({ value: Fixtures.overridePolicyOf(true) }))
+      Fixtures.checksAnswered(on, Fixtures.ASKED)
+
       expect(await $.tool.check(Fixtures.CHECKED)).toEqual(Fixtures.ALLOWED)
-      expect(lines).toEqual([])
+    },
+  )
+
+  test(
+    "with no host, their ask over the mode's own ask stands",
+    { plugins: [Fixtures.asking('easy')] },
+    async ($, on) => {
+      on('settings.read', () => ({ value: Fixtures.MANAGED_POLICY }))
+      Fixtures.checksAnswered(on, { decision: 'ask' })
+
+      expect(await $.tool.check(Fixtures.CHECKED)).toEqual({
+        ...Fixtures.ASKED,
+        plugin: 'easy',
+      })
     },
   )
 
