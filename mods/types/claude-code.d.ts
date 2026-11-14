@@ -235,7 +235,8 @@ declare module 'claude-code' {
        * The effort set for it (its definition's or the call's), a level or a
        * number, as written; absent when it takes the session's.
        *
-       * What a request carries may be less: a model caps it, or takes none.
+       * What a request carries may be less: a model caps it, or takes none
+       * (`lastRequest`).
        */
       effort?: ModelEffort | number;
       /**
@@ -256,6 +257,42 @@ declare module 'claude-code' {
        * over once the agent's row goes.
        */
       tokenSamples: number[];
+      /**
+       * The last request of its loop that the API began to answer; absent before
+       * the first, and for a teammate in a pane of its own.
+       */
+      lastRequest?: AgentRequest;
+      /**
+       * Its own requests' tokens, one entry a model that answered, so a change of
+       * model mid-run starts another; absent until `/cost` counts a request.
+       *
+       * Every request `/cost` counts for it, once: its steps and their retries,
+       * its compactions, summaries, advisor, web tools and settings hooks. Not a
+       * subagent's or forked skill's, nor a response a hook made up. The observer
+       * of an agent it starts adds what its first run asks beside its own steps.
+       *
+       * They go on over its turns and resumes, plugins or none. They start over
+       * where the session's total is reset or swapped for a stored one (`/clear`,
+       * `/resume`, a new process), which holds no agent's part.
+       *
+       * @example
+       * const output = (agent.usage ?? []).reduce((n, u) => n + u.output_tokens, 0)
+       */
+      usage?: TurnUsage[];
+      /**
+       * What `/cost` was credited for the requests of `usage`: a part of
+       * `$.session.usage()`'s `cost`.
+       *
+       * `/cost` prices the model asked for (or the API's own fallback), so where a
+       * gateway answers on another, `usage` names a model this was not priced at.
+       * A model `/cost` does not know goes at the default model's rates, unmarked.
+       * A request stopped mid-stream and auto mode's classifier calls are not in it.
+       *
+       * Fast mode, long prompts and search fees are, which the counts of `usage`
+       * do not tell. Absent only where the host keeps no cost ledger of the agent:
+       * a teammate in a pane of its own.
+       */
+      cost?: SessionCost;
       /**
        * Whether the at-a-glance agent list holds a row for it (`AgentRow`),
        * anywhere in its tree and hidden or not; false where the layout draws no
@@ -322,6 +359,43 @@ declare module 'claude-code' {
    */
   export type AgentOfferResult = {
       isOffered: boolean;
+  };
+
+  /**
+   * One request of an agent's loop (a `turn.step`'s) as it went out, past caps,
+   * fallbacks and a hook's rewrite.
+   */
+  export type AgentRequest = {
+      /**
+       * When it was sent, in `$.clock.now()`'s milliseconds: the moment a cache
+       * lifetime counts from, which is the request's start, not its response's end.
+       *
+       * A retry that was answered is sent at its own time.
+       */
+      at: number;
+      /**
+       * The model that answered, as the step's `usage.model` has it.
+       */
+      model: string;
+      /**
+       * The effort it carried; absent where none was sent.
+       *
+       * The step's `effort` as the hooks left it, unless a limit lowered it or
+       * another level was in force (TurnStepInput).
+       */
+      effort?: ModelEffort | number;
+      /**
+       * How long from `at` the cache holds what it wrote, the shorter when it
+       * wrote both; when it only read, what the agent's last write was given.
+       *
+       * Absent where it neither read nor wrote, or no lifetime was reported. A
+       * progress summary reading the same prompt later renews it unseen.
+       *
+       * @example
+       * const ttlMs = last.cacheTtl === "1h" ? 3_600_000 : 300_000
+       * const leftMs = last.at + ttlMs - (await $.clock.now())
+       */
+      cacheTtl?: '5m' | '1h';
   };
 
   /**
@@ -11662,9 +11736,10 @@ declare module 'claude-code' {
        *
        * Asked for every agent with `hasRow` (in VS Code, a blocking forked skill's
        * too, which has none), drawn now or not, and again as a prop changes;
-       * `tokenCount` and `tokenSamples` are read every five seconds and on
-       * `$.ui.invalidate`. The last answer stands until the next lands; a new row
-       * waits 300 ms at most for its first, then shows as the engine's.
+       * `tokenCount`, `tokenSamples`, `lastRequest`, `usage` and `cost` are read
+       * every five seconds, on `$.ui.invalidate` and with a new `status` or
+       * `taskStatus`. The last answer stands until the next lands; a new row waits
+       * 300 ms at most for its first, then shows as the engine's.
        *
        * @example
        * on("ui.render", { component: "AgentRow" }, ($, e, next) =>
@@ -12487,7 +12562,8 @@ declare module 'claude-code' {
   };
 
   /**
-   * What the session has cost, as `/cost` and the status line total it.
+   * What the session has cost, as `/cost` and the status line total it; on an
+   * agent (AgentInfo), its own requests' part of that.
    */
   export type SessionCost = {
       /**
@@ -16051,11 +16127,25 @@ declare module 'claude-code' {
 
   /**
    * What a model turn, or one response inside it, cost as the API reported it:
-   * the four token counts (ModelUsage) and the model's id.
+   * the four token counts (ModelUsage), the cache writes by lifetime and the
+   * model's id.
    *
    * A turn's counts are its responses' summed; its model is the last response's.
    */
   export type TurnUsage = ModelUsage & {
+      /**
+       * The part of `cache_creation_input_tokens` written for five minutes.
+       *
+       * Present with `ephemeral_1h_input_tokens` or not at all: absent where no
+       * write named its lifetime (none was made, or the provider reports none).
+       * The two never sum past the whole; `/cost` prices the rest as five minutes.
+       */
+      ephemeral_5m_input_tokens?: number;
+      /**
+       * The part of `cache_creation_input_tokens` written for one hour; present
+       * with `ephemeral_5m_input_tokens`.
+       */
+      ephemeral_1h_input_tokens?: number;
       /**
        * Which model answered, by the id the API reports.
        */
