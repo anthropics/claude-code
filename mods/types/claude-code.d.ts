@@ -2576,7 +2576,12 @@ declare module 'claude-code' {
            */
           name: string;
           /**
-           * The plugin's directory (the one holding plugin.json), absolute.
+           * The plugin's directory (the one holding `.claude-plugin/plugin.json`),
+           * absolute.
+           *
+           * @example
+           * const { version } = JSON.parse(
+           *   await $.fs.read(`${$.plugin.root}/.claude-plugin/plugin.json`))
            */
           root: string;
       };
@@ -3044,11 +3049,13 @@ declare module 'claude-code' {
            *
            * Utterances are queued among themselves; clips are not. Resolves when
            * the utterance has ended; rejects, naming the cause, when there is no
-           * synthesizer, the voice is not installed, or the utterance failed.
+           * synthesizer, the voice is not installed, or the utterance failed, and
+           * at once when `signal` aborts.
            *
            * @param text what to say, as plain text
            * @param options `voice`: the system voice's exact name (`Samantha`);
-           *   absent, the synthesizer's default
+           *   absent, the synthesizer's default. `signal`: skips the utterance or
+           *   cuts it off (SpeakOptions)
            * @returns which synthesizer spoke, once the utterance has ended
            */
           speak: (text: string, options?: SpeakOptions) => Promise<SpeakResult>;
@@ -3291,9 +3298,9 @@ declare module 'claude-code' {
            * Appends a row to a conversation of the session: the event
            * `session.append`, the engine's own call for every row it keeps.
            *
-           * A user-role row the person does not see as typed or a notice, of text
-           * blocks alone in this release (else refused with the reason): listed at
-           * once. `{ deny: reason }` when a plugin above refused it, nothing stored.
+           * A row for the model or a notice, of text blocks alone in this release
+           * (else refused with the reason; SessionAppendArgs says how each is sent
+           * and stored). `{ deny: reason }` when a plugin above refused it.
            *
            * @example
            * await $.session.append({ message: { type: "user", content: [note] } })
@@ -3508,6 +3515,11 @@ declare module 'claude-code' {
            * Serve it with a `tool.call` hook on `{ tool: "mcp__<plugin>__<name>" }`
            * that returns the result (a call no hook answers fails); a name registered
            * again is replaced. Rejects until the session binds, at `session.start`.
+           *
+           * The model reads a description's first 4096 characters (UTF-16 code
+           * units), or its first 16384 once it loads the tool through ToolSearch,
+           * then a `[truncated]` mark. `CLAUDE_CODE_MAX_MCP_DESCRIPTION_LENGTH` in
+           * the session's environment replaces both.
            *
            * @param tool `name`, `description` (what the model reads), `inputSchema`
            *             (default `{ type: "object" }`), `isDeferred` (ToolSpec)
@@ -5896,6 +5908,10 @@ declare module 'claude-code' {
   /**
    * What a hooks module exports: `register`, and nothing the loader reads
    * besides.
+   *
+   * Each file of the module is at most 1 MiB, and the entry with every file it
+   * imports 8 MiB in all; past either it does not load. Splitting a file across
+   * static `import` declarations is the way past the first.
    */
   export type HooksModule = {
       register: Register;
@@ -7661,6 +7677,13 @@ declare module 'claude-code' {
    * under a matcher for the inputs it matches; a plugin's registrations nest
    * in order, first outermost; a repeat throws. Returns the Registration.
    *
+   * A name this build does not know, or a glob that selects no event, refuses
+   * the whole module. To span versions, state an `engines["claude-code"]` range
+   * in plugin.json (honoured from 2.1.323; install and update pick the newest
+   * version that fits, up to five `<name>--v<version>` tags back), or hook a
+   * glob such as `prompt.*` and test `next.event`. A call on `$` this build
+   * lacks loads, and throws a TypeError where it is made: a try/catch takes it.
+   *
    * @see HookBudget the time each hook has per dispatch (its own time: waits
    * on `next` and `$` are free), read live from `next.budget`
    */
@@ -7759,7 +7782,8 @@ declare module 'claude-code' {
           gain?: number;
       };
       /**
-       * The argument of `$.audio.speak(text, { voice })`.
+       * The argument of `$.audio.speak(text, { voice, signal })`; the signal
+       * does not cross, it aborts the call.
        */
       'audio.speak': SpeakRequest;
       /**
@@ -8732,7 +8756,8 @@ declare module 'claude-code' {
        */
       tier: Exclude<Tier, 'core'>;
       /**
-       * The plugin's directory (the one holding plugin.json), absolute.
+       * The plugin's directory (the one holding `.claude-plugin/plugin.json`),
+       * absolute.
        */
       root: string;
       /**
@@ -12300,11 +12325,43 @@ declare module 'claude-code' {
    */
   type SessionAppendArgs = {
       /**
-       * The row: `type: "user"` for a user-role row the person does not see as
-       * typed (the model reads it), `"system"` for a notice the model never reads.
+       * The row: `type: "user"` for a row the model reads and the person does not
+       * see as typed, `"system"` for a notice the model never reads.
        *
        * Its `content` is text blocks alone (one, for a notice): the bottom
-       * refuses any other block, and any other row type, with the reason.
+       * refuses any other block, and any other row type, with the reason. A
+       * notice is stored at once.
+       *
+       * A `user` row waits for the next request of its loop (on an idle main, the
+       * next turn that calls the model) and is stored where that request sends
+       * it, never between a call and its result.
+       *
+       * It goes out as a reminder under a line naming the plugin; a reminder tag
+       * around the text is not doubled. Right behind tool results it is a system
+       * message on a model that takes them, as a `tool.call` context is.
+       *
+       * It is folded into the result instead on other models, when sent after a
+       * restart, and where managed PostToolUse hooks are set or managed settings
+       * have not loaded cleanly. Anywhere else it is fenced in the user turn.
+       *
+       * A result that takes no folded text (search results) holds it back to a
+       * later request, or to the next turn when no later result takes it: text
+       * behind the result would end the round's screening.
+       *
+       * It is never the person's words, even when it quotes them: a reminder to
+       * the model and to auto mode's server classifier, a plugin's message to its
+       * client classifier. A prompt is `$.prompt.submit`.
+       *
+       * A waiting row survives a restart once a copy of it is stored, which is
+       * when no loop is there to take it. The copy is sent once, fenced or folded,
+       * even when its plugin is off or gone (`--safe-mode`, `--bare`).
+       *
+       * It is lost with the process while its loop runs, until a request of that
+       * loop carries it or the loop ends, and while main ends in a call with no
+       * result.
+       *
+       * It is lost too on an idle headless session that exits before its next
+       * write, and when both a `/compact` and a restart come while it waits.
        */
       message: {
           type: 'user' | 'system';
@@ -12442,6 +12499,10 @@ declare module 'claude-code' {
    * `next(e)` resolves once the row is kept. A hook relays it unchanged: one
    * that answers without `next`, or another row, is skipped. Only a plugin's own
    * append (door `note`) may be refused, in place of `next`: nothing is stored.
+   *
+   * A plugin's own `user` row resolves once it is accepted, as the row asked
+   * for. The request that carries it stores it, as a `plugin_note` attachment,
+   * and raises the event no second time.
    */
   type SessionAppendResult = {
       /**
@@ -12452,6 +12513,9 @@ declare module 'claude-code' {
       /**
        * The stored row's id: the same in the transcript file and on every
        * later read.
+       *
+       * A plugin's own `user` row sent only after a restart or a rewind is
+       * stored under a new one.
        */
       uuid: string;
       deny?: undefined;
@@ -13145,6 +13209,10 @@ declare module 'claude-code' {
        * any other is `{ deny }` (SessionMessagesDeny). Nothing ahead of it comes:
        * not a row whose tool answered since (its result row does), nor the
        * summary of a compaction that kept it.
+       *
+       * The id `session.append` answered for a `user` row anchors at main's copy
+       * of it while that anchors. Else it stands where a request carries it: rows
+       * stored before then are ahead of it, and none is after it while it waits.
        */
       after?: string;
   };
@@ -14061,16 +14129,36 @@ declare module 'claude-code' {
        * name of a voice you installed). Absent: the synthesizer's default voice.
        */
       voice?: string;
+      /**
+       * Aborting it skips the utterance while it is queued, or cuts it off while
+       * it is spoken; either way the promise rejects at once.
+       *
+       * It rejects with an Error whose message is the abort reason's text and
+       * whose name depends on the host: read `signal.aborted` to tell. Already
+       * aborted, it rejects so and nothing is queued. A hook on `audio.speak`
+       * has it as `next.signal`, and one that answers the call settles it.
+       *
+       * @example
+       * // another hook calls stop.abort() when the person starts talking
+       * try { await $.audio.speak(text, { signal: stop.signal }) }
+       * catch (error) { if (!stop.signal.aborted) throw error }
+       */
+      signal?: AbortSignal;
   };
 
   /**
-   * The argument of `$.audio.speak(text, options)` as the event carries it.
+   * The argument of `$.audio.speak(text, options)` as the event carries it:
+   * the signal does not cross.
    */
-  type SpeakRequest = SpeakOptions & {
+  type SpeakRequest = {
       /**
        * What to say, as plain text: its first 4096 characters are spoken.
        */
       text: string;
+      /**
+       * The system voice's exact name (SpeakOptions); absent, the default.
+       */
+      voice?: SpeakOptions['voice'];
   };
 
   /**
@@ -15418,6 +15506,9 @@ declare module 'claude-code' {
        * For a tool that requires the person (a question put to them, a plan to
        * approve) a hook only tightens: its `allow` does not dismiss the dialog.
        * In plan mode a hook only tightens a call not shown to be a read, too.
+       * For a tool only auto mode's classifier may allow (a subagent's report) a
+       * hook's `allow` is ignored and core's verdict stands, except on a mod's
+       * own `$.tool.call`.
        */
       decision: ToolCheckDecision;
       /**
