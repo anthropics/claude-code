@@ -3745,27 +3745,44 @@ declare module 'claude-code' {
        * is under the session's working directory, and text is UTF-8.
        *
        * An absolute path is used as given; where one may go is an `fs.*` hook's
-       * to say. A read or write over 4 MiB rejects, the implementation beneath the
-       * hooks rejects a network location untouched, an OS refusal with its errno.
+       * to say. A read's answer or a write over 4 MiB rejects, the implementation
+       * beneath the hooks rejects a network location untouched, an OS refusal with
+       * its errno.
        */
       fs: {
           /**
            * Reads a file and returns its text, or with `{ as: "bytes" }` its bytes
-           * as `{ base64 }`.
+           * as `{ base64 }`; with `offset` or `length`, that range of bytes alone.
            *
-           * Rejects when missing, or over 4 MiB, which bounds what one read copies
-           * into the plugin's environment. A file the plugin ships is under
-           * `$.plugin.root`.
+           * Rejects when missing, or when the answer would be over 4 MiB, which
+           * bounds what one read copies into the plugin's environment: read a larger
+           * file by ranges. A file the plugin ships is under `$.plugin.root`.
+           *
+           * A text range that cuts a character gives U+FFFD at that edge; read bytes
+           * when that matters. A range reads only a file: on a pipe, a socket, a
+           * device or a directory it rejects, and takes nothing from it.
            *
            * @param path relative to the working directory, or absolute
-           * @param options `as`: `"text"` (the default) or `"bytes"`
-           * @returns the file's text, or `{ base64 }`
+           * @param options `as`: `"text"` (the default) or `"bytes"`; `offset`: bytes
+           *                from the start, 0 when left out, empty past the end;
+           *                `length`: the most bytes to read, up to 4 MiB
+           * @returns the text, or `{ base64 }`
            * @example
            * const readme = await $.fs.read("README.md")
            * @example
            * const { base64 } = await $.fs.read(
            *   `${$.plugin.root}/hooks/weights.bin`, { as: "bytes" })
            * const weights = Uint8Array.fromBase64(base64)
+           * @example
+           * let seen = 0
+           * $.clock.every(1000, async () => {
+           *   const { size } = await $.fs.stat("server.log")
+           *   const offset = Math.max(size < seen ? 0 : seen, size - 65536)
+           *   const added = await $.fs.read(
+           *     "server.log", { offset, length: size - offset })
+           *   seen = size
+           *   if (added !== "") $.ui.log(added)
+           * })
            */
           read: FsReadCall;
           /**
@@ -5641,7 +5658,7 @@ declare module 'claude-code' {
    */
   export type FsBytes = {
       /**
-       * The file's content, standard padded base64;
+       * The bytes read, standard padded base64;
        * `Uint8Array.fromBase64(base64)` gives the bytes back.
        */
       base64: string;
@@ -5695,27 +5712,75 @@ declare module 'claude-code' {
        * `bytes`.
        */
       as: 'bytes';
+      /**
+       * Where the read starts, in bytes (FsReadOptions).
+       */
+      offset?: number;
+      /**
+       * The most bytes to read, up to 4 MiB (FsReadOptions).
+       */
+      length?: number;
   };
 
   /**
    * `$.fs.read`: the file's text, or with `{ as: "bytes" }` its bytes as
-   * `{ base64 }`.
+   * `{ base64 }`; with `offset` or `length`, that range of it.
    */
   export type FsReadCall = {
       (path: string): Promise<string>;
       (path: string, options: FsReadBytesOptions): Promise<FsBytes>;
+      (path: string, options: FsReadTextOptions): Promise<string>;
       (path: string, options: FsReadOptions): Promise<string | FsBytes>;
   };
 
   /**
-   * The options of `$.fs.read`.
+   * The options of `$.fs.read`: how it answers, and which bytes of the file.
    */
   export type FsReadOptions = {
       /**
        * `bytes` answers `{ base64 }` for a binary file; `text` (the default) the
        * file's text.
        */
-      as: FsReadAs;
+      as?: FsReadAs;
+      /**
+       * Where the read starts, a whole number of bytes from the file's start.
+       * Absent, the start; past the end, the read is empty.
+       */
+      offset?: number;
+      /**
+       * The most bytes to read, a whole number up to 4 MiB; fewer come back where
+       * the file ends first. Absent, the rest, refused when over 4 MiB.
+       */
+      length?: number;
+      /**
+       * Never given: it keeps a string or an array, which has a `length` too, from
+       * passing as options.
+       */
+      [Symbol.iterator]?: never;
+  };
+
+  /**
+   * The options of `$.fs.read` that ask for the text: the call answers a
+   * string, U+FFFD at an edge where the range cuts a character.
+   */
+  export type FsReadTextOptions = {
+      /**
+       * `text`, the default.
+       */
+      as?: 'text';
+      /**
+       * Where the read starts, in bytes (FsReadOptions).
+       */
+      offset?: number;
+      /**
+       * The most bytes to read, up to 4 MiB (FsReadOptions).
+       */
+      length?: number;
+      /**
+       * Never given: it keeps a string or an array, which has a `length` too, from
+       * passing as options.
+       */
+      [Symbol.iterator]?: never;
   };
 
   /**
@@ -8039,12 +8104,16 @@ declare module 'claude-code' {
        */
       'ui.blit': UiBlitArgs;
       /**
-       * The argument of `$.fs.read(path, { as })`: `as` is `text` unless the
-       * caller asked for `bytes`.
+       * The argument of `$.fs.read(path, { as, offset, length })`: `as` is `text`
+       * unless the caller asked for `bytes`; a range's keys only when given.
+       *
+       * A hook that answers in the host's place cuts its answer to the range.
        */
       'fs.read': {
           path: string;
           as: FsReadAs;
+          offset?: number;
+          length?: number;
       };
       /**
        * The argument of `$.fs.write(path, text)`.
