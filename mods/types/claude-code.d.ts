@@ -3477,15 +3477,16 @@ declare module 'claude-code' {
            * and asks no classifier: every ask becomes an allow, whoever raised it,
            * but for a built-in whose dialog is the call itself, such as ExitPlanMode.
            * Deny rules at every level don't cover this call, an organization's
-           * managed ones, a connector tool it set to `blocked` and `--disallowedTools`
-           * included: they bind the model, whose own calls and whose subagents' stay
-           * refused. An organization's controls over mods are `allowManagedModsOnly`,
-           * under which a person's mod doesn't load, and what its own mod leaves on `$`.
+           * managed ones, a connector tool it set to `blocked`, a host's `always_deny`
+           * for an MCP tool and `--disallowedTools` included: they bind the model,
+           * whose own calls and whose subagents' stay refused. An organization's
+           * controls over mods are `allowManagedModsOnly`, under which a person's mod
+           * doesn't load, and what its own mod leaves on `$`.
            * `{ deny }` answers a PreToolUse, `tool.check` or `tool.call` hook (no
            * PermissionRequest hook is consulted on this call), a tool's own refusal, a
-           * server's declared deny, a deny a command or a host sets for its turn, a tool
-           * held until a person types, the rules guarding Claude Code's own credentials
-           * on a call a machine serves, the person's own machine or browser from a cloud
+           * deny a command or a host sets for its turn, a tool held until a person
+           * types, the rules guarding Claude Code's own credentials on a call a
+           * machine serves, the person's own devices or browser from a cloud
            * session, or the cloud browser under its mode floor. A tool a `--tools` list
            * leaves out isn't there to call, and the call rejects. A `tool.list` hook's
            * removal deletes the tool from the session, for mods too, even one a deny
