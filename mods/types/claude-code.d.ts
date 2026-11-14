@@ -3521,9 +3521,12 @@ declare module 'claude-code' {
            * Declares a tool the model can call from the next prompt on: the name,
            * description and input schema of `mcp__<plugin>__<name>`.
            *
-           * Serve it with a `tool.call` hook on `{ tool: "mcp__<plugin>__<name>" }`
-           * that returns the result (a call no hook answers fails); a name registered
-           * again is replaced. Rejects until the session binds, at `session.start`.
+           * Serve it with a hook on `{ tool: "mcp__<plugin>__<name>" }` that returns
+           * the result: at `tool.run` once the call is allowed, or at `tool.call`,
+           * ahead of the permission check. A call no hook answers fails.
+           *
+           * @remarks A name registered again is replaced. Rejects until the session
+           *   binds, at `session.start`.
            *
            * The model reads a description's first 4096 characters (UTF-16 code
            * units), or its first 16384 once it loads the tool through ToolSearch,
@@ -4677,6 +4680,34 @@ declare module 'claude-code' {
        */
       'tool.judge': ToolJudgeInput;
       /**
+       * Fires when a call has been allowed and is about to run: after `tool.call`,
+       * PreToolUse, `tool.check` and whoever settled an ask; never for a refusal.
+       *
+       * `e` is the call as allowed, all of it pinned: a rewrite is refused.
+       * `next(e)` runs the tool; `{ result, context? }` answers in its place, a
+       * success PostToolUse sees; `{ deny }` is the call's error, as a tool's own.
+       *
+       * @remarks One check, one run: a second `next(e)` starts nothing and
+       *   resolves to a `{ deny }`, whatever became of the first. A guard that
+       *   fails is skipped and the tool runs, so give it
+       *   `.catch(($, e, next) => next.called ? next(e) : { deny: "no" })`.
+       *   Where a tool still runs on an aborted turn it fires, `next.signal`
+       *   aborted; a turn aborted while a hook holds the call does not run it,
+       *   and the call reads as interrupted. Who hears a call is settled ahead
+       *   of its permission check: a plugin that loads during the call's ask
+       *   misses that call. As at
+       *   `tool.call`, a hook that may match a tool, even one that only passes
+       *   `next(e)` on, turns off for that tool what would carry its output past
+       *   the hook: the move to the background, a served call's live output,
+       *   Code Mode's wait for a stopped result. An answer of your own after
+       *   `next(e)` drops what the tool sent beside its result (a skill's text
+       *   and allowed tools); a limit it set, or a settings hook's stop, stays.
+       *   An answer aborts a run it left going, and waits for it to end.
+       * @example
+       * on("tool.run", { tool: "mcp__lab__ping" }, () => ({ result: "pong" }))
+       */
+      'tool.run': ToolCallInput;
+      /**
        * Fires when the engine is about to draw a component: once per input value
        * (props, viewport width), plugin load or `$.ui.invalidate("ui.render")`.
        *
@@ -5256,6 +5287,11 @@ declare module 'claude-code' {
        */
       'tool.judge': ToolJudgeResult;
       /**
+       * `{ result, context? }`, `{ deny }`, or core's `{ ref, result }`, read
+       * before any PostToolUse hook has had it.
+       */
+      'tool.run': ToolCallResult;
+      /**
        * The tree to draw; `{ type: "engine", ref }` is core's own drawing.
        */
       'ui.render': RenderElement;
@@ -5475,6 +5511,7 @@ declare module 'claude-code' {
           call: ToolCallOverloads;
           check: (input: ToolCheckArgs) => Promise<ToolCheckResult>;
           judge: (input: ToolJudgeInput) => Promise<ToolJudgeResult>;
+          run: (input: ToolCallInput) => Promise<ToolCallResult>;
           describe: (input: ToolDescribeInput) => Promise<ToolDescribeResult>;
       };
       command: {
@@ -7617,14 +7654,14 @@ declare module 'claude-code' {
 
   /**
    * What `next(e)` resolves to once `e.tool` is the literal `T`: on `tool.call`
-   * the result typed for that tool; on every other event, `O` as declared.
+   * and `tool.run` the result typed for that tool; else `O` as declared.
    *
    * `result` is Bash's record after `e.tool === "Bash"`; an un-narrowed `e`
    * names every tool, and `result` stays `unknown`.
    */
   export type NextResultFor<N extends EventName, O, T extends string> = [
   N
-  ] extends ['tool.call'] ? ToolCallResult<T> : O;
+  ] extends ['tool.call' | 'tool.run'] ? ToolCallResult<T> : O;
 
   /**
    * The argument of a call on `$` that takes nothing (`$.session.cwd()`): an
@@ -15353,13 +15390,13 @@ declare module 'claude-code' {
   export type ToolCallEnvelope = BuiltinToolCallInput | McpToolCallInput;
 
   /**
-   * The input of `tool.call`: the tool, the id of this call, the tool's
+   * The input of `tool.call` and `tool.run`: the tool, the call's id, the tool's
    * arguments beside them (`e.command` for Bash), and `agentId` in a subagent.
    *
    * A union discriminated by `tool`: after `if (e.tool === "Bash")`, `e.command`
    * is a string and a rewrite is checked against Bash's schema. `tool`,
    * `tool_use_id` and `agentId` are reserved: a rewrite of any is refused.
-   * `requestMeta` is a hook's to set (ToolRequestMeta).
+   * `requestMeta` is a hook's to set (ToolRequestMeta). `tool.run` pins it all.
    */
   export type ToolCallInput = ToolCallEnvelope & AgentLoop & ToolRequestMeta;
 
@@ -15387,8 +15424,8 @@ declare module 'claude-code' {
   };
 
   /**
-   * What a `tool.call` hook returns and what `next(e)` and `$.tool.call(input)`
-   * resolve to: the tool's result (`{ result, context? }`) or `{ deny }`.
+   * What a `tool.call` or `tool.run` hook returns and what `next(e)` and
+   * `$.tool.call(input)` resolve to: `{ result, context? }` or `{ deny }`.
    *
    * From core the result is `{ ref, result, text }` or, when the tool reported
    * an error, `{ ref, result, text, isError }`, either with `isReadOnly` when
@@ -15425,7 +15462,7 @@ declare module 'claude-code' {
       result: ToolResultOf<Name>;
       /**
        * What the model reads after the tool's result and the user never
-       * sees. From core, none.
+       * sees. From core, none; what `tool.run`'s hooks attach goes ahead of it.
        *
        * One reminder, as a PostToolUse hook's is, after the managed tier's
        * review; none on a plugin's own `$.tool.call`. Kept whole from `next`,
@@ -16039,7 +16076,8 @@ declare module 'claude-code' {
        * by key and as the server wrote them. The model never reads it.
        * `anthropic/sources` is handed over only from the session's own relay to a
        * connector; `claude/plugins` is any server's own claim. A key over
-       * 256 KiB is left out and named in the list under `"claude/omitted"`.
+       * 256 KiB is left out and named in the list under `"claude/omitted"`, and
+       * so is `claude/plugins` where a `tool.run` hook replaced the result.
        *
        * Off by default. Absent on an error result, and when the server
        * addressed nothing; a subagent's transcript keeps at most 8 KiB.
@@ -16136,7 +16174,8 @@ declare module 'claude-code' {
        * by key and as the server wrote them. The model never reads it.
        * `anthropic/sources` is handed over only from the session's own relay to a
        * connector; `claude/plugins` is any server's own claim. A key over
-       * 256 KiB is left out and named in the list under `"claude/omitted"`.
+       * 256 KiB is left out and named in the list under `"claude/omitted"`, and
+       * so is `claude/plugins` where a `tool.run` hook replaced the result.
        *
        * Off by default. Absent on an error result, and when the server
        * addressed nothing; a subagent's transcript keeps at most 8 KiB.
