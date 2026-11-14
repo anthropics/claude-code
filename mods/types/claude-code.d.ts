@@ -354,6 +354,34 @@ declare module 'claude-code' {
   };
 
   /**
+   * What `$.agent.limits()` answers: the bounds the session's agents run under,
+   * as they stand at the call.
+   */
+  export type AgentLimits = {
+      /**
+       * How many agents may run at once (`CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS`,
+       * 20 unless set): the bound one plugin's `$.agent.spawn` runs meet.
+       *
+       * The engine may let the model's own spawns go past it.
+       */
+      concurrent: number;
+      /**
+       * How deep agents may nest (`CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH`): an agent
+       * the main conversation starts is at depth 1, and one at this depth starts
+       * none. With the variable unset it holds for the session once it is read.
+       */
+      depth: number;
+      /**
+       * Whether an agent can be launched in the background. False where the session
+       * keeps its agents in the foreground.
+       *
+       * True is no promise for one launch: on the hosted server the host decides
+       * each, and a subagent's own launch there runs in the foreground.
+       */
+      isBackgroundEnabled: boolean;
+  };
+
+  /**
    * Which model loop an event happened in: the loop's agent id inside a
    * subagent's or a teammate's loop, absent on the main loop.
    *
@@ -3302,14 +3330,16 @@ declare module 'claude-code' {
            */
           version: () => Promise<SessionVersion>;
           /**
-           * Returns the session's transcript file, scratchpad, prompt id, agent type
-           * and config root (SessionInfo), as they stand at the call.
+           * Returns the session's transcript file, scratchpad, prompt id, agent type,
+           * config root, platform and hosting (SessionInfo), as they stand at the call.
            *
            * What a settings hook reads on its input, for a plugin that has seen no
-           * classic event yet.
+           * classic event yet, and where the engine runs.
            *
            * @example
            * const { transcriptPath } = await $.session.info()
+           * @example
+           * const { platform, isHosted } = await $.session.info()
            */
           info: () => Promise<SessionInfo>;
           /**
@@ -3737,7 +3767,9 @@ declare module 'claude-code' {
            * (`tool.judge` before the classifier, which reads the agent's conversation
            * so far). What the agent's running turn tightened binds it; what that turn
            * was granted does not carry. Nothing joins the agent's conversation. As a
-           * resting agent it starts no background work but an agent.
+           * resting agent it starts no background work but an agent. A tool the
+           * agent must load first, a browser or desktop tool for one, is `{ deny }`
+           * ahead of `tool.call` until its model has loaded it.
            *
            * Made outside a hook, it reaches this plugin's hooks too, `next.origin`
            * naming the plugin. `Agent` is that agent's own spawn or fork: in the
@@ -3763,6 +3795,16 @@ declare module 'claude-code' {
            * with no `agent.spawn` (a forked skill) are here; a workflow's are not.
            */
           list: () => Promise<AgentInfo[]>;
+          /**
+           * Returns how many agents may run at once, how deep they may nest and
+           * whether they can run in the background (AgentLimits), read at each call.
+           *
+           * The same for every plugin, and answered in every mode.
+           *
+           * @example
+           * const { concurrent, isBackgroundEnabled } = await $.agent.limits()
+           */
+          limits: () => Promise<AgentLimits>;
           /**
            * Defines an agent type the Agent tool dispatches from the next turn on,
            * named `<plugin>:<name>`: the event `agent.register`.
@@ -8110,6 +8152,10 @@ declare module 'claude-code' {
        */
       'agent.list': NoArgs;
       /**
+       * The argument of `$.agent.limits()`.
+       */
+      'agent.limits': NoArgs;
+      /**
        * The argument of `$.agent.register(spec)`: the agent type as the plugin
        * defined it. A hook above rewrites any of it; the type stays the caller's.
        */
@@ -8446,6 +8492,7 @@ declare module 'claude-code' {
       };
       'config.list': ConfigRow[];
       'agent.list': AgentInfo[];
+      'agent.limits': AgentLimits;
       'agent.register': {
           agent: string;
       };
@@ -13555,7 +13602,7 @@ declare module 'claude-code' {
 
   /**
    * What `$.session.info()` answers: what a settings hook's input says of the
-   * session that no other read on `$.session` does.
+   * session that no other read on `$.session` does, and where the engine runs.
    */
   export type SessionInfo = {
       /**
@@ -13585,6 +13632,20 @@ declare module 'claude-code' {
        * session stands, which a settings hook's command starts in; else absent.
        */
       configRoot?: string;
+      /**
+       * The operating system the engine runs on; `wsl` is Linux under Windows.
+       *
+       * The engine always gives it; a hook that answers whole may leave it out.
+       */
+      platform?: 'macos' | 'windows' | 'wsl' | 'linux' | 'unknown';
+      /**
+       * True on the hosted server, whose machine is not the session's own, so
+       * `platform` is the server's. False anywhere else, a cloud session with a
+       * machine of its own included.
+       *
+       * The engine always gives it; a hook that answers whole may leave it out.
+       */
+      isHosted?: boolean;
   };
 
   /**
