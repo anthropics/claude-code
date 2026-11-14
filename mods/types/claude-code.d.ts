@@ -306,7 +306,7 @@ declare module 'claude-code' {
       usage?: TurnUsage[];
       /**
        * What `/cost` was credited for the requests of `usage`: a part of
-       * `$.session.usage()`'s `cost`.
+       * `$.session.usage()`'s `cost`, so an estimate too (SessionCost).
        *
        * `/cost` prices the model asked for (or the API's own fallback), so where a
        * gateway answers on another, `usage` names a model this was not priced at.
@@ -3212,7 +3212,8 @@ declare module 'claude-code' {
           /**
            * Returns when the session began, and the context window's fill, the
            * rate-limit windows and the cost as the status line has them, itemized.
-           * The cost includes every mod's answered `$.model` calls.
+           * The cost includes every mod's answered `$.model` calls, and is an
+           * estimate, not the bill (SessionCost).
            *
            * The plain call costs nothing; `"full"` counts each category with the
            * token-count API as /context does, `"summary"` estimates locally, and
@@ -7281,6 +7282,9 @@ declare module 'claude-code' {
    * which adds the `model` that answered), and the context breakdown's
    * `apiUsage` (the live window's last response). All four counts are always
    * present; a count the response left out reads as zero.
+   *
+   * These are token counts: dollars a mod works out from them are an estimate
+   * too, not the bill (SessionCost).
    *
    * @example
    * const r = await $.model.complete(ask); if (r.isAnswered) spend(r.usage)
@@ -12746,6 +12750,15 @@ declare module 'claude-code' {
   /**
    * What the session has cost, as `/cost` and the status line total it; on an
    * agent (AgentInfo), its own requests' part of that.
+   *
+   * A client-side estimate, priced locally at list price or the managed
+   * `modelPricing` rates, not authoritative billing data: it can run over or
+   * under. Server-side billing (the invoice, or the cloud provider's bill) is
+   * the final authority. On a subscription, usage inside the plan is not billed
+   * in dollars, so there the figure is no charge at all.
+   *
+   * Do not bill anyone or make a financial decision from it. A mod that shows
+   * it should label it an estimate.
    */
   export type SessionCost = {
       /**
@@ -12979,7 +12992,8 @@ declare module 'claude-code' {
        */
       rateLimits: SessionRateLimit[];
       /**
-       * What the session has cost so far; absent where the host keeps no ledger.
+       * What the session has cost so far, an estimate, not the bill
+       * (SessionCost); absent where the host keeps no ledger.
        */
       cost?: SessionCost;
       /**
@@ -13214,7 +13228,8 @@ declare module 'claude-code' {
   export type SessionRateLimit = {
       /**
        * Which window: `five_hour`, `seven_day`, or a Claude gateway's
-       * `spend_limit`.
+       * `spend_limit`, which comes from the gateway's own estimate from token
+       * counts, not a billed amount.
        */
       kind: string;
       /**
@@ -13662,7 +13677,7 @@ declare module 'claude-code' {
       /**
        * What the session has cost so far, as /cost totals it, every mod's answered
        * `$.model` calls included; absent only where the host keeps no cost ledger
-       * (the CLI always has one).
+       * (the CLI always has one). An estimate, not the bill (SessionCost).
        */
       cost?: SessionCost;
   };
