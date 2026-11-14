@@ -1,0 +1,9 @@
+{
+  "name": "business-agent",
+  "version": "1.0.0",
+  "description": "Manage the business-agent managed-agent lifecycle: setup, run, and update sessions via the Claude Agent SDK",
+  "author": {
+    "name": "sjbrenchley89",
+    "email": "9turnbull@gmail.com"
+  }
+}
