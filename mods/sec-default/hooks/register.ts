@@ -3,6 +3,7 @@ import type { On } from 'claude-code'
 import { admissionFailure } from './admission-failure'
 import HeldVerdict from './held-verdict'
 import HotReloadPrompt from './hot-reload-prompt'
+import { identityRefusal } from './identity-refusal'
 import { managedModsOnlyRefusal } from './managed-mods-only-refusal'
 import { pastUsers } from './past-users'
 import { pinnedVariableRefusal } from './pinned-variable-refusal'
@@ -71,6 +72,18 @@ export function register(on: On) {
   on('session.compact', ($, e, next) => next.to(e, 'append'))
 
   on('settings.read', ($, e, next) => next.to(e, 'append'))
+
+  // It refuses, so it is never skipped when alone. No call on `$` here: a hook
+  // that call reached would run with this one left out.
+  on('session.identity', ($, e, next) =>
+    next.origin.tier === 'user'
+      ? identityRefusal(next.origin.plugin)
+      : next.to(e, 'append'),
+  ).catch(($, e, next) =>
+    next.origin.tier === 'user'
+      ? identityRefusal(next.origin.plugin)
+      : next.to(e, 'append'),
+  )
 
   // The tool.describe and command.describe rows, like the agent.offer, prompt.section,
   // attribution.text and env.get rows, only pass the event on. The engine skips them where this

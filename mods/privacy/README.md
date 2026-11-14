@@ -1,8 +1,9 @@
 # privacy
 
 The context hands the model the signed-in account's address to identify the
-user. This mod keeps that address from going out as a client's identity. It
-holds one `tool.check` hook, which reads each tool as below. The address counts
+user. This mod keeps that address from going out as a client's identity, and
+says [who reads it](#who-reads-the-identity) through `$.session.identity()`. Its
+`tool.check` hook reads each tool as below. The address counts
 in any case or percent-encoded.
 
 - **Bash, PowerShell, Monitor:** the whole input, and the text of each script its
@@ -119,9 +120,28 @@ leave the machine if the call sends them:
 - The address only in a WebFetch `prompt`. WebSearch, the browser tools and the
   local read tools are not checked.
 
-The address is the one the context hands the model, read through
-`$.session.identity()`, which answers a built-in with it. A plugin in the `user`
-tier is refused that op and is left off its chain.
+The address is the one the context hands the model, read as `contextEmail`
+from `$.session.identity()`. Where the context hands none, it is `email`.
+
+## Who reads the identity
+
+The engine answers `$.session.identity()` alike for every caller. This mod's hook
+on `session.identity` goes by the caller's tier:
+
+- `user`: refused. The call resolves with `deny`.
+- `builtin`: answered whole, this mod's own read included.
+- Any other: answered less `contextEmail`, pin or no pin. `email`, the pinned
+  account's, is left as it is.
+
+The field is left off that caller's own answer. A hook above this one still
+sees it on a built-in's read.
+
+Where the hook fails, its `.catch` refuses.
+
+By design, without `sec-default` a person's hook sits above this one and can see
+or answer the call, and with this mod off too a person's mod is answered. The
+address already reaches it at `prompt.context`. Under a pin, what it sees
+includes the organization's fields and the pinned `email`.
 
 ## What turns it off
 
@@ -130,5 +150,6 @@ tier is refused that op and is left off its chain.
   settings do not.
 - A server-side switch, read once per session.
 - A hook of an installed plugin, which sits above this one: on `tool.check` it
-  may overrule the refusal.
+  may overrule the refusal, and on `session.identity` it may answer in this
+  mod's place or, from a managed tier, continue past it.
 - A session where no hooks module loads, where `hooks/register.ts` does not run.

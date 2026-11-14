@@ -1,6 +1,7 @@
 export * from './admission-failure'
 export * from './held-verdict'
 export * from './hot-reload-prompt'
+export * from './identity-refusal'
 export * from './managed-mods-only-refusal'
 export * from './past-users'
 export * from './pinned-variable-refusal'

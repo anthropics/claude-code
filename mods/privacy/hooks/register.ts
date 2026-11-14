@@ -3,10 +3,13 @@ import type { On } from 'claude-code'
 import Outbound from './outbound'
 
 /**
- * Registers the hook: a call whose outgoing text, or a script its line names,
- * holds the account's address beside a word that declares who is calling, or a
- * fetch with the address in its URL, is refused, with no prompt. A line that only
- * touches files reads no script. A deny beneath keeps its own reason.
+ * Registers the hooks. At `tool.check`, a call whose outgoing text, or a script
+ * its line names, holds the account's address beside a word that declares who is
+ * calling, or a fetch with the address in its URL, is refused, with no prompt. A
+ * line that only touches files reads no script. A deny beneath keeps its reason.
+ *
+ * At `session.identity`, a `user`-tier caller is refused, and the address the
+ * context hands the model is left off the answer of a caller outside `builtin`.
  *
  * @param on the engine's registrar
  */
@@ -35,7 +38,8 @@ export function register(on: On): void {
       return verdict
     }
 
-    const { email } = await $.session.identity()
+    const identity = await $.session.identity()
+    const email = identity.contextEmail ?? identity.email
 
     if (email === undefined) {
       return verdict
@@ -79,4 +83,32 @@ export function register(on: On): void {
 
     return isRefused ? { decision: 'deny', reason: Outbound.REFUSAL } : verdict
   })
+
+  // No call on `$` here: a hook that call reached would run with this one left out.
+  // A refusal is a value, so that the call resolves with `deny` and never rejects.
+  on('session.identity', async ($, e, next) => {
+    if (next.origin.tier === 'user') {
+      return {
+        value: {
+          deny:
+            '$.session.identity answers only a mod that managed settings ' +
+            'enable and that is loaded in place from a source they name; ' +
+            `${next.origin.plugin} is not one`,
+        },
+      }
+    }
+
+    const answer = await next(e)
+
+    if (
+      next.origin.tier === 'builtin' ||
+      answer.value?.contextEmail === undefined
+    ) {
+      return answer
+    }
+
+    const { contextEmail: _handed, ...rest } = answer.value
+
+    return { value: rest }
+  }).catch(() => ({ value: { deny: 'privacy could not read the identity' } }))
 }

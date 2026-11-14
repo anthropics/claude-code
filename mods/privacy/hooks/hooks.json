@@ -1,4 +1,4 @@
 {
-  "description": "Privacy: refuses a call that sends the signed-in account's address as a client's identity",
+  "description": "Privacy: refuses a call that sends the signed-in account's address as a client's identity, and at session.identity refuses a user-tier caller and leaves the context's address off the answer of a caller outside builtin",
   "modules": ["./register.ts"]
 }

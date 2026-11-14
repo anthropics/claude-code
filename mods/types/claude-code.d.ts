@@ -2141,10 +2141,10 @@ declare module 'claude-code' {
        * Whether `text` is for the person alone and `context` is all the model
        * reads: the output row is drawn and kept, and goes in no request.
        *
-       * Read on a hook's own answer without `next`, when every plugin hooking the
-       * command is bundled with Claude Code, whose answer reads as the built-in
-       * command's own, on the queued lanes: a panel answered mid-turn keeps its
-       * text in requests. Any other plugin's text stays in requests.
+       * Read on any plugin's answer where no command ran beneath it, on the
+       * queued lanes: a panel answered mid-turn keeps its text in requests, and
+       * so does a text over the engine's own run. The answer the chain ends on
+       * decides: a hook above answering its own drops it.
        */
       isTextDisplayOnly?: true;
       /**
@@ -3363,12 +3363,13 @@ declare module 'claude-code' {
            */
           authorize: () => Promise<SessionAuthorization>;
           /**
-           * Returns how the session is signed in, to a mod the organization's
-           * managed settings install; `{ deny }` to any other. No request is made.
+           * Returns how the session is signed in, and the account (organization, plan,
+           * email) where managed `forceLoginOrgUUID` lists it. No request is made.
            *
-           * The account (organization, plan, email) only where managed
-           * `forceLoginOrgUUID` lists its organization; else `kind` alone. A
-           * contract, not a wall: any mod can read the person's own config file.
+           * privacy and sec-default each answer a `user`-tier caller `{ deny }`.
+           * Without sec-default a person's hook above privacy can see or answer the
+           * call, a pin's organization fields included, and with privacy off too their
+           * mod is answered: the email already reaches it at `prompt.context`.
            *
            * @example
            * const { kind, organizationId, email } = await $.session.identity()
@@ -4753,7 +4754,9 @@ declare module 'claude-code' {
        * tree, or a throw while drawn, draws the engine's; `--plugin-dir` is told.
        *
        * @remarks Also on a write of `$.state` it read while drawn, at the redraw
-       *   rate; an invalidate is any plugin's whose matcher may select it.
+       *   rate; an invalidate is any plugin's whose matcher may select it. On the
+       *   terminal a new row is blank until its first answer, and `/export` waits.
+       *   A hook its `$` calls hold past 30 seconds in all is skipped.
        */
       'ui.render': RenderInput;
       /**
@@ -5212,6 +5215,27 @@ declare module 'claude-code' {
        */
       'session.measure': SessionMeasureInput;
       /**
+       * Fires when the person presses Stop: Esc or Ctrl+C on a turn, a client's
+       * Stop, Ctrl+C at an idle prompt where it stops running scripts.
+       *
+       * A client's Stop fires per request, so one sent two ways may fire twice;
+       * with no turn running it fires in a headless session, not at a terminal.
+       * Never for send now, a priority message, `$.turn.abort` or a denied
+       * permission. Observe; `next(e)` echoes `{ isTurnRunning }`. The Stop goes
+       * on whatever a hook does, and input it queues is refused until
+       * it returns or the person sends input.
+       *
+       * Order: raised before the abort, and nothing waits on it. The outermost
+       * hooking mod's host hears it before that mod's `next(e)` on an interrupted
+       * call settles, so note the Stop before your first `await`. A mod beneath
+       * hears it once those above pass it on; across a hop, that may be a round
+       * trip later. `next.signal` may abort first.
+       *
+       * @example
+       * on("session.stop", ($, e, next) => ((isStopped = true), next(e)))
+       */
+      'session.stop': SessionStopInput;
+      /**
        * Fires once when the session ends (exit, /clear, resume, logout, signal, a
        * `-p` run done), after its SessionEnd settings hooks; `e.reason` says which.
        *
@@ -5272,9 +5296,11 @@ declare module 'claude-code' {
        * Runs while `$` is being built, once per load or reload of this plugin
        * and before any other hook of it; `next(e)` resolves to `$` built so far.
        *
-       * A step may ADD nouns and, outside `user`, WITHHOLD them (leave one out, or
-       * return without `next`). It fails, and its plugin unloads, when it REPLACES
-       * another's; in `user`, also past its own stub, or adding a seated name.
+       * A step may ADD nouns and, in `prepend` or `append`, WITHHOLD them (leave
+       * one out, or return without `next`). It fails, and its plugin unloads, when
+       * it REPLACES another's; in `user` or `builtin`, also past its own stub. A
+       * name two steps add is the first adder's, the innermost where they load
+       * together, but a `prepend` or `append` step takes one from a `user` step.
        * Throwing or answering a wrong shape unloads it too, where another event's
        * hook is skipped.
        */
@@ -5489,6 +5515,10 @@ declare module 'claude-code' {
        */
       'session.measure': SessionMeasureResult;
       /**
+       * `{ isTurnRunning }`.
+       */
+      'session.stop': SessionStopResult;
+      /**
        * `{ sessionId }`.
        */
       'session.end': SessionEndResult;
@@ -5525,8 +5555,8 @@ declare module 'claude-code' {
        * Absent when the write was made; else why not, in one line.
        *
        * In a session that takes its settings from its organization, the engine
-       * holds a write a plugin that is not built in stands behind where a
-       * person's own settings file could not set the variable there.
+       * holds a plugin's write, a built-in's too, where a person's own settings
+       * file could not set the variable there.
        *
        * @remarks The engine's hold resolves; a hook's own `{ deny }` rejects the
        *   caller, and one given after `next(e)` was answered fails the hook: deny
@@ -5588,6 +5618,7 @@ declare module 'claude-code' {
           attach: (input: SessionAttachInput) => Promise<SessionAttachResult>;
           detach: (input: SessionDetachInput) => Promise<SessionDetachResult>;
           measure: (input: SessionMeasureInput) => Promise<SessionMeasureResult>;
+          stop: (input: SessionStopInput) => Promise<SessionStopResult>;
           end: (input: SessionEndInput) => Promise<SessionEndResult>;
       };
       telemetry: {
@@ -5983,9 +6014,9 @@ declare module 'claude-code' {
    * Each bounds the hook's OWN time: the clock stops while a `next(e)` call or
    * any `$` call of the hook's is in flight (a `$.clock` wait excepted), so a
    * slow chain beneath or a minute-long `$.model.complete` costs it nothing.
-   * On `tool.list` a hook's `$` calls hold it for 30 seconds in all, then fail it;
-   * on `plugin.register` for 10 seconds, `$.ui.ask` aside: a person answers in their
-   * own time.
+   * On `tool.list` and `ui.render` a hook's `$` calls hold it for 30 seconds in all,
+   * then fail it; on `plugin.register` for 10 seconds, `$.ui.ask` aside: a person
+   * answers in their own time.
    *
    * @example
    * await $.model.complete(ask) // a minute; next.budget.remainingMs unmoved
@@ -6480,7 +6511,8 @@ declare module 'claude-code' {
       parent?: string;
       /**
        * Present where this session's own account could have written the file,
-       * or where a person's own plugin added or rewrote a `managed` file.
+       * or where a person's own plugin or one in the `builtin` tier added or
+       * rewrote a `managed` file.
        *
        * It is then not told as the organization's. The host stamps it; a hook's
        * own value for it is ignored.
@@ -8386,7 +8418,7 @@ declare module 'claude-code' {
       'session.authorize': SessionAuthorization;
       /**
        * How the session is signed in and, under a pin of its organization, as
-       * whom, for a plugin managed settings install; the refusal for any other.
+       * whom; or the refusal a hook answered in its place.
        */
       'session.identity': SessionIdentity;
       'session.usage': SessionUsage;
@@ -9284,7 +9316,7 @@ declare module 'claude-code' {
        */
       addsUnlessThere: readonly string[];
       /**
-       * In the user tier the fold refuses any of this and unloads the module.
+       * In the user or builtin tier the fold refuses this and unloads the module.
        */
       withholds: readonly string[] | 'everything';
       /**
@@ -10225,8 +10257,8 @@ declare module 'claude-code' {
        * Kept in step with the `claudeMd` text at every link: a changed list
        * renders the text the next reader gets, a rewritten text makes the files
        * unknown from there on. Every kind is the hook's to add, drop or rewrite;
-       * a `managed` file a person's own plugin added or rewrote keeps its text
-       * and is marked `isUnverified`.
+       * a `managed` file a person's own plugin or one in the `builtin` tier added
+       * or rewrote keeps its text and is marked `isUnverified`.
        */
       instructionFiles?: readonly InstructionFile[];
   };
@@ -12263,8 +12295,8 @@ declare module 'claude-code' {
        * the line as the engine draws it, or draws its own tree; `isDraft` and
        * `isWorking` say what the line is for.
        *
-       * @remarks On the terminal, until a new answer lands the last keeps its row
-       *   (the engine's line before any).
+       * @remarks On the terminal, until a new answer lands the last keeps its row;
+       *   before any, the permission mode alone, or the line already on screen.
        *
        * Raised on the terminal, desktop and mobile surfaces only.
        */
@@ -12448,7 +12480,8 @@ declare module 'claude-code' {
        * `tokenCount`, `tokenSamples`, `lastRequest`, `usage` and `cost` are read
        * every five seconds, on `$.ui.invalidate` and with a new `status` or
        * `taskStatus`. The last answer stands until the next lands; a new row waits
-       * 300 ms at most for its first, then shows as the engine's.
+       * 300 ms at most for its first, then takes its place with no text until it
+       * lands (in VS Code and the desktop app, it shows as the engine's).
        *
        * In mobile apps, the background tasks sheet asks only for the subagents on
        * screen. It keeps its own row, draws the tree or `body` under it and shows a
@@ -13452,12 +13485,12 @@ declare module 'claude-code' {
   };
 
   /**
-   * What `$.session.identity()` answers: how the session is signed in and,
-   * under a managed pin of its organization, the account the session holds.
+   * What `$.session.identity()` answers: how the session is signed in, the address
+   * the model was handed and, under a managed pin, the account the session holds.
    *
-   * Answered only to a mod the organization's managed settings install. That
-   * is a contract, not a wall: any mod can read the person's own config file,
-   * where a login keeps the same facts.
+   * The engine answers every caller alike; the built-in privacy and sec-default
+   * mods decide who gets what. That is a contract, not a wall: any mod can read
+   * the person's own config file, where a login keeps the same facts.
    */
   export type SessionIdentity = {
       /**
@@ -13473,8 +13506,8 @@ declare module 'claude-code' {
        * managed `forceLoginOrgUUID` lists that organization.
        *
        * Absent everywhere else, as are the two fields below: with no pin, a
-       * pin on another organization, an API key or a cloud provider. So an
-       * organization's mod never learns of another organization's account.
+       * pin on another organization, an API key or a cloud provider. So these
+       * three never tell of another organization's account.
        */
       organizationId?: string;
       /**
@@ -13497,11 +13530,19 @@ declare module 'claude-code' {
        * this process, as with nonessential traffic off, and with no account.
        */
       isVerified: boolean;
+      /**
+       * The address the context hands the model, pin or no pin, where it hands
+       * one. It can differ from `email`, and `isVerified` says nothing of it.
+       *
+       * privacy leaves it off the answer of a caller outside `builtin`. A hook
+       * above privacy still sees it on a built-in's read.
+       */
+      contextEmail?: string;
       deny?: undefined;
   } | {
       /**
-       * Why nothing is answered: the calling mod is not one managed settings
-       * enable and load in place from a source they name.
+       * Why nothing is answered: privacy or sec-default refused a caller in
+       * the `user` tier, or privacy could not read the identity.
        */
       deny: string;
       kind?: undefined;
@@ -13509,6 +13550,7 @@ declare module 'claude-code' {
       organizationType?: undefined;
       email?: undefined;
       isVerified?: undefined;
+      contextEmail?: undefined;
   };
 
   /**
@@ -14221,6 +14263,27 @@ declare module 'claude-code' {
    */
   export type SessionStartResult = {
       cwd: string;
+  };
+
+  /**
+   * The input of `session.stop`: what the person's Stop found.
+   *
+   * The engine's record: a hook observes, and `next(e)` passes it on.
+   */
+  export type SessionStopInput = {
+      /**
+       * True where a turn of the main conversation was under way (at the terminal,
+       * also a command the person waits on); a prompt not yet started reads false.
+       */
+      isTurnRunning: boolean;
+  };
+
+  /**
+   * What a `session.stop` hook returns and what `next(e)` resolves to:
+   * `{ isTurnRunning }`, echoed by core; a hook's own value changes nothing.
+   */
+  export type SessionStopResult = {
+      isTurnRunning: boolean;
   };
 
   /**

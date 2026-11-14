@@ -1,7 +1,7 @@
 {
   "name": "privacy",
   "version": "0.1.0",
-  "description": "Refuses a shell, file, web fetch or MCP call that holds the signed-in account's email address beside a word that declares who is calling, so the address does not go out as a client's identity.",
+  "description": "Refuses a shell, file, web fetch or MCP call that holds the signed-in account's email address beside a word that declares who is calling, so the address does not go out as a client's identity, and refuses a user-tier plugin's own read of the session's identity.",
   "author": {
     "name": "Anthropic"
   }
