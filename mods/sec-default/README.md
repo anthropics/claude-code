@@ -38,6 +38,7 @@ settings it decides by.
 | `ui.log` | A line a plugin in `prepend` or `append` logs, this one's included, continues past the user tier: no user hook rewrites or drops it, and none runs inside the hook that logged it. Every other line passes. |
 | `env.get` | A read by a plugin in `prepend` or `append` continues past the user tier: no user hook answers what the organization's own plugin reads. Every other read passes. |
 | `env.set` | A write by a plugin in `prepend` or `append` continues past the user tier, whatever the variable: no user hook rewrites or drops what the organization's own plugin sets. A variable managed settings set in `env` (its name in any case) is pinned, and so are `CLAUDE_CODE_PROCESS_WRAPPER` where they name a launcher with `processWrapper` and, always, the nine variables that move where policy and sign-in are read from or how policy's tiers compose (`CLAUDE_CODE_MANAGED_SETTINGS_PATH`, `CLAUDE_CODE_REMOTE_SETTINGS_PATH`, `CLAUDE_CODE_MOCK_REMOTE_SETTINGS`, `CLAUDE_CODE_DISABLE_ADMIN_ENV_UNION`, `CLAUDE_CONFIG_DIR`, `CLAUDE_SECURESTORAGE_CONFIG_DIR`, `USE_LOCAL_OAUTH`, `USE_STAGING_OAUTH` and `CLAUDE_LOCAL_OAUTH_API_BASE`, which choose the server sign-in goes to; all nine on every build), and, on every build too, ten variables that can load code into a child the engine starts (`LD_PRELOAD`, `LD_LIBRARY_PATH`, `LD_AUDIT`, `DYLD_INSERT_LIBRARIES`, `DYLD_LIBRARY_PATH`, `DYLD_FRAMEWORK_PATH`, `BASH_ENV`, `ENV`, `ZDOTDIR`, `NODE_OPTIONS`): setting or unsetting it, a `user`-tier caller is refused by name and a built-in's write continues past the user tier. Any other variable is a person's plugin's to set. With no policy to read, every variable counts as pinned. `allowModsToOverrideDenyRules` does not unpin. See [Pinned variables](#pinned-variables). |
+| `wasm.compile` | A compile by a plugin in `prepend` or `append` continues past the user tier: no user hook reads or replaces the WebAssembly the organization's own plugin runs. Every other compile passes. |
 | `plugin.register` | A hooks module in the `user` tier (one a person installed, named with `--plugin-dir`, or keeps in their mods folder) is refused while managed settings set this plugin's `allowManagedModsOnly` option. While they set its `forceHotReloadPrompt` option, a plugin in a session's dev-mods folder is asked about, with a hooks module or without one, unless a person already said yes to that folder here. Otherwise it passes. Plugins in `prepend`, `append` and `builtin` are never asked about. A refusal refuses the whole plugin. |
 | everything else | Passes: `prompt.submit`, `turn.*`, `tool.call`, `command.run`, `command.register`, `command.list`, `agent.register`, `config.*`, `prompt.fill`, `prompt.suggest`, `prompt.edit`, `prompt.read`, `session.*` but `session.append` and `session.compact`, `ui.*` but `ui.log`, `fs.*`, `http.fetch`, `process.run`, `store.*`, `clock.*`, `model.*`, `mcp.call`, `audio.*`, `agent.list`, `engine.create`. |
 
@@ -151,7 +152,9 @@ held deny rules, and over every other deny, an ask rule, a classic hook's
 ask, a setting's own ask or an ask a host answers or a plugin made with it: the one option
 covers all that holds there. Off unless it is the
 literal `true`; an option that reads as unset leaves them holding. See
-[Deny rules hold](#deny-rules-hold).
+[Deny rules hold](#deny-rules-hold). The option and that section are about a
+person's hooks answering `tool.check`: a mod's own `$.tool.call` or `$.mcp.call`
+is outside them, and `allowManagedModsOnly` is the control over it.
 
 ## What it hooks
 
@@ -159,14 +162,14 @@ literal `true`; an option that reads as unset leaves them holding. See
 `prompt.compose`, `skill.prompt`,
 `attribution.text`, `session.append`, `session.compact`, `settings.read`, `tool.describe`, `command.describe`,
 `agent.offer`, `agent.spawn`, `tool.register`, `tool.list`, `tool.check`,
-`ui.log`, `env.get`, `env.set`, `plugin.register`.
+`ui.log`, `env.get`, `env.set`, `wasm.compile`, `plugin.register`.
 
 Hooking `tool.check` has a cost: the engine raises that event only when some
 loaded plugin hooks it, so where this plugin is seated every tool call now
 runs the `tool.check` chain, where before only a session with such a plugin
-did. So has hooking `ui.log`, `env.get` and `env.set`: each such call of any
-plugin's now runs a chain, and an `env.set` from outside the organization's tiers waits on
-the policy read. Where the copy built into Claude Code is the only plugin that
+did. So has hooking `ui.log`, `env.get`, `env.set` and `wasm.compile`: each such call of any
+plugin's now runs a chain, an `env.set` from outside the organization's tiers waits on
+the policy read, and a `wasm.compile` carries its bytes as base64. Where the copy built into Claude Code is the only plugin that
 hooks `env.get`, `command.describe`, `tool.describe`, `agent.offer`,
 `attribution.text` or `prompt.section`, a `$.env.get` call and the engine's own
 raises of the other five run no chain: this plugin would only pass the event

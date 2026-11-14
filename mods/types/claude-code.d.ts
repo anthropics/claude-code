@@ -3424,13 +3424,32 @@ declare module 'claude-code' {
            *
            * It runs through every hook but the calling one (the plugin's others
            * see it), the permission check, then the tool. The check opens no dialog
-           * and asks no classifier: `{ deny }` answers a deny rule, or any ask beyond
-           * no rule allowing the call, such as a hook's or an organization's.
+           * and asks no classifier: every ask becomes an allow, whoever raised it,
+           * but for a built-in whose dialog is the call itself, such as ExitPlanMode.
+           * Deny rules at every level don't cover this call, an organization's
+           * managed ones, a connector tool it set to `blocked` and `--disallowedTools`
+           * included: they bind the model, whose own calls and whose subagents' stay
+           * refused. An organization's controls over mods are `allowManagedModsOnly`,
+           * under which a person's mod doesn't load, and what its own mod leaves on `$`.
+           * `{ deny }` answers a PreToolUse, `tool.check` or `tool.call` hook (no
+           * PermissionRequest hook is consulted on this call), a tool's own refusal, a
+           * server's declared deny, a deny a command or a host sets for its turn, a tool
+           * held until a person types, the rules guarding Claude Code's own credentials
+           * on a call a machine serves, the person's own machine or browser from a cloud
+           * session, or the cloud browser under its mode floor. A tool a `--tools` list
+           * leaves out isn't there to call, and the call rejects. A `tool.list` hook's
+           * removal deletes the tool from the session, for mods too, even one a deny
+           * rule or a `blocked` ceiling also hides, so this call can't run it. A deny
+           * rule or a ceiling stops only the model and its agents.
            * A hook that re-issues the model's call this way answers for its input:
            * the model's command runs with nobody asked.
+           * A script run through the `REPL` tool, where a session has one, is this
+           * call too: it runs with no rules, in the VM it shares with the model's
+           * scripts, so code the model left there can run the same way. The refusals
+           * above hold for it.
            * `$.tool.check` still reports the session's own verdict, so it can say `ask`
-           * for a call that runs. Rejects when no tool has that name or the call is
-           * aborted.
+           * or `deny` for a call that runs. Rejects when no tool has that name or the
+           * call is aborted.
            *
            * @example
            * const { text } = await $.tool.call({ tool: "Read", file_path: "a.md" })
@@ -4102,6 +4121,60 @@ declare module 'claude-code' {
            * await $.env.set("GIT_PAGER", "cat")
            */
           set: (name: string, value: string | undefined) => Promise<EnvSetResult>;
+      };
+      /**
+       * WebAssembly, run in the module's own environment, where its hooks run.
+       *
+       * A module that calls `compile` has a `WebAssembly` global, the standard API
+       * less every other way to compile; any other module has none. The engine
+       * supplies no imports (no WASI): a module reaches what you hand it.
+       */
+      wasm: {
+          /**
+           * Compiles a WebAssembly binary and resolves with its `WebAssembly.Module`,
+           * to instantiate with the standard API or hand to emscripten's or
+           * wasm-bindgen's glue.
+           *
+           * `source` is a string literal naming a `.wasm` file of the plugin's own,
+           * relative to the calling file as a `Client`'s module is, or bytes made at
+           * run time, copied as the call is made. Either may hold 64 MiB. A path
+           * that is no literal does not load, and no file is read but those the
+           * literals name. `claude plugin validate` lists each with its size,
+           * SHA-256, imports and exports; saving one reloads a mod being written.
+           *
+           * A hook above reads the bytes, replaces them or refuses (WasmCompileInput).
+           * Rejects with a `WebAssembly.CompileError` for bytes that are no module;
+           * and for a module that defines or imports a shared memory, and on the
+           * hosted server, which has no WebAssembly and where the mod still loads.
+           *
+           * Nothing compiles synchronously, so glue that builds a module as it runs
+           * (emscripten's `addFunction`) does not work. Nothing caps memory: set
+           * `maximum`. A module, instance, memory or export never leaves for another
+           * plugin.
+           *
+           * An import calls `$` as any function does; one wrapped in
+           * `WebAssembly.Suspending`, under an export wrapped in
+           * `WebAssembly.promising`, may await it, as the hook that called the export.
+           *
+           * Nothing stops a loop that stays inside WebAssembly. The session carries
+           * on and unloads the mod, but the loop holds a processor core until Claude
+           * Code exits. Have long-running code call an import that throws past a
+           * deadline: the throw unwinds it.
+           *
+           * @param source a literal path, or the binary's bytes
+           * @returns the compiled module
+           * @example
+           * const module = await $.wasm.compile("./engine.wasm")
+           * const deadline = performance.now() + 2000
+           * const { exports } = await WebAssembly.instantiate(module, {
+           *   env: {
+           *     tick() {
+           *       if (performance.now() > deadline) throw new Error("out of time")
+           *     },
+           *   },
+           * })
+           */
+          compile: (source: string | ArrayBuffer | ArrayBufferView) => Promise<WebAssembly.Module>;
       };
   }
 
@@ -7992,6 +8065,14 @@ declare module 'claude-code' {
           name: string;
           value?: string;
       };
+      /**
+       * The bytes `$.wasm.compile(source)` is about to compile, and the file
+       * they were read from; `path` is identity, pinned.
+       *
+       * A hook replaces them going down (`next({ ...e, base64 })`), coming back
+       * or by answering alone (`{ value: { base64 } }`), or refuses (`{ deny }`).
+       */
+      'wasm.compile': WasmCompileInput;
   };
 
   /**
@@ -8142,6 +8223,10 @@ declare module 'claude-code' {
       'settings.read': Settings;
       'env.get': string | undefined;
       'env.set': EnvSetResult;
+      /**
+       * The bytes that compile; the caller is resolved the module they make.
+       */
+      'wasm.compile': WasmBytes;
   };
 
   /**
@@ -15343,7 +15428,11 @@ declare module 'claude-code' {
    * One tool as `$.tool.list()` returns it and a `tool.list` hook answers it.
    *
    * What the hooks answer the engine's own raise is the session's tool pool: for
-   * the model, every agent, foreground or background, ToolSearch and `$.tool.call`.
+   * the model, every agent, foreground or background, ToolSearch and `$.tool.call`,
+   * which also reaches a tool only a deny rule or a `blocked` ceiling hides, but a
+   * hook's removal stops it. A removal deletes the tool from the session, for mods
+   * too, even one a deny rule or a ceiling also hides, while a deny rule or a
+   * ceiling stops only the model and its agents.
    * The tools of an MCP server that joins later are asked about before a request
    * carries them. What the hooks answer a mod's `$.tool.list()` is only what that
    * call reads. `next(e)` holds the tools as the engine built them, with what an
@@ -15378,7 +15467,8 @@ declare module 'claude-code' {
    * cannot be added. An entry with the name or alias of a tool that exists leaves
    * that tool as it is: `tool.describe` changes a description. A deny rule, a
    * `--tools` list and an agent's `tools:` hold over an added tool as over any
-   * other, and a real tool takes its name when it joins.
+   * other, a deny rule for the model and its agents alone (`$.tool.call` says so),
+   * and a real tool takes its name when it joins.
    *
    * A hook that throws, crashes or runs past its 10-second budget is skipped, unless
    * its `.catch` answers: the answer is what the others said, without what the hook
@@ -17304,6 +17394,37 @@ declare module 'claude-code' {
       workflows: number;
   };
 
+  /**
+   * A WebAssembly binary as a hook on `wasm.compile` reads and answers it:
+   * base64, since only plain data crosses between environments.
+   */
+  export type WasmBytes = {
+      /**
+       * The binary, standard padded base64; `Uint8Array.fromBase64(base64)`
+       * gives the bytes back. Empty in `next.trace`, which keeps no bytes. Text
+       * that does not decode, or holds more than 64 MiB, fails the hook.
+       */
+      base64: string;
+  };
+
+  /**
+   * What a hook on `wasm.compile` receives: the bytes about to compile, and
+   * the file they were read from when the call named one.
+   */
+  export type WasmCompileInput = {
+      /**
+       * The file under the calling plugin's folder, `/`-separated, as `claude
+       * plugin validate` prints it; absent for bytes made at run time. Pinned:
+       * `next(e)` passes it on.
+       */
+      path?: string;
+      /**
+       * The binary (WasmBytes): the file as read for this call, or the bytes as
+       * they were when the call was made. A hook's to replace.
+       */
+      base64: string;
+  };
+
   type WorktreeCreateHookInput = BaseHookInput & {
       hook_event_name: 'WorktreeCreate';
       name: string;
@@ -17361,9 +17482,9 @@ declare module 'claude-code' {
   /**
    * The globals of a hooks module's environment: these and no others (no DOM,
    * no Node). No code generation either: `eval` and `new Function` over a
-   * string throw, and there is no `WebAssembly` (deliberately; a module that
-   * needs compiled code runs it in a process of its own through `$.process.run`).
-   * A surface module's environment (Client) has the same globals and a
+   * string throw. `WebAssembly` is there only in a hooks module that calls
+   * `$.wasm.compile`, the one way to compile. A surface module's
+   * environment (Client) has the same globals less that one, and a
    * `console`; neither has timers (a hooks module waits on `$.clock`, a
    * surface module on `surface.every`). In both, `obj.__proto__ = p` on
    * anything but a function writes an own key named `__proto__`, as data
@@ -17495,6 +17616,112 @@ declare module 'claude-code' {
       getRandomValues<T extends ArrayBufferView>(array: T): T
     }
     var performance: { now(): number }
+
+    /**
+     * The standard API over the modules `$.wasm.compile` answers, frozen.
+     *
+     * `new WebAssembly.Module` throws, and `compile` and `instantiate` over
+     * bytes reject, naming `$.wasm.compile`. No memory is shared. `validate`
+     * answers true for what `$.wasm.compile` would take.
+     */
+    namespace WebAssembly {
+      interface Module {}
+      var Module: {
+        prototype: Module
+        imports(module: Module): { module: string; name: string; kind: string }[]
+        exports(module: Module): { name: string; kind: string }[]
+        customSections(module: Module, name: string): ArrayBuffer[]
+        [Symbol.hasInstance](value: unknown): value is Module
+      }
+      interface Instance {
+        readonly exports: Record<string, Function | Global | Memory | Table>
+      }
+      var Instance: {
+        prototype: Instance
+        new (
+          module: Module,
+          imports?: Record<string, Record<string, unknown>>,
+        ): Instance
+      }
+      function instantiate(
+        module: Module,
+        imports?: Record<string, Record<string, unknown>>,
+      ): Promise<Instance>
+      function validate(bytes: ArrayBuffer | ArrayBufferView): boolean
+      interface Memory {
+        readonly buffer: ArrayBuffer
+        grow(delta: number): number
+        toFixedLengthBuffer(): ArrayBuffer
+        toResizableBuffer(): ArrayBuffer
+      }
+      var Memory: {
+        prototype: Memory
+        new (descriptor: { initial: number; maximum?: number }): Memory
+      }
+      interface Table {
+        readonly length: number
+        get(index: number): any
+        grow(delta: number, value?: any): number
+        set(index: number, value?: any): void
+      }
+      var Table: {
+        prototype: Table
+        new (
+          descriptor: { element: string; initial: number; maximum?: number },
+          value?: any,
+        ): Table
+      }
+      interface Global<T = any> {
+        value: any
+        valueOf(): any
+      }
+      var Global: {
+        prototype: Global
+        new (descriptor: { value: string; mutable?: boolean }, value?: any): Global
+      }
+      interface Tag {}
+      var Tag: {
+        prototype: Tag
+        new (type: { parameters: string[] }): Tag
+      }
+      var JSTag: Tag
+      interface Exception {
+        readonly stack: string | undefined
+        getArg(tag: Tag, index: number): any
+        is(tag: Tag): boolean
+      }
+      var Exception: {
+        prototype: Exception
+        new (
+          tag: Tag,
+          payload: readonly unknown[],
+          options?: { traceStack?: boolean },
+        ): Exception
+      }
+      interface Suspending {}
+      var Suspending: {
+        prototype: Suspending
+        new (fn: (...args: any[]) => unknown): Suspending
+      }
+      function promising(fn: Function): (...args: any[]) => Promise<any>
+      interface CompileError extends Error {}
+      var CompileError: {
+        prototype: CompileError
+        new (message?: string): CompileError
+      }
+      interface LinkError extends Error {}
+      var LinkError: { prototype: LinkError; new (message?: string): LinkError }
+      interface RuntimeError extends Error {}
+      var RuntimeError: {
+        prototype: RuntimeError
+        new (message?: string): RuntimeError
+      }
+      interface SuspendError extends Error {}
+      var SuspendError: {
+        prototype: SuspendError
+        new (message?: string): SuspendError
+      }
+    }
   }
 }
 

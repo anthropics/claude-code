@@ -241,6 +241,18 @@ export function register(on: On) {
       : next.to(e, 'append')
   })
 
+  on('wasm.compile', ($, e, next) => {
+    const isOrgs =
+      next.origin.tier === 'prepend' || next.origin.tier === 'append'
+
+    return isOrgs ? next.to(e, 'append') : next(e)
+  }).catch(($, e, next) => {
+    const isOrgs =
+      next.origin.tier === 'prepend' || next.origin.tier === 'append'
+
+    return isOrgs ? next.to(e, 'append') : next(e)
+  })
+
   on('plugin.register', { tier: 'user' }, async ($, e, next) => {
     admittedAs.set(e.name, e.provenance)
     pastManagedOnly.delete(e.name)

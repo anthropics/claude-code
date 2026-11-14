@@ -1731,6 +1731,32 @@ describe('register', () => {
   )
 
   test(
+    "nor to refuse what an organization's plugin compiles",
+    {
+      plugins: [
+        Fixtures.refusingCompiles,
+        Fixtures.compiling('mine'),
+        Fixtures.compiling('suite', 'append'),
+        Fixtures.compiling('guard', 'prepend'),
+      ],
+    },
+    async ($, on) => {
+      on('settings.read', () => ({ value: Fixtures.PINNING_POLICY }))
+      on('session.start', ($, e) => ({ cwd: e.cwd }))
+
+      const lines = Fixtures.loggedBy(on)
+
+      await $.session.start(Fixtures.SESSION)
+
+      expect(lines.toSorted()).toEqual([
+        'guard compiled',
+        'mine refused',
+        'suite compiled',
+      ])
+    },
+  )
+
+  test(
     "nor to rewrite what an organization's plugin sets, pinned or not",
     {
       plugins: [
