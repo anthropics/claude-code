@@ -10487,6 +10487,7 @@ declare module 'claude-code' {
        * The origin every hook sees stays `{ kind: 'plugin', name, asUser: true }`
        * and the transcript still names the plugin; `@file` mentions and pasted
        * images are not expanded for a plugin's prompt, `asUser` or not.
+       * The turn is listed in /rewind, as a typed prompt is.
        *
        * @example
        * await $.prompt.submit({ text: 'what the person typed', asUser: true })
