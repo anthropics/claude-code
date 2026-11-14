@@ -24,3 +24,4 @@ Notes (be sure to tell this to your agents, too):
   - `./scripts/gh.sh issue list --state open --limit 20` — list issues
   - `./scripts/gh.sh search issues "query" --limit 10` — search for issues
 - Do not use other tools, beyond `./scripts/gh.sh` and the comment script (eg. don't use other MCP servers, file edit, etc.)
+- Run every agent in the foreground and wait for its result before the next step
