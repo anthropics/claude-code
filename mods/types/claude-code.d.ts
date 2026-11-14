@@ -267,9 +267,15 @@ declare module 'claude-code' {
        * model mid-run starts another; absent until `/cost` counts a request.
        *
        * Every request `/cost` counts for it, once: its steps and their retries,
-       * its compactions, summaries, advisor, web tools and settings hooks. Not a
-       * subagent's or forked skill's, nor a response a hook made up. The observer
+       * its compactions, summaries, advisor, web tools and settings hooks, and
+       * auto mode's billed classifier calls on its tool calls and compactions. Not
+       * a subagent's or forked skill's, nor a response a hook made up. The observer
        * of an agent it starts adds what its first run asks beside its own steps.
+       *
+       * A request stopped or cut mid-stream counts too, its input as the response
+       * began. Its output is an estimate from what had streamed, not a floor: a
+       * little over the bill for text, and low when a long tool call was being
+       * written, whose input the API holds until it is whole.
        *
        * They go on over its turns and resumes, plugins or none. They start over
        * where the session's total is reset or swapped for a stored one (`/clear`,
@@ -285,12 +291,10 @@ declare module 'claude-code' {
        *
        * `/cost` prices the model asked for (or the API's own fallback), so where a
        * gateway answers on another, `usage` names a model this was not priced at.
-       * A model `/cost` does not know goes at the default model's rates, unmarked.
-       * A request stopped mid-stream and auto mode's classifier calls are not in it.
        *
-       * Fast mode, long prompts and search fees are, which the counts of `usage`
-       * do not tell. Absent only where the host keeps no cost ledger of the agent:
-       * a teammate in a pane of its own.
+       * Fast mode, long prompts and search fees are in it, which the counts of
+       * `usage` do not tell. Absent only where the host keeps no cost ledger of
+       * the agent: a teammate in a pane of its own.
        */
       cost?: SessionCost;
       /**
@@ -12672,9 +12676,17 @@ declare module 'claude-code' {
   export type SessionCost = {
       /**
        * US dollars, summed over every priced API response this session, a mod's
-       * `$.model` calls among them; the engine's own side queries stay out.
+       * `$.model` calls among them, and auto mode's classifier calls where the
+       * account is billed for them; the engine's other side queries stay out.
        */
       usd: number;
+      /**
+       * Present once `usd` includes a model with no known price, which goes at
+       * another model's rates: the note `/cost` prints.
+       *
+       * On an agent, only its own requests set it.
+       */
+      hasUnknownPrice?: true;
   };
 
   type SessionCronSummary = {
