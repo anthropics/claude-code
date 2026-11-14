@@ -11741,11 +11741,16 @@ declare module 'claude-code' {
        * `taskStatus`. The last answer stands until the next lands; a new row waits
        * 300 ms at most for its first, then shows as the engine's.
        *
+       * In mobile apps, the background tasks sheet asks only for the subagents on
+       * screen. It keeps its own row, draws the tree or `body` under it and shows a
+       * changed `label` in the row; a hidden row stays listed, with nothing of the
+       * mod's.
+       *
        * @example
        * on("ui.render", { component: "AgentRow" }, ($, e, next) =>
        *   next({ ...e, props: { ...e.props, isHidden: e.props.status === "idle" } }))
        *
-       * Raised on the terminal and vscode surfaces only.
+       * Raised on the terminal, mobile and vscode surfaces only.
        */
       AgentRow: AgentInfo & {
           /**
