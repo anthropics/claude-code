@@ -836,7 +836,8 @@ declare module 'claude-code' {
    *
    * The messages are the ones the next request is built from, after the
    * engine's normalization (the last compaction's summary in place of what it
-   * replaced, reminders as text blocks); at most 4096, opening on a user one.
+   * replaced, reminders as text blocks); at most 4096 or `last`, opening on a
+   * user one where the cut holds one.
    */
   type ApiMessage = {
       /**
@@ -3095,16 +3096,24 @@ declare module 'claude-code' {
            * fork, a teammate in this process): what the session saved for it joined
            * with what the engine holds. With `{ as: "api" }`, either as ApiMessage.
            *
+           * The more a read returns the more it costs: `last` and `after` cut it.
+           *
            * @param args `agentId`, the id `tool.call`, `turn.complete` and `$.agent
-           *             .list()` carry; `as: "api"` for ApiMessage; hooks see both
-           * @returns the newest 4096 entries, `{ role, text, toolUses }` (a user
-           *          message may add `toolResults`; a `toolUses` entry adds `result`
-           *          and `text` once answered, an Agent tool use its `agentId`), or
-           *          with `as` `{ role, content }`, blocks intact, at most 4096
-           *          opening on a user message; for an `agentId` the session
-           *          cannot read, `{ deny }` (SessionMessagesDeny), never main
+           *             .list()` carry; `as: "api"` for ApiMessage; `last`, how many
+           *             of the newest; `after`, a row's `uuid`; hooks see all four
+           * @returns the newest 4096 entries, or `last`, `{ role, text, toolUses }`
+           *          (a user message may add `toolResults`; a `toolUses` entry adds
+           *          `result` and `text` once answered, an Agent tool use its
+           *          `agentId`; a ranged read adds `uuid`), or with `as` `{ role,
+           *          content }`, blocks intact, opening on a user message where the
+           *          cut holds one; for an `agentId` the session cannot read or an
+           *          `after` it does not hold, `{ deny }` (SessionMessagesDeny)
            * @example
-           * const last = (await $.session.messages()).at(-1)
+           * const [last] = await $.session.messages({ last: 1 })
+           * @example
+           * // `last` has the first read carry `uuid` too; 200 back may skip some
+           * const fresh = await $.session.messages({ last: 200, after: seen })
+           * seen = "deny" in fresh ? undefined : (fresh.at(-1)?.uuid ?? seen)
            * @example
            * const request = await $.session.messages({ as: "api" })
            * await $.http.fetch(AUDIT_URL, {
@@ -7738,6 +7747,8 @@ declare module 'claude-code' {
       /**
        * The argument of `$.session.messages(args)`: `{}` for the main
        * conversation, `{ agentId }` for one of its agents, `as` for the form.
+       *
+       * `last` and `after` for part of it.
        */
       'session.messages': SessionMessagesArgs;
       /**
@@ -8100,7 +8111,7 @@ declare module 'claude-code' {
       'session.id': string;
       /**
        * The conversation's messages, as rows or in Messages API form; `{ deny }`
-       * for an `agentId` the session cannot read.
+       * for an `agentId` the session cannot read or an `after` it does not hold.
        */
       'session.messages': SessionMessagesValue;
       'session.repo': SessionRepo | null;
@@ -12927,6 +12938,13 @@ declare module 'claude-code' {
        */
       toolResults?: ToolResultSummary[];
       /**
+       * The row's id, as `session.append` carries it: what a later
+       * `$.session.messages({ after })` reads on from.
+       *
+       * On a read that names `last` or `after`; absent on every other.
+       */
+      uuid?: string;
+      /**
        * An opaque token the engine stamps on a message it hands a
        * `session.compact` hook, so a list handed back maps to its own messages.
        *
@@ -12937,7 +12955,7 @@ declare module 'claude-code' {
 
   /**
    * A `$.session.messages` call for the rows (SessionMessage) of the main
-   * conversation or of one agent's: `agentId` alone, no `as`.
+   * conversation or of one agent's, whole or in part: no `as`.
    */
   type SessionMessagesAgentArgs = {
       /**
@@ -12948,6 +12966,14 @@ declare module 'claude-code' {
        * Left out: the rows.
        */
       as?: undefined;
+      /**
+       * How many of the newest rows at most (SessionMessagesArgs).
+       */
+      last?: number;
+      /**
+       * The `uuid` of the row to read on from (SessionMessagesArgs).
+       */
+      after?: string;
   };
 
   /**
@@ -12963,6 +12989,14 @@ declare module 'claude-code' {
        * Whose conversation; absent, the main one.
        */
       agentId?: string;
+      /**
+       * How many of the newest messages at most (SessionMessagesArgs).
+       */
+      last?: number;
+      /**
+       * Left out: this form has no row to read on from.
+       */
+      after?: undefined;
   };
 
   /**
@@ -12976,7 +13010,7 @@ declare module 'claude-code' {
 
   /**
    * What `$.session.messages(args)` takes and a `session.messages` hook reads
-   * on `e`: whose conversation (`agentId`) and in which form (`as`).
+   * on `e`: whose conversation, in which form, and which part of it.
    */
   type SessionMessagesArgs = {
       /**
@@ -12993,14 +13027,35 @@ declare module 'claude-code' {
        * the content blocks intact); absent, the rows (SessionMessage).
        */
       as?: 'api';
+      /**
+       * How many of the newest entries at most, a whole number from 1 to 4096;
+       * absent, 4096. Rows of a read naming it carry `uuid`.
+       *
+       * With `as`, the cut's head moves on to its first user message carrying no
+       * tool_result, when it holds one, so fewer may come back.
+       */
+      last?: number;
+      /**
+       * A row's `uuid`, as a ranged read or `session.append` gave it: only the
+       * entries after that row, the newest `last` of them, each with `uuid`.
+       *
+       * Any row the conversation holds, listed or not; else `{ deny }` (cleared,
+       * rewound, compacted away, a turn's row while its append hook runs). Not with
+       * `as`. Nothing ahead of it comes: not a row whose tool answered since (its
+       * result row does), nor the summary of a compaction that kept it.
+       */
+      after?: string;
   };
 
   /**
    * `$.session.messages`: the main conversation's rows with no argument, with
    * `{ as: "api" }` its Messages API form; with `agentId` an agent's, or deny.
+   *
+   * `last` and `after` ask for part of it; an `after` it does not hold denies.
    */
   type SessionMessagesCall = {
       (): Promise<SessionMessage[]>;
+      (args: SessionMessagesMainLastArgs): Promise<SessionMessage[]>;
       (args: SessionMessagesMainApiArgs): Promise<ApiMessage[]>;
       (args: SessionMessagesApiArgs): Promise<SessionMessagesApiResult>;
       (args: SessionMessagesAgentArgs): Promise<SessionMessagesResult>;
@@ -13008,16 +13063,16 @@ declare module 'claude-code' {
   };
 
   /**
-   * What `$.session.messages({ agentId })` resolves to when the id names no
-   * conversation this session can read: why not, in `deny`.
+   * What `$.session.messages` resolves to when `agentId` names no conversation
+   * this session can read, or `after` no row of it: why not, in `deny`.
    *
-   * The id is not one of this session's agents, the agent runs in another
-   * process (a pane-hosted teammate), or it finished and the session reads no
-   * saved transcript back for it (none saved; a workflow run's). Never main.
+   * The agent is not one of this session's, runs in another process (a
+   * pane-hosted teammate), or finished and the session reads no saved transcript
+   * back for it (none saved; a workflow run's). Never main's rows in its place.
    */
   type SessionMessagesDeny = {
       /**
-       * Why no conversation was read, naming the id.
+       * Why nothing was read, naming the agent's id or the row's uuid.
        */
       deny: string;
   };
@@ -13035,14 +13090,45 @@ declare module 'claude-code' {
        * Left out: the main conversation.
        */
       agentId?: undefined;
+      /**
+       * How many of the newest messages at most (SessionMessagesArgs).
+       */
+      last?: number;
+      /**
+       * Left out: this form has no row to read on from.
+       */
+      after?: undefined;
   };
 
   /**
-   * What `$.session.messages({ agentId })` resolves to: the messages
+   * A `$.session.messages({ last })` call naming nothing else: the main
+   * conversation's newest rows, whose answer is always the rows.
+   */
+  type SessionMessagesMainLastArgs = {
+      /**
+       * How many of the newest rows at most (SessionMessagesArgs).
+       */
+      last: number;
+      /**
+       * Left out: the main conversation.
+       */
+      agentId?: undefined;
+      /**
+       * Left out: the rows.
+       */
+      as?: undefined;
+      /**
+       * Left out: no row to miss.
+       */
+      after?: undefined;
+  };
+
+  /**
+   * What `$.session.messages({ agentId, after })` resolves to: the messages
    * (SessionMessage), or `{ deny }` (SessionMessagesDeny).
    *
-   * Without `agentId` it is always the messages; with one the session cannot
-   * read, the deny. `Array.isArray` tells the two apart.
+   * With neither it is always the messages; with an agent the session cannot
+   * read or a row it does not hold, the deny. `Array.isArray` tells them apart.
    */
   type SessionMessagesResult = SessionMessage[] | SessionMessagesDeny;
 
