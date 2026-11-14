@@ -9030,6 +9030,352 @@ declare module 'claude-code' {
   export interface PluginState {
   }
 
+  /**
+   * One thing `claude plugin validate` advises and no verdict counts.
+   */
+  type PluginValidateAdvice = {
+      /**
+       * The README that holds no install line.
+       */
+      file: string;
+      message: string;
+      /**
+       * The line to paste, a placeholder standing where no remote was read.
+       */
+      installLine: string;
+  };
+
+  /**
+   * What the plugin directory's checks found, in a validate report.
+   */
+  type PluginValidateDirectory = {
+      /**
+       * The profile the run enforced, or null when the findings did not count.
+       */
+      profile: 'directory' | null;
+      findings: PluginValidateDirectoryFinding[];
+      /**
+       * What a check could not look at, or how to read a finding: plain
+       * sentences, one entry per subject.
+       */
+      notes: string[];
+      /**
+       * Rule ids that could not be decided because listed files were not checked.
+       */
+      undecided: string[];
+      /**
+       * Whether a note says that something a rule needs was not looked at, or
+       * that a rule was not applied.
+       */
+      incomplete: boolean;
+      /**
+       * Why `--profile directory` failed the run, or null when it did not.
+       */
+      failure: string | null;
+  };
+
+  /**
+   * One finding of the plugin directory's checks.
+   */
+  type PluginValidateDirectoryFinding = {
+      /**
+       * The directory's id for the rule.
+       */
+      code: string;
+      /**
+       * The directory's title for the rule, where validate carries one.
+       */
+      title: string | null;
+      severity: 'error' | 'warning' | 'info';
+      /**
+       * Whether the directory refuses a submission that has this finding.
+       */
+      blocking: boolean;
+      /**
+       * Whether the directory accepts the submission and holds it for a reviewer.
+       */
+      hold: boolean;
+      /**
+       * The file the finding is about, or '' when it is about no one file.
+       */
+      file: string;
+      /**
+       * The key or place inside that file, or ''.
+       */
+      field: string;
+      message: string;
+      fix: string | null;
+  };
+
+  /**
+   * One file of a validate report. It failed exactly when `errors` holds
+   * something; nothing else here is a verdict.
+   */
+  type PluginValidateFile = {
+      /**
+       * Where the findings were read from: a label, which may be cleaned and cut,
+       * and not a path to open.
+       */
+      file: string;
+      /**
+       * Which check made the entry, more than what the file is: a notice about
+       * `.mcp.json` commands, or a target that is missing, is a `plugin` entry.
+       */
+      type: 'plugin' | 'marketplace' | 'skill' | 'agent' | 'command' | 'hooks' | 'mcp';
+      errors: PluginValidateFinding[];
+      warnings: PluginValidateFinding[];
+      /**
+       * What the validator knows beyond pass or fail, as display lines, cleaned
+       * and cut. What they say of a hooks module is whole in `modules`.
+       */
+      notes: string[];
+      /**
+       * Each hook at a site whose answer can refuse what was asked, but for a
+       * `command.run` hook that answers its own command.
+       */
+      gatingHooks: PluginValidateGatingHook[];
+      /**
+       * What the module's `$.wasm.compile` calls compile. A file that does not
+       * read or compile is in `errors` instead.
+       */
+      wasm: PluginValidateWasm[];
+      /**
+       * What the hooks module this file names does, listed once it scans even
+       * when a later check on it fails; empty for an entry with no module.
+       *
+       * Null is "not read": a hooks file that is a link, too large, not JSON or
+       * refused, or whose module leaves the plugin's folder or does not scan.
+       */
+      modules: PluginValidateModule[] | null;
+  };
+
+  /**
+   * One error or warning of a validate report, as display text: cleaned and cut.
+   */
+  type PluginValidateFinding = {
+      /**
+       * Where in the file: a dotted JSON path, a frontmatter key, `root`, `json`.
+       */
+      path: string;
+      message: string;
+      /**
+       * Reserved for a stable, documented rule id. Always null today.
+       */
+      code: string | null;
+  };
+
+  /**
+   * One hook at a gating site as `claude plugin validate --json` reports it:
+   * where it is written, what it is registered on, whether `.catch` follows.
+   *
+   * A fact for the author, who decides how a hook fails; never a verdict.
+   */
+  type PluginValidateGatingHook = {
+      /**
+       * As hooks.json `modules` spells it or, past 200 characters, the same path
+       * normalized (padding such as `./` collapsed), since each row repeats it.
+       */
+      module: string;
+      /**
+       * What the hook is registered on: a name, a glob or a negation.
+       */
+      pattern: string;
+      /**
+       * The registration as the notes list it, its matcher printed after the
+       * pattern (`tool.call{tool=Bash}`): a cut display line, not a syntax.
+       */
+      hook: string;
+      hasCatch: boolean;
+  };
+
+  /**
+   * One `on(...)` call of a hooks module, as validate read it.
+   */
+  type PluginValidateHook = {
+      /**
+       * What the hook is registered on: a name, a glob or a negation.
+       */
+      pattern: string;
+      /**
+       * `{ has: {} }` for a call with no matcher.
+       */
+      matcher: PluginValidateMatcher;
+      /**
+       * The matcher keys the engine fills in where the call names none.
+       */
+      defaultKeys: readonly string[];
+      /**
+       * True exactly for a hook the file's `gatingHooks` lists.
+       */
+      isGate: boolean;
+      hasCatch: boolean;
+  };
+
+  /**
+   * A matcher, or a part of one, as validate read it off the source. `anyOf` is
+   * an array, or the literals a `for...of` registers a hook on in turn.
+   *
+   * Null is "not read": a value not spelled as JSON can hold it, an object with
+   * a spread, a computed key, an accessor or a key the engine refuses, a matcher
+   * past the engine's limits, and each after a plugin's matchers total 8 MiB.
+   */
+  type PluginValidateMatcher = {
+      is: string | number | boolean | null;
+  } | {
+      regex: string;
+      flags: string;
+  } | {
+      anyOf: PluginValidateMatcher[];
+  } | {
+      has: {
+          [key: string]: PluginValidateMatcher;
+      };
+  } | null;
+
+  /**
+   * What a hooks module does, as validate read it off its source. An empty list
+   * and `false` mean nothing; every name is whole.
+   */
+  type PluginValidateModule = {
+      /**
+       * The path exactly as hooks.json `modules` spells it.
+       */
+      module: string;
+      /**
+       * What `plugin.register` carries as `e.uses`, with no member left out.
+       */
+      uses: Required<PluginRegisterUses>;
+      /**
+       * One item per `on(...)` call, in order.
+       */
+      hooks: readonly PluginValidateHook[];
+      /**
+       * The tiers its `next.to(e, tier)` calls name.
+       */
+      nextTo: readonly TargetTier[];
+      /**
+       * The streams its telemetry hooks stand on.
+       */
+      telemetry: readonly TelemetryDestination[];
+      /**
+       * The surface modules its `Client` elements name, as paths under the
+       * plugin's folder.
+       */
+      clients: readonly string[];
+      /**
+       * Whether its source spells a `breakPromptCache` key on an object.
+       */
+      breaksPromptCache: boolean;
+      /**
+       * Four empty lists with no hook on `engine.create`; null when the hook is
+       * outside the one form validate reads.
+       */
+      nouns: PluginValidateNouns | null;
+  };
+
+  /**
+   * What a module's `engine.create` hook does to `$` if it registers.
+   */
+  type PluginValidateNouns = {
+      adds: readonly string[];
+      /**
+       * Written before what is beneath, which wins where it holds the name.
+       */
+      addsUnlessThere: readonly string[];
+      /**
+       * In the user tier the fold refuses any of this and unloads the module.
+       */
+      withholds: readonly string[] | 'everything';
+      /**
+       * Written over a name core puts on `$`, which unloads the module.
+       */
+      replaces: readonly string[];
+  };
+
+  /**
+   * What `claude plugin validate --json` prints: a public contract, to which
+   * fields are added and in which none is renamed or retyped.
+   *
+   * Names are the author's true spelling, never cut or cleaned, so a consumer
+   * printing one scrubs it first. A file entry with no `modules` came from an
+   * older CLI. On an unexpected failure (exit 2) nothing is printed to stdout.
+   */
+  export type PluginValidateReport = {
+      /**
+       * The verdict under the flags given (`--strict` counts warnings), which is
+       * the exit code's: true exactly when that is 0.
+       */
+      success: boolean;
+      strict: boolean;
+      /**
+       * The manifest path that was validated, or the component directory.
+       */
+      target: string;
+      /**
+       * The plugin.json or marketplace.json; null for a bare skills, agents or
+       * commands directory.
+       */
+      manifest: PluginValidateFile | null;
+      /**
+       * Each other file with an error, a warning or a note (the plugin.json beside
+       * a marketplace.json too); a hooks file naming a module is always listed.
+       */
+      contents: PluginValidateFile[];
+      /**
+       * What the validator advises without counting it under any flag: today, the
+       * install line a plugin's README lacks.
+       */
+      advice: readonly PluginValidateAdvice[];
+      /**
+       * The plugin directory's checks, which count under `--profile directory`
+       * alone. Null when they had nothing to run on and that was not passed.
+       */
+      directory: PluginValidateDirectory | null;
+  };
+
+  /**
+   * One thing a hooks module's `$.wasm.compile` calls compile.
+   */
+  type PluginValidateWasm = {
+      /**
+       * As hooks.json `modules` spells it or, past 200 characters, the same path
+       * normalized (padding such as `./` collapsed), since each row repeats it.
+       */
+      module: string;
+      /**
+       * Null for bytes the module makes at run time, which nothing reads.
+       */
+      file: PluginValidateWasmFile | null;
+  };
+
+  /**
+   * One `.wasm` file a hooks module lists, as `claude plugin validate` reports
+   * it: which bytes they are, and what they ask for and offer.
+   */
+  type PluginValidateWasmFile = {
+      /**
+       * The file under the plugin's folder, as `wasm.compile`'s `path` reads.
+       */
+      path: string;
+      /**
+       * Its length in bytes.
+       */
+      size: number;
+      /**
+       * Its SHA-256, lowercase hex.
+       */
+      sha256: string;
+      imports: {
+          module: string;
+          name: string;
+          kind: string;
+      }[];
+      exports: {
+          name: string;
+          kind: string;
+      }[];
+  };
+
   type PostCompactHookInput = BaseHookInput & {
       hook_event_name: 'PostCompact';
       trigger: 'manual' | 'auto';
