@@ -11807,8 +11807,8 @@ declare module 'claude-code' {
       };
       /**
        * One agent's row in the at-a-glance agent list (the terminal's, under the
-       * prompt; VS Code's running subagents): a subagent's or a teammate's,
-       * `requestId` its `id`.
+       * prompt; the desktop's, in the session rail's Background tasks; VS Code's
+       * running subagents): a subagent's or a teammate's, `requestId` its `id`.
        *
        * The agent as `$.agent.list()` gives it, `parentId` naming the agent that
        * spawned it (absent when the main loop did); read-only but for `label`, the
@@ -11831,11 +11831,14 @@ declare module 'claude-code' {
        * changed `label` in the row; a hidden row stays listed, with nothing of the
        * mod's.
        *
+       * The desktop shows one line and takes no presses in the tree: a tree stands
+       * for the row's words, a Link is drawn as its text and a Button is left out.
+       *
        * @example
        * on("ui.render", { component: "AgentRow" }, ($, e, next) =>
        *   next({ ...e, props: { ...e.props, isHidden: e.props.status === "idle" } }))
        *
-       * Raised on the terminal, mobile and vscode surfaces only.
+       * Raised on every attached surface.
        */
       AgentRow: AgentInfo & {
           /**
