@@ -11648,7 +11648,8 @@ declare module 'claude-code' {
       };
       /**
        * One agent's row in the at-a-glance agent list (the terminal's, under the
-       * prompt): a subagent's or a teammate's, `requestId` its `id`.
+       * prompt; VS Code's running subagents): a subagent's or a teammate's,
+       * `requestId` its `id`.
        *
        * The agent as `$.agent.list()` gives it, `parentId` naming the agent that
        * spawned it (absent when the main loop did); read-only but for `label`, the
@@ -11659,16 +11660,17 @@ declare module 'claude-code' {
        * from the full list. Not raised where the layout draws no agent rows, nor
        * for the `main` row, a workflow's or the folded idle summary.
        *
-       * Asked for every agent with `hasRow`, drawn now or not, and again as a
-       * prop changes; `tokenCount` and `tokenSamples` are read every five seconds
-       * and on `$.ui.invalidate`. The last answer stands until the next lands; a
-       * new row waits 300 ms at most for its first, then shows as the engine's.
+       * Asked for every agent with `hasRow` (in VS Code, a blocking forked skill's
+       * too, which has none), drawn now or not, and again as a prop changes;
+       * `tokenCount` and `tokenSamples` are read every five seconds and on
+       * `$.ui.invalidate`. The last answer stands until the next lands; a new row
+       * waits 300 ms at most for its first, then shows as the engine's.
        *
        * @example
        * on("ui.render", { component: "AgentRow" }, ($, e, next) =>
        *   next({ ...e, props: { ...e.props, isHidden: e.props.status === "idle" } }))
        *
-       * Raised on the terminal surface only.
+       * Raised on the terminal and vscode surfaces only.
        */
       AgentRow: AgentInfo & {
           /**
