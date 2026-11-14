@@ -138,6 +138,33 @@ declare module 'claude-code' {
   };
 
   /**
+   * Options of `$.agent.call`: what is no part of the call, so no hook on
+   * `agent.call` reads it on `e`.
+   */
+  export type AgentCallOptions = {
+      /**
+       * Aborting it cuts this call wherever it stands: in hooks, at a prompt,
+       * waiting on a verdict, or running, where a shell command's process ends.
+       *
+       * The call resolves `{ deny }` once it has stopped, as a refusal does: read
+       * `signal.aborted` to tell. Already aborted, it resolves so and nothing
+       * runs. A result the tool or a hook gave before the cut took hold is kept.
+       * A hook on `agent.call` has it as `next.signal`, under the engine's reason.
+       *
+       * The agent's turn and its other calls go on, and the cut is nobody's No; a
+       * block that came back before it still counts. An `Agent` call in the
+       * foreground stops its agent; an agent or a command already in the
+       * background runs on and reports as it would. Given `next.signal`, a
+       * person's stop of the turn resolves the call as a cut does.
+       *
+       * @example
+       * const ran = await $.agent.call(args, { signal: stop.signal })
+       * const isCut = ran.deny !== undefined && stop.signal.aborted
+       */
+      signal?: AbortSignal;
+  };
+
+  /**
    * What an Agent call a plugin raised (`$.tool.call({ tool: "Agent", ... })`)
    * answers as `result` once the agent settles; `text` is its final answer.
    *
@@ -3717,14 +3744,15 @@ declare module 'claude-code' {
            * `Workflow` is refused, as `$.tool.call` refuses it.
            *
            * @param args `tool`, `input`, and `agentId` (absent: the main conversation)
+           * @param options `signal`: aborting it cuts the call (AgentCallOptions)
            * @returns the tool's result, or `{ deny }`: refused by a check, a tool
-           *          the agent lacks, or an agent this session cannot run from;
-           *          rejects on an `agent.call` hook's deny
+           *          the agent lacks, an agent this session cannot run from, or cut
+           *          by `signal`; rejects on an `agent.call` hook's deny
            * @example
            * const { text, deny } = await $.agent.call({ tool: "Bash",
            *   input: { command: "git status" }, agentId: e.agentId })
            */
-          call: (args: AgentCallArgs) => Promise<OpValueOf['agent.call']>;
+          call: (args: AgentCallArgs, options?: AgentCallOptions) => Promise<OpValueOf['agent.call']>;
           /**
            * Returns the session's agents so far, subagents and teammates: the ones
            * the model spawned and the ones plugins did alike.
@@ -8055,9 +8083,9 @@ declare module 'claude-code' {
        */
       'agent.register': AgentSpec;
       /**
-       * The argument of `$.agent.call(args)`. A hook above may rewrite the tool
-       * and its input, and the call is then no longer its caller's own at
-       * `tool.judge`; `agentId` is pinned.
+       * The argument of `$.agent.call(args, { signal })`. A hook above may rewrite
+       * the tool and its input, and the call is then no longer its caller's own at
+       * `tool.judge`; `agentId` is pinned. The signal does not cross, it cuts the call.
        */
       'agent.call': AgentCallArgs;
       /**
@@ -10951,7 +10979,7 @@ declare module 'claude-code' {
    *
    * Props are an allowlisted subset of Ink's Box/Text props (the ones
    * ElementProps declares); a tree with any other prop fails validation as a
-   * whole and the engine's own component is drawn with the original props.
+   * whole and the engine's own component is drawn, its props as handed down.
    */
   export type RenderElement = StyledElement<'Box', BoxHoverProps> | StyledElement<'Text', TextHoverProps> | {
       /**
@@ -11299,7 +11327,8 @@ declare module 'claude-code' {
       type: 'engine';
       /**
        * Which drawing: the number core answered from `next(e)`, under which
-       * it holds the props it received; 0 draws the original props.
+       * it holds the props it received; 0, as any number `next` did not hand
+       * this hook, draws the props as this hook received them.
        */
       ref: number;
   };
@@ -11372,8 +11401,8 @@ declare module 'claude-code' {
    * The plain-data props of each renderable component, as `ui.render` sees
    * them under `e.props`; a hook rewrites them with `next({ ...e, props })`.
    *
-   * A rewrite is validated by the component and an invalid one draws the
-   * original. This table is the plugin-facing render contract; the author's
+   * A rewrite is validated by the component and an invalid one draws what its
+   * hook received. This table is the plugin-facing render contract; the author's
    * file notes which surfaces raise each member (RENDER_SURFACES_OF).
    */
   export type RenderPropsOf = {
@@ -11393,8 +11422,8 @@ declare module 'claude-code' {
           tool: string;
           /**
            * The tool's `questions` input, as the dialog will draw them; a rewrite
-           * must still fit the tool's schema or the original is drawn. Claude Code's
-           * own confirmations are drawn as asked, whatever a rewrite says.
+           * must still fit the tool's schema or what it received is drawn. Claude
+           * Code's own confirmations are drawn as asked, whatever a rewrite says.
            */
           questions: unknown[];
           /**
