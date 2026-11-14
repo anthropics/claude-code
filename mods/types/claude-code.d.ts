@@ -1226,6 +1226,14 @@ declare module 'claude-code' {
       borderDimColor?: boolean;
       backgroundColor?: Color;
       overflow?: 'visible' | 'hidden';
+      /**
+       * `"scroll"`, for a chart or table whose rows must stay lined up: the lines
+       * inside keep their full width and scroll sideways together, and `maxLines`
+       * has no effect. The terminal and VS Code can't scroll sideways, so they cut
+       * each Text at the Box's edge, as `truncate-end` unless its `wrap` already
+       * cuts. A Box inside with its own `width` keeps what it holds as written.
+       */
+      overflowX?: 'visible' | 'scroll';
       display?: 'flex' | 'none';
   };
 
@@ -14981,7 +14989,22 @@ declare module 'claude-code' {
        * that reorders text by itself draws the Text exactly as without `dir`.
        */
       dir?: 'ltr' | 'rtl';
-      wrap?: 'wrap' | 'end' | 'middle' | 'truncate' | 'truncate-start' | 'truncate-middle' | 'truncate-end';
+      /**
+       * What a line too wide for its Box does. `wrap`, the default, breaks it into
+       * rows. The others keep it on one row with an ellipsis: `end`, `truncate` and
+       * `truncate-end` at its end, `truncate-start` at its start, `middle` and
+       * `truncate-middle` in its middle (Desktop and VS Code always cut the end).
+       * `clip` leaves no ellipsis, though the terminal draws one. A phone wraps a
+       * cut at the end all the same unless `maxLines` is set.
+       */
+      wrap?: 'wrap' | 'end' | 'middle' | 'truncate' | 'truncate-start' | 'truncate-middle' | 'truncate-end' | 'clip';
+      /**
+       * The most rows the Text draws, a whole number from 1: past them, its last
+       * row ends in an ellipsis. With a `wrap` that cuts the start or middle, or
+       * `clip`, each line stays on one row whatever the number. A phone lifts
+       * `maxLines` and `clip` at accessibility text sizes, to show the rest.
+       */
+      maxLines?: number;
   };
 
   /**
