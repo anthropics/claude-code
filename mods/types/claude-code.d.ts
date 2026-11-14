@@ -12236,9 +12236,14 @@ declare module 'claude-code' {
        * `#fragment`, and no SMIL on an `href`. Nor anything that could hide one of
        * these: a backslash in `<style>` or a tag, a character reference other than
        * `&amp;`, `&lt;`, `&gt;`, `&quot;` and `&apos;`, a control character, an XML
-       * declaration with an encoding other than UTF-8, a CSS comment, `<!`, `<?`, an
-       * element inside `<style>`, a `<style>` with no end tag, or a tag with an attribute
-       * that has no value or whose value holds `<` or `>`.
+       * declaration with an encoding other than UTF-8, a DOCTYPE, ENTITY or CDATA,
+       * `<?`, an element inside `<style>`, a `<style>` with no end tag, or a tag with
+       * an attribute that has no value or whose value holds `<` or `>`.
+       *
+       * A plain comment stands, and its words are read like the rest: an XML one
+       * between tags, outside `<style>`, with no `<` or `--` in it, or a closed CSS
+       * one in `<style>` or a `style` attribute, outside any string or `url()`. A
+       * bare `&` stands in an XML one alone.
        *
        * Raised on the desktop and mobile surfaces only.
        */
