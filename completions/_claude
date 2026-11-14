@@ -1,0 +1,180 @@
+#compdef claude
+# Zsh completion for claude (Claude Code CLI)
+#
+# Instead of hard-coding the flag and subcommand lists (which would go stale
+# on every release), this script parses `claude --help` output at completion
+# time and caches the result per installed CLI version, so completions always
+# match the version of Claude Code you are running.
+#
+# Install: copy this file into a directory on your $fpath as `_claude`
+# (see completions/README.md).
+
+__claude_cache_dir() {
+    print -r -- "${XDG_CACHE_HOME:-$HOME/.cache}/claude-code-completions"
+}
+
+# Print (cached) `claude <args...> --help` output.
+__claude_help() {
+    local ver dir cache key
+    if [[ -z ${__CLAUDE_COMPLETION_VERSION-} ]]; then
+        typeset -g __CLAUDE_COMPLETION_VERSION=${$(claude -v 2>/dev/null)%% *}
+    fi
+    ver=$__CLAUDE_COMPLETION_VERSION
+    [[ -n $ver ]] || return 1
+    key="root${*:+ $*}"
+    key=${key// /_}
+    dir="$(__claude_cache_dir)/$ver"
+    cache="$dir/$key"
+    if [[ ! -s $cache ]]; then
+        mkdir -p "$dir" 2>/dev/null || return 1
+        claude "$@" --help >"$cache" 2>/dev/null || { rm -f "$cache"; return 1 }
+    fi
+    cat "$cache"
+}
+
+# Parse the "Commands:" section of help output into "name<TAB>description"
+# lines (aliases like update|upgrade are split into separate entries).
+__claude_parse_commands() {
+    awk '
+        /^Commands:/ { sec = 1; next }
+        /^[A-Za-z]/  { sec = 0 }
+        sec && /^  [a-z]/ {
+            line = $0
+            sub(/^  /, "", line)
+            name = line
+            sub(/ .*$/, "", name)
+            desc = ""
+            if (match(line, /  +/)) {
+                desc = substr(line, RSTART + RLENGTH)
+            }
+            n = split(name, aliases, "[|]")
+            for (i = 1; i <= n; i++) {
+                if (aliases[i] != "" && aliases[i] != "help") {
+                    print aliases[i] "\t" desc
+                }
+            }
+        }
+    '
+}
+
+# Parse the "Options:" section of help output into "flag<TAB>description"
+# lines.
+__claude_parse_flags() {
+    awk '
+        /^Options:/ { sec = 1; next }
+        /^[A-Za-z]/ { sec = 0 }
+        sec && /^  -/ {
+            line = $0
+            sub(/^ +/, "", line)
+            desc = ""
+            idx = index(line, "  ")
+            if (idx) {
+                desc = substr(line, idx)
+                sub(/^ +/, "", desc)
+                line = substr(line, 1, idx - 1)
+            }
+            n = split(line, parts, /,? +/)
+            for (i = 1; i <= n; i++) {
+                p = parts[i]
+                if (p ~ /^--?[A-Za-z]/) {
+                    sub(/[^A-Za-z0-9-].*$/, "", p)
+                    print p "\t" desc
+                }
+            }
+        }
+    '
+}
+
+_claude() {
+    local cur=${words[CURRENT]}
+    local prev=${words[CURRENT-1]}
+
+    # Value completion for flags with a known set of values.
+    case $prev in
+        --model | --fallback-model)
+            _values 'model' fable opus sonnet haiku
+            return
+            ;;
+        --permission-mode)
+            _values 'permission mode' acceptEdits auto bypassPermissions manual dontAsk plan
+            return
+            ;;
+        --output-format)
+            _values 'output format' text json stream-json
+            return
+            ;;
+        --input-format)
+            _values 'input format' text stream-json
+            return
+            ;;
+        --effort)
+            _values 'effort level' low medium high xhigh max
+            return
+            ;;
+        --setting-sources)
+            _values -s , 'setting source' user project local
+            return
+            ;;
+        -t | --transport)
+            _values 'transport' stdio sse http
+            return
+            ;;
+        -s | --scope)
+            _values 'scope' local user project
+            return
+            ;;
+        --add-dir | --plugin-dir | --cwd)
+            _files -/
+            return
+            ;;
+        --settings | --mcp-config | --debug-file | --config | --system-prompt-file | --append-system-prompt-file)
+            _files
+            return
+            ;;
+    esac
+
+    # Build the subcommand path from words typed so far, descending only into
+    # words that the CLI's own help output lists as subcommands (this also
+    # keeps us from ever executing `claude <arbitrary-word> --help`).
+    local -a cmdpath
+    local w
+    for w in "${(@)words[2,CURRENT-1]}"; do
+        [[ $w == -* || -z $w ]] && continue
+        local -a known
+        known=(${(f)"$(__claude_help "${(@)cmdpath}" | __claude_parse_commands | cut -f1)"})
+        if (( ${known[(Ie)$w]} )); then
+            cmdpath+=("$w")
+        fi
+    done
+
+    local -a entries
+    if [[ $cur == -* ]]; then
+        entries=(${(f)"$(__claude_help "${(@)cmdpath}" | __claude_parse_flags)"})
+        entries=(${entries//$'\t'/:})
+        _describe -o 'option' entries
+        return
+    fi
+
+    # Positional arguments with a known set of values.
+    case "${(j: :)cmdpath}" in
+        install)
+            _values 'version' stable latest
+            return
+            ;;
+        import)
+            _values 'source agent' codex gemini
+            return
+            ;;
+    esac
+
+    entries=(${(f)"$(__claude_help "${(@)cmdpath}" | __claude_parse_commands)"})
+    entries=(${entries//$'\t'/:})
+    if (( ${#entries} )); then
+        _describe 'claude command' entries
+    fi
+    if (( ${#cmdpath} == 0 )); then
+        _default
+    fi
+}
+
+_claude "$@"
