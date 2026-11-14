@@ -1,3 +1,4 @@
+export * from './holds-at-judge.js'
 export * from './holds-over.js'
 export * from './is-same-verdict.js'
 export * from './plugin-of.js'

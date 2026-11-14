@@ -2,6 +2,7 @@ export * from './ask-kind.js'
 export * from './caught-answer.js'
 export * from './held-kind.js'
 export * from './held-notice.js'
+export * from './untold-notices.js'
 export * from './verdicts'
 
 export * as default from '.'

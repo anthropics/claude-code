@@ -1530,6 +1530,77 @@ describe('register', () => {
   )
 
   test(
+    'on tool.judge a block holds over their allow, and they are named once',
+    { plugins: [Fixtures.judging('easy')] },
+    async ($, on) => {
+      on('settings.read', () => ({ value: Fixtures.MANAGED_POLICY }))
+      on('tool.judge', () => Fixtures.BLOCKED)
+
+      const lines = Fixtures.logged(on)
+
+      expect(await $.tool.judge(Fixtures.JUDGED)).toMatchObject(
+        Fixtures.BLOCKED,
+      )
+      await $.tool.judge(Fixtures.JUDGED)
+
+      expect(lines).toEqual([
+        `transcript: ${Hooks.heldNotice('easy', 'Bash', Fixtures.BLOCKED, 'lift')}`,
+      ])
+    },
+  )
+
+  test(
+    "on tool.judge an organization plugin's allow stands",
+    { plugins: [Fixtures.judging('suite', 'append'), Fixtures.judging('easy')] },
+    async ($, on) => {
+      on('settings.read', () => ({ value: Fixtures.MANAGED_POLICY }))
+      on('tool.judge', () => Fixtures.BLOCKED)
+
+      expect(await $.tool.judge(Fixtures.JUDGED)).toEqual({
+        decision: 'allow',
+        plugin: 'suite',
+      })
+    },
+  )
+
+  test(
+    'on tool.judge the same option lets them override',
+    { plugins: [Fixtures.judging('easy')] },
+    async ($, on) => {
+      on('settings.read', () => ({ value: Fixtures.overridePolicyOf(true) }))
+      on('tool.judge', () => Fixtures.BLOCKED)
+
+      expect(await $.tool.judge(Fixtures.JUDGED)).toEqual({
+        decision: 'allow',
+        plugin: 'easy',
+      })
+    },
+  )
+
+  test(
+    'on tool.judge an unreadable policy holds too',
+    { plugins: [Fixtures.judging('easy')] },
+    async ($, on) => {
+      const stopPolicy = Fixtures.policyUntilStopped(
+        on,
+        Fixtures.overridePolicyOf(true),
+        'managed settings unreadable',
+      )
+
+      Fixtures.logged(on)
+      on('tool.judge', () => Fixtures.BLOCKED)
+      on('prompt.section', ($, e) => ({ text: e.text }))
+
+      await $.prompt.section(Fixtures.MEMORY)
+      stopPolicy()
+
+      expect(await $.tool.judge(Fixtures.JUDGED)).toMatchObject(
+        Fixtures.BLOCKED,
+      )
+    },
+  )
+
+  test(
     'managed settings may let the plugins a person installs override',
     { plugins: [Fixtures.allowing('easy')] },
     async ($, on) => {

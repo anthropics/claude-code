@@ -12,6 +12,6 @@ import type { TraceEntry } from 'claude-code'
  * @returns the verdict, or undefined when nothing settled beneath the link
  */
 export const handedTo = (
-  trace: readonly TraceEntry<'tool.check'>[],
+  trace: readonly TraceEntry<'tool.check' | 'tool.judge'>[],
   at: number,
 ) => trace.slice(at + 1).find(link => link.returned !== undefined)?.returned

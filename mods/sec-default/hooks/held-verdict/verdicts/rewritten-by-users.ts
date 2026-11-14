@@ -4,8 +4,8 @@ import { isSameVerdict } from './is-same-verdict.js'
 import Ranking from './ranking'
 
 /**
- * The links of one run of `tool.check` that may hold a plugin a person
- * installed and that rewrote the verdict handed to them without tightening.
+ * The links of one run of `tool.check` or `tool.judge` that may hold a plugin a
+ * person installed and that rewrote the verdict handed up without tightening.
  *
  * A more permissive decision counts, and so does the same decision under
  * another reason, rule or hook. Read off `next.trace`, whose `tier` the
@@ -15,7 +15,7 @@ import Ranking from './ranking'
  * @returns their names, nearest the caller first; none when none rewrote
  */
 export const rewrittenByUsers = (
-  trace: readonly TraceEntry<'tool.check'>[],
+  trace: readonly TraceEntry<'tool.check' | 'tool.judge'>[],
 ): readonly string[] =>
   trace
     .filter((link, at) => {

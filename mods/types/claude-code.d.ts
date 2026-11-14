@@ -119,6 +119,25 @@ declare module 'claude-code' {
   };
 
   /**
+   * The argument of `$.agent.call`: a tool, its arguments, and whose call it is.
+   */
+  export type AgentCallArgs = {
+      /**
+       * As that agent's model names it (`Bash`, `mcp__server__tool`).
+       */
+      tool: string;
+      /**
+       * The tool's arguments (`{ command }` for Bash).
+       */
+      input: Record<string, unknown>;
+      /**
+       * The agent the call is made as, running or resting (finished, or stopped
+       * by another agent); absent for the main conversation. Pinned.
+       */
+      agentId?: string;
+  };
+
+  /**
    * What an Agent call a plugin raised (`$.tool.call({ tool: "Agent", ... })`)
    * answers as `result` once the agent settles; `text` is its final answer.
    *
@@ -840,8 +859,8 @@ declare module 'claude-code' {
    *
    * The messages are the ones the next request is built from, after the
    * engine's normalization (the last compaction's summary in place of what it
-   * replaced, reminders as text blocks); at most 4096 or `last`, opening on a
-   * user one where the cut holds one.
+   * replaced, reminders as text blocks); at most 4096, opening on a user one
+   * with no tool_result unless the newest 4096 hold none.
    */
   type ApiMessage = {
       /**
@@ -3100,23 +3119,24 @@ declare module 'claude-code' {
            * fork, a teammate in this process): what the session saved for it joined
            * with what the engine holds. With `{ as: "api" }`, either as ApiMessage.
            *
-           * The more a read returns the more it costs: `last` and `after` cut it.
+           * The more a read returns the more it costs: `last` or `after` cuts it.
            *
            * @param args `agentId`, the id `tool.call`, `turn.complete` and `$.agent
            *             .list()` carry; `as: "api"` for ApiMessage; `last`, how many
            *             of the newest; `after`, a row's `uuid`; hooks see all four
-           * @returns the newest 4096 entries, or `last`, `{ role, text, toolUses }`
-           *          (a user message may add `toolResults`; a `toolUses` entry adds
-           *          `result` and `text` once answered, an Agent tool use its
-           *          `agentId`; a ranged read adds `uuid`), or with `as` `{ role,
-           *          content }`, blocks intact, opening on a user message where the
-           *          cut holds one; for an `agentId` the session cannot read or an
-           *          `after` it does not hold, `{ deny }` (SessionMessagesDeny)
+           * @returns the newest 4096 entries, the newest `last`, or the oldest 4096
+           *          after `after`: `{ role, text, toolUses }` (a user message may
+           *          add `toolResults`; a `toolUses` entry adds `result` and `text`
+           *          once answered, an Agent tool use its `agentId`; a ranged read
+           *          adds `uuid`), or with `as` `{ role, content }`, blocks intact,
+           *          opening on a user message (ApiMessage); for an `agentId` the
+           *          session cannot read or an `after` that is gone, `{ deny }`
            * @example
-           * const [last] = await $.session.messages({ last: 1 })
+           * const last = (await $.session.messages()).at(-1)
            * @example
-           * // `last` has the first read carry `uuid` too; 200 back may skip some
-           * const fresh = await $.session.messages({ last: 200, after: seen })
+           * // `last` seeds the follower; `after` then skips nothing
+           * const range = seen === undefined ? { last: 20 } : { after: seen }
+           * const fresh = await $.session.messages(range)
            * seen = "deny" in fresh ? undefined : (fresh.at(-1)?.uuid ?? seen)
            * @example
            * const request = await $.session.messages({ as: "api" })
@@ -3646,6 +3666,31 @@ declare module 'claude-code' {
            * if (e.agentId && next.origin.plugin === "lab") return next(e)
            */
           spawn: EventCalls['agent']['spawn'];
+          /**
+           * Runs a tool as an agent's own call: the event `agent.call`, and beneath
+           * it `tool.call` in that agent's loop. `$.tool.call` is unchanged.
+           *
+           * The call has that agent's tools, folder, mode and rules, and meets the
+           * hooks, the dialog and auto mode's classifier as its model's call does
+           * (`tool.judge` before the classifier, which reads the agent's conversation
+           * so far). What the agent's running turn tightened binds it; what that turn
+           * was granted does not carry. Nothing joins the agent's conversation. As a
+           * resting agent it starts no background work but an agent.
+           *
+           * Made outside a hook, it reaches this plugin's hooks too, `next.origin`
+           * naming the plugin. `Agent` is that agent's own spawn or fork: in the
+           * background it answers at once, `result.agentId` the child's id.
+           * `Workflow` is refused, as `$.tool.call` refuses it.
+           *
+           * @param args `tool`, `input`, and `agentId` (absent: the main conversation)
+           * @returns the tool's result, or `{ deny }`: refused by a check, a tool
+           *          the agent lacks, or an agent this session cannot run from;
+           *          rejects on an `agent.call` hook's deny
+           * @example
+           * const { text, deny } = await $.agent.call({ tool: "Bash",
+           *   input: { command: "git status" }, agentId: e.agentId })
+           */
+          call: (args: AgentCallArgs) => Promise<OpValueOf['agent.call']>;
           /**
            * Returns the session's agents so far, subagents and teammates: the ones
            * the model spawned and the ones plugins did alike.
@@ -4576,6 +4621,23 @@ declare module 'claude-code' {
        */
       'tool.check': ToolCheckInput;
       /**
+       * Fires when auto mode is about to ask its classifier about a call, after
+       * every rule, hook and check that only a person may answer.
+       *
+       * `next(e)` asks it, once however often it runs, and runs no tool: the
+       * server's verdict where it judged the model's call, else the local
+       * classifier's. A call auto mode settles with no classifier raises none.
+       *
+       * @remarks A hook that fails is skipped and the classifier decides, so give
+       *   a guard `.catch(() => ({ decision: "deny" }))`. The classifier's allow is
+       *   no proof the call ran: a hook's ask or a change of mode may still hold it.
+       * @example
+       * // "lab" is this plugin: its own `$.agent.call` of a read needs no classifier
+       * on("tool.judge", ($, e, next) => next.origin.plugin === "lab" &&
+       *   e.isReadOnly ? { decision: "allow" } : next(e))
+       */
+      'tool.judge': ToolJudgeInput;
+      /**
        * Fires when the engine is about to draw a component: once per input value
        * (props, viewport width), plugin load or `$.ui.invalidate("ui.render")`.
        *
@@ -5146,6 +5208,10 @@ declare module 'claude-code' {
        */
       'tool.check': ToolCheckResult;
       /**
+       * `{ decision, reason?, plugin? }`.
+       */
+      'tool.judge': ToolJudgeResult;
+      /**
        * The tree to draw; `{ type: "engine", ref }` is core's own drawing.
        */
       'ui.render': RenderElement;
@@ -5364,6 +5430,7 @@ declare module 'claude-code' {
       tool: {
           call: ToolCallOverloads;
           check: (input: ToolCheckArgs) => Promise<ToolCheckResult>;
+          judge: (input: ToolJudgeInput) => Promise<ToolJudgeResult>;
           describe: (input: ToolDescribeInput) => Promise<ToolDescribeResult>;
       };
       command: {
@@ -7752,7 +7819,7 @@ declare module 'claude-code' {
        * The argument of `$.session.messages(args)`: `{}` for the main
        * conversation, `{ agentId }` for one of its agents, `as` for the form.
        *
-       * `last` and `after` for part of it.
+       * `last` or `after` for part of it.
        */
       'session.messages': SessionMessagesArgs;
       /**
@@ -7834,6 +7901,12 @@ declare module 'claude-code' {
        * defined it. A hook above rewrites any of it; the type stays the caller's.
        */
       'agent.register': AgentSpec;
+      /**
+       * The argument of `$.agent.call(args)`. A hook above may rewrite the tool
+       * and its input, and the call is then no longer its caller's own at
+       * `tool.judge`; `agentId` is pinned.
+       */
+      'agent.call': AgentCallArgs;
       /**
        * The argument of `$.ui.toast(text, { timeoutMs })`.
        */
@@ -8115,7 +8188,7 @@ declare module 'claude-code' {
       'session.id': string;
       /**
        * The conversation's messages, as rows or in Messages API form; `{ deny }`
-       * for an `agentId` the session cannot read or an `after` it does not hold.
+       * for an `agentId` the session cannot read or an `after` that is gone.
        */
       'session.messages': SessionMessagesValue;
       'session.repo': SessionRepo | null;
@@ -8159,6 +8232,7 @@ declare module 'claude-code' {
       'agent.register': {
           agent: string;
       };
+      'agent.call': ToolCallResult;
       'ui.toast': void;
       'ui.status': void;
       'ui.log': void;
@@ -12979,11 +13053,11 @@ declare module 'claude-code' {
        */
       as?: undefined;
       /**
-       * How many of the newest rows at most (SessionMessagesArgs).
+       * How many of the newest rows (SessionMessagesArgs). Not with `after`.
        */
       last?: number;
       /**
-       * The `uuid` of the row to read on from (SessionMessagesArgs).
+       * The row to read on from (SessionMessagesArgs). Not with `last`.
        */
       after?: string;
   };
@@ -13002,7 +13076,8 @@ declare module 'claude-code' {
        */
       agentId?: string;
       /**
-       * How many of the newest messages at most (SessionMessagesArgs).
+       * How many of the newest messages, walked back to a clean user one
+       * (SessionMessagesArgs).
        */
       last?: number;
       /**
@@ -13040,21 +13115,22 @@ declare module 'claude-code' {
        */
       as?: 'api';
       /**
-       * How many of the newest entries at most, a whole number from 1 to 4096;
-       * absent, 4096. Rows of a read naming it carry `uuid`.
+       * How many of the newest entries, a whole number from 1 to 4096; absent,
+       * 4096. Rows of a read naming it carry `uuid`. Not with `after`.
        *
-       * With `as`, the cut's head moves on to its first user message carrying no
-       * tool_result, when it holds one, so fewer may come back.
+       * With `as`, the cut walks back to the nearest user message carrying no
+       * tool_result, so more may come (4096 at most); with none that near, it
+       * opens on the first inside the cut, else mid-exchange where it was cut.
        */
       last?: number;
       /**
-       * A row's `uuid`, as a ranged read or `session.append` gave it: only the
-       * entries after that row, the newest `last` of them, each with `uuid`.
+       * A row's `uuid`: the rows after it, oldest first, none skipped, each with
+       * `uuid`; 4096 back may have more behind them. Not with `last` or `as`.
        *
-       * Any row the conversation holds, listed or not; else `{ deny }` (cleared,
-       * rewound, compacted away, a turn's row while its append hook runs). Not with
-       * `as`. Nothing ahead of it comes: not a row whose tool answered since (its
-       * result row does), nor the summary of a compaction that kept it.
+       * Any row since the last compaction or kept by it anchors, listed or not;
+       * any other is `{ deny }` (SessionMessagesDeny). Nothing ahead of it comes:
+       * not a row whose tool answered since (its result row does), nor the
+       * summary of a compaction that kept it.
        */
       after?: string;
   };
@@ -13063,11 +13139,11 @@ declare module 'claude-code' {
    * `$.session.messages`: the main conversation's rows with no argument, with
    * `{ as: "api" }` its Messages API form; with `agentId` an agent's, or deny.
    *
-   * `last` and `after` ask for part of it; an `after` it does not hold denies.
+   * `last` or `after` asks for part of it; ranged rows are typed rows or deny,
+   * as a hook above may add an `after` that no longer anchors.
    */
   type SessionMessagesCall = {
       (): Promise<SessionMessage[]>;
-      (args: SessionMessagesMainLastArgs): Promise<SessionMessage[]>;
       (args: SessionMessagesMainApiArgs): Promise<ApiMessage[]>;
       (args: SessionMessagesApiArgs): Promise<SessionMessagesApiResult>;
       (args: SessionMessagesAgentArgs): Promise<SessionMessagesResult>;
@@ -13076,7 +13152,7 @@ declare module 'claude-code' {
 
   /**
    * What `$.session.messages` resolves to when `agentId` names no conversation
-   * this session can read, or `after` no row of it: why not, in `deny`.
+   * this session can read, or `after` no row to read on from: why, in `deny`.
    *
    * The agent is not one of this session's, runs in another process (a
    * pane-hosted teammate), or finished and the session reads no saved transcript
@@ -13085,6 +13161,10 @@ declare module 'claude-code' {
   type SessionMessagesDeny = {
       /**
        * Why nothing was read, naming the agent's id or the row's uuid.
+       *
+       * A row was cleared, rewound or left behind the last compaction. Or, for a
+       * moment: a compaction that keeps it is still landing, or it is a turn's
+       * own row and its `session.append` hook still runs.
        */
       deny: string;
   };
@@ -13103,7 +13183,8 @@ declare module 'claude-code' {
        */
       agentId?: undefined;
       /**
-       * How many of the newest messages at most (SessionMessagesArgs).
+       * How many of the newest messages, walked back to a clean user one
+       * (SessionMessagesArgs).
        */
       last?: number;
       /**
@@ -13113,34 +13194,11 @@ declare module 'claude-code' {
   };
 
   /**
-   * A `$.session.messages({ last })` call naming nothing else: the main
-   * conversation's newest rows, whose answer is always the rows.
-   */
-  type SessionMessagesMainLastArgs = {
-      /**
-       * How many of the newest rows at most (SessionMessagesArgs).
-       */
-      last: number;
-      /**
-       * Left out: the main conversation.
-       */
-      agentId?: undefined;
-      /**
-       * Left out: the rows.
-       */
-      as?: undefined;
-      /**
-       * Left out: no row to miss.
-       */
-      after?: undefined;
-  };
-
-  /**
-   * What `$.session.messages({ agentId, after })` resolves to: the messages
+   * What `$.session.messages({ agentId, last, after })` resolves to: the messages
    * (SessionMessage), or `{ deny }` (SessionMessagesDeny).
    *
-   * With neither it is always the messages; with an agent the session cannot
-   * read or a row it does not hold, the deny. `Array.isArray` tells them apart.
+   * With an agent the session cannot read or a row it cannot read on from,
+   * the deny. `Array.isArray` tells the two apart.
    */
   type SessionMessagesResult = SessionMessage[] | SessionMessagesDeny;
 
@@ -15633,6 +15691,50 @@ declare module 'claude-code' {
    */
   export type ToolInputOf<Name extends string, Arguments> = {
       [K in keyof ToolEnvelope<Name, Arguments>]: ToolEnvelope<Name, Arguments>[K];
+  };
+
+  /**
+   * The input of `tool.judge`: `tool.check`'s question about a real call. All
+   * of it is pinned.
+   */
+  type ToolJudgeInput = ToolCheckInput & {
+      /**
+       * The call being judged: the id its `tool.call` and `tool.check` carried.
+       *
+       * `next.origin` names a plugin only on its own `$.agent.call`, where its
+       * allow stands in the classifier's place; on any other call, the engine.
+       */
+      tool_use_id: string;
+  };
+
+  /**
+   * What a `tool.judge` hook returns and what `next(e)` resolves to: a verdict
+   * on one call, why, and whose it is.
+   */
+  type ToolJudgeResult = {
+      /**
+       * From the classifier: `allow` and `deny` are its verdict, `ask` says it
+       * gave none (an outage, a conversation too long, a session without one).
+       *
+       * From a hook: `deny` refuses the call, `ask` puts it to a person (a deny
+       * where nobody can be asked), and `allow` runs it in the classifier's place
+       * on a call this plugin made with `$.agent.call` and no hook rewrote. Any
+       * other allow is held to what a `tool.check` hook's is, and so is one on a
+       * write in plan mode or a call auto mode always judges by itself.
+       */
+      decision: ToolCheckDecision;
+      /**
+       * Why, in a sentence: the classifier's own, or what the caller reads on a
+       * hook's deny. The dialog shows it on an ask the tool gave no reason for.
+       */
+      reason?: string;
+      /**
+       * The plugin whose hook made this answer, set by the engine and pinned:
+       * whatever a hook writes here is dropped. Absent for the classifier.
+       *
+       * An answer a hook hands up as it heard it keeps what it carried.
+       */
+      plugin?: string;
   };
 
   /**

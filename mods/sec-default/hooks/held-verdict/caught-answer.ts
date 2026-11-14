@@ -3,8 +3,8 @@ import type { EventResult, TraceEntry } from 'claude-code'
 import Verdicts from './verdicts'
 
 /**
- * What the `tool.check` hook's failure handler answers from the one run it
- * can read, the failed hook's last: that run's verdict, or a refusal.
+ * What the `tool.check` or `tool.judge` hook's failure handler answers from the
+ * one run it can read, the failed hook's last: that run's verdict, or a refusal.
  *
  * A verdict stands that no link that may hold a person's plugin rewrote
  * without tightening. A rewritten one, or none at all, met no rule or hook.
@@ -15,7 +15,7 @@ import Verdicts from './verdicts'
  */
 export function caughtAnswer(
   last: EventResult<'tool.check'> | undefined,
-  trace: readonly TraceEntry<'tool.check'>[],
+  trace: readonly TraceEntry<'tool.check' | 'tool.judge'>[],
 ) {
   const isVouched =
     last !== undefined && Verdicts.rewrittenByUsers(trace).length === 0

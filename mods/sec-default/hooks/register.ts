@@ -166,18 +166,72 @@ export function register(on: On) {
       return answer
     }
 
-    const kind = HeldVerdict.heldKind(held)
+    const lines = HeldVerdict.untoldNotices(told, mods, e.tool, {
+      held,
+      answer,
+    })
 
-    for (const mod of mods.filter(name => !told.has(`${name} ${kind}`))) {
-      told.add(`${mod} ${kind}`)
-      $.ui.log(
-        HeldVerdict.heldNotice(
-          mod,
-          e.tool,
-          held,
-          HeldVerdict.isLooser(answer, held) ? 'lift' : 'reword',
-        ),
+    for (const line of lines) {
+      $.ui.log(line)
+    }
+
+    return held
+  }).catch(async ($, e, next) => {
+    const last = await next(e).catch(() => undefined)
+
+    const shouldVouch = await Policy.decidedByPolicy(
+      readPolicy(() => $.settings.read(Policy.SOURCE)),
+      Policy.denyRulesHold,
+    )
+
+    return shouldVouch ? HeldVerdict.caughtAnswer(last, next.trace) : last
+  })
+
+  // The engine raises nothing here where this is the built-in copy and no other hook could run.
+  // Before the row does more than hand up what it heard then, end that skip (tool-judge.ts).
+  on('tool.judge', async ($, e, next) => {
+    const answer = await next(e)
+    // The engine names a plugin as the origin only on a call its allow stands on.
+    const isOwnAllow =
+      answer.decision === 'allow' &&
+      next.origin.tier !== 'core' &&
+      answer.plugin === next.origin.plugin
+    // A deny that rewords no other plugin's is final, and worth no classifier request.
+    const isPlainDeny =
+      answer.decision === 'deny' &&
+      next.trace.every(({ returned }) =>
+        [undefined, answer.plugin].includes(returned?.plugin),
       )
+    const mods =
+      isOwnAllow || isPlainDeny ? [] : HeldVerdict.rewrittenByUsers(next.trace)
+
+    const shouldRecheck =
+      mods.length > 0 &&
+      (await Policy.decidedByPolicy(
+        readPolicy(() => $.settings.read(Policy.SOURCE)),
+        Policy.denyRulesHold,
+      ))
+
+    if (!shouldRecheck) {
+      return answer
+    }
+
+    const held = await next.to(e, 'append')
+
+    if (!HeldVerdict.holdsAtJudge(held, answer, e)) {
+      return answer
+    }
+
+    // An allow refuses nothing, and a missing verdict has no name to tell.
+    const isTold =
+      held.decision === 'deny' ||
+      (held.decision === 'ask' && held.plugin !== undefined)
+    const lines = isTold
+      ? HeldVerdict.untoldNotices(told, mods, e.tool, { held, answer })
+      : []
+
+    for (const line of lines) {
+      $.ui.log(line)
     }
 
     return held
