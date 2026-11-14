@@ -3552,8 +3552,9 @@ declare module 'claude-code' {
            * PermissionRequest hook is consulted on this call), a tool's own refusal, a
            * deny a command or a host sets for its turn, a tool held until a person
            * types, the rules guarding Claude Code's own credentials on a call a
-           * machine serves, the person's own devices or browser from a cloud
-           * session, or the cloud browser under its mode floor. A tool a `--tools` list
+           * machine serves, the person's own devices or browser from a session off
+           * their machine (cloud, SSH, a VM but for Cowork's), or the cloud browser
+           * under its mode floor. A tool a `--tools` list
            * leaves out isn't there to call, and the call rejects. A `tool.list` hook's
            * removal deletes the tool from the session, for mods too, even one a deny
            * rule or a `blocked` ceiling also hides, so this call can't run it. A deny
@@ -4294,7 +4295,8 @@ declare module 'claude-code' {
            * unsets it when `value` is `undefined`.
            *
            * `name` must be a string literal; `claude plugin validate` lists the
-           * names your module reads and writes.
+           * names your module reads and writes. Some names are launch-only, more
+           * of them in a session off the person's machine.
            *
            * @returns `{}` once it is set or unset, or `{ deny }` saying why not
            * @example
@@ -4723,6 +4725,12 @@ declare module 'claude-code' {
        * deny after `next(e)` resolved undoes nothing it ran; returning with `next`
        * pending aborts what runs beneath. Managed-settings hooks' deny comes first.
        *
+       * In a session off the person's machine (cloud, SSH, a VM but for Cowork's) a
+       * call to their devices or browser is refused once a hook of any tier wrote
+       * it, changed it or ran it again, here, at `turn.step` or at a classic event.
+       * So is one made beneath such a call, or by an agent a mod spawned, retyped
+       * or registered.
+       *
        * @remarks A guard that fails is skipped and the tool runs, so give it
        *   `.catch(($, e, next) => next.called ? next(e) : { deny: "no" })`. A hook
        *   that checks the result refuses in its `.catch` even where `next` was called.
@@ -4735,6 +4743,8 @@ declare module 'claude-code' {
        * `next(e)` resolves to the engine's verdict (rules, mode, the tool's own
        * check, PreToolUse's decision) and runs no tool: return any `{ decision }`,
        * a deny after it too. `$.tool.check` runs the same chain, executing nothing.
+       * On a call to the person's devices from off their machine a hook only
+       * tightens, here, at `tool.judge` and at the classic permission events.
        *
        * @remarks A guard that fails is skipped, leaving the verdict beneath.
        *   Nothing has run, so give it `.catch(() => ({ decision: "deny" }))`.
@@ -8799,6 +8809,10 @@ declare module 'claude-code' {
   /**
    * A `classic.PermissionRequest` answer's `decision`, as the classic hook's
    * `hookSpecificOutput.decision`: allow (with a rewrite or rules) or deny.
+   *
+   * In a session off the person's machine a mod's update stands unless it loosens
+   * a device tool, Bash, PowerShell, a file tool or TaskStop, as `setMode` and
+   * `addDirectories` do.
    */
   export type PermissionRequestDecision = {
       behavior: 'allow';
@@ -15842,7 +15856,8 @@ declare module 'claude-code' {
    * no managed settings, they are a person's own plugins listed in user settings,
    * except where plugin-authoring's reference says that list is set aside. `user`
    * is every other plugin a person installs, `builtin` the plugins bundled in the
-   * binary, `core` the engine's innermost link.
+   * binary, `core` the engine's innermost link. `--safe-mode` and `--bare` keep
+   * an organization's tiers: they turn off what a person installed.
    *
    * Under an organization's managed settings, a mod from a marketplace with a
    * remote source (`github`, `git`, `url` or inline `settings`) takes the
@@ -15857,7 +15872,8 @@ declare module 'claude-code' {
    * checks the copy against it at each load, so an edit made after that is caught.
    * A copy that doesn't match is fetched afresh once before the first turn. Some
    * starts run no fetch, such as `--bare` or a session with hooks modules off
-   * (`--safe-mode`, a managed `disableAllHooks`). Where a fetch
+   * (a managed `disableAllHooks`). Under `--safe-mode`, a listed mod with an
+   * unmet dependency stays out until a normal start. Where a fetch
    * ran and the copy still isn't mended, the session carries on and the debug log
    * says `listed mod <id> does not run in this session: <why>`. A copy that doesn't
    * match runs without its hooks module, and a copy outside its
