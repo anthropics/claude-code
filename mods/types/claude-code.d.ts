@@ -15482,9 +15482,11 @@ declare module 'claude-code' {
    * leaves the last answer standing, and the event is raised again at the next turn.
    * A turn waits at most 10 seconds for a raise, then goes on with the answer that
    * stood, or the tools as built before the first; the raise goes on, and its answer
-   * counts unless a later raise has answered. A `$.tool.call` of a `tool.list` hook,
-   * or an agent it spawns, reads the answer that stood, or the tools as built on the
-   * first raise. `$.prompt.submit` and `$.command.run` are refused there.
+   * counts unless a later raise has answered. A `$.tool.call` of a `tool.list` hook
+   * doesn't wait for the raise: the other hooks are asked about it, and a list that
+   * leaves the tool out refuses it, as does a removal that stood; an agent the hook
+   * spawns reads the answer that stood, or the tools as built on the first raise.
+   * `$.prompt.submit` and `$.command.run` are refused there.
    *
    * Where sec-default is seated, a person's hook can't remove a tool of the
    * organization's managed MCP servers or seated plugins, or bring back a tool an
