@@ -271,6 +271,7 @@ else
   gcloud sql instances create "${DB_INSTANCE}" \
     --database-version="${DB_VERSION}" \
     --tier="${DB_TIER}" \
+    --edition=enterprise \
     --region="${REGION}" \
     --network="projects/${PROJECT_ID}/global/networks/${VPC_NETWORK}" \
     --no-assign-ip \
