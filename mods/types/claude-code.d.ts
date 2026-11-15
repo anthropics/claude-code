@@ -11541,9 +11541,10 @@ declare module 'claude-code' {
    * another (`$.ui.place`), and `Backdrop` the one a plugin sets
    * (`$.theme.set`), drawn behind the conversation by the desktop and mobile
    * apps alone. `AbovePromptList` is the band's arrangement of its `AbovePrompt`
-   * rows.
+   * rows. `ContextMenu` is asked as the person opens the menu on a transcript
+   * row, and holds the rows a plugin adds to it.
    */
-  export type RenderComponent = 'AskUserQuestion' | 'UserMessage' | 'AssistantMessage' | 'ToolUse' | 'ToolResult' | 'ToolGroup' | 'ToolProgress' | 'CommandOutput' | 'Spinner' | 'TurnDuration' | 'InfoNotice' | 'SessionMode' | 'PromptHint' | 'AbovePrompt' | 'AbovePromptList' | 'AgentRow' | 'Pane' | 'Placed' | 'Backdrop';
+  export type RenderComponent = 'AskUserQuestion' | 'UserMessage' | 'AssistantMessage' | 'ToolUse' | 'ToolResult' | 'ToolGroup' | 'ToolProgress' | 'CommandOutput' | 'Spinner' | 'TurnDuration' | 'InfoNotice' | 'SessionMode' | 'PromptHint' | 'AbovePrompt' | 'AbovePromptList' | 'AgentRow' | 'ContextMenu' | 'Pane' | 'Placed' | 'Backdrop';
 
   /**
    * What a render hook returns, and what `next(e)` resolves to: a plain-data
@@ -11955,7 +11956,8 @@ declare module 'claude-code' {
       requestId: string;
       /**
        * Whose this drawing is, where it is one plugin's: the plugin an
-       * `AbovePrompt` row is asked of, the plugin that opened a `Pane`.
+       * `AbovePrompt` row or `ContextMenu` rows are asked of, the plugin that
+       * opened a `Pane`.
        *
        * The engine's word, pinned: a rewrite carries it on as received. It is a
        * default matcher key: a hook leaving it out hears its own plugin's drawings
@@ -12733,6 +12735,76 @@ declare module 'claude-code' {
            * `false` to show a row that arrives hidden by the person's settings.
            */
           isHidden: boolean;
+      };
+      /**
+       * The menu the person opens on something in the transcript (a right-click in
+       * the desktop app): the rows a plugin adds to it. The engine draws none.
+       *
+       * Asked once for each plugin that hooks it, `e.plugin` naming the plugin: a
+       * hook answers that plugin's rows, or passes with `next(e)` to its plugin's
+       * next hook, or adds none. Another plugin takes rows away by a hook above
+       * naming their plugin or `"*"` that answers over them.
+       *
+       * The props say what the pointer was on, each absent when it was on none, so a
+       * matcher that names `link` runs only when the menu was opened on a link. A
+       * hook can't change them. `e.requestId` names the menu, not the row: read
+       * `e.props.row`.
+       *
+       * The surface makes a row of each `Button`: its `label`, or its text, is the
+       * row's label, a dim `Text` inside it the line under the label, and `onPress`
+       * runs when the person picks the row. It makes a row of each `Link` to an
+       * `https:` address, one line with no second, which it opens on the person's
+       * computer. It leaves out the rest of the tree, keeps its own rows whatever a
+       * hook answers, and chooses where the rows go and how many it shows.
+       *
+       * A surface may open the menu before a slow answer arrives; then those rows
+       * are missing from that menu. A part too long to hand over whole is absent:
+       * text past 64 KB, an address too long for a `Link`. The last answer for the
+       * same props stands until a `$.state` value it read changes or
+       * `$.ui.invalidate()`.
+       *
+       * @example
+       * on("ui.render",
+       *   { component: "ContextMenu", props: { link: { href: /^https:\/\/example\.com\// } } },
+       *   ($, e) => {
+       *     const { Button } = $.ui.resolve(e)
+       *     const fill = () => $.prompt.fill({ text: `Summarize ${e.props.link?.href}` })
+       *     return <Button key="summarize" onPress={fill}>Summarize this page</Button>
+       *   })
+       *
+       * Raised on the desktop surface only.
+       */
+      ContextMenu: {
+          /**
+           * The transcript row the menu was opened on: the `component` its own
+           * `ui.render` hook names, and the id that hook reads as `e.requestId`.
+           *
+           * Absent where the surface cannot name the row.
+           */
+          row?: {
+              component: RenderComponent;
+              requestId: string;
+          };
+          /**
+           * The link under the pointer: `href` is the address as the surface resolved
+           * it, and `text` is the link's visible text, when the surface sends it.
+           */
+          link?: {
+              href: string;
+              text?: string;
+          };
+          /**
+           * The text the person has selected, when the menu was opened on it.
+           */
+          selection?: UiSelection;
+          /**
+           * The code under the pointer: `isBlock` is true for a fenced block, whose
+           * `text` is then the whole block, and false for code inside a line.
+           */
+          code?: {
+              text: string;
+              isBlock: boolean;
+          };
       };
       /**
        * The framed region a plugin opened with `$.ui.open({ id })`: one instance
