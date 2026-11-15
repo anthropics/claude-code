@@ -8,7 +8,7 @@ import { SETTINGS_WRITE_REFUSAL } from './settings-write-refusal.js'
 
 /**
  * Why a person's mod may not make an effect: it writes a settings file, or
- * repeats a script of the model's, or a call the rules alone do not allow.
+ * repeats a remembered script, or a call the rules alone do not allow.
  *
  * Never rejects: a failure refuses what matched, and with no match nothing
  * is read. `allowModsToOverrideDenyRules` lifts both.

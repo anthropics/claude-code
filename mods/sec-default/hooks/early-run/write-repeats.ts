@@ -9,7 +9,7 @@ import { writtenPathOf } from './written-path-of.js'
  * lands on, however either spells the path. Never rejects.
  *
  * @param $ the calling hook's
- * @param remembered the model's calls that were not allowed
+ * @param remembered the calls that were not allowed
  * @param path the path the mod writes
  * @returns the calls to ask the rules about
  */

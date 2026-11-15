@@ -8,7 +8,7 @@ import { stringsOf } from './strings-of.js'
  * The remembered calls a mod's own tool call repeats: the same call, or one
  * whose string it hands whole to a tool that runs a command or a script.
  *
- * @param remembered the model's calls that were not allowed
+ * @param remembered the calls that were not allowed
  * @param own the mod's call
  * @returns the calls to ask the rules about
  */

@@ -36,7 +36,7 @@ const PERSONS_PROMPTS = ['composer', 'bridge', 'sdk', 'slack-ping']
  * pinned `provider` or `tier`, or an id policy names; policy is
  * `$.settings.read`; fail closed. Under
  * `forceHotReloadPrompt` it also asks about a mod Claude wrote before it loads.
- * It remembers the model's calls, so a person's mod runs none before it is allowed.
+ * It remembers the model's calls and each `$.agent.call`, so a person's mod runs none before it is allowed.
  *
  * @param on the engine's registrar
  */
@@ -174,13 +174,11 @@ export function register(on: On) {
     const call = EarlyRun.callOf(e)
     const id = e.tool_use_id
 
-    if (id.startsWith(EarlyRun.PLUGIN_CALL_ID_PREFIX)) {
-      const isUnasked =
-        next.origin.tier === 'user' &&
-        !id.startsWith(EarlyRun.AGENT_CALL_ID_PREFIX)
-      const match = isUnasked
-        ? await ownCallMatch($, memory, first, call)
-        : undefined
+    if (EarlyRun.isUnasked(id)) {
+      const match =
+        next.origin.tier === 'user'
+          ? await ownCallMatch($, memory, first, call, next.origin.plugin)
+          : undefined
       const deny =
         match &&
         (await refusalOf($, readPolicy, match.repeated, match.isSettings))
@@ -188,7 +186,18 @@ export function register(on: On) {
       return deny === undefined ? next(e) : { deny }
     }
 
-    memory.sent(id, call)
+    memory.sent(id, call, EarlyRun.makerOf(id, next.origin))
+
+    try {
+      return await next(e)
+    } finally {
+      memory.ended(id)
+    }
+  })
+
+  on('agent.call', async ($, e, next) => {
+    const id = Symbol()
+    memory.sent(id, { tool: e.tool, input: e.input }, next.origin.plugin)
 
     try {
       return await next(e)
@@ -198,8 +207,10 @@ export function register(on: On) {
   })
 
   on('tool.run', ($, e, next) => {
-    if (!e.tool_use_id.startsWith(EarlyRun.PLUGIN_CALL_ID_PREFIX)) {
-      memory.allowed(e.tool_use_id, EarlyRun.callOf(e))
+    const id = e.tool_use_id
+
+    if (!EarlyRun.isUnasked(id)) {
+      memory.allowed(id, EarlyRun.callOf(e), EarlyRun.makerOf(id, next.origin))
     }
 
     return next(e)
@@ -219,7 +230,7 @@ export function register(on: On) {
         ? await refusalOf(
             $,
             readPolicy,
-            await writeRepeats($, memory.calls(), e.path),
+            await writeRepeats($, memory.calls(next.origin.plugin), e.path),
             await isSettingsFile($, e.path, first),
           )
         : undefined
@@ -240,7 +251,11 @@ export function register(on: On) {
         ? await refusalOf(
             $,
             readPolicy,
-            EarlyRun.processRepeats(memory.calls(), e.argv, e.init?.stdin),
+            EarlyRun.processRepeats(
+              memory.calls(next.origin.plugin),
+              e.argv,
+              e.init?.stdin,
+            ),
             await namesSettingsFile(
               $,
               [...e.argv, e.init?.stdin ?? ''],
@@ -258,7 +273,11 @@ export function register(on: On) {
         ? await refusalOf(
             $,
             readPolicy,
-            EarlyRun.processRepeats(memory.calls(), e.argv, e.input),
+            EarlyRun.processRepeats(
+              memory.calls(next.origin.plugin),
+              e.argv,
+              e.input,
+            ),
             await namesSettingsFile(
               $,
               [...e.argv, e.input ?? ''],
@@ -282,8 +301,9 @@ export function register(on: On) {
       ) {
         return next.to(e, 'append')
       }
-    } else if (!id.startsWith(EarlyRun.PLUGIN_CALL_ID_PREFIX)) {
-      memory.checked(id, { tool: e.tool, input: Object(e.input) })
+    } else if (!EarlyRun.isUnasked(id)) {
+      const call = { tool: e.tool, input: Object(e.input) }
+      memory.checked(id, call, EarlyRun.makerOf(id, next.origin))
     }
 
     const answer = await next(e)
@@ -334,10 +354,13 @@ export function register(on: On) {
   on('tool.judge', async ($, e, next) => {
     const match =
       next.origin.tier === 'user'
-        ? await ownCallMatch($, memory, first, {
-            tool: e.tool,
-            input: Object(e.input),
-          })
+        ? await ownCallMatch(
+            $,
+            memory,
+            first,
+            { tool: e.tool, input: Object(e.input) },
+            next.origin.plugin,
+          )
         : undefined
     const isMatched =
       match !== undefined &&

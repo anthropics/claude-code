@@ -1,7 +1,7 @@
 import { isScript } from './is-script.js'
 
 /**
- * Why a plugin a person installed may not carry out the model's call yet, or
+ * Why a plugin a person installed may not carry out another's call yet, or
  * its script at all.
  *
  * @param tool the tool of the call it repeats
@@ -9,5 +9,5 @@ import { isScript } from './is-script.js'
  */
 export const earlyRunRefusal = (tool: string) =>
   isScript({ tool, input: {} })
-    ? `this repeats a ${tool} script of the model's; pass it on with next, so the session checks its calls`
-    : `this repeats a ${tool} call of the model's that is not allowed; serve an allowed call at tool.run`
+    ? `this repeats a ${tool} script that another sent; pass it on with next, so the session checks its calls`
+    : `this repeats a ${tool} call that is not allowed; serve an allowed call at tool.run`

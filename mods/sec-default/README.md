@@ -38,6 +38,7 @@ settings it decides by.
 | `tool.check` | A person's plugin only tightens. A deny and an ask, whoever answers it, hold whole over the user tier: when a person's plugin rewrote the verdict it was handed without tightening it (a more permissive decision, or the same decision under another reason or with what it names changed), the dispatch is run again past the user tier, and unless the chain's answer is the stricter, that verdict is the answer as the engine gave it. See [Deny rules hold](#deny-rules-hold). Every other verdict passes as the chain left it. |
 | `tool.judge` | A person's plugin only tightens, but for its allow of a call it made itself. See [At the classifier](#at-the-classifier). |
 | `tool.call`, `tool.run`, `prompt.submit` | The model's calls pass, and are remembered until they are allowed or the person's next prompt. A `user`-tier `$.tool.call` or `$.mcp.call` that repeats one, or writes or names a settings file, is refused. See [The model's call waits for its check](#the-models-call-waits-for-its-check). |
+| `agent.call` | Passes, and is remembered under the plugin that made it, ahead of the hooks beneath. |
 | `fs.write`, `process.run`, `process.spawn` | A `user`-tier caller is refused where the effect repeats a remembered call, or writes or names a settings file. Every other passes. |
 | `fs.stat` | This plugin's own look at where a path leads continues past the user tier. Every other passes. |
 | `ui.log` | A line a plugin in `prepend` or `append` logs, this one's included, continues past the user tier: no user hook rewrites or drops it, and none runs inside the hook that logged it. Every other line passes. |
@@ -45,7 +46,7 @@ settings it decides by.
 | `env.set` | A write by a plugin in `prepend` or `append` continues past the user tier, whatever the variable: no user hook rewrites or drops what the organization's own plugin sets. A variable managed settings set in `env` (its name in any case) is pinned, and so are `CLAUDE_CODE_PROCESS_WRAPPER` where they name a launcher with `processWrapper` and, always, the nine variables that move where policy and sign-in are read from or how policy's tiers compose (`CLAUDE_CODE_MANAGED_SETTINGS_PATH`, `CLAUDE_CODE_REMOTE_SETTINGS_PATH`, `CLAUDE_CODE_MOCK_REMOTE_SETTINGS`, `CLAUDE_CODE_DISABLE_ADMIN_ENV_UNION`, `CLAUDE_CONFIG_DIR`, `CLAUDE_SECURESTORAGE_CONFIG_DIR`, `USE_LOCAL_OAUTH`, `USE_STAGING_OAUTH` and `CLAUDE_LOCAL_OAUTH_API_BASE`, which choose the server sign-in goes to; all nine on every build), and, on every build too, ten variables that can load code into a child the engine starts (`LD_PRELOAD`, `LD_LIBRARY_PATH`, `LD_AUDIT`, `DYLD_INSERT_LIBRARIES`, `DYLD_LIBRARY_PATH`, `DYLD_FRAMEWORK_PATH`, `BASH_ENV`, `ENV`, `ZDOTDIR`, `NODE_OPTIONS`): setting or unsetting it, a `user`-tier caller is refused by name and a built-in's write continues past the user tier. Any other variable is a person's plugin's to set. With no policy to read, every variable counts as pinned. `allowModsToOverrideDenyRules` does not unpin. See [Pinned variables](#pinned-variables). |
 | `wasm.compile` | A compile by a plugin in `prepend` or `append` continues past the user tier: no user hook reads or replaces the WebAssembly the organization's own plugin runs. Every other compile passes. |
 | `plugin.register` | A hooks module in the `user` tier (one a person installed, named with `--plugin-dir`, or keeps in their mods folder) is refused while managed settings set this plugin's `allowManagedModsOnly` option. While they set its `forceHotReloadPrompt` option, a plugin in a session's dev-mods folder is asked about, with a hooks module or without one, unless a person already said yes to that folder here. Otherwise a plugin whose id managed settings turn on in `enabledPlugins` or list in `prependPlugins` or `appendPlugins` continues past the user tier, so a person's mod can't refuse it and the organization's prepended and appended mods still judge it. Every other plugin passes. The limits: a namesake marketplace under the organization's id only escapes the person's own judges (the `user` tier's, where an organization's mod neither list seats sits too), and `allowManagedModsOnly` still refuses its module; a plugin claude.ai marks Required, a host-delivered copy (`@inline`) of a managed one and a dependency that policy doesn't name aren't covered, as the event carries no mark for them; a person's `plugin.register` hook gets the engine's "was skipped" line when an organization's plugin is judged (for one judged with its module at a load, the debug log alone has it). Plugins in `prepend`, `append` and `builtin` are never asked about. A refusal refuses the whole plugin. |
-| everything else | Passes: `turn.*`, `command.run`, `command.register`, `command.list`, `agent.register`, `agent.call`, `config.*`, `prompt.fill`, `prompt.suggest`, `prompt.edit`, `prompt.read`, `session.*` but `session.append`, `session.compact` and `session.identity`, `ui.*` but `ui.log`, `fs.*` but `fs.write` and `fs.stat`, `http.fetch`, `store.*`, `clock.*`, `model.*`, `mcp.call`, `audio.*`, `agent.list`, `engine.create`. |
+| everything else | Passes: `turn.*`, `command.run`, `command.register`, `command.list`, `agent.register`, `config.*`, `prompt.fill`, `prompt.suggest`, `prompt.edit`, `prompt.read`, `session.*` but `session.append`, `session.compact` and `session.identity`, `ui.*` but `ui.log`, `fs.*` but `fs.write` and `fs.stat`, `http.fetch`, `store.*`, `clock.*`, `model.*`, `mcp.call`, `audio.*`, `agent.list`, `engine.create`. |
 
 ## Options an administrator sets
 
@@ -166,7 +167,7 @@ is outside it, and `allowManagedModsOnly` is the control over it. The option als
 `classic.*`, `prompt.section`, `prompt.context`, `prompt.attachment`,
 `prompt.compose`, `skill.prompt`,
 `attribution.text`, `session.append`, `session.compact`, `settings.read`, `session.identity`, `tool.describe`, `command.describe`,
-`agent.offer`, `agent.spawn`, `tool.register`, `tool.list`, `tool.call`, `tool.run`, `tool.check`, `tool.judge`,
+`agent.offer`, `agent.spawn`, `agent.call`, `tool.register`, `tool.list`, `tool.call`, `tool.run`, `tool.check`, `tool.judge`,
 `prompt.submit`, `fs.write`, `fs.stat`, `process.run`, `process.spawn`,
 `ui.log`, `env.get`, `env.set`, `wasm.compile`, `plugin.register`.
 
@@ -185,7 +186,7 @@ and no `user`-tier module is loaded.
 If it fails, the chain runs and this plugin's `.catch` sees the failure, unless
 this copy has been unloaded or replaced meanwhile: then the failure escapes.
 `tool.judge` is not raised at all where only that copy's hook could run.
-That copy's hooks on `tool.call`, `tool.run`, `prompt.submit`, `fs.write`, `fs.stat`,
+That copy's hooks on `tool.call`, `tool.run`, `agent.call`, `prompt.submit`, `fs.write`, `fs.stat`,
 `process.run` and `process.spawn` read as absent until a `user`-tier module loads.
 From then on each of those events runs its chain.
 
@@ -335,7 +336,7 @@ there could get what `tool.check` held. Under the same option, by the same two r
   over their rewording. Where the classifier gave no verdict their ask stands,
   unless a host answers it or a ceiling caps the tool. Their deny stands.
 - Their allow of their own `$.agent.call` passes, with no second run, unless the call
-  repeats one of the model's that was not allowed, or writes or names a settings file. The engine
+  repeats one of the model's or another plugin's that was not allowed, or writes or names a settings file. The engine
   names a plugin in `next.origin` only on such a call: unrewritten, and not one
   auto mode always judges. An organization's `append` hook on this event does
   not hold over it; its `tool.check` and `tool.call` hooks do, and
@@ -349,19 +350,30 @@ A mod's own effects open no dialog and ask no classifier. So a person's mod may 
 use one to carry out a call the model sent until that call is allowed. Best effort:
 `allowManagedModsOnly` is the control over a mod that means harm.
 
-- **Remembered**: each input the model sends, in any loop, as `tool.call` and
-  `tool.check` show it, for the newest 256 calls. It is forgotten at `tool.run`, ahead of the hooks
-  beneath, and so is an earlier one like it. One that was refused, answered by a hook or
-  rewritten away stays until the person's next prompt. A write is matched by its file: one
-  whose content was edited is forgotten once a write to that file is allowed.
+- **Remembered**: each input the model sends, in any loop, for the newest 256 calls, from
+  the moment it is whole. The engine tells the copy built into it by a `tool.call` that runs
+  nothing: beneath `turn.step`, so ahead of `session.append` and in a fork too, and as a
+  replayed call starts. Where a person's mod hooks `turn.step`, a call's input pieces
+  reach it together, once told, with empty pieces until then, and a batch call's do not reach it. It is forgotten at `tool.run`, ahead of the hooks
+  beneath, and so is an earlier one like it. One that was refused, answered by a hook,
+  dropped or rewritten away stays until the person's next prompt, and so does one
+  routed to another machine. A prompt queued while a call is under way clears neither
+  it nor what was rewritten away from it. A write is matched by its file: one
+  whose content was edited is forgotten once a write to that file is allowed. A plugin's
+  `$.agent.call` is remembered the same way from `agent.call`, and is matched against
+  every person's mod but the plugin that made it; each maker's newest 256 are kept.
+  Its allow clears and excuses that plugin's own calls alone, and one made under a
+  tool's alias stays until the person's next prompt.
 - **Matched**: a `$.tool.call` or `$.mcp.call` of the same tool on the same arguments; a
   `$.tool.call` of a tool that runs a command or a script (Bash, PowerShell, Monitor,
   REPL, the desktop's workspace shell) whose input holds a remembered command or text whole; a write to the file of a
   remembered Write, Edit or NotebookEdit; a process whose argv is the command or ends in
   it, or that hands a remembered command or text whole, in argv or stdin, to a shell, an
   interpreter or a wrapper on one short list (`hooks/early-run/process-repeats.ts`). What follows a
-  script's file there is that script's data, so a gate that reads the command passes,
-  and so does the text of an allowed call under way.
+  script's file there is that script's data, so a gate that reads the command passes
+  (a path that starts `/dev/` or ends in `stdin` or `fd/<number>`, dots and doubled slashes taken out, is no script's file),
+  and so does the text of an allowed call under way (of a tool that runs no code,
+  for the same argument only). Letter case folds in a text that is run; what an allow clears is exact.
 - **Decided** by `$.tool.check` past the user tier, on the rules alone, as Bash where an
   `mcp__` tool's text goes to a shell. An allow passes. Anything else is refused in one
   line that names `tool.run`, where a mod serves a call that was allowed. A repeated
@@ -381,7 +393,9 @@ in the environment, a script that disguises the command, wrappers off the list,
 other quoting or an added argument, other MCP tools that run code, a host's declared ones among them,
 a settings file's path built in pieces, links and other aliases of a path, calls older than the
 newest 256, what an input holds past its first 10,000 values, a reload of this plugin, which forgets what it
-remembered, `turn.step`, prompt rewrites, a person's hook that rewrites an effect beneath this
+remembered, the model's text and thinking, which are not calls, a server tool's input, an input that is not JSON, a call with no input before its block ends,
+a restored or handed-over row before its replay starts, a remote session's rows, a script's preview while it
+streams, the reply under way when a person's first mod loads, prompt rewrites, a person's hook that rewrites an effect beneath this
 plugin, a plugin's command hooks and MCP servers, and `$.http.fetch`. The rules asked
 are the session's, not a subagent's own.
 
