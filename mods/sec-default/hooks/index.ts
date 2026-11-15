@@ -11,5 +11,6 @@ export * from './register.js'
 export * from './skill-row'
 export * from './tool-register-refusal'
 export * from './uses-nothing'
+export * from './without-modules'
 
 export * as default from '.'

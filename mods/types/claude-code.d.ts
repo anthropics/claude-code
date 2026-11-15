@@ -5328,7 +5328,8 @@ declare module 'claude-code' {
        *
        * Return `{ refuse: reason }` and it never joins: no hook, no noun, no tool
        * of it; the debug log names who refused. Its judges, `$` whole, are the
-       * plugins admitted before it and the binary's; judge by `tier` and `uses`.
+       * plugins admitted before it and the binary's; judge by `tier`, `uses` and
+       * `provides`. Pass `provides` on with entries removed to keep out those alone.
        *
        * @remarks A judge that fails is skipped and the module joins, so give it
        *   `.catch(($, e, next) => next.called ? next(e) : { refuse: "no" })`.
@@ -8986,6 +8987,41 @@ declare module 'claude-code' {
   };
 
   /**
+   * One settings hook a plugin ships (hooks.json or its manifest's `hooks`): the
+   * classic event it stands on (`PreToolUse`), its entry's matcher when it names
+   * one, and what it runs.
+   */
+  export type PluginHookEntry = {
+      event: string;
+      matcher?: string;
+      type: 'command';
+      /**
+       * A line for the shell, or with `args` the program spawned directly.
+       */
+      command: string;
+      /**
+       * There, even empty, when no shell reads the command.
+       */
+      args?: readonly string[];
+  } | {
+      event: string;
+      matcher?: string;
+      type: 'http';
+      url: string;
+  } | {
+      event: string;
+      matcher?: string;
+      type: 'prompt' | 'agent';
+      prompt: string;
+  } | {
+      event: string;
+      matcher?: string;
+      type: 'mcp_tool';
+      server: string;
+      tool: string;
+  };
+
+  /**
    * The nouns a plugin declared on `$` by merging into EngineInterface; never
    * one the engine's own events are under (`tool`, `session`, `ui`).
    *
@@ -9010,17 +9046,103 @@ declare module 'claude-code' {
   export type PluginOptions = Readonly<Record<string, string | number | boolean | readonly string[]>>;
 
   /**
+   * What a plugin provides, kind by kind, as the host read it off the plugin's
+   * folder: the same lists `claude plugin validate` prints.
+   *
+   * Text is as written, before `${}` expansion; no env, headers or option values.
+   * A command, its `args` and a prompt are whole. A `url`, and a `target` that is
+   * a URL, name the host dialed and lose their login, query and fragment; with a
+   * `${}` ahead of the path the host is not yet known. A name is the one its part
+   * loads under. Parts that read the same are one entry, and go or stay together.
+   *
+   * A `plugin.register` hook removes entries (PluginRegisterInput `provides`). A
+   * list with an entry removed is an allowlist for its kind: a part loads only
+   * while it reads as an entry left in. A list left whole loads as it would have.
+   */
+  export type PluginProvides = {
+      /**
+       * Its hooks module, if it names one, by its path under the plugin's folder
+       * with forward slashes. Emptied, the module alone stays out.
+       */
+      modules: readonly {
+          path: string;
+      }[];
+      /**
+       * Its settings hooks, in the order it declares them. The hooks in a skill's
+       * own frontmatter are not listed: they go or stay with that skill.
+       */
+      hooks: readonly PluginHookEntry[];
+      /**
+       * Each server by its key in `.mcp.json` or the manifest, with its URL, or its
+       * command and `args`. A bundle (`mcpb`) has its path or URL as both: its
+       * server is named inside it, and nothing is fetched or unpacked to judge a
+       * plugin. A key declared twice is listed both ways.
+       */
+      mcpServers: readonly {
+          name: string;
+          type: 'stdio' | 'http' | 'sse' | 'ws' | 'mcpb';
+          target: string;
+          args?: readonly string[];
+      }[];
+      /**
+       * Each by its key, with its command and, if it has them, its `args`.
+       */
+      lspServers: readonly {
+          name: string;
+          command: string;
+          args?: readonly string[];
+      }[];
+      /**
+       * One armed before its entry was removed runs on, as it does past a refusal.
+       */
+      monitors: readonly {
+          name: string;
+          command: string;
+      }[];
+      /**
+       * `<plugin>:<skill>`; a built-in plugin's go by their bare names.
+       */
+      skills: readonly string[];
+      /**
+       * `<plugin>:<command>`, each folder on the way between (`<plugin>:a:b`).
+       */
+      commands: readonly string[];
+      /**
+       * The agent types: `<plugin>:<agent>`, each folder on the way between.
+       */
+      agents: readonly string[];
+      /**
+       * `<plugin>:<style>`.
+       */
+      outputStyles: readonly string[];
+      /**
+       * `<plugin>:<file name less .json>`. Pinned for now: a `next` that removes
+       * one is refused, as one that changes any pinned field is.
+       */
+      themes: readonly string[];
+      /**
+       * `<plugin>:<workflow>`.
+       */
+      workflows: readonly string[];
+      /**
+       * The files in its `bin/`. Pinned for now: the folder joins `PATH` whole, so
+       * a `next` that removes one is refused.
+       */
+      bin: readonly string[];
+  };
+
+  /**
    * The input of `plugin.register`: one plugin the engine is about to load, with a
    * hooks module or without one, read off its manifest and, where it has a module,
-   * its scanned source. Every field is pinned.
+   * its scanned source. Every field is pinned but `provides`, which only narrows.
    *
-   * The event judges the plugin whole: a `{ refuse }` keeps out its hooks module,
+   * A `{ refuse }` refuses the plugin whole: it keeps out its hooks module,
    * command hooks, MCP servers, LSP servers, skills, commands, agents, output
    * styles, themes, monitors, settings and `bin/`. None of them starts before the
-   * verdict.
+   * verdict. To keep out less, pass `provides` on with entries removed.
    *
-   * `tier` and `uses` are the host's reading of the plugin, what a gate holds
-   * it to; `name`, `root`, `version` and `provenance` are its own word (its
+   * `tier`, `uses`, `provides` and `unread` are the host's reading of the plugin, what
+   * a gate holds it to; `name`, `root`, `version` and `provenance` are its own word (its
    * manifest, its place), so a rule keyed on them is one a rename walks past.
    */
   export type PluginRegisterInput = {
@@ -9053,6 +9175,35 @@ declare module 'claude-code' {
        * module that scans empty: with no hook and no `$`, it can touch nothing.
        */
       uses: PluginRegisterUses;
+      /**
+       * Every part it ships (PluginProvides). Pass it to `next` or `next.to` with
+       * entries removed and those parts stay out while the rest load.
+       *
+       * A list that is not a subset, by value, of the one received is refused,
+       * and so is `themes` or `bin` narrowed; left out, `provides` is restored.
+       * What loads is what every mod's `next` in the dispatch left in, so an allow
+       * beneath or a second `next` widens nothing; a mod's own hooks on the event
+       * compose first, and the `next` that leaves the mod is the one read. Settings
+       * are not listed: a narrowing leaves them on.
+       *
+       * @example
+       * next({ ...e, provides: { ...e.provides, modules: [] } })
+       */
+      provides: PluginProvides;
+      /**
+       * The kinds whose list in `provides` may be short, sorted: something the host
+       * read for it was there and could not be read or used. Left out, it is restored.
+       * A kind whose entries come to more than 131,072 characters of JSON is named
+       * here and its list is empty; `modules` never is.
+       *
+       * The engine keeps nothing out for it. A part that is not listed cannot be
+       * removed, and loads while its list is left whole, as an empty one always is;
+       * a mod that must see or remove every part refuses the plugin.
+       *
+       * @example
+       * e.unread.includes('bin') ? { refuse: 'bin/ could not be listed' } : next(e)
+       */
+      unread: readonly (keyof PluginProvides)[];
   };
 
   /**
@@ -9062,7 +9213,8 @@ declare module 'claude-code' {
   export type PluginRegisterResult = {
       /**
        * The plugin loads: its module's `engine.create` step runs and its hooks
-       * join, and the rest of its parts follow.
+       * join, and the rest of its parts follow, less what a hook removed from
+       * `provides` on the way down.
        */
       allow: true;
       refuse?: undefined;
@@ -9463,6 +9615,12 @@ declare module 'claude-code' {
        * a marketplace.json too); a hooks file naming a module is always listed.
        */
       contents: PluginValidateFile[];
+      /**
+       * What `plugin.register` carries as `e.provides` for an installed copy of
+       * the folder. Null is "not read": a target that is no plugin folder, one
+       * with errors, or one with a hooks or server file left unread. A report from an older CLI leaves it out.
+       */
+      provides: PluginProvides | null;
       /**
        * What the validator advises without counting it under any flag: today, the
        * install line a plugin's README lacks.

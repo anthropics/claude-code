@@ -23,6 +23,7 @@ import {
   TOOL_REGISTER_REFUSAL,
 } from './tool-register-refusal'
 import { usesNothing } from './uses-nothing'
+import { withoutModules } from './without-modules'
 
 const TOOL_LIST_REFUSAL = 'sec-default could not read the tool list'
 const PERSONS_PROMPTS = ['composer', 'bridge', 'sdk', 'slack-ping']
@@ -494,14 +495,21 @@ export function register(on: On) {
     pastManagedOnly.delete(e.name)
 
     const policy = await $.settings.read(Policy.SOURCE)
+    const folder = HotReloadPrompt.devModsFolderOf(e.root)
 
     if (Policy.isManagedModsOnly(policy) && !usesNothing(e.uses)) {
-      return { refuse: managedModsOnlyRefusal(e.name) }
+      // Claude writes in a dev-mods folder, so the other parts stay out too.
+      if (folder !== undefined) {
+        return { refuse: managedModsOnlyRefusal(e.name) }
+      }
+
+      $.ui.log(managedModsOnlyRefusal(e.name), { to: 'debug' })
+
+      // The option covers modules alone, and a person's mods have no say on the rest.
+      return next.to(withoutModules(e), 'append')
     }
 
     pastManagedOnly.add(e.name)
-
-    const folder = HotReloadPrompt.devModsFolderOf(e.root)
 
     if (!Policy.isHotReloadPromptForced(policy) || folder === undefined) {
       // An organization's plugin can sit in the user tier, where a person's
@@ -568,7 +576,7 @@ export function register(on: On) {
       folder !== undefined &&
       answers.get(folder) === HotReloadPrompt.TURN_THEM_ON
 
-    if (next.called || (isAnsweredYes && pastManagedOnly.has(e.name))) {
+    if (pastManagedOnly.has(e.name) && (next.called || isAnsweredYes)) {
       return next(e)
     }
 
@@ -576,8 +584,20 @@ export function register(on: On) {
       return { refuse: HotReloadPrompt.unaskedRefusal(e.name) }
     }
 
-    return usesNothing(e.uses)
-      ? next(e)
-      : { refuse: managedModsOnlyRefusal(e.name) }
+    if (usesNothing(e.uses)) {
+      return next(e)
+    }
+
+    if (folder !== undefined) {
+      return { refuse: managedModsOnlyRefusal(e.name) }
+    }
+
+    try {
+      $.ui.log(managedModsOnlyRefusal(e.name), { to: 'debug' })
+    } catch {
+      // Keeping the module out is what matters.
+    }
+
+    return next.to(withoutModules(e), 'append')
   })
 }

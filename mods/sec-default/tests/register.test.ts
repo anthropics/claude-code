@@ -766,13 +766,15 @@ describe('register', () => {
     async ($, on) => {
       on('settings.read', () => ({ value: Fixtures.MANAGED_MODS_ONLY }))
 
+      const lines = Fixtures.logged(on)
       const registered = Fixtures.toolsRegistered(on)
 
       await expect($.session.start(Fixtures.SESSION)).rejects.toThrow(
-        Hooks.managedModsOnlyRefusal('mine'),
+        'mine: hooks module left out by sec-default',
       )
 
       expect(registered, 'no hook of it ever ran').toEqual([])
+      expect(lines).toEqual([`debug: ${Hooks.managedModsOnlyRefusal('mine')}`])
     },
   )
 
@@ -821,7 +823,7 @@ describe('register', () => {
       const registered = Fixtures.toolsRegistered(on)
 
       await expect($.session.start(Fixtures.SESSION)).rejects.toThrow(
-        Hooks.managedModsOnlyRefusal('suite'),
+        'suite: hooks module left out by sec-default',
       )
 
       expect(registered).toEqual([])
@@ -841,7 +843,7 @@ describe('register', () => {
       const registered = Fixtures.toolsRegistered(on)
 
       await expect($.session.start(Fixtures.SESSION)).rejects.toThrow(
-        Hooks.managedModsOnlyRefusal('mine'),
+        'mine: hooks module left out by sec-default',
       )
 
       expect(registered).toEqual([])
@@ -876,7 +878,7 @@ describe('register', () => {
       const registered = Fixtures.toolsRegistered(on)
 
       await expect($.session.start(Fixtures.SESSION)).rejects.toThrow(
-        Hooks.managedModsOnlyRefusal('mine'),
+        'mine: hooks module left out by sec-default',
       )
 
       expect({ registered, lines }).toEqual({
@@ -884,6 +886,7 @@ describe('register', () => {
         lines: [
           'debug: plugin.register hook failed judging mine (throw): ' +
             'sec-default: $.settings.read: managed settings unreadable',
+          `debug: ${Hooks.managedModsOnlyRefusal('mine')}`,
         ],
       })
     },
@@ -954,7 +957,7 @@ describe('register', () => {
   }
 
   test(
-    'allowManagedModsOnly still refuses a user-tier module policy names',
+    'allowManagedModsOnly still keeps out a user-tier module policy names',
     { plugins: [Fixtures.registering('guard')] },
     async ($, on) => {
       on('settings.read', () => ({
@@ -962,7 +965,7 @@ describe('register', () => {
       }))
 
       await expect($.session.start(Fixtures.SESSION)).rejects.toThrow(
-        Hooks.managedModsOnlyRefusal('guard'),
+        'guard: hooks module left out by sec-default',
       )
     },
   )
