@@ -3561,7 +3561,10 @@ declare module 'claude-code' {
            * rule or a `blocked` ceiling also hides, so this call can't run it. A deny
            * rule or a ceiling stops only the model and its agents.
            * A hook that re-issues the model's call this way answers for its input:
-           * the model's command runs with nobody asked.
+           * the model's command runs with nobody asked. Where sec-default is seated,
+           * a person's mod is answered `{ deny }` until that call is allowed, and
+           * serves an allowed one at `tool.run`. The model's `REPL` script it passes
+           * on with `next`, allowed or not.
            * A script run through the `REPL` tool, where a session has one, is this
            * call too: it runs with no rules, in the VM it shares with the model's
            * scripts, so code the model left there can run the same way. The refusals

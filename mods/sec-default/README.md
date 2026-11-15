@@ -7,8 +7,8 @@ append tier. Some of what an organization sets today (its classic hooks,
 its managed CLAUDE.md and rules, its settings, its MCP allowlist, the deny
 rules and permission prompts in force on its machines) was never within a person's plugin's reach before
 function hooks; seated outermost, this plugin keeps exactly those out of the
-user tier's reach and adds no policy of its own. Everything else passes
-through untouched.
+user tier's reach, and keeps a person's mod from carrying out the model's call
+before the permission check allowed it. Everything else passes through untouched.
 
 It has three moves and nothing else: continue past the user tier
 (`next.to(e, "append")`), refuse a user-tier caller or module by name
@@ -34,15 +34,18 @@ settings it decides by.
 | `session.identity` | A `user`-tier caller is refused (the call resolves with `deny`), and every other caller continues past the user tier: a person's plugin neither calls, sees nor answers the event. By design, where this plugin is not seated a person's hook sits above `privacy` and can see or answer the call, and with `privacy` off too a person's plugin is answered. The address already reaches it at `prompt.context`. Under a pin, what it sees includes the organization's fields and the pinned `email`. |
 | `tool.describe`, `command.describe`, `agent.offer`, `agent.spawn` | When the subject's pinned `e.provider.tier` is `prepend` or `append` (a policy-installed plugin, the managed folder, a policy MCP server), continue past the user tier; a subject provided by `user`, `builtin` or `core` passes. |
 | `tool.register` | A caller in `prepend` or `append` continues past the user tier. A `user`-tier caller is refused by name while managed settings hold `allowedMcpServers` (set at all, empty included). With no allowlist, one is still refused whose tool, called `mcp__<plugin>__<tool>`, would read as a tool of a server the organization delivers: a `managedMcpServers` entry, or a server of the enterprise `managed-mcp.json`, which the policy read names under that key. So is one whose name reads as a plugin the organization seats itself (`prependPlugins`, `appendPlugins`, or an id managed `enabledPlugins` turns on, by `true` or by a version list, as the engine reads an entry), or as an MCP server such a plugin's own manifest declares, which the engine spells under the plugin's scope (`mcp__plugin_<plugin>_<server>__`). A `user`-tier plugin keeps its own name exactly when the id the engine recorded for it (`<name>@<marketplace>`: the settings key the loader resolved, never the plugin's manifest) is one managed `enabledPlugins` turn on, compared as the engine compares ids (NFC, then lower case). That is how an organization's own plugin registers its tools where the engine leaves it in the `user` tier: only a copy read in place from a local folder marketplace that managed settings name is vouched for, so a plugin from a remote marketplace (git, GitHub, npm) can never be vouched for in this release, and neither is one a version list turns on. For an organization that means such a plugin runs among a person's plugins in the chain, not ahead of them, and keeps its tools by this exemption alone. A plugin loaded with `--plugin-dir` is always `<name>@inline` and never matches; nor does a same-named plugin from another marketplace, one whose name only folds to the organization's, or an id policy lists only in `prependPlugins` or `appendPlugins`. A person who registers a marketplace of their own under the organization's marketplace name gets an equal id, and so the exemption: it gives that plugin what every plugin had before this hold existed, and `strictKnownMarketplaces` in managed settings closes it today by allowing no other marketplace source. The mod hears a plugin's id at its admission, so after a load that seats the mod afresh while other plugins stay seated (a load that folds again, as a policy change mid-session can cause) the organization's own plugin is refused its name until the session restarts. A plugin's own MCP servers are connected by the engine from its manifest, not registered through `tool.register`, so they are unaffected. An id's name is everything before its last at-sign. A `managed-mcp.json` that is present and cannot be read whole names nobody: the policy read marks it (`managedMcpServersUnreadable`) and every such registration is refused while it stands, its servers never taken for none; the only other reader of the mark is `tool.list` (the next row), so a person's plugins still load and still set what is not pinned. A server the file names and the engine dropped with a warning is still named; a warning about a server that loads is no failure. Names are compared folded, as a model reads them (spelled as the engine spells a name inside a tool's name, every character outside letters, digits, `-` and `_` a `_` and nothing normalized; then lower case, every run of `-` and `_` one `_`; a seated plugin counts under its name composed and decomposed, since the engine spells its tools from its manifest's own form): a plugin named as the server in any case or with other separators, one whose name and tool together spell it, and one whose tool's own name folds to nothing, is refused. A server whose name folds to nothing (no letter or digit in it) cannot be told from any name, so while the policy names one every `user`-tier registration is refused. The engine pins the tool's name at this event (a hook beneath that hands on another name fails, and the chain goes on without it), so the name judged is the name registered. Otherwise it passes. |
-| `tool.list` | What the hooks answer is the session's tool pool, for the model and for every agent. The tools of the organization's managed MCP servers, of the plugins it seats itself and of the MCP servers those plugins' own manifests declare (told by the name whole, as the engine spells it inside a tool's name: `mcp__<server>__`, never by a fold, so another server whose name only begins like the organization's is not taken for it; a seated plugin and its own servers, under its scope `mcp__plugin_<plugin>_`, fold to fold as the registration check compares, so policy may list its id in another letter case, and another plugin whose name begins with the seated one's and a `-` or `_` reads the same) are listed as the organization's tiers listed them, so a person's plugin cannot remove one or reword it. So is a tool a hook of the organization's tiers added, and a tool such a hook removed stays removed, whatever a person's plugin lists and whichever order the hooks ran in. Every other tool is as the user tier left it, a person's rewording of a built-in included, unless an organization's `prepend`-tier plugin hooks `tool.list`: what that plugin added can't be told from what the engine built, so every listed name then keeps the organization's entry. A plugin the organization seats ahead of this mod runs outside it, so this holds no tool that plugin adds. A tool a `user`-tier hook adds is dropped from the answer where the `tool.register` row refuses that hook's plugin a tool: while managed settings hold `allowedMcpServers`, or when its whole name, compared fold to fold as the registration check compares, reads as a tool of a server or a plugin the organization delivers. So is one with no `mcp__` that reads as such a tool with its words joined (`McpCorpExport`), and one whose name differs only in case or in how its words are joined from a name the organization's tiers list. An `mcp__` name is never read that way, so `mcp__corp_tools__x` is not taken for a tool of `corp` by that comparison. A plugin the organization vouches for by its `enabledPlugins` id gets no exception here, since the answer does not say which hook added an entry. Where the server file cannot be read, every `mcp__` tool counts as the organization's and no addition stands. With no policy to read, a refusal from any listing, or a listing with an entry that has no name, the organization's listing stands whole, and a `permissions.deny` of managed settings that is a whole tool or names a server comes off the answer, a name a hook added that reads as it included, in every case but `allowModsToOverrideDenyRules`. The hook matches by name and reads no tool's schema, and it catches its own errors: whatever fails after it has the organization's listing, that listing stands. Only with that listing unread does it refuse, and the engine then keeps the answer that stood. The engine's raise reads the policy afresh; a plugin's `$.tool.list()` reads it through the memo. The guard holds on the listing alone: a person's `tool.call` hook still runs above an organization's on a tool that organization added, because a hook of this mod on `tool.call` would cost every tool call a dispatch. A person's hook that crashes the worker or overruns its budget is skipped and this mod still answers: it runs outside the worker, and what runs beneath it has budgets of its own. Such a hook can delay that answer. A turn waits 10 seconds for a raise and then goes on with the answer that stood, so before the first answer lands, an organization's removals through this mod do not stand on that turn. A person's plugin can cause this delay at each raise. If this mod's own hook runs out of time, the engine answers without it for that turn and asks again at the next. A managed deny rule holds either way: the engine applies it. |
+| `tool.list` | What the hooks answer is the session's tool pool, for the model and for every agent. The tools of the organization's managed MCP servers, of the plugins it seats itself and of the MCP servers those plugins' own manifests declare (told by the name whole, as the engine spells it inside a tool's name: `mcp__<server>__`, never by a fold, so another server whose name only begins like the organization's is not taken for it; a seated plugin and its own servers, under its scope `mcp__plugin_<plugin>_`, fold to fold as the registration check compares, so policy may list its id in another letter case, and another plugin whose name begins with the seated one's and a `-` or `_` reads the same) are listed as the organization's tiers listed them, so a person's plugin cannot remove one or reword it. So is a tool a hook of the organization's tiers added, and a tool such a hook removed stays removed, whatever a person's plugin lists and whichever order the hooks ran in. Every other tool is as the user tier left it, a person's rewording of a built-in included, unless an organization's `prepend`-tier plugin hooks `tool.list`: what that plugin added can't be told from what the engine built, so every listed name then keeps the organization's entry. A plugin the organization seats ahead of this mod runs outside it, so this holds no tool that plugin adds. A tool a `user`-tier hook adds is dropped from the answer where the `tool.register` row refuses that hook's plugin a tool: while managed settings hold `allowedMcpServers`, or when its whole name, compared fold to fold as the registration check compares, reads as a tool of a server or a plugin the organization delivers. So is one with no `mcp__` that reads as such a tool with its words joined (`McpCorpExport`), and one whose name differs only in case or in how its words are joined from a name the organization's tiers list. An `mcp__` name is never read that way, so `mcp__corp_tools__x` is not taken for a tool of `corp` by that comparison. A plugin the organization vouches for by its `enabledPlugins` id gets no exception here, since the answer does not say which hook added an entry. Where the server file cannot be read, every `mcp__` tool counts as the organization's and no addition stands. With no policy to read, a refusal from any listing, or a listing with an entry that has no name, the organization's listing stands whole, and a `permissions.deny` of managed settings that is a whole tool or names a server comes off the answer, a name a hook added that reads as it included, in every case but `allowModsToOverrideDenyRules`. The hook matches by name and reads no tool's schema, and it catches its own errors: whatever fails after it has the organization's listing, that listing stands. Only with that listing unread does it refuse, and the engine then keeps the answer that stood. The engine's raise reads the policy afresh; a plugin's `$.tool.list()` reads it through the memo. The guard holds on the listing alone: a person's `tool.call` hook still runs above an organization's on a tool that organization added. A person's hook that crashes the worker or overruns its budget is skipped and this mod still answers: it runs outside the worker, and what runs beneath it has budgets of its own. Such a hook can delay that answer. A turn waits 10 seconds for a raise and then goes on with the answer that stood, so before the first answer lands, an organization's removals through this mod do not stand on that turn. A person's plugin can cause this delay at each raise. If this mod's own hook runs out of time, the engine answers without it for that turn and asks again at the next. A managed deny rule holds either way: the engine applies it. |
 | `tool.check` | A person's plugin only tightens. A deny and an ask, whoever answers it, hold whole over the user tier: when a person's plugin rewrote the verdict it was handed without tightening it (a more permissive decision, or the same decision under another reason or with what it names changed), the dispatch is run again past the user tier, and unless the chain's answer is the stricter, that verdict is the answer as the engine gave it. See [Deny rules hold](#deny-rules-hold). Every other verdict passes as the chain left it. |
 | `tool.judge` | A person's plugin only tightens, but for its allow of a call it made itself. See [At the classifier](#at-the-classifier). |
+| `tool.call`, `tool.run`, `prompt.submit` | The model's calls pass, and are remembered until they are allowed or the person's next prompt. A `user`-tier `$.tool.call` or `$.mcp.call` that repeats one, or writes or names a settings file, is refused. See [The model's call waits for its check](#the-models-call-waits-for-its-check). |
+| `fs.write`, `process.run`, `process.spawn` | A `user`-tier caller is refused where the effect repeats a remembered call, or writes or names a settings file. Every other passes. |
+| `fs.stat` | This plugin's own look at where a path leads continues past the user tier. Every other passes. |
 | `ui.log` | A line a plugin in `prepend` or `append` logs, this one's included, continues past the user tier: no user hook rewrites or drops it, and none runs inside the hook that logged it. Every other line passes. |
 | `env.get` | A read by a plugin in `prepend` or `append` continues past the user tier: no user hook answers what the organization's own plugin reads. Every other read passes. |
 | `env.set` | A write by a plugin in `prepend` or `append` continues past the user tier, whatever the variable: no user hook rewrites or drops what the organization's own plugin sets. A variable managed settings set in `env` (its name in any case) is pinned, and so are `CLAUDE_CODE_PROCESS_WRAPPER` where they name a launcher with `processWrapper` and, always, the nine variables that move where policy and sign-in are read from or how policy's tiers compose (`CLAUDE_CODE_MANAGED_SETTINGS_PATH`, `CLAUDE_CODE_REMOTE_SETTINGS_PATH`, `CLAUDE_CODE_MOCK_REMOTE_SETTINGS`, `CLAUDE_CODE_DISABLE_ADMIN_ENV_UNION`, `CLAUDE_CONFIG_DIR`, `CLAUDE_SECURESTORAGE_CONFIG_DIR`, `USE_LOCAL_OAUTH`, `USE_STAGING_OAUTH` and `CLAUDE_LOCAL_OAUTH_API_BASE`, which choose the server sign-in goes to; all nine on every build), and, on every build too, ten variables that can load code into a child the engine starts (`LD_PRELOAD`, `LD_LIBRARY_PATH`, `LD_AUDIT`, `DYLD_INSERT_LIBRARIES`, `DYLD_LIBRARY_PATH`, `DYLD_FRAMEWORK_PATH`, `BASH_ENV`, `ENV`, `ZDOTDIR`, `NODE_OPTIONS`): setting or unsetting it, a `user`-tier caller is refused by name and a built-in's write continues past the user tier. Any other variable is a person's plugin's to set. With no policy to read, every variable counts as pinned. `allowModsToOverrideDenyRules` does not unpin. See [Pinned variables](#pinned-variables). |
 | `wasm.compile` | A compile by a plugin in `prepend` or `append` continues past the user tier: no user hook reads or replaces the WebAssembly the organization's own plugin runs. Every other compile passes. |
 | `plugin.register` | A hooks module in the `user` tier (one a person installed, named with `--plugin-dir`, or keeps in their mods folder) is refused while managed settings set this plugin's `allowManagedModsOnly` option. While they set its `forceHotReloadPrompt` option, a plugin in a session's dev-mods folder is asked about, with a hooks module or without one, unless a person already said yes to that folder here. Otherwise it passes. Plugins in `prepend`, `append` and `builtin` are never asked about. A refusal refuses the whole plugin. |
-| everything else | Passes: `prompt.submit`, `turn.*`, `tool.call`, `command.run`, `command.register`, `command.list`, `agent.register`, `agent.call`, `config.*`, `prompt.fill`, `prompt.suggest`, `prompt.edit`, `prompt.read`, `session.*` but `session.append`, `session.compact` and `session.identity`, `ui.*` but `ui.log`, `fs.*`, `http.fetch`, `process.run`, `store.*`, `clock.*`, `model.*`, `mcp.call`, `audio.*`, `agent.list`, `engine.create`. |
+| everything else | Passes: `turn.*`, `command.run`, `command.register`, `command.list`, `agent.register`, `agent.call`, `config.*`, `prompt.fill`, `prompt.suggest`, `prompt.edit`, `prompt.read`, `session.*` but `session.append`, `session.compact` and `session.identity`, `ui.*` but `ui.log`, `fs.*` but `fs.write` and `fs.stat`, `http.fetch`, `store.*`, `clock.*`, `model.*`, `mcp.call`, `audio.*`, `agent.list`, `engine.create`. |
 
 ## Options an administrator sets
 
@@ -153,16 +156,18 @@ over a settings deny rule on `tool.check`, as they could before this plugin
 held deny rules, and over every other deny and every ask with it: the one option
 covers all that holds there. Off unless it is the
 literal `true`; an option that reads as unset leaves them holding. See
-[Deny rules hold](#deny-rules-hold). The option and that section are about a
+[Deny rules hold](#deny-rules-hold). That section is about a
 person's hooks answering `tool.check` or `tool.judge`: a mod's own `$.tool.call` or `$.mcp.call`
-is outside them, and `allowManagedModsOnly` is the control over it.
+is outside it, and `allowManagedModsOnly` is the control over it. The option also lifts all of
+[The model's call waits for its check](#the-models-call-waits-for-its-check).
 
 ## What it hooks
 
 `classic.*`, `prompt.section`, `prompt.context`, `prompt.attachment`,
 `prompt.compose`, `skill.prompt`,
 `attribution.text`, `session.append`, `session.compact`, `settings.read`, `session.identity`, `tool.describe`, `command.describe`,
-`agent.offer`, `agent.spawn`, `tool.register`, `tool.list`, `tool.check`, `tool.judge`,
+`agent.offer`, `agent.spawn`, `tool.register`, `tool.list`, `tool.call`, `tool.run`, `tool.check`, `tool.judge`,
+`prompt.submit`, `fs.write`, `fs.stat`, `process.run`, `process.spawn`,
 `ui.log`, `env.get`, `env.set`, `wasm.compile`, `plugin.register`.
 
 Hooking `tool.check` has a cost: the engine raises that event only when some
@@ -175,16 +180,21 @@ hooks `env.get`, `command.describe`, `tool.describe`, `agent.offer`,
 `attribution.text` or `prompt.section`, a `$.env.get` call and the engine's own
 raises of the other five run no chain: this plugin would only pass the event
 on, so the answer is the engine's own. Behind a rollout flag, the same goes for
-a `tool.check` on which only that copy's hook could run, if the check succeeds.
+a `tool.check` on which only that copy's hook could run, if the check succeeds
+and no `user`-tier module is loaded.
 If it fails, the chain runs and this plugin's `.catch` sees the failure, unless
 this copy has been unloaded or replaced meanwhile: then the failure escapes.
 `tool.judge` is not raised at all where only that copy's hook could run.
+That copy's hooks on `tool.call`, `tool.run`, `prompt.submit`, `fs.write`, `fs.stat`,
+`process.run` and `process.spawn` read as absent until a `user`-tier module loads.
+From then on each of those events runs its chain.
 
 ## What it calls on `$`
 
 `settings.read`, `ui.log`: to the debug log, and for the one line a person reads
 when something held over a plugin of theirs, and `ui.ask` and `store.get` and
-`store.set`, for `forceHotReloadPrompt`. It continues to
+`store.set`, for `forceHotReloadPrompt`, and `tool.check`, `fs.stat` and
+`env.get`, to tell whether a mod repeats a call or writes a settings file. It continues to
 the `append` tier with `next.to`, which only a plugin in a managed tier may
 do.
 
@@ -324,13 +334,56 @@ there could get what `tool.check` held. Under the same option, by the same two r
 - A deny holds over their ask, and a built-in's or an organization's verdict
   over their rewording. Where the classifier gave no verdict their ask stands,
   unless a host answers it or a ceiling caps the tool. Their deny stands.
-- Their allow of their own `$.agent.call` passes, with no second run. The engine
+- Their allow of their own `$.agent.call` passes, with no second run, unless the call
+  repeats one of the model's that was not allowed, or writes or names a settings file. The engine
   names a plugin in `next.origin` only on such a call: unrewritten, and not one
   auto mode always judges. An organization's `append` hook on this event does
   not hold over it; its `tool.check` and `tool.call` hooks do, and
   `allowManagedModsOnly` is the control over such a mod.
 - A held block goes on as the classifier's own, so what can follow a block
   with no plugin loaded can follow it here, and their ask is not kept for it.
+
+## The model's call waits for its check
+
+A mod's own effects open no dialog and ask no classifier. So a person's mod may not
+use one to carry out a call the model sent until that call is allowed. Best effort:
+`allowManagedModsOnly` is the control over a mod that means harm.
+
+- **Remembered**: each input the model sends, in any loop, as `tool.call` and
+  `tool.check` show it, for the newest 256 calls. It is forgotten at `tool.run`, ahead of the hooks
+  beneath, and so is an earlier one like it. One that was refused, answered by a hook or
+  rewritten away stays until the person's next prompt. A write is matched by its file: one
+  whose content was edited is forgotten once a write to that file is allowed.
+- **Matched**: a `$.tool.call` or `$.mcp.call` of the same tool on the same arguments; a
+  `$.tool.call` of a tool that runs a command or a script (Bash, PowerShell, Monitor,
+  REPL, the desktop's workspace shell) whose input holds a remembered command or text whole; a write to the file of a
+  remembered Write, Edit or NotebookEdit; a process whose argv is the command or ends in
+  it, or that hands a remembered command or text whole, in argv or stdin, to a shell, an
+  interpreter or a wrapper on one short list (`hooks/early-run/process-repeats.ts`). What follows a
+  script's file there is that script's data, so a gate that reads the command passes,
+  and so does the text of an allowed call under way.
+- **Decided** by `$.tool.check` past the user tier, on the rules alone, as Bash where an
+  `mcp__` tool's text goes to a shell. An allow passes. Anything else is refused in one
+  line that names `tool.run`, where a mod serves a call that was allowed. A repeated
+  `$.agent.call` is not refused: it is checked as the model's call is.
+- **Scripts**: a REPL script the model sent stays remembered until the person's next
+  prompt, allowed or not, and a match is refused with no rule asked: an allow rests on
+  the session checking the calls the script makes. A mod passes it on with `next`.
+- **Settings files**: a person's mod writes none (a person's, a project's, the local
+  one) by `$.fs.write` or its own Write or Edit, and runs no process or command or
+  script call that names one, but for an allowed command under way. It reads settings
+  with `$.settings.read`.
+
+A failure refuses only what matched. With no match no policy is read.
+
+Known limits: a command that is encoded, split, written to a file first or handed over
+in the environment, a script that disguises the command, wrappers off the list,
+other quoting or an added argument, other MCP tools that run code, a host's declared ones among them,
+a settings file's path built in pieces, links and other aliases of a path, calls older than the
+newest 256, what an input holds past its first 10,000 values, a reload of this plugin, which forgets what it
+remembered, `turn.step`, prompt rewrites, a person's hook that rewrites an effect beneath this
+plugin, a plugin's command hooks and MCP servers, and `$.http.fetch`. The rules asked
+are the session's, not a subagent's own.
 
 ## Pinned variables
 

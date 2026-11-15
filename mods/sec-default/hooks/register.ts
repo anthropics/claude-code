@@ -1,6 +1,15 @@
 import type { On } from 'claude-code'
 
 import { admissionFailure } from './admission-failure'
+import EarlyRun, {
+  configFolders,
+  type FirstFolder,
+  isSettingsFile,
+  namesSettingsFile,
+  ownCallMatch,
+  refusalOf,
+  writeRepeats,
+} from './early-run'
 import HeldVerdict from './held-verdict'
 import HotReloadPrompt from './hot-reload-prompt'
 import { identityRefusal } from './identity-refusal'
@@ -16,6 +25,7 @@ import {
 import { usesNothing } from './uses-nothing'
 
 const TOOL_LIST_REFUSAL = 'sec-default could not read the tool list'
+const PERSONS_PROMPTS = ['composer', 'bridge', 'sdk', 'slack-ping']
 
 /**
  * The built-in's hooks, seated outermost: each keeps one control an
@@ -25,6 +35,7 @@ const TOOL_LIST_REFUSAL = 'sec-default could not read the tool list'
  * a user-tier caller or module by name, or pass. Provenance is the event's
  * pinned `provider` or `tier`; policy is `$.settings.read`; fail closed. Under
  * `forceHotReloadPrompt` it also asks about a mod Claude wrote before it loads.
+ * It remembers the model's calls, so a person's mod runs none before it is allowed.
  *
  * @param on the engine's registrar
  */
@@ -35,6 +46,8 @@ export function register(on: On) {
   const answers = new Map<string, string>()
   // Whose run of the hook below got past allowManagedModsOnly, for its `.catch`.
   const pastManagedOnly = new Set<string>()
+  const memory = EarlyRun.createCallMemory()
+  const first: FirstFolder = {}
 
   on('classic.*', ($, e, next) => next.to(e, 'append'))
 
@@ -154,9 +167,124 @@ export function register(on: On) {
     ),
   )
 
+  // The rows from here to process.spawn read as absent where this is the built-in copy and no person's mod took a seat.
+  // None has a .catch: a failure before a match is no ground to refuse, and refusalOf catches its own.
+  on('tool.call', async ($, e, next) => {
+    const call = EarlyRun.callOf(e)
+    const id = e.tool_use_id
+
+    if (id.startsWith(EarlyRun.PLUGIN_CALL_ID_PREFIX)) {
+      const isUnasked =
+        next.origin.tier === 'user' &&
+        !id.startsWith(EarlyRun.AGENT_CALL_ID_PREFIX)
+      const match = isUnasked
+        ? await ownCallMatch($, memory, first, call)
+        : undefined
+      const deny =
+        match &&
+        (await refusalOf($, readPolicy, match.repeated, match.isSettings))
+
+      return deny === undefined ? next(e) : { deny }
+    }
+
+    memory.sent(id, call)
+
+    try {
+      return await next(e)
+    } finally {
+      memory.ended(id)
+    }
+  })
+
+  on('tool.run', ($, e, next) => {
+    if (!e.tool_use_id.startsWith(EarlyRun.PLUGIN_CALL_ID_PREFIX)) {
+      memory.allowed(e.tool_use_id, EarlyRun.callOf(e))
+    }
+
+    return next(e)
+  })
+
+  on('prompt.submit', ($, e, next) => {
+    if (PERSONS_PROMPTS.includes(e.origin.kind) && e.isMeta === undefined) {
+      memory.prompted()
+    }
+
+    return next(e)
+  })
+
+  on('fs.write', async ($, e, next) => {
+    const deny =
+      next.origin.tier === 'user'
+        ? await refusalOf(
+            $,
+            readPolicy,
+            await writeRepeats($, memory.calls(), e.path),
+            await isSettingsFile($, e.path, first),
+          )
+        : undefined
+
+    return deny === undefined ? next(e) : { deny }
+  })
+
+  // A hook of theirs that heard this plugin's own stat would run inside the row that made it, unheard by that row.
+  on('fs.stat', { resolve: true }, ($, e, next) =>
+    next.origin.tier === 'prepend' && next.origin.plugin === $.plugin.name
+      ? next.to(e, 'append')
+      : next(e),
+  )
+
+  on('process.run', async ($, e, next) => {
+    const deny =
+      next.origin.tier === 'user'
+        ? await refusalOf(
+            $,
+            readPolicy,
+            EarlyRun.processRepeats(memory.calls(), e.argv, e.init?.stdin),
+            await namesSettingsFile(
+              $,
+              [...e.argv, e.init?.stdin ?? ''],
+              memory.served(),
+            ),
+          )
+        : undefined
+
+    return deny === undefined ? next(e) : { deny }
+  })
+
+  on('process.spawn', async function* ($, e, next) {
+    const deny =
+      next.origin.tier === 'user'
+        ? await refusalOf(
+            $,
+            readPolicy,
+            EarlyRun.processRepeats(memory.calls(), e.argv, e.input),
+            await namesSettingsFile(
+              $,
+              [...e.argv, e.input ?? ''],
+              memory.served(),
+            ),
+          )
+        : undefined
+
+    return deny === undefined ? yield* next(e) : { deny }
+  })
+
   // The engine skips this row on a successful check where this is the built-in copy and no other hook could run;
   // a failure still reaches the .catch. Before the row does more on success, end that skip: an engine test says where.
   on('tool.check', async ($, e, next) => {
+    const id = e.tool_use_id
+
+    if (id === undefined) {
+      if (
+        next.origin.tier === 'prepend' &&
+        next.origin.plugin === $.plugin.name
+      ) {
+        return next.to(e, 'append')
+      }
+    } else if (!id.startsWith(EarlyRun.PLUGIN_CALL_ID_PREFIX)) {
+      memory.checked(id, { tool: e.tool, input: Object(e.input) })
+    }
+
     const answer = await next(e)
     const mods = HeldVerdict.rewrittenByUsers(next.trace)
 
@@ -203,12 +331,24 @@ export function register(on: On) {
   // The engine raises nothing here where this is the built-in copy and no other hook could run.
   // Before the row does more than hand up what it heard then, end that skip (tool-judge.ts).
   on('tool.judge', async ($, e, next) => {
+    const match =
+      next.origin.tier === 'user'
+        ? await ownCallMatch($, memory, first, {
+            tool: e.tool,
+            input: Object(e.input),
+          })
+        : undefined
+    const isMatched =
+      match !== undefined &&
+      (match.isSettings ||
+        match.repeated.some(call => call.isAllowed === undefined))
     const answer = await next(e)
     // The engine names a plugin as the origin only on a call its allow stands on.
     const isOwnAllow =
       answer.decision === 'allow' &&
       next.origin.tier !== 'core' &&
-      answer.plugin === next.origin.plugin
+      answer.plugin === next.origin.plugin &&
+      !isMatched
     // A deny that rewords no other plugin's is final, and worth no classifier request.
     const isPlainDeny =
       answer.decision === 'deny' &&
@@ -288,6 +428,11 @@ export function register(on: On) {
     )
 
     if (!isPinned) {
+      // The home variables are not pinned, and the settings hold reads them.
+      if (first.folder === undefined) {
+        await configFolders($, first)
+      }
+
       return next(e)
     }
 
