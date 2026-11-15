@@ -4066,8 +4066,9 @@ declare module 'claude-code' {
        * the time; `clock.sleep`, `after` and `every` wait until it has passed.
        *
        * A timer's callback is the plugin's own function, kept in its environment
-       * and run there when the wait resolves; a hot reload of the plugin cancels
-       * its pending waits with the old environment.
+       * and run there when the wait resolves. At a hot reload `every` stops, and
+       * `after` and `sleep` end once the old copy's in-flight hooks settle, so a
+       * loop built on `after` runs on until the old copy unloads.
        */
       clock: {
           /**
