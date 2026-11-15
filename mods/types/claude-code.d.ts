@@ -9543,7 +9543,7 @@ declare module 'claude-code' {
        */
       guards: number;
       /**
-       * The GPU memory it holds.
+       * The memory it holds, the app's check for flashes included.
        */
       bytes: number;
       /**
@@ -14717,8 +14717,8 @@ declare module 'claude-code' {
   };
 
   /**
-   * The props of `Shader`, a scene the desktop and mobile apps play on the GPU:
-   * the shader file `module` names, fed `values`, over its one `Svg` child.
+   * The props of `Shader`, a scene `desktop` plays on the GPU: the shader file
+   * `module` names, fed `values`, over one `Svg` child, shown alone on `mobile`.
    *
    * It draws in a `Backdrop` alone, one at most, at the root or in a `Box`.
    * Anywhere else, or over anything but one `Svg`, the tree is refused. The file
