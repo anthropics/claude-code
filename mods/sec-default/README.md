@@ -371,7 +371,8 @@ use one to carry out a call the model sent until that call is allowed. Best effo
   it, or that hands a remembered command or text whole, in argv or stdin, to a shell, an
   interpreter or a wrapper on one short list (`hooks/early-run/process-repeats.ts`). What follows a
   script's file there is that script's data, so a gate that reads the command passes
-  (a path that starts `/dev/` or ends in `stdin` or `fd/<number>`, dots and doubled slashes taken out, is no script's file),
+  (a path that starts `/dev/` or ends in `stdin` or `fd/<number>`, dots and doubled slashes taken out, is no script's file,
+  and neither is what follows an interpreter named by an argv item that holds a line break),
   and so does the text of an allowed call under way (of a tool that runs no code,
   for the same argument only). Letter case folds in a text that is run; what an allow clears is exact.
 - **Decided** by `$.tool.check` past the user tier, on the rules alone, as Bash where an

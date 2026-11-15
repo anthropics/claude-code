@@ -1,6 +1,7 @@
 import type { Call } from './call.js'
 import { CODE_TOOLS } from './code-tools.js'
 import { handedCalls } from './handed-calls.js'
+import { nameOf } from './name-of.js'
 
 // Given a script's file first, these hand what follows to that script as data.
 const INTERPRETERS =
@@ -34,6 +35,8 @@ export function processRepeats(
   const [first = '-', ...rest] = argv.slice(at + 1)
   const isScriptRun =
     INTERPRETERS.test(names[at] ?? '') &&
+    // An item of several lines may be text that ends in a path, so nothing after it is let go as data.
+    !/[\n\r\u2028\u2029]/.test(argv[at] ?? '') &&
     ![first, plainPath(first)].some(path => NO_SCRIPT_FILE.test(path))
   const words: string[] = []
   const starts = new Set<number>()
@@ -109,12 +112,6 @@ function plainPath(path: string): string {
 
   return (path.startsWith('/') ? '/' : '') + kept.join('/')
 }
-
-const nameOf = (item: string): string =>
-  item
-    .replace(/^.*[/\\]/, '')
-    .toLowerCase()
-    .replace(/[\d.]*(\.exe)?$/, '')
 
 // A shell takes the quotes off and finds the program, so argv has neither.
 const plainLine = (line: string): string =>
