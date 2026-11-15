@@ -9244,6 +9244,11 @@ declare module 'claude-code' {
        * Null is "not read": a hooks file that is a link, too large, not JSON or
        * refused, or whose module leaves the plugin's folder or does not scan,
        * and a manifest or folder not read for the hooks files it can lead to.
+       *
+       * Null too, scanned or not, where another disk could load other code: it
+       * can be reached through a name that differs only by letter case or
+       * Unicode form, a name on the way could not be compared for that, or a
+       * path is spelled so that Windows can open it as another file.
        */
       modules: PluginValidateModule[] | null;
   };
