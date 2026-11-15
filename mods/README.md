@@ -92,7 +92,8 @@ changes the CLI.
 
 `types/claude-code.d.ts` is generated, the same text byte for byte as the
 declarations embedded in the engine. Don't edit it: change the type under
-`src/plugins/functionHooks/types/` and run
+`src/plugins/functionHooks/types/`, or the shader language in
+`src/plugins/functionHooks/shader-language/shader.d.ts.txt`, and run
 
     bun scripts/generate-plugin-dts.ts
 

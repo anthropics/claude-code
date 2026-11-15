@@ -62,6 +62,9 @@
 //     }
 //   })
 //
+// And 'claude-code/shader', the language of the file a theme's `Shader`
+// plays behind the conversation: ShaderProps shows a whole theme.
+//
 // Typing a plugin against it:
 //   export const register: Register = (on, options) => { ... }
 // or, in a .js module,
@@ -4589,8 +4592,8 @@ declare module 'claude-code' {
           Image: ElementConstructor<ImageProps>;
       };
       /**
-       * Claude Code Desktop's: the nine every surface here carries, `Svg` and
-       * `Client`.
+       * Claude Code Desktop's: the nine every surface here carries, `Svg`,
+       * `Client` and `Shader`.
        */
       desktop: {
           Box: ElementConstructor<BoxProps>;
@@ -4604,6 +4607,7 @@ declare module 'claude-code' {
           Markdown: ElementConstructor<MarkdownProps>;
           Progress: ElementConstructor<ProgressProps>;
           Client: ElementConstructor<ClientProps>;
+          Shader: ElementConstructor<ShaderProps>;
       };
       /**
        * An app is sent an `Input` or `Select` only if it named it in `draws` on
@@ -4627,13 +4631,14 @@ declare module 'claude-code' {
           Code: ElementConstructor<CodeProps>;
           Markdown: ElementConstructor<MarkdownProps>;
           Progress: ElementConstructor<ProgressProps>;
+          Shader: ElementConstructor<ShaderProps>;
       };
       /**
        * The desktop's table without `Client`: a remote `Client`'s module, presses
        * and posts (ui_client_module, ui_client_press, ui_message) name no surface.
        *
        * They are the desktop's alone until those asks name a surface, no limit of
-       * the editor's webview.
+       * the editor's webview. Nor has it `Shader`, since it draws no backdrop.
        */
       vscode: {
           Box: ElementConstructor<BoxProps>;
@@ -4875,6 +4880,18 @@ declare module 'claude-code' {
        * on("ui.fault", ($, e, next) => ($.ui.log(e.reason), next(e)))
        */
       'ui.fault': UiFaultInput;
+      /**
+       * Fires when the person clicks or taps the backdrop where no part of the
+       * app covers it. Only the hooks of the plugin that set the theme see it.
+       *
+       * Observe only. It may be a stray click, so it does not count as the
+       * person asking for anything, as a `ui.press` does. To answer it, change
+       * what the `Backdrop` hook draws, such as a `Shader`'s `values`, and redraw.
+       *
+       * @example
+       * on("ui.pointer", ($, e, next) => (clicks++, $.ui.invalidate("ui.render"), next(e)))
+       */
+      'ui.pointer': UiPointerInput;
       /**
        * Fires before a site's window moves: the person's wheel or scroll keys on
        * a `Pane` body or the `AbovePrompt` band, at its edges too; `$.ui.scroll`.
@@ -5442,6 +5459,10 @@ declare module 'claude-code' {
        * `{}`: the fault was heard.
        */
       'ui.fault': UiFaultResult;
+      /**
+       * `{}`: the click was heard.
+       */
+      'ui.pointer': UiPointerResult;
       /**
        * `{}` once the window moved, or `{ deny }`.
        */
@@ -9376,6 +9397,13 @@ declare module 'claude-code' {
        * outside the one form validate reads.
        */
       nouns: PluginValidateNouns | null;
+      /**
+       * One item per file its `Shader` elements name, by path. Null when that is
+       * not all known: a check before it threw, a `module` prop names no file
+       * (an error says which), or the list is past the report's size limit.
+       * A report from an older CLI leaves it out.
+       */
+      shaders: readonly PluginValidateShader[] | null;
   };
 
   /**
@@ -9395,6 +9423,14 @@ declare module 'claude-code' {
        * Written over a name core puts on `$`, which unloads the module.
        */
       replaces: readonly string[];
+  };
+
+  /**
+   * One figure for each class of GPU.
+   */
+  type PluginValidatePerGpu = {
+      weak: number;
+      fast: number;
   };
 
   /**
@@ -9436,6 +9472,90 @@ declare module 'claude-code' {
        * alone. Null when they had nothing to run on and that was not passed.
        */
       directory: PluginValidateDirectory | null;
+  };
+
+  /**
+   * One shader file as `claude plugin validate` read it. The report's text is
+   * drawn from this; every name is whole.
+   */
+  type PluginValidateShader = {
+      /**
+       * The file's path under the plugin's folder.
+       */
+      module: string;
+      /**
+       * Which GPUs it runs on: any, fast ones alone, or none.
+       */
+      verdict: 'any' | 'fast' | 'refused';
+      /**
+       * Why it is refused, or null if it is not. `line` is null when the file
+       * could not be read.
+       */
+      refusal: {
+          line: number | null;
+          message: string;
+      } | null;
+      /**
+       * Null when it was refused before it could be costed.
+       */
+      cost: PluginValidateShaderCost | null;
+  };
+
+  /**
+   * A shader's worst-case cost in a window of 1512x945 points.
+   */
+  type PluginValidateShaderCost = {
+      /**
+       * The picture's pixels a point that each class holds, 0 to 2.
+       */
+      sharpness: PluginValidatePerGpu;
+      /**
+       * The frames a second it asks for.
+       */
+      fps: 30 | 60;
+      /**
+       * In the order they run, then each table a pass reads. `name` is the
+       * variable the pass is first bound to, empty with none. `frameMs` is its
+       * time on a frame and `startMs` on the first.
+       */
+      passes: readonly {
+          kind: 'buffer' | 'table' | 'picture' | 'shapes';
+          name: string;
+          line: number;
+          frameMs: PluginValidatePerGpu;
+          startMs: PluginValidatePerGpu;
+      }[];
+      /**
+       * What it reads from outside itself; `values` by the names it gives them.
+       */
+      reads: {
+          pointers: boolean;
+          scene: boolean;
+          values: readonly string[];
+      };
+      /**
+       * The steps of all its programs, as written.
+       */
+      steps: number;
+      /**
+       * The guards put in where a range could not rule out a bad point.
+       */
+      guards: number;
+      /**
+       * The GPU memory it holds.
+       */
+      bytes: number;
+      /**
+       * How much data its constants and tables carry.
+       */
+      bits: number;
+      /**
+       * Up to three lines, dearest first, each with its share (0 to 1) of the work.
+       */
+      dearest: readonly {
+          line: number;
+          share: number;
+      }[];
   };
 
   /**
@@ -11725,6 +11845,19 @@ declare module 'claude-code' {
       children?: undefined;
   } | {
       /**
+       * A `Backdrop`'s scene played on the GPU, over the one `Svg` that shows
+       * wherever it does not play (ShaderProps).
+       */
+      type: 'Shader';
+      props: ShaderProps;
+      /**
+       * Whose file `props.module` names: the plugin whose hook drew the
+       * element, stamped by the runtime as the tree leaves it.
+       */
+      shader?: PluginStamp;
+      children?: RenderNode[];
+  } | {
+      /**
        * How far along a task is, or that it is still running. Hooks above wrap
        * it, replace it or rewrite its props. A mobile client that names it in
        * `draws` is sent this node; any other client, on any surface, gets its
@@ -12719,7 +12852,8 @@ declare module 'claude-code' {
        * is over it. Each surface asks separately, so a hook can read `e.surface` to
        * draw a different scene on each.
        *
-       * An answer holds only `Box`, `Text` and `Svg`, and an `Svg` is pure vector, or
+       * An answer holds only `Box`, `Text`, `Svg` and one `Shader` (ShaderProps), and
+       * an `Svg` is pure vector, or
        * the answer is refused: no `data:` URL, base64, `<image>`, `feImage`,
        * `foreignObject`, `@font-face`, `@import`, `image-set()`, `src()`,
        * `cross-fade()` or `<?xml-stylesheet`; no `url()` or `href` but a local
@@ -14579,6 +14713,74 @@ declare module 'claude-code' {
   type SetupHookInput = BaseHookInput & {
       hook_event_name: 'Setup';
       trigger: 'init' | 'maintenance';
+  };
+
+  /**
+   * The props of `Shader`, a scene the desktop and mobile apps play on the GPU:
+   * the shader file `module` names, fed `values`, over its one `Svg` child.
+   *
+   * It draws in a `Backdrop` alone, one at most, at the root or in a `Box`.
+   * Anywhere else, or over anything but one `Svg`, the tree is refused. The file
+   * is TypeScript against 'claude-code/shader' (declared below), never GLSL. The
+   * engine reads it at load and never runs it: it sends the app a checked form,
+   * which the app feeds the time and the person's pointers itself. None of that
+   * comes back to the mod, save a click on the bare backdrop (`ui.pointer`).
+   *
+   * The Svg shows alone on an app that plays no shaders, under Reduce Motion,
+   * when the shader fails, flashes or runs too slowly, and when the engine
+   * refuses the file or a prop. A hook cannot tell which the person got, so draw
+   * the Svg as a finished scene. `claude plugin validate` lists the file with
+   * its cost, or names the line it refuses.
+   *
+   * The Svg can be another mod's scene (`await next(e)`) where that is a bare
+   * `Svg`. A hook may keep a Shader `next(e)` handed it and change its `values`,
+   * not its `module`; otherwise the hook fails and is skipped.
+   *
+   * @example
+   * // hooks/beam.ts holds `values({ x: [0, 1], y: [0, 1], clicks: [0, 9] })`
+   * let aim = { x: 0.5, y: 0.5, clicks: 0 }
+   * on("session.start", async ($, e, next) => {
+   *   await $.theme.set({ backdrop: { scene: "stage" } })
+   *   return next(e)
+   * })
+   * on("ui.render", { component: "Backdrop" }, ($, e, next) => {
+   *   if (e.surface !== "desktop" && e.surface !== "mobile") return next(e)
+   *   if (e.props.plugin !== "spotlight") return next(e)
+   *   const { Shader, Svg } = $.ui.resolve(e)
+   *   return (
+   *     <Shader module="./beam.ts" values={aim}>
+   *       <Svg source={STAGE_SVG} alt="An empty stage" />
+   *     </Shader>
+   *   )
+   * })
+   * on("ui.pointer", ($, e, next) => {
+   *   aim = { x: e.x, y: 1 - e.y, clicks: aim.clicks + 1 }
+   *   $.ui.invalidate("ui.render")
+   *   return next(e)
+   * })
+   */
+  export type ShaderProps = {
+      /**
+       * The shader file's path, a string literal relative to this file, written
+       * in the `Shader` element itself: `module="./beam.ts"`.
+       *
+       * Read off the source, as a `Client`'s is. A variable, a renamed `Shader`,
+       * a path outside the plugin or no such file leaves the Svg; the mod loads.
+       */
+      module: string;
+      /**
+       * Finite numbers under the names the file's `values({ ... })` declares, 8 at
+       * most, each held to its range; one left out is its low end. Another name is
+       * refused.
+       *
+       * A redraw that changes only these keeps the shader running and eases it to
+       * them. The app rounds each to 10 bits of its range, and clears the shader's
+       * buffers once many have changed. So send state, never a stream on a timer:
+       * what fades, moves or piles up belongs in a `buffer`, stepped with `dt`.
+       */
+      values?: {
+          readonly [name: string]: number;
+      };
   };
 
   /**
@@ -17835,6 +18037,44 @@ declare module 'claude-code' {
   };
 
   /**
+   * The input of `ui.pointer`: what the pointer did on the backdrop, and where.
+   * Every key is pinned.
+   */
+  export type UiPointerInput = {
+      /**
+       * Where it came from: `desktop` or `mobile`.
+       */
+      surface: RenderSurface;
+      component: 'Backdrop';
+      /**
+       * The `requestId` the `ui.render` hook that drew the backdrop saw.
+       */
+      requestId: string;
+      /**
+       * The `scene` the plugin named in `$.theme.set`.
+       */
+      scene: string;
+      /**
+       * A click, or a finger's tap. Moves never reach a mod.
+       */
+      type: 'click';
+      /**
+       * From the backdrop's left edge (0) to its right (1), in steps of 1/64.
+       */
+      x: number;
+      /**
+       * From the backdrop's top edge (0) to its bottom (1), in steps of 1/64. A
+       * shader's y points up, so hand it `1 - e.y`.
+       */
+      y: number;
+  };
+
+  /**
+   * What a `ui.pointer` hook returns and what `next(e)` resolves to: `{}`.
+   */
+  export type UiPointerResult = Record<string, never>;
+
+  /**
    * The argument of `ui.press`: a press on a `Button` a render hook drew, or
    * on an answered `Markdown` link. Flat and frozen like every event's.
    *
@@ -19857,4 +20097,333 @@ declare module 'claude-code/testing' {
   export type WithMessage = {
       message: string;
   };
+}
+
+/**
+ * The theme shader language. A mod names the file as `<Shader module="./sky.ts">`.
+ * The engine reads it and never runs it: it compiles it, and `claude plugin
+ * validate` prints its worst-case cost or refuses it.
+ *
+ * Allowed: const, let, functions and arrows (inlined; one may set an enclosing
+ * function's `let`, never a top-level one), if/else, `?:`, `for` with start, end
+ * and step known while reading (or up to `pointerCount`; 64 turns at most; the
+ * step and the end write nothing but the counter), `for...of` over `pointers` or
+ * a written list (unrolled), break, continue, return, destructuring. Lists and
+ * records fold away; a list read or written at a run-time index holds at most 16
+ * entries. Refused: while, do, recursion, classes, new, async, strings as
+ * values, spread, any other import or global.
+ *
+ * Numbers are 32-bit floats. No value is ever NaN or infinite: where a range
+ * can't rule out a bad point (dividing by zero, say), a guard goes in. y points up.
+ *
+ * A file's numbers, ints and tables hold 16384 bits in all, a round number fewer
+ * than 32. Each turn of an unrolled loop adds the numbers it folds to, so draw
+ * many like things with a `for` loop, or with `shapes` and `instances`.
+ *
+ * @example
+ * import { picture, shader, sin, time, vec3, vec4 } from 'claude-code/shader'
+ * const sky = picture(p => {
+ *   const glow = 0.2 + 0.1 * sin(time + p.uv.x * 6)
+ *   return vec4(vec3(0.3, 0.5, 1) * glow, glow)
+ * })
+ * export default shader({ fps: 30, passes: [sky] })
+ */
+declare module 'claude-code/shader' {
+  type Lanes<L extends string> = {
+    [K in L | `${L}${L}` | `${L}${L}${L}` | `${L}${L}${L}${L}`]: K extends L
+      ? number
+      : K extends `${L}${L}`
+        ? vec2
+        : K extends `${L}${L}${L}`
+          ? vec3
+          : vec4
+  }
+  interface Lanes2 extends Lanes<'x' | 'y'>, Lanes<'r' | 'g'> {
+    readonly ' width': 2
+    [lane: number]: number
+  }
+  interface Lanes3 extends Lanes<'x' | 'y' | 'z'>, Lanes<'r' | 'g' | 'b'> {
+    readonly ' width': 3
+    [lane: number]: number
+  }
+  interface Lanes4
+    extends Lanes<'x' | 'y' | 'z' | 'w'>, Lanes<'r' | 'g' | 'b' | 'a'> {
+    readonly ' width': 4
+    [lane: number]: number
+  }
+  type Wide<A, Else = number> = A extends vec4
+    ? vec4
+    : A extends vec3
+      ? vec3
+      : A extends vec2
+        ? vec2
+        : Else
+  type One = <A extends number>(x: A) => Wide<A>
+  type Two = <A extends number, B extends number>(a: A, b: B) => Wide<A, Wide<B>>
+  type Three = <A extends number, B extends number, C extends number>(
+    a: A,
+    b: B,
+    c: C,
+  ) => Wide<A, Wide<B, Wide<C>>>
+
+  /**
+   * A vector is a number with lanes, so `+ - * /` type-check, lane by lane, and
+   * a plain number goes to every lane. The result reads as `number`: name its
+   * width again with `vec2(a + b)`, which the compiler proves. Lanes are `xyzw`
+   * or `rgba`, read and written in any order (`c.rgb = vec3(0)`), or by index
+   * (`v[i]`). Vectors copy.
+   */
+  export type vec2 = number & Lanes2
+  export type vec3 = number & Lanes3
+  export type vec4 = number & Lanes4
+
+  /** Builds a vector from parts whose lanes add up, or from one number. */
+  export function vec2(...parts: number[]): vec2
+  export function vec3(...parts: number[]): vec3
+  export function vec4(...parts: number[]): vec4
+
+  export const PI: number
+  export const abs: One
+  export const sign: One
+  export const floor: One
+  export const trunc: One
+  export const fract: One
+  export const sqrt: One
+  export const sin: One
+  export const cos: One
+  export const exp: One
+  export const log: One
+  export const tanh: One
+  export const normalize: One
+  export function length(v: number): number
+  export function dot(a: number, b: number): number
+  export const min: Two
+  export const max: Two
+  /** The remainder with the sign of `b`. `%` keeps the sign of `a`, as in JS. */
+  export const mod: Two
+  /** `a / b`, cut toward zero. */
+  export const quot: Two
+  export const pow: Two
+  /** `step(edge, x)`: 0 below the edge, else 1. */
+  export const step: Two
+  /** `atan(y, x)`: the angle of (x, y), from -PI to PI. */
+  export const atan: Two
+  /** `mix(a, b, t)` */
+  export const mix: Three
+  /** `clamp(x, low, high)` */
+  export const clamp: Three
+  /** `smoothstep(from, to, x)`: the edges go in either order. */
+  export const smoothstep: Three
+  /** The change to the next pixel across, up, and the two added without sign. */
+  export const dx: One
+  export const dy: One
+  export const fwidth: One
+
+  /**
+   * A 32-bit int that wraps: `+ - * & | ^ ~ << >> >>>` with their JS meaning,
+   * `*` as Math.imul, shifts masked to 0..31. A whole number written beside an
+   * int is an int. `int(a + b)` names the result again.
+   */
+  export type int = number & { readonly ' int': true }
+  /** Cuts toward zero and wraps, as `x | 0` does. */
+  export function int(x: number): int
+  /** The int as a number, from -2^31. */
+  export function signed(i: number): number
+  /** The int as a number, from 0 to 2^32. */
+  export function unsigned(i: number): number
+
+  /** Seconds since the start. */
+  export const time: number
+  /** Seconds since the last frame. */
+  export const dt: number
+  export const frame: number
+  /** True on frame 0. */
+  export const first: boolean
+  /** True on the first frame at a new size. */
+  export const fresh: boolean
+  /** Which run of a `repeat` this is, from 0. */
+  export const turn: number
+  /** 1 under Reduce Motion, else 0. */
+  export const still: number
+  /** The window, in points. */
+  export const size: vec2
+  /** The target, in pixels. */
+  export const res: vec2
+  /** One pixel's width, in points. */
+  export const px: number
+  /** The prompt box: left, bottom, right, top, each 0 to 1. */
+  export const composer: vec4
+  /** The pixel's center, in the target's pixels. */
+  export const pixel: vec2
+  export const vertex: number
+  export const instance: number
+  /** Where in its point a pixel is, 0 to 1 (`draw: 'points'` only). */
+  export const coord: vec2
+
+  export type Pointer = {
+    /** x, y and the last frame's x, y, each 0 to 1. */
+    readonly where: vec4
+    /** age, down, over, gone. */
+    readonly info: vec4
+    /** Where it is, in points. */
+    readonly at: vec2
+    /** Where it was last frame, in points. */
+    readonly was: vec2
+    /** Seconds since it came. */
+    readonly age: number
+    /** 1 when pressed, else 0. */
+    readonly down: number
+    /** 1 over part of the app, 0 over the bare backdrop. */
+    readonly over: number
+    /** Seconds since it lifted, 0 while it is there. */
+    readonly gone: number
+  }
+  /** 0 to 4. */
+  export const pointerCount: number
+  export function pointer(index: number): Pointer
+  /** A loop over these stops at `pointerCount`, and is charged for 4. */
+  export const pointers: Iterable<Pointer>
+
+  /**
+   * The numbers the mod sets while it plays (`Shader`'s `values`), each held to
+   * its range. A file with more than 8 names is refused.
+   */
+  export function values<K extends string>(
+    ranges: Record<K, readonly [low: number, high: number]>,
+  ): { readonly [name in K]: number }
+
+  /** The whole numbers from `from` (or 0) up to, not including, `to`. */
+  export function range(to: number): number[]
+  export function range(from: number, to: number): number[]
+  /** An out parameter: a function sets `.v`. */
+  export type Box<T> = { v: T }
+  export function box<T>(
+    v: T,
+  ): Box<
+    T extends int
+      ? int
+      : T extends number
+        ? Wide<T>
+        : T extends boolean
+          ? boolean
+          : T
+  >
+
+  type Row = number | readonly number[]
+  type Width<R> = R extends readonly [number, number, number, number]
+    ? vec4
+    : R extends readonly [number, number, number]
+      ? vec3
+      : R extends readonly [number, number]
+        ? vec2
+        : Wide<R>
+  /**
+   * Up to 256 rows of 1 to 4 numbers, kept as data. `.at(i)` clamps `i`. An
+   * 'int' row of several reads as a list of ints.
+   */
+  export function table<const R extends Row>(
+    rows: readonly R[],
+  ): { at(index: number): Width<R>; readonly length: number }
+  export function table<const R extends Row>(
+    rows: readonly R[],
+    kind: 'int',
+  ): {
+    at(index: number): R extends readonly number[] ? { [K in keyof R]: int } : int
+    readonly length: number
+  }
+
+  export type Pixel = {
+    /** 0 to 1 across the target. */
+    readonly uv: vec2
+    /** In points. */
+    readonly point: vec2
+    /** The whole-number texel, for `.at`. */
+    readonly cell: vec2
+    readonly pixel: vec2
+    readonly px: number
+  }
+  /** `a` and `b` are the vertices', blended across the shape. */
+  export type Spot = Pixel & {
+    readonly coord: vec2
+    readonly a: vec4
+    readonly b: vec4
+  }
+  export type Pass = { readonly ' pass': true }
+  export type Scene = { sample(uv: number): vec4 }
+  export type Buffer = Pass & {
+    /** One texel, clamped to the edge. */
+    at(cell: number): vec4
+    sample(uv: number, lod?: number): vec4
+    /** In texels. */
+    readonly size: vec2
+  }
+  /** A picture of the Svg under the shader; as `into`, the picture itself. */
+  export const scene: Scene
+
+  /**
+   * A texture that lasts between frames: reading it gives its last write. With
+   * no body it is an empty target for shapes. With no `scale` or `size` it is
+   * as sharp as the picture. To read itself, it names its type:
+   * `const trail: Buffer = buffer({}, p => vec4(trail.sample(p.uv) * exp(-dt)))`.
+   */
+  export function buffer(
+    options: {
+      /** Texels a point, up to 2. */
+      scale?: number
+      /** Texels, up to 2048 a side. */
+      size?: readonly [number, number] | vec2
+      /** Bits a lane. Without it, lanes hold 0 to 1 in 8 bits. */
+      float?: 16 | 32
+      filter?: 'linear' | 'nearest' | 'mipmap'
+      wrap?: 'clamp' | 'repeat'
+      /** Runs a frame, up to 24. */
+      repeat?: number
+      /**
+       * Runs at the start and at a new size only, so it may not read time,
+       * frame, pointers, values or a buffer that moves.
+       */
+      once?: boolean
+    },
+    color?: (p: Pixel) => vec4,
+  ): Buffer
+
+  /** What shows, premultiplied, over the Svg. Exactly one. */
+  export function picture(color: (p: Pixel) => vec4): Pass
+
+  /**
+   * Draws `count` vertices, `instances` times, onto the picture or a buffer.
+   * `at` is -1 to 1 across the target (a vec4 is divided by its w, and hidden
+   * when z is outside it). `size` is a point's pixels, 1 to 64. `hide: true`
+   * hides every shape the vertex is part of, and keeps its `a` and `b` out of
+   * the cost. `paint` answers a premultiplied color: `vec4(rgb * a, a)`.
+   */
+  export function shapes(
+    options: {
+      count: number
+      instances?: number
+      /**
+       * How many windows of 1512x945 points the draw may cover, up to 8. It is
+       * charged for this much.
+       */
+      cover: number
+      draw?: 'triangles' | 'strip' | 'points' | 'lines'
+      /** The draw may not read this buffer if it has no body. */
+      into?: Buffer | Scene
+      blend?: 'over' | 'add'
+      clear?: boolean
+    },
+    place: (
+      vertex: number,
+      instance: number,
+    ) =>
+      | { at: number; size?: number; a?: number; b?: number; hide?: boolean }
+      | { hide: true },
+    paint: (spot: Spot) => vec4,
+  ): Pass
+
+  /** The module's default export. Passes run in order, 24 at most with tables. */
+  export function shader(options: {
+    fps?: 30 | 60
+    passes: readonly Pass[]
+  }): unknown
 }
