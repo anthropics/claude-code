@@ -8815,9 +8815,10 @@ declare module 'claude-code' {
    * A `classic.PermissionRequest` answer's `decision`, as the classic hook's
    * `hookSpecificOutput.decision`: allow (with a rewrite or rules) or deny.
    *
-   * In a session off the person's machine a mod's update stands unless it loosens
-   * a device tool, Bash, PowerShell, a file tool or TaskStop, as `setMode` and
-   * `addDirectories` do.
+   * Off the person's machine a mod's update stands unless it is `setMode`, loosens
+   * a device tool, or lifts a deny or ask or removes an exception on a shell, Read,
+   * Write, Edit, Glob, Grep or TaskStop. A restarted cloud worker has none of the
+   * session allow rules the mod added.
    */
   export type PermissionRequestDecision = {
       behavior: 'allow';
