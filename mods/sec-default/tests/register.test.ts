@@ -889,6 +889,84 @@ describe('register', () => {
     },
   )
 
+  for (const [kind, guard] of Fixtures.GUARDS) {
+    for (const [how, policy] of Fixtures.NAMING_GUARD) {
+      test(
+        `a person's mod cannot refuse a plugin ${kind} policy names: ${how}`,
+        { plugins: [Fixtures.refusingPlugins('mine'), guard] },
+        async ($, on) => {
+          on('settings.read', () => ({ value: policy }))
+          on('prompt.section', ($, e) => ({ text: e.text }))
+
+          expect(
+            await $.prompt.section(Fixtures.MEMORY),
+            'a call rejects where a plugin of the test was refused',
+          ).toEqual({ text: Fixtures.MEMORY.text })
+        },
+      )
+    }
+
+    for (const [how, policy] of Fixtures.NOT_NAMING_GUARD) {
+      test(
+        `a person's mod still refuses their own plugin ${kind}: ${how}`,
+        { plugins: [Fixtures.refusingPlugins('mine'), guard] },
+        async ($, on) => {
+          on('settings.read', () => ({ value: policy }))
+
+          await expect($.session.start(Fixtures.SESSION)).rejects.toThrow(
+            'refused by mine: no guard',
+          )
+        },
+      )
+    }
+
+    for (const seat of ['prepend', 'append'] as const) {
+      test(
+        `an organization's ${seat} judge still refuses its plugin ${kind}`,
+        { plugins: [Fixtures.refusingPlugins('screen', seat), guard] },
+        async ($, on) => {
+          on('settings.read', () => ({ value: Fixtures.ENABLING_GUARD }))
+
+          await expect($.session.start(Fixtures.SESSION)).rejects.toThrow(
+            'refused by screen: no guard',
+          )
+        },
+      )
+    }
+
+    test(
+      `a person's allow does not override an appended judge's refusal of an organization's plugin ${kind}`,
+      {
+        plugins: [
+          Fixtures.admittingPlugins,
+          guard,
+          Fixtures.refusingPlugins('screen', 'append'),
+        ],
+      },
+      async ($, on) => {
+        on('settings.read', () => ({ value: Fixtures.ENABLING_GUARD }))
+
+        await expect($.session.start(Fixtures.SESSION)).rejects.toThrow(
+          'refused by screen: no guard',
+        )
+      },
+    )
+  }
+
+  test(
+    'allowManagedModsOnly still refuses a user-tier module policy names',
+    { plugins: [Fixtures.registering('guard')] },
+    async ($, on) => {
+      on('settings.read', () => ({
+        value: { ...Fixtures.ENABLING_GUARD, ...Fixtures.MANAGED_MODS_ONLY },
+      }))
+
+      await expect($.session.start(Fixtures.SESSION)).rejects.toThrow(
+        Hooks.managedModsOnlyRefusal('guard'),
+      )
+    },
+  )
+
   test(
     'a deny rule holds over an allow from a plugin the person installed',
     { plugins: [Fixtures.allowing('easy')] },

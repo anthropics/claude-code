@@ -8840,7 +8840,7 @@ declare module 'claude-code' {
    * Off the person's machine a mod's update stands unless it is `setMode`, loosens
    * a device tool, or lifts a deny or ask or removes an exception on a shell, Read,
    * Write, Edit, Glob, Grep or TaskStop. A restarted cloud worker has none of the
-   * session allow rules the mod added.
+   * session allow rules the mod added. Its directory lifts no forwarded call's block.
    */
   export type PermissionRequestDecision = {
       behavior: 'allow';

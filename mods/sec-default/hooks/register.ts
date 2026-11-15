@@ -33,7 +33,8 @@ const PERSONS_PROMPTS = ['composer', 'bridge', 'sdk', 'slack-ping']
  *
  * Three moves: continue past the user tier (`next.to(e, "append")`), refuse
  * a user-tier caller or module by name, or pass. Provenance is the event's
- * pinned `provider` or `tier`; policy is `$.settings.read`; fail closed. Under
+ * pinned `provider` or `tier`, or an id policy names; policy is
+ * `$.settings.read`; fail closed. Under
  * `forceHotReloadPrompt` it also asks about a mod Claude wrote before it loads.
  * It remembers the model's calls, so a person's mod runs none before it is allowed.
  *
@@ -480,7 +481,11 @@ export function register(on: On) {
     const folder = HotReloadPrompt.devModsFolderOf(e.root)
 
     if (!Policy.isHotReloadPromptForced(policy) || folder === undefined) {
-      return next(e)
+      // An organization's plugin can sit in the user tier, where a person's
+      // refusal would take its command hooks with it.
+      return Policy.isOrgPlugin(policy, e.provenance)
+        ? next.to(e, 'append')
+        : next(e)
     }
 
     const kept = answers.get(folder)
