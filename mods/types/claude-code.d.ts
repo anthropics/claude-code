@@ -3141,7 +3141,8 @@ declare module 'claude-code' {
            * Calls `tool` on one of the engine's connected MCP servers with the
            * engine's own connection and credentials.
            *
-           * A `cached` server is dialed on first use. No permission prompt: the
+           * A `cached` server is dialed on first use, and a remote one that is down
+           * is dialed again with the sign-in already held. No permission prompt: the
            * plugin's call, seen by the hooks above it, is the grant. Positional, not
            * the `{ tool: "mcp__server__tool", ... }` shape a `tool.call` hook sees.
            *
@@ -3567,7 +3568,8 @@ declare module 'claude-code' {
            * above hold for it.
            * `$.tool.check` still reports the session's own verdict, so it can say `ask`
            * or `deny` for a call that runs. Rejects when no tool has that name or the
-           * call is aborted.
+           * call is aborted. A tool of a remote MCP server that is down has its server
+           * dialed again first, as `$.mcp.call` does.
            *
            * @example
            * const { text } = await $.tool.call({ tool: "Read", file_path: "a.md" })
