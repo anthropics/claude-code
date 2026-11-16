@@ -9152,8 +9152,8 @@ declare module 'claude-code' {
        */
       name: string;
       /**
-       * Where its hooks would stand among the chain's tiers (Tier); never
-       * `core`, the engine's own.
+       * The tier it is judged in (Tier), which for a hooks module is where its hooks
+       * would stand in the chain; never `core`, the engine's own.
        */
       tier: Exclude<Tier, 'core'>;
       /**
@@ -9172,8 +9172,9 @@ declare module 'claude-code' {
       provenance: string;
       /**
        * True where the app that started this session handed over this plugin by path
-       * and said its organization requires it; else absent. Only that app says it, and
-       * it gives the plugin no tier or permission. Left out, it is restored.
+       * and said its organization requires or auto-installs it; else absent. Only that app
+       * says it. It gives no permission, and sets `tier` only for a plugin with no hooks
+       * module (Tier). Left out, it is restored.
        */
       requiredByOrganization?: true;
       /**
@@ -16342,6 +16343,12 @@ declare module 'claude-code' {
    * A fetch that fails is tried again a day later, and so is a folder that changed
    * and still differs. A one-shot `-p` run and essential-traffic mode fetch nothing.
    * Ahead of every check, the `__pycache__` folders in a cached copy are removed.
+   *
+   * A plugin `plugin.register` marks `requiredByOrganization` is judged there in the
+   * organization's tier when it has no hooks module and is shown to be outside every
+   * dev-mods folder and what a link in one leads to (a zip by where it is unpacked).
+   * Nothing proves that mark, so it goes no further: it moves neither a module's
+   * tier nor the tier an event's `provider` reads.
    */
   export type Tier = (typeof TIERS)[number];
 
