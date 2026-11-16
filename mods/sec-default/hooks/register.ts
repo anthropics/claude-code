@@ -511,10 +511,12 @@ export function register(on: On) {
 
     pastManagedOnly.add(e.name)
 
+    const isRequired = e.requiredByOrganization === true
+
     if (!Policy.isHotReloadPromptForced(policy) || folder === undefined) {
       // An organization's plugin can sit in the user tier, where a person's
       // refusal would take its command hooks with it.
-      return Policy.isOrgPlugin(policy, e.provenance)
+      return isRequired || Policy.isOrgPlugin(policy, e.provenance)
         ? next.to(e, 'append')
         : next(e)
     }
@@ -522,7 +524,7 @@ export function register(on: On) {
     const kept = answers.get(folder)
 
     if (kept === HotReloadPrompt.TURN_THEM_ON) {
-      return next(e)
+      return isRequired ? next.to(e, 'append') : next(e)
     }
 
     if (kept !== undefined) {
@@ -536,7 +538,7 @@ export function register(on: On) {
     if (isStored) {
       answers.set(folder, HotReloadPrompt.TURN_THEM_ON)
 
-      return next(e)
+      return isRequired ? next.to(e, 'append') : next(e)
     }
 
     // A rejection is no answer: the next load, where someone can answer, asks.
@@ -561,7 +563,7 @@ export function register(on: On) {
     // A failed write costs the next session a question, not this one its answer.
     await $.store.set(HotReloadPrompt.yesKey(folder), true).catch(() => {})
 
-    return next(e)
+    return isRequired ? next.to(e, 'append') : next(e)
   }).catch(($, e, next) => {
     // A `.catch` that throws or waits past its grace answers nothing, and the mod
     // would load unasked: so this one waits on nothing, and its log line cannot stop it.
@@ -576,8 +578,10 @@ export function register(on: On) {
       folder !== undefined &&
       answers.get(folder) === HotReloadPrompt.TURN_THEM_ON
 
+    const isRequired = e.requiredByOrganization === true
+
     if (pastManagedOnly.has(e.name) && (next.called || isAnsweredYes)) {
-      return next(e)
+      return isRequired ? next.to(e, 'append') : next(e)
     }
 
     if (folder !== undefined && !isAnsweredYes) {
@@ -585,7 +589,7 @@ export function register(on: On) {
     }
 
     if (usesNothing(e.uses)) {
-      return next(e)
+      return isRequired ? next.to(e, 'append') : next(e)
     }
 
     if (folder !== undefined) {

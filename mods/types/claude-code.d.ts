@@ -9141,9 +9141,10 @@ declare module 'claude-code' {
    * styles, themes, monitors, settings and `bin/`. None of them starts before the
    * verdict. To keep out less, pass `provides` on with entries removed.
    *
-   * `tier`, `uses`, `provides` and `unread` are the host's reading of the plugin, what
-   * a gate holds it to; `name`, `root`, `version` and `provenance` are its own word (its
-   * manifest, its place), so a rule keyed on them is one a rename walks past.
+   * `tier`, `uses`, `provides`, `unread` and `requiredByOrganization` are the host's
+   * reading of the plugin, what a gate holds it to; `name`, `root`, `version` and
+   * `provenance` are its own word (its manifest, its place), so a rule keyed on
+   * them is one a rename walks past.
    */
   export type PluginRegisterInput = {
       /**
@@ -9169,6 +9170,12 @@ declare module 'claude-code' {
        * installed, `<name>@inline` by `--plugin-dir`, `<name>@builtin` bundled.
        */
       provenance: string;
+      /**
+       * True where the app that started this session handed over this plugin by path
+       * and said its organization requires it; else absent. Only that app says it, and
+       * it gives the plugin no tier or permission. Left out, it is restored.
+       */
+      requiredByOrganization?: true;
       /**
        * What its hooks module hooks and calls, as scanned (PluginRegisterUses).
        * Empty for a plugin with no module, or whose module did not load, and for a
