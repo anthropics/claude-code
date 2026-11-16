@@ -29,11 +29,11 @@ const FROM_KEY = /["']From\\*["']\s*[:=,]/
 const HEADERS = /(?<![a-z])headers(?![a-z])/i
 
 /**
- * A value read at run time that is the address: git's setting or variables. Not
+ * A value read at run time that is the address: git's or a cloud session's. Not
  * `git config user.email <value>`, which release scripts run beside `git add -A`.
  */
 const COMPUTED_ADDRESS =
-  /\bgit\b[^\n]{0,40}\bconfig\b[^\n]{0,40}\buser\.email\b(?![ \t]+(?!\d?>)["'$\w])|\$(?:\{|env:)?GIT_(?:AUTHOR|COMMITTER)_EMAIL\b/i
+  /\bgit\b[^\n]{0,40}\bconfig\b[^\n]{0,40}\buser\.email\b(?![ \t]+(?!\d?>)["'$\w])|\$(?:\{|env:)?GIT_(?:AUTHOR|COMMITTER)_EMAIL\b|\b(?:CLAUDE_CODE_USER_EMAIL|CCR_SESSION_ACCOUNT_EMAIL)\b/i
 
 /**
  * `-A`, `-U` and `-User` set a User-Agent only for these clients; Windows PowerShell
