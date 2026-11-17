@@ -89,6 +89,8 @@ export function register(on: On) {
 
   on('settings.read', ($, e, next) => next.to(e, 'append'))
 
+  on('telemetry.log', { to: 'collector' }, ($, e, next) => next.to(e, 'append'))
+
   // It refuses, so it is never skipped when alone. No call on `$` here: a hook
   // that call reached would run with this one left out.
   on('session.identity', ($, e, next) =>

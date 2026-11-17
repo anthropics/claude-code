@@ -5220,6 +5220,7 @@ declare module 'claude-code' {
        * `e.to` is pinned: a hook rewrites what the record carries, never where
        * it goes. `next(e)` resolves `{ value: undefined }`; `{ deny }` rejects the
        * caller. Beneath the hooks the engine exports its own collector records.
+       * Where sec-default is seated, a collector record passes the `user` tier by.
        *
        * @example
        * on("telemetry.log", { to: "collector" }, ($, e, next) => next(e))

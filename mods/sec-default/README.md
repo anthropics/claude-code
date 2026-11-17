@@ -31,6 +31,7 @@ settings it decides by.
 | `session.compact` | Continue past the user tier, whole: a conversation a person's plugin answers in place of a compaction is never installed, so the conversation a compaction leaves is the engine's or the organization's own making, and its summary is stored as made (the `session.append` row). A person's own compaction hook does not run where this plugin is seated; a plugin of theirs may still ask for a compaction, which the engine then makes. |
 | `prompt.compose` | Continue past the user tier: the system prompt's list of sections is what the organization's tiers, the built-ins and the engine's own composition make it. A person's plugin neither drops, reorders nor rewrites a section, nor changes the facts the list is composed from, nor answers a list of its own in its place. The engine raises this event only when some loaded plugin hooks it, so where this plugin is seated every render of the system prompt runs the chain. |
 | `settings.read` | Continue past the user tier: no user hook rewrites what any caller reads as settings, this plugin's own policy reads included. |
+| `telemetry.log` | A record bound for the collector (`to` is `collector`) continues past the user tier, whoever set the collector up: it reaches the exporter as the organization's tiers and the built-ins leave it. A person's hook on that stream does not run where this plugin is seated, and neither does the hook of an organization's plugin left in the `user` tier. |
 | `session.identity` | A `user`-tier caller is refused (the call resolves with `deny`), and every other caller continues past the user tier: a person's plugin neither calls, sees nor answers the event. By design, where this plugin is not seated a person's hook sits above `privacy` and can see or answer a call no organization's mod made, and with `privacy` off too a person's plugin is answered. The address already reaches it at `prompt.context`. Under a pin, what it sees includes the organization's fields and the pinned `email`. |
 | `tool.describe`, `command.describe`, `agent.offer`, `agent.spawn` | When the subject's pinned `e.provider.tier` is `prepend` or `append` (a policy-installed plugin, the managed folder, a policy MCP server), continue past the user tier; a subject provided by `user`, `builtin` or `core` passes. |
 | `tool.offer` | As the row above, and by name as `tool.list` tells an organization's tool: continue past the user tier too for a tool of a server that policy names or delivers (one on `allowedMcpServers` that a person configured among them), a tool of a plugin that policy seats or turns on (one the engine leaves in the `user` tier among them), and every `mcp__` tool where the server file cannot be read. With no policy to read, or if this hook fails before it passes the tool on, every tool continues past the user tier. So a person's plugin cannot keep from a model a tool it could not take off the pool. Any other tool passes. Left over: `provider` here is the tool's, so a person's plugin can still keep a built-in tool from the model inside an organization's agent. The policy is read through the memo, and a loop holds each answer for its life. |
@@ -178,7 +179,7 @@ is outside it, and `allowManagedModsOnly` is the control over it. The option als
 
 `classic.*`, `prompt.section`, `prompt.context`, `prompt.attachment`,
 `prompt.compose`, `skill.prompt`,
-`attribution.text`, `session.append`, `session.compact`, `settings.read`, `session.identity`, `tool.describe`, `tool.offer`, `command.describe`,
+`attribution.text`, `session.append`, `session.compact`, `settings.read`, `telemetry.log`, `session.identity`, `tool.describe`, `tool.offer`, `command.describe`,
 `agent.offer`, `agent.spawn`, `agent.call`, `tool.register`, `tool.list`, `tool.call`, `tool.run`, `tool.check`, `tool.judge`,
 `prompt.submit`, `fs.write`, `fs.stat`, `process.run`, `process.spawn`,
 `ui.log`, `env.get`, `env.set`, `wasm.compile`, `plugin.register`.
@@ -188,7 +189,9 @@ loaded plugin hooks it, so where this plugin is seated every tool call now
 runs the `tool.check` chain, where before only a session with such a plugin
 did. So has hooking `ui.log`, `env.get`, `env.set`, `session.identity` and `wasm.compile`: each such call of any
 plugin's now runs a chain, an `env.set` from outside the organization's tiers waits on
-the policy read, as does each `tool.offer` that runs a chain, and a `wasm.compile` carries its bytes as base64. Where the copy built into Claude Code is the only plugin that
+the policy read, as does each `tool.offer` that runs a chain, and a `wasm.compile` carries its bytes as base64.
+So has hooking `telemetry.log`: a session raises its event records through the chain even with no collector set up.
+Where the copy built into Claude Code is the only plugin that
 hooks `env.get`, `command.describe`, `tool.describe`, `tool.offer`, `agent.offer`,
 `attribution.text` or `prompt.section`, a `$.env.get` call and the engine's own
 raises of the other six run no chain: this plugin would only pass the event
@@ -492,13 +495,13 @@ or by a careless plugin, not by a hostile one.
 ## Where it is seated
 
 The CLI seats it first in the prepend tier wherever hooks modules load on a
-machine with managed settings or a managed-mcp.json, or for a Team or
-Enterprise organization,
+machine with managed settings or a managed-mcp.json, for a Team or
+Enterprise organization, or wherever the HIPAA mod is on (right behind it),
 unless managed settings define `prependPlugins`: then that list is the
 whole prepend tier, and the organization names `sec-default@builtin` in it
 at the position it wants, e.g. `"prependPlugins": ["acme-guard@acme-tools",
 "sec-default@builtin"]`, or leaves it out. Once seated by the machine's
-managed settings or by the plan, it stays seated until the session ends: a
+managed settings, the plan or that mod, it stays seated until the session ends: a
 plan that reads differently at a later reload (a token variable a plugin
 set, an `apiKeyHelper` that appeared in a person's settings, another
 sign-in) does not unseat it. How a person signs in before a launch is
