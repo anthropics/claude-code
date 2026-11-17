@@ -1,4 +1,4 @@
-# hipaa
+# hipaa-default
 
 For an organization under HIPAA. A mod's own call and a settings hook's call
 are their author's code, and Claude Code does not hold them to the rules it
@@ -41,7 +41,7 @@ that cannot be told does not.
 
 ## What turns it off
 
-`"cc-plugin-hipaa@builtin": false` under `enabledPlugins` in managed settings.
+`"cc-plugin-hipaa-default@builtin": false` under `enabledPlugins` in managed settings.
 No other settings file does, and neither does `/plugin disable`.
 
 ## Adding a rule
