@@ -9237,7 +9237,9 @@ declare module 'claude-code' {
       tier: Exclude<Tier, 'core'>;
       /**
        * The plugin's directory (the one holding `.claude-plugin/plugin.json`),
-       * absolute.
+       * absolute; `builtin` for a bundled one. In a hosted cloud session (SessionInfo
+       * `isHosted`), an installed plugin with no hooks module has its `provenance`
+       * here, and one whose module did not load may.
        */
       root: string;
       /**
@@ -9251,9 +9253,10 @@ declare module 'claude-code' {
       provenance: string;
       /**
        * True where the app that started this session handed over this plugin by path
-       * and said its organization requires or auto-installs it; else absent. Only that app
-       * says it. It gives no permission, and sets `tier` only for a plugin with no hooks
-       * module (Tier). Left out, it is restored.
+       * and said its organization requires or auto-installs it, or, in a hosted cloud
+       * session (SessionInfo `isHosted`), where claude.ai lists it as required; else absent.
+       * It gives no permission, and sets `tier` only for a plugin with no hooks
+       * module to load (Tier). Left out, it is restored.
        */
       requiredByOrganization?: true;
       /**
