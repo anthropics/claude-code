@@ -4335,22 +4335,27 @@ declare module 'claude-code' {
            *
            * A hook above reads the bytes, replaces them or refuses (WasmCompileInput).
            * Rejects with a `WebAssembly.CompileError` for bytes that are no module;
-           * and for a module that defines or imports a shared memory, and on the
-           * hosted server, which has no WebAssembly and where the mod still loads.
+           * and for a module that defines or imports a shared memory.
            *
            * Nothing compiles synchronously, so glue that builds a module as it runs
-           * (emscripten's `addFunction`) does not work. Nothing caps memory: set
-           * `maximum`. A module, instance, memory or export never leaves for another
+           * (emscripten's `addFunction`) does not work. Locally nothing caps memory:
+           * set `maximum`. A module, instance, memory or export never leaves for another
            * plugin.
            *
            * An import calls `$` as any function does; one wrapped in
            * `WebAssembly.Suspending`, under an export wrapped in
            * `WebAssembly.promising`, may await it, as the hook that called the export.
            *
-           * Nothing stops a loop that stays inside WebAssembly. The session carries
-           * on and unloads the mod, but the loop holds a processor core until Claude
-           * Code exits. Have long-running code call an import that throws past a
+           * Locally, nothing stops a loop that stays inside WebAssembly. The session
+           * carries on and unloads the mod, but the loop holds a processor core until
+           * Claude Code exits. Have long-running code call an import that throws past a
            * deadline: the throw unwinds it.
+           *
+           * On the hosted server a mod's memory, instructions and stack are bounded,
+           * and what WebAssembly takes counts as script does: a loop, a deep recursion
+           * or a `grow` past the bound ends the hook. A module with no room rejects,
+           * as does a file changed since the mod loaded. Exceptions, tags and SIMD
+           * are not there.
            *
            * @param source a literal path, or the binary's bytes
            * @returns the compiled module
