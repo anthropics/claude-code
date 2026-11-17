@@ -30,6 +30,18 @@ describe('register', () => {
     )
   })
 
+  test('a call whose ceiling is unread is refused to the same callers', () => {
+    expect(
+      (
+        [
+          { plugin: 'mine', tier: 'user' },
+          { plugin: 'suite', tier: 'prepend', isOrganizations: true },
+          { plugin: 'engine', tier: 'core' },
+        ] as const
+      ).map(origin => Hooks.unreadCeilingRefusal(TOOL, origin)?.decision),
+    ).toEqual(['deny', undefined, undefined])
+  })
+
   test("the organization's own code is decided beneath", () => {
     expect(
       Hooks.blockedToolRefusal(TOOL, {

@@ -16857,8 +16857,8 @@ declare module 'claude-code' {
 
   /**
    * `tool.check`'s input as `$.tool.check` takes it: the tool and its arguments;
-   * the call's id, `agentId`, ceiling, approver and `isReadOnly` are the
-   * engine's to set.
+   * the call's id, `agentId`, ceiling, `isCeilingUnread`, approver and
+   * `isReadOnly` are the engine's to set.
    */
   type ToolCheckArgs = Pick<ToolCheckInput, 'tool' | 'input'>;
 
@@ -16912,6 +16912,8 @@ declare module 'claude-code' {
       /**
        * The most permissive verdict the organization lets the model's call of an
        * MCP tool reach: `ask`, or `deny` where an administrator blocked the tool.
+       * On a plugin's or a settings hook's own call of any tool, also `deny` where
+       * a managed deny rule covers this input as it would the model's.
        *
        * `deny` is a block on the tool or its connector for the organization or
        * the member's role, a host's `always_deny`, or a managed deny rule; never
@@ -16922,6 +16924,14 @@ declare module 'claude-code' {
        * on its answer, is dropped. Absent where none is set.
        */
       ceiling?: ToolCheckDecision;
+      /**
+       * Set by the engine on a plugin's or a settings hook's own call, and pinned:
+       * managed deny rules exist, and whether one covers the call can't be told.
+       *
+       * Matching them failed or stopped short, or they bind only where or as the
+       * tool runs. The engine refuses nothing on it: a hook here may.
+       */
+      isCeilingUnread?: true;
       /**
        * Who answers this evaluation's asks, known before any hook runs.
        *
@@ -17005,7 +17015,8 @@ declare module 'claude-code' {
       plugin?: string;
       /**
        * The most permissive verdict the organization lets the model's call of an
-       * MCP tool reach: `ask`, or `deny` where an administrator blocked the tool.
+       * MCP tool reach: `ask`, or `deny` where an administrator blocked the tool,
+       * or where a managed deny rule covers a plugin's own call of any tool.
        *
        * The question's own (`e.ceiling`), set by the engine, on
        * every verdict for it, core's and each hook's alike: a hook's own

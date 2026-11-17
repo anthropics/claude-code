@@ -1,6 +1,6 @@
 import type { On } from 'claude-code'
 
-import { blockedToolRefusal } from './rules'
+import { blockedToolRefusal, unreadCeilingRefusal } from './rules'
 
 /**
  * Registers the hooks, one for each rule under rules/.
@@ -15,4 +15,10 @@ export function register(on: On): void {
     { ceiling: 'deny' },
     ($, e, next) => blockedToolRefusal(e.tool, next.origin) ?? next(e),
   ).catch(($, e, next) => blockedToolRefusal(e.tool, next.origin) ?? next(e))
+
+  on(
+    'tool.check',
+    { isCeilingUnread: true },
+    ($, e, next) => unreadCeilingRefusal(e.tool, next.origin) ?? next(e),
+  ).catch(($, e, next) => unreadCeilingRefusal(e.tool, next.origin) ?? next(e))
 }
