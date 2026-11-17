@@ -51,8 +51,9 @@ settings it decides by.
 ## Options an administrator sets
 
 Three, in managed settings, under this plugin's own `pluginConfigs` entry,
-keyed by the id the CLI builds the plugin in under (only this spelling of the
-id is read):
+keyed by the id the CLI builds the plugin in under (the plugin reads only this
+spelling; from a host's `--managed-settings` the CLI also takes a restriction
+under the earlier id, `sec-default@builtin`):
 
 ```json
 {
@@ -95,10 +96,15 @@ debug log alone; the mod is still not loaded. Settings hooks, status lines and `
   before a later refusal runs on.
 - Only managed settings are read (`$.settings.read({ source: "policy" })`):
   the same entry in a person's, a project's or a `--settings` file neither
-  turns it on nor off. On unless absent or `false`, so a mistyped `"true"` or
+  turns it on nor off. A host that starts Claude Code with `--managed-settings`
+  can turn it on there and cannot turn it off. An administrator's own value under
+  the current id, `false` included, stands over the host's, and the host's whole document is left
+  out where an administrator's managed settings apply and do not set
+  `parentSettingsBehavior` to `"merge"`. On unless absent or `false`, so a mistyped `"true"` or
   `1` still locks. A value the settings schema rejects (`null`, an object),
   here or in any other `pluginConfigs` entry, makes the CLI ignore the whole
   `pluginConfigs` key with a settings warning, and the option reads as unset.
+  From a host, the option is still read where the rejected value is another one.
 - It fails closed: when the read of managed settings is refused (a hook beneath
   denies it) or this plugin's hook fails, its `.catch` keeps the module out
   the same way, with the same line, and names the failure in the debug log; so a policy
