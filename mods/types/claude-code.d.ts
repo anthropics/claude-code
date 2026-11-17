@@ -16907,7 +16907,8 @@ declare module 'claude-code' {
        * for the model's own call, the plugin for its `$.tool.call` or its query,
        * `hook:<event>` for a settings `mcp_tool` hook's call. Nobody is asked
        * about a call that goes straight out: a deny refuses it, an ask lets it
-       * run. A refused hook is skipped, and the call it guards goes on.
+       * run. A refused hook fails, and the call it guards goes on unless the hook
+       * sets `onFailure: "block"`.
        */
       tool_use_id?: string;
       /**
