@@ -4147,7 +4147,9 @@ declare module 'claude-code' {
            *
            * http or https, to whatever the host reaches, unless the organization's
            * web-fetch policy refuses it. `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC`
-           * refuses a built-in's request, and any plugin's that carries `auth`.
+           * refuses a built-in's request, and any plugin's that carries `auth`; a
+           * model request a hook edits keeps the session's credential under it, at
+           * its own URL and method.
            *
            * @param url the URL (http or https)
            * @param init `{ method, headers, body, auth, socketPath }` (body a
@@ -6291,6 +6293,10 @@ declare module 'claude-code' {
       method?: string;
       /**
        * Request headers.
+       *
+       * While `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` is set, a model request a
+       * hook edits keeps the credential behind a "[redacted]" value at its own URL
+       * and method; moved on its origin and still asking for it, it is refused.
        */
       headers?: Record<string, string>;
       /**
@@ -10410,8 +10416,8 @@ declare module 'claude-code' {
        */
       plan_mode: PlanModeDetail;
       /**
-       * The note made when plan mode is entered again by the process that left
-       * it, the earlier plan still in its file; it precedes the reminder.
+       * The note made when plan mode is entered again, the earlier plan still in
+       * its file; it precedes the reminder.
        *
        * @example
        * const planFilePath = e.detail?.planFilePath
