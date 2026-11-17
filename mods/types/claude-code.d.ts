@@ -9022,6 +9022,85 @@ declare module 'claude-code' {
   };
 
   /**
+   * The network hosts a plugin's files and source name, and the parts that could
+   * reach others: drawn from `provides` and `uses`, with nothing dialed or run.
+   *
+   * It only shows: it allows no host, and no call is held to it. Not in either
+   * list: where a host redirects or sends a sign-in; a server's `headersHelper`;
+   * a command in the plugin's settings; what the module's hook on any event but
+   * `process.run`, `process.spawn`, `http.fetch` and `audio.play` rewrites or
+   * answers (a tool call, a command's arguments, an agent, the settings); what
+   * the plugin has a server, the model, another session or another plugin do
+   * (`$.mcp`, `$.model`, `$.agent.spawn`, a prompt, an agent, a workflow, a hook
+   * of another type); what follows from a file, variable or setting it writes,
+   * or a link it draws; and what the engine itself runs or dials to serve a call
+   * (speech, a notification, telemetry).
+   */
+  export type PluginHosts = {
+      /**
+       * One row a host, sorted, with every place that names it.
+       */
+      named: readonly {
+          /**
+           * As `sandbox.network.allowedDomains` spells an entry: lowercase ASCII,
+           * IPv6 in brackets, and `:port` unless it is the scheme's default. A name
+           * with no dot is listed too, though that setting takes only `localhost`.
+           */
+          host: string;
+          sources: readonly PluginHostSource[];
+      }[];
+      /**
+       * The parts whose reach is not read. More reasons may be added.
+       */
+      unread: readonly {
+          kind: keyof PluginProvides;
+          /**
+           * The part's name in `provides`: a hook's event, a module's path. Absent
+           * where the whole kind is meant.
+           */
+          name?: string;
+          /**
+           * `process`: it is, or can start, a program (a stdio server, a bundle's
+           * server, an LSP server, a command hook, a monitor, a file of `bin/`, a
+           * skill, a command, a module that calls or hooks `process.run` or
+           * `process.spawn`, or calls `$.tool.call`, `$.agent.call`, `$.command.run`
+           * or `$.agent.register`).
+           * `url`: its URL does not settle where it goes, as it spells out no host,
+           * is computed, or goes or may go over a `socketPath`; or the module hooks
+           * `http.fetch` or `audio.play`, where it can send a request elsewhere.
+           * `unlisted`: the kind's list may be short, or the module was not scanned.
+           */
+          reason: 'process' | 'url' | 'unlisted';
+      }[];
+  };
+
+  /**
+   * Where a host in PluginHosts came from, named as `provides` names the part.
+   * More types may be added, so a reader leaves room for one it does not know.
+   */
+  export type PluginHostSource = {
+      /**
+       * A remote MCP server (`http`, `sse`, `ws`), or a bundle (`mcpb`) given
+       * by the URL it is downloaded from.
+       */
+      type: 'mcp';
+      name: string;
+  } | {
+      /**
+       * An HTTP hook.
+       */
+      type: 'hook';
+      event: string;
+      matcher?: string;
+  } | {
+      /**
+       * The hooks module (PluginRegisterUses `hosts`).
+       */
+      type: 'module';
+      path: string;
+  };
+
+  /**
    * The nouns a plugin declared on `$` by merging into EngineInterface; never
    * one the engine's own events are under (`tool`, `session`, `ui`).
    *
@@ -9141,8 +9220,8 @@ declare module 'claude-code' {
    * styles, themes, monitors, settings and `bin/`. None of them starts before the
    * verdict. To keep out less, pass `provides` on with entries removed.
    *
-   * `tier`, `uses`, `provides`, `unread` and `requiredByOrganization` are the host's
-   * reading of the plugin, what a gate holds it to; `name`, `root`, `version` and
+   * `tier`, `uses`, `provides`, `unread`, `hosts` and `requiredByOrganization` are the
+   * host's reading of the plugin, what a gate holds it to; `name`, `root`, `version` and
    * `provenance` are its own word (its manifest, its place), so a rule keyed on
    * them is one a rename walks past.
    */
@@ -9212,6 +9291,15 @@ declare module 'claude-code' {
        * e.unread.includes('bin') ? { refuse: 'bin/ could not be listed' } : next(e)
        */
       unread: readonly (keyof PluginProvides)[];
+      /**
+       * The network hosts it names and the parts that could reach others
+       * (PluginHosts), of the whole plugin: narrowing `provides` leaves it as it
+       * is. Left out, it is restored.
+       *
+       * @example
+       * e.hosts.named.some(row => !known.has(row.host)) ? { refuse: 'new host' } : next(e)
+       */
+      hosts: PluginHosts;
   };
 
   /**
@@ -9243,7 +9331,8 @@ declare module 'claude-code' {
    * the same lists `claude plugin validate` prints and the host's rule reads.
    *
    * Exact, since a module that spells `on`, `$`, `$.env` or a `$.state`
-   * reference other than literally does not load.
+   * reference other than literally does not load. `hosts` alone is not: a URL
+   * may be computed, and it says where one is.
    */
   export type PluginRegisterUses = {
       /**
@@ -9283,6 +9372,26 @@ declare module 'claude-code' {
            * The values its `$.state.set` calls spell, sorted, each once.
            */
           writes: readonly StateName[];
+      };
+      /**
+       * The hosts its `$.http.fetch` and `$.audio.play({ url })` calls name, as far
+       * as the source spells them; absent when it calls neither. No call is held
+       * to the list, and where a host redirects is not known.
+       */
+      hosts?: {
+          /**
+           * Spelled as PluginHosts spells a host, sorted, each once: read off a string
+           * literal, a template that spells the host out, or a `const` of the same
+           * file holding one, there or in a template's `${}`. A fetch whose options,
+           * written at the call, give a `socketPath` dials no host and names none.
+           */
+          named: readonly string[];
+          /**
+           * Which of `audio.play` and `http.fetch` it calls with any other URL, one
+           * over 2,048 characters, or options that give or may give a `socketPath`,
+           * sorted: it loads all the same, and may reach what is not in `named`.
+           */
+          unread: readonly string[];
       };
   };
 
@@ -9629,6 +9738,11 @@ declare module 'claude-code' {
        * with errors, or one with a hooks or server file left unread. A report from an older CLI leaves it out.
        */
       provides: PluginProvides | null;
+      /**
+       * What `plugin.register` carries as `e.hosts` for an installed copy of the
+       * folder. Null wherever `provides` is. A report from an older CLI leaves it out.
+       */
+      hosts: PluginHosts | null;
       /**
        * What the validator advises without counting it under any flag: today, the
        * install line a plugin's README lacks.
