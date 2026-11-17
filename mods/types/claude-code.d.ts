@@ -4351,11 +4351,11 @@ declare module 'claude-code' {
            * Claude Code exits. Have long-running code call an import that throws past a
            * deadline: the throw unwinds it.
            *
-           * On the hosted server a mod's memory, instructions and stack are bounded,
-           * and what WebAssembly takes counts as script does: a loop, a deep recursion
-           * or a `grow` past the bound ends the hook. A module with no room rejects,
-           * as does a file changed since the mod loaded. Exceptions, tags and SIMD
-           * are not there.
+           * On the hosted server a mod's memory and stack are bounded, and what
+           * WebAssembly takes counts as script does: a deep recursion or a `grow`
+           * past the bound ends the hook, and a loop ends by the hook's deadline. A
+           * module with no room rejects, as does a file changed since the mod loaded.
+           * Exceptions, tags and SIMD are not there.
            *
            * @param source a literal path, or the binary's bytes
            * @returns the compiled module
