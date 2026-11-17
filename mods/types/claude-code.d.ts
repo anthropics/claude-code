@@ -784,7 +784,7 @@ declare module 'claude-code' {
        */
       maxTurns?: number;
       /**
-       * Token count, 100000 to 1000000, at which the agent compacts its own
+       * Token count, at least 100000, at which the agent compacts its own
        * conversation as a subagent. It only lowers the window the agent would
        * otherwise get.
        */
