@@ -2179,8 +2179,9 @@ declare module 'claude-code' {
        *
        * Read on any plugin's answer where no command ran beneath it, on the
        * queued lanes: a panel answered mid-turn keeps its text in requests, and
-       * so does a text over the engine's own run. The answer the chain ends on
-       * decides: a hook above answering its own drops it.
+       * so does a text over the engine's own run, unless that run's output was
+       * for the person alone. The answer the chain ends on decides: a hook above
+       * answering its own drops it.
        */
       isTextDisplayOnly?: true;
       /**
