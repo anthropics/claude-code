@@ -21,9 +21,9 @@
 // `h` and `Fragment` (what JSX compiles against), the JSX namespace, and
 // the environment's web APIs (URL, TextEncoder, AbortController,
 // crypto.subtle, ...). A hooks module runs in an environment of its own:
-// no DOM, no Node, no `Intl`. The module, and every file it imports from the
-// plugin, is named .ts, .tsx, .jsx, .js, .mjs, .cjs, .mts or .cts (a file
-// named otherwise is not loaded) and is an ES module whatever its suffix: there
+// no DOM, no Node. The module, and every file it imports from the plugin,
+// is named .ts, .tsx, .jsx, .js, .mjs, .cjs, .mts or .cts (a file named
+// otherwise is not loaded) and is an ES module whatever its suffix: there
 // is no `require`. A file of the plugin is imported with an `import`
 // declaration. A module holding `import()` does not load. The elements a
 // render hook draws with (`Box`, `Text`, `Button`, ...) are not globals:
@@ -18973,17 +18973,15 @@ declare module 'claude-code' {
 
   /**
    * The globals of a hooks module's environment: these and no others (no DOM,
-   * no Node). No `Intl`, though `lib` declares it: format numbers and dates
-   * and split text by hand, since what `toLocaleString` and `localeCompare`
-   * make of a locale differs by host. No code generation either: `eval` and
-   * `new Function` over a string throw. `WebAssembly` is there only in a
-   * hooks module that calls `$.wasm.compile`, the one way to compile. A
-   * surface module's environment (Client) has the same globals less that one,
-   * and `Intl` and a `console`; neither has timers (a hooks module waits on
-   * `$.clock`, a surface module on `surface.every`). In both,
-   * `obj.__proto__ = p` on anything but a function writes an own key named
-   * `__proto__`, as data handed in holds one; set a prototype with
-   * `Object.setPrototypeOf` or `Object.create`.
+   * no Node). No code generation either: `eval` and `new Function` over a
+   * string throw. `WebAssembly` is there only in a hooks module that calls
+   * `$.wasm.compile`, the one way to compile. A surface module's
+   * environment (Client) has the same globals less that one, and a
+   * `console`; neither has timers (a hooks module waits on `$.clock`, a
+   * surface module on `surface.every`). In both, `obj.__proto__ = p` on
+   * anything but a function writes an own key named `__proto__`, as data
+   * handed in holds one; set a prototype with `Object.setPrototypeOf` or
+   * `Object.create`.
    */
   global {
     /**
