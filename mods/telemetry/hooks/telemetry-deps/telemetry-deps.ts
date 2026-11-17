@@ -2,8 +2,8 @@ import type {
   FsEntry,
   HttpInit,
   HttpResponse,
-  ProcessRunResult,
   SessionAuthorization,
+  SessionMachine,
   SessionRepo,
   SessionVersion,
   Timer,
@@ -19,8 +19,8 @@ import type { PolicyPins } from '../policy-pins'
  * What `telemetryOf` reaches on the nouns beneath, each a call on the
  * plugin's own `$`.
  *
- * The session, the environment, files, one process, the clock, one fetch
- * and the debug log.
+ * The session, the environment, files, the clock, one fetch and the debug
+ * log.
  */
 export type TelemetryDeps = {
   /**
@@ -102,9 +102,10 @@ export type TelemetryDeps = {
   exists: (path: string) => Promise<boolean>
 
   /**
-   * Runs one program to its end.
+   * The machine as the engine names it: system, kernel, hardware, and the
+   * package managers and runtimes on the PATH; rejects on an engine without it.
    */
-  run: (argv: readonly string[]) => Promise<ProcessRunResult>
+  machine: () => Promise<SessionMachine>
 
   /**
    * Posts a batch to the ingest with the credential handle.

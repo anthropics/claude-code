@@ -7,7 +7,7 @@ import { CONFIG_PATH } from './config-path.js'
 import { ENGINE_VERSION } from './engine-version.js'
 import { GLOBAL_CONFIG } from './global-config.js'
 import { LISTING } from './listing.js'
-import { PROBED } from './probed.js'
+import { MAC_MACHINE } from './mac-machine.js'
 import { REPO } from './repo.js'
 import type { SentSession } from './sent-session.js'
 import type { SessionOptions } from './session-options.js'
@@ -16,8 +16,9 @@ import type { SessionOptions } from './session-options.js'
  * Answers, beneath the plugins, everything the telemetry plugin reads of a
  * session signed in first party on a Mac in a git checkout, on a mock clock.
  *
- * Keeps what the plugin did: each post, file read, program run and debug
- * line, as it does it. The engine answers its version unless told not to.
+ * Keeps what the plugin did: each post, file read, machine read, program run
+ * and debug line. The engine answers its version and the machine unless told
+ * not to; a program run is refused, since the plugin runs none.
  *
  * @param on the test's `on`
  * @param options how this session differs from the plain one
@@ -30,6 +31,7 @@ export function firstPartySession(
   const posts: Args<'http.fetch'>[] = []
   const reads: string[] = []
   const runs: Args<'process.run'>[] = []
+  const counts = { machineReads: 0 }
   const lines: string[] = []
   const clock = mock.clock(on)
 
@@ -91,12 +93,20 @@ export function firstPartySession(
     value: (options.existing ?? []).includes(e.path),
   }))
 
-  const probed = { ...PROBED, stdout: options.probeOutput ?? PROBED.stdout }
+  const machine = options.machine ?? MAC_MACHINE
+
+  if (machine !== 'unanswered') {
+    on('session.machine', () => {
+      counts.machineReads += 1
+
+      return { value: machine }
+    })
+  }
 
   on('process.run', ($, e) => {
     runs.push(e)
 
-    return { value: probed }
+    return { deny: 'the telemetry plugin runs no program' }
   })
 
   on('http.fetch', ($, e) => {
@@ -115,5 +125,5 @@ export function firstPartySession(
     return { value: undefined }
   })
 
-  return { posts, reads, runs, lines, clock }
+  return { posts, reads, runs, lines, counts, clock }
 }

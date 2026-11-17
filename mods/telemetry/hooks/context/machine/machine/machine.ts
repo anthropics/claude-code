@@ -1,6 +1,6 @@
 /**
- * What one probe of the machine answers for the rows' `env` block: the
- * system's own name, the architecture, the kernel, and what is on the PATH.
+ * What the rows' `env` block says of the machine: the system's own name, the
+ * architecture, the kernel, and what is on the PATH.
  *
  * `platformRaw` is the system's name lowercased (`darwin`, `linux`,
  * `freebsd`, `win32`); the package managers and runtimes are comma-joined,

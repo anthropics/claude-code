@@ -3347,6 +3347,25 @@ declare module 'claude-code' {
            */
           info: () => Promise<SessionInfo>;
           /**
+           * Returns the machine the engine runs on: the system, kernel release and
+           * hardware as `uname -s`, `-r` and `-m` print them, and which of npm,
+           * yarn, pnpm, bun, deno and node are on the PATH.
+           *
+           * Read inside the engine with no program run. The two lists are the ones
+           * the engine's own analytics rows carry; on the server (not the CLI), where
+           * tools run in another container, they are empty, the names the server's.
+           *
+           * @returns `sysname`, `release` and `machine` in uname's words (on Windows
+           *          `Windows_NT` and the NT version; 64-bit ARM as `arm64` or
+           *          `aarch64`), and the `packageManagers` and `runtimes` found, in a fixed order
+           * @example
+           * const { sysname, release, machine } = await $.session.machine()
+           * row.env = { system: sysname, kernel: release, hardware: machine }
+           * @example
+           * const hasBun = (await $.session.machine()).runtimes.includes("bun")
+           */
+          machine: () => Promise<SessionMachine>;
+          /**
            * Compacts the conversation: the event `session.compact` with `trigger`
            * `plugin`, the same call `/compact` makes, between turns.
            *
@@ -8184,6 +8203,10 @@ declare module 'claude-code' {
        */
       'session.info': NoArgs;
       /**
+       * The argument of `$.session.machine()`.
+       */
+      'session.machine': NoArgs;
+      /**
        * The argument of `$.turn.abort({ turnId })`.
        */
       'turn.abort': {
@@ -8545,6 +8568,10 @@ declare module 'claude-code' {
        */
       'session.version': SessionVersion;
       'session.info': SessionInfo;
+      /**
+       * The machine as uname names it, and the developer tools on its PATH.
+       */
+      'session.machine': SessionMachine;
       'turn.abort': void;
       /**
        * The box as it stands; the empty box where the session draws none.
@@ -14232,6 +14259,43 @@ declare module 'claude-code' {
        * The engine always gives it; a hook that answers whole may leave it out.
        */
       isHosted?: boolean;
+  };
+
+  /**
+   * What `$.session.machine()` answers: the machine the engine runs on, as
+   * `uname -s`, `-r` and `-m` print it (on Windows, what the runtime reports
+   * in their place), and which of six developer tools its PATH holds.
+   *
+   * The tool lists are the ones the engine's own analytics rows carry, found in
+   * the engine with no program run. On the server (not the CLI), where a
+   * session's tools run in another container, they are empty and the three
+   * names are the server's own.
+   */
+  export type SessionMachine = {
+      /**
+       * The system's name as `uname -s` prints it: `Linux`, `Darwin`;
+       * `Windows_NT` on Windows.
+       */
+      sysname: string;
+      /**
+       * The kernel's release as `uname -r` prints it (`6.8.0-48-generic`,
+       * `24.1.0`); on Windows the NT version (`10.0.22631`).
+       */
+      release: string;
+      /**
+       * The hardware's name as the runtime reports it, in `uname -m`'s words:
+       * `x86_64`, and `arm64` or `aarch64` for 64-bit ARM (either may stand
+       * for the other).
+       */
+      machine: string;
+      /**
+       * Of `npm`, `yarn` and `pnpm`, those found on the PATH, in that order.
+       */
+      packageManagers: string[];
+      /**
+       * Of `bun`, `deno` and `node`, those found on the PATH, in that order.
+       */
+      runtimes: string[];
   };
 
   /**

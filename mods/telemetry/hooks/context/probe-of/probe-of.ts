@@ -9,7 +9,7 @@ import { linuxFilesOf } from './linux-files-of'
 
 /**
  * Gathers what holds for the whole session through the nouns beneath: the
- * variables, the global config, one machine probe, the directory, the engine.
+ * variables, the global config, the machine, the directory, the engine.
  *
  * Each read that fails leaves its part empty, the engine's version saying so
  * once in the debug log; the Linux files are read on Linux alone.
@@ -42,7 +42,7 @@ export async function probeOf(
 
   const [identity, machine, vcs, remoteHash] = await Promise.all([
     Identity.identityOf(deps.read, location, environment.userType === 'ant'),
-    Machine.machineOf(deps.run, facts),
+    Machine.machineOf(deps.machine, facts),
     cwd === undefined ? undefined : vcsOf(deps.list, cwd, facts.hasP4Port),
     remoteHashOf(repo?.remote),
   ])

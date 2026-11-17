@@ -1,7 +1,6 @@
 import type { EngineInterface, On } from 'claude-code'
 
 import { answerOf } from './answer-of'
-import Context from './context'
 import Gate from './gate'
 import IsAnalyticsOff from './is-analytics-off'
 import type { Sender } from './sender'
@@ -355,8 +354,7 @@ export function register(on: On) {
       read: path => beneath.fs.read(path),
       list: path => beneath.fs.list(path),
       exists: path => beneath.fs.exists(path),
-      run: argv =>
-        beneath.process.run(argv, { timeoutMs: Context.PROBE_TIMEOUT_MS }),
+      machine: () => beneath.session.machine(),
       fetch: (url, init) => beneath.http.fetch(url, init),
       after: (ms, fn) => beneath.clock.after(ms, fn),
       sleep: ms => beneath.clock.sleep(ms),

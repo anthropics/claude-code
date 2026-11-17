@@ -1,53 +1,64 @@
-import type { ProcessRunResult } from 'claude-code'
+import type { SessionMachine } from 'claude-code'
 
 import type { Facts } from '../../facts'
 import { archOf } from './arch-of'
 import type { Machine } from './machine'
-import { PROBE_SCRIPT } from './probe-script'
 
 /**
- * Probes the machine once: on Windows (the `OS` variable says so) from the
- * environment alone, elsewhere with one `sh` run of PROBE_SCRIPT.
+ * Names the machine once: on Windows (the `OS` variable or the engine says so)
+ * with no kernel or PATH lists, elsewhere from `$.session.machine()`.
  *
- * A probe that fails or exits non-zero leaves the system unnamed
- * (`unknown`) and the lists empty; nothing is retried.
+ * An engine that does not answer, or answers in another shape, leaves the
+ * system unnamed (`unknown`) and the lists empty; nothing is retried.
  *
- * @param run runs one program to its end
+ * @param machine the engine's read of the machine
  * @param facts the variables as read, for the Windows answer
- * @returns the machine as probed
+ * @returns the machine as named
  */
 export async function machineOf(
-  run: (argv: readonly string[]) => Promise<ProcessRunResult>,
+  machine: () => Promise<SessionMachine>,
   facts: Facts,
 ): Promise<Machine> {
   if (facts.os === 'Windows_NT') {
+    return windowsMachine(facts.processorArchitecture ?? '')
+  }
+
+  try {
+    const named = await machine()
+
+    return named.sysname === 'Windows_NT'
+      ? windowsMachine(named.machine)
+      : {
+          platformRaw: named.sysname.trim().toLowerCase() || 'unknown',
+          arch: archOf(named.machine),
+          kernel: named.release.trim() || undefined,
+          packageManagers: named.packageManagers.join(','),
+          runtimes: named.runtimes.join(','),
+        }
+  } catch {
     return {
-      platformRaw: 'win32',
-      arch: archOf(facts.processorArchitecture ?? ''),
+      platformRaw: 'unknown',
+      arch: archOf(''),
       kernel: undefined,
       packageManagers: '',
       runtimes: '',
     }
   }
+}
 
-  let result: ProcessRunResult | undefined
-
-  try {
-    result = await run(['sh', '-c', PROBE_SCRIPT])
-  } catch {
-    result = undefined
-  }
-
-  const [system = '', kernel = '', machine = '', managers = '', runtimes = ''] =
-    (result?.exitCode === 0 ? result.stdout.split('\n') : []).map(line =>
-      line.trim(),
-    )
-
+/**
+ * The Windows answer: the architecture from what names it, and nothing the
+ * rows take from a Unix machine.
+ *
+ * @param architecture PROCESSOR_ARCHITECTURE, or the engine's hardware name
+ * @returns the machine as named on Windows
+ */
+function windowsMachine(architecture: string): Machine {
   return {
-    platformRaw: system.toLowerCase() || 'unknown',
-    arch: archOf(machine),
-    kernel: kernel || undefined,
-    packageManagers: managers.replace(/,$/, ''),
-    runtimes: runtimes.replace(/,$/, ''),
+    platformRaw: 'win32',
+    arch: archOf(architecture),
+    kernel: undefined,
+    packageManagers: '',
+    runtimes: '',
   }
 }

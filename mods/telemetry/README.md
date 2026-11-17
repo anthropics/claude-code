@@ -27,9 +27,9 @@ debug log.
 Each row carries what the CLI's own rows carry, gathered through `$` once
 a session: an event id, the install's device id and the signed-in account's
 ids from the CLI's global config, the session's id, model, client type,
-entrypoint and interactivity, and an `env` block (platform and
-architecture from one `uname` probe, terminal, shell, package managers and
-runtimes, CI and GitHub Actions, the remote container, the deployment, the
+entrypoint and interactivity, and an `env` block (platform, architecture,
+package managers and runtimes from `$.session.machine()`, terminal, shell,
+CI and GitHub Actions, the remote container, the deployment, the
 Linux distribution and kernel, WSL, the working directory's version
 control, and the engine's version, base version and build time from
 `$.session.version()`, left empty on an engine that does not answer it),
@@ -79,9 +79,10 @@ to send what still waits.
 ## What it calls on `$`
 
 `session.authorize`, `session.id`, `session.model`, `session.surfaces`,
-`session.cwd`, `session.repo`, `settings.read`, `env.get` (the switches and
+`session.cwd`, `session.repo`, `session.version`, `settings.read`, `env.get` (the switches and
 the describing variables, by literal name), `fs.read`, `fs.list`,
-`fs.exists`, `process.run` (one `sh -c` of `uname` and `command -v`),
+`fs.exists`, `session.machine` (the system, kernel and hardware, and which
+package managers and runtimes are on the PATH),
 `clock.after`, `clock.sleep`, `http.fetch` and `ui.log` (to the debug log),
 each on the interface the fold handed it.
 
