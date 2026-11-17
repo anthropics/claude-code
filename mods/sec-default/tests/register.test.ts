@@ -639,6 +639,10 @@ describe('register', () => {
           ).isHidden,
         ).toBe(false)
 
+        expect(await $.tool.offer({ tool: 'mcp__suite__x', provider })).toEqual({
+          isOffered: true,
+        })
+
         expect(
           await $.agent.offer(
             Fixtures.agentOffered('suite:reviewer', provider),
@@ -665,12 +669,87 @@ describe('register', () => {
           ).isHidden,
         ).toBe(true)
 
+        expect(await $.tool.offer({ tool: 'Read', provider })).toEqual({
+          isOffered: false,
+        })
+
         expect(
           await $.agent.offer(Fixtures.agentOffered('reviewer', provider)),
         ).toEqual({ isOffered: false })
 
         expect(await $.agent.spawn(Fixtures.agentSpawned(provider))).toEqual({
           model: 'user',
+        })
+      }
+    },
+  )
+
+  test(
+    "a tool that policy names is offered over a person's plugin, and their own is still theirs to hide",
+    { plugins: [Fixtures.marking] },
+    async ($, on) => {
+      on('settings.read', () => ({ value: Fixtures.MANAGED_POLICY }))
+      Fixtures.subjectsEchoed(on)
+
+      for (const [tool, plugin, isOffered] of [
+        ['mcp__corp__search', 'mcp:corp', true],
+        ['mcp__suite__deploy', 'suite@corp-market', true],
+        ['mcp__plugin_suite_jira__create', 'suite@corp-market', true],
+        ['mcp__mine__search', 'mcp:mine', false],
+        ['mcp__corporate__search', 'mcp:corporate', false],
+      ] as const) {
+        expect(
+          await $.tool.offer({ tool, provider: { plugin, tier: 'user' } }),
+          tool,
+        ).toEqual({ isOffered })
+      }
+    },
+  )
+
+  test(
+    "with the server file unreadable every mcp__ tool is offered over a person's plugin",
+    { plugins: [Fixtures.marking] },
+    async ($, on) => {
+      on('settings.read', () => ({
+        value: { managedMcpServersUnreadable: true },
+      }))
+      Fixtures.subjectsEchoed(on)
+
+      expect(
+        await $.tool.offer({
+          tool: 'mcp__mine__search',
+          provider: { plugin: 'mcp:mine', tier: 'user' },
+        }),
+      ).toEqual({ isOffered: true })
+
+      expect(
+        await $.tool.offer({
+          tool: 'Read',
+          provider: { plugin: 'engine', tier: 'core' },
+        }),
+      ).toEqual({ isOffered: false })
+    },
+  )
+
+  test(
+    "with no policy to read every tool is offered over a person's plugin",
+    { plugins: [Fixtures.marking] },
+    async ($, on) => {
+      const stop = Fixtures.policyUntilStopped(
+        on,
+        Fixtures.NO_ALLOWLIST,
+        'unreadable',
+      )
+
+      Fixtures.subjectsEchoed(on)
+      await $.agent.offer(
+        Fixtures.agentOffered('reviewer', { plugin: 'engine', tier: 'core' }),
+      )
+      stop()
+
+      for (const provider of Fixtures.USER_REACHABLE_PROVIDERS) {
+        expect(await $.tool.offer({ tool: 'Read', provider })).toEqual({
+          isOffered: true,
         })
       }
     },

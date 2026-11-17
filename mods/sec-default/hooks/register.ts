@@ -101,7 +101,7 @@ export function register(on: On) {
       : next.to(e, 'append'),
   )
 
-  // The tool.describe and command.describe rows, like the agent.offer, prompt.section,
+  // The tool.describe and command.describe rows, like the tool.offer, agent.offer, prompt.section,
   // attribution.text and env.get rows, only pass the event on. The engine skips them where this
   // plugin is the copy built into it and no other plugin hooks the event. Before one does more,
   // take its event off that skip list: a test in the engine's repository fails and says where.
@@ -109,6 +109,16 @@ export function register(on: On) {
   on('command.describe', ($, e, next) => pastUsers(e, next))
   on('agent.offer', ($, e, next) => pastUsers(e, next))
   on('agent.spawn', ($, e, next) => pastUsers(e, next))
+
+  // By name too, as tool.list holds them: policy names tools the engine leaves in the user tier.
+  on('tool.offer', async ($, e, next) => {
+    const isOrgs = await Policy.decidedByPolicy(
+      readPolicy(() => $.settings.read(Policy.SOURCE)),
+      policy => Policy.isOrgTool(policy, e.tool),
+    )
+
+    return isOrgs ? next.to(e, 'append') : pastUsers(e, next)
+  }).catch(($, e, next) => (next.called ? next(e) : next.to(e, 'append')))
 
   on('tool.register', async ($, e, next) => {
     const isOrgs =

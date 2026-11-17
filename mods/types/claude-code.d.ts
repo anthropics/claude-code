@@ -432,6 +432,11 @@ declare module 'claude-code' {
        * tier: "core" }` for a built-in. Pinned: a rewrite is refused.
        */
       provider: Origin;
+      /**
+       * Present when the offer is for resuming that agent, so a hook can keep a
+       * type out of the listing and still let its agents resume. Pinned.
+       */
+      agentId?: string;
   };
 
   /**
@@ -4950,7 +4955,8 @@ declare module 'claude-code' {
        * listing and again at dispatch; `next(e)` resolves to `{ isOffered: true }`.
        *
        * Return `{ isOffered: false }` to keep the type out of the listing and
-       * refuse its dispatch. A hook that fails passes it through.
+       * refuse its dispatch. A hook that fails passes it through. The offer to
+       * resume an agent of the type carries that agent's `agentId`.
        *
        * @remarks So give a guard here
        *   `.catch(($, e, next) => next.called ? next(e) : { isOffered: false })`.
@@ -5128,6 +5134,33 @@ declare module 'claude-code' {
        * on("tool.describe", { tool: "Monitor" }, pin) // {...e, isDeferred: false}
        */
       'tool.describe': ToolDescribeInput;
+      /**
+       * Fires once per tool before a loop's first request, and again when its
+       * model calls the tool; `next(e)` resolves to `{ isOffered: true }`.
+       *
+       * `{ isOffered: false }` keeps the tool from that loop's model for the
+       * loop's life, compactions and resumes included; at a call it refuses that
+       * call alone. A tool that joins later is asked once, as it joins.
+       *
+       * @remarks `tool.list` shapes the pool: a tool it leaves out is gone for the
+       *   model, every agent and a mod's own `$.tool.call`. This shapes only what
+       *   one model is shown of the pool: the agent's children inherit a tool not
+       *   offered, and `$.tool.call` still runs it.
+       * @remarks A fork keeps its parent's list, and its calls are asked. The
+       *   answers hold only while some hook is on the event. A hook that fails
+       *   passes the tool through. A command that sends the conversation ahead of
+       *   a turn (`/compact`, `/btw`) asks first, as the loop.
+       * @remarks The hand-back tool is asked at each run; not offered, the agent's
+       *   final text is its report. Where the server decides auto mode's checks it
+       *   is not asked, and stays offered. StructuredOutput and EndConversation
+       *   are never asked, nor is a list for the loops the engine runs for itself
+       *   (an agent hook's, a compaction's). A Batch tool follows the tool it
+       *   batches. ToolSearch, not offered, is left out while no offered tool is
+       *   deferred, and is there to load one that is; it finds no hidden tool.
+       * @example
+       * on("tool.offer", { tool: "Agent" }, ($, e) => ({ isOffered: !e.agentId }))
+       */
+      'tool.offer': ToolOfferInput;
       /**
        * Fires when a slash command is about to run (`/name args` typed, or a
        * plugin's `$.command.run`); `next(e)` resolves to `{ text }`, its output.
@@ -5559,6 +5592,10 @@ declare module 'claude-code' {
        */
       'tool.describe': ToolDescribeResult;
       /**
+       * `{ isOffered }`.
+       */
+      'tool.offer': ToolOfferResult;
+      /**
        * `{ text }` (the command's output, when it printed one).
        */
       'command.run': CommandRunResult;
@@ -5689,6 +5726,7 @@ declare module 'claude-code' {
           judge: (input: ToolJudgeInput) => Promise<ToolJudgeResult>;
           run: (input: ToolCallInput) => Promise<ToolCallResult>;
           describe: (input: ToolDescribeInput) => Promise<ToolDescribeResult>;
+          offer: (input: ToolOfferInput) => Promise<ToolOfferResult>;
       };
       command: {
           run: (input: CommandRunArgs) => Promise<CommandRunResult>;
@@ -17305,6 +17343,42 @@ declare module 'claude-code' {
        * The name of the tool being called (`Bash`).
        */
       readonly tool: T;
+  };
+
+  /**
+   * The input of `tool.offer`: one tool of a loop's pool, at the moment the
+   * engine offers it to that loop's model. Every field is pinned.
+   *
+   * Before the loop's first request (or when the tool joins the pool later) and
+   * when the model calls the tool: the same event at each.
+   */
+  export type ToolOfferInput = {
+      /**
+       * The tool's name (`Bash`, `mcp__server__tool`); the key a matcher narrows
+       * on.
+       */
+      tool: string;
+      /**
+       * Who provides this tool, as `tool.describe`'s `provider` says.
+       */
+      provider: Origin;
+      /**
+       * The agent whose loop it is; absent for the main conversation.
+       */
+      agentId?: string;
+      /**
+       * That agent's type (`Explore`, a plugin's agent); absent for the main
+       * conversation.
+       */
+      subagentType?: string;
+  };
+
+  /**
+   * What a `tool.offer` hook returns: whether the loop's model is offered the
+   * tool, in its tool list and at its call.
+   */
+  export type ToolOfferResult = {
+      isOffered: boolean;
   };
 
   /**

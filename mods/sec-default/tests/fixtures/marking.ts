@@ -11,6 +11,7 @@ export const marking: Plugin = {
   register(on) {
     on('tool.describe', ($, e) => ({ description: `user: ${e.description}` }))
     on('command.describe', ($, e, next) => next({ ...e, isHidden: true }))
+    on('tool.offer', () => ({ isOffered: false }))
     on('agent.offer', () => ({ isOffered: false }))
     on('agent.spawn', () => ({ model: 'user' }))
   },
