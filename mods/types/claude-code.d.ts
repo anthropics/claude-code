@@ -4762,6 +4762,7 @@ declare module 'claude-code' {
        * `next(e)` resolves to the engine's verdict (rules, mode, the tool's own
        * check, PreToolUse's decision) and runs no tool: return any `{ decision }`,
        * a deny after it too. `$.tool.check` runs the same chain, executing nothing.
+       * A settings `mcp_tool` hook's call passes here too (`next.origin`).
        * On a call to the person's devices from off their machine a hook only
        * tightens, here, at `tool.judge` and at the classic permission events.
        *
@@ -6078,7 +6079,7 @@ declare module 'claude-code' {
       readonly signal: AbortSignal;
       readonly is: <M extends PatternOver<N>>(pattern: M, e: unknown) => e is Frozen<Args<Extract<N, Selected<M>>>>;
       readonly event: N;
-      readonly origin: Origin;
+      readonly origin: NextOrigin;
       readonly trace: readonly TraceEntry<N, Args<N>, GlobNextResult<N>>[];
       readonly budget: NextBudget;
   };
@@ -7737,7 +7738,7 @@ declare module 'claude-code' {
       readonly event: N;
       /**
        * Who raised this dispatch: the calling plugin's name and the tier it sits
-       * in (Origin); the engine reads `{ plugin: "engine", tier: "core" }`.
+       * in (NextOrigin); the engine reads `{ plugin: "engine", tier: "core" }`.
        *
        * Set by the host alone, from the environment the call came from (its own
        * MessagePort) and that plugin's seat; nothing a plugin writes reaches it.
@@ -7746,7 +7747,7 @@ declare module 'claude-code' {
        * @example
        * return next.origin.tier === "prepend" ? next.to(e, "append") : next(e)
        */
-      readonly origin: Origin;
+      readonly origin: NextOrigin;
       /**
        * What settled beneath this hook on its latest `next()` call, the one
        * started last: an entry per link beneath, nearest first, the engine's last.
@@ -7799,6 +7800,27 @@ declare module 'claude-code' {
        * so a later hook in that chain starts with what the earlier ones left.
        */
       readonly remainingMs: number;
+  };
+
+  /**
+   * What `next.origin` holds: who raised the dispatch (Origin), and whose code
+   * that is. Set by the host; an event's `provider` carries neither field.
+   */
+  export type NextOrigin = Origin & {
+      /**
+       * On a settings hook's own MCP call alone: whose hook it is. `"unknown"`
+       * where it may be the organization's and that could not be told.
+       */
+      readonly hookOwner?: 'organization' | 'unknown' | 'person';
+      /**
+       * At `tool.check` alone, where the organization's own code made the call as
+       * it arrived: a plugin managed settings seated, or a hook known as theirs.
+       *
+       * The tier does not say so: a person's settings can fill `prepend`, and a
+       * built-in can sit there. Absent on a call a hook rewrote, and on one a
+       * model, a script or a `Monitor` watch makes for such a plugin.
+       */
+      readonly isOrganizations?: true;
   };
 
   /**
@@ -8651,12 +8673,15 @@ declare module 'claude-code' {
   export type Origin = {
       /**
        * Whose hook made the `$` call, by name; `"engine"` for a call site,
-       * `"client"` for a `Client` surface module's `ui.message` post.
+       * `"client"` for a `Client` surface module's `ui.message` post,
+       * `"hook:<event>"` for a settings hook's own MCP call at `tool.check`: a
+       * plugin whose name starts with `hook:` loads no hooks.
        */
       readonly plugin: string;
       /**
        * Where that plugin sits among the chain's tiers (Tier); `"core"` for the
-       * engine, the owning plugin's for a `client` post.
+       * engine, the owning plugin's for a `client` post; for a settings hook,
+       * `"prepend"` where it is known as the organization's, else `"user"`.
        */
       readonly tier: Tier;
   };
@@ -15453,7 +15478,7 @@ declare module 'claude-code' {
       readonly signal: AbortSignal;
       readonly is: <M extends Pattern>(pattern: M, e: unknown) => e is Frozen<Args<Selected<M>>>;
       readonly event: EventName;
-      readonly origin: Origin;
+      readonly origin: NextOrigin;
       readonly trace: readonly TraceEntry<EventName, unknown, unknown>[];
       readonly budget: NextBudget;
   };
@@ -16764,10 +16789,14 @@ declare module 'claude-code' {
        */
       input: unknown;
       /**
-       * The call being decided, on a real call only; absent on a query.
+       * The call being decided; absent on a query, and on an MCP call that goes
+       * straight to its server (a settings hook's, a plugin's `Monitor` watch).
        *
        * `next.origin` names who raised it: `{ plugin: 'engine', tier: 'core' }`
-       * for the model's own call, the plugin for its `$.tool.call` or its query.
+       * for the model's own call, the plugin for its `$.tool.call` or its query,
+       * `hook:<event>` for a settings `mcp_tool` hook's call. Nobody is asked
+       * about a call that goes straight out: a deny refuses it, an ask lets it
+       * run. A refused hook is skipped, and the call it guards goes on.
        */
       tool_use_id?: string;
       /**
@@ -16779,12 +16808,16 @@ declare module 'claude-code' {
        */
       agentId?: string;
       /**
-       * The most permissive verdict the organization lets a call of the tool
-       * reach (`ask`), as its administrators set it on a connector's tool.
+       * The most permissive verdict the organization lets the model's call of an
+       * MCP tool reach: `ask`, or `deny` where an administrator blocked the tool.
        *
-       * Set by the engine, from the tool, never by a query, and pinned. A
-       * hook's own `ceiling`, on its answer, is dropped. Absent where none is
-       * set.
+       * `deny` is a block on the tool or its connector for the organization or
+       * the member's role, a host's `always_deny`, or a managed deny rule; never
+       * a rule or a switch of the person's or a repository's. The engine holds no
+       * plugin's or settings hook's own call to it: a hook here may.
+       *
+       * Set by the engine, never by a query, and pinned. A hook's own `ceiling`,
+       * on its answer, is dropped. Absent where none is set.
        */
       ceiling?: ToolCheckDecision;
       /**
@@ -16869,10 +16902,10 @@ declare module 'claude-code' {
        */
       plugin?: string;
       /**
-       * The most permissive verdict the organization lets a call of the tool
-       * reach (`ask`), as its administrators set it on a connector's tool.
+       * The most permissive verdict the organization lets the model's call of an
+       * MCP tool reach: `ask`, or `deny` where an administrator blocked the tool.
        *
-       * The question's own (`e.ceiling`), set by the engine, from the tool, on
+       * The question's own (`e.ceiling`), set by the engine, on
        * every verdict for it, core's and each hook's alike: a hook's own
        * `ceiling` is dropped. Where the question has none, it is the one that
        * core's check found for this call, on core's verdict and on each hook's

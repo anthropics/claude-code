@@ -18,7 +18,7 @@ export function askKind(held: EventResult<'tool.check'>) {
   const isHooked = held.hook !== undefined
   const isSet = held.setting !== undefined
   const isMade = plugin !== undefined
-  const isCapped = held.ceiling !== undefined
+  const isCapped = held.ceiling === 'ask'
 
   return isHooked
     ? `${held.hook} hook's ask`

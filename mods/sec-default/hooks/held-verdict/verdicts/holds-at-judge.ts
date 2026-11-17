@@ -10,7 +10,7 @@ import Ranking from './ranking'
  * The event does not say what stands behind the ask that brought the call
  * there, so their allow never takes the classifier's place. A deny holds over
  * their ask. With no verdict their ask stands, but where a host answers it or
- * a ceiling caps the tool. Their deny is final where the classifier's is not.
+ * a ceiling of ask caps the tool. Their deny is final where the classifier's is not.
  *
  * @param held what the run past the user tier settled on
  * @param answer what the whole chain settled on
@@ -29,6 +29,6 @@ export function holdsAtJudge(
       Ranking.isLooser(answer, held) ||
       answer.decision === 'allow' ||
       (answer.decision === 'ask' &&
-        (e.approver === 'host' || e.ceiling !== undefined)))
+        (e.approver === 'host' || e.ceiling === 'ask')))
   )
 }

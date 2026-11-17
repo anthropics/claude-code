@@ -14,6 +14,7 @@ import HeldVerdict from './held-verdict'
 import HotReloadPrompt from './hot-reload-prompt'
 import { identityRefusal } from './identity-refusal'
 import { managedModsOnlyRefusal } from './managed-mods-only-refusal'
+import { isOrganizationsHookCall } from './organizations-hook-call'
 import { pastUsers } from './past-users'
 import { pinnedVariableRefusal } from './pinned-variable-refusal'
 import Policy from './policy'
@@ -297,8 +298,9 @@ export function register(on: On) {
 
     if (id === undefined) {
       if (
-        next.origin.tier === 'prepend' &&
-        next.origin.plugin === $.plugin.name
+        isOrganizationsHookCall(next.origin) ||
+        (next.origin.tier === 'prepend' &&
+          next.origin.plugin === $.plugin.name)
       ) {
         return next.to(e, 'append')
       }
@@ -340,6 +342,10 @@ export function register(on: On) {
 
     return held
   }).catch(async ($, e, next) => {
+    if (isOrganizationsHookCall(next.origin)) {
+      return next.to(e, 'append')
+    }
+
     const last = await next(e).catch(() => undefined)
 
     const shouldVouch = await Policy.decidedByPolicy(

@@ -14,7 +14,8 @@ in any case or percent-encoded.
   doesn't, since carrying over a line the file already holds adds nothing.
 - **WebFetch:** the address in `url` is refused with no second word, since the URL
   is what goes out.
-- **`mcp__*`:** the whole input, keys included, by the same test.
+- **`mcp__*`:** the whole input, keys included, by the same test. A settings
+  `mcp_tool` hook's own call passes.
 
 A word that declares who is calling is one of:
 

@@ -1,0 +1,8 @@
+{
+  "name": "hipaa",
+  "version": "0.1.0",
+  "description": "For organizations under HIPAA: refuses a plugin's or a settings hook's own call to an MCP or connector tool that an administrator blocked, unless it is the organization's.",
+  "author": {
+    "name": "Anthropic"
+  }
+}

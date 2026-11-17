@@ -20,7 +20,8 @@ export function register(on: On): void {
   on('tool.check', { tool }, async ($, e, next) => {
     const verdict = await next(e)
 
-    if (verdict.decision === 'deny') {
+    // A refused settings hook is skipped, and what it guards goes on unjudged.
+    if (verdict.decision === 'deny' || next.origin.hookOwner !== undefined) {
       return verdict
     }
 

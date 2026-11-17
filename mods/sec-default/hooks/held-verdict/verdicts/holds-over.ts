@@ -34,7 +34,7 @@ export function holdsOver(
       held.hook !== undefined ||
       held.setting !== undefined ||
       pluginOf(held) !== undefined ||
-      held.ceiling !== undefined ||
+      held.ceiling === 'ask' ||
       (isAsked && (Ranking.isLooser(answer, held) || approver === 'host')))
   )
 }
