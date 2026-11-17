@@ -9,6 +9,7 @@ denied, unless the code is the organization's own.
 | --- | --- | --- |
 | [`blocked-tool`](hooks/rules/blocked-tool.ts) | `tool.check`, where `ceiling` is `deny` | Refuses the call of a person's mod or a built-in one, by any road, and of a settings `mcp_tool` hook not known as the organization's, which is skipped while the call it guards goes on. The refusal names the tool. |
 | [`unread-ceiling`](hooks/rules/unread-ceiling.ts) | `tool.check`, where `isCeilingUnread` is set | Refuses the same callers where the call could not be matched against the deny rules in managed settings. |
+| [`direct-call`](hooks/rules/direct-call.ts) | `tool.check`, where `op` is set | Refuses the file or process call of a person's mod by those two rules. |
 
 `ceiling` is `deny` on an MCP tool that is blocked for the organization or the
 member's role, that a host marks `always_deny`, or that a deny rule in managed
@@ -29,10 +30,18 @@ A connector the organization blocked still refuses these calls at its gateway.
 
 `ceiling` is also `deny` on such a call of any tool where a deny rule in managed
 settings covers it, content included (`Bash(rm *)`, `Read(path)`), matched as
-for the model. Not held: a mod's `$.process` and `$.fs`, a shell form that
-Claude Code only asks the model's user about, and a rule that a tool applies
-only while it runs. A `Grep` or `Glob` over a folder that a managed `Read` rule
-reaches under is refused whole, as unread.
+for the model. Not held: a shell form that Claude Code only asks the model's
+user about, and a rule that a tool applies only while it runs. A `Grep` or
+`Glob` over a folder that a managed `Read` rule reaches under is refused whole,
+as unread.
+
+A mod's `$.fs.read`, `$.fs.list`, `$.fs.write`, `$.process.run` and
+`$.process.spawn` meet the same two rules as the tool call that does the same
+(`Read`, `Write`, or a `Bash` line), with `op` naming the call. There a built-in
+mod passes as the organization's does, each unless a hook rewrote its call. A
+content rule holds a command's plain form only, and neither it nor a file rule
+holds what a program does once it runs. A `PowerShell` rule is not matched: it
+makes a process unreadable where the program is PowerShell or there is no Bash.
 
 Everything else passes untouched. A tool set to ask runs for a mod or a hook
 with nobody asked. The mod shows no card and calls nothing on `$`. Where a

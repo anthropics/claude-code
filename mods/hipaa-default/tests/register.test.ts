@@ -42,6 +42,18 @@ describe('register', () => {
     ).toEqual(['deny', undefined, undefined])
   })
 
+  test("a built-in's file or process call is decided beneath, a person's is not", () => {
+    expect(
+      (['builtin', 'user', 'prepend'] as const).map(
+        tier =>
+          Hooks.directCallRefusal(
+            { tool: 'Read', input: {}, op: 'fs.read' },
+            { plugin: 'p', tier },
+          )?.decision,
+      ),
+    ).toEqual([undefined, 'deny', 'deny'])
+  })
+
   test("the organization's own code is decided beneath", () => {
     expect(
       Hooks.blockedToolRefusal(TOOL, {

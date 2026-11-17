@@ -4786,7 +4786,8 @@ declare module 'claude-code' {
        * `next(e)` resolves to the engine's verdict (rules, mode, the tool's own
        * check, PreToolUse's decision) and runs no tool: return any `{ decision }`,
        * a deny after it too. `$.tool.check` runs the same chain, executing nothing.
-       * A settings `mcp_tool` hook's call passes here too (`next.origin`).
+       * A settings `mcp_tool` hook's call passes here too (`next.origin`), and
+       * so may a plugin's file or process call, for a matcher that names `op`.
        * On a call to the person's devices from off their machine a hook only
        * tightens, here, at `tool.judge` and at the classic permission events.
        *
@@ -16892,8 +16893,8 @@ declare module 'claude-code' {
        */
       input: unknown;
       /**
-       * The call being decided; absent on a query, and on an MCP call that goes
-       * straight to its server (a settings hook's, a plugin's `Monitor` watch).
+       * The call being decided; absent on a query, with `op`, and on an MCP call
+       * that goes straight to its server (a settings hook's, a `Monitor` watch).
        *
        * `next.origin` names who raised it: `{ plugin: 'engine', tier: 'core' }`
        * for the model's own call, the plugin for its `$.tool.call` or its query,
@@ -16933,6 +16934,16 @@ declare module 'claude-code' {
        * tool runs. The engine refuses nothing on it: a hook here may.
        */
       isCeilingUnread?: true;
+      /**
+       * Set by the engine, and pinned, where no tool is called: the plugin's call
+       * on `$` that `tool` and `input` stand for, as it is about to run.
+       *
+       * Raised only with `ceiling: "deny"` or `isCeilingUnread`, and only to a hook
+       * whose matcher names `op`. A file call reads as `Read` or `Write`, a process
+       * as the `Bash` line of its argv. Nobody is asked: a deny refuses the call.
+       * Where a hook rewrote the call, `next.origin.tier` is `user`.
+       */
+      op?: 'fs.read' | 'fs.list' | 'fs.write' | 'process.run' | 'process.spawn';
       /**
        * Who answers this evaluation's asks, known before any hook runs.
        *

@@ -1,4 +1,4 @@
 {
-  "description": "HIPAA: at tool.check, refuses a plugin's or a settings hook's own call to an MCP tool that an administrator blocked, or to any tool where a managed deny rule covers the call or cannot be matched, unless it is the organization's",
+  "description": "HIPAA: at tool.check, refuses a plugin's or a settings hook's own call to an MCP tool that an administrator blocked, or to any tool, file or process where a managed deny rule covers the call or cannot be matched, unless it is the organization's",
   "modules": ["./register.ts"]
 }
