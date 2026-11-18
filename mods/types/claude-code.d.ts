@@ -3076,13 +3076,15 @@ declare module 'claude-code' {
            * `colors` is a theme for a surface to paint itself with, where it reads
            * one. With no scene, no `ui.render` hook is asked to draw.
            * `sound` is what the desktop app plays once the person turns it on.
+           * `style` is how the desktop app draws messages and tool calls' rows.
            * Display only: `--resume` brings none back and a plugin that unloads
            * takes its own with it, so set it at `session.start`.
            *
            * @param attributes `backdrop`: a scene, `scene` and `glass` (`blur`, `tint`,
            *   `opacity`) or `false`, or a still ground, see `ThemeGround`;
            *   `overrideColorScheme` (`light` or `dark`); `colors`: a whole palette;
-           *   `sound`: an ambience and cues, see `ThemeSound`
+           *   `sound`: an ambience and cues, see `ThemeSound`; `style`: a rule for
+           *   each part of the conversation, see `ThemeStyle`
            * @returns `{ isDrawn: true, requestId }`, or `isDrawn: false` and why
            * @example
            * await $.theme.set({ backdrop: { scene: "lagoon", glass: { blur: 14, opacity: 0.55 } } })
@@ -16433,6 +16435,47 @@ declare module 'claude-code' {
   };
 
   /**
+   * How the box around a part looks. Lengths are numbers of points.
+   */
+  interface ThemeBoxRule {
+      /**
+       * The flat color behind the words. Give it beside a `fill` too: it tells the
+       * app what the words sit on.
+       */
+      backgroundColor?: ThemeStyleColor;
+      fill?: ThemeFill;
+      /**
+       * 0 to 64: one for every corner, or top left, top right, bottom right and
+       * bottom left.
+       */
+      radius?: number | readonly [number, number, number, number];
+      borderColor?: ThemeStyleColor;
+      /**
+       * 0 to 8. Absent beside a `borderColor`, 1.
+       */
+      borderWidth?: number;
+      /**
+       * `x` and `y` from -16 to 16, and `blur` from 0 to 32. Each is 0 when absent.
+       */
+      shadow?: {
+          x?: number;
+          y?: number;
+          blur?: number;
+          color: ThemeStyleColor;
+      } | 'none';
+      /**
+       * 0 to 48, as every padding is. A side beats its axis, which beats this.
+       */
+      padding?: number;
+      paddingX?: number;
+      paddingY?: number;
+      paddingTop?: number;
+      paddingRight?: number;
+      paddingBottom?: number;
+      paddingLeft?: number;
+  }
+
+  /**
    * A color in a still `backdrop`. A surface uses a raw color as it is, works out a
    * name from the look's `colors` in the look's mode, or from the app's own colors where
    * the look gives none, and refuses the ground over anything else. Annotate a color kept
@@ -16455,6 +16498,11 @@ declare module 'claude-code' {
    * the leading `#` alone.
    *
    * The names are the design system's, so the type lists none. A surface keeps its own color for a token that is left out.
+   *
+   * The desktop app reads four more names, which color messages with no `style`:
+   * `bg-user-message` and `text-user-message` for the person's, and
+   * `bg-assistant-message` and `text-assistant-message` for Claude's. A message's
+   * own rule in `ThemeStyle` wins over them, and any rule may name them.
    */
   export type ThemeColorInputs = {
       [token: string]: `#${string}`;
@@ -16528,6 +16576,65 @@ declare module 'claude-code' {
        */
       reverb?: number;
   };
+
+  /**
+   * A background that isn't one flat color.
+   */
+  type ThemeFill = {
+      gradient: ThemeFillGradient;
+      vector?: never;
+  } | {
+      vector: ThemeFillVector;
+      gradient?: never;
+  };
+
+  /**
+   * Colors that run across a part's box, as in a still `backdrop`.
+   */
+  interface ThemeFillGradient extends Omit<ThemeGradient, 'stops'> {
+      /**
+       * Two to 16 colors, evenly spaced, or `{ at, color }` with `at` from 0 to 1,
+       * in order.
+       */
+      stops: readonly (ThemeStyleColor | {
+          at: number;
+          color: ThemeStyleColor;
+      })[];
+  }
+
+  /**
+   * A drawing behind a part's words, as in a still `backdrop`.
+   */
+  interface ThemeFillVector extends Omit<ThemeVector, 'paths' | 'color'> {
+      /**
+       * 1 to 64 paths, filled unless `strokeWidth`, 0.1 to 64, strokes one. Each `d`
+       * is whole path data of at most 16,384 characters.
+       */
+      paths: readonly (string | {
+          d: string;
+          strokeWidth?: number;
+          color?: ThemeStyleColor;
+      })[];
+      /**
+       * Each path's color, where it names none of its own: a path with neither is
+       * refused.
+       */
+      color?: ThemeStyleColor;
+      /**
+       * Cuts the drawing in nine, so it frames a box of any size: the corners draw
+       * once, and the edges and middle stretch, or tile with `repeat`. One inset for
+       * every side, or top, right, bottom and left, in `viewBox` units: a point each
+       * unless `size` scales them, and 48 points at most. The drawing is then the
+       * box's whole shape, so `shadow` follows it, and `backgroundColor`, `radius`
+       * and the border aren't painted.
+       */
+      slice?: number | readonly [number, number, number, number];
+  }
+
+  /**
+   * A font every device has. `code` is the app's own font for code.
+   */
+  type ThemeGenericFont = 'sans' | 'serif' | 'mono' | 'code' | 'cursive';
 
   /**
    * Colors that run across their box.
@@ -16637,6 +16744,16 @@ declare module 'claude-code' {
           depth: number;
       };
   };
+
+  /**
+   * How a message looks. What it says of the words beats `Text`.
+   */
+  export interface ThemeMessageRule extends ThemeTypeRule, ThemeBoxRule {
+      /**
+       * Tilts the box clockwise: -3 to 3 degrees. A large box tilts less.
+       */
+      rotate?: number;
+  }
 
   /**
    * Noise without a break.
@@ -16774,6 +16891,11 @@ declare module 'claude-code' {
        * the theme's sound on. Absent, the theme is silent.
        */
       sound?: ThemeSound;
+      /**
+       * How the desktop app draws the conversation's own rows: the type of messages,
+       * and the boxes around messages and tool calls. Absent, the app's own.
+       */
+      style?: ThemeStyle;
   };
 
   /**
@@ -16845,6 +16967,59 @@ declare module 'claude-code' {
   };
 
   /**
+   * The `style` attribute of `$.theme.set`: how the desktop app draws the
+   * conversation's own rows.
+   *
+   * The words stay the app's text, so selecting, copying, finding and screen
+   * readers work as they do with no theme. A permission prompt, a question and a
+   * code block keep the app's look. A value out of range is refused with what to
+   * change, as is a style of over 1,500 values or 65,536 characters. The mod is
+   * never told whether the style drew. A build that doesn't take `style`, such as
+   * an older one, refuses the whole set, so catch that and set the theme again
+   * without it.
+   *
+   * @example
+   * await $.theme.set({
+   *   style: {
+   *     Text: { fontFamily: ["cursive"], fontSize: 18 },
+   *     UserMessage: { color: "#223", backgroundColor: "#fde68a", rotate: -1 },
+   *   },
+   * })
+   */
+  export type ThemeStyle = {
+      /**
+       * The words of both kinds of message.
+       */
+      Text?: ThemeTypeRule;
+      /**
+       * Headings in a message, every level alike.
+       */
+      Heading?: ThemeTypeRule;
+      /**
+       * The person's message. With a list of up to 4 rules, each message takes one
+       * of them and keeps it.
+       */
+      UserMessage?: ThemeMessageRule | readonly ThemeMessageRule[];
+      /**
+       * Each run of words in Claude's reply, which has no box until a rule gives it
+       * one. It takes a list as `UserMessage` does.
+       */
+      AssistantMessage?: ThemeMessageRule | readonly ThemeMessageRule[];
+      /**
+       * A tool call's row.
+       */
+      ToolUse?: ThemeToolRule;
+  };
+
+  /**
+   * A color in `style`: any `ThemeColor`, or one of the four message colors that
+   * `colors.inputs` may give for each mode (`ThemeColorInputs`). Where the mode
+   * gives none, a `bg-` name draws as `surface-2` and a `text-` name as
+   * `text-primary`.
+   */
+  type ThemeStyleColor = ThemeColor | 'bg-user-message' | 'text-user-message' | 'bg-assistant-message' | 'text-assistant-message';
+
+  /**
    * How a drawing or a gradient lies in its box.
    */
   interface ThemeTiling {
@@ -16904,6 +17079,43 @@ declare module 'claude-code' {
    * What a note is played on.
    */
   type ThemeToneWave = 'sine' | 'triangle' | 'square' | 'saw' | 'bell';
+
+  /**
+   * How a tool call's row looks: its box, and the color and generic font of its
+   * words.
+   */
+  export interface ThemeToolRule extends ThemeBoxRule {
+      color?: ThemeStyleColor;
+      fontFamily?: readonly [ThemeGenericFont];
+  }
+
+  /**
+   * How a part's words look. Lengths are numbers of points, and a property left
+   * out keeps the app's own value.
+   */
+  export interface ThemeTypeRule {
+      color?: ThemeStyleColor;
+      /**
+       * A list of one generic font, such as `["serif"]`. A font the person chose in
+       * the app's settings wins.
+       */
+      fontFamily?: readonly [ThemeGenericFont];
+      /**
+       * 11 to 28.
+       */
+      fontSize?: number;
+      fontWeight?: 'regular' | 'medium' | 'semibold' | 'bold';
+      italic?: boolean;
+      /**
+       * -1 to 4.
+       */
+      letterSpacing?: number;
+      /**
+       * 12 to 48, and no less than `fontSize`. It's points, not a multiple: `24`,
+       * never `1.5`.
+       */
+      lineHeight?: number;
+  }
 
   /**
    * A drawing in SVG path data, the text of a path's `d` attribute.
