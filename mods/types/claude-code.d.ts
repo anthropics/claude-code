@@ -11172,20 +11172,21 @@ declare module 'claude-code' {
    */
   export type PromptFilled = {
       /**
-       * True once the box holds the text; false where no box could take it or a
-       * hook kept it out (PromptFillResult).
+       * True once the box holds the text; false where no box could take it, a
+       * hook kept it out or no app answered (PromptFillResult).
        */
       isFilled: boolean;
       /**
        * Why the box did not take the text, when the engine itself refused
        * (PromptFillResult): `no_composer` where the session binds no box,
-       * `dialog` while one holds the keys. A hook's refusal carries none, so
-       * a caller choosing a fallback treats an absent cause as unknown and
-       * does not act as if no box existed.
+       * `dialog` while one holds the keys, `unanswered` where an app was asked
+       * and none answered, so the text may have landed. A hook's refusal carries
+       * none, so a caller choosing a fallback treats an absent cause as unknown
+       * and does not act as if no box existed.
        */
-      refusal?: 'no_composer' | 'dialog';
+      refusal?: 'no_composer' | 'dialog' | 'unanswered';
       /**
-       * The draft after the fill; unchanged when `isFilled` is false; `''` where
+       * The draft after the fill; unchanged when the fill was refused; `''` where
        * no box is drawn or the caller may not read it (see above).
        */
       text: string;
@@ -11283,24 +11284,25 @@ declare module 'claude-code' {
   export type PromptFillResult = {
       /**
        * True once the box holds the text; false where no box can take it (a
-       * dialog holds the keys, a headless session has none).
+       * dialog holds the keys, a headless session has none) or no app answered.
        *
        * A hook answering `{ isFilled: false }` without `next` keeps the text
        * out.
        */
       isFilled: boolean;
       /**
-       * Why the box did not take the text, on the two refusals the engine
-       * itself answers: the session binds no prompt box (`no_composer`:
-       * headless, or a surface that draws its own composer), or a dialog holds
-       * the keys (`dialog`), so the write would land under it, unseen. A hook's
-       * own refusal carries none: the site strips a cause a hook writes itself,
-       * keeping only one its `next` gave it, passed up as it was. A caller
+       * Why `isFilled` is false, on the three causes the engine itself
+       * answers: the session binds no prompt box (`no_composer`: headless, or a
+       * surface that draws its own composer), a dialog holds the keys
+       * (`dialog`), so the write would land under it, unseen, or an app was
+       * asked and none answered (`unanswered`), so the text may have landed. A
+       * hook's own refusal carries none: the site strips a cause a hook writes
+       * itself, keeping only one its `next` gave it, passed up as it was. A caller
        * branching on the cause treats an absent one as unknown and takes its
        * refusing arm; `no_composer` is the only value that says no box exists
        * to protect.
        */
-      refusal?: 'no_composer' | 'dialog';
+      refusal?: 'no_composer' | 'dialog' | 'unanswered';
   };
 
   /**
@@ -17109,8 +17111,8 @@ declare module 'claude-code' {
        */
       color?: ThemeStyleColor;
       /**
-       * A list of one generic font, such as `["serif"]`. A font the person chose in
-       * the app's settings wins.
+       * A list of one generic font, such as `["serif"]`. The person's accessibility
+       * settings win (a font, higher contrast), and the app tells them so.
        */
       fontFamily?: readonly [ThemeGenericFont];
       /**
@@ -18721,22 +18723,24 @@ declare module 'claude-code' {
       isCopied: true;
   } | {
       /**
-       * False: nothing was copied.
+       * False: nothing was copied, or with `unanswered` nothing says it was.
        */
       isCopied: false;
       /**
-       * Why not, a closed set: `no-surface`, `no-clipboard` or `refused`; a
-       * hook above answering without copying says `refused`.
+       * Why not, a closed set: `no-surface`, `no-clipboard`, `unanswered` or
+       * `refused`; a hook above answering without copying says `refused`.
        *
        * `no-surface`: nothing draws (a `-p` run, the SDK), or the named
        * surface is not attached. `no-clipboard`: it draws but nothing was
        * written (no clipboard tool ran and OSC 52 was past its bound or left
-       * out, as for VTE before 0.53; a remote app declined or was silent).
+       * out, as for VTE before 0.53; a remote app declined or was not asked).
+       * `unanswered`: a remote app was asked and none answered, so the copy
+       * may have landed. A hook's `{ value }` passes up as the hook wrote it.
        *
        * @example
        * on('ui.copy', { surface: 'mobile' }, () => ({ value: REFUSED }))
        */
-      reason: 'no-surface' | 'no-clipboard' | 'refused';
+      reason: 'no-surface' | 'no-clipboard' | 'unanswered' | 'refused';
   };
 
   /**
