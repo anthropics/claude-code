@@ -16,6 +16,8 @@ export function unreadCeilingRefusal(
     ? undefined
     : {
         decision: 'deny',
-        reason: `${tool} could not be checked against your organization's rules.`,
+        reason:
+          `${tool} could not be checked against the rules set by your ` +
+          'organization or for this session.',
       }
 }

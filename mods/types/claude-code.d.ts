@@ -16926,9 +16926,13 @@ declare module 'claude-code' {
        * a managed deny rule covers this input as it would the model's.
        *
        * `deny` is a block on the tool or its connector for the organization or
-       * the member's role, a host's `always_deny`, or a managed deny rule; never
-       * a rule or a switch of the person's or a repository's. The engine holds no
-       * plugin's or settings hook's own call to it: a hook here may.
+       * the member's role, a host's `always_deny`, or a managed deny rule; not a
+       * rule or a switch of the person's or a repository's. Behind an SSH host's
+       * launcher for Claude Desktop, or where `--managed-settings` cannot be read,
+       * any deny sent as `--settings` or `--disallowedTools` counts as managed,
+       * the person's switch included; at Desktop's other starts, the second on a
+       * plugin's own call. The engine holds no plugin's or settings hook's own
+       * call to it: a hook here may.
        *
        * Set by the engine, never by a query, and pinned. A hook's own `ceiling`,
        * on its answer, is dropped. Absent where none is set.

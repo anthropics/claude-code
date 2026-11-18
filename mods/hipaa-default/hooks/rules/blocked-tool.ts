@@ -16,6 +16,8 @@ export function blockedToolRefusal(
     ? undefined
     : {
         decision: 'deny',
-        reason: `${tool} is blocked by your organization or role.`,
+        reason:
+          `${tool} is blocked by your organization or role, ` +
+          'or switched off for this session.',
       }
 }

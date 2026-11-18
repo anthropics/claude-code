@@ -14,7 +14,10 @@ denied, unless the code is the organization's own.
 `ceiling` is `deny` on an MCP tool that is blocked for the organization or the
 member's role, that a host marks `always_deny`, or that a deny rule in managed
 settings names. A rule or a switch of the person's or a repository's is not a
-block.
+block. Where Claude Desktop starts Claude Code through an SSH host's own
+launcher, a deny sent as `--settings` or `--disallowedTools` is a block too, so
+there a tool the person switched off counts as blocked. The same holds at any
+start whose `--managed-settings` cannot be read.
 
 The organization's own code passes, as `next.origin.isOrganizations` tells it:
 
@@ -30,10 +33,15 @@ A connector the organization blocked still refuses these calls at its gateway.
 
 `ceiling` is also `deny` on such a call of any tool where a deny rule in managed
 settings covers it, content included (`Bash(rm *)`, `Read(path)`), matched as
-for the model. Not held: a shell form that Claude Code only asks the model's
-user about, and a rule that a tool applies only while it runs. A `Grep` or
-`Glob` over a folder that a managed `Read` rule reaches under is refused whole,
-as unread.
+for the model. At the starts named above, a deny sent as `--settings` or
+`--disallowedTools` counts as managed. At any other start by Claude Desktop, one sent as
+`--disallowedTools` holds a mod's own call where it holds the model's, and leaves a hook's call
+and a watch's poll alone. Not held: a shell form that
+Claude Code only asks the model's user about, and any other rule that a tool applies
+only while it runs. A `Grep` or `Glob` over a folder that any of these `Read` rules
+reaches under is refused whole, as unread. A mod's `file_upload` to Claude in Chrome,
+alone or in a `browser_batch`, or to the Desktop Browser pane is refused where one
+covers a path, and as unread where one exists and a path cannot be judged.
 
 A mod's `$.fs.read`, `$.fs.list`, `$.fs.write`, `$.process.run` and
 `$.process.spawn` meet the same two rules as the tool call that does the same
@@ -42,6 +50,10 @@ mod passes as the organization's does, each unless a hook rewrote its call. A
 content rule holds a command's plain form only, and neither it nor a file rule
 holds what a program does once it runs. A `PowerShell` rule is not matched: it
 makes a process unreadable where the program is PowerShell or there is no Bash.
+In Cowork on the person's computer, and while no session is bound,
+`--disallowedTools` counts for these calls only at the starts where it counts as
+managed. At the Code tab's other starts, an entry of it that names a path or a
+command does not count for them.
 
 Everything else passes untouched. A tool set to ask runs for a mod or a hook
 with nobody asked. The mod shows no card and calls nothing on `$`. Where a

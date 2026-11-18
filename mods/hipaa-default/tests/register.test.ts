@@ -26,7 +26,10 @@ describe('register', () => {
         ] as const
       ).map(origin => Hooks.blockedToolRefusal(TOOL, origin)?.reason),
     ).toEqual(
-      Array(4).fill(`${TOOL} is blocked by your organization or role.`),
+      Array(4).fill(
+        `${TOOL} is blocked by your organization or role, ` +
+          'or switched off for this session.',
+      ),
     )
   })
 
