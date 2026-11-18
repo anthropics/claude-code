@@ -1,4 +1,4 @@
-import type PaneState from '../../pane-state'
+import type { PaneModel } from '../../pane-state/pane-model/pane-model'
 
 /**
  * The pane's word for a fetch whose untracked listing the backend did not
@@ -8,7 +8,7 @@ import type PaneState from '../../pane-state'
  * @returns the note
  */
 export const untrackedWithheldTextOf = (
-  model: Pick<PaneState.PaneModel, 'words'>,
+  model: Pick<PaneModel, 'words'>,
 ) =>
   `Untracked files unavailable (${model.words.lister} could not list them); ` +
   'not counted'

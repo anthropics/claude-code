@@ -1,4 +1,9 @@
-import type Git from '../../../git'
+import type { BaseMode } from '../../../git/types/base-mode/base-mode'
+import type { DiffData } from '../../../git/types/diff-data/diff-data'
+import type { FetchOutcome } from '../../../git/types/fetch-outcome'
+import type { FileHunks } from '../../../git/types/file-hunks'
+import type { FileStat } from '../../../git/types/file-stat/file-stat'
+import type { Repository } from '../../../git/types/repository/repository'
 import type { BackendWords } from '../backend-words'
 
 /**
@@ -12,12 +17,12 @@ export type Backend = {
   /**
    * The working tree's top; every row's path is relative to it.
    */
-  repository: Pick<Git.Repository, 'toplevel'>
+  repository: Pick<Repository, 'toplevel'>
 
   /**
    * What the picker offers to compare against, in its order.
    */
-  baseModes: readonly Git.BaseMode[]
+  baseModes: readonly BaseMode[]
 
   /**
    * The pane's words for what this backend compares and runs.
@@ -27,16 +32,16 @@ export type Backend = {
   /**
    * One fetch of the working tree against the mode's base (Git.fetchDiff).
    */
-  fetchDiff: (mode: Git.BaseMode) => Promise<Git.FetchOutcome>
+  fetchDiff: (mode: BaseMode) => Promise<FetchOutcome>
 
   /**
    * The rows' hunks by path against the base their fetch read, null where
    * they could not be read (Git.fetchHunks).
    */
   fetchHunks: (
-    data: Git.DiffData,
-    files: readonly Git.FileStat[],
-  ) => Promise<ReadonlyMap<string, Git.FileHunks | null>>
+    data: DiffData,
+    files: readonly FileStat[],
+  ) => Promise<ReadonlyMap<string, FileHunks | null>>
 
   /**
    * A string that changes when the checked-out commit moves

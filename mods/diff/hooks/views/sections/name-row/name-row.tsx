@@ -3,7 +3,7 @@
 /* @jsxFrag Fragment */
 import type { RenderElement } from 'claude-code'
 
-import type Detail from '../../detail'
+import type { NamedDetail } from '../../detail/types/named-detail/named-detail'
 import type { Kit } from '../../kit'
 import Layout from '../../layout'
 import { askKeyOf } from '../ask-key-of'
@@ -19,7 +19,7 @@ import { askKeyOf } from '../ask-key-of'
  * @param name the file, with whether it is truncated, armed and askable
  * @returns the row
  */
-export function nameRow(kit: Kit, name: Detail.NamedDetail): RenderElement {
+export function nameRow(kit: Kit, name: NamedDetail): RenderElement {
   const { Box, Text, Button } = kit.ui
 
   const asides = [

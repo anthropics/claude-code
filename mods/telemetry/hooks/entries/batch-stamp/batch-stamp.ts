@@ -1,4 +1,4 @@
-import type { Context } from '../../context'
+import type { Context } from '../../context/context/context'
 
 /**
  * What one batch stamps on each of its rows beside the row's own fields:

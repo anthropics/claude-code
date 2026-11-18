@@ -1,4 +1,4 @@
-import type Backend from '../../backend'
+import type { BackendWords } from '../../backend/types/backend-words/backend-words'
 
 /**
  * The pane's git words, unquoted as DiffDetailView words them.
@@ -6,7 +6,7 @@ import type Backend from '../../backend'
  * Compared with HEAD, read by `git diff`, untracked files listed by git and
  * staged with `git add :/…`.
  */
-export const GIT_WORDS: Backend.BackendWords = Object.freeze({
+export const GIT_WORDS: BackendWords = Object.freeze({
   base: 'HEAD',
   diffCommand: 'git diff',
   lister: 'git',

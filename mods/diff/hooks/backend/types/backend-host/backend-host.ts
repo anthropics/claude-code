@@ -1,4 +1,4 @@
-import type Git from '../../../git'
+import type { GitDeps } from '../../../git/types/git-deps/git-deps'
 import type { Host } from '../../../host'
 
 /**
@@ -10,7 +10,7 @@ import type { Host } from '../../../host'
  * (a later `session.start` moves it).
  */
 export type BackendHost = Pick<Host, 'run' | 'readFile'> &
-  Pick<Git.GitDeps, 'mtimeOf' | 'entryKindsOf' | 'onBranchBase'> & {
+  Pick<GitDeps, 'mtimeOf' | 'entryKindsOf' | 'onBranchBase'> & {
     /**
      * The engine's clock, in milliseconds (`$.clock.now`).
      */

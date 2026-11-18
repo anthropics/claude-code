@@ -1,4 +1,4 @@
-import type { Context } from '../../../context'
+import type { Context } from '../../../context/context/context'
 
 /**
  * The row's `auth`: the signed-in account's and organization's ids, or

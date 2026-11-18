@@ -1,5 +1,5 @@
 import type PaneState from '../../../pane-state'
-import type Detail from '../../detail'
+import type { DetailModel } from '../../detail/detail-model/detail-model'
 import type { BodyEntry } from '../body-entry'
 
 /**
@@ -13,7 +13,7 @@ import type { BodyEntry } from '../body-entry'
 export const detailModelOf = (
   entry: BodyEntry,
   model: Pick<PaneState.PaneModel, 'armedPath' | 'words'>,
-): Detail.DetailModel => ({
+): DetailModel => ({
   words: model.words,
   path: entry.path,
   displayPath: entry.displayPath,

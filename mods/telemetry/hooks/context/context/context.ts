@@ -1,5 +1,5 @@
 import type { EnvironmentFields } from '../environment-fields'
-import type { Identity } from '../identity'
+import type { Identity } from '../identity/identity/identity'
 import type { SessionFields } from '../session-fields'
 
 /**

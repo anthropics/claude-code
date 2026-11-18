@@ -1,4 +1,5 @@
-import type Backend from '../backend'
+import type { Backend } from '../backend/types/backend/backend'
+import type { BackendHost } from '../backend/types/backend-host/backend-host'
 import Limits from '../limits'
 import Argv from './argv'
 import { FAILED_RUN } from './failed-run'
@@ -21,8 +22,8 @@ import type Types from './types'
  * @returns the backend, or null outside a git working tree
  */
 export async function gitBackendOf(
-  host: Backend.BackendHost,
-): Promise<Backend.Backend | null> {
+  host: BackendHost,
+): Promise<Backend | null> {
   const runOf =
     (pinned: Types.Repository | null): Types.GitRun =>
     async argv => {
