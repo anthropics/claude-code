@@ -16440,7 +16440,7 @@ declare module 'claude-code' {
   interface ThemeBoxRule {
       /**
        * The flat color behind the words. Give it beside a `fill` too: it tells the
-       * app what the words sit on.
+       * app what the words sit on, and a sliced drawing can get it under its words.
        */
       backgroundColor?: ThemeStyleColor;
       fill?: ThemeFill;
@@ -16456,6 +16456,7 @@ declare module 'claude-code' {
       borderWidth?: number;
       /**
        * `x` and `y` from -16 to 16, and `blur` from 0 to 32. Each is 0 when absent.
+       * A shadow that reaches the next row draws fainter.
        */
       shadow?: {
           x?: number;
@@ -16625,8 +16626,10 @@ declare module 'claude-code' {
        * once, and the edges and middle stretch, or tile with `repeat`. One inset for
        * every side, or top, right, bottom and left, in `viewBox` units: a point each
        * unless `size` scales them, and 48 points at most. The drawing is then the
-       * box's whole shape, so `shadow` follows it, and `backgroundColor`, `radius`
-       * and the border aren't painted.
+       * box's whole shape, so `shadow` follows it, and `radius` and the border
+       * aren't painted. `backgroundColor` is painted only when the words are under
+       * 3:1 on a color of the drawing or on what lies behind it: then it goes over
+       * the drawing, under the words alone.
        */
       slice?: number | readonly [number, number, number, number];
   }
@@ -16750,7 +16753,8 @@ declare module 'claude-code' {
    */
   export interface ThemeMessageRule extends ThemeTypeRule, ThemeBoxRule {
       /**
-       * Tilts the box clockwise: -3 to 3 degrees. A large box tilts less.
+       * Tilts the box clockwise: -3 to 3 degrees. A large box tilts less, and one
+       * in a view laid out as a chat feed doesn't tilt.
        */
       rotate?: number;
   }
@@ -16973,10 +16977,13 @@ declare module 'claude-code' {
    * The words stay the app's text, so selecting, copying, finding and screen
    * readers work as they do with no theme. A permission prompt, a question and a
    * code block keep the app's look. A value out of range is refused with what to
-   * change, as is a style of over 1,500 values or 65,536 characters. The mod is
-   * never told whether the style drew. A build that doesn't take `style`, such as
-   * an older one, refuses the whole set, so catch that and set the theme again
-   * without it.
+   * change, as is a style of over 1,500 values or 65,536 characters. A rule whose
+   * words are under 3:1 on what lies behind them, in the mode showing, draws in
+   * the app's own colors, and the other rules still draw. Every color of a `fill`
+   * counts as behind them. Over a backdrop any color can be behind them, so a
+   * text color needs an opaque enough fill under it. The mod is never told
+   * whether the style drew. A build that doesn't take `style`, such as an older
+   * one, refuses the whole set, so catch that and set the theme again without it.
    *
    * @example
    * await $.theme.set({
@@ -17085,6 +17092,9 @@ declare module 'claude-code' {
    * words.
    */
   export interface ThemeToolRule extends ThemeBoxRule {
+      /**
+       * Over a backdrop, this draws only on an opaque enough fill.
+       */
       color?: ThemeStyleColor;
       fontFamily?: readonly [ThemeGenericFont];
   }
@@ -17094,6 +17104,9 @@ declare module 'claude-code' {
    * out keeps the app's own value.
    */
   export interface ThemeTypeRule {
+      /**
+       * Over a backdrop, this draws only on an opaque enough fill.
+       */
       color?: ThemeStyleColor;
       /**
        * A list of one generic font, such as `["serif"]`. A font the person chose in
