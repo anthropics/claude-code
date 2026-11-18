@@ -448,6 +448,87 @@ declare module 'claude-code' {
   };
 
   /**
+   * The input of `agent.report`: one report of an agent, before it reaches
+   * the loop that waits for it.
+   *
+   * `text` is the hook's to rewrite; the rest is pinned.
+   */
+  export type AgentReportInput = {
+      /**
+       * The agent whose report this is, as `agent.spawn` answered it.
+       */
+      agentId: string;
+      /**
+       * The agent the report is for; absent when it is for the main conversation.
+       */
+      parentAgentId?: string;
+      /**
+       * The agent's type (`Explore`, `fork`, a plugin's agent).
+       */
+      subagentType: string;
+      /**
+       * Who provides this agent, as `agent.spawn`'s `provider` says; for a forked
+       * skill or command, who provides that.
+       */
+      provider: Origin;
+      /**
+       * How the run ended; a report handed back by the tool is `completed`.
+       */
+      status: 'completed' | 'failed' | 'stopped';
+      /**
+       * The report: the run's final text or the hand-back tool's message, and
+       * of a run that failed or was stopped what it had written so far.
+       *
+       * Empty where the parent is told only of the error or the stop. Where an
+       * agent owed a hand-back and made none, the engine's note saying so.
+       */
+      text: string;
+  };
+
+  /**
+   * What an `agent.report` hook returns and what `next(e)` resolves to: the
+   * text to deliver with the report's review, or `{ consumed: reason }`.
+   *
+   * `next(e)` delivers nothing: the engine delivers what the outermost hook
+   * returns.
+   */
+  export type AgentReportResult = {
+      /**
+       * The report to deliver; from core, `e.text` exactly as passed.
+       */
+      text: string;
+      /**
+       * The review of the report as the agent wrote it, whatever `text` is now.
+       * Core's alone: absent where a hook beneath answered without `next`.
+       */
+      review?: AgentReportReview;
+      /**
+       * What the parent reads above the report where `review` is `flagged`,
+       * `refused` or `unavailable`. Core's alone.
+       */
+      warning?: string;
+      consumed?: undefined;
+  } | {
+      /**
+       * Takes the report, before or after `next`: the parent gets no notice
+       * and waits no longer. The reason is logged, the plugin named.
+       */
+      consumed: string;
+      text?: undefined;
+      review?: undefined;
+      warning?: undefined;
+  };
+
+  /**
+   * What auto mode's hand-off review made of a report.
+   *
+   * `cleared`, `flagged`: its verdict. `refused`, `unavailable`: it gave none,
+   * refused or out of reach. `none`: auto mode, and it had no review to give.
+   * `off`: the mode runs no such review.
+   */
+  export type AgentReportReview = 'cleared' | 'flagged' | 'refused' | 'unavailable' | 'none' | 'off';
+
+  /**
    * One request of an agent's loop (a `turn.step`'s) as it went out, past caps,
    * fallbacks and a hook's rewrite.
    */
@@ -2994,12 +3075,14 @@ declare module 'claude-code' {
            * as SVG.
            * `colors` is a theme for a surface to paint itself with, where it reads
            * one. With no scene, no `ui.render` hook is asked to draw.
+           * `sound` is what the desktop app plays once the person turns it on.
            * Display only: `--resume` brings none back and a plugin that unloads
            * takes its own with it, so set it at `session.start`.
            *
            * @param attributes `backdrop`: a scene, `scene` and `glass` (`blur`, `tint`,
            *   `opacity`) or `false`, or a still ground, see `ThemeGround`;
-           *   `overrideColorScheme` (`light` or `dark`); `colors`: a whole palette
+           *   `overrideColorScheme` (`light` or `dark`); `colors`: a whole palette;
+           *   `sound`: an ambience and cues, see `ThemeSound`
            * @returns `{ isDrawn: true, requestId }`, or `isDrawn: false` and why
            * @example
            * await $.theme.set({ backdrop: { scene: "lagoon", glass: { blur: 14, opacity: 0.55 } } })
@@ -4986,6 +5069,36 @@ declare module 'claude-code' {
        */
       'agent.spawn': AgentSpawnInput;
       /**
+       * Fires before an agent's report reaches its parent, for each run that ends
+       * or is stopped. `next(e)` answers auto mode's review and delivers nothing.
+       *
+       * What the outermost hook returns is delivered: `{ text }`, under the review's
+       * warning if it gave one. `{ consumed: reason }` takes it: the parent gets no
+       * notice and waits no longer, and a call that waited answers the reason.
+       *
+       * @remarks What the agent wrote is reviewed once, as with no hook, and with
+       *   no `next` all the same; a hook's text is not. A `review` or `warning` a
+       *   hook writes is dropped. A warning goes with whatever text is delivered;
+       *   of a consumed report, with the agent's next one in this process.
+       * @remarks A hook that throws is skipped as on any event: before its `next`
+       *   the report goes on without it, after it what `next` answered is delivered.
+       * @remarks Final text is seen before it is reviewed; the hand-back tool's
+       *   message after the call's own verdict, which `next` answers. A run that
+       *   failed or was stopped in the background has no review: `none`.
+       * @remarks Each report is asked about anew, a first run's or a resumed one's.
+       *   A run that only waits on agents of its own reports once they have; left
+       *   none by a consume, it ends as its last turn left it, with no further one.
+       * @remarks The engine stops naming a consumed report's output file. A model's
+       *   own Read of that file, a script's read of the transcript, the agent itself
+       *   when resumed and SubagentStop hooks still see it.
+       * @remarks Not raised for a workflow's `agent()`, a teammate (see
+       *   `session.receive`), a remote agent, an observer, or a run with hooks off.
+       * @example
+       * on("agent.report", { subagentType: "lab:runner" }, async ($, e, next) =>
+       *   (await $.store.set(e.agentId, await next(e)), { consumed: "kept" }))
+       */
+      'agent.report': AgentReportInput;
+      /**
        * Fires when a prompt is submitted, before the turn starts. `next(e)` runs
        * the hooks beneath and the UserPromptSubmit settings hooks, then it enters.
        *
@@ -5155,12 +5268,13 @@ declare module 'claude-code' {
        *   passes the tool through. A command that sends the conversation ahead of
        *   a turn (`/compact`, `/btw`) asks first, as the loop.
        * @remarks The hand-back tool is asked at each run; not offered, the agent's
-       *   final text is its report. Where the server decides auto mode's checks it
-       *   is not asked, and stays offered. StructuredOutput and EndConversation
-       *   are never asked, nor is a list for the loops the engine runs for itself
-       *   (an agent hook's, a compaction's). A Batch tool follows the tool it
-       *   batches. ToolSearch, not offered, is left out while no offered tool is
-       *   deferred, and is there to load one that is; it finds no hidden tool.
+       *   final text is its report. Where the server decides auto mode's checks and
+       *   cannot be handed that text, it is not asked, and stays offered.
+       *   StructuredOutput and EndConversation are never asked, nor is a list for
+       *   the loops the engine runs for itself (an agent hook's, a compaction's). A
+       *   Batch tool follows the tool it batches. ToolSearch, not offered, is left
+       *   out while no offered tool is deferred, and is there to load one that is;
+       *   it finds no hidden tool.
        * @example
        * on("tool.offer", { tool: "Agent" }, ($, e) => ({ isOffered: !e.agentId }))
        */
@@ -5548,6 +5662,10 @@ declare module 'claude-code' {
        */
       'agent.spawn': AgentSpawnResult;
       /**
+       * `{ text, review, warning? }` (the report to deliver) or `{ consumed }`.
+       */
+      'agent.report': AgentReportResult;
+      /**
        * `{ text, context? }` or `{ drop }`.
        */
       'prompt.submit': PromptSubmitResult;
@@ -5760,6 +5878,7 @@ declare module 'claude-code' {
       agent: {
           offer: (input: AgentOfferInput) => Promise<AgentOfferResult>;
           spawn: (input: AgentSpawnArgs) => Promise<AgentSpawnResult>;
+          report: (input: AgentReportInput) => Promise<AgentReportResult>;
       };
       session: {
           start: (input: SessionStartInput) => Promise<SessionStartResult>;
@@ -16273,6 +16392,17 @@ declare module 'claude-code' {
   };
 
   /**
+   * What plays on behind the session: 1 to 8 layers.
+   */
+  export type ThemeAmbience = {
+      layers: readonly (ThemeToneDrone | ThemeNoiseDrone | ThemeToneScatter | ThemeNoiseScatter)[];
+      /**
+       * How much room it rings in: 0 to 1. Absent, none.
+       */
+      reverb?: number;
+  };
+
+  /**
    * The `backdrop` attribute of `$.theme.set`: what is behind the conversation.
    * `scene` makes a live scene, and `color`, `gradient` or `vector` make a still
    * ground. All of them are pure vector, with no embedded pictures or fonts.
@@ -16389,6 +16519,17 @@ declare module 'claude-code' {
   };
 
   /**
+   * A short sound: 1 to 8 layers that start together.
+   */
+  export type ThemeCue = {
+      layers: readonly (ThemeToneLayer | ThemeNoiseLayer)[];
+      /**
+       * How much room it rings in: 0 to 1. Absent, none.
+       */
+      reverb?: number;
+  };
+
+  /**
    * Colors that run across their box.
    */
   interface ThemeGradient extends ThemeTiling {
@@ -16451,6 +16592,86 @@ declare module 'claude-code' {
    * holds resolves too, typed as any string is (Color).
    */
   export type ThemeKey = 'text' | 'inverseText' | 'inactive' | 'subtle' | 'suggestion' | 'remember' | 'success' | 'error' | 'warning' | 'merged' | 'claude' | 'permission' | 'planMode' | 'autoAccept' | 'promptBorder' | 'bashBorder' | 'ide' | 'diffAdded' | 'diffRemoved' | 'diffAddedDimmed' | 'diffRemovedDimmed' | 'diffAddedWord' | 'diffRemovedWord';
+
+  /**
+   * How one hit starts and dies away.
+   */
+  type ThemeLayerEnvelope = {
+      /**
+       * Seconds to rise: 0.002 to 2. Absent, 0.005.
+       */
+      attack?: number;
+      /**
+       * Seconds to die away: 0.01 to 4. Absent, 0.4.
+       */
+      release?: number;
+  };
+
+  /**
+   * What every layer may say about how it sounds.
+   */
+  type ThemeLayerMix = {
+      /**
+       * How loud, beside the other layers: 0 to 1. Absent, 0.5. The app turns a
+       * loud sound down and never turns one up.
+       */
+      gain?: number;
+      /**
+       * Left (-1) to right (1). Absent, the middle.
+       */
+      pan?: number;
+      /**
+       * Shapes the tone at `hz`, 20 to 10,000. With `to`, it moves there over each
+       * note, or there and back over 16 seconds on a drone.
+       */
+      filter?: {
+          type: 'lowpass' | 'highpass' | 'bandpass';
+          hz: number;
+          to?: number;
+      };
+      /**
+       * Swells and fades `hz` times a second, 0.05 to 30, by `depth`, 0 to 1.
+       */
+      tremolo?: {
+          hz: number;
+          depth: number;
+      };
+  };
+
+  /**
+   * Noise without a break.
+   */
+  interface ThemeNoiseDrone extends ThemeLayerMix {
+      wave: ThemeNoiseWave;
+      drone: true;
+  }
+
+  /**
+   * A layer that is one burst of noise.
+   */
+  interface ThemeNoiseLayer extends ThemeLayerMix, ThemeLayerEnvelope {
+      wave: ThemeNoiseWave;
+  }
+
+  /**
+   * Bursts of noise that fall at random, `scatter` times a second on average: 0.02
+   * to 10.
+   */
+  interface ThemeNoiseScatter extends ThemeNoiseLayer {
+      scatter: number;
+  }
+
+  /**
+   * Hiss to rumble, brightest first, and `crackle`: the ticks of rain on leaves,
+   * a fire or gravel.
+   */
+  type ThemeNoiseWave = 'white' | 'pink' | 'brown' | 'crackle';
+
+  /**
+   * A pitch: a note name such as `C5`, `F#3` or `Bb2`, a number of hertz from 20 to
+   * 10,000, or 0 for a rest.
+   */
+  type ThemeNote = string | number;
 
   /**
    * What `$.theme.set` and `$.theme.clear` resolve to, and what a `theme.set` or
@@ -16548,6 +16769,79 @@ declare module 'claude-code' {
        * nothing.
        */
       colors?: ThemeColors;
+      /**
+       * An ambience and short cues, which the desktop app plays once the person turns
+       * the theme's sound on. Absent, the theme is silent.
+       */
+      sound?: ThemeSound;
+  };
+
+  /**
+   * The `sound` attribute of `$.theme.set`: what the desktop app plays, on the
+   * person's own device, once they turn the theme's sound on.
+   *
+   * It's numbers, never a recording: the app makes the sound from them. A sound
+   * out of range, or too much to work out, is refused with what to change: long
+   * releases, many notes and reverb cost the most. To change the mood, set the
+   * theme again: a new ambience fades in over the old.
+   * The mod is never told whether the sound played. A build that doesn't take
+   * `sound`, such as an older one, refuses the whole set, so catch that and set
+   * the theme again without it.
+   *
+   * @example
+   * await $.theme.set({
+   *   backdrop: { scene: "pond" },
+   *   sound: {
+   *     ambience: { layers: [{ wave: "pink", drone: true, gain: 0.3 }] },
+   *     cues: {
+   *       done: { layers: [{ wave: "bell", notes: ["E5", "G5", "C6"], step: 0.1 }] },
+   *     },
+   *   },
+   * })
+   */
+  export type ThemeSound = {
+      /**
+       * Plays while the person is using the session's window. It stops while a
+       * permission prompt or a question waits, and during dictation, a voice call or
+       * a reply read aloud. Where the theme has cues too, the person can turn the
+       * ambience off and keep them.
+       */
+      ambience?: ThemeAmbience;
+      /**
+       * What the app plays by itself at each of these moments.
+       */
+      cues?: {
+          /**
+           * The person sent a message.
+           */
+          send?: ThemeCue;
+          /**
+           * Claude began a tool call. It can come often, so keep it short and soft.
+           */
+          tool?: ThemeCue;
+          /**
+           * The conversation was compacted.
+           */
+          compact?: ThemeCue;
+          /**
+           * Claude finished its turn.
+           */
+          done?: ThemeCue;
+          /**
+           * A permission prompt or a question appeared.
+           */
+          ask?: ThemeCue;
+          /**
+           * The turn ended in an error.
+           */
+          error?: ThemeCue;
+          /**
+           * The person clicked the backdrop where no part of the app covers it. Each
+           * layer plays one of its notes, the first at the left edge and the last at
+           * the right, so it takes no `step`.
+           */
+          click?: ThemeCue;
+      };
   };
 
   /**
@@ -16566,6 +16860,50 @@ declare module 'claude-code' {
        */
       repeat?: boolean;
   }
+
+  /**
+   * Notes held together without a break.
+   */
+  interface ThemeToneDrone extends ThemeLayerMix {
+      wave: ThemeToneWave;
+      /**
+       * 1 to 16.
+       */
+      notes: readonly ThemeNote[];
+      drone: true;
+  }
+
+  /**
+   * A layer that plays its notes and ends, within 4 seconds.
+   */
+  interface ThemeToneLayer extends ThemeLayerMix, ThemeLayerEnvelope {
+      wave: ThemeToneWave;
+      /**
+       * 1 to 16.
+       */
+      notes: readonly ThemeNote[];
+      /**
+       * Seconds from one note to the next: 0 to 2. Absent, a cue plays the notes
+       * together, and a scatter picks one for each hit.
+       */
+      step?: number;
+      /**
+       * Semitones each note slides by over its life: -24 to 24.
+       */
+      glide?: number;
+  }
+
+  /**
+   * Notes that fall at random, `scatter` times a second on average: 0.02 to 10.
+   */
+  interface ThemeToneScatter extends ThemeToneLayer {
+      scatter: number;
+  }
+
+  /**
+   * What a note is played on.
+   */
+  type ThemeToneWave = 'sine' | 'triangle' | 'square' | 'saw' | 'bell';
 
   /**
    * A drawing in SVG path data, the text of a path's `d` attribute.

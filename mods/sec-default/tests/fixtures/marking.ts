@@ -14,5 +14,10 @@ export const marking: Plugin = {
     on('tool.offer', () => ({ isOffered: false }))
     on('agent.offer', () => ({ isOffered: false }))
     on('agent.spawn', () => ({ model: 'user' }))
+    on('agent.report', ($, e, next) =>
+      e.status === 'completed'
+        ? { consumed: 'user' }
+        : next({ ...e, text: 'user' }),
+    )
   },
 }

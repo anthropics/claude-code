@@ -2,8 +2,9 @@ import type Provided from './provided'
 import { USER_REACHABLE_TIERS } from './user-reachable-tiers'
 
 /**
- * What the `tool.describe`, `tool.offer`, `command.describe`, `agent.offer`
- * and `agent.spawn` hooks do: an organization's subject continues past users.
+ * What the `tool.describe`, `tool.offer`, `command.describe`, `agent.offer`,
+ * `agent.spawn` and `agent.report` hooks do: an organization's subject
+ * continues past users.
  *
  * The subject is the organization's unless its pinned `e.provider.tier` is
  * `user`, `builtin` or `core`: a policy-installed plugin (`prepend`,

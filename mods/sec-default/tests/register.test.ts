@@ -685,6 +685,35 @@ describe('register', () => {
   )
 
   test(
+    "a person's plugin takes or rewrites the report of a person's agent, and of no organization's",
+    { plugins: [Fixtures.marking] },
+    async ($, on) => {
+      on('settings.read', () => ({ value: Fixtures.NO_ALLOWLIST }))
+      Fixtures.subjectsEchoed(on)
+
+      const report = { agentId: 'a1', subagentType: 'reviewer', text: 'said' }
+
+      for (const provider of Fixtures.ORG_PROVIDERS) {
+        for (const status of ['completed', 'failed'] as const) {
+          expect(await $.agent.report({ ...report, provider, status })).toEqual({
+            text: 'said',
+          })
+        }
+      }
+
+      for (const provider of Fixtures.USER_REACHABLE_PROVIDERS) {
+        expect(
+          await $.agent.report({ ...report, provider, status: 'completed' }),
+        ).toEqual({ consumed: 'user' })
+
+        expect(
+          await $.agent.report({ ...report, provider, status: 'failed' }),
+        ).toEqual({ text: 'user' })
+      }
+    },
+  )
+
+  test(
     "a tool that policy names is offered over a person's plugin, and their own is still theirs to hide",
     { plugins: [Fixtures.marking] },
     async ($, on) => {
