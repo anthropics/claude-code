@@ -5594,7 +5594,11 @@ declare module 'claude-code' {
        * The agent is not told `branch`: a mod that wants it told appends it with
        * `$.session.append` under the agent's `agentId`, at `turn.start`.
        *
-       * It may be asked again for a name it already made. The engine relies on:
+       * It may be asked again for a name it already made: by `--worktree <name>`,
+       * and by a resume, for a copy that is missing or empty or a subagent's after
+       * a restart. On a resume's ask `next(e)` makes nothing and denies, any folder
+       * but the recorded one is left unused, and nothing is isolated in place. The
+       * engine relies on:
        * - `isolate` twice with one name is the same copy.
        * - A fresh copy's `status` is empty and answers the same `revision`: where
        *   a clone carries local changes, report against creation or reset them.
@@ -5659,7 +5663,8 @@ declare module 'claude-code' {
       'vcs.isolate': VcsIsolateInput;
       /**
        * Fires when the working copies of the repository holding `path` are asked
-       * for: EnterWorktree is to enter one by its path, or a mod calls `$.vcs.list`.
+       * for: EnterWorktree is to enter one by its path, a mod calls `$.vcs.list`,
+       * or a session recorded in a mod's copy is resumed after a restart.
        *
        * `next(e)` answers Git's worktrees, the main one among them, or none. On a
        * mod's own call it answers only what `$.vcs.list` says it does, and none
@@ -5674,6 +5679,12 @@ declare module 'claude-code' {
        * version control there and never asks `vcs.release` to take it away, until
        * `vcs.isolate` answers it anew. A Git worktree, or a folder under
        * `.claude/worktrees` of a Git checkout, is entered as it is unhooked.
+       *
+       * A session's resume asks about the folder Claude Code was started in, which
+       * may be the copy itself, and may ask before a session is bound (see
+       * `vcs.isolate`).
+       * A listed copy is entered again unprompted, and kept at every exit.
+       * That holds only where `vcs.detect` of it answers it as `root`, with a `mainRoot` elsewhere.
        *
        * Experimental: may change.
        *
@@ -20349,6 +20360,7 @@ declare module 'claude-code' {
       /**
        * The copy's folder: absolute, already there, no `.` or `..` part, no
        * link itself, on no network share, and no folder that holds `from`.
+       * `--worktree <name> --resume` may run in the copy.
        *
        * One with no `.git` is refused inside a Git checkout: make it outside.
        * `from` itself (links resolved) isolates in place, for an agent only:
