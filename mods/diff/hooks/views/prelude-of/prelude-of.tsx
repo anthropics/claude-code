@@ -5,8 +5,8 @@ import type { RenderElement } from 'claude-code'
 
 import Names from '../../names'
 import type PaneState from '../../pane-state'
-import DialogPane from '../dialog-pane'
 import type { Kit } from '../kit'
+import { messagePaneOf } from '../message-pane-of'
 import Sections from '../sections'
 
 /**
@@ -34,7 +34,7 @@ export function preludeOf(
   )
 
   const loadingOf = (): RenderElement =>
-    DialogPane.messagePaneOf(kit, {
+    messagePaneOf(kit, {
       top: [Sections.headerView(kit, null, null)],
       message: ['Loading diff…'],
       earlier: null,

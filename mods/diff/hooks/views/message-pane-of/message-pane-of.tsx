@@ -3,8 +3,8 @@
 /* @jsxFrag Fragment */
 import type { RenderElement } from 'claude-code'
 
-import type { Kit } from '../../kit'
-import Layout from '../../layout'
+import type { Kit } from '../kit'
+import Layout from '../layout'
 import { FOOT_ROWS } from './foot-rows'
 import type { MessagePane } from './message-pane'
 

@@ -6,8 +6,8 @@ import type { RenderElement } from 'claude-code'
 import { keptOf } from '../../kept-of'
 import type PaneState from '../../pane-state'
 import Body from '../body'
-import DialogPane from '../dialog-pane'
 import type { Kit } from '../kit'
+import { messagePaneOf } from '../message-pane-of'
 import { preludeOf } from '../prelude-of'
 import Sections from '../sections'
 
@@ -67,7 +67,7 @@ export function sidebarPane(
   ])
 
   if (isCentered) {
-    return DialogPane.messagePaneOf(kit, {
+    return messagePaneOf(kit, {
       top: [...top, ...rows],
       message: plan.message,
       earlier:
