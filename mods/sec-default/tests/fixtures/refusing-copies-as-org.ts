@@ -8,6 +8,7 @@ export const refusingCopiesAsOrg: Plugin = {
   tier: 'append',
   register(on) {
     on('vcs.isolate', () => ({ deny: 'org' }))
+    on('vcs.list', () => [])
     on('vcs.status', () => ({ unknown: 'org' }))
     on('vcs.release', () => ({ kept: 'org' }))
   },

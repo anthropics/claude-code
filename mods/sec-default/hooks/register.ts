@@ -540,6 +540,15 @@ export function register(on: On) {
     return isOrgs ? next.to(e, 'append') : next(e)
   }).catch(($, e, next) => (next.called ? next(e) : next.to(e, 'append')))
 
+  on('vcs.list', async ($, e, next) => {
+    const isOrgs = await Policy.decidedByPolicy(
+      readPolicy(() => $.settings.read(Policy.SOURCE)),
+      Policy.hasWorktreeHook,
+    )
+
+    return isOrgs ? next.to(e, 'append') : next(e)
+  }).catch(($, e, next) => (next.called ? next(e) : next.to(e, 'append')))
+
   on('vcs.status', async ($, e, next) => {
     const isOrgs = await Policy.decidedByPolicy(
       readPolicy(() => $.settings.read(Policy.SOURCE)),

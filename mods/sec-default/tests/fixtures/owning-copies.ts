@@ -13,6 +13,7 @@ export const owningCopies: Plugin = {
       return { path: '/mine', vcs: 'mine' }
     })
 
+    on('vcs.list', () => [{ path: '/mine', vcs: 'mine' }])
     on('vcs.status', () => ({ changes: [], unpublished: 0 }))
     on('vcs.release', () => ({ isReleased: true }))
   },

@@ -19,6 +19,7 @@ describe('vcs', () => {
         on('settings.read', () => ({ value: { hooks: { [event]: [entry] } } }))
 
         expect(await $.vcs.isolate(isolating)).toEqual({ deny: 'org' })
+        expect(await $.vcs.list({ path: '/w' })).toEqual([])
         expect(await $.vcs.status(copy)).toEqual({ unknown: 'org' })
         expect(await $.vcs.release(releasing)).toEqual({ kept: 'org' })
       },
@@ -41,6 +42,7 @@ describe('vcs', () => {
       stopPolicy()
 
       expect(await $.vcs.isolate(isolating)).toEqual({ deny: 'org' })
+      expect(await $.vcs.list({ path: '/w' })).toEqual([])
       expect(await $.vcs.status(copy)).toEqual({ unknown: 'org' })
       expect(await $.vcs.release(releasing)).toEqual({ kept: 'org' })
     },
@@ -57,6 +59,10 @@ describe('vcs', () => {
           path: '/mine',
           vcs: 'mine',
         })
+
+        expect(await $.vcs.list({ path: '/w' })).toEqual([
+          { path: '/mine', vcs: 'mine' },
+        ])
 
         expect(await $.vcs.status(copy)).toEqual({
           changes: [],

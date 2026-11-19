@@ -4481,6 +4481,22 @@ declare module 'claude-code' {
            */
           isolate: EventCalls['vcs']['isolate'];
           /**
+           * Lists the working copies of the repository holding `path`: the event
+           * `vcs.list`. The engine answers Git's worktrees for the repository the
+           * session is in, once the person trusted it, and none for any other.
+           *
+           * Experimental: may change.
+           *
+           * Takes a folder, and is refused where `detect` is. The engine raises
+           * `process.run` of `git worktree list` as the caller, with no output, and
+           * `fs.list` on `path` and on each worktree: it answers none where the
+           * first is refused, and names only what the second read.
+           *
+           * @example
+           * const copies = await $.vcs.list({ path: "." })
+           */
+          list: EventCalls['vcs']['list'];
+          /**
            * Asks what a working copy holds: the event `vcs.status`. The engine
            * answers for one it made for an agent of this process, else `{ unknown }`.
            *
@@ -5640,6 +5656,35 @@ declare module 'claude-code' {
        */
       'vcs.isolate': VcsIsolateInput;
       /**
+       * Fires when the working copies of the repository holding `path` are asked
+       * for: EnterWorktree is to enter one by its path, or a mod calls `$.vcs.list`.
+       *
+       * `next(e)` answers Git's worktrees, the main one among them, or none. On a
+       * mod's own call it answers only what `$.vcs.list` says it does, and none
+       * where a mod called EnterWorktree. Where the folder is not your system's,
+       * pass on with `next`; where systems share it, add your copies to what
+       * `next` answers. A hook that fails is skipped.
+       *
+       * EnterWorktree asks about the folder it is called from and refuses a path
+       * that is not on the list. A copy only a hook lists is entered, by its
+       * listed or its real path, once the person approves and the folder passes
+       * the vet of a `vcs.isolate` answer. Past that vet the engine runs no
+       * version control there and never asks `vcs.release` to take it away, until
+       * `vcs.isolate` answers it anew. A Git worktree, or a folder under
+       * `.claude/worktrees` of a Git checkout, is entered as it is unhooked.
+       *
+       * Experimental: may change.
+       *
+       * @example
+       * on("vcs.list", async ($, e, next) => {
+       *   const { exitCode, stdout } = await $.process.run(
+       *     ["acme", "copies"], { cwd: e.path })
+       *   if (exitCode !== 0) return next(e)
+       *   return stdout.split("\n").filter(Boolean).map(path => ({ path, vcs: "acme" }))
+       * })
+       */
+      'vcs.list': VcsListInput;
+      /**
        * Fires when the engine asks what changed in a working copy and what
        * removing it would lose: the subagent that worked there ended, ExitWorktree
        * is to remove the session's, or the session is exiting inside it.
@@ -6076,6 +6121,10 @@ declare module 'claude-code' {
        */
       'vcs.isolate': VcsIsolateResult;
       /**
+       * A list of `{ path, vcs, branch? }`, possibly empty.
+       */
+      'vcs.list': VcsListResult;
+      /**
        * `{ changes, unpublished, revision? }`, or `{ unknown }`.
        */
       'vcs.status': VcsStatusResult;
@@ -6212,6 +6261,7 @@ declare module 'claude-code' {
           detect: (input: VcsDetectInput) => Promise<VcsDetectResult>;
           diff: (input: VcsDiffInput) => Promise<VcsDiffResult>;
           isolate: (input: VcsIsolateInput) => Promise<VcsIsolateResult>;
+          list: (input: VcsListInput) => Promise<VcsListResult>;
           status: (input: VcsStatusInput) => Promise<VcsStatusResult>;
           release: (input: VcsReleaseInput) => Promise<VcsReleaseResult>;
       };
@@ -20324,6 +20374,44 @@ declare module 'claude-code' {
       branch?: undefined;
       revision?: undefined;
   };
+
+  /**
+   * One working copy on this machine, as `vcs.list` answers it.
+   */
+  export type VcsListedCopy = {
+      /**
+       * The copy's folder, absolute. A copy whose path holds `<`, `>` or a
+       * character that does not print is left off the list its asker gets.
+       */
+      path: string;
+      /**
+       * A short lowercase slug naming the system that keeps it (`git` for core's
+       * rows). A label: it grants nothing.
+       */
+      vcs: string;
+      /**
+       * Any label the work is found under (a branch, a bookmark, a stream, a
+       * changelist). Only ever shown, and left out unless it is one token of 1 to
+       * 100 ASCII letters, digits and `._/@#:+-`.
+       */
+      branch?: string;
+  };
+
+  /**
+   * The input of `vcs.list`: a folder of the repository asked about.
+   */
+  export type VcsListInput = {
+      /**
+       * The folder, absolute; pinned, so no hook passes another down.
+       */
+      path: string;
+  };
+
+  /**
+   * What a `vcs.list` hook returns and what `next(e)` resolves to: the working
+   * copies of the repository holding `path`, possibly none.
+   */
+  export type VcsListResult = readonly VcsListedCopy[];
 
   /**
    * The input of `vcs.release`: the working copy to take away, and why. Every
