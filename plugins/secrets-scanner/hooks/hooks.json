@@ -1,0 +1,16 @@
+{
+  "description": "Secrets scanner - detects exposed credentials in tool output",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
