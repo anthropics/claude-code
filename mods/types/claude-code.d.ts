@@ -13109,7 +13109,7 @@ declare module 'claude-code' {
        * click, ctrl+x tab): an Input types, a Button arms the hotkeys, a tree
        * taller than it scrolls.
        *
-       * Raised on the terminal, desktop and mobile surfaces only.
+       * Raised on every attached surface.
        */
       AbovePrompt: {
           /**
@@ -13179,7 +13179,7 @@ declare module 'claude-code' {
        * either is told as `ui.render (AbovePromptList) refused:`, whatever that
        * line's ending says.
        *
-       * Raised on the terminal, desktop and mobile surfaces only.
+       * Raised on every attached surface.
        */
       AbovePromptList: {
           /**
