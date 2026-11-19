@@ -1,0 +1,24 @@
+{
+  "name": "easel",
+  "version": "0.1.0",
+  "description": "Draws charts in the transcript: a chart tool for Claude, and automatic charts for MCP results that are metrics over time",
+  "author": {
+    "name": "Anthropic"
+  },
+  "userConfig": {
+    "autoCharts": {
+      "type": "boolean",
+      "title": "Auto charts",
+      "description": "Draw a chart under an MCP result that is metrics over time, without being asked. Off: only the charts Claude asks for.",
+      "required": false,
+      "default": true
+    },
+    "autoChartSkip": {
+      "type": "string",
+      "title": "Auto charts: servers to skip",
+      "description": "MCP servers whose results never get an auto chart, separated by commas. A server is named as its tools name it: \"grafana\" for mcp__grafana__query.",
+      "required": false,
+      "default": ""
+    }
+  }
+}

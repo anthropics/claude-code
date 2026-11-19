@@ -1,0 +1,4 @@
+{
+  "description": "Charts in the transcript: the chart tool and its line in the system prompt, an automatic chart under an MCP result that is metrics over time, and the drawing of both at the tool's row",
+  "modules": ["./register.ts"]
+}

@@ -2,7 +2,7 @@
 
 A mod is a Claude Code plugin whose behaviour lives in a hooks module: one
 `register(on, options)` entry that hooks the engine's events as functions
-`($, e, next)`. These six ship inside Claude Code; this folder is their
+`($, e, next)`. These seven ship inside Claude Code; this folder is their
 source, published as it is built into the binary.
 
 | Mod | What it does | Seated |
@@ -13,6 +13,7 @@ source, published as it is built into the binary.
 | [`agents-md`](agents-md) | `AGENTS.md` as project instructions, by one option: loaded where the project has no `CLAUDE.md` of its own (`claude-md-or-agents-md`, the default) or beside it (`claude-md-and-agents-md`), placed and framed exactly as the engine places `CLAUDE.md`, nested ones on a `Read`; or the project's and the person's instruction files dropped and the organization's kept (`managed-only`); or `CLAUDE.md` alone, as the engine reads it (`claude-md`). | Built in |
 | [`privacy`](privacy) | Refuses a shell, file, web fetch or MCP call that holds the signed-in account's email address beside a word that declares who is calling, with no prompt, so the address does not go out as a client's identity; refuses a `user`-tier plugin's own `$.session.identity()`. | Built in |
 | [`hipaa-default`](hipaa-default) | Refuses a plugin's or a settings hook's own call to an MCP or connector tool that an administrator blocked, or to any tool, file or process where a managed deny rule covers the call, with no prompt, unless it is the organization's. | First of all, for an organization under HIPAA, unless managed `enabledPlugins` turns it off |
+| [`easel`](easel) | Draws charts in the transcript: a chart tool for Claude, and automatic charts under MCP results that are metrics over time. | Built in |
 
 Each folder is a complete plugin: `.claude-plugin/plugin.json`, a
 `hooks/hooks.json` naming the module, and TypeScript under `hooks/` typed

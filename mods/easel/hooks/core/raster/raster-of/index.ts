@@ -1,0 +1,11 @@
+export * from './axis-glyph-of'
+export * from './canvas-of'
+export * from './is-stack-painted'
+export * from './paint-bar'
+export * from './paint-line'
+export * from './paint-text'
+export * from './raster-of.js'
+export * from './runs-of'
+export * from './strip-glyph-of'
+
+export * as default from '.'
