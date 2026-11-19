@@ -20,6 +20,10 @@ These may be applied at any level of the [settings hierarchy](https://code.claud
 | Bash tool requires approval | | ✅ | |
 | Bash tool must run inside of sandbox | | | ✅ |
 
+### AWS Bedrock Guardrails
+
+[`settings-bedrock-guardrails.json`](./settings-bedrock-guardrails.json) — Configures Claude Code to use AWS Bedrock with [Bedrock Guardrails](https://docs.aws.amazon.com/bedrock/latest/userguide/guardrails.html). Set `BEDROCK_GUARDRAIL_IDENTIFIER` to your guardrail ID or ARN and `BEDROCK_GUARDRAIL_VERSION` to the version (e.g. `"1"` or `"DRAFT"`). Requires `@anthropic-ai/bedrock-sdk` with guardrail support (see [anthropic-sdk-typescript](https://github.com/anthropics/anthropic-sdk-typescript/tree/main/packages/bedrock-sdk)).
+
 ## Tips
 - Consider merging snippets of the above examples to reach your desired configuration
 - Settings files must be valid JSON

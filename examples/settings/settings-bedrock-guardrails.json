@@ -1,0 +1,9 @@
+{
+  "env": {
+    "CLAUDE_CODE_USE_BEDROCK": "1",
+    "AWS_REGION": "us-east-1",
+    "BEDROCK_GUARDRAIL_IDENTIFIER": "your-guardrail-id",
+    "BEDROCK_GUARDRAIL_VERSION": "1",
+    "BEDROCK_TRACE": "ENABLED"
+  }
+}
