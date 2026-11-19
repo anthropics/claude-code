@@ -1,0 +1,13 @@
+{
+  "name": "voice-to-claude",
+  "description": "High-quality voice dictation for Claude Code using whisper.cpp with Metal GPU acceleration",
+  "version": "0.1.0",
+  "author": {
+    "name": "Enes Basbug",
+    "url": "https://github.com/enesbasbug"
+  },
+  "homepage": "https://github.com/enesbasbug/voice-to-claude",
+  "repository": "https://github.com/enesbasbug/voice-to-claude",
+  "license": "MIT",
+  "keywords": ["speech-to-text", "stt", "voice", "dictation", "whisper", "audio", "accessibility", "metal", "gpu"]
+}
