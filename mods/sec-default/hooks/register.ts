@@ -104,7 +104,7 @@ export function register(on: On) {
   )
 
   // The tool.describe and command.describe rows, like the tool.offer, agent.offer, agent.report,
-  // prompt.section, attribution.text and env.get rows, only pass the event on. The engine skips them
+  // prompt.section, attribution.text, env.get and vcs rows (but vcs.diff), only pass the event on. The engine skips them
   // where this plugin is the copy built into it and no other plugin hooks the event. Before one does
   // more, take its event off that skip list: a test in the engine's repository fails and says where.
   on('tool.describe', ($, e, next) => pastUsers(e, next))
@@ -529,6 +529,34 @@ export function register(on: On) {
 
     return isOrgs ? next.to(e, 'append') : next(e)
   })
+
+  // Skipped when alone on their event: see the command.describe row.
+  on('vcs.isolate', async ($, e, next) => {
+    const isOrgs = await Policy.decidedByPolicy(
+      readPolicy(() => $.settings.read(Policy.SOURCE)),
+      Policy.hasWorktreeHook,
+    )
+
+    return isOrgs ? next.to(e, 'append') : next(e)
+  }).catch(($, e, next) => (next.called ? next(e) : next.to(e, 'append')))
+
+  on('vcs.status', async ($, e, next) => {
+    const isOrgs = await Policy.decidedByPolicy(
+      readPolicy(() => $.settings.read(Policy.SOURCE)),
+      Policy.hasWorktreeHook,
+    )
+
+    return isOrgs ? next.to(e, 'append') : next(e)
+  }).catch(($, e, next) => (next.called ? next(e) : next.to(e, 'append')))
+
+  on('vcs.release', async ($, e, next) => {
+    const isOrgs = await Policy.decidedByPolicy(
+      readPolicy(() => $.settings.read(Policy.SOURCE)),
+      Policy.hasWorktreeHook,
+    )
+
+    return isOrgs ? next.to(e, 'append') : next(e)
+  }).catch(($, e, next) => (next.called ? next(e) : next.to(e, 'append')))
 
   on('plugin.register', { tier: 'user' }, async ($, e, next) => {
     admittedAs.set(e.name, e.provenance)

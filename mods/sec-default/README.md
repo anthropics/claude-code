@@ -49,6 +49,7 @@ settings it decides by.
 | `vcs.detect` | Ask past the user tier first: a working copy the organization's tiers, the built-ins or the engine name stands, and only a folder they find in none goes on to a person's plugins. So a person's plugin drops no Git status block, and a system beside or inside Git needs an organization's plugin. A person's claim on the folder a session starts in does drop the shell tools' commit and pull-request steps for the whole session, a later `cd` into Git included; Git's safety cautions stay in every folder. |
 | `vcs.diff` | Ask past the user tier first: what the organization's tiers or the built-ins answer stands, their own `unknown` too, and only a diff none of them answered goes on to a person's plugins. |
 | `wasm.compile` | A compile by a plugin in `prepend` or `append` continues past the user tier: no user hook reads or replaces the WebAssembly the organization's own plugin runs. Every other compile passes. |
+| `vcs.isolate`, `vcs.status`, `vcs.release` | While managed settings hold a `WorktreeCreate` or `WorktreeRemove` hook, continue past the user tier: a person's plugin neither makes, reads nor removes a working copy in the place of the organization's hooks. With no policy to read, the same. Otherwise they pass. |
 | `plugin.register` | A hooks module in the `user` tier (one a person installed, named with `--plugin-dir`, or keeps in their mods folder) stays out while managed settings set this plugin's `allowManagedModsOnly` option: the plugin continues past the user tier with `provides.modules` emptied, or, in a dev-mods folder, is refused whole. While they set its `forceHotReloadPrompt` option, a plugin in a session's dev-mods folder is asked about, with a hooks module or without one, unless a person already said yes to that folder here. Otherwise a plugin whose id managed settings turn on in `enabledPlugins` or list in `prependPlugins` or `appendPlugins`, or one the event marks `requiredByOrganization`, continues past the user tier, so a person's mod can't refuse or narrow it and the organization's prepended and appended mods still judge it. Every other plugin passes. The limits: a namesake under the organization's id only escapes the person's own judges (the `user` tier's, where an organization's unlisted mod whose copy does not prove sits too), and `allowManagedModsOnly` still keeps out its module (the host's mark stays on the folder the host named, and an unmarked copy of that name doesn't load); a synced plugin (`@synced`) claude.ai marks Required, a host-delivered copy (`@inline`) its host doesn't mark and a dependency that policy doesn't name aren't covered, as the event carries no mark for them; a person's `plugin.register` hook gets the engine's "was skipped" line when an organization's plugin is judged (for one judged with its module at a load, the debug log alone has it). Plugins in `prepend`, `append` and `builtin` are never asked about, a marked one with no hooks module that is shown to be outside every dev-mods folder among them. A refusal refuses the whole plugin. |
 | everything else | Passes: `turn.*`, `command.run`, `command.register`, `command.list`, `agent.register`, `config.*`, `prompt.fill`, `prompt.suggest`, `prompt.edit`, `prompt.read`, `session.*` but `session.append`, `session.compact` and `session.identity`, `ui.*` but `ui.log`, `fs.*` but `fs.write` and `fs.stat`, `http.fetch`, `store.*`, `clock.*`, `model.*`, `mcp.call`, `audio.*`, `agent.list`, `engine.create`. |
 
@@ -195,7 +196,7 @@ Known limits, as the hold is best effort and covers no direct write of a managed
 `attribution.text`, `session.append`, `session.compact`, `settings.read`, `telemetry.log`, `session.identity`, `tool.describe`, `tool.offer`, `command.describe`,
 `agent.offer`, `agent.spawn`, `agent.report`, `agent.call`, `tool.register`, `tool.list`, `tool.call`, `tool.run`, `tool.check`, `tool.judge`,
 `prompt.submit`, `fs.write`, `fs.stat`, `process.run`, `process.spawn`,
-`ui.log`, `env.get`, `env.set`, `vcs.detect`, `vcs.diff`, `wasm.compile`, `plugin.register`.
+`ui.log`, `env.get`, `env.set`, `vcs.detect`, `vcs.diff`, `wasm.compile`, `vcs.isolate`, `vcs.status`, `vcs.release`, `plugin.register`.
 
 Hooking `tool.check` has a cost: the engine raises that event only when some
 loaded plugin hooks it, so where this plugin is seated every tool call now
@@ -206,8 +207,8 @@ the policy read, as does each `tool.offer` that runs a chain, and a `wasm.compil
 So has hooking `telemetry.log`: a session raises its event records through the chain even with no collector set up.
 Where the copy built into Claude Code is the only plugin that
 hooks `env.get`, `command.describe`, `tool.describe`, `tool.offer`, `agent.offer`,
-`agent.report`, `attribution.text`, `prompt.section` or `vcs.detect`, a `$.env.get` call and the engine's own
-raises of the other eight run no chain: this plugin would only pass the event
+`agent.report`, `attribution.text`, `prompt.section` or a `vcs` event but `vcs.diff`, a `$.env.get` call and the engine's own
+raises of the others run no chain: this plugin would only pass the event
 on, so the answer is the engine's own. Behind a rollout flag, the same goes for
 a `tool.check` on which only that copy's hook could run, if the check succeeds
 and no `user`-tier module is loaded.

@@ -1752,6 +1752,8 @@ declare module 'claude-code' {
        * it): the worktree the hook created, absolute or relative to its cwd.
        *
        * Left unset, the session creates its git worktree as it would unhooked.
+       *
+       * @deprecated from a module, answer `vcs.isolate` instead; this still works
        */
       worktreePath?: string;
   };
@@ -3446,8 +3448,10 @@ declare module 'claude-code' {
            * yarn, pnpm, bun, deno and node are on the PATH.
            *
            * Read inside the engine with no program run. The two lists are the ones
-           * the engine's own analytics rows carry; on the server (not the CLI), where
-           * tools run in another container, they are empty, the names the server's.
+           * the engine's own analytics rows carry. On the server (not the CLI), where
+           * tools run in another container, that container answers an installed mod,
+           * or the call rejects; a built-in's own call gets the server's names and
+           * empty lists.
            *
            * @returns `sysname`, `release` and `machine` in uname's words (on Windows
            *          `Windows_NT` and the NT version; 64-bit ARM as `arm64` or
@@ -4432,7 +4436,8 @@ declare module 'claude-code' {
           set: (name: string, value: string | undefined) => Promise<EnvSetResult>;
       };
       /**
-       * Version control, whichever system keeps the folder.
+       * Version control, whichever system keeps the folder. Each call rejects in
+       * a session with no disk.
        *
        * Experimental: may change.
        */
@@ -4463,6 +4468,39 @@ declare module 'claude-code' {
            * const { files } = await $.vcs.diff({ path: ".", vcs: "acme", base: "head" })
            */
           diff: EventCalls['vcs']['diff'];
+          /**
+           * Asks the hooks to isolate a folder: the event `vcs.isolate`. Nothing
+           * moves into the copy. The engine makes none on this call and answers
+           * `{ deny }`: for a Git worktree, spawn an agent with `isolation: "worktree"`.
+           *
+           * Experimental: may change.
+           *
+           * @example
+           * const { path, deny } = await $.vcs.isolate({ name: "try-1", from,
+           *   for: "agent", base: "head" })
+           */
+          isolate: EventCalls['vcs']['isolate'];
+          /**
+           * Asks what a working copy holds: the event `vcs.status`. The engine
+           * answers for one it made for an agent of this process, else `{ unknown }`.
+           *
+           * Experimental: may change.
+           *
+           * @example
+           * const { changes, unknown } = await $.vcs.status({ path, name: "try-1" })
+           */
+          status: EventCalls['vcs']['status'];
+          /**
+           * Asks the hooks to take a working copy away: the event `vcs.release`.
+           * The engine removes none on this call and answers `{ kept }`.
+           *
+           * Experimental: may change.
+           *
+           * @example
+           * await $.vcs.release({ path, name: "try-1", vcs, isDiscard: false,
+           *   reason: "the try is over" })
+           */
+          release: EventCalls['vcs']['release'];
       };
       /**
        * WebAssembly, run in the module's own environment, where its hooks run.
@@ -5505,6 +5543,135 @@ declare module 'claude-code' {
        */
       'vcs.diff': VcsDiffInput;
       /**
+       * Fires when a subagent run with `isolation: "worktree"` (the Agent tool, a
+       * workflow's `agent()`) needs a working copy, before anything is made.
+       *
+       * Only agents raise this, `vcs.status` and `vcs.release` for now: a
+       * session's own worktree does not.
+       *
+       * `next(e)` makes it as the engine would unhooked: a WorktreeCreate hook
+       * where one is set, a host's callback among them, else a Git worktree.
+       * Answer `{ path, vcs }` in its place and the copy is this mod's: the engine
+       * vets the folder, runs no version control there, and asks `vcs.status` and
+       * `vcs.release` about it. `{ deny }` refuses. A hook that fails is skipped.
+       * On a mod's own `$.vcs.isolate`, `next(e)` makes nothing and denies.
+       *
+       * Systems can sit side by side or nest: claim only when yours is the nearest
+       * one holding `from`, else pass on with `next`. On `vcs.status` and
+       * `vcs.release`, a matcher on `vcs` hears only your own copies.
+       *
+       * Where a second folder costs too much, answer `path: e.from` and the agent
+       * is isolated in place: it runs in its parent's folder under the parent's
+       * fences and guards, reads that it shares the folder, and `vcs.status` and
+       * `vcs.release` are asked about `name`, so answer for that work alone. It
+       * gives no file isolation: claims and conflicts are the mod's, at `tool.run`
+       * by `agentId` (a workflow's agent that is run again is asked about again,
+       * under its new one). The engine removes, locks and sweeps nothing there.
+       * The agent is not told `branch`: a mod that wants it told appends it with
+       * `$.session.append` under the agent's `agentId`, at `turn.start`.
+       *
+       * It may be asked again for a name it already made. The engine relies on:
+       * - `isolate` twice with one name is the same copy.
+       * - A fresh copy's `status` is empty and answers the same `revision`: where
+       *   a clone carries local changes, report against creation or reset them.
+       * - `release` right after `isolate` changes nothing `from` can observe.
+       * - Releasing a copy already gone is released.
+       *
+       * Experimental: may change.
+       *
+       * @example
+       * on("vcs.isolate", async ($, e, next) => {
+       *   if (!(await $.fs.exists(`${e.from}/.acme`))) return next(e)
+       *   const argv = ["acme", "copy", "--name", e.name, "--base", e.base]
+       *   const made = await $.process.run(argv, { cwd: e.from })
+       *   if (made.exitCode !== 0) return { deny: made.stderr }
+       *   const [path, revision] = made.stdout.trim().split("\n")
+       *   return { path, vcs: "acme", revision }
+       * })
+       * @example
+       * // in place: a changelist, shelved first so that a late edit is not lost
+       * on("vcs.isolate", { for: "agent" }, async ($, e, next) => {
+       *   if (!(await $.fs.exists(`${e.from}/.acme`))) return next(e)
+       *   const argv = ["acme", "changelist", "open", e.name]
+       *   const made = await $.process.run(argv, { cwd: e.from })
+       *   if (made.exitCode !== 0) return { deny: made.stderr }
+       *   return { path: e.from, vcs: "acme", branch: made.stdout.trim() }
+       * })
+       * on("vcs.status", { vcs: "acme" }, async ($, e) => {
+       *   const argv = ["acme", "changelist", "files", e.name ?? "default"]
+       *   const ran = await $.process.run(argv, { cwd: e.path })
+       *   if (ran.exitCode !== 0) return { unknown: ran.stderr }
+       *   const paths = ran.stdout.split("\n").filter(Boolean)
+       *   return { changes: paths.map(path => ({ path, state: "modified" })),
+       *     unpublished: 0 }
+       * })
+       * on("vcs.release", { vcs: "acme" }, async ($, e) => {
+       *   for (const verb of ["shelve", "revert"]) {
+       *     const argv = ["acme", "changelist", verb, e.name]
+       *     const ran = await $.process.run(argv, { cwd: e.path })
+       *     if (ran.exitCode !== 0) return { kept: ran.stderr }
+       *   }
+       *   return { isReleased: true }
+       * })
+       * @example
+       * // the model picks each command; it meets the permission check as the asker's
+       * // the mod picks the folder: what a command prints can steer the model
+       * on("vcs.isolate", async ($, e) => {
+       *   const path = `${await $.env.get("HOME")}/acme-copies/${e.name}`
+       *   let prompt = `Make an acme copy of ${e.from} at ${path}. Reply with ` +
+       *     "one shell command, or DONE once it is made."
+       *   for (let step = 0; step < 8; step++) {
+       *     const reply = await $.model.fork({ prompt })
+       *     if (!reply.isAnswered) return { deny: reply.reason }
+       *     const command = reply.text.trim()
+       *     if (command === "DONE") return { path, vcs: "acme" }
+       *     const ran = await $.agent.call({ tool: "Bash", input: { command },
+       *       agentId: e.parentAgentId })
+       *     prompt += `\n$ ${command}\n${ran.deny ?? ran.text}`
+       *   }
+       *   return { deny: "no acme copy after 8 steps" }
+       * })
+       */
+      'vcs.isolate': VcsIsolateInput;
+      /**
+       * Fires when the engine asks what changed in a working copy and what
+       * removing it would lose: the subagent that worked there ended.
+       *
+       * `next(e)` answers for a copy the engine made, `{ unknown }` for any
+       * other. An agent's copy is kept where the answer lists a change, counts
+       * an unpublished revision, names a `revision` other than `since`, or is
+       * unknown. A hook can keep the engine's own Git worktree but not call it
+       * clean: where the engine finds work there, its answer stands.
+       *
+       * Experimental: may change.
+       *
+       * @example
+       * on("vcs.status", { vcs: "acme" }, async ($, e) => {
+       *   const { exitCode, stdout, stderr } = await $.process.run(
+       *     ["acme", "status", "--json"], { cwd: e.path })
+       *   return exitCode === 0 ? JSON.parse(stdout) : { unknown: stderr }
+       * })
+       */
+      'vcs.status': VcsStatusInput;
+      /**
+       * Fires when the engine would take a working copy away: it read clean with
+       * nothing unpublished, or what it holds is to be discarded (`isDiscard`).
+       *
+       * `next(e)` removes a copy the engine made and answers `{ kept }` for any
+       * other: a copy a mod made goes only by a hook's own hand. On a mod's own
+       * `$.vcs.release`, `next(e)` removes nothing.
+       *
+       * Experimental: may change.
+       *
+       * @example
+       * on("vcs.release", { vcs: "acme" }, async ($, e) => {
+       *   const { exitCode, stderr } = await $.process.run(
+       *     ["acme", "drop", e.name, ...(e.isDiscard ? ["--force"] : [])])
+       *   return exitCode === 0 ? { isReleased: true } : { kept: stderr }
+       * })
+       */
+      'vcs.release': VcsReleaseInput;
+      /**
        * Fires once per process for each loaded plugin, before the first prompt,
        * then once per fresh load of one (never `/clear`); `next(e)` is `{ cwd }`.
        *
@@ -5886,6 +6053,18 @@ declare module 'claude-code' {
        */
       'vcs.diff': VcsDiffResult;
       /**
+       * `{ path, vcs, branch?, revision? }`, or `{ deny }`.
+       */
+      'vcs.isolate': VcsIsolateResult;
+      /**
+       * `{ changes, unpublished, revision? }`, or `{ unknown }`.
+       */
+      'vcs.status': VcsStatusResult;
+      /**
+       * `{ isReleased: true }`, or `{ kept }`.
+       */
+      'vcs.release': VcsReleaseResult;
+      /**
        * `{ cwd }`.
        */
       'session.start': SessionStartResult;
@@ -6013,6 +6192,9 @@ declare module 'claude-code' {
       vcs: {
           detect: (input: VcsDetectInput) => Promise<VcsDetectResult>;
           diff: (input: VcsDiffInput) => Promise<VcsDiffResult>;
+          isolate: (input: VcsIsolateInput) => Promise<VcsIsolateResult>;
+          status: (input: VcsStatusInput) => Promise<VcsStatusResult>;
+          release: (input: VcsReleaseInput) => Promise<VcsReleaseResult>;
       };
       agent: {
           offer: (input: AgentOfferInput) => Promise<AgentOfferResult>;
@@ -14575,8 +14757,9 @@ declare module 'claude-code' {
    *
    * The tool lists are the ones the engine's own analytics rows carry, found in
    * the engine with no program run. On the server (not the CLI), where a
-   * session's tools run in another container, they are empty and the three
-   * names are the server's own.
+   * session's tools run in another container, an installed mod is answered by
+   * that container, and the call rejects where it gives no answer; a built-in
+   * mod's own call gets the server's three names and empty lists.
    */
   export type SessionMachine = {
       /**
@@ -19938,6 +20121,21 @@ declare module 'claude-code' {
   };
 
   /**
+   * One uncommitted change in a working copy.
+   */
+  export type VcsChange = {
+      /**
+       * Relative to the copy's folder, its parts joined by `/`.
+       */
+      path: string;
+      /**
+       * A rename is `deleted` plus `added`; a file opened but unchanged, or a
+       * property change, is `modified`; a missing file is `deleted`.
+       */
+      state: 'modified' | 'added' | 'deleted' | 'untracked' | 'conflict';
+  };
+
+  /**
    * The input of `vcs.detect`: the folder asked about.
    */
   export type VcsDetectInput = {
@@ -20030,6 +20228,185 @@ declare module 'claude-code' {
   };
 
   /**
+   * The input of `vcs.isolate`: who needs a working copy of its own, and what
+   * to make it from. Every field is pinned.
+   */
+  export type VcsIsolateInput = {
+      /**
+       * What the copy is known by, here and at `vcs.status` and `vcs.release`:
+       * letters, digits, `.`, `_` and `-`, in parts joined by `/`.
+       */
+      name: string;
+      /**
+       * The folder the copy is made from, absolute: the asking loop's current
+       * folder, a shell `cd` included (a subagent's shell keeps none).
+       */
+      from: string;
+      /**
+       * Who will work in it: a subagent, or the session itself.
+       */
+      for: 'agent' | 'session';
+      /**
+       * The agent about to run in the copy, not started yet; absent for a session.
+       */
+      agentId?: string;
+      /**
+       * The loop that asks, absent from the main conversation: what a hook
+       * passes to `$.agent.call` to run a tool as that loop.
+       */
+      parentAgentId?: string;
+      /**
+       * What the copy starts from (the setting `worktree.baseRef`): `fresh` is
+       * the latest mainline, `head` is what `from` has now.
+       */
+      base: 'fresh' | 'head';
+  };
+
+  /**
+   * What a `vcs.isolate` hook returns and what `next(e)` resolves to: the
+   * copy, or `{ deny: reason }`, the spawn's or the tool's error.
+   *
+   * Once a `next(e)` answered with a copy, another `path` or a deny fails the
+   * hook and that copy stands, in place or not: a hook may do its own step and
+   * hand it up. After one that denied, a hook may make its own.
+   */
+  export type VcsIsolateResult = {
+      /**
+       * The copy's folder: absolute, already there, no `.` or `..` part, no
+       * link itself, on no network share, and no folder that holds `from`.
+       *
+       * One with no `.git` is refused inside a Git checkout: make it outside.
+       * `from` itself (links resolved) isolates in place, for an agent only:
+       * on a share too, spelled the same, where an agent's spawn asks.
+       */
+      path: string;
+      /**
+       * A short lowercase slug naming the system that made it (`git` for
+       * core's Git worktree). A label, handed back later: it grants nothing.
+       */
+      vcs: string;
+      /**
+       * Any label the work is found under (a branch, a bookmark, a stream, a
+       * changelist), often absent. Only ever shown, and only where it is one
+       * token of 1 to 100 ASCII letters, digits and `._/@#:+-`. An agent
+       * resumed after a restart is reported without it.
+       */
+      branch?: string;
+      /**
+       * Where the copy starts, in the system's own words. Opaque to the
+       * engine, which hands it back as `since` and compares it as it came.
+       */
+      revision?: string;
+      deny?: undefined;
+  } | {
+      deny: string;
+      path?: undefined;
+      vcs?: undefined;
+      branch?: undefined;
+      revision?: undefined;
+  };
+
+  /**
+   * The input of `vcs.release`: the working copy to take away, and why. Every
+   * field is pinned.
+   */
+  export type VcsReleaseInput = {
+      /**
+       * The copy's folder, absolute. From the engine its links are resolved, so
+       * it may be spelled unlike the `path` answered: know a copy by `name`.
+       */
+      path: string;
+      /**
+       * The name it was isolated under.
+       */
+      name: string;
+      /**
+       * The `vcs` its `vcs.isolate` answered.
+       */
+      vcs: string;
+      /**
+       * The agent it was made for; absent for a session's.
+       */
+      agentId?: string;
+      /**
+       * True where the person chose to lose what the copy holds. False, it read
+       * clean a moment ago: keep it if that no longer holds.
+       */
+      isDiscard: boolean;
+      /**
+       * What asks for the release, in plain words ("the subagent ended").
+       */
+      reason: string;
+  };
+
+  /**
+   * What a `vcs.release` hook returns and what `next(e)` resolves to:
+   * `{ isReleased: true }`, or `{ kept: reason }`, the copy left as it is.
+   *
+   * A hook's `isReleased` counts only where the folder is gone or empty, or
+   * this process isolated that `name` in place there; the engine deletes nothing
+   * for it. A `kept` after a `next(e)` that released fails the hook.
+   */
+  export type VcsReleaseResult = {
+      isReleased: true;
+      kept?: undefined;
+  } | {
+      kept: string;
+      isReleased?: undefined;
+  };
+
+  /**
+   * The input of `vcs.status`: the working copy asked about. Every field is
+   * pinned.
+   */
+  export type VcsStatusInput = {
+      /**
+       * The copy's folder, absolute. From the engine its links are resolved, so
+       * it may be spelled unlike the `path` answered: know a copy by `name`.
+       */
+      path: string;
+      /**
+       * The name it was isolated under; absent, the whole working copy at `path`.
+       */
+      name?: string;
+      /**
+       * The `vcs` its `vcs.isolate` answered.
+       */
+      vcs?: string;
+      /**
+       * The `revision` its `vcs.isolate` answered, as it came.
+       */
+      since?: string;
+      /**
+       * The agent it was made for; absent for a session's.
+       */
+      agentId?: string;
+  };
+
+  /**
+   * What a `vcs.status` hook returns and what `next(e)` resolves to: what the
+   * copy holds, or `{ unknown: reason }`, which keeps it.
+   */
+  export type VcsStatusResult = {
+      changes: readonly VcsChange[];
+      /**
+       * How many revisions removing the copy would lose: a whole number.
+       */
+      unpublished: number;
+      /**
+       * Where the copy stands now. One that differs from `since` says work
+       * was made here and is safe elsewhere.
+       */
+      revision?: string;
+      unknown?: undefined;
+  } | {
+      unknown: string;
+      changes?: undefined;
+      unpublished?: undefined;
+      revision?: undefined;
+  };
+
+  /**
    * One working copy, as `vcs.detect` answers it: which system keeps it, where
    * it lies, and where it stands now.
    *
@@ -20061,8 +20438,8 @@ declare module 'claude-code' {
       revision: string | null;
       /**
        * The line of work the copy is on, or null where it is on none. The model
-       * is told it beside the system, unless it is over 200 characters or holds
-       * a control, invisible or line-break character, `<` or `>`.
+       * is told it beside the system only where it is one token of 1 to 100
+       * ASCII letters, digits and `._/@#:+-`.
        */
       branch: string | null;
       /**
