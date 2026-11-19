@@ -4470,8 +4470,16 @@ declare module 'claude-code' {
           diff: EventCalls['vcs']['diff'];
           /**
            * Asks the hooks to isolate a folder: the event `vcs.isolate`. Nothing
-           * moves into the copy. The engine makes none on this call and answers
-           * `{ deny }`: for a Git worktree, spawn an agent with `isolation: "worktree"`.
+           * moves into the copy.
+           *
+           * Beneath the hooks the engine makes a Git worktree, and answers the same
+           * one when this mod asks again under the name. It answers `{ deny }`
+           * outside Git, before workspace trust is accepted, where a managed rule
+           * would refuse this mod's own run of `git worktree add` or `git fetch`,
+           * where Git fails, and for a name that is taken, has the form of an
+           * agent's, or begins a part with `-`. A `from` that a managed rule keeps
+           * this mod from listing is denied ahead of the hooks, and the engine
+           * makes no copy that it could not list.
            *
            * Experimental: may change.
            *
@@ -4498,7 +4506,15 @@ declare module 'claude-code' {
           list: EventCalls['vcs']['list'];
           /**
            * Asks what a working copy holds: the event `vcs.status`. The engine
-           * answers for one it made for an agent of this process, else `{ unknown }`.
+           * answers for the trusted workspace's Git repository, its worktrees and
+           * this mod's own copies; for any other folder, `{ unknown }`.
+           *
+           * It reads the whole copy, paths from its top, and writes nothing.
+           * `unpublished` counts from where a copy the engine made began, else from
+           * `since`, else the commits no remote-tracking branch holds. Where a
+           * managed rule would refuse this mod's own run of `git status`, or its
+           * `$.fs.list` of a changed path or, ahead of the hooks, of the folder,
+           * the answer is `{ unknown }`.
            *
            * Experimental: may change.
            *
@@ -4508,7 +4524,13 @@ declare module 'claude-code' {
           status: EventCalls['vcs']['status'];
           /**
            * Asks the hooks to take a working copy away: the event `vcs.release`.
-           * The engine removes none on this call and answers `{ kept }`.
+           *
+           * The engine removes only a worktree it made on this mod's own `isolate`
+           * in this process, with its branch, and answers `{ kept }` for any other
+           * folder, one in use, and, without `isDiscard`, one that holds work. It
+           * answers the same where a managed rule would refuse this mod's own run
+           * of `git worktree remove --force` or `git branch -D` or, ahead of the
+           * hooks, its `$.fs.list` of the folder.
            *
            * Experimental: may change.
            *
@@ -5578,7 +5600,8 @@ declare module 'claude-code' {
        * Answer `{ path, vcs }` in its place and the copy is this mod's: the engine
        * vets the folder, runs no version control there, and asks `vcs.status` and
        * `vcs.release` about it. `{ deny }` refuses. A hook that fails is skipped.
-       * On a mod's own `$.vcs.isolate`, `next(e)` makes nothing and denies.
+       * On a mod's own `$.vcs.isolate`, `next(e)` makes a Git worktree for that
+       * mod, in a trusted workspace only, and runs no WorktreeCreate hook.
        *
        * Systems can sit side by side or nest: claim only when yours is the nearest
        * one holding `from`, else pass on with `next`. On `vcs.status` and
@@ -5721,6 +5744,10 @@ declare module 'claude-code' {
        * everything removing that folder would lose, work kept there under other
        * names included.
        *
+       * On a mod's own `$.vcs.status`, `next(e)` also answers for the trusted
+       * workspace's Git repository and its worktrees, and is `{ unknown }` where
+       * that mod may not run Git or list a change.
+       *
        * Experimental: may change.
        *
        * @example
@@ -5740,7 +5767,8 @@ declare module 'claude-code' {
        *
        * `next(e)` removes a copy the engine made and answers `{ kept }` for any
        * other: a copy a mod made goes only by a hook's own hand, and is kept where
-       * no mod hooks this. On a mod's own `$.vcs.release`, `next(e)` removes nothing.
+       * no mod hooks this. On a mod's own `$.vcs.release`, `next(e)` removes only
+       * a worktree made on that mod's own `$.vcs.isolate`, clean or to be discarded.
        *
        * Experimental: may change.
        *
