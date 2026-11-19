@@ -1,0 +1,9 @@
+{
+  "name": "setup-reviewer",
+  "description": "Comprehensive audit of your Claude Code setup — dispatches 10 parallel agents to review skills, commands, rules, plugins, MCP servers, settings, hooks, terminal config, and CLAUDE.md files, then synthesizes findings into a scored health report",
+  "version": "1.0.0",
+  "author": {
+    "name": "Patrick Freyer",
+    "url": "https://github.com/patrickfreyer"
+  }
+}
