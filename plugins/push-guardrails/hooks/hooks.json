@@ -1,0 +1,17 @@
+{
+  "description": "Pre-push and pre-commit guardrails to prevent accidental exposure of private code to public repos",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/push_guardrails.py",
+            "timeout": 15
+          }
+        ],
+        "matcher": "Bash"
+      }
+    ]
+  }
+}
