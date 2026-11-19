@@ -935,7 +935,9 @@ export function register(on: On) {
 
   async function bind(engine: Host, cwd: string): Promise<void> {
     sessionStartMs = (await startedAtOf(engine)) ?? (await engine.now())
-    pin.cwd = cwd
+    const copy = await engine.detect({ path: cwd }).catch(() => null)
+
+    pin.cwd = copy?.vcs === 'git' ? copy.root : cwd
 
     try {
       await engine.registerCommand(COMMAND_SPEC)

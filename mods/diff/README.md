@@ -88,7 +88,7 @@ dropped from an answer's names, label and reason, and ask calls a file whose
 name holds one, or an angle bracket, "a file". A patch goes as git's does.
 
 Git runs when the built-in panel's would: nothing at the session's start;
-one `git rev-parse`, in the directory the session started in, when `/diff`
+one `git rev-parse`, at the root `vcs.detect` named at the start, when `/diff`
 or the first edit a pane has room to open on first needs the repository (an
 answer of no repository is kept too, until `/clear` or `/resume` forgets
 it); and the working tree is read only by a fetch for an open pane after an
@@ -125,7 +125,7 @@ only on its first ask: later asks hold until the wait ends, and then one runs.
 
 | event | what the hook does |
 | --- | --- |
-| `session.start` | Binds the engine once and registers `/diff` (a session where another `/diff` is listed leaves the plugin idle); asks nothing of the repository, which `/diff` or the first edit pins when it comes; off its dispatch, reads the transcript, and for a resumed session whose turns edited opens the pane as the first edit would. |
+| `session.start` | Binds the engine once and registers `/diff` (a session where another `/diff` is listed leaves the plugin idle); asks `vcs.detect` for the git root its directory is under and keeps it through `/clear` and `/resume` (the directory itself where none is named); runs no git, as `/diff` or the first edit pins the repository there when it comes; off its dispatch, reads the transcript, and for a resumed session whose turns edited opens the pane as the first edit would. |
 | `ui.render` of `PromptHint` | Reads the terminal's width and whether its layout docks a pane, which decide whether the first edit opens the pane. |
 | `ui.render` of `Pane` | Draws the pane: docked, the header, base line, source picker, file list and toggles over the window of hunks; inline, the dialog. |
 | `command.run` of `diff` | Pins the repository when none is and the pane is closed, opens or closes the pane (focused and closing on Escape without the fullscreen layout), says which, and remembers the choice; a run that starts before the last one has finished does nothing. |

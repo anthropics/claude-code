@@ -2699,6 +2699,37 @@ describe('register', () => {
     expect(world.opened.map(pane => pane.id)).toEqual([Names.PANE_ID])
   })
 
+  test('git starts at the root named at the start, after /clear too', async ($, on) => {
+    const nearer = { isThere: false }
+
+    on('vcs.detect', (_engine, e) => ({
+      ...Fixtures.ACME_COPY,
+      vcs: 'git',
+      root: nearer.isThere ? e.path : '/work',
+    }))
+    on('command.run', { command: 'clear' }, () => ({}))
+    on('fs.list', () => ({ value: [] }))
+
+    const world = Fixtures.inRepository(on)
+
+    await $.session.start({ ...Fixtures.SESSION, cwd: '/work/below' })
+
+    const atStart = world.runs.length
+
+    nearer.isThere = true
+
+    await $.command.run(Fixtures.DIFF)
+    await $.command.run(Fixtures.CLEAR)
+    await world.clock.advance(Fixtures.SETTLE_MS)
+
+    const probes = world.runs.filter(run => run.argv.includes('--show-toplevel'))
+
+    expect([atStart, probes.map(run => run.init?.cwd)]).toEqual([
+      0,
+      ['/work', '/work'],
+    ])
+  })
+
   describe('in a system a mod defines', () => {
     const TURN_END = {
       answer: 'done',
@@ -3036,13 +3067,13 @@ describe('register', () => {
         unmoved,
         await after(Limits.REVISION_POLL_MS * 2),
       ]).toEqual([
-        [0, 0],
-        [1, 3],
-        [1, 3],
-        [1, 3],
-        [2, 4],
+        [1, 0],
+        [2, 3],
+        [2, 3],
+        [2, 3],
         [3, 4],
-        [3, 4],
+        [4, 4],
+        [4, 4],
       ])
     })
   })
