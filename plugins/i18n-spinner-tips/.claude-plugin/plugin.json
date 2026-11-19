@@ -1,0 +1,9 @@
+{
+  "name": "i18n-spinner-tips",
+  "version": "1.0.0",
+  "description": "Bilingual spinner tips in 8 languages — learn dev tricks while Claude thinks. Each tip pairs English with a local language (zh/ja/ko/fr/es/de/pt/ru).",
+  "author": {
+    "name": "Dongsheng",
+    "url": "https://github.com/dongsheng123132"
+  }
+}
