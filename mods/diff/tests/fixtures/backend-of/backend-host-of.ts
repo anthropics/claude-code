@@ -2,7 +2,8 @@ import type Backend from '../../../hooks/backend'
 
 /**
  * A backend host around one runner: every other member answers nothing (no
- * file, no mtime, no listing, time zero, a base callback that ignores).
+ * file, no working copy, no diff, no mtime, no listing, time zero, a base
+ * callback that ignores).
  *
  * @param run the host's runner
  * @returns the host
@@ -12,6 +13,8 @@ export const backendHostOf = (
 ): Backend.BackendHost => ({
   run,
   readFile: () => Promise.reject(new Error('ENOENT')),
+  detect: () => Promise.resolve(null),
+  diff: () => Promise.resolve({ unknown: null }),
   mtimeOf: () => Promise.resolve(null),
   entryKindsOf: () => Promise.resolve(null),
   nowMs: () => Promise.resolve(0),

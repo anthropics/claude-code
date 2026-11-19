@@ -76,6 +76,17 @@ listed apart and folded until asked for; a rename lists as git prints it.
 Outside a git repository `/diff` says so and opens nothing; it still closes
 a pane that is open.
 
+Where a mod's `vcs.detect` hook names a system other than git and a
+`vcs.diff` hook answers for it, the pane reads that system under the same
+caps: the rows from a stat-only answer, the hunks by path. With no hook's
+answer it looks for git. An `unknown` shows as `Diff unavailable` with its
+reason, and the next `/diff` chooses anew, as it does where nothing was found.
+The default branch is offered when the copy names one, unless `default` is
+unknown at that choice. While the pane shows, the poll asks for the copy's
+`revision` every 30 seconds and after each turn. Invisible characters are
+dropped from an answer's names, label and reason, and ask calls a file whose
+name holds one, or an angle bracket, "a file". A patch goes as git's does.
+
 Git runs when the built-in panel's would: nothing at the session's start;
 one `git rev-parse`, in the directory the session started in, when `/diff`
 or the first edit a pane has room to open on first needs the repository (an
@@ -124,6 +135,7 @@ only on its first ask: later asks hold until the wait ends, and then one runs.
 | `command.run` of `clear`, `resume` | Forgets the session's state, the pinned repository with it. `/resume` closes the pane; `/clear` leaves an open pane up and reads afresh. |
 | `tool.call` of `Edit`, `Write`, `NotebookEdit` | After an edit that landed (not refused, not failed), refreshes an open pane. The main loop's first such edit pins the repository and asks to open the pane if the terminal has the room and checkpointing is on; after an ask that did not open it, any edit that lands asks again. |
 | `tool.call` of `Bash`, `PowerShell` | After a command that was not refused, failed and interrupted ones too, refreshes an open pane; after an ask that did not open the pane, also asks to open it. |
+| `turn.complete` | At the end of a main-loop turn with the pane seen, has the next poll ask another system's `revision` anew. |
 | `prompt.submit` | Adds the armed file's hunks to the prompt's context and disarms. |
 
 ## What it calls on `$`
@@ -132,7 +144,8 @@ only on its first ask: later asks hold until the wait ends, and then one runs.
 (`CLAUDE_CODE_DISABLE_FILE_CHECKPOINTING`), `fs.list`, `fs.read`, `fs.stat`,
 `process.run` (git, read-only), `session.id`, `session.messages`,
 `settings.read`, `store.get`, `store.set`, `telemetry.log`, `telemetry.mark`,
-`ui.close`, `ui.invalidate`, `ui.log`, `ui.open`, `ui.resolve`, `ui.status`.
+`ui.close`, `ui.invalidate`, `ui.log`, `ui.open`, `ui.resolve`, `ui.status`,
+`vcs.detect`, `vcs.diff`.
 
 `$.telemetry` is the telemetry plugin's noun; where it is absent the rows
 are dropped and nothing else changes.

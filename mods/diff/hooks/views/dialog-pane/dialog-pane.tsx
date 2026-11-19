@@ -66,7 +66,9 @@ export function dialogPane(
     ? 'No file changes in this turn'
     : isTooMany
       ? 'Too many files to display details'
-      : 'No changes yet'
+      : model.unknownReason !== null
+        ? `Diff unavailable (${Layout.sanitizeName(model.unknownReason)})`
+        : 'No changes yet'
 
   const message = entries.length > 0 ? null : emptyWords
 

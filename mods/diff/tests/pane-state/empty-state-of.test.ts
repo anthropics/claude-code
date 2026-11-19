@@ -24,7 +24,10 @@ describe('empty-state-of', () => {
   })
 
   const emptyOf = (data: Git.DiffData | null, filesCount: number) =>
-    PaneState.emptyStateOf({ data, words: Git.GIT_WORDS }, filesCount)
+    PaneState.emptyStateOf(
+      { data, words: Git.GIT_WORDS, unknownReason: null },
+      filesCount,
+    )
 
   test("the built-in's headlines, keyed on the fetched mode", () => {
     expect(emptyOf(null, 0)?.headline).toBe('Diff unavailable')

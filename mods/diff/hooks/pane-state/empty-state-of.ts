@@ -15,17 +15,19 @@ import type { PaneModel } from './pane-model'
  * @returns the empty state, or null
  */
 export function emptyStateOf(
-  model: Pick<PaneModel, 'data' | 'words'>,
+  model: Pick<PaneModel, 'data' | 'words' | 'unknownReason'>,
   filesCount: number,
 ): EmptyState | null {
-  const { data, words } = model
+  const { data, words, unknownReason } = model
 
   if (!data) {
+    const why = unknownReason === null ? '' : ` (${unknownReason})`
+
     return {
       headline: 'Diff unavailable',
       hint:
-        `Couldn't read the ${words.diffCommand} — it will retry on the ` +
-        'next change',
+        `Couldn't read the ${words.diffCommand}${why} — it will retry on ` +
+        'the next change',
     }
   }
 

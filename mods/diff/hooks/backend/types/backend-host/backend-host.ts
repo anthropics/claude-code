@@ -1,3 +1,5 @@
+import type { VcsDetectResult } from 'claude-code'
+
 import type { GitDeps } from '../../../git/types/git-deps/git-deps'
 import type { Host } from '../../../host'
 
@@ -9,8 +11,14 @@ import type { Host } from '../../../host'
  * to the runner; the session's start is read as it stands at each fetch
  * (a later `session.start` moves it).
  */
-export type BackendHost = Pick<Host, 'run' | 'readFile'> &
+export type BackendHost = Pick<Host, 'run' | 'readFile' | 'diff'> &
   Pick<GitDeps, 'mtimeOf' | 'entryKindsOf' | 'onBranchBase'> & {
+    /**
+     * The working copy the session's directory is in (`$.vcs.detect`); null
+     * in none, and where the call is refused.
+     */
+    detect: () => Promise<VcsDetectResult>
+
     /**
      * The engine's clock, in milliseconds (`$.clock.now`).
      */

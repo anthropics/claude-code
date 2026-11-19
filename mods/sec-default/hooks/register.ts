@@ -512,6 +512,12 @@ export function register(on: On) {
     async ($, e, next) => (await next.to(e, 'append')) ?? next(e),
   ).catch(($, e, next) => next.to(e, 'append'))
 
+  on('vcs.diff', async ($, e, next) => {
+    const theirs = await next.to(e, 'append')
+
+    return theirs.unknown === null ? next(e) : theirs
+  }).catch(($, e, next) => next.to(e, 'append'))
+
   on('wasm.compile', ($, e, next) => {
     const isOrgs =
       next.origin.tier === 'prepend' || next.origin.tier === 'append'

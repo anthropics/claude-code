@@ -26,4 +26,15 @@ export type BackendWords = {
    * line counts (a pasteable command only when the path is safe to paste).
    */
   untrackedNoteOf: (path: string, isPasteable: boolean) => readonly string[]
+
+  /**
+   * The dialog's subtitle outside branch mode; git's where absent.
+   */
+  subtitleOf?: (base: string) => string
+
+  /**
+   * A file's name as drawn, and as an ask tells the model; itself where absent.
+   */
+  drawnOf?: (name: string) => string
+  toldOf?: (path: string) => string
 }

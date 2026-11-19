@@ -90,6 +90,11 @@ export function register(on: On) {
         pin.cwd === '' ? init : { cwd: pin.cwd, ...init },
       ),
     readFile: path => currentOf(engine).readFile(path),
+    detect: () =>
+      currentOf(engine)
+        .detect({ path: pin.cwd || '.' })
+        .catch(() => null),
+    diff: input => currentOf(engine).diff(input),
     mtimeOf: path => mtimeOf(currentOf(engine))(path),
     entryKindsOf: dir => entryKindsOf(currentOf(engine))(dir),
     nowMs: () => currentOf(engine).now(),
@@ -117,8 +122,8 @@ export function register(on: On) {
     },
   })
 
-  function pinBackend(engine: Host): Promise<boolean> {
-    if (backend || pin.isEmpty) {
+  function pinBackend(engine: Host, isAsked = false): Promise<boolean> {
+    if (backend || (pin.isEmpty && !isAsked)) {
       return Promise.resolve(true)
     }
 
@@ -146,6 +151,7 @@ export function register(on: On) {
           }),
       },
       Backend.INSTALLED_BACKEND_PROBES,
+      pin.isEmpty,
     )
 
     if (epoch !== pin.epoch) {
@@ -167,7 +173,9 @@ export function register(on: On) {
         .catch(() => undefined),
     )
 
-    const mode = stored && probed.baseModes.includes(stored) ? stored : null
+    const mode = [stored, model.requestedMode, ...probed.baseModes].find(
+      one => one && probed.baseModes.includes(one),
+    )
 
     model = {
       ...model,
@@ -906,6 +914,7 @@ export function register(on: On) {
         ?.hunks ??
         model.bodies.get(path)?.hunks ??
         [],
+      model.words.toldOf?.(path),
     )
 
     model = { ...model, armedPath: path }
@@ -950,6 +959,8 @@ export function register(on: On) {
         stat: path => $.fs.stat(path),
         listDir: path => $.fs.list(path),
         readFile: path => $.fs.read(path),
+        detect: async input => $.vcs.detect(input),
+        diff: async input => $.vcs.diff(input),
         storeGet: key => $.store.get(key),
         storeSet: (key, value) => $.store.set(key, value),
         isCheckpointing: async () =>
@@ -1095,8 +1106,13 @@ export function register(on: On) {
     presentation: Args<'command.run'>['presentation'],
   ): Promise<ResultOf['command.run']> {
     if (!isPaneOpen) {
+      if (model.unknownReason !== null) {
+        unpin()
+        model = { ...model, unknownReason: null }
+      }
+
       const isAnswered =
-        (await pinBackend(engine)) || (await pinBackend(engine))
+        (await pinBackend(engine, true)) || (await pinBackend(engine, true))
 
       if (!backend) {
         return {
@@ -1333,6 +1349,14 @@ export function register(on: On) {
       }
     },
   )
+
+  on('turn.complete', ($, e, next) => {
+    if (e.agentId === undefined && isPaneSeen()) {
+      backend?.expireHeadKey?.()
+    }
+
+    return next(e)
+  })
 
   on('prompt.submit', async ($, e, next) => {
     const asked = armed

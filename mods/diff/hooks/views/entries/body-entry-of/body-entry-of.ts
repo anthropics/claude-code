@@ -7,15 +7,15 @@ import type { BodyEntry } from '../body-entry'
  * has read.
  *
  * @param file the row
- * @param model the pane's state, holding the bodies read so far
+ * @param model the pane's state, holding the bodies read and the words
  * @returns the entry
  */
 export const bodyEntryOf = (
   file: Git.FileStat,
-  model: Pick<PaneState.PaneModel, 'bodies'>,
+  model: Pick<PaneState.PaneModel, 'bodies' | 'words'>,
 ): BodyEntry => ({
   path: file.path,
-  displayPath: Git.displayPathOf(file),
+  displayPath: (model.words.drawnOf ?? String)(Git.displayPathOf(file)),
   added: file.added,
   removed: file.removed,
   isUntracked: file.isUntracked,

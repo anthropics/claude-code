@@ -2699,6 +2699,354 @@ describe('register', () => {
     expect(world.opened.map(pane => pane.id)).toEqual([Names.PANE_ID])
   })
 
+  describe('in a system a mod defines', () => {
+    const TURN_END = {
+      answer: 'done',
+      durationMs: 1,
+      isAborted: false,
+      turnId: 't1',
+      reason: 'answer',
+    } as const
+
+    function inAcme(
+      on: On,
+      beneath?: Fixtures.Beneath,
+      script: Readonly<Record<string, string>> = {},
+    ) {
+      const acme = {
+        isNamed: true,
+        detects: 0,
+        reads: 0,
+        revision: '7',
+        path: 'app.ts',
+        patch: '@@ -1 +1 @@\n-was\n+is\n',
+        unknown: '' as string | null,
+        defaultBranch: Fixtures.ACME_COPY.defaultBranch,
+      }
+
+      on('vcs.detect', () => {
+        acme.detects += 1
+
+        const { revision, defaultBranch } = acme
+
+        return acme.isNamed
+          ? { ...Fixtures.ACME_COPY, revision, defaultBranch }
+          : null
+      })
+
+      on('vcs.diff', { vcs: 'acme' }, (_engine, e) => {
+        acme.reads += e.isStatOnly ? 1 : 0
+
+        return acme.unknown === ''
+          ? {
+              base: `r${acme.revision}`,
+              files: [Fixtures.acmeFileOf(acme.path, { patch: acme.patch })],
+            }
+          : { unknown: acme.unknown }
+      })
+
+      on('fs.list', () => ({ value: [] }))
+      on('turn.complete', (_engine, e) => ({ text: e.answer }))
+
+      return { acme, world: Fixtures.inRepository(on, script, beneath) }
+    }
+
+    test('its files and hunks show, and nothing spawns', async ($, on) => {
+      const { world } = inAcme(on)
+
+      await $.session.start(Fixtures.SESSION)
+      await $.command.run(Fixtures.DIFF)
+      await world.clock.advance(Limits.HEAD_POLL_MS + Fixtures.SETTLE_MS)
+
+      const pane = await $.ui.render(Fixtures.PANE)
+
+      expect(Fixtures.textOf(pane)).toContain('app.ts')
+      expect(Fixtures.jsonOf(pane)).toContain('was')
+      expect(world.runs).toEqual([])
+    })
+
+    test('the dialog names the base it was told', async ($, on) => {
+      const { world } = inAcme(on)
+
+      await $.session.start(Fixtures.SESSION)
+      await $.command.run(Fixtures.DIALOG_DIFF)
+      await world.clock.advance(Fixtures.SETTLE_MS)
+
+      const text = Fixtures.textOf(await $.ui.render(Fixtures.INLINE_PANE))
+
+      expect(text).toContain('(vs r7)')
+      expect(text).not.toContain('git')
+    })
+
+    test('unknown says why, escaped, and no older diff stays', async ($, on) => {
+      const { acme, world } = inAcme(on)
+
+      on('tool.call', () => ({ result: 'done' }))
+
+      await $.session.start(Fixtures.SESSION)
+      await $.command.run(Fixtures.DIFF)
+      await world.clock.advance(Fixtures.SETTLE_MS)
+
+      acme.unknown = 'off\u001b[31mline'
+
+      await $.tool.call({ tool: 'Bash', command: 'make' })
+      await world.clock.advance(Fixtures.SETTLE_MS)
+
+      const texts = [
+        Fixtures.textOf(await $.ui.render(Fixtures.PANE)),
+        Fixtures.textOf(await $.ui.render(Fixtures.INLINE_PANE)),
+      ]
+
+      for (const text of texts) {
+        expect(text).toContain('Diff unavailable')
+        expect(text).toContain('[31mline)')
+        expect(text).not.toContain('\u001b')
+        expect(text).not.toContain('app.ts')
+      }
+    })
+
+    test('ask tells a plain name, and leaves any other out', async ($, on) => {
+      const { acme, world } = inAcme(on)
+
+      on('tool.call', () => ({ result: 'done' }))
+      on('prompt.submit', ($, e) => ({ text: e.text, context: e.context }))
+
+      async function asked(key: string) {
+        await world.clock.advance(Fixtures.SETTLE_MS)
+
+        const text = Fixtures.textOf(await $.ui.render(Fixtures.PANE))
+
+        await $.ui.press({ plugin: 'diff', key })
+        await world.clock.settle()
+
+        const sent = await $.prompt.submit(Fixtures.typedPromptOf('why?'))
+
+        return { text, sent }
+      }
+
+      const toldAs = (name: string) => ({
+        context: [
+          `The user attached the diff of ${name} from the diff pane to this ` +
+            'prompt:\n@@ -1 +1 @@\n-was\n+is',
+        ],
+      })
+
+      await $.session.start(Fixtures.SESSION)
+      await $.command.run(Fixtures.DIFF)
+
+      expect((await asked('ask:app.ts')).sent).toMatchObject(toldAs('app.ts'))
+
+      acme.path = 'a \u{e0041}.ts'
+
+      await $.tool.call({ tool: 'Bash', command: 'make' })
+
+      const { text, sent } = await asked('ask:a .ts')
+
+      expect(text).toContain('a.ts')
+      expect(text).not.toContain(' ')
+      expect(sent).toMatchObject(toldAs('a file'))
+    })
+
+    test("a patch is drawn and asked about as git's is", async ($, on) => {
+      const lines = '-a\n+a‮ \u{e0041}\u001b[31m\t<b>\r'
+      const patch = `@@ -1 +1 @@\n${lines}\n`
+
+      const { acme, world } = inAcme(
+        on,
+        {},
+        {
+          ...Fixtures.REPOSITORY,
+          'HEAD --shortstat': ' 1 file changed, 1 insertion(+), 1 deletion(-)',
+          'HEAD --numstat': '1\t1\tapp.ts\0',
+          '-- app.ts':
+            ':100644 100644 1 2 M\0app.ts\0\0' +
+            `diff --git a/app.ts b/app.ts\n${patch}`,
+        },
+      )
+
+      on('command.run', { command: 'clear' }, () => ({}))
+      on('prompt.submit', ($, e) => ({ text: e.text, context: e.context }))
+
+      async function read() {
+        await world.clock.advance(Fixtures.SETTLE_MS)
+
+        const pane = Fixtures.jsonOf(await $.ui.render(Fixtures.PANE))
+
+        await $.ui.press({ plugin: 'diff', key: 'ask:app.ts' })
+        await world.clock.settle()
+
+        const sent = await $.prompt.submit(Fixtures.typedPromptOf('why?'))
+
+        return { pane, sent: Fixtures.jsonOf(sent), runs: world.runs.length }
+      }
+
+      acme.patch = patch
+
+      await $.session.start(Fixtures.SESSION)
+      await $.command.run(Fixtures.DIFF)
+
+      const hooked = await read()
+
+      acme.unknown = null
+
+      await $.command.run(Fixtures.CLEAR)
+
+      const gits = await read()
+
+      expect([hooked.runs, gits.runs > 0]).toEqual([0, true])
+      expect(hooked.sent).toContain(JSON.stringify(lines).slice(1, -1))
+      expect(hooked.sent).toBe(gits.sent)
+      expect(hooked.pane).toBe(gits.pane)
+    })
+
+    test('with no hook answering, git reads as it would', async ($, on) => {
+      const { acme, world } = inAcme(on, {}, Fixtures.REPOSITORY)
+
+      acme.unknown = null
+
+      await $.session.start(Fixtures.SESSION)
+      await $.command.run(Fixtures.DIFF)
+      await world.clock.advance(Fixtures.SETTLE_MS)
+
+      expect(world.runs.map(run => Fixtures.gitWordOf(run.argv))).toEqual([
+        'rev-parse --show-toplevel',
+        'status',
+        'diff --numstat',
+        'ls-files',
+        'diff -- app.ts',
+        Fixtures.POLL_WORD,
+      ])
+    })
+
+    test('a hook that stops answering: unavailable, then chosen anew', async ($, on) => {
+      const { acme, world } = inAcme(on, {}, Fixtures.REPOSITORY)
+
+      on('tool.call', () => ({ result: 'done' }))
+
+      await $.session.start(Fixtures.SESSION)
+      await $.command.run(Fixtures.DIFF)
+
+      acme.unknown = null
+
+      await $.tool.call({ tool: 'Bash', command: 'make' })
+      await world.clock.advance(Fixtures.SETTLE_MS)
+
+      expect(Fixtures.textOf(await $.ui.render(Fixtures.PANE))).toContain(
+        '(no mod answered)',
+      )
+
+      expect(world.runs, 'the open pane swaps no system').toEqual([])
+
+      await $.command.run(Fixtures.DIFF)
+      await $.command.run(Fixtures.DIFF)
+      await world.clock.advance(Fixtures.SETTLE_MS)
+
+      expect(Fixtures.textOf(await $.ui.render(Fixtures.PANE))).not.toContain(
+        'unavailable',
+      )
+
+      expect(world.runs.map(run => Fixtures.gitWordOf(run.argv))).toContain(
+        'diff --numstat',
+      )
+    })
+
+    test('a system named late is found by the next /diff', async ($, on) => {
+      const { acme, world } = inAcme(on)
+
+      acme.isNamed = false
+
+      await $.session.start(Fixtures.SESSION)
+
+      const before = await $.command.run(Fixtures.DIFF)
+
+      acme.isNamed = true
+
+      const after = await $.command.run(Fixtures.DIFF)
+
+      expect(before.text).toContain("isn't in a git repository")
+      expect(after.text).toBe('Diff panel shown')
+      expect(world.runs, 'git was asked once').toHaveLength(1)
+    })
+
+    test('/clear leaves a base no longer offered', async ($, on) => {
+      const { acme, world } = inAcme(on, { stored: { 'base:/work': 'branch' } })
+
+      const drawn = async () => {
+        await world.clock.advance(Fixtures.SETTLE_MS)
+
+        return Fixtures.textOf(await $.ui.render(Fixtures.PANE))
+      }
+
+      on('command.run', { command: 'clear' }, () => ({}))
+
+      await $.session.start(Fixtures.SESSION)
+      await $.command.run(Fixtures.DIFF)
+
+      expect(await drawn()).toContain('branch vs r7')
+
+      acme.defaultBranch = null
+
+      await $.command.run(Fixtures.CLEAR)
+
+      expect(await drawn()).not.toContain('branch')
+    })
+
+    test("detect is asked again on its timer and at a turn's end", async ($, on) => {
+      const { acme, world } = inAcme(on)
+
+      const after = async (ms: number) => {
+        await world.clock.advance(ms)
+
+        return [acme.detects, acme.reads]
+      }
+
+      const tick = Limits.HEAD_POLL_MS + Fixtures.SETTLE_MS
+
+      await $.session.start(Fixtures.SESSION)
+      await $.turn.complete(TURN_END)
+
+      const unopened = await after(Limits.REVISION_POLL_MS)
+
+      await $.command.run(Fixtures.DIFF)
+
+      const opened = await after(tick)
+
+      acme.revision = '8'
+
+      const stood = await after(tick)
+
+      await $.turn.complete({ ...TURN_END, agentId: 'a1' })
+
+      const afterAgent = await after(tick)
+
+      await $.turn.complete(TURN_END)
+
+      const afterTurn = await after(tick)
+      const unmoved = await after(Limits.REVISION_POLL_MS)
+
+      await $.command.run(Fixtures.DIFF)
+      await $.turn.complete(TURN_END)
+
+      expect([
+        unopened,
+        opened,
+        stood,
+        afterAgent,
+        afterTurn,
+        unmoved,
+        await after(Limits.REVISION_POLL_MS * 2),
+      ]).toEqual([
+        [0, 0],
+        [1, 3],
+        [1, 3],
+        [1, 3],
+        [2, 4],
+        [3, 4],
+        [3, 4],
+      ])
+    })
+  })
+
   describe('open-outcome-of', () => {
     test('placed: a placed pane, and an engine that resolves nothing', () => {
       expect(OpenOutcome.openOutcomeOf({ isPlaced: true })).toBe('placed')

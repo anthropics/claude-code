@@ -18,6 +18,7 @@ export function dialogTitleOf(model: PaneModel): DialogTitle {
   const source = model.data?.source
   const isUnborn = model.data?.isUnborn === true
   const isBranch = source?.kind === 'branch'
+  const base = source?.kind === 'working-tree' ? source.base : model.words.base
 
   function currentOf(): DialogTitle {
     switch (true) {
@@ -29,7 +30,10 @@ export function dialogTitleOf(model: PaneModel): DialogTitle {
           subtitle: `(vs ${source.baseBranch})`,
         }
       default:
-        return { title: 'Uncommitted changes', subtitle: '(git diff HEAD)' }
+        return {
+          title: 'Uncommitted changes',
+          subtitle: model.words.subtitleOf?.(base) ?? '(git diff HEAD)',
+        }
     }
   }
 

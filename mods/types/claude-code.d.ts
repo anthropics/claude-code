@@ -4451,6 +4451,18 @@ declare module 'claude-code' {
            * const copy = await $.vcs.detect({ path: "." }); const at = copy?.revision
            */
           detect: EventCalls['vcs']['detect'];
+          /**
+           * Returns what changed in a working copy, the event `vcs.diff`; `unknown`
+           * where no hook can say.
+           *
+           * Experimental: may change.
+           *
+           * Takes a folder. Asked anew at each call, and refused where `detect` is.
+           *
+           * @example
+           * const { files } = await $.vcs.diff({ path: ".", vcs: "acme", base: "head" })
+           */
+          diff: EventCalls['vcs']['diff'];
       };
       /**
        * WebAssembly, run in the module's own environment, where its hooks run.
@@ -5458,6 +5470,41 @@ declare module 'claude-code' {
        */
       'vcs.detect': VcsDetectInput;
       /**
+       * Fires when a mod asks what changed in a working copy, as `/diff` does
+       * where `vcs.detect` names a system other than Git; match it on `vcs`.
+       *
+       * Experimental: may change.
+       *
+       * Core answers `{ unknown: null }`, and `/diff` then looks for Git; a hook's
+       * own reason shows instead. An answer may cost a server call. A hook that
+       * fails passes it through. Not raised where the session's files are on
+       * another machine.
+       *
+       * Git isn't served here yet: `/diff` reads it itself.
+       *
+       * On a managed login a person's hook is asked only where no other answers.
+       *
+       * A diff over two sets of paths is the union of each.
+       *
+       * Stat-only is the same files without patches.
+       *
+       * @example
+       * on("vcs.diff", { vcs: "acme" }, async ($, e) => {
+       *   if (e.base === "default") return { unknown: "acme has no mainline" }
+       *   const kept = e.paths?.map(path => `--only=${path}`) ?? ["--all"]
+       *   const argv = ["acme", "changes", "--json", ...kept]
+       *   const found = await $.process.run(argv, { cwd: e.path })
+       *   if (found.exitCode !== 0) return { unknown: "acme did not answer" }
+       *   const files = JSON.parse(found.stdout).map(one => ({
+       *     path: one.path, renamedFrom: null, added: one.plus, removed: one.minus,
+       *     isBinary: false, isUntracked: one.isNew,
+       *     ...(!e.isStatOnly && { patch: one.hunks }),
+       *   }))
+       *   return { base: "change 1234", files }
+       * })
+       */
+      'vcs.diff': VcsDiffInput;
+      /**
        * Fires once per process for each loaded plugin, before the first prompt,
        * then once per fresh load of one (never `/clear`); `next(e)` is `{ cwd }`.
        *
@@ -5835,6 +5882,10 @@ declare module 'claude-code' {
        */
       'vcs.detect': VcsDetectResult;
       /**
+       * `{ base, files }`, or `{ unknown }` with the reason, null from core.
+       */
+      'vcs.diff': VcsDiffResult;
+      /**
        * `{ cwd }`.
        */
       'session.start': SessionStartResult;
@@ -5961,6 +6012,7 @@ declare module 'claude-code' {
       };
       vcs: {
           detect: (input: VcsDetectInput) => Promise<VcsDetectResult>;
+          diff: (input: VcsDiffInput) => Promise<VcsDiffResult>;
       };
       agent: {
           offer: (input: AgentOfferInput) => Promise<AgentOfferResult>;
@@ -19900,6 +19952,82 @@ declare module 'claude-code' {
    * null when it is in none.
    */
   export type VcsDetectResult = VcsWorkingCopy | null;
+
+  /**
+   * One changed file of a `vcs.diff` answer. Its names are data to show, each
+   * of at most 4096 characters.
+   */
+  export type VcsDiffFile = {
+      /**
+       * The file, relative to the copy's `root`, with `/`; listed once.
+       */
+      path: string;
+      /**
+       * Its name at the base where it was renamed, else null.
+       */
+      renamedFrom: string | null;
+      /**
+       * The lines added; 0 where they are not counted.
+       */
+      added: number;
+      /**
+       * The lines removed; 0 where they are not counted.
+       */
+      removed: number;
+      isBinary: boolean;
+      /**
+       * On disk, and neither known to the system nor ignored by it.
+       */
+      isUntracked: boolean;
+      /**
+       * Unified hunks from the first `@@`, with no system's file headers; absent
+       * where there are none to give.
+       */
+      patch?: string;
+  };
+
+  /**
+   * The input of `vcs.diff`; every key is pinned, so no hook passes another down.
+   */
+  export type VcsDiffInput = {
+      /**
+       * A folder of the working copy, absolute.
+       */
+      path: string;
+      /**
+       * The system `vcs.detect` names there.
+       */
+      vcs: string;
+      /**
+       * What the files on disk are compared with: `head` is what is checked out,
+       * `default` is where this work left the mainline.
+       */
+      base: 'head' | 'default';
+      /**
+       * The files or folders to keep, relative to the copy's `root`, with `/`;
+       * either name keeps a renamed file. Absent, the whole copy; empty, none.
+       */
+      paths?: readonly string[];
+      /**
+       * True leaves every `patch` out.
+       */
+      isStatOnly?: boolean;
+  };
+
+  /**
+   * What a `vcs.diff` hook returns: the changed files and `base`, a label to
+   * show for what they were compared with, or why they are `unknown`. A null
+   * `unknown` is core's: no hook answered.
+   */
+  export type VcsDiffResult = {
+      base: string;
+      files: readonly VcsDiffFile[];
+      unknown?: undefined;
+  } | {
+      unknown: string | null;
+      base?: undefined;
+      files?: undefined;
+  };
 
   /**
    * One working copy, as `vcs.detect` answers it: which system keeps it, where

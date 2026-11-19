@@ -55,6 +55,16 @@ export type Host = {
   readFile: (path: string) => Promise<string>
 
   /**
+   * `$.vcs.detect`; rejects where the session's files are on another machine.
+   */
+  detect: EngineInterface['vcs']['detect']
+
+  /**
+   * `$.vcs.diff`.
+   */
+  diff: EngineInterface['vcs']['diff']
+
+  /**
    * Reads the plugin's store (`$.store.get`).
    */
   storeGet: (key: string) => Promise<unknown>

@@ -13,6 +13,7 @@ export const INITIAL_MODEL: PaneModel = Object.freeze({
   hasSettled: false,
   isOutsideRepository: false,
   data: null,
+  unknownReason: null,
   requestedMode: 'session',
   selectedPath: null,
   isNoiseShown: false,

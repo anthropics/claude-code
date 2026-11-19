@@ -10,8 +10,8 @@ import type { BackendWords } from '../backend-words'
  * The version-control system behind the pane, pinned once per session: its
  * working tree, what it compares, how it words them, and the pane's reads.
  *
- * Git is the plugin's own backend; a host may install probes for others,
- * consulted where no git working tree holds the directory (backendOf).
+ * Git is the plugin's own backend; any other system is read through
+ * `$.vcs`, or through a probe a host installed for it (backendOf).
  */
 export type Backend = {
   /**
@@ -48,4 +48,9 @@ export type Backend = {
    * (Git.headKeyOf); empty when it cannot be read this tick.
    */
   headKeyOf: () => Promise<string>
+
+  /**
+   * Makes the next headKeyOf ask anew, where a key otherwise stands a while.
+   */
+  expireHeadKey?: () => void
 }

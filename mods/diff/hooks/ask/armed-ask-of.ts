@@ -11,9 +11,14 @@ import type { ArmedAsk } from './armed-ask'
  *
  * @param path the file's repository-relative path
  * @param hunks its hunks as the pane shows them
+ * @param told what the model reads for the file's name
  * @returns the armed ask
  */
-export function armedAskOf(path: string, hunks: readonly Git.Hunk[]): ArmedAsk {
+export function armedAskOf(
+  path: string,
+  hunks: readonly Git.Hunk[],
+  told = path,
+): ArmedAsk {
   const body = hunks
     .flatMap(hunk => [
       `@@ -${hunk.oldStart} +${hunk.newStart} @@`,
@@ -24,7 +29,7 @@ export function armedAskOf(path: string, hunks: readonly Git.Hunk[]): ArmedAsk {
   return {
     path,
     text:
-      `The user attached the diff of ${path} from the diff pane to this ` +
+      `The user attached the diff of ${told} from the diff pane to this ` +
       `prompt:\n${body.join('\n')}`,
     lines: body.length,
   }

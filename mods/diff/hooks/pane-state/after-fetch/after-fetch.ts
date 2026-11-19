@@ -5,7 +5,8 @@ import type { Fetched } from './fetched'
 
 /**
  * The model once a refresh has settled: the outcome's data (kept as it was
- * when the fetch was unavailable), the transcript's turns and todos.
+ * when the fetch was unavailable and gave no reason), the transcript's turns
+ * and todos.
  *
  * @param model the model before the refresh
  * @param fetched what the refresh read
@@ -14,7 +15,9 @@ import type { Fetched } from './fetched'
 export function afterFetch(model: PaneModel, fetched: Fetched): PaneModel {
   const { outcome, messages } = fetched
   const isData = outcome.kind === 'data'
-  const isKept = outcome.kind === 'unavailable'
+  const isUnread = outcome.kind === 'unavailable'
+  const unknownReason = (isUnread ? outcome.reason : null) ?? null
+  const isKept = isUnread && unknownReason === null
   const data = isData ? outcome.data : isKept ? model.data : null
 
   return {
@@ -23,6 +26,7 @@ export function afterFetch(model: PaneModel, fetched: Fetched): PaneModel {
     hasSettled: true,
     isOutsideRepository: outcome.kind === 'no-repository',
     data,
+    unknownReason,
     turns: Turns.turnDiffsOf(messages),
     todos: Todos.todoProgressOf(messages),
   }
