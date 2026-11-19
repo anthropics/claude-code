@@ -28,9 +28,14 @@ For more installation options, uninstall steps, and troubleshooting, see the [se
     brew install --cask claude-code
     ```
 
-    **Windows (Recommended):**
+    **Windows Powershell (Recommended):**
     ```powershell
     irm https://claude.ai/install.ps1 | iex
+    ```
+    
+    **Windows CMD:**
+    ```cmd
+    curl -fsSL https://claude.ai/install.cmd -o install.cmd && install.cmd && del install.cmd
     ```
 
     **WinGet (Windows):**
@@ -43,7 +48,7 @@ For more installation options, uninstall steps, and troubleshooting, see the [se
     npm install -g @anthropic-ai/claude-code
     ```
 
-2. Navigate to your project directory and run `claude`.
+1. Navigate to your project directory and run `claude`.
 
 ## Plugins
 
