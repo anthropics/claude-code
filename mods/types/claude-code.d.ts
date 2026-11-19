@@ -5543,11 +5543,17 @@ declare module 'claude-code' {
        */
       'vcs.diff': VcsDiffInput;
       /**
-       * Fires when a subagent run with `isolation: "worktree"` (the Agent tool, a
-       * workflow's `agent()`) needs a working copy, before anything is made.
+       * Fires when a working copy is needed, before anything is made: for a
+       * subagent run with `isolation: "worktree"` (the Agent tool, a workflow's
+       * `agent()`), or for the session, by EnterWorktree or the `--worktree` flag.
+       * A review reference (`--worktree "#123"`, a URL) stays Git's: no hook hears
+       * it. No `vcs.*` hook hears a `name` with a part that starts with a dash.
        *
-       * Only agents raise this, `vcs.status` and `vcs.release` for now: a
-       * session's own worktree does not.
+       * At launch no session is bound yet. `$.process`, `$.fs`, `$.settings` and
+       * `$.store` work, and `$.model.fork` answers `nothing-to-fork`. These reject:
+       * `$.tool`, `$.command`, `$.config`, `$.mcp`, `$.agent` but for `limits`,
+       * `$.ui.ask`, `$.prompt.compose`, and `$.session.messages` and `send`.
+       * `session.start` follows the move, for the mods that the copy enables.
        *
        * `next(e)` makes it as the engine would unhooked: a WorktreeCreate hook
        * where one is set, a host's callback among them, else a Git worktree.
@@ -5635,13 +5641,24 @@ declare module 'claude-code' {
       'vcs.isolate': VcsIsolateInput;
       /**
        * Fires when the engine asks what changed in a working copy and what
-       * removing it would lose: the subagent that worked there ended.
+       * removing it would lose: the subagent that worked there ended, ExitWorktree
+       * is to remove the session's, or the session is exiting inside it.
        *
        * `next(e)` answers for a copy the engine made, `{ unknown }` for any
-       * other. An agent's copy is kept where the answer lists a change, counts
-       * an unpublished revision, names a `revision` other than `since`, or is
-       * unknown. A hook can keep the engine's own Git worktree but not call it
-       * clean: where the engine finds work there, its answer stands.
+       * other. An agent's copy is kept, and the person is asked about the
+       * session's, where the answer lists a change, counts an unpublished
+       * revision, names a `revision` other than `since`, or is unknown. A hook can
+       * keep a worktree the engine made and reads but not call it clean: where the
+       * engine finds work there, its answer stands. Nor can it call clean the
+       * session's worktree, unless a mod made it. A mod's copy reads as unknown
+       * while an agent isolated in place inside it is not released. At exit an
+       * answer that takes too long reads as unknown. No hook is asked about a
+       * resumed session's worktree, and a mod's copy is then kept. Resumed with
+       * `--worktree`, the hook is asked, and a mod's clean copy reads as unknown.
+       *
+       * A law the engine relies on: for a copy with its own folder, report
+       * everything removing that folder would lose, work kept there under other
+       * names included.
        *
        * Experimental: may change.
        *
@@ -5656,10 +5673,12 @@ declare module 'claude-code' {
       /**
        * Fires when the engine would take a working copy away: it read clean with
        * nothing unpublished, or what it holds is to be discarded (`isDiscard`).
+       * Raised at a subagent's end, by ExitWorktree and by the exit dialog. The
+       * session may still stand in its copy then: give a process another `cwd`.
        *
        * `next(e)` removes a copy the engine made and answers `{ kept }` for any
-       * other: a copy a mod made goes only by a hook's own hand. On a mod's own
-       * `$.vcs.release`, `next(e)` removes nothing.
+       * other: a copy a mod made goes only by a hook's own hand, and is kept where
+       * no mod hooks this. On a mod's own `$.vcs.release`, `next(e)` removes nothing.
        *
        * Experimental: may change.
        *
@@ -6061,7 +6080,7 @@ declare module 'claude-code' {
        */
       'vcs.status': VcsStatusResult;
       /**
-       * `{ isReleased: true }`, or `{ kept }`.
+       * `{ isReleased: true, note? }`, or `{ kept }`.
        */
       'vcs.release': VcsReleaseResult;
       /**
@@ -20341,7 +20360,10 @@ declare module 'claude-code' {
 
   /**
    * What a `vcs.release` hook returns and what `next(e)` resolves to:
-   * `{ isReleased: true }`, or `{ kept: reason }`, the copy left as it is.
+   * `{ isReleased: true, note? }`, or `{ kept: reason }`, the copy left as it is.
+   *
+   * `note` is one short line on how to get discarded work back ("shelved as
+   * 1234"), shown in ExitWorktree's result and in the exit message.
    *
    * A hook's `isReleased` counts only where the folder is gone or empty, or
    * this process isolated that `name` in place there; the engine deletes nothing
@@ -20349,10 +20371,12 @@ declare module 'claude-code' {
    */
   export type VcsReleaseResult = {
       isReleased: true;
+      note?: string;
       kept?: undefined;
   } | {
       kept: string;
       isReleased?: undefined;
+      note?: undefined;
   };
 
   /**
