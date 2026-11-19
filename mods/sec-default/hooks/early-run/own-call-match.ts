@@ -7,6 +7,7 @@ import type { FirstFolder } from './config-folders.js'
 import type { createCallMemory } from './create-call-memory.js'
 import { isSettingsFile } from './is-settings-file.js'
 import { namesSettingsFile } from './names-settings-file.js'
+import type { FileWrite } from './refusal-of.js'
 import { stringsOf } from './strings-of.js'
 import { toolRepeats } from './tool-repeats.js'
 import { writeRepeats } from './write-repeats.js'
@@ -20,7 +21,8 @@ import { writtenPathOf } from './written-path-of.js'
  * @param first the config folder as it was first read
  * @param call the mod's call
  * @param asker the mod
- * @returns the remembered calls it repeats, and whether it reaches a settings file
+ * @returns the remembered calls it repeats, whether it reaches a settings file,
+ *          and for a Write or an Edit what refusalOf asks of the file
  */
 export async function ownCallMatch(
   $: EngineInterface,
@@ -28,14 +30,17 @@ export async function ownCallMatch(
   first: FirstFolder,
   call: Call,
   asker: string,
-): Promise<{ repeated: Call[]; isSettings: boolean }> {
+): Promise<{ repeated: Call[]; isSettings: boolean; write?: FileWrite }> {
   const own = bounded(call)
   const path = writtenPathOf(own)
 
   if (path !== undefined) {
+    const remembered = memory.calls(asker)
+
     return {
-      repeated: await writeRepeats($, memory.calls(asker), path),
+      repeated: await writeRepeats($, remembered, path),
       isSettings: await isSettingsFile($, path, first),
+      ...(own.tool !== 'NotebookEdit' && { write: { path, first, remembered } }),
     }
   }
 

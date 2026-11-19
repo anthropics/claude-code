@@ -52,7 +52,7 @@ settings it decides by.
 
 ## Options an administrator sets
 
-Three, in managed settings, under this plugin's own `pluginConfigs` entry,
+Four, in managed settings, under this plugin's own `pluginConfigs` entry,
 keyed by the id the CLI builds the plugin in under (the plugin reads only this
 spelling; from a host's `--managed-settings` the CLI also takes a restriction
 under the earlier id, `sec-default@builtin`):
@@ -174,6 +174,17 @@ literal `true`; an option that reads as unset leaves them holding. See
 person's hooks answering `tool.check` or `tool.judge`: a mod's own `$.tool.call` or `$.mcp.call`
 is outside it, and `allowManagedModsOnly` is the control over it. The option also lifts all of
 [The model's call waits for its check](#the-models-call-waits-for-its-check).
+
+`allowModsToWriteUserSettings`: any mod a person has, one the model wrote into dev-mods
+included, may write their user settings file (`settings.json` or `cowork_settings.json` in the
+config folder as first read, or the file it links to) by `$.fs.write` or its own Write or Edit,
+so it can set `autoMode`, `permissions`, `hooks` and `env` there and remove the person's own deny
+rules, also where the host sets `CLAUDE_CODE_RESTRICT_PERSONAL_CONFIG`. It is read as
+`allowModsToOverrideDenyRules` is, and lifts nothing else: project and local files, a
+process, command or script that names a settings file, and a write while the model's call
+on one is not allowed are as without it. Managed values still win, and `allowManagedPermissionRulesOnly`,
+`allowManagedHooksOnly` and `forceHotReloadPrompt` are the controls beside it.
+Known limits, as the hold is best effort and covers no direct write of a managed file either: a user file that links to a project, local or managed file opens that file, and a `HOME` set before the first read (by a settings `env`, or by a mod ahead of a reload of this plugin) moves the folder.
 
 ## What it hooks
 
@@ -399,7 +410,8 @@ use one to carry out a call the model sent until that call is allowed. Best effo
   the session checking the calls the script makes. A mod passes it on with `next`.
 - **Settings files**: a person's mod writes none (a person's, a project's, the local
   one) by `$.fs.write` or its own Write or Edit, and runs no process or command or
-  script call that names one, but for an allowed command under way. It reads settings
+  script call that names one, but for an allowed command under way, and for the user
+  file under `allowModsToWriteUserSettings`. It reads settings
   with `$.settings.read`.
 
 A failure refuses only what matched. With no match no policy is read.

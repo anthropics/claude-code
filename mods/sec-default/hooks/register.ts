@@ -196,7 +196,13 @@ export function register(on: On) {
           : undefined
       const deny =
         match &&
-        (await refusalOf($, readPolicy, match.repeated, match.isSettings))
+        (await refusalOf(
+          $,
+          readPolicy,
+          match.repeated,
+          match.isSettings,
+          match.write,
+        ))
 
       return deny === undefined ? next(e) : { deny }
     }
@@ -240,15 +246,18 @@ export function register(on: On) {
   })
 
   on('fs.write', async ($, e, next) => {
-    const deny =
-      next.origin.tier === 'user'
-        ? await refusalOf(
-            $,
-            readPolicy,
-            await writeRepeats($, memory.calls(next.origin.plugin), e.path),
-            await isSettingsFile($, e.path, first),
-          )
-        : undefined
+    if (next.origin.tier !== 'user') {
+      return next(e)
+    }
+
+    const remembered = memory.calls(next.origin.plugin)
+    const deny = await refusalOf(
+      $,
+      readPolicy,
+      await writeRepeats($, remembered, e.path),
+      await isSettingsFile($, e.path, first),
+      { path: e.path, first, remembered },
+    )
 
     return deny === undefined ? next(e) : { deny }
   })

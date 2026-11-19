@@ -17,5 +17,6 @@ export * from './policy-source-variables.js'
 export * from './process-wrapper-variable.js'
 export * from './reads-as-org-tool.js'
 export * from './source.js'
+export * from './user-settings-hold.js'
 
 export * as default from '.'
