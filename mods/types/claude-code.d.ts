@@ -21747,6 +21747,12 @@ declare module 'claude-code/shader' {
   /** Where in its point a pixel is, 0 to 1 (`draw: 'points'` only). */
   export const coord: vec2
 
+  /**
+   * A press comes as a new pointer, after the others. `down` 1 with `age` 0 is
+   * its first frame, on the bare backdrop or over the app. A pointer that lifted
+   * stays up to a second with `gone` above 0. Check every pointer: an index
+   * doesn't keep naming the same one.
+   */
   export type Pointer = {
     /** x, y and the last frame's x, y, each 0 to 1. */
     readonly where: vec4
@@ -21756,9 +21762,9 @@ declare module 'claude-code/shader' {
     readonly at: vec2
     /** Where it was last frame, in points. */
     readonly was: vec2
-    /** Seconds since it came. */
+    /** Seconds since it came: 0 on its first frame only. */
     readonly age: number
-    /** 1 when pressed, else 0. */
+    /** 1 for a press, else 0. It stays 1 after the press lifts. */
     readonly down: number
     /** 1 over part of the app, 0 over the bare backdrop. */
     readonly over: number
