@@ -506,6 +506,12 @@ export function register(on: On) {
       : next.to(e, 'append')
   })
 
+  // Skipped when alone on the event: see the command.describe row.
+  on(
+    'vcs.detect',
+    async ($, e, next) => (await next.to(e, 'append')) ?? next(e),
+  ).catch(($, e, next) => next.to(e, 'append'))
+
   on('wasm.compile', ($, e, next) => {
     const isOrgs =
       next.origin.tier === 'prepend' || next.origin.tier === 'append'

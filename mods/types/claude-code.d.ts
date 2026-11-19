@@ -3357,8 +3357,10 @@ declare module 'claude-code' {
            */
           id: () => Promise<string>;
           /**
-           * Returns the git repository the session runs in, read from the working
-           * copy on each call; null when the directory is not inside one.
+           * Returns the repository the session runs in; null when the directory is
+           * not inside one.
+           *
+           * Its root and remote are `vcs.detect`'s: hook that to change them.
            *
            * @example
            * const repo = await $.session.repo(); const publicRepo = !repo?.internal
@@ -4430,6 +4432,27 @@ declare module 'claude-code' {
           set: (name: string, value: string | undefined) => Promise<EnvSetResult>;
       };
       /**
+       * Version control, whichever system keeps the folder.
+       *
+       * Experimental: may change.
+       */
+      vcs: {
+          /**
+           * Returns the working copy a folder is in, the event `vcs.detect`; null
+           * when it is in none.
+           *
+           * Experimental: may change.
+           *
+           * Asked anew at each call, through the other hooks, the calling one
+           * skipped. A relative `path` is under the working directory. Rejects
+           * where the session's files are on another machine.
+           *
+           * @example
+           * const copy = await $.vcs.detect({ path: "." }); const at = copy?.revision
+           */
+          detect: EventCalls['vcs']['detect'];
+      };
+      /**
        * WebAssembly, run in the module's own environment, where its hooks run.
        *
        * A module that calls `compile` has a `WebAssembly` global, the standard API
@@ -5381,6 +5404,60 @@ declare module 'claude-code' {
        */
       'attribution.text': AttributionTextInput;
       /**
+       * Fires when the engine asks which version control system a folder uses;
+       * `next(e)` resolves to the working copy (VcsWorkingCopy) or null.
+       *
+       * Experimental: may change.
+       *
+       * Asked for a conversation's first request, after a compaction and when the
+       * loop's own folder changes. Core answers Git. Copies nest: answer where
+       * yours is as near as the one beneath or nearer, else return that one.
+       *
+       * `detect` of the `root` it answered names the same `root`.
+       *
+       * Every copy of one repository answers the same `mainRoot`.
+       *
+       * Hooks written so resolve nested copies nearest first, in any load order.
+       *
+       * `$.vcs.detect` takes any file's path; a hook hears the folder holding it.
+       *
+       * The parent of `root` gives the enclosing system, the calling hook skipped.
+       *
+       * On a managed login a person's hook is asked only where nothing else claims the folder.
+       *
+       * Another system's answer names it and its branch in the environment block
+       * and drops the Git status block and, for the session, the shell tools'
+       * commit and pull-request steps; Git's safety cautions stay. Add your own
+       * with `prompt.context` and `tool.describe`. `$.session.repo()` reads it
+       * too. Trust, settings, memory, permissions and the sandbox never do. A
+       * hook that fails passes it through. Not raised where the session's files
+       * are on another machine.
+       *
+       * Grep and file suggestions honor `.ignore` and `.rgignore` without Git.
+       *
+       * @example
+       * on("vcs.detect", async ($, e, next) => {
+       *   const below = await next(e)
+       *   const found = await $.process.run(["acme", "root"], { cwd: e.path })
+       *   const root = found.stdout.trim()
+       *   const isAsNearOrNearer = root.length >= (below?.root.length ?? 0)
+       *   if (found.exitCode !== 0 || !isAsNearOrNearer) return below
+       *   return {
+       *     vcs: "acme", root, mainRoot: root, revision: "1234", branch: null,
+       *     defaultBranch: null, remote: "ssl:acme:1666",
+       *   }
+       * })
+       * on("prompt.context", async ($, e, next) => {
+       *   const result = await next(e)
+       *   const copy = await $.vcs.detect({ path: "." })
+       *   const block = { name: "acmeStatus", text: `At change ${copy?.revision}.` }
+       *   return copy?.vcs === "acme"
+       *     ? { ...result, blocks: [...result.blocks, block] }
+       *     : result
+       * })
+       */
+      'vcs.detect': VcsDetectInput;
+      /**
        * Fires once per process for each loaded plugin, before the first prompt,
        * then once per fresh load of one (never `/clear`); `next(e)` is `{ cwd }`.
        *
@@ -5754,6 +5831,10 @@ declare module 'claude-code' {
        */
       'attribution.text': AttributionTextResult;
       /**
+       * The working copy the folder is in, or null.
+       */
+      'vcs.detect': VcsDetectResult;
+      /**
        * `{ cwd }`.
        */
       'session.start': SessionStartResult;
@@ -5877,6 +5958,9 @@ declare module 'claude-code' {
       };
       attribution: {
           text: (input: AttributionTextInput) => Promise<AttributionTextResult>;
+      };
+      vcs: {
+          detect: (input: VcsDetectInput) => Promise<VcsDetectResult>;
       };
       agent: {
           offer: (input: AgentOfferInput) => Promise<AgentOfferResult>;
@@ -14911,16 +14995,17 @@ declare module 'claude-code' {
 
   /**
    * What `$.session.repo()` answers: the repository's root and its origin remote,
-   * when the session is in one.
+   * when the session is in one. A `vcs.detect` hook changes those two.
    */
   export type SessionRepo = {
       /**
-       * The repository's root, absolute: the main working tree's for a worktree.
+       * The repository's root, absolute: the main working tree's for a worktree
+       * (`vcs.detect`'s `mainRoot`, else its `root`).
        */
       root: string;
       /**
        * The `origin` remote's URL as git has it (push URL preferred), or null when
-       * the repository has none.
+       * the repository has none. Another system's may be no URL.
        */
       remote: string | null;
       /**
@@ -19798,6 +19883,69 @@ declare module 'claude-code' {
   } | {
       deny: string;
       value?: undefined;
+  };
+
+  /**
+   * The input of `vcs.detect`: the folder asked about.
+   */
+  export type VcsDetectInput = {
+      /**
+       * The folder, absolute; pinned, so no hook passes another down.
+       */
+      path: string;
+  };
+
+  /**
+   * What a `vcs.detect` hook returns: the working copy the folder is in, or
+   * null when it is in none.
+   */
+  export type VcsDetectResult = VcsWorkingCopy | null;
+
+  /**
+   * One working copy, as `vcs.detect` answers it: which system keeps it, where
+   * it lies, and where it stands now.
+   *
+   * `revision`, `branch`, `defaultBranch` and `remote` are the system's own
+   * words, one line each but `branch`: handed on as given, never run or parsed
+   * as another system's.
+   */
+  export type VcsWorkingCopy = {
+      /**
+       * The system, a short lowercase slug (`acme`); core says `git`.
+       *
+       * Any slug but `git` and core's own for the folder drops the Git status
+       * block and commit steps. It carries no other privilege.
+       */
+      vcs: string;
+      /**
+       * The working copy's root, absolute: `path` or a folder above it, as
+       * spelled or once its links are followed.
+       */
+      root: string;
+      /**
+       * The repository's main copy, absolute; `root` where it has no other. Null
+       * where it is not known: readers then take `root`.
+       */
+      mainRoot: string | null;
+      /**
+       * What is checked out (a number, a range, a change id), or null.
+       */
+      revision: string | null;
+      /**
+       * The line of work the copy is on, or null where it is on none. The model
+       * is told it beside the system, unless it is over 200 characters or holds
+       * a control, invisible or line-break character, `<` or `>`.
+       */
+      branch: string | null;
+      /**
+       * The line of work changes land on, or null where none is known.
+       */
+      defaultBranch: string | null;
+      /**
+       * Where the repository is served from, a URL or not (`ssl:host:1666`), or
+       * null. The engine takes off whatever may be a credential.
+       */
+      remote: string | null;
   };
 
   /**
