@@ -4980,6 +4980,12 @@ declare module 'claude-code' {
        * So is one made beneath such a call, or by an agent a mod spawned, retyped
        * or registered.
        *
+       * Under Code Mode's opt-in, it fires for each tool call a script makes, under
+       * that tool's name. A hook hears the model's call of the mode's own tools only
+       * if its matcher spells the whole name, as `{ tool: "REPL" }` does (`tool_name`
+       * where the event has that key): here, at `tool.check`, `tool.judge`,
+       * `tool.run` and the classic events about one call.
+       *
        * @remarks A guard that fails is skipped and the tool runs, so give it
        *   `.catch(($, e, next) => next.called ? next(e) : { deny: "no" })`. A hook
        *   that checks the result refuses in its `.catch` even where `next` was called.
@@ -5010,6 +5016,15 @@ declare module 'claude-code' {
        * `next(e)` asks it, once however often it runs, and runs no tool: the
        * server's verdict where it judged the model's call, else the local
        * classifier's. A call auto mode settles with no classifier raises none.
+       *
+       * Under Code Mode's opt-in, it fires for a script's call that needs a verdict.
+       * If auto mode allowed the script and that covers the call, `next(e)` answers
+       * `allow` and asks no classifier. If not, and the server judges the session,
+       * `next(e)` answers `ask` and only a hook's deny counts; there an Agent or
+       * SendMessage call is refused, and a command the sandbox auto-allows runs, with
+       * none raised. Where the server judges, a script's edits, file commands (`rm`,
+       * `mv`) and read-only commands inside the project raise none, though direct
+       * calls can: guard those at `tool.check`.
        *
        * @remarks A hook that fails is skipped and the classifier decides, so give
        *   a guard `.catch(() => ({ decision: "deny" }))`. The classifier's allow is
@@ -18259,6 +18274,11 @@ declare module 'claude-code' {
    * delivers. A person's hook that overruns or crashes is skipped and sec-default
    * still answers, though that hook can delay the answer. The engine puts no other
    * limit on the answer; a policy is a mod's to hold.
+   *
+   * One exception: under Code Mode's opt-in, the engine's raise leaves the mode's
+   * own tools, `REPL` among them, out of `next(e)`, and no answer removes them. It
+   * lists the tools that scripts call, Glob and Grep among them, and one left out
+   * is gone from scripts too.
    *
    * @example
    * on('tool.list', async ($, e, next) => {
