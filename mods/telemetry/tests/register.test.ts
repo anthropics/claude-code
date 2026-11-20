@@ -446,6 +446,33 @@ describe('register', () => {
     },
   )
 
+  for (const [identity, isClaudeAiAuth] of [
+    [{ kind: 'claude.ai', isVerified: false }, true],
+    [{ kind: 'oauth-token', isVerified: false }, true],
+    [{ kind: 'console', isVerified: false }, true],
+    [{ kind: 'api-key', isVerified: false }, false],
+    [{ kind: 'none', isVerified: false }, false],
+    [{ deny: 'not readable' }, false],
+    ['unanswered', false],
+  ] as const) {
+    test(
+      `a bearer beside a stored login, identity ${JSON.stringify(identity)}: is_claude_ai_auth ${isClaudeAiAuth}`,
+      { plugins: [Fixtures.recording] },
+      async ($, on) => {
+        mock.env(on, Fixtures.SENDING_ENV)
+
+        const session = Fixtures.firstPartySession(on, { identity })
+
+        await $.command.run(Fixtures.record(Fixtures.surveyAnswer()))
+        await session.clock.advance(Hooks.BATCH_WINDOW_MS)
+
+        expect(Fixtures.rowsOf(session)).toMatchObject([
+          { env: { is_claude_ai_auth: isClaudeAiAuth } },
+        ])
+      },
+    )
+  }
+
   test(
     'a server error is tried once more; a second one drops the batch',
     { plugins: [Fixtures.recording] },

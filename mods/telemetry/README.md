@@ -78,7 +78,8 @@ to send what still waits.
 
 ## What it calls on `$`
 
-`session.authorize`, `session.id`, `session.model`, `session.surfaces`,
+`session.authorize`, `session.identity` (its `kind` alone), `session.id`,
+`session.model`, `session.surfaces`,
 `session.cwd`, `session.repo`, `session.version`, `settings.read`, `env.get` (the switches and
 the describing variables, by literal name), `fs.read`, `fs.list`,
 `fs.exists`, `session.machine` (the system, kernel and hardware, and which

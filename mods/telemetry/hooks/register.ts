@@ -56,6 +56,7 @@ export function register(on: On) {
 
     sender = telemetryOf({
       authorize: () => beneath.session.authorize(),
+      identity: async () => beneath.session.identity(),
       id: () => beneath.session.id(),
       model: () => beneath.session.model(),
       isInteractive: async () =>

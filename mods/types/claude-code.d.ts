@@ -3512,6 +3512,8 @@ declare module 'claude-code' {
            * The handle is spent through `$.http.fetch(url, { auth: handle })`,
            * which sets the credential header, only for a first-party host. Null
            * with no first-party credential (a 3P provider, a gateway, no login).
+           * An `sk-ant-` key or access token in `ANTHROPIC_AUTH_TOKEN` is one on the
+           * Anthropic API, though not in bare mode or where the host signs in.
            *
            * @example
            * await $.http.fetch(url, { auth: (await $.session.authorize())?.handle })

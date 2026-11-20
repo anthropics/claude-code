@@ -10,6 +10,16 @@ import type { Sender } from '../sender'
 import type { TelemetryDeps } from '../telemetry-deps'
 
 /**
+ * The `$.session.identity()` kinds whose bearer is a sign-in. A token in
+ * `ANTHROPIC_AUTH_TOKEN` is a bearer too, whoever the stored login names.
+ */
+const SIGN_IN_KINDS: readonly (string | undefined)[] = [
+  'claude.ai',
+  'oauth-token',
+  'console',
+]
+
+/**
  * Builds `$.telemetry` and its flush: `log` and `mark` check the entry and
  * queue a row; a batch goes out on a timer, when full, or when flushed.
  *
@@ -127,7 +137,13 @@ export function telemetryOf(deps: TelemetryDeps): Sender {
         isInteractive: await deps.isInteractive(),
         isClaudeAiAuth:
           authorization.kind === 'bearer' &&
-          settled.identity.accountUuid !== undefined,
+          settled.identity.accountUuid !== undefined &&
+          SIGN_IN_KINDS.includes(
+            await deps.identity().then(
+              identity => identity.kind,
+              () => undefined,
+            ),
+          ),
         context: settled,
       }),
       authorization.handle,

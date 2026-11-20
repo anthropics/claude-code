@@ -3,6 +3,7 @@ import type {
   HttpInit,
   HttpResponse,
   SessionAuthorization,
+  SessionIdentity,
   SessionMachine,
   SessionRepo,
   SessionVersion,
@@ -27,6 +28,11 @@ export type TelemetryDeps = {
    * Resolves the session's held credential, or null.
    */
   authorize: () => Promise<SessionAuthorization>
+
+  /**
+   * How the session is signed in; rejects on an engine without the read.
+   */
+  identity: () => Promise<SessionIdentity>
 
   /**
    * The session's id, for the batch.

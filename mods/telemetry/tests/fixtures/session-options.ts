@@ -1,6 +1,7 @@
 import type {
   HttpResponse,
   SessionAuthorization,
+  SessionIdentity,
   SessionMachine,
   SessionVersion,
 } from 'claude-code'
@@ -20,6 +21,12 @@ export type SessionOptions = {
   readonly policy?: PolicyOption
   readonly files?: Readonly<Record<string, string>>
   readonly existing?: readonly string[]
+
+  /**
+   * What `$.session.identity()` answers, a claude.ai login unless told;
+   * `unanswered` leaves nothing beneath it.
+   */
+  readonly identity?: SessionIdentity | 'unanswered'
 
   /**
    * What `$.session.machine()` answers; `unanswered` leaves nothing beneath

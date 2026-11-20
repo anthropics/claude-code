@@ -62,6 +62,12 @@ export function firstPartySession(
     on('session.version', () => ({ value: engineVersion }))
   }
 
+  const identity = options.identity ?? { kind: 'claude.ai', isVerified: false }
+
+  if (identity !== 'unanswered') {
+    on('session.identity', () => ({ value: identity }))
+  }
+
   on('session.authorize', () => {
     authorizeCalls += 1
 
