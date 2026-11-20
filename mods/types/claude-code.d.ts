@@ -17923,7 +17923,8 @@ declare module 'claude-code' {
        * The most permissive verdict the organization lets the model's call of an
        * MCP tool reach: `ask`, or `deny` where an administrator blocked the tool.
        * On a plugin's or a settings hook's own call of any tool, also `deny` where
-       * a managed deny rule covers this input as it would the model's.
+       * a managed deny rule covers this input as it would the model's, or covers
+       * the line it types at Claude Desktop's Terminal as it would in `Bash`.
        *
        * `deny` is a block on the tool or its connector for the organization or
        * the member's role, a host's `always_deny`, or a managed deny rule; not a
@@ -17931,8 +17932,8 @@ declare module 'claude-code' {
        * launcher for Claude Desktop, or where `--managed-settings` cannot be read,
        * any deny sent as `--settings` or `--disallowedTools` counts as managed,
        * the person's switch included; at Desktop's other starts, the second on a
-       * plugin's own call. The engine holds no plugin's or settings hook's own
-       * call to it: a hook here may.
+       * plugin's own call and on any such line. The engine holds no plugin's or
+       * settings hook's own call to it: a hook here may.
        *
        * Set by the engine, never by a query, and pinned. A hook's own `ceiling`,
        * on its answer, is dropped. Absent where none is set.

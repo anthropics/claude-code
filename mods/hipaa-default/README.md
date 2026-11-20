@@ -36,12 +36,26 @@ settings covers it, content included (`Bash(rm *)`, `Read(path)`), matched as
 for the model. At the starts named above, a deny sent as `--settings` or
 `--disallowedTools` counts as managed. At any other start by Claude Desktop, one sent as
 `--disallowedTools` holds a mod's own call where it holds the model's, and leaves a hook's call
-and a watch's poll alone. Not held: a shell form that
+and a watch's poll alone, but for the Terminal, below. Not held: a shell form that
 Claude Code only asks the model's user about, and any other rule that a tool applies
 only while it runs. A `Grep` or `Glob` over a folder that any of these `Read` rules
 reaches under is refused whole, as unread. A mod's `file_upload` to Claude in Chrome,
 alone or in a `browser_batch`, or to the Desktop Browser pane is refused where one
 covers a path, and as unread where one exists and a path cannot be judged.
+
+A call of `run_in_terminal` on Claude Desktop's own `terminal` server, a mod's,
+a hook's or a watch's, is read as the `Bash` line it types, from the folder in
+`cwd`, against the denies that a mod's own `Bash` call meets at that start. No
+allow counts, the sandbox's included. It is refused where one covers the line,
+with the limits a rule has in `Bash`. Where one names `Bash`, `PowerShell`,
+`Read` or `Edit`, it is refused as unread on Windows, where the line cannot be
+parsed and where a word is known only as it runs. Where one names `Read` or
+`Edit`, also where the folder is not known, as with `tab_id`, where the line
+holds a `~` or a `$`, and where a path cannot be judged. Under such a rule with
+no root, only the session's own folder is known. At a start where
+`--disallowedTools` does not count as managed, an entry of it that names a path
+is matched and makes nothing unread. `open_terminal_tab` is refused under a deny
+on the whole of `Bash`.
 
 A mod's `$.fs.read`, `$.fs.list`, `$.fs.write`, `$.process.run` and
 `$.process.spawn` meet the same two rules as the tool call that does the same
@@ -65,8 +79,8 @@ First in the `prepend` tier, ahead of `sec-default` and whatever
 `prependPlugins` lists, so no other hook answers over it or goes on past it.
 It is there once the session knows its organization is under HIPAA, from the
 start or from the moment it learns so. Until the organization's answer comes,
-this machine's record of the same login under HIPAA counts as knowing; a login
-that cannot be told does not.
+this machine's record of the same login under HIPAA counts as knowing. Seated
+by that record, it stays until that login's own answer comes without the mark.
 
 ## What turns it off
 

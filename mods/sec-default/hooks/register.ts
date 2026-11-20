@@ -17,7 +17,7 @@ import { managedModsOnlyRefusal } from './managed-mods-only-refusal'
 import { isOrganizationsHookCall } from './organizations-hook-call'
 import { pastUsers } from './past-users'
 import { pinnedVariableRefusal } from './pinned-variable-refusal'
-import Policy from './policy'
+import Policy, { isCloudVariableInUse } from './policy'
 import { isSkillRow } from './skill-row'
 import {
   registerRefusalOf,
@@ -475,13 +475,14 @@ export function register(on: On) {
       return next.to(e, 'append')
     }
 
-    const isPinned = await Policy.decidedByPolicy(
-      readPolicy(() => $.settings.read(Policy.SOURCE)),
-      policy => Policy.isPinnedVariable(policy, e.name),
-    )
+    const isPinned =
+      (await Policy.decidedByPolicy(
+        readPolicy(() => $.settings.read(Policy.SOURCE)),
+        policy => Policy.isPinnedVariable(policy, e.name),
+      )) || (await isCloudVariableInUse($, e.name))
 
     if (!isPinned) {
-      // The home variables are not pinned, and the settings hold reads them.
+      // A home variable can get here, and the settings hold reads them.
       if (first.folder === undefined) {
         await configFolders($, first)
       }

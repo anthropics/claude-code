@@ -6,10 +6,6 @@
  * opt-out of the administrator tiers' union, the configuration and
  * credential folders, and the three that choose which server sign-in goes
  * to. All nine are pinned on every build.
- *
- * Not pinned: proxy and certificate, credential, provider and home
- * variables. A person sets the same ones in their own settings and shell,
- * so a pin here would not close that road.
  */
 export const POLICY_SOURCE_VARIABLES = [
   'CLAUDE_CODE_MANAGED_SETTINGS_PATH',

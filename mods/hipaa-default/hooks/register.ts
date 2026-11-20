@@ -9,6 +9,10 @@ import {
 /**
  * Registers the hooks of each rule under rules/.
  *
+ * The mod is on only once the session knows its organization is under HIPAA, by
+ * its answer or this machine's record of the login, and holds nothing before
+ * then or in a launch that fetches no policy.
+ *
  * No call on `$` here: a hook that call reached would run with this one left out.
  *
  * @param on the engine's registrar

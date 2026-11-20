@@ -26,7 +26,7 @@ settings it decides by.
 | event | from the outermost seat |
 | --- | --- |
 | `classic.*` | Continue past the user tier: the organization's settings hooks see the engine's input and their answer stands. |
-| `prompt.section`, `prompt.context`, `prompt.attachment`, `skill.prompt`, `attribution.text` | Continue past the user tier: managed CLAUDE.md, rules and policy skills, and what the engine injects for the model beside them (a settings hook's note, the instruction files, a mode's reminder), are not a person's plugin's to reword at these events. A person's plugins keep `prompt.submit` and its additive context. This does not cover the variables that turn off CLAUDE.md loading: a person's plugin or settings can set `CLAUDE_CODE_DISABLE_CLAUDE_MDS`, `CLAUDE_CODE_SIMPLE` or `CLAUDE_CODE_SAFE_MODE`, and no CLAUDE.md loads, the managed one included. |
+| `prompt.section`, `prompt.context`, `prompt.attachment`, `skill.prompt`, `attribution.text` | Continue past the user tier: managed CLAUDE.md, rules and policy skills, and what the engine injects for the model beside them (a settings hook's note, the instruction files, a mode's reminder), are not a person's plugin's to reword at these events. A person's plugins keep `prompt.submit` and its additive context. This does not cover the variables that turn off CLAUDE.md loading: a person's plugin or settings can set `CLAUDE_CODE_DISABLE_CLAUDE_MDS` or `CLAUDE_CODE_SAFE_MODE` (`CLAUDE_CODE_SIMPLE` their settings alone: the `env.set` row pins it), and no CLAUDE.md loads, the managed one included. |
 | `session.append` | For a row the engine injects for the model (the `attachment` and `hook-context` doors: a reminder, a settings hook's context), for a compaction's rows (the `compaction` door: its summary and boundary), for a skill's body as a call of the Skill tool hands it over (the `tool-message` door, that tool's rows alone, since the row does not say whose skill it is) and for a note an organization's plugin appends, continue past the user tier: the row is kept as made, so what passed `prompt.attachment` whole is not blanked or reworded on its way into the conversation. For a skill the hold does that much and no more: it stops rewording of the row in transit. A person's `tool.call` hook can still answer for a Skill call or swap `input.skill`, as it can for any tool; `allowManagedModsOnly` closes that. Every other row (a prompt, a response, a tool result, another tool's message, a delivery, a command's row, a notice, a note of a person's plugin, and a note the engine itself makes, a Stop hook's feedback among them) passes as the chain leaves it. What is held of a hook is its verdict and the context it adds; the words a hook's block feeds back to the model are such an engine-made note. |
 | `session.compact` | Continue past the user tier, whole: a conversation a person's plugin answers in place of a compaction is never installed, so the conversation a compaction leaves is the engine's or the organization's own making, and its summary is stored as made (the `session.append` row). A person's own compaction hook does not run where this plugin is seated; a plugin of theirs may still ask for a compaction, which the engine then makes. |
 | `prompt.compose` | Continue past the user tier: the system prompt's list of sections is what the organization's tiers, the built-ins and the engine's own composition make it. A person's plugin neither drops, reorders nor rewrites a section, nor changes the facts the list is composed from, nor answers a list of its own in its place. The engine raises this event only when some loaded plugin hooks it, so where this plugin is seated every render of the system prompt runs the chain. |
@@ -45,7 +45,7 @@ settings it decides by.
 | `fs.stat` | This plugin's own look at where a path leads continues past the user tier. Every other passes. |
 | `ui.log` | A line a plugin in `prepend` or `append` logs, this one's included, continues past the user tier: no user hook rewrites or drops it, and none runs inside the hook that logged it. Every other line passes. |
 | `env.get` | A read by a plugin in `prepend` or `append` continues past the user tier: no user hook answers what the organization's own plugin reads. Every other read passes. |
-| `env.set` | A write by a plugin in `prepend` or `append` continues past the user tier, whatever the variable: no user hook rewrites or drops what the organization's own plugin sets. A variable managed settings set in `env` (its name in any case) is pinned, and so are `CLAUDE_CODE_PROCESS_WRAPPER` where they name a launcher with `processWrapper` and, always, the nine variables that move where policy and sign-in are read from or how policy's tiers compose (`CLAUDE_CODE_MANAGED_SETTINGS_PATH`, `CLAUDE_CODE_REMOTE_SETTINGS_PATH`, `CLAUDE_CODE_MOCK_REMOTE_SETTINGS`, `CLAUDE_CODE_DISABLE_ADMIN_ENV_UNION`, `CLAUDE_CONFIG_DIR`, `CLAUDE_SECURESTORAGE_CONFIG_DIR`, `USE_LOCAL_OAUTH`, `USE_STAGING_OAUTH` and `CLAUDE_LOCAL_OAUTH_API_BASE`, which choose the server sign-in goes to; all nine on every build), and, on every build too, ten variables that can load code into a child the engine starts (`LD_PRELOAD`, `LD_LIBRARY_PATH`, `LD_AUDIT`, `DYLD_INSERT_LIBRARIES`, `DYLD_LIBRARY_PATH`, `DYLD_FRAMEWORK_PATH`, `BASH_ENV`, `ENV`, `ZDOTDIR`, `NODE_OPTIONS`): setting or unsetting it, a `user`-tier caller is refused by name and a built-in's write continues past the user tier. Any other variable is a person's plugin's to set. With no policy to read, every variable counts as pinned. `allowModsToOverrideDenyRules` does not unpin. See [Pinned variables](#pinned-variables). |
+| `env.set` | A write by a plugin in `prepend` or `append` continues past the user tier, whatever the variable: no user hook rewrites or drops what the organization's own plugin sets. A variable managed settings set in `env` (its name in any case) is pinned, and so are `CLAUDE_CODE_PROCESS_WRAPPER` where they name a launcher with `processWrapper` and, always, the nine variables that move where policy and sign-in are read from or how policy's tiers compose (`CLAUDE_CODE_MANAGED_SETTINGS_PATH`, `CLAUDE_CODE_REMOTE_SETTINGS_PATH`, `CLAUDE_CODE_MOCK_REMOTE_SETTINGS`, `CLAUDE_CODE_DISABLE_ADMIN_ENV_UNION`, `CLAUDE_CONFIG_DIR`, `CLAUDE_SECURESTORAGE_CONFIG_DIR`, `USE_LOCAL_OAUTH`, `USE_STAGING_OAUTH` and `CLAUDE_LOCAL_OAUTH_API_BASE`, which choose the server sign-in goes to; all nine on every build), and, on every build too, ten variables that can load code into a child the engine starts (`LD_PRELOAD`, `LD_LIBRARY_PATH`, `LD_AUDIT`, `DYLD_INSERT_LIBRARIES`, `DYLD_LIBRARY_PATH`, `DYLD_FRAMEWORK_PATH`, `BASH_ENV`, `ENV`, `ZDOTDIR`, `NODE_OPTIONS`) and the variables that decide where a model request goes, what signs it and what is merged into its body: setting or unsetting it, a `user`-tier caller is refused by name and a built-in's write continues past the user tier. Any other variable is a person's plugin's to set. With no policy to read, every variable counts as pinned. `allowModsToOverrideDenyRules` does not unpin. See [Pinned variables](#pinned-variables). |
 | `vcs.detect` | Ask past the user tier first: a working copy the organization's tiers, the built-ins or the engine name stands, and only a folder they find in none goes on to a person's plugins. So a person's plugin drops no Git status block, and a system beside or inside Git needs an organization's plugin. A person's claim on the folder a session starts in does drop the shell tools' commit and pull-request steps for the whole session, a later `cd` into Git included; Git's safety cautions stay in every folder. |
 | `vcs.diff` | Ask past the user tier first: what the organization's tiers or the built-ins answer stands, their own `unknown` too, and only a diff none of them answered goes on to a person's plugins. |
 | `wasm.compile` | A compile by a plugin in `prepend` or `append` continues past the user tier: no user hook reads or replaces the WebAssembly the organization's own plugin runs. Every other compile passes. |
@@ -452,9 +452,20 @@ interactive, `ENV` an interactive shell in sh mode, `NODE_OPTIONS` a Node
 child, and macOS drops the `DYLD_` names for protected binaries.
 That pin is a list, not a boundary. A person's plugin can start a process
 as the person by other roads, and other variables steer a child too
-(`PATH`, the home variables, a credential file's path). The pin keeps the
+(`PATH`, the home variables). The pin keeps the
 organization's hook commands and tools from being re-pointed by accident
 or by a careless plugin, not by a hostile one.
+
+It refuses the same of the variables that decide where a model request goes
+and what signs it: the base URLs, the provider switches, the proxy and
+certificate names and the sign-in's sources, and with them the two merged into
+its body, `CLAUDE_CODE_EXTRA_BODY` and `CLAUDE_CODE_EXTRA_METADATA`
+([`routing-variables`](hooks/policy/routing-variables.ts)). A cloud's own
+names (AWS, Google, Azure), the home variables its sign-in is found by among
+them, are pinned only while one of that cloud's provider switches is on or
+cannot be read ([`cloud-variables`](hooks/policy/cloud-variables.ts)). The
+home variables an Anthropic profile is found by are pinned only while
+`ANTHROPIC_BASE_URL` is set or cannot be read.
 
 - At a load, from the first admission until the set serves, an op a plugin
   makes (one it left running between the load's steps too) is raised through
@@ -488,13 +499,8 @@ or by a careless plugin, not by a hostile one.
 - A person still decides the environment Claude Code starts in (`PATH`,
   `LD_PRELOAD`, `CLAUDE_CODE_SHELL_PREFIX` are theirs to set before launch,
   and in their own settings files), and a managed hook starts from that
-  environment like every other child. The same holds for the proxy and
-  certificate, credential, provider and home variables (`HTTPS_PROXY`,
-  `NODE_EXTRA_CA_CERTS`, `ANTHROPIC_API_KEY`, `HOME` and their like): they are
-  not pinned, because a person sets the same ones in their own settings and
-  shell, so a pin on `env.set` would not close that road. Where that road is
-  closed, the engine closes it for a plugin too, with or without this
-  plugin seated: in a session that asks its organization for its settings (a
+  environment like every other child. With or without this
+  plugin seated, in a session that asks its organization for its settings (a
   Cowork cloud session), a plugin, built in or not, sets or unsets only a
   variable the filters on every settings `env` would let a person's own
   settings file set there, and any other write (the proxy and certificate
@@ -517,8 +523,8 @@ whole prepend tier, and the organization names `sec-default@builtin` in it
 at the position it wants, e.g. `"prependPlugins": ["acme-guard@acme-tools",
 "sec-default@builtin"]`, or leaves it out. Once seated by the machine's
 managed settings, the plan or that mod, it stays seated until the session ends: a
-plan that reads differently at a later reload (a token variable a plugin
-set, an `apiKeyHelper` that appeared in a person's settings, another
+plan that reads differently at a later reload (an `apiKeyHelper` that
+appeared in a person's settings, another
 sign-in) does not unseat it. How a person signs in before a launch is
 theirs, so a seat that rests on the plan alone follows the sign-in at the
 next launch; managed settings on the machine are what hold it there. The
