@@ -1550,12 +1550,13 @@ declare module 'claude-code' {
        * `ui.press` chain. The host holds only a handle, for the drawing's life.
        *
        * Run with the `ui.press` argument as the chain above left it: `e.surface`
-       * names the surface the press came from, which a copy passes on.
+       * names the surface the press came from, which a copy passes on. Where it
+       * does async work, returning the promise is best: the press waits for it.
        *
        * @example
        * onPress: press => $.ui.copy({ text: url, surface: press.surface })
        */
-      onPress: (e: UiPressArgument) => void;
+      onPress: ((e: UiPressArgument) => void) | ((e: UiPressArgument) => Promise<unknown>);
   };
 
   /**
@@ -2929,6 +2930,9 @@ declare module 'claude-code' {
            * @remarks Below that it waits undrawn (`$.ui.panes()`: `isPlaced` false)
            *   for their open or a wider terminal; with no surface attached, for one.
            *   A pane another plugin holds is refused: the open rejects, naming it.
+           *   So is a `focus` open from a hook holding a tool call (`tool.call`,
+           *   `tool.judge`, `tool.run`, `classic.PreToolUse`) while no surface has
+           *   attached, which nobody could answer: ask with `$.ui.ask` there.
            * @param pane `id` (1-64 of letters, digits, `_`, `-`), `title`, `focus`,
            *   `closeOnEscape` and `holdToasts` (a dialog), `backgroundColor` (what
            *   is painted under its body), `rows` / `columns` wanted, `placement` (the
@@ -7415,8 +7419,9 @@ declare module 'claude-code' {
        * A press is a plain single click where the surface reports clicks (the
        * fullscreen terminal): it opens nothing and lands once no double-click
        * followed; a ctrl, alt or terminal-kept cmd click opens it as before.
+       * Where it does async work, returning the promise is best, as for `onPress`.
        */
-      onLinkPress?: (link: PressedLink, e: UiPressArgument) => void;
+      onLinkPress?: ((link: PressedLink, e: UiPressArgument) => void) | ((link: PressedLink, e: UiPressArgument) => Promise<unknown>);
       /**
        * Which links in `text` a press belongs to, by `href` as the markdown
        * writes it; absent, every link drawn. Only with `onLinkPress`.
