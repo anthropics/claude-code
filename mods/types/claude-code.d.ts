@@ -5619,7 +5619,7 @@ declare module 'claude-code' {
        * by `agentId` (a workflow's agent that is run again is asked about again,
        * under its new one). The engine removes, locks and sweeps nothing there.
        * The agent is not told `branch`: a mod that wants it told appends it with
-       * `$.session.append` under the agent's `agentId`, at `turn.start`.
+       * `$.session.append` under the agent's `agentId`, awaited at `turn.start`.
        *
        * It may be asked again for a name it already made: by `--worktree <name>`,
        * and by a resume, for a copy that is missing or empty or a subagent's after
@@ -5931,7 +5931,8 @@ declare module 'claude-code' {
        * Observe: a different return changes nothing. For the main loop alone,
        * return `next(e)` first when `e.agentId !== undefined`. Every hook hears
        * an agent's start, the spawner's too, as at its `turn.step`s, but for the
-       * hook whose `$` call ran a skill or command as a fork.
+       * hook whose `$` call ran a skill or command as a fork. An agent's first
+       * request waits for these hooks, 3 seconds at most.
        */
       'turn.start': TurnStartInput;
       /**
@@ -14186,6 +14187,9 @@ declare module 'claude-code' {
       /**
        * The running subagent whose conversation the row joins; absent for main.
        * One that names no running loop is refused.
+       *
+       * A run counts from its `turn.start`, where an awaited `user` row rides its
+       * first request. A run that fails while it is set up takes the row with it.
        */
       agentId?: string;
   };
