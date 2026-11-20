@@ -6726,7 +6726,11 @@ declare module 'claude-code' {
    * slow chain beneath or a minute-long `$.model.complete` costs it nothing.
    * On `tool.list` and `ui.render` a hook's `$` calls hold it for 30 seconds in all,
    * then fail it; on `plugin.register` for 10 seconds, `$.ui.ask` aside: a person
-   * answers in their own time.
+   * answers in their own time. On `tool.call`, `tool.check`, `tool.judge`,
+   * `tool.run` and `classic.PreToolUse` for 20 minutes, a stream's reads included,
+   * not counted while `next(e)`, `$.ui.ask`, `$.tool.call`, `$.agent.call`,
+   * `$.agent.spawn` or `$.mcp.call` is in flight, and not at all for a `tool.call`
+   * or `tool.run` hook on a tool its own plugin registered: it is that tool's body.
    *
    * @example
    * await $.model.complete(ask) // a minute; next.budget.remainingMs unmoved
