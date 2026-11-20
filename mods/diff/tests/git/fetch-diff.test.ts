@@ -332,6 +332,35 @@ describe('fetch-diff', () => {
     expect(data?.stalePaths).toEqual(['staged.ts'])
   })
 
+  test('unborn HEAD: a lone git add -N file is a row', async () => {
+    const SEEN_IN_INDEX =
+      '--ita-visible-in-index --ignore-submodules=dirty --submodule=short'
+
+    const outcome = await Git.fetchDiff(
+      depsOf({
+        ...unbornScriptOf(),
+        [`${SEEN_IN_INDEX} --cached --numstat`]:
+          Fixtures.ok('0\t0\tmarked.ts\0'),
+        [`${SEEN_IN_INDEX} --numstat`]: Fixtures.ok('2\t0\tmarked.ts\0'),
+      }),
+      'session',
+    )
+
+    const data = outcome.kind === 'data' ? outcome.data : null
+
+    expect(data?.files.map(file => [file.path, file.added])).toEqual([
+      ['marked.ts', 2],
+    ])
+
+    expect(data?.stats).toEqual({
+      filesCount: 1,
+      linesAdded: 2,
+      linesRemoved: 0,
+    })
+
+    expect(data?.stalePaths).toEqual(['marked.ts'])
+  })
+
   test('unborn HEAD: a staged or unstaged listing git withheld', async () => {
     const noStaged = await Git.fetchDiff(depsOf(unbornScriptOf()), 'session')
 

@@ -92,6 +92,7 @@ describe('fetch-hunks', () => {
       'diff',
       '--no-ext-diff',
       '--no-textconv',
+      '--ita-visible-in-index',
       '--ignore-submodules=dirty',
       '--submodule=short',
       '--no-renames',

@@ -10,9 +10,9 @@ import { withClosingLine } from './with-closing-line'
  * The rows' hunks against the base their counts were read against, from one
  * git child over their literal paths; each but the last, a closing empty row.
  *
- * A row with no body (untracked, binary, renamed, or staged then edited on
- * an unborn HEAD) is never named to git. Paths past MAX_PATHSPEC_CHARS and
- * files a cut answer left unread go to a further child.
+ * A row with no body (untracked, binary, renamed, or on an unborn HEAD with
+ * unstaged changes, as after `git add -N`) is never named to git. Paths past
+ * MAX_PATHSPEC_CHARS and files a cut answer left unread go to a further child.
  *
  * @param run runs git against the pinned repository
  * @param data the fetch the rows belong to

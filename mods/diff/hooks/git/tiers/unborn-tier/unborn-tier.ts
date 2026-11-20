@@ -9,8 +9,9 @@ import { EMPTY_NUMSTAT } from './empty-numstat'
  * passing ones: an unborn HEAD, as the built-in panel tells it apart.
  *
  * Its rows are the staged files with unstaged edits folded in, then the
- * session's untracked files; hunks read against `--cached`, a file edited
- * after staging has no honest body; a withheld `--numstat`: no data.
+ * session's untracked files; since hunks read against `--cached`, a file with
+ * unstaged changes, as after `git add -N`, has no honest body; a withheld
+ * `--numstat`: no data.
  *
  * @param context the fetch
  * @returns data marked unborn, or unavailable
