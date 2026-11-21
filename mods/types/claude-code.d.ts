@@ -1919,7 +1919,7 @@ declare module 'claude-code' {
       y: number;
       /**
        * The same position with the fraction of a cell kept (`x: 12`, `fine.x:
-       * 12.375`), where the surface knows it: a terminal that reports pixels.
+       * 12.375`), on Desktop and on a terminal that reports pixels.
        *
        * kitty, Ghostty, iTerm2, WezTerm and foot do; tmux passes none through.
        * Absent elsewhere and on `enter`/`leave`; present, a `move` comes within
@@ -2003,9 +2003,9 @@ declare module 'claude-code' {
    * elements, the instance's local state, its region, input, clock and port.
    *
    * Called again (same `surface`, same `state`) on new props, after
-   * `setState`, on a resize and as the window gains or loses the focus; what
-   * it returns is drawn in the region. No `$` here: the hooks module has it,
-   * and `post` is the way to reach it.
+   * `setState`, on a resize and as `isWindowFocused` or `isMotionReduced`
+   * changes; what it returns is drawn in the region. No `$` here: the hooks
+   * module has it, and `post` is the way to reach it.
    */
   export type ClientSurface<S = unknown> = {
       /**
@@ -2023,8 +2023,8 @@ declare module 'claude-code' {
        * the next frame; several calls before it coalesce into one redraw.
        *
        * A `setState` on each of three renders in a row with no key, pointer,
-       * tick, press, props or change of the window's focus between is a render
-       * loop: the instance unmounts.
+       * tick, press, props or change of the window's focus or of motion between
+       * is a render loop: the instance unmounts.
        */
       setState: (next: S) => void;
       /**
@@ -2048,6 +2048,17 @@ declare module 'claude-code' {
        * const tick = () => surface.isWindowFocused && surface.setState(nextFrame())
        */
       readonly isWindowFocused: boolean;
+      /**
+       * Whether the viewer asked for less motion; false where the surface does
+       * not report it. A change calls the function once more.
+       *
+       * The terminal's reduce-motion setting; on Desktop the app's motion or
+       * animation setting, or the system's preference. Timers run on.
+       *
+       * @example
+       * const frame = surface.isMotionReduced ? STILL_FRAME : frames[tick]
+       */
+      readonly isMotionReduced: boolean;
       /**
        * Calls `fn` every `ms` milliseconds on the surface's frame clock until
        * the returned function is called or the instance unmounts.
@@ -13784,19 +13795,27 @@ declare module 'claude-code' {
       };
       /**
        * The room to the right of the prompt, for a small thing: a meter, a status
-       * glyph, a sprite. Raised by the terminal's fullscreen layout alone, and not
-       * while a dialog, a picker or the help is open, the band is collapsed or a
-       * screen reader is on.
+       * glyph, a sprite. Gone while anything asks the person something.
        *
        * Asked once for each plugin that hooks it, as `AbovePrompt` is: a hook draws
        * that plugin's cell, or passes. A cell holds `Box`, `Text` and `Client` (its
        * own tree `Box` and `Text`), with no `hover`; anything else refuses it. It
-       * never has the keys, and selecting text skips it.
+       * never has the keys, and selecting text skips it. Every size here, a Box's
+       * and a `Client`'s too, counts in one monospaced character cell.
        *
-       * A cell stands on the footer's last row and takes the width it measures,
-       * which the input and its footer give up: keep it steady. One taller than
-       * the prompt is cut at its top. A Box of it drawn `position: "absolute"`
+       * A cell stands on the foot of the row under the prompt and takes the width
+       * it measures: keep it steady. A Box of it drawn `position: "absolute"`
        * floats instead (see `floatRows`), and `anchor` keeps it above the prompt.
+       * A cell of width 0 always fits and takes no room: what floats from it
+       * counts from where the first cell starts, at the prompt's right edge.
+       *
+       * The terminal raises it in its fullscreen layout, and not while a picker or
+       * the help is open, the band is collapsed or a screen reader is on. There the
+       * input and its footer give the columns up, and a cell taller than the prompt
+       * is cut at its top. The desktop raises it in the Code tab, in the free
+       * gutter beside the message box, which gives nothing up. There a border is
+       * thin and takes its own inset, not one cell, every Box draws as `mono`, and
+       * a Text's `size` is ignored.
        *
        * @example
        * on('ui.render', { component: 'BesidePrompt' }, ($, e, next) => {
@@ -13804,29 +13823,33 @@ declare module 'claude-code' {
        *   return e.props.maxColumns < 4 ? next(e) : <Text dimColor>[ok]</Text>
        * })
        *
-       * Raised on the terminal surface only.
+       * Raised on the terminal and desktop surfaces only.
        */
       BesidePrompt: {
           /**
            * Columns all the cells may take together, one blank between each two; 0
-           * where the input has none to spare. Cells that do not fit are left out,
-           * from the last. Read-only.
+           * where there are none to spare. Cells that do not fit are left out, from
+           * the last. Read-only.
            */
           maxColumns: number;
           /**
-           * Rows a floating Box may reach above the transcript's foot, the top of
-           * what is stacked on the prompt; all below is in reach too. Read-only.
+           * Rows a floating Box may reach above the top of what is stacked on the
+           * prompt; all below is in reach too. Read-only.
            *
            * The Box moves nothing, and with no `anchor` stays where it is placed. It
-           * paints over its own cell, the transcript, the prompt's two rules and
-           * blank cells, and is cut cell by cell at everything else. Its blank cells
+           * paints over its own cell, the transcript and blank space, and is cut at
+           * the rest of the interface and at other plugins' cells. Its blank parts
            * show what is under them and pass the pointer on; a Box with a border or
-           * a background hides it. A `Client` in it hears the pointer on every cell
-           * of its own that shows.
+           * a background hides it. A `Client` in it hears the pointer wherever it
+           * shows. The terminal also yields the prompt's two rules. The desktop cuts
+           * at each drawn thing's visible edge, so it can stand on the message box's
+           * top edge or beside a narrow chip; from that edge down, the box's whole
+           * width is cut and the gutter beside it is not.
            */
           floatRows: number;
           /**
-           * Columns in from the right edge that a floating Box may reach. Read-only.
+           * Columns a floating Box may reach, in from the right edge of the terminal
+           * or of the desktop's chat pane, whose whole width it is. Read-only.
            */
           floatColumns: number;
           /**
@@ -13848,7 +13871,7 @@ declare module 'claude-code' {
        * a tree of its own is passed over, and the answer beneath it stands: to fail
        * closed, answer `{ type: "engine", ref: 0 }`, no cell, in its `.catch`.
        *
-       * Raised on the terminal surface only.
+       * Raised on the terminal and desktop surfaces only.
        */
       BesidePromptList: {
           /**
@@ -21406,8 +21429,9 @@ declare module 'claude-code/testing' {
    * handle carries the act only where the surface's table has the element.
    *
    * `input` needs `Input` and `select` needs `Select` (every surface today);
-   * `key`, `pointer`, `post`, `advance`, `resize` and `setWindowFocused` reach a
-   * `Client` (terminal and desktop today). The rest need nothing but a tree.
+   * `key`, `pointer`, `post`, `advance`, `resize`, `setWindowFocused` and
+   * `setMotionReduced` reach a `Client` (terminal and desktop today). The rest
+   * need nothing but a tree.
    */
   export type ElementOfAct = {
       input: 'Input';
@@ -21418,6 +21442,7 @@ declare module 'claude-code/testing' {
       advance: 'Client';
       resize: 'Client';
       setWindowFocused: 'Client';
+      setMotionReduced: 'Client';
   };
 
   /**
@@ -22177,6 +22202,15 @@ declare module 'claude-code/testing' {
        * await ui.setWindowFocused(false)
        */
       setWindowFocused: (isFocused: boolean) => Promise<void>;
+      /**
+       * Has the viewer ask for less motion or stop asking: what each `Client` of
+       * the drawing reads as `surface.isMotionReduced`, one drawn later too.
+       *
+       * @param isReduced whether the viewer asks; a drawing starts unasked
+       * @example
+       * await ui.setMotionReduced(true)
+       */
+      setMotionReduced: (isReduced: boolean) => Promise<void>;
       /**
        * Draws the instance again, as the engine does when its props change (a
        * tool row's output arrived): the `ui.render` chain with the next props.
