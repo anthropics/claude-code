@@ -1230,6 +1230,30 @@ declare module 'claude-code' {
   };
 
   /**
+   * One shape under a floating `Client`, as `surface.beneath` lists it: a
+   * rectangle in the region's cells, counted as `onPointer`'s are and cut to
+   * the region, with parts of a cell where the surface has them.
+   */
+  export type Beneath = {
+      /**
+       * The shape's left edge, 0 at the region's.
+       */
+      x: number;
+      /**
+       * The shape's top edge, 0 at the region's.
+       */
+      y: number;
+      columns: number;
+      rows: number;
+      /**
+       * `interface`: the drawing is cut here, at what a float may not paint over
+       * and wherever the region lies past the float's reach. `conversation`:
+       * something drawn that the drawing would cover.
+       */
+      kind: 'interface' | 'conversation';
+  };
+
+  /**
    * The `Box` props a `hover` may override, none of which moves the Box's
    * siblings, and `scope`, which names the hover group the Box joins.
    *
@@ -2003,9 +2027,9 @@ declare module 'claude-code' {
    * elements, the instance's local state, its region, input, clock and port.
    *
    * Called again (same `surface`, same `state`) on new props, after
-   * `setState`, on a resize and as `isWindowFocused` or `isMotionReduced`
-   * changes; what it returns is drawn in the region. No `$` here: the hooks
-   * module has it, and `post` is the way to reach it.
+   * `setState`, on a resize and as `isWindowFocused`, `isMotionReduced` or
+   * `beneath` changes; what it returns is drawn in the region. No `$` here: the
+   * hooks module has it, and `post` is the way to reach it.
    */
   export type ClientSurface<S = unknown> = {
       /**
@@ -2023,8 +2047,8 @@ declare module 'claude-code' {
        * the next frame; several calls before it coalesce into one redraw.
        *
        * A `setState` on each of three renders in a row with no key, pointer,
-       * tick, press, props or change of the window's focus or of motion between
-       * is a render loop: the instance unmounts.
+       * tick, press, props or change of the window's focus, of motion or of what
+       * is beneath between is a render loop: the instance unmounts.
        */
       setState: (next: S) => void;
       /**
@@ -2037,6 +2061,21 @@ declare module 'claude-code' {
        * layout).
        */
       readonly rows: number;
+      /**
+       * What the region floats over, as shapes alone; empty unless the `Client`
+       * floats from a `BesidePrompt` cell, and where the surface does not report
+       * it. What no shape names is free. A change calls the function once more.
+       *
+       * A rectangle for each line of text or painted box, merged past 64; never
+       * the mod's own cell or floats. `interface` is right by the first call
+       * after layout and follows a resize at once; `conversation` may trail by
+       * some 120 ms while text streams or scrolls.
+       *
+       * @example
+       * const isFree = (x, y) => !surface.beneath.some(b =>
+       *   x >= b.x && x < b.x + b.columns && y >= b.y && y < b.y + b.rows)
+       */
+      readonly beneath: readonly Beneath[];
       /**
        * Whether the window the region is drawn in has the focus; true where the
        * surface does not report it. A change calls the function once more.
@@ -21394,6 +21433,7 @@ declare module 'claude-code' {
 declare module 'claude-code/testing' {
   import type { AgentLoop } from 'claude-code';
   import type { Args } from 'claude-code';
+  import type { Beneath } from 'claude-code';
   import type { Chunk } from 'claude-code';
   import type { ClassicEventName } from 'claude-code';
   import type { ClassicEventOf } from 'claude-code';
@@ -21489,9 +21529,9 @@ declare module 'claude-code/testing' {
    * handle carries the act only where the surface's table has the element.
    *
    * `input` needs `Input` and `select` needs `Select` (every surface today);
-   * `key`, `pointer`, `post`, `advance`, `resize`, `setWindowFocused` and
-   * `setMotionReduced` reach a `Client` (terminal and desktop today). The rest
-   * need nothing but a tree.
+   * `key`, `pointer`, `post`, `advance`, `setBeneath`, `resize`,
+   * `setWindowFocused` and `setMotionReduced` reach a `Client` (terminal and
+   * desktop today). The rest need nothing but a tree.
    */
   export type ElementOfAct = {
       input: 'Input';
@@ -21500,6 +21540,7 @@ declare module 'claude-code/testing' {
       pointer: 'Client';
       post: 'Client';
       advance: 'Client';
+      setBeneath: 'Client';
       resize: 'Client';
       setWindowFocused: 'Client';
       setMotionReduced: 'Client';
@@ -22244,6 +22285,16 @@ declare module 'claude-code/testing' {
        * await ui.advance(250)
        */
       advance: (ms: number) => Promise<void>;
+      /**
+       * Says what is beneath a `Client`'s region, as the surface measuring it
+       * does: what its module reads as `surface.beneath`, cut to the region.
+       *
+       * @param beneath the shapes, in the region's cells (`resize` gives it some)
+       * @param scope `{ in }`: which `Client`, when the drawing holds several
+       * @example
+       * await ui.setBeneath([{ x: 0, y: 2, columns: 9, rows: 1, kind: 'interface' }])
+       */
+      setBeneath: (beneath: readonly Beneath[], scope?: ClientScope) => Promise<void>;
       /**
        * Lays a `Client`'s region out at a size, as the surface measuring it
        * does: what its module reads as `surface.columns` and `surface.rows`.
