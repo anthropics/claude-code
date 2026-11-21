@@ -523,7 +523,7 @@ declare module 'claude-code' {
    * What auto mode's hand-off review made of a report.
    *
    * `cleared`, `flagged`: its verdict. `refused`, `unavailable`: it gave none,
-   * refused or out of reach. `none`: auto mode, and it had no review to give.
+   * refused or out of reach. `none`: this mode reviews reports, and it had no review to give.
    * `off`: the mode runs no such review.
    */
   export type AgentReportReview = 'cleared' | 'flagged' | 'refused' | 'unavailable' | 'none' | 'off';
