@@ -1329,10 +1329,27 @@ declare module 'claude-code' {
        */
       right?: number;
       /**
-       * Rows from the parent's bottom edge, in character cells: an integer,
-       * negative below the edge.
+       * Rows from the parent's bottom edge, or from the line `anchor` names, in
+       * character cells: an integer, negative below the edge.
        */
       bottom?: number;
+      /**
+       * What a floating Box's `bottom` counts from, in place of its parent's edge:
+       * a relation the surface keeps as its layout moves, with no hook run.
+       *
+       * `"above"`: up from a line clear of the prompt, of all that is stacked on
+       * it and of the Box's own cell at its whole height, whichever is highest; so
+       * a cell tall enough lifts the Box past `floatRows`, out of sight. `bottom`
+       * left out is 0. `left` and `right` still count from the parent.
+       *
+       * For the outermost `position: "absolute"` Box of a `BesidePrompt` cell, and
+       * never with `top`. Anywhere else, a `Client`'s own tree included, the tree
+       * is refused.
+       *
+       * @example <Box position="absolute" anchor="above" right={0}
+       *   borderStyle="round">above the band</Box>
+       */
+      anchor?: 'above';
       flexDirection?: 'row' | 'column' | 'row-reverse' | 'column-reverse';
       flexGrow?: number;
       flexShrink?: number;
@@ -13744,8 +13761,9 @@ declare module 'claude-code' {
        * never has the keys, and selecting text skips it.
        *
        * A cell stands on the footer's last row and takes the width it measures,
-       * which the input and its footer give up: keep it steady. A Box of it drawn
-       * `position: "absolute"` floats instead (see `floatRows`).
+       * which the input and its footer give up: keep it steady. One taller than
+       * the prompt is cut at its top. A Box of it drawn `position: "absolute"`
+       * floats instead (see `floatRows`), and `anchor` keeps it above the prompt.
        *
        * @example
        * on('ui.render', { component: 'BesidePrompt' }, ($, e, next) => {
@@ -13763,13 +13781,15 @@ declare module 'claude-code' {
            */
           maxColumns: number;
           /**
-           * Rows above the prompt's own that a floating Box may reach. Read-only.
+           * Rows a floating Box may reach above the transcript's foot, the top of
+           * what is stacked on the prompt; all below is in reach too. Read-only.
            *
-           * It stays where it is placed and moves nothing. It paints over its own
-           * cell, the transcript, the prompt's two rules and blank cells, and is cut
-           * cell by cell at everything else. Its blank cells show what is under them
-           * and pass the pointer on; a Box with a border or a background hides it.
-           * A `Client` in it hears the pointer on every cell of its own that shows.
+           * The Box moves nothing, and with no `anchor` stays where it is placed. It
+           * paints over its own cell, the transcript, the prompt's two rules and
+           * blank cells, and is cut cell by cell at everything else. Its blank cells
+           * show what is under them and pass the pointer on; a Box with a border or
+           * a background hides it. A `Client` in it hears the pointer on every cell
+           * of its own that shows.
            */
           floatRows: number;
           /**
@@ -13777,18 +13797,14 @@ declare module 'claude-code' {
            */
           floatColumns: number;
           /**
-           * Rows the prompt takes, from the blank one above the input to the
-           * footer's last. A taller cell is cut at its top. Read-only.
+           * True while a model turn is running. Read-only.
            */
-          promptRows: number;
+          isWorking: boolean;
           /**
-           * Rows between the prompt's top and the transcript's foot: the band and
-           * what else is stacked there. Read-only.
-           *
-           * @example <Box position="absolute" right={0}
-           *   bottom={e.props.promptRows + e.props.aboveRows}>above the band</Box>
+           * Which transcript is on screen, as `AbovePrompt`'s. Read-only: a rewrite
+           * carries it on as received.
            */
-          aboveRows: number;
+          view: SiteView;
       };
       /**
        * The order of the cells beside the prompt, left to right, heard by a hook
