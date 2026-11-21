@@ -55,7 +55,8 @@ approval, so it follows no link that its walk sees: it walks each name's compone
 from the working directory with `$.fs.list`, and reads a plain file only if none is
 a link. A link swapped in between by a process already writing the folder isn't
 covered. A file that cannot be read (missing, over 4 MiB, a network path) holds nothing, and
-the call goes on.
+the call goes on. One that the engine could not hold as its rules checked it (`UNHELD`) is
+refused, in words of its own.
 
 A line only touches files where every command starts with git or another of
 `TOUCH_WORDS` (`gh`, `cat`, `sed`, `mv`, `chmod`, linters, formatters, test runners,

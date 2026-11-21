@@ -48,6 +48,8 @@ export function register(on: On): void {
 
     // This runs before any approval, so it opens only a plain file its walk found
     // free of links. One it can't read holds nothing: nobody can answer a refusal.
+    // One the engine could not hold is there to run, so it may hold anything.
+    let reason = Outbound.REFUSAL
     const isRefused =
       Outbound.isRefused(e.tool, e.input, email) ||
       (
@@ -73,16 +75,27 @@ export function register(on: On): void {
               }
 
               return isFile ? await $.fs.read(path) : ''
-            } catch {
-              return ''
+            } catch (error) {
+              if (!String(error).endsWith(' failed: UNHELD')) {
+                return ''
+              }
+
+              reason =
+                'This call was refused: a script it names could not be read ' +
+                "here to check it for the account's email address. The " +
+                'person can run the command with `!`.'
+
+              return undefined
             }
           }),
         )
-      ).some(script =>
-        Outbound.namesUserAgentWithAddress(Outbound.textOf(script), email),
+      ).some(
+        script =>
+          script === undefined ||
+          Outbound.namesUserAgentWithAddress(Outbound.textOf(script), email),
       )
 
-    return isRefused ? { decision: 'deny', reason: Outbound.REFUSAL } : verdict
+    return isRefused ? { decision: 'deny', reason } : verdict
   })
 
   // No call on `$` here: a hook that call reached would run with this one left out.
