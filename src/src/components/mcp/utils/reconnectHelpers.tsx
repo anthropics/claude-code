@@ -1,0 +1,49 @@
+import type { Command } from '../../../commands.js';
+import type { MCPServerConnection, ServerResource } from '../../../services/mcp/types.js';
+import type { Tool } from '../../../Tool.js';
+export interface ReconnectResult {
+  message: string;
+  success: boolean;
+}
+
+/**
+ * Handles the result of a reconnect attempt and returns an appropriate user message
+ */
+export function handleReconnectResult(result: {
+  client: MCPServerConnection;
+  tools: Tool[];
+  commands: Command[];
+  resources?: ServerResource[];
+}, serverName: string): ReconnectResult {
+  switch (result.client.type) {
+    case 'connected':
+      return {
+        message: `Reconnected to ${serverName}.`,
+        success: true
+      };
+    case 'needs-auth':
+      return {
+        message: `${serverName} requires authentication. Use the 'Authenticate' option.`,
+        success: false
+      };
+    case 'failed':
+      return {
+        message: `Failed to reconnect to ${serverName}.`,
+        success: false
+      };
+    default:
+      return {
+        message: `Unknown result when reconnecting to ${serverName}.`,
+        success: false
+      };
+  }
+}
+
+/**
+ * Handles errors from reconnect attempts
+ */
+export function handleReconnectError(error: unknown, serverName: string): string {
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  return `Error reconnecting to ${serverName}: ${errorMessage}`;
+}
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJuYW1lcyI6WyJDb21tYW5kIiwiTUNQU2VydmVyQ29ubmVjdGlvbiIsIlNlcnZlclJlc291cmNlIiwiVG9vbCIsIlJlY29ubmVjdFJlc3VsdCIsIm1lc3NhZ2UiLCJzdWNjZXNzIiwiaGFuZGxlUmVjb25uZWN0UmVzdWx0IiwicmVzdWx0IiwiY2xpZW50IiwidG9vbHMiLCJjb21tYW5kcyIsInJlc291cmNlcyIsInNlcnZlck5hbWUiLCJ0eXBlIiwiaGFuZGxlUmVjb25uZWN0RXJyb3IiLCJlcnJvciIsImVycm9yTWVzc2FnZSIsIkVycm9yIiwiU3RyaW5nIl0sInNvdXJjZXMiOlsicmVjb25uZWN0SGVscGVycy50c3giXSwic291cmNlc0NvbnRlbnQiOlsiaW1wb3J0IHR5cGUgeyBDb21tYW5kIH0gZnJvbSAnLi4vLi4vLi4vY29tbWFuZHMuanMnXG5pbXBvcnQgdHlwZSB7XG4gIE1DUFNlcnZlckNvbm5lY3Rpb24sXG4gIFNlcnZlclJlc291cmNlLFxufSBmcm9tICcuLi8uLi8uLi9zZXJ2aWNlcy9tY3AvdHlwZXMuanMnXG5pbXBvcnQgdHlwZSB7IFRvb2wgfSBmcm9tICcuLi8uLi8uLi9Ub29sLmpzJ1xuXG5leHBvcnQgaW50ZXJmYWNlIFJlY29ubmVjdFJlc3VsdCB7XG4gIG1lc3NhZ2U6IHN0cmluZ1xuICBzdWNjZXNzOiBib29sZWFuXG59XG5cbi8qKlxuICogSGFuZGxlcyB0aGUgcmVzdWx0IG9mIGEgcmVjb25uZWN0IGF0dGVtcHQgYW5kIHJldHVybnMgYW4gYXBwcm9wcmlhdGUgdXNlciBtZXNzYWdlXG4gKi9cbmV4cG9ydCBmdW5jdGlvbiBoYW5kbGVSZWNvbm5lY3RSZXN1bHQoXG4gIHJlc3VsdDoge1xuICAgIGNsaWVudDogTUNQU2VydmVyQ29ubmVjdGlvblxuICAgIHRvb2xzOiBUb29sW11cbiAgICBjb21tYW5kczogQ29tbWFuZFtdXG4gICAgcmVzb3VyY2VzPzogU2VydmVyUmVzb3VyY2VbXVxuICB9LFxuICBzZXJ2ZXJOYW1lOiBzdHJpbmcsXG4pOiBSZWNvbm5lY3RSZXN1bHQge1xuICBzd2l0Y2ggKHJlc3VsdC5jbGllbnQudHlwZSkge1xuICAgIGNhc2UgJ2Nvbm5lY3RlZCc6XG4gICAgICByZXR1cm4ge1xuICAgICAgICBtZXNzYWdlOiBgUmVjb25uZWN0ZWQgdG8gJHtzZXJ2ZXJOYW1lfS5gLFxuICAgICAgICBzdWNjZXNzOiB0cnVlLFxuICAgICAgfVxuXG4gICAgY2FzZSAnbmVlZHMtYXV0aCc6XG4gICAgICByZXR1cm4ge1xuICAgICAgICBtZXNzYWdlOiBgJHtzZXJ2ZXJOYW1lfSByZXF1aXJlcyBhdXRoZW50aWNhdGlvbi4gVXNlIHRoZSAnQXV0aGVudGljYXRlJyBvcHRpb24uYCxcbiAgICAgICAgc3VjY2VzczogZmFsc2UsXG4gICAgICB9XG5cbiAgICBjYXNlICdmYWlsZWQnOlxuICAgICAgcmV0dXJuIHtcbiAgICAgICAgbWVzc2FnZTogYEZhaWxlZCB0byByZWNvbm5lY3QgdG8gJHtzZXJ2ZXJOYW1lfS5gLFxuICAgICAgICBzdWNjZXNzOiBmYWxzZSxcbiAgICAgIH1cblxuICAgIGRlZmF1bHQ6XG4gICAgICByZXR1cm4ge1xuICAgICAgICBtZXNzYWdlOiBgVW5rbm93biByZXN1bHQgd2hlbiByZWNvbm5lY3RpbmcgdG8gJHtzZXJ2ZXJOYW1lfS5gLFxuICAgICAgICBzdWNjZXNzOiBmYWxzZSxcbiAgICAgIH1cbiAgfVxufVxuXG4vKipcbiAqIEhhbmRsZXMgZXJyb3JzIGZyb20gcmVjb25uZWN0IGF0dGVtcHRzXG4gKi9cbmV4cG9ydCBmdW5jdGlvbiBoYW5kbGVSZWNvbm5lY3RFcnJvcihcbiAgZXJyb3I6IHVua25vd24sXG4gIHNlcnZlck5hbWU6IHN0cmluZyxcbik6IHN0cmluZyB7XG4gIGNvbnN0IGVycm9yTWVzc2FnZSA9IGVycm9yIGluc3RhbmNlb2YgRXJyb3IgPyBlcnJvci5tZXNzYWdlIDogU3RyaW5nKGVycm9yKVxuICByZXR1cm4gYEVycm9yIHJlY29ubmVjdGluZyB0byAke3NlcnZlck5hbWV9OiAke2Vycm9yTWVzc2FnZX1gXG59XG4iXSwibWFwcGluZ3MiOiJBQUFBLGNBQWNBLE9BQU8sUUFBUSxzQkFBc0I7QUFDbkQsY0FDRUMsbUJBQW1CLEVBQ25CQyxjQUFjLFFBQ1QsZ0NBQWdDO0FBQ3ZDLGNBQWNDLElBQUksUUFBUSxrQkFBa0I7QUFFNUMsT0FBTyxVQUFVQyxlQUFlLENBQUM7RUFDL0JDLE9BQU8sRUFBRSxNQUFNO0VBQ2ZDLE9BQU8sRUFBRSxPQUFPO0FBQ2xCOztBQUVBO0FBQ0E7QUFDQTtBQUNBLE9BQU8sU0FBU0MscUJBQXFCQSxDQUNuQ0MsTUFBTSxFQUFFO0VBQ05DLE1BQU0sRUFBRVIsbUJBQW1CO0VBQzNCUyxLQUFLLEVBQUVQLElBQUksRUFBRTtFQUNiUSxRQUFRLEVBQUVYLE9BQU8sRUFBRTtFQUNuQlksU0FBUyxDQUFDLEVBQUVWLGNBQWMsRUFBRTtBQUM5QixDQUFDLEVBQ0RXLFVBQVUsRUFBRSxNQUFNLENBQ25CLEVBQUVULGVBQWUsQ0FBQztFQUNqQixRQUFRSSxNQUFNLENBQUNDLE1BQU0sQ0FBQ0ssSUFBSTtJQUN4QixLQUFLLFdBQVc7TUFDZCxPQUFPO1FBQ0xULE9BQU8sRUFBRSxrQkFBa0JRLFVBQVUsR0FBRztRQUN4Q1AsT0FBTyxFQUFFO01BQ1gsQ0FBQztJQUVILEtBQUssWUFBWTtNQUNmLE9BQU87UUFDTEQsT0FBTyxFQUFFLEdBQUdRLFVBQVUsMERBQTBEO1FBQ2hGUCxPQUFPLEVBQUU7TUFDWCxDQUFDO0lBRUgsS0FBSyxRQUFRO01BQ1gsT0FBTztRQUNMRCxPQUFPLEVBQUUsMEJBQTBCUSxVQUFVLEdBQUc7UUFDaERQLE9BQU8sRUFBRTtNQUNYLENBQUM7SUFFSDtNQUNFLE9BQU87UUFDTEQsT0FBTyxFQUFFLHVDQUF1Q1EsVUFBVSxHQUFHO1FBQzdEUCxPQUFPLEVBQUU7TUFDWCxDQUFDO0VBQ0w7QUFDRjs7QUFFQTtBQUNBO0FBQ0E7QUFDQSxPQUFPLFNBQVNTLG9CQUFvQkEsQ0FDbENDLEtBQUssRUFBRSxPQUFPLEVBQ2RILFVBQVUsRUFBRSxNQUFNLENBQ25CLEVBQUUsTUFBTSxDQUFDO0VBQ1IsTUFBTUksWUFBWSxHQUFHRCxLQUFLLFlBQVlFLEtBQUssR0FBR0YsS0FBSyxDQUFDWCxPQUFPLEdBQUdjLE1BQU0sQ0FBQ0gsS0FBSyxDQUFDO0VBQzNFLE9BQU8seUJBQXlCSCxVQUFVLEtBQUtJLFlBQVksRUFBRTtBQUMvRCIsImlnbm9yZUxpc3QiOltdfQ==
