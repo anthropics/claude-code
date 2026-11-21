@@ -2856,10 +2856,20 @@ declare module 'claude-code' {
            * @remarks An ask ends with the process: a resumed thread sends what it
            *   recorded; asked again, a `tool.describe` hook's answer that says
            *   `breakPromptCache` goes over the recorded description where it differs.
+           * @remarks `tool.offer` is asked again by one loop, ahead of its next
+           *   request: the main conversation, or the agent `loop` names, a resting
+           *   one when it next runs. An id no loop asks under does nothing. Nothing
+           *   waits for the call: made as a hook answers, it can land a request late.
            * @param event `ui.render`, or a cached-answer event: `prompt.section`,
-           *   `prompt.context`, `prompt.attachment`, `tool/command/config.describe`
+           *   `prompt.context`, `prompt.attachment`, `tool/command/config.describe`,
+           *   `tool.list`, `tool.offer`
+           * @param loop with `tool.offer` alone: `agentId`, as that event carries it
+           * @example
+           * $.ui.invalidate("tool.offer", { agentId: e.agentId })
            */
-          invalidate: (event: InvalidatableEventName) => void;
+          invalidate: (event: InvalidatableEventName, loop?: {
+              agentId?: string;
+          }) => void;
           /**
            * Repaints a mounted `Raster` this plugin's own render hook drew with new
            * cells, or swaps a keyed `Image` it drew to a new source; no redraw.
@@ -4011,6 +4021,15 @@ declare module 'claude-code' {
            * background it answers at once, `result.agentId` the child's id.
            * `Workflow` is refused, as `$.tool.call` refuses it.
            *
+           * `context` is what hooks left for the model after the result, in the
+           * order it would read them, after the managed tier's review: the `context`
+           * of `tool.call` and `tool.run` hooks, bare, and a PostToolUse or
+           * PostToolUseFailure settings hook's added context, block reason or stop,
+           * as the line that names the hook (to read: no turn ends). No model reads
+           * it until a hook passes it on, and `prompt.attachment` is asked then.
+           * Absent when there is none, on a `{ deny }` and on a call that was cut;
+           * PreToolUse's is not in it.
+           *
            * @param args `tool`, `input`, and `agentId` (absent: the main conversation)
            * @param options `signal`: aborting it cuts the call (AgentCallOptions)
            * @returns the tool's result, or `{ deny }`: refused by a check, a tool
@@ -4019,6 +4038,10 @@ declare module 'claude-code' {
            * @example
            * const { text, deny } = await $.agent.call({ tool: "Bash",
            *   input: { command: "git status" }, agentId: e.agentId })
+           * @example
+           * // in the `tool.call` hook of this plugin's own tool: pass the context on
+           * const ran = await $.agent.call({ tool: "Read", input, agentId: e.agentId })
+           * return { result: ran.deny ?? ran.text, context: ran.context }
            */
           call: (args: AgentCallArgs, options?: AgentCallOptions) => Promise<OpValueOf['agent.call']>;
           /**
@@ -5490,28 +5513,41 @@ declare module 'claude-code' {
        * Fires once per tool before a loop's first request, and again when its
        * model calls the tool; `next(e)` resolves to `{ isOffered: true }`.
        *
-       * `{ isOffered: false }` keeps the tool from that loop's model for the
-       * loop's life, compactions and resumes included; at a call it refuses that
-       * call alone. A tool that joins later is asked once, as it joins.
+       * `e.for` says which. For the `list`, `{ isOffered: false }` keeps the tool
+       * from that loop's model, compactions and resumes included; for a `call` it
+       * refuses that call alone. A tool that joins later is asked as it joins.
        *
+       * @remarks `$.ui.invalidate("tool.offer")` has a loop ask for its list again.
+       *   A changed answer waits for a new thread or a compaction, unless it
+       *   carries `breakPromptCache: true` (ToolOfferResult). A tool out of the
+       *   pool then (a script's own) is asked about when next met, and one hidden
+       *   stays so until then. A resume shows what was last sent, and asks again
+       *   about a tool hidden and since shown: hidden then, it goes at once.
+       * @remarks Loading, reloading or unloading a mod asks nothing again: a mod
+       *   that wants it invalidates, at its own `session.start` for one.
        * @remarks `tool.list` shapes the pool: a tool it leaves out is gone for the
        *   model, every agent and a mod's own `$.tool.call`. This shapes only what
        *   one model is shown of the pool: the agent's children inherit a tool not
        *   offered, and `$.tool.call` still runs it.
-       * @remarks A fork keeps its parent's list, and its calls are asked. The
-       *   answers hold only while some hook is on the event. A hook that fails
-       *   passes the tool through. A command that sends the conversation ahead of
-       *   a turn (`/compact`, `/btw`) asks first, as the loop.
-       * @remarks The hand-back tool is asked at each run; not offered, the agent's
-       *   final text is its report. Where the server decides auto mode's checks and
-       *   cannot be handed that text, it is not asked, and stays offered.
-       *   StructuredOutput and EndConversation are never asked, nor is a list for
-       *   the loops the engine runs for itself (an agent hook's, a compaction's). A
-       *   Batch tool follows the tool it batches. ToolSearch, not offered, is left
-       *   out while no offered tool is deferred, and is there to load one that is;
-       *   it finds no hidden tool.
+       * @remarks A fork keeps its parent's list, whatever the parent is asked
+       *   again, and its calls are asked. The answers hold only while some hook is
+       *   on the event. A hook that fails passes the tool through. A command that
+       *   sends the conversation ahead of a turn (`/compact`, `/btw`) asks first,
+       *   as the loop.
+       * @remarks The hand-back tool is asked at each run, and not again in it; not
+       *   offered, the agent's final text is its report. Where the server decides
+       *   auto mode's checks and cannot be handed that text, it is not asked, and
+       *   stays offered. StructuredOutput and EndConversation are never asked, nor
+       *   is a list for the loops the engine runs for itself (an agent hook's, a
+       *   compaction's). A Batch tool follows the tool it batches. ToolSearch, not
+       *   offered, is left out while no offered tool is deferred, and is there to
+       *   load one that is; it finds no hidden tool. Once sent it stays, as does,
+       *   until a compaction, the definition of a tool it loaded.
        * @example
        * on("tool.offer", { tool: "Agent" }, ($, e) => ({ isOffered: !e.agentId }))
+       * @example
+       * on("tool.offer", { tool: "Bash", for: "list" }, () =>
+       *   ({ isOffered: !isLocked, breakPromptCache: true }))
        */
       'tool.offer': ToolOfferInput;
       /**
@@ -7373,14 +7409,14 @@ declare module 'claude-code' {
   };
 
   /**
-   * What `$.ui.invalidate` takes: a render event, or one of the seven events
+   * What `$.ui.invalidate` takes: a render event, or one of the eight events
    * whose answers the engine caches for the session.
    *
    * For `ui.render`, the instances this plugin's matchers on it may select: one
    * naming no `requestId`, every instance of its component. For a thread resumed
    * in a new process the recorded `prompt.section` text stands, asked or not.
    */
-  export type InvalidatableEventName = RenderEventName | 'prompt.section' | 'prompt.context' | 'prompt.attachment' | 'tool.describe' | 'tool.list' | 'command.describe' | 'config.describe';
+  export type InvalidatableEventName = RenderEventName | 'prompt.section' | 'prompt.context' | 'prompt.attachment' | 'tool.describe' | 'tool.list' | 'tool.offer' | 'command.describe' | 'config.describe';
 
   /**
    * Whether tag key `K` selects members of `I`: it does when each member gives
@@ -9025,10 +9061,12 @@ declare module 'claude-code' {
           text: string | undefined;
       };
       /**
-       * The argument of `$.ui.invalidate(event)`.
+       * The argument of `$.ui.invalidate(event, { agentId })`, `agentId` with
+       * `tool.offer` alone.
        */
       'ui.invalidate': {
           event: InvalidatableEventName;
+          agentId?: string;
       };
       /**
        * The argument of `$.ui.open({ id, title, focus })`; a hook above the
@@ -9334,6 +9372,9 @@ declare module 'claude-code' {
       'agent.register': {
           agent: string;
       };
+      /**
+       * The call's result, and as `context` what its hooks left for the model.
+       */
       'agent.call': ToolCallResult;
       'ui.toast': void;
       'ui.status': void;
@@ -18146,6 +18187,7 @@ declare module 'claude-code' {
        * One reminder, as a PostToolUse hook's is, after the managed tier's
        * review; none on a plugin's own `$.tool.call`. Kept whole from `next`,
        * none empty, any length: past 100,000 (200,000 together) head + path.
+       * `$.agent.call` answers with it, the settings hooks' included.
        */
       context?: readonly string[];
       /**
@@ -18738,8 +18780,9 @@ declare module 'claude-code' {
    * The input of `tool.offer`: one tool of a loop's pool, at the moment the
    * engine offers it to that loop's model. Every field is pinned.
    *
-   * Before the loop's first request (or when the tool joins the pool later) and
-   * when the model calls the tool: the same event at each.
+   * Before the loop's first request (or when the tool joins the pool later, or
+   * after `$.ui.invalidate("tool.offer")`) and when the model calls the tool:
+   * the same event at each, told apart by `for`.
    */
   export type ToolOfferInput = {
       /**
@@ -18751,6 +18794,13 @@ declare module 'claude-code' {
        * Who provides this tool, as `tool.describe`'s `provider` says.
        */
       provider: Origin;
+      /**
+       * What the answer is for: `list`, the tools the loop's model is shown, which
+       * the loop holds; `call`, one call its model made, and that call alone.
+       *
+       * A tool the model calls before it was ever asked about is asked for each.
+       */
+      for: 'list' | 'call';
       /**
        * The agent whose loop it is; absent for the main conversation.
        */
@@ -18768,6 +18818,16 @@ declare module 'claude-code' {
    */
   export type ToolOfferResult = {
       isOffered: boolean;
+      /**
+       * After `$.ui.invalidate("tool.offer")`, sends a changed list at the loop's
+       * next request, rewriting the whole prompt cache and dropping the model's
+       * earlier thinking.
+       *
+       * Left out, the change waits for a new thread or a compaction: a tool to
+       * hide stays listed, each call asked about, and one to show stays hidden.
+       * The outermost hook's answer says so; it means nothing at a call.
+       */
+      breakPromptCache?: boolean;
   };
 
   /**
