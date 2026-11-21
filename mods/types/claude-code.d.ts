@@ -3449,15 +3449,21 @@ declare module 'claude-code' {
           version: () => Promise<SessionVersion>;
           /**
            * Returns the session's transcript file, scratchpad, prompt id, agent type,
-           * config root, platform and hosting (SessionInfo), as they stand at the call.
+           * config root, platform, hosting and data rules (SessionInfo), as they
+           * stand at the call.
            *
            * What a settings hook reads on its input, for a plugin that has seen no
-           * classic event yet, and where the engine runs.
+           * classic event yet, and where the engine runs. `dataRules` is read with
+           * no request and no wait: treat absent, and any name you do not know, as
+           * a rule in force.
            *
            * @example
            * const { transcriptPath } = await $.session.info()
            * @example
            * const { platform, isHosted } = await $.session.info()
+           * @example
+           * const { dataRules } = await $.session.info()
+           * if (dataRules?.length !== 0) return // absent, or any name: keep it here
            */
           info: () => Promise<SessionInfo>;
           /**
@@ -3481,6 +3487,24 @@ declare module 'claude-code' {
            * const hasBun = (await $.session.machine()).runtimes.includes("bun")
            */
           machine: () => Promise<SessionMachine>;
+          /**
+           * Returns the text with the credentials found in it masked (keys, tokens,
+           * passwords), by the rules the engine masks its own logs with: the event
+           * `session.redact`.
+           *
+           * Best effort, and credentials only: it does not find personal or health
+           * data. The text is neither sent nor logged. A hook above may mask more,
+           * before or after `next(e)`, or refuse; it is handed the text unmasked.
+           * Mask a text before it goes into JSON: a mask can break serialized JSON.
+           *
+           * @param text at most 100,000 characters (`text.length`); a longer one
+           *   rejects, as does one that could not be masked
+           * @returns the text, each find replaced by a marker such as `[REDACTED]`
+           * @example
+           * const body = JSON.stringify({ text: await $.session.redact(report) })
+           * await $.http.fetch(url, { method: "POST", body })
+           */
+          redact: (text: string) => Promise<string>;
           /**
            * Compacts the conversation: the event `session.compact` with `trigger`
            * `plugin`, the same call `/compact` makes, between turns.
@@ -8851,6 +8875,12 @@ declare module 'claude-code' {
        */
       'session.machine': NoArgs;
       /**
+       * The argument of `$.session.redact(text)`: the text before any masking.
+       */
+      'session.redact': {
+          text: string;
+      };
+      /**
        * The argument of `$.turn.abort({ turnId })`.
        */
       'turn.abort': {
@@ -9216,6 +9246,10 @@ declare module 'claude-code' {
        * The machine as uname names it, and the developer tools on its PATH.
        */
       'session.machine': SessionMachine;
+      /**
+       * The text with the credentials found in it masked.
+       */
+      'session.redact': string;
       'turn.abort': void;
       /**
        * The box as it stands; the empty box where the session draws none.
@@ -15047,7 +15081,8 @@ declare module 'claude-code' {
 
   /**
    * What `$.session.info()` answers: what a settings hook's input says of the
-   * session that no other read on `$.session` does, and where the engine runs.
+   * session that no other read on `$.session` does, where the engine runs, and
+   * the data rules in force.
    */
   export type SessionInfo = {
       /**
@@ -15091,6 +15126,17 @@ declare module 'claude-code' {
        * The engine always gives it; a hook that answers whole may leave it out.
        */
       isHosted?: boolean;
+      /**
+       * The data rules the session is under. Names: these apply, and more may
+       * follow. `[]`: settled, none applies, as where no organization's policy
+       * reaches the session. Absent: not known, because the organization's answer
+       * has not arrived, failed, or cannot be tied to this sign-in.
+       *
+       * Treat absent, and any name you do not know, as a rule in force. It can
+       * change during a session: read it before each send, and do not keep it.
+       * The engine only reports it; what to hold back is the plugin's to decide.
+       */
+      dataRules?: readonly ('hipaa' | 'zdr' | (string & {}))[];
   };
 
   /**
