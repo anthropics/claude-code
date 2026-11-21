@@ -1265,7 +1265,8 @@ declare module 'claude-code' {
       display?: 'flex';
       /**
        * Moves a Box drawn `position: "absolute"`, as `left`, `right` and
-       * `bottom` do; none of the four moves a Box in the flow.
+       * `bottom` do; none of the four moves a Box in the flow. Whole cells or
+       * part of one, as the Box's own `top`.
        */
       top?: number;
       left?: number;
@@ -1310,27 +1311,33 @@ declare module 'claude-code' {
        */
       position?: 'relative' | 'absolute';
       /**
-       * Rows from the parent's top edge, in character cells: an integer,
-       * negative above the edge.
+       * Rows from the parent's top edge, in character cells, negative above the
+       * edge. With `bottom` and no `height` the Box spans the two.
        *
-       * With `bottom` and no `height` the Box spans the two.
+       * This and the other three offsets take any finite number, and a surface
+       * draws at the nearest place it has. The terminal's is a whole cell, a half
+       * going right or down; so is that of an app that has not said it draws part
+       * of one. A `Client`'s own tree is not rounded for such an app, which places
+       * the Box as if that side were left out.
+       *
+       * @example <Box position="absolute" top={1.4} left={2.5}>moving</Box>
        */
       top?: number;
       /**
-       * Columns from the parent's left edge, in character cells: an integer,
-       * negative left of the edge.
+       * Columns from the parent's left edge, in character cells, whole or part
+       * (see `top`), negative left of the edge.
        *
        * With `right` and no `width` the Box spans the two.
        */
       left?: number;
       /**
-       * Columns from the parent's right edge, in character cells: an integer,
-       * negative right of the edge.
+       * Columns from the parent's right edge, in character cells, whole or part
+       * (see `top`), negative right of the edge.
        */
       right?: number;
       /**
        * Rows from the parent's bottom edge, or from the line `anchor` names, in
-       * character cells: an integer, negative below the edge.
+       * character cells, whole or part (see `top`), negative below the edge.
        */
       bottom?: number;
       /**
@@ -1398,6 +1405,32 @@ declare module 'claude-code' {
        */
       overflowX?: 'visible' | 'scroll';
       display?: 'flex' | 'none';
+      /**
+       * Puts the Box and all it holds on the surface's monospaced cell, for art
+       * drawn in characters: the face of its text, spaces kept, and the cell that
+       * its own and its descendants' sizes, offsets and spacing count in.
+       *
+       * A `Client` it holds counts `surface.columns`, `rows` and pointer cells in
+       * that cell; a `mono` Box within the Client's own tree does not change them.
+       * A step name (`md`) takes its cells, as on the terminal; a Text's `size`, a
+       * control, `Code`, `Markdown` and `Svg` keep their own measure.
+       *
+       * Off the terminal a border keeps the surface's own measure, so what it holds
+       * starts off the grid: draw the frame in characters to stay on it.
+       *
+       * A glyph the face lacks (it may lack braille, half blocks, CJK and emoji)
+       * keeps its own width and can shift or wrap its row: place it in a Box of its
+       * own, `width={1}`, or `width={2}` for a wide one.
+       *
+       * `false` draws as absent: it undoes no `mono` above. Set either way, the
+       * Box holds no drawing of the engine's own (what `next(e)` may answer), as
+       * one with a size holds none. The terminal is always so and ignores it, and
+       * a surface that does not know it draws as without.
+       *
+       * @example <Box mono width={12} height={4}><Client key="cat"
+       *   module="./cat.tsx" width="100%" height={4} /></Box>
+       */
+      mono?: boolean;
   };
 
   /**
@@ -16365,7 +16398,7 @@ declare module 'claude-code' {
    * Code draw a step as cells: across, `xs` and `sm` 1, `md` 2, `lg` 3, `xl` 4;
    * down, `xs` and `sm` 0, `md` and `lg` 1, `xl` 2. Desktop and the phones each
    * use their own spacing scale, so there a step can be larger or smaller than
-   * those cells.
+   * those cells. In a `mono` Box, a surface that draws one uses the cells.
    */
   export type Space = number | 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 
