@@ -13769,7 +13769,7 @@ declare module 'claude-code' {
            * cell, the transcript, the prompt's two rules and blank cells, and is cut
            * cell by cell at everything else. Its blank cells show what is under them
            * and pass the pointer on; a Box with a border or a background hides it.
-           * A `Client` in it hears the pointer in its cell's columns alone.
+           * A `Client` in it hears the pointer on every cell of its own that shows.
            */
           floatRows: number;
           /**
