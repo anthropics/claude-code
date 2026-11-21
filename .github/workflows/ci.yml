@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [main, "claude/**"]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    name: Validate plugin JSON
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate all JSON files
+        run: |
+          find . -name "*.json" -not -path "./.git/*" | while read f; do
+            python3 -c "import json,sys; json.load(open('$f'))" || { echo "Invalid JSON: $f"; exit 1; }
+          done
+          echo "All JSON files are valid."
+
+      - name: Check every plugin has plugin.json
+        run: |
+          for dir in plugins/*/; do
+            [ -d "$dir" ] || continue
+            plugin=$(basename "$dir")
+            if [ ! -f "${dir}.claude-plugin/plugin.json" ]; then
+              echo "Missing .claude-plugin/plugin.json in $plugin"
+              exit 1
+            fi
+          done
+          echo "All plugins have plugin.json."
+
+      - name: Check marketplace.json lists every plugin
+        run: |
+          for dir in plugins/*/; do
+            [ -d "$dir" ] || continue
+            plugin=$(basename "$dir")
+            if ! python3 -c "
+          import json, sys
+          data = json.load(open('.claude-plugin/marketplace.json'))
+          names = [p['name'] for p in data['plugins']]
+          if '$plugin' not in names:
+              print(f'Plugin $plugin missing from marketplace.json')
+              sys.exit(1)
+          "; then
+              exit 1
+            fi
+          done
+          echo "All plugins are listed in marketplace.json."

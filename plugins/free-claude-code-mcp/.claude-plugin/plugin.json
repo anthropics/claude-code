@@ -1,0 +1,9 @@
+{
+  "name": "free-claude-code",
+  "version": "1.0.0",
+  "description": "MCP server integration for free-claude-code proxy, enabling agents to route requests through multiple AI providers with custom configuration",
+  "author": {
+    "name": "Claude",
+    "email": "claude@anthropic.com"
+  }
+}
