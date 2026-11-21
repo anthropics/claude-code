@@ -1303,6 +1303,7 @@ declare module 'claude-code' {
        * So showing or moving it (a hover may) moves nothing; the pointer on it is
        * on its parent. Clipped, pointer and paint, by the region its site is in
        * (viewport, pane, band), by the site itself on the main screen or export.
+       * In a `BesidePrompt` cell it floats past the cell (see its `floatRows`).
        *
        * @example <Box key="k"><Text>glyph</Text><Box position="absolute" top={-2}
        *   left={2} display="none" hover={{ display: 'flex' }}>the card</Box></Box>
@@ -7537,7 +7538,8 @@ declare module 'claude-code' {
    * (`ui.press`, a band row), a matcher leaving it out is read as naming the
    * hook's own plugin; `"*"` names every one, and hears an `e` without the key.
    * `claude plugin validate` notes such a hook: `(default matcher key: plugin)`;
-   * a `component` there keeps the hook off `AbovePromptList`.
+   * a `component` there keeps the hook off `AbovePromptList` and
+   * `BesidePromptList`.
    */
   export type Matcher<I, All = I> = I extends unknown ? {
       readonly [K in KnownKeys<I>]?: MatcherValue<I[K & keyof I], MatcherValueOf<All, K>>;
@@ -12566,10 +12568,11 @@ declare module 'claude-code' {
    * another (`$.ui.place`), and `Backdrop` the one a plugin sets
    * (`$.theme.set`), drawn behind the conversation by the desktop and mobile
    * apps alone. `AbovePromptList` is the band's arrangement of its `AbovePrompt`
-   * rows. `ContextMenu` is asked as the person opens the menu on a transcript
-   * row, and holds the rows a plugin adds to it.
+   * rows, `BesidePromptList` the same of the `BesidePrompt` cells. `ContextMenu`
+   * is asked as the person opens the menu on a transcript row, and holds the
+   * rows a plugin adds to it.
    */
-  export type RenderComponent = 'AskUserQuestion' | 'UserMessage' | 'AssistantMessage' | 'ToolUse' | 'ToolResult' | 'ToolGroup' | 'ToolProgress' | 'CommandOutput' | 'Spinner' | 'TurnDuration' | 'InfoNotice' | 'SessionMode' | 'PromptHint' | 'AbovePrompt' | 'AbovePromptList' | 'AgentRow' | 'ContextMenu' | 'Pane' | 'Placed' | 'Backdrop';
+  export type RenderComponent = 'AskUserQuestion' | 'UserMessage' | 'AssistantMessage' | 'ToolUse' | 'ToolResult' | 'ToolGroup' | 'ToolProgress' | 'CommandOutput' | 'Spinner' | 'TurnDuration' | 'InfoNotice' | 'SessionMode' | 'PromptHint' | 'AbovePrompt' | 'AbovePromptList' | 'BesidePrompt' | 'BesidePromptList' | 'AgentRow' | 'ContextMenu' | 'Pane' | 'Placed' | 'Backdrop';
 
   /**
    * What a render hook returns, and what `next(e)` resolves to: a plain-data
@@ -12981,8 +12984,8 @@ declare module 'claude-code' {
       requestId: string;
       /**
        * Whose this drawing is, where it is one plugin's: the plugin an
-       * `AbovePrompt` row or `ContextMenu` rows are asked of, the plugin that
-       * opened a `Pane`.
+       * `AbovePrompt` row, a `BesidePrompt` cell or `ContextMenu` rows are asked
+       * of, the plugin that opened a `Pane`.
        *
        * The engine's word, pinned: a rewrite carries it on as received. It is a
        * default matcher key: a hook leaving it out hears its own plugin's drawings
@@ -13693,6 +13696,82 @@ declare module 'claude-code' {
            * As `AbovePrompt`'s. Read-only: a rewrite carries it on as received.
            */
           view: SiteView;
+      };
+      /**
+       * The room to the right of the prompt, for a small thing: a meter, a status
+       * glyph, a sprite. Raised by the terminal's fullscreen layout alone, and not
+       * while a dialog, a picker or the help is open, the band is collapsed or a
+       * screen reader is on.
+       *
+       * Asked once for each plugin that hooks it, as `AbovePrompt` is: a hook draws
+       * that plugin's cell, or passes. A cell holds `Box`, `Text` and `Client` (its
+       * own tree `Box` and `Text`), with no `hover`; anything else refuses it. It
+       * never has the keys, and selecting text skips it.
+       *
+       * A cell stands on the footer's last row and takes the width it measures,
+       * which the input and its footer give up: keep it steady. A Box of it drawn
+       * `position: "absolute"` floats instead (see `floatRows`).
+       *
+       * @example
+       * on('ui.render', { component: 'BesidePrompt' }, ($, e, next) => {
+       *   const { Text } = $.ui.resolve(e)
+       *   return e.props.maxColumns < 4 ? next(e) : <Text dimColor>[ok]</Text>
+       * })
+       *
+       * Raised on the terminal surface only.
+       */
+      BesidePrompt: {
+          /**
+           * Columns all the cells may take together, one blank between each two; 0
+           * where the input has none to spare. Cells that do not fit are left out,
+           * from the last. Read-only.
+           */
+          maxColumns: number;
+          /**
+           * Rows above the prompt's own that a floating Box may reach. Read-only.
+           *
+           * It stays where it is placed and moves nothing. It paints over its own
+           * cell, the transcript, the prompt's two rules and blank cells, and is cut
+           * cell by cell at everything else. Its blank cells show what is under them
+           * and pass the pointer on; a Box with a border or a background hides it.
+           * A `Client` in it hears the pointer in its cell's columns alone.
+           */
+          floatRows: number;
+          /**
+           * Columns in from the right edge that a floating Box may reach. Read-only.
+           */
+          floatColumns: number;
+          /**
+           * Rows the prompt takes, from the blank one above the input to the
+           * footer's last. A taller cell is cut at its top. Read-only.
+           */
+          promptRows: number;
+          /**
+           * Rows between the prompt's top and the transcript's foot: the band and
+           * what else is stacked there. Read-only.
+           *
+           * @example <Box position="absolute" right={0}
+           *   bottom={e.props.promptRows + e.props.aboveRows}>above the band</Box>
+           */
+          aboveRows: number;
+      };
+      /**
+       * The order of the cells beside the prompt, left to right, heard by a hook
+       * naming it or a bare `on("*")`.
+       *
+       * A hook hides or reorders them in what `next(e)` gets, and answers what it
+       * answers; an organization's mod wins by the chain's order. A hook answering
+       * a tree of its own is passed over, and the answer beneath it stands: to fail
+       * closed, answer `{ type: "engine", ref: 0 }`, no cell, in its `.catch`.
+       *
+       * Raised on the terminal surface only.
+       */
+      BesidePromptList: {
+          /**
+           * The plugins that drew a cell, in chain order. A rewrite holds names it
+           * was handed, each once at most.
+           */
+          plugins: readonly string[];
       };
       /**
        * One agent's row in the at-a-glance agent list (the terminal's, under the
