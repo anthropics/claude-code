@@ -6,7 +6,7 @@ Anthropic's plugins are developed in [claude-plugins-official](https://github.co
 
 Claude Code plugins are extensions that enhance Claude Code with custom slash commands, specialized agents, hooks, and MCP servers. Plugins can be shared across projects and teams, providing consistent tooling and workflows.
 
-Learn more in the [official plugins documentation](https://docs.claude.com/en/docs/claude-code/plugins).
+Learn more in the [official plugins documentation](https://code.claude.com/docs/en/plugins).
 
 ## Installation
 
@@ -24,7 +24,7 @@ claude
 
 3. Use the `/plugin` command to install plugins from marketplaces, or configure them in your project's `.claude/settings.json`.
 
-For detailed plugin installation and configuration, see the [official documentation](https://docs.claude.com/en/docs/claude-code/plugins).
+For detailed plugin installation and configuration, see the [official documentation](https://code.claude.com/docs/en/plugins).
 
 ## Plugin Structure
 
@@ -48,6 +48,6 @@ New plugins belong in [claude-plugins-official](https://github.com/anthropics/cl
 
 ## Learn More
 
-- [Claude Code Documentation](https://docs.claude.com/en/docs/claude-code/overview)
-- [Plugin System Documentation](https://docs.claude.com/en/docs/claude-code/plugins)
-- [Agent SDK Documentation](https://docs.claude.com/en/api/agent-sdk/overview)
+- [Claude Code Documentation](https://code.claude.com/docs/en/overview)
+- [Plugin System Documentation](https://code.claude.com/docs/en/plugins)
+- [Agent SDK Documentation](https://code.claude.com/docs/en/agent-sdk/overview)
