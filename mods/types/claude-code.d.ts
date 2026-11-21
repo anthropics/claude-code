@@ -1240,8 +1240,8 @@ declare module 'claude-code' {
   export type BoxHoverProps = {
       /**
        * Names a hover group of this plugin's: every element it draws with the
-       * same `scope`, in any site but a `Backdrop`, lights while any is hovered,
-       * reveals included.
+       * same `scope`, in any site but a `Backdrop` or an `Underlay`, lights while
+       * any is hovered, reveals included.
        *
        * A Pane row and a mark on a transcript message can share one. Another
        * plugin's elements under the same string are a different group. One to
@@ -7538,8 +7538,8 @@ declare module 'claude-code' {
    * (`ui.press`, a band row), a matcher leaving it out is read as naming the
    * hook's own plugin; `"*"` names every one, and hears an `e` without the key.
    * `claude plugin validate` notes such a hook: `(default matcher key: plugin)`;
-   * a `component` there keeps the hook off `AbovePromptList` and
-   * `BesidePromptList`.
+   * a `component` there keeps the hook off `AbovePromptList`,
+   * `BesidePromptList` and `UnderlayList`.
    */
   export type Matcher<I, All = I> = I extends unknown ? {
       readonly [K in KnownKeys<I>]?: MatcherValue<I[K & keyof I], MatcherValueOf<All, K>>;
@@ -12570,9 +12570,10 @@ declare module 'claude-code' {
    * apps alone. `AbovePromptList` is the band's arrangement of its `AbovePrompt`
    * rows, `BesidePromptList` the same of the `BesidePrompt` cells. `ContextMenu`
    * is asked as the person opens the menu on a transcript row, and holds the
-   * rows a plugin adds to it.
+   * rows a plugin adds to it. `Underlay` is drawn under the terminal's
+   * fullscreen interface, and `UnderlayList` orders its layers.
    */
-  export type RenderComponent = 'AskUserQuestion' | 'UserMessage' | 'AssistantMessage' | 'ToolUse' | 'ToolResult' | 'ToolGroup' | 'ToolProgress' | 'CommandOutput' | 'Spinner' | 'TurnDuration' | 'InfoNotice' | 'SessionMode' | 'PromptHint' | 'AbovePrompt' | 'AbovePromptList' | 'BesidePrompt' | 'BesidePromptList' | 'AgentRow' | 'ContextMenu' | 'Pane' | 'Placed' | 'Backdrop';
+  export type RenderComponent = 'AskUserQuestion' | 'UserMessage' | 'AssistantMessage' | 'ToolUse' | 'ToolResult' | 'ToolGroup' | 'ToolProgress' | 'CommandOutput' | 'Spinner' | 'TurnDuration' | 'InfoNotice' | 'SessionMode' | 'PromptHint' | 'AbovePrompt' | 'AbovePromptList' | 'BesidePrompt' | 'BesidePromptList' | 'AgentRow' | 'ContextMenu' | 'Pane' | 'Placed' | 'Backdrop' | 'Underlay' | 'UnderlayList';
 
   /**
    * What a render hook returns, and what `next(e)` resolves to: a plain-data
@@ -12984,8 +12985,8 @@ declare module 'claude-code' {
       requestId: string;
       /**
        * Whose this drawing is, where it is one plugin's: the plugin an
-       * `AbovePrompt` row, a `BesidePrompt` cell or `ContextMenu` rows are asked
-       * of, the plugin that opened a `Pane`.
+       * `AbovePrompt` row, a `BesidePrompt` cell, an `Underlay` layer or
+       * `ContextMenu` rows are asked of, the plugin that opened a `Pane`.
        *
        * The engine's word, pinned: a rewrite carries it on as received. It is a
        * default matcher key: a hook leaving it out hears its own plugin's drawings
@@ -14071,6 +14072,77 @@ declare module 'claude-code' {
            * none. Read-only.
            */
           overrideColorScheme?: 'light' | 'dark';
+      };
+      /**
+       * A layer under the interface, over the whole window of the terminal's
+       * fullscreen layout; not raised on the main screen or on any other surface.
+       *
+       * Asked once for each plugin that hooks it, `e.plugin` naming the plugin: a
+       * hook draws that plugin's layer, or passes. `UnderlayList` orders them. The
+       * tree is laid out in a box the size of the window, which a root `Box` fills
+       * unless it has a `height` or a `position`; `position: "absolute"` places
+       * things in it. It holds `Box`, `Text`, `Raster` (`$.ui.blit` repaints it,
+       * `requestId` `"site:underlay"`) and `Client`, whose timers run and which
+       * hears no key or pointer. Any other element, or a `hover`, is refused.
+       *
+       * The interface always wins, whatever the tree says: a cell shows only where
+       * the interface left a blank with no background, never on text, a border, a
+       * fill, a link, a highlight or the caret. A glyph also needs a cell free of
+       * those characters on each side of it; where it has none, is right-to-left, or
+       * the terminal does its own selecting (the mouse is off), its background shows
+       * alone. A space on the default background, in a `Raster` too, is unpainted.
+       * What floats from a `BesidePrompt` cell wins as the interface does.
+       *
+       * Hidden while a dialog, a question, a picker or the exit flow is open (its
+       * Clients and Rasters stay mounted); not raised under reduced motion or a
+       * screen reader. Never clicked, selected, copied, read out or exported. Layers
+       * share one tree's limits as the band's rows do, and one that throws while
+       * drawn empties the underlay.
+       *
+       * @example
+       * on("ui.render", { component: "Underlay" }, ($, e) => {
+       *   const { Box } = $.ui.resolve(e)
+       *   return Box({ height: 2, backgroundColor: "#203040" })
+       * })
+       *
+       * Raised on the terminal surface only.
+       */
+      Underlay: {
+          /**
+           * The window's width in cells. Read-only.
+           */
+          columns: number;
+          /**
+           * The window's height in cells. Read-only.
+           */
+          rows: number;
+          /**
+           * True while a model turn is running. Read-only.
+           */
+          isWorking: boolean;
+          /**
+           * Which transcript is on screen, as `AbovePrompt`'s. Read-only: a rewrite
+           * carries it on as received.
+           */
+          view: SiteView;
+      };
+      /**
+       * The order of the underlay's layers, first on top, heard by a hook naming it
+       * or a bare `on("*")`: each cell is the first layer's that painted it.
+       *
+       * A hook hides or reorders them in what `next(e)` gets, and answers what it
+       * answers; an organization's mod wins by the chain's order. A hook answering
+       * a tree of its own is passed over, and the answer beneath it stands: to fail
+       * closed, answer `{ type: "engine", ref: 0 }`, no layer, in its `.catch`.
+       *
+       * Raised on the terminal surface only.
+       */
+      UnderlayList: {
+          /**
+           * The plugins that drew a layer, in chain order. A rewrite holds names it
+           * was handed, each once at most.
+           */
+          plugins: readonly string[];
       };
   };
 
@@ -16883,7 +16955,8 @@ declare module 'claude-code' {
   export type TextHoverProps = {
       /**
        * Names a hover group of this plugin's: every element it draws with the
-       * same `scope`, in any site but a `Backdrop`, lights while any is hovered.
+       * same `scope`, in any site but a `Backdrop` or an `Underlay`, lights while
+       * any is hovered.
        *
        * Another plugin's elements under the same string are a different group.
        * One to 64 characters, no control characters; no keyed Box needed. On the
