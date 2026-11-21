@@ -51,7 +51,7 @@ Anthropic's Claude Code plugins are developed in [claude-plugins-official](https
 
 ## Reporting Bugs
 
-We welcome your feedback. Use the `/bug` command to report issues directly within Claude Code, or file a [GitHub issue](https://github.com/anthropics/claude-code/issues).
+We welcome your feedback. Use the `/bug` command to report issues directly within Claude Code, or file a [GitHub issue](https://github.com/anthropics/claude-code/issues). For calculation bugs, include the exact inputs and assumptions (for example, fees, slippage, and rounding).
 
 ## Connect on Discord
 
