@@ -1952,8 +1952,9 @@ declare module 'claude-code' {
    * elements, the instance's local state, its region, input, clock and port.
    *
    * Called again (same `surface`, same `state`) on new props, after
-   * `setState`, and on a resize; what it returns is drawn in the region. No
-   * `$` here: the hooks module has it, and `post` is the way to reach it.
+   * `setState`, on a resize and as the window gains or loses the focus; what
+   * it returns is drawn in the region. No `$` here: the hooks module has it,
+   * and `post` is the way to reach it.
    */
   export type ClientSurface<S = unknown> = {
       /**
@@ -1971,7 +1972,8 @@ declare module 'claude-code' {
        * the next frame; several calls before it coalesce into one redraw.
        *
        * A `setState` on each of three renders in a row with no key, pointer,
-       * tick, press or props between is a render loop: the instance unmounts.
+       * tick, press, props or change of the window's focus between is a render
+       * loop: the instance unmounts.
        */
       setState: (next: S) => void;
       /**
@@ -1984,6 +1986,17 @@ declare module 'claude-code' {
        * layout).
        */
       readonly rows: number;
+      /**
+       * Whether the window the region is drawn in has the focus; true where the
+       * surface does not report it. A change calls the function once more.
+       *
+       * Timers run on while it is false: an animation that should rest with
+       * nobody looking reads it and leaves its frame as it is.
+       *
+       * @example
+       * const tick = () => surface.isWindowFocused && surface.setState(nextFrame())
+       */
+      readonly isWindowFocused: boolean;
       /**
        * Calls `fn` every `ms` milliseconds on the surface's frame clock until
        * the returned function is called or the instance unmounts.
@@ -21146,8 +21159,8 @@ declare module 'claude-code/testing' {
    * handle carries the act only where the surface's table has the element.
    *
    * `input` needs `Input` and `select` needs `Select` (every surface today);
-   * `key`, `pointer`, `post`, `advance` and `resize` reach a `Client`
-   * (terminal and desktop today). The rest need nothing but a tree.
+   * `key`, `pointer`, `post`, `advance`, `resize` and `setWindowFocused` reach a
+   * `Client` (terminal and desktop today). The rest need nothing but a tree.
    */
   export type ElementOfAct = {
       input: 'Input';
@@ -21157,6 +21170,7 @@ declare module 'claude-code/testing' {
       post: 'Client';
       advance: 'Client';
       resize: 'Client';
+      setWindowFocused: 'Client';
   };
 
   /**
@@ -21907,6 +21921,15 @@ declare module 'claude-code/testing' {
        * await ui.resize({ columns: 40, rows: 3 })
        */
       resize: (size: MountResizeTarget) => Promise<void>;
+      /**
+       * Gives the drawing's window the focus or takes it away: what each of its
+       * `Client`s reads as `surface.isWindowFocused`, one drawn later too.
+       *
+       * @param isFocused whether the window has it; a drawing starts with it
+       * @example
+       * await ui.setWindowFocused(false)
+       */
+      setWindowFocused: (isFocused: boolean) => Promise<void>;
       /**
        * Draws the instance again, as the engine does when its props change (a
        * tool row's output arrived): the `ui.render` chain with the next props.
