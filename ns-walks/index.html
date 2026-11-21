@@ -1,0 +1,1509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NS Walks - Nova Scotia Walk Ratings</title>
+    <style>
+        :root {
+            --ocean: #1a5276;
+            --ocean-light: #2980b9;
+            --forest: #1e8449;
+            --forest-light: #27ae60;
+            --sand: #f5e6ca;
+            --sand-dark: #e8d5b0;
+            --rock: #5d6d7e;
+            --white: #ffffff;
+            --light-gray: #f4f6f7;
+            --text: #2c3e50;
+            --text-light: #7f8c8d;
+            --danger: #e74c3c;
+            --star-color: #f39c12;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--light-gray);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        /* Header */
+        header {
+            background: linear-gradient(135deg, var(--ocean) 0%, var(--ocean-light) 50%, var(--forest) 100%);
+            color: var(--white);
+            padding: 2rem 1rem;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        header::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--sand);
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+            letter-spacing: 1px;
+        }
+
+        header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        /* Stats bar */
+        .stats-bar {
+            background: var(--white);
+            padding: 1rem;
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            flex-wrap: wrap;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--ocean);
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--text-light);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Controls */
+        .controls {
+            max-width: 1200px;
+            margin: 1.5rem auto;
+            padding: 0 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .search-sort {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            flex: 1;
+        }
+
+        .search-sort input,
+        .search-sort select {
+            padding: 0.6rem 1rem;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            transition: border-color 0.2s;
+        }
+
+        .search-sort input:focus,
+        .search-sort select:focus {
+            outline: none;
+            border-color: var(--ocean-light);
+        }
+
+        .search-sort input {
+            min-width: 220px;
+        }
+
+        .btn {
+            padding: 0.6rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--forest);
+            color: var(--white);
+        }
+
+        .btn-primary:hover {
+            background: var(--forest-light);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(30, 132, 73, 0.3);
+        }
+
+        .btn-secondary {
+            background: var(--ocean);
+            color: var(--white);
+        }
+
+        .btn-secondary:hover {
+            background: var(--ocean-light);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: var(--white);
+        }
+
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 2px solid var(--ocean);
+            color: var(--ocean);
+        }
+
+        .btn-outline:hover {
+            background: var(--ocean);
+            color: var(--white);
+        }
+
+        /* Walk Cards Grid */
+        .walks-grid {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem 2rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .walk-card {
+            background: var(--white);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .walk-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+        }
+
+        .card-images {
+            position: relative;
+            height: 200px;
+            background: var(--sand);
+            overflow: hidden;
+        }
+
+        .card-images img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .card-images .no-image {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--text-light);
+            font-size: 3rem;
+        }
+
+        .card-images .image-count {
+            position: absolute;
+            bottom: 8px;
+            right: 8px;
+            background: rgba(0,0,0,0.6);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+        }
+
+        .difficulty-badge {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .difficulty-easy { background: #27ae60; color: white; }
+        .difficulty-moderate { background: #f39c12; color: white; }
+        .difficulty-hard { background: #e74c3c; color: white; }
+        .difficulty-challenging { background: #8e44ad; color: white; }
+
+        .card-body {
+            padding: 1.25rem;
+        }
+
+        .card-body h3 {
+            font-size: 1.2rem;
+            margin-bottom: 0.25rem;
+            color: var(--ocean);
+        }
+
+        .card-location {
+            color: var(--text-light);
+            font-size: 0.9rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .card-meta {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .meta-item {
+            font-size: 0.85rem;
+            color: var(--text-light);
+        }
+
+        .meta-item strong {
+            color: var(--text);
+        }
+
+        .card-ratings {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .rating {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .rating-name {
+            font-size: 0.75rem;
+            color: var(--text-light);
+            margin-bottom: 2px;
+        }
+
+        .rating-stars {
+            color: var(--star-color);
+            font-size: 1rem;
+            letter-spacing: 1px;
+        }
+
+        .card-review {
+            font-size: 0.9rem;
+            color: var(--text);
+            line-height: 1.5;
+            margin-bottom: 0.75rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 0.5rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid #eee;
+        }
+
+        .card-actions .btn {
+            padding: 0.4rem 1rem;
+            font-size: 0.85rem;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--white);
+            border-radius: 16px;
+            width: 100%;
+            max-width: 650px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            background: var(--white);
+            border-radius: 16px 16px 0 0;
+            z-index: 1;
+        }
+
+        .modal-header h2 {
+            font-size: 1.3rem;
+            color: var(--ocean);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-light);
+            padding: 0.25rem;
+        }
+
+        .modal-close:hover {
+            color: var(--text);
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.4rem;
+            font-size: 0.9rem;
+            color: var(--text);
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.6rem 0.9rem;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-family: inherit;
+            transition: border-color 0.2s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--ocean-light);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .star-input {
+            display: flex;
+            gap: 4px;
+            direction: rtl;
+            justify-content: flex-end;
+        }
+
+        .star-input input {
+            display: none;
+        }
+
+        .star-input label {
+            font-size: 1.8rem;
+            color: #ddd;
+            cursor: pointer;
+            transition: color 0.15s;
+            margin-bottom: 0;
+            font-weight: normal;
+        }
+
+        .star-input label:hover,
+        .star-input label:hover ~ label,
+        .star-input input:checked ~ label {
+            color: var(--star-color);
+        }
+
+        .image-upload-area {
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+            margin-bottom: 0.5rem;
+        }
+
+        .image-upload-area:hover {
+            border-color: var(--ocean-light);
+            background: #f0f8ff;
+        }
+
+        .image-upload-area p {
+            color: var(--text-light);
+            font-size: 0.9rem;
+        }
+
+        .image-previews {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-top: 0.5rem;
+        }
+
+        .image-preview {
+            position: relative;
+            width: 80px;
+            height: 80px;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .image-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .image-preview .remove-image {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background: rgba(231, 76, 60, 0.9);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-footer {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75rem;
+            position: sticky;
+            bottom: 0;
+            background: var(--white);
+            border-radius: 0 0 16px 16px;
+        }
+
+        /* Detail Modal */
+        .detail-images {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .detail-images img {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .detail-images img:hover {
+            transform: scale(1.03);
+        }
+
+        .detail-section {
+            margin-bottom: 1.25rem;
+        }
+
+        .detail-section h4 {
+            color: var(--ocean);
+            margin-bottom: 0.5rem;
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .detail-meta-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+        }
+
+        .detail-meta-item {
+            background: var(--light-gray);
+            padding: 0.75rem;
+            border-radius: 8px;
+        }
+
+        .detail-meta-item .label {
+            font-size: 0.75rem;
+            color: var(--text-light);
+            text-transform: uppercase;
+        }
+
+        .detail-meta-item .value {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .detail-ratings {
+            display: flex;
+            gap: 2rem;
+        }
+
+        .detail-rating {
+            text-align: center;
+        }
+
+        .detail-rating .name {
+            font-size: 0.85rem;
+            color: var(--text-light);
+            margin-bottom: 0.25rem;
+        }
+
+        .detail-rating .stars {
+            color: var(--star-color);
+            font-size: 1.3rem;
+            letter-spacing: 2px;
+        }
+
+        .detail-rating .score {
+            font-size: 0.85rem;
+            color: var(--text-light);
+            margin-top: 0.25rem;
+        }
+
+        /* Image lightbox */
+        .lightbox {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.9);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .lightbox.active {
+            display: flex;
+        }
+
+        .lightbox img {
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+            border-radius: 4px;
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: var(--text-light);
+        }
+
+        .empty-state .icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+
+        .empty-state h3 {
+            font-size: 1.3rem;
+            margin-bottom: 0.5rem;
+            color: var(--text);
+        }
+
+        .empty-state p {
+            margin-bottom: 1.5rem;
+        }
+
+        /* Settings Modal */
+        .settings-names {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            header h1 { font-size: 1.8rem; }
+            .walks-grid { grid-template-columns: 1fr; }
+            .form-row { grid-template-columns: 1fr; }
+            .controls { flex-direction: column; }
+            .search-sort { width: 100%; }
+            .search-sort input { width: 100%; }
+            .detail-meta-grid { grid-template-columns: 1fr; }
+            .stats-bar { gap: 1rem; }
+        }
+
+        /* Runkeeper section styling */
+        .runkeeper-section {
+            background: #f0f8f0;
+            border: 1px solid #c8e6c8;
+            border-radius: 8px;
+            padding: 1rem;
+        }
+
+        .runkeeper-section label {
+            color: var(--forest) !important;
+        }
+
+        /* Confirm dialog */
+        .confirm-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 3000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .confirm-overlay.active { display: flex; }
+
+        .confirm-box {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            max-width: 400px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .confirm-box p {
+            margin-bottom: 1.5rem;
+            font-size: 1.05rem;
+        }
+
+        .confirm-box .btn-group {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>NS Walks</h1>
+    <p>Our Nova Scotia Walk Ratings</p>
+</header>
+
+<div class="stats-bar">
+    <div class="stat">
+        <div class="stat-value" id="totalWalks">0</div>
+        <div class="stat-label">Walks</div>
+    </div>
+    <div class="stat">
+        <div class="stat-value" id="totalDistance">0 km</div>
+        <div class="stat-label">Total Distance</div>
+    </div>
+    <div class="stat">
+        <div class="stat-value" id="avgRating">-</div>
+        <div class="stat-label">Avg Rating</div>
+    </div>
+    <div class="stat">
+        <div class="stat-value" id="topRated">-</div>
+        <div class="stat-label">Top Rated</div>
+    </div>
+</div>
+
+<div class="controls">
+    <div class="search-sort">
+        <input type="text" id="searchInput" placeholder="Search walks...">
+        <select id="sortSelect">
+            <option value="date-desc">Newest First</option>
+            <option value="date-asc">Oldest First</option>
+            <option value="rating-desc">Highest Rated</option>
+            <option value="rating-asc">Lowest Rated</option>
+            <option value="distance-desc">Longest</option>
+            <option value="distance-asc">Shortest</option>
+            <option value="name-asc">A - Z</option>
+        </select>
+    </div>
+    <div style="display: flex; gap: 0.5rem;">
+        <button class="btn btn-outline" onclick="openSettings()">Settings</button>
+        <button class="btn btn-primary" onclick="openAddModal()">+ Add Walk</button>
+    </div>
+</div>
+
+<div class="walks-grid" id="walksGrid"></div>
+
+<!-- Add/Edit Modal -->
+<div class="modal-overlay" id="walkModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h2 id="modalTitle">Add New Walk</h2>
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="walkId">
+
+            <div class="form-group">
+                <label for="walkName">Walk / Trail Name *</label>
+                <input type="text" id="walkName" placeholder="e.g. Polly's Cove Trail">
+            </div>
+
+            <div class="form-group">
+                <label for="walkLocation">Location *</label>
+                <input type="text" id="walkLocation" placeholder="e.g. Peggy's Cove, NS">
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="walkDate">Date Walked</label>
+                    <input type="date" id="walkDate">
+                </div>
+                <div class="form-group">
+                    <label for="walkDistance">Distance (km)</label>
+                    <input type="number" id="walkDistance" step="0.1" min="0" placeholder="e.g. 5.2">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="walkDifficulty">Difficulty</label>
+                    <select id="walkDifficulty">
+                        <option value="">Select...</option>
+                        <option value="easy">Easy</option>
+                        <option value="moderate">Moderate</option>
+                        <option value="hard">Hard</option>
+                        <option value="challenging">Challenging</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="walkDuration">Duration (minutes)</label>
+                    <input type="number" id="walkDuration" min="0" placeholder="e.g. 90">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label id="rating1Label">Rating (Person 1)</label>
+                    <div class="star-input" id="stars1">
+                        <input type="radio" id="star1-5" name="rating1" value="5"><label for="star1-5">&#9733;</label>
+                        <input type="radio" id="star1-4" name="rating1" value="4"><label for="star1-4">&#9733;</label>
+                        <input type="radio" id="star1-3" name="rating1" value="3"><label for="star1-3">&#9733;</label>
+                        <input type="radio" id="star1-2" name="rating1" value="2"><label for="star1-2">&#9733;</label>
+                        <input type="radio" id="star1-1" name="rating1" value="1"><label for="star1-1">&#9733;</label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label id="rating2Label">Rating (Person 2)</label>
+                    <div class="star-input" id="stars2">
+                        <input type="radio" id="star2-5" name="rating2" value="5"><label for="star2-5">&#9733;</label>
+                        <input type="radio" id="star2-4" name="rating2" value="4"><label for="star2-4">&#9733;</label>
+                        <input type="radio" id="star2-3" name="rating2" value="3"><label for="star2-3">&#9733;</label>
+                        <input type="radio" id="star2-2" name="rating2" value="2"><label for="star2-2">&#9733;</label>
+                        <input type="radio" id="star2-1" name="rating2" value="1"><label for="star2-1">&#9733;</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="walkReview">Review / Notes</label>
+                <textarea id="walkReview" placeholder="How was the walk? Any highlights, tips, or things to note?"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Walk Photos</label>
+                <div class="image-upload-area" onclick="document.getElementById('photoInput').click()">
+                    <p>Click to add photos</p>
+                    <input type="file" id="photoInput" accept="image/*" multiple style="display:none" onchange="handleImageUpload(event, 'photo')">
+                </div>
+                <div class="image-previews" id="photoPreview"></div>
+            </div>
+
+            <div class="form-group runkeeper-section">
+                <label>RunKeeper Screenshots</label>
+                <div class="image-upload-area" onclick="document.getElementById('runkeeperInput').click()" style="border-color: #a5d6a5;">
+                    <p>Click to add RunKeeper screenshots</p>
+                    <input type="file" id="runkeeperInput" accept="image/*" multiple style="display:none" onchange="handleImageUpload(event, 'runkeeper')">
+                </div>
+                <div class="image-previews" id="runkeeperPreview"></div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="saveWalk()">Save Walk</button>
+        </div>
+    </div>
+</div>
+
+<!-- Detail Modal -->
+<div class="modal-overlay" id="detailModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h2 id="detailTitle">Walk Details</h2>
+            <button class="modal-close" onclick="closeDetailModal()">&times;</button>
+        </div>
+        <div class="modal-body" id="detailBody"></div>
+        <div class="modal-footer">
+            <button class="btn btn-danger" onclick="deleteFromDetail()">Delete</button>
+            <button class="btn btn-secondary" onclick="editFromDetail()">Edit</button>
+            <button class="btn btn-outline" onclick="closeDetailModal()">Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- Settings Modal -->
+<div class="modal-overlay" id="settingsModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h2>Settings</h2>
+            <button class="modal-close" onclick="closeSettings()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>Personalize your names (shown on ratings)</label>
+                <div class="settings-names">
+                    <div class="form-group">
+                        <label for="name1Input" style="font-weight:normal; font-size: 0.85rem;">Person 1</label>
+                        <input type="text" id="name1Input" placeholder="e.g. Alex">
+                    </div>
+                    <div class="form-group">
+                        <label for="name2Input" style="font-weight:normal; font-size: 0.85rem;">Person 2</label>
+                        <input type="text" id="name2Input" placeholder="e.g. Sam">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Data Management</label>
+                <p style="font-size: 0.85rem; color: var(--text-light); margin-bottom: 0.75rem;">
+                    Export your walks as a JSON file for backup, or import a previously exported file.
+                </p>
+                <div style="display: flex; gap: 0.75rem;">
+                    <button class="btn btn-secondary" onclick="exportData()">Export Data</button>
+                    <button class="btn btn-outline" onclick="document.getElementById('importInput').click()">Import Data</button>
+                    <input type="file" id="importInput" accept=".json" style="display:none" onchange="importData(event)">
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closeSettings()">Cancel</button>
+            <button class="btn btn-primary" onclick="saveSettings()">Save</button>
+        </div>
+    </div>
+</div>
+
+<!-- Lightbox -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+    <img id="lightboxImg" src="" alt="Full size image">
+</div>
+
+<!-- Confirm Dialog -->
+<div class="confirm-overlay" id="confirmDialog">
+    <div class="confirm-box">
+        <p id="confirmMessage">Are you sure?</p>
+        <div class="btn-group">
+            <button class="btn btn-outline" onclick="closeConfirm()">Cancel</button>
+            <button class="btn btn-danger" id="confirmBtn" onclick="">Confirm</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ===================== DATA =====================
+
+    function getWalks() {
+        return JSON.parse(localStorage.getItem('nswalks_data') || '[]');
+    }
+
+    function saveWalks(walks) {
+        localStorage.setItem('nswalks_data', JSON.stringify(walks));
+    }
+
+    function getSettings() {
+        return JSON.parse(localStorage.getItem('nswalks_settings') || '{"name1":"Person 1","name2":"Person 2"}');
+    }
+
+    function saveSettingsData(settings) {
+        localStorage.setItem('nswalks_settings', JSON.stringify(settings));
+    }
+
+    // ===================== STATE =====================
+
+    let currentPhotos = [];
+    let currentRunkeeper = [];
+    let currentDetailId = null;
+
+    // ===================== RENDER =====================
+
+    function renderWalks() {
+        const walks = getFilteredWalks();
+        const grid = document.getElementById('walksGrid');
+        const settings = getSettings();
+
+        if (walks.length === 0) {
+            const allWalks = getWalks();
+            if (allWalks.length === 0) {
+                grid.innerHTML = `
+                    <div class="empty-state" style="grid-column: 1 / -1;">
+                        <div class="icon">&#127956;</div>
+                        <h3>No walks yet!</h3>
+                        <p>Start tracking your Nova Scotia adventures by adding your first walk.</p>
+                        <button class="btn btn-primary" onclick="openAddModal()">+ Add Your First Walk</button>
+                    </div>
+                `;
+            } else {
+                grid.innerHTML = `
+                    <div class="empty-state" style="grid-column: 1 / -1;">
+                        <div class="icon">&#128269;</div>
+                        <h3>No walks match your search</h3>
+                        <p>Try a different search term.</p>
+                    </div>
+                `;
+            }
+            updateStats();
+            return;
+        }
+
+        grid.innerHTML = walks.map(walk => {
+            const allImages = [...(walk.photos || []), ...(walk.runkeeper || [])];
+            const firstImage = allImages[0];
+            const avgRating = getAvgRating(walk);
+            const diffClass = walk.difficulty ? `difficulty-${walk.difficulty}` : '';
+
+            return `
+                <div class="walk-card" onclick="openDetail('${walk.id}')">
+                    <div class="card-images">
+                        ${firstImage
+                            ? `<img src="${firstImage}" alt="${walk.name}">`
+                            : '<div class="no-image">&#127956;</div>'
+                        }
+                        ${allImages.length > 1 ? `<span class="image-count">${allImages.length} photos</span>` : ''}
+                        ${walk.difficulty ? `<span class="difficulty-badge ${diffClass}">${walk.difficulty}</span>` : ''}
+                    </div>
+                    <div class="card-body">
+                        <h3>${escapeHtml(walk.name)}</h3>
+                        <div class="card-location">${escapeHtml(walk.location)}</div>
+                        <div class="card-meta">
+                            ${walk.date ? `<span class="meta-item">${formatDate(walk.date)}</span>` : ''}
+                            ${walk.distance ? `<span class="meta-item"><strong>${walk.distance}</strong> km</span>` : ''}
+                            ${walk.duration ? `<span class="meta-item"><strong>${walk.duration}</strong> min</span>` : ''}
+                        </div>
+                        <div class="card-ratings">
+                            ${walk.rating1 ? `
+                                <div class="rating">
+                                    <span class="rating-name">${escapeHtml(settings.name1)}</span>
+                                    <span class="rating-stars">${starsHtml(walk.rating1)}</span>
+                                </div>
+                            ` : ''}
+                            ${walk.rating2 ? `
+                                <div class="rating">
+                                    <span class="rating-name">${escapeHtml(settings.name2)}</span>
+                                    <span class="rating-stars">${starsHtml(walk.rating2)}</span>
+                                </div>
+                            ` : ''}
+                        </div>
+                        ${walk.review ? `<div class="card-review">${escapeHtml(walk.review)}</div>` : ''}
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        updateStats();
+    }
+
+    function updateStats() {
+        const walks = getWalks();
+        document.getElementById('totalWalks').textContent = walks.length;
+
+        const totalDist = walks.reduce((sum, w) => sum + (parseFloat(w.distance) || 0), 0);
+        document.getElementById('totalDistance').textContent = totalDist.toFixed(1) + ' km';
+
+        const ratings = walks.map(w => getAvgRating(w)).filter(r => r > 0);
+        if (ratings.length > 0) {
+            const avg = ratings.reduce((a, b) => a + b, 0) / ratings.length;
+            document.getElementById('avgRating').textContent = avg.toFixed(1) + ' / 5';
+        } else {
+            document.getElementById('avgRating').textContent = '-';
+        }
+
+        if (walks.length > 0) {
+            const best = walks.reduce((top, w) => getAvgRating(w) > getAvgRating(top) ? w : top, walks[0]);
+            if (getAvgRating(best) > 0) {
+                document.getElementById('topRated').textContent = best.name.length > 20 ? best.name.substring(0, 18) + '...' : best.name;
+            } else {
+                document.getElementById('topRated').textContent = '-';
+            }
+        } else {
+            document.getElementById('topRated').textContent = '-';
+        }
+    }
+
+    // ===================== FILTERING & SORTING =====================
+
+    function getFilteredWalks() {
+        let walks = getWalks();
+        const search = document.getElementById('searchInput').value.toLowerCase();
+        const sort = document.getElementById('sortSelect').value;
+
+        if (search) {
+            walks = walks.filter(w =>
+                w.name.toLowerCase().includes(search) ||
+                w.location.toLowerCase().includes(search) ||
+                (w.review && w.review.toLowerCase().includes(search))
+            );
+        }
+
+        walks.sort((a, b) => {
+            switch (sort) {
+                case 'date-desc': return (b.date || '').localeCompare(a.date || '');
+                case 'date-asc': return (a.date || '').localeCompare(b.date || '');
+                case 'rating-desc': return getAvgRating(b) - getAvgRating(a);
+                case 'rating-asc': return getAvgRating(a) - getAvgRating(b);
+                case 'distance-desc': return (parseFloat(b.distance) || 0) - (parseFloat(a.distance) || 0);
+                case 'distance-asc': return (parseFloat(a.distance) || 0) - (parseFloat(b.distance) || 0);
+                case 'name-asc': return a.name.localeCompare(b.name);
+                default: return 0;
+            }
+        });
+
+        return walks;
+    }
+
+    // ===================== ADD/EDIT MODAL =====================
+
+    function openAddModal() {
+        document.getElementById('modalTitle').textContent = 'Add New Walk';
+        document.getElementById('walkId').value = '';
+        document.getElementById('walkName').value = '';
+        document.getElementById('walkLocation').value = '';
+        document.getElementById('walkDate').value = '';
+        document.getElementById('walkDistance').value = '';
+        document.getElementById('walkDifficulty').value = '';
+        document.getElementById('walkDuration').value = '';
+        document.getElementById('walkReview').value = '';
+
+        document.querySelectorAll('#stars1 input, #stars2 input').forEach(i => i.checked = false);
+
+        currentPhotos = [];
+        currentRunkeeper = [];
+        renderImagePreviews();
+        updateRatingLabels();
+
+        document.getElementById('walkModal').classList.add('active');
+    }
+
+    function openEditModal(id) {
+        const walks = getWalks();
+        const walk = walks.find(w => w.id === id);
+        if (!walk) return;
+
+        document.getElementById('modalTitle').textContent = 'Edit Walk';
+        document.getElementById('walkId').value = walk.id;
+        document.getElementById('walkName').value = walk.name;
+        document.getElementById('walkLocation').value = walk.location;
+        document.getElementById('walkDate').value = walk.date || '';
+        document.getElementById('walkDistance').value = walk.distance || '';
+        document.getElementById('walkDifficulty').value = walk.difficulty || '';
+        document.getElementById('walkDuration').value = walk.duration || '';
+        document.getElementById('walkReview').value = walk.review || '';
+
+        document.querySelectorAll('#stars1 input').forEach(i => {
+            i.checked = (parseInt(i.value) === walk.rating1);
+        });
+        document.querySelectorAll('#stars2 input').forEach(i => {
+            i.checked = (parseInt(i.value) === walk.rating2);
+        });
+
+        currentPhotos = [...(walk.photos || [])];
+        currentRunkeeper = [...(walk.runkeeper || [])];
+        renderImagePreviews();
+        updateRatingLabels();
+
+        document.getElementById('walkModal').classList.add('active');
+    }
+
+    function closeModal() {
+        document.getElementById('walkModal').classList.remove('active');
+    }
+
+    function saveWalk() {
+        const name = document.getElementById('walkName').value.trim();
+        const location = document.getElementById('walkLocation').value.trim();
+
+        if (!name || !location) {
+            alert('Please enter a walk name and location.');
+            return;
+        }
+
+        const id = document.getElementById('walkId').value || generateId();
+        const rating1El = document.querySelector('#stars1 input:checked');
+        const rating2El = document.querySelector('#stars2 input:checked');
+
+        const walk = {
+            id: id,
+            name: name,
+            location: location,
+            date: document.getElementById('walkDate').value || null,
+            distance: document.getElementById('walkDistance').value || null,
+            difficulty: document.getElementById('walkDifficulty').value || null,
+            duration: document.getElementById('walkDuration').value || null,
+            rating1: rating1El ? parseInt(rating1El.value) : null,
+            rating2: rating2El ? parseInt(rating2El.value) : null,
+            review: document.getElementById('walkReview').value.trim() || null,
+            photos: currentPhotos,
+            runkeeper: currentRunkeeper,
+            createdAt: null
+        };
+
+        let walks = getWalks();
+        const existingIndex = walks.findIndex(w => w.id === id);
+
+        if (existingIndex >= 0) {
+            walk.createdAt = walks[existingIndex].createdAt;
+            walks[existingIndex] = walk;
+        } else {
+            walk.createdAt = new Date().toISOString();
+            walks.push(walk);
+        }
+
+        saveWalks(walks);
+        closeModal();
+        renderWalks();
+    }
+
+    // ===================== DETAIL MODAL =====================
+
+    function openDetail(id) {
+        const walks = getWalks();
+        const walk = walks.find(w => w.id === id);
+        if (!walk) return;
+
+        currentDetailId = id;
+        const settings = getSettings();
+
+        document.getElementById('detailTitle').textContent = walk.name;
+
+        const allImages = [...(walk.photos || []), ...(walk.runkeeper || [])];
+
+        let html = '';
+
+        if (allImages.length > 0) {
+            html += `<div class="detail-section"><h4>Photos</h4><div class="detail-images">`;
+            walk.photos && walk.photos.forEach(img => {
+                html += `<img src="${img}" alt="Walk photo" onclick="event.stopPropagation(); openLightbox('${img}')">`;
+            });
+            html += `</div></div>`;
+        }
+
+        if (walk.runkeeper && walk.runkeeper.length > 0) {
+            html += `<div class="detail-section"><h4>RunKeeper</h4><div class="detail-images">`;
+            walk.runkeeper.forEach(img => {
+                html += `<img src="${img}" alt="RunKeeper screenshot" onclick="event.stopPropagation(); openLightbox('${img}')">`;
+            });
+            html += `</div></div>`;
+        }
+
+        html += `<div class="detail-section"><h4>Details</h4><div class="detail-meta-grid">`;
+        html += `<div class="detail-meta-item"><div class="label">Location</div><div class="value">${escapeHtml(walk.location)}</div></div>`;
+        if (walk.date) html += `<div class="detail-meta-item"><div class="label">Date</div><div class="value">${formatDate(walk.date)}</div></div>`;
+        if (walk.distance) html += `<div class="detail-meta-item"><div class="label">Distance</div><div class="value">${walk.distance} km</div></div>`;
+        if (walk.duration) html += `<div class="detail-meta-item"><div class="label">Duration</div><div class="value">${walk.duration} min</div></div>`;
+        if (walk.difficulty) html += `<div class="detail-meta-item"><div class="label">Difficulty</div><div class="value" style="text-transform:capitalize">${walk.difficulty}</div></div>`;
+        html += `</div></div>`;
+
+        if (walk.rating1 || walk.rating2) {
+            html += `<div class="detail-section"><h4>Ratings</h4><div class="detail-ratings">`;
+            if (walk.rating1) {
+                html += `<div class="detail-rating"><div class="name">${escapeHtml(settings.name1)}</div><div class="stars">${starsHtml(walk.rating1)}</div><div class="score">${walk.rating1} / 5</div></div>`;
+            }
+            if (walk.rating2) {
+                html += `<div class="detail-rating"><div class="name">${escapeHtml(settings.name2)}</div><div class="stars">${starsHtml(walk.rating2)}</div><div class="score">${walk.rating2} / 5</div></div>`;
+            }
+            html += `</div></div>`;
+        }
+
+        if (walk.review) {
+            html += `<div class="detail-section"><h4>Review</h4><p style="line-height:1.6">${escapeHtml(walk.review)}</p></div>`;
+        }
+
+        document.getElementById('detailBody').innerHTML = html;
+        document.getElementById('detailModal').classList.add('active');
+    }
+
+    function closeDetailModal() {
+        document.getElementById('detailModal').classList.remove('active');
+        currentDetailId = null;
+    }
+
+    function editFromDetail() {
+        const id = currentDetailId;
+        closeDetailModal();
+        openEditModal(id);
+    }
+
+    function deleteFromDetail() {
+        showConfirm('Delete this walk? This cannot be undone.', () => {
+            let walks = getWalks();
+            walks = walks.filter(w => w.id !== currentDetailId);
+            saveWalks(walks);
+            closeDetailModal();
+            renderWalks();
+        });
+    }
+
+    // ===================== SETTINGS =====================
+
+    function openSettings() {
+        const settings = getSettings();
+        document.getElementById('name1Input').value = settings.name1 || '';
+        document.getElementById('name2Input').value = settings.name2 || '';
+        document.getElementById('settingsModal').classList.add('active');
+    }
+
+    function closeSettings() {
+        document.getElementById('settingsModal').classList.remove('active');
+    }
+
+    function saveSettings() {
+        const settings = {
+            name1: document.getElementById('name1Input').value.trim() || 'Person 1',
+            name2: document.getElementById('name2Input').value.trim() || 'Person 2'
+        };
+        saveSettingsData(settings);
+        closeSettings();
+        updateRatingLabels();
+        renderWalks();
+    }
+
+    function updateRatingLabels() {
+        const settings = getSettings();
+        document.getElementById('rating1Label').textContent = `${settings.name1}'s Rating`;
+        document.getElementById('rating2Label').textContent = `${settings.name2}'s Rating`;
+    }
+
+    // ===================== IMAGES =====================
+
+    function handleImageUpload(event, type) {
+        const files = event.target.files;
+        Array.from(files).forEach(file => {
+            if (file.size > 5 * 1024 * 1024) {
+                alert(`"${file.name}" is too large. Max 5MB per image.`);
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                if (type === 'photo') {
+                    currentPhotos.push(e.target.result);
+                } else {
+                    currentRunkeeper.push(e.target.result);
+                }
+                renderImagePreviews();
+            };
+            reader.readAsDataURL(file);
+        });
+        event.target.value = '';
+    }
+
+    function renderImagePreviews() {
+        const photoContainer = document.getElementById('photoPreview');
+        const rkContainer = document.getElementById('runkeeperPreview');
+
+        photoContainer.innerHTML = currentPhotos.map((img, i) => `
+            <div class="image-preview">
+                <img src="${img}" alt="Photo ${i + 1}">
+                <button class="remove-image" onclick="event.stopPropagation(); removeImage('photo', ${i})">&times;</button>
+            </div>
+        `).join('');
+
+        rkContainer.innerHTML = currentRunkeeper.map((img, i) => `
+            <div class="image-preview">
+                <img src="${img}" alt="RunKeeper ${i + 1}">
+                <button class="remove-image" onclick="event.stopPropagation(); removeImage('runkeeper', ${i})">&times;</button>
+            </div>
+        `).join('');
+    }
+
+    function removeImage(type, index) {
+        if (type === 'photo') {
+            currentPhotos.splice(index, 1);
+        } else {
+            currentRunkeeper.splice(index, 1);
+        }
+        renderImagePreviews();
+    }
+
+    // ===================== LIGHTBOX =====================
+
+    function openLightbox(src) {
+        document.getElementById('lightboxImg').src = src;
+        document.getElementById('lightbox').classList.add('active');
+    }
+
+    function closeLightbox() {
+        document.getElementById('lightbox').classList.remove('active');
+    }
+
+    // ===================== CONFIRM =====================
+
+    let confirmCallback = null;
+
+    function showConfirm(message, callback) {
+        document.getElementById('confirmMessage').textContent = message;
+        confirmCallback = callback;
+        document.getElementById('confirmBtn').onclick = () => {
+            closeConfirm();
+            if (confirmCallback) confirmCallback();
+        };
+        document.getElementById('confirmDialog').classList.add('active');
+    }
+
+    function closeConfirm() {
+        document.getElementById('confirmDialog').classList.remove('active');
+        confirmCallback = null;
+    }
+
+    // ===================== IMPORT / EXPORT =====================
+
+    function exportData() {
+        const data = {
+            walks: getWalks(),
+            settings: getSettings(),
+            exportedAt: new Date().toISOString()
+        };
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `ns-walks-backup-${new Date().toISOString().split('T')[0]}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    function importData(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const data = JSON.parse(e.target.result);
+                if (data.walks && Array.isArray(data.walks)) {
+                    showConfirm('This will replace all your current data. Continue?', () => {
+                        saveWalks(data.walks);
+                        if (data.settings) saveSettingsData(data.settings);
+                        renderWalks();
+                        updateRatingLabels();
+                        alert('Data imported successfully!');
+                    });
+                } else {
+                    alert('Invalid backup file format.');
+                }
+            } catch (err) {
+                alert('Could not read the file. Make sure it is a valid JSON backup.');
+            }
+        };
+        reader.readAsText(file);
+        event.target.value = '';
+    }
+
+    // ===================== HELPERS =====================
+
+    function generateId() {
+        return Date.now().toString(36) + Math.random().toString(36).substring(2, 8);
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function starsHtml(rating) {
+        let html = '';
+        for (let i = 1; i <= 5; i++) {
+            html += i <= rating ? '&#9733;' : '&#9734;';
+        }
+        return html;
+    }
+
+    function getAvgRating(walk) {
+        const r1 = walk.rating1 || 0;
+        const r2 = walk.rating2 || 0;
+        if (r1 && r2) return (r1 + r2) / 2;
+        return r1 || r2;
+    }
+
+    function formatDate(dateStr) {
+        if (!dateStr) return '';
+        const d = new Date(dateStr + 'T00:00:00');
+        return d.toLocaleDateString('en-CA', { year: 'numeric', month: 'short', day: 'numeric' });
+    }
+
+    // ===================== EVENT LISTENERS =====================
+
+    document.getElementById('searchInput').addEventListener('input', renderWalks);
+    document.getElementById('sortSelect').addEventListener('change', renderWalks);
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeModal();
+            closeDetailModal();
+            closeSettings();
+            closeLightbox();
+            closeConfirm();
+        }
+    });
+
+    // ===================== INIT =====================
+
+    updateRatingLabels();
+    renderWalks();
+</script>
+
+</body>
+</html>
