@@ -76,7 +76,7 @@ export function register(on: On): void {
 
               return isFile ? await $.fs.read(path) : ''
             } catch (error) {
-              if (!String(error).endsWith(' failed: UNHELD')) {
+              if (!/ failed: (UNHELD|RULES_MOVED)$/.test(String(error))) {
                 return ''
               }
 
