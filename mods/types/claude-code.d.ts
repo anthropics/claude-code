@@ -3520,16 +3520,17 @@ declare module 'claude-code' {
            */
           authorize: () => Promise<SessionAuthorization>;
           /**
-           * Returns how the session is signed in, and the account (organization, plan,
-           * email) where managed `forceLoginOrgUUID` lists it. No request is made.
+           * Returns how the session is signed in, the signed-in account's id and
+           * creation date, and its organization, plan and email where managed
+           * `forceLoginOrgUUID` lists it. No request is made.
            *
            * privacy and sec-default each answer a `user`-tier caller `{ deny }`.
            * Without sec-default a person's hook above privacy can see or answer the
-           * call, a pin's organization fields included, and with privacy off too their
+           * call, the account's fields included, and with privacy off too their
            * mod is answered: the email already reaches it at `prompt.context`.
            *
            * @example
-           * const { kind, organizationId, email } = await $.session.identity()
+           * const { kind, accountId, organizationId } = await $.session.identity()
            */
           identity: () => Promise<SessionIdentity>;
       };
@@ -14779,7 +14780,8 @@ declare module 'claude-code' {
 
   /**
    * What `$.session.identity()` answers: how the session is signed in, the address
-   * the model was handed and, under a managed pin, the account the session holds.
+   * the model was handed, the signed-in account's id and creation date and, under
+   * a managed pin, its organization and email.
    *
    * The engine answers every caller alike; the built-in privacy and sec-default
    * mods decide who gets what. That is a contract, not a wall: any mod can read
@@ -14798,9 +14800,9 @@ declare module 'claude-code' {
        * The organization the account belongs to, by its id, only where
        * managed `forceLoginOrgUUID` lists that organization.
        *
-       * Absent everywhere else, as are the two fields below: with no pin, a
-       * pin on another organization, an API key or a cloud provider. So these
-       * three never tell of another organization's account.
+       * Absent everywhere else, as are `organizationType` and `email`: with no
+       * pin, a pin on another organization, an API key or a cloud provider. So
+       * these three never tell of another organization's account.
        */
       organizationId?: string;
       /**
@@ -14816,11 +14818,42 @@ declare module 'claude-code' {
        */
       email?: string;
       /**
+       * The signed-in account's uuid, the same on every machine, with or
+       * without a pin: on the login stored on this machine, or on a token the
+       * host handed over (`oauth-token`).
+       *
+       * On a host's token it is always the id the server named for that token,
+       * even where `isVerified` is false. So it and the date can be absent until
+       * the server has answered this process and again once the host replaces
+       * the token, and stay absent with nonessential traffic off or where the
+       * server names no account for the token. On the stored login it is, until
+       * then, the id saved on disk with the token, else the login record's.
+       *
+       * Absent with an API key, a profile, a cloud provider, a gateway or any
+       * other base URL than Anthropic's, no login, and in a multi-tenant
+       * process. Absent too under a `forceLoginOrgUUID` of any managed source
+       * that does not list the account's organization, and where managed
+       * settings that may hold one could not be read.
+       */
+      accountId?: string;
+      /**
+       * When that account was made, as the login recorded it: the server's ISO
+       * 8601 timestamp (`2024-01-02T03:04:05.123456Z`).
+       *
+       * Absent wherever `accountId` is, where no login recorded one, and where
+       * the record names another account than `accountId`. Always read from
+       * the record on disk, which the person can edit, whatever `isVerified` says.
+       */
+      accountCreatedAt?: string;
+      /**
        * Whether `organizationId` and `email` are the account the server told
        * this process its credential signed in as, not the login record on disk.
        *
        * The person can edit that record. False until the server has answered
        * this process, as with nonessential traffic off, and with no account.
+       * True says the same of `accountId`, where there is one. False, which is
+       * all there is with no pin, says nothing of it either way. Neither says
+       * anything of `accountCreatedAt`.
        */
       isVerified: boolean;
       /**
@@ -14842,6 +14875,8 @@ declare module 'claude-code' {
       organizationId?: undefined;
       organizationType?: undefined;
       email?: undefined;
+      accountId?: undefined;
+      accountCreatedAt?: undefined;
       isVerified?: undefined;
       contextEmail?: undefined;
   };

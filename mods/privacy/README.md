@@ -134,7 +134,7 @@ on `session.identity` goes by the caller's tier:
 - `user`: refused. The call resolves with `deny`.
 - `builtin`: answered whole, this mod's own read included.
 - Any other: answered less `contextEmail`, pin or no pin. `email`, the pinned
-  account's, is left as it is.
+  account's, is left as it is, and so are `accountId` and `accountCreatedAt`.
 
 The field is left off that caller's own answer. A hook above this one still
 sees it on a built-in's read.
@@ -143,8 +143,9 @@ Where the hook fails, its `.catch` refuses.
 
 By design, without `sec-default` a person's hook sits above this one and can see
 or answer the call, and with this mod off too a person's mod is answered. The
-address already reaches it at `prompt.context`. Under a pin, what it sees
-includes the organization's fields and the pinned `email`.
+address already reaches it at `prompt.context`. What it sees includes
+`accountId` and `accountCreatedAt` and, under a pin, the organization's fields
+and the pinned `email`.
 
 ## What turns it off
 
