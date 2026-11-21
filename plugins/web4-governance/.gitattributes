@@ -1,0 +1,8 @@
+# Force LF line endings for scripts (critical for shebang on Unix/WSL)
+*.py text eol=lf
+*.sh text eol=lf
+
+# Other text files can use native line endings
+*.md text
+*.json text
+*.txt text

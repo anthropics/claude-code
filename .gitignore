@@ -1,2 +1,8 @@
 .DS_Store
 
+*.ffs_db
+.gitnexus
+.claude/skills/gitnexus/
+CLAUDE.md
+AGENTS.md
+__pycache__/
