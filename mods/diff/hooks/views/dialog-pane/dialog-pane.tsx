@@ -12,6 +12,7 @@ import Layout from '../layout'
 import { preludeOf } from '../prelude-of'
 import Sections from '../sections'
 import { dialogEntriesOf } from './dialog-entries-of'
+import { dialogRowsOf } from './dialog-rows-of'
 import { dialogWindowOf } from './dialog-window-of'
 
 /**
@@ -20,7 +21,8 @@ import { dialogWindowOf } from './dialog-window-of'
  *
  * Every file lists in the built-in's order, five at a time round the
  * selected row (`❯ `, where the focus ring starts and what its walk moves,
- * ui.focus); Enter views that file, Escape backs out or closes.
+ * ui.focus); Enter views that file, Escape backs out or closes. A list short
+ * of rows drops its blank ones: overflowing, its arrows would only scroll.
  *
  * @param kit the elements, the handlers, the width
  * @param model the pane's state
@@ -46,6 +48,7 @@ export function dialogPane(
   const picked = entries.find(entry => entry.path === model.selectedPath)
   const selected = picked ?? entries[0]
   const isDetail = model.dialogView === 'detail' && picked !== undefined
+  const gap = isDetail || kit.rows >= dialogRowsOf(model) ? 1 : 0
 
   const start = dialogWindowOf(
     model,
@@ -135,10 +138,10 @@ export function dialogPane(
     <Box flexDirection="column">
       {Sections.present([
         Sections.titleRow(kit, PaneState.dialogTitleOf(model)),
-        <Box height={1} />,
+        <Box height={gap} />,
         subtitle,
         Sections.sourcePicker(kit, model),
-        <Box flexDirection="column" marginTop={1} marginBottom={1}>
+        <Box flexDirection="column" marginTop={gap} marginBottom={gap}>
           {body}
         </Box>,
         Sections.dimNote(kit, hint),

@@ -338,6 +338,28 @@ describe('views', () => {
     expect(walked).not.toContain('file0.ts')
   })
 
+  test('off fullscreen, a short pane drops its blank rows', async ($, on) => {
+    const world = Fixtures.inRepository(on, Fixtures.MANY_FILES)
+    const { props } = Fixtures.INLINE_PANE
+
+    const short = {
+      ...Fixtures.INLINE_PANE,
+      props: { ...props, scroll: { offset: 0, bodyRows: 11 } },
+    }
+
+    await $.session.start(Fixtures.SESSION)
+    await $.command.run(Fixtures.DIALOG_DIFF)
+    await world.clock.advance(Fixtures.SETTLE_MS)
+
+    expect(Fixtures.jsonOf(await $.ui.render(short))).toContain(
+      '"marginTop":0,"marginBottom":0',
+    )
+
+    expect(Fixtures.jsonOf(await $.ui.render(Fixtures.INLINE_PANE))).toContain(
+      '"marginTop":1,"marginBottom":1',
+    )
+  })
+
   test('the walk follows under the name a build registers', async ($, on) => {
     const world = Fixtures.inRepository(on, Fixtures.MANY_FILES)
 
