@@ -1327,7 +1327,8 @@ declare module 'claude-code' {
        *
        * So showing or moving it (a hover may) moves nothing; the pointer on it is
        * on its parent. Clipped, pointer and paint, by the region its site is in
-       * (viewport, pane, band), by the site itself on the main screen or export.
+       * (viewport, pane, band), by the site itself on the main screen or export
+       * and, on the terminal, while a dialog is open.
        * In a `BesidePrompt` cell it floats past the cell (see its `floatRows`).
        *
        * @example <Box key="k"><Text>glyph</Text><Box position="absolute" top={-2}
