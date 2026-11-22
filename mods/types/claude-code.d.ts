@@ -13232,6 +13232,8 @@ declare module 'claude-code' {
        * A tree for it holds the engine's node once, nothing below it, in at most
        * 12 rows on the terminal and 48 on desktop, vscode and mobile, counted at
        * 40 columns; Markdown on those three alone; no size or place on any.
+       * It is drawn above the dialog, a wrapper's border or padding around the
+       * tree's own part only.
        *
        * Raised on every attached surface.
        */
