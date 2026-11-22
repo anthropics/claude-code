@@ -1455,6 +1455,33 @@ declare module 'claude-code' {
        *   module="./cat.tsx" width="100%" height={4} /></Box>
        */
       mono?: boolean;
+      /**
+       * Softens what the Box itself draws and holds, never what is behind it, by
+       * a number of cells from 0 to 4, whole or part: a glow is a blurred Box of
+       * fills, with sharp text in a Box placed after it. Layout, size and where the
+       * pointer lands do not change, and what spreads past the Box is cut where its
+       * site or `Client` is.
+       *
+       * Desktop draws it: a cell is a blur radius of one column, the monospaced
+       * one in a `mono` Box and the width of the site's "0" outside one, and shows
+       * about three times as far. It draws the Box sharp under forced colors, more
+       * contrast, reduced transparency, in print and while it has no GPU to draw
+       * with, as do the terminal, VS Code, the phones, a browser tab and an app that
+       * does not know the prop.
+       *
+       * Set to anything, 0 included, the Box is `position: "absolute"` or has a
+       * child that is, and holds only Box, Text and an `Svg` that is not
+       * interactive: no control, `Client`, scroller, hover `display`, second `blur`
+       * or `overflow: "hidden"` but its own. A tree holds at most 4 such Boxes, and
+       * none if it holds a drawing of the engine's own (what `next(e)` may answer)
+       * anywhere. It is refused in `BesidePrompt`, `AskUserQuestion`, `Backdrop` and
+       * `Underlay`.
+       *
+       * @example <Box mono height={1}><Box position="absolute" blur={1.2} width={7}
+       *   height={1} backgroundColor="#d97757" /><Box position="absolute">glowing
+       *   </Box></Box>
+       */
+      blur?: number;
   };
 
   /**
