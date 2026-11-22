@@ -6158,7 +6158,8 @@ declare module 'claude-code' {
        * name two steps add is the first adder's, the innermost where they load
        * together, but a `prepend` or `append` step takes one from a `user` step.
        * Throwing or answering a wrong shape unloads it too, where another event's
-       * hook is skipped.
+       * hook is skipped. The steps beneath run once: a second `next` settles with
+       * the first's, as does a second `next.to` of one tier.
        */
       'engine.create': EngineCreateInput;
   };
