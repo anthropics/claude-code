@@ -2894,14 +2894,15 @@ declare module 'claude-code' {
           root: string;
       };
       /**
-       * Display: a line under an open dialog, a redraw or a repaint, a log line,
+       * Display: a line with an open dialog, a redraw or a repaint, a log line,
        * panes the surface places, a window or ring, a surface's clipboard.
        */
       ui: {
           /**
-           * Shows `text` as one line under the dialog open for `tool_use_id`, or
+           * Shows `text` as one line with the dialog open for `tool_use_id`, or
            * removes the line when `text` is undefined.
            *
+           * The line is above the dialog in fullscreen and under it elsewhere.
            * Core removes the line when the call resolves. A call that is not open
            * is refused, as is another plugin's `$.tool.call` run.
            *
