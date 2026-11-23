@@ -16,6 +16,8 @@ import { seriesToldApart } from './series-told-apart'
  * as many series apart as its own texts do. So no answer loses its chart to
  * the better names, however it is written.
  *
+ * A shape that code reads, not a format, names its key in `KEYS_OF_SHAPES`.
+ *
  * @param root the parsed JSON of an answer
  * @returns the points of the first format that gives any, else `undefined`
  */

@@ -156,6 +156,7 @@ export function register(
 
     const answer = await next(e)
     cache.transcript = undefined
+    cache.newestAutoChart = undefined
 
     const isUnseen =
       'deny' in answer ||
@@ -170,7 +171,8 @@ export function register(
 
     const call = { nowMs: await $.clock.now(), query: queryOf(e) }
     const startedMs = performance.now()
-    const outcome = Easel.chartFromResult(storedTextOf(answer.result), call)
+    const text = storedTextOf(answer.result)
+    const outcome = Easel.chartFromResult(text, call)
 
     if (outcome.kind !== 'chart') {
       cacheOutcome(cache, e.tool_use_id, outcome)
@@ -179,6 +181,7 @@ export function register(
     }
 
     cache.autoChartCalls.set(e.tool_use_id, call)
+    cache.newestAutoChart = { id: e.tool_use_id, text, chart: outcome }
     recordUse($, outcome.usage, {
       isAsked: false,
       agentId: e.agentId,

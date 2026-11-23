@@ -1,3 +1,4 @@
+export * from './auto-chart-of'
 export * from './clock-of-call'
 export * from './is-read-answered'
 export * from './no-chart'

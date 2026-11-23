@@ -1,9 +1,9 @@
 import CoreCall from '../../core/call'
 import Easel from '../../core/easel'
 import { cacheOutcome } from '../cache-outcome'
-import { queryOf } from '../query-of'
 import { storedTextOf } from '../stored-text-of'
 import type Types from '../types'
+import { autoChartOf } from './auto-chart-of'
 import { clockOfCall } from './clock-of-call'
 import { isReadAnswered } from './is-read-answered'
 import { NO_CHART } from './no-chart'
@@ -45,16 +45,16 @@ export async function outcomeOfRow(
 
   const isAutoChart = tool !== CoreCall.TOOL_NAME
   const isReadFromRow = isAutoChart && drawn.hasWholeOutput
-  const keptCall = cache.autoChartCalls.get(tool_use_id)
 
   if (isReadFromRow) {
     return cacheOutcome(
       cache,
       tool_use_id,
-      Easel.chartFromResult(
-        storedTextOf(output),
-        keptCall ?? { nowMs: null, query: queryOf(input) },
-      ),
+      autoChartOf(cache, {
+        id: tool_use_id,
+        input,
+        text: storedTextOf(output),
+      }),
     )
   }
 
@@ -76,10 +76,11 @@ export async function outcomeOfRow(
     cache,
     tool_use_id,
     isAutoChart
-      ? Easel.chartFromResult(
-          storedTextOf(call.storedResult),
-          keptCall ?? { nowMs: null, query: queryOf(call.input) },
-        )
+      ? autoChartOf(cache, {
+          id: tool_use_id,
+          input: call.input,
+          text: storedTextOf(call.storedResult),
+        })
       : Easel.chartFromCall({
           input: call.input,
           results: calls.slice(0, callIndex),

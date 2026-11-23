@@ -1,5 +1,6 @@
 export * from './entries-at'
 export * from './limits'
+export * from './may-hold-metrics'
 export * from './metric-formats'
 export * from './metric-sources'
 export * from './metrics-in'

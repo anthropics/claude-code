@@ -50,7 +50,7 @@ A hooks module may import only its own files and the types of `claude-code`, so 
 
 ## How to add things
 
-- **A metric format:** a row in `METRIC_FORMATS` (`wire/`). The first format whose paths all lead somewhere wins.
+- **A metric format:** a row in `METRIC_FORMATS` (`wire/`). The first format whose paths all lead somewhere wins. A shape that code reads instead names its key in `KEYS_OF_SHAPES`: unasked, a result with the keys of no shape is not read.
 - **An option:** a field in `INPUT_SCHEMA` (`call/`); the type and the validator derive from it. Use it in `reading/` if it changes what is read, else in `chartOf`.
 - **A form:** the enum in `call/`, a row in `FORMS`, `READ_AS` in `casting/`, `formProblemIn` in `reading/`, a member of `Chart`, and a `case` in `sceneOf`. A new shape fails to compile until both painters handle it.
 - **A refusal:** a `{ code, why }`. A new code goes in `REFUSAL_CODES` (`refusal/`), and a case must get it. The event has room for 31. Past that, fold rare codes into one word there: a mark's reason has no such limit.
