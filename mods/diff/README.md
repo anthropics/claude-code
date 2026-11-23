@@ -102,8 +102,9 @@ landed during a fetch.
 
 In a repository with commits, a fetch usually reads the whole tree twice:
 one `git diff --numstat`, whose rows also give the totals, and one
-`git ls-files` for untracked files. The built-in runs `--shortstat` first;
-this pane runs it only after a listing too long for the host to return
+`git ls-files` for untracked files. The built-in runs `--shortstat` first,
+or in the same git after a short listing of that base; this pane runs it
+only after a listing too long for the host to return
 whole. Later fetches of that base then run `--shortstat` first and list only
 when it counts 500 changed files or fewer. The hunks of the files shown
 usually take one more `git diff`, limited to their paths.

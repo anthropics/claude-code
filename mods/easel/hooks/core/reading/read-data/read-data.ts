@@ -21,12 +21,15 @@ import { holdsOnlyWords } from './holds-only-words'
  * @param text what the result holds, as characters
  * @param request the chart that was asked for
  * @param clock the zone and the time of the call
+ * @param needsSeries whether a result with no series counts as one with no
+ * table, whose refusal is not to be told
  * @returns the series and their timeline, or the refusal
  */
 export function readData(
   text: string,
   request: CoreCall.ChartRequest,
   clock: Types.CallClock,
+  needsSeries = false,
 ): Types.Data | Types.ReadFailure {
   const isTooLong = text.length >= Limits.MAX_INPUT_CHARS
 
@@ -39,7 +42,7 @@ export function readData(
     })
   }
 
-  const tables = Tables.tablesOfText(text)
+  const tables = Tables.tablesOfText(text, needsSeries)
   const hasCutTable = tables.some(table => table.isCut)
 
   if (hasCutTable) {

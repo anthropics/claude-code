@@ -32,10 +32,13 @@ export function chartFromResult(
   }
 
   const request: CoreCall.ChartRequest = { form: 'line' }
-  const read = Reading.readData(text, request, {
-    zone: 'UTC',
-    nowMs: call.nowMs,
-  })
+  const needsSeries = true
+  const read = Reading.readData(
+    text,
+    request,
+    { zone: 'UTC', nowMs: call.nowMs },
+    needsSeries,
+  )
   const isWholeSeries =
     read.kind === 'data' && read.isSeries && read.leftOutNotes.length === 0
 

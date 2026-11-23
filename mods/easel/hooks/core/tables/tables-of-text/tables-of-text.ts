@@ -17,12 +17,17 @@ import { withUnparsedLines } from './with-unparsed-lines'
  *
  * It is the first stage of the pipeline, and the reading of roles takes its
  * tables. A cut text gives one placeholder, `isCut`: its rows cannot be
- * trusted.
+ * trusted. Only JSON says that it is a series.
  *
  * @param rawText the text as it came, with its invisible codes
+ * @param needsSeries whether tables with no series among them, the
+ * placeholder of a cut part included, count as none and stay uncleaned
  * @returns the tables found, or the one placeholder of a cut text
  */
-export function tablesOfText(rawText: string): Casting.Table[] {
+export function tablesOfText(
+  rawText: string,
+  needsSeries = false,
+): Casting.Table[] {
   const text = rawText
     .replace(Patterns.INVISIBLE_CODES, '')
     .replaceAll('\r\n', '\n')
@@ -36,23 +41,23 @@ export function tablesOfText(rawText: string): Casting.Table[] {
   const xmlTables = tablesOfXmlRows(text)
 
   if (xmlTables.length > 0) {
-    return Texts.cleanDeep(xmlTables)
+    return needsSeries ? [] : Texts.cleanDeep(xmlTables)
   }
 
   const { values, unparsedLines } = jsonValuesIn(text)
 
   if (values.length === 0) {
-    return Texts.cleanDeep(tablesOfPlainText(text))
+    return needsSeries ? [] : Texts.cleanDeep(tablesOfPlainText(text))
   }
 
   const areRows = isOneTable(values)
+  // A text inside is read whole: its table may stand beside a series.
+  const tables = areRows
+    ? tablesOfJson(values, tablesOfText, { source: Words.JSON_LINES_SOURCE })
+    : values.flatMap(value => tablesOfJson(value, tablesOfText))
+  const isUnwanted = needsSeries && !tables.some(table => table.isSeries)
 
-  return Texts.cleanDeep(
-    (areRows
-      ? tablesOfJson(values, tablesOfText, {
-          source: Words.JSON_LINES_SOURCE,
-        })
-      : values.flatMap(value => tablesOfJson(value, tablesOfText))
-    ).map(withUnparsedLines(unparsedLines)),
-  )
+  return isUnwanted
+    ? []
+    : Texts.cleanDeep(tables.map(withUnparsedLines(unparsedLines)))
 }
