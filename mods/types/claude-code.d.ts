@@ -2468,6 +2468,34 @@ declare module 'claude-code' {
        * tool is mid-call); its `{ text }` prints as an idle run's does.
        */
       immediate?: true;
+      /**
+       * Other names that run it (up to 8, each spelled as `name` may be). Its
+       * `command.run` hook gets `name` whichever was typed.
+       *
+       * One that another command holds, whatever its case, refuses the whole
+       * registration. One that another command takes later stops running it,
+       * unless that is a skill synced from claude.ai, which gives way.
+       */
+      aliases?: readonly string[];
+      /**
+       * Set to keep it out of the terminal's typeahead and `/help`; typed in
+       * full, it runs.
+       */
+      isHidden?: true;
+      /**
+       * Set when it needs the person at this terminal. Under `-p`, the SDK,
+       * Desktop, VS Code and Remote Control it is not listed, and the typed line
+       * is told it is not available instead of running it.
+       */
+      isTerminalOnly?: true;
+      /**
+       * Set when it needs no workspace, so that a terminal attached to a cloud
+       * session lists it and runs it here instead of sending the line on.
+       *
+       * There `$.session`, `$.fs` and `$.process` are this machine's, not the
+       * cloud session's.
+       */
+      isWorkspaceFree?: true;
   };
 
   type ConfigChangeHookInput = BaseHookInput & {
@@ -2718,6 +2746,24 @@ declare module 'claude-code' {
   export type ContextCategoryKind = 'used' | 'free' | 'buffer' | 'deferred';
 
   /**
+   * One built-in tool whose schema loads on demand, through the tool search.
+   */
+  export type ContextDeferredTool = {
+      /**
+       * The tool's name (`WebFetch`).
+       */
+      name: string;
+      /**
+       * The schema's estimated tokens.
+       */
+      tokens: number;
+      /**
+       * Whether the conversation has called it, so its schema is counted in.
+       */
+      isLoaded: boolean;
+  };
+
+  /**
    * One square of the grid /context draws: which row it belongs to and how
    * full it is.
    */
@@ -2794,6 +2840,63 @@ declare module 'claude-code' {
   };
 
   /**
+   * What the `Messages` row is made of, in estimated tokens.
+   */
+  export type ContextMessageBreakdown = {
+      /**
+       * The model's tool calls.
+       */
+      toolCallTokens: number;
+      /**
+       * The results of those calls.
+       */
+      toolResultTokens: number;
+      /**
+       * What the engine attached to the conversation (files, reminders).
+       */
+      attachmentTokens: number;
+      /**
+       * The model's messages, less its tool calls.
+       */
+      assistantMessageTokens: number;
+      /**
+       * The person's messages, less the tool results.
+       */
+      userMessageTokens: number;
+      /**
+       * System prompt text sent as a message instead (environment, memory, git).
+       */
+      redirectedContextTokens: number;
+      /**
+       * What the row holds past the sum of the figures above.
+       */
+      unattributedTokens: number;
+      /**
+       * One entry per tool called, heaviest first.
+       */
+      toolCallsByType: ContextToolCalls[];
+      /**
+       * One entry per kind of attachment, heaviest first.
+       */
+      attachmentsByType: ContextNamedTokens[];
+  };
+
+  /**
+   * One named part of the context and what it takes: a built-in tool's schema,
+   * a section of the system prompt, a kind of attachment.
+   */
+  export type ContextNamedTokens = {
+      /**
+       * The part's name, as /context lists it.
+       */
+      name: string;
+      /**
+       * Its estimated tokens.
+       */
+      tokens: number;
+  };
+
+  /**
    * One skill whose listing the context carries.
    */
   export type ContextSkill = {
@@ -2855,6 +2958,24 @@ declare module 'claude-code' {
        * The listing's tokens in all.
        */
       tokens: number;
+  };
+
+  /**
+   * What one tool's calls take of the conversation.
+   */
+  export type ContextToolCalls = {
+      /**
+       * The tool's name, as the calls spell it (`Bash`).
+       */
+      name: string;
+      /**
+       * The estimated tokens of its calls' inputs.
+       */
+      callTokens: number;
+      /**
+       * The estimated tokens of its results.
+       */
+      resultTokens: number;
   };
 
   /**
@@ -2930,7 +3051,7 @@ declare module 'claude-code' {
            *   waits for the call: made as a hook answers, it can land a request late.
            * @param event `ui.render`, or a cached-answer event: `prompt.section`,
            *   `prompt.context`, `prompt.attachment`, `tool/command/config.describe`,
-           *   `tool.list`, `tool.offer`
+           *   `tool.list`, `tool.offer`, `ui.offer`
            * @param loop with `tool.offer` alone: `agentId`, as that event carries it
            * @example
            * $.ui.invalidate("tool.offer", { agentId: e.agentId })
@@ -3958,7 +4079,8 @@ declare module 'claude-code' {
            * Registering a name again replaces it; a built-in's name is refused.
            *
            * @param command `name`, `description` (what the menu shows),
-           *   `argumentHint` (dim after the name), `immediate` (runs mid-turn)
+           *   `argumentHint` (dim after the name), `immediate` (runs mid-turn),
+           *   `aliases`, `isHidden`, `isTerminalOnly`, `isWorkspaceFree`
            * @returns `{ command }`, the registered name
            * @example
            * await $.command.register({ name: "hello", description: "Says hi." })
@@ -5393,6 +5515,22 @@ declare module 'claude-code' {
        */
       'ui.tip': UiTipInput;
       /**
+       * Fires in the terminal before one of Claude Code's own upsell or hint
+       * toasts shows; `next(e)` resolves to `{ isShown: true }`.
+       *
+       * Return `{ isShown: false }` to decline it. Warnings, results, pinned
+       * notices and a plugin's own toast never raise it. The answer is kept per
+       * offer until plugins change or `$.ui.invalidate("ui.offer")`, so only its
+       * first toast waits. A hook that fails passes it through.
+       *
+       * @remarks A toast on show when the plugin loads, or when the answer is
+       *   dropped, is left there; one in the queue, or sent back to it by another
+       *   toast, is asked about before it shows.
+       * @example
+       * on("ui.offer", { kind: "upsell" }, () => ({ isShown: false }))
+       */
+      'ui.offer': UiOfferInput;
+      /**
        * Fires when the engine offers an agent type to the model, in the agent
        * listing and again at dispatch; `next(e)` resolves to `{ isOffered: true }`.
        *
@@ -6324,6 +6462,10 @@ declare module 'claude-code' {
        */
       'ui.tip': UiTipResult;
       /**
+       * `{ isShown }`.
+       */
+      'ui.offer': UiOfferResult;
+      /**
        * `{ isOffered }`.
        */
       'agent.offer': AgentOfferResult;
@@ -6609,6 +6751,7 @@ declare module 'claude-code' {
           scroll: (input: UiScrollArgs) => Promise<UiScrollResult>;
           focus: (input: UiFocusArgs) => Promise<UiFocusResult>;
           tip: (input: UiTipInput) => Promise<UiTipResult>;
+          offer: (input: UiOfferInput) => Promise<UiOfferResult>;
       };
   };
 
@@ -7519,14 +7662,14 @@ declare module 'claude-code' {
   };
 
   /**
-   * What `$.ui.invalidate` takes: a render event, or one of the eight events
+   * What `$.ui.invalidate` takes: a render event, or one of the nine events
    * whose answers the engine caches for the session.
    *
    * For `ui.render`, the instances this plugin's matchers on it may select: one
    * naming no `requestId`, every instance of its component. For a thread resumed
    * in a new process the recorded `prompt.section` text stands, asked or not.
    */
-  export type InvalidatableEventName = RenderEventName | 'prompt.section' | 'prompt.context' | 'prompt.attachment' | 'tool.describe' | 'tool.list' | 'tool.offer' | 'command.describe' | 'config.describe';
+  export type InvalidatableEventName = RenderEventName | 'prompt.section' | 'prompt.context' | 'prompt.attachment' | 'tool.describe' | 'tool.list' | 'tool.offer' | 'command.describe' | 'config.describe' | 'ui.offer';
 
   /**
    * Whether tag key `K` selects members of `I`: it does when each member gives
@@ -12851,7 +12994,7 @@ declare module 'claude-code' {
    * rows a plugin adds to it. `Underlay` is drawn under the terminal's
    * fullscreen interface, and `UnderlayList` orders its layers.
    */
-  export type RenderComponent = 'AskUserQuestion' | 'UserMessage' | 'AssistantMessage' | 'ToolUse' | 'ToolResult' | 'ToolGroup' | 'ToolProgress' | 'CommandOutput' | 'Spinner' | 'TurnDuration' | 'InfoNotice' | 'Welcome' | 'SessionMode' | 'PromptHint' | 'AbovePrompt' | 'AbovePromptList' | 'BesidePrompt' | 'BesidePromptList' | 'AgentRow' | 'ContextMenu' | 'Pane' | 'Placed' | 'Backdrop' | 'Underlay' | 'UnderlayList';
+  export type RenderComponent = 'AskUserQuestion' | 'UserMessage' | 'AssistantMessage' | 'ToolUse' | 'ToolResult' | 'ToolGroup' | 'ToolProgress' | 'CommandOutput' | 'Spinner' | 'TurnDuration' | 'InfoNotice' | 'Welcome' | 'SessionMode' | 'PromptHint' | 'StatusLine' | 'AbovePrompt' | 'AbovePromptList' | 'BesidePrompt' | 'BesidePromptList' | 'AgentRow' | 'ContextMenu' | 'Pane' | 'Placed' | 'Backdrop' | 'Underlay' | 'UnderlayList';
 
   /**
    * What a render hook returns, and what `next(e)` resolves to: a plain-data
@@ -13803,8 +13946,8 @@ declare module 'claude-code' {
        * read-only: the logo draws the engine's own whatever a rewrite carries.
        *
        * @remarks The logo shows until the first answer lands. On the main screen,
-       *   a header that scrolled out of view takes no answer, a first one
-       *   included, until it is back in view.
+       *   a header whose first row scrolled out of view takes no answer, a first
+       *   one included, until that row is back in view.
        *
        * @example
        * on("ui.render", { component: "Welcome" }, ($, e) => $.ui.resolve(e).Box({}))
@@ -13895,6 +14038,55 @@ declare module 'claude-code' {
            * @remarks A rewritten `hint` replaces the line, `tail` with it.
            */
           tail?: string;
+      };
+      /**
+       * The status line under the prompt, above the hint line, asked whether or
+       * not the person's settings name a `statusLine` command. One instance.
+       *
+       * `next(e)` draws `text` as the engine does, dim, a row a line, inside the
+       * setting's padding. A hook rewrites `text` alone, answers an empty Box to
+       * hide it, or draws its own Box, Text and Link; it never takes the keys.
+       *
+       * Until a new answer lands the last keeps its rows, across a dialog too. In
+       * fullscreen a command keeps one row, blank where nothing is drawn.
+       *
+       * @example
+       * on("ui.render", { component: "StatusLine" }, ($, e, next) =>
+       *   next({ ...e, props: { ...e.props, text: `${e.props.text ?? ""} · mine` } }))
+       *
+       * Raised on the terminal surface only.
+       */
+      StatusLine: {
+          /**
+           * The command's output; null with no command, before its first output,
+           * when it printed nothing, and where `isManaged`.
+           *
+           * It alone may hold escape sequences: SGR styles and OSC 8 links are
+           * drawn, any other is dropped. Each line is cut at the row's edge.
+           */
+          text: string | null;
+          /**
+           * True where managed settings name the command: the engine draws its
+           * output above this site, so a hook adds rows under it. Read-only.
+           */
+          isManaged: boolean;
+          /**
+           * True while a model turn is running. Read-only.
+           */
+          isWorking: boolean;
+          /**
+           * The rows an answer is cut at: five at most, fewer where more would push
+           * the hint line off the screen, none where no row is to spare. Read-only.
+           *
+           * In fullscreen it is cut lower while a task list or a notice needs the
+           * rows. The command's output passed on unchanged is not cut.
+           */
+          maxRows: number;
+          /**
+           * The columns of the footer's row, the setting's padding among them. What
+           * the footer draws at its right moves under a wide answer. Read-only.
+           */
+          columns: number;
       };
       /**
        * The band directly above the prompt input, where the surveys draw; of its
@@ -15040,9 +15232,9 @@ declare module 'claude-code' {
    * The context window broken down as /context breaks it down: the rows, the
    * grid and the lists beneath it, in the SDK's `get_context_usage` shape.
    *
-   * Less that reply's internal-build sections. Token counts are the engine's
-   * estimates as numbers, never formatted: a `full` breakdown counts with the
-   * token-count API where it can, a `summary` one estimates throughout.
+   * Token counts are the engine's estimates as numbers, never formatted: a
+   * `full` breakdown counts with the token-count API where it can, a `summary`
+   * one estimates throughout.
    */
   export type SessionContextBreakdown = {
       /**
@@ -15118,6 +15310,38 @@ declare module 'claude-code' {
        * The breakdown's `Messages` row is reconciled to it.
        */
       apiUsage: ModelUsage | null;
+      /**
+       * Each always-loaded built-in tool's share of the `System tools` row,
+       * heaviest first; absent where the build does not itemize it.
+       */
+      systemTools?: ContextNamedTokens[];
+      /**
+       * Each named section of the system prompt; absent where the build does
+       * not itemize it.
+       */
+      systemPromptSections?: ContextNamedTokens[];
+      /**
+       * Each built-in tool that loads on demand; absent where the build does
+       * not itemize them.
+       */
+      deferredBuiltinTools?: ContextDeferredTool[];
+      /**
+       * The `Messages` row by kind, by tool and by attachment; absent where the
+       * session does not itemize it.
+       */
+      messageBreakdown?: ContextMessageBreakdown;
+      /**
+       * The display name of `model` (`Opus 4.6`); absent for a model the engine
+       * has no name for.
+       */
+      modelLabel?: string;
+      /**
+       * Whether the row a command prints is stored off this machine, as it is
+       * while Remote Control is connected; `true` where the engine cannot tell.
+       *
+       * A command that prints memory paths leaves them out unless this is `false`.
+       */
+      isPersistedOffBox?: boolean;
   };
 
   /**
@@ -20227,6 +20451,34 @@ declare module 'claude-code' {
        * on('ui.notify', { title: 'CI' }, () => ({ value: REFUSED }))
        */
       reason: 'disabled' | 'no-channel' | 'no-surface' | 'refused';
+  };
+
+  /**
+   * The input of `ui.offer`: one upsell or hint of Claude Code's own, before it
+   * shows. Every field is pinned: a rewrite is refused.
+   */
+  export type UiOfferInput = {
+      /**
+       * `upsell` suggests a feature or a model to try; `hint` names a key or a
+       * command.
+       */
+      kind: 'upsell' | 'hint';
+      /**
+       * Where it would show: `toast`, the notification line by the prompt.
+       */
+      place: 'toast';
+      /**
+       * Names the offer (`stash-hint`), the same each time it is made; the key a
+       * matcher narrows on. Its words and links are not passed.
+       */
+      id: string;
+  };
+
+  /**
+   * What a `ui.offer` hook returns: whether the offer shows.
+   */
+  export type UiOfferResult = {
+      isShown: boolean;
   };
 
   /**
