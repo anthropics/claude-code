@@ -272,6 +272,12 @@ export function register(on: On) {
       : next(e),
   )
 
+  on('fs.list', ($, e, next) =>
+    next.origin.tier === 'prepend' && next.origin.plugin === $.plugin.name
+      ? next.to(e, 'append')
+      : next(e),
+  )
+
   on('process.run', async ($, e, next) => {
     const deny =
       next.origin.tier === 'user'

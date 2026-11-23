@@ -6,7 +6,7 @@ import { writtenPathOf } from './written-path-of.js'
 
 /**
  * The remembered calls a mod's write repeats: those that change the file it
- * lands on, however either spells the path. Never rejects.
+ * lands on, however either spells the path, or may. Never rejects.
  *
  * @param $ the calling hook's
  * @param remembered the calls that were not allowed
@@ -18,8 +18,8 @@ export async function writeRepeats(
   remembered: readonly Call[],
   path: string,
 ): Promise<Call[]> {
-  const real = await placed($, path)
-  const places = new Map<string, string>()
+  const real = await placed($, path).catch(() => undefined)
+  const places = new Map<string, typeof real>()
   const repeated: Call[] = []
 
   for (const call of remembered) {
@@ -29,10 +29,11 @@ export async function writeRepeats(
       continue
     }
 
-    const place = places.get(theirs) ?? (await placed($, theirs))
+    const place =
+      places.get(theirs) ?? (await placed($, theirs).catch(() => real))
     places.set(theirs, place)
 
-    if (place === real) {
+    if (place === real || real === undefined) {
       repeated.push(call)
     }
   }

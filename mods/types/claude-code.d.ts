@@ -4225,7 +4225,7 @@ declare module 'claude-code' {
            */
           list: (path?: string) => Promise<FsEntry[]>;
           /**
-           * Returns whether the path exists; rejects only a network location, which
+           * Whether it exists; rejects when refused, and a network location, which
            * the implementation beneath the hooks never touches.
            */
           exists: (path: string) => Promise<boolean>;
@@ -4237,11 +4237,14 @@ declare module 'claude-code' {
            * when it leads nowhere; a guard matches it and denies without it, since a
            * spelling it cannot resolve (`~`, a file not there yet) the tool may open.
            *
+           * So asked, a look the rules refused or not held is unknown, not missing:
+           * `{ kind: "other", size: 0, mtimeMs: 0, isLink: true }`, no `realPath`.
+           *
            * @param path relative to the working directory, or absolute
            * @param options `resolve`: also answer `realPath` (one more file system
            *                call)
            * @returns the stat, `realPath` with it when asked and resolvable; rejects
-           *          `ENOENT` for a missing path
+           *          ` failed: ENOENT` last for a missing path, never for a refusal
            * @example
            * // ROOT was resolved the same way and SEP is its separator; an
            * // allow-list under it is the robust guard, a deny-list on spellings
@@ -4259,7 +4262,7 @@ declare module 'claude-code' {
            * // outside ROOT. Unplaceable by spelling first, with no file system
            * // call (drive-relative `D:x`, a `\\` or `//` network or device path,
            * // a name that is empty, ".", ".." or itself `C:...`); then the file
-           * // if it stats; else its folder, cut after the last separator and
+           * // unless ENOENT; else its folder, cut after the last separator and
            * // keeping it so a drive or share root stays that root, plus the name
            * const placed = async (path) => {
            *   const cut = Math.max(path.lastIndexOf("/"), path.lastIndexOf("\\"))
@@ -4269,7 +4272,7 @@ declare module 'claude-code' {
            *     name !== "" && name !== "." && name !== ".."
            *   if (!isPlaceable) return undefined
            *   const own = await $.fs.stat(path, { resolve: true })
-           *     .catch(() => undefined)
+           *     .catch(no => / failed: ENOENT$/.test(no.message) ? undefined : {})
            *   if (own) return own.realPath
            *   const folder = cut < 0 ? "." : path.slice(0, cut + 1)
            *   const dir = await $.fs.stat(folder, { resolve: true })
@@ -4655,7 +4658,7 @@ declare module 'claude-code' {
           detect: EventCalls['vcs']['detect'];
           /**
            * Returns what changed in a working copy, the event `vcs.diff`; `unknown`
-           * where no hook can say.
+           * where neither a hook nor core can say.
            *
            * Experimental: may change.
            *
@@ -5776,16 +5779,23 @@ declare module 'claude-code' {
        *
        * Experimental: may change.
        *
-       * Core answers `{ unknown: null }`, and `/diff` then looks for Git; a hook's
-       * own reason shows instead. An answer may cost a server call. A hook that
-       * fails passes it through. Not raised where the session's files are on
-       * another machine.
+       * Core answers `git`. To any other system it answers `{ unknown: null }`,
+       * and `/diff` then looks for Git; a hook's own reason shows instead. An
+       * answer may cost a server call. A hook that fails passes it through. Not
+       * raised where the session's files are on another machine.
        *
-       * Git isn't served here yet: `/diff` reads it itself.
+       * Core gives a reason past 500 files and cuts a patch at 400 lines. Outside
+       * the session's own trusted checkout it gives one under the sandbox, in a
+       * linked worktree, and where a repository's settings could run a program.
+       * It gives one to a caller a managed rule keeps from running `git diff`,
+       * and leaves out a file the caller couldn't find through `$.fs.list`.
        *
        * On a managed login a person's hook is asked only where no other answers.
        *
-       * A diff over two sets of paths is the union of each.
+       * A diff over two sets of paths is the union of each, in files and counts.
+       *
+       * A `patch` may be absent for any file. Core's are shown to another mod's
+       * `process.run` hook as `git diff`'s output, and kept only if unchanged.
        *
        * Stat-only is the same files without patches.
        *
@@ -6385,7 +6395,7 @@ declare module 'claude-code' {
        */
       'vcs.detect': VcsDetectResult;
       /**
-       * `{ base, files }`, or `{ unknown }` with the reason, null from core.
+       * `{ base, files }`, or `{ unknown }` with the reason, null where none answers.
        */
       'vcs.diff': VcsDiffResult;
       /**
@@ -8657,7 +8667,7 @@ declare module 'claude-code' {
 
   /**
    * What `next.origin` holds: who raised the dispatch (Origin), and whose code
-   * that is. Set by the host; an event's `provider` carries neither field.
+   * that is. Set by the host; an event's `provider` carries none of these.
    */
   export type NextOrigin = Origin & {
       /**
@@ -8674,6 +8684,11 @@ declare module 'claude-code' {
        * model, a script or a `Monitor` watch makes for such a plugin.
        */
       readonly isOrganizations?: true;
+      /**
+       * At `tool.check` alone, on a plugin's own call that no hook rewrote: the id
+       * `plugin.register` gave its load. Only a bundled one reads `<name>@builtin`.
+       */
+      readonly provenance?: string;
   };
 
   /**
@@ -18444,7 +18459,7 @@ declare module 'claude-code' {
        * as the `Bash` line of its argv. Nobody is asked: a deny refuses the call.
        * Where a hook rewrote the call, `next.origin.tier` is `user`.
        */
-      op?: 'fs.read' | 'fs.list' | 'fs.write' | 'process.run' | 'process.spawn';
+      op?: 'fs.read' | 'fs.list' | 'fs.stat' | 'fs.exists' | 'fs.write' | 'process.run' | 'process.spawn';
       /**
        * Who answers this evaluation's asks, known before any hook runs.
        *
@@ -20841,7 +20856,7 @@ declare module 'claude-code' {
   /**
    * What a `vcs.diff` hook returns: the changed files and `base`, a label to
    * show for what they were compared with, or why they are `unknown`. A null
-   * `unknown` is core's: no hook answered.
+   * `unknown` is core's: no hook answered, and it is no Git copy.
    */
   export type VcsDiffResult = {
       base: string;

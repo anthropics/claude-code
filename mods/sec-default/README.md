@@ -43,16 +43,16 @@ settings it decides by.
 | `tool.call`, `tool.run`, `prompt.submit` | The model's calls pass, and are remembered until they are allowed or the person's next prompt. A `user`-tier `$.tool.call` or `$.mcp.call` that repeats one, or writes or names a settings file, is refused. See [The model's call waits for its check](#the-models-call-waits-for-its-check). |
 | `agent.call` | Passes, and is remembered under the plugin that made it, ahead of the hooks beneath. |
 | `fs.write`, `process.run`, `process.spawn` | A `user`-tier caller is refused where the effect repeats a remembered call, or writes or names a settings file. Every other passes. |
-| `fs.stat` | This plugin's own look at where a path leads continues past the user tier. Every other passes. |
+| `fs.stat`, `fs.list` | This plugin's own look at where a path leads continues past the user tier. Every other passes. |
 | `ui.log` | A line a plugin in `prepend` or `append` logs, this one's included, continues past the user tier: no user hook rewrites or drops it, and none runs inside the hook that logged it. Every other line passes. |
 | `env.get` | A read by a plugin in `prepend` or `append` continues past the user tier: no user hook answers what the organization's own plugin reads. Every other read passes. |
 | `env.set` | A write by a plugin in `prepend` or `append` continues past the user tier, whatever the variable: no user hook rewrites or drops what the organization's own plugin sets. A variable managed settings set in `env` (its name in any case) is pinned, and so are `CLAUDE_CODE_PROCESS_WRAPPER` where they name a launcher with `processWrapper` and, always, the nine variables that move where policy and sign-in are read from or how policy's tiers compose (`CLAUDE_CODE_MANAGED_SETTINGS_PATH`, `CLAUDE_CODE_REMOTE_SETTINGS_PATH`, `CLAUDE_CODE_MOCK_REMOTE_SETTINGS`, `CLAUDE_CODE_DISABLE_ADMIN_ENV_UNION`, `CLAUDE_CONFIG_DIR`, `CLAUDE_SECURESTORAGE_CONFIG_DIR`, `USE_LOCAL_OAUTH`, `USE_STAGING_OAUTH` and `CLAUDE_LOCAL_OAUTH_API_BASE`, which choose the server sign-in goes to; all nine on every build), and, on every build too, ten variables that can load code into a child the engine starts (`LD_PRELOAD`, `LD_LIBRARY_PATH`, `LD_AUDIT`, `DYLD_INSERT_LIBRARIES`, `DYLD_LIBRARY_PATH`, `DYLD_FRAMEWORK_PATH`, `BASH_ENV`, `ENV`, `ZDOTDIR`, `NODE_OPTIONS`) and the variables that decide where a model request goes, what signs it and what is merged into its body: setting or unsetting it, a `user`-tier caller is refused by name and a built-in's write continues past the user tier. Any other variable is a person's plugin's to set. With no policy to read, every variable counts as pinned. `allowModsToOverrideDenyRules` does not unpin. See [Pinned variables](#pinned-variables). |
 | `vcs.detect` | Ask past the user tier first: a working copy the organization's tiers, the built-ins or the engine name stands, and only a folder they find in none goes on to a person's plugins. So a person's plugin drops no Git status block, and a system beside or inside Git needs an organization's plugin. A person's claim on the folder a session starts in does drop the shell tools' commit and pull-request steps for the whole session, a later `cd` into Git included; Git's safety cautions stay in every folder. |
-| `vcs.diff` | Ask past the user tier first: what the organization's tiers or the built-ins answer stands, their own `unknown` too, and only a diff none of them answered goes on to a person's plugins. |
+| `vcs.diff` | Ask past the user tier first: what the organization's tiers, the built-ins or the engine's Git answer stands, their own `unknown` too, and only a diff none of them answered goes on to a person's plugins. |
 | `wasm.compile` | A compile by a plugin in `prepend` or `append` continues past the user tier: no user hook reads or replaces the WebAssembly the organization's own plugin runs. Every other compile passes. |
 | `vcs.isolate`, `vcs.list`, `vcs.status`, `vcs.release` | While managed settings hold a `WorktreeCreate` or `WorktreeRemove` hook, continue past the user tier: a person's plugin neither makes, lists, reads nor removes a working copy in the place of the organization's hooks. With no policy to read, the same. Otherwise they pass. |
 | `plugin.register` | A hooks module in the `user` tier (one a person installed, named with `--plugin-dir`, or keeps in their mods folder) stays out while managed settings set this plugin's `allowManagedModsOnly` option: the plugin continues past the user tier with `provides.modules` emptied, or, in a dev-mods folder, is refused whole. While they set its `forceHotReloadPrompt` option, a plugin in a session's dev-mods folder is asked about, with a hooks module or without one, unless a person already said yes to that folder here. Otherwise a plugin whose id managed settings turn on in `enabledPlugins` or list in `prependPlugins` or `appendPlugins`, or one the event marks `requiredByOrganization`, continues past the user tier, so a person's mod can't refuse or narrow it and the organization's prepended and appended mods still judge it. Every other plugin passes. The limits: a namesake under the organization's id only escapes the person's own judges (the `user` tier's, where an organization's unlisted mod whose copy does not prove sits too), and `allowManagedModsOnly` still keeps out its module (the host's mark stays on the folder the host named, and an unmarked copy of that name doesn't load); a synced plugin (`@synced`) claude.ai marks Required, a host-delivered copy (`@inline`) its host doesn't mark and a dependency that policy doesn't name aren't covered, as the event carries no mark for them; a person's `plugin.register` hook gets the engine's "was skipped" line when an organization's plugin is judged (for one judged with its module at a load, the debug log alone has it). Plugins in `prepend`, `append` and `builtin` are never asked about, a marked one with no hooks module that is shown to be outside every dev-mods folder among them. A refusal refuses the whole plugin. |
-| everything else | Passes: `turn.*`, `command.run`, `command.register`, `command.list`, `agent.register`, `config.*`, `prompt.fill`, `prompt.suggest`, `prompt.edit`, `prompt.read`, `session.*` but `session.append`, `session.compact`, `session.identity`, `session.info` and `session.redact`, `ui.*` but `ui.log`, `fs.*` but `fs.write` and `fs.stat`, `http.fetch`, `store.*`, `clock.*`, `model.*`, `mcp.call`, `audio.*`, `agent.list`, `engine.create`. |
+| everything else | Passes: `turn.*`, `command.run`, `command.register`, `command.list`, `agent.register`, `config.*`, `prompt.fill`, `prompt.suggest`, `prompt.edit`, `prompt.read`, `session.*` but `session.append`, `session.compact`, `session.identity`, `session.info` and `session.redact`, `ui.*` but `ui.log`, `fs.*` but `fs.write`, `fs.stat` and `fs.list`, `http.fetch`, `store.*`, `clock.*`, `model.*`, `mcp.call`, `audio.*`, `agent.list`, `engine.create`. |
 
 ## Options an administrator sets
 
@@ -196,7 +196,7 @@ Known limits, as the hold is best effort and covers no direct write of a managed
 `prompt.compose`, `skill.prompt`,
 `attribution.text`, `session.append`, `session.compact`, `settings.read`, `session.info`, `session.redact`, `telemetry.log`, `session.identity`, `tool.describe`, `tool.offer`, `command.describe`,
 `agent.offer`, `agent.spawn`, `agent.report`, `agent.call`, `tool.register`, `tool.list`, `tool.call`, `tool.run`, `tool.check`, `tool.judge`,
-`prompt.submit`, `fs.write`, `fs.stat`, `process.run`, `process.spawn`,
+`prompt.submit`, `fs.write`, `fs.stat`, `fs.list`, `process.run`, `process.spawn`,
 `ui.log`, `env.get`, `env.set`, `vcs.detect`, `vcs.diff`, `wasm.compile`, `vcs.isolate`, `vcs.list`, `vcs.status`, `vcs.release`, `plugin.register`.
 
 Hooking `tool.check` has a cost: the engine raises that event only when some
@@ -216,7 +216,7 @@ and no `user`-tier module is loaded.
 If it fails, the chain runs and this plugin's `.catch` sees the failure, unless
 this copy has been unloaded or replaced meanwhile: then the failure escapes.
 `tool.judge` is not raised at all where only that copy's hook could run.
-That copy's hooks on `tool.call`, `tool.run`, `agent.call`, `prompt.submit`, `fs.write`, `fs.stat`,
+That copy's hooks on `tool.call`, `tool.run`, `agent.call`, `prompt.submit`, `fs.write`, `fs.stat`, `fs.list`,
 `process.run` and `process.spawn` read as absent until a `user`-tier module loads.
 From then on each of those events runs its chain.
 
@@ -224,7 +224,7 @@ From then on each of those events runs its chain.
 
 `settings.read`, `ui.log`: to the debug log, and for the one line a person reads
 when something held over a plugin of theirs, and `ui.ask` and `store.get` and
-`store.set`, for `forceHotReloadPrompt`, and `tool.check`, `fs.stat` and
+`store.set`, for `forceHotReloadPrompt`, and `tool.check`, `fs.stat`, `fs.list` and
 `env.get`, to tell whether a mod repeats a call or writes a settings file. It continues to
 the `append` tier with `next.to`, which only a plugin in a managed tier may
 do.
@@ -418,7 +418,9 @@ use one to carry out a call the model sent until that call is allowed. Best effo
   file under `allowModsToWriteUserSettings`. It reads settings
   with `$.settings.read`.
 
-A failure refuses only what matched. With no match no policy is read.
+A failure refuses only what matched. With no match no policy is read. A write counts as
+matched where this plugin's own look at where a path leads tells nothing, unless the
+folder's list shows no link of that name, wherever such looks are held.
 
 Known limits: a command that is encoded, split, written to a file first or handed over
 in the environment, a script that disguises the command, wrappers off the list,

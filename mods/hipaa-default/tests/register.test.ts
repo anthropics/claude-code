@@ -57,6 +57,35 @@ describe('register', () => {
     ).toEqual([undefined, 'deny', 'deny'])
   })
 
+  test("and so is the bundled guard's look at a settings path, and no other", () => {
+    const guard = 'cc-plugin-sec-default@builtin'
+
+    expect(
+      (
+        [
+          [guard, 'fs.stat', '/x/.claude'],
+          [guard, 'fs.stat', '/x/.claude/settings.json'],
+          [guard, 'fs.stat', '/x/.claude/settings.local.json'],
+          [guard, 'fs.stat', '/x/.claude/cowork_settings.json'],
+          [guard, 'fs.stat', '/x/.claude/.credentials.json'],
+          [guard, 'fs.stat', '/x/.claude/in/settings.json'],
+          [guard, 'fs.stat', '/x/settings.json'],
+          [guard, 'fs.stat', '/x/a.claude'],
+          [guard, 'fs.list', '/x/.claude'],
+          [guard, 'fs.read', '/x/.claude/settings.json'],
+          ['diff@builtin', 'fs.stat', '/x/.claude'],
+          [undefined, 'fs.stat', '/x/.claude'],
+        ] as const
+      ).map(
+        ([provenance, op, file_path]) =>
+          Hooks.directCallRefusal(
+            { tool: 'Read', input: { file_path }, op },
+            { plugin: 'cc-plugin-sec-default', tier: 'prepend', provenance },
+          )?.decision,
+      ),
+    ).toEqual([...Array(4).fill(undefined), ...Array(8).fill('deny')])
+  })
+
   test("the organization's own code is decided beneath", () => {
     expect(
       Hooks.blockedToolRefusal(TOOL, {

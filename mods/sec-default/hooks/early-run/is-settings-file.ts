@@ -1,10 +1,7 @@
 import type { EngineInterface } from 'claude-code'
 
 import { configFolders, type FirstFolder } from './config-folders.js'
-import { placed } from './placed.js'
-
-const BY_NAME =
-  /[/\\]\.claude[/\\](settings|settings\.local|cowork_settings)\.json$/i
+import { BY_NAME, isWindows, placed, shortened } from './placed.js'
 
 /**
  * Whether a write lands on a Claude Code settings file that can hold
@@ -16,7 +13,7 @@ const BY_NAME =
  * @param $ the calling hook's
  * @param path the path as written
  * @param first the config folder as it was first read
- * @returns true for such a file
+ * @returns true for such a file, and where a place is not told
  */
 export async function isSettingsFile(
   $: EngineInterface,
@@ -24,13 +21,17 @@ export async function isSettingsFile(
   first: FirstFolder,
 ): Promise<boolean> {
   const folders = await configFolders($, first)
-  const [real, ...files] = await Promise.all([
+  const isWin = await isWindows($, [path, ...folders].join()).catch(() => {})
+  const isNamed = (one: string) =>
+    BY_NAME.test(one) && !(isWin && /e$/i.test(one))
+  const [short, real, ...files] = await Promise.all([
+    isWin ? path : shortened($, path).then(parts => parts.join('/')),
     placed($, path),
     ...folders.map(folder => placed($, `${folder}/settings.json`)),
     ...folders.map(folder => placed($, `${folder}/cowork_settings.json`)),
     placed($, '.claude/settings.json'),
     placed($, '.claude/settings.local.json'),
-  ])
+  ]).catch(() => [path, path, path] as const)
 
-  return BY_NAME.test(path) || BY_NAME.test(real) || files.includes(real)
+  return isNamed(short) || isNamed(real) || files.includes(real)
 }

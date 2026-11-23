@@ -25,7 +25,7 @@ export async function isUserSettingsFile(
     placed($, path),
     placed($, `${folder}/settings.json`),
     placed($, `${folder}/cowork_settings.json`),
-  ])
+  ]).catch(() => [])
 
-  return files.includes(real)
+  return real !== undefined && files.includes(real)
 }
