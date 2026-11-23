@@ -1,17 +1,13 @@
 import type Shapes from '../../../shapes'
-import { GRID_CELL } from '../../grid-cell'
 import Limits from '../../limits'
 import type Types from '../../types'
-import Words from '../../words'
 import { dotBitOf } from './dot-bit-of'
-import { lineCellOf } from './line-cell-of'
+import { paintDots } from './paint-dots'
 
 /**
  * Walks from each sample to the next in steps of one dot, and lights the
- * dot under each step.
- *
- * A line is painted only in cells that are blank, hold the grid or hold
- * another line.
+ * dot under each step. A cell is costly to make, so it is made when the walk
+ * leaves it, not at each dot.
  *
  * @param canvas the cells to paint in
  * @param shape the samples of the line and its ink
@@ -21,6 +17,9 @@ export function paintLine(
   canvas: Types.Canvas,
   { points, ink }: Shapes.LineShape,
 ): void {
+  let place = { x: Number.NaN, y: Number.NaN }
+  let bits = 0
+
   for (const [index, to] of points.entries()) {
     const start = points[index - 1] ?? to
     const stepCount = Math.ceil(
@@ -34,21 +33,18 @@ export function paintLine(
     for (let step = 0; step <= stepCount; step++) {
       const left = start.x + ((to.x - start.x) * step) / stepCount
       const top = start.y + ((to.y - start.y) * step) / stepCount
-      const place = { x: Math.floor(left), y: Math.floor(top) }
-      const cell = canvas.cellAt(place)
-      const isBarred =
-        !cell ||
-        !(
-          cell.glyph === Words.BLANK ||
-          cell === GRID_CELL ||
-          cell.lines !== undefined
-        )
+      const isInAnotherCell =
+        Math.floor(left) !== place.x || Math.floor(top) !== place.y
 
-      if (isBarred) {
-        continue
+      if (isInAnotherCell) {
+        paintDots(canvas, place, { ink, bits })
+        place = { x: Math.floor(left), y: Math.floor(top) }
+        bits = 0
       }
 
-      canvas.set(place, lineCellOf(cell, { ink, bits: dotBitOf(left, top) }))
+      bits |= dotBitOf(left, top)
     }
   }
+
+  paintDots(canvas, place, { ink, bits })
 }

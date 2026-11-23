@@ -28,6 +28,12 @@ export function readNumber(
   }
 
   const text = String(cell ?? '').trim()
+  const isPlain = Patterns.PLAIN_NUMBER.test(text)
+
+  if (isPlain) {
+    return checkedMagnitude(Number(text), '')
+  }
+
   const isEmpty = Patterns.EMPTY_CELL.test(text)
 
   if (isEmpty) {

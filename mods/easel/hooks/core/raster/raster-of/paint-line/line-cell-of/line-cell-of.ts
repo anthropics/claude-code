@@ -11,9 +11,9 @@ import { hasDotCount } from './has-dot-count'
  * The rule of a mark gives way to a series: its dots in that ink would be
  * a spike that is no data.
  *
- * @param cell the cell as it is before the dot is painted
- * @param dots the ink of the line and the bit of its new dot
- * @returns the cell with that dot among the dots of its lines
+ * @param cell the cell as it is before the dots are painted
+ * @param dots the ink of the line and the bits of its new dots
+ * @returns the cell with those dots among the dots of its lines
  */
 export function lineCellOf(
   cell: Types.CanvasCell,
