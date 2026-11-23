@@ -13800,7 +13800,8 @@ declare module 'claude-code' {
            * replaces the line.
            *
            * Read from the drawn line the way the screen reader reads it, one space
-           * between parts.
+           * between parts. With a label on the footer's right and no screen reader,
+           * it leaves out the hint for selected text, and a rewrite hides that hint.
            */
           hint: string;
           /**
