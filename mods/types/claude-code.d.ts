@@ -2323,6 +2323,11 @@ declare module 'claude-code' {
        * has measured (headless with no tty).
        */
       columns: number;
+      /**
+       * True where the terminal shows no color (`NO_COLOR`, `--no-color`): an
+       * answer leaves its escape codes out. Absent elsewhere, and headless.
+       */
+      isColorless?: true;
   };
 
   /**
