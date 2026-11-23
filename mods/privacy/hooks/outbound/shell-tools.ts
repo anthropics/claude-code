@@ -14,8 +14,8 @@ export const SHELL_TOOLS: readonly string[] = [
 ]
 
 /**
- * Where a host adds a shell tool of its own, once, before the plugin registers
- * (register.ts reads it there). Empty as shipped.
+ * The shell tools that only some builds install. Their fields are their own,
+ * so this guard looks for named scripts in their whole input.
  */
-// module-state-allow: module-evaluation code wiring — a compiling host adds a constant tool name once before registration and never removes it
-export const INSTALLED_SHELL_TOOLS = new Set<string>()
+// module-state-allow: a process constant — seeded here, and no shipped code adds or removes a name
+export const INSTALLED_SHELL_TOOLS = new Set<string>(['Tmux'])

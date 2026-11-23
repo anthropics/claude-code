@@ -9,6 +9,8 @@ in any case or percent-encoded.
 - **Bash, PowerShell, Monitor:** the whole input, and the text of each script its
   `command` names outside a git or gh command, are refused if they hold the address
   and a word that declares who is calling. A line that only touches files reads none.
+- **Tmux:** the whole input, and the text of each script named anywhere in it, by
+  the same test.
 - **Write, Edit, NotebookEdit:** what is being written, by the same test. Not the
   path. An Edit is refused only when `new_string` meets the test and `old_string`
   doesn't, since carrying over a line the file already holds adds nothing.

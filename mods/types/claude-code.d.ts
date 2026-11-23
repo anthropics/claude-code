@@ -3588,8 +3588,8 @@ declare module 'claude-code' {
           version: () => Promise<SessionVersion>;
           /**
            * Returns the session's transcript file, scratchpad, prompt id, agent type,
-           * config root, platform, hosting and data rules (SessionInfo), as they
-           * stand at the call.
+           * config root, platform, hosting, screen reader mode, whether the workspace
+           * is remote and data rules (SessionInfo), as they stand at the call.
            *
            * What a settings hook reads on its input, for a plugin that has seen no
            * classic event yet, and where the engine runs. `dataRules` is read with
@@ -3600,6 +3600,8 @@ declare module 'claude-code' {
            * const { transcriptPath } = await $.session.info()
            * @example
            * const { platform, isHosted } = await $.session.info()
+           * @example
+           * const { isScreenReader, isWorkspaceRemote } = await $.session.info()
            * @example
            * const { dataRules } = await $.session.info()
            * if (dataRules?.length !== 0) return // absent, or any name: keep it here
@@ -4698,7 +4700,8 @@ declare module 'claude-code' {
            * Takes a folder, and is refused where `detect` is. The engine raises
            * `process.run` of `git worktree list` as the caller, with no output, and
            * `fs.list` on `path` and on each worktree: it answers none where the
-           * first is refused, and names only what the second read.
+           * first is refused, and names only what the second read. A name new to
+           * the caller is handed to `fs.list` of the folder above, as in `status`.
            *
            * @example
            * const copies = await $.vcs.list({ path: "." })
@@ -4714,7 +4717,9 @@ declare module 'claude-code' {
            * `since`, else the commits no remote-tracking branch holds. Where a
            * managed rule would refuse this mod's own run of `git status`, or its
            * `$.fs.list` of a changed path or, ahead of the hooks, of the folder,
-           * the answer is `{ unknown }`.
+           * the answer is `{ unknown }`. So it is where an `fs.list` hook, handed a
+           * changed name as its folder's one entry, leaves it out: the disk's own,
+           * else a `dir` on the way or a `file`, its size and time 0.
            *
            * Experimental: may change.
            *
@@ -5366,6 +5371,27 @@ declare module 'claude-code' {
        * on("ui.focus", { requestId: "list" }, ($, e, next) => (mark(e), next(e)))
        */
       'ui.focus': UiFocusInput;
+      /**
+       * Fires in the terminal when the spinner's next tip is due, once a
+       * submission has settled; `next(e)` resolves to `{ id }`, null for no tip.
+       *
+       * Pick a candidate with `{ id }`, add a tip with `{ text, id, label? }`, show
+       * none with `{ id: null }`, or pass `next` fewer candidates to drop some.
+       * Core answers the one unshown the longest, ties to priority, then order.
+       *
+       * The engine decides which tips are candidates, builds the picked one's
+       * text, draws it between turns and records it then. A tip of your own keeps
+       * no history and is never a candidate. Nothing waits on the answer. A hook
+       * that fails, or names no candidate, is skipped. Not raised with
+       * `spinnerTipsEnabled` false.
+       *
+       * @example
+       * on("ui.tip", () => ({ id: "docs", text: "Read the runbook first" }))
+       * on("ui.tip", ($, e, next) =>
+       *   next({ candidates: e.candidates.filter(c => c.source !== "marketplace") }),
+       * )
+       */
+      'ui.tip': UiTipInput;
       /**
        * Fires when the engine offers an agent type to the model, in the agent
        * listing and again at dispatch; `next(e)` resolves to `{ isOffered: true }`.
@@ -6294,6 +6320,10 @@ declare module 'claude-code' {
        */
       'ui.focus': UiFocusResult;
       /**
+       * `{ id }`, `{ text, id, label? }`, or `{ id: null }`.
+       */
+      'ui.tip': UiTipResult;
+      /**
        * `{ isOffered }`.
        */
       'agent.offer': AgentOfferResult;
@@ -6578,6 +6608,7 @@ declare module 'claude-code' {
           resolve: <E extends ResolveInput>(e: E) => Elements[E['surface']];
           scroll: (input: UiScrollArgs) => Promise<UiScrollResult>;
           focus: (input: UiFocusArgs) => Promise<UiFocusResult>;
+          tip: (input: UiTipInput) => Promise<UiTipResult>;
       };
   };
 
@@ -12820,7 +12851,7 @@ declare module 'claude-code' {
    * rows a plugin adds to it. `Underlay` is drawn under the terminal's
    * fullscreen interface, and `UnderlayList` orders its layers.
    */
-  export type RenderComponent = 'AskUserQuestion' | 'UserMessage' | 'AssistantMessage' | 'ToolUse' | 'ToolResult' | 'ToolGroup' | 'ToolProgress' | 'CommandOutput' | 'Spinner' | 'TurnDuration' | 'InfoNotice' | 'SessionMode' | 'PromptHint' | 'AbovePrompt' | 'AbovePromptList' | 'BesidePrompt' | 'BesidePromptList' | 'AgentRow' | 'ContextMenu' | 'Pane' | 'Placed' | 'Backdrop' | 'Underlay' | 'UnderlayList';
+  export type RenderComponent = 'AskUserQuestion' | 'UserMessage' | 'AssistantMessage' | 'ToolUse' | 'ToolResult' | 'ToolGroup' | 'ToolProgress' | 'CommandOutput' | 'Spinner' | 'TurnDuration' | 'InfoNotice' | 'Welcome' | 'SessionMode' | 'PromptHint' | 'AbovePrompt' | 'AbovePromptList' | 'BesidePrompt' | 'BesidePromptList' | 'AgentRow' | 'ContextMenu' | 'Pane' | 'Placed' | 'Backdrop' | 'Underlay' | 'UnderlayList';
 
   /**
    * What a render hook returns, and what `next(e)` resolves to: a plain-data
@@ -13757,6 +13788,56 @@ declare module 'claude-code' {
            * received; one that changes or drops it is refused.
            */
           onScreen?: OnScreen | null;
+      };
+      /**
+       * The terminal's welcome logo: the mascot, and the version, model, plan and
+       * folder lines. One instance per header: `requestId` is `"site:welcome"` in
+       * the session's own, `"site:welcome:copy"` where `isLive` is false.
+       *
+       * `next(e)` draws the logo. A hook hides it by answering an empty `Box`,
+       * which leaves no blank row, or draws its own tree. Where the answer does
+       * not hold the logo, the engine still draws one dim line after it with what
+       * the person must see: a warning about their access, an expired trial, and
+       * the Remote Control status where no footer shows it. The props are the text
+       * the logo shows, before it is cut to the terminal's width. All are
+       * read-only: the logo draws the engine's own whatever a rewrite carries.
+       *
+       * @remarks The logo shows until the first answer lands. On the main screen,
+       *   a header that scrolled out of view takes no answer, a first one
+       *   included, until it is back in view.
+       *
+       * @example
+       * on("ui.render", { component: "Welcome" }, ($, e) => $.ui.resolve(e).Box({}))
+       *
+       * Raised on the terminal surface only.
+       */
+      Welcome: {
+          /**
+           * The running version as the logo writes it after the `v` (`2.1.0`).
+           */
+          version: string;
+          /**
+           * The model of the session, or of the agent whose transcript is on
+           * screen, with its effort where the logo names one.
+           */
+          model: string;
+          /**
+           * The plan or provider the session bills to.
+           */
+          plan: string;
+          /**
+           * The working folder as the logo writes it; empty where it is hidden.
+           */
+          cwd: string;
+          /**
+           * The name of the agent the session runs as, or null when it has none.
+           */
+          agent: string | null;
+          /**
+           * False in a copy of the header: the `/resume` preview, an export, the
+           * screen that starts a cloud session.
+           */
+          isLive: boolean;
       };
       /**
        * The dim mode labels at the right of the prompt footer (`focus`, `memory
@@ -15308,8 +15389,8 @@ declare module 'claude-code' {
 
   /**
    * What `$.session.info()` answers: what a settings hook's input says of the
-   * session that no other read on `$.session` does, where the engine runs, and
-   * the data rules in force.
+   * session that no other read on `$.session` does, where the engine and the
+   * workspace are, screen reader mode, and the data rules in force.
    */
   export type SessionInfo = {
       /**
@@ -15353,6 +15434,23 @@ declare module 'claude-code' {
        * The engine always gives it; a hook that answers whole may leave it out.
        */
       isHosted?: boolean;
+      /**
+       * True in screen reader mode, however the person turned it on: on the
+       * command line, in the environment or in settings.
+       *
+       * It can change: read it at each use, and do not keep it. Absent reads as
+       * false.
+       */
+      isScreenReader?: boolean;
+      /**
+       * True where this process is a client of a session on another machine, so
+       * the workspace's files, shell and repository are there and not here. False
+       * in the process that runs the session, wherever that is.
+       *
+       * It can change, as when a terminal attaches to a session elsewhere or
+       * leaves it: read it at each use, and do not keep it. Absent reads as false.
+       */
+      isWorkspaceRemote?: boolean;
       /**
        * The data rules the session is under. Names: these apply, and more may
        * follow. `[]`: settled, none applies, as where no organization's policy
@@ -18474,7 +18572,8 @@ declare module 'claude-code' {
        *
        * Absent also means the tool cannot say: a careful hook reads it as a write.
        * It is the tool's word, no proof of no effect (a fetch, a sent message, an
-       * agent that delegates all say it); an MCP tool's is its server's, unproven.
+       * agent that delegates all say it); an MCP tool's is its server's and a tool
+       * added at `tool.list` its mod's, unproven.
        */
       isReadOnly?: true;
   };
@@ -18714,8 +18813,9 @@ declare module 'claude-code' {
    *
    * Add `{ name, description, mcp: false, inputSchema? }` under a new name and the
    * tool joins, checked as `$.tool.register` checks a spec: an entry that fails is
-   * left out. A `tool.call`
-   * hook on its name answers its calls, with no permission prompt; a call no hook
+   * left out. Answer its calls from a `tool.run` hook on its name, which stands
+   * behind PreToolUse and the permission check, so ask rules hold; a `tool.call`
+   * hook answers ahead of them, with no permission prompt. A call no hook
    * answers is a tool error naming it. A schema the API refuses is declared with no
    * parameters. New words reach a thread at its next compaction. An `mcp__` name, a
    * name a request declares itself (`advisor`, `DeferredToolPlaceholder`), or a
@@ -18725,6 +18825,14 @@ declare module 'claude-code' {
    * `--tools` list and an agent's `tools:` hold over an added tool as over any
    * other, a deny rule for the model and its agents alone (`$.tool.call` says so),
    * and a real tool takes its name when it joins.
+   *
+   * An added entry may carry traits, `isReadOnly` to `title` below, the same for
+   * every input. They are the mod's word, as an MCP server's annotations are, and
+   * none skips a check. A bad one leaves the entry out. Each text is one line with
+   * no control or invisible character. A thread that declared the tool keeps its
+   * words until a compaction and its placement until a new thread or `/clear`. On
+   * an entry of a tool that exists they say nothing, and the engine lists no tool
+   * with them.
    *
    * A hook that throws, crashes or runs past its 10-second budget is skipped, unless
    * its `.catch` answers: the answer is what the others said, without what the hook
@@ -18783,6 +18891,48 @@ declare module 'claude-code' {
        * as on `$.tool.register`. Never on a tool the session lists.
        */
       inputSchema?: Record<string, unknown>;
+      /**
+       * On an added entry: a call changes nothing. `tool.check` reads it, and so
+       * does core's answer at `tool.run`; plan mode holds the call as it would
+       * without it. Refused beside `isDestructive` or `runsCode`.
+       */
+      isReadOnly?: true;
+      /**
+       * On an added entry: a call may run beside other such calls, even while one of
+       * them waits on its permission prompt, whose refusal then comes too late to
+       * cancel it.
+       */
+      isConcurrencySafe?: true;
+      /**
+       * On an added entry: a call does what cannot be undone.
+       */
+      isDestructive?: true;
+      /**
+       * On an added entry: a call runs commands or code, so `--restricted` leaves
+       * the tool out unless `--tools` names it.
+       */
+      runsCode?: true;
+      /**
+       * On an added entry: `true` puts the tool behind ToolSearch, `false` in the
+       * prompt's tool list, where it also stands with this left out. A
+       * `tool.describe` hook's answer is read first.
+       */
+      isDeferred?: ToolDeferral;
+      /**
+       * On an added entry: a few words ToolSearch matches, up to 256 characters.
+       * A bare prompt (`--bare`) sends them in place of the description.
+       */
+      searchHint?: string;
+      /**
+       * On an added entry: when to use the tool, up to 400 characters, shown after
+       * a deferred tool's name where the session lists such lines.
+       */
+      whenToUse?: string;
+      /**
+       * On an added entry: what the transcript calls the tool, up to 64 characters.
+       * Rules, matchers and permission prompts go by `name`.
+       */
+      title?: string;
   };
 
   /**
@@ -20575,6 +20725,67 @@ declare module 'claude-code' {
        * What the handler received: the option's value as the chain left it.
        */
       value: string;
+  };
+
+  /**
+   * One tip the spinner may show now, as `ui.tip` lists it. Its text is the
+   * engine's to build, once the tip is picked.
+   */
+  export type UiTipCandidate = {
+      /**
+       * What `{ id }` names to pick this tip, and what its history is kept under.
+       */
+      id: string;
+      /**
+       * Whose tip it is: `shipped` in this build, `organization` for every entry
+       * of the `spinnerTipsOverride` setting (a person's and a repository's too),
+       * `marketplace` for a plugin a marketplace suggests, `served` for one
+       * Anthropic serves to this build.
+       */
+      source: 'shipped' | 'organization' | 'marketplace' | 'served';
+      /**
+       * The weight that breaks a tie on `sessionsSinceShown`, higher first; 0
+       * where the tip names none.
+       */
+      priority: number;
+      /**
+       * What heads the line in place of `Tip`.
+       */
+      label?: string;
+      /**
+       * How many launches ago the tip last showed, 0 for this one; null when it
+       * never has.
+       */
+      sessionsSinceShown: number | null;
+  };
+
+  /**
+   * The input of `ui.tip`: the tips that fit the session now.
+   */
+  export type UiTipInput = {
+      /**
+       * In catalog order, possibly none. A hook may pass fewer down, or another
+       * order; one it changed, repeated or made up fails the hook.
+       */
+      candidates: readonly UiTipCandidate[];
+  };
+
+  /**
+   * What a `ui.tip` hook returns and what `next(e)` resolves to: a candidate
+   * by its `id`, a tip of the hook's own, or `{ id: null }` for no tip.
+   *
+   * An own tip's `id` is 1 to 64 letters, digits, `.`, `_` or `-`, its `text` up
+   * to 500 characters and not blank, drawn as plain text with no escape, control
+   * or invisible character; `label` heads the line in place of `Tip`, cut at 40.
+   */
+  export type UiTipResult = {
+      id: string | null;
+      text?: undefined;
+      label?: undefined;
+  } | {
+      id: string;
+      text: string;
+      label?: string;
   };
 
   /**
