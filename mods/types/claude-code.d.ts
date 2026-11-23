@@ -5908,7 +5908,7 @@ declare module 'claude-code' {
        * Another system's answer names it and its branch in the environment block
        * and drops the Git status block and, for the session, the shell tools'
        * commit and pull-request steps; Git's safety cautions stay. Add your own
-       * with `prompt.context` and `tool.describe`. `$.session.repo()` reads it
+       * with `vcs.status`, `prompt.context` and `tool.describe`. `$.session.repo()` reads it
        * too. Trust, settings, memory, permissions and the sandbox never do. A
        * hook that fails passes it through. Not raised where the session's files
        * are on another machine.
@@ -6142,6 +6142,11 @@ declare module 'claude-code' {
        * A law the engine relies on: for a copy with its own folder, report
        * everything removing that folder would lose, work kept there under other
        * names included.
+       *
+       * With `{ path, vcs }` alone it fires where `vcs.detect` names another system
+       * and a conversation, resumed too, was told no context yet: the model hears up
+       * to 2000 characters of `changes` given in 30 s, and no removal rests on it.
+       * On a managed login a person's hook is asked that only where no other answers.
        *
        * On a mod's own `$.vcs.status`, `next(e)` also answers for the trusted
        * workspace's Git repository and its worktrees, and is `{ unknown }` where
@@ -21512,6 +21517,7 @@ declare module 'claude-code' {
       /**
        * The copy's folder, absolute. From the engine its links are resolved, so
        * it may be spelled unlike the `path` answered: know a copy by `name`.
+       * With no `name`, the engine passes the `root` as `vcs.detect` answered it.
        */
       path: string;
       /**
@@ -21519,7 +21525,7 @@ declare module 'claude-code' {
        */
       name?: string;
       /**
-       * The `vcs` its `vcs.isolate` answered.
+       * The `vcs` its `vcs.isolate` answered, or with no `name` its `vcs.detect`.
        */
       vcs?: string;
       /**
@@ -21568,7 +21574,7 @@ declare module 'claude-code' {
        * The system, a short lowercase slug (`acme`); core says `git`.
        *
        * Any slug but `git` and core's own for the folder drops the Git status
-       * block and commit steps. It carries no other privilege.
+       * block (see `vcs.status`) and commit steps. It carries no other privilege.
        */
       vcs: string;
       /**
@@ -21592,7 +21598,8 @@ declare module 'claude-code' {
        */
       branch: string | null;
       /**
-       * The line of work changes land on, or null where none is known.
+       * The line of work changes land on, or null where none is known. The model
+       * is told it in the status block, on `branch`'s terms.
        */
       defaultBranch: string | null;
       /**

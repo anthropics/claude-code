@@ -565,7 +565,15 @@ export function register(on: On) {
       Policy.hasWorktreeHook,
     )
 
-    return isOrgs ? next.to(e, 'append') : next(e)
+    if (isOrgs || e.name !== undefined || (e.vcs ?? 'git') === 'git') {
+      return isOrgs ? next.to(e, 'append') : next(e)
+    }
+
+    const theirs = await next.to(e, 'append')
+    const last = next.trace.at(-1)
+    const cores = last?.tier === 'core' ? last.returned?.unknown : undefined
+
+    return cores !== undefined && cores === theirs.unknown ? next(e) : theirs
   }).catch(($, e, next) => (next.called ? next(e) : next.to(e, 'append')))
 
   on('vcs.release', async ($, e, next) => {
