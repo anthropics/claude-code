@@ -4030,6 +4030,10 @@ declare module 'claude-code' {
            * @remarks A name registered again is replaced. Rejects until the session
            *   binds, at `session.start`.
            *
+           * `allowedMcpServers` does not remove a registered tool, though sec-default
+           * withholds a person's while it would refuse it; `deniedMcpServers`
+           * naming the plugin, or a permission deny rule, does.
+           *
            * The model reads a description's first 4096 characters (UTF-16 code
            * units), or its first 16384 once it loads the tool through ToolSearch,
            * then a `[truncated]` mark. `CLAUDE_CODE_MAX_MCP_DESCRIPTION_LENGTH` in
@@ -12999,7 +13003,7 @@ declare module 'claude-code' {
    * rows a plugin adds to it. `Underlay` is drawn under the terminal's
    * fullscreen interface, and `UnderlayList` orders its layers.
    */
-  export type RenderComponent = 'AskUserQuestion' | 'UserMessage' | 'AssistantMessage' | 'ToolUse' | 'ToolResult' | 'ToolGroup' | 'ToolProgress' | 'CommandOutput' | 'Spinner' | 'TurnDuration' | 'InfoNotice' | 'Welcome' | 'SessionMode' | 'PromptHint' | 'StatusLine' | 'AbovePrompt' | 'AbovePromptList' | 'BesidePrompt' | 'BesidePromptList' | 'AgentRow' | 'ContextMenu' | 'Pane' | 'Placed' | 'Backdrop' | 'Underlay' | 'UnderlayList';
+  export type RenderComponent = 'AskUserQuestion' | 'UserMessage' | 'AssistantMessage' | 'CodeBlock' | 'ToolUse' | 'ToolResult' | 'ToolGroup' | 'ToolProgress' | 'CommandOutput' | 'Spinner' | 'TurnDuration' | 'InfoNotice' | 'Welcome' | 'SessionMode' | 'PromptHint' | 'StatusLine' | 'AbovePrompt' | 'AbovePromptList' | 'BesidePrompt' | 'BesidePromptList' | 'AgentRow' | 'ContextMenu' | 'Pane' | 'Placed' | 'Backdrop' | 'Underlay' | 'UnderlayList';
 
   /**
    * What a render hook returns, and what `next(e)` resolves to: a plain-data
@@ -13577,6 +13581,48 @@ declare module 'claude-code' {
            * received; one that changes or drops it is refused.
            */
           onScreen?: OnScreen | null;
+      };
+      /**
+       * One top-level fenced block of an assistant reply, in the terminal: read
+       * from the stream in its preview, and on the finished row from the text the
+       * `AssistantMessage` hooks passed on. None in a list, a quote or a tool's rows.
+       *
+       * Asked as its opening line is whole and as it closes, never as it grows;
+       * again only as any site is (a new width, an invalidate). What follows each
+       * of the two waits for its answer, and the finished row starts from it; a
+       * row that still waits shows the source once the person is asked or acts.
+       *
+       * @remarks The stored message and `/copy` keep the source; an export prints
+       *   what is drawn. The closed ask's `requestId` is its content's, so a fence
+       *   repeated in another reply is the same instance. A row drawn before the
+       *   hook loaded, as on a resume, shows the source until its answer lands.
+       *
+       * Raised on the terminal surface only.
+       */
+      CodeBlock: {
+          /**
+           * The first word of the fence's info string, lower-cased; empty for a
+           * bare fence. A matcher on it keeps every other fence off the chain.
+           */
+          language: string;
+          /**
+           * The code between the fence's lines; empty while it is open.
+           *
+           * Closed, `next` with this or `language` rewritten draws a normal code
+           * block from them, and a hook's own tree draws in the block's place.
+           */
+          source: string;
+          /**
+           * False on the ask made at the opening line. Read-only: a rewrite that
+           * changes it is refused, the hook that passed it failing.
+           *
+           * There `next(e)` leaves the fence streaming, and an own tree (an empty
+           * Box too) holds it: the tree stands in for the source, beside the spinner.
+           * The source is shown after all when the block ends unclosed, the stream
+           * is cut off or stopped, the hook fails or overruns, or the source passes
+           * 20000 characters, past which the fence is not asked again.
+           */
+          isClosed: boolean;
       };
       /**
        * A tool call's row in the transcript (`Bash(ls -la)` and its result); the
@@ -19114,6 +19160,8 @@ declare module 'claude-code' {
        * True for an MCP server's tool.
        */
       mcp: boolean;
+      /** On a tool `$.tool.register` made: who made it, in `provider`'s shape. */
+      registeredBy?: Origin;
       /**
        * On an entry a `tool.list` hook adds: a JSON schema object for the input
        * (`{ type: "object", properties, required }`), default `{ type: "object" }`

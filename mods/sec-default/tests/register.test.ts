@@ -207,6 +207,29 @@ describe('register', () => {
   )
 
   test(
+    "under an MCP allowlist a tool a person's plugin registered is not listed",
+    { plugins: [Fixtures.listing] },
+    async ($, on) => {
+      on('settings.read', () => ({ value: Fixtures.ALLOWLIST }))
+      on('tool.list', () => ({
+        value: (['user', 'prepend', 'builtin'] as const).map(one => ({
+          name: `mcp__${one}__x`,
+          description: 'x',
+          mcp: true,
+          registeredBy: { plugin: `${one}@market`, tier: one },
+        })),
+      }))
+
+      const { text } = await $.command.run(Fixtures.TOOLS_COMMAND)
+
+      expect(text?.split('\n')).toEqual([
+        'mcp__prepend__x: x',
+        'mcp__builtin__x: x',
+      ])
+    },
+  )
+
+  test(
     "a person's plugin does not put back a tool an organization's plugin removed",
     { plugins: [Fixtures.removingAsOrg, Fixtures.readding, Fixtures.listing] },
     async ($, on) => {

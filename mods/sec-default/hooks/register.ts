@@ -22,6 +22,7 @@ import { isSkillRow } from './skill-row'
 import {
   registerRefusalOf,
   TOOL_REGISTER_REFUSAL,
+  withoutRefusedTools,
 } from './tool-register-refusal'
 import { usesNothing } from './uses-nothing'
 import { withoutModules } from './without-modules'
@@ -51,6 +52,10 @@ export function register(on: On) {
   const pastManagedOnly = new Set<string>()
   const memory = EarlyRun.createCallMemory()
   const first: FirstFolder = {}
+  // What the engine's newest raise of tool.list lost, for a loop whose pool stands.
+  const withheld = { names: new Set<string>(), begun: 0, judged: 0 }
+  // Each raise's place among the engine's, which its `.catch` reads too.
+  const places = new WeakMap<object, number>()
 
   on('classic.*', ($, e, next) => next.to(e, 'append'))
 
@@ -149,9 +154,19 @@ export function register(on: On) {
         : undefined
 
     return refusal === undefined ? next(e) : { deny: refusal }
+  }).catch(($, e, next) => {
+    if (next.called) {
+      return next(e)
+    }
+
+    return next.origin.tier === 'user'
+      ? { deny: TOOL_REGISTER_REFUSAL }
+      : next.to(e, 'append')
   })
 
   on('tool.list', async ($, e, next) => {
+    const place = next.origin.tier === 'core' ? (withheld.begun += 1) : -1
+    places.set(e, place)
     // The engine asks because settings changed, among other causes, and asks
     // only then: a memo younger than that change would answer it for good.
     const policy =
@@ -159,7 +174,8 @@ export function register(on: On) {
         ? $.settings.read(Policy.SOURCE)
         : readPolicy(() => $.settings.read(Policy.SOURCE))
     const managed = await policy.catch(() => undefined)
-    const listed = await next.to(e, 'append')
+    const beneath = await next.to(e, 'append')
+    const listed = withoutRefusedTools(beneath, withheld, place, managed)
 
     // Here and not in `.catch`, whose `next` replays this hook's last call: the
     // organization's listing is in hand, and whatever fails below costs it nothing.
@@ -182,13 +198,21 @@ export function register(on: On) {
   }).catch(async ($, e, next) =>
     Policy.orgRemovalsApplied(
       await $.settings.read(Policy.SOURCE).catch(() => undefined),
-      await next.to(e, 'append').catch(() => ({ deny: TOOL_LIST_REFUSAL })),
+      withoutRefusedTools(
+        await next.to(e, 'append').catch(() => ({ deny: TOOL_LIST_REFUSAL })),
+        withheld,
+        next.origin.tier === 'core' ? (places.get(e) ?? withheld.begun) : -1,
+      ),
     ),
   )
 
   // The rows from here to process.spawn read as absent where this is the built-in copy and no person's mod took a seat.
   // None has a .catch: a failure before a match is no ground to refuse, and refusalOf catches its own.
   on('tool.call', async ($, e, next) => {
+    if (withheld.names.has(e.tool)) {
+      return { deny: TOOL_REGISTER_REFUSAL }
+    }
+
     const call = EarlyRun.callOf(e)
     const id = e.tool_use_id
 
