@@ -6,6 +6,7 @@ import { finishedCallsOf } from '../shell/finished-calls-of'
 import { isReaderOn } from '../shell/is-reader-on'
 import Limits from '../shell/limits'
 import { outcomeOfRow } from '../shell/outcome-of-row'
+import Patterns from '../shell/patterns'
 import { rowAsCalled } from '../shell/row-as-called'
 import View from '../view'
 
@@ -26,16 +27,22 @@ export async function withNewestChart<HostRow extends RenderElement | null>(
   const columns = event.viewport?.columns
   const readTranscript = async (): Promise<Shell.FinishedCall[]> =>
     finishedCallsOf(await $.session.messages({}))
+  const isTerminal = event.surface === 'terminal'
+  // A terminal and VS Code cut nothing that is short enough to chart, and give
+  // no label: there both are a hook's doing.
+  const mayBeCut = !isTerminal && event.surface !== 'vscode'
   const called = await Promise.all(
-    drawing.rows.map(row => rowAsCalled(readTranscript, cache, row)),
+    drawing.rows.map(async row => ({
+      row: await rowAsCalled(readTranscript, cache, row),
+      hasWholeOutput: isTerminal,
+      mayBeCut,
+      isOfAnotherCopy: mayBeCut && Patterns.ROW_LABEL.test(row.tool),
+    })),
   )
-  const rows = called.filter(row => drawing.isCharted(row.tool))
+  const rows = called.filter(({ row }) => drawing.isCharted(row.tool))
 
-  for (const row of rows.toReversed()) {
-    const outcome = await outcomeOfRow(readTranscript, cache, {
-      row,
-      hasWholeOutput: event.surface === 'terminal',
-    })
+  for (const drawn of rows.toReversed()) {
+    const outcome = await outcomeOfRow(readTranscript, cache, drawn)
 
     if (outcome.kind !== 'chart') {
       continue
@@ -63,7 +70,7 @@ export async function withNewestChart<HostRow extends RenderElement | null>(
       cache.screenReader = isReaderOn(variable, tiers) ? 'on' : 'off'
     }
 
-    const isAsked = row.tool === CoreCall.TOOL_NAME
+    const isAsked = drawn.row.tool === CoreCall.TOOL_NAME
     const chart = View.terminalChart({
       elements: $.ui.resolve(event),
       chart: outcome,

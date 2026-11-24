@@ -10,14 +10,16 @@ import type Types from '../types'
  *
  * @param cache where the charts of the session are kept
  * @param id the id of the call
- * @param outcome what the call draws
- * @returns what was passed to keep, as it is
+ * @param kept what the call draws, and for which words of its row
+ * @returns what the call draws
  */
 export function cacheOutcome(
   cache: Types.ChartCache,
   id: string,
-  outcome: Easel.Outcome,
+  kept: Types.KeptChart,
 ): Easel.Outcome {
+  const { outcome } = kept
+
   if (outcome.kind === 'none') {
     cache.chartlessIds.add(id)
 
@@ -26,13 +28,15 @@ export function cacheOutcome(
 
   const newestId = [...cache.charts.keys()].at(-1)
   const isFull =
-    cache.charts.size >= Limits.MAX_CACHED_CHARTS && newestId !== undefined
+    cache.charts.size >= Limits.MAX_CACHED_CHARTS &&
+    newestId !== undefined &&
+    !cache.charts.has(id)
 
   if (isFull) {
     cache.charts.delete(newestId)
   }
 
-  cache.charts.set(id, outcome)
+  cache.charts.set(id, kept)
 
   return outcome
 }

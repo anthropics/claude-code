@@ -13,9 +13,15 @@ export type FinishedCall = {
   tool: string
 
   /**
-   * Of the stored result or, where that holds no text, what the model read.
+   * Of the stored result or, where that holds no text or a hook rewrote it
+   * since, what the model read.
    */
   text: string
+
+  /**
+   * What the model read.
+   */
+  readText: string
 
   /**
    * What the tool was called with.

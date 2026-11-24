@@ -1,3 +1,4 @@
+export * from './host-note.js'
 export * from './is-reader-on'
 export * from './other-mcp-tool.js'
 export * from './row-label.js'

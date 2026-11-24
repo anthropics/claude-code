@@ -128,13 +128,13 @@ export function register(
     }
     const startedMs = performance.now()
     const outcome = Easel.chartFromCall({ input, results, ...clock })
-    cacheOutcome(cache, tool_use_id, outcome)
+    const text = outcome.modelText
+    cacheOutcome(cache, tool_use_id, { outcome, text, query: '' })
     recordUse($, outcome.usage, {
       isAsked: true,
       agentId,
       elapsedMs: performance.now() - startedMs,
     })
-    const text = outcome.modelText
 
     const isDrawn = outcome.kind === 'chart'
 
@@ -175,7 +175,7 @@ export function register(
     const outcome = Easel.chartFromResult(text, call)
 
     if (outcome.kind !== 'chart') {
-      cacheOutcome(cache, e.tool_use_id, outcome)
+      cacheOutcome(cache, e.tool_use_id, { outcome, text, query: call.query })
 
       return answer
     }

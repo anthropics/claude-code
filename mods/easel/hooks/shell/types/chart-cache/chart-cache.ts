@@ -1,5 +1,6 @@
 import type Easel from '../../../core/easel'
 import type { FinishedCall } from '../finished-call'
+import type { KeptChart } from './kept-chart'
 import type { ReadChart } from './read-chart'
 
 /**
@@ -9,7 +10,7 @@ export type ChartCache = {
   /**
    * What each finished call draws, under the id of the call.
    */
-  charts: Map<string, Easel.Outcome>
+  charts: Map<string, KeptChart>
 
   /**
    * The ids of the finished calls that draw nothing.
