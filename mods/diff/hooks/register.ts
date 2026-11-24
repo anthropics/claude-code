@@ -811,10 +811,9 @@ export function register(on: On) {
   }
 
   async function openOnRestore(engine: Host): Promise<void> {
-    hasRestoredEdits =
-      Turns.turnDiffsOf(
-        await engine.messages().catch((): SessionMessage[] => []),
-      ).length > 0
+    hasRestoredEdits = Turns.hasEditedTurn(
+      await engine.messages().catch((): SessionMessage[] => []),
+    )
 
     if (hasRestoredEdits) {
       await openOnFirstEdit(engine)
