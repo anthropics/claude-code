@@ -24,8 +24,8 @@ The organization's own code passes, as `next.origin.isOrganizations` tells it:
 - A settings hook known as the organization's. One whose owner could not be
   told is refused like a person's or a repository's.
 - The `$.mcp.call`, `$.tool.call`, `$.agent.spawn` or `$.ui.ask` of a mod that
-  managed settings seated in `prepend` or `append`, as it made the call. A seat from a person's own
-  settings does not count, nor does a `requiredByOrganization` mark. A call a
+  managed settings seated in `prepend` or `append`, or whose delivered copy proves, as it made the call. A seat from a person's own
+  settings does not count, nor does a `requiredByOrganization` mark alone. A call a
   hook rewrote is refused, and so is one a script or a `Monitor` watch makes
   for the mod.
 

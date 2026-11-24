@@ -3054,9 +3054,11 @@ declare module 'claude-code' {
            *   request: the main conversation, or the agent `loop` names, a resting
            *   one when it next runs. An id no loop asks under does nothing. Nothing
            *   waits for the call: made as a hook answers, it can land a request late.
+           * @remarks `ui.title` is asked again a tenth of a second on, or that long
+           *   after an answer under way has landed; calls until then are folded.
            * @param event `ui.render`, or a cached-answer event: `prompt.section`,
            *   `prompt.context`, `prompt.attachment`, `tool/command/config.describe`,
-           *   `tool.list`, `tool.offer`, `ui.offer`
+           *   `tool.list`, `tool.offer`, `ui.offer`, `ui.title`
            * @param loop with `tool.offer` alone: `agentId`, as that event carries it
            * @example
            * $.ui.invalidate("tool.offer", { agentId: e.agentId })
@@ -3731,6 +3733,8 @@ declare module 'claude-code' {
            * @example
            * const { dataRules } = await $.session.info()
            * if (dataRules?.length !== 0) return // absent, or any name: keep it here
+           * @example
+           * const isBusy = (await $.session.info()).state?.status === "busy"
            */
           info: () => Promise<SessionInfo>;
           /**
@@ -3772,6 +3776,26 @@ declare module 'claude-code' {
            * await $.http.fetch(url, { method: "POST", body })
            */
           redact: (text: string) => Promise<string>;
+          /**
+           * Holds the machine the engine runs on awake (`true`), or gives the hold
+           * back (`false`): the event `session.keepAwake`.
+           *
+           * One hold a plugin: a second `true`, and a `false` with nothing held,
+           * change nothing. The machine may idle to sleep 30 seconds after the last
+           * hold is given back; the display may sleep throughout. The engine gives
+           * a hold back as the plugin unloads, reloads or is turned off, not at
+           * `/clear`.
+           *
+           * @param isHeld whether this plugin holds the machine awake from now on
+           * @returns nothing, also where the engine cannot hold this machine's
+           *   sleep; rejects on the hosted server (SessionInfo `isHosted`)
+           * @example
+           * on("session.state", async ($, e, next) => {
+           *   await $.session.keepAwake(e.status === "busy")
+           *   return next(e)
+           * })
+           */
+          keepAwake: (isHeld: boolean) => Promise<void>;
           /**
            * Compacts the conversation: the event `session.compact` with `trigger`
            * `plugin`, the same call `/compact` makes, between turns.
@@ -5540,6 +5564,21 @@ declare module 'claude-code' {
        */
       'ui.offer': UiOfferInput;
       /**
+       * Fires when the terminal tab's title is due: a key of `e` changed, the
+       * plugins on this event did, or `$.ui.invalidate("ui.title")` asked.
+       *
+       * `next(e)` resolves to `{ text, marks? }`; rewrite either. The engine's own
+       * title shows until a hook first answers another; from then the last one
+       * stays until the next lands. An answer to an older `e` is dropped. Never
+       * per tick, only in an interactive terminal, and not while titles are off.
+       *
+       * @remarks Where names stay off the tab, `text` is the engine's, under two
+       *   marks at most: U+25A0-25FF shapes unlike a letter, U+2733, `>` or `*`.
+       * @example
+       * on("ui.title", ($, e, next) => next({ ...e, text: `api: ${e.text}` }))
+       */
+      'ui.title': UiTitleInput;
+      /**
        * Fires when the engine offers an agent type to the model, in the agent
        * listing and again at dispatch; `next(e)` resolves to `{ isOffered: true }`.
        *
@@ -5671,6 +5710,18 @@ declare module 'claude-code' {
        * on("prompt.autocomplete", () => ({ suggestions: [{ text: "#123" }] }))
        */
       'prompt.autocomplete': PromptAutocompleteInput;
+      /**
+       * Fires ahead of the draw for the dim example a new session's empty prompt
+       * box shows in the terminal; `next(e)` resolves to `{ text }`, one line.
+       *
+       * Nothing waits on it: until it answers, the built-in example stands in.
+       * Asked once per session and file, maybe before `session.start`, and again
+       * when the plugins change. Other hints come first; Tab and Enter ignore it.
+       *
+       * @example
+       * on("prompt.example", ($, e) => ({ text: e.file && `Try "explain ${e.file}"` }))
+       */
+      'prompt.example': PromptExampleInput;
       /**
        * Fires once per named section of the system prompt, when the engine
        * assembles it; `next(e)` resolves to `{ text }` as core computed it.
@@ -6307,6 +6358,23 @@ declare module 'claude-code' {
        */
       'session.stop': SessionStopInput;
       /**
+       * Fires when what the session is doing changes: `busy`, `waiting` on the
+       * person (`e.waitingFor` says on what) or `idle`.
+       *
+       * Observe; `next(e)` echoes `{ status }`, and nothing waits on it. Only on a
+       * change, one at a time, a burst folding to the latest, which can be the
+       * state you heard last. A session starts idle, and so does each load of a
+       * plugin, which is not raised; where one that hooks it loads or reloads
+       * while the session is busy or waiting, that state is raised again.
+       *
+       * Of several conversations open in one process, busy wins, then waiting; one
+       * that closes counts no more. Never fires on the hosted server (`isHosted`).
+       *
+       * @example
+       * on("session.state", ($, e, next) => ($.ui.status(e.status), next(e)))
+       */
+      'session.state': SessionState;
+      /**
        * Fires once when the session ends (exit, /clear, resume, logout, signal, a
        * `-p` run done), after its SessionEnd settings hooks; `e.reason` says which.
        *
@@ -6480,6 +6548,10 @@ declare module 'claude-code' {
        */
       'ui.offer': UiOfferResult;
       /**
+       * `{ text, marks? }`.
+       */
+      'ui.title': UiTitleResult;
+      /**
        * `{ isOffered }`.
        */
       'agent.offer': AgentOfferResult;
@@ -6515,6 +6587,10 @@ declare module 'claude-code' {
        * `{ suggestions }`, the rows the plugins add to the typeahead.
        */
       'prompt.autocomplete': PromptAutocompleteResult;
+      /**
+       * `{ text }`, the empty box's line (null is no line).
+       */
+      'prompt.example': PromptExampleResult;
       /**
        * `{ text }` (null leaves the section out).
        */
@@ -6637,6 +6713,10 @@ declare module 'claude-code' {
        */
       'session.stop': SessionStopResult;
       /**
+       * `{ status }`.
+       */
+      'session.state': SessionStateResult;
+      /**
        * `{ sessionId }`.
        */
       'session.end': SessionEndResult;
@@ -6748,6 +6828,7 @@ declare module 'claude-code' {
           detach: (input: SessionDetachInput) => Promise<SessionDetachResult>;
           measure: (input: SessionMeasureInput) => Promise<SessionMeasureResult>;
           stop: (input: SessionStopInput) => Promise<SessionStopResult>;
+          state: (input: SessionState) => Promise<SessionStateResult>;
           end: (input: SessionEndInput) => Promise<SessionEndResult>;
       };
       telemetry: {
@@ -6766,6 +6847,7 @@ declare module 'claude-code' {
           focus: (input: UiFocusArgs) => Promise<UiFocusResult>;
           tip: (input: UiTipInput) => Promise<UiTipResult>;
           offer: (input: UiOfferInput) => Promise<UiOfferResult>;
+          title: (input: UiTitleInput) => Promise<UiTitleResult>;
       };
   };
 
@@ -7676,14 +7758,14 @@ declare module 'claude-code' {
   };
 
   /**
-   * What `$.ui.invalidate` takes: a render event, or one of the nine events
-   * whose answers the engine caches for the session.
+   * What `$.ui.invalidate` takes: a render event, or one of the ten events
+   * whose answers the engine keeps for the session.
    *
    * For `ui.render`, the instances this plugin's matchers on it may select: one
    * naming no `requestId`, every instance of its component. For a thread resumed
    * in a new process the recorded `prompt.section` text stands, asked or not.
    */
-  export type InvalidatableEventName = RenderEventName | 'prompt.section' | 'prompt.context' | 'prompt.attachment' | 'tool.describe' | 'tool.list' | 'tool.offer' | 'command.describe' | 'config.describe' | 'ui.offer';
+  export type InvalidatableEventName = RenderEventName | 'prompt.section' | 'prompt.context' | 'prompt.attachment' | 'tool.describe' | 'tool.list' | 'tool.offer' | 'command.describe' | 'config.describe' | 'ui.offer' | 'ui.title';
 
   /**
    * Whether tag key `K` selects members of `I`: it does when each member gives
@@ -8865,7 +8947,8 @@ declare module 'claude-code' {
       readonly hookOwner?: 'organization' | 'unknown' | 'person';
       /**
        * At `tool.check` alone, where the organization's own code made the call as
-       * it arrived: a plugin managed settings seated, or a hook known as theirs.
+       * it arrived: a plugin managed settings seated or whose delivered copy proves
+       * (Tier), or a hook known as theirs.
        *
        * The tier does not say so: a person's settings can fill `prepend`, and a
        * built-in can sit there. Absent on a call a hook rewrote, and on one a
@@ -9250,6 +9333,12 @@ declare module 'claude-code' {
           text: string;
       };
       /**
+       * The argument of `$.session.keepAwake(isHeld)`.
+       */
+      'session.keepAwake': {
+          isHeld: boolean;
+      };
+      /**
        * The argument of `$.turn.abort({ turnId })`.
        */
       'turn.abort': {
@@ -9621,6 +9710,7 @@ declare module 'claude-code' {
        * The text with the credentials found in it masked.
        */
       'session.redact': string;
+      'session.keepAwake': void;
       'turn.abort': void;
       /**
        * The box as it stands; the empty box where the session draws none.
@@ -10405,7 +10495,7 @@ declare module 'claude-code' {
        * True where the app that started this session handed over this plugin by path
        * and said its organization requires or auto-installs it, or, in a hosted cloud
        * session (SessionInfo `isHosted`), where claude.ai lists it as required; else absent.
-       * It gives no permission, and sets `tier` only for a plugin with no hooks
+       * It gives no permission, and alone sets `tier` only for a plugin with no hooks
        * module to load (Tier). Left out, it is restored.
        */
       requiredByOrganization?: true;
@@ -12034,6 +12124,35 @@ declare module 'claude-code' {
        * return { ...r, decorations: [...(r.decorations ?? []), mine] }
        */
       decorations?: PromptDecoration[];
+  };
+
+  /**
+   * The input of `prompt.example`: what the dim example in a new session's
+   * empty prompt box is picked by. Both keys are pinned.
+   */
+  export type PromptExampleInput = {
+      /**
+       * The session the example is for: a seed, so one session keeps one pick.
+       */
+      sessionId: string;
+      /**
+       * The name of the project file the engine picked for this session among
+       * the ones often changed, or null while it knows none.
+       */
+      file: string | null;
+  };
+
+  /**
+   * What a `prompt.example` hook returns and what `next(e)` resolves to: the
+   * line the empty prompt box shows.
+   */
+  export type PromptExampleResult = {
+      /**
+       * One plain line, drawn dim: a line break is a space, a tab stays, other
+       * controls go. Null, as from core, is no line yet: a hook above may give
+       * one, as the built-in example does. An empty one leaves the box bare.
+       */
+      text: string | null;
   };
 
   /**
@@ -15742,6 +15861,12 @@ declare module 'claude-code' {
        * The engine only reports it; what to hold back is the plugin's to decide.
        */
       dataRules?: readonly ('hipaa' | 'zdr' | (string & {}))[];
+      /**
+       * What the session is doing now, as `session.state` tells it, hooked or not.
+       * Absent on the hosted server, and until the terminal or a headless run has
+       * said.
+       */
+      state?: SessionState;
   };
 
   /**
@@ -16459,6 +16584,37 @@ declare module 'claude-code' {
    */
   export type SessionStartResult = {
       cwd: string;
+  };
+
+  /**
+   * What the session is doing: the input of `session.state`, and `state` on
+   * `$.session.info()`. The words are the ones `claude agents --json` prints.
+   *
+   * The engine's record: a hook observes, and `next(e)` passes it on.
+   */
+  export type SessionState = {
+      /**
+       * `busy` while a turn or a background agent runs (a background shell alone
+       * is `idle`); `waiting` while a prompt waits on the person; else `idle`.
+       *
+       * A headless run whose input has closed stays `busy` while it waits on a
+       * background shell.
+       */
+      status: 'busy' | 'waiting' | 'idle';
+      /**
+       * What the session waits on; present exactly while `status` is `waiting`.
+       *
+       * A headless session names `permission prompt` or `input needed` alone.
+       */
+      waitingFor?: 'permission prompt' | 'input needed' | 'dialog open' | 'goal proposal' | 'sandbox request' | 'worker request';
+  };
+
+  /**
+   * What a `session.state` hook returns and what `next(e)` resolves to:
+   * `{ status }`, echoed by core; a hook's own value changes nothing.
+   */
+  export type SessionStateResult = {
+      status: SessionState['status'];
   };
 
   /**
@@ -18527,8 +18683,17 @@ declare module 'claude-code' {
    * A plugin `plugin.register` marks `requiredByOrganization` is judged there in the
    * organization's tier when it has no hooks module and is shown to be outside every
    * dev-mods folder and what a link in one leads to (a zip by where it is unpacked).
-   * Nothing proves that mark, so it moves neither a module's tier nor the tier an
-   * event's `provider` reads.
+   * The mark alone moves neither a module's tier nor the tier an event's
+   * `provider` reads.
+   *
+   * A plugin synced from claude.ai as required, or marked and shipping a module,
+   * takes the organization's tier whole where its folder matches a digest claude.ai
+   * signed for the organization that governs the session: the one the machine pins
+   * alone (`forceLoginOrgUUID`), else, within a pin on several or with no policy
+   * on the machine, the one whose served
+   * and approved settings are in force. A signed list counts for a day, or until a
+   * newer one. Otherwise, or inside the dev-mods folder, it is in `user`. A hosted
+   * cloud session (SessionInfo `isHosted`) proves no copy.
    *
    * A `$` call runs through every hook but the calling one, except as follows.
    * A person's hooks don't hear a call an organization's mod makes, or what is
@@ -21096,6 +21261,56 @@ declare module 'claude-code' {
       id: string;
       text: string;
       label?: string;
+  };
+
+  /**
+   * The input of `ui.title`: the terminal tab's title as the engine names it,
+   * and what the terminal makes of one. All but `text` are pinned.
+   */
+  export type UiTitleInput = {
+      /**
+       * The session's name as the engine picked it, else the product's.
+       */
+      text: string;
+      /**
+       * `busy` while the session works, `waiting` while it waits on the person.
+       */
+      status: 'busy' | 'waiting' | 'idle';
+      /**
+       * True where the terminal shows the status itself, so a mark for it would
+       * say it twice.
+       */
+      showsStatus: boolean;
+      /**
+       * False where the engine cycles no marks and shows the first: a rewritten
+       * title shifts the tab labels there.
+       */
+      isAnimated: boolean;
+      /**
+       * True where the terminal drops a title's non-ASCII characters.
+       */
+      isAsciiOnly: boolean;
+      /**
+       * True under tmux, screen or zellij, where any rewrite can shift the tab
+       * labels: keep the answer steady as `status` changes.
+       */
+      isMultiplexed: boolean;
+  };
+
+  /**
+   * What a `ui.title` hook returns and what `next(e)` resolves to: the engine
+   * writes a mark, a space and `text`, or `text` alone with no marks.
+   */
+  export type UiTitleResult = {
+      /**
+       * One line; control characters and escape sequences are not written.
+       */
+      text: string;
+      /**
+       * At most 12, each one or two characters. Several are cycled, one every
+       * 960 ms while the terminal has focus; the first shows unless `isAnimated`.
+       */
+      marks?: readonly string[];
   };
 
   /**
