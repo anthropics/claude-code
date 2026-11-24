@@ -20699,7 +20699,7 @@ declare module 'claude-code' {
   export type UiOfferInput = {
       /**
        * `upsell` suggests a feature or a model to try; `hint` names a key or a
-       * command.
+       * command, or says that the person's issue closed (`closed-issue-notice`).
        */
       kind: 'upsell' | 'hint';
       /**

@@ -27,7 +27,7 @@ export function register(on: On): void {
 
     const text = Outbound.outgoingText(e.tool, e.input)
     // The line that runs, not a field that only talks about it, such as `description`.
-    // An installed shell tool's fields are its own, so its whole input.
+    // For any other tool, its outgoing text.
     const line = !Outbound.SHELL_TOOLS.includes(e.tool)
       ? text
       : Outbound.onlyTouches(e.tool, e.input)

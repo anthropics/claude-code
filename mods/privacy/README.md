@@ -9,8 +9,6 @@ in any case or percent-encoded.
 - **Bash, PowerShell, Monitor:** the whole input, and the text of each script its
   `command` names outside a git or gh command, are refused if they hold the address
   and a word that declares who is calling. A line that only touches files reads none.
-- **Tmux:** the whole input, and the text of each script named anywhere in it, by
-  the same test.
 - **Write, Edit, NotebookEdit:** what is being written, by the same test. Not the
   path. An Edit is refused only when `new_string` meets the test and `old_string`
   doesn't, since carrying over a line the file already holds adds nothing.
@@ -50,8 +48,7 @@ it first: from a first word `git`, after any `VAR=value` assignments, to the nex
 neither `git add fetch.py` nor a multi-line commit message that names it is refused
 for what the script holds. A heredoc that isn't git's, such as `bash <<EOF`, stays
 searched. Any other spelling of git is read like any other line: `"git"`, `(git`,
-`env X=1 git`, `git.exe`, `NAME="Jo Smith" git add`, and Tmux's `send-keys git add
-fetch.py`, which types keys rather than running a line. A gh command is taken out
+`env X=1 git`, `git.exe` and `NAME="Jo Smith" git add`. A gh command is taken out
 the same way, so a pull request body may name a script. The hook runs before any
 approval, so it follows no link that its walk sees: it walks each name's components
 from the working directory with `$.fs.list`, and reads a plain file only if none is
