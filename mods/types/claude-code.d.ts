@@ -5918,18 +5918,6 @@ declare module 'claude-code' {
        */
       'prompt.autocomplete': PromptAutocompleteInput;
       /**
-       * Fires ahead of the draw for the dim example a new session's empty prompt
-       * box shows in the terminal; `next(e)` resolves to `{ text }`, one line.
-       *
-       * Nothing waits on it: until it answers, the built-in example stands in.
-       * Asked once per session and file, maybe before `session.start`, and again
-       * when the plugins change. Other hints come first; Tab and Enter ignore it.
-       *
-       * @example
-       * on("prompt.example", ($, e) => ({ text: e.file && `Try "explain ${e.file}"` }))
-       */
-      'prompt.example': PromptExampleInput;
-      /**
        * Fires once per named section of the system prompt, when the engine
        * assembles it; `next(e)` resolves to `{ text }` as core computed it.
        *
@@ -6820,10 +6808,6 @@ declare module 'claude-code' {
        * `{ suggestions }`, the rows the plugins add to the typeahead.
        */
       'prompt.autocomplete': PromptAutocompleteResult;
-      /**
-       * `{ text }`, the empty box's line (null is no line).
-       */
-      'prompt.example': PromptExampleResult;
       /**
        * `{ text }` (null leaves the section out).
        */
@@ -8269,7 +8253,7 @@ declare module 'claude-code' {
    * hook's own plugin; `"*"` names every one, and hears an `e` without the key.
    * `claude plugin validate` notes such a hook: `(default matcher key: plugin)`;
    * a `component` there keeps the hook off `AbovePromptList`,
-   * `BesidePromptList` and `UnderlayList`.
+   * `BesidePromptList`, `UnderlayList` and `Placeholder`.
    */
   export type Matcher<I, All = I> = I extends unknown ? {
       readonly [K in KnownKeys<I>]?: MatcherValue<I[K & keyof I], MatcherValueOf<All, K>>;
@@ -12656,35 +12640,6 @@ declare module 'claude-code' {
   };
 
   /**
-   * The input of `prompt.example`: what the dim example in a new session's
-   * empty prompt box is picked by. Both keys are pinned.
-   */
-  export type PromptExampleInput = {
-      /**
-       * The session the example is for: a seed, so one session keeps one pick.
-       */
-      sessionId: string;
-      /**
-       * The name of the project file the engine picked for this session among
-       * the ones often changed, or null while it knows none.
-       */
-      file: string | null;
-  };
-
-  /**
-   * What a `prompt.example` hook returns and what `next(e)` resolves to: the
-   * line the empty prompt box shows.
-   */
-  export type PromptExampleResult = {
-      /**
-       * One plain line, drawn dim: a line break is a space, a tab stays, other
-       * controls go. Null, as from core, is no line yet: a hook above may give
-       * one, as the built-in example does. An empty one leaves the box bare.
-       */
-      text: string | null;
-  };
-
-  /**
    * `prompt.fill`'s input as a plugin's `$.prompt.fill(args)` takes it: no
    * `origin` (the engine sets the calling plugin's), `mode` optional.
    */
@@ -13667,7 +13622,7 @@ declare module 'claude-code' {
    * rows a plugin adds to it. `Underlay` is drawn under the terminal's
    * fullscreen interface, and `UnderlayList` orders its layers.
    */
-  export type RenderComponent = 'AskUserQuestion' | 'UserMessage' | 'AssistantMessage' | 'CodeBlock' | 'ToolUse' | 'ToolResult' | 'ToolGroup' | 'ToolProgress' | 'CommandOutput' | 'Spinner' | 'TurnDuration' | 'InfoNotice' | 'Welcome' | 'SessionMode' | 'PromptHint' | 'StatusLine' | 'AbovePrompt' | 'AbovePromptList' | 'BesidePrompt' | 'BesidePromptList' | 'AgentRow' | 'ContextMenu' | 'Pane' | 'Placed' | 'Backdrop' | 'Underlay' | 'UnderlayList';
+  export type RenderComponent = 'AskUserQuestion' | 'UserMessage' | 'AssistantMessage' | 'CodeBlock' | 'ToolUse' | 'ToolResult' | 'ToolGroup' | 'ToolProgress' | 'CommandOutput' | 'Spinner' | 'TurnDuration' | 'InfoNotice' | 'Welcome' | 'SessionMode' | 'PromptHint' | 'StatusLine' | 'Placeholder' | 'AbovePrompt' | 'AbovePromptList' | 'BesidePrompt' | 'BesidePromptList' | 'AgentRow' | 'ContextMenu' | 'Pane' | 'Placed' | 'Backdrop' | 'Underlay' | 'UnderlayList';
 
   /**
    * What a render hook returns, and what `next(e)` resolves to: a plain-data
@@ -14089,7 +14044,8 @@ declare module 'claude-code' {
       plugin?: string;
       /**
        * The size of what the surface draws into, in character cells, and whether
-       * its layout docks a pane; absent where no surface has measured.
+       * its layout docks a pane; absent where no surface has measured, and at
+       * `Placeholder`.
        *
        * Part of the envelope: a rewrite keeps it. On the terminal, the interactive
        * screen's, where a change of width re-draws every hooked site once the
@@ -14802,6 +14758,40 @@ declare module 'claude-code' {
            * the footer draws at its right moves under a wide answer. Read-only.
            */
           columns: number;
+      };
+      /**
+       * The dim example in a new session's empty prompt box. One instance, which
+       * a hook that names no `component` does not hear.
+       *
+       * A hook rewrites `text` alone and answers what `next(e)` does; a tree of
+       * its own fails it. Other hints come first; Tab and Enter ignore the line.
+       *
+       * Asked ahead of the draw, maybe before `session.start`, with no `viewport`.
+       * Until it answers, the example stands in where a hook names the site.
+       *
+       * @example
+       * on("ui.render", { component: "Placeholder" }, ($, e, next) => next({ ...e, props: { ...e.props, text: "Ask away" } }))
+       *
+       * Raised on the terminal surface only.
+       */
+      Placeholder: {
+          /**
+           * One plain line: a line break is a space, a tab stays, other controls
+           * go. An empty one leaves the box bare. Null is no line yet: the built-in
+           * example is given beneath a person's mods, so they read null, not it.
+           */
+          text: string | null;
+          /**
+           * The session the example is for: a seed, so one session keeps one pick.
+           * Read-only.
+           */
+          sessionId: string;
+          /**
+           * The name of the project file the engine picked for this session among
+           * the ones often changed, or null while it knows none. They are refreshed
+           * only while a hook names `Placeholder` as a string. Read-only.
+           */
+          file: string | null;
       };
       /**
        * The band directly above the prompt input, where the surveys draw; of its
