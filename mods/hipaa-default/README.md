@@ -71,6 +71,9 @@ In Cowork on the person's computer, and while no session is bound,
 managed. At the Code tab's other starts, an entry of it that names a path or a
 command does not count for them.
 
+`$.fs.remove`, `$.fs.rename` and `$.fs.copy` meet them as `$.fs.write` of each path
+they change and `$.fs.read` of the one they read.
+
 Core's Git answer to a mod's `$.vcs.diff` meets them as `$.process.run` of
 `git diff`, as `$.fs.list` of each folder down to a file it would name, and as
 `$.fs.read` of one it would patch. A mod's `$.ui.openUrl` meets them as
