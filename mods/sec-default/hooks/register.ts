@@ -282,7 +282,7 @@ export function register(on: On) {
       $,
       readPolicy,
       await writeRepeats($, remembered, e.path),
-      await isSettingsFile($, e.path, first),
+      await isSettingsFile($, e.path, first, e.text === ''),
       { path: e.path, first, remembered },
     )
 

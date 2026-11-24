@@ -3151,17 +3151,24 @@ declare module 'claude-code' {
            *
            * A click takes it off, the pointer over it holds it. Where the transcript
            * is printed into scrollback (nothing to float over) it is one line on the
-           * notification bar. It leaves the transcript and the model untouched.
+           * notification bar, as it always is with `place: "bar"`. It leaves the
+           * transcript and the model untouched.
            *
            * @remarks While the pane shown was opened `holdToasts`, by any plugin, it
            *   waits undrawn, its timer not started; past 50 waiting, an older leaves.
+           *   A headless or remote host is sent the joined text, and no removal.
            * @param text the line to show, its first 2000 characters drawn (10000
-           *   remotely); an unpaired surrogate half in it is drawn as U+FFFD
-           * @param options `timeoutMs`: how long it stays (default 4000)
+           *   remotely); an unpaired surrogate half in it is drawn as U+FFFD. Or up
+           *   to 32 runs (ToastRun), or `undefined` to remove the `key`'s line
+           * @param options `timeoutMs`: how long it stays (default 4000); `place`,
+           *   `key` and `priority`: a line on the bar (ToastOptions)
            * @example
            * $.ui.toast(`turn took ${Math.round(e.durationMs / 1000)} s`)
+           * @example
+           * $.ui.toast([{ text: "3 checks" }, { text: " failed", color: "error" }],
+           *   { place: "bar", key: "checks", priority: "low" })
            */
-          toast: (text: string, options?: ToastOptions) => void;
+          toast: (text: string | readonly ToastRun[] | undefined, options?: ToastOptions) => void;
           /**
            * Raises a native notification of `text` through the person's own
            * notification channel, the one their `preferredNotifChannel` names.
@@ -4401,12 +4408,43 @@ declare module 'claude-code' {
            */
           read: FsReadCall;
           /**
-           * Writes `text` to a file, creating it and its directories as needed.
+           * Writes a file, creating it and its directories as needed.
            *
            * @param path relative to the working directory, or absolute
-           * @param text the whole new content
+           * @param data the whole new content: a text, or bytes as `{ base64 }`
+           * @example
+           * await $.fs.write("out.bin", { base64: bytes.toBase64() })
            */
-          write: (path: string, text: string) => Promise<void>;
+          write: (path: string, data: string | FsBytes) => Promise<void>;
+          /**
+           * Removes one name: a file of any kind, a link itself or an empty
+           * directory, never what is in one.
+           *
+           * Rejects when missing or not empty, where a hook or a rule refuses a write
+           * of it, while a write holds the file (`EBUSY`), and where the sandbox keeps
+           * commands from it by that name.
+           *
+           * @param path relative to the working directory, or absolute
+           */
+          remove: (path: string) => Promise<void>;
+          /**
+           * Moves one regular file, in one step, replacing a regular file at `to` and
+           * creating its directories as needed. A link or a directory is not moved.
+           *
+           * Rejects where `from` cannot be read, where a remove of either name would,
+           * and across devices (`EXDEV`), where a copy and a remove do it. A write of
+           * `from` rejects meanwhile (`EBUSY`).
+           */
+          rename: (from: string, to: string) => Promise<void>;
+          /**
+           * Copies one regular file of any size, keeping its modification time; `to`
+           * is written as `write` writes it, so a new file is its owner's alone.
+           *
+           * Rejects where a read of `from` or a write of `to` would, leaving `to` as
+           * it was. One cut short as it writes (an abort, a full disk, `from` changed
+           * meanwhile) leaves what it wrote.
+           */
+          copy: (from: string, to: string) => Promise<void>;
           /**
            * Lists a directory by name: `{ name, kind, size, mtimeMs, isLink }` per
            * entry, each entry as it stands.
@@ -9575,11 +9613,21 @@ declare module 'claude-code' {
        */
       'agent.call': AgentCallArgs;
       /**
-       * The argument of `$.ui.toast(text, { timeoutMs })`.
+       * The argument of `$.ui.toast(text, { timeoutMs, place, key, priority })`.
+       *
+       * `text` is always the plain line: `runs` are drawn only while their texts,
+       * joined, are that line, so a hook that rewrites `text` alone has it drawn
+       * plain, with no link. The runs of a call with no `place` carry no `url`. A
+       * removal carries `isRemoval`, its `text` empty.
        */
       'ui.toast': {
           text: string;
           timeoutMs?: number;
+          place?: ToastOptions['place'];
+          key?: string;
+          priority?: ToastOptions['priority'];
+          runs?: readonly ToastRun[];
+          isRemoval?: true;
       };
       /**
        * The argument of `$.ui.status(text)`; `text` undefined clears the line.
@@ -9684,6 +9732,7 @@ declare module 'claude-code' {
        * unless the caller asked for `bytes`; a range's keys only when given.
        *
        * A hook that answers in the host's place cuts its answer to the range.
+       * Raised for the file a `$.fs.copy` or `$.fs.rename` takes too (`fs.copy`).
        */
       'fs.read': {
           path: string;
@@ -9692,11 +9741,53 @@ declare module 'claude-code' {
           length?: number;
       };
       /**
-       * The argument of `$.fs.write(path, text)`.
+       * The argument of `$.fs.write(path, data)`: `text` always, and for bytes
+       * `base64` beside it, `text` then being their UTF-8 reading.
+       *
+       * The write rejects where the two no longer agree: a hook that changes the
+       * content passes `text` alone, or both. Raised for each path that a
+       * `$.fs.remove`, `$.fs.rename` or `$.fs.copy` changes too (`fs.copy`).
        */
       'fs.write': {
           path: string;
           text: string;
+          base64?: string;
+      };
+      /**
+       * The argument of `$.fs.remove(path)`. Beneath its hooks, `fs.write` is
+       * raised on the path with an empty `text`, as `fs.copy` says. A guard there
+       * that resolves the path judges where a link leads, and this takes the link.
+       */
+      'fs.remove': {
+          path: string;
+      };
+      /**
+       * The argument of `$.fs.rename(from, to)`. Beneath its hooks, `fs.write` is
+       * raised on `from` with an empty `text`, then what `fs.copy` raises.
+       */
+      'fs.rename': {
+          from: string;
+          to: string;
+      };
+      /**
+       * The argument of `$.fs.copy(from, to)`. Beneath its hooks, `fs.read` is
+       * raised on `from` and `fs.write` on `to`, for each 4 MiB of the file.
+       *
+       * The read is as `text`, and again as `bytes` where the piece is no UTF-8;
+       * a piece past the first carries `offset` and `length`. The write holds the
+       * piece's `text`, and its `base64` where it is no UTF-8. A hook there passes
+       * or denies: one that changes the argument or the answer, or answers alone,
+       * refuses the call. Nothing changes on disk until the last piece has passed.
+       *
+       * These calls act on where a path leads, and each hook is asked about that
+       * name. Where a link or a hook's rewrite makes it another than the one given,
+       * the call's own event is raised again on it, beneath the first, to be passed
+       * as it is, and the name given is asked first: its read answers an empty
+       * text, and its write holds the first piece.
+       */
+      'fs.copy': {
+          from: string;
+          to: string;
       };
       /**
        * The argument of `$.fs.list(path)`.
@@ -9990,6 +10081,9 @@ declare module 'claude-code' {
        */
       'fs.read': string | FsBytes;
       'fs.write': void;
+      'fs.remove': void;
+      'fs.rename': void;
+      'fs.copy': void;
       'fs.list': FsEntry[];
       'fs.exists': boolean;
       'fs.stat': FsStat;
@@ -10471,13 +10565,13 @@ declare module 'claude-code' {
    * It only shows: it allows no host, and no call is held to it. Not in either
    * list: where a host redirects or sends a sign-in; a server's `headersHelper`;
    * a command in the plugin's settings; what the module's hook on any event but
-   * `process.run`, `process.spawn`, `http.fetch` and `audio.play` rewrites or
-   * answers (a tool call, a command's arguments, an agent, the settings); what
-   * the plugin has a server, the model, another session or another plugin do
-   * (`$.mcp`, `$.model`, `$.agent.spawn`, a prompt, an agent, a workflow, a hook
-   * of another type); what follows from a file, variable or setting it writes,
-   * or a link it draws; and what the engine itself runs or dials to serve a call
-   * (speech, a notification, telemetry).
+   * `process.run`, `process.spawn`, `http.fetch`, `audio.play` and `ui.toast`
+   * rewrites or answers (a tool call, a command's arguments, an agent, the
+   * settings); what the plugin has a server, the model, another session or
+   * another plugin do (`$.mcp`, `$.model`, `$.agent.spawn`, a prompt, an agent, a
+   * workflow, a hook of another type); what follows from a file, variable or
+   * setting it writes, or a link it draws outside a toast; and what the engine
+   * itself runs or dials to serve a call (speech, a notification, telemetry).
    */
   export type PluginHosts = {
       /**
@@ -10512,7 +10606,8 @@ declare module 'claude-code' {
            * or `$.agent.register`).
            * `url`: its URL does not settle where it goes, as it spells out no host,
            * is computed, or goes or may go over a `socketPath`; or the module hooks
-           * `http.fetch` or `audio.play`, where it can send a request elsewhere.
+           * `http.fetch` or `audio.play`, where it can send a request elsewhere, or
+           * `ui.toast`, where it can add a link.
            * `unlisted`: the kind's list may be short, or the module was not scanned.
            */
           reason: 'process' | 'url' | 'unlisted';
@@ -10853,9 +10948,10 @@ declare module 'claude-code' {
           writes: readonly StateName[];
       };
       /**
-       * The hosts its `$.http.fetch` and `$.audio.play({ url })` calls name, as far
-       * as the source spells them; absent when it calls neither. No call is held
-       * to the list, and where a host redirects is not known.
+       * The hosts its `$.http.fetch` and `$.audio.play({ url })` calls name, and
+       * those its `$.ui.toast` runs link to, as far as the source spells them;
+       * absent when it does none of these. No call is held to the list, and where
+       * a host redirects is not known.
        */
       hosts?: {
           /**
@@ -10866,8 +10962,9 @@ declare module 'claude-code' {
            */
           named: readonly string[];
           /**
-           * Which of `audio.play` and `http.fetch` it calls with any other URL, one
-           * over 2,048 characters, or options that give or may give a `socketPath`,
+           * Which of `audio.play`, `http.fetch` and `ui.toast` it calls with any
+           * other URL, one over 2,048 characters, options that give or may give a
+           * `socketPath`, or runs that may link and are not written at the call,
            * sorted: it loads all the same, and may reach what is not in `named`.
            */
           unread: readonly string[];
@@ -19097,6 +19194,48 @@ declare module 'claude-code' {
        * How long the line stays, in milliseconds; default 4000.
        */
       timeoutMs?: number;
+      /**
+       * `bar`: always one line on the notification bar by the prompt, never a box
+       * on the floating stack. It waits its turn (`priority`), displaces nothing,
+       * and leaves when the plugin unloads.
+       */
+      place?: 'bar';
+      /**
+       * Names the line among the plugin's own: 1 to 64 of letters, digits, `_`
+       * and `-`. Refused without `place: "bar"`.
+       *
+       * The same key replaces the line where it stands, its time anew unless it
+       * holds something up; `undefined` for the text removes it.
+       */
+      key?: string;
+      /**
+       * The rank the line waits its turn at; default `medium`. Refused without
+       * `place: "bar"`.
+       *
+       * It steps back for a warning, a notice that stays until resolved, and one
+       * of its rank or above. Waiting, it gives way to the plugin's next line.
+       */
+      priority?: 'low' | 'medium';
+  };
+
+  /**
+   * One styled run of a `$.ui.toast` line, drawn after the plugin's name, which
+   * no run restyles. Off the bar, or past 2000 characters, the text is plain.
+   */
+  export type ToastRun = {
+      text: string;
+      color?: ThemeKey;
+      /**
+       * Draws the run dim, whatever its `color`.
+       */
+      isDim?: boolean;
+      isBold?: boolean;
+      /**
+       * Makes the run a link: an http or https URL with no credentials in it. A
+       * line's URLs come to 2,048 characters at most. A call with no `place`, or
+       * a terminal that draws no links, shows the text alone.
+       */
+      url?: string;
   };
 
   /**
@@ -19351,7 +19490,9 @@ declare module 'claude-code' {
       isCeilingUnread?: true;
       /**
        * Set by the engine, and pinned, where no tool is called: the plugin's call
-       * on `$` that `tool` and `input` stand for, as it is about to run.
+       * on `$` that `tool` and `input` stand for, as it is about to run. A
+       * remove, rename or copy stands as the reads and writes that it raises. A
+       * write of bytes that are no UTF-8 has them as `base64` beside `content`.
        *
        * Raised only with `ceiling: "deny"` or `isCeilingUnread`, and only to a hook
        * whose matcher names `op`. A file call reads as `Read` or `Write`, a process

@@ -42,7 +42,7 @@ settings it decides by.
 | `tool.judge` | A person's plugin only tightens, but for its allow of a call it made itself. See [At the classifier](#at-the-classifier). |
 | `tool.call`, `tool.run`, `prompt.submit` | A call of a registered tool that the `tool.list` row left out of the engine's newest raise is refused, whoever makes it, since a loop can hold an older pool and the plugin's own `tool.call` hook answers ahead of the permission check. The model's other calls pass, and are remembered until they are allowed or the person's next prompt. A `user`-tier `$.tool.call` or `$.mcp.call` that repeats one, or writes or names a settings file, is refused. See [The model's call waits for its check](#the-models-call-waits-for-its-check). |
 | `agent.call` | Passes, and is remembered under the plugin that made it, ahead of the hooks beneath. |
-| `fs.write`, `process.run`, `process.spawn` | A `user`-tier caller is refused where the effect repeats a remembered call, or writes or names a settings file. Every other passes. |
+| `fs.write`, `process.run`, `process.spawn` | A `user`-tier caller is refused where the effect repeats a remembered call, or writes or names a settings file. `$.fs.remove`, `$.fs.rename` and `$.fs.copy` are heard as `fs.write` of each path they change. Every other passes. |
 | `fs.stat`, `fs.list` | This plugin's own look at where a path leads continues past the user tier. Every other passes. |
 | `ui.log` | A line a plugin in `prepend` or `append` logs, this one's included, continues past the user tier: no user hook rewrites or drops it, and none runs inside the hook that logged it. Every other line passes. |
 | `env.get` | A read by a plugin in `prepend` or `append` continues past the user tier: no user hook answers what the organization's own plugin reads. Every other read passes. |
@@ -413,7 +413,8 @@ use one to carry out a call the model sent until that call is allowed. Best effo
   prompt, allowed or not, and a match is refused with no rule asked: an allow rests on
   the session checking the calls the script makes. A mod passes it on with `next`.
 - **Settings files**: a person's mod writes none (a person's, a project's, the local
-  one) by `$.fs.write` or its own Write or Edit, and runs no process or command or
+  one) by `$.fs.write` or its own Write or Edit, removes, moves or replaces none, nor a
+  folder that holds one, nor any link while one is reached by a link, and runs no process or command or
   script call that names one, but for an allowed command under way, and for the user
   file under `allowModsToWriteUserSettings`. It reads settings
   with `$.settings.read`.
