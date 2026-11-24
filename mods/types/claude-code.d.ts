@@ -4603,8 +4603,10 @@ declare module 'claude-code' {
            * its own URL and method.
            *
            * @param url the URL (http or https)
-           * @param init `{ method, headers, body, auth, socketPath }` (body a
-           *             string; socketPath a Unix socket to go over instead of TCP)
+           * @param init `{ method, headers, body, auth, socketPath, timeoutMs,
+           *             redirect }` (body a string; socketPath a Unix socket to go
+           *             over instead of TCP; timeout 30 s by default, ten minutes at
+           *             most; redirects followed unless `manual`)
            * @returns `{ status, ok, headers, text }` once the body is read
            * @example
            * const { ok, text } = await $.http.fetch("https://example.com/status")
@@ -7417,6 +7419,25 @@ declare module 'claude-code' {
        * await $.http.fetch(url, { socketPath: `${runDirectory}/bridge.sock` })
        */
       socketPath?: string;
+      /**
+       * How long the whole call may take, redirects and body included, before the
+       * request is canceled and the call rejects, in milliseconds; 30 seconds
+       * when absent, ten minutes at most.
+       *
+       * Read on a plugin's own fetch alone: an engine request ignores it.
+       */
+      timeoutMs?: number;
+      /**
+       * `follow` (default) follows up to five redirects. `manual` resolves with
+       * the 3xx as it came, its `location` header as the server wrote it, and
+       * sends nothing further.
+       *
+       * Read on a plugin's own fetch alone: an engine request ignores it.
+       *
+       * @example
+       * const { status, headers } = await $.http.fetch(url, { redirect: "manual" })
+       */
+      redirect?: 'follow' | 'manual';
   };
 
   /**
