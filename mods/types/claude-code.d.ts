@@ -14476,6 +14476,14 @@ declare module 'claude-code' {
            */
           isWorking: boolean;
           /**
+           * Present, and true, while the transcript on screen is scrolled away from
+           * its foot; absent there, and where the surface does not say. Read-only.
+           *
+           * The hook runs again as it changes, never for a scrolled row. Keep the
+           * cell as wide either way: the input's height moves the foot.
+           */
+          isScrolledUp?: true;
+          /**
            * Which transcript is on screen, as `AbovePrompt`'s. Read-only: a rewrite
            * carries it on as received.
            */
