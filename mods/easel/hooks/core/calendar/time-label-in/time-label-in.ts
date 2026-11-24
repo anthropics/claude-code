@@ -1,4 +1,4 @@
-import type { Timeline } from '../../reading/types/timeline/timeline'
+import type { Timeline } from '../../reading/types/timeline'
 import { timeLabels } from '../time-labels'
 import { labellingIn } from './labelling-in'
 

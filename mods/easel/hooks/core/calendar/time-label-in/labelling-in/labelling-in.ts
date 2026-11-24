@@ -1,4 +1,4 @@
-import type { Timeline } from '../../../reading/types/timeline/timeline'
+import type { Timeline } from '../../../reading/types/timeline'
 import { calendarFieldsAt } from '../../calendar-fields-at'
 import Flags from '../../flags'
 import type Types from '../../types'

@@ -1,4 +1,3 @@
-import type { SeriesOptions } from '../../reading/types/series-of/series-options'
 import { calendarFieldsAt } from '../calendar-fields-at'
 import { CALENDAR_UNITS } from '../calendar-units'
 import { isWeekend } from '../is-weekend'
@@ -15,16 +14,15 @@ import { stepOfGap } from './step-of-gap'
  * Finds the even calendar step that every sample sits on, if there is one.
  *
  * @param sortedMs the instants of the samples, rising
- * @param seriesOptions how the series are read, for where they were written
+ * @param zone the IANA name of where the calendar is read
  * @param onWeekdays whether the samples keep to weekdays
  * @returns the grid of periods, or null where the samples are not even
  */
 export function sampleGridOf(
   sortedMs: number[],
-  seriesOptions: SeriesOptions,
+  zone: string,
   onWeekdays: boolean,
 ): Types.SampleGrid | null {
-  const { zone } = seriesOptions
   const firstMs = sortedMs[0]
   const lastMs = sortedMs.at(-1)
   const hasSpan =

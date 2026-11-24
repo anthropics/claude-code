@@ -1,4 +1,4 @@
-import type { Timeline } from '../../../reading/types/timeline/timeline'
+import type { Timeline } from '../../../reading/types/timeline'
 
 /**
  * Places an instant by its period, each as wide as the next, and by its

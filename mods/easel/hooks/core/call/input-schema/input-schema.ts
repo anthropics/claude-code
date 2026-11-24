@@ -1,7 +1,7 @@
 import Forms from '../../forms'
 import Limits from '../limits'
 import Records from '../records'
-import type { JsonSchema } from '../types/json-schema/json-schema'
+import type { JsonSchema } from '../types/json-schema'
 
 /**
  * The model reads every `description`.

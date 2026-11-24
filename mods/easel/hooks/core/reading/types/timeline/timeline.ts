@@ -1,5 +1,4 @@
-import type { Step } from '../../../calendar/types/step/step'
-import type { TimeSpan } from '../../../calendar/types/time-span'
+import type { Step, TimeSpan } from '../../../calendar/types'
 
 /**
  * The time axis of a chart: its span, its step and the labels of both.

@@ -36,6 +36,6 @@ export function seriesOf(options: Types.SeriesOptions): Types.DrawnSeries {
     series,
     emptyNames,
     times,
-    grid: Calendar.sampleGridOf(times, options, isWeekdaysOnly),
+    grid: Calendar.sampleGridOf(times, options.zone, isWeekdaysOnly),
   }
 }

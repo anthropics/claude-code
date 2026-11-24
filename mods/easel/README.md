@@ -46,7 +46,7 @@ Data ─ chartOf ─▶ Chart ─ sceneOf(columns) ─▶ Scene ─ rasterOf ─
 | `core/raster/`, `svg/` | the two painters |
 | `core/texts/`, `lists/` | text width and truncation; list helpers |
 
-A hooks module may import only its own files and the types of `claude-code`, so `texts/` and `lists/` carry their own helpers. Each folder holds one declaration a file and is read through its `index.ts`, except where that would close an import cycle: two types that name each other share a file, and a file imports another folder's file directly instead of its `index.ts`.
+A hooks module may import only its own files and the types of `claude-code`, so `texts/` and `lists/` carry their own helpers. Each folder holds one declaration a file and is read through its `index.ts`. Two types that name each other share `type-of-schema.ts`.
 
 ## How to add things
 

@@ -1,4 +1,4 @@
-import type { Cell } from '../../../cells/types/cell'
+import type { Cell } from '../../../cells/types'
 import type { CellReading } from '../cell-reading'
 import type { DroppedColumn } from '../dropped-column'
 

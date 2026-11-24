@@ -1,4 +1,4 @@
-import type { Timeline } from '../../reading/types/timeline/timeline'
+import type { Timeline } from '../../reading/types/timeline'
 import { placeAlong } from './place-along'
 import { placeAmong } from './place-among'
 

@@ -1,7 +1,6 @@
 export type * from './chart-request.js'
 export * from './field-errors-in'
 export * from './json-schema'
-export * from './object-of-schemas'
 export * from './scalar-by-json-type'
 export * from './schema-of-fields'
 export * from './schema-of-items'

@@ -30,7 +30,7 @@ export function seriesFrom(
     samples: (
       Calendar.sampleGridOf(
         ownTimes,
-        options,
+        options.zone,
         isKeptToWeekdays(isWeekdaysOnly, ownTimes, options.zone),
       )?.periodStarts ?? ownTimes
     ).map(
