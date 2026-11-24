@@ -14,19 +14,23 @@
 /**
  * A plugin's analytics, queued through `$.telemetry` and sent in batches.
  *
- * The telemetry mod serves the plugins built into the CLI alone: a row or a
- * mark from an installed plugin rejects. Where the mod is off or absent nothing is
- * queued, and on an engine without the noun there is no `$.telemetry`.
+ * The telemetry mod serves the plugins built into the CLI and the official
+ * ones, whose rows go under their own name and carry their id as `pluginId`:
+ * a row or a mark from any other installed plugin rejects. Where the mod is
+ * off or absent nothing is queued, and on an engine without the noun there is
+ * no `$.telemetry`.
  */
 export type Telemetry = {
   /**
    * Queues one event, `tengu_plugin_<event>`, as one first-party row, sent
    * with the next batch; resolves once queued, rejects a malformed entry.
    *
-   * The calling mod names itself in `event`; one already named `tengu_…` is
-   * sent as named. A value is a finite number, a boolean or a
-   * TelemetryChoice; free text is refused. One input, as every op on `$`
-   * takes. Whether a batch went out is a line in the debug log.
+   * A built-in names itself in `event`; one already named `tengu_…` is sent
+   * as named. An official plugin's is sent as `tengu_plugin_<name>__<event>`,
+   * and one named `tengu_…` is refused. A value is a finite number, a boolean
+   * or a TelemetryChoice, at most 20 of them; free text is refused. One
+   * input, as every op on `$` takes. Whether a batch went out is a line in
+   * the debug log.
    *
    * @param entry the event's name, a snake_case token, and its properties by
    *   snake_case key
@@ -48,7 +52,8 @@ export type Telemetry = {
    *
    * The row carries `feature_name`, `error_code` on sad or bad (`reason`,
    * required there and refused on ok) and the entry's `props`, checked as
-   * `log`'s are; it joins the product-wide feature surface, so no prefix.
+   * `log`'s are; it joins the product-wide feature surface, a built-in's
+   * with no prefix, an official plugin's as `plugin_<name>__<feature>`.
    *
    * @param entry the feature, how it went, why when not ok, and the row's
    *   properties by snake_case key
@@ -126,9 +131,9 @@ export type TelemetryChoice = { value: string; of: readonly string[] }
 declare module 'claude-code' {
   interface EngineInterface {
     /**
-     * A built-in plugin's analytics, first-party rows sent in batches;
-     * present where the telemetry mod is seated; an installed plugin logs
-     * for `collector` alone.
+     * A built-in or official plugin's analytics, first-party rows sent in
+     * batches; present where the telemetry mod is seated; any other installed
+     * plugin logs for `collector` alone.
      */
     telemetry: Telemetry
   }

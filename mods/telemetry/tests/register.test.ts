@@ -852,6 +852,21 @@ describe('register', () => {
     )
   })
 
+  test('the gate serves an official plugin in any tier, by its id', () => {
+    const pluginId = 'caller@official'
+    const isOfficial = true
+
+    for (const tier of ['user', 'prepend', 'append'] as const) {
+      expect(
+        [
+          Fixtures.nextOf(tier, { pluginId, isOfficial }),
+          Fixtures.nextOf(tier, { pluginId }),
+          Fixtures.nextOf(tier, { isOfficial }),
+        ].map(next => Hooks.served({}, next)),
+      ).toEqual(['served', Hooks.REFUSED, Hooks.REFUSED])
+    }
+  })
+
   test('a gate that threw refuses; a refusal from beneath passes up', () => {
     expect(Hooks.caught({}, Fixtures.failingNext(false))).toEqual(Hooks.REFUSED)
 

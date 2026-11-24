@@ -644,8 +644,8 @@ declare module 'claude-code' {
        * running or resting agent of this session, a fork included. The spawn acts
        * as that agent's own: `subagentType: "fork"` copies its conversation, prompt,
        * tools and model, and any child is one deeper than it, under `$.agent.list()`
-       * `parentId`, stopped with it, in its directory and permission mode, and
-       * reports where its children report. It takes no turn and nothing is written
+       * `parentId`, stopped with it, in its directory (but for `cwd`) and permission
+       * mode, and reports where its children report. It takes no turn and nothing is written
        * to its conversation. The parent may be running or resting, however long ago
        * and in whichever process it ran: a resting one is rebuilt from its record as a
        * resume rebuilds it, and refused where a resume of it would be, with that reason.
@@ -750,6 +750,10 @@ declare module 'claude-code' {
       /**
        * The directory the subagent runs in when the call set one (`cwd`); undefined
        * means the parent's. A rewrite is where the subagent runs.
+       *
+       * Given to `$.agent.spawn`, it is an absolute path and is judged as a
+       * rewrite is: one the launch or a permission rule refuses, or one beside
+       * worktree isolation, answers `{ deny }`. With it, `name` starts no teammate.
        *
        * A teammate runs in the session's, and a fork no tool call starts in its
        * parent's: a rewrite is left out, as `background`'s.
@@ -2389,6 +2393,10 @@ declare module 'claude-code' {
    *
    * Both are the plugin's to size, as a core command's output is; what bounds
    * them is what bounds any transcript row where a surface draws it.
+   *
+   * A command Claude Code moved into a plugin (`/stickers`) belongs to the
+   * plugin that registered the name, bundled or not: unless it ran the command
+   * itself, its text shows under no name, another's under the others' names.
    */
   export type CommandRunResult = {
       /**
@@ -3218,7 +3226,9 @@ declare module 'claude-code' {
            * @param pane `id` (1-64 of letters, digits, `_`, `-`), `title`, `focus`,
            *   `closeOnEscape` and `holdToasts` (a dialog), `backgroundColor` (what
            *   is painted under its body), `rows` / `columns` wanted, `placement` (the
-           *   seat to start in: `"widget"`, its small form on the desktop app)
+           *   seat to start in: `"widget"`, its small form on the desktop app, or
+           *   `"dialog"`, the terminal's own, from a command the person typed) and
+           *   `escapeAction` (that dialog's word for Escape)
            * @returns `{ isPlaced: true }` once drawn (or retitled), else `{ isPlaced:
            *   false, reason }` (UiOpenResult); the seat it got is on `Pane` props
            * @example
@@ -3236,7 +3246,8 @@ declare module 'claude-code' {
            *
            * Every close raises `ui.close`, `e.origin` naming whose it is: this call
            * (`plugin`), the person's mark or key (`person`), an unload (`unload`).
-           * A hook answering without `next` keeps the pane open, save on an unload.
+           * A hook answering without `next` keeps the pane open, save on an unload
+           * or the person's close of a `"dialog"`.
            *
            * @param pane `id`: the id the pane was opened under
            * @returns settles once the pane is gone or a hook answered for it;
@@ -3867,7 +3878,7 @@ declare module 'claude-code' {
           identity: () => Promise<SessionIdentity>;
       };
       /**
-       * The running model turn: ending it.
+       * The running model turn: ending it, or freeing it from work it waits on.
        */
       turn: {
           /**
@@ -3886,6 +3897,22 @@ declare module 'claude-code' {
            * })
            */
           abort: (input: OpEventOf['turn.abort']) => Promise<void>;
+          /**
+           * Moves the main loop's running foreground commands and agents, and
+           * nothing else its turn waits on, to the background, so the turn goes on.
+           *
+           * The event `turn.background`; rejects as `abort` does. Only the model's
+           * own calls move, a command after about two seconds. None moves ahead of
+           * a call queued behind it, or while a prompt waits on the person. The
+           * person's Esc or Stop still ends a command moved this way, until its own
+           * timeout.
+           *
+           * @param input `turnId`: the id the main loop's `turn.start` carried
+           * @returns how many moved, and `isDisabled` where background tasks are off
+           * @example
+           * const { moved } = await $.turn.background({ turnId: held })
+           */
+          background: (input: OpEventOf['turn.background']) => Promise<TurnBackgroundResult>;
       };
       /**
        * Submitting a prompt the model reads as a user turn, and the person's
@@ -3896,6 +3923,7 @@ declare module 'claude-code' {
            * Submits a prompt: the event `prompt.submit`, the same call the engine
            * makes for a typed prompt; a turn of its own, once the session is idle.
            *
+           * With `wait: false` it enters the running turn at that turn's next step.
            * It goes through the hooks that hear it (Tier; the plugin's others
            * do) with `e.origin` `{ kind: 'plugin', name }`, the name the
            * model reads it under unless a hook leaves it out of its answer.
@@ -4164,7 +4192,8 @@ declare module 'claude-code' {
            * `telemetry.log`; `e.to` is pinned, and `anthropic` when left out.
            *
            * A first-party row is queued by the built-in plugin that hooks the
-           * event, for built-ins and the engine alone. Any plugin's collector record
+           * event, for built-ins, the engine and official plugins, whose rows go
+           * under their own name. Any plugin's collector record
            * (TelemetryRecordArgs, its bounds there) goes to the operator's collector,
            * and nowhere with none. Past 100 at once and 10 a second from one plugin
            * (counted apart under each other plugin's calls), or ten times that from
@@ -4190,8 +4219,8 @@ declare module 'claude-code' {
            * event `telemetry.mark`; it takes no `to` and always means `anthropic`.
            *
            * The engine does nothing with it: the built-in plugins that hook the
-           * event queue the row. They serve built-ins and the engine alone; any
-           * plugin may hook it.
+           * event queue the row. They serve built-ins, the engine and official
+           * plugins, whose marks go under their own name; any plugin may hook it.
            *
            * @param entry the feature, how its use went, why, and its properties
            * @returns once the hooks have answered; rejects when one denies
@@ -7896,10 +7925,11 @@ declare module 'claude-code' {
   /**
    * The events whose overload must come after the rest, lest it shadow them.
    *
-   * `classic.PreToolUse` shares `tool.call`'s envelope, `turn.abort` every
-   * turn event's `turnId`, and an object of any shape is assignable to NoArgs.
+   * `classic.PreToolUse` shares `tool.call`'s envelope, `turn.abort` and
+   * `turn.background` every turn event's `turnId`, and an object of any shape
+   * is assignable to NoArgs.
    */
-  type LateOverload = 'classic.PreToolUse' | 'turn.abort' | NoArgsEvent;
+  type LateOverload = 'classic.PreToolUse' | 'turn.abort' | 'turn.background' | NoArgsEvent;
 
   /**
    * The props of `Link`, a hyperlink every surface draws: an OSC 8 span on the
@@ -9093,6 +9123,18 @@ declare module 'claude-code' {
        * `plugin.register` gave its load. Only a bundled one reads `<name>@builtin`.
        */
       readonly provenance?: string;
+      /**
+       * On a plugin's own call on `$`: the id of the load that made it. Absent on
+       * a call made after that load was replaced or removed, in an agent it
+       * spawned, and at a `tool.check` told no `provenance`.
+       */
+      readonly pluginId?: string;
+      /**
+       * Beside `pluginId` alone: as the event is raised, the host holds that load
+       * as from an official source, such as an official marketplace. It says where
+       * the copy came from, not who wrote it. Absent for a bundled plugin.
+       */
+      readonly isOfficial?: true;
   };
 
   /**
@@ -9475,6 +9517,12 @@ declare module 'claude-code' {
        * The argument of `$.turn.abort({ turnId })`.
        */
       'turn.abort': {
+          turnId: string;
+      };
+      /**
+       * The argument of `$.turn.background({ turnId })`.
+       */
+      'turn.background': {
           turnId: string;
       };
       /**
@@ -9865,6 +9913,10 @@ declare module 'claude-code' {
       'session.keepAwake': void;
       'turn.abort': void;
       /**
+       * How many commands and agents moved to the background.
+       */
+      'turn.background': TurnBackgroundResult;
+      /**
        * The box as it stands; the empty box where the session draws none.
        */
       'prompt.read': PromptBox;
@@ -9987,7 +10039,7 @@ declare module 'claude-code' {
    *
    * An empty group contributes nothing (Overloads<never> is unknown).
    */
-  type OrderedOverloads<Names extends EventName> = Overloads<Exclude<Names, LateOverload>> & Overloads<Extract<Names, 'classic.PreToolUse'>> & Overloads<Extract<Names, 'turn.abort'>> & Overloads<Extract<Names, NoArgsEvent>>;
+  type OrderedOverloads<Names extends EventName> = Overloads<Exclude<Names, LateOverload>> & Overloads<Extract<Names, 'classic.PreToolUse'>> & Overloads<Extract<Names, 'turn.abort' | 'turn.background'>> & Overloads<Extract<Names, NoArgsEvent>>;
 
   /**
    * Who raised a dispatch, as `next.origin` holds it: the calling plugin's
@@ -10160,12 +10212,37 @@ declare module 'claude-code' {
        * app without them) opens the pane as if this were left out. Any other value
        * is ignored.
        *
+       * `"dialog"` asks for the terminal's standard dialog, where a built-in
+       * command's view opens. Granted once, to this plugin's `command.run` hook,
+       * while a command it registered and the person typed at this terminal's
+       * prompt runs and no other dialog is open. Anywhere else (a timer, another
+       * hook, `$.command.run`, Remote Control, another surface) it is left out.
+       *
+       * The engine draws the frame, the title row (this plugin's name, then the
+       * `title`; a command that used to be Claude Code's own shows no name under
+       * the exact title its dialog had there) and the hint line;
+       * `focus`, `closeOnEscape`, `rows` and `columns` are not read.
+       * Escape, or Ctrl+C or Ctrl+D twice, is `ui.close` with origin `person`, which
+       * no hook can refuse. It stays after the hook returns, and queued input waits.
+       * A permission prompt or a `$.ui.ask` waits behind it too, so close it first.
+       * With nothing drawn in it, it closes with origin `unload`. Closed by
+       * anything but the person while a prompt waits, it leaves the engine's empty
+       * frame up until they close that.
+       *
        * @remarks Each open sets it anew, but a surface is meant to read it only when
-       *   it first shows the pane. A `ui.open` hook may set or drop it.
+       *   it first shows the pane: another open of the dialog retitles it. A
+       *   `ui.open` hook may set or drop `"widget"`, and only drop `"dialog"`.
        * @example
        * await $.ui.open({ id: "ticker", placement: "widget" })
+       * @example
+       * await $.ui.open({ id: "notes", title: "Notes", placement: "dialog" })
        */
-      placement?: 'widget';
+      placement?: 'widget' | 'dialog';
+      /**
+       * The word the dialog's hint line gives Escape: `"close"` when left out, or
+       * `"cancel"`. Either way Escape closes it. Read only while it is the dialog.
+       */
+      escapeAction?: 'close' | 'cancel';
   };
 
   /**
@@ -12873,11 +12950,11 @@ declare module 'claude-code' {
   };
 
   /**
-   * `prompt.submit`'s input as a plugin's call takes it: `origin`, `turnId`
-   * and `wait` are the engine's to set, `context` the hooks' to attach.
+   * `prompt.submit`'s input as a plugin's call takes it: `origin` and `turnId`
+   * are the engine's to set, `context` the hooks' to attach.
    *
-   * `origin` is the calling plugin's name; `turnId` is the turn a prompt typed
-   * mid-turn ran over; `wait` is false, as a plugin's prompt runs once idle.
+   * `origin` is the calling plugin's name; `turnId` is the running turn the
+   * prompt enters, where it enters one.
    */
   export type PromptSubmitArgs = Omit<PromptSubmitInput, 'origin' | 'turnId' | 'wait' | 'context' | 'command' | 'isMeta'> & {
       /**
@@ -12893,6 +12970,17 @@ declare module 'claude-code' {
        * await $.prompt.submit({ text: 'what the person typed', asUser: true })
        */
       asUser?: true;
+      /**
+       * `false` lets the prompt enter the running turn of the main conversation,
+       * after the tool calls under way; absent or `true`, it waits for idle.
+       *
+       * Hooks read it once; the call resolves as it enters. It interrupts nothing,
+       * may wait to start the next turn, and speaks for no person, `asUser` or not.
+       *
+       * @example
+       * void $.prompt.submit({ text: 'Skip the docs folder.', wait: false })
+       */
+      wait?: boolean;
   };
 
   /**
@@ -12994,8 +13082,8 @@ declare module 'claude-code' {
        * (`turn.start`'s `turnId`): typed over that turn, or delivered into it.
        *
        * A queued delivery (a peer session's message) reaches the model inside a
-       * running turn. Absent for a prompt submitted while the session was idle,
-       * and for a plugin's own (`$.prompt.submit`), which runs once it is idle.
+       * running turn, as a plugin's prompt sent with `wait: false` does. Absent
+       * for a prompt that starts its own turn from an idle session.
        */
       turnId?: string;
       /**
@@ -14828,7 +14916,8 @@ declare module 'claude-code' {
            *
            * On the desktop app also `widget`, the small form of a minimized pane.
            * Draw what reads at a glance there: clicks may not reach it. The hook runs
-           * again when the seat changes. Treat any other value as `dock`.
+           * again when the seat changes. In the terminal also `dialog`, where the
+           * open was granted it (PaneOpenArgs). Treat any other value as `dock`.
            *
            * Read-only: a rewrite carries it on as received; one that changes or
            * drops it is refused, the hook that passed it failing.
@@ -14836,7 +14925,7 @@ declare module 'claude-code' {
            * @example
            * return e.props.placement === "widget" ? glance(e) : fullApp(e)
            */
-          placement: 'dock' | 'inline' | 'widget';
+          placement: 'dock' | 'inline' | 'widget' | 'dialog';
           /**
            * The edges of the chat area that a `widget` is anchored on, to align the
            * drawing by: `["bottom", "right"]` in that corner, `["right"]` stacked on
@@ -20037,6 +20126,18 @@ declare module 'claude-code' {
   export type TraceOutcome = 'caught' | 'expired' | 'kept' | 'passed' | 'rejected' | 'returned' | 'skipped';
 
   /**
+   * What `$.turn.background` resolves to: `moved`, how many commands and
+   * agents went to the background, zero when none could.
+   *
+   * `isDisabled` where background tasks are off for the session: nothing
+   * moved, and another call moves nothing either.
+   */
+  export type TurnBackgroundResult = {
+      moved: number;
+      isDisabled?: true;
+  };
+
+  /**
    * What every `turn.complete` carries whatever its reason: the answer, the
    * duration, the interrupt flag, the turn's id, its loop and what it cost.
    */
@@ -21024,8 +21125,9 @@ declare module 'claude-code' {
    * One of this plugin's open panes as `$.ui.panes()` lists it: the pane's
    * id and title, and where it stands with the person right now.
    *
-   * Where a surface seated it (`dock`, `inline`, `widget`) is that surface's to
-   * say, on the `Pane` render props (`placement`); a session may draw on several.
+   * Where a surface seated it (`dock`, `inline`, `widget`, `dialog`) is that
+   * surface's to say, on the `Pane` render props (`placement`); a session may
+   * draw on several.
    */
   export type UiPane = {
       /**

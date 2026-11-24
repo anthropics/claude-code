@@ -1,5 +1,6 @@
 export * from './caught'
 export * from './gate-next'
+export * from './official-id-of'
 export * from './refused'
 export * from './served'
 export * from './served-tiers'

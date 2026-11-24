@@ -1,4 +1,4 @@
 /**
  * The most properties one entry may carry.
  */
-export const PROP_LIMIT = 16
+export const PROP_LIMIT = 20

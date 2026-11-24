@@ -3,9 +3,11 @@
 Plugin analytics as a plugin: its hooks on `telemetry.log` and
 `telemetry.mark` are what those two events do, built over the nouns its
 `engine.create` step is handed, and a gate above them serves the plugins
-built into Claude Code alone: a row or a mark from a plugin a person installed
-or an administrator listed is refused with a reason (the host stamps every call
-with the plugin that raised it, `next.origin`, and the gate reads its tier).
+built into Claude Code and the installed ones the host holds as official,
+such as those from an official marketplace: a row or a mark from any other
+plugin a person installed or an administrator listed is refused with a reason
+(the host stamps every call with the plugin that raised it, `next.origin`, and
+the gate reads its `tier`, `isOfficial` and `pluginId`).
 On an engine that has no `$.telemetry` of its own the same step adds the
 noun, so the calls exist there too. An entry names where it goes with `to`:
 `anthropic`, the default, is this mod's; one for `collector`, the telemetry
@@ -23,6 +25,17 @@ ends; a batch the ingest refuses with a server error, a timeout or a rate
 limit is tried once more. A session with no first-party credential, or an
 ingest that still refuses, drops the batch; each outcome is one line in the
 debug log.
+
+An official plugin's rows go under its own name: its event `<event>` is sent
+as `tengu_plugin_<name>__<event>`, its feature `<feature>` is marked as
+`plugin_<name>__<feature>`, and each row carries the plugin's id
+(`<plugin>@<marketplace>`) as `pluginId`. `<name>` is the first half of the
+id in lowercase, its words of letters and digits joined by one `_`, cut at 48
+characters (`unnamed` where it has none). Refused are an event already
+named `tengu_…`, a property under one of the names the CLI reserves (under
+some only a Choice is refused), and a Choice that names a model; the refusal
+names the key that was sent. The id is that of the copy that made the call:
+another plugin of the same name is served, or refused, as itself.
 
 Each row carries what the CLI's own rows carry, gathered through `$` once
 a session: an event id, the install's device id and the signed-in account's
@@ -52,7 +65,8 @@ when `USER_TYPE` says so, else `external`.
 Nothing free-form reaches a row. An event name and every property key is a
 snake_case token; a value is a finite number, a boolean, or a Choice (a
 string named together with the list it is chosen from), under `log` and
-`mark` alike; `mark` takes `ok`, `sad` or `bad`, with a `reason` required on
+`mark` alike, at most 20 properties to an entry;
+`mark` takes `ok`, `sad` or `bad`, with a `reason` required on
 the last two and refused on the first. An entry that breaks a rule is
 refused before anything is queued. Of the environment, a variable whose
 value is a secret, or names a person or a host, is read for whether it is
@@ -65,8 +79,9 @@ noun and a test answering it all read.
 ## What it hooks
 
 `telemetry.*`, the gate: a `telemetry.log` for `collector` goes on from any
-caller. Of the rest, a caller in the built-in tier (or the engine) goes
-on, any other is refused, and a gate that throws refuses too.
+caller. Of the rest, a caller in the built-in tier (or the engine) goes on,
+and so does an official plugin's row or mark; any other is refused, and a
+gate that throws refuses too.
 `telemetry.log` and `telemetry.mark`, beneath the gate: the entry is checked
 and its row queued, the hook answering `{ value }`, or `{ deny }` with the
 reason for an entry that breaks a rule, so the caller's promise rejects
@@ -92,9 +107,10 @@ each on the interface the fold handed it.
 
 This plugin is seated by the CLI itself, on every build whose own analytics
 are on, and nowhere else; it serves the plugins bundled with the CLI and
-refuses every other caller's rows and marks. It is not meant to be installed or loaded with
+the official ones, and refuses every other caller's rows and marks. It is
+not meant to be installed or loaded with
 `--plugin-dir`; the folder has a manifest so it reads like every other
-plugin, not so it can stand alone. A built-in that calls `$.telemetry`
+plugin, not so it can stand alone. A plugin that calls `$.telemetry`
 where this one is absent finds no such noun, or, on an engine with the noun
 of its own, one whose calls queue nothing; either way that is "no analytics
 here".

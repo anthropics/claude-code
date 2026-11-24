@@ -28,7 +28,7 @@ const SIGN_IN_KINDS: readonly (string | undefined)[] = [
  * the batch. Each outcome is one debug line; the context is gathered once.
  *
  * @param deps the calls on the nouns beneath
- * @returns the noun and its flush
+ * @returns the noun for each caller, and its flush
  */
 export function telemetryOf(deps: TelemetryDeps): Sender {
   let pending: Batching.PendingRow[] = []
@@ -198,10 +198,10 @@ export function telemetryOf(deps: TelemetryDeps): Sender {
     timer ??= deps.after(Batching.BATCH_WINDOW_MS, () => void flush())
   }
 
-  const telemetry: Telemetry = {
-    log: async entry => queued(Entries.checkedFields(entry)),
-    mark: async entry => queued(Entries.checkedMark(entry)),
-  }
+  const telemetryFor = (pluginId?: string): Telemetry => ({
+    log: async entry => queued(Entries.checkedFields(entry, pluginId)),
+    mark: async entry => queued(Entries.checkedMark(entry, pluginId)),
+  })
 
-  return { telemetry, flush }
+  return { telemetryFor, flush }
 }

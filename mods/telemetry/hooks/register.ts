@@ -11,7 +11,8 @@ import { telemetryOf } from './telemetry-of'
  * that are what `telemetry.log` and `telemetry.mark` do, and its
  * engine.create step, which builds the sender over the nouns beneath.
  *
- * A row is queued for a built-in caller and refused to any other; a
+ * A row is queued for a built-in caller, and for an official plugin under
+ * its own name, and refused to any other; a
  * malformed entry is denied with its reason; an entry for `collector` is
  * not this plugin's and goes on beneath, whoever the caller. On an engine
  * with no `telemetry` of its own the step adds the noun, its methods the same
@@ -32,11 +33,13 @@ export function register(on: On) {
   on('telemetry.log', (_$, e, next) =>
     sender === undefined || e.to === 'collector'
       ? next(e)
-      : answerOf(sender.telemetry.log(e)),
+      : answerOf(sender.telemetryFor(Gate.officialIdOf(next.origin)).log(e)),
   )
 
   on('telemetry.mark', (_$, e, next) =>
-    sender === undefined ? next(e) : answerOf(sender.telemetry.mark(e)),
+    sender === undefined
+      ? next(e)
+      : answerOf(sender.telemetryFor(Gate.officialIdOf(next.origin)).mark(e)),
   )
 
   on('session.start', (_$, e, next) => {
@@ -364,7 +367,7 @@ export function register(on: On) {
       debug: text => beneath.ui.log(text, { to: 'debug' }),
     })
 
-    const telemetry: EngineInterface['telemetry'] = sender.telemetry
+    const telemetry: EngineInterface['telemetry'] = sender.telemetryFor()
 
     return { telemetry, ...beneath }
   })

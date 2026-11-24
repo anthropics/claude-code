@@ -1,7 +1,7 @@
 /**
- * The answer a caller outside the served tiers gets for a row or a mark: its
+ * The answer a caller the gate does not serve gets for a row or a mark: its
  * promise rejects with this, and the host notes it in the debug log.
  */
 export const REFUSED = {
-  deny: '$.telemetry rows and marks are for the plugins built into Claude Code',
+  deny: '$.telemetry rows and marks are for built-in plugins and official ones',
 } as const
