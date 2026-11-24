@@ -5826,7 +5826,9 @@ declare module 'claude-code' {
        * `next(e)` resolves to `{ description, isDeferred? }`.
        *
        * An MCP tool behind ToolSearch fires twice: its short text, then the one
-       * loaded. Cached until `$.ui.invalidate("tool.describe")`: a changed answer
+       * loaded. Cached until `$.ui.invalidate("tool.describe")` or the main
+       * conversation's compaction, `/clear` or `/resume`, then fires again at the
+       * next render (a subagent's compaction keeps it). A changed answer
        * for a tool a thread has sent waits for a new thread or a compaction, unless
        * it carries `breakPromptCache: true` (ToolDescribeResult).
        *
