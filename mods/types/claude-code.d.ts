@@ -11702,9 +11702,14 @@ declare module 'claude-code' {
        */
       cwd?: string;
       /**
-       * Variables set over the host process's own environment.
+       * Variables set over the host process's own environment; `null` leaves one
+       * out of this child's, in any letter case on Windows, where a value passed
+       * under another case still sets it.
+       *
+       * A variable that managed settings set, or that Claude Code itself sets or
+       * holds for the programs it starts, stays whatever is passed as `null`.
        */
-      env?: Record<string, string>;
+      env?: Record<string, string | null>;
       /**
        * Text written to the child's standard input, then closed.
        */
@@ -11793,9 +11798,14 @@ declare module 'claude-code' {
        */
       cwd?: string;
       /**
-       * Variables set over the host process's own environment.
+       * Variables set over the host process's own environment; `null` leaves one
+       * out of this child's, in any letter case on Windows, where a value passed
+       * under another case still sets it.
+       *
+       * A variable that managed settings set, or that Claude Code itself sets or
+       * holds for the programs it starts, stays whatever is passed as `null`.
        */
-      env?: Record<string, string>;
+      env?: Record<string, string | null>;
       /**
        * Text written to the child's standard input, which is then closed;
        * absent, standard input is closed from the start.
