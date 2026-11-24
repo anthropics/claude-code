@@ -3865,7 +3865,7 @@ declare module 'claude-code' {
           redact: (text: string) => Promise<string>;
           /**
            * Holds the machine the engine runs on awake (`true`), or gives the hold
-           * back (`false`): the event `session.keepAwake`.
+           * back (`false`): the event `session.awake`.
            *
            * One hold a plugin: a second `true`, and a `false` with nothing held,
            * change nothing. The machine may idle to sleep 30 seconds after the last
@@ -3878,11 +3878,11 @@ declare module 'claude-code' {
            *   sleep; rejects on the hosted server (SessionInfo `isHosted`)
            * @example
            * on("session.state", async ($, e, next) => {
-           *   await $.session.keepAwake(e.status === "busy")
+           *   await $.session.awake(e.status === "busy")
            *   return next(e)
            * })
            */
-          keepAwake: (isHeld: boolean) => Promise<void>;
+          awake: (isHeld: boolean) => Promise<void>;
           /**
            * Has a headless run (`claude -p`, an SDK run whose input has ended) wait
            * at its exit until `work` settles: the event `session.waitUntil`.
@@ -9694,9 +9694,9 @@ declare module 'claude-code' {
           text: string;
       };
       /**
-       * The argument of `$.session.keepAwake(isHeld)`.
+       * The argument of `$.session.awake(isHeld)`.
        */
-      'session.keepAwake': {
+      'session.awake': {
           isHeld: boolean;
       };
       /**
@@ -10165,7 +10165,7 @@ declare module 'claude-code' {
        * The text with the credentials found in it masked.
        */
       'session.redact': string;
-      'session.keepAwake': void;
+      'session.awake': void;
       'session.waitUntil': void;
       'turn.abort': void;
       /**
