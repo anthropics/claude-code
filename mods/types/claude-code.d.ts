@@ -4472,28 +4472,45 @@ declare module 'claude-code' {
        * reloads; values are JSON data.
        *
        * A JSON file of the plugin's own under the user's Claude Code
-       * configuration directory.
+       * configuration directory, which sessions share. A write holds the store's
+       * lock, and rejects with nothing written when it cannot get it in time.
        */
       store: {
           /**
-           * Returns the value under `key`, or `undefined` when unset.
+           * Returns the value under `key`, or `undefined` when unset; with
+           * `{ isVersioned: true }`, `{ value, version }` (0 when unset).
+           *
+           * A versioned read may write, to give the key its version, so it can
+           * reject as a write does.
            *
            * @example
            * const count = Number((await $.store.get("count")) ?? 0) + 1
+           * const held = await $.store.get("count", { isVersioned: true })
            */
-          get: (key: string) => Promise<unknown>;
+          get: StoreGetCall;
           /**
            * Sets `key` to `value`, which must be JSON data.
            *
            * `get` reads back `JSON.parse(JSON.stringify(value))`: a Date is its ISO
            * string, an `undefined` field is dropped, a Map or Set is `{}`. Rejects
            * a function, a cycle, or a store over 4 MiB of JSON text in all.
+           *
+           * With `{ ifVersion }` it writes only while the key stands at that version
+           * (0: only while unset) and answers `{ isSet, version }`.
+           *
+           * @example
+           * const { isSet } = await $.store.set("owner", id, { ifVersion: 0 })
+           * await $.store.set("count", count + 1, { ifVersion: held.version })
            */
-          set: (key: string, value: unknown) => Promise<void>;
+          set: StoreSetCall;
           /**
-           * Removes `key` from the store.
+           * Removes `key` from the store; with `{ ifVersion }`, only while it stands
+           * at that version, answering `{ isDeleted, version }`.
+           *
+           * @example
+           * await $.store.delete("owner", { ifVersion: claim.version })
            */
-          delete: (key: string) => Promise<void>;
+          delete: StoreDeleteCall;
           /**
            * Returns every key set, in insertion order.
            */
@@ -9648,23 +9665,34 @@ declare module 'claude-code' {
        */
       'fs.ancestors': FsAncestorsRequest;
       /**
-       * The argument of `$.store.get(key)`.
+       * The argument of `$.store.get(key, { isVersioned })`.
+       *
+       * Either way `value` is what is stored. A versioned read's `version` rides
+       * beside it, put back from a hook's one `next`; with none the call rejects.
        */
       'store.get': {
           key: string;
+          isVersioned?: true;
       };
       /**
-       * The argument of `$.store.set(key, value)`.
+       * The argument of `$.store.set(key, value, { ifVersion })`.
+       *
+       * A hook may change `ifVersion`; left out, it is put back, as the answer is
+       * from its one `next`, else the call rejects. Under a condition, a
+       * `{ deny }` after `next(e)` was answered fails the hook.
        */
       'store.set': {
           key: string;
           value: unknown;
+          ifVersion?: number;
       };
       /**
-       * The argument of `$.store.delete(key)`.
+       * The argument of `$.store.delete(key, { ifVersion })`, the condition as
+       * on `store.set`.
        */
       'store.delete': {
           key: string;
+          ifVersion?: number;
       };
       /**
        * The argument of `$.store.keys()`.
@@ -9763,9 +9791,17 @@ declare module 'claude-code' {
 
   /**
    * The result of a call on `$` as its event's hooks see it: `{ value }` (the
-   * call's answer) or `{ deny }`.
+   * call's answer) or `{ deny }`; a versioned `store.get` adds `version`.
    */
-  export type OpEventResult<N extends OpEventName = OpEventName> = ValueOrDeny<OpValueOf[N]>;
+  export type OpEventResult<N extends OpEventName = OpEventName> = [N] extends ['store.get'] ? {
+      value: unknown;
+      version?: number;
+      deny?: undefined;
+  } | {
+      deny: string;
+      value?: undefined;
+      version?: undefined;
+  } : ValueOrDeny<OpValueOf[N]>;
 
   /**
    * What each call on `$` answers (the `value` of its event's result), by event
@@ -9897,8 +9933,14 @@ declare module 'claude-code' {
       'fs.stat': FsStat;
       'fs.ancestors': readonly FsAncestor[];
       'store.get': unknown;
-      'store.set': void;
-      'store.delete': void;
+      /**
+       * Nothing; with `ifVersion`, whether it landed and the version that stands.
+       */
+      'store.set': void | StoreSetResult;
+      /**
+       * Nothing; with `ifVersion`, whether it held and the version that stands.
+       */
+      'store.delete': void | StoreDeleteResult;
       'store.keys': string[];
       /**
        * The value and the version it stands at; `undefined` at 0 when never
@@ -17455,6 +17497,74 @@ declare module 'claude-code' {
        * Session-scoped cron tasks (CronCreate, ScheduleWakeup, /loop) that will wake this session later. Empty array when none are scheduled.
        */
       session_crons?: SessionCronSummary[];
+  };
+
+  /**
+   * The options of a conditional `$.store.set` or `$.store.delete`: write only
+   * while the key still stands at `ifVersion` (compare-and-set).
+   *
+   * `ifVersion: 0` means only while the key is unset, so one session alone
+   * claims it. Decided under the store's lock, across sessions.
+   */
+  export type StoreCondition = {
+      ifVersion: number;
+  };
+
+  /**
+   * `$.store.delete`: a removal, or with `{ ifVersion }` a conditional one.
+   */
+  export type StoreDeleteCall = {
+      (key: string): Promise<void>;
+      (key: string, options: StoreCondition): Promise<StoreDeleteResult>;
+  };
+
+  /**
+   * What a conditional `$.store.delete` answers: whether the condition held,
+   * and the version the key stands at now (0 once unset, else the current).
+   */
+  export type StoreDeleteResult = {
+      isDeleted: boolean;
+      version: number;
+  };
+
+  /**
+   * `$.store.get`: the value, or with `{ isVersioned: true }` the value and
+   * its version.
+   */
+  export type StoreGetCall = {
+      (key: string): Promise<unknown>;
+      (key: string, options: {
+          isVersioned: true;
+      }): Promise<StoreRead>;
+  };
+
+  /**
+   * What `$.store.get(key, { isVersioned: true })` answers: the value and the
+   * version it stands at; an unset key is `undefined` at version 0.
+   *
+   * A version is a whole number to hand back as `ifVersion`, never to order or
+   * count by. It changes on every write of the key, and may change with none.
+   */
+  export type StoreRead = {
+      value: unknown;
+      version: number;
+  };
+
+  /**
+   * `$.store.set`: a write, or with `{ ifVersion }` a compare-and-set.
+   */
+  export type StoreSetCall = {
+      (key: string, value: unknown): Promise<void>;
+      (key: string, value: unknown, options: StoreCondition): Promise<StoreSetResult>;
+  };
+
+  /**
+   * What a conditional `$.store.set` answers: whether the write landed, and the
+   * version the key stands at now (a landed write's own, else the current).
+   */
+  export type StoreSetResult = {
+      isSet: boolean;
+      version: number;
   };
 
   /**
