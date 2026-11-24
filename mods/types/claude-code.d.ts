@@ -3058,7 +3058,8 @@ declare module 'claude-code' {
            *   after an answer under way has landed; calls until then are folded.
            * @param event `ui.render`, or a cached-answer event: `prompt.section`,
            *   `prompt.context`, `prompt.attachment`, `tool/command/config.describe`,
-           *   `tool.list`, `tool.offer`, `ui.offer`, `ui.title`
+           *   `tool.list`, `tool.offer`, `ui.offer`, `ui.title`,
+           *   `ui.verbs` (ten a second at most)
            * @param loop with `tool.offer` alone: `agentId`, as that event carries it
            * @example
            * $.ui.invalidate("tool.offer", { agentId: e.agentId })
@@ -5532,7 +5533,8 @@ declare module 'claude-code' {
        *
        * Pick a candidate with `{ id }`, add a tip with `{ text, id, label? }`, show
        * none with `{ id: null }`, or pass `next` fewer candidates to drop some.
-       * Core answers the one unshown the longest, ties to priority, then order.
+       * The tips plugin answers the one unshown the longest, ties to priority,
+       * then order; with it off, core does so among `organization` tips alone.
        *
        * The engine decides which tips are candidates, builds the picked one's
        * text, draws it between turns and records it then. A tip of your own keeps
@@ -5578,6 +5580,14 @@ declare module 'claude-code' {
        * on("ui.title", ($, e, next) => next({ ...e, text: `api: ${e.text}` }))
        */
       'ui.title': UiTitleInput;
+      /**
+       * Fires for each of the terminal's two word lists as the plugins load or
+       * change, and at `$.ui.invalidate("ui.verbs")`. Answer `{ verbs }`.
+       *
+       * @example
+       * on("ui.verbs", { tense: "done" }, () => ({ verbs: ["Shipped"] }))
+       */
+      'ui.verbs': UiVerbsInput;
       /**
        * Fires when the engine offers an agent type to the model, in the agent
        * listing and again at dispatch; `next(e)` resolves to `{ isOffered: true }`.
@@ -6552,6 +6562,10 @@ declare module 'claude-code' {
        */
       'ui.title': UiTitleResult;
       /**
+       * `{ verbs }`.
+       */
+      'ui.verbs': UiVerbsResult;
+      /**
        * `{ isOffered }`.
        */
       'agent.offer': AgentOfferResult;
@@ -6848,6 +6862,7 @@ declare module 'claude-code' {
           tip: (input: UiTipInput) => Promise<UiTipResult>;
           offer: (input: UiOfferInput) => Promise<UiOfferResult>;
           title: (input: UiTitleInput) => Promise<UiTitleResult>;
+          verbs: (input: UiVerbsInput) => Promise<UiVerbsResult>;
       };
   };
 
@@ -7758,14 +7773,14 @@ declare module 'claude-code' {
   };
 
   /**
-   * What `$.ui.invalidate` takes: a render event, or one of the ten events
+   * What `$.ui.invalidate` takes: a render event, or one of the eleven events
    * whose answers the engine keeps for the session.
    *
    * For `ui.render`, the instances this plugin's matchers on it may select: one
    * naming no `requestId`, every instance of its component. For a thread resumed
    * in a new process the recorded `prompt.section` text stands, asked or not.
    */
-  export type InvalidatableEventName = RenderEventName | 'prompt.section' | 'prompt.context' | 'prompt.attachment' | 'tool.describe' | 'tool.list' | 'tool.offer' | 'command.describe' | 'config.describe' | 'ui.offer' | 'ui.title';
+  export type InvalidatableEventName = RenderEventName | 'prompt.section' | 'prompt.context' | 'prompt.attachment' | 'tool.describe' | 'tool.list' | 'tool.offer' | 'command.describe' | 'config.describe' | 'ui.offer' | 'ui.title' | 'ui.verbs';
 
   /**
    * Whether tag key `K` selects members of `I`: it does when each member gives
@@ -21312,6 +21327,38 @@ declare module 'claude-code' {
        * 960 ms while the terminal has focus; the first shows unless `isAnimated`.
        */
       marks?: readonly string[];
+  };
+
+  /**
+   * The input of `ui.verbs`: one of the two lists of words the terminal picks
+   * from to say that Claude is at work, or was.
+   *
+   * Raised in an interactive session alone, which can be before `session.start`.
+   * `next(e)` answers the words beneath, core's own being `verbs`.
+   */
+  export type UiVerbsInput = {
+      /**
+       * Which list: `working` for the spinner (`Baking`), `done` for the line
+       * that closes a turn (`Baked for 3s`); the key a matcher narrows on.
+       */
+      tense: 'working' | 'done';
+      /**
+       * The engine's one bare word, `["Working"]` or `["Worked"]`, or what a hook
+       * above passed down in its place.
+       */
+      verbs: string[];
+  };
+
+  /**
+   * What a `ui.verbs` hook returns: the words the engine picks from, in order.
+   *
+   * It picks a `working` word at random for each turn and each agent, a `done`
+   * word by its row's id. Each word is kept as one line; an empty list reads as
+   * core's bare word. The `spinnerVerbs` setting applies over the answer. A hook
+   * that fails is skipped.
+   */
+  export type UiVerbsResult = {
+      verbs: string[];
   };
 
   /**
