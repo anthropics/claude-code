@@ -6619,6 +6619,26 @@ declare module 'claude-code' {
        */
       'turn.step': TurnStepInput;
       /**
+       * Fires just before a turn's request is sent, when it will break a prompt
+       * cache that is still warm; main's or a subagent's (`e.agentId`).
+       *
+       * A prediction from what the client changed: it cannot see expiry or a miss
+       * on the server. It fires inside `turn.step`'s `next`, once per request, and
+       * the request waits. Observe; `next(e)` echoes `{ causes }`.
+       *
+       * @remarks A compaction's rebuild fires none: its event is `session.compact`.
+       * @remarks `$.model.fork` from here forks the main thread's last request, but
+       *   what it reads as it is sent (effort, the tools offered) is already new.
+       * @example
+       * on("turn.recache", { causes: "model_changed" }, async ($, e, next) => {
+       *   if (e.agentId !== undefined) return next(e)
+       *   const notes = await $.model.fork({ prompt: "Summarize the work so far." })
+       *   if (notes.isAnswered) await $.store.set("handoff", notes.text)
+       *   return next(e)
+       * })
+       */
+      'turn.recache': TurnRecacheInput;
+      /**
        * Fires when a model turn has ended, at the point its duration is reported;
        * `next(e)` resolves to `{ text }`, the answer. `e.reason` says why.
        *
@@ -6935,6 +6955,10 @@ declare module 'claude-code' {
        */
       'turn.step': TurnStepResult;
       /**
+       * `{ causes }`.
+       */
+      'turn.recache': TurnRecacheResult;
+      /**
        * `{ text }`.
        */
       'turn.complete': TurnCompleteResult;
@@ -7039,6 +7063,7 @@ declare module 'claude-code' {
       turn: {
           start: (input: TurnStartInput) => Promise<TurnStartResult>;
           step: (input: TurnStepInput) => HookStream<TurnStepChunk, TurnStepResult>;
+          recache: (input: TurnRecacheInput) => Promise<TurnRecacheResult>;
           complete: (input: TurnCompleteInput) => Promise<TurnCompleteResult>;
       };
       ui: {
@@ -12182,6 +12207,18 @@ declare module 'claude-code' {
   };
 
   /**
+   * What the client changed in a request's cached prefix, in the status line's
+   * words: a closed set, never a tool's, server's or model's name.
+   */
+  export type PromptCacheChange = 'system_prompt_changed' | 'tools_changed' | 'model_changed' | 'fast_mode_changed' | 'cache_scope_or_ttl_changed' | 'betas_changed' | 'effort_changed' | 'thinking_mode_changed' | 'thinking_display_changed' | 'auto_mode_changed' | 'overage_changed' | 'extra_body_changed' | 'defer_loading_changed' | 'messages_rewritten';
+
+  /**
+   * The likely cause of a prompt cache miss: what the client changed, else
+   * that the cache had expired, else a guess at the server, else none.
+   */
+  export type PromptCacheMissCause = PromptCacheChange | 'ttl_expired_5m' | 'ttl_expired_1h' | 'likely_server_side' | 'unknown';
+
+  /**
    * The input of `prompt.change` (prompt-change/): the prompt box after a
    * change of its text that no `prompt.edit` carried, and who made it.
    *
@@ -16428,12 +16465,16 @@ declare module 'claude-code' {
        */
       cost?: SessionCost;
       /**
+       * The main conversation's prompt cache; absent before its first response.
+       */
+      promptCache?: SessionPromptCache;
+      /**
        * Which units differ from the last measurement raised (UsageUnit), never
        * empty; the first measurement names every unit it has a figure for.
        *
        * `context`: the fill moved; `rateLimits`: a window moved a whole point,
        * appeared or left, or the account's limit status changed; `cost`: the
-       * total grew.
+       * total grew; `promptCache`: any of its figures moved.
        */
       changed: UsageUnit[];
   };
@@ -16656,6 +16697,55 @@ declare module 'claude-code' {
    * rows (SessionMessage), the Messages API form (ApiMessage), or `{ deny }`.
    */
   type SessionMessagesValue = SessionMessagesResult | SessionMessagesApiResult;
+
+  /**
+   * The main conversation's prompt cache: the status line's `prompt_cache`
+   * figures, as they stand at the reading.
+   */
+  export type SessionPromptCache = {
+      /**
+       * Whether the last request cached something and `expiresAt` is still ahead.
+       */
+      isWarm: boolean;
+      /**
+       * When the cache expires unless something reads it first, in
+       * `$.clock.now()`'s milliseconds; absent when nothing is cached.
+       *
+       * Each request moves it, inside a turn and between turns, so a timer reads
+       * it again when it fires. For a figure per request, read `$.session.usage()`
+       * after `turn.step`'s `next`.
+       *
+       * @example
+       * let timer // this and `arm` at the file's top, outside `register`
+       * async function arm($) {
+       *   const at = (await $.session.usage()).promptCache?.expiresAt
+       *   const left = at === undefined ? 0 : at - (await $.clock.now())
+       *   timer?.cancel()
+       *   if (left > 30_000) timer = $.clock.after(left - 30_000, () => arm($))
+       *   else if (left > 0) $.ui.toast("The prompt cache expires in 30 seconds")
+       * }
+       * on("session.measure", { changed: "promptCache" }, async ($, e, next) => {
+       *   await arm($)
+       *   return next(e)
+       * })
+       */
+      expiresAt?: number;
+      /**
+       * How long the cache lives after a request.
+       */
+      ttl: '5m' | '1h';
+      /**
+       * The likely causes of the latest miss; absent before a miss, and for one
+       * the engine could not examine.
+       */
+      lastMissCauses?: PromptCacheMissCause[];
+      /**
+       * The tokens the next request caches again if the cache is cold; absent
+       * from a rewrite of the conversation (a compaction, cleared tool results)
+       * to the next response, which tells the new size.
+       */
+      recacheTokens?: number;
+  };
 
   /**
    * One rate-limit window as the rate-limit notices read it.
@@ -17168,6 +17258,10 @@ declare module 'claude-code' {
        * (the CLI always has one). An estimate, not the bill (SessionCost).
        */
       cost?: SessionCost;
+      /**
+       * The main conversation's prompt cache; absent before its first response.
+       */
+      promptCache?: SessionPromptCache;
   };
 
   /**
@@ -20519,6 +20613,36 @@ declare module 'claude-code' {
   };
 
   /**
+   * The input of `turn.recache`: what the request about to be sent changed in
+   * its cached prefix. Every field is the engine's: a hook observes.
+   */
+  export type TurnRecacheInput = {
+      /**
+       * What the client changed (PromptCacheChange), never empty.
+       */
+      causes: PromptCacheChange[];
+      /**
+       * The most the request caches again, in tokens: the size of the loop's last
+       * prompt. Absent where `promptCache.recacheTokens` is, as when tool results
+       * were just cleared.
+       */
+      recacheTokens?: number;
+      /**
+       * The loop the request belongs to, as `turn.step` names it: a subagent's or
+       * teammate's id; absent on the main loop.
+       */
+      agentId?: string;
+  };
+
+  /**
+   * What a `turn.recache` hook returns and what `next(e)` resolves to:
+   * `{ causes }`, echoed by core; a hook's own value changes nothing.
+   */
+  export type TurnRecacheResult = {
+      causes: TurnRecacheInput['causes'];
+  };
+
+  /**
    * What the API said about a refusal that ended a turn: the classifier's
    * category and its explanation, each null when the API sent none.
    */
@@ -22132,9 +22256,9 @@ declare module 'claude-code' {
 
   /**
    * One unit of what `$.session.usage()` answers, by its key there: the
-   * context window's fill, the rate-limit windows, the session's cost.
+   * context window's fill, the rate limits, the cost, the prompt cache.
    */
-  export type UsageUnit = 'context' | 'rateLimits' | 'cost';
+  export type UsageUnit = 'context' | 'rateLimits' | 'cost' | 'promptCache';
 
   /**
    * Who sent the message a `UserMessage` row carries, when someone other than
