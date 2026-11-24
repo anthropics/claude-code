@@ -2391,16 +2391,18 @@ declare module 'claude-code' {
    * recorded for the model beside that, and `ref` names the run.
    *
    * A hook's own answer without `next` runs no command: its `text` is shown
-   * as the command's output, under the names of the plugins hooking the
-   * command unless each is bundled with Claude Code, whose answer reads as
-   * the built-in command's own, and its `context` is recorded after it.
+   * as the command's output, under the name of the plugin that wrote it, and
+   * its `context` is recorded after it. A hook that only passes `next(e)` on
+   * is not named; where the engine cannot tell who wrote, or a hook above
+   * changed the arguments, every plugin hooking the command is.
    *
    * Both are the plugin's to size, as a core command's output is; what bounds
    * them is what bounds any transcript row where a surface draws it.
    *
-   * A command Claude Code moved into a plugin (`/stickers`) belongs to the
-   * plugin that registered the name, bundled or not: unless it ran the command
-   * itself, its text shows under no name, another's under the others' names.
+   * A command Claude Code leaves to a plugin (`/stickers`, `/radio`, `/diff`)
+   * belongs to the plugin that registered the name, bundled or not: unless it
+   * ran the command itself or gave it an alias Claude Code keeps, its text
+   * shows under no name. CommandSpec's `isUnnamed` asks that for its own.
    */
   export type CommandRunResult = {
       /**
@@ -2513,6 +2515,15 @@ declare module 'claude-code' {
        * cloud session's.
        */
       isWorkspaceFree?: true;
+      /**
+       * Set so that this plugin's own answer shows with no plugin name where the
+       * person typed the command and no other hook changed its arguments.
+       *
+       * Any other run is named, and the command is listed as the plugin's. No
+       * effect where the name or an alias is one Claude Code ships.
+       * `claude plugin validate` notes it.
+       */
+      isUnnamed?: true;
   };
 
   type ConfigChangeHookInput = BaseHookInput & {
@@ -4240,7 +4251,8 @@ declare module 'claude-code' {
            *
            * @param command `name`, `description` (what the menu shows),
            *   `argumentHint` (dim after the name), `immediate` (runs mid-turn),
-           *   `aliases`, `isHidden`, `isTerminalOnly`, `isWorkspaceFree`
+           *   `aliases`, `isHidden`, `isTerminalOnly`, `isWorkspaceFree`,
+           *   `isUnnamed`
            * @returns `{ command }`, the registered name
            * @example
            * await $.command.register({ name: "hello", description: "Says hi." })
