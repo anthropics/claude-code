@@ -13,9 +13,9 @@ import { telemetryOf } from './telemetry-of'
  *
  * A row is queued for a built-in caller and refused to any other; a
  * malformed entry is denied with its reason; an entry for `collector` is
- * not this plugin's and goes on beneath. On an engine with no `telemetry`
- * of its own the step adds the noun, its methods the same queueing. A batch
- * goes out on a timer, when full, and when the session ends.
+ * not this plugin's and goes on beneath, whoever the caller. On an engine
+ * with no `telemetry` of its own the step adds the noun, its methods the same
+ * queueing. A batch goes out on a timer, when full, and when the session ends.
  *
  * @param on the engine's registrar
  */
@@ -23,9 +23,11 @@ export function register(on: On) {
   let sender: Sender | undefined
   let isInteractive: boolean | undefined
 
-  on('telemetry.*', (_$, e, next) => Gate.served(e, next)).catch(
-    (_$, e, next) => Gate.caught(e, next),
-  )
+  on('telemetry.*', (_$, e, next) =>
+    next.is('telemetry.log', e) && e.to === 'collector'
+      ? next(e)
+      : Gate.served(e, next),
+  ).catch((_$, e, next) => Gate.caught(e, next))
 
   on('telemetry.log', (_$, e, next) =>
     sender === undefined || e.to === 'collector'

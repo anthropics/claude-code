@@ -3,14 +3,14 @@
 Plugin analytics as a plugin: its hooks on `telemetry.log` and
 `telemetry.mark` are what those two events do, built over the nouns its
 `engine.create` step is handed, and a gate above them serves the plugins
-built into Claude Code alone: a call from a plugin a person installed or an
-administrator listed is refused with a reason (the host stamps every call
+built into Claude Code alone: a row or a mark from a plugin a person installed
+or an administrator listed is refused with a reason (the host stamps every call
 with the plugin that raised it, `next.origin`, and the gate reads its tier).
 On an engine that has no `$.telemetry` of its own the same step adds the
 noun, so the calls exist there too. An entry names where it goes with `to`:
 `anthropic`, the default, is this mod's; one for `collector`, the telemetry
-collector an operator configured, is passed on beneath untouched, and `to`
-is never part of a row.
+collector an operator configured, is passed on beneath untouched, whoever
+the caller, and `to` is never part of a row.
 `$.telemetry.log({ event, props })` queues one event as one first-party
 row, `tengu_plugin_<event>`; `$.telemetry.mark({ feature, kind, reason?,
 props? })` marks one use of a feature as the CLI's own feature events do,
@@ -64,7 +64,8 @@ noun and a test answering it all read.
 
 ## What it hooks
 
-`telemetry.*`, the gate: a caller in the built-in tier (or the engine) goes
+`telemetry.*`, the gate: a `telemetry.log` for `collector` goes on from any
+caller. Of the rest, a caller in the built-in tier (or the engine) goes
 on, any other is refused, and a gate that throws refuses too.
 `telemetry.log` and `telemetry.mark`, beneath the gate: the entry is checked
 and its row queued, the hook answering `{ value }`, or `{ deny }` with the
@@ -91,7 +92,7 @@ each on the interface the fold handed it.
 
 This plugin is seated by the CLI itself, on every build whose own analytics
 are on, and nowhere else; it serves the plugins bundled with the CLI and
-refuses every other caller. It is not meant to be installed or loaded with
+refuses every other caller's rows and marks. It is not meant to be installed or loaded with
 `--plugin-dir`; the folder has a manifest so it reads like every other
 plugin, not so it can stand alone. A built-in that calls `$.telemetry`
 where this one is absent finds no such noun, or, on an engine with the noun

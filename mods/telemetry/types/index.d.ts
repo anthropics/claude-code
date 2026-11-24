@@ -14,8 +14,8 @@
 /**
  * A plugin's analytics, queued through `$.telemetry` and sent in batches.
  *
- * The telemetry mod serves the plugins built into the CLI alone: a call from
- * an installed plugin rejects. Where the mod is off or absent nothing is
+ * The telemetry mod serves the plugins built into the CLI alone: a row or a
+ * mark from an installed plugin rejects. Where the mod is off or absent nothing is
  * queued, and on an engine without the noun there is no `$.telemetry`.
  */
 export type Telemetry = {
@@ -76,12 +76,15 @@ export type TelemetryDestination = 'anthropic' | 'collector'
  *
  * `to` names the destination and is never part of the row; left out, it
  * reads as `anthropic`. An entry for `collector` is not this mod's: its
- * hook passes it on beneath untouched.
+ * hook passes it on beneath untouched, and it carries `attributes`.
  */
 export type TelemetryLogEntry = {
   to?: TelemetryDestination
   event: string
   props?: Readonly<Record<string, TelemetryProp>>
+  attributes?: Readonly<
+    Record<string, string | number | boolean | readonly string[]>
+  >
 }
 
 /**
@@ -124,7 +127,8 @@ declare module 'claude-code' {
   interface EngineInterface {
     /**
      * A built-in plugin's analytics, first-party rows sent in batches;
-     * present where the telemetry mod is seated, refused to installed plugins.
+     * present where the telemetry mod is seated; an installed plugin logs
+     * for `collector` alone.
      */
     telemetry: Telemetry
   }

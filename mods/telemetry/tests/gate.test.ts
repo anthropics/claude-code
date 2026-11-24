@@ -40,6 +40,56 @@ describe('gate', () => {
   )
 
   test(
+    "an installed plugin's collector record goes on beneath, no row sent",
+    { plugins: [Fixtures.visiting] },
+    async ($, on) => {
+      mock.env(on, Fixtures.SENDING_ENV)
+
+      const session = Fixtures.firstPartySession(on)
+      const beneath: string[] = []
+
+      on('telemetry.log', (_$, e) => {
+        beneath.push(`${e.to} ${e.event}`)
+
+        return { value: undefined }
+      })
+
+      const { text } = await $.command.run(
+        Fixtures.typed('visit', { to: 'collector', event: 'mine' }),
+      )
+
+      await session.clock.advance(Hooks.BATCH_WINDOW_MS)
+
+      expect({ text, beneath, posts: session.posts }).toEqual({
+        text: 'queued',
+        beneath: ['collector plugin_event'],
+        posts: [],
+      })
+    },
+  )
+
+  test(
+    'a mark that names the collector is refused all the same',
+    { plugins: [Fixtures.managing] },
+    async ($, on) => {
+      mock.env(on, Fixtures.SENDING_ENV)
+
+      const session = Fixtures.firstPartySession(on)
+
+      const { text } = await $.command.run(
+        Fixtures.typed('manage', { to: 'collector', feature: 'a', kind: 'ok' }),
+      )
+
+      await session.clock.advance(Hooks.BATCH_WINDOW_MS)
+
+      expect({ text, posts: session.posts }).toEqual({
+        text: `HooksError: managing: $.telemetry.mark: ${Hooks.REFUSED.deny}`,
+        posts: [],
+      })
+    },
+  )
+
+  test(
     'a module that keeps the table to call later never loads',
     { plugins: [Fixtures.holding] },
     async ($, on) => {

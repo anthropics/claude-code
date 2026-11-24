@@ -4164,17 +4164,25 @@ declare module 'claude-code' {
            * `telemetry.log`; `e.to` is pinned, and `anthropic` when left out.
            *
            * A first-party row is queued by the built-in plugin that hooks the
-           * event, for built-ins and the engine alone. A collector record reaches
-           * the collector only when the engine raised it; any plugin may hook.
+           * event, for built-ins and the engine alone. Any plugin's collector record
+           * (TelemetryRecordArgs, its bounds there) goes to the operator's collector,
+           * and nowhere with none. Past 100 at once and 10 a second from one plugin
+           * (counted apart under each other plugin's calls), or ten times that from
+           * all unless the plugin stays under 10 a second, a record is dropped and
+           * the call resolves: the plugin's next says `plugin_records_dropped`. One
+           * logged from `session.end` as the process exits is lost.
            *
            * @param entry a first-party row, or a collector record
-           * @returns once the hooks have answered; rejects when one denies
+           * @returns once the hooks have answered; rejects when one denies, or for
+           *          a collector record outside its bounds
            * @example
            * await $.telemetry.log({
            *   to: "anthropic",
            *   event: "survey_answered",
            *   props: { answer: 2, page: { value: "ready", of: ["ready", "later"] } },
            * })
+           * await $.telemetry.log({ to: "collector", event: "scan_done",
+           *   attributes: { findings: 2, verdict: "blocked" } })
            */
           log: (entry: TelemetryLogArgs) => Promise<void>;
           /**
@@ -5930,11 +5938,11 @@ declare module 'claude-code' {
       'config.describe': ConfigDescribeInput;
       /**
        * Fires when a record is about to be logged to the destination `e.to`
-       * names: a built-in's `$.telemetry.log`, or the engine's own events.
+       * names: a plugin's `$.telemetry.log`, or the engine's own events.
        *
        * `e.to` is pinned: a hook rewrites what the record carries, never where
        * it goes. `next(e)` resolves `{ value: undefined }`; `{ deny }` rejects the
-       * caller. Beneath the hooks the engine exports its own collector records.
+       * caller. Beneath the hooks the engine exports a collector record.
        * Where sec-default is seated, a collector record passes the `user` tier by.
        *
        * @example
@@ -6867,7 +6875,7 @@ declare module 'claude-code' {
           end: (input: SessionEndInput) => Promise<SessionEndResult>;
       };
       telemetry: {
-          log: (input: TelemetryLogArgs) => Promise<TelemetryLogResult>;
+          log: (input: TelemetryRowArgs | TelemetryRecordEntry) => Promise<TelemetryLogResult>;
           mark: (input: TelemetryMarkInput) => Promise<TelemetryMarkResult>;
       };
       turn: {
@@ -17837,7 +17845,7 @@ declare module 'claude-code' {
    * What a call of `$.telemetry.log` passes: a first-party row, `to` optional,
    * or a collector record.
    */
-  export type TelemetryLogArgs = TelemetryRowArgs | TelemetryRecordEntry;
+  export type TelemetryLogArgs = TelemetryRowArgs | TelemetryRecordArgs;
 
   /**
    * The input of `telemetry.log`: one record about to be logged to the
@@ -17897,7 +17905,38 @@ declare module 'claude-code' {
   export type TelemetryProp = number | boolean | TelemetryChoice;
 
   /**
+   * A collector record as a plugin's call passes it. It leaves named
+   * `claude_code.plugin_event`, its time, span and plugin the engine's to say.
+   */
+  export type TelemetryRecordArgs = {
+      /**
+       * The operator's collector.
+       */
+      to: 'collector';
+      /**
+       * The plugin's own name for the event, sent as `plugin_event_name`: at most
+       * 64 lowercase letters, digits and `_`, a letter first.
+       */
+      event: string;
+      /**
+       * At most 32, each key spelled as `event` is and sent as `plugin_attr.<key>`.
+       *
+       * A string holds at most 1024 characters and a list at most 32 strings; keys
+       * and strings together hold at most 8192. A number is finite. A string of
+       * more than 36 characters, or with any but letters, digits, `_` and `-`,
+       * reads `<REDACTED>` unless the operator logs prompts, responses, tool
+       * details and tool content.
+       */
+      attributes?: Readonly<Record<string, TelemetryAttribute>>;
+  };
+
+  /**
    * A record for the telemetry collector the session's operator configured.
+   *
+   * A plugin's reads `plugin_event`. Its name, time, span, `plugin_id`,
+   * `plugin_id_hash` and `plugin_event_name` leave as raised; another of the
+   * engine's attributes that a hook removes or changes is left off, and a hook
+   * adds only under `plugin_attr.`, within TelemetryRecordArgs' bounds.
    */
   export type TelemetryRecordEntry = {
       /**
@@ -17909,8 +17948,8 @@ declare module 'claude-code' {
        */
       event: string;
       /**
-       * The record's attributes; they go out as they stand, in the order
-       * written.
+       * The record's attributes; the engine's own records' go out as they stand,
+       * in the order written.
        */
       attributes: Readonly<Record<string, TelemetryAttribute>>;
       /**

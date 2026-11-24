@@ -16,7 +16,7 @@ export const replacing: Plugin = {
     }))
 
     on('command.run', { command: 'replace' }, $ =>
-      $.telemetry.log({ to: 'collector', event: 'mine' }).then(
+      $.telemetry.log({ to: 'anthropic', event: 'mine' }).then(
         () => ({ text: 'served' }),
         (error: unknown) => ({ text: String(error) }),
       ),
