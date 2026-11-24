@@ -3818,6 +3818,40 @@ declare module 'claude-code' {
            */
           keepAwake: (isHeld: boolean) => Promise<void>;
           /**
+           * Has a headless run (`claude -p`, an SDK run whose input has ended) wait
+           * at its exit until `work` settles: the event `session.waitUntil`.
+           *
+           * The exit waits 30 seconds at most, for every plugin's work and the
+           * `asyncRewake` hooks together, then raises `session.end`. The call holds
+           * no turn and no tool call, and delays no interactive quit, interrupt or
+           * signal. The engine stops waiting for a plugin's work as the plugin
+           * unloads, reloads, crashes or is turned off, and waits for none where the
+           * host ends the session over an agent still running.
+           *
+           * The conversation is over by then, its background agents finished:
+           * `$.model.complete`, `$.process`, `$.fs`, `$.http`, `$.store` and
+           * `$.telemetry` calls run, as in `session.end`, where a rule that needs the
+           * conversation to be read may refuse them. A tool call or fork still running
+           * is cut, nothing starts another, `$.model.fork` answers `nothing-to-fork`,
+           * and a call that needs the conversation or its tools rejects, so a
+           * prompt submitted is not run. Call it before the last turn's hooks
+           * return, or from work already registered: a timer may fire too late,
+           * and an exit that finds nothing registered waits for no later call.
+           *
+           * @param work a promise; a rejection ends the wait as a value does
+           * @param options `label` names the work in the debug log
+           * @returns nothing; a refusal is logged, and the work runs on
+           * @example
+           * on("turn.complete", ($, e, next) => {
+           *   const sent = $.clock.sleep(5000).then(() => $.http.fetch(url))
+           *   $.session.waitUntil(sent, { label: "report" })
+           *   return next(e)
+           * })
+           */
+          waitUntil: (work: PromiseLike<unknown>, options?: {
+              label?: string;
+          }) => void;
+          /**
            * Compacts the conversation: the event `session.compact` with `trigger`
            * `plugin`, the same call `/compact` makes, between turns.
            *
@@ -8858,7 +8892,8 @@ declare module 'claude-code' {
        *
        * Until a turn has run to its end, that is while none of its requests
        * is out, and on a host that keeps none; again after a `/clear`, or a
-       * resume that starts the conversation afresh.
+       * resume that starts the conversation afresh, and once the process is
+       * exiting.
        *
        * @example
        * if (!r.isAnswered && r.reason === "nothing-to-fork") return next(e)
@@ -9552,6 +9587,16 @@ declare module 'claude-code' {
           isHeld: boolean;
       };
       /**
+       * The argument of `$.session.waitUntil(work, { label })`, less the work.
+       *
+       * `next(e)` resolves once the work is registered, not when it settles. A
+       * `{ deny }`, or an answer given without `next`, leaves it unregistered:
+       * the work runs on, and no exit waits for it.
+       */
+      'session.waitUntil': {
+          label?: string;
+      };
+      /**
        * The argument of `$.turn.abort({ turnId })`.
        */
       'turn.abort': {
@@ -10002,6 +10047,7 @@ declare module 'claude-code' {
        */
       'session.redact': string;
       'session.keepAwake': void;
+      'session.waitUntil': void;
       'turn.abort': void;
       /**
        * How many commands and agents moved to the background.
