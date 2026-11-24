@@ -3410,11 +3410,13 @@ declare module 'claude-code' {
            * a call cut before an answer counts nothing. Nothing caps it per call.
            *
            * @param request the model (an alias such as `haiku`, or a full id
-           *                resolved like `--model`), prompt, cap, effort, time limit
+           *                resolved like `--model`), prompt, cap, effort, schema,
+           *                thinking, time limit
            * @param options `signal`: the plugin's own AbortSignal; aborting it
            *   cuts the call while it runs, which then resolves `aborted`
-           * @returns the reply (`isAnswered`, `text`, `usage`), else the `reason`:
-           *          `api-error` with `status` and `error`, `empty-reply`, `aborted`
+           * @returns the reply (`isAnswered`, `text`, `usage`, `model`), else the
+           *          `reason`: `api-error` with `status` and `error`, `empty-reply`,
+           *          `aborted`
            * @example
            * const r = await $.model.complete({ model: "haiku", prompt, effort })
            * @example
@@ -8390,6 +8392,15 @@ declare module 'claude-code' {
        */
       effort?: ModelEffort;
       /**
+       * The JSON schema the reply is held to, as the request gave it; one a hook
+       * passes down takes its place, and `undefined` sends none.
+       */
+      schema?: Record<string, unknown>;
+      /**
+       * Whether the model may think before it answers, as the request gave it.
+       */
+      thinking?: boolean;
+      /**
        * How long the whole call may take, in milliseconds, as the request gave
        * it.
        */
@@ -8450,7 +8461,8 @@ declare module 'claude-code' {
        * The reply's token cap: any positive integer up to what one reply can
        * hold, the model's own output limit or 64000, whichever is lower.
        *
-       * Default 1024. The reply comes back whole, not streamed, and a provider
+       * Default 1024, or 16384 while `thinking` is in force, which spends from
+       * the same cap. The reply comes back whole, not streamed, and a provider
        * ends such a request at ten minutes, hence the 64000. One past the limit
        * is refused, naming it.
        */
@@ -8467,6 +8479,35 @@ declare module 'claude-code' {
        * await $.model.complete({ model: "haiku", prompt, effort: "low" })
        */
       effort?: ModelEffort;
+      /**
+       * A JSON schema the reply's text is held to, as the provider's structured
+       * output; the result's `isSchemaApplied` says whether it was.
+       *
+       * Where the provider, model or organization takes none, the request goes
+       * without it and the model never reads it, so say the shape in `prompt`
+       * too. Anything but an object of plain JSON data (32 levels deep, 20000
+       * values and 100000 characters at most) is refused.
+       *
+       * @remarks A schema the API cannot use is its own `api-error` (status 400):
+       *   it wants `additionalProperties: false` on each object, for one.
+       * @example
+       * const r = await $.model.complete({ model, prompt, schema: VERDICT })
+       */
+      schema?: Record<string, unknown>;
+      /**
+       * True lets the model think before it answers, in the form that model
+       * takes; the thinking is not returned. Default false.
+       *
+       * It spends from `maxTokens`: at most half where the model takes a budget,
+       * by `effort` where it paces itself. The request goes as without it where
+       * thinking is switched off for the session (by the person or their
+       * organization), before a session has started, or under 2048 `maxTokens`.
+       *
+       * @remarks A model that cannot have thinking off thinks either way.
+       * @example
+       * await $.model.complete({ model: "sonnet", prompt, thinking: true })
+       */
+      thinking?: boolean;
       /**
        * How long the whole call may take, in milliseconds, before it resolves
        * `aborted` and the request is abandoned; default none.
@@ -8530,6 +8571,22 @@ declare module 'claude-code' {
        * if (r.isAnswered) $.ui.log(`${r.effort}: ${r.usage.output_tokens}`)
        */
       effort?: ModelEffort;
+      /**
+       * On a completion, the model id its `model` resolved to, spelled as
+       * `$.session.model()` spells one. A fork's result carries none.
+       */
+      model?: string;
+      /**
+       * On a completion sent with a `schema`, whether the answered request
+       * carried it; absent when there was none to send.
+       *
+       * True holds `text` to the schema unless the reply ran into `maxTokens`
+       * or the model declined, so parse it with care either way.
+       *
+       * @example
+       * if (r.isAnswered && r.isSchemaApplied) use(JSON.parse(r.text))
+       */
+      isSchemaApplied?: boolean;
   } | {
       isAnswered: false;
       /**
@@ -8563,6 +8620,10 @@ declare module 'claude-code' {
        * the answered arm; absent when its first request was the one refused.
        */
       effort?: ModelEffort;
+      /**
+       * On a completion, the resolved model id, as on the answered arm.
+       */
+      model?: string;
   } | {
       isAnswered: false;
       /**
@@ -8583,6 +8644,10 @@ declare module 'claude-code' {
        * On a fork, the effort of its last response, as on the answered arm.
        */
       effort?: ModelEffort;
+      /**
+       * On a completion, the resolved model id, as on the answered arm.
+       */
+      model?: string;
   } | {
       isAnswered: false;
       /**
@@ -8607,6 +8672,11 @@ declare module 'claude-code' {
        * the answered arm; absent when none had.
        */
       effort?: ModelEffort;
+      /**
+       * On a completion, the resolved model id, as on the answered arm; it
+       * can be absent when its own `options.signal` cut it.
+       */
+      model?: string;
   };
 
   /**

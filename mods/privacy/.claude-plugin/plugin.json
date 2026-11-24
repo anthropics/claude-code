@@ -4,5 +4,14 @@
   "description": "Refuses a shell, file, web fetch or MCP call that holds the signed-in account's email address beside a word that declares who is calling, so the address does not go out as a client's identity, and refuses a user-tier plugin's own read of the session's identity.",
   "author": {
     "name": "Anthropic"
+  },
+  "userConfig": {
+    "shellTools": {
+      "type": "string",
+      "title": "More shell tools",
+      "description": "Names of other tools that run a command line, separated by commas. Their whole input is checked, and so is each script it names.",
+      "multiple": true,
+      "default": []
+    }
   }
 }

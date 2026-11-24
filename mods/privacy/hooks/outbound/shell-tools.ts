@@ -14,7 +14,8 @@ export const SHELL_TOOLS: readonly string[] = [
 ]
 
 /**
- * The shell tools whose whole input this guard searches for named scripts.
+ * How many names the `shellTools` option adds, and how long each may be. A
+ * matcher past the engine's limits is refused, and the guard with it.
  */
-// module-state-allow: a process constant — seeded here, and no shipped code adds or removes a name
-export const INSTALLED_SHELL_TOOLS = new Set<string>(['Tmux'])
+export const MOST_NAMED_TOOLS = 64
+export const MOST_NAME_CHARS = 128
