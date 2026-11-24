@@ -73,7 +73,8 @@ command does not count for them.
 
 Core's Git answer to a mod's `$.vcs.diff` meets them as `$.process.run` of
 `git diff`, as `$.fs.list` of each folder down to a file it would name, and as
-`$.fs.read` of one it would patch.
+`$.fs.read` of one it would patch. A mod's `$.ui.openUrl` meets them as
+`$.process.run` of the opener it is about to start, with the page's URL.
 
 Everything else passes untouched. A tool set to ask runs for a mod or a hook
 with nobody asked. The mod shows no card and calls nothing on `$`. Where a

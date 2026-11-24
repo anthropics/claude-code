@@ -3338,6 +3338,22 @@ declare module 'claude-code' {
            */
           copy: (args: UiCopyArgs) => Promise<UiCopyResult>;
           /**
+           * Opens a web page in the person's browser, as Claude Code's own commands
+           * do (`$BROWSER`, else the system's opener), and says whether it did.
+           *
+           * Only from an interactive terminal session, on the machine it runs on.
+           * Raised as `ui.openUrl`, where a hook's deny rejects, then as `process.run`
+           * of the opener. A foreground `$BROWSER` holds it, 10 minutes at most.
+           *
+           * @param args `url`: http or https, no credentials; any other rejects
+           * @returns `{ isOpened: true, isTimedOut? }`, or
+           *          `{ isOpened: false, reason }`
+           * @example
+           * const { isOpened } = await $.ui.openUrl({ url })
+           * if (!isOpened) $.ui.log(`Open ${url} in your browser`)
+           */
+          openUrl: (args: UiOpenUrlArgs) => Promise<UiOpenUrlResult>;
+          /**
            * Returns what the person last selected with the mouse: the text as a
            * copy would take it, and the transcript row it lies in.
            *
@@ -9799,6 +9815,11 @@ declare module 'claude-code' {
        */
       'ui.copy': UiCopyArgs;
       /**
+       * The argument of `$.ui.openUrl({ url })`; rewritable, deniable, answerable.
+       * The URL the hooks pass down is the one checked and opened.
+       */
+      'ui.openUrl': UiOpenUrlArgs;
+      /**
        * The argument of `$.ui.view({ agentId })`: whose transcript the main view
        * is to show, none for the main conversation; rewritable and deniable.
        */
@@ -10171,6 +10192,7 @@ declare module 'claude-code' {
        */
       'ui.selection': UiSelection | undefined;
       'ui.copy': UiCopyResult;
+      'ui.openUrl': UiOpenUrlResult;
       'ui.view': UiViewResult;
       /**
        * The channel that sent the notification, or why none did.
@@ -10672,13 +10694,14 @@ declare module 'claude-code' {
    * It only shows: it allows no host, and no call is held to it. Not in either
    * list: where a host redirects or sends a sign-in; a server's `headersHelper`;
    * a command in the plugin's settings; what the module's hook on any event but
-   * `process.run`, `process.spawn`, `http.fetch`, `audio.play` and `ui.toast`
-   * rewrites or answers (a tool call, a command's arguments, an agent, the
-   * settings); what the plugin has a server, the model, another session or
+   * `process.run`, `process.spawn`, `http.fetch`, `audio.play`, `ui.openUrl` and
+   * `ui.toast` rewrites or answers (a tool call, a command's arguments, an agent,
+   * the settings); what the plugin has a server, the model, another session or
    * another plugin do (`$.mcp`, `$.model`, `$.agent.spawn`, a prompt, an agent, a
    * workflow, a hook of another type); what follows from a file, variable or
-   * setting it writes, or a link it draws outside a toast; and what the engine
-   * itself runs or dials to serve a call (speech, a notification, telemetry).
+   * setting it writes, a link it draws outside a toast or a page it opens; and
+   * what the engine itself runs or dials to serve a call (speech, a notification,
+   * telemetry).
    */
   export type PluginHosts = {
       /**
@@ -10713,8 +10736,8 @@ declare module 'claude-code' {
            * or `$.agent.register`).
            * `url`: its URL does not settle where it goes, as it spells out no host,
            * is computed, or goes or may go over a `socketPath`; or the module hooks
-           * `http.fetch` or `audio.play`, where it can send a request elsewhere, or
-           * `ui.toast`, where it can add a link.
+           * `http.fetch`, `audio.play` or `ui.openUrl`, where it can send a request
+           * elsewhere, or `ui.toast`, where it can add a link.
            * `unlisted`: the kind's list may be short, or the module was not scanned.
            */
           reason: 'process' | 'url' | 'unlisted';
@@ -11055,10 +11078,10 @@ declare module 'claude-code' {
           writes: readonly StateName[];
       };
       /**
-       * The hosts its `$.http.fetch` and `$.audio.play({ url })` calls name, and
-       * those its `$.ui.toast` runs link to, as far as the source spells them;
-       * absent when it does none of these. No call is held to the list, and where
-       * a host redirects is not known.
+       * The hosts its `$.http.fetch`, `$.audio.play({ url })` and `$.ui.openUrl`
+       * calls name, and those its `$.ui.toast` runs link to, as far as the source
+       * spells them; absent when it does none of these. No call is held to the
+       * list, and where a host redirects is not known.
        */
       hosts?: {
           /**
@@ -11069,10 +11092,11 @@ declare module 'claude-code' {
            */
           named: readonly string[];
           /**
-           * Which of `audio.play`, `http.fetch` and `ui.toast` it calls with any
-           * other URL, one over 2,048 characters, options that give or may give a
-           * `socketPath`, or runs that may link and are not written at the call,
-           * sorted: it loads all the same, and may reach what is not in `named`.
+           * Which of `audio.play`, `http.fetch`, `ui.openUrl` and `ui.toast` it
+           * calls with any other URL, one over 2,048 characters, options that give
+           * or may give a `socketPath`, or runs that may link and are not written
+           * at the call, sorted: it loads all the same, and may reach what is not
+           * in `named`.
            */
           unread: readonly string[];
       };
@@ -19614,8 +19638,9 @@ declare module 'claude-code' {
        *
        * Raised only with `ceiling: "deny"` or `isCeilingUnread`, and only to a hook
        * whose matcher names `op`. A file call reads as `Read` or `Write`, a process
-       * as the `Bash` line of its argv. Nobody is asked: a deny refuses the call.
-       * Where a hook rewrote the call, `next.origin.tier` is `user`.
+       * as the `Bash` line of its argv, `$.ui.openUrl` as `process.run` of its
+       * opener. Nobody is asked: a deny refuses the call. Where a hook rewrote the
+       * call, `next.origin.tier` is `user`.
        */
       op?: 'fs.read' | 'fs.list' | 'fs.stat' | 'fs.exists' | 'fs.write' | 'process.run' | 'process.spawn';
       /**
@@ -21378,6 +21403,47 @@ declare module 'claude-code' {
        * on('ui.open', { id }, () => ({ value: { isPlaced: false, reason } }))
        */
       reason: string;
+  };
+
+  /**
+   * The argument of `$.ui.openUrl` and the input of `ui.openUrl`: the page.
+   */
+  export type UiOpenUrlArgs = {
+      /**
+       * An http or https URL with no credentials in it; any other rejects.
+       */
+      url: string;
+  };
+
+  /**
+   * What `$.ui.openUrl` resolves to and what a `ui.openUrl` hook's `{ value }`
+   * holds: whether the page went to a browser (`isOpened`), else why not.
+   */
+  export type UiOpenUrlResult = {
+      /**
+       * True: the machine's opener took the URL, or was still running at its
+       * time limit, as a browser that stays in the foreground is.
+       */
+      isOpened: true;
+      /**
+       * Present where the opener was still running at its time limit, so
+       * nothing confirms that the page showed.
+       */
+      isTimedOut?: true;
+  } | {
+      isOpened: false;
+      /**
+       * Why not, a closed set; a hook above answering without opening says
+       * `refused`.
+       *
+       * `elsewhere`: the session has no interactive terminal (a `-p` run, the
+       * SDK, an app that hosts it, a background session with nobody attached).
+       * `no-browser`: no display and no `$BROWSER`, or the opener is missing
+       * or failed. `refused`: a session that may start no program,
+       * `$.process` withheld by another plugin, or a `process.run` hook that
+       * did not pass the opener on as it was.
+       */
+      reason: 'elsewhere' | 'no-browser' | 'refused';
   };
 
   /**
