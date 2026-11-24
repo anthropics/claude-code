@@ -1723,6 +1723,10 @@ declare module 'claude-code' {
        * One piece of the child's output (ProcessSpawnChunk).
        */
       'process.spawn': ProcessSpawnChunk;
+      /**
+       * One piece of the completion's text (ModelStreamChunk).
+       */
+      'model.stream': ModelStreamChunk;
   };
 
   /**
@@ -3448,6 +3452,41 @@ declare module 'claude-code' {
            * const cancel = () => stop.abort()
            */
           complete: (request: ModelCompleteRequest, options?: ModelCompleteOptions) => Promise<ModelCompleteResult>;
+          /**
+           * Runs `complete`'s completion as a stream: the reply's text piece by
+           * piece as the model writes it, then the result `complete` resolves to.
+           *
+           * The request goes at the first pull, and the loop is the call's life:
+           * leaving it, `return()`, the signal, `timeoutMs` or the module unloading
+           * cancels it. A failure is the result, after the pieces that came; nothing
+           * is sent again once the reply began. It counts as `complete` does, and a
+           * reply cut once begun counts too, its output estimated.
+           *
+           * Beneath the hooks that name `model.stream` the call passes the hooks on
+           * `model.complete` (`*` and `model.*` too), which refuse, rewrite or answer it.
+           * Where any such hook hears the call the text arrives as one piece, also
+           * for a plugin that hooks both events: it hears the call at both.
+           *
+           * @param request what `complete` takes; `e` for a hook on `model.stream`
+           *   (a generator, its budget per piece)
+           * @param options `signal`, as `complete`'s: the stream returns `aborted`
+           * @returns the pieces `{ text }`, then the result (`result` on the stream
+           *   holds it too); a request `complete` would reject rejects the pull
+           * @example
+           * const reply = $.model.stream({ model: "haiku", prompt })
+           * for await (const { text } of reply) $.ui.status((shown += text))
+           * const r = await reply.result
+           * @example
+           * // the result holds the whole text: a hook that rewrites pieces rewrites it too
+           * on("model.stream", async function* ($, e, next) {
+           *   const beneath = next(e)
+           *   for await (const { text } of beneath) yield { text: text.toUpperCase() }
+           *   const { value, deny } = await beneath.result
+           *   if (!value?.isAnswered) return deny ? { deny } : { value }
+           *   return { value: { ...value, text: value.text.toUpperCase() } }
+           * })
+           */
+          stream: (request: ModelCompleteRequest, options?: ModelCompleteOptions) => HookStream<ModelStreamChunk, ModelCompleteResult>;
           /**
            * Runs one tool-less completion over the session's OWN transcript as the
            * main thread last sent it, so the API serves that prefix from its cache.
@@ -7392,7 +7431,8 @@ declare module 'claude-code' {
        *
        * A streaming hook's (an async generator) counts only while its own code
        * runs, never at a `yield` or while it reads beneath: on `turn.step` the
-       * sum over the response; on `process.spawn` per piece, anew at each pull.
+       * sum over the response; on `process.spawn` and `model.stream` per piece,
+       * anew at each pull.
        */
       readonly ms: 10_000;
       /**
@@ -8463,8 +8503,8 @@ declare module 'claude-code' {
   export type ModelApiError = ClassicHookInputs['StopFailure']['error'];
 
   /**
-   * What a hook on `model.complete` reads as `e`: the request with its text as
-   * strings, as it always was, and the caller's blocks beside them.
+   * What a hook on `model.complete` or `model.stream` reads as `e`: the request
+   * with its text as strings, and the caller's blocks beside them.
    *
    * A hook written when `prompt` was only ever a string reads what it read. A
    * caller's list of blocks arrives joined in `prompt` (or `system`) and, as
@@ -8537,8 +8577,8 @@ declare module 'claude-code' {
   };
 
   /**
-   * Options of `$.model.complete`: what is no part of the request, so no hook
-   * on `model.complete` reads it on `e`.
+   * Options of `$.model.complete` and `$.model.stream`: what is no part of the
+   * request, so no hook on either reads it on `e`.
    */
   export type ModelCompleteOptions = {
       /**
@@ -8556,7 +8596,7 @@ declare module 'claude-code' {
   };
 
   /**
-   * What `$.model.complete` takes.
+   * What `$.model.complete` and `$.model.stream` take.
    */
   export type ModelCompleteRequest = {
       /**
@@ -8899,6 +8939,19 @@ declare module 'claude-code' {
        * if (!r.isAnswered && r.reason === "nothing-to-fork") return next(e)
        */
       reason: 'nothing-to-fork';
+  };
+
+  /**
+   * One piece of a reply's text as `$.model.stream` streams it.
+   *
+   * The pieces come in order and end wherever the text had come to, so a word
+   * may span two. Text that came while the loop was busy comes as one piece.
+   */
+  export type ModelStreamChunk = {
+      /**
+       * The text that came since the last piece; never empty.
+       */
+      text: string;
   };
 
   /**
@@ -9446,6 +9499,12 @@ declare module 'claude-code' {
        * The signal does not cross, it aborts the call.
        */
       'model.complete': ModelCompleteInput;
+      /**
+       * The argument of `$.model.stream(request, { signal })`, as
+       * `model.complete`'s. A hook names it: `*` and `model.*` hear a stream once,
+       * as the `model.complete` it raises beneath these hooks.
+       */
+      'model.stream': ModelCompleteInput;
       /**
        * The argument of `$.model.classify(text, labels, options)`.
        */
@@ -10003,6 +10062,7 @@ declare module 'claude-code' {
    */
   export type OpValueOf = {
       'model.complete': ModelCompleteResult;
+      'model.stream': ModelCompleteResult;
       'model.classify': string | undefined;
       'model.fork': ModelForkResult;
       'audio.play': void;
@@ -17851,20 +17911,21 @@ declare module 'claude-code' {
    * The events that stream: their hooks are async generators, `next(e)` is
    * the stream of everything beneath, and the result is what it returns.
    *
-   * Two events stream: `turn.step`, the model's response arriving in pieces,
+   * Three events stream: `turn.step`, the model's response arriving in pieces,
    * where a hook that saw it whole could not change what had already been
-   * shown; and `process.spawn`, a call on `$` whose child's output arrives in
-   * pieces for as long as the child runs.
+   * shown; `process.spawn`, a call on `$` whose child's output arrives in
+   * pieces for as long as the child runs; and `model.stream`, a completion's text.
    */
-  export type StreamingEventName = 'turn.step' | 'process.spawn';
+  export type StreamingEventName = 'turn.step' | 'process.spawn' | 'model.stream';
 
   /**
    * The rest of the chain as a hook on a streaming event receives it: Next,
    * except that `next(e)` is the stream beneath (HookStream), not a promise.
    *
-   * Each call opens a fresh stream (for `turn.step` a model request, for
-   * `process.spawn` a child), so a hook that calls it twice makes two. Not
-   * calling it yields the hook's own chunks and result; nothing beneath runs.
+   * Each call opens a fresh stream (for `turn.step` and `model.stream` a model
+   * request, for `process.spawn` a child), so a hook that calls it twice makes
+   * two. Not calling it yields the hook's own chunks and result; nothing
+   * beneath runs.
    *
    * @template S what `next.is(pattern, e)` narrows `e` to, as Next's
    * @see HookBudget `ms`: the hook's budget counts its own code, never a wait
