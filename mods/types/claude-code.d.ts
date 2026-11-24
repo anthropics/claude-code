@@ -9943,7 +9943,8 @@ declare module 'claude-code' {
        * dialog, a footer selection, a viewed agent or a prompt mode it is theirs.
        *
        * @remarks A hook may refuse that close and keep it open. Left out, Escape
-       *   returns the keys and the pane stays. Each open sets it anew, as a title.
+       *   returns the keys and the pane stays, as it does while a permission
+       *   prompt waits for the person to leave it. Each open sets it anew.
        */
       closeOnEscape?: true;
       /**
