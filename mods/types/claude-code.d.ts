@@ -8638,7 +8638,8 @@ declare module 'claude-code' {
       maxTokens?: number;
       /**
        * How hard the model thinks about it (ModelEffort): `low` for a cheap
-       * label, `max` for a hard judgment. Default: the model's own.
+       * label, `max` for a hard judgment. Default: the model's own, held to an
+       * organization's cap or a `maxEffortLevel` setting.
        *
        * Sent as the request's effort where the model takes one and dropped
        * where it does not, as the session's own requests do; a value outside
