@@ -3166,8 +3166,8 @@ declare module 'claude-code' {
            *
            * A click takes it off, the pointer over it holds it. Where the transcript
            * is printed into scrollback (nothing to float over) it is one line on the
-           * notification bar, as it always is with `place: "bar"`. It leaves the
-           * transcript and the model untouched.
+           * notification bar, as it always is with `place: "bar"`, which draws no
+           * name. It leaves the transcript and the model untouched.
            *
            * @remarks While the pane shown was opened `holdToasts`, by any plugin, it
            *   waits undrawn, its timer not started; past 50 waiting, an older leaves.
@@ -3353,17 +3353,17 @@ declare module 'claude-code' {
            * do (`$BROWSER`, else the system's opener), and says whether it did.
            *
            * Only from an interactive terminal session, on the machine it runs on.
-           * Raised as `ui.openUrl`, where a hook's deny rejects, then as `process.run`
+           * Raised as `ui.browse`, where a hook's deny rejects, then as `process.run`
            * of the opener. A foreground `$BROWSER` holds it, 10 minutes at most.
            *
            * @param args `url`: http or https, no credentials; any other rejects
            * @returns `{ isOpened: true, isTimedOut? }`, or
            *          `{ isOpened: false, reason }`
            * @example
-           * const { isOpened } = await $.ui.openUrl({ url })
+           * const { isOpened } = await $.ui.browse({ url })
            * if (!isOpened) $.ui.log(`Open ${url} in your browser`)
            */
-          openUrl: (args: UiOpenUrlArgs) => Promise<UiOpenUrlResult>;
+          browse: (args: UiBrowseArgs) => Promise<UiBrowseResult>;
           /**
            * Returns what the person last selected with the mouse: the text as a
            * copy would take it, and the transcript row it lies in.
@@ -9852,10 +9852,10 @@ declare module 'claude-code' {
        */
       'ui.copy': UiCopyArgs;
       /**
-       * The argument of `$.ui.openUrl({ url })`; rewritable, deniable, answerable.
+       * The argument of `$.ui.browse({ url })`; rewritable, deniable, answerable.
        * The URL the hooks pass down is the one checked and opened.
        */
-      'ui.openUrl': UiOpenUrlArgs;
+      'ui.browse': UiBrowseArgs;
       /**
        * The argument of `$.ui.view({ agentId })`: whose transcript the main view
        * is to show, none for the main conversation; rewritable and deniable.
@@ -10229,7 +10229,7 @@ declare module 'claude-code' {
        */
       'ui.selection': UiSelection | undefined;
       'ui.copy': UiCopyResult;
-      'ui.openUrl': UiOpenUrlResult;
+      'ui.browse': UiBrowseResult;
       'ui.view': UiViewResult;
       /**
        * The channel that sent the notification, or why none did.
@@ -10731,7 +10731,7 @@ declare module 'claude-code' {
    * It only shows: it allows no host, and no call is held to it. Not in either
    * list: where a host redirects or sends a sign-in; a server's `headersHelper`;
    * a command in the plugin's settings; what the module's hook on any event but
-   * `process.run`, `process.spawn`, `http.fetch`, `audio.play`, `ui.openUrl` and
+   * `process.run`, `process.spawn`, `http.fetch`, `audio.play`, `ui.browse` and
    * `ui.toast` rewrites or answers (a tool call, a command's arguments, an agent,
    * the settings); what the plugin has a server, the model, another session or
    * another plugin do (`$.mcp`, `$.model`, `$.agent.spawn`, a prompt, an agent, a
@@ -10773,7 +10773,7 @@ declare module 'claude-code' {
            * or `$.agent.register`).
            * `url`: its URL does not settle where it goes, as it spells out no host,
            * is computed, or goes or may go over a `socketPath`; or the module hooks
-           * `http.fetch`, `audio.play` or `ui.openUrl`, where it can send a request
+           * `http.fetch`, `audio.play` or `ui.browse`, where it can send a request
            * elsewhere, or `ui.toast`, where it can add a link.
            * `unlisted`: the kind's list may be short, or the module was not scanned.
            */
@@ -11115,7 +11115,7 @@ declare module 'claude-code' {
           writes: readonly StateName[];
       };
       /**
-       * The hosts its `$.http.fetch`, `$.audio.play({ url })` and `$.ui.openUrl`
+       * The hosts its `$.http.fetch`, `$.audio.play({ url })` and `$.ui.browse`
        * calls name, and those its `$.ui.toast` runs link to, as far as the source
        * spells them; absent when it does none of these. No call is held to the
        * list, and where a host redirects is not known.
@@ -11129,7 +11129,7 @@ declare module 'claude-code' {
            */
           named: readonly string[];
           /**
-           * Which of `audio.play`, `http.fetch`, `ui.openUrl` and `ui.toast` it
+           * Which of `audio.play`, `http.fetch`, `ui.browse` and `ui.toast` it
            * calls with any other URL, one over 2,048 characters, options that give
            * or may give a `socketPath`, or runs that may link and are not written
            * at the call, sorted: it loads all the same, and may reach what is not
@@ -11406,6 +11406,12 @@ declare module 'claude-code' {
        * Whether its source spells a `breakPromptCache` key on an object.
        */
       breaksPromptCache: boolean;
+      /**
+       * Whether it may draw a footer line, which shows no plugin name: a
+       * `$.ui.toast` call gives a `place` or options that are not read, or a hook
+       * hears `ui.toast`. A report from an older CLI leaves it out.
+       */
+      mayDrawBarLine: boolean;
       /**
        * Four empty lists with no hook on `engine.create`; null when the hook is
        * outside the one form validate reads.
@@ -19444,8 +19450,12 @@ declare module 'claude-code' {
       timeoutMs?: number;
       /**
        * `bar`: always one line on the notification bar by the prompt, never a box
-       * on the floating stack. It waits its turn (`priority`), displaces nothing,
-       * and leaves when the plugin unloads.
+       * on the floating stack, drawn with no plugin name. It waits its turn
+       * (`priority`), displaces nothing, and leaves when the plugin unloads.
+       *
+       * On the bar a blank text draws nothing, in place of its `key`'s line too.
+       * A headless or remote host has no bar: it is sent the text and the plugin's
+       * name. `claude plugin validate` lists a module that may ask for the bar.
        */
       place?: 'bar';
       /**
@@ -19467,8 +19477,8 @@ declare module 'claude-code' {
   };
 
   /**
-   * One styled run of a `$.ui.toast` line, drawn after the plugin's name, which
-   * no run restyles. Off the bar, or past 2000 characters, the text is plain.
+   * One styled run of a `$.ui.toast` line on the bar, where no plugin name is
+   * drawn before it. Off the bar, or past 2000 characters, the text is plain.
    */
   export type ToastRun = {
       text: string;
@@ -19744,7 +19754,7 @@ declare module 'claude-code' {
        *
        * Raised only with `ceiling: "deny"` or `isCeilingUnread`, and only to a hook
        * whose matcher names `op`. A file call reads as `Read` or `Write`, a process
-       * as the `Bash` line of its argv, `$.ui.openUrl` as `process.run` of its
+       * as the `Bash` line of its argv, `$.ui.browse` as `process.run` of its
        * opener. Nobody is asked: a deny refuses the call. Where a hook rewrote the
        * call, `next.origin.tier` is `user`.
        */
@@ -21027,6 +21037,47 @@ declare module 'claude-code' {
   };
 
   /**
+   * The argument of `$.ui.browse` and the input of `ui.browse`: the page.
+   */
+  export type UiBrowseArgs = {
+      /**
+       * An http or https URL with no credentials in it; any other rejects.
+       */
+      url: string;
+  };
+
+  /**
+   * What `$.ui.browse` resolves to and what a `ui.browse` hook's `{ value }`
+   * holds: whether the page went to a browser (`isOpened`), else why not.
+   */
+  export type UiBrowseResult = {
+      /**
+       * True: the machine's opener took the URL, or was still running at its
+       * time limit, as a browser that stays in the foreground is.
+       */
+      isOpened: true;
+      /**
+       * Present where the opener was still running at its time limit, so
+       * nothing confirms that the page showed.
+       */
+      isTimedOut?: true;
+  } | {
+      isOpened: false;
+      /**
+       * Why not, a closed set; a hook above answering without opening says
+       * `refused`.
+       *
+       * `elsewhere`: the session has no interactive terminal (a `-p` run, the
+       * SDK, an app that hosts it, a background session with nobody attached).
+       * `no-browser`: no display and no `$BROWSER`, or the opener is missing
+       * or failed. `refused`: a session that may start no program,
+       * `$.process` withheld by another plugin, or a `process.run` hook that
+       * did not pass the opener on as it was.
+       */
+      reason: 'elsewhere' | 'no-browser' | 'refused';
+  };
+
+  /**
    * The argument of `$.ui.copy` and the input of `ui.copy`: the text, and
    * which surface's clipboard takes it, the caller's choice.
    *
@@ -21539,47 +21590,6 @@ declare module 'claude-code' {
        * on('ui.open', { id }, () => ({ value: { isPlaced: false, reason } }))
        */
       reason: string;
-  };
-
-  /**
-   * The argument of `$.ui.openUrl` and the input of `ui.openUrl`: the page.
-   */
-  export type UiOpenUrlArgs = {
-      /**
-       * An http or https URL with no credentials in it; any other rejects.
-       */
-      url: string;
-  };
-
-  /**
-   * What `$.ui.openUrl` resolves to and what a `ui.openUrl` hook's `{ value }`
-   * holds: whether the page went to a browser (`isOpened`), else why not.
-   */
-  export type UiOpenUrlResult = {
-      /**
-       * True: the machine's opener took the URL, or was still running at its
-       * time limit, as a browser that stays in the foreground is.
-       */
-      isOpened: true;
-      /**
-       * Present where the opener was still running at its time limit, so
-       * nothing confirms that the page showed.
-       */
-      isTimedOut?: true;
-  } | {
-      isOpened: false;
-      /**
-       * Why not, a closed set; a hook above answering without opening says
-       * `refused`.
-       *
-       * `elsewhere`: the session has no interactive terminal (a `-p` run, the
-       * SDK, an app that hosts it, a background session with nobody attached).
-       * `no-browser`: no display and no `$BROWSER`, or the opener is missing
-       * or failed. `refused`: a session that may start no program,
-       * `$.process` withheld by another plugin, or a `process.run` hook that
-       * did not pass the opener on as it was.
-       */
-      reason: 'elsewhere' | 'no-browser' | 'refused';
   };
 
   /**
