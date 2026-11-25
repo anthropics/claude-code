@@ -3669,7 +3669,8 @@ declare module 'claude-code' {
            *
            * @param args `agentId`, the id `tool.call`, `turn.complete` and `$.agent
            *             .list()` carry; `as: "api"` for ApiMessage; `last`, how many
-           *             of the newest; `after`, a row's `uuid`; hooks see all four
+           *             of the newest; `after`, a row's `uuid`; `id` alone, the
+           *             running session's, for every row by handle; hooks see all
            * @returns the newest 4096 entries, the newest `last`, or the oldest 4096
            *          after `after`: `{ role, text, toolUses }` (a user message may
            *          add `toolResults`; a `toolUses` entry adds `result` and `text`
@@ -3926,6 +3927,24 @@ declare module 'claude-code' {
            * const { skip } = await $.session.compact({ instructions: "the plan" })
            */
           compact: EventCalls['session']['compact'];
+          /**
+           * Swaps the conversation between turns: the event `session.load`, then
+           * what `/resume`, `/clear`, `/branch` or a rewind does, by their rules.
+           *
+           * Resolves `{ id }`, or `{ skip }` when a hook vetoed it. Rejects, with
+           * nothing changed, under a turn or a dialog, outside the terminal, and for
+           * rows it cannot bind whole (SessionLoadInput). A rewind keeps the
+           * permission mode. A note a hook denies rejects after the swap, which stands.
+           *
+           * @example
+           * const rows = await $.session.messages({ id: await $.session.id() })
+           * if (!("deny" in rows)) {
+           *   await $.session.load({
+           *     messages: [...rows, { role: "user", text: "Plan B.", toolUses: [] }],
+           *   })
+           * }
+           */
+          load: EventCalls['session']['load'];
           /**
            * Sends a plain-text message to another agent or session: the event
            * `session.send`, the model's SendMessage tool's own call and delivery.
@@ -6581,6 +6600,22 @@ declare module 'claude-code' {
        */
       'session.compact': SessionCompactInput;
       /**
+       * Fires when the conversation is about to be swapped: a resume, a clear, a
+       * branch or a rewind, the person's or a plugin's `$.session.load`.
+       *
+       * `{ skip: reason }` ahead of `next` leaves it as it is; `next(e)` resolves
+       * `{ id }` once the new one is bound. `e` is pinned. Raised where `/resume`,
+       * `/clear`, `/branch`, `/btw`, `/rewind` or a plan swaps this process's own,
+       * and for no other swap.
+       *
+       * @remarks A guard that fails is skipped and the swap runs, and an ask the
+       *   person dismisses rejects, so give it
+       *   `.catch(($, e, next) => next.called ? next(e) : { skip: "no" })`.
+       * @example
+       * on("session.load", ($, e, next) => (isLocked ? { skip: "on hold" } : next(e)))
+       */
+      'session.load': SessionLoadInput;
+      /**
        * Fires when a remote client joins the session's roster of attached
        * surfaces: it said so (ui_attach), or it first asked to draw.
        *
@@ -6998,6 +7033,10 @@ declare module 'claude-code' {
        */
       'session.compact': SessionCompactResult;
       /**
+       * `{ id }`, or `{ skip }`.
+       */
+      'session.load': SessionLoadResult;
+      /**
        * `{ clientId }`.
        */
       'session.attach': SessionAttachResult;
@@ -7188,6 +7227,7 @@ declare module 'claude-code' {
           append: (input: SessionAppendInput) => Promise<SessionAppendResult>;
           send: (input: SessionSendArgs) => Promise<SessionSendResult>;
           compact: (input?: SessionCompactArgs) => Promise<SessionCompactResult>;
+          load: (input: SessionLoadInput) => Promise<SessionLoadResult>;
           attach: (input: SessionAttachInput) => Promise<SessionAttachResult>;
           detach: (input: SessionDetachInput) => Promise<SessionDetachResult>;
           measure: (input: SessionMeasureInput) => Promise<SessionMeasureResult>;
@@ -16766,6 +16806,53 @@ declare module 'claude-code' {
   };
 
   /**
+   * What `$.session.load(args)` takes and a `session.load` hook reads on `e`:
+   * the conversation to bind, by its id, its rows or both.
+   *
+   * `{ id }` resumes, `{ messages: [] }` clears, `{ messages }` branches, and
+   * both rewind. On `e` it is pinned whole, and a kept row shows its `role` and
+   * `handle` alone: `$.session.messages({ id })` reads what it says.
+   */
+  export type SessionLoadInput = {
+      /**
+       * The session to bind: a saved one of this project to resume, or with
+       * `messages` the running one, to rewind. Absent, a new session.
+       */
+      id?: string;
+      /**
+       * What the conversation holds afterwards, since its last compaction;
+       * absent, what the session named holds.
+       *
+       * First the rows kept, each with its `handle` and unchanged: the running
+       * conversation's first rows in order, ending at its end or ahead of a prompt
+       * a rewind offers (a plugin's rewind keeps one at least). Then any `user`
+       * rows of text with no handle: each passes `session.append` as its note.
+       */
+      messages?: readonly SessionMessage[];
+  };
+
+  /**
+   * What a `session.load` hook returns and what `next(e)` resolves to: the id
+   * now bound, or why the conversation stayed as it was.
+   *
+   * A hook vetoes with `{ skip }` ahead of `next`; core answers it too when it
+   * refuses the swap. `{ id }` is core's alone: hand up what `next` gave.
+   */
+  export type SessionLoadResult = {
+      /**
+       * The session bound now, as `$.session.id()` answers.
+       */
+      id: string;
+      skip?: undefined;
+  } | {
+      /**
+       * Why, as the notice reads.
+       */
+      skip: string;
+      id?: undefined;
+  };
+
+  /**
    * What `$.session.machine()` answers: the machine the engine runs on, as
    * `uname -s`, `-r` and `-m` print it (on Windows, what the runtime reports
    * in their place), and which of six developer tools its PATH holds.
@@ -16885,7 +16972,8 @@ declare module 'claude-code' {
        * An opaque token the engine stamps on a message it hands a
        * `session.compact` hook, so a list handed back maps to its own messages.
        *
-       * Absent on `$.session.messages()` and on a message a hook built.
+       * On `session.load` and a read by `id` too; absent on any other read and on
+       * a message a hook built.
        */
       handle?: string;
   };
@@ -16895,6 +16983,10 @@ declare module 'claude-code' {
    * conversation or of one agent's, whole or in part: no `as`.
    */
   type SessionMessagesAgentArgs = {
+      /**
+       * The running session's id, for rows by handle (SessionMessagesArgs).
+       */
+      id?: string;
       /**
        * Whose conversation; absent, the main one.
        */
@@ -16952,6 +17044,11 @@ declare module 'claude-code' {
    */
   type SessionMessagesArgs = {
       /**
+       * The running session's id, alone: its rows since the last compaction, all
+       * of them, each with a `handle`. Another session's id answers `{ deny }`.
+       */
+      id?: string;
+      /**
        * Whose conversation to read: the id `tool.call`, `turn.step` and
        * `turn.complete` carry inside that agent's loop. Absent, the main one.
        *
@@ -17006,7 +17103,7 @@ declare module 'claude-code' {
   };
 
   /**
-   * What `$.session.messages` resolves to when `agentId` names no conversation
+   * What `$.session.messages` resolves to when `agentId` or `id` names nothing
    * this session can read, or `after` no row to read on from: why, in `deny`.
    *
    * The agent is not one of this session's, runs in another process (a
