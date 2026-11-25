@@ -3689,7 +3689,8 @@ declare module 'claude-code' {
            *
            * @param args `agentId`, the id `tool.call`, `turn.complete` and `$.agent
            *             .list()` carry; `as: "api"` for ApiMessage; `last`, how many
-           *             of the newest; `after`, a row's `uuid`; `id` alone, a
+           *             of the newest; `after`, a row's `uuid`; `name`, the rows a
+           *             plugin gave that name, with their data; `id` alone, a
            *             session's, for every row by handle (SessionMessagesArgs)
            * @returns the newest 4096 entries, the newest `last`, or the oldest 4096
            *          after `after`: `{ role, text, toolUses }` (a user message may
@@ -3989,6 +3990,11 @@ declare module 'claude-code' {
            *
            * @example
            * await $.session.append({ message: { type: "user", content: [note] } })
+           * @example
+           * await $.session.append({
+           *   message: { type: "system", name: "notes.recap", content: [], data },
+           * })
+           * const recaps = await $.session.messages({ name: "notes.recap" })
            */
           append: (args: SessionAppendArgs) => Promise<SessionAppendResult>;
           /**
@@ -11503,7 +11509,8 @@ declare module 'claude-code' {
 
   /**
    * What a hooks module uses, as the host scanned its source before loading it:
-   * the same lists `claude plugin validate` prints and the host's rule reads.
+   * lists that `claude plugin validate` prints too and the host's rule reads.
+   * The names it gives rows are judged at `session.append`, where one is pinned.
    *
    * Exact, since a module that spells `on`, `$`, `$.env` or a `$.state`
    * reference other than literally does not load. `hosts` and `registers` are
@@ -16249,10 +16256,38 @@ declare module 'claude-code' {
        *
        * It is lost too on an idle headless session that exits before its next
        * write, and when both a `/compact` and a restart come while it waits.
+       *
+       * A row given a `name` may have no block at all. It does not wait: it joins
+       * at once, as a notice with no text.
        */
       message: {
           type: 'user' | 'system';
           content: ApiContentBlock[];
+          /**
+           * What kind of row it is, to read it back by: the calling plugin's name, a
+           * dot, then a lowercase letter and up to 63 letters and digits more
+           * (`notes.recap`), other than a name every object has (`constructor`).
+           *
+           * Written at the call as a string literal, which `claude plugin validate`
+           * lists. Another's name, handed on in an event's message, names nothing.
+           *
+           * The terminal draws a named row that has text: it raises `ui.render` at
+           * `{ plugin: "notes", component: "recap" }` (PluginRenderInput), `props`
+           * `{ text, data? }`, `requestId` `row:` and the id the call answered.
+           *
+           * `next(e)` ends in the text's first line, dim (all of it in the verbose
+           * views), which shows where no hook answers and until one has. A `user`
+           * row is drawn once it has joined. An export shows the row's text.
+           */
+          name?: `${string}.${string}`;
+          /**
+           * Plain data (JsonValue) on a named row, apart from `content`, which is
+           * what the row says: at most 100000 characters, 20000 values and 32 levels.
+           *
+           * The model can read the transcript file with its own tools, `data`
+           * included: put no secret in it.
+           */
+          data?: JsonValue;
       };
       /**
        * The running subagent whose conversation the row joins; absent for main.
@@ -16338,6 +16373,9 @@ declare module 'claude-code' {
        * notice's subtype (`compact_boundary`, `local_command`, ...). Pinned.
        *
        * Absent on user and assistant rows. Builds add and retire names.
+       *
+       * On a row a plugin named in its own append, that name (`notes.recap`): it
+       * holds a dot, and none of the engine's does.
        */
       name?: string;
       /**
@@ -16359,6 +16397,14 @@ declare module 'claude-code' {
        * unknown kinds and every tool_result's `tool_use_id` are put back.
        */
       content: ApiContentBlock[];
+      /**
+       * The data of a row a plugin named (SessionAppendArgs); on no other row.
+       * Plain data (JsonValue), typed `unknown` since it came from code.
+       *
+       * Rewritable within the same bounds. Where the message handed to `next`
+       * leaves it out, the row goes on without it.
+       */
+      data?: unknown;
   };
 
   /**
@@ -17214,9 +17260,18 @@ declare module 'claude-code' {
        * The row's id, as `session.append` carries it: what a later
        * `$.session.messages({ after })` reads on from.
        *
-       * On a read that names `last` or `after`; absent on every other.
+       * On a read that names `last`, `after` or `name`; absent on every other.
        */
       uuid?: string;
+      /**
+       * The name its plugin gave the row; on a read that names `name` alone.
+       */
+      name?: string;
+      /**
+       * The data on that row, as the hooks above its append left it:
+       * plain data (JsonValue), typed `unknown` since it came from code.
+       */
+      data?: unknown;
       /**
        * An opaque token the engine stamps on a message it hands a
        * `session.compact` hook, so a list handed back maps to its own messages.
@@ -17252,6 +17307,10 @@ declare module 'claude-code' {
        * The row to read on from (SessionMessagesArgs). Not with `last`.
        */
       after?: string;
+      /**
+       * The rows a plugin gave this name, alone (SessionMessagesArgs).
+       */
+      name?: string;
   };
 
   /**
@@ -17342,6 +17401,15 @@ declare module 'claude-code' {
        * stored before then are ahead of it, and none is after it while it waits.
        */
       after?: string;
+      /**
+       * A name any plugin gave its rows (`notes.recap`): those rows alone, each
+       * once with `uuid`, `name` and `data`, under role `user`. Not with `as`.
+       *
+       * Notices, empty rows and `user` rows that still wait are among them; `uuid`
+       * is the id their append answered. `last` and `after` cut them. As for any
+       * row, a resume reads none that a compaction left behind.
+       */
+      name?: string;
   };
 
   /**
