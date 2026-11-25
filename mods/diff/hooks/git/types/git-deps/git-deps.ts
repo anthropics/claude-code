@@ -1,6 +1,6 @@
 import type { BranchBase } from '../branch-base'
-import type { EntryKind } from '../entry-kind'
 import type { GitRun } from '../git-run'
+import type { ListedEntry } from '../listed-entry'
 import type { Repository } from '../repository'
 
 /**
@@ -25,10 +25,10 @@ export type GitDeps = {
   mtimeOf: (path: string) => Promise<number | null>
 
   /**
-   * A directory's entries by name with their own kinds (no link followed),
+   * A directory's entries by name as they stand (no link followed),
    * or null when it cannot be listed.
    */
-  entryKindsOf: (dir: string) => Promise<ReadonlyMap<string, EntryKind> | null>
+  entriesOf: (dir: string) => Promise<ReadonlyMap<string, ListedEntry> | null>
 
   sessionStartMs: number
 

@@ -18,7 +18,7 @@ export async function fetchDiff(
   mode: Types.BaseMode,
 ): Promise<Types.FetchOutcome> {
   const isBusy = await Probes.isTransient(
-    deps.entryKindsOf,
+    deps.entriesOf,
     deps.repository.gitDir,
   )
 

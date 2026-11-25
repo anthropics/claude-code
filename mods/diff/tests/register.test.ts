@@ -2730,6 +2730,38 @@ describe('register', () => {
     ])
   })
 
+  test("HEAD's listed time moving reads the diff again, no stat", async ($, on) => {
+    const head = { mtimeMs: Fixtures.STAMP }
+
+    on('fs.list', (_engine, e) => ({
+      value:
+        e.path === '/work/.git'
+          ? [{ name: 'HEAD', kind: 'file', size: 2, isLink: false, ...head }]
+          : [],
+    }))
+    on('fs.read', () => ({ value: Fixtures.HEAD_SHA }))
+    on('fs.stat', () => ({ deny: 'the poll takes the listed time' }))
+
+    const world = Fixtures.inRepository(on)
+    const tickMs = Limits.HEAD_POLL_MS + Fixtures.SETTLE_MS
+
+    await $.session.start(Fixtures.SESSION)
+    await $.command.run(Fixtures.DIFF)
+    await world.clock.advance(tickMs)
+
+    const settled = world.runs.length
+
+    await world.clock.advance(tickMs)
+
+    const unmoved = world.runs.length
+
+    head.mtimeMs += 1
+    await world.clock.advance(tickMs)
+
+    expect(unmoved).toBe(settled)
+    expect(world.runs.length).toBeGreaterThan(unmoved)
+  })
+
   describe('in a system a mod defines', () => {
     const TURN_END = {
       answer: 'done',

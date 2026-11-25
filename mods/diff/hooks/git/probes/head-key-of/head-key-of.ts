@@ -2,12 +2,13 @@ import Limits from '../../../limits'
 import Argv from '../../argv'
 import type Types from '../../types'
 import { isSafeRefName } from '../is-safe-ref-name'
-import { stampIfFile } from '../stamp-if-file'
+import { listedStampOf } from '../listed-stamp-of'
 import { stampProbeOf } from '../stamp-probe-of'
 
 /**
  * A string that changes when HEAD moves: HEAD's text and the timestamps
- * of HEAD, its ref file and packed-refs, each a listed real file.
+ * of HEAD, its ref file and packed-refs, each a listed real file. A move
+ * that lands between two of one key's reads is in the next key.
  *
  * A `ref:` outside the safe refname grammar is dated by HEAD's own log, the
  * listed real file `logs/HEAD`; without one, or where HEAD is not a plain
@@ -45,7 +46,9 @@ export async function headKeyOf(
     return `rev:${parsed.exitCode === 0 ? parsed.stdout.trim() : ''}`
   }
 
-  if ((await own.walk.kindOf('HEAD')) !== 'file') {
+  const listed = await own.walk.entryOf('HEAD')
+
+  if (listed === 'over-budget' || listed?.kind !== 'file') {
     return viaGit()
   }
 
@@ -54,7 +57,7 @@ export async function headKeyOf(
   const isSymbolic = ref !== ''
 
   const isUnsafeRef = isSymbolic && !isSafeRefName(ref)
-  const logged = isUnsafeRef ? await stampIfFile(own, 'logs/HEAD') : null
+  const logged = isUnsafeRef ? await listedStampOf(own, 'logs/HEAD') : null
   const isUndated = isUnsafeRef && typeof logged !== 'number'
   const isRefDated = isSymbolic && !isUnsafeRef
 
@@ -62,8 +65,8 @@ export async function headKeyOf(
     ? viaGit()
     : [
         head,
-        await stampIfFile(own, 'HEAD'),
-        isRefDated ? await stampIfFile(common, ref) : logged,
-        await stampIfFile(common, 'packed-refs'),
+        await listedStampOf(own, 'HEAD'),
+        isRefDated ? await listedStampOf(common, ref) : logged,
+        await listedStampOf(common, 'packed-refs'),
       ].join('|')
 }

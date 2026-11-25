@@ -37,10 +37,12 @@ describe('vcs-backend-of', () => {
 
         return { ...Fixtures.ACME_COPY, revision: state.revision }
       },
-      entryKindsOf: async dir => {
+      entriesOf: async dir => {
         touched.push(dir)
 
-        return new Map(Object.keys(onDisk).map(name => [name, 'file' as const]))
+        return Fixtures.listingOf(
+          Object.keys(onDisk).map(name => [name, 'file']),
+        )
       },
       mtimeOf: async path => {
         touched.push(path)

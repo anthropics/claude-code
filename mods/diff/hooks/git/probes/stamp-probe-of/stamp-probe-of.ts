@@ -11,11 +11,11 @@ import { kindWalkOf } from '../kind-walk-of'
  * @returns the probe
  */
 export const stampProbeOf = (
-  deps: Pick<Types.GitDeps, 'entryKindsOf' | 'mtimeOf'>,
+  deps: Pick<Types.GitDeps, 'entriesOf' | 'mtimeOf'>,
   base: string,
   budget: number,
 ): Types.StampProbe => ({
-  walk: kindWalkOf(deps.entryKindsOf, base, budget),
+  walk: kindWalkOf(deps.entriesOf, base, budget),
   base,
   mtimeOf: deps.mtimeOf,
 })

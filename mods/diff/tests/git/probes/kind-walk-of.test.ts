@@ -17,7 +17,7 @@ describe('kind-walk-of', () => {
       directory => {
         listed.push(directory)
 
-        return Promise.resolve(new Map([['a', 'dir' as const]]))
+        return Promise.resolve(Fixtures.listingOf([['a', 'dir']]))
       },
       '/repo',
       budget,
@@ -29,15 +29,15 @@ describe('kind-walk-of', () => {
   test('a fifty-thousand-deep path reads over-budget in budget', async () => {
     const { walk, listed } = walkOf(Fixtures.WALK_BUDGET)
 
-    expect(await walk.kindOf(DEEP_PATH)).toBe('over-budget')
+    expect(await walk.entryOf(DEEP_PATH)).toBe('over-budget')
     expect(listed.length).toBe(Fixtures.WALK_BUDGET)
   })
 
-  test('a path within the budget reads its kind from its parent', async () => {
+  test('a path within the budget reads its entry from its parent', async () => {
     const { walk, listed } = walkOf(Fixtures.WALK_BUDGET)
 
-    expect(await walk.kindOf('a/a/a')).toBe('dir')
-    expect(await walk.kindOf('a/a/b')).toBe(null)
+    expect(await walk.entryOf('a/a/a')).toEqual({ kind: 'dir', mtimeMs: 0 })
+    expect(await walk.entryOf('a/a/b')).toBe(null)
     expect(listed).toEqual(['/repo', '/repo/a', '/repo/a/a'])
   })
 })

@@ -10,29 +10,31 @@ import { TRANSIENT_STATE_FILES } from './transient-state-files'
  * real directory, listed once more to tell a rebase's from `git am`'s; a
  * symbolic link by any of those names is never touched.
  *
- * @param entryKindsOf the host's directory listing
+ * @param entriesOf the host's directory listing
  * @param gitDir the repository's own git directory, absolute
  * @returns whether a state file, or a rebase's file beside its folder, is there
  */
 export async function isTransient(
-  entryKindsOf: Types.GitDeps['entryKindsOf'],
+  entriesOf: Types.GitDeps['entriesOf'],
   gitDir: string,
 ): Promise<boolean> {
-  const entries = await entryKindsOf(gitDir)
-  const isStopped = entries?.get(REBASE_MARKS.head) === 'file'
-  const isApplying = isStopped && entries?.get(REBASE_MARKS.apply) === 'dir'
+  const entries = await entriesOf(gitDir)
+  const isStopped = entries?.get(REBASE_MARKS.head)?.kind === 'file'
+
+  const isApplying =
+    isStopped && entries?.get(REBASE_MARKS.apply)?.kind === 'dir'
 
   const applied = isApplying
-    ? await entryKindsOf(`${gitDir}/${REBASE_MARKS.apply}`)
+    ? await entriesOf(`${gitDir}/${REBASE_MARKS.apply}`)
     : null
 
   const isRebasing =
     isStopped &&
-    (entries?.get(REBASE_MARKS.merge) === 'dir' ||
-      applied?.get(REBASE_MARKS.rebasing) === 'file')
+    (entries?.get(REBASE_MARKS.merge)?.kind === 'dir' ||
+      applied?.get(REBASE_MARKS.rebasing)?.kind === 'file')
 
   return (
     isRebasing ||
-    TRANSIENT_STATE_FILES.some(file => entries?.get(file) === 'file')
+    TRANSIENT_STATE_FILES.some(file => entries?.get(file)?.kind === 'file')
   )
 }

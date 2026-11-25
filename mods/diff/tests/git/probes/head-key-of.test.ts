@@ -17,6 +17,7 @@ describe('head-key-of', () => {
     listings: Readonly<Record<string, ReadonlyMap<string, Git.EntryKind>>>,
     head: string,
     stampOf: (path: string) => number = () => Fixtures.STAMP,
+    listedOf: (path: string) => number = () => 0,
   ): Recorded {
     const statted: string[] = []
     const read: string[] = []
@@ -27,7 +28,15 @@ describe('head-key-of', () => {
 
     const depsOf = (): Git.HeadKeyDeps => ({
       run: git.run,
-      entryKindsOf: dir => Promise.resolve(listings[dir] ?? null),
+      entriesOf: dir => {
+        const kinds = listings[dir]
+
+        return Promise.resolve(
+          kinds
+            ? Fixtures.listingOf(kinds, name => listedOf(`${dir}/${name}`))
+            : null,
+        )
+      },
       mtimeOf: path => {
         statted.push(path)
 
@@ -93,6 +102,26 @@ describe('head-key-of', () => {
     expect(probe.ran).toEqual([])
   })
 
+  test('each listed time moves the key, with no stat', async () => {
+    const moved = new Set<string>()
+    const keys = new Set<string>()
+
+    const probe = recorded(
+      healthy,
+      'ref: refs/heads/main\n',
+      () => Fixtures.STAMP,
+      path => Fixtures.STAMP + (moved.has(path) ? 1 : 0),
+    )
+
+    for (const name of ['none', 'HEAD', 'refs/heads/main', 'packed-refs']) {
+      moved.add(`/r/.git/${name}`)
+      keys.add(await Git.headKeyOf(probe.deps, Fixtures.CHECKOUT))
+    }
+
+    expect(keys.size).toBe(4)
+    expect(probe.statted).toEqual([])
+  })
+
   test('a climbing ref: is never stat-ed; git answers instead', async () => {
     const probe = recorded(healthy, 'ref: ../../x\n')
     const key = await Git.headKeyOf(probe.deps, Fixtures.CHECKOUT)
@@ -122,6 +151,24 @@ describe('head-key-of', () => {
 
     expect(await Git.headKeyOf(probe.deps, Fixtures.CHECKOUT)).not.toBe(before)
     expect(probe.ran, 'dated by the log of HEAD, no git started').toEqual([])
+  })
+
+  test("on such a branch the log's listed time moves the key", async () => {
+    let moves = 0
+
+    const probe = recorded(
+      logged,
+      'ref: refs/heads/fix/#12\n',
+      () => Fixtures.STAMP,
+      path => Fixtures.STAMP + (path.endsWith('/logs/HEAD') ? moves : 0),
+    )
+
+    const before = await Git.headKeyOf(probe.deps, Fixtures.CHECKOUT)
+
+    moves += 1
+
+    expect(await Git.headKeyOf(probe.deps, Fixtures.CHECKOUT)).not.toBe(before)
+    expect(probe.statted).toEqual([])
   })
 
   test('with no log of HEAD such a branch is read through git', async () => {

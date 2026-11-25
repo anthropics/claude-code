@@ -45,7 +45,7 @@ export type Host = {
   stat: (path: string) => Promise<FsStat>
 
   /**
-   * `$.fs.list`: a directory's entries by kind, links never followed.
+   * `$.fs.list`: a directory's entries as they stand, links never followed.
    */
   listDir: (path: string) => Promise<FsEntry[]>
 

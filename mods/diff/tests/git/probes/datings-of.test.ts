@@ -30,16 +30,20 @@ describe('datings-of', () => {
     ],
   ])
 
-  function probeOf(budget: number) {
+  function probeOf(budget: number, listedMs = 0) {
     const listed: string[] = []
     const statted: string[] = []
 
     const probe = Git.stampProbeOf(
       {
-        entryKindsOf: dir => {
+        entriesOf: dir => {
           listed.push(dir)
 
-          return Promise.resolve(LISTINGS.get(dir) ?? null)
+          const kinds = LISTINGS.get(dir)
+
+          return Promise.resolve(
+            kinds ? Fixtures.listingOf(kinds, () => listedMs) : null,
+          )
         },
         mtimeOf: path => {
           statted.push(path)
@@ -58,7 +62,7 @@ describe('datings-of', () => {
     run,
     repository: Fixtures.CHECKOUT,
     mtimeOf: probe.mtimeOf,
-    entryKindsOf: () => Promise.resolve(null),
+    entriesOf: () => Promise.resolve(null),
     sessionStartMs: Fixtures.GIT_SESSION_START_MS,
     onBranchBase: () => undefined,
   })
@@ -89,6 +93,21 @@ describe('datings-of', () => {
 
     expect(recorded.listed).toEqual(['/repo', '/repo/a'])
     expect(recorded.statted).toEqual(['/repo/a/x'])
+  })
+
+  test('a file is dated by a stat, whatever time was listed', async () => {
+    const { GIT_SESSION_START_MS, WALK_BUDGET } = Fixtures
+    const recorded = probeOf(WALK_BUDGET, GIT_SESSION_START_MS)
+
+    expect([
+      ...(await Git.datingsOf(
+        {
+          stamps: recorded.probe,
+          deps: { sessionStartMs: GIT_SESSION_START_MS },
+        },
+        ['a/x'],
+      )),
+    ]).toEqual([['a/x', 'pre-session']])
   })
 
   test('an unlisted tracked row stays session work', async () => {

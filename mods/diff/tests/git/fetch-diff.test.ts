@@ -16,8 +16,7 @@ describe('fetch-diff', () => {
   type Listing = readonly (readonly [string, Git.EntryKind])[]
   type ScriptedDeps = Git.GitDeps & Pick<Fixtures.ScriptedGit, 'argvs'>
 
-  const listingOf = (entries: Listing): ReadonlyMap<string, Git.EntryKind> =>
-    new Map(entries)
+  const { listingOf } = Fixtures
 
   function depsOf(
     script: Script,
@@ -30,7 +29,7 @@ describe('fetch-diff', () => {
       run: scripted.run,
       repository: Fixtures.FETCH_REPOSITORY,
       mtimeOf: () => Promise.resolve(Fixtures.DURING_SESSION_MS),
-      entryKindsOf: () => Promise.resolve(listingOf(Fixtures.FILES_LISTING)),
+      entriesOf: () => Promise.resolve(listingOf(Fixtures.FILES_LISTING)),
       sessionStartMs: Fixtures.GIT_SESSION_START_MS,
       onBranchBase: () => undefined,
       ...overrides,
@@ -81,7 +80,7 @@ describe('fetch-diff', () => {
   const fetchedIn = (gitDir: Listing, applyDir: Listing = []) =>
     Git.fetchDiff(
       depsOf(trackedNoUntrackedOf(), {
-        entryKindsOf: dir =>
+        entriesOf: dir =>
           Promise.resolve(
             listingOf(
               new Map([
@@ -290,7 +289,7 @@ describe('fetch-diff', () => {
     const deps = depsOf(
       {},
       {
-        entryKindsOf: dir =>
+        entriesOf: dir =>
           Promise.resolve(
             listingOf(
               dir === '/repo/.git' ? Fixtures.MERGING : Fixtures.FILES_LISTING,
@@ -469,7 +468,7 @@ describe('fetch-diff', () => {
           'ls-files': Fixtures.ok('scratch.txt\0'),
         },
         {
-          entryKindsOf: () => Promise.resolve(null),
+          entriesOf: () => Promise.resolve(null),
           mtimeOf: path => {
             probed.push(path)
 
@@ -492,7 +491,7 @@ describe('fetch-diff', () => {
           'ls-files': Fixtures.ok(),
         },
         {
-          entryKindsOf: dir => {
+          entriesOf: dir => {
             const isGitDir = dir === '/repo/.git'
 
             return Promise.resolve(
@@ -564,7 +563,7 @@ describe('fetch-diff', () => {
           'ls-files': Fixtures.ok(),
         },
         {
-          entryKindsOf: dir => {
+          entriesOf: dir => {
             listed.push(dir)
 
             return Promise.resolve(listingOf(Fixtures.FILES_LISTING))
@@ -630,7 +629,7 @@ describe('fetch-diff', () => {
           'ls-files': Fixtures.ok('nested/\0'),
         },
         {
-          entryKindsOf: () => Promise.resolve(listingOf([['nested', 'dir']])),
+          entriesOf: () => Promise.resolve(listingOf([['nested', 'dir']])),
           mtimeOf: path => {
             probed.push(path)
 
@@ -665,7 +664,7 @@ describe('fetch-diff', () => {
           'ls-files': Fixtures.ok(paths.map(path => `${path}\0`).join('')),
         },
         {
-          entryKindsOf: dir => {
+          entriesOf: dir => {
             listed.push(dir)
 
             const isLeaf = dir.endsWith('/nested')

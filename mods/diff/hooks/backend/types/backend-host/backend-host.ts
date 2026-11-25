@@ -12,7 +12,7 @@ import type { Host } from '../../../host'
  * (a later `session.start` moves it).
  */
 export type BackendHost = Pick<Host, 'run' | 'readFile' | 'diff'> &
-  Pick<GitDeps, 'mtimeOf' | 'entryKindsOf' | 'onBranchBase'> & {
+  Pick<GitDeps, 'mtimeOf' | 'entriesOf' | 'onBranchBase'> & {
     /**
      * The working copy the session's directory is in (`$.vcs.detect`); null
      * in none, and where the call is refused.

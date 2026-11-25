@@ -17,13 +17,13 @@ export async function stampIfFile(
 ): Promise<Types.Stamp> {
   const isDirectory = path.endsWith('/')
   const entry = isDirectory ? path.slice(0, -1) : path
-  const kind = await probe.walk.kindOf(entry)
-  const isUnlisted = kind === 'over-budget'
-  const isWanted = kind === (isDirectory ? 'dir' : 'file')
+  const listed = await probe.walk.entryOf(entry)
 
-  return isUnlisted
-    ? 'over-budget'
-    : isWanted
-      ? probe.mtimeOf(`${probe.base}/${entry}`)
-      : null
+  if (listed === 'over-budget') {
+    return listed
+  }
+
+  return listed?.kind === (isDirectory ? 'dir' : 'file')
+    ? probe.mtimeOf(`${probe.base}/${entry}`)
+    : null
 }

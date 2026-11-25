@@ -56,7 +56,7 @@ export async function gitBackendOf(
     run,
     repository,
     mtimeOf: host.mtimeOf,
-    entryKindsOf: host.entryKindsOf,
+    entriesOf: host.entriesOf,
     sessionStartMs: host.sessionStartMsOf(),
     baseline: dirty,
     cutBases,

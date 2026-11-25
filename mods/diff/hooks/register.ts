@@ -11,7 +11,7 @@ import Ask from './ask'
 import Backend from './backend'
 import { COMMAND_SPEC, DOCKED_COMMAND_SPEC } from './command-spec'
 import { drawnFilesOf } from './drawn-files-of'
-import { entryKindsOf } from './entry-kinds-of'
+import { entriesOf } from './entries-of'
 import type Git from './git'
 import type { Host } from './host'
 import { isCheckpointing } from './is-checkpointing'
@@ -96,7 +96,7 @@ export function register(on: On) {
         .catch(() => null),
     diff: input => currentOf(engine).diff(input),
     mtimeOf: path => mtimeOf(currentOf(engine))(path),
-    entryKindsOf: dir => entryKindsOf(currentOf(engine))(dir),
+    entriesOf: dir => entriesOf(currentOf(engine))(dir),
     nowMs: () => currentOf(engine).now(),
     sessionStartMsOf: () => sessionStartMs,
     onBranchBase: base => {
