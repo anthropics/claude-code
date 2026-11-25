@@ -3026,6 +3026,12 @@ declare module 'claude-code' {
    *
    * A plugin's finished `$` (EngineInterface) has every core noun an outer
    * step did not withhold, and every noun the plugins' steps added.
+   *
+   * In a background session whose folder is not trusted yet, a call rejects
+   * where it would start a program, run a tool, command or agent, message a
+   * session, register an agent, move or remove a file, or set a variable or a
+   * setting. Core then raises no `vcs.isolate` or `vcs.list`, and takes no
+   * rewrite at `command.run`, `config.set`, `agent.spawn` or `session.receive`.
    */
   export interface CoreEngineInterface {
       /**
@@ -4545,7 +4551,9 @@ declare module 'claude-code' {
        * An absolute path is used as given; where one may go is an `fs.*` hook's
        * to say. A read's answer or a write over 4 MiB rejects, the implementation
        * beneath the hooks rejects a network location untouched, an OS refusal with
-       * its errno.
+       * its errno. In a background session whose folder is not trusted yet,
+       * none but `stat` follows a link out of the folder, a file there with a second
+       * name is not opened, Windows writes none, and `ancestors` finds none.
        */
       fs: {
           /**
@@ -5070,6 +5078,9 @@ declare module 'claude-code' {
            * The sources (SettingsSource) rise in precedence from `user` to
            * `policy`; with no hook the object is the engine's merge: a scalar
            * from the last source that has it, lists joined, objects merged.
+           * In a background session whose folder is not trusted yet, the merge
+           * and every other read leave out the folder's files, and the engine
+           * raises none of its own.
            *
            * Raised by a plugin's call, and by the engine for its own merge once
            * the loaded plugins or the settings have changed, `next.origin` then
@@ -5108,7 +5119,8 @@ declare module 'claude-code' {
            * Resolves with the variable's value, or `undefined` when it is unset.
            *
            * `name` must be a string literal; `claude plugin validate` lists the
-           * names your module reads and writes.
+           * names your module reads and writes. In a background session whose
+           * folder is not trusted yet, most values its settings set are left out.
            *
            * @example
            * const home = await $.env.get("HOME")
