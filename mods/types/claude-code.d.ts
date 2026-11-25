@@ -7255,6 +7255,11 @@ declare module 'claude-code' {
           isOn: boolean;
           isReady: boolean;
       };
+      /**
+       * The engine's own answer for a policy or a remote switch, by an `id` that
+       * is a literal where it is read or heard. `undefined` while it has none.
+       */
+      gate: StateFamily<boolean | undefined>;
   };
 
   /**
@@ -11531,7 +11536,8 @@ declare module 'claude-code' {
       };
       /**
        * The named values its `$.state.get` and `$.state.set` calls refer to by
-       * literal, each `{ plugin, key }`; absent when it calls neither.
+       * literal, each `{ plugin, key }`; absent when it calls neither. One of
+       * the engine's gates (EngineState) is listed under the key `gate.<id>`.
        */
       state?: {
           /**
@@ -18580,7 +18586,8 @@ declare module 'claude-code' {
    *
    * Written once as a constant and passed to `$.state.get` and `$.state.set`;
    * `plugin` and `key` must be literals in source so `claude plugin validate`
-   * lists what a module reads and writes. Only `id` may be computed.
+   * lists what a module reads and writes. Only `id` may be computed, and not
+   * that of the engine's `gate` (EngineState).
    *
    * @example
    * const workers = { plugin: "swarm", key: "workers" } as const
