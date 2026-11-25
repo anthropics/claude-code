@@ -6803,6 +6803,11 @@ declare module 'claude-code' {
        * `--resume`'s. Exits stay fast whatever is loaded: the whole chain shares
        * one short wall-clock bound, which `next.budget` reads (SessionEndInput).
        *
+       * It fires too, under that bound and with no SessionEnd settings hook or
+       * `classic.SessionEnd` ahead of it, as Claude Code restarts itself (`other`),
+       * and for one plugin's hooks alone as it is turned off (`unload`). A reload
+       * or an update of a plugin that stays on raises nothing.
+       *
        * @example
        * on("session.end", async ($, e, next) => (await save(next.budget), next(e)))
        */
@@ -16911,10 +16916,16 @@ declare module 'claude-code' {
   export type SessionEndInput = {
       /**
        * Why it ends (SessionEndReason), the word the classic SessionEnd hook
-       * receives as its `reason`.
+       * receives as its `reason`, or `unload`.
        *
        * `clear` is how a hook sees a `/clear`: the conversation ends, the process
        * goes on under a new session id, and no `session.start` fires for it.
+       *
+       * `unload` ends the session for this plugin alone. Its other hooks, tools,
+       * commands, panes and nouns are gone already, and its `$` answers until the
+       * hook returns or the bound passes; a value it keeps then (`lasts`) is stored
+       * only once it is back in this session. Not raised where an organization's
+       * policy, a switch that stops plugins or a crash takes the plugin out.
        */
       reason: SessionEndReason;
       /**
@@ -16930,13 +16941,15 @@ declare module 'claude-code' {
 
   /**
    * Why the session ended: the classic SessionEnd hook's own `reason`, word for
-   * word.
+   * word, or `unload`, which no classic hook receives.
    *
    * `prompt_input_exit`, the person left (/exit, ctrl+c, ctrl+d); `clear`, a
    * /clear started a fresh one; `resume`, another took its place; `logout`;
-   * `other`, a `-p` run finished or the process got SIGINT, SIGTERM or SIGHUP.
+   * `other`, a `-p` run finished, the process got SIGINT, SIGTERM or SIGHUP, or
+   * it restarts itself (as on /tui); `unload`, this plugin alone was turned off
+   * or uninstalled, and the session goes on without it.
    */
-  export type SessionEndReason = ClassicHookInputs['SessionEnd']['reason'];
+  export type SessionEndReason = ClassicHookInputs['SessionEnd']['reason'] | 'unload';
 
   /**
    * What a `session.end` hook returns and what `next(e)` resolves to:
