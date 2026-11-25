@@ -3,6 +3,7 @@ import { CHOICES_LIMIT } from '../choices-limit'
 import { isRecord } from '../is-record'
 import type { Method } from '../method'
 import { refusal } from '../refusal'
+import { fits } from '../token'
 
 /**
  * One property's value as it goes into the metadata: a finite number, a
@@ -56,12 +57,13 @@ export function checkedValue(
     members.length > 0 &&
     members.length <= CHOICES_LIMIT &&
     members.every(
-      member => typeof member === 'string' && CHOICE_TOKEN.test(member),
+      member => typeof member === 'string' && fits(CHOICE_TOKEN, member),
     )
 
   if (!isTokenList) {
     throw refusal(
-      `props.${key}.of: a list of 1 to ${CHOICES_LIMIT} ` + `lowercase tokens`,
+      `props.${key}.of: a list of 1 to ${CHOICES_LIMIT} tokens, each ` +
+        'lowercase or camelCase words',
       method,
     )
   }

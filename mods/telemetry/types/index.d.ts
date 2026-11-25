@@ -33,7 +33,7 @@ export type Telemetry = {
    * the debug log.
    *
    * @param entry the event's name, a snake_case token, and its properties by
-   *   snake_case key
+   *   key, snake_case or camelCase
    * @example
    * await $.telemetry.log({
    *   event: "suggest_learning_survey_answered",
@@ -56,7 +56,7 @@ export type Telemetry = {
    * with no prefix, an official plugin's as `plugin_<name>__<feature>`.
    *
    * @param entry the feature, how it went, why when not ok, and the row's
-   *   properties by snake_case key
+   *   properties by key, snake_case or camelCase
    * @example
    * await $.telemetry.mark({ feature: "learn_page", kind: "ok" })
    * await $.telemetry.mark({
@@ -77,7 +77,7 @@ export type TelemetryDestination = 'anthropic' | 'collector'
 
 /**
  * What `$.telemetry.log` takes: the event's name after the prefix, and its
- * properties by snake_case key.
+ * properties by key, snake_case or camelCase words, sent as spelled.
  *
  * `to` names the destination and is never part of the row; left out, it
  * reads as `anthropic`. An entry for `collector` is not this mod's: its
@@ -94,7 +94,7 @@ export type TelemetryLogEntry = {
 
 /**
  * What `$.telemetry.mark` takes: the feature, how it went, why when not
- * ok, and the properties the row carries beside them by snake_case key.
+ * ok, and the properties the row carries beside them, keyed as a log's are.
  */
 export type TelemetryMarkEntry = {
   feature: string
@@ -123,8 +123,8 @@ export type TelemetryProp = number | boolean | TelemetryChoice
  * beside it, so no free text reaches the row.
  *
  * Every member of `of` is a lowercase token of letters, digits, `_` and
- * `-`, which may start with a digit, at most 32 of them; `value` is one of
- * them.
+ * `-`, which may start with a digit, or camelCase or PascalCase words, at
+ * most 32 of them; `value` is one of them.
  */
 export type TelemetryChoice = { value: string; of: readonly string[] }
 

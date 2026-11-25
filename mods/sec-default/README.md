@@ -47,7 +47,6 @@ settings it decides by.
 | `ui.log` | A line a plugin in `prepend` or `append` logs, this one's included, continues past the user tier: no user hook rewrites or drops it, and none runs inside the hook that logged it. Every other line passes. |
 | `env.get` | A read by a plugin in `prepend` or `append` continues past the user tier: no user hook answers what the organization's own plugin reads. Every other read passes. |
 | `env.set` | A write by a plugin in `prepend` or `append` continues past the user tier, whatever the variable: no user hook rewrites or drops what the organization's own plugin sets. A variable managed settings set in `env` (its name in any case) is pinned, and so are `CLAUDE_CODE_PROCESS_WRAPPER` where they name a launcher with `processWrapper` and, always, the nine variables that move where policy and sign-in are read from or how policy's tiers compose (`CLAUDE_CODE_MANAGED_SETTINGS_PATH`, `CLAUDE_CODE_REMOTE_SETTINGS_PATH`, `CLAUDE_CODE_MOCK_REMOTE_SETTINGS`, `CLAUDE_CODE_DISABLE_ADMIN_ENV_UNION`, `CLAUDE_CONFIG_DIR`, `CLAUDE_SECURESTORAGE_CONFIG_DIR`, `USE_LOCAL_OAUTH`, `USE_STAGING_OAUTH` and `CLAUDE_LOCAL_OAUTH_API_BASE`, which choose the server sign-in goes to; all nine on every build), and, on every build too, ten variables that can load code into a child the engine starts (`LD_PRELOAD`, `LD_LIBRARY_PATH`, `LD_AUDIT`, `DYLD_INSERT_LIBRARIES`, `DYLD_LIBRARY_PATH`, `DYLD_FRAMEWORK_PATH`, `BASH_ENV`, `ENV`, `ZDOTDIR`, `NODE_OPTIONS`) and the variables that decide where a model request goes, what signs it and what is merged into its body: setting or unsetting it, a `user`-tier caller is refused by name and a built-in's write continues past the user tier. Any other variable is a person's plugin's to set. With no policy to read, every variable counts as pinned. `allowModsToOverrideDenyRules` does not unpin. See [Pinned variables](#pinned-variables). |
-| `process.run`, `process.spawn` with a `null` in `env` | A `user`-tier caller is refused too where the `null` is on a variable the `env.set` row pins. See [Pinned variables](#pinned-variables). |
 | `vcs.detect` | Ask past the user tier first: a working copy the organization's tiers, the built-ins or the engine name stands, and only a folder they find in none goes on to a person's plugins. So a person's plugin drops no Git status block, and a system beside or inside Git needs an organization's plugin. A person's claim on the folder a session starts in does drop the shell tools' commit and pull-request steps for the whole session, a later `cd` into Git included; Git's safety cautions stay in every folder. |
 | `vcs.diff` | Ask past the user tier first: what the organization's tiers, the built-ins or the engine's Git answer stands, their own `unknown` too, and only a diff none of them answered goes on to a person's plugins. |
 | `wasm.compile` | A compile by a plugin in `prepend` or `append` continues past the user tier: no user hook reads or replaces the WebAssembly the organization's own plugin runs. Every other compile passes. |
@@ -229,7 +228,6 @@ when something held over a plugin of theirs, and `ui.ask` and `store.get` and
 `env.get`, to tell whether a mod repeats a call or writes a settings file. It continues to
 the `append` tier with `next.to`, which only a plugin in a managed tier may
 do.
-`env.get` also tells whether a mod changes a pinned variable.
 
 An organization's plugin seated above it in `prepend` can reopen an event
 with `next.to(e, "user")`: this mod is then a peer below that hook, and is
@@ -472,12 +470,6 @@ them, are pinned only while one of that cloud's provider switches is on or
 cannot be read ([`cloud-variables`](hooks/policy/cloud-variables.ts)). The
 home variables an Anthropic profile is found by are pinned only while
 `ANTHROPIC_BASE_URL` is set or cannot be read.
-
-A `null` in the `env` of `$.process.run` or `$.process.spawn` unsets a
-variable for that one child. This plugin refuses a person's plugin that
-passes one for any pinned variable, in the same words. A value passed there
-is not judged, and neither is a `null` that a person's hook adds beneath this
-plugin. The engine keeps a variable managed settings set whoever passes the `null`.
 
 - At a load, from the first admission until the set serves, an op a plugin
   makes (one it left running between the load's steps too) is raised through

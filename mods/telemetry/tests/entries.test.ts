@@ -10,7 +10,224 @@ const DONE = { event: 'done' }
 const propsOf = (count: number) =>
   Object.fromEntries(Array.from({ length: count }, (_, at) => [`k${at}`, at]))
 
+const choiceOf = (value: string) => ({ value, of: [value] })
+
 describe('entries', () => {
+  test('mixed-case words go as spelled, key or member, whoever calls', () => {
+    for (const text of [
+      'idleMinutes',
+      'timeToFirstKeystrokeMs',
+      'PreToolUse',
+      'acceptEdits',
+      'dontAsk',
+      'costUSD',
+      'toolUseID',
+      'isOAuthFlow',
+      'isMcp',
+      'isFullscreen',
+      'nameUtf16Length',
+      'cacheEphemeral1hTokens',
+      'userSettings_Bash_scoped',
+      'REPL',
+      'toString',
+      'toJSON',
+      'hasOwnProperty',
+      `${'Word'.repeat(15)}Last`,
+    ]) {
+      for (const pluginId of [undefined, ID]) {
+        const props = { [text]: 1, any: choiceOf(text) }
+        const fields = Hooks.checkedFields({ ...DONE, props }, pluginId)
+        const row = { fields, eventId: '', loggedAt: '' }
+
+        expect(JSON.parse(atob(Hooks.metadataOf(row, undefined)))).toEqual({
+          [text]: 1,
+          any: text,
+          ...(pluginId !== undefined && { pluginId }),
+        })
+
+        expect(
+          Hooks.checkedMark({ feature: 'f', kind: 'ok', props }, pluginId)
+            .props,
+        ).toMatchObject({ [text]: 1, any: text })
+      }
+    }
+  })
+
+  test('mixed-case text that is not words is refused, whoever calls', () => {
+    for (const text of [
+      // Free text, paths, addresses and host names.
+      'Hello World',
+      'Users/Shared',
+      'C:\\Users',
+      'README.md',
+      'Team@Example',
+      'Office-MacBook-Pro',
+      'Word\n',
+      // Past ASCII, a letter that lowercases into it included.
+      'Caf\u00e9',
+      '\u212aey',
+      // Past the length, or not starting as a token does.
+      `${'Word'.repeat(16)}s`,
+      '_Word',
+      // Ids and keys.
+      'toolu_01AbCdEfGhJkMnPqRsTuVwXy',
+      'req_011CAbCdEfGhJkMnPqRsTuVw',
+      'tok_abCdEfGhJkMnPqRs',
+      'U0ABCDE1234',
+      'D1E2A3D4-BEEF-4A5B-8C9D-0E1F2A3B4C5D',
+      'DEADBEEF',
+      'eyJhbGciOiJub25lIn0',
+      'WDJB-MJHT',
+      // One rule of the shape each.
+      'ENOENT',
+      'NO_SUCH_TOOL',
+      'costUSDToEUR',
+      'userHTTPSCount',
+      'orderNo123',
+      'stage1Part2',
+      'user_12Count',
+      'planS3',
+      'abEcWord',
+      'MsgCtxWord',
+      'Abcdfgh',
+    ]) {
+      for (const pluginId of [undefined, ID]) {
+        for (const [props, reason] of [
+          [{ [text]: 1 }, 'props: every key is'],
+          [{ any: choiceOf(text) }, 'props.any.of: a list of'],
+          [{ any: { value: 'a', of: ['a', text] } }, 'props.any.of: a list of'],
+        ] as const) {
+          expect(() =>
+            Hooks.checkedFields({ ...DONE, props }, pluginId),
+          ).toThrow(reason)
+
+          expect(() =>
+            Hooks.checkedMark({ feature: 'f', kind: 'ok', props }, pluginId),
+          ).toThrow(reason)
+        }
+      }
+    }
+  })
+
+  test('an event, a feature and a reason stay lowercase', () => {
+    expect(() => Hooks.checkedFields({ event: 'scanDone' })).toThrow(
+      'snake_case token',
+    )
+
+    for (const mark of [
+      { feature: 'scanPage', kind: 'ok' },
+      { feature: 'f', kind: 'sad', reason: 'timedOut' },
+    ]) {
+      expect(() => Hooks.checkedMark(mark)).toThrow('snake_case token')
+    }
+  })
+
+  test('pluginId in any case, or a key given twice, is refused to all', () => {
+    for (const pluginId of [undefined, ID]) {
+      for (const key of ['pluginId', 'pluginid', 'PluginId', 'pluginID']) {
+        expect(() =>
+          Hooks.checkedFields({ ...DONE, props: { [key]: 1 } }, pluginId),
+        ).toThrow(`props.${key}: this key is reserved`)
+      }
+
+      expect(() =>
+        Hooks.checkedFields(
+          { ...DONE, props: { pageCount: 1, pagecount: 2 } },
+          pluginId,
+        ),
+      ).toThrow('props.pagecount: repeats a key')
+    }
+  })
+
+  test('a Choice goes under a plain camelCase key, in its one spelling', () => {
+    const sent = (key: string, value: unknown, pluginId?: string) =>
+      Hooks.checkedFields({ ...DONE, props: { [key]: value } }, pluginId).props[
+        key
+      ]
+
+    for (const pluginId of [undefined, ID]) {
+      for (const key of [
+        'cacheColdBy',
+        'stage2Outcome',
+        'toolUseID',
+        'messageUUID',
+        'statusAtPTL',
+        'gitBranch',
+        'exitCause',
+        'command_name',
+        'commandname',
+      ]) {
+        expect(sent(key, choiceOf('a'), pluginId)).toBe('a')
+      }
+
+      for (const key of [
+        // Not plain camelCase.
+        'PickedOne',
+        'picked_One',
+        'pickedOne_',
+        'pickedONE',
+        'pickedURLKind',
+        // Another spelling of a key that is read by one.
+        'subagentName',
+        'parentAgentId',
+        'parentAgentID',
+        'errorTopFrame',
+        'commandType',
+        'errorName',
+        'windowModel',
+        'originalModel',
+        'fallbackModel',
+        'fromModel',
+        'toModel',
+        'modelId',
+        'chainEntry',
+        'fallBackFrom',
+        'shorTname',
+        'gitBraNch',
+        'reaSon',
+        'teamName',
+        'workflowName',
+        'hostName',
+        'exitcauSe',
+        'flagGed',
+      ]) {
+        expect(() => sent(key, choiceOf('a'), pluginId)).toThrow(
+          `props.${key}: this spelling takes no Choice`,
+        )
+        expect(sent(key, 1, pluginId)).toBe(1)
+      }
+    }
+
+    for (const key of ['commandName', 'agentType']) {
+      expect(sent(key, choiceOf('a'))).toBe('a')
+      expect(sent(key, true, ID)).toBe(true)
+      expect(() => sent(key, choiceOf('a'), ID)).toThrow(
+        `props.${key}: takes a number or a boolean`,
+      )
+    }
+
+    for (const key of ['pluginRepository', 'marketplaceName', 'featureName']) {
+      expect(() => sent(key, choiceOf('a'))).toThrow('takes no Choice')
+    }
+  })
+
+  test('a key beside a reserved name stays free', () => {
+    const props = {
+      plugins_count: 1,
+      pluginsCount: 1,
+      request_id: 1,
+      tool_name: choiceOf('Bash'),
+      short_name: choiceOf('a'),
+      attribution_mode: 1,
+      modelCount: choiceOf('many'),
+      hadError: true,
+    }
+
+    expect(
+      Object.keys(Hooks.checkedFields({ ...DONE, props }, ID).props),
+    ).toEqual([...Object.keys(props), 'pluginId'])
+  })
+
   test('twenty properties go, one more is refused, whoever calls', () => {
     for (const pluginId of [undefined, ID]) {
       const stamp = pluginId === undefined ? 0 : 1
@@ -95,10 +312,6 @@ describe('entries', () => {
   })
 
   test("the keys naming a row's owner, and the CLI's own, are refused", () => {
-    expect(() =>
-      Hooks.checkedFields({ ...DONE, props: { pluginId: 1 } }, ID),
-    ).toThrow('snake_case')
-
     for (const key of [
       'plugin_id',
       'plugin_id_hash',
@@ -112,8 +325,29 @@ describe('entries', () => {
       'rh',
       'provider',
       'prompt_source',
+      'pluginName',
+      'Plugin_Name',
+      'marketplaceName',
+      'isOfficialPlugin',
+      'ISOfficial',
+      'attributionPlugin',
+      'attributionMcpServer',
+      'featureName',
+      'errorCode',
+      'hookEvent',
+      'sampleRate',
+      'samPle_rate',
+      'RH',
+      'Provider',
+      'promptSource',
+      'requestId',
+      'requestID',
+      'toolName',
+      'mcpServerName',
     ]) {
       const props = { [key]: 1 }
+
+      expect(Hooks.checkedFields({ ...DONE, props }).props).toEqual(props)
 
       const reserved = `props.${key}: this key is reserved`
 
@@ -137,6 +371,13 @@ describe('entries', () => {
       Hooks.checkedMark({ feature: 'f', kind: 'ok', props }, ID),
     ).toThrow(refused)
 
+    expect(() =>
+      Hooks.checkedFields(
+        { ...DONE, props: { scanError: choiceOf('a') } },
+        ID,
+      ),
+    ).toThrow('props.scanError: takes a number or a boolean')
+
     expect(Hooks.checkedFields({ ...DONE, props }).props).toEqual({
       scan_error: 'late',
     })
@@ -147,6 +388,21 @@ describe('entries', () => {
         ID,
       ).props,
     ).toEqual({ scan_error: 1, had_error: true, pluginId: ID })
+  })
+
+  test('a model is read as one in any case, by its key or its text', () => {
+    for (const [key, text] of [
+      ['modelId', 'a'],
+      ['stage2Model', 'a'],
+      ['shortName', 'a'],
+      ['any', 'Claude-Faux-2'],
+    ] as const) {
+      const props = { [key]: text }
+
+      expect(() => Hooks.ownedBy(ID, { name: 'e', props }, 'log')).toThrow(
+        'a Choice names no model',
+      )
+    }
   })
 
   test('free text is refused from an installed plugin too', () => {

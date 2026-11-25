@@ -977,6 +977,11 @@ declare module 'claude-code' {
   };
 
   /**
+   * What a matcher gives a key: the value, or each alternative of a one-of.
+   */
+  type Alternatives<V> = V extends readonly (infer One)[] ? One : V;
+
+  /**
    * The hook `on("*", hook)` takes: it runs on every event, plugin nouns no
    * declaration names included, so `e` is `unknown` and `next` is StarNext.
    *
@@ -3120,13 +3125,17 @@ declare module 'claude-code' {
            * that table exactly; unnarrowed: the union, so shared names type-check.
            *
            * @param e this hook's own `ui.render` argument (its surface and
-           *          component pick the table)
+           *          component pick the table; a plugin's own site reads `Pane`'s)
            * @returns the surface's frozen element table (`Elements[e.surface]`)
            * @example
            * const { Box, Text } = $.ui.resolve(e)
            * return <Box>{await next(e)}<Text dimColor>done</Text></Box>
            */
-          resolve: <E extends ResolveInput>(e: E) => Elements[E['surface']];
+          resolve: <E extends ResolveInput | {
+              surface: RenderSurface;
+              plugin: string;
+              component: Uncapitalize<string>;
+          }>(e: E) => Elements[E['surface']];
           /**
            * Appends one line to the transcript, drawn like a system notice (dim;
            * not sent to the model), or with `{ to: "debug" }` to the debug log alone.
@@ -3964,6 +3973,10 @@ declare module 'claude-code' {
            * with no first-party credential (a 3P provider, a gateway, no login).
            * An `sk-ant-` key or access token in `ANTHROPIC_AUTH_TOKEN` is one on the
            * Anthropic API, though not in bare mode or where the host signs in.
+           *
+           * A saved claude.ai sign-in that names its account is read at each request:
+           * the handle follows a refresh this process has seen (it starts none), and
+           * is refused once the session leaves it. Any other is sent as first held.
            *
            * @example
            * await $.http.fetch(url, { auth: (await $.session.authorize())?.handle })
@@ -5256,6 +5269,16 @@ declare module 'claude-code' {
   }[keyof PluginState & string];
 
   /**
+   * Every component the enabled contracts declare, one variant each; `never`
+   * while PluginComponents is empty.
+   */
+  type DeclaredSites = {
+      [P in keyof PluginComponents & string]: {
+          [C in SiteKeys<PluginComponents[P]>]: PluginRenderInputOf<P, C, PluginComponents[P][C]>;
+      }[SiteKeys<PluginComponents[P]>];
+  }[keyof PluginComponents & string];
+
+  /**
    * What a `state.set` on one declared value carries beside its reference:
    * the value being written and the one that stood there, of the declared type.
    */
@@ -5625,7 +5648,8 @@ declare module 'claude-code' {
        *
        * @remarks Also on a write of `$.state` it read while drawn, at the redraw
        *   rate; an invalidate is any plugin's whose matcher may select it. On the
-       *   terminal a new row is blank until its first answer, and `/export` waits.
+       *   terminal the screen waits a moment for a new row's first answer, and
+       *   past that the row is blank until it lands; `/export` waits.
        *   A hook its `$` calls hold past 30 seconds in all is skipped.
        */
       'ui.render': RenderInput;
@@ -6449,6 +6473,10 @@ declare module 'claude-code' {
        * A later one runs its hooks alone: an enable, a worker respawn, or a reload
        * (changed modules only; all if one hooks `engine.create`/`plugin.register`).
        *
+       * At the first, a provider beneath a plugin that calls its noun starts alone
+       * ahead of the rest, after its own. One in a cycle, or over one, stays; all
+       * stay where a `prepend`, `append` or required plugin hooks this event.
+       *
        * @example
        * on("session.start", ($, e, next) => $.tool.register(t).then(() => next(e)))
        */
@@ -6709,7 +6737,8 @@ declare module 'claude-code' {
        */
       'tool.judge': ToolJudgeResult;
       /**
-       * `{ result, context? }`, `{ deny }`, or core's `{ ref, result }`, read
+       * `{ result, context?, content?, isEnd? }`, `{ deny }`, or core's
+       * `{ ref, result }`, read
        * before any PostToolUse hook has had it.
        */
       'tool.run': ToolCallResult;
@@ -7439,6 +7468,17 @@ declare module 'claude-code' {
   }[N];
 
   /**
+   * The plugins' own render sites `e` of `ui.render` is typed as under matcher
+   * `M`: none unless `M` names `plugin` and spells out such a site (SiteNames).
+   *
+   * So a hook on the engine's components types as if no such site were; under
+   * `plugin: "*"` no plugin is ruled out.
+   */
+  type HeardSites<M> = M extends {
+      readonly plugin: infer Plugin;
+  } ? [SiteNames<M, Plugin>] extends [never] ? never : KeptMembers<PluginRenderInput, '*' extends Alternatives<Plugin> ? Omit<M, 'plugin'> : M> : never;
+
+  /**
    * One hook, `($, e, next)`, on event `E`.
    */
   export type Hook<E extends EventName = EventName> = Events[E];
@@ -8050,8 +8090,11 @@ declare module 'claude-code' {
   /**
    * What `next` takes in a matched hook: the variants of `e` the matcher can
    * match (KeptMembers), as declared, so a rewrite of a pinned field passes.
+   *
+   * A plugin's own render site joins under one `infer`, so that while `M` is
+   * open the compiler reads the engine's components alone.
    */
-  type KeptEvent<P extends Pattern, M> = MatchedNames<P, M> extends infer N extends EventName ? N extends unknown ? KeptMembers<Args<N>, M> : never : never;
+  type KeptEvent<P extends Pattern, M> = MatchedNames<P, M> extends infer N extends EventName ? N extends 'ui.render' ? SharedMatcher<M> extends infer Shared ? KeptMembers<Args<N>, Shared> | HeardSites<Shared> : never : KeptMembers<Args<N>, M> : never;
 
   /**
    * The members of the argument union `E` matcher `P` can match, as declared;
@@ -8110,6 +8153,12 @@ declare module 'claude-code' {
    * selects nothing.
    */
   type Literal<X> = X extends RegExp ? unknown : X;
+
+  /**
+   * What a plugin's component opens with. Spelled out, so that comparing
+   * `e.component` with one of the engine's names narrows `e` to that one.
+   */
+  type LowercaseLetter = 'a' | 'b' | 'c' | 'd' | 'e' | 'f' | 'g' | 'h' | 'i' | 'j' | 'k' | 'l' | 'm' | 'n' | 'o' | 'p' | 'q' | 'r' | 's' | 't' | 'u' | 'v' | 'w' | 'x' | 'y' | 'z';
 
   /**
    * What a `Markdown` carries across the boundary: its address, text, dimness
@@ -8187,8 +8236,11 @@ declare module 'claude-code' {
   /**
    * The argument a matched hook receives: `e` narrowed by `M` (Narrowed), per
    * event the registration covers.
+   *
+   * A plugin's own render site joins under one `infer`, so that while `M` is
+   * open the compiler reads the engine's components alone.
    */
-  export type MatchedEvent<P extends Pattern, M> = MatchedNames<P, M> extends infer N extends EventName ? N extends unknown ? Narrowed<Args<N>, M> : never : never;
+  export type MatchedEvent<P extends Pattern, M> = MatchedNames<P, M> extends infer N extends EventName ? N extends 'ui.render' ? SharedMatcher<M> extends infer Shared ? Narrowed<Args<N>, Shared> | HeardSites<Shared> : never : Narrowed<Args<N>, M> : never;
 
   /**
    * The hook `on(pattern, matcher, hook)` takes: `($, e, next)` with `e`
@@ -8199,7 +8251,7 @@ declare module 'claude-code' {
    * names the events the registration covers and narrows as the matcher does.
    */
   export type MatchedHook<P extends Pattern, M> = P extends StreamingEventName ? MatchedStreamHook<P, M> : ($: EngineInterface, e: Frozen<MatchedEvent<P, M>>, next: Next<MatchedNames<P, M>, KeptEvent<P, M>, MatchedResult<P, M>, {
-      [K in MatchedNames<P, M>]: Narrowed<Args<K>, M>;
+      [K in MatchedNames<P, M>]: MatchedEvent<K, M>;
   }>) => MatchedResult<P, M> | Promise<MatchedResult<P, M>>;
 
   /**
@@ -8253,7 +8305,8 @@ declare module 'claude-code' {
    * hook's own plugin; `"*"` names every one, and hears an `e` without the key.
    * `claude plugin validate` notes such a hook: `(default matcher key: plugin)`;
    * a `component` there keeps the hook off `AbovePromptList`,
-   * `BesidePromptList`, `UnderlayList` and `Placeholder`.
+   * `BesidePromptList`, `UnderlayList` and `Placeholder`. A plugin's own render
+   * site (PluginRenderInput) is heard only by a matcher that names `plugin`.
    */
   export type Matcher<I, All = I> = I extends unknown ? {
       readonly [K in KnownKeys<I>]?: MatcherValue<I[K & keyof I], MatcherValueOf<All, K>>;
@@ -8279,7 +8332,7 @@ declare module 'claude-code' {
    * `P` is known it is that Matcher exactly. A mistake on a name is refused
    * where it is written; a pattern takes what any event it selects takes.
    */
-  type MatcherFor<P extends Pattern> = Matcher<Args<MatchedNames<P>>> extends infer Settled ? Settled : never;
+  type MatcherFor<P extends Pattern> = Matcher<Args<MatchedNames<P>>> | ('ui.render' extends MatchedNames<P> ? PluginSiteMatcher : never) extends infer Settled ? Settled : never;
 
   /**
    * The declared keys of every variant of `I` (index signatures aside).
@@ -9299,6 +9352,19 @@ declare module 'claude-code' {
        * the copy came from, not who wrote it. Absent for a bundled plugin.
        */
       readonly isOfficial?: true;
+      /**
+       * On a plugin noun's event alone: the subagent loop the call was made in,
+       * as the event its caller was handling names it.
+       *
+       * Attribution, not authority, and absent proves nothing: not every event
+       * or call on `$` hands it on, and none does once its hook has settled.
+       */
+      readonly agentId?: string;
+      /**
+       * On a plugin noun's event alone: the tool call it was made in, from a hook
+       * on that call's own events, and read as `agentId` is.
+       */
+      readonly tool_use_id?: string;
   };
 
   /**
@@ -10673,6 +10739,21 @@ declare module 'claude-code' {
   };
 
   /**
+   * The components plugins draw at a `ui.render` address of their own, by plugin
+   * name then component, for declaration merging; empty by default.
+   *
+   * A plugin declares its own in the contract it ships, inside `declare module
+   * "claude-code"`; a component's type is its `e.props`. Its name opens with a
+   * lowercase letter and holds letters and digits, 64 at most, so it is never
+   * one of the engine's.
+   *
+   * @example
+   * interface PluginComponents { notes: { card: { title: string } } }
+   */
+  export interface PluginComponents {
+  }
+
+  /**
    * One settings hook a plugin ships (hooks.json or its manifest's `hooks`): the
    * classic event it stands on (`PreToolUse`), its entry's matcher when it names
    * one, and what it runs.
@@ -11121,6 +11202,73 @@ declare module 'claude-code' {
            */
           unread: readonly string[];
       };
+  };
+
+  /**
+   * `e` of `ui.render` at a plugin's own address: one variant per component a
+   * contract declares (PluginComponents); the untyped one while none does.
+   *
+   * Only a hook whose matcher names `plugin` hears it (`"*"` for every plugin's).
+   * The named plugin's own hook draws it; another's wraps, restyles or replaces
+   * that through `next(e)`. `$.ui.resolve(e)` answers the elements of a `Pane`.
+   * A managed hook's `next.to` skips by tier as anywhere, and another plugin's
+   * `next.to(e, "core")` skips the named plugin's hooks whatever their tier.
+   *
+   * `e` is typed so only where the matcher spells a lowercase `component`, or a
+   * `plugin` a contract declares. `{ plugin: "x" }` or `{ plugin: "*" }` hears
+   * such a site all the same unless its `component` rules it out: name the
+   * engine's components there, or test `e.component`.
+   *
+   * @example
+   * on("ui.render", { plugin: "notes", component: "card" }, ($, e, next) => next(e))
+   */
+  export type PluginRenderInput = [DeclaredSites] extends [never] ? PluginRenderInputOf : DeclaredSites;
+
+  /**
+   * One `ui.render` input at a plugin's own address, one member per surface;
+   * with no argument, any plugin's, its props unchecked.
+   */
+  export type PluginRenderInputOf<Plugin extends string = string, C extends string = `${LowercaseLetter}${string}`, Props = Record<string, unknown>, P extends RenderSurface = RenderSurface> = P extends RenderSurface ? {
+      /**
+       * Where the tree will be drawn; it narrows `$.ui.resolve(e)`.
+       */
+      surface: P;
+      /**
+       * Whose component this is; pinned, so a rewrite carries it on as
+       * received. That plugin's hooks run last, beneath every other's.
+       */
+      plugin: Plugin;
+      /**
+       * Which of the plugin's components this instance is; pinned too.
+       */
+      component: C;
+      /**
+       * The instance: two drawings of one component are two instances.
+       */
+      requestId: string;
+      /**
+       * The size of what the surface draws into, as on RenderInput.
+       */
+      viewport?: RenderViewport;
+      /**
+       * The component's props, as PluginComponents declares them.
+       */
+      props: Props;
+  } : never;
+
+  /**
+   * The matcher of a plugin's own render site (PluginRenderInput): it names
+   * `plugin`, since a hook that leaves it out hears no such site.
+   *
+   * It names `props` only where a contract declares them.
+   */
+  type PluginSiteMatcher = {
+      readonly plugin: MatcherValue<PluginRenderInput['plugin'] | '*'>;
+      readonly component?: MatcherValue<PluginRenderInput['component']>;
+      readonly surface?: MatcherValue<PluginRenderInput['surface']>;
+      readonly requestId?: MatcherValue<string>;
+      readonly viewport?: MatcherValue<PluginRenderInput['viewport']>;
+      readonly props?: string extends keyof PluginRenderInput['props'] ? never : MatcherValue<PluginRenderInput['props']>;
   };
 
   /**
@@ -11860,14 +12008,9 @@ declare module 'claude-code' {
        */
       cwd?: string;
       /**
-       * Variables set over the host process's own environment; `null` leaves one
-       * out of this child's, in any letter case on Windows, where a value passed
-       * under another case still sets it.
-       *
-       * A variable that managed settings set, or that Claude Code itself sets or
-       * holds for the programs it starts, stays whatever is passed as `null`.
+       * Variables set over the host process's own environment.
        */
-      env?: Record<string, string | null>;
+      env?: Record<string, string>;
       /**
        * Text written to the child's standard input, then closed.
        */
@@ -11956,14 +12099,9 @@ declare module 'claude-code' {
        */
       cwd?: string;
       /**
-       * Variables set over the host process's own environment; `null` leaves one
-       * out of this child's, in any letter case on Windows, where a value passed
-       * under another case still sets it.
-       *
-       * A variable that managed settings set, or that Claude Code itself sets or
-       * holds for the programs it starts, stays whatever is passed as `null`.
+       * Variables set over the host process's own environment.
        */
-      env?: Record<string, string | null>;
+      env?: Record<string, string>;
       /**
        * Text written to the child's standard input, which is then closed;
        * absent, standard input is closed from the start.
@@ -17542,6 +17680,19 @@ declare module 'claude-code' {
   } : M : M;
 
   /**
+   * The keys of a plugin's contract spelled as its components may be.
+   */
+  type SiteKeys<Declared> = Extract<keyof Declared, PluginRenderInputOf['component']>;
+
+  /**
+   * The literals of matcher `M` only a plugin's own site answers to: a plugin a
+   * contract declares components of, a component spelled as a plugin's.
+   */
+  type SiteNames<M, Plugin> = (string extends PluginRenderInput['plugin'] ? never : Extract<Alternatives<Plugin>, PluginRenderInput['plugin']>) | (M extends {
+      readonly component: infer C;
+  } ? Extract<Alternatives<C>, PluginRenderInputOf['component']> : never);
+
+  /**
    * Where a site's window sits over the tree a hook drew in it (a pane's body,
    * the band): the engine's to move (the person scrolls), the plugin's to read.
    */
@@ -18253,6 +18404,7 @@ declare module 'claude-code' {
    * chosen from, so no free text reaches a row.
    *
    * Every member of `of` is a lowercase token of letters, digits, `_` and `-`,
+   * or camelCase or PascalCase words as TelemetryProp states them for a key,
    * at most 32 of them; `value` is one of them.
    *
    * @example
@@ -18342,6 +18494,12 @@ declare module 'claude-code' {
   /**
    * One property of a first-party row or a mark: a number, a boolean, or a
    * string chosen from a list (TelemetryChoice).
+   *
+   * Its key is snake_case, or camelCase or PascalCase words, sent as spelled:
+   * at most one abbreviation, of up to four letters, and one number, of up to
+   * two digits after a lowercase letter. Refused in any case are `pluginId`, a
+   * key given twice, and from an official plugin the names the CLI reserves.
+   * A choice's key is lowercase or plain camelCase, no CLI key respelled.
    */
   export type TelemetryProp = number | boolean | TelemetryChoice;
 
@@ -19578,6 +19736,8 @@ declare module 'claude-code' {
       text?: undefined;
       isError?: undefined;
       isReadOnly?: undefined;
+      content?: undefined;
+      isEnd?: undefined;
   } | {
       /**
        * The tool's output: from core the tool's record, typed per built-in
@@ -19588,6 +19748,22 @@ declare module 'claude-code' {
        * records it in the transcript as the tool's result. Absent on a deny.
        */
       result: ToolResultOf<Name>;
+      /**
+       * At `tool.run` alone: what the model reads in place of `result`, up to
+       * 100 `text` and base64 `image` blocks (15 images, and beside one 50,000
+       * characters), stored as sent: images fitted, texts trimmed and joined.
+       *
+       * Left out, so that `result` is read, where a later hook changes
+       * `result`, on an error, in a script's call, and once `next` has run a
+       * tool that is no MCP server's.
+       */
+      content?: readonly ApiContentBlock[];
+      /**
+       * At `tool.run` alone: `true` ends the turn once the reply's calls have
+       * their results. Stop hooks run and cannot send the model back. Nothing
+       * on an error, a script's call or `$.tool.call`.
+       */
+      isEnd?: boolean;
       /**
        * What the model reads after the tool's result and the user never
        * sees. From core, none; what `tool.run`'s hooks attach goes ahead of it.
@@ -19610,7 +19786,7 @@ declare module 'claude-code' {
        * Set by core: the result as the model reads it (text blocks joined),
        * present whatever the tool, where `result`'s shape varies per tool.
        *
-       * Absent on a hook's own `{ result }`.
+       * Absent on a hook's own `{ result }`, but for one with a `content`.
        */
       text?: string;
       /**
@@ -19651,6 +19827,8 @@ declare module 'claude-code' {
        * As on an answered result: the tool held the input it ran read-only.
        */
       isReadOnly?: true;
+      content?: undefined;
+      isEnd?: undefined;
       deny?: undefined;
   };
 
@@ -19748,8 +19926,10 @@ declare module 'claude-code' {
       /**
        * Set by the engine, and pinned, where no tool is called: the plugin's call
        * on `$` that `tool` and `input` stand for, as it is about to run. A
-       * remove, rename or copy stands as the reads and writes that it raises. A
-       * write of bytes that are no UTF-8 has them as `base64` beside `content`.
+       * remove, rename or copy stands as the reads and writes that it raises, then
+       * as `process.run` of `rm` and `rmdir`, of `mv` or of `cp` with its paths. A
+       * write of bytes that are no UTF-8 has them as `base64` beside `content`,
+       * and reads as the `Bash` line of `tee` with its path too.
        *
        * Raised only with `ceiling: "deny"` or `isCeilingUnread`, and only to a hook
        * whose matcher names `op`. A file call reads as `Read` or `Write`, a process

@@ -1,6 +1,7 @@
 import type { Fields } from '../fields'
 import type { Method } from '../method'
 import { refusal } from '../refusal'
+import { folded } from '../token'
 
 /**
  * The most characters of a plugin's name a row's name holds, so that the
@@ -11,7 +12,8 @@ const NAME_LIMIT = 48
 /**
  * The keys that say whose row it is.
  */
-const OWNER_KEY = /^(?:plugin_|marketplace_|is_official)/
+const OWNER_KEY =
+  /^(?:plugin_|marketplace_|is_official|attribution(?:agent|skill|plugin|mcp))/
 
 /**
  * The keys read off every row as the CLI's own.
@@ -24,12 +26,27 @@ const ROW_KEYS: readonly string[] = [
   'hook_event',
   'provider',
   'prompt_source',
-]
+  'requestId',
+  'previousRequestId',
+  'invokingRequestId',
+  'invocationKind',
+  'querySource',
+  'queryChainId',
+  'toolName',
+  'errorType',
+  'messageClientPlatform',
+  'remoteEnvironmentType',
+  'mcpServerName',
+  'mcpServerBaseUrl',
+  'mcpToolName',
+  'mcpErrorSource',
+].map(key => key.toLowerCase())
 
 /**
  * The keys whose text is read as a model id when the batch leaves.
  */
-const MODEL_KEY = /^(?:model|model_id|chain_entry|.*_models?)$/
+const MODEL_KEY =
+  /^(?:model|model_id|chain_entry|fallbackfrom|shortname|.*_models?)$/
 
 /**
  * The text read as a model id under any key.
@@ -42,7 +59,8 @@ const MODEL_ID = /claude-.*\d/
  *
  * `<name>` is the lowercase letters and digits of the id's name half, one `_`
  * between its words, so the first `__` ends it. No name of the CLI's or a
- * built-in's holds `__` there, so none can be spelled.
+ * built-in's holds `__` there, so none can be spelled. Keys and text are
+ * judged folded, so no case spells a way round a reserved name.
  *
  * @param pluginId the id of the load that made the call, as the host told it
  * @param fields the event or feature as given, and the checked properties
@@ -55,19 +73,27 @@ export function ownedBy(
   method: Method,
 ): Fields {
   for (const [key, value] of Object.entries(props)) {
-    if (OWNER_KEY.test(key) || ROW_KEYS.includes(key)) {
+    const keys = folded(key)
+
+    if (keys.some(one => OWNER_KEY.test(one) || ROW_KEYS.includes(one))) {
       throw refusal(`props.${key}: this key is reserved`, method)
     }
 
     const isModel =
-      typeof value === 'string' && (MODEL_KEY.test(key) || MODEL_ID.test(value))
+      typeof value === 'string' &&
+      (keys.some(one => MODEL_KEY.test(one)) ||
+        folded(value).some(one => MODEL_ID.test(one)))
 
     if (isModel) {
       throw refusal(`props.${key}: a Choice names no model`, method)
     }
 
-    // Text under such a key is read as an error's own words.
-    if (typeof value === 'string' && key.endsWith('_error')) {
+    // Text under such a key is read as an error's own words, or a given name.
+    const isTextless =
+      keys.some(one => one.endsWith('_error')) ||
+      /^(?:commandName|agentType)$/.test(key)
+
+    if (typeof value === 'string' && isTextless) {
       throw refusal(`props.${key}: takes a number or a boolean`, method)
     }
   }

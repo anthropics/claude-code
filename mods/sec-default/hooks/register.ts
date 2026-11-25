@@ -17,7 +17,7 @@ import { managedModsOnlyRefusal } from './managed-mods-only-refusal'
 import { isOrganizationsHookCall } from './organizations-hook-call'
 import { pastUsers } from './past-users'
 import { pinnedVariableRefusal } from './pinned-variable-refusal'
-import Policy, { pinnedRefusalOf } from './policy'
+import Policy, { isCloudVariableInUse } from './policy'
 import { isSkillRow } from './skill-row'
 import {
   registerRefusalOf,
@@ -29,9 +29,6 @@ import { withoutModules } from './without-modules'
 
 const TOOL_LIST_REFUSAL = 'sec-default could not read the tool list'
 const PERSONS_PROMPTS = ['composer', 'bridge', 'sdk', 'slack-ping']
-
-const unsetIn = (env: Readonly<Record<string, string | null>> = {}) =>
-  Object.keys(env).filter(name => env[name] === null)
 
 /**
  * The built-in's hooks, seated outermost: each keeps one control an
@@ -210,7 +207,7 @@ export function register(on: On) {
   )
 
   // The rows from here to process.spawn read as absent where this is the built-in copy and no person's mod took a seat.
-  // None has a .catch: a failure before a match is no ground to refuse, and each refusal's helper catches its own.
+  // None has a .catch: a failure before a match is no ground to refuse, and refusalOf catches its own.
   on('tool.call', async ($, e, next) => {
     if (withheld.names.has(e.tool)) {
       return { deny: TOOL_REGISTER_REFUSAL }
@@ -308,7 +305,7 @@ export function register(on: On) {
   on('process.run', async ($, e, next) => {
     const deny =
       next.origin.tier === 'user'
-        ? ((await refusalOf(
+        ? await refusalOf(
             $,
             readPolicy,
             EarlyRun.processRepeats(
@@ -321,7 +318,7 @@ export function register(on: On) {
               [...e.argv, e.init?.stdin ?? ''],
               memory.served(),
             ),
-          )) ?? (await pinnedRefusalOf($, readPolicy, unsetIn(e.init?.env))))
+          )
         : undefined
 
     return deny === undefined ? next(e) : { deny }
@@ -330,7 +327,7 @@ export function register(on: On) {
   on('process.spawn', async function* ($, e, next) {
     const deny =
       next.origin.tier === 'user'
-        ? ((await refusalOf(
+        ? await refusalOf(
             $,
             readPolicy,
             EarlyRun.processRepeats(
@@ -343,7 +340,7 @@ export function register(on: On) {
               [...e.argv, e.input ?? ''],
               memory.served(),
             ),
-          )) ?? (await pinnedRefusalOf($, readPolicy, unsetIn(e.env))))
+          )
         : undefined
 
     return deny === undefined ? yield* next(e) : { deny }
@@ -511,9 +508,13 @@ export function register(on: On) {
       return next.to(e, 'append')
     }
 
-    const refusal = await pinnedRefusalOf($, readPolicy, [e.name])
+    const isPinned =
+      (await Policy.decidedByPolicy(
+        readPolicy(() => $.settings.read(Policy.SOURCE)),
+        policy => Policy.isPinnedVariable(policy, e.name),
+      )) || (await isCloudVariableInUse($, e.name))
 
-    if (refusal === undefined) {
+    if (!isPinned) {
       // A home variable can get here, and the settings hold reads them.
       if (first.folder === undefined) {
         await configFolders($, first)
@@ -524,7 +525,9 @@ export function register(on: On) {
 
     const isTheirs = next.origin.tier === 'user'
 
-    return isTheirs ? { deny: refusal } : next.to(e, 'append')
+    return isTheirs
+      ? { deny: pinnedVariableRefusal(e.name) }
+      : next.to(e, 'append')
   }).catch(($, e, next) => {
     if (next.called) {
       return next(e)

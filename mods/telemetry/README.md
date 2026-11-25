@@ -32,7 +32,7 @@ as `tengu_plugin_<name>__<event>`, its feature `<feature>` is marked as
 (`<plugin>@<marketplace>`) as `pluginId`. `<name>` is the first half of the
 id in lowercase, its words of letters and digits joined by one `_`, cut at 48
 characters (`unnamed` where it has none). Refused are an event already
-named `tengu_…`, a property under one of the names the CLI reserves (under
+named `tengu_…`, a property under a name the CLI reserves, in any case (under
 some only a Choice is refused), and a Choice that names a model; the refusal
 names the key that was sent. The id is that of the copy that made the call:
 another plugin of the same name is served, or refused, as itself.
@@ -62,8 +62,14 @@ third-party provider or a gateway sends nothing more; when the switches
 cannot be read, nothing is sent either. The row's `user_type` is `ant`
 when `USER_TYPE` says so, else `external`.
 
-Nothing free-form reaches a row. An event name and every property key is a
-snake_case token; a value is a finite number, a boolean, or a Choice (a
+Nothing free-form reaches a row. An event name, a feature name and a `reason`
+are snake_case tokens. A property key and a Choice's member are lowercase
+tokens too, or camelCase or PascalCase words, sent as spelled: letters and `_`,
+at most one abbreviation (up to four letters) and one number (up to two digits,
+after a lowercase letter), as `costUSD`. Refused are other text with a capital
+and `pluginId` or a repeated key in any case. A Choice's key is lowercase or
+plain camelCase, and no respelling of a key the CLI reads by one spelling
+(`modelId`). A value is a finite number, a boolean, or a Choice (a
 string named together with the list it is chosen from), under `log` and
 `mark` alike, at most 20 properties to an entry;
 `mark` takes `ok`, `sad` or `bad`, with a `reason` required on

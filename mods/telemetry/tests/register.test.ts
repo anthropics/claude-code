@@ -578,7 +578,9 @@ describe('register', () => {
 
       expect(
         await refusalFor({ event: 'x', props: { 'a path': 1 } }),
-      ).toEndWith('$.telemetry.log: props: every key is a snake_case token')
+      ).toEndWith(
+        '$.telemetry.log: props: every key is snake_case or camelCase words',
+      )
 
       await session.clock.advance(Hooks.BATCH_WINDOW_MS)
 

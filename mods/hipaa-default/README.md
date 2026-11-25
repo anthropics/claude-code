@@ -72,7 +72,10 @@ managed. At the Code tab's other starts, an entry of it that names a path or a
 command does not count for them.
 
 `$.fs.remove`, `$.fs.rename` and `$.fs.copy` meet them as `$.fs.write` of each path
-they change and `$.fs.read` of the one they read.
+they change and `$.fs.read` of the one they read, then as `$.process.run` of `rm` and
+`rmdir`, of `mv` or of `cp` with their paths, where a `Bash` or `PowerShell` rule is
+set. A `$.fs.write` of bytes that are no UTF-8 meets those rules as a line of `tee`
+with its path too.
 
 Core's Git answer to a mod's `$.vcs.diff` meets them as `$.process.run` of
 `git diff`, as `$.fs.list` of each folder down to a file it would name, and as
