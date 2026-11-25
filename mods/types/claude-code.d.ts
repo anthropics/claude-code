@@ -4816,7 +4816,8 @@ declare module 'claude-code' {
        *
        * A `get` made while a `ui.render` hook draws subscribes that instance: a
        * later `set` draws it again, nobody calling `$.ui.invalidate`. Any plugin
-       * reads any value; its owner alone writes it. Persist through `$.store`.
+       * reads any value; its owner alone writes it. Keep one with the
+       * conversation through `lasts`, or across them through `$.store`.
        * The engine owns the values under `engine` (EngineState).
        */
       state: {
@@ -4846,10 +4847,12 @@ declare module 'claude-code' {
            *
            * @param ref `{ plugin, key }`, with `id` for a StateFamily key
            * @param value the value, of the type the contract declares
-           * @param options `ifVersion`: write only while it stands at that version
+           * @param options `ifVersion`: write only while it stands at that version;
+           *   `lasts: "transcript"`: keep it with the conversation
            * @returns `{ isSet, version }`; `isSet` false when `ifVersion` missed
            * @example
            * await $.state.set(count, held.value + 1, { ifVersion: held.version })
+           * await $.state.set(todos, list, { lasts: "transcript" })
            */
           set: <P extends Exclude<keyof PluginState, 'engine'> & string, K extends keyof PluginState[P] & string>(ref: StateRef<P, K>, value: StateValue<P, K>, options?: StateSetOptions) => Promise<StateSetResult>;
       };
@@ -5426,6 +5429,11 @@ declare module 'claude-code' {
        * The version the caller's write is conditional on, when it gave one.
        */
       ifVersion?: number;
+      /**
+       * Set when the value is to come back with the conversation. A hook leaves
+       * it out to stop that; it cannot add it.
+       */
+      lasts?: 'transcript';
   };
 
   /**
@@ -10417,12 +10425,13 @@ declare module 'claude-code' {
        */
       'state.get': StateGetEvent;
       /**
-       * The argument of `$.state.set(ref, value, { ifVersion })`: the reference,
-       * the value, the condition, and `previous`, what stood there (the host's).
+       * The argument of `$.state.set(ref, value, { ifVersion, lasts })`: those,
+       * and `previous`, what stood there (the host's).
        *
-       * A hook above rewrites `value` with `next({ ...e, value })`; the
-       * reference is identity, pinned. Raised by the value's owner alone. A
-       * `{ deny }` after `next(e)` was answered, a `.catch`'s too, fails the hook.
+       * A hook above rewrites `value` with `next({ ...e, value })`; the reference
+       * is identity, pinned. Raised by the value's owner, and by the engine for a
+       * kept value coming back. A `{ deny }` after `next(e)` was answered, a
+       * `.catch`'s too, fails the hook.
        */
       'state.set': StateSetEvent;
       /**
@@ -11567,6 +11576,11 @@ declare module 'claude-code' {
            * The values its `$.state.set` calls spell, sorted, each once.
            */
           writes: readonly StateName[];
+          /**
+           * Those of the writes that spell `lasts: "transcript"`, sorted, each
+           * once; absent when none does.
+           */
+          kept?: readonly StateName[];
       };
       /**
        * The hosts its `$.http`, `$.audio.play({ url })` and `$.ui.browse`
@@ -18680,6 +18694,8 @@ declare module 'claude-code' {
    *
    * `plugin`, `key` and `id` are identity, pinned; `value` is a hook's to
    * rewrite, which is how a plugin that does not own a value changes it.
+   * A kept value coming back (`lasts`) is raised by the engine (`next.origin`):
+   * rewritten it lands so, denied it reads `undefined`.
    *
    * @example
    * on("state.set", DRIVE, ($, e, next) => next({ ...e, value: false }))
@@ -18687,11 +18703,32 @@ declare module 'claude-code' {
   export type StateSetEvent = [DeclaredPair] extends [never] ? StateWrite : DeclaredEvents<DeclaredPair>['set'];
 
   /**
-   * The options of `$.state.set`: `ifVersion` makes the write conditional on
-   * the value still standing at that version (compare-and-set).
+   * The options of `$.state.set`: a condition on the write, and how long the
+   * value lasts.
    */
   export type StateSetOptions = {
+      /** Writes only while the value stands at that version (compare-and-set). */
       ifVersion?: number;
+      /**
+       * Keeps the value with the conversation: a resume or a fork brings it back,
+       * a rewind puts back what stood there, a compaction carries it, `/clear`
+       * starts without it. A literal at the call.
+       *
+       * The last write decides: one without `lasts` stops it coming back. It joins
+       * once per turn, as the hooks left it, as a notice with no text
+       * (`session.append` hears it, named `state:kept`). At most 100,000
+       * characters a value; 256 values and 400,000 characters a plugin.
+       *
+       * It comes back as a `state.set` the engine raises, at a new version
+       * (versions are not kept): ahead of `session.start` when a process starts,
+       * after `session.end` on a resume inside one; hooks that take over two
+       * seconds hold neither, and a write of yours meanwhile wins.
+       *
+       * The model can read the transcript file with its own tools, this value
+       * included, and whoever can edit the file can change it: check it, and put
+       * no grant or secret in it.
+       */
+      lasts?: 'transcript';
   };
 
   /**
@@ -18717,7 +18754,7 @@ declare module 'claude-code' {
 
   /**
    * A `$.state.set` as it crosses to the host and as its hooks see it when no
-   * contract declares the value: the address, the value, and the condition.
+   * contract declares the value: the address, the value, and the options.
    *
    * `previous` is the host's, put on `e` ahead of every hook: what stood there
    * when the write was raised (for the engine's own values, see EngineState).
@@ -18726,6 +18763,7 @@ declare module 'claude-code' {
       value: unknown;
       previous?: unknown;
       ifVersion?: number;
+      lasts?: 'transcript';
   };
 
   type StopFailureHookInput = BaseHookInput & {
@@ -23211,14 +23249,15 @@ declare module 'claude-code' {
    *
    * What a handler closure uses in place of `$.state.set(ref, stale + 1)`:
    * two presses before a redraw both land. Functions do not cross to the host,
-   * so the loop lives on the plugin's side. Resolves what it wrote.
+   * so the loop lives on the plugin's side. Resolves what it wrote. `lasts`
+   * is `$.state.set`'s, a literal here too.
    *
    * @example
    * <Button key="more" onPress={() => update($, count, n => n + 1)} />
    */
   export type UpdateFunction = {
-      <T>($: StateDollar, target: Atom<T>, change: (value: T) => T): Promise<T>;
-      <P extends Exclude<keyof PluginState, 'engine'> & string, K extends keyof PluginState[P] & string>($: StateDollar, target: StateRef<P, K>, change: (value: StateValue<P, K> | undefined) => StateValue<P, K>): Promise<StateValue<P, K>>;
+      <T>($: StateDollar, target: Atom<T>, change: (value: T) => T, options?: Pick<StateSetOptions, 'lasts'>): Promise<T>;
+      <P extends Exclude<keyof PluginState, 'engine'> & string, K extends keyof PluginState[P] & string>($: StateDollar, target: StateRef<P, K>, change: (value: StateValue<P, K> | undefined) => StateValue<P, K>, options?: Pick<StateSetOptions, 'lasts'>): Promise<StateValue<P, K>>;
   };
 
   /**
