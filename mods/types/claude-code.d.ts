@@ -463,6 +463,12 @@ declare module 'claude-code' {
        */
       parentAgentId?: string;
       /**
+       * The ids of the other agents that get the same report, never the main
+       * conversation; absent when there are none. They get the text that the
+       * hooks return; a consumed report goes to none of them.
+       */
+      copiedTo?: readonly string[];
+      /**
        * The agent's type (`Explore`, `fork`, a plugin's agent).
        */
       subagentType: string;
