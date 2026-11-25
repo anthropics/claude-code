@@ -1,3 +1,4 @@
+import Names from '../../../names'
 import PaneState from '../../../pane-state'
 import DialogPane from '../../dialog-pane'
 import Entries from '../../entries'
@@ -16,10 +17,11 @@ import type { DockPlan } from '../types'
  * @returns the plan
  */
 export function dockPlanOf(model: PaneState.PaneModel): DockPlan {
-  const { data, requestedMode } = model
+  const { data, requestedMode, isLoading } = model
   const turn = PaneState.pickedTurnOf(model)
   const noise = model.isNoiseShown ? 'shown' : 'hidden'
-  const partition = PaneState.partitionOf(data?.files ?? [], noise)
+
+  const partition = PaneState.partitionOf(data?.files ?? [], noise, model)
   const face = model.isPreSessionShown ? 'hide' : 'show'
 
   const totals = turn
@@ -30,9 +32,13 @@ export function dockPlanOf(model: PaneState.PaneModel): DockPlan {
 
   const empty = turn ? null : PaneState.emptyStateOf(model, totals.filesCount)
 
+  const isWaiting = turn?.files.length === 0 && totals.notShown > 0
+
   const listed = turn
-    ? []
-    : DialogPane.listBodyOf({ data, partition, totals, empty })
+    ? isWaiting
+      ? [Names.uncheckedTextOf(isLoading)]
+      : []
+    : DialogPane.listBodyOf({ data, partition, totals, empty, isLoading })
 
   const notes = listed.flatMap(line => (typeof line === 'string' ? [line] : []))
   const hasRows = turn ? turn.files.length > 0 : notes.length < listed.length
@@ -76,5 +82,6 @@ export function dockPlanOf(model: PaneState.PaneModel): DockPlan {
     message: empty ? [empty.headline, ...notes] : hasRows ? [] : notes,
     isUntrackedNoted:
       !turn && data?.isUntrackedWithheld === true && empty === null,
+    deniedCount: PaneState.deniedCountOf(model),
   }
 }

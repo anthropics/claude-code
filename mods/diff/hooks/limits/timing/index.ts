@@ -1,3 +1,4 @@
+export * from './check-timeout-ms.js'
 export * from './git-timeout-ms.js'
 export * from './head-poll-ms.js'
 export * from './redraw-coalesce-ms.js'

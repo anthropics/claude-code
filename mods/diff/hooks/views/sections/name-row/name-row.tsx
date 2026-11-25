@@ -13,7 +13,7 @@ import { askKeyOf } from '../ask-key-of'
  * name cut from its start, its asides in dim, and its ask Button.
  *
  * The Button reads `asked ✓` while the file is armed; a file with no hunks
- * to attach (a placeholder body) has none.
+ * to attach (a placeholder body) has none, nor has a past turn's.
  *
  * @param kit the elements, the handlers, the width
  * @param name the file, with whether it is truncated, armed and askable
@@ -49,7 +49,7 @@ export function nameRow(kit: Kit, name: NamedDetail): RenderElement {
         </Text>,
         <Text dimColor>{aside}</Text>,
         <Box flexGrow={1} />,
-        ...(name.isAskable ? [ask] : []),
+        ...(name.isAskable && !name.isTurnFile ? [ask] : []),
       ]}
     </Box>
   )

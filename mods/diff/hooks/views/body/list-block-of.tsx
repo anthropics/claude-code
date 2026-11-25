@@ -18,8 +18,8 @@ import type { DockPlan } from './types'
  * between its edge rows, the untracked note, the noise toggle.
  *
  * The edge rows count the files out of the window and take the built-in's
- * list keys; files past the row cap join the lower one. Empty with no row
- * and no noise to toggle.
+ * list keys; read-denied files and files past the row cap join the lower
+ * one. Empty with no row, no count and no noise to toggle.
  *
  * @param kit the elements, the handlers, the width
  * @param model the pane's state
@@ -38,10 +38,12 @@ export function listBlockOf(
   const hasMoreAbove = above > 0
   const hasMoreBelow = below > 0
   const hasNotShown = notShown > 0
+  const hasDenied = plan.deniedCount > 0
   const noiseFace = model.isNoiseShown ? 'hide' : 'show'
 
   const lower = keptOf([
     hasMoreBelow ? `${below} ${Names.MORE_BELOW_TEXT}` : null,
+    hasDenied ? `${plan.deniedCount} read-denied` : null,
     hasNotShown ? `${notShown} not shown` : null,
   ]).join(' · ')
 
@@ -66,7 +68,7 @@ export function listBlockOf(
 
   const lowerEdge = hasMoreBelow
     ? Sections.listEdgeButton(kit, 'list-down', `↓ ${lower}`)
-    : hasNotShown
+    : hasNotShown || hasDenied
       ? Sections.dimNote(kit, `… ${lower}`)
       : null
 

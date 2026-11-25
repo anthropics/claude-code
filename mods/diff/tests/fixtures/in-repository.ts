@@ -37,7 +37,7 @@ export function inRepository(
   const unseen: Args<'ui.open'>[] = []
   const opened = keeping<Args<'ui.open'>>()
   const closed = keeping<Args<'ui.close'>>()
-  const clock = startsSession(on)
+  const clock = startsSession(on, 0, beneath)
 
   on('process.run', ($, e) => {
     runs.push(e)
@@ -84,7 +84,11 @@ export function inRepository(
   on('ui.close', closed.hook)
   on('ui.invalidate', () => ({ value: undefined }))
   on('ui.render', { component: 'PromptHint' }, () => HINT_DRAWN)
-  on('session.messages', () => ({ value: [...(beneath.messages?.() ?? [])] }))
+
+  on('session.messages', async () => ({
+    value: [...((await beneath.messages?.()) ?? [])],
+  }))
+
   on('settings.read', () => ({ value: beneath.settings ?? {} }))
   mock.store(on, beneath.stored ?? {})
   mock.env(on, beneath.env ?? {})

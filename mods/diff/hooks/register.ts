@@ -7,6 +7,7 @@ import type {
   Timer,
 } from 'claude-code'
 
+import Access from './access'
 import Ask from './ask'
 import Backend from './backend'
 import { COMMAND_SPEC, DOCKED_COMMAND_SPEC } from './command-spec'
@@ -57,8 +58,18 @@ export function register(on: On) {
   let hasRestoredEdits = false
   let columns: number | null = null
   let shownSessionId: string | null = null
-  let armed: Ask.ArmedAsk | null = null
+  let armed: (Ask.ArmedAsk & Access.NamedFile) | null = null
+  let arming: Promise<void> | null = null
   let carrying: Ask.ArmedAsk | null = null
+  let turns: readonly Turns.TurnDiff[] = []
+  let rowsTop: string | null = null
+  let picks = 0
+  let wanted: PaneState.Source | null = null
+  let pressed: { path: string } | null = null
+  let rulesKey: string | null = null
+  let rechecksDue = 0
+  let isRetryDue = false
+  let hasUntold = false
   let isRefreshing = false
   let isRefreshQueued = false
   let isQueuedAsked = false
@@ -74,6 +85,7 @@ export function register(on: On) {
 
   const polled = { toplevel: '', headKey: '' }
   const pin = { cwd: '', isEmpty: false, epoch: 0 }
+  const detectedRoots = new Map<string, string | null>()
 
   let model: PaneState.PaneModel = PaneState.INITIAL_MODEL
 
@@ -191,6 +203,7 @@ export function register(on: On) {
     backend = null
     pin.isEmpty = false
     pin.epoch += 1
+    detectedRoots.clear()
     polled.toplevel = ''
     polled.headKey = ''
     timers.get('poll')?.cancel()
@@ -241,7 +254,223 @@ export function register(on: On) {
     )
   }
 
-  async function loadBodies(engine: Host): Promise<boolean> {
+  async function rootsOf(engine: Host): Promise<readonly string[] | null> {
+    const cwd = await Access.withinTime(engine, engine.cwd(), null)
+
+    if (cwd === null) {
+      return null
+    }
+
+    const toplevel = rowsTop ?? cwd
+
+    if (cwd !== toplevel && !detectedRoots.has(cwd)) {
+      const copy = await Access.withinTime(
+        engine,
+        engine.detect({ path: cwd }).catch(() => 'refused' as const),
+        undefined,
+      )
+
+      if (copy === undefined) {
+        return null
+      }
+
+      if (copy === 'refused') {
+        return Access.possibleRootsOf(cwd, toplevel)
+      }
+
+      detectedRoots.set(cwd, copy?.root ?? null)
+    }
+
+    const detected = cwd === toplevel ? cwd : (detectedRoots.get(cwd) ?? null)
+
+    return [...new Set([toplevel, Access.liveRootOf(cwd, detected, toplevel)])]
+  }
+
+  const rowNamed = (file: Git.FileStat): Access.NamedFile => ({
+    path: file.path,
+    renamedFrom: file.renamedFrom,
+    isTurnFile: false,
+  })
+
+  const turnFileNamed = (path: string): Access.NamedFile => ({
+    path,
+    renamedFrom: null,
+    isTurnFile: true,
+  })
+
+  const hiddenAmong = async (
+    engine: Host,
+    names: readonly Access.NamedFile[],
+  ) =>
+    Access.hiddenOf(
+      engine,
+      names,
+      names.length === 0 ? null : await rootsOf(engine).catch(() => null),
+    )
+
+  /**
+   * Asks about the rows, the source's turn and the armed file, and answers
+   * how to lay them into a model: only a file that was answered for draws,
+   * so a turn other than the source's holds no files until it is picked.
+   *
+   * @param engine the bound host
+   * @param rows every row of the fetch
+   * @param all the transcript's turns
+   * @param source the source to be drawn
+   */
+  async function screened(
+    engine: Host,
+    rows: readonly Git.FileStat[],
+    all: readonly Turns.TurnDiff[],
+    source: PaneState.Source,
+  ): Promise<(onto: PaneState.PaneModel) => PaneState.PaneModel> {
+    const picked = all.find(
+      turn => source.kind === 'turn' && turn.index === source.index,
+    )
+
+    const asked = armed
+    const rowNames = rows.map(rowNamed)
+    const turnNames = (picked?.files ?? []).map(one => turnFileNamed(one.path))
+    const names = [...rowNames, ...turnNames, ...(asked ? [asked] : [])]
+
+    const hidden = await hiddenAmong(engine, names)
+
+    const whyOf = (named: readonly Access.NamedFile[]) =>
+      new Map(
+        named
+          .filter(one => hidden.has(one))
+          .map(one => [one.path, hidden.get(one)]),
+      )
+
+    const hiddenRows = whyOf(rowNames)
+    const hiddenInTurn = whyOf(turnNames)
+    const left = rows.filter(file => hiddenRows.has(file.path))
+    const denied = left.filter(file => hiddenRows.get(file.path) === 'denied')
+
+    const deniedCount = [...hiddenInTurn.values()].filter(
+      why => why === 'denied',
+    ).length
+
+    isRetryDue = [...hidden.values()].includes('unknown')
+    hasUntold = [...hidden.values()].includes('untold')
+
+    for (const path of hiddenRows.keys()) {
+      bodyLoads.delete(path)
+    }
+
+    if (asked && armed === asked && hidden.has(asked)) {
+      void recheckArmed(engine)
+    }
+
+    return onto => ({
+      ...onto,
+      data: onto.data && {
+        ...onto.data,
+        files: rows.filter(file => !hiddenRows.has(file.path)),
+      },
+      isLoading: false,
+      denied: onto.data ? denied : [],
+      unchecked: onto.data ? left.filter(file => !denied.includes(file)) : [],
+      bodies: new Map(
+        [...onto.bodies].filter(([path]) => !hiddenRows.has(path)),
+      ),
+      turns: all.map(turn =>
+        turn === picked
+          ? {
+              ...turn,
+              files: turn.files.filter(file => !hiddenInTurn.has(file.path)),
+              deniedCount,
+              uncheckedCount: hiddenInTurn.size - deniedCount,
+            }
+          : { ...turn, files: [] },
+      ),
+    })
+  }
+
+  const keptRows = () => [
+    ...(model.data?.files ?? []),
+    ...model.denied,
+    ...model.unchecked,
+  ]
+
+  /**
+   * Takes what the pane holds off show until it is answered for again.
+   */
+  function veil() {
+    const { data, unchecked } = model
+
+    isRetryDue = true
+
+    model = {
+      ...model,
+      isLoading: true,
+      data: data && { ...data, files: [] },
+      unchecked: [...unchecked, ...(data?.files ?? [])],
+      turns: model.turns.map(turn => ({
+        ...turn,
+        files: [],
+        uncheckedCount: (turn.uncheckedCount ?? 0) + turn.files.length,
+      })),
+    }
+  }
+
+  /**
+   * Veils the pane and waits a bounded time for its answers, never for a
+   * refresh under way, which lays its own rows.
+   *
+   * @param engine the bound host
+   */
+  async function askAgain(engine: Host): Promise<void> {
+    veil()
+
+    if (model.data !== null && !isRefreshing) {
+      await Access.withinTime(engine, showSource(engine), undefined)
+    }
+  }
+
+  /**
+   * Draws a source once its files, and the rows already held, are answered
+   * for again. A refresh under way is waited out: it lays its own rows.
+   *
+   * @param engine the bound host
+   * @param source the source to draw; the last one picked when not given
+   */
+  async function showSource(
+    engine: Host,
+    source = wanted ?? model.source,
+  ): Promise<void> {
+    const pick = (picks += 1)
+
+    wanted = source
+
+    for (;;) {
+      while (isRefreshing) {
+        await reading
+      }
+
+      const { data } = model
+      const all = turns
+      const laid = await screened(engine, keptRows(), all, source)
+
+      if (pick !== picks) {
+        return
+      }
+
+      if (!isRefreshing && model.data === data && turns === all) {
+        wanted = null
+        model = { ...laid(model), source }
+        void loadBodies(engine, true).catch(() => undefined)
+        redraw(engine)
+
+        return
+      }
+    }
+  }
+
+  async function loadBodies(
+    engine: Host,
+    isScreened = false,
+  ): Promise<boolean> {
     const { data } = model
     const pinned = backend
 
@@ -268,7 +497,7 @@ export function register(on: On) {
       redraw(engine)
     }
 
-    return fetchBodies(engine, pinned, data)
+    return fetchBodies(engine, pinned, data, isScreened)
   }
 
   const bodyStampOf = (data: Git.DiffData) => `${generation}|${data.baseRef}`
@@ -277,6 +506,7 @@ export function register(on: On) {
     engine: Host,
     pinned: Backend.Backend,
     data: Git.DiffData,
+    isScreened: boolean,
   ): Promise<boolean> {
     const stamp = bodyStampOf(data)
 
@@ -284,6 +514,18 @@ export function register(on: On) {
 
     for (const file of files) {
       bodyLoads.add(file.path)
+    }
+
+    const names = isScreened ? [] : files.map(rowNamed)
+
+    if (names.length > 0 && (await hiddenAmong(engine, names)).size > 0) {
+      for (const file of files) {
+        bodyLoads.delete(file.path)
+      }
+
+      void showSource(engine).catch(() => undefined)
+
+      return false
     }
 
     const read = await pinned.fetchHunks(data, files)
@@ -316,6 +558,29 @@ export function register(on: On) {
       })
   }
 
+  /**
+   * Asks again about what went unanswered, and about everything on the two
+   * polls after the rules change (they may take hold after they are saved)
+   * or after a prompt sent while no tool could answer.
+   *
+   * @param engine the bound host
+   */
+  async function recheck(engine: Host): Promise<void> {
+    const key = await engine.rulesKey().catch(() => '')
+
+    if (key !== rulesKey) {
+      rulesKey = key
+      rechecksDue = 2
+    }
+
+    const isDue = rechecksDue > 0 || isRetryDue
+
+    if (isDue && !isRefreshing && wanted === null) {
+      rechecksDue = Math.max(0, rechecksDue - 1)
+      await showSource(engine)
+    }
+  }
+
   function startPoll(engine: Host, pinned: Backend.Backend) {
     const readHeadKey = () => pinned.headKeyOf().catch(() => '')
 
@@ -337,6 +602,8 @@ export function register(on: On) {
         if (isRefreshQueued && !isRefreshing) {
           void endOverdueRest(engine)
         }
+
+        void recheck(engine).catch(() => undefined)
 
         void readHeadKey().then(key => {
           const hasMoved = polled.headKey !== '' && key !== polled.headKey
@@ -404,7 +671,7 @@ export function register(on: On) {
     }
 
     try {
-      model = { ...model, isLoading: model.data === null }
+      model = { ...model, isLoading: model.isLoading || model.data === null }
 
       const [read, messages] = await Promise.all([
         fetched(),
@@ -414,7 +681,22 @@ export function register(on: On) {
       const { outcome } = read
 
       fetchedMs = read.endedMs
-      model = PaneState.afterFetch(model, { outcome, messages })
+
+      if (outcome.kind === 'data') {
+        rowsTop = outcome.data.repository.toplevel
+      }
+
+      const all = Turns.turnDiffsOf(messages)
+
+      const laid = await screened(
+        engine,
+        outcome.kind === 'data' ? outcome.data.files : keptRows(),
+        all,
+        model.source,
+      )
+
+      turns = all
+      model = laid(PaneState.afterFetch(model, { outcome, messages }))
       readKind = outcome.kind
 
       switch (outcome.kind) {
@@ -433,7 +715,7 @@ export function register(on: On) {
           break
       }
 
-      const hasHunksFailed = await loadBodies(engine)
+      const hasHunksFailed = await loadBodies(engine, true)
 
       if (outcome.kind === 'data') {
         record.mark(
@@ -646,6 +928,12 @@ export function register(on: On) {
       place: { ...model.place, top: 0, listStart: 0 },
     }
 
+    if (isDialog) {
+      await askAgain(engine)
+    } else {
+      veil()
+    }
+
     dialogRows = isDialog ? Views.dialogRowsOf(model) : null
 
     const landedBefore = landed
@@ -672,12 +960,15 @@ export function register(on: On) {
         PaneState.partitionOf(
           data.files,
           model.isNoiseShown ? 'shown' : 'hidden',
+          model,
         ),
       ).filesCount > 0
 
     if (isUnasked && !isShowable) {
       return 'withdrawn'
     }
+
+    engine.invalidate()
 
     const opened = await engine.openPane(
       isDialog
@@ -891,31 +1182,101 @@ export function register(on: On) {
         ? { kind: 'turn', index }
         : { kind: 'current' }
 
-      model = { ...model, source, selectedPath: null, dialogView: 'list' }
+      model = {
+        ...model,
+        ...(!isTurn && { source }),
+        selectedPath: null,
+        dialogView: 'list',
+      }
+
       redraw(engine)
+      void showSource(engine, source).catch(() => undefined)
     },
     toggleAsk: path => {
+      if (PaneState.pickedTurnOf(model)) {
+        return
+      }
+
       if (armed?.path === path) {
+        pressed = null
         disarm(engine)
         redraw(engine)
 
         return
       }
 
-      arm(engine, path)
+      if (pressed?.path === path) {
+        pressed = null
+
+        return
+      }
+
+      arming = arm(engine, path).catch(() => undefined)
     },
   })
 
-  function arm(engine: Host, path: string) {
-    armed = Ask.armedAskOf(
+  function refuse(engine: Host, path: string, why: 'denied' | 'unsure') {
+    if (armed?.path === path) {
+      disarm(engine)
+    }
+
+    const refused = Names.askRefusedTextOf(Views.sanitizeName(path), why)
+    const kept = armed && Views.sanitizeName(armed.path)
+
+    engine.status(
+      kept ? `${refused}; ${kept} still rides your next prompt` : refused,
+    )
+
+    redraw(engine)
+
+    if (why === 'denied') {
+      void showSource(engine).catch(() => undefined)
+    }
+  }
+
+  const refusalOf = (engine: Host, file: Access.NamedFile) =>
+    rootsOf(engine)
+      .then(roots => Access.askRefusalOf(engine, file, roots))
+      .catch(() => 'unsure' as const)
+
+  async function recheckArmed(engine: Host): Promise<void> {
+    const asked = armed
+    const why = asked && (await refusalOf(engine, asked))
+
+    if (asked && why && armed === asked && carrying !== asked) {
+      refuse(engine, asked.path, why)
+    }
+  }
+
+  async function arm(engine: Host, path: string): Promise<void> {
+    const press = { path }
+
+    pressed = press
+
+    const row = model.data?.files.find(file => file.path === path)
+    const named = row && rowNamed(row)
+
+    const asked = Ask.armedAskOf(
       path,
-      PaneState.pickedTurnOf(model)?.files.find(file => file.path === path)
-        ?.hunks ??
-        model.bodies.get(path)?.hunks ??
-        [],
+      model.bodies.get(path)?.hunks ?? [],
       model.words.toldOf?.(path),
     )
 
+    const why = named ? await refusalOf(engine, named) : 'unsure'
+
+    if (press !== pressed) {
+      return
+    }
+
+    pressed = null
+
+    if (why || !named) {
+      refuse(engine, path, why ?? 'unsure')
+
+      return
+    }
+
+    armed = { ...asked, ...named }
     model = { ...model, armedPath: path }
 
     engine.status(
@@ -934,9 +1295,13 @@ export function register(on: On) {
 
   async function bind(engine: Host, cwd: string): Promise<void> {
     sessionStartMs = (await startedAtOf(engine)) ?? (await engine.now())
-    const copy = await engine.detect({ path: cwd }).catch(() => null)
+    const copy = await engine.detect({ path: cwd }).catch(() => undefined)
 
     pin.cwd = copy?.vcs === 'git' ? copy.root : cwd
+
+    if (copy !== undefined) {
+      detectedRoots.set(cwd, copy?.root ?? null)
+    }
 
     try {
       await engine.registerCommand(COMMAND_SPEC)
@@ -958,6 +1323,16 @@ export function register(on: On) {
         every: (ms, fn) => $.clock.every(ms, fn),
         run: (argv, init) => $.process.run(argv, init),
         stat: path => $.fs.stat(path),
+        resolve: path => $.fs.stat(path, { resolve: true }),
+        checkRead: (tool, path) =>
+          $.tool.check({
+            tool,
+            input:
+              tool === 'Read' ? { file_path: path } : { pattern: 'x', path },
+          }),
+        rulesKey: async () =>
+          JSON.stringify((await $.settings.read()).permissions ?? null),
+        cwd: () => $.session.cwd(),
         listDir: path => $.fs.list(path),
         readFile: path => $.fs.read(path),
         detect: async input => $.vcs.detect(input),
@@ -1028,6 +1403,7 @@ export function register(on: On) {
       const trigger = awaited
 
       awaited = null
+      await askAgain(host)
       void showKept(host, trigger).catch(() => undefined)
     }
 
@@ -1280,7 +1656,11 @@ export function register(on: On) {
     bodyStamp = null
     bodyBase = null
     bodyLoads.clear()
+    pressed = null
     disarm(host)
+    turns = []
+    picks += 1
+    wanted = null
     model = PaneState.afterNewSession(model)
 
     sessionStartMs =
@@ -1360,6 +1740,16 @@ export function register(on: On) {
   })
 
   on('prompt.submit', async ($, e, next) => {
+    if (hasUntold) {
+      rechecksDue = 2
+    }
+
+    await arming
+
+    if (host && armed && carrying !== armed) {
+      await recheckArmed(host)
+    }
+
     const asked = armed
 
     if (!host || !asked || carrying === asked) {

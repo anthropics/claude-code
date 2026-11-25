@@ -26,7 +26,8 @@ the person never chose, 110 when they kept it open before; a person who
 closed it is left alone) and file checkpointing is on; a subagent's edit or
 a shell command never makes the first ask, and where the surface does not
 say, nothing opens by itself. A docked pane fetches before it opens, as the
-built-in panel primes its data, so it never lands on `Loading diff…`.
+built-in panel primes its data, so it lands on `Loading diff…` only when a
+fetch was already running.
 
 An open nobody asked for starts its own fetch, after any fetch already
 running. It opens the pane only if that fetch succeeds and lists a file, and
@@ -58,6 +59,7 @@ Enter shows that file's hunks alone,
 Escape backs out to the list and then closes, leaving `Diff dialog
 dismissed`; toasts show while it is up, as beside the docked pane. A file's
 ask button arms that file: its hunks ride the next prompt as context, once.
+A past turn's files have no ask button.
 
 The pane compares the working tree against HEAD, split at the session's
 start (the default; the start the engine gives in `$.session.usage()`, so a
@@ -120,6 +122,11 @@ pane, `/diff`, switching the base, `/clear` and `/resume` skip this wait, but
 still queue behind a fetch already running. An open nobody asked for skips it
 only on its first ask: later asks hold until the wait ends, and then one runs.
 
+As in the built-in panel, files under a `Read` deny rule are left out and
+counted as read-denied; files whose rules can't be checked are left out too
+and counted as not shown. Ask attaches the project's own files; for another
+it says that it can't be attached.
+
 `hooks/register.ts` is the module; everything under `hooks/` is its parts.
 
 ## What it hooks
@@ -137,14 +144,15 @@ only on its first ask: later asks hold until the wait ends, and then one runs.
 | `tool.call` of `Edit`, `Write`, `NotebookEdit` | After an edit that landed (not refused, not failed), refreshes an open pane. The main loop's first such edit pins the repository and asks to open the pane if the terminal has the room and checkpointing is on; after an ask that did not open it, any edit that lands asks again. |
 | `tool.call` of `Bash`, `PowerShell` | After a command that was not refused, failed and interrupted ones too, refreshes an open pane; after an ask that did not open the pane, also asks to open it. |
 | `turn.complete` | At the end of a main-loop turn with the pane seen, has the next poll ask another system's `revision` anew. |
-| `prompt.submit` | Adds the armed file's hunks to the prompt's context and disarms. |
+| `prompt.submit` | Checks the armed file again, adds its hunks to the prompt's context and disarms. |
 
 ## What it calls on `$`
 
 `clock.after`, `clock.every`, `clock.now`, `command.register`, `env.get`
 (`CLAUDE_CODE_DISABLE_FILE_CHECKPOINTING`), `fs.list`, `fs.read`, `fs.stat`,
-`process.run` (git, read-only), `session.id`, `session.messages`,
-`settings.read`, `store.get`, `store.set`, `telemetry.log`, `telemetry.mark`,
+`process.run` (git, read-only), `session.cwd`, `session.id`,
+`session.messages`, `settings.read`, `store.get`, `store.set`,
+`telemetry.log`, `telemetry.mark`, `tool.check` (`Read`, `Grep`, `Glob`),
 `ui.close`, `ui.invalidate`, `ui.log`, `ui.open`, `ui.resolve`, `ui.status`,
 `vcs.detect`, `vcs.diff`.
 

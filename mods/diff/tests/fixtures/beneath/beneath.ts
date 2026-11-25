@@ -27,7 +27,9 @@ export type Beneath = {
    * What `$.session.messages` answers each time it is read, as a resumed
    * session's transcript already holds turns; empty when not given.
    */
-  messages?: () => readonly SessionMessage[]
+  messages?: () =>
+    | readonly SessionMessage[]
+    | Promise<readonly SessionMessage[]>
 
   /**
    * Whether an open made now is left waiting undrawn (LEFT_WAITING), as an
@@ -46,4 +48,23 @@ export type Beneath = {
    * outran its timeout; answered from the script when null or not given.
    */
   hunksRefusal?: () => string | null
+
+  /**
+   * What `$.session.cwd` answers; where the session started when not given.
+   */
+  cwd?: () => string
+
+  /**
+   * The verdict on a Read of the path: `deny` by a rule on the path, `off`
+   * by one on the tool; `allow` when not given.
+   */
+  readOf?: (
+    path: string,
+  ) => 'allow' | 'deny' | 'off' | Promise<'allow' | 'deny' | 'off'>
+
+  /**
+   * Where a path lands: null with nothing there, undefined when it cannot
+   * be told; the path itself when not given.
+   */
+  landingOf?: (path: string) => string | null | undefined
 }

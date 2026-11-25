@@ -4,6 +4,7 @@
 import type { RenderElement } from 'claude-code'
 
 import Limits from '../../limits'
+import Names from '../../names'
 import PaneState from '../../pane-state'
 import Detail from '../detail'
 import Entries from '../entries'
@@ -73,12 +74,30 @@ export function dialogPane(
         ? `Diff unavailable (${Layout.sanitizeName(model.unknownReason)})`
         : 'No changes yet'
 
-  const message = entries.length > 0 ? null : emptyWords
+  const deniedCount = PaneState.deniedCountOf(model)
+  const denied = deniedCount > 0 ? ` \u00b7 ${deniedCount} read-denied` : ''
+  const waiting = turn ? (turn.uncheckedCount ?? 0) : model.unchecked.length
+  const uncounted = turn ? [] : model.unchecked
+  const notShown = waiting > 0 ? ` \u00b7 ${waiting} not shown` : ''
+
+  const message =
+    entries.length > 0
+      ? null
+      : waiting > 0
+        ? Names.uncheckedTextOf(model.isLoading)
+        : deniedCount > 0
+          ? 'Only read-denied files changed'
+          : emptyWords
 
   const subtitle = totals && (
     <Text dimColor wrap="truncate-end">
       {`${Layout.plural(totals.filesCount, 'file')} changed `}
-      {Sections.diffStat(kit, totals.linesAdded, totals.linesRemoved)}
+      {Sections.diffStat(
+        kit,
+        uncounted.reduce((sum, one) => sum - one.added, totals.linesAdded),
+        uncounted.reduce((sum, one) => sum - one.removed, totals.linesRemoved),
+      )}
+      {denied + notShown}
     </Text>
   )
 

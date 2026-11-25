@@ -22,4 +22,5 @@ export type DockPlan = {
   notes: readonly string[]
   message: readonly string[]
   isUntrackedNoted: boolean
+  deniedCount: number
 }

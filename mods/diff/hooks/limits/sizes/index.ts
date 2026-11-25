@@ -1,4 +1,5 @@
 export * from './bytes'
+export * from './checks-at-once.js'
 export * from './max-files.js'
 export * from './max-files-for-details.js'
 export * from './max-lines-per-file.js'

@@ -6,7 +6,8 @@ import type Git from '../../../git'
  *
  * Its name as listed, what kind of row it is, its hunks once read (undefined
  * while they load, null when the backend could not read them), whether it is
- * armed for the next prompt, and the backend's words for an untracked note.
+ * armed for the next prompt or a past turn's, and the backend's words for an
+ * untracked note.
  */
 export type DetailModel = {
   words: Pick<Backend.BackendWords, 'untrackedNoteOf'>
@@ -16,4 +17,5 @@ export type DetailModel = {
   isBinary: boolean
   body: Git.FileHunks | null | undefined
   isArmed: boolean
+  isTurnFile?: boolean
 }

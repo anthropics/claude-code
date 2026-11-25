@@ -21,13 +21,14 @@ export function bodyLayoutOf(
   const segments = Segments.segmentsOf(model, plan)
   const window = Segments.listWindowOf(model, plan)
   const hasNoise = !plan.turn && plan.partition.noiseCount > 0
+  const hasDenied = plan.deniedCount > 0
   const isListed = plan.message.length === 0
-  const hasList = isListed && (plan.rows.length > 0 || hasNoise)
+  const hasList = isListed && (plan.rows.length > 0 || hasNoise || hasDenied)
 
   const listRows = hasList
     ? window.shown.length +
       Number(window.above > 0) +
-      Number(window.below > 0 || plan.totals.notShown > 0) +
+      Number(window.below > 0 || hasDenied || plan.totals.notShown > 0) +
       Number(plan.isUntrackedNoted) +
       Number(hasNoise) +
       2

@@ -8,4 +8,14 @@ export type TurnDiff = {
   index: number
   preview: string
   files: readonly TurnFile[]
+
+  /**
+   * How many of its files are left out as read-denied; none when absent.
+   */
+  deniedCount?: number
+
+  /**
+   * How many are left out until answered for; none when absent.
+   */
+  uncheckedCount?: number
 }

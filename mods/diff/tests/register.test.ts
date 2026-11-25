@@ -2494,6 +2494,9 @@ describe('register', () => {
 
   test('ask attaches the hunks on screen and calls no tool', async ($, on) => {
     const world = Fixtures.inRepository(on, Fixtures.oneSecret())
+
+    on('fs.list', () => ({ value: [] }))
+
     const called: Args<'tool.call'>[] = []
 
     on('tool.call', ($, e) => {
@@ -2534,6 +2537,8 @@ describe('register', () => {
     const world = Fixtures.inRepository(on, Fixtures.oneSecret())
     const full = 'x'.repeat(Limits.PROMPT_CONTEXT_MAX_CHARS)
     const reached: (readonly string[] | undefined)[] = []
+
+    on('fs.list', () => ({ value: [] }))
 
     on('prompt.submit', ($, e) => {
       reached.push(e.context)

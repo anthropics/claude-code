@@ -45,6 +45,29 @@ export type Host = {
   stat: (path: string) => Promise<FsStat>
 
   /**
+   * `$.fs.stat` with `resolve`: also where the path lands.
+   */
+  resolve: (path: string) => Promise<Pick<FsStat, 'realPath'>>
+
+  /**
+   * `$.tool.check` of the tool reading the path.
+   */
+  checkRead: (
+    tool: 'Read' | 'Grep' | 'Glob',
+    path: string,
+  ) => ReturnType<EngineInterface['tool']['check']>
+
+  /**
+   * The settings' permissions as text, to tell when they change.
+   */
+  rulesKey: () => Promise<string>
+
+  /**
+   * `$.session.cwd`.
+   */
+  cwd: () => Promise<string>
+
+  /**
    * `$.fs.list`: a directory's entries as they stand, links never followed.
    */
   listDir: (path: string) => Promise<FsEntry[]>

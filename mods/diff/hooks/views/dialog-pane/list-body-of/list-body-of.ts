@@ -1,9 +1,10 @@
 import type Git from '../../../git'
+import Names from '../../../names'
 import type { ListPlace } from './list-place'
 
 /**
  * The list's body as ReplDiffSidebarBody decides it: the empty state's
- * hint, the too-many state, the only-noise state, or the session's rows.
+ * hint, the too-many state, an all-hidden state, or the session's rows.
  *
  * Strings are dim lines; rows are files to draw.
  *
@@ -21,8 +22,14 @@ export function listBodyOf(
     return hint === null ? [] : [hint]
   }
 
+  if (partition.shown.length === 0 && partition.unchecked.length > 0) {
+    return [Names.uncheckedTextOf(place.isLoading)]
+  }
+
   const isTooMany =
-    data !== null && data.files.length === 0 && totals.filesCount > 0
+    data !== null &&
+    data.files.length + partition.denied.length === 0 &&
+    totals.filesCount > 0
 
   if (isTooMany) {
     return [
@@ -32,6 +39,18 @@ export function listBodyOf(
   }
 
   const isOnlyNoise = partition.shown.length === 0 && partition.noiseCount > 0
+
+  if (partition.shown.length === 0 && partition.denied.length > 0) {
+    return isOnlyNoise
+      ? [
+          'Only hidden files changed',
+          'Read-denied, test, and generated files are hidden in this panel',
+        ]
+      : [
+          'Only read-denied files changed',
+          'Read-denied files are hidden in this panel',
+        ]
+  }
 
   return isOnlyNoise
     ? [
