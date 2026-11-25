@@ -5726,6 +5726,7 @@ declare module 'claude-code' {
        * a deny after it too. `$.tool.check` runs the same chain, executing nothing.
        * A settings `mcp_tool` hook's call passes here too (`next.origin`), and
        * so may a plugin's file or process call, for a matcher that names `op`.
+       * A call sent to another machine to decide is heard, and only tightened.
        * On a call to the person's devices from off their machine a hook only
        * tightens, here, at `tool.judge` and at the classic permission events.
        *
@@ -14736,8 +14737,13 @@ declare module 'claude-code' {
        *
        * Heard only by a matcher whose `component` names `"Ask"` as a string. Every
        * prop is read-only. A tree holds the engine's node once, nothing below it,
-       * and `Box`, `Text`, `Link`, `Code` and `Markdown` alone: no size, place,
-       * `hover` or `onLinkPress`.
+       * and `Box`, `Text`, `Link`, `Code` and `Markdown` alone, with no `hover` or
+       * `onLinkPress`. A `Box` takes direction, alignment, `flexShrink`, border,
+       * background and spacing alone, in whole numbers from 0; one that holds the
+       * engine's node or a `Code` is drawn as a column of full width, with no
+       * margin or padding at its sides. Only an organization's plugin answers past
+       * half a tree's depth or 10,000 values, each 16 characters of text counting
+       * as one.
        *
        * The engine draws its prompt at once, and the tree above it once answered,
        * a wrapper's border or padding around the tree's own part only. That part
@@ -14748,7 +14754,8 @@ declare module 'claude-code' {
        * scrolls it: once the transcript fills the view, it has no row. Elsewhere,
        * and for a screen reader, the first tree holds for these props while a
        * plugin hears them (answer `next(e)` until there is something to say) and
-       * runs into scrollback.
+       * runs into scrollback; it gives way when an organization's plugin draws
+       * something else.
        *
        * An ask that another session or agent forwards here is heard too; one that
        * fullscreen shows without the transcript is not, nor is any other dialog.
