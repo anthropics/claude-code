@@ -2515,7 +2515,7 @@ declare module 'claude-code' {
        * Set when it needs no workspace, so that a terminal attached to a cloud
        * session lists it and runs it here instead of sending the line on.
        *
-       * There `$.session`, `$.fs` and `$.process` are this machine's, not the
+       * There `$.fs` and `$.process` are this machine's, not the
        * cloud session's.
        */
       isWorkspaceFree?: true;
@@ -3311,6 +3311,26 @@ declare module 'claude-code' {
            * await $.ui.place({ id: "build" })
            */
           place: (args: UiPlaceArgs) => Promise<UiPlaceResult>;
+          /**
+           * Draws a plugin's component (PluginComponents) inside the drawing a
+           * `ui.render` hook is making, and answers the tree to place in its own.
+           *
+           * Raised as `ui.render` at that address, on this drawing's surface. The
+           * placed tree is held to this site's rules and redraws with it. A press,
+           * input, pick or focus in it carries this site's `component` and
+           * `requestId` and its drawer's `plugin`: key each instance's apart.
+           *
+           * A hook never hears a raise made while it runs, as on any event: under
+           * one hook answering both a form and the list inside it, or a list inside
+           * a list, the inner one is empty. Give each component, or each level, a
+           * hook of its own, or draw the inner one first and pass it in `props`.
+           *
+           * @returns the tree; an empty Box where no hook drew; rejects outside a
+           *          `ui.render` hook, and once its drawing has settled
+           * @example
+           * const card = await $.ui.render({ plugin: "notes", component: "card", props })
+           */
+          render: (args: UiRenderArgs) => Promise<RenderElement>;
           /**
            * Scrolls something into view as the DOM's `scrollIntoView` would: a
            * render instance by `requestId`, an element by `key`, a site's edge.
@@ -5856,13 +5876,15 @@ declare module 'claude-code' {
        * 50 ms, `$` calls included, the key goes on. Unmatched keys raise no wait.
        *
        * @remarks Never raised under the engine's own question, dialog, menu or
-       *   search, in an agent's view, or in a pane or the band while a question
-       *   waits; nor for Ctrl+C, Ctrl+D, Ctrl+Z, a chord, a Cmd key, a paste, keys
-       *   read at once, or a character alone in the box (or Enter on it) that a row
-       *   above takes as its answer. Escape is, in a turn too (taken, the turn goes
-       *   on); in a pane or the band, while the key that closes or folds it is bound.
+       *   search, in an agent's view (but for a pane open as a dialog), or in a pane
+       *   or the band while a question or another dialog waits; nor for Ctrl+C,
+       *   Ctrl+D, Ctrl+Z, a chord, a Cmd key, a paste, keys read at once, or a
+       *   character alone in the box (or Enter on it) that a row above takes as its
+       *   answer. Escape is, in a turn too (taken, the turn goes on); in a pane or
+       *   the band, while the key that closes or folds it is bound.
        * @remarks `$.ui.open`, `ask`, `view` and a `scroll` to a transcript row,
-       *   called before `next`, count as the person's own input and take the key.
+       *   called before `next`, count as the person's own input (for ten seconds
+       *   at most) and take the key.
        * @example
        * on("ui.key", { component: "Prompt", key: "escape" }, () => ({}))
        */
@@ -10877,8 +10899,9 @@ declare module 'claude-code' {
        * is the terminal's too, under the plugin's name: first in, first out, behind
        * a dialog or notice already open, and beneath every permission prompt or
        * question, whose arrival takes it off screen until answered (one waits once
-       * the person types in its Input). Early keys are dropped. As with `$.ui.ask`,
-       * only Escape closes it (or a pane's ctrl+x x): Ctrl+C is the turn's.
+       * the person types in its Input, or just after a `ui.key` hook took a key).
+       * Early keys are dropped. As with `$.ui.ask`, only Escape closes it (unless a
+       * `ui.key` hook takes it), or a pane's ctrl+x x: Ctrl+C is the turn's.
        * `/clear` unloads it, but over a prompt that waits it stays, and so does
        * queued input. A second one opened from the first shows once the first has
        * closed, so awaiting it before closing the first waits until the person
@@ -14949,7 +14972,8 @@ declare module 'claude-code' {
            * Bash), the same one `ToolUse.output` carries; a rewrite is drawn.
            *
            * A built-in tool's is `BuiltinToolResults[tool]`, the record
-           * `tool.call` resolved as `result`.
+           * `tool.call` resolved as `result`, less its text where a
+           * `session.append` hook rewrote the result.
            */
           output: unknown;
           /**
@@ -16249,7 +16273,10 @@ declare module 'claude-code' {
    * The input of `session.append`: one row being appended to a conversation of
    * this session, by the engine site that originates it or by a plugin's call.
    *
-   * Not on `e`, so stored as made: a tool result's structured record, the row's
+   * Where `content` is rewritten, what is not on `e` is cut to ids, paths, names,
+   * kinds and counts, and a text that readers need is rebuilt from `content`.
+   *
+   * Otherwise stored as made: a tool result's structured record, the row's
    * timestamps, parent links and provenance stamps, an attachment's payload
    * (the model reads its recorded rendering, which `content` rewrites; one that
    * `prompt.attachment` changed comes without the engine's text).
@@ -16360,6 +16387,8 @@ declare module 'claude-code' {
    * `next(e)` resolves once the row is kept. A hook relays it unchanged: one
    * that answers without `next`, or another row, is skipped. Only a plugin's own
    * append (door `note`) may be refused, in place of `next`: nothing is stored.
+   * After a resume, an announcement that a hook rewrites to what the
+   * conversation already says is neither stored nor sent a second time.
    *
    * A plugin's own `user` row resolves once it is accepted, as the row asked
    * for. The request that carries it stores it, as a `plugin_note` attachment,
@@ -21065,7 +21094,8 @@ declare module 'claude-code' {
        *
        * Absent when nothing was stored. Headless (`-p`), a tool may store the
        * record less its bulk (Bash blanks `stdout`), and a subagent's transcript
-       * stores none; `text` is what the model read either way.
+       * stores none; `text` is what the model read either way. Where a
+       * `session.append` hook rewrote the result, it is the record less its text.
        */
       result?: unknown;
       /**
@@ -21075,7 +21105,8 @@ declare module 'claude-code' {
        * `anthropic/sources` is handed over only from the session's own relay to a
        * connector; `claude/plugins` is any server's own claim. A key over
        * 256 KiB is left out and named in the list under `"claude/omitted"`, and
-       * so is `claude/plugins` where a `tool.run` hook replaced the result.
+       * so is `claude/plugins` where a `tool.run` hook replaced the result, and
+       * each key where a `session.append` hook rewrote it.
        *
        * Off by default. Absent on an error result, and when the server
        * addressed nothing; a subagent's transcript keeps at most 8 KiB.
@@ -21158,7 +21189,8 @@ declare module 'claude-code' {
        *
        * Absent while the call is in flight or when nothing was stored. Headless
        * (`-p`), a tool may store the record less its bulk (Bash blanks `stdout`)
-       * and a subagent's transcript stores none; `text` holds either way.
+       * and a subagent's transcript stores none; `text` holds either way. Where a
+       * `session.append` hook rewrote the result, it is the record less its text.
        */
       result?: unknown;
       /**
@@ -21195,7 +21227,8 @@ declare module 'claude-code' {
        * `anthropic/sources` is handed over only from the session's own relay to a
        * connector; `claude/plugins` is any server's own claim. A key over
        * 256 KiB is left out and named in the list under `"claude/omitted"`, and
-       * so is `claude/plugins` where a `tool.run` hook replaced the result.
+       * so is `claude/plugins` where a `tool.run` hook replaced the result, and
+       * each key where a `session.append` hook rewrote it.
        *
        * Off by default. Absent on an error result, and when the server
        * addressed nothing; a subagent's transcript keeps at most 8 KiB.
@@ -22557,6 +22590,35 @@ declare module 'claude-code' {
        */
       element: string;
   };
+
+  /**
+   * The argument of `$.ui.render`: one variant per component a contract
+   * declares (PluginComponents); the untyped one while none does.
+   */
+  export type UiRenderArgs<Site = PluginRenderInput> = Site extends {
+      plugin: infer Plugin;
+      component: infer C;
+      props: infer Props;
+  } ? {
+      /**
+       * Whose component it is, written in the call as a literal.
+       */
+      plugin: Plugin;
+      /**
+       * Which of that plugin's components, written as a literal too.
+       */
+      component: C;
+      /**
+       * The instance its hooks read as `e.requestId`; left out, the one the
+       * calling hook draws.
+       */
+      requestId?: string;
+      /**
+       * Plain data, and elements for its hooks to place: each reaches them
+       * as an engine node, placed once, and comes back as passed.
+       */
+      props: Props;
+  } : never;
 
   /**
    * What a plugin's `$.ui.scroll(args)` takes: what to bring into view, in
