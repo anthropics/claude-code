@@ -5749,7 +5749,7 @@ declare module 'claude-code' {
        * `next(e)` answers `ask` and only a hook's deny counts; there an Agent or
        * SendMessage call is refused, and a command the sandbox auto-allows runs, with
        * none raised. Where the server judges, a script's edits, file commands (`rm`,
-       * `mv`) and read-only commands inside the project raise none, though direct
+       * `cp`) and read-only commands inside the project raise none, though direct
        * calls can: guard those at `tool.check`.
        *
        * @remarks A hook that fails is skipped and the classifier decides, so give
@@ -5971,7 +5971,7 @@ declare module 'claude-code' {
        *
        * @remarks Where names stay off the tab, `text` is the engine's, under two
        *   marks at most: U+25A0-25FF shapes unlike a letter, U+2733, `>` or `*`;
-       *   `progress` is not shown.
+       *   `progress` shows only as `busy`, while `status` is.
        * @example
        * on("ui.title", ($, e, next) => next({ ...e, text: `api: ${e.text}` }))
        */
@@ -23135,7 +23135,7 @@ declare module 'claude-code' {
       marks?: readonly string[];
       /**
        * The terminal's progress bar: a percent from 0 to 100, `busy` or `error`.
-       * Left out, the engine's own shows. Needs the progress bar setting on.
+       * Left out, no bar shows. Needs the progress bar setting on.
        */
       progress?: number | 'busy' | 'error';
   };
