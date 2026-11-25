@@ -1587,13 +1587,15 @@ declare module 'claude-code' {
        */
       label?: string;
       /**
-       * One digit (`"1"`) or one lowercase letter (`"w"`) that presses it while
-       * the plugin's site holds the focus; anything else is refused.
+       * One digit (`"1"`), lowercase letter (`"w"`) or ASCII punctuation mark
+       * (`"/"`) that presses it while the plugin's site holds the focus; anything
+       * else, a space too, is refused.
        *
        * Its site holds it after ctrl+x tab, a click or `open({ focus })`: the band
        * or its `Pane`; never the composer, save that a bare digit in an empty one
-       * answers a band Button (a survey). Shift+w is `"w"`. Two of one plugin on
-       * one hotkey: the later wins. Two plugins on one hotkey: it presses neither.
+       * answers a band Button (a survey). Shift+w is `"w"`; a mark is matched as
+       * typed, so Shift+/ is `"?"` on a US layout. Two of one plugin on one
+       * hotkey: the later wins. Two plugins on one hotkey: it presses neither.
        */
       hotkey?: string;
       /**
@@ -3256,7 +3258,7 @@ declare module 'claude-code' {
            *   is painted under its body), `rows` / `columns` wanted, `placement` (the
            *   seat to start in: `"widget"`, its small form on the desktop app, or
            *   `"dialog"`, the terminal's own, from a command the person typed) and
-           *   `escapeAction` (that dialog's word for Escape)
+           *   `escapeAction` (that dialog's word for Escape); `wait`, for its close
            * @returns `{ isPlaced: true }` once drawn (or retitled), else `{ isPlaced:
            *   false, reason }` (UiOpenResult); the seat it got is on `Pane` props
            * @example
@@ -3277,7 +3279,7 @@ declare module 'claude-code' {
            * A hook answering without `next` keeps the pane open, save on an unload
            * or the person's close of a `"dialog"`.
            *
-           * @param pane `id`: the id the pane was opened under
+           * @param pane `id`: the id it was opened under; `value`: what a `wait` gets
            * @returns settles once the pane is gone or a hook answered for it;
            *          rejects on a hook's `{ deny }`
            * @example
@@ -5837,13 +5839,15 @@ declare module 'claude-code' {
        * Fires when the terminal tab's title is due: a key of `e` changed, the
        * plugins on this event did, or `$.ui.invalidate("ui.title")` asked.
        *
-       * `next(e)` resolves to `{ text, marks? }`; rewrite either. The engine's own
-       * title shows until a hook first answers another; from then the last one
-       * stays until the next lands. An answer to an older `e` is dropped. Never
-       * per tick, only in an interactive terminal, and not while titles are off.
+       * `next(e)` resolves to `{ text, marks?, progress? }`; rewrite any. The
+       * engine's own title shows until a hook first answers another; from then
+       * the last one stays until the next lands. An answer to an older `e` is
+       * dropped. Never per tick, only in an interactive terminal. While titles
+       * are off it fires only where `progress` would show, and that alone is read.
        *
        * @remarks Where names stay off the tab, `text` is the engine's, under two
-       *   marks at most: U+25A0-25FF shapes unlike a letter, U+2733, `>` or `*`.
+       *   marks at most: U+25A0-25FF shapes unlike a letter, U+2733, `>` or `*`;
+       *   `progress` is not shown.
        * @example
        * on("ui.title", ($, e, next) => next({ ...e, text: `api: ${e.text}` }))
        */
@@ -7619,6 +7623,7 @@ declare module 'claude-code' {
    * not counted while `next(e)`, `$.ui.ask`, `$.tool.call`, `$.agent.call`,
    * `$.agent.spawn` or `$.mcp.call` is in flight, and not at all for a `tool.call`
    * or `tool.run` hook on a tool its own plugin registered: it is that tool's body.
+   * A `$.ui.open` with `wait` counts as `$.ui.ask` does.
    *
    * @example
    * await $.model.complete(ask) // a minute; next.budget.remainingMs unmoved
@@ -10536,6 +10541,11 @@ declare module 'claude-code' {
        * keeps the pane open on `plugin` and `person`, never on `unload`.
        */
       origin: PaneCloseOrigin;
+      /**
+       * What an open with `wait` resolves with: plain data (JsonValue) of at most
+       * 100000 characters, else refused. A hook may set, rewrite or drop it.
+       */
+      value?: unknown;
   };
 
   /**
@@ -10672,6 +10682,7 @@ declare module 'claude-code' {
        * With nothing drawn in it, it closes with origin `unload`. Closed by
        * anything but the person while a prompt waits, it leaves the engine's empty
        * frame up until they close that.
+       * With `wait`, an open this does not seat is granted it on the terms there.
        *
        * @remarks Each open sets it anew, but a surface is meant to read it only when
        *   it first shows the pane: another open of the dialog retitles it. A
@@ -10687,6 +10698,36 @@ declare module 'claude-code' {
        * `"cancel"`, which changes the word alone. Read only while it is the dialog.
        */
       escapeAction?: 'close' | 'cancel';
+      /**
+       * The call resolves once the pane has closed, with whose close it was and
+       * the `value` it carried (UiOpenResult); the person's close carries none.
+       *
+       * The hook's clock stops as for `$.ui.ask`; its turn aborted or the plugin
+       * unloaded, the pane closes (`unload`). Where no surface places panes the
+       * call answers `{ isPlaced: false, reason }` at once and opens none. A
+       * surface that detaches ends no wait: the one that returns draws the pane.
+       *
+       * A typed command's `"dialog"` is seated as without `wait`. Any other hook's
+       * is the terminal's too, under the plugin's name: first in, first out, behind
+       * a dialog or notice already open, and beneath every permission prompt or
+       * question, whose arrival takes it off screen until answered (one waits once
+       * the person types in its Input). Early keys are dropped. As with `$.ui.ask`,
+       * only Escape closes it (or a pane's ctrl+x x): Ctrl+C is the turn's.
+       * `/clear` unloads it, but over a prompt that waits it stays, and so does
+       * queued input. A second one opened from the first shows once the first has
+       * closed, so awaiting it before closing the first waits until the person
+       * closes that. An `onPress` awaiting either past ten seconds may be reported
+       * over its budget, as one awaiting `$.ui.ask` may, and still gets its answer.
+       *
+       * @remarks A `ui.open` hook may drop it, never add it, or answer with a
+       *   `value`, which closes what its `next(e)` opened; a `ui.close` hook is
+       *   refused a wait on the pane it hears of. An id already the dialog, or
+       *   waiting undrawn, stays so. A pane that is no dialog, as on another
+       *   surface, outlasts `/clear`; Escape closes it only with `closeOnEscape`.
+       * @example
+       * const closed = await $.ui.open({ id: "pick", wait: true })
+       */
+      wait?: true;
   };
 
   /**
@@ -13969,8 +14010,9 @@ declare module 'claude-code' {
            */
           label: string;
           /**
-           * One digit (`"1"`) or one lowercase letter (`"w"`) that presses it
-           * while the plugin's site holds the focus; anything else is refused.
+           * One digit (`"1"`), lowercase letter (`"w"`) or ASCII punctuation
+           * mark (`"/"`) that presses it while the plugin's site holds the
+           * focus; anything else, a space too, is refused.
            *
            * The band after ctrl+x tab or a click, a focused `Pane`: on keydown,
            * lowercased; never from the composer, save a bare digit in an empty
@@ -21985,6 +22027,16 @@ declare module 'claude-code' {
        * `ui.render` for `{ component: "Pane", requestId: id }` follows.
        */
       isPlaced: true;
+      /**
+       * With `wait`, whose close ended it: the pane was placed and is gone.
+       * A `ui.open` hook above may have answered it in the close's place.
+       */
+      origin?: PaneCloseOrigin;
+      /**
+       * With `wait`, the `value` the close carried as the `ui.close` hooks
+       * left it; absent where it carried none, as on the person's Escape.
+       */
+      value?: unknown;
   } | {
       /**
        * False: the pane is open but undrawn: opened unasked on a narrow
@@ -22042,6 +22094,7 @@ declare module 'claude-code' {
        * It turns true when the person opens the pane or the terminal is widened
        * to its floor (UiOpenResult `reason`). False on every row, none shown or
        * focused, while an open answers `no-surface`.
+       * False too for a dialog opened with `wait` while it is not on screen.
        */
       isPlaced: boolean;
   };
@@ -22567,6 +22620,11 @@ declare module 'claude-code' {
        * 960 ms while the terminal has focus; the first shows unless `isAnimated`.
        */
       marks?: readonly string[];
+      /**
+       * The terminal's progress bar: a percent from 0 to 100, `busy` or `error`.
+       * Left out, the engine's own shows. Needs the progress bar setting on.
+       */
+      progress?: number | 'busy' | 'error';
   };
 
   /**
