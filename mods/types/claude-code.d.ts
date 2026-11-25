@@ -2408,11 +2408,6 @@ declare module 'claude-code' {
    *
    * Both are the plugin's to size, as a core command's output is; what bounds
    * them is what bounds any transcript row where a surface draws it.
-   *
-   * A command Claude Code leaves to a plugin (`/stickers`, `/radio`, `/diff`)
-   * belongs to the plugin that registered the name by literal, bundled or not:
-   * unless it ran the command itself or gave it an alias Claude Code keeps, its
-   * text shows under no name. CommandSpec's `isUnnamed` asks that for its own.
    */
   export type CommandRunResult = {
       /**
@@ -2525,15 +2520,6 @@ declare module 'claude-code' {
        * cloud session's.
        */
       isWorkspaceFree?: true;
-      /**
-       * Set so that this plugin's own answer shows with no plugin name where the
-       * person typed the command and no other hook changed its arguments.
-       *
-       * Any other run is named, and the command is listed as the plugin's. No
-       * effect where the name or an alias is one Claude Code ships.
-       * `claude plugin validate` notes it.
-       */
-      isUnnamed?: true;
   };
 
   type ConfigChangeHookInput = BaseHookInput & {
@@ -3093,12 +3079,9 @@ declare module 'claude-code' {
            *   request: the main conversation, or the agent `loop` names, a resting
            *   one when it next runs. An id no loop asks under does nothing. Nothing
            *   waits for the call: made as a hook answers, it can land a request late.
-           * @remarks `ui.title` is asked again a tenth of a second on, or that long
-           *   after an answer under way has landed; calls until then are folded.
            * @param event `ui.render`, or a cached-answer event: `prompt.section`,
            *   `prompt.context`, `prompt.attachment`, `tool/command/config.describe`,
-           *   `tool.list`, `tool.offer`, `ui.offer`, `ui.title`,
-           *   `ui.verbs` (ten a second at most)
+           *   `tool.list`, `tool.offer`, `ui.offer`
            * @param loop with `tool.offer` alone: `agentId`, as that event carries it
            * @example
            * $.ui.invalidate("tool.offer", { agentId: e.agentId })
@@ -3191,19 +3174,18 @@ declare module 'claude-code' {
            *
            * @remarks While the pane shown was opened `holdToasts`, by any plugin, it
            *   waits undrawn, its timer not started; past 50 waiting, an older leaves.
-           *   A headless or remote host is sent the joined text, and no removal.
+           *   A headless or remote host is sent the text, and no removal.
            * @param text the line to show, its first 2000 characters drawn (10000
-           *   remotely); an unpaired surrogate half in it is drawn as U+FFFD. Or up
-           *   to 32 runs (ToastRun), or `undefined` to remove the `key`'s line
+           *   remotely); an unpaired surrogate half in it is drawn as U+FFFD. Or
+           *   `undefined` to remove the `key`'s line
            * @param options `timeoutMs`: how long it stays (default 4000); `place`,
            *   `key` and `priority`: a line on the bar (ToastOptions)
            * @example
            * $.ui.toast(`turn took ${Math.round(e.durationMs / 1000)} s`)
            * @example
-           * $.ui.toast([{ text: "3 checks" }, { text: " failed", color: "error" }],
-           *   { place: "bar", key: "checks", priority: "low" })
+           * $.ui.toast("3 checks failed", { place: "bar", key: "checks" })
            */
-          toast: (text: string | readonly ToastRun[] | undefined, options?: ToastOptions) => void;
+          toast: (text: string | undefined, options?: ToastOptions) => void;
           /**
            * Raises a native notification of `text` through the person's own
            * notification channel, the one their `preferredNotifChannel` names.
@@ -3269,8 +3251,8 @@ declare module 'claude-code' {
            *   `closeOnEscape` and `holdToasts` (a dialog), `backgroundColor` (what
            *   is painted under its body), `rows` / `columns` wanted, `placement` (the
            *   seat to start in: `"widget"`, its small form on the desktop app, or
-           *   `"dialog"`, the terminal's own, from a command the person typed) and
-           *   `escapeAction` (that dialog's word for Escape); `wait`, for its close
+           *   `"dialog"`, the terminal's own, from a command the person typed);
+           *   `wait`, for its close
            * @returns `{ isPlaced: true }` once drawn (or retitled), else `{ isPlaced:
            *   false, reason }` (UiOpenResult); the seat it got is on `Pane` props
            * @example
@@ -3388,22 +3370,6 @@ declare module 'claude-code' {
            * onPress: press => $.ui.copy({ text: url, surface: press.surface })
            */
           copy: (args: UiCopyArgs) => Promise<UiCopyResult>;
-          /**
-           * Opens a web page in the person's browser, as Claude Code's own commands
-           * do (`$BROWSER`, else the system's opener), and says whether it did.
-           *
-           * Only from an interactive terminal session, on the machine it runs on.
-           * Raised as `ui.browse`, where a hook's deny rejects, then as `process.run`
-           * of the opener. A foreground `$BROWSER` holds it, 10 minutes at most.
-           *
-           * @param args `url`: http or https, no credentials; any other rejects
-           * @returns `{ isOpened: true, isTimedOut? }`, or
-           *          `{ isOpened: false, reason }`
-           * @example
-           * const { isOpened } = await $.ui.browse({ url })
-           * if (!isOpened) $.ui.log(`Open ${url} in your browser`)
-           */
-          browse: (args: UiBrowseArgs) => Promise<UiBrowseResult>;
           /**
            * Returns what the person last selected with the mouse: the text as a
            * copy would take it, and the transcript row it lies in.
@@ -3895,26 +3861,6 @@ declare module 'claude-code' {
            */
           redact: (text: string) => Promise<string>;
           /**
-           * Holds the machine the engine runs on awake (`true`), or gives the hold
-           * back (`false`): the event `session.awake`.
-           *
-           * One hold a plugin: a second `true`, and a `false` with nothing held,
-           * change nothing. The machine may idle to sleep 30 seconds after the last
-           * hold is given back; the display may sleep throughout. The engine gives
-           * a hold back as the plugin unloads, reloads or is turned off, not at
-           * `/clear`.
-           *
-           * @param isHeld whether this plugin holds the machine awake from now on
-           * @returns nothing, also where the engine cannot hold this machine's
-           *   sleep; rejects on the hosted server (SessionInfo `isHosted`)
-           * @example
-           * on("session.state", async ($, e, next) => {
-           *   await $.session.awake(e.status === "busy")
-           *   return next(e)
-           * })
-           */
-          awake: (isHeld: boolean) => Promise<void>;
-          /**
            * Has a headless run (`claude -p`, an SDK run whose input has ended) wait
            * at its exit until `work` settles: the event `session.waitUntil`.
            *
@@ -4062,22 +4008,6 @@ declare module 'claude-code' {
            * })
            */
           abort: (input: OpEventOf['turn.abort']) => Promise<void>;
-          /**
-           * Moves the main loop's running foreground commands and agents, and
-           * nothing else its turn waits on, to the background, so the turn goes on.
-           *
-           * The event `turn.background`; rejects as `abort` does. Only the model's
-           * own calls move, a command after about two seconds. None moves ahead of
-           * a call queued behind it, or while a prompt waits on the person. The
-           * person's Esc or Stop still ends a command moved this way, until its own
-           * timeout.
-           *
-           * @param input `turnId`: the id the main loop's `turn.start` carried
-           * @returns how many moved, and `isDisabled` where background tasks are off
-           * @example
-           * const { moved } = await $.turn.background({ turnId: held })
-           */
-          background: (input: OpEventOf['turn.background']) => Promise<TurnBackgroundResult>;
       };
       /**
        * Submitting a prompt the model reads as a user turn, and the person's
@@ -4322,8 +4252,7 @@ declare module 'claude-code' {
            *
            * @param command `name`, `description` (what the menu shows),
            *   `argumentHint` (dim after the name), `immediate` (runs mid-turn),
-           *   `aliases`, `isHidden`, `isTerminalOnly`, `isWorkspaceFree`,
-           *   `isUnnamed`
+           *   `aliases`, `isHidden`, `isTerminalOnly`, `isWorkspaceFree`
            * @returns `{ command }`, the registered name, and `dispose`
            * @example
            * await $.command.register({ name: "hello", description: "Says hi." })
@@ -5961,32 +5890,6 @@ declare module 'claude-code' {
        */
       'ui.offer': UiOfferInput;
       /**
-       * Fires when the terminal tab's title is due: a key of `e` changed, the
-       * plugins on this event did, or `$.ui.invalidate("ui.title")` asked.
-       *
-       * `next(e)` resolves to `{ text, marks?, progress? }`; rewrite any. The
-       * engine's own title shows until a hook first answers another; from then
-       * the last one stays until the next lands. An answer to an older `e` is
-       * dropped. Never per tick, only in an interactive terminal. While titles
-       * are off it fires only where `progress` would show, and that alone is read.
-       *
-       * @remarks Where names stay off the tab, `text` is the engine's, under two
-       *   marks at most: U+25A0-25FF shapes unlike a letter, U+2733, `>` or `*`;
-       *   `progress` shows only as `busy`, while `status` is.
-       * @example
-       * on("ui.title", ($, e, next) => next({ ...e, text: `api: ${e.text}` }))
-       */
-      'ui.title': UiTitleInput;
-      /**
-       * Fires for each of the terminal's two word lists as the plugins load or
-       * change, and at `$.ui.invalidate("ui.verbs")`. Answer `{ verbs }`.
-       * Outside a terminal it fires only as a client exports the conversation.
-       *
-       * @example
-       * on("ui.verbs", { tense: "done" }, () => ({ verbs: ["Shipped"] }))
-       */
-      'ui.verbs': UiVerbsInput;
-      /**
        * Fires when the engine offers an agent type to the model, in the agent
        * listing and again at dispatch; `next(e)` resolves to `{ isOffered: true }`.
        *
@@ -6849,26 +6752,6 @@ declare module 'claude-code' {
        */
       'turn.step': TurnStepInput;
       /**
-       * Fires just before a turn's request is sent, when it will break a prompt
-       * cache that is still warm; main's or a subagent's (`e.agentId`).
-       *
-       * A prediction from what the client changed: it cannot see expiry or a miss
-       * on the server. It fires inside `turn.step`'s `next`, once per request, and
-       * the request waits. Observe; `next(e)` echoes `{ causes }`.
-       *
-       * @remarks A compaction's rebuild fires none: its event is `session.compact`.
-       * @remarks `$.model.fork` from here forks the main thread's last request, but
-       *   what it reads as it is sent (effort, the tools offered) is already new.
-       * @example
-       * on("turn.recache", { causes: "model_changed" }, async ($, e, next) => {
-       *   if (e.agentId !== undefined) return next(e)
-       *   const notes = await $.model.fork({ prompt: "Summarize the work so far." })
-       *   if (notes.isAnswered) await $.store.set("handoff", notes.text)
-       *   return next(e)
-       * })
-       */
-      'turn.recache': TurnRecacheInput;
-      /**
        * Fires when a model turn has ended, at the point its duration is reported;
        * `next(e)` resolves to `{ text }`, the answer. `e.reason` says why.
        *
@@ -6999,14 +6882,6 @@ declare module 'claude-code' {
        * `{ isShown }`.
        */
       'ui.offer': UiOfferResult;
-      /**
-       * `{ text, marks? }`.
-       */
-      'ui.title': UiTitleResult;
-      /**
-       * `{ verbs }`.
-       */
-      'ui.verbs': UiVerbsResult;
       /**
        * `{ isOffered }`.
        */
@@ -7190,10 +7065,6 @@ declare module 'claude-code' {
        */
       'turn.step': TurnStepResult;
       /**
-       * `{ causes }`.
-       */
-      'turn.recache': TurnRecacheResult;
-      /**
        * `{ text }`.
        */
       'turn.complete': TurnCompleteResult;
@@ -7268,36 +7139,10 @@ declare module 'claude-code' {
           state: 'enabled' | 'disabled' | 'failed';
       }[] | undefined;
       /**
-       * The name the session was given (`/rename`, `--name`, `/branch`, its host
-       * or its service); not the title the engine makes up for a session with no
-       * name, nor the tab's text. `undefined` while it has none or the engine
-       * shows none, and told so when the session leaves the screen.
-       */
-      name: string | undefined;
-      /**
-       * The path that starts this program on this machine. Where the installer
-       * left a launcher it is that path, which stays the same past an update;
-       * else it is the running executable, which an update may remove. Each read
-       * looks again, and nothing else finds a change.
-       */
-      launcher: string;
-      /**
        * Whether the terminal window has the focus; `unknown` where the terminal
        * does not say, or there is none.
        */
       focus: 'focused' | 'blurred' | 'unknown';
-      /**
-       * Whether Remote Control is on for the session, and ready to be joined.
-       */
-      link: {
-          isOn: boolean;
-          isReady: boolean;
-      };
-      /**
-       * The engine's own answer for a policy or a remote switch, by an `id` that
-       * is a literal where it is read or heard. `undefined` while it has none.
-       */
-      gate: StateFamily<boolean | undefined>;
   };
 
   /**
@@ -7395,7 +7240,6 @@ declare module 'claude-code' {
       turn: {
           start: (input: TurnStartInput) => Promise<TurnStartResult>;
           step: (input: TurnStepInput) => HookStream<TurnStepChunk, TurnStepResult>;
-          recache: (input: TurnRecacheInput) => Promise<TurnRecacheResult>;
           complete: (input: TurnCompleteInput) => Promise<TurnCompleteResult>;
       };
       ui: {
@@ -7405,8 +7249,6 @@ declare module 'claude-code' {
           focus: (input: UiFocusArgs) => Promise<UiFocusResult>;
           tip: (input: UiTipInput) => Promise<UiTipResult>;
           offer: (input: UiOfferInput) => Promise<UiOfferResult>;
-          title: (input: UiTitleInput) => Promise<UiTitleResult>;
-          verbs: (input: UiVerbsInput) => Promise<UiVerbsResult>;
       };
   };
 
@@ -8395,14 +8237,14 @@ declare module 'claude-code' {
   };
 
   /**
-   * What `$.ui.invalidate` takes: a render event, or one of the eleven events
+   * What `$.ui.invalidate` takes: a render event, or one of the nine events
    * whose answers the engine keeps for the session.
    *
    * For `ui.render`, the instances this plugin's matchers on it may select: one
    * naming no `requestId`, every instance of its component. For a thread resumed
    * in a new process the recorded `prompt.section` text stands, asked or not.
    */
-  export type InvalidatableEventName = RenderEventName | 'prompt.section' | 'prompt.context' | 'prompt.attachment' | 'tool.describe' | 'tool.list' | 'tool.offer' | 'command.describe' | 'config.describe' | 'ui.offer' | 'ui.title' | 'ui.verbs';
+  export type InvalidatableEventName = RenderEventName | 'prompt.section' | 'prompt.context' | 'prompt.attachment' | 'tool.describe' | 'tool.list' | 'tool.offer' | 'command.describe' | 'config.describe' | 'ui.offer';
 
   /**
    * Whether tag key `K` selects members of `I`: it does when each member gives
@@ -8471,11 +8313,10 @@ declare module 'claude-code' {
   /**
    * The events whose overload must come after the rest, lest it shadow them.
    *
-   * `classic.PreToolUse` shares `tool.call`'s envelope, `turn.abort` and
-   * `turn.background` every turn event's `turnId`, and an object of any shape
-   * is assignable to NoArgs.
+   * `classic.PreToolUse` shares `tool.call`'s envelope, `turn.abort` every
+   * turn event's `turnId`, and an object of any shape is assignable to NoArgs.
    */
-  type LateOverload = 'classic.PreToolUse' | 'turn.abort' | 'turn.background' | NoArgsEvent;
+  type LateOverload = 'classic.PreToolUse' | 'turn.abort' | NoArgsEvent;
 
   /**
    * The props of `Link`, a hyperlink every surface draws: an OSC 8 span on the
@@ -10107,12 +9948,6 @@ declare module 'claude-code' {
           text: string;
       };
       /**
-       * The argument of `$.session.awake(isHeld)`.
-       */
-      'session.awake': {
-          isHeld: boolean;
-      };
-      /**
        * The argument of `$.session.waitUntil(work, { label })`, less the work.
        *
        * `next(e)` resolves once the work is registered, not when it settles. A
@@ -10126,12 +9961,6 @@ declare module 'claude-code' {
        * The argument of `$.turn.abort({ turnId })`.
        */
       'turn.abort': {
-          turnId: string;
-      };
-      /**
-       * The argument of `$.turn.background({ turnId })`.
-       */
-      'turn.background': {
           turnId: string;
       };
       /**
@@ -10186,10 +10015,7 @@ declare module 'claude-code' {
       /**
        * The argument of `$.ui.toast(text, { timeoutMs, place, key, priority })`.
        *
-       * `text` is always the plain line: `runs` are drawn only while their texts,
-       * joined, are that line, so a hook that rewrites `text` alone has it drawn
-       * plain, with no link. The runs of a call with no `place` carry no `url`. A
-       * removal carries `isRemoval`, its `text` empty.
+       * A removal carries `isRemoval`, its `text` empty.
        */
       'ui.toast': {
           text: string;
@@ -10197,7 +10023,6 @@ declare module 'claude-code' {
           place?: ToastOptions['place'];
           key?: string;
           priority?: ToastOptions['priority'];
-          runs?: readonly ToastRun[];
           isRemoval?: true;
       };
       /**
@@ -10264,11 +10089,6 @@ declare module 'claude-code' {
        * the session's first when left out; rewritable, deniable, answerable.
        */
       'ui.copy': UiCopyArgs;
-      /**
-       * The argument of `$.ui.browse({ url })`; rewritable, deniable, answerable.
-       * The URL the hooks pass down is the one checked and opened.
-       */
-      'ui.browse': UiBrowseArgs;
       /**
        * The argument of `$.ui.view({ agentId })`: whose transcript the main view
        * is to show, none for the main conversation; rewritable and deniable.
@@ -10586,13 +10406,8 @@ declare module 'claude-code' {
        * The text with the credentials found in it masked.
        */
       'session.redact': string;
-      'session.awake': void;
       'session.waitUntil': void;
       'turn.abort': void;
-      /**
-       * How many commands and agents moved to the background.
-       */
-      'turn.background': TurnBackgroundResult;
       /**
        * The box as it stands; the empty box where the session draws none.
        */
@@ -10650,7 +10465,6 @@ declare module 'claude-code' {
        */
       'ui.selection': UiSelection | undefined;
       'ui.copy': UiCopyResult;
-      'ui.browse': UiBrowseResult;
       'ui.view': UiViewResult;
       /**
        * The channel that sent the notification, or why none did.
@@ -10720,7 +10534,7 @@ declare module 'claude-code' {
    *
    * An empty group contributes nothing (Overloads<never> is unknown).
    */
-  type OrderedOverloads<Names extends EventName> = Overloads<Exclude<Names, LateOverload>> & Overloads<Extract<Names, 'classic.PreToolUse'>> & Overloads<Extract<Names, 'turn.abort' | 'turn.background'>> & Overloads<Extract<Names, NoArgsEvent>>;
+  type OrderedOverloads<Names extends EventName> = Overloads<Exclude<Names, LateOverload>> & Overloads<Extract<Names, 'classic.PreToolUse'>> & Overloads<Extract<Names, 'turn.abort'>> & Overloads<Extract<Names, NoArgsEvent>>;
 
   /**
    * Who raised a dispatch, as `next.origin` holds it: the calling plugin's
@@ -10905,8 +10719,7 @@ declare module 'claude-code' {
        * hook, `$.command.run`, Remote Control, another surface) it is left out.
        *
        * The engine draws the frame, the title row (this plugin's name, then the
-       * `title`; a command that used to be Claude Code's own shows no name under
-       * the exact title its dialog had there) and the hint line;
+       * `title`) and the hint line;
        * `focus`, `closeOnEscape`, `rows` and `columns` are not read. Escape (unless
        * a `ui.key` hook takes it), or Ctrl+C or Ctrl+D twice, is `ui.close` with origin
        * `person`, unrefusable. It stays after the hook returns; queued input waits.
@@ -10925,11 +10738,6 @@ declare module 'claude-code' {
        * await $.ui.open({ id: "notes", title: "Notes", placement: "dialog" })
        */
       placement?: 'widget' | 'dialog';
-      /**
-       * The word the dialog's hint line gives Escape: `"close"` when left out, or
-       * `"cancel"`, which changes the word alone. Read only while it is the dialog.
-       */
-      escapeAction?: 'close' | 'cancel';
       /**
        * The call resolves once the pane has closed, with whose close it was and
        * the `value` it carried (UiOpenResult); the person's close carries none.
@@ -11204,12 +11012,12 @@ declare module 'claude-code' {
    * It only shows: it allows no host, and no call is held to it. Not in either
    * list: where a host redirects or sends a sign-in; a server's `headersHelper`;
    * a command in the plugin's settings; what the module's hook on any event but
-   * `process.run`, `process.spawn`, `http.fetch`, `audio.play`, `ui.browse` and
+   * `process.run`, `process.spawn`, `http.fetch`, `audio.play` and
    * `ui.toast` rewrites or answers (a tool call, a command's arguments, an agent,
    * the settings); what the plugin has a server, the model, another session or
    * another plugin do (`$.mcp`, `$.model`, `$.agent.spawn`, a prompt, an agent, a
    * workflow, a hook of another type); what follows from a file, variable or
-   * setting it writes, a link it draws outside a toast or a page it opens; and
+   * setting it writes, or a link it draws; and
    * what the engine itself runs or dials to serve a call (speech, a notification,
    * telemetry).
    */
@@ -11246,8 +11054,8 @@ declare module 'claude-code' {
            * or `$.agent.register`).
            * `url`: its URL does not settle where it goes, as it spells out no host,
            * is computed, or goes or may go over a `socketPath`; or the module hooks
-           * `http.fetch`, `audio.play` or `ui.browse`, where it can send a request
-           * elsewhere, or `ui.toast`, where it can add a link.
+           * `http.fetch` or `audio.play`, where it can send a request elsewhere, or
+           * `ui.toast`.
            * `unlisted`: the kind's list may be short, or the module was not scanned.
            */
           reason: 'process' | 'url' | 'unlisted';
@@ -11576,8 +11384,7 @@ declare module 'claude-code' {
       };
       /**
        * The named values its `$.state.get` and `$.state.set` calls refer to by
-       * literal, each `{ plugin, key }`; absent when it calls neither. One of
-       * the engine's gates (EngineState) is listed under the key `gate.<id>`.
+       * literal, each `{ plugin, key }`; absent when it calls neither.
        */
       state?: {
           /**
@@ -11595,10 +11402,9 @@ declare module 'claude-code' {
           kept?: readonly StateName[];
       };
       /**
-       * The hosts its `$.http`, `$.audio.play({ url })` and `$.ui.browse`
-       * calls name, and those its `$.ui.toast` runs link to, as far as the source
-       * spells them; absent when it does none of these. No call is held to the
-       * list, and where a host redirects is not known.
+       * The hosts its `$.http` and `$.audio.play({ url })` calls name, as far as
+       * the source spells them; absent when there is nothing to list. No call is
+       * held to the list, and where a host redirects is not known.
        */
       hosts?: {
           /**
@@ -11609,10 +11415,9 @@ declare module 'claude-code' {
            */
           named: readonly string[];
           /**
-           * Which of `audio.play`, `http.fetch`, `http.stream`, `ui.browse` and
-           * `ui.toast` it
+           * Which of `audio.play`, `http.fetch`, `http.stream` and `ui.toast` it
            * calls with any other URL, one over 2,048 characters, options that give
-           * or may give a `socketPath`, or runs that may link and are not written
+           * or may give a `socketPath`, or a line for the bar that is not written
            * at the call, sorted: it loads all the same, and may reach what is not
            * in `named`.
            */
@@ -11990,12 +11795,6 @@ declare module 'claude-code' {
        * Whether its source spells a `breakPromptCache` key on an object.
        */
       breaksPromptCache: boolean;
-      /**
-       * Whether it may draw a footer line, which shows no plugin name: a
-       * `$.ui.toast` call gives a `place` or options that are not read, or a hook
-       * hears `ui.toast`. A report from an older CLI leaves it out.
-       */
-      mayDrawBarLine: boolean;
       /**
        * Four empty lists with no hook on `engine.create`; null when the hook is
        * outside the one form validate reads.
@@ -15681,14 +15480,6 @@ declare module 'claude-code' {
            */
           isWorking: boolean;
           /**
-           * Present, and true, while the transcript on screen is scrolled away from
-           * its foot; absent there, and where the surface does not say. Read-only.
-           *
-           * The hook runs again as it changes, never for a scrolled row. Keep the
-           * cell as wide either way: the input's height moves the foot.
-           */
-          isScrolledUp?: true;
-          /**
            * Which transcript is on screen, as `AbovePrompt`'s. Read-only: a rewrite
            * carries it on as received.
            */
@@ -18708,8 +18499,7 @@ declare module 'claude-code' {
    *
    * Written once as a constant and passed to `$.state.get` and `$.state.set`;
    * `plugin` and `key` must be literals in source so `claude plugin validate`
-   * lists what a module reads and writes. Only `id` may be computed, and not
-   * that of the engine's `gate` (EngineState).
+   * lists what a module reads and writes. Only `id` may be computed.
    *
    * @example
    * const workers = { plugin: "swarm", key: "workers" } as const
@@ -20354,26 +20144,6 @@ declare module 'claude-code' {
   };
 
   /**
-   * One styled run of a `$.ui.toast` line on the bar, where no plugin name is
-   * drawn before it. Off the bar, or past 2000 characters, the text is plain.
-   */
-  export type ToastRun = {
-      text: string;
-      color?: ThemeKey;
-      /**
-       * Draws the run dim, whatever its `color`.
-       */
-      isDim?: boolean;
-      isBold?: boolean;
-      /**
-       * Makes the run a link: an http or https URL with no credentials in it. A
-       * line's URLs come to 2,048 characters at most. A call with no `place`, or
-       * a terminal that draws no links, shows the text alone.
-       */
-      url?: string;
-  };
-
-  /**
    * `tool.call`'s input as the call takes it: `tool_use_id` and `agentId` may
    * ride along (a hook passing its event's input on) and are dropped.
    *
@@ -20653,8 +20423,8 @@ declare module 'claude-code' {
        *
        * Raised only with `ceiling: "deny"` or `isCeilingUnread`, and only to a hook
        * whose matcher names `op`. A file call reads as `Read` or `Write`, a process
-       * as the `Bash` line of its argv, `$.ui.browse` as `process.run` of its
-       * opener. Nobody is asked: a deny refuses the call. Where a hook rewrote the
+       * as the `Bash` line of its argv.
+       * Nobody is asked: a deny refuses the call. Where a hook rewrote the
        * call, `next.origin.tier` is `user`.
        */
       op?: 'fs.read' | 'fs.list' | 'fs.stat' | 'fs.exists' | 'fs.write' | 'process.run' | 'process.spawn';
@@ -21451,18 +21221,6 @@ declare module 'claude-code' {
   export type TraceOutcome = 'caught' | 'expired' | 'kept' | 'passed' | 'rejected' | 'returned' | 'skipped';
 
   /**
-   * What `$.turn.background` resolves to: `moved`, how many commands and
-   * agents went to the background, zero when none could.
-   *
-   * `isDisabled` where background tasks are off for the session: nothing
-   * moved, and another call moves nothing either.
-   */
-  export type TurnBackgroundResult = {
-      moved: number;
-      isDisabled?: true;
-  };
-
-  /**
    * What every `turn.complete` carries whatever its reason: the answer, the
    * duration, the interrupt flag, the turn's id, its loop and what it cost.
    */
@@ -21557,36 +21315,6 @@ declare module 'claude-code' {
    */
   type TurnCompleteUnrefused = {
       reason: Exclude<TurnCompleteReason, 'refusal'>;
-  };
-
-  /**
-   * The input of `turn.recache`: what the request about to be sent changed in
-   * its cached prefix. Every field is the engine's: a hook observes.
-   */
-  export type TurnRecacheInput = {
-      /**
-       * What the client changed (PromptCacheChange), never empty.
-       */
-      causes: PromptCacheChange[];
-      /**
-       * The most the request caches again, in tokens: the size of the loop's last
-       * prompt. Absent where `promptCache.recacheTokens` is, as when tool results
-       * were just cleared.
-       */
-      recacheTokens?: number;
-      /**
-       * The loop the request belongs to, as `turn.step` names it: a subagent's or
-       * teammate's id; absent on the main loop.
-       */
-      agentId?: string;
-  };
-
-  /**
-   * What a `turn.recache` hook returns and what `next(e)` resolves to:
-   * `{ causes }`, echoed by core; a hook's own value changes nothing.
-   */
-  export type TurnRecacheResult = {
-      causes: TurnRecacheInput['causes'];
   };
 
   /**
@@ -21959,47 +21687,6 @@ declare module 'claude-code' {
        * both must be on. Absent for every other cause.
        */
       fix?: 'tmux-passthrough';
-  };
-
-  /**
-   * The argument of `$.ui.browse` and the input of `ui.browse`: the page.
-   */
-  export type UiBrowseArgs = {
-      /**
-       * An http or https URL with no credentials in it; any other rejects.
-       */
-      url: string;
-  };
-
-  /**
-   * What `$.ui.browse` resolves to and what a `ui.browse` hook's `{ value }`
-   * holds: whether the page went to a browser (`isOpened`), else why not.
-   */
-  export type UiBrowseResult = {
-      /**
-       * True: the machine's opener took the URL, or was still running at its
-       * time limit, as a browser that stays in the foreground is.
-       */
-      isOpened: true;
-      /**
-       * Present where the opener was still running at its time limit, so
-       * nothing confirms that the page showed.
-       */
-      isTimedOut?: true;
-  } | {
-      isOpened: false;
-      /**
-       * Why not, a closed set; a hook above answering without opening says
-       * `refused`.
-       *
-       * `elsewhere`: the session has no interactive terminal (a `-p` run, the
-       * SDK, an app that hosts it, a background session with nobody attached).
-       * `no-browser`: no display and no `$BROWSER`, or the opener is missing
-       * or failed. `refused`: a session that may start no program,
-       * `$.process` withheld by another plugin, or a `process.run` hook that
-       * did not pass the opener on as it was.
-       */
-      reason: 'elsewhere' | 'no-browser' | 'refused';
   };
 
   /**
@@ -23105,94 +22792,6 @@ declare module 'claude-code' {
       id: string;
       text: string;
       label?: string;
-  };
-
-  /**
-   * The input of `ui.title`: the terminal tab's title as the engine names it,
-   * and what the terminal makes of one. All but `text` are pinned.
-   */
-  export type UiTitleInput = {
-      /**
-       * The session's name as the engine picked it, else the product's.
-       */
-      text: string;
-      /**
-       * `busy` while the session works, `waiting` while it waits on the person.
-       */
-      status: 'busy' | 'waiting' | 'idle';
-      /**
-       * True where the terminal shows the status itself, so a mark for it would
-       * say it twice.
-       */
-      showsStatus: boolean;
-      /**
-       * False where the engine cycles no marks and shows the first: a rewritten
-       * title shifts the tab labels there.
-       */
-      isAnimated: boolean;
-      /**
-       * True where the terminal drops a title's non-ASCII characters.
-       */
-      isAsciiOnly: boolean;
-      /**
-       * True under tmux, screen or zellij, where any rewrite can shift the tab
-       * labels: keep the answer steady as `status` changes.
-       */
-      isMultiplexed: boolean;
-  };
-
-  /**
-   * What a `ui.title` hook returns and what `next(e)` resolves to: the engine
-   * writes a mark, a space and `text`, or `text` alone with no marks.
-   */
-  export type UiTitleResult = {
-      /**
-       * One line; control characters and escape sequences are not written.
-       */
-      text: string;
-      /**
-       * At most 12, each one or two characters. Several are cycled, one every
-       * 960 ms while the terminal has focus; the first shows unless `isAnimated`.
-       */
-      marks?: readonly string[];
-      /**
-       * The terminal's progress bar: a percent from 0 to 100, `busy` or `error`.
-       * Left out, no bar shows. Needs the progress bar setting on.
-       */
-      progress?: number | 'busy' | 'error';
-  };
-
-  /**
-   * The input of `ui.verbs`: one of the two lists of words the terminal picks
-   * from to say that Claude is at work, or was.
-   *
-   * Raised in an interactive session, which can be before `session.start`, and
-   * elsewhere only as a client exports the conversation.
-   * `next(e)` answers the words beneath, core's own being `verbs`.
-   */
-  export type UiVerbsInput = {
-      /**
-       * Which list: `working` for the spinner (`Baking`), `done` for the line
-       * that closes a turn (`Baked for 3s`); the key a matcher narrows on.
-       */
-      tense: 'working' | 'done';
-      /**
-       * The engine's one bare word, `["Working"]` or `["Worked"]`, or what a hook
-       * above passed down in its place.
-       */
-      verbs: string[];
-  };
-
-  /**
-   * What a `ui.verbs` hook returns: the words the engine picks from, in order.
-   *
-   * It picks a `working` word at random for each turn and each agent, a `done`
-   * word by its row's id. Each word is kept as one line; an empty list reads as
-   * core's bare word. The `spinnerVerbs` setting applies over the answer. A hook
-   * that fails is skipped.
-   */
-  export type UiVerbsResult = {
-      verbs: string[];
   };
 
   /**
