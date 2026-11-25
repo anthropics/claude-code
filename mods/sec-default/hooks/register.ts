@@ -124,9 +124,12 @@ export function register(on: On) {
 
   // By name too, as tool.list holds them: policy names tools the engine leaves in the user tier.
   on('tool.offer', async ($, e, next) => {
+    const { plugin, tier } = e.provider
+    const isPlugins = tier !== 'core' && !plugin.startsWith('mcp:')
+    const tool = isPlugins ? Policy.speltName(e.tool, plugin) : e.tool
     const isOrgs = await Policy.decidedByPolicy(
       readPolicy(() => $.settings.read(Policy.SOURCE)),
-      policy => Policy.isOrgTool(policy, e.tool),
+      policy => Policy.isOrgTool(policy, tool),
     )
 
     return isOrgs ? next.to(e, 'append') : pastUsers(e, next)
@@ -175,8 +178,14 @@ export function register(on: On) {
         ? $.settings.read(Policy.SOURCE)
         : readPolicy(() => $.settings.read(Policy.SOURCE))
     const managed = await policy.catch(() => undefined)
-    const beneath = await next.to(e, 'append')
-    const listed = withoutRefusedTools(beneath, withheld, place, managed)
+    const beneath = memory.listed(await next.to(e, 'append'))
+    const listed = withoutRefusedTools(
+      beneath,
+      withheld,
+      place,
+      managed,
+      admittedAs,
+    )
 
     // Here and not in `.catch`, whose `next` replays this hook's last call: the
     // organization's listing is in hand, and whatever fails below costs it nothing.
@@ -200,7 +209,9 @@ export function register(on: On) {
     Policy.orgRemovalsApplied(
       await $.settings.read(Policy.SOURCE).catch(() => undefined),
       withoutRefusedTools(
-        await next.to(e, 'append').catch(() => ({ deny: TOOL_LIST_REFUSAL })),
+        memory.listed(
+          await next.to(e, 'append').catch(() => ({ deny: TOOL_LIST_REFUSAL })),
+        ),
         withheld,
         next.origin.tier === 'core' ? (places.get(e) ?? withheld.begun) : -1,
       ),

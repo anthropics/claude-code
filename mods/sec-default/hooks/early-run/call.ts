@@ -10,4 +10,6 @@ export type Call = {
   servedAt?: ReadonlyMap<string, readonly string[]>
   /** On a script, which stays remembered once it is allowed. */
   isAllowed?: true
+  /** A plugin registered the tool, which its name alone may not say. */
+  isRegistered?: boolean
 }

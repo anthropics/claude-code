@@ -5,6 +5,7 @@ import { readsAsOrgTool } from '../reads-as-org-tool'
 import { isOrgTool } from './is-org-tool'
 import { orgRemovalsApplied } from './org-removals-applied'
 import { joinedName } from './joined-name'
+import { speltName } from './spelt-name'
 
 /**
  * A `tool.list` answer with the managed servers' tools as the organization's
@@ -13,12 +14,12 @@ import { joinedName } from './joined-name'
  * and a tool a user-tier hook added where a `$.tool.register` of the same
  * reach is refused: under an MCP allowlist, or by a name that reads as the
  * organization's or as one its tiers list. A tool an organization's hook added
- * is the organization's too.
+ * is the organization's too, and so is one its plugins registered, by any name.
  *
  * What the answer lists is the session's tool pool, so no person's hook takes
  * an organization's tool away. A refusal from any listing, a listing that
  * cannot be read, or no policy to read, leaves the organization's listing
- * standing whole. Names are all this reads of an entry.
+ * standing whole. It reads an entry's name, and who registered it.
  *
  * @param policy the managed settings, or undefined when the read failed
  * @param real the listing past the user tier (`next.to(e, "append")`)
@@ -61,8 +62,20 @@ export function managedToolsRestored(
   const isEngines = new Set(engines.map(tool => tool.name))
   const orgs = new Set(
     listed
-      .map(tool => tool.name)
-      .filter(name => isOrgTool(policy, name) || !isEngines.has(name)),
+      .filter(({ name, registeredBy: by }) => {
+        const spelt = speltName(name, by?.plugin ?? '')
+
+        return (
+          isOrgTool(policy, name) ||
+          !isEngines.has(name) ||
+          ['prepend', 'append'].includes(by?.tier ?? '') ||
+          (by !== undefined &&
+            !name.startsWith('mcp__') &&
+            isOrgTool(policy, spelt) &&
+            !readsAsOrgTool(policy, spelt, by.plugin))
+        )
+      })
+      .map(tool => tool.name),
   )
   const listedNames = new Set(listed.map(tool => joinedName(tool.name)))
   const refusesAdding = hasMcpAllowlist(policy)

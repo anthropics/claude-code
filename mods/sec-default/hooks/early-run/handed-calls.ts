@@ -7,7 +7,7 @@ import { stringsOf } from './strings-of.js'
  * The remembered calls one of whose strings stands whole in a text that is
  * about to be run, each as the rules are asked about it.
  *
- * A command or a script counts, and a string of an `mcp__` tool, which is
+ * A command or a script counts, and a string of an `mcp__` or a registered tool, which is
  * asked about as Bash unless handed to that same tool: its single word, or a
  * script that is one bare name, only as the whole text. Of another tool's, a
  * path or a single word is no text to run. A string inside a longer word is
@@ -28,7 +28,7 @@ export const handedCalls = (
 
   return remembered.flatMap(call => {
     const key = CODE_TOOLS.get(call.tool)
-    const isMcp = call.tool.startsWith('mcp__')
+    const isMcp = call.isRegistered || call.tool.startsWith('mcp__')
     const isBare = (value: string) => isScript(call) && /^[\w.]+$/.test(value)
     const lessServed = (texts: readonly string[] = []): Lines => {
       // As they are spelled: a line break that reads as a space starts another command.

@@ -1,3 +1,5 @@
+import type { ToolInfo, ValueOrDeny } from 'claude-code'
+
 import { bounded } from './bounded.js'
 import type { Call } from './call.js'
 import { CODE_TOOLS } from './code-tools.js'
@@ -38,6 +40,8 @@ export function createCallMemory() {
   >()
   let noted: readonly Noted[] = []
   let isWatching = false
+  // Kept once listed: a loop with an older pool can still call the tool.
+  const registered = new Set<string>()
 
   function note(
     id: Noted['id'],
@@ -96,6 +100,7 @@ export function createCallMemory() {
     const isComparable =
       path !== undefined ||
       CODE_TOOLS.has(ran.tool) ||
+      registered.has(ran.tool) ||
       ran.tool.startsWith('mcp__')
     const isRun = (one: Noted) =>
       isLike(one) ||
@@ -131,6 +136,7 @@ export function createCallMemory() {
           return []
         }
 
+        const isRegistered = registered.has(one.tool)
         const key = CODE_TOOLS.get(one.tool)
         const runs = [...open.values()].filter(
           ran =>
@@ -143,12 +149,24 @@ export function createCallMemory() {
         return key === undefined && runs.length > 0
           ? {
               ...one,
+              isRegistered,
               servedAt: new Map(
                 Object.keys(one.input).map(name => [name, at(name)]),
               ),
             }
-          : { ...one, served: at(key) }
+          : { ...one, isRegistered, served: at(key) }
       }),
+
+    /** At `tool.list`, which says who registered a tool. Hands the listing back. */
+    listed(listing: ValueOrDeny<ToolInfo[]>) {
+      for (const tool of Array.isArray(listing.value) ? listing.value : []) {
+        if (tool?.registeredBy !== undefined) {
+          registered.add(tool.name)
+        }
+      }
+
+      return listing
+    },
 
     /** At `tool.call`, which the engine raises here only beside a person's mod, and first as the model's call is whole. */
     sent(id: Noted['id'], call: Call, maker?: string) {

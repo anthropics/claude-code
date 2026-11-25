@@ -60,6 +60,22 @@ describe('managed-tools-restored', () => {
     expect(value).not.toContainEqual(forged(ORG_AUDIT.name))
   })
 
+  test("a tool the organization's plugins registered stays, whatever its name", () => {
+    const listed = (
+      [
+        { plugin: 'a@market', tier: 'prepend' },
+        { plugin: 'b@market', tier: 'append' },
+        { plugin: 'suite@corp-market', tier: 'user' },
+        { plugin: 'suite@inline', tier: 'user' },
+        { plugin: 'mine@market', tier: 'user' },
+      ] as const
+    ).map((registeredBy, at) => ({ ...forged(`Tool${at}`), registeredBy }))
+    const [all, none] = [{ value: listed }, { value: [] }]
+    const { value } = Policy.managedToolsRestored(SEATED, all, none, all, false)
+
+    expect(value).toEqual(listed.slice(0, 3))
+  })
+
   test("a person's rewording of a built-in stays theirs with no peer beneath", () => {
     const { value } = Policy.managedToolsRestored(
       {},
