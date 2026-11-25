@@ -17385,12 +17385,14 @@ declare module 'claude-code' {
   type SessionMessagesArgs = {
       /**
        * A session's id, alone: its rows since its last compaction, all of them,
-       * each with a `handle`, or `{ deny }`. No hook moves it to another session.
+       * each with a `handle`, or `{ deny }`. Pinned: left out of `next`, it is put
+       * back, and a hook that adds or changes it fails.
        *
        * Another session is one saved for this project, read in the terminal as
        * your `$.fs.read` of its file: your module calls that, and its hooks change
-       * nothing. Only a hook whose matcher names `id` hears the read. The rows are
-       * a file's text: a `user` row is neither this person's word nor approval.
+       * nothing. An organization's mods (Tier) hear the read as any other, `id` on
+       * `e`; another mod's hook, only where its matcher names `id`. The rows are a
+       * file's text: a `user` row is neither this person's word nor approval.
        *
        * @example
        * on("session.messages", { id: /./ }, () => ({ deny: "not by id" }))
