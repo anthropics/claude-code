@@ -4738,6 +4738,7 @@ declare module 'claude-code' {
        * A `get` made while a `ui.render` hook draws subscribes that instance: a
        * later `set` draws it again, nobody calling `$.ui.invalidate`. Any plugin
        * reads any value; its owner alone writes it. Persist through `$.store`.
+       * The engine owns the values under `engine` (EngineState).
        */
       state: {
           /**
@@ -4771,7 +4772,7 @@ declare module 'claude-code' {
            * @example
            * await $.state.set(count, held.value + 1, { ifVersion: held.version })
            */
-          set: <P extends keyof PluginState & string, K extends keyof PluginState[P] & string>(ref: StateRef<P, K>, value: StateValue<P, K>, options?: StateSetOptions) => Promise<StateSetResult>;
+          set: <P extends Exclude<keyof PluginState, 'engine'> & string, K extends keyof PluginState[P] & string>(ref: StateRef<P, K>, value: StateValue<P, K>, options?: StateSetOptions) => Promise<StateSetResult>;
       };
       /**
        * The time and timers, each an event through the host: `clock.now` reads
@@ -5286,13 +5287,13 @@ declare module 'claude-code' {
 
   /**
    * Every named value the enabled contracts declare, as one union of
-   * `[plugin, key]` pairs; `never` while PluginState is empty.
+   * `[plugin, key]` pairs; `never` while none does. Or those of the owner given.
    */
-  type DeclaredPair = {
+  type DeclaredPair<Owner = Exclude<keyof PluginState, 'engine'>> = {
       [P in keyof PluginState & string]: {
           [K in keyof PluginState[P] & string]: readonly [plugin: P, key: K];
       }[keyof PluginState[P] & string];
-  }[keyof PluginState & string];
+  }[Owner & keyof PluginState & string];
 
   /**
    * Every component the enabled contracts declare, one variant each; `never`
@@ -5774,6 +5775,26 @@ declare module 'claude-code' {
        * on("ui.focus", { requestId: "list" }, ($, e, next) => (mark(e), next(e)))
        */
       'ui.focus': UiFocusInput;
+      /**
+       * Fires in the terminal for a key pressed at the prompt, in a `Pane` or in
+       * the band, before anything on screen handles it.
+       *
+       * `next(e)` lets it go on, `next({ ...e, action })` runs another action in
+       * its place, no `next` (`{}`) takes it. Later input waits; unanswered in
+       * 50 ms, `$` calls included, the key goes on. Unmatched keys raise no wait.
+       *
+       * @remarks Never raised under the engine's own question, dialog, menu or
+       *   search, in an agent's view, or in a pane or the band while a question
+       *   waits; nor for Ctrl+C, Ctrl+D, Ctrl+Z, a chord, a Cmd key, a paste, keys
+       *   read at once, or a character alone in the box (or Enter on it) that a row
+       *   above takes as its answer. Escape is, in a turn too (taken, the turn goes
+       *   on); in a pane or the band, while the key that closes or folds it is bound.
+       * @remarks `$.ui.open`, `ask`, `view` and a `scroll` to a transcript row,
+       *   called before `next`, count as the person's own input and take the key.
+       * @example
+       * on("ui.key", { component: "Prompt", key: "escape" }, () => ({}))
+       */
+      'ui.key': UiKeyInput;
       /**
        * Fires in the terminal when the spinner's next tip is due, once a
        * submission has settled; `next(e)` resolves to `{ id }`, null for no tip.
@@ -6812,6 +6833,10 @@ declare module 'claude-code' {
        */
       'ui.focus': UiFocusResult;
       /**
+       * `{}`: the key went on, or a hook took it.
+       */
+      'ui.key': UiKeyResult;
+      /**
        * `{ id }`, `{ text, id, label? }`, or `{ id: null }`.
        */
       'ui.tip': UiTipResult;
@@ -7018,6 +7043,65 @@ declare module 'claude-code' {
        * withheld left out; `next(e)` resolves to EngineInterfaceBuilt.
        */
       'engine.create': EngineCreateResult;
+  };
+
+  /**
+   * The engine's own values, read-only under `{ plugin: "engine", key }`, as
+   * they stand in the main conversation; `undefined` where the host serves none.
+   *
+   * The engine raises `state.set` once a change has landed, in order and to each
+   * mod apart, so `next` reaches no other mod there. A hook hears it by naming
+   * `state.set`, `plugin: "engine"` and the `key` by literals, if its mod may
+   * read the value and the one before (`state.get` is asked as that mod). A mod
+   * that reads one does not load with a matcher that may name one otherwise.
+   *
+   * @example
+   * on("state.set", { plugin: "engine", key: "mode" }, ($, e, next) => next(e))
+   */
+  type EngineState = {
+      /**
+       * The permission mode, as settings spell it (`default`, `plan`).
+       */
+      mode: string;
+      /**
+       * The permission rules in force under the mode and the directories added to
+       * the session, each with where it came from: a SettingsSource, `cli`,
+       * `command`, `session`, or `engine` for one no person wrote. `undefined`
+       * when they are kept on another machine, or are past the size of a value.
+       */
+      rules: {
+          rules: {
+              behavior: 'allow' | 'deny' | 'ask';
+              rule: string;
+              source: string;
+          }[];
+          directories: {
+              path: string;
+              source: string;
+          }[];
+      } | undefined;
+      /**
+       * The session's MCP servers: the name, where it was configured (`user`,
+       * `project`, `plugin`), and how its connection stands. `undefined` as
+       * `rules` is.
+       */
+      servers: {
+          name: string;
+          scope: string;
+          state: 'connected' | 'pending' | 'failed' | 'needs-auth' | 'disabled';
+      }[] | undefined;
+      /**
+       * Whether the terminal window has the focus; `unknown` where the terminal
+       * does not say, or there is none.
+       */
+      focus: 'focused' | 'blurred' | 'unknown';
+      /**
+       * Whether Remote Control is on for the session, and ready to be joined.
+       */
+      link: {
+          isOn: boolean;
+          isReady: boolean;
+      };
   };
 
   /**
@@ -7963,8 +8047,8 @@ declare module 'claude-code' {
    * texts, and the closures a change and a submit run. A leaf.
    *
    * One line, or with `rows` several. Focused through the same ring as `Button`
-   * (`abovePrompt:focus`); while it has focus every printable key reaches it
-   * alone and Esc returns them. A change and Enter raise `ui.input`.
+   * (`abovePrompt:focus`); there printable keys reach it and Esc returns them,
+   * short of a `ui.key` hook taking one. A change and Enter raise `ui.input`.
    */
   export type InputProps = {
       /**
@@ -8131,7 +8215,7 @@ declare module 'claude-code' {
    * A plugin's own render site joins under one `infer`, so that while `M` is
    * open the compiler reads the engine's components alone.
    */
-  type KeptEvent<P extends Pattern, M> = MatchedNames<P, M> extends infer N extends EventName ? N extends 'ui.render' ? SharedMatcher<M> extends infer Shared ? KeptMembers<Args<N>, Shared> | HeardSites<Shared> : never : KeptMembers<Args<N>, M> : never;
+  type KeptEvent<P extends Pattern, M> = MatchedNames<P, M> extends infer N extends EventName ? N extends 'ui.render' ? SharedMatcher<M> extends infer Shared ? KeptMembers<Args<N>, Shared> | HeardSites<Shared> : never : KeptMembers<MatchedArgs<N, M>, M> : never;
 
   /**
    * The members of the argument union `E` matcher `P` can match, as declared;
@@ -8271,13 +8355,21 @@ declare module 'claude-code' {
   };
 
   /**
+   * What matcher `M` narrows on event `N`: its `e`, or on a `$.state` event the
+   * engine's own values (EngineState) where `M` names `plugin: "engine"`.
+   */
+  type MatchedArgs<N extends EventName, M, Else = Args<N>> = N extends `state.${infer Op extends 'get' | 'set'}` ? [M] extends [{
+      readonly plugin: 'engine' | readonly 'engine'[];
+  }] ? DeclaredEvents<DeclaredPair<'engine'>>[Op] : Else : Else;
+
+  /**
    * The argument a matched hook receives: `e` narrowed by `M` (Narrowed), per
    * event the registration covers.
    *
    * A plugin's own render site joins under one `infer`, so that while `M` is
    * open the compiler reads the engine's components alone.
    */
-  export type MatchedEvent<P extends Pattern, M> = MatchedNames<P, M> extends infer N extends EventName ? N extends 'ui.render' ? SharedMatcher<M> extends infer Shared ? Narrowed<Args<N>, Shared> | HeardSites<Shared> : never : Narrowed<Args<N>, M> : never;
+  export type MatchedEvent<P extends Pattern, M> = MatchedNames<P, M> extends infer N extends EventName ? N extends 'ui.render' ? SharedMatcher<M> extends infer Shared ? Narrowed<Args<N>, Shared> | HeardSites<Shared> : never : Narrowed<MatchedArgs<N, M>, M> : never;
 
   /**
    * The hook `on(pattern, matcher, hook)` takes: `($, e, next)` with `e`
@@ -8369,7 +8461,7 @@ declare module 'claude-code' {
    * `P` is known it is that Matcher exactly. A mistake on a name is refused
    * where it is written; a pattern takes what any event it selects takes.
    */
-  type MatcherFor<P extends Pattern> = Matcher<Args<MatchedNames<P>>> | ('ui.render' extends MatchedNames<P> ? PluginSiteMatcher : never) extends infer Settled ? Settled : never;
+  type MatcherFor<P extends Pattern> = Matcher<Args<MatchedNames<P>>> | (NamingEngine & Matcher<MatchedArgs<MatchedNames<P>, NamingEngine, never>>) | ('ui.render' extends MatchedNames<P> ? PluginSiteMatcher : never) extends infer Settled ? Settled : never;
 
   /**
    * The declared keys of every variant of `I` (index signatures aside).
@@ -9160,6 +9252,10 @@ declare module 'claude-code' {
    * event name (`tool` of `tool.call`), derived, plugin nouns included.
    */
   export type Namespace<N extends string = EventName> = N extends `${infer Head}.${infer Rest}` ? Head | `${Head}.${Namespace<Rest>}` : never;
+
+  type NamingEngine = {
+      readonly plugin: 'engine' | readonly 'engine'[];
+  };
 
   /**
    * How many object or array levels a matcher narrows `e` through, counted as
@@ -10569,9 +10665,9 @@ declare module 'claude-code' {
        * The engine draws the frame, the title row (this plugin's name, then the
        * `title`; a command that used to be Claude Code's own shows no name under
        * the exact title its dialog had there) and the hint line;
-       * `focus`, `closeOnEscape`, `rows` and `columns` are not read.
-       * Escape, or Ctrl+C or Ctrl+D twice, is `ui.close` with origin `person`, which
-       * no hook can refuse. It stays after the hook returns, and queued input waits.
+       * `focus`, `closeOnEscape`, `rows` and `columns` are not read. Escape (unless
+       * a `ui.key` hook takes it), or Ctrl+C or Ctrl+D twice, is `ui.close` with origin
+       * `person`, unrefusable. It stays after the hook returns; queued input waits.
        * A permission prompt or a `$.ui.ask` waits behind it too, so close it first.
        * With nothing drawn in it, it closes with origin `unload`. Closed by
        * anything but the person while a prompt waits, it leaves the engine's empty
@@ -10588,7 +10684,7 @@ declare module 'claude-code' {
       placement?: 'widget' | 'dialog';
       /**
        * The word the dialog's hint line gives Escape: `"close"` when left out, or
-       * `"cancel"`. Either way Escape closes it. Read only while it is the dialog.
+       * `"cancel"`, which changes the word alone. Read only while it is the dialog.
        */
       escapeAction?: 'close' | 'cancel';
   };
@@ -11356,7 +11452,7 @@ declare module 'claude-code' {
 
   /**
    * The named values plugins keep in the session (`$.state`), by plugin name
-   * then key, for declaration merging; empty by default.
+   * then key, for declaration merging; the engine's own stand under `engine`.
    *
    * A plugin declares its own in the contract it ships, inside `declare module
    * "claude-code"`; a key's type is the value `$.state.get` answers and
@@ -11366,6 +11462,7 @@ declare module 'claude-code' {
    * interface PluginState { swarm: { workers: Worker[] } }
    */
   export interface PluginState {
+      engine: EngineState;
   }
 
   /**
@@ -15743,8 +15840,8 @@ declare module 'claude-code' {
    * a label, the options, the one selected, the closure a pick runs. A leaf.
    *
    * Focused through the same ring as `Button` (`abovePrompt:focus`); keys reach
-   * it only while it has focus (arrows move, Enter picks) and Esc always
-   * returns to the prompt; a pick raises `ui.select`, its bottom `onSelect`.
+   * it only there (arrows move, Enter picks, Esc returns to the prompt), past
+   * any `ui.key` hook; a pick raises `ui.select`, its bottom `onSelect`.
    */
   export type SelectProps = {
       /**
@@ -21674,6 +21771,46 @@ declare module 'claude-code' {
   };
 
   /**
+   * The input of `ui.key`: one key the person pressed, spelled as a `Client`'s
+   * `onKey` hands it (`escape` and `space` too), and the site with the keyboard.
+   *
+   * Every key but `action` is the engine's word, pinned: `next(e)` passes them
+   * on, a rewrite that leaves one out keeps it, one that changes it fails the hook.
+   */
+  export type UiKeyInput = ClientKeyEvent & {
+      /**
+       * A `Pane` (open as a dialog too), the `AbovePrompt` band or the `Prompt`.
+       */
+      component: UiFocusComponent | 'Prompt';
+      /**
+       * The pane's id or the band's, as `ui.focus` names them, or `site:prompt`.
+       */
+      requestId: string;
+      /**
+       * Whose element holds the site's ring, else who opened the pane; absent at
+       * the prompt. A hook naming no `plugin` hears its own plugin's keys and
+       * those of no plugin; `{ plugin: "*" }` every plugin's.
+       */
+      plugin?: string;
+      /**
+       * What the key alone is bound to here, if anything (`chat:submit`).
+       *
+       * Rewritable at the prompt to `chat:newline`, `:undo`; `history:search`;
+       * `autocomplete:next`, `:previous`, `:dismiss`; `scroll:lineUp`, `:lineDown`,
+       * `:pageUp`, `:pageDown`, `:top`, `:bottom`. Elsewhere to `abovePrompt:next`,
+       * `:previous`, `:highlightNext`, `:highlightPrevious`; `pane:scrollUp`,
+       * `:scrollDown`, `:pageUp`, `:pageDown`, `:top`, `:bottom`, `:grow`, `:shrink`.
+       * Any other fails the hook; with nothing to take it, the key goes on.
+       */
+      action?: string;
+  };
+
+  /**
+   * What a `ui.key` hook returns and what `next(e)` resolves to: `{}`.
+   */
+  export type UiKeyResult = Record<string, never>;
+
+  /**
    * Options of `$.ui.log`.
    */
   export type UiLogOptions = {
@@ -22553,7 +22690,7 @@ declare module 'claude-code' {
    */
   export type UpdateFunction = {
       <T>($: StateDollar, target: Atom<T>, change: (value: T) => T): Promise<T>;
-      <P extends keyof PluginState & string, K extends keyof PluginState[P] & string>($: StateDollar, target: StateRef<P, K>, change: (value: StateValue<P, K> | undefined) => StateValue<P, K>): Promise<StateValue<P, K>>;
+      <P extends Exclude<keyof PluginState, 'engine'> & string, K extends keyof PluginState[P] & string>($: StateDollar, target: StateRef<P, K>, change: (value: StateValue<P, K> | undefined) => StateValue<P, K>): Promise<StateValue<P, K>>;
   };
 
   /**

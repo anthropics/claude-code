@@ -96,6 +96,7 @@ export function register(on: On) {
 
   on('session.info', ($, e, next) => next.to(e, 'append'))
   on('session.redact', ($, e, next) => next.to(e, 'append'))
+  on('state.get', { plugin: 'engine' }, ($, e, next) => next.to(e, 'append'))
 
   on('telemetry.log', { to: 'collector' }, ($, e, next) => next.to(e, 'append'))
 
