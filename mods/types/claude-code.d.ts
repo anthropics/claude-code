@@ -8060,7 +8060,7 @@ declare module 'claude-code' {
    * A member is dropped when `P` names a key it lacks, or gives a key, at any
    * depth, a value none of that key's values can equal (ImpossibleKeys).
    */
-  type KeptMembers<E, P> = E extends unknown ? [ImpossibleKeys<E, P, []>] extends [never] ? E : never : never;
+  type KeptMembers<E, P> = SharedMatcher<P> extends infer Shared ? E extends unknown ? [ImpossibleKeys<E, Shared, []>] extends [never] ? E : never : never : never;
 
   /**
    * The declared keys of `T`, the string and number index signatures left out.
@@ -8218,7 +8218,7 @@ declare module 'claude-code' {
    * What a matched hook returns: the event's result, narrowed by `M` where the
    * result is a union tagged by the matcher's tag keys.
    */
-  export type MatchedResult<P extends Pattern, M> = MatchedNames<P, M> extends infer N extends EventName ? N extends unknown ? Select<EventResult<N>, Selection<Args<N>, M>> : never : never;
+  export type MatchedResult<P extends Pattern, M> = MatchedNames<P, M> extends infer N extends EventName ? N extends unknown ? Select<EventResult<N>, Selection<Args<N>, SharedMatcher<M>>> : never : never;
 
   /**
    * The hook `on(event, matcher, hook)` takes on a streaming event: the
@@ -9087,7 +9087,7 @@ declare module 'claude-code' {
    * an object key recursively, an array some element of which must match to
    * a non-empty tuple; other keys, `unknown` and RegExp-matched fields keep.
    */
-  export type Narrowed<E, P> = E extends unknown ? NarrowedMember<E, P, []> : never;
+  export type Narrowed<E, P> = SharedMatcher<P> extends infer Shared ? E extends unknown ? NarrowedMember<E, Shared, []> : never : never;
 
   /**
    * A value of declared type `V` under a one-of, folded over the tuple into
@@ -17531,6 +17531,15 @@ declare module 'claude-code' {
    * `T`; `never` for a key declared otherwise, so that atom does not compile.
    */
   export type ShapedValue<V> = V extends Shaped<infer T> ? T : never;
+
+  /**
+   * A matcher of `tool` alone as one type per value, so equal ones narrow once.
+   */
+  type SharedMatcher<M> = M extends {
+      readonly tool: infer T;
+  } ? keyof M extends 'tool' ? {
+      readonly tool: T;
+  } : M : M;
 
   /**
    * Where a site's window sits over the tree a hook drew in it (a pane's body,
