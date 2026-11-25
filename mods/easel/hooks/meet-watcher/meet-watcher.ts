@@ -17,7 +17,7 @@ export function meetWatcher(
   changedSetting: Shell.ChangedSetting,
 ): Promise<unknown> {
   const offered = $.tool
-    .register(CoreCall.TOOL_SPEC)
+    .register({ ...CoreCall.TOOL_SPEC, name: 'chart' })
     .catch((error: unknown) =>
       $.ui.log(`no chart tool: ${String(error)}`, { to: 'debug' }),
     )

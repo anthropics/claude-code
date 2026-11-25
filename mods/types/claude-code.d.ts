@@ -821,7 +821,8 @@ declare module 'claude-code' {
   type AgentSpec = {
       /**
        * The type's short name (letters, digits, `_`, `-`; up to 64); the type is
-       * `<plugin>:<name>`, as a plugin's agent file `agents/<name>.md` names one.
+       * `<plugin>:<name>`, as a plugin's agent file `agents/<name>.md` names one
+       * (`$.agent.register` says when it is the name alone).
        */
       name: string;
       /**
@@ -2401,9 +2402,9 @@ declare module 'claude-code' {
    * them is what bounds any transcript row where a surface draws it.
    *
    * A command Claude Code leaves to a plugin (`/stickers`, `/radio`, `/diff`)
-   * belongs to the plugin that registered the name, bundled or not: unless it
-   * ran the command itself or gave it an alias Claude Code keeps, its text
-   * shows under no name. CommandSpec's `isUnnamed` asks that for its own.
+   * belongs to the plugin that registered the name by literal, bundled or not:
+   * unless it ran the command itself or gave it an alias Claude Code keeps, its
+   * text shows under no name. CommandSpec's `isUnnamed` asks that for its own.
    */
   export type CommandRunResult = {
       /**
@@ -4205,7 +4206,8 @@ declare module 'claude-code' {
            * the session's environment replaces both.
            *
            * @param tool `name`, `description` (what the model reads), `inputSchema`
-           *             (default `{ type: "object" }`), `isDeferred` (ToolSpec)
+           *             (default `{ type: "object" }`), `isDeferred` and the traits
+           *             (ToolSpec)
            * @returns `{ tool }`, the registered tool's full name
            *          `mcp__<plugin>__<name>`
            * @example
@@ -4442,6 +4444,10 @@ declare module 'claude-code' {
            * replaced; unloaded, a plugin's types go. `agent.offer` hides it from
            * the model alone; any plugin's `$.agent.spawn` answers to `agent.spawn`.
            *
+           * A name Claude Code ships and leaves to a plugin, written as a literal,
+           * goes without the prefix to the first plugin that registers it; it is
+           * still that plugin's agent. Read the name from the answer.
+           *
            * @param spec `name`, `description` (when to delegate), `prompt` (its
            *             system prompt), and any other field of an agent definition
            * @returns `{ agent }`, the full name; rejects until the session binds,
@@ -4509,12 +4515,38 @@ declare module 'claude-code' {
           /**
            * Writes a file, creating it and its directories as needed.
            *
+           * With `{ ifVersion }` it writes only while the file stands at that
+           * `version` (0: only while absent) and answers `{ isSet, version }`; a
+           * miss writes nothing. It follows no link at the path: one there, or a
+           * directory, rejects. A write that lands answers a new version, and where
+           * the volume's clock is coarse can date the file ahead of it.
+           *
+           * Atomic against other calls with `ifVersion` on the same name, from any
+           * session that shares this configuration directory: they take turns, and
+           * one kept waiting too long rejects (`ELOCKED`). A plain `$.fs` change of
+           * the file in this session waits its turn or rejects (`EBUSY`). With 0,
+           * one caller alone creates the file, whoever else is writing.
+           *
+           * Not atomic against any other writer: a plain call in another session, a
+           * tool, a command, an editor, another user or machine, a hard link's other
+           * name. What they change before the check is a miss; between the check and
+           * the write, it is overwritten. Nor is it one step: a reader can find the
+           * file empty or part written (stat first, then read), and a call that
+           * rejects can leave it so, one with 0 too, as a plain write can: stat, then
+           * write again at that version.
+           *
            * @param path relative to the working directory, or absolute
            * @param data the whole new content: a text, or bytes as `{ base64 }`
+           * @param options `ifVersion`: a `version` that `$.fs` answered, or 0
            * @example
            * await $.fs.write("out.bin", { base64: bytes.toBase64() })
+           * @example
+           * const claim = await $.fs.write("job.owner", id, { ifVersion: 0 })
            */
-          write: (path: string, data: string | FsBytes) => Promise<void>;
+          write: {
+              (path: string, data: string | FsBytes): Promise<void>;
+              (path: string, data: string | FsBytes, options: StoreCondition): Promise<StoreSetResult>;
+          };
           /**
            * Removes one name: a file of any kind, a link itself or an empty
            * directory, never what is in one.
@@ -4523,9 +4555,18 @@ declare module 'claude-code' {
            * of it, while a write holds the file (`EBUSY`), and where the sandbox keeps
            * commands from it by that name.
            *
+           * With `{ ifVersion }` it removes only while the name stands at that
+           * `version` and answers `{ isDeleted, version }`, a missing name standing
+           * at 0. Atomic as a conditional `write` is, and no further: what another
+           * writer changes between the check and the removal is removed.
+           *
            * @param path relative to the working directory, or absolute
+           * @param options `ifVersion`: a `version` that `$.fs` answered
            */
-          remove: (path: string) => Promise<void>;
+          remove: {
+              (path: string): Promise<void>;
+              (path: string, options: StoreCondition): Promise<StoreDeleteResult>;
+          };
           /**
            * Moves one regular file, in one step, replacing a regular file at `to` and
            * creating its directories as needed. A link or a directory is not moved.
@@ -4564,8 +4605,8 @@ declare module 'claude-code' {
            */
           exists: (path: string) => Promise<boolean>;
           /**
-           * Returns `{ kind, size, mtimeMs, isLink }` of the path: what it leads to,
-           * and whether it is itself a symbolic link. Rejects when missing.
+           * Returns `{ kind, size, mtimeMs, isLink, version }` of the path: what it
+           * leads to, and whether it is itself a symbolic link. Rejects when missing.
            *
            * With `{ resolve: true }` also `realPath`, where the path lands, absent
            * when it leads nowhere; a guard matches it and denies without it, since a
@@ -7387,6 +7428,18 @@ declare module 'claude-code' {
        *          `realPath` under a root resolved the same way is the robust guard.
        */
       realPath?: string;
+      /**
+       * What the path's own name stands at, to hand back as `ifVersion` to
+       * `$.fs.write` or `$.fs.remove`: a whole number above 0, a link's its own.
+       *
+       * Never to order or count by. It may change with no write. It is read from
+       * the file's size and times, so it can repeat after a plain write of as many
+       * bytes, or a removal and a new file, within one tick of the volume's clock,
+       * and on Windows after an overwrite that keeps `mtimeMs`. It can be
+       * absent, as where a hook answered without it, and a caller then has nothing
+       * to condition on. A hook that serves a path may mint its own.
+       */
+      version?: number;
   };
 
   /**
@@ -9932,25 +9985,33 @@ declare module 'claude-code' {
           length?: number;
       };
       /**
-       * The argument of `$.fs.write(path, data)`: `text` always, and for bytes
-       * `base64` beside it, `text` then being their UTF-8 reading.
+       * The argument of `$.fs.write(path, data, { ifVersion })`: `text` always,
+       * and for bytes `base64` beside it, `text` then being their UTF-8 reading.
        *
        * The write rejects where the two no longer agree: a hook that changes the
        * content passes `text` alone, or both. Raised for each path that a
        * `$.fs.remove`, `$.fs.rename` or `$.fs.copy` changes too (`fs.copy`).
+       *
+       * `ifVersion` is the call's condition, kept as on `store.set`: a hook that
+       * serves the path itself answers `{ isSet, version }`, or the call rejects.
+       * A miss tells whether the name exists and its version, with no `fs.stat`.
        */
       'fs.write': {
           path: string;
           text: string;
           base64?: string;
+          ifVersion?: number;
       };
       /**
-       * The argument of `$.fs.remove(path)`. Beneath its hooks, `fs.write` is
-       * raised on the path with an empty `text`, as `fs.copy` says. A guard there
-       * that resolves the path judges where a link leads, and this takes the link.
+       * The argument of `$.fs.remove(path, { ifVersion })`. Beneath its hooks,
+       * `fs.write` is raised on the path with an empty `text` and no `ifVersion`,
+       * on a miss too, as `fs.copy` says. A guard there that resolves the path
+       * judges where a link leads, and this takes the link. With `ifVersion` it
+       * answers `{ isDeleted, version }`; a miss tells both, with no `fs.stat`.
        */
       'fs.remove': {
           path: string;
+          ifVersion?: number;
       };
       /**
        * The argument of `$.fs.rename(from, to)`. Beneath its hooks, `fs.write` is
@@ -10273,8 +10334,8 @@ declare module 'claude-code' {
        * The text; `{ base64 }` when asked for bytes.
        */
       'fs.read': string | FsBytes;
-      'fs.write': void;
-      'fs.remove': void;
+      'fs.write': void | StoreSetResult;
+      'fs.remove': void | StoreDeleteResult;
       'fs.rename': void;
       'fs.copy': void;
       'fs.list': FsEntry[];
@@ -11114,8 +11175,8 @@ declare module 'claude-code' {
    * the same lists `claude plugin validate` prints and the host's rule reads.
    *
    * Exact, since a module that spells `on`, `$`, `$.env` or a `$.state`
-   * reference other than literally does not load. `hosts` alone is not: a URL
-   * may be computed, and it says where one is.
+   * reference other than literally does not load. `hosts` and `registers` are
+   * not: a URL or a name may be computed, and each says where one is.
    */
   export type PluginRegisterUses = {
       /**
@@ -11176,6 +11237,40 @@ declare module 'claude-code' {
            * or may give a `socketPath`, or runs that may link and are not written
            * at the call, sorted: it loads all the same, and may reach what is not
            * in `named`.
+           */
+          unread: readonly string[];
+      };
+      /**
+       * The names and aliases spelled in its source at `$.command.register`,
+       * `$.tool.register` and `$.agent.register`, as a literal or a `const` of the
+       * same file; absent when it calls none of the three and `unread` is empty. A
+       * computed or imported name is not listed: `unread` says where one may be.
+       *
+       * @example
+       * e.uses.registers?.unread.length ? { refuse: 'spell its names' } : next(e)
+       */
+      registers?: {
+          /**
+           * Spelled at `$.command.register`, with no slash, sorted, each once.
+           */
+          command: readonly string[];
+          /**
+           * Spelled at `$.tool.register`, sorted, each once.
+           */
+          tool: readonly string[];
+          /**
+           * Spelled at `$.agent.register`, sorted, each once.
+           */
+          agent: readonly string[];
+          /**
+           * Which of `agent.register`, `command.register` and `tool.register` may
+           * register what is not listed, sorted: a name or alias is not read, or the
+           * options or the aliases are not written out at the call (a spread, a
+           * computed key, an accessor, a `const` object). So is each it calls beside
+           * a hook that hears `engine.create`, and `agent.register` or
+           * `command.register` where a hook of its hears it, as that may rename any
+           * plugin's. Past 512 names, or where its names did not reach the host, a
+           * call is here and its list is empty.
            */
           unread: readonly string[];
       };
@@ -11491,7 +11586,8 @@ declare module 'claude-code' {
        */
       module: string;
       /**
-       * What `plugin.register` carries as `e.uses`, with no member left out.
+       * What `plugin.register` carries as `e.uses`, with no member left out. A
+       * report from an older CLI leaves `registers` out.
        */
       uses: Required<PluginRegisterUses>;
       /**
@@ -13676,13 +13772,20 @@ declare module 'claude-code' {
 
   /**
    * A ToolSpec as `$.tool.register` hands it on: the input schema filled in,
-   * `isDeferred` as the plugin gave it.
+   * `isDeferred` as the plugin gave it, and the traits that are well formed.
    */
   export type RegisteredToolSpec = {
       name: string;
       description: string;
       inputSchema: Record<string, unknown>;
       isDeferred?: ToolDeferral;
+      isReadOnly?: true;
+      isConcurrencySafe?: true;
+      isDestructive?: true;
+      runsCode?: true;
+      searchHint?: string;
+      whenToUse?: string;
+      title?: string;
   };
 
   /**
@@ -18080,7 +18183,8 @@ declare module 'claude-code' {
    * while the key still stands at `ifVersion` (compare-and-set).
    *
    * `ifVersion: 0` means only while the key is unset, so one session alone
-   * claims it. Decided under the store's lock, across sessions.
+   * claims it. Decided under the store's lock, across sessions. `$.fs.write`
+   * and `$.fs.remove` take it for a file, and answer as the store does.
    */
   export type StoreCondition = {
       ifVersion: number;
@@ -19928,7 +20032,7 @@ declare module 'claude-code' {
        * Absent also means the tool cannot say: a careful hook reads it as a write.
        * It is the tool's word, no proof of no effect (a fetch, a sent message, an
        * agent that delegates all say it); an MCP tool's is its server's and a tool
-       * added at `tool.list` its mod's, unproven.
+       * added at `tool.list` its mod's, unproven. Never on a `$.tool.register` tool.
        */
       isReadOnly?: true;
   };
@@ -20523,6 +20627,10 @@ declare module 'claude-code' {
 
   /**
    * What `$.tool.register` takes.
+   *
+   * The traits, `isReadOnly` to `title`, read as on an entry a `tool.list` hook
+   * adds (ToolInfo): the mod's word, the same for every input, and none skips a
+   * check. A bad one is dropped, the debug log says which, and the tool registers.
    */
   export type ToolSpec = {
       /**
@@ -20548,6 +20656,23 @@ declare module 'claude-code' {
        * an MCP server's tool. A `tool.describe` hook's answer is read first.
        */
       isDeferred?: ToolDeferral;
+      /**
+       * A call changes nothing. Only `/mcp` shows it: `tool.check` and the engine
+       * treat the tool as one that writes. Dropped beside `isDestructive` or `runsCode`.
+       */
+      isReadOnly?: true;
+      /** A call may run beside other such calls, one waiting on a prompt included. */
+      isConcurrencySafe?: true;
+      /** A call does what cannot be undone. */
+      isDestructive?: true;
+      /** A call runs code: `--restricted` drops the tool unless `--tools` names it. */
+      runsCode?: true;
+      /** A few words ToolSearch matches: one line, up to 256 characters. */
+      searchHint?: string;
+      /** When to use a deferred tool: one line, up to 400 characters. */
+      whenToUse?: string;
+      /** The transcript's name for it, up to 64 characters. Prompts go by `name`. */
+      title?: string;
   };
 
   /**

@@ -975,7 +975,7 @@ export function register(on: On) {
         uiLog: text => $.ui.log(text),
         openPane: pane => $.ui.open(pane),
         closePane: pane => $.ui.close(pane),
-        registerCommand: spec => $.command.register(spec),
+        registerCommand: spec => $.command.register({ ...spec, name: 'diff' }),
         sessionId: () => $.session.id(),
         startedAt: () =>
           $.session
