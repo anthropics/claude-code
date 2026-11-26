@@ -11365,7 +11365,8 @@ declare module 'claude-code' {
       events: readonly string[];
       /**
        * What it calls on `$`, spelled `noun.method` (`fs.write`, `http.fetch`),
-       * sorted, each once.
+       * sorted, each once. Some calls also list the call that hooks hear beneath
+       * them: `http.stream` lists `http.fetch` too.
        */
       calls: readonly string[];
       /**
@@ -20236,6 +20237,9 @@ declare module 'claude-code' {
        * Core validates a hook's answer against the tool's output schema when
        * it has one, maps it for the model with the tool's own mapper, and
        * records it in the transcript as the tool's result. Absent on a deny.
+       *
+       * At `tool.run`, for an MCP tool that `next` has run, a `content` is
+       * recorded in its place, but for a plugin's own call.
        */
       result: ToolResultOf<Name>;
       /**
@@ -21018,7 +21022,8 @@ declare module 'claude-code' {
        * Absent when nothing was stored. Headless (`-p`), a tool may store the
        * record less its bulk (Bash blanks `stdout`), and a subagent's transcript
        * stores none; `text` is what the model read either way. Where a
-       * `session.append` hook rewrote the result, it is the record less its text.
+       * `session.append` hook rewrote the result, it is the record less its text,
+       * and it is a `tool.run` answer's `content` where that was recorded.
        */
       result?: unknown;
       /**
@@ -21113,7 +21118,8 @@ declare module 'claude-code' {
        * Absent while the call is in flight or when nothing was stored. Headless
        * (`-p`), a tool may store the record less its bulk (Bash blanks `stdout`)
        * and a subagent's transcript stores none; `text` holds either way. Where a
-       * `session.append` hook rewrote the result, it is the record less its text.
+       * `session.append` hook rewrote the result, it is the record less its text,
+       * and it is a `tool.run` answer's `content` where that was recorded.
        */
       result?: unknown;
       /**
