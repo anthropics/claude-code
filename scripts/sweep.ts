@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 
-import { lifecycle, STALE_UPVOTE_THRESHOLD } from "./issue-lifecycle.ts";
+import { lifecycle, STALE_EXEMPT_LABELS, STALE_UPVOTE_THRESHOLD } from "./issue-lifecycle.ts";
 
 // --
 
@@ -42,6 +42,9 @@ async function githubRequest<T>(
 
 // --
 
+const isStaleExempt = (issue: any) =>
+  issue.labels?.some((l: any) => STALE_EXEMPT_LABELS.includes(l.name));
+
 async function markStale(owner: string, repo: string) {
   const staleDays = lifecycle.find((l) => l.label === "stale")!.days;
   const cutoff = new Date();
@@ -51,7 +54,11 @@ async function markStale(owner: string, repo: string) {
 
   console.log(`\n=== marking stale (${staleDays}d inactive) ===`);
 
-  for (let page = 1; page <= 10; page++) {
+  // Exempt issues stay at the front of this list, so they don't count toward
+  // the page limit. The API doesn't serve page numbers above 99.
+  let exempt = 0;
+
+  for (let page = 1; page <= Math.min(10 + Math.ceil(exempt / 100), 99); page++) {
     const issues = await githubRequest<any[]>(
       `/repos/${owner}/${repo}/issues?state=open&sort=updated&direction=asc&per_page=100&page=${page}`
     );
@@ -72,6 +79,11 @@ async function markStale(owner: string, repo: string) {
 
       const thumbsUp = issue.reactions?.["+1"] ?? 0;
       if (thumbsUp >= STALE_UPVOTE_THRESHOLD) continue;
+
+      if (isStaleExempt(issue)) {
+        exempt++;
+        continue;
+      }
 
       const base = `/repos/${owner}/${repo}/issues/${issue.number}`;
 
@@ -111,6 +123,16 @@ async function closeExpired(owner: string, repo: string) {
         if (thumbsUp >= STALE_UPVOTE_THRESHOLD) continue;
 
         const base = `/repos/${owner}/${repo}/issues/${issue.number}`;
+
+        if (label === "stale" && isStaleExempt(issue)) {
+          if (DRY_RUN) {
+            console.log(`#${issue.number}: would remove stale (exempt label) — ${issue.title}`);
+          } else {
+            await githubRequest(`${base}/labels/stale`, "DELETE");
+            console.log(`#${issue.number}: removed stale (exempt label)`);
+          }
+          continue;
+        }
 
         const events = await githubRequest<any[]>(`${base}/events?per_page=100`);
 
