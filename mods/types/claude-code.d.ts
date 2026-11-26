@@ -3387,8 +3387,9 @@ declare module 'claude-code' {
            * switch from the tasks list does; `{}` goes back to the main one.
            *
            * Only while the call answers the person's own input (a press, a pick,
-           * their prompt or command): the viewed agent takes the prompt's next
-           * Enter. A site reads the view in force as `e.props.view`.
+           * their prompt or command). On the terminal the viewed agent takes the
+           * prompt's next Enter, and a site reads the view as `e.props.view`. In an
+           * app that switches views, only a Button's press moves its window.
            *
            * @param view `agentId`: the agent's `id` in `$.agent.list()`; absent for
            *             the main conversation
@@ -22826,7 +22827,8 @@ declare module 'claude-code' {
        *
        * The call did not answer the person's own input; no agent holds the id,
        * or the tasks list shows none for it; a teammate was stopped, or runs in
-       * a pane of its own; the view moved meanwhile; the session draws none.
+       * a pane of its own; the view moved meanwhile; the session draws none; an
+       * app had no Button pressed in it, did not switch, or did not answer.
        */
       deny?: string;
   };
