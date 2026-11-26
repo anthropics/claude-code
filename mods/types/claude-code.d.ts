@@ -3250,8 +3250,7 @@ declare module 'claude-code' {
            * @param pane `id` (1-64 of letters, digits, `_`, `-`), `title`, `focus`,
            *   `closeOnEscape` and `holdToasts` (a dialog), `backgroundColor` (what
            *   is painted under its body), `rows` / `columns` wanted, `placement` (the
-           *   seat to start in: `"widget"`, its small form on the desktop app, or
-           *   `"dialog"`, the terminal's own, from a command the person typed);
+           *   seat to start in: `"widget"`, its small form on the desktop app);
            *   `wait`, for its close
            * @returns `{ isPlaced: true }` once drawn (or retitled), else `{ isPlaced:
            *   false, reason }` (UiOpenResult); the seat it got is on `Pane` props
@@ -3270,8 +3269,7 @@ declare module 'claude-code' {
            *
            * Every close raises `ui.close`, `e.origin` naming whose it is: this call
            * (`plugin`), the person's mark or key (`person`), an unload (`unload`).
-           * A hook answering without `next` keeps the pane open, save on an unload
-           * or the person's close of a `"dialog"`.
+           * A hook answering without `next` keeps the pane open, save on an unload.
            *
            * @param pane `id`: the id it was opened under; `value`: what a `wait` gets
            * @returns settles once the pane is gone or a hook answered for it;
@@ -5838,8 +5836,8 @@ declare module 'claude-code' {
        * 50 ms, `$` calls included, the key goes on. Unmatched keys raise no wait.
        *
        * @remarks Never raised under the engine's own question, dialog, menu or
-       *   search, in an agent's view (but for a pane open as a dialog), or in a pane
-       *   or the band while a question or another dialog waits; nor for Ctrl+C,
+       *   search, in an agent's view, or in a pane
+       *   or the band while a question waits; nor for Ctrl+C,
        *   Ctrl+D, Ctrl+Z, a chord, a Cmd key, a paste, keys read at once, or a
        *   character alone in the box (or Enter on it) that a row above takes as its
        *   answer. Escape is, in a turn too (taken, the turn goes on); in a pane or
@@ -10712,32 +10710,12 @@ declare module 'claude-code' {
        * app without them) opens the pane as if this were left out. Any other value
        * is ignored.
        *
-       * `"dialog"` asks for the terminal's standard dialog, where a built-in
-       * command's view opens. Granted once, to this plugin's `command.run` hook,
-       * while a command it registered and the person typed at this terminal's
-       * prompt runs and no other dialog is open. Anywhere else (a timer, another
-       * hook, `$.command.run`, Remote Control, another surface) it is left out.
-       *
-       * The engine draws the frame, the title row (this plugin's name, then the
-       * `title`) and the hint line;
-       * `focus`, `closeOnEscape`, `rows` and `columns` are not read. Escape (unless
-       * a `ui.key` hook takes it), or Ctrl+C or Ctrl+D twice, is `ui.close` with origin
-       * `person`, unrefusable. It stays after the hook returns; queued input waits.
-       * A permission prompt or a `$.ui.ask` waits behind it too, so close it first.
-       * With nothing drawn in it, it closes with origin `unload`. Closed by
-       * anything but the person while a prompt waits, it leaves the engine's empty
-       * frame up until they close that.
-       * With `wait`, an open this does not seat is granted it on the terms there.
-       *
        * @remarks Each open sets it anew, but a surface is meant to read it only when
-       *   it first shows the pane: another open of the dialog retitles it. A
-       *   `ui.open` hook may set or drop `"widget"`, and only drop `"dialog"`.
+       *   it first shows the pane. A `ui.open` hook may set or drop it.
        * @example
        * await $.ui.open({ id: "ticker", placement: "widget" })
-       * @example
-       * await $.ui.open({ id: "notes", title: "Notes", placement: "dialog" })
        */
-      placement?: 'widget' | 'dialog';
+      placement?: 'widget';
       /**
        * The call resolves once the pane has closed, with whose close it was and
        * the `value` it carried (UiOpenResult); the person's close carries none.
@@ -10747,24 +10725,14 @@ declare module 'claude-code' {
        * call answers `{ isPlaced: false, reason }` at once and opens none. A
        * surface that detaches ends no wait: the one that returns draws the pane.
        *
-       * A typed command's `"dialog"` is seated as without `wait`. Any other hook's
-       * is the terminal's too, under the plugin's name: first in, first out, behind
-       * a dialog or notice already open, and beneath every permission prompt or
-       * question, whose arrival takes it off screen until answered (one waits once
-       * the person types in its Input, or just after a `ui.key` hook took a key).
-       * Early keys are dropped. As with `$.ui.ask`, only Escape closes it (unless a
-       * `ui.key` hook takes it), or a pane's ctrl+x x: Ctrl+C is the turn's.
-       * `/clear` unloads it, but over a prompt that waits it stays, and so does
-       * queued input. A second one opened from the first shows once the first has
-       * closed, so awaiting it before closing the first waits until the person
-       * closes that. An `onPress` awaiting either past ten seconds may be reported
-       * over its budget, as one awaiting `$.ui.ask` may, and still gets its answer.
+       * An `onPress` awaiting it past ten seconds may be reported over its budget,
+       * as one awaiting `$.ui.ask` may, and still gets its answer.
        *
        * @remarks A `ui.open` hook may drop it, never add it, or answer with a
        *   `value`, which closes what its `next(e)` opened; a `ui.close` hook is
-       *   refused a wait on the pane it hears of. An id already the dialog, or
-       *   waiting undrawn, stays so. A pane that is no dialog, as on another
-       *   surface, outlasts `/clear`; Escape closes it only with `closeOnEscape`.
+       *   refused a wait on the pane it hears of. An id waiting undrawn
+       *   stays so. The pane outlasts `/clear`; Escape closes it only with
+       *   `closeOnEscape`.
        * @example
        * const closed = await $.ui.open({ id: "pick", wait: true })
        */
@@ -15682,8 +15650,7 @@ declare module 'claude-code' {
            *
            * On the desktop app also `widget`, the small form of a minimized pane.
            * Draw what reads at a glance there: clicks may not reach it. The hook runs
-           * again when the seat changes. In the terminal also `dialog`, where the
-           * open was granted it (PaneOpenArgs). Treat any other value as `dock`.
+           * again when the seat changes. Treat any other value as `dock`.
            *
            * Read-only: a rewrite carries it on as received; one that changes or
            * drops it is refused, the hook that passed it failing.
@@ -15691,7 +15658,7 @@ declare module 'claude-code' {
            * @example
            * return e.props.placement === "widget" ? glance(e) : fullApp(e)
            */
-          placement: 'dock' | 'inline' | 'widget' | 'dialog';
+          placement: 'dock' | 'inline' | 'widget';
           /**
            * The edges of the chat area that a `widget` is anchored on, to align the
            * drawing by: `["bottom", "right"]` in that corner, `["right"]` stacked on
@@ -22020,7 +21987,7 @@ declare module 'claude-code' {
    */
   export type UiKeyInput = ClientKeyEvent & {
       /**
-       * A `Pane` (open as a dialog too), the `AbovePrompt` band or the `Prompt`.
+       * A `Pane`, the `AbovePrompt` band or the `Prompt`.
        */
       component: UiFocusComponent | 'Prompt';
       /**
@@ -22264,7 +22231,7 @@ declare module 'claude-code' {
    * One of this plugin's open panes as `$.ui.panes()` lists it: the pane's
    * id and title, and where it stands with the person right now.
    *
-   * Where a surface seated it (`dock`, `inline`, `widget`, `dialog`) is that
+   * Where a surface seated it (`dock`, `inline`, `widget`) is that
    * surface's to say, on the `Pane` render props (`placement`); a session may
    * draw on several.
    */
@@ -22293,7 +22260,6 @@ declare module 'claude-code' {
        * It turns true when the person opens the pane or the terminal is widened
        * to its floor (UiOpenResult `reason`). False on every row, none shown or
        * focused, while an open answers `no-surface`.
-       * False too for a dialog opened with `wait` while it is not on screen.
        */
       isPlaced: boolean;
   };
