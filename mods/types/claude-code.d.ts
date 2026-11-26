@@ -11857,6 +11857,45 @@ declare module 'claude-code' {
        */
       hosts: PluginHosts | null;
       /**
+       * What the parts in `provides` run or start with, each under its part's name.
+       * Text is as written, less provider tokens; `env` holds names, never values.
+       * Null wherever `provides` is, or where a list could be short. A report from
+       * an older CLI leaves it out.
+       */
+      runs: {
+          mcpServerEnv: readonly {
+              name: string;
+              env: readonly string[];
+          }[];
+          mcpHeadersHelpers: readonly {
+              name: string;
+              command: string;
+          }[];
+          lspServerEnv: readonly {
+              name: string;
+              env: readonly string[];
+          }[];
+          skillHooks: readonly {
+              name: string;
+              hook: PluginHookEntry;
+          }[];
+          /** The `!` commands in a skill's or command's text. */
+          inlineShell: readonly {
+              name: string;
+              command: string;
+          }[];
+          subagentStatusLine: readonly {
+              command: string;
+          }[];
+          /** The values the manifest gives each option a command or such a text names; none for one marked `sensitive` or that only `env` names. */
+          optionDefaults: readonly {
+              name: string;
+              option: string;
+              default?: string | number | boolean | readonly string[];
+              options?: readonly string[];
+          }[];
+      } | null;
+      /**
        * What the validator advises without counting it under any flag: today, the
        * install line a plugin's README lacks.
        */
