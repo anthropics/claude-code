@@ -206,8 +206,7 @@ export function register(on: On) {
     detectedRoots.clear()
     polled.toplevel = ''
     polled.headKey = ''
-    timers.get('poll')?.cancel()
-    timers.delete('poll')
+    stopPoll()
     timers.get('rest')?.cancel()
     timers.delete('rest')
     timedOutRefreshes = 0
@@ -582,23 +581,33 @@ export function register(on: On) {
   }
 
   function startPoll(engine: Host, pinned: Backend.Backend) {
-    const readHeadKey = () => pinned.headKeyOf().catch(() => '')
-
     if (polled.toplevel === pinned.repository.toplevel) {
       return
     }
 
-    timers.get('poll')?.cancel()
+    stopPoll()
     polled.toplevel = pinned.repository.toplevel
     polled.headKey = ''
+    pollWhileSeen(engine)
+  }
+
+  function stopPoll() {
+    timers.get('poll')?.cancel()
+    timers.delete('poll')
+  }
+
+  function pollWhileSeen(engine: Host) {
+    const pinned = backend
+
+    if (!pinned || !isPaneSeen() || timers.has('poll')) {
+      return
+    }
+
+    const readHeadKey = () => pinned.headKeyOf().catch(() => '')
 
     timers.set(
       'poll',
       engine.every(Limits.HEAD_POLL_MS, () => {
-        if (!isPaneSeen()) {
-          return
-        }
-
         if (isRefreshQueued && !isRefreshing) {
           void endOverdueRest(engine)
         }
@@ -892,6 +901,7 @@ export function register(on: On) {
     await markShown(engine, trigger)
     await pinBackend(engine)
     keepBaseline()
+    pollWhileSeen(engine)
     void refresh(engine, true)
   }
 
@@ -994,6 +1004,7 @@ export function register(on: On) {
     if (outcome === 'awaited') {
       awaited = trigger
     } else {
+      pollWhileSeen(engine)
       await markShown(engine, trigger)
     }
 
@@ -1010,6 +1021,7 @@ export function register(on: On) {
     await engine.closePane({ id: Names.PANE_ID })
     isPaneOpen = false
     awaited = null
+    stopPoll()
   }
 
   function markTabSwitch(engine: Host, tab: (typeof Record.TABS)[number]) {
@@ -1574,6 +1586,7 @@ export function register(on: On) {
     if (isClosed) {
       isPaneOpen = false
       awaited = null
+      stopPoll()
     }
 
     if (isPersons) {

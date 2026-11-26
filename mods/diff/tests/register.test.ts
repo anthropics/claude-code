@@ -52,6 +52,61 @@ describe('register', () => {
     return { before, after: await drawn() }
   }
 
+  test('the HEAD poll keeps a timer only while the pane is seen', async ($, on) => {
+    let waits = 0
+    let isUnseen = false
+
+    on('clock.every', { ms: Limits.HEAD_POLL_MS }, (_engine, e, next) => {
+      waits += 1
+
+      return next(e)
+    })
+    on('command.run', { command: 'clear' }, () => ({}))
+
+    const world = Fixtures.inRepository(on, Fixtures.REPOSITORY, {
+      isLeftUnseen: () => isUnseen,
+    })
+
+    async function waitsInTenPeriods() {
+      await world.clock.settle()
+
+      const before = waits
+
+      await world.clock.advance(10 * Limits.HEAD_POLL_MS)
+
+      return waits - before
+    }
+
+    await $.session.start(Fixtures.SESSION)
+    await $.command.run(Fixtures.DIFF)
+
+    expect(await waitsInTenPeriods(), 'open').toBe(10)
+
+    await $.command.run(Fixtures.CLEAR)
+
+    expect(await waitsInTenPeriods(), 'kept open by /clear').toBe(10)
+
+    await $.command.run(Fixtures.DIFF)
+
+    expect(await waitsInTenPeriods(), 'closed').toBe(0)
+
+    await $.command.run(Fixtures.DIFF)
+    await $.command.run(Fixtures.DIFF)
+    await $.command.run(Fixtures.DIFF)
+
+    expect(await waitsInTenPeriods(), 'reopened, one timer').toBe(10)
+
+    await $.command.run(Fixtures.DIFF)
+    isUnseen = true
+    await $.command.run(Fixtures.DIFF)
+
+    expect(await waitsInTenPeriods(), 'open, drawn by nothing').toBe(0)
+
+    await $.ui.render(Fixtures.PANE)
+
+    expect(await waitsInTenPeriods(), 'drawn at last').toBe(10)
+  })
+
   /**
    * A fake session. Each git run answers from the script as it is when the
    * run starts; once `slow.isOn`, each `diff` run takes SLOW_DIFF_MS.
