@@ -3569,6 +3569,11 @@ declare module 'claude-code' {
            * Linux or Windows terminal, having no player, plays nothing. Resolves once
            * played or skipped; rejects, naming the cause, when the clip cannot play.
            *
+           * Where an app that supports it shows a cloud, Linux or Windows session, the
+           * app may be handed the clip, which must then be a PCM WAV of at most 1 MiB.
+           * Heard or not, it resolves at the clip's length (a loop, at its abort) or
+           * when the last such app leaves.
+           *
            * @param clip the plugin's own file (`{ asset }`), a URL the engine
            *   fetches, or the bytes as base64 with their MIME type
            * @param options `shouldLoop`, `gain`, and an AbortSignal that stops the
@@ -6584,7 +6589,11 @@ declare module 'claude-code' {
        * rewrite; the model and the transcript file never read that form.
        *
        * @example
-       * on("session.append", { door: "tool-result" }, ($, e, n) => n(scrub(e)))
+       * // a file the engine attaches by itself comes by the door `attachment`
+       * on("session.append", { door: ["tool-result", "attachment"] }, ($, e, n) =>
+       *   n(scrub(e)))
+       * // a compaction typed in the terminal skips that door: mask the request too
+       * on("prompt.attachment", ($, e, n) => n({ ...e, text: redact(e.text) }))
        */
       'session.append': SessionAppendInput;
       /**
@@ -15628,6 +15637,8 @@ declare module 'claude-code' {
           };
           /**
            * The text the person has selected, when the menu was opened on it.
+           *
+           * Absent in a cloud session.
            */
           selection?: UiSelection;
           /**
