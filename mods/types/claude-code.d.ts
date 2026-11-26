@@ -5858,7 +5858,7 @@ declare module 'claude-code' {
        * Pick a candidate with `{ id }`, add a tip with `{ text, id, label? }`, show
        * none with `{ id: null }`, or pass `next` fewer candidates to drop some.
        * The tips plugin answers the one unshown the longest, ties to priority,
-       * then order; with it off, core does so among `organization` tips alone.
+       * then order; core alone picks among `organization` and `marketplace` tips.
        *
        * The engine decides which tips are candidates, builds the picked one's
        * text, draws it between turns and records it then. A tip of your own keeps
@@ -15258,7 +15258,7 @@ declare module 'claude-code' {
        * its own fails it. Other hints come first; Tab and Enter ignore the line.
        *
        * Asked ahead of the draw, maybe before `session.start`, with no `viewport`.
-       * Until it answers, the example stands in where a hook names the site.
+       * Until it answers, the box is bare.
        *
        * @example
        * on("ui.render", { component: "Placeholder" }, ($, e, next) => next({ ...e, props: { ...e.props, text: "Ask away" } }))
