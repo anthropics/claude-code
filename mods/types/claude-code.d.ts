@@ -4898,8 +4898,8 @@ declare module 'claude-code' {
            * It is no event of its own: hooks hear it once, as `http.fetch` (`*` and
            * `http.*` too), and refuse, rewrite or answer it there. Where any hook
            * hears the call the body arrives as one piece once they are done. The
-           * piece is the `text` they answer: as bytes, the response's own where that
-           * text is still what the response read as, else the text's UTF-8.
+           * piece is the `text` they answer: as bytes, the response's own where they
+           * are UTF-8 and still read as that text, else the text's UTF-8.
            *
            * @param url the URL (http or https)
            * @param init what `fetch` takes
