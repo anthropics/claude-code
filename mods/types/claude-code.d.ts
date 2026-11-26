@@ -16198,6 +16198,9 @@ declare module 'claude-code' {
        * Rewritable: text blocks, a tool_result's `content` and `is_error`. Media
        * blocks may be dropped or moved, not changed or added. Thinking, tool_use,
        * unknown kinds and every tool_result's `tool_use_id` are put back.
+       *
+       * A prompt's text document is a text block (title, context, text, in
+       * `<pasted_content>` tags). Changed, it goes on as text.
        */
       content: ApiContentBlock[];
       /**
