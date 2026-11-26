@@ -8509,8 +8509,8 @@ declare module 'claude-code' {
    * `BesidePromptList`, `UnderlayList` and `Placeholder`. A plugin's own render
    * site (PluginRenderInput) is heard only by a matcher that names `plugin`.
    *
-   * `Ask` is heard only where `component` names it as a string, alone or in a
-   * list with no `"*"`.
+   * `Ask` and `CommandRow` are heard only where `component` names them as a
+   * string, alone or in a list with no `"*"`.
    */
   export type Matcher<I, All = I> = I extends unknown ? {
       readonly [K in KnownKeys<I>]?: MatcherValue<I[K & keyof I], MatcherValueOf<All, K>>;
@@ -14015,7 +14015,7 @@ declare module 'claude-code' {
    * rows a plugin adds to it. `Underlay` is drawn under the terminal's
    * fullscreen interface, and `UnderlayList` orders its layers.
    */
-  export type RenderComponent = 'AskUserQuestion' | 'Ask' | 'UserMessage' | 'AssistantMessage' | 'CodeBlock' | 'ToolUse' | 'ToolResult' | 'ToolGroup' | 'ToolProgress' | 'CommandOutput' | 'Spinner' | 'TurnDuration' | 'InfoNotice' | 'Welcome' | 'SessionMode' | 'PromptHint' | 'StatusLine' | 'Placeholder' | 'AbovePrompt' | 'AbovePromptList' | 'BesidePrompt' | 'BesidePromptList' | 'AgentRow' | 'ContextMenu' | 'Pane' | 'Placed' | 'Backdrop' | 'Underlay' | 'UnderlayList';
+  export type RenderComponent = 'AskUserQuestion' | 'Ask' | 'UserMessage' | 'AssistantMessage' | 'CodeBlock' | 'ToolUse' | 'ToolResult' | 'ToolGroup' | 'ToolProgress' | 'CommandOutput' | 'Spinner' | 'TurnDuration' | 'InfoNotice' | 'Welcome' | 'SessionMode' | 'PromptHint' | 'StatusLine' | 'Placeholder' | 'AbovePrompt' | 'AbovePromptList' | 'BesidePrompt' | 'BesidePromptList' | 'AgentRow' | 'CommandRow' | 'ContextMenu' | 'Pane' | 'Placed' | 'Backdrop' | 'Underlay' | 'UnderlayList';
 
   /**
    * What a render hook returns, and what `next(e)` resolves to: a plain-data
@@ -15539,6 +15539,36 @@ declare module 'claude-code' {
            */
           isHidden: boolean;
       };
+      /**
+       * A command's row in the slash menu: the label drawn where its name stands,
+       * so a color or a badge is what the tree draws. `requestId` opens with
+       * `"site:command-row:"`, one for each row.
+       *
+       * Heard only by a matcher whose `component` names `"CommandRow"` as a string;
+       * `props.name` and `props.source` there pick the rows. Every prop is read-only.
+       * A tree holds `Box` and `Text` alone, with no `hover`, and is drawn as one
+       * line of its text in order: a `Box` takes no prop but `key`, a `Text` its
+       * colors, `dimColor`, `weight`, `bold`, `italic`, `underline`, `strikethrough`
+       * and `inverse`. What `next(e)` answers may be the engine's node, which comes
+       * last, once.
+       *
+       * The surface always marks a row a plugin drew, outside the label. It draws
+       * the command's name after the label too, unless the label spells the name
+       * (a leading slash aside) with no `backgroundColor` or `inverse`. Text whose
+       * color has an alpha or is its own `backgroundColor` is not drawn. The label
+       * is what is cut. The row is the engine's own until the first answer, and on
+       * the terminal where the name leaves the label no room, for a label with a
+       * right-to-left letter and for a screen reader. The description, the order,
+       * the filtering and what taking the row runs stay the engine's. An answer
+       * stands until the next one lands. The desktop asks in a session on the
+       * person's own machines, not a cloud one.
+       *
+       * @example
+       * on("ui.render", { component: "CommandRow", props: { name: "deploy", source: "plugin" } }, ($, e) => { const { Text } = $.ui.resolve(e); return <Text color="magenta">/{e.props.name}</Text> })
+       *
+       * Raised on the terminal and desktop surfaces only.
+       */
+      CommandRow: CommandInfo;
       /**
        * The menu the person opens on something in the transcript (a right-click in
        * the desktop app): the rows a plugin adds to it. The engine draws none.
