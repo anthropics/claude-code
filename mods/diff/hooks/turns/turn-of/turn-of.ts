@@ -21,11 +21,13 @@ export function turnOf(
   index: number,
 ): Types.TurnDiff {
   const text = rows[0]?.text ?? ''
-  const isShort = [...text].length <= PREVIEW_CHARS
+  // Two units a character at most, so one character more than a preview holds is in here.
+  const head = [...text.slice(0, 2 * (PREVIEW_CHARS + 1))]
+  const isShort = head.length <= PREVIEW_CHARS
 
   const preview = isShort
     ? text
-    : `${[...text].slice(0, PREVIEW_CHARS - 1).join('')}…`
+    : `${head.slice(0, PREVIEW_CHARS - 1).join('')}…`
 
   const edits = rows
     .flatMap(row => (row.role === 'assistant' ? row.toolUses : []))

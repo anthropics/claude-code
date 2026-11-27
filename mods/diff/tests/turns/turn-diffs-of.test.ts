@@ -46,6 +46,26 @@ describe('turn-diffs-of', () => {
     ])
   })
 
+  test('a preview counts characters, whatever units they take', () => {
+    const previews = [
+      '😀'.repeat(30),
+      '😀'.repeat(31),
+      `a${'😀'.repeat(40)}`,
+    ].map(
+      prompt =>
+        Turns.turnDiffsOf([
+          Fixtures.promptOf(prompt),
+          Fixtures.editsOf(Fixtures.editPatchOf(['+a'])),
+        ])[0]?.preview,
+    )
+
+    expect(previews).toEqual([
+      '😀'.repeat(30),
+      `${'😀'.repeat(29)}…`,
+      `a${'😀'.repeat(28)}…`,
+    ])
+  })
+
   test('a file edited twice in a turn: both hunks, summed', () => {
     const [turn] = Turns.turnDiffsOf([
       Fixtures.promptOf('go'),
