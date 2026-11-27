@@ -1,5 +1,7 @@
 #!/usr/bin/env bun
 
+import { githubRequest } from "./github-request.ts";
+
 declare global {
   var process: {
     env: Record<string, string | undefined>;
@@ -23,27 +25,6 @@ interface GitHubComment {
   user: { type: string; id: number };
 }
 
-async function githubRequest<T>(endpoint: string, token: string, method: string = 'GET', body?: any): Promise<T> {
-  const response = await fetch(`https://api.github.com${endpoint}`, {
-    method,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: "application/vnd.github.v3+json",
-      "User-Agent": "backfill-duplicate-comments-script",
-      ...(body && { "Content-Type": "application/json" }),
-    },
-    ...(body && { body: JSON.stringify(body) }),
-  });
-
-  if (!response.ok) {
-    throw new Error(
-      `GitHub API request failed: ${response.status} ${response.statusText}`
-    );
-  }
-
-  return response.json();
-}
-
 async function triggerDedupeWorkflow(
   owner: string,
   repo: string,
@@ -59,12 +40,14 @@ async function triggerDedupeWorkflow(
   await githubRequest(
     `/repos/${owner}/${repo}/actions/workflows/claude-dedupe-issues.yml/dispatches`,
     token,
-    'POST',
     {
-      ref: 'main',
-      inputs: {
-        issue_number: issueNumber.toString()
-      }
+      method: 'POST',
+      body: {
+        ref: 'main',
+        inputs: {
+          issue_number: issueNumber.toString()
+        }
+      },
     }
   );
 }
@@ -208,6 +191,3 @@ Environment Variables:
 }
 
 backfillDuplicateComments().catch(console.error);
-
-// Make it a module
-export {};
