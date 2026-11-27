@@ -1639,8 +1639,8 @@ declare module 'claude-code' {
        */
       variant?: 'primary' | 'secondary';
       /**
-       * Marks the Button that closes its site: a drawing hint only. `onPress`
-       * still does the dismissing and the press is raised as for any Button.
+       * Marks the Button that closes its site. `onPress` still does the dismissing
+       * and the press is raised as any Button's, but backs no prompt's `consent`.
        *
        * The terminal draws it as without the prop; a desktop draws its native
        * close control at the site's trailing edge, the label its accessible name.
@@ -1723,7 +1723,7 @@ declare module 'claude-code' {
    * What a hook on streaming event `N` yields, and what its `next(e)` yields
    * to it (ChunkOf by name).
    */
-  export type Chunk<N extends StreamingEventName = StreamingEventName> = ChunkOf[N];
+  export type Chunk<N extends StreamingEventName = StreamingEventName> = (ChunkOf & NounChunkOf)[N];
 
   /**
    * The chunk type of each streaming event, by name: what its stream yields.
@@ -5610,7 +5610,9 @@ declare module 'claude-code' {
    * Every declared noun is optional here. Between hooks it crosses the chain
    * as interface descriptors; a hook sees objects (EngineInterfaceBuilt).
    */
-  export type EngineCreateResult = Partial<EngineInterface> & {
+  export type EngineCreateResult = {
+      [K in keyof EngineInterface]?: K extends keyof CoreEngineInterface ? EngineInterface[K] : ProvidedNoun<EngineInterface[K]>;
+  } & {
       readonly [noun: string]: unknown;
   };
 
@@ -9584,6 +9586,14 @@ declare module 'claude-code' {
        * on that call's own events, and read as `agentId` is.
        */
       readonly tool_use_id?: string;
+      /**
+       * On a plugin's own call on `$` that a person caused (PromptSubmitArgs says
+       * which acts count), at its `tool.check` if no hook rewrote it, and at the
+       * `prompt.submit` of a prompt whose `consent` makes it their turn.
+       *
+       * Absent at `tool.call`, on a stream, and on all other work the call starts.
+       */
+      readonly isByPerson?: true;
   };
 
   /**
@@ -9679,12 +9689,21 @@ declare module 'claude-code' {
   };
 
   /**
+   * What each declared plugin noun's streaming method yields, by event name.
+   */
+  type NounChunkOf = {
+      [E in Extract<NounEvent, {
+          chunk: unknown;
+      }> as E['name']]: E['chunk'];
+  };
+
+  /**
    * The declared plugin nouns' methods as event rows (NounEventRow), one per
    * `<noun>.<method>` that is a function; a member that is not is no event.
    */
   type NounEvent = {
       [K in PluginNoun]: {
-          [M in keyof EngineInterface[K] & string]: EngineInterface[K][M] extends (...args: infer Parameters) => infer Result ? NounEventRow<`${K}.${M}`, Parameters extends readonly [] ? NoArgs : Parameters[0], Awaited<Result>> : never;
+          [M in keyof EngineInterface[K] & string]: EngineInterface[K][M] extends (...args: infer Parameters) => infer Result ? NounEventRow<`${K}.${M}`, Parameters extends readonly [] ? NoArgs : Parameters[0], Result> : never;
       }[keyof EngineInterface[K] & string];
   }[PluginNoun];
 
@@ -9714,10 +9733,19 @@ declare module 'claude-code' {
    * One method of a declared plugin noun as an event row: its event's name,
    * argument (the method's first parameter) and value (its awaited result).
    */
-  type NounEventRow<Name extends string, Args, Value> = {
+  type NounEventRow<Name extends string, Args, Result> = unknown extends Result ? {
+      name: Name;
+      args: Args;
+      value: Result;
+  } : [Result] extends [AsyncGenerator<infer Chunk, infer Value>] ? {
       name: Name;
       args: Args;
       value: Value;
+      chunk: Chunk;
+  } : {
+      name: Name;
+      args: Args;
+      value: Awaited<Result>;
   };
 
   /**
@@ -11105,6 +11133,11 @@ declare module 'claude-code' {
    * Where a hook with no `.catch` is run again beneath its call to one and
    * makes that call again for the same event, the third identical open call
    * waits behind the second, and ends with it if the second goes unanswered.
+   *
+   * A method takes one input and, after it, `{ signal }`. One declared to
+   * return a HookStream streams, and is hooked as `process.spawn` is. A plain
+   * hook on it hears the call and the result, not the chunks; a generator hook
+   * on a method that answers once is skipped.
    */
   type PluginNoun = Exclude<keyof EngineInterface & string, keyof CoreEngineInterface | Namespace<CoreEventName>>;
 
@@ -11806,6 +11839,11 @@ declare module 'claude-code' {
        * Written over a name core puts on `$`, which unloads the module.
        */
       replaces: readonly string[];
+      /**
+       * The `noun.method`s spelled as async generators at the return, and
+       * `noun.*` where a method written elsewhere may be one; absent with none.
+       */
+      streams?: readonly string[];
   };
 
   /**
@@ -13665,6 +13703,35 @@ declare module 'claude-code' {
        * void $.prompt.submit({ text: 'Skip the docs folder.', wait: false })
        */
       wait?: boolean;
+      /**
+       * The words for the person's act this prompt answers. Made in one of these,
+       * with no Stop, clear, resume, branch or rewind since, whoever made it,
+       * it starts a turn that counts as the person's:
+       *
+       * - their press, submit or pick on this plugin's element (ToolCallReserved),
+       *   but for a Button that has `role="dismiss"` or names an `action`,
+       *   or an element's handler given what a hook rewrote;
+       * - a command this plugin registered, typed by them: its `command.run`
+       *   hook, before it returns;
+       * - their answer in the terminal to its `$.ui.ask`, for ten seconds: the hook
+       *   that asked, before it returns, or else code outside any hook;
+       * - their press while its `$.ui.open` waits, under which it closes that pane:
+       *   the code that waited, on those terms, timed from the press and one act
+       *   with it, if no hook changed the `value` (Escape, or any other way they
+       *   dismiss the pane, is none);
+       * - any of these behind a call on a noun: the method that serves it.
+       *
+       * Once per act, at the person's own machine; from a `command.run` hook the
+       * call resolves as it is queued. The text is framed or bare as `asUser` says,
+       * and is never taken for words they typed. Any other call runs as without
+       * `consent`, in a turn of its own. These words (1-4096 characters, not
+       * blank) are never stored, and no hook or model gets them: the transcript
+       * only marks the prompt. Not with `wait: false`.
+       *
+       * @example
+       * await $.prompt.submit({ text: 'Run the plan.', consent: 'Typed /go' })
+       */
+      consent?: string;
   };
 
   /**
@@ -13894,6 +13961,26 @@ declare module 'claude-code' {
        * `next` keeps it from showing.
        */
       isShown: boolean;
+  };
+
+  /**
+   * A declared noun as its `engine.create` step writes it: a method declared
+   * to return a HookStream is an `async function*`, which the engine drives.
+   *
+   * A second parameter with no default is `{ signal }`: it fires at the
+   * caller's signal, an abort, an overrun, an unload or an early exit.
+   *
+   * @example
+   * tail: { async *lines(e, { signal }) { yield "one"; return { count: 1 } } }
+   */
+  type ProvidedNoun<Noun> = {
+      [M in keyof Noun]: Noun[M] extends (e: infer E, options: infer Options) => infer Result ? unknown extends Result ? Noun[M] : [Result] extends [AsyncGenerator<infer Chunk, infer Value>] ? (e: E, call: {
+          readonly signal: AbortSignal;
+      }) => AsyncGenerator<Chunk, Value> : [Options] extends [{
+          signal?: AbortSignal;
+      } | undefined] ? (e: E, call: {
+          readonly signal: AbortSignal;
+      }) => Result : Noun[M] : Noun[M];
   };
 
   /**
@@ -14141,8 +14228,8 @@ declare module 'claude-code' {
            */
           variant?: ButtonProps['variant'];
           /**
-           * `"dismiss"` marks the Button that closes its site, a drawing hint
-           * only: the terminal draws it as without, a desktop its close control.
+           * `"dismiss"` marks the Button that closes its site (ButtonProps):
+           * the terminal draws it as without, a desktop its close control.
            *
            * Carried to every surface as written, never filled in.
            *
@@ -18767,7 +18854,7 @@ declare module 'claude-code' {
    * shown; and `process.spawn`, a call on `$` whose child's output arrives in
    * pieces for as long as the child runs.
    */
-  export type StreamingEventName = 'turn.step' | 'process.spawn';
+  export type StreamingEventName = 'turn.step' | 'process.spawn' | (keyof NounChunkOf & string);
 
   /**
    * The rest of the chain as a hook on a streaming event receives it: Next,

@@ -1,7 +1,7 @@
 import type { EngineInterface } from 'claude-code'
 
 import type { Call } from './call.js'
-import { placed } from './placed.js'
+import { fold, placed } from './placed.js'
 import { writtenPathOf } from './written-path-of.js'
 
 /**
@@ -18,7 +18,7 @@ export async function writeRepeats(
   remembered: readonly Call[],
   path: string,
 ): Promise<Call[]> {
-  const real = await placed($, path).catch(() => undefined)
+  const real = await placed($, path).then(fold).catch(() => undefined)
   const places = new Map<string, typeof real>()
   const repeated: Call[] = []
 
@@ -30,7 +30,7 @@ export async function writeRepeats(
     }
 
     const place =
-      places.get(theirs) ?? (await placed($, theirs).catch(() => real))
+      places.get(theirs) ?? (await placed($, theirs).then(fold).catch(() => real))
     places.set(theirs, place)
 
     if (place === real || real === undefined) {

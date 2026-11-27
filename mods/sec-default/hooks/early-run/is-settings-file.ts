@@ -1,7 +1,7 @@
 import type { EngineInterface } from 'claude-code'
 
 import { configFolders, type FirstFolder } from './config-folders.js'
-import { BY_NAME, isWindows, placed, shortened } from './placed.js'
+import { BY_NAME, fold, isWindows, placed, shortened } from './placed.js'
 
 /**
  * Whether a write lands on a Claude Code settings file that can hold
@@ -27,7 +27,7 @@ export async function isSettingsFile(
   const folders = await configFolders($, first)
   const isWin = await isWindows($, [path, ...folders].join()).catch(() => {})
   const isNamed = (one: string) =>
-    BY_NAME.test(one) && !(isWin && /e$/i.test(one))
+    BY_NAME.test(fold(one)) && !(isWin && /e$/i.test(one))
   const names = [
     ...folders.map(folder => `${folder}/settings.json`),
     ...folders.map(folder => `${folder}/cowork_settings.json`),
@@ -51,9 +51,9 @@ export async function isSettingsFile(
   return (
     isNamed(short) ||
     isNamed(real) ||
-    files.includes(real) ||
+    files.some(file => fold(file) === fold(real)) ||
     (mayTake &&
-      (files.some(file => file.startsWith(`${real}/`)) ||
+      (files.some(file => fold(file).startsWith(fold(`${real}/`))) ||
         (await isLinkOnTheWay())))
   )
 }

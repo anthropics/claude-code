@@ -1,8 +1,10 @@
 import type { EngineInterface } from 'claude-code'
 
+import { fold } from './placed.js'
+
 const NAME = /settings(\.local)?\.json/i
 const UNDER_CLAUDE =
-  /\.claude\/(settings|settings\.local|cowork_settings)\.json/
+  /\.claude\/(settings|settings\.local|cowork_settings)\.json/i
 
 /**
  * Whether a text about to be run names a Claude Code settings file: under a
@@ -20,7 +22,7 @@ export async function namesSettingsFile(
   served: readonly string[],
 ): Promise<boolean> {
   const naming = texts
-    .filter(text => NAME.test(text) && !served.includes(text))
+    .filter(text => NAME.test(fold(text)) && !served.includes(text))
     .map(plain)
 
   if (naming.length === 0) {
@@ -37,10 +39,9 @@ export async function namesSettingsFile(
   return naming.some(
     text =>
       UNDER_CLAUDE.test(text) ||
-      text.includes('claude_config_dir') ||
+      text.includes('CLAUDE_CONFIG_DIR') ||
       files.some(file => text.includes(file)),
   )
 }
 
-const plain = (text: string): string =>
-  text.replace(/[/\\]+/g, '/').toLowerCase()
+const plain = (text: string): string => fold(text.replace(/[/\\]+/g, '/'))

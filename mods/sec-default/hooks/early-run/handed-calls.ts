@@ -1,6 +1,7 @@
 import type { Call } from './call.js'
 import { CODE_TOOLS } from './code-tools.js'
 import { isScript } from './is-script.js'
+import { fold } from './placed.js'
 import { stringsOf } from './strings-of.js'
 
 /**
@@ -55,8 +56,8 @@ export const handedCalls = (
             const line = spaced(value)
 
             return (key === undefined ? line.includes(' ') : !isBare(value))
-              ? holdsWhole(all, line)
-              : (isMcp || key !== undefined) && whole.has(value.toLowerCase())
+              ? [line, fold(line)].some(one => holdsWhole(all, one))
+              : (isMcp || key !== undefined) && whole.has(fold(value))
           })
       })
 
@@ -72,7 +73,8 @@ const spaced = (text: string): string =>
 type Lines = { whole: ReadonlySet<string>; all: string }
 
 function linesOf(texts: readonly string[]): Lines {
-  const lines = texts.map(spaced)
+  // Both ways: folded alone, two words could read as one.
+  const lines = texts.map(spaced).flatMap(line => [line, fold(line)])
 
   return { whole: new Set(lines), all: lines.join('\n') }
 }

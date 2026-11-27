@@ -4,11 +4,9 @@ import { admissionFailure } from './admission-failure'
 import EarlyRun, {
   configFolders,
   type FirstFolder,
-  isSettingsFile,
   namesSettingsFile,
   ownCallMatch,
   refusalOf,
-  writeRepeats,
 } from './early-run'
 import HeldVerdict from './held-verdict'
 import HotReloadPrompt from './hot-reload-prompt'
@@ -266,14 +264,27 @@ export function register(on: On) {
     }
   })
 
-  on('tool.run', ($, e, next) => {
+  on('tool.run', async ($, e, next) => {
+    const call = EarlyRun.callOf(e)
     const id = e.tool_use_id
 
     if (!EarlyRun.isUnasked(id)) {
-      memory.allowed(id, EarlyRun.callOf(e), EarlyRun.makerOf(id, next.origin))
+      memory.allowed(id, call, EarlyRun.makerOf(id, next.origin))
+
+      return next(e)
     }
 
-    return next(e)
+    const { tier, plugin } = next.origin
+
+    if (tier !== 'user' || EarlyRun.writtenPathOf(call, '') === undefined) {
+      return next(e)
+    }
+
+    const again = await ownCallMatch($, memory, first, call, plugin, 'tool')
+    const { repeated, isSettings, write } = again
+    const deny = await refusalOf($, readPolicy, repeated, isSettings, write)
+
+    return deny === undefined ? next(e) : { deny }
   })
 
   on('prompt.submit', ($, e, next) => {
@@ -289,14 +300,11 @@ export function register(on: On) {
       return next(e)
     }
 
-    const remembered = memory.calls(next.origin.plugin)
-    const deny = await refusalOf(
-      $,
-      readPolicy,
-      await writeRepeats($, remembered, e.path),
-      await isSettingsFile($, e.path, first, e.text === ''),
-      { path: e.path, first, remembered },
-    )
+    const call = { tool: 'Write', input: { file_path: e.path } }
+    const by = e.text === '' ? 'take' : 'fs'
+    const match = await ownCallMatch($, memory, first, call, next.origin.plugin, by)
+    const { repeated, isSettings, write } = match
+    const deny = await refusalOf($, readPolicy, repeated, isSettings, write)
 
     return deny === undefined ? next(e) : { deny }
   })
@@ -434,6 +442,7 @@ export function register(on: On) {
             first,
             { tool: e.tool, input: Object(e.input) },
             next.origin.plugin,
+            'tool',
           )
         : undefined
     const isMatched =

@@ -2,13 +2,14 @@ import type { Call } from './call.js'
 import { CODE_TOOLS } from './code-tools.js'
 import { handedCalls } from './handed-calls.js'
 import { nameOf } from './name-of.js'
+import { fold } from './placed.js'
 
 // Given a script's file first, these hand what follows to that script as data.
 const INTERPRETERS =
-  /^(sh|bash|zsh|dash|ksh|fish|python|node|bun|deno|ruby|perl|php|osascript)$/
-const WINDOWS_SHELLS = /^(pwsh|powershell|cmd)$/
+  /^(sh|bash|zsh|dash|ksh|fish|python|node|bun|deno|ruby|perl|php|osascript)$/i
+const WINDOWS_SHELLS = /^(pwsh|powershell|cmd)$/i
 const WRAPPERS =
-  /^(wsl|env|sudo|doas|ssh|docker|podman|xargs|nohup|timeout|nice)$/
+  /^(wsl|env|sudo|doas|ssh|docker|podman|xargs|nohup|timeout|nice)$/i
 const NO_SCRIPT_FILE = /^(-|eval$|exec$)|^\/dev\/|(^|\/)(stdin|fd\/\d+)$/i
 
 /**
@@ -26,7 +27,7 @@ export function processRepeats(
   argv: readonly string[],
   stdin = '',
 ): Call[] {
-  const names = argv.map(nameOf)
+  const names = argv.map(item => fold(nameOf(item)))
   const at = WRAPPERS.test(names[0] ?? '')
     ? 0
     : names.findIndex(
@@ -34,10 +35,10 @@ export function processRepeats(
       )
   const [first = '-', ...rest] = argv.slice(at + 1)
   const isScriptRun =
-    INTERPRETERS.test(names[at] ?? '') &&
+    INTERPRETERS.test(nameOf(argv[at] ?? '')) &&
     // An item of several lines may be text that ends in a path, so nothing after it is let go as data.
     !/[\n\r\u2028\u2029]/.test(argv[at] ?? '') &&
-    ![first, plainPath(first)].some(path => NO_SCRIPT_FILE.test(path))
+    ![first, plainPath(first)].some(path => NO_SCRIPT_FILE.test(fold(path)))
   const words: string[] = []
   const starts = new Set<number>()
 
@@ -52,24 +53,20 @@ export function processRepeats(
     }
   }
 
-  const folded = words.map(word => word.toLowerCase())
+  const folded = words.map(fold)
 
   return [
     ...remembered.flatMap(call => {
       const { tool, input, served = [] } = call
       const isShell = CODE_TOOLS.get(tool) === 'command'
-      const command = isShell
-        ? plainLine(String(input.command ?? '')).toLowerCase()
-        : ''
+      const command = isShell ? fold(plainLine(String(input.command ?? ''))) : ''
       const isRepeat =
         command !== '' &&
         endsIn(folded, starts, command) &&
         !served
           .map(plainLine)
           .some(
-            text =>
-              text.toLowerCase().endsWith(command) &&
-              endsIn(words, starts, text),
+            text => fold(text).endsWith(command) && endsIn(words, starts, text),
           )
 
       const asked = tool.startsWith('mcp__')

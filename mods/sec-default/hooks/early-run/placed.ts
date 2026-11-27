@@ -11,6 +11,8 @@ const STEPPED = /\.claude[/\\](.*[/\\])?\.{0,2}([/\\]|$)/is
 export const BY_NAME =
   /(^|[/\\])\.claude([/\\](settings(\.local)?|cowork_settings)\.json)?$/i
 export const disk: { isWindows?: boolean } = {}
+// SECURITY: to hold by, and never alone to let through by: it can make one name of two files.
+export const fold = (text: string): string => text.toLowerCase().toUpperCase()
 
 /**
  * Where a path lands, links followed and a file not there yet included, in
@@ -34,7 +36,7 @@ export async function placed(
       const isStepped = !(await isWindows($, path)) && STEPPED.test(path)
       const named = isStepped && (await shortened($, path)).join('/')
 
-      return placed($, named && BY_NAME.test(named) ? named : path, PARTS)
+      return placed($, named && BY_NAME.test(fold(named)) ? named : path, PARTS)
     }
 
     const parts = await shortened($, path)
@@ -54,7 +56,7 @@ export async function placed(
     }
 
     const isMaybeIt = (one: string) =>
-      /[^ -~]/.test(one) || one.toLowerCase() === name.toLowerCase()
+      /[^ -~]/.test(one) || fold(one) === fold(name)
     const listed = await $.fs.list(folder).catch((no: unknown) => {
       return GONE.test(Object(no).message) ? [] : Promise.reject(error)
     })
@@ -64,7 +66,7 @@ export async function placed(
     }
   })
   // SECURITY: there and absent take the same looks.
-  const isNamed = !disk.isWindows && BY_NAME.test(path)
+  const isNamed = !disk.isWindows && BY_NAME.test(fold(path))
   const up = isNamed && /n$/i.test(name) && (await placed($, folder, 0))
 
   if (
