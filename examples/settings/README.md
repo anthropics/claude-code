@@ -25,6 +25,7 @@ These may be applied at any level of the [settings hierarchy](https://code.claud
 - Settings files must be valid JSON
 - Before deploying configuration files to your organization, test them locally by applying to `managed-settings.json`, `settings.json` or `settings.local.json`
 - The `sandbox` property only applies to the `Bash` tool; it does not apply to other tools (like Read, Write, WebSearch, WebFetch, MCPs), hooks, or internal commands
+- The sandbox is available on macOS, Linux, and WSL2 only. When it cannot initialize (e.g. native Windows, or Linux hosts without bubblewrap), Claude Code warns and runs Bash commands unsandboxed unless `failIfUnavailable` is set to `true` — [`settings-bash-sandbox.json`](./settings-bash-sandbox.json) sets it so the sandbox requirement fails closed
 
 ## Deploying via MDM
 
