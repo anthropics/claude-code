@@ -1,6 +1,6 @@
 # Claude apps gateway on ECS Fargate — Terraform equivalent of setup.sh.
 # Section markers (§N) map to setup.sh and the walkthrough:
-# https://code.claude.com/docs/en/claude-apps-gateway-on-aws
+# https://code.claude.com/docs/en/claude-apps-gateway
 #
 # Unlike the GCP example this module does NOT create the network — the VPC and
 # private subnets are walkthrough prerequisites, passed in as variables.
