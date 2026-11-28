@@ -271,7 +271,10 @@ async function autoCloseDuplicates(): Promise<void> {
   );
 }
 
-autoCloseDuplicates().catch(console.error);
+autoCloseDuplicates().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});
 
 // Make it a module
 export {};
