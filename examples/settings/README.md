@@ -25,6 +25,7 @@ These may be applied at any level of the [settings hierarchy](https://code.claud
 - Settings files must be valid JSON
 - Before deploying configuration files to your organization, test them locally by applying to `managed-settings.json`, `settings.json` or `settings.local.json`
 - The `sandbox` property only applies to the `Bash` tool; it does not apply to other tools (like Read, Write, WebSearch, WebFetch, MCPs), hooks, or internal commands
+- Approving a network domain at the Claude Code prompt allows it for the current session only. To persist the decision across sessions, add the host to `sandbox.network.allowedDomains` in your settings (see `settings-bash-sandbox.json`). See [Network isolation](https://code.claude.com/docs/en/sandboxing#network-isolation).
 
 ## Deploying via MDM
 
