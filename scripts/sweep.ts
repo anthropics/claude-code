@@ -7,6 +7,9 @@ import { lifecycle, STALE_EXEMPT_LABELS, STALE_UPVOTE_THRESHOLD } from "./issue-
 const NEW_ISSUE = "https://github.com/anthropics/claude-code/issues/new/choose";
 const DRY_RUN = process.argv.includes("--dry-run");
 
+// Each issue marked stale gets a comment, and GitHub limits how fast those can be posted.
+const MAX_STALE_PER_RUN = 100;
+
 const CLOSE_MESSAGE = (reason: string) =>
   `Closing for now — ${reason}. Please [open a new issue](${NEW_ISSUE}) if this is still relevant.`;
 
@@ -46,7 +49,8 @@ const isStaleExempt = (issue: any) =>
   issue.labels?.some((l: any) => STALE_EXEMPT_LABELS.includes(l.name));
 
 async function markStale(owner: string, repo: string) {
-  const staleDays = lifecycle.find((l) => l.label === "stale")!.days;
+  const { days: staleDays, nudge } = lifecycle.find((l) => l.label === "stale")!;
+  const warning = `${nudge} This issue will be closed automatically if there's no activity within ${staleDays} days.`;
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - staleDays);
 
@@ -91,10 +95,13 @@ async function markStale(owner: string, repo: string) {
         const age = Math.floor((Date.now() - updatedAt.getTime()) / 86400000);
         console.log(`#${issue.number}: would label stale (${age}d inactive) — ${issue.title}`);
       } else {
+        // Labels added with GITHUB_TOKEN don't trigger issue-lifecycle-comment.yml.
+        await githubRequest(`${base}/comments`, "POST", { body: warning });
         await githubRequest(`${base}/labels`, "POST", { labels: ["stale"] });
+        await new Promise((resolve) => setTimeout(resolve, 1000));
         console.log(`#${issue.number}: labeled stale — ${issue.title}`);
       }
-      labeled++;
+      if (++labeled >= MAX_STALE_PER_RUN) return labeled;
     }
   }
 
