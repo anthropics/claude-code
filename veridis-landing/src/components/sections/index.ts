@@ -1,0 +1,11 @@
+export { Navigation } from "./Navigation";
+export { Hero } from "./Hero";
+export { LogoCloud } from "./LogoCloud";
+export { CodeDemo } from "./CodeDemo";
+export { Features } from "./Features";
+export { HowItWorks } from "./HowItWorks";
+export { Stats } from "./Stats";
+export { Pricing } from "./Pricing";
+export { Testimonials } from "./Testimonials";
+export { CTA } from "./CTA";
+export { Footer } from "./Footer";
