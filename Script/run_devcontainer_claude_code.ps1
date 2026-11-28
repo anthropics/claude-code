@@ -61,32 +61,33 @@ if ($Backend -eq 'podman') {
     Write-Host "--- Podman Backend Initialization ---"
 
     # --- Step 1a: Initialize Podman machine ---
+    # A non-zero exit here usually just means the machine already exists, so this
+    # is intentionally tolerated rather than fatal.
     Write-Host "Initializing Podman machine 'claudeVM'..."
-    try {
-        & podman machine init claudeVM
-        Write-Host "Podman machine 'claudeVM' initialized or already exists."
-    } catch {
-        Write-Error "Failed to initialize Podman machine: $($_.Exception.Message)"
-        exit 1 # Exit script on error
+    & podman machine init claudeVM
+    if ($LASTEXITCODE -ne 0) {
+        Write-Warning "'podman machine init claudeVM' exited with code $LASTEXITCODE (the machine may already exist). Continuing."
+    } else {
+        Write-Host "Podman machine 'claudeVM' initialized."
     }
 
     # --- Step 1b: Start Podman machine ---
+    # Likewise tolerated: starting an already-running machine exits non-zero.
     Write-Host "Starting Podman machine 'claudeVM'..."
-    try {
-        & podman machine start claudeVM -q
-        Write-Host "Podman machine started or already running."
-    } catch {
-        Write-Error "Failed to start Podman machine: $($_.Exception.Message)"
-        exit 1
+    & podman machine start claudeVM -q
+    if ($LASTEXITCODE -ne 0) {
+        Write-Warning "'podman machine start claudeVM' exited with code $LASTEXITCODE (the machine may already be running). Continuing."
+    } else {
+        Write-Host "Podman machine started."
     }
 
     # --- Step 2: Set default connection ---
     Write-Host "Setting default Podman connection to 'claudeVM'..."
-    try {
-        & podman system connection default claudeVM
+    & podman system connection default claudeVM
+    if ($LASTEXITCODE -ne 0) {
+        Write-Warning "Failed to set default Podman connection (exit code $LASTEXITCODE); it may already be set."
+    } else {
         Write-Host "Default connection set."
-    } catch {
-        Write-Warning "Failed to set default Podman connection (may be already set or machine issue): $($_.Exception.Message)"
     }
 
 } elseif ($Backend -eq 'docker') {
@@ -94,59 +95,60 @@ if ($Backend -eq 'podman') {
 
     # --- Step 1 & 2: Check Docker Desktop ---
     Write-Host "Checking if Docker Desktop is running and docker command is available..."
-    try {
-        docker info | Out-Null
-        Write-Host "Docker Desktop (daemon) is running."
-    } catch {
-        Write-Error "Docker Desktop is not running or docker command not found."
+    & docker info | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "Docker Desktop is not running or docker command not found (exit code $LASTEXITCODE)."
         Write-Error "Please ensure Docker Desktop is running."
         exit 1
     }
+    Write-Host "Docker Desktop (daemon) is running."
 }
 
 # --- Step 3: Bring up DevContainer ---
 Write-Host "Bringing up DevContainer in the current folder..."
-try {
-    $arguments = @('up', '--workspace-folder', '.')
-    if ($Backend -eq 'podman') {
-        $arguments += '--docker-path', 'podman'
-    }
-    & devcontainer @arguments
-    Write-Host "DevContainer startup process completed."
-} catch {
-    Write-Error "Failed to bring up DevContainer: $($_.Exception.Message)"
+$arguments = @('up', '--workspace-folder', '.')
+if ($Backend -eq 'podman') {
+    $arguments += '--docker-path', 'podman'
+}
+& devcontainer @arguments
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "Failed to bring up DevContainer (Command: devcontainer $($arguments -join ' ') - exit code $LASTEXITCODE)."
     exit 1
 }
+Write-Host "DevContainer startup process completed."
 
 # --- Step 4: Get DevContainer ID ---
 Write-Host "Finding the DevContainer ID..."
 $currentFolder = (Get-Location).Path
+$displayCommand = "$Backend ps --filter `"label=devcontainer.local_folder=$currentFolder`" --format '{{.ID}}'"
 
-try {
-    $containerId = (& $Backend ps --filter "label=devcontainer.local_folder=$currentFolder" --format '{{.ID}}').Trim()
-} catch {
-    $displayCommand = "$Backend ps --filter `"label=devcontainer.local_folder=$currentFolder`" --format '{{.ID}}'"
-    Write-Error "Failed to get container ID (Command: $displayCommand): $($_.Exception.Message)"
+# Note: no .Trim() here - when nothing matches, the command emits no output and
+# calling a method on the resulting $null would throw before the check below.
+$containerId = & $Backend ps --filter "label=devcontainer.local_folder=$currentFolder" --format '{{.ID}}'
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "Failed to get container ID (Command: $displayCommand - exit code $LASTEXITCODE)."
     exit 1
 }
 
-if (-not $containerId) {
+# Multiple matches would otherwise be passed on as an array and break 'exec'.
+$containerId = ($containerId | Select-Object -First 1)
+if ([string]::IsNullOrWhiteSpace($containerId)) {
     Write-Error "Could not find DevContainer ID for the current folder ('$currentFolder')."
     Write-Error "Please check if 'devcontainer up' was successful and the container is running."
     exit 1
 }
+$containerId = $containerId.Trim()
 Write-Host "Found container ID: $containerId"
 
 # --- Step 5 & 6: Execute command and enter interactive shell inside container ---
 Write-Host "Executing 'claude' command and then starting zsh session inside container $($containerId)..."
-try {
-    & $Backend exec -it $containerId zsh -c 'claude; exec zsh'
-    Write-Host "Interactive session ended."
-} catch {
+& $Backend exec -it $containerId zsh -c 'claude; exec zsh'
+if ($LASTEXITCODE -ne 0) {
     $displayCommand = "$Backend exec -it $containerId zsh -c 'claude; exec zsh'"
-    Write-Error "Failed to execute command inside container (Command: $displayCommand): $($_.Exception.Message)"
+    Write-Error "Failed to execute command inside container (Command: $displayCommand - exit code $LASTEXITCODE)."
     exit 1
 }
+Write-Host "Interactive session ended."
 
 # Notify script completion
 Write-Host "--- Script completed ---"
