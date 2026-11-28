@@ -3068,8 +3068,7 @@ declare module 'claude-code' {
            * instances this plugin may draw again; the others drop the cached answers.
            *
            * A redraw: ten a second at most, thirty in the terminal for a shown pane,
-           * expanded band and prompt hint (sooner calls fold), down to one in five
-           * seconds for the rows of a long terminal scrollback. A cached answer drops
+           * expanded band and prompt hint (sooner calls fold). A cached answer drops
            * next turn; a changed tool or section text then waits, as
            * `breakPromptCache` on its answer tells.
            *
