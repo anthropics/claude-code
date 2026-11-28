@@ -1,0 +1,9 @@
+{
+  "name": "agent-sdk-dev",
+  "description": "Claude Agent SDK Development Plugin",
+  "version": "1.0.0",
+  "author": {
+    "name": "Ashwin Bhat",
+    "email": "ashwin@anthropic.com"
+  }
+}
