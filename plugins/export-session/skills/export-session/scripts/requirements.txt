@@ -1,0 +1,2 @@
+python-docx>=1.1.0
+fpdf2>=2.7.0
