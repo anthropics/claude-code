@@ -1,0 +1,13 @@
+{
+  "name": "project-theme",
+  "version": "0.1.0",
+  "description": "Applies per-project theme settings from .claude/settings.json",
+  "author": "12britz",
+  "hooks": [
+    {
+      "event": "SessionStart",
+      "script": "hooks/apply-theme.sh",
+      "description": "Apply project-specific theme on session start"
+    }
+  ]
+}
