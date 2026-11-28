@@ -1,0 +1,14 @@
+source-build-australia/node_modules
+source-build-australia/.next
+.git
+plugins
+examples
+brand
+*.md
+*.gif
+demo.gif
+Script
+.devcontainer
+.vscode
+.github
+.claude
