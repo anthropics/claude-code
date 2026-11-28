@@ -4,11 +4,11 @@ contact_links:
     url: https://anthropic.com/discord
     about: Get help, ask questions, and chat with other Claude Code users
   - name: 📖 Documentation
-    url: https://docs.claude.com/en/docs/claude-code
+    url: https://code.claude.com/docs/en
     about: Read the official documentation and guides
   - name: 🎓 Getting Started Guide
-    url: https://docs.claude.com/en/docs/claude-code/quickstart
+    url: https://code.claude.com/docs/en/quickstart
     about: New to Claude Code? Start here
   - name: 🔧 Troubleshooting Guide
-    url: https://docs.claude.com/en/docs/claude-code/troubleshooting
+    url: https://code.claude.com/docs/en/troubleshooting
     about: Common issues and how to fix them
