@@ -1,0 +1,17 @@
+{
+  "description": "Removes 'nul' files created by Claude Code on Windows when bash commands use '2>nul' redirection",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/remove-nul.js",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}
